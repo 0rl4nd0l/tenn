@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 from playwright.async_api import async_playwright
 
@@ -10,10 +11,8 @@ URL = "https://www.marketindex.com.au/asx-announcements"
 async def fetch():
     async with async_playwright() as p:
         browser = await p.chromium.launch(
-            headless=False,  # IMPORTANT
-            args=[
-                "--disable-blink-features=AutomationControlled"
-            ]
+            headless=False,
+            args=["--disable-blink-features=AutomationControlled"]
         )
 
         context = await browser.new_context(
@@ -22,24 +21,51 @@ async def fetch():
 
         page = await context.new_page()
 
-        # Remove webdriver flag
         await page.add_init_script("""
             Object.defineProperty(navigator, 'webdriver', {
                 get: () => undefined
             })
         """)
 
-        print("Opening page...")
+        print("Loading page...")
         await page.goto(URL, timeout=60000)
 
-        await page.wait_for_timeout(8000)
+        await page.wait_for_selector("table")
 
-        content = await page.content()
+        rows = await page.query_selector_all("table tbody tr")
 
-        with open("debug_page.html", "w", encoding="utf-8") as f:
-            f.write(content)
+        print(f"Found {len(rows)} rows")
 
-        print("Saved page.")
+        announcements = []
+
+        for row in rows:
+            cols = await row.query_selector_all("td")
+
+            if len(cols) < 4:
+                continue
+
+            time_text = await cols[0].inner_text()
+            ticker = await cols[1].inner_text()
+            company = await cols[2].inner_text()
+            heading = await cols[3].inner_text()
+
+            link_element = await cols[3].query_selector("a")
+            link = None
+            if link_element:
+                link = await link_element.get_attribute("href")
+
+            announcements.append({
+                "time": time_text.strip(),
+                "ticker": ticker.strip(),
+                "company": company.strip(),
+                "heading": heading.strip(),
+                "link": link
+            })
+
+        with open(os.path.join(SAVE_DIR, "latest.json"), "w") as f:
+            json.dump(announcements, f, indent=2)
+
+        print("Saved structured announcements.")
 
         await browser.close()
 
