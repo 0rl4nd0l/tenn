@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 from playwright.async_api import async_playwright
 
-URL = "https://www.marketindex.com.au/asx/announcements"
+BASE_URL = "https://www.marketindex.com.au/asx/announcements?page="
 OUTPUT_FILE = "data/raw/marketindex_announcements.json"
 
 
@@ -11,69 +11,82 @@ async def fetch_announcements():
     async with async_playwright() as p:
 
         browser = await p.chromium.launch(
-            headless=False,  # IMPORTANT: Avoid Cloudflare detection
+            headless=False,
             args=["--disable-blink-features=AutomationControlled"]
         )
 
         context = await browser.new_context()
         page = await context.new_page()
 
-        print("Opening page...")
-        await page.goto(URL, wait_until="networkidle", timeout=90000)
+        all_announcements = []
+        page_number = 1
 
-        print("Waiting for announcement rows...")
+        while True:
+            url = BASE_URL + str(page_number)
+            print(f"Loading page {page_number}...")
+            await page.goto(url, wait_until="networkidle", timeout=90000)
 
-        # Wait specifically for rows instead of table
-        await page.wait_for_selector("tbody tr", timeout=90000)
+            try:
+                await page.wait_for_selector("tbody tr", timeout=30000)
+            except:
+                print("No rows found, stopping.")
+                break
 
-        rows = await page.query_selector_all("tbody tr")
+            rows = await page.query_selector_all("tbody tr")
 
-        print(f"Found {len(rows)} rows")
+            if not rows:
+                print("No more rows.")
+                break
 
-        announcements = []
+            print(f"Found {len(rows)} rows on page {page_number}")
 
-        for row in rows:
-            cols = await row.query_selector_all("td")
+            for row in rows:
+                cols = await row.query_selector_all("td")
+                if len(cols) < 4:
+                    continue
 
-            if len(cols) < 4:
-                continue
+                time = await cols[0].inner_text()
+                ticker = await cols[1].inner_text()
+                company = await cols[2].inner_text()
+                heading_cell = cols[3]
+                heading = await heading_cell.inner_text()
 
-            time = await cols[0].inner_text()
-            ticker = await cols[1].inner_text()
-            company = await cols[2].inner_text()
-            heading_cell = cols[3]
+                link = None
+                link_element = await heading_cell.query_selector("a")
+                if link_element:
+                    href = await link_element.get_attribute("href")
+                    if href:
+                        if href.startswith("http"):
+                            link = href
+                        else:
+                            link = "https://www.marketindex.com.au" + href
 
-            heading = await heading_cell.inner_text()
+                all_announcements.append({
+                    "time": time.strip(),
+                    "ticker": ticker.strip(),
+                    "company": company.strip(),
+                    "heading": heading.strip(),
+                    "link": link
+                })
 
-            link = None
-            link_element = await heading_cell.query_selector("a")
+            # Stop if fewer than 100 rows (last page)
+            if len(rows) < 100:
+                break
 
-            if link_element:
-                href = await link_element.get_attribute("href")
-                if href:
-                    if href.startswith("http"):
-                        link = href
-                    else:
-                        link = "https://www.marketindex.com.au" + href
-
-            announcements.append({
-                "time": time.strip(),
-                "ticker": ticker.strip(),
-                "company": company.strip(),
-                "heading": heading.strip(),
-                "link": link
-            })
+            page_number += 1
 
         await browser.close()
+
+        print(f"\nTotal collected: {len(all_announcements)}")
 
         with open(OUTPUT_FILE, "w") as f:
             json.dump({
                 "fetched_at": datetime.now().isoformat(),
-                "count": len(announcements),
-                "announcements": announcements
+                "count": len(all_announcements),
+                "announcements": all_announcements
             }, f, indent=2)
 
-        print(f"Saved {len(announcements)} announcements.")
+        print("Saved all announcements.")
 
 
 if __name__ == "__main__":
