@@ -4,36 +4,29 @@ from datetime import datetime
 from playwright.async_api import async_playwright
 
 URL = "https://www.marketindex.com.au/asx/announcements"
-
 OUTPUT_FILE = "data/raw/marketindex_announcements.json"
 
 
 async def fetch_announcements():
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+
+        browser = await p.chromium.launch(
+            headless=False,  # IMPORTANT: Avoid Cloudflare detection
+            args=["--disable-blink-features=AutomationControlled"]
+        )
+
         context = await browser.new_context()
         page = await context.new_page()
 
         print("Opening page...")
-        await page.goto(URL, timeout=60000)
+        await page.goto(URL, wait_until="networkidle", timeout=90000)
 
-        # Wait for table to render
-        await page.wait_for_selector("table")
+        print("Waiting for announcement rows...")
 
-        print("Opening items-per-page dropdown...")
+        # Wait specifically for rows instead of table
+        await page.wait_for_selector("tbody tr", timeout=90000)
 
-        # Click items-per-page control (adjust if text differs)
-        try:
-            await page.locator("text=Items per page").click()
-            await page.wait_for_timeout(1000)
-            await page.locator("text=1000").click()
-            await page.wait_for_timeout(5000)
-        except:
-            print("Could not auto-select 1000, continuing with default.")
-
-        print("Extracting rows...")
-
-        rows = await page.query_selector_all("table tbody tr")
+        rows = await page.query_selector_all("tbody tr")
 
         print(f"Found {len(rows)} rows")
 
@@ -48,11 +41,12 @@ async def fetch_announcements():
             time = await cols[0].inner_text()
             ticker = await cols[1].inner_text()
             company = await cols[2].inner_text()
-            heading = await cols[3].inner_text()
+            heading_cell = cols[3]
 
-            # Extract PDF link
-            link_element = await cols[3].query_selector("a")
+            heading = await heading_cell.inner_text()
+
             link = None
+            link_element = await heading_cell.query_selector("a")
 
             if link_element:
                 href = await link_element.get_attribute("href")
@@ -72,7 +66,6 @@ async def fetch_announcements():
 
         await browser.close()
 
-        # Save file
         with open(OUTPUT_FILE, "w") as f:
             json.dump({
                 "fetched_at": datetime.now().isoformat(),
