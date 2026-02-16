@@ -1,75 +1,116 @@
 import requests
+import time
 import os
 import json
+from datetime import datetime, timezone, timedelta
 
-URL = "https://data-api.marketindex.com.au/api/v1/announcements"
+# =========================
+# CONFIG
+# =========================
 
+BASE_URL = "https://data-api.marketindex.com.au/api/v1/announcements"
+LIMIT = 100
+RATE_DELAY = 3  # seconds between requests
+MAX_RETRIES = 3
+
+SAVE_DIR = "data/raw"
+os.makedirs(SAVE_DIR, exist_ok=True)
+
+# Browser-like headers
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
     "Referer": "https://www.marketindex.com.au/",
-    "Origin": "https://www.marketindex.com.au",
-    "Accept": "application/json",
+    "Connection": "keep-alive"
 }
 
-RAW_DIR = "data/raw"
-PROCESSED_FILE = "data/processed_ids.json"
 
-os.makedirs(RAW_DIR, exist_ok=True)
+# =========================
+# HELPER FUNCTIONS
+# =========================
 
-# Load processed IDs
-if os.path.exists(PROCESSED_FILE):
-    with open(PROCESSED_FILE, "r") as f:
-        processed = set(json.load(f))
-else:
-    processed = set()
+def get_today_range():
+    """Return today start and end in ISO format with timezone."""
+    now = datetime.now(timezone(timedelta(hours=11)))  # AEST/AEDT adjust if needed
+    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    end = now.replace(hour=23, minute=59, second=59, microsecond=0)
+    return start.isoformat(), end.isoformat()
 
-params = {
-    "limit": 100,
-    "offset": 0,
-    "fullTextSearch": "true"
-}
 
-response = requests.get(URL, params=params, headers=HEADERS)
+def fetch_announcements():
+    start, end = get_today_range()
 
-if response.status_code != 200:
-    print("Blocked:", response.status_code)
-    print(response.text[:200])
-    exit()
+    params = {
+        "limit": LIMIT,
+        "offset": 0,
+        "fullTextSearch": "true",
+        "from": start,
+        "to": end
+    }
 
-data = response.json()
-announcements = data["data"]["announcements"]
+    for attempt in range(MAX_RETRIES):
+        try:
+            response = requests.get(BASE_URL, headers=HEADERS, params=params, timeout=10)
 
-new_ids = []
+            if response.status_code != 200:
+                print(f"Blocked or error: {response.status_code}")
+                print(response.text[:200])
+                time.sleep(5)
+                continue
 
-for item in announcements:
+            return response.json()
 
-    identifier = item["identifier"]
+        except Exception as e:
+            print("Fetch error:", e)
+            time.sleep(5)
 
-    if identifier in processed:
-        continue
+    print("Failed after retries.")
+    return None
 
-    filename = identifier.replace(":", "_") + ".txt"
-    filepath = os.path.join(RAW_DIR, filename)
 
-    content = f"""
-Identifier: {identifier}
-Ticker: {item["symbolId"]}
-Company: {item["securityName"]}
-Heading: {item["heading"]}
-DateTime: {item["dateTime"]}
-PriceSensitive: {item["isPriceSensitive"]}
-PDF: https://data-api.marketindex.com.au/{item["fileKey"]}
-"""
+def save_announcement(item):
+    identifier = item.get("identifier")
+    heading = item.get("heading", "No Heading")
+
+    safe_filename = identifier.replace(":", "_")
+    filepath = os.path.join(SAVE_DIR, f"{safe_filename}.json")
+
+    if os.path.exists(filepath):
+        return False  # already saved
 
     with open(filepath, "w") as f:
-        f.write(content.strip())
+        json.dump(item, f, indent=2)
 
-    print("Saved:", item["heading"])
-    new_ids.append(identifier)
+    print(f"Saved: {heading}")
+    return True
 
-processed.update(new_ids)
 
-with open(PROCESSED_FILE, "w") as f:
-    json.dump(list(processed), f)
+# =========================
+# MAIN
+# =========================
 
-print("Fetch complete.")
+def main():
+    print("Fetching announcements...")
+    data = fetch_announcements()
+
+    if not data:
+        return
+
+    announcements = data.get("data", {}).get("announcements", [])
+
+    if not announcements:
+        print("No announcements found.")
+        return
+
+    saved_count = 0
+
+    for item in announcements:
+        if save_announcement(item):
+            saved_count += 1
+        time.sleep(RATE_DELAY)
+
+    print(f"\nFetch complete. {saved_count} new announcements saved.")
+
+
+if __name__ == "__main__":
+    main()
