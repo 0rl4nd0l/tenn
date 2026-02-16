@@ -8,8 +8,10 @@ os.makedirs(SAVE_DIR, exist_ok=True)
 
 URL = "https://www.marketindex.com.au/asx-announcements"
 
-async def fetch():
+async def fetch_announcements():
+
     async with async_playwright() as p:
+
         browser = await p.chromium.launch(
             headless=False,
             args=["--disable-blink-features=AutomationControlled"]
@@ -27,10 +29,22 @@ async def fetch():
             })
         """)
 
-        print("Loading page...")
+        print("Opening page...")
         await page.goto(URL, timeout=60000)
 
+        # Wait for table to appear
         await page.wait_for_selector("table")
+
+        print("Setting items per page to 1000...")
+
+        # Try selecting 1000 items per page
+        try:
+            await page.select_option("select", value="1000")
+            await page.wait_for_timeout(5000)
+        except:
+            print("Could not auto-select 1000, continuing with default.")
+
+        await page.wait_for_timeout(3000)
 
         rows = await page.query_selector_all("table tbody tr")
 
@@ -39,6 +53,7 @@ async def fetch():
         announcements = []
 
         for row in rows:
+
             cols = await row.query_selector_all("td")
 
             if len(cols) < 4:
@@ -49,10 +64,16 @@ async def fetch():
             company = await cols[2].inner_text()
             heading = await cols[3].inner_text()
 
-            link_element = await cols[3].query_selector("a")
             link = None
+            link_element = await row.query_selector("a")
+
             if link_element:
-                link = await link_element.get_attribute("href")
+                href = await link_element.get_attribute("href")
+                if href:
+                    if href.startswith("/"):
+                        link = "https://www.marketindex.com.au" + href
+                    else:
+                        link = href
 
             announcements.append({
                 "time": time_text.strip(),
@@ -62,11 +83,13 @@ async def fetch():
                 "link": link
             })
 
-        with open(os.path.join(SAVE_DIR, "latest.json"), "w") as f:
+        output_path = os.path.join(SAVE_DIR, "latest.json")
+
+        with open(output_path, "w") as f:
             json.dump(announcements, f, indent=2)
 
-        print("Saved structured announcements.")
+        print(f"Saved {len(announcements)} announcements.")
 
         await browser.close()
 
-asyncio.run(fetch())
+asyncio.run(fetch_announcements())
