@@ -26,11 +26,11 @@ async def fetch_announcements():
 
         await page.wait_for_selector("tbody tr", timeout=30000)
 
-        # Get pagination summary text
-        summary = await page.locator("text=Showing").first.inner_text()
-        print("Pagination summary:", summary)
+        # Grab full page content and extract pagination safely
+        content = await page.content()
 
-        match = re.search(r"of\s+(\d+)", summary)
+        match = re.search(r"Showing\s+\d+\s+to\s+\d+\s+of\s+(\d+)", content)
+
         if not match:
             print("Could not detect total count.")
             await browser.close()
@@ -45,6 +45,7 @@ async def fetch_announcements():
         all_announcements = []
 
         for page_number in range(1, total_pages + 1):
+
             print(f"\nLoading page {page_number}...")
 
             if page_number > 1:
