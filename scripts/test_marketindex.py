@@ -1,50 +1,37 @@
 import asyncio
 import json
-import os
+from datetime import datetime
 from playwright.async_api import async_playwright
 
-SAVE_DIR = "data/raw"
-os.makedirs(SAVE_DIR, exist_ok=True)
+URL = "https://www.marketindex.com.au/asx/announcements"
 
-URL = "https://www.marketindex.com.au/asx-announcements"
+OUTPUT_FILE = "data/raw/marketindex_announcements.json"
+
 
 async def fetch_announcements():
-
     async with async_playwright() as p:
-
-        browser = await p.chromium.launch(
-            headless=False,
-            args=["--disable-blink-features=AutomationControlled"]
-        )
-
-        context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-        )
-
+        browser = await p.chromium.launch(headless=True)
+        context = await browser.new_context()
         page = await context.new_page()
-
-        await page.add_init_script("""
-            Object.defineProperty(navigator, 'webdriver', {
-                get: () => undefined
-            })
-        """)
 
         print("Opening page...")
         await page.goto(URL, timeout=60000)
 
-        # Wait for table to appear
+        # Wait for table to render
         await page.wait_for_selector("table")
 
-        print("Setting items per page to 1000...")
+        print("Opening items-per-page dropdown...")
 
-        # Try selecting 1000 items per page
+        # Click items-per-page control (adjust if text differs)
         try:
-            await page.select_option("select", value="1000")
+            await page.locator("text=Items per page").click()
+            await page.wait_for_timeout(1000)
+            await page.locator("text=1000").click()
             await page.wait_for_timeout(5000)
         except:
             print("Could not auto-select 1000, continuing with default.")
 
-        await page.wait_for_timeout(3000)
+        print("Extracting rows...")
 
         rows = await page.query_selector_all("table tbody tr")
 
@@ -53,43 +40,48 @@ async def fetch_announcements():
         announcements = []
 
         for row in rows:
-
             cols = await row.query_selector_all("td")
 
             if len(cols) < 4:
                 continue
 
-            time_text = await cols[0].inner_text()
+            time = await cols[0].inner_text()
             ticker = await cols[1].inner_text()
             company = await cols[2].inner_text()
             heading = await cols[3].inner_text()
 
+            # Extract PDF link
+            link_element = await cols[3].query_selector("a")
             link = None
-            link_element = await row.query_selector("a")
 
             if link_element:
                 href = await link_element.get_attribute("href")
                 if href:
-                    if href.startswith("/"):
-                        link = "https://www.marketindex.com.au" + href
-                    else:
+                    if href.startswith("http"):
                         link = href
+                    else:
+                        link = "https://www.marketindex.com.au" + href
 
             announcements.append({
-                "time": time_text.strip(),
+                "time": time.strip(),
                 "ticker": ticker.strip(),
                 "company": company.strip(),
                 "heading": heading.strip(),
                 "link": link
             })
 
-        output_path = os.path.join(SAVE_DIR, "latest.json")
+        await browser.close()
 
-        with open(output_path, "w") as f:
-            json.dump(announcements, f, indent=2)
+        # Save file
+        with open(OUTPUT_FILE, "w") as f:
+            json.dump({
+                "fetched_at": datetime.now().isoformat(),
+                "count": len(announcements),
+                "announcements": announcements
+            }, f, indent=2)
 
         print(f"Saved {len(announcements)} announcements.")
 
-        await browser.close()
 
-asyncio.run(fetch_announcements())
+if __name__ == "__main__":
+    asyncio.run(fetch_announcements())
