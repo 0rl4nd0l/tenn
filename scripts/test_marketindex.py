@@ -1,10 +1,13 @@
 import asyncio
 import json
+import math
+import re
 from datetime import datetime
 from playwright.async_api import async_playwright
 
 BASE_URL = "https://www.marketindex.com.au/asx/announcements?page="
 OUTPUT_FILE = "data/raw/marketindex_announcements.json"
+ROWS_PER_PAGE = 100
 
 
 async def fetch_announcements():
@@ -18,27 +21,40 @@ async def fetch_announcements():
         context = await browser.new_context()
         page = await context.new_page()
 
+        # Load first page
+        print("Loading page 1...")
+        await page.goto(BASE_URL + "1", wait_until="networkidle", timeout=90000)
+
+        await page.wait_for_selector("tbody tr", timeout=30000)
+
+        # Extract total count from page text
+        page_text = await page.content()
+
+        match = re.search(r"of\s+(\d+)", page_text)
+        if not match:
+            print("Could not detect total announcement count.")
+            await browser.close()
+            return
+
+        total_announcements = int(match.group(1))
+        total_pages = math.ceil(total_announcements / ROWS_PER_PAGE)
+
+        print(f"Total announcements: {total_announcements}")
+        print(f"Total pages: {total_pages}")
+
         all_announcements = []
-        page_number = 1
 
-        while True:
-            url = BASE_URL + str(page_number)
-            print(f"Loading page {page_number}...")
-            await page.goto(url, wait_until="networkidle", timeout=90000)
+        for page_number in range(1, total_pages + 1):
+            print(f"\nLoading page {page_number}...")
 
-            try:
-                await page.wait_for_selector("tbody tr", timeout=30000)
-            except:
-                print("No rows found, stopping.")
-                break
+            if page_number > 1:
+                await page.goto(BASE_URL + str(page_number), wait_until="networkidle")
+
+            await page.wait_for_selector("tbody tr", timeout=30000)
 
             rows = await page.query_selector_all("tbody tr")
 
-            if not rows:
-                print("No more rows.")
-                break
-
-            print(f"Found {len(rows)} rows on page {page_number}")
+            print(f"Found {len(rows)} rows")
 
             for row in rows:
                 cols = await row.query_selector_all("td")
@@ -69,15 +85,9 @@ async def fetch_announcements():
                     "link": link
                 })
 
-            # Stop if fewer than 100 rows (last page)
-            if len(rows) < 100:
-                break
-
-            page_number += 1
-
         await browser.close()
 
-        print(f"\nTotal collected: {len(all_announcements)}")
+        print(f"\nCollected {len(all_announcements)} announcements.")
 
         with open(OUTPUT_FILE, "w") as f:
             json.dump({
@@ -86,7 +96,7 @@ async def fetch_announcements():
                 "announcements": all_announcements
             }, f, indent=2)
 
-        print("Saved all announcements.")
+        print("Saved successfully.")
 
 
 if __name__ == "__main__":
