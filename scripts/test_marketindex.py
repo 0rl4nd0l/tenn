@@ -31,6 +31,11 @@ params = {
 
 response = requests.get(URL, params=params, headers=HEADERS)
 
+if response.status_code != 200:
+    print("Blocked:", response.status_code)
+    print(response.text[:200])
+    exit()
+
 data = response.json()
 announcements = data["data"]["announcements"]
 
