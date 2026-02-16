@@ -21,18 +21,18 @@ async def fetch_announcements():
         context = await browser.new_context()
         page = await context.new_page()
 
-        # Load first page
         print("Loading page 1...")
         await page.goto(BASE_URL + "1", wait_until="networkidle", timeout=90000)
 
         await page.wait_for_selector("tbody tr", timeout=30000)
 
-        # Extract total count from page text
-        page_text = await page.content()
+        # Get pagination summary text
+        summary = await page.locator("text=Showing").first.inner_text()
+        print("Pagination summary:", summary)
 
-        match = re.search(r"of\s+(\d+)", page_text)
+        match = re.search(r"of\s+(\d+)", summary)
         if not match:
-            print("Could not detect total announcement count.")
+            print("Could not detect total count.")
             await browser.close()
             return
 
@@ -53,7 +53,6 @@ async def fetch_announcements():
             await page.wait_for_selector("tbody tr", timeout=30000)
 
             rows = await page.query_selector_all("tbody tr")
-
             print(f"Found {len(rows)} rows")
 
             for row in rows:
