@@ -4,17 +4,74 @@ import math
 import re
 from datetime import datetime
 from playwright.async_api import async_playwright
+import requests
 
+# ===== CONFIG =====
 BASE_URL = "https://www.marketindex.com.au/asx/announcements?page="
-OUTPUT_FILE = "data/raw/marketindex_announcements.json"
 ROWS_PER_PAGE = 100
+OLLAMA_URL = "http://localhost:11434/api/generate"
+MODEL = "llama3"
+MIN_RELEVANCE = 7
+
+OUTPUT_ALL = "data/raw/all_announcements.json"
+OUTPUT_HIGH = "data/raw/high_priority.json"
 
 
+# ===== CLASSIFIER =====
+def classify(text):
+
+    prompt = f"""
+You are a professional equity market analyst.
+
+Classify this ASX announcement.
+
+Relevance Score:
+0 = No relevance
+5 = Moderate
+8 = High
+10 = Market-moving
+
+Category must be one of:
+"Earnings",
+"Guidance",
+"Capital Raise",
+"M&A",
+"Contract",
+"Operational Update",
+"Director Change",
+"Regulatory",
+"Trading Halt",
+"Other"
+
+Impact must be:
+"High", "Medium", or "Low"
+
+Return ONLY valid JSON.
+
+Announcement:
+{text}
+"""
+
+    response = requests.post(
+        OLLAMA_URL,
+        json={
+            "model": MODEL,
+            "prompt": prompt,
+            "stream": False,
+            "options": {"temperature": 0.2}
+        }
+    )
+
+    return json.loads(response.json()["response"])
+
+
+# ===== SCRAPER =====
 async def fetch_announcements():
+
     async with async_playwright() as p:
 
         browser = await p.chromium.launch(
-            headless=False,
+            headless=True,
             args=["--disable-blink-features=AutomationControlled"]
         )
 
@@ -23,13 +80,10 @@ async def fetch_announcements():
 
         print("Loading page 1...")
         await page.goto(BASE_URL + "1", wait_until="networkidle", timeout=90000)
+        await page.wait_for_selector("tbody tr")
 
-        await page.wait_for_selector("tbody tr", timeout=30000)
-
-        # Wait for pagination text to render
         await page.wait_for_timeout(3000)
 
-        # Grab visible pagination text
         summary_locator = page.locator("text=/Showing.*of.*/")
         summary = await summary_locator.first.inner_text()
 
@@ -49,6 +103,7 @@ async def fetch_announcements():
         print(f"Total pages: {total_pages}")
 
         all_announcements = []
+        high_priority = []
 
         for page_number in range(1, total_pages + 1):
 
@@ -56,49 +111,66 @@ async def fetch_announcements():
 
             if page_number > 1:
                 await page.goto(BASE_URL + str(page_number), wait_until="networkidle")
-                await page.wait_for_selector("tbody tr", timeout=30000)
+                await page.wait_for_selector("tbody tr")
 
             rows = await page.query_selector_all("tbody tr")
-            print(f"Found {len(rows)} rows")
 
             for row in rows:
                 cols = await row.query_selector_all("td")
                 if len(cols) < 4:
                     continue
 
-                time = await cols[0].inner_text()
-                ticker = await cols[1].inner_text()
-                company = await cols[2].inner_text()
+                time = (await cols[0].inner_text()).strip()
+                ticker = (await cols[1].inner_text()).strip()
+                company = (await cols[2].inner_text()).strip()
                 heading_cell = cols[3]
-                heading = await heading_cell.inner_text()
+                heading = (await heading_cell.inner_text()).strip()
 
                 link = None
                 link_element = await heading_cell.query_selector("a")
                 if link_element:
                     href = await link_element.get_attribute("href")
                     if href:
-                        if href.startswith("http"):
-                            link = href
-                        else:
-                            link = "https://www.marketindex.com.au" + href
+                        link = "https://www.marketindex.com.au" + href
 
-                all_announcements.append({
-                    "time": time.strip(),
-                    "ticker": ticker.strip(),
-                    "company": company.strip(),
-                    "heading": heading.strip(),
+                announcement = {
+                    "time": time,
+                    "ticker": ticker,
+                    "company": company,
+                    "heading": heading,
                     "link": link
-                })
+                }
+
+                # ===== CLASSIFY =====
+                try:
+                    ai = classify(heading)
+                    announcement["ai"] = ai
+
+                    if ai["relevance_score"] >= MIN_RELEVANCE:
+                        high_priority.append(announcement)
+
+                except Exception as e:
+                    announcement["ai_error"] = str(e)
+
+                all_announcements.append(announcement)
 
         await browser.close()
 
         print(f"\nCollected {len(all_announcements)} announcements.")
+        print(f"High priority: {len(high_priority)}")
 
-        with open(OUTPUT_FILE, "w") as f:
+        with open(OUTPUT_ALL, "w") as f:
             json.dump({
                 "fetched_at": datetime.now().isoformat(),
                 "count": len(all_announcements),
                 "announcements": all_announcements
+            }, f, indent=2)
+
+        with open(OUTPUT_HIGH, "w") as f:
+            json.dump({
+                "fetched_at": datetime.now().isoformat(),
+                "count": len(high_priority),
+                "announcements": high_priority
             }, f, indent=2)
 
         print("Saved successfully.")
