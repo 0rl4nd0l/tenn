@@ -30,15 +30,11 @@ async def fetch_announcements():
         print("Loading page 1...")
         await page.goto(BASE_URL + "1", timeout=90000)
 
-        # Give Cloudflare time
         await page.wait_for_timeout(5000)
-
         await page.wait_for_selector("tbody tr", timeout=60000)
 
-        # Grab pagination summary
         summary_locator = page.locator("text=/Showing.*of.*/")
         summary = await summary_locator.first.inner_text()
-
         print("Pagination summary:", summary)
 
         match = re.search(r"of\s+([\d,]+)", summary)
@@ -62,7 +58,13 @@ async def fetch_announcements():
 
             if page_number > 1:
                 await page.goto(BASE_URL + str(page_number), timeout=90000)
-                await page.wait_for_timeout(4000)
+
+                # WAIT UNTIL URL ACTUALLY CHANGES
+                await page.wait_for_url(f"**page={page_number}", timeout=30000)
+
+                # Small delay to allow React to repaint table
+                await page.wait_for_timeout(3000)
+
                 await page.wait_for_selector("tbody tr", timeout=60000)
 
             rows = await page.query_selector_all("tbody tr")
