@@ -1,0 +1,60 @@
+{
+  "input": "data/raw/marketindex_announcements.json",
+  "output_dir": "data/pdfs",
+  "total_processed": 5,
+  "downloaded": 5,
+  "skipped": 0,
+  "failed": 0,
+  "results": [
+    {
+      "index": 1,
+      "ticker": "BPT",
+      "heading": "Change in substantial holding",
+      "link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:BPT:2A1654033/pdf/inline/change-in-substantial-holding",
+      "file": "data/pdfs/XASX_BPT_2A1654033.pdf",
+      "status": "downloaded",
+      "bytes": 300512,
+      "content_type": "application/pdf; charset=utf-8"
+    },
+    {
+      "index": 2,
+      "ticker": "NUF",
+      "heading": "Becoming a substantial holder",
+      "link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:NUF:3A687288/pdf/inline/becoming-a-substantial-holder",
+      "file": "data/pdfs/XASX_NUF_3A687288.pdf",
+      "status": "downloaded",
+      "bytes": 399984,
+      "content_type": "application/pdf; charset=utf-8"
+    },
+    {
+      "index": 3,
+      "ticker": "GWA",
+      "heading": "Becoming a substantial holder",
+      "link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:GWA:2A1654032/pdf/inline/becoming-a-substantial-holder",
+      "file": "data/pdfs/XASX_GWA_2A1654032.pdf",
+      "status": "downloaded",
+      "bytes": 321597,
+      "content_type": "application/pdf; charset=utf-8"
+    },
+    {
+      "index": 4,
+      "ticker": "BUR",
+      "heading": "Notification of cessation of securities - BUR",
+      "link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:BUR:6A1312478/pdf/inline/notification-of-cessation-of-securities-bur",
+      "file": "data/pdfs/XASX_BUR_6A1312478.pdf",
+      "status": "downloaded",
+      "bytes": 13105,
+      "content_type": "application/pdf; charset=utf-8"
+    },
+    {
+      "index": 5,
+      "ticker": "TEK",
+      "heading": "Ceasing to be a substantial holder for TGH",
+      "link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:TEK:3A687287/pdf/inline/ceasing-to-be-a-substantial-holder-for-tgh",
+      "file": "data/pdfs/XASX_TEK_3A687287.pdf",
+      "status": "downloaded",
+      "bytes": 183271,
+      "content_type": "application/pdf; charset=utf-8"
+    }
+  ]
+}
