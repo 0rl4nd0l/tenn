@@ -1,0 +1,61 @@
+{
+  "run_id": "20260217_210618",
+  "started_at": "2026-02-17T10:06:18Z",
+  "settings": {
+    "python": "/Users/orlandolee/TENN/venv/bin/python",
+    "ingest_script": "scripts/test_marketindex.py",
+    "download_script": "scripts/download_marketindex_pdfs.py",
+    "announcements_file": "data/raw/marketindex_announcements.json",
+    "pdf_dir": "data/pdfs",
+    "download_report": "reports/pdf_download_report.json",
+    "download_limit": 10,
+    "overwrite_pdfs": false,
+    "headless_download": false,
+    "skip_download": false,
+    "min_download_count": 5,
+    "min_success_ratio": 0.35,
+    "null_retry_delay_seconds": 15
+  },
+  "steps": [
+    {
+      "name": "ingest_announcements",
+      "command": [
+        "/Users/orlandolee/TENN/venv/bin/python",
+        "/Users/orlandolee/TENN/scripts/test_marketindex.py"
+      ],
+      "started_at": "2026-02-17T10:06:18Z",
+      "ended_at": "2026-02-17T10:09:12Z",
+      "duration_seconds": 174.238,
+      "returncode": 0,
+      "success": true
+    },
+    {
+      "name": "download_pdfs",
+      "command": [
+        "/Users/orlandolee/TENN/venv/bin/python",
+        "/Users/orlandolee/TENN/scripts/download_marketindex_pdfs.py",
+        "--input",
+        "data/raw/marketindex_announcements.json",
+        "--output-dir",
+        "data/pdfs",
+        "--report",
+        "reports/pdf_download_report.json",
+        "--limit",
+        "10",
+        "--min-download-count",
+        "5",
+        "--min-success-ratio",
+        "0.35",
+        "--null-retry-delay-seconds",
+        "15"
+      ],
+      "started_at": "2026-02-17T10:09:12Z",
+      "ended_at": "2026-02-17T10:11:03Z",
+      "duration_seconds": 110.754,
+      "returncode": 0,
+      "success": true
+    }
+  ],
+  "status": "success",
+  "ended_at": "2026-02-17T10:11:03Z"
+}

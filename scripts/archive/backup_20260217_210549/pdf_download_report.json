@@ -1,0 +1,140 @@
+{
+  "input": "data/raw/marketindex_announcements.json",
+  "output_dir": "data/pdfs",
+  "total_processed": 10,
+  "downloaded": 6,
+  "skipped": 4,
+  "failed": 0,
+  "results": [
+    {
+      "index": 1,
+      "ticker": "STW",
+      "heading": "Daily Fund Update",
+      "link": null,
+      "announcement_page_url": null,
+      "candidate_links": [],
+      "file": "data/pdfs/17_02_26_738pm_STW_0001.pdf",
+      "status": "skipped_no_candidate_link"
+    },
+    {
+      "index": 2,
+      "ticker": "SLF",
+      "heading": "Daily Fund Update",
+      "link": null,
+      "announcement_page_url": null,
+      "candidate_links": [],
+      "file": "data/pdfs/17_02_26_736pm_SLF_0002.pdf",
+      "status": "skipped_no_candidate_link"
+    },
+    {
+      "index": 3,
+      "ticker": "SFY",
+      "heading": "Daily Fund Update",
+      "link": null,
+      "announcement_page_url": null,
+      "candidate_links": [],
+      "file": "data/pdfs/17_02_26_735pm_SFY_0003.pdf",
+      "status": "skipped_no_candidate_link"
+    },
+    {
+      "index": 4,
+      "ticker": "NHF",
+      "heading": "nib announces 2026 health insurance premium changes$",
+      "link": null,
+      "announcement_page_url": null,
+      "candidate_links": [],
+      "file": "data/pdfs/17_02_26_734pm_NHF_0004.pdf",
+      "status": "skipped_no_candidate_link"
+    },
+    {
+      "index": 5,
+      "ticker": "BMT",
+      "heading": "Ceasing to be a substantial holder",
+      "link": "https://www.marketindex.com.au/asx/bmt/announcements/ceasing-to-be-a-substantial-holder-2A1654059",
+      "announcement_page_url": "https://www.marketindex.com.au/asx/bmt/announcements/ceasing-to-be-a-substantial-holder-2A1654059",
+      "candidate_links": [
+        "https://data-api.marketindex.com.au/api/v1/announcements/XASX:BMT:2A1654059/pdf/inline/ceasing-to-be-a-substantial-holder"
+      ],
+      "file": "data/pdfs/XASX_BMT_2A1654059.pdf",
+      "status": "downloaded",
+      "bytes": 472136,
+      "content_type": "application/pdf; charset=utf-8",
+      "resolved_link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:BMT:2A1654059/pdf/inline/ceasing-to-be-a-substantial-holder"
+    },
+    {
+      "index": 6,
+      "ticker": "BC8",
+      "heading": "Application for quotation of securities - BC8",
+      "link": "https://www.marketindex.com.au/asx/bc8/announcements/application-for-quotation-of-securities-bc8-6A1312497",
+      "announcement_page_url": "https://www.marketindex.com.au/asx/bc8/announcements/application-for-quotation-of-securities-bc8-6A1312497",
+      "candidate_links": [
+        "https://data-api.marketindex.com.au/api/v1/announcements/XASX:BC8:6A1312497/pdf/inline/application-for-quotation-of-securities-bc8"
+      ],
+      "file": "data/pdfs/XASX_BC8_6A1312497.pdf",
+      "status": "downloaded",
+      "bytes": 20435,
+      "content_type": "application/pdf; charset=utf-8",
+      "resolved_link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:BC8:6A1312497/pdf/inline/application-for-quotation-of-securities-bc8"
+    },
+    {
+      "index": 7,
+      "ticker": "BC8",
+      "heading": "Exercise of Options",
+      "link": "https://www.marketindex.com.au/asx/bc8/announcements/exercise-of-options-6A1312496",
+      "announcement_page_url": "https://www.marketindex.com.au/asx/bc8/announcements/exercise-of-options-6A1312496",
+      "candidate_links": [
+        "https://data-api.marketindex.com.au/api/v1/announcements/XASX:BC8:6A1312496/pdf/inline/exercise-of-options"
+      ],
+      "file": "data/pdfs/XASX_BC8_6A1312496.pdf",
+      "status": "downloaded",
+      "bytes": 107760,
+      "content_type": "application/pdf; charset=utf-8",
+      "resolved_link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:BC8:6A1312496/pdf/inline/exercise-of-options"
+    },
+    {
+      "index": 8,
+      "ticker": "MKR",
+      "heading": "Cleansing Notice",
+      "link": "https://www.marketindex.com.au/asx/mkr/announcements/cleansing-notice-2A1654058",
+      "announcement_page_url": "https://www.marketindex.com.au/asx/mkr/announcements/cleansing-notice-2A1654058",
+      "candidate_links": [
+        "https://data-api.marketindex.com.au/api/v1/announcements/XASX:MKR:2A1654058/pdf/inline/cleansing-notice"
+      ],
+      "file": "data/pdfs/XASX_MKR_2A1654058.pdf",
+      "status": "downloaded",
+      "bytes": 389373,
+      "content_type": "application/pdf; charset=utf-8",
+      "resolved_link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:MKR:2A1654058/pdf/inline/cleansing-notice"
+    },
+    {
+      "index": 9,
+      "ticker": "MKR",
+      "heading": "Application for quotation of securities - MKR",
+      "link": "https://www.marketindex.com.au/asx/mkr/announcements/application-for-quotation-of-securities-mkr-2A1654057",
+      "announcement_page_url": "https://www.marketindex.com.au/asx/mkr/announcements/application-for-quotation-of-securities-mkr-2A1654057",
+      "candidate_links": [
+        "https://data-api.marketindex.com.au/api/v1/announcements/XASX:MKR:2A1654057/pdf/inline/application-for-quotation-of-securities-mkr"
+      ],
+      "file": "data/pdfs/XASX_MKR_2A1654057.pdf",
+      "status": "downloaded",
+      "bytes": 15977,
+      "content_type": "application/pdf; charset=utf-8",
+      "resolved_link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:MKR:2A1654057/pdf/inline/application-for-quotation-of-securities-mkr"
+    },
+    {
+      "index": 10,
+      "ticker": "SQX",
+      "heading": "Appendix 3Y",
+      "link": "https://www.marketindex.com.au/asx/sqx/announcements/appendix-3y-2A1654056",
+      "announcement_page_url": "https://www.marketindex.com.au/asx/sqx/announcements/appendix-3y-2A1654056",
+      "candidate_links": [
+        "https://data-api.marketindex.com.au/api/v1/announcements/XASX:SQX:2A1654056/pdf/inline/appendix-3y"
+      ],
+      "file": "data/pdfs/XASX_SQX_2A1654056.pdf",
+      "status": "downloaded",
+      "bytes": 254353,
+      "content_type": "application/pdf; charset=utf-8",
+      "resolved_link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:SQX:2A1654056/pdf/inline/appendix-3y"
+    }
+  ]
+}

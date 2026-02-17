@@ -1,0 +1,3982 @@
+{
+  "fetched_at": "2026-02-17T19:50:21.186617",
+  "count": 497,
+  "announcements": [
+    {
+      "date": "17/02/26",
+      "time": "7:38pm",
+      "ticker": "STW",
+      "company": "SPDR S&P/ASX 200 Fund",
+      "heading": "Daily Fund Update",
+      "link": null
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:36pm",
+      "ticker": "SLF",
+      "company": "SPDR S&P/ASX 200 Listed Property Fund",
+      "heading": "Daily Fund Update",
+      "link": null
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:35pm",
+      "ticker": "SFY",
+      "company": "SPDR S&P/ASX 50 Fund",
+      "heading": "Daily Fund Update",
+      "link": null
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:34pm",
+      "ticker": "NHF",
+      "company": "NIB Holdings",
+      "heading": "nib announces 2026 health insurance premium changes$",
+      "link": null
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:27pm",
+      "ticker": "BMT",
+      "company": "Beamtree Holdings",
+      "heading": "Ceasing to be a substantial holder",
+      "link": "https://www.marketindex.com.au/asx/bmt/announcements/ceasing-to-be-a-substantial-holder-2A1654059"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:19pm",
+      "ticker": "BC8",
+      "company": "Black Cat Syndicate",
+      "heading": "Application for quotation of securities - BC8",
+      "link": "https://www.marketindex.com.au/asx/bc8/announcements/application-for-quotation-of-securities-bc8-6A1312497"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:18pm",
+      "ticker": "BC8",
+      "company": "Black Cat Syndicate",
+      "heading": "Exercise of Options",
+      "link": "https://www.marketindex.com.au/asx/bc8/announcements/exercise-of-options-6A1312496"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:15pm",
+      "ticker": "MKR",
+      "company": "Manuka Resources",
+      "heading": "Cleansing Notice",
+      "link": "https://www.marketindex.com.au/asx/mkr/announcements/cleansing-notice-2A1654058"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:08pm",
+      "ticker": "MKR",
+      "company": "Manuka Resources",
+      "heading": "Application for quotation of securities - MKR",
+      "link": "https://www.marketindex.com.au/asx/mkr/announcements/application-for-quotation-of-securities-mkr-2A1654057"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:07pm",
+      "ticker": "SQX",
+      "company": "SQX Resources",
+      "heading": "Appendix 3Y",
+      "link": "https://www.marketindex.com.au/asx/sqx/announcements/appendix-3y-2A1654056"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:07pm",
+      "ticker": "SQX",
+      "company": "SQX Resources",
+      "heading": "Appendix 3X",
+      "link": "https://www.marketindex.com.au/asx/sqx/announcements/appendix-3x-2A1654055"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:06pm",
+      "ticker": "EUR",
+      "company": "European Lithium",
+      "heading": "Proposed issue of securities - EUR",
+      "link": "https://www.marketindex.com.au/asx/eur/announcements/proposed-issue-of-securities-eur-6A1312495"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:06pm",
+      "ticker": "10X",
+      "company": "Exultant Mining",
+      "heading": "Appendix 2A Correction",
+      "link": "https://www.marketindex.com.au/asx/10x/announcements/appendix-2a-correction-6A1312494"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:05pm",
+      "ticker": "MPL",
+      "company": "Medibank Private",
+      "heading": "Medibank announces 2026 premium change",
+      "link": "https://www.marketindex.com.au/asx/mpl/announcements/medibank-announces-2026-premium-change-3A687290"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:04pm",
+      "ticker": "AGD",
+      "company": "Austral Gold",
+      "heading": "Proposed issue of securities - AGD",
+      "link": "https://www.marketindex.com.au/asx/agd/announcements/proposed-issue-of-securities-agd-2A1654028"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:04pm",
+      "ticker": "AGD",
+      "company": "Austral Gold",
+      "heading": "Austral Gold Announces A$8.456 million Strategic Placement $",
+      "link": "https://www.marketindex.com.au/asx/agd/announcements/austral-gold-announces-a-8-456-million-strategic-placement-2A1654027"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:52pm",
+      "ticker": "FWD",
+      "company": "Fleetwood",
+      "heading": "Notification of cessation of securities - FWD",
+      "link": "https://www.marketindex.com.au/asx/fwd/announcements/notification-of-cessation-of-securities-fwd-6A1312493"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:52pm",
+      "ticker": "ABE",
+      "company": "Australian Bond Exchange Holdings",
+      "heading": "Proposed issue of securities - ABE",
+      "link": "https://www.marketindex.com.au/asx/abe/announcements/proposed-issue-of-securities-abe-2A1654038"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:51pm",
+      "ticker": "ABE",
+      "company": "Australian Bond Exchange Holdings",
+      "heading": "Placement $",
+      "link": "https://www.marketindex.com.au/asx/abe/announcements/placement-2A1654039"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:49pm",
+      "ticker": "ERL",
+      "company": "Empire Resources",
+      "heading": "Application for quotation of securities - ERL",
+      "link": "https://www.marketindex.com.au/asx/erl/announcements/application-for-quotation-of-securities-erl-6A1312492"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:49pm",
+      "ticker": "MGH",
+      "company": "MAAS Group Holdings",
+      "heading": "Notice of half year results release and webcast",
+      "link": "https://www.marketindex.com.au/asx/mgh/announcements/notice-of-half-year-results-release-and-webcast-2A1654054"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:48pm",
+      "ticker": "AQI",
+      "company": "Alicanto Minerals",
+      "heading": "Becoming a substantial holder",
+      "link": "https://www.marketindex.com.au/asx/aqi/announcements/becoming-a-substantial-holder-6A1312491"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:48pm",
+      "ticker": "ERL",
+      "company": "Empire Resources",
+      "heading": "Completion of Tranche 1 Placement and Cleansing Notice $",
+      "link": "https://www.marketindex.com.au/asx/erl/announcements/completion-of-tranche-1-placement-and-cleansing-notice-6A1312490"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:46pm",
+      "ticker": "HUM",
+      "company": "Humm Group",
+      "heading": "TOV: HUM Panel Makes Interim Orders $",
+      "link": "https://www.marketindex.com.au/asx/hum/announcements/tov-hum-panel-makes-interim-orders-2A1654042"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:40pm",
+      "ticker": "IXC",
+      "company": "Invex Therapeutics",
+      "heading": "Results of Meeting",
+      "link": "https://www.marketindex.com.au/asx/ixc/announcements/results-of-meeting-6A1312489"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:39pm",
+      "ticker": "TRE",
+      "company": "Toubani Resources Inc",
+      "heading": "Application for quotation of securities - TRE",
+      "link": "https://www.marketindex.com.au/asx/tre/announcements/application-for-quotation-of-securities-tre-6A1312488"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:39pm",
+      "ticker": "GTE",
+      "company": "Great Western Exploration",
+      "heading": "Change in substantial holding X 2",
+      "link": "https://www.marketindex.com.au/asx/gte/announcements/change-in-substantial-holding-x-2-6A1312487"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:37pm",
+      "ticker": "TRE",
+      "company": "Toubani Resources Inc",
+      "heading": "Notification regarding unquoted securities - TRE",
+      "link": "https://www.marketindex.com.au/asx/tre/announcements/notification-regarding-unquoted-securities-tre-6A1312486"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:35pm",
+      "ticker": "BGL",
+      "company": "Bellevue Gold",
+      "heading": "Notification regarding unquoted securities - BGL",
+      "link": "https://www.marketindex.com.au/asx/bgl/announcements/notification-regarding-unquoted-securities-bgl-6A1312485"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:30pm",
+      "ticker": "TAT",
+      "company": "Tartana Minerals",
+      "heading": "Initial Director's Interest Notice",
+      "link": "https://www.marketindex.com.au/asx/tat/announcements/initial-director-s-interest-notice-2A1654053"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:27pm",
+      "ticker": "MQGPD",
+      "company": "Macquarie Group",
+      "heading": "Becoming a substantial holder for DOW",
+      "link": "https://www.marketindex.com.au/asx/mqgpd/announcements/becoming-a-substantial-holder-for-dow-2A1654052"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:27pm",
+      "ticker": "DOW",
+      "company": "Downer EDI",
+      "heading": "Becoming a substantial holder from MQG",
+      "link": "https://www.marketindex.com.au/asx/dow/announcements/becoming-a-substantial-holder-from-mqg-2A1654051"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:26pm",
+      "ticker": "CGFPC",
+      "company": "Challenger",
+      "heading": "Becoming a substantial holder for HUB",
+      "link": "https://www.marketindex.com.au/asx/cgfpc/announcements/becoming-a-substantial-holder-for-hub-2A1654050"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:26pm",
+      "ticker": "HUB",
+      "company": "HUB24",
+      "heading": "Becoming a substantial holder from CGF",
+      "link": "https://www.marketindex.com.au/asx/hub/announcements/becoming-a-substantial-holder-from-cgf-2A1654049"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:25pm",
+      "ticker": "MQGPD",
+      "company": "Macquarie Group",
+      "heading": "Change in substantial holding for PRN",
+      "link": "https://www.marketindex.com.au/asx/mqgpd/announcements/change-in-substantial-holding-for-prn-2A1654048"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:25pm",
+      "ticker": "PRN",
+      "company": "Perenti",
+      "heading": "Change in substantial holding from MQG",
+      "link": "https://www.marketindex.com.au/asx/prn/announcements/change-in-substantial-holding-from-mqg-6A1312484"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:22pm",
+      "ticker": "HRN",
+      "company": "Horizon Gold",
+      "heading": "RIU Explorers Conference 2026 Presentation",
+      "link": "https://www.marketindex.com.au/asx/hrn/announcements/riu-explorers-conference-2026-presentation-6A1312483"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:21pm",
+      "ticker": "MQGPD",
+      "company": "Macquarie Group",
+      "heading": "Becoming a substantial holder for TAH",
+      "link": "https://www.marketindex.com.au/asx/mqgpd/announcements/becoming-a-substantial-holder-for-tah-2A1654047"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:21pm",
+      "ticker": "TAH",
+      "company": "Tabcorp Holdings",
+      "heading": "Becoming a substantial holder from MQG",
+      "link": "https://www.marketindex.com.au/asx/tah/announcements/becoming-a-substantial-holder-from-mqg-3A687289"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:13pm",
+      "ticker": "GGE",
+      "company": "Grand Gulf Energy",
+      "heading": "Secondary trading notice",
+      "link": "https://www.marketindex.com.au/asx/gge/announcements/secondary-trading-notice-6A1312482"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:12pm",
+      "ticker": "GGE",
+      "company": "Grand Gulf Energy",
+      "heading": "Application for quotation of securities - GGE",
+      "link": "https://www.marketindex.com.au/asx/gge/announcements/application-for-quotation-of-securities-gge-6A1312481"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:08pm",
+      "ticker": "BWN",
+      "company": "Bhagwan Marine",
+      "heading": "Form 604 Change of Interests Substantial Holder - Wooles",
+      "link": "https://www.marketindex.com.au/asx/bwn/announcements/form-604-change-of-interests-substantial-holder-wooles-6A1312480"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:02pm",
+      "ticker": "BWN",
+      "company": "Bhagwan Marine",
+      "heading": "Form 604 Change of Interests Substantial Holder - Kannikoski",
+      "link": "https://www.marketindex.com.au/asx/bwn/announcements/form-604-change-of-interests-substantial-holder-kannikoski-6A1312479"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:01pm",
+      "ticker": "PPL",
+      "company": "Pureprofile",
+      "heading": "Notification of cessation of securities - PPL",
+      "link": "https://www.marketindex.com.au/asx/ppl/announcements/notification-of-cessation-of-securities-ppl-2A1654037"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:00pm",
+      "ticker": "NCK",
+      "company": "Nick Scali",
+      "heading": "Notice of initial substantial shareholder from MFG",
+      "link": "https://www.marketindex.com.au/asx/nck/announcements/notice-of-initial-substantial-shareholder-from-mfg-2A1654035"
+    },
+    {
+      "date": "17/02/26",
+      "time": "6:00pm",
+      "ticker": "MFG",
+      "company": "Magellan Financial Group",
+      "heading": "Notice of initial substantial shareholder for NCK",
+      "link": "https://www.marketindex.com.au/asx/mfg/announcements/notice-of-initial-substantial-shareholder-for-nck-2A1654036"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:55pm",
+      "ticker": "BPT",
+      "company": "Beach Energy",
+      "heading": "Change in substantial holding",
+      "link": "https://www.marketindex.com.au/asx/bpt/announcements/change-in-substantial-holding-2A1654033"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:53pm",
+      "ticker": "NUF",
+      "company": "Nufarm",
+      "heading": "Becoming a substantial holder",
+      "link": "https://www.marketindex.com.au/asx/nuf/announcements/becoming-a-substantial-holder-3A687288"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:51pm",
+      "ticker": "GWA",
+      "company": "GWA Group",
+      "heading": "Becoming a substantial holder",
+      "link": "https://www.marketindex.com.au/asx/gwa/announcements/becoming-a-substantial-holder-2A1654032"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:51pm",
+      "ticker": "BUR",
+      "company": "Burley Minerals",
+      "heading": "Notification of cessation of securities - BUR",
+      "link": "https://www.marketindex.com.au/asx/bur/announcements/notification-of-cessation-of-securities-bur-6A1312478"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:50pm",
+      "ticker": "TGH",
+      "company": "Terragen Holdings",
+      "heading": "Ceasing to be a substantial holder from TEK",
+      "link": "https://www.marketindex.com.au/asx/tgh/announcements/ceasing-to-be-a-substantial-holder-from-tek-2A1654031"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:50pm",
+      "ticker": "TEK",
+      "company": "Thorney Technologies",
+      "heading": "Ceasing to be a substantial holder for TGH",
+      "link": "https://www.marketindex.com.au/asx/tek/announcements/ceasing-to-be-a-substantial-holder-for-tgh-3A687287"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:46pm",
+      "ticker": "LSR",
+      "company": "Lodestar Minerals",
+      "heading": "Notice of Meeting Addendum",
+      "link": "https://www.marketindex.com.au/asx/lsr/announcements/notice-of-meeting-addendum-6A1312477"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:42pm",
+      "ticker": "EOS",
+      "company": "Electro Optic Systems Holdings",
+      "heading": "2025 Reporting Date and Investor Call",
+      "link": "https://www.marketindex.com.au/asx/eos/announcements/2025-reporting-date-and-investor-call-2A1654030"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:40pm",
+      "ticker": "CTN",
+      "company": "Catalina Resources",
+      "heading": "Breakaway Dam Follow Up Drilling to Commence - Updated",
+      "link": "https://www.marketindex.com.au/asx/ctn/announcements/breakaway-dam-follow-up-drilling-to-commence-updated-6A1312476"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:27pm",
+      "ticker": "TIP",
+      "company": "Teaminvest Private Group",
+      "heading": "Change in substantial holding - Gregory Kopp",
+      "link": "https://www.marketindex.com.au/asx/tip/announcements/change-in-substantial-holding-gregory-kopp-2A1654026"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:26pm",
+      "ticker": "GG8",
+      "company": "Gorilla Gold Mines",
+      "heading": "Investor Presentation - RIU",
+      "link": "https://www.marketindex.com.au/asx/gg8/announcements/investor-presentation-riu-6A1312475"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:26pm",
+      "ticker": "ECPGA",
+      "company": "ECP Emerging Growth",
+      "heading": "Appendix 3Y - S Barrett",
+      "link": "https://www.marketindex.com.au/asx/ecpga/announcements/appendix-3y-s-barrett-2A1654025"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:17pm",
+      "ticker": "AUE",
+      "company": "Aurum Resource",
+      "heading": "Investor Presentation RIU Explorers",
+      "link": "https://www.marketindex.com.au/asx/aue/announcements/investor-presentation-riu-explorers-6A1312474"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:16pm",
+      "ticker": "SRG",
+      "company": "SRG Global",
+      "heading": "Final Director's Interest Notice - P McMorrow",
+      "link": "https://www.marketindex.com.au/asx/srg/announcements/final-director-s-interest-notice-p-m-cmorrow-6A1312473"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:15pm",
+      "ticker": "TER",
+      "company": "TerraCom",
+      "heading": "Initial Director's Interest Notice (G Splatt)",
+      "link": "https://www.marketindex.com.au/asx/ter/announcements/initial-director-s-interest-notice-g-splatt-2A1654024"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:15pm",
+      "ticker": "SRG",
+      "company": "SRG Global",
+      "heading": "Initial Director's Interest Notice - A Rule",
+      "link": "https://www.marketindex.com.au/asx/srg/announcements/initial-director-s-interest-notice-a-rule-6A1312471"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:15pm",
+      "ticker": "SRG",
+      "company": "SRG Global",
+      "heading": "Final Director's Interest Notice - M Atkins",
+      "link": "https://www.marketindex.com.au/asx/srg/announcements/final-director-s-interest-notice-m-atkins-6A1312472"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:14pm",
+      "ticker": "GEM",
+      "company": "G8 Education",
+      "heading": "Change in substantial holding",
+      "link": "https://www.marketindex.com.au/asx/gem/announcements/change-in-substantial-holding-2A1654023"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:14pm",
+      "ticker": "SRG",
+      "company": "SRG Global",
+      "heading": "Initial Director's Interest Notice - M Foster",
+      "link": "https://www.marketindex.com.au/asx/srg/announcements/initial-director-s-interest-notice-m-foster-6A1312470"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:13pm",
+      "ticker": "GTK",
+      "company": "Gentrack Group",
+      "heading": "Becoming a substantial holder",
+      "link": "https://www.marketindex.com.au/asx/gtk/announcements/becoming-a-substantial-holder-3A687285"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:11pm",
+      "ticker": "TER",
+      "company": "TerraCom",
+      "heading": "Board Appointment (G Splatt)",
+      "link": "https://www.marketindex.com.au/asx/ter/announcements/board-appointment-g-splatt-2A1654022"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:07pm",
+      "ticker": "BRG",
+      "company": "Breville Group",
+      "heading": "Change of Director's Interest Notice",
+      "link": "https://www.marketindex.com.au/asx/brg/announcements/change-of-director-s-interest-notice-2A1654020"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:04pm",
+      "ticker": "BRG",
+      "company": "Breville Group",
+      "heading": "Change of Director's Interest Notice",
+      "link": "https://www.marketindex.com.au/asx/brg/announcements/change-of-director-s-interest-notice-2A1654019"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:04pm",
+      "ticker": "CRR",
+      "company": "Critical Resources",
+      "heading": "Notice of General Meeting/Proxy Form",
+      "link": "https://www.marketindex.com.au/asx/crr/announcements/notice-of-general-meeting-proxy-form-6A1312469"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:01pm",
+      "ticker": "PPT",
+      "company": "Perpetual",
+      "heading": "Change in substantial holding for CAA",
+      "link": "https://www.marketindex.com.au/asx/ppt/announcements/change-in-substantial-holding-for-caa-2A1654018"
+    },
+    {
+      "date": "17/02/26",
+      "time": "5:01pm",
+      "ticker": "CAA",
+      "company": "Capral",
+      "heading": "Change in substantial holding from PPT",
+      "link": "https://www.marketindex.com.au/asx/caa/announcements/change-in-substantial-holding-from-ppt-2A1654017"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:59pm",
+      "ticker": "BRG",
+      "company": "Breville Group",
+      "heading": "Application for quotation of securities - BRG",
+      "link": "https://www.marketindex.com.au/asx/brg/announcements/application-for-quotation-of-securities-brg-2A1654015"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:54pm",
+      "ticker": "AUG",
+      "company": "Augustus Minerals",
+      "heading": "Annual Report Clarification",
+      "link": "https://www.marketindex.com.au/asx/aug/announcements/annual-report-clarification-6A1312468"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:44pm",
+      "ticker": "CQT",
+      "company": "Conneqt Health",
+      "heading": "Notification of cessation of securities - CQT",
+      "link": "https://www.marketindex.com.au/asx/cqt/announcements/notification-of-cessation-of-securities-cqt-2A1654014"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:43pm",
+      "ticker": "JAY",
+      "company": "Jayride Group",
+      "heading": "Clarification Regarding 30 Sep25 Interim Financial Report $",
+      "link": "https://www.marketindex.com.au/asx/jay/announcements/clarification-regarding-30-sep25-interim-financial-report-2A1653982"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:40pm",
+      "ticker": "JAY",
+      "company": "Jayride Group",
+      "heading": "Xoomplay Alliance Not to Proceed",
+      "link": "https://www.marketindex.com.au/asx/jay/announcements/xoomplay-alliance-not-to-proceed-2A1653983"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:37pm",
+      "ticker": "AGL",
+      "company": "AGL Energy",
+      "heading": "Appendix 3Y - Elizabeth Donaghey",
+      "link": "https://www.marketindex.com.au/asx/agl/announcements/appendix-3y-elizabeth-donaghey-2A1654011"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:35pm",
+      "ticker": "RAP",
+      "company": "Raptor Metals",
+      "heading": "Application for quotation of securities - RAP",
+      "link": "https://www.marketindex.com.au/asx/rap/announcements/application-for-quotation-of-securities-rap-2A1654010"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:34pm",
+      "ticker": "ORI",
+      "company": "Orica",
+      "heading": "Notification of cessation of securities - ORI",
+      "link": "https://www.marketindex.com.au/asx/ori/announcements/notification-of-cessation-of-securities-ori-3A687284"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:34pm",
+      "ticker": "NC6",
+      "company": "nanollose",
+      "heading": "Application for quotation of securities - NC6",
+      "link": "https://www.marketindex.com.au/asx/nc6/announcements/application-for-quotation-of-securities-nc6-6A1312467"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:33pm",
+      "ticker": "EAX",
+      "company": "Energy Action",
+      "heading": "Results Announcement FY26 H1 $",
+      "link": "https://www.marketindex.com.au/asx/eax/announcements/results-announcement-fy26-h1-2A1654008"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:33pm",
+      "ticker": "GLL",
+      "company": "Galilee Energy",
+      "heading": "Proposed issue of securities - GLL",
+      "link": "https://www.marketindex.com.au/asx/gll/announcements/proposed-issue-of-securities-gll-2A1654005"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:33pm",
+      "ticker": "LRV",
+      "company": "Larvotto Resources",
+      "heading": "Notification of cessation of securities - LRV",
+      "link": "https://www.marketindex.com.au/asx/lrv/announcements/notification-of-cessation-of-securities-lrv-6A1312466"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:32pm",
+      "ticker": "EAX",
+      "company": "Energy Action",
+      "heading": "Half Yearly Report and Accounts $",
+      "link": "https://www.marketindex.com.au/asx/eax/announcements/half-yearly-report-and-accounts-2A1654004"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:23pm",
+      "ticker": "PIC",
+      "company": "Perpetual Equity Investment Company",
+      "heading": "Daily Net Tangible Asset Statement",
+      "link": "https://www.marketindex.com.au/asx/pic/announcements/daily-net-tangible-asset-statement-2A1654002"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:22pm",
+      "ticker": "WAF",
+      "company": "West African Resources",
+      "heading": "Change in substantial holding",
+      "link": "https://www.marketindex.com.au/asx/waf/announcements/change-in-substantial-holding-6A1312465"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:22pm",
+      "ticker": "PAR",
+      "company": "Paradigm Biopharmaceuticals",
+      "heading": "Notification regarding unquoted securities - PAR",
+      "link": "https://www.marketindex.com.au/asx/par/announcements/notification-regarding-unquoted-securities-par-3A687283"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:21pm",
+      "ticker": "SVL",
+      "company": "Silver Mines",
+      "heading": "Cleansing Notice",
+      "link": "https://www.marketindex.com.au/asx/svl/announcements/cleansing-notice-2A1654001"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:20pm",
+      "ticker": "HUB",
+      "company": "HUB24",
+      "heading": "Change in substantial holding",
+      "link": "https://www.marketindex.com.au/asx/hub/announcements/change-in-substantial-holding-2A1653998"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:20pm",
+      "ticker": "PRN",
+      "company": "Perenti",
+      "heading": "Change in substantial holding",
+      "link": "https://www.marketindex.com.au/asx/prn/announcements/change-in-substantial-holding-6A1312464"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:20pm",
+      "ticker": "NAN",
+      "company": "Nanosonics",
+      "heading": "Change in substantial holding",
+      "link": "https://www.marketindex.com.au/asx/nan/announcements/change-in-substantial-holding-2A1654000"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:19pm",
+      "ticker": "SLC",
+      "company": "Superloop",
+      "heading": "Becoming a substantial holder",
+      "link": "https://www.marketindex.com.au/asx/slc/announcements/becoming-a-substantial-holder-2A1653999"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:18pm",
+      "ticker": "NSR",
+      "company": "National Storage REIT",
+      "heading": "Change in substantial holding",
+      "link": "https://www.marketindex.com.au/asx/nsr/announcements/change-in-substantial-holding-2A1653997"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:15pm",
+      "ticker": "CLV",
+      "company": "Clover Corporation",
+      "heading": "Update - Notification of buy-back - CLV",
+      "link": "https://www.marketindex.com.au/asx/clv/announcements/update-notification-of-buy-back-clv-2A1653996"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:14pm",
+      "ticker": "LOT",
+      "company": "Lotus Resources",
+      "heading": "Change in substantial holding",
+      "link": "https://www.marketindex.com.au/asx/lot/announcements/change-in-substantial-holding-6A1312463"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:14pm",
+      "ticker": "CHN",
+      "company": "Chalice Mining",
+      "heading": "Ceasing to be a substantial holder",
+      "link": "https://www.marketindex.com.au/asx/chn/announcements/ceasing-to-be-a-substantial-holder-6A1312462"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:14pm",
+      "ticker": "SVL",
+      "company": "Silver Mines",
+      "heading": "Application for quotation of securities - SVL",
+      "link": "https://www.marketindex.com.au/asx/svl/announcements/application-for-quotation-of-securities-svl-2A1653995"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:13pm",
+      "ticker": "AEG",
+      "company": "Aland Equity Group",
+      "heading": "Proposed issue of securities - AEG",
+      "link": "https://www.marketindex.com.au/asx/aeg/announcements/proposed-issue-of-securities-aeg-2A1653993"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:12pm",
+      "ticker": "PAR",
+      "company": "Paradigm Biopharmaceuticals",
+      "heading": "Application for quotation of securities - PAR",
+      "link": "https://www.marketindex.com.au/asx/par/announcements/application-for-quotation-of-securities-par-3A687282"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:13pm",
+      "ticker": "AEG",
+      "company": "Aland Equity Group",
+      "heading": "Proposed issue of securities - AEG",
+      "link": "https://www.marketindex.com.au/asx/aeg/announcements/proposed-issue-of-securities-aeg-2A1653993"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:12pm",
+      "ticker": "PAR",
+      "company": "Paradigm Biopharmaceuticals",
+      "heading": "Application for quotation of securities - PAR",
+      "link": "https://www.marketindex.com.au/asx/par/announcements/application-for-quotation-of-securities-par-3A687282"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:10pm",
+      "ticker": "BOE",
+      "company": "Boss Energy",
+      "heading": "Change in substantial holding",
+      "link": "https://www.marketindex.com.au/asx/boe/announcements/change-in-substantial-holding-6A1312461"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:10pm",
+      "ticker": "MOGL",
+      "company": "Montaka Global Long Only Equites Fund (Managed Fund)",
+      "heading": "MOGL January 2026 Monthly Report",
+      "link": "https://www.marketindex.com.au/asx/mogl/announcements/mogl-january-2026-monthly-report-2A1653994"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:10pm",
+      "ticker": "JAN",
+      "company": "Janison Education Group",
+      "heading": "1H FY26 Financial Results & Investor Webinar",
+      "link": "https://www.marketindex.com.au/asx/jan/announcements/1h-fy26-financial-results-investor-webinar-2A1653992"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:10pm",
+      "ticker": "IXR",
+      "company": "Ionic Rare Earths",
+      "heading": "Cleansing Notice",
+      "link": "https://www.marketindex.com.au/asx/ixr/announcements/cleansing-notice-3A687281"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:07pm",
+      "ticker": "MKAX",
+      "company": "Montaka Global Extension Fund (Quoted Managed Hedge Fund)",
+      "heading": "MKAX January 2026 Monthly Report",
+      "link": "https://www.marketindex.com.au/asx/mkax/announcements/mkax-january-2026-monthly-report-2A1653991"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:06pm",
+      "ticker": "GOOD",
+      "company": "Janus Henderson Sustainable Credit Active ETF (Managed Fund)",
+      "heading": "Monthly Factsheet - January 2026",
+      "link": "https://www.marketindex.com.au/asx/good/announcements/monthly-factsheet-january-2026-2A1653989"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:06pm",
+      "ticker": "QGL",
+      "company": "Quantum Graphite",
+      "heading": "Grant of Additional US Patent for Sunlands",
+      "link": "https://www.marketindex.com.au/asx/qgl/announcements/grant-of-additional-us-patent-for-sunlands-3A687279"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:04pm",
+      "ticker": "DTR",
+      "company": "Dateline Resources",
+      "heading": "Notice of Meeting/Proxy Form",
+      "link": "https://www.marketindex.com.au/asx/dtr/announcements/notice-of-meeting-proxy-form-2A1653990"
+    },
+    {
+      "date": "17/02/26",
+      "time": "4:01pm",
+      "ticker": "CLV",
+      "company": "Clover Corporation",
+      "heading": "Notification of buy-back - CLV",
+      "link": "https://www.marketindex.com.au/asx/clv/announcements/notification-of-buy-back-clv-2A1653988"
+    },
+    {
+      "date": "17/02/26",
+      "time": "3:59pm",
+      "ticker": "PKP",
+      "company": "Peak Processing",
+      "heading": "Proposed issue of securities - PKP",
+      "link": "https://www.marketindex.com.au/asx/pkp/announcements/proposed-issue-of-securities-pkp-3A687280"
+    },
+    {
+      "date": "17/02/26",
+      "time": "3:57pm",
+      "ticker": "MYS",
+      "company": "MyState",
+      "heading": "HY26 results announcement date and teleconference details",
+      "link": "https://www.marketindex.com.au/asx/mys/announcements/hy26-results-announcement-date-and-teleconference-details-3A687278"
+    },
+    {
+      "date": "17/02/26",
+      "time": "3:54pm",
+      "ticker": "DME",
+      "company": "Dome Gold Mines",
+      "heading": "Change in substantial holding T.T.",
+      "link": "https://www.marketindex.com.au/asx/dme/announcements/change-in-substantial-holding-t-t-2A1653987"
+    },
+    {
+      "date": "17/02/26",
+      "time": "3:54pm",
+      "ticker": "DME",
+      "company": "Dome Gold Mines",
+      "heading": "Change of Director's Interest Notice T.T.",
+      "link": "https://www.marketindex.com.au/asx/dme/announcements/change-of-director-s-interest-notice-t-t-2A1653985"
+    },
+    {
+      "date": "17/02/26",
+      "time": "3:52pm",
+      "ticker": "BOQPF",
+      "company": "Bank of Queensland",
+      "heading": "Dividend/Distribution - BOQPF",
+      "link": "https://www.marketindex.com.au/asx/boqpf/announcements/dividend-distribution-boqpf-2A1653986"
+    },
+    {
+      "date": "17/02/26",
+      "time": "3:47pm",
+      "ticker": "PCI",
+      "company": "Perpetual Credit Income Trust",
+      "heading": "PCI Monthly Investment Report- January 2026",
+      "link": "https://www.marketindex.com.au/asx/pci/announcements/pci-monthly-investment-report-january-2026-2A1653984"
+    },
+    {
+      "date": "17/02/26",
+      "time": "3:45pm",
+      "ticker": "NX1",
+      "company": "Nexalis Therapeutics",
+      "heading": "Cleansing Notice",
+      "link": "https://www.marketindex.com.au/asx/nx1/announcements/cleansing-notice-3A687277"
+    },
+    {
+      "date": "17/02/26",
+      "time": "3:40pm",
+      "ticker": "PKP",
+      "company": "Peak Processing",
+      "heading": "Cleansing notice",
+      "link": "https://www.marketindex.com.au/asx/pkp/announcements/cleansing-notice-3A687276"
+    },
+    {
+      "date": "17/02/26",
+      "time": "3:28pm",
+      "ticker": "CNJ",
+      "company": "Conico",
+      "heading": "Application for quotation of securities - CNJ",
+      "link": "https://www.marketindex.com.au/asx/cnj/announcements/application-for-quotation-of-securities-cnj-6A1312460"
+    },
+    {
+      "date": "17/02/26",
+      "time": "3:27pm",
+      "ticker": "MXT",
+      "company": "Metrics Master Income Trust",
+      "heading": "Daily Fund Update",
+      "link": "https://www.marketindex.com.au/asx/mxt/announcements/daily-fund-update-2A1653981"
+    },
+    {
+      "date": "17/02/26",
+      "time": "3:25pm",
+      "ticker": "PKP",
+      "company": "Peak Processing",
+      "heading": "Notification of cessation of securities - PKP",
+      "link": "https://www.marketindex.com.au/asx/pkp/announcements/notification-of-cessation-of-securities-pkp-3A687275"
+    },
+    {
+      "date": "17/02/26",
+      "time": "3:23pm",
+      "ticker": "WOT",
+      "company": "WOTSO",
+      "heading": "Settlement of Sale of Yandina Property",
+      "link": "https://www.marketindex.com.au/asx/wot/announcements/settlement-of-sale-of-yandina-property-2A1653980"
+    },
+    {
+      "date": "17/02/26",
+      "time": "3:21pm",
+      "ticker": "KLV",
+      "company": "Klevo Rewards",
+      "heading": "Response to ASX Appendix 3Y Query",
+      "link": "https://www.marketindex.com.au/asx/klv/announcements/response-to-asx-appendix-3y-query-6A1312459"
+    },
+    {
+      "date": "17/02/26",
+      "time": "3:19pm",
+      "ticker": "NSM",
+      "company": "North Stawell Minerals",
+      "heading": "Project Update - RIU Explorers Conference",
+      "link": "https://www.marketindex.com.au/asx/nsm/announcements/project-update-riu-explorers-conference-6A1312458"
+    },
+    {
+      "date": "17/02/26",
+      "time": "3:17pm",
+      "ticker": "PKP",
+      "company": "Peak Processing",
+      "heading": "Application for quotation of securities - PKP",
+      "link": "https://www.marketindex.com.au/asx/pkp/announcements/application-for-quotation-of-securities-pkp-3A687274"
+    },
+    {
+      "date": "17/02/26",
+      "time": "3:17pm",
+      "ticker": "ALPH",
+      "company": "Schroder Global Equity Alpha Fund - Active ETF",
+      "heading": "ALPH - Quarterly Holdings Disclosure",
+      "link": "https://www.marketindex.com.au/asx/alph/announcements/alph-quarterly-holdings-disclosure-2A1653978"
+    },
+    {
+      "date": "17/02/26",
+      "time": "3:16pm",
+      "ticker": "MOT",
+      "company": "Metrics Income Opportunities Trust",
+      "heading": "Daily Fund Update",
+      "link": "https://www.marketindex.com.au/asx/mot/announcements/daily-fund-update-2A1653979"
+    },
+    {
+      "date": "17/02/26",
+      "time": "3:15pm",
+      "ticker": "SVY",
+      "company": "Stavely Minerals",
+      "heading": "Investor Presentation - RIU Explorers Conference February 26",
+      "link": "https://www.marketindex.com.au/asx/svy/announcements/investor-presentation-riu-explorers-conference-february-26-6A1312457"
+    },
+    {
+      "date": "17/02/26",
+      "time": "3:11pm",
+      "ticker": "EXP",
+      "company": "Experience Co",
+      "heading": "Update to link to register for H1FY26 results teleconference",
+      "link": "https://www.marketindex.com.au/asx/exp/announcements/update-to-link-to-register-for-h1fy26-results-teleconference-2A1653977"
+    },
+    {
+      "date": "17/02/26",
+      "time": "2:59pm",
+      "ticker": "PKP",
+      "company": "Peak Processing",
+      "heading": "Application for quotation of securities - PKP",
+      "link": "https://www.marketindex.com.au/asx/pkp/announcements/application-for-quotation-of-securities-pkp-3A687273"
+    },
+    {
+      "date": "17/02/26",
+      "time": "2:55pm",
+      "ticker": "REV",
+      "company": "Revolution Private Credit Income Trust",
+      "heading": "Application for quotation of securities - REV",
+      "link": "https://www.marketindex.com.au/asx/rev/announcements/application-for-quotation-of-securities-rev-2A1653975"
+    },
+    {
+      "date": "17/02/26",
+      "time": "2:53pm",
+      "ticker": "MEC",
+      "company": "Morphic Ethical Equities Fund",
+      "heading": "Dividend/Distribution - MEC",
+      "link": "https://www.marketindex.com.au/asx/mec/announcements/dividend-distribution-mec-2A1653974"
+    },
+    {
+      "date": "17/02/26",
+      "time": "2:52pm",
+      "ticker": "MAT",
+      "company": "Matsa Resources",
+      "heading": "RIU Explorers Conference Presentation",
+      "link": "https://www.marketindex.com.au/asx/mat/announcements/riu-explorers-conference-presentation-6A1312456"
+    },
+    {
+      "date": "17/02/26",
+      "time": "2:52pm",
+      "ticker": "DXC",
+      "company": "Dexus Convenience Retail REIT",
+      "heading": "Appendix 3Y",
+      "link": "https://www.marketindex.com.au/asx/dxc/announcements/appendix-3y-3A687272"
+    },
+    {
+      "date": "17/02/26",
+      "time": "2:51pm",
+      "ticker": "MEC",
+      "company": "Morphic Ethical Equities Fund",
+      "heading": "Half Year Results $",
+      "link": "https://www.marketindex.com.au/asx/mec/announcements/half-year-results-2A1653973"
+    },
+    {
+      "date": "17/02/26",
+      "time": "2:42pm",
+      "ticker": "CZN",
+      "company": "Corazon Mining",
+      "heading": "Corazon RIU presentation",
+      "link": "https://www.marketindex.com.au/asx/czn/announcements/corazon-riu-presentation-6A1312455"
+    },
+    {
+      "date": "17/02/26",
+      "time": "2:42pm",
+      "ticker": "CORE",
+      "company": "ETFS Global Core Infrastructure ETF",
+      "heading": "CORE - Quarterly Holdings Disclosure",
+      "link": "https://www.marketindex.com.au/asx/core/announcements/core-quarterly-holdings-disclosure-2A1653972"
+    },
+    {
+      "date": "17/02/26",
+      "time": "2:38pm",
+      "ticker": "FGR",
+      "company": "First Graphene",
+      "heading": "Change of Company Secretary",
+      "link": "https://www.marketindex.com.au/asx/fgr/announcements/change-of-company-secretary-6A1312454"
+    },
+    {
+      "date": "17/02/26",
+      "time": "2:31pm",
+      "ticker": "BPH",
+      "company": "BPH Energy",
+      "heading": "Half Yearly Report and Accounts $",
+      "link": "https://www.marketindex.com.au/asx/bph/announcements/half-yearly-report-and-accounts-6A1312453"
+    },
+    {
+      "date": "17/02/26",
+      "time": "2:28pm",
+      "ticker": "MA1",
+      "company": "MA Credit Income Trust",
+      "heading": "Daily Estimate NTA for 16.02.2026",
+      "link": "https://www.marketindex.com.au/asx/ma1/announcements/daily-estimate-nta-for-16-02-2026-2A1653971"
+    },
+    {
+      "date": "17/02/26",
+      "time": "2:27pm",
+      "ticker": "EV1",
+      "company": "Evolution Energy Minerals",
+      "heading": "Investor Webinar on 19th February 2026",
+      "link": "https://www.marketindex.com.au/asx/ev1/announcements/investor-webinar-on-19th-february-2026-6A1312452"
+    },
+    {
+      "date": "17/02/26",
+      "time": "2:22pm",
+      "ticker": "CINPA",
+      "company": "Carlton Investments",
+      "heading": "Chairman's Report to Shareholders $",
+      "link": "https://www.marketindex.com.au/asx/cinpa/announcements/chairman-s-report-to-shareholders-2A1653970"
+    },
+    {
+      "date": "17/02/26",
+      "time": "2:18pm",
+      "ticker": "COD",
+      "company": "Coda Minerals",
+      "heading": "RIU Fremantle Conference Presentation",
+      "link": "https://www.marketindex.com.au/asx/cod/announcements/riu-fremantle-conference-presentation-6A1312451"
+    },
+    {
+      "date": "17/02/26",
+      "time": "2:16pm",
+      "ticker": "TG6",
+      "company": "TG Metals",
+      "heading": "Investor Presentation - RIU Explorers Conference",
+      "link": "https://www.marketindex.com.au/asx/tg6/announcements/investor-presentation-riu-explorers-conference-6A1312450"
+    },
+    {
+      "date": "17/02/26",
+      "time": "2:14pm",
+      "ticker": "CINPA",
+      "company": "Carlton Investments",
+      "heading": "Dividend/Distribution - CINPA",
+      "link": "https://www.marketindex.com.au/asx/cinpa/announcements/dividend-distribution-cinpa-2A1653967"
+    },
+    {
+      "date": "17/02/26",
+      "time": "2:10pm",
+      "ticker": "CINPA",
+      "company": "Carlton Investments",
+      "heading": "Dividend/Distribution - CIN",
+      "link": "https://www.marketindex.com.au/asx/cinpa/announcements/dividend-distribution-cin-2A1653966"
+    },
+    {
+      "date": "17/02/26",
+      "time": "2:05pm",
+      "ticker": "CINPA",
+      "company": "Carlton Investments",
+      "heading": "Half Yearly Report and Accounts $",
+      "link": "https://www.marketindex.com.au/asx/cinpa/announcements/half-yearly-report-and-accounts-2A1653964"
+    },
+    {
+      "date": "17/02/26",
+      "time": "2:01pm",
+      "ticker": "RML",
+      "company": "Resolution Minerals",
+      "heading": "Results of 2026 General Meeting",
+      "link": "https://www.marketindex.com.au/asx/rml/announcements/results-of-2026-general-meeting-2A1653965"
+    },
+    {
+      "date": "17/02/26",
+      "time": "1:54pm",
+      "ticker": "GCI",
+      "company": "Gryphon Capital Income Trust",
+      "heading": "Net Tangible Asset Backing",
+      "link": "https://www.marketindex.com.au/asx/gci/announcements/net-tangible-asset-backing-2A1653963"
+    },
+    {
+      "date": "17/02/26",
+      "time": "1:52pm",
+      "ticker": "CAE",
+      "company": "Cannindah Resources",
+      "heading": "Letter to Shareholders - General Meeting",
+      "link": "https://www.marketindex.com.au/asx/cae/announcements/letter-to-shareholders-general-meeting-6A1312449"
+    },
+    {
+      "date": "17/02/26",
+      "time": "1:50pm",
+      "ticker": "CAE",
+      "company": "Cannindah Resources",
+      "heading": "Notice of General Meeting/Proxy Form",
+      "link": "https://www.marketindex.com.au/asx/cae/announcements/notice-of-general-meeting-proxy-form-6A1312448"
+    },
+    {
+      "date": "17/02/26",
+      "time": "1:36pm",
+      "ticker": "JAVDH",
+      "company": "Javelin Minerals",
+      "heading": "Company Presentation - RIU Explorers Conference 2026",
+      "link": "https://www.marketindex.com.au/asx/javdh/announcements/company-presentation-riu-explorers-conference-2026-6A1312447"
+    },
+    {
+      "date": "17/02/26",
+      "time": "1:34pm",
+      "ticker": "BVS",
+      "company": "Bravura Solutions",
+      "heading": "Change of Director's Interest Notice",
+      "link": "https://www.marketindex.com.au/asx/bvs/announcements/change-of-director-s-interest-notice-2A1653961"
+    },
+    {
+      "date": "17/02/26",
+      "time": "1:28pm",
+      "ticker": "CAV",
+      "company": "Carnavale Resources",
+      "heading": "Retraction and Replacement Investor Presentation",
+      "link": "https://www.marketindex.com.au/asx/cav/announcements/retraction-and-replacement-investor-presentation-6A1312446"
+    },
+    {
+      "date": "17/02/26",
+      "time": "1:26pm",
+      "ticker": "KRR",
+      "company": "King River Resources",
+      "heading": "KRR to acquire High-Grade Mindoolah Gold Project $",
+      "link": "https://www.marketindex.com.au/asx/krr/announcements/krr-to-acquire-high-grade-mindoolah-gold-project-6A1312443"
+    },
+    {
+      "date": "17/02/26",
+      "time": "1:26pm",
+      "ticker": "TDO",
+      "company": "3D Energi",
+      "heading": "Advancing Monetisation Pathway for Otway Basin Discoveries $",
+      "link": "https://www.marketindex.com.au/asx/tdo/announcements/advancing-monetisation-pathway-for-otway-basin-discoveries-3A687270"
+    },
+    {
+      "date": "17/02/26",
+      "time": "1:25pm",
+      "ticker": "CYQ",
+      "company": "Cycliq Group",
+      "heading": "Appendix 4D & FY26 Interim Financial Report $",
+      "link": "https://www.marketindex.com.au/asx/cyq/announcements/appendix-4d-fy26-interim-financial-report-6A1312445"
+    },
+    {
+      "date": "17/02/26",
+      "time": "1:21pm",
+      "ticker": "SHV",
+      "company": "Select Harvests",
+      "heading": "Results of Meeting",
+      "link": "https://www.marketindex.com.au/asx/shv/announcements/results-of-meeting-3A687271"
+    },
+    {
+      "date": "17/02/26",
+      "time": "1:18pm",
+      "ticker": "CR3",
+      "company": "Core Energy Minerals",
+      "heading": "Application for quotation of securities - CR3",
+      "link": "https://www.marketindex.com.au/asx/cr3/announcements/application-for-quotation-of-securities-cr3-2A1653960"
+    },
+    {
+      "date": "17/02/26",
+      "time": "1:17pm",
+      "ticker": "CR3",
+      "company": "Core Energy Minerals",
+      "heading": "Application for quotation of securities - CR3",
+      "link": "https://www.marketindex.com.au/asx/cr3/announcements/application-for-quotation-of-securities-cr3-2A1653959"
+    },
+    {
+      "date": "17/02/26",
+      "time": "1:12pm",
+      "ticker": "VTX",
+      "company": "Vertex Minerals",
+      "heading": "VTX Awarded Exploration Licence 9868 Dun Dun",
+      "link": "https://www.marketindex.com.au/asx/vtx/announcements/vtx-awarded-exploration-licence-9868-dun-dun-6A1312444"
+    },
+    {
+      "date": "17/02/26",
+      "time": "1:09pm",
+      "ticker": "BNZ",
+      "company": "Benz Mining Corp",
+      "heading": "Benz Mining Corp Investor Presentation",
+      "link": "https://www.marketindex.com.au/asx/bnz/announcements/benz-mining-corp-investor-presentation-6A1312442"
+    },
+    {
+      "date": "17/02/26",
+      "time": "1:00pm",
+      "ticker": "RNU",
+      "company": "Renascor Resources",
+      "heading": "Investor Presentation - RIU Explorers Conference",
+      "link": "https://www.marketindex.com.au/asx/rnu/announcements/investor-presentation-riu-explorers-conference-2A1653958"
+    },
+    {
+      "date": "17/02/26",
+      "time": "12:56pm",
+      "ticker": "GPT",
+      "company": "GPT Group",
+      "heading": "Change of Director's Interest Notice - Russell Proutt",
+      "link": "https://www.marketindex.com.au/asx/gpt/announcements/change-of-director-s-interest-notice-russell-proutt-2A1653957"
+    },
+    {
+      "date": "17/02/26",
+      "time": "12:53pm",
+      "ticker": "BNZ",
+      "company": "Benz Mining Corp",
+      "heading": "Glenburgh Growth Accelerates - 250,000m Drilling Planned $",
+      "link": "https://www.marketindex.com.au/asx/bnz/announcements/glenburgh-growth-accelerates-250-000m-drilling-planned-6A1312441"
+    },
+    {
+      "date": "17/02/26",
+      "time": "12:52pm",
+      "ticker": "HRZ",
+      "company": "Horizon Minerals",
+      "heading": "Studies Support Standalone Gold Development in WA Goldfields $",
+      "link": "https://www.marketindex.com.au/asx/hrz/announcements/studies-support-standalone-gold-development-in-wa-goldfields-6A1312439"
+    },
+    {
+      "date": "17/02/26",
+      "time": "12:52pm",
+      "ticker": "HRZ",
+      "company": "Horizon Minerals",
+      "heading": "Gold Ore Reserve Update $",
+      "link": "https://www.marketindex.com.au/asx/hrz/announcements/gold-ore-reserve-update-6A1312438"
+    },
+    {
+      "date": "17/02/26",
+      "time": "12:52pm",
+      "ticker": "HRZ",
+      "company": "Horizon Minerals",
+      "heading": "Equity Raise Presentation",
+      "link": "https://www.marketindex.com.au/asx/hrz/announcements/equity-raise-presentation-6A1312435"
+    },
+    {
+      "date": "17/02/26",
+      "time": "12:52pm",
+      "ticker": "HRZ",
+      "company": "Horizon Minerals",
+      "heading": "Launch of A$175M underwritten placement $",
+      "link": "https://www.marketindex.com.au/asx/hrz/announcements/launch-of-a-175m-underwritten-placement-6A1312433"
+    },
+    {
+      "date": "17/02/26",
+      "time": "12:51pm",
+      "ticker": "SVY",
+      "company": "Stavely Minerals",
+      "heading": "Unsecured Director Loan Facility $",
+      "link": "https://www.marketindex.com.au/asx/svy/announcements/unsecured-director-loan-facility-6A1312440"
+    },
+    {
+      "date": "17/02/26",
+      "time": "12:43pm",
+      "ticker": "AR3",
+      "company": "Australian Rare Earths",
+      "heading": "Corporate Presentation",
+      "link": "https://www.marketindex.com.au/asx/ar3/announcements/corporate-presentation-2A1653956"
+    },
+    {
+      "date": "17/02/26",
+      "time": "12:40pm",
+      "ticker": "LRK",
+      "company": "Lark Distilling Co.",
+      "heading": "Change in substantial holding",
+      "link": "https://www.marketindex.com.au/asx/lrk/announcements/change-in-substantial-holding-3A687269"
+    },
+    {
+      "date": "17/02/26",
+      "time": "12:23pm",
+      "ticker": "PCI",
+      "company": "Perpetual Credit Income Trust",
+      "heading": "Daily Net Tangible Asset Statement",
+      "link": "https://www.marketindex.com.au/asx/pci/announcements/daily-net-tangible-asset-statement-2A1653955"
+    },
+    {
+      "date": "17/02/26",
+      "time": "12:22pm",
+      "ticker": "OAK",
+      "company": "Oakridge International",
+      "heading": "Change in substantial holding",
+      "link": "https://www.marketindex.com.au/asx/oak/announcements/change-in-substantial-holding-3A687268"
+    },
+    {
+      "date": "17/02/26",
+      "time": "12:22pm",
+      "ticker": "GEM",
+      "company": "G8 Education",
+      "heading": "Change in substantial holding",
+      "link": "https://www.marketindex.com.au/asx/gem/announcements/change-in-substantial-holding-2A1653954"
+    },
+    {
+      "date": "17/02/26",
+      "time": "12:13pm",
+      "ticker": "EVG",
+      "company": "Evion Group NL",
+      "heading": "Release of shares subject to voluntary escrow",
+      "link": "https://www.marketindex.com.au/asx/evg/announcements/release-of-shares-subject-to-voluntary-escrow-6A1312434"
+    },
+    {
+      "date": "17/02/26",
+      "time": "12:09pm",
+      "ticker": "QXR",
+      "company": "QX Resources",
+      "heading": "Ceasing to be a substantial holder",
+      "link": "https://www.marketindex.com.au/asx/qxr/announcements/ceasing-to-be-a-substantial-holder-6A1312432"
+    },
+    {
+      "date": "17/02/26",
+      "time": "12:09pm",
+      "ticker": "CR3",
+      "company": "Core Energy Minerals",
+      "heading": "Investor Presentation - RIU Explorers Conference",
+      "link": "https://www.marketindex.com.au/asx/cr3/announcements/investor-presentation-riu-explorers-conference-2A1653951"
+    },
+    {
+      "date": "17/02/26",
+      "time": "12:08pm",
+      "ticker": "CAMG",
+      "company": "Clime Capital",
+      "heading": "Net Tangible Asset Backing 16 February 2026",
+      "link": "https://www.marketindex.com.au/asx/camg/announcements/net-tangible-asset-backing-16-february-2026-2A1653952"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:56am",
+      "ticker": "CXU",
+      "company": "Cauldron Energy",
+      "heading": "Presentation at RIU 2026 Fremantle Conference",
+      "link": "https://www.marketindex.com.au/asx/cxu/announcements/presentation-at-riu-2026-fremantle-conference-6A1312430"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:48am",
+      "ticker": "FRS",
+      "company": "Forrestania Resources",
+      "heading": "Change of Director's Interest Notice - DG",
+      "link": "https://www.marketindex.com.au/asx/frs/announcements/change-of-director-s-interest-notice-dg-6A1312429"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:46am",
+      "ticker": "FRS",
+      "company": "Forrestania Resources",
+      "heading": "Change of Director's Interest Notice - AT",
+      "link": "https://www.marketindex.com.au/asx/frs/announcements/change-of-director-s-interest-notice-at-6A1312428"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:46am",
+      "ticker": "IMC",
+      "company": "Immuron",
+      "heading": "Immuron receives R&D Tax Incentive",
+      "link": "https://www.marketindex.com.au/asx/imc/announcements/immuron-receives-r-d-tax-incentive-3A687267"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:45am",
+      "ticker": "HCL",
+      "company": "HighCom",
+      "heading": "Share Purchase Plan Open",
+      "link": "https://www.marketindex.com.au/asx/hcl/announcements/share-purchase-plan-open-3A687266"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:38am",
+      "ticker": "JEGA",
+      "company": "JPMorgan Global Equity Premium Income Complex ETF",
+      "heading": "Distribution Notice",
+      "link": "https://www.marketindex.com.au/asx/jega/announcements/distribution-notice-2A1653948"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:38am",
+      "ticker": "JHGA",
+      "company": "JPMorgon Global Equity Premium Income (Hedged) Complex ETF",
+      "heading": "Distribution Notice",
+      "link": "https://www.marketindex.com.au/asx/jhga/announcements/distribution-notice-2A1653949"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:35am",
+      "ticker": "GCQF",
+      "company": "GCQ Global Equities Complex ETF",
+      "heading": "Half Yearly Letter - December 2025",
+      "link": "https://www.marketindex.com.au/asx/gcqf/announcements/half-yearly-letter-december-2025-2A1653947"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:28am",
+      "ticker": "NHE",
+      "company": "Noble Helium",
+      "heading": "Initial Director's Interest Notice",
+      "link": "https://www.marketindex.com.au/asx/nhe/announcements/initial-director-s-interest-notice-6A1312427"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:23am",
+      "ticker": "LMS",
+      "company": "Litchfield Minerals",
+      "heading": "Cleansing Notice",
+      "link": "https://www.marketindex.com.au/asx/lms/announcements/cleansing-notice-2A1653946"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:21am",
+      "ticker": "BM1",
+      "company": "Ballard Mining",
+      "heading": "Company Presentation - RIU Explorers Conference",
+      "link": "https://www.marketindex.com.au/asx/bm1/announcements/company-presentation-riu-explorers-conference-6A1312426"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:19am",
+      "ticker": "ADR",
+      "company": "Adherium",
+      "heading": "Australian FY25 R&D Tax Incentive Refund Released",
+      "link": "https://www.marketindex.com.au/asx/adr/announcements/australian-fy25-r-d-tax-incentive-refund-released-3A687261"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:14am",
+      "ticker": "SMI",
+      "company": "Santana Minerals",
+      "heading": "Proposed issue of securities - SMI",
+      "link": "https://www.marketindex.com.au/asx/smi/announcements/proposed-issue-of-securities-smi-6A1312420"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:14am",
+      "ticker": "SMI",
+      "company": "Santana Minerals",
+      "heading": "Proposed issue of securities - SMI",
+      "link": "https://www.marketindex.com.au/asx/smi/announcements/proposed-issue-of-securities-smi-6A1312419"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:14am",
+      "ticker": "SMI",
+      "company": "Santana Minerals",
+      "heading": "Proposed issue of securities - SMI",
+      "link": "https://www.marketindex.com.au/asx/smi/announcements/proposed-issue-of-securities-smi-6A1312418"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:13am",
+      "ticker": "LMS",
+      "company": "Litchfield Minerals",
+      "heading": "Application for quotation of securities - LMS",
+      "link": "https://www.marketindex.com.au/asx/lms/announcements/application-for-quotation-of-securities-lms-2A1653945"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:13am",
+      "ticker": "SMI",
+      "company": "Santana Minerals",
+      "heading": "A$130 million Placement and Share Purchase Plan $",
+      "link": "https://www.marketindex.com.au/asx/smi/announcements/a-130-million-placement-and-share-purchase-plan-6A1312422"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:13am",
+      "ticker": "NX1",
+      "company": "Nexalis Therapeutics",
+      "heading": "Notification regarding unquoted securities - NX1",
+      "link": "https://www.marketindex.com.au/asx/nx1/announcements/notification-regarding-unquoted-securities-nx1-3A687264"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:12am",
+      "ticker": "NX1",
+      "company": "Nexalis Therapeutics",
+      "heading": "Proposed issue of securities - NX1",
+      "link": "https://www.marketindex.com.au/asx/nx1/announcements/proposed-issue-of-securities-nx1-3A687263"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:05am",
+      "ticker": "NX1",
+      "company": "Nexalis Therapeutics",
+      "heading": "Change of Director's Interest Notice x3",
+      "link": "https://www.marketindex.com.au/asx/nx1/announcements/change-of-director-s-interest-notice-x3-3A687262"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:05am",
+      "ticker": "AGE",
+      "company": "Alligator Energy",
+      "heading": "Commissioning of Pilot Plant Complete $",
+      "link": "https://www.marketindex.com.au/asx/age/announcements/commissioning-of-pilot-plant-complete-2A1653944"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:01am",
+      "ticker": "CNB",
+      "company": "Carnaby Resources",
+      "heading": "Presentation - RIU Explorers Conference 2026",
+      "link": "https://www.marketindex.com.au/asx/cnb/announcements/presentation-riu-explorers-conference-2026-6A1312424"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:00am",
+      "ticker": "NX1",
+      "company": "Nexalis Therapeutics",
+      "heading": "Notification regarding unquoted securities - NX1",
+      "link": "https://www.marketindex.com.au/asx/nx1/announcements/notification-regarding-unquoted-securities-nx1-3A687260"
+    },
+    {
+      "date": "17/02/26",
+      "time": "11:00am",
+      "ticker": "NX1",
+      "company": "Nexalis Therapeutics",
+      "heading": "Notification regarding unquoted securities - NX1",
+      "link": "https://www.marketindex.com.au/asx/nx1/announcements/notification-regarding-unquoted-securities-nx1-3A687259"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:58am",
+      "ticker": "SP3",
+      "company": "Spectur",
+      "heading": "Cleansing Notice",
+      "link": "https://www.marketindex.com.au/asx/sp3/announcements/cleansing-notice-6A1312425"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:55am",
+      "ticker": "IDA",
+      "company": "Indiana Resources",
+      "heading": "RIU Explorers Conference Presentation",
+      "link": "https://www.marketindex.com.au/asx/ida/announcements/riu-explorers-conference-presentation-6A1312421"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:55am",
+      "ticker": "SP3",
+      "company": "Spectur",
+      "heading": "Application for quotation of securities - SP3",
+      "link": "https://www.marketindex.com.au/asx/sp3/announcements/application-for-quotation-of-securities-sp3-6A1312423"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:46am",
+      "ticker": "SLD",
+      "company": "Saluda Medical, Inc.",
+      "heading": "H1 FY26 Results Notification & Webinar",
+      "link": "https://www.marketindex.com.au/asx/sld/announcements/h1-fy26-results-notification-webinar-2A1653943"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:44am",
+      "ticker": "NX1",
+      "company": "Nexalis Therapeutics",
+      "heading": "Application for quotation of securities - NX1",
+      "link": "https://www.marketindex.com.au/asx/nx1/announcements/application-for-quotation-of-securities-nx1-3A687258"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:44am",
+      "ticker": "NX1",
+      "company": "Nexalis Therapeutics",
+      "heading": "ALLOTMENT OF SECURITIES FOLLOWING SHAREHOLDER APPROVAL",
+      "link": "https://www.marketindex.com.au/asx/nx1/announcements/allotment-of-securities-following-shareholder-approval-3A687257"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:34am",
+      "ticker": "M79",
+      "company": "Mammoth Minerals",
+      "heading": "RIU Explorers Conference Investor Presentation",
+      "link": "https://www.marketindex.com.au/asx/m79/announcements/riu-explorers-conference-investor-presentation-6A1312417"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:33am",
+      "ticker": "SRG",
+      "company": "SRG Global",
+      "heading": "Dividend/Distribution - SRG",
+      "link": "https://www.marketindex.com.au/asx/srg/announcements/dividend-distribution-srg-6A1312415"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:32am",
+      "ticker": "KM1",
+      "company": "Kali Metals",
+      "heading": "Application for quotation of securities - KM1",
+      "link": "https://www.marketindex.com.au/asx/km1/announcements/application-for-quotation-of-securities-km1-6A1312416"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:30am",
+      "ticker": "PTR",
+      "company": "PTR Minerals",
+      "heading": "Company Presentation - February 2026",
+      "link": "https://www.marketindex.com.au/asx/ptr/announcements/company-presentation-february-2026-2A1653942"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:30am",
+      "ticker": "CRS",
+      "company": "Caprice Resources",
+      "heading": "Caprice Resources Investor Presentation - RIU 2026",
+      "link": "https://www.marketindex.com.au/asx/crs/announcements/caprice-resources-investor-presentation-riu-2026-6A1312412"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:29am",
+      "ticker": "KM1",
+      "company": "Kali Metals",
+      "heading": "Completion of Tranche 1 Placement and Cleansing Notice",
+      "link": "https://www.marketindex.com.au/asx/km1/announcements/completion-of-tranche-1-placement-and-cleansing-notice-6A1312414"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:26am",
+      "ticker": "WSR",
+      "company": "Westar Resources",
+      "heading": "Exploration Update (amendment)",
+      "link": "https://www.marketindex.com.au/asx/wsr/announcements/exploration-update-amendment-2A1653940"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:21am",
+      "ticker": "GCQF",
+      "company": "GCQ Global Equities Complex ETF",
+      "heading": "Monthly Portfolio & Performance Update - January 2026",
+      "link": "https://www.marketindex.com.au/asx/gcqf/announcements/monthly-portfolio-performance-update-january-2026-2A1653939"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:16am",
+      "ticker": "WTM",
+      "company": "Waratah Minerals",
+      "heading": "Investor Presentation - RIU Explorers Conference",
+      "link": "https://www.marketindex.com.au/asx/wtm/announcements/investor-presentation-riu-explorers-conference-6A1312411"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:16am",
+      "ticker": "VVA",
+      "company": "Viva Leisure",
+      "heading": "Notification of buy-back - VVA",
+      "link": "https://www.marketindex.com.au/asx/vva/announcements/notification-of-buy-back-vva-3A687256"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:15am",
+      "ticker": "VVA",
+      "company": "Viva Leisure",
+      "heading": "Announcement of buy-back $",
+      "link": "https://www.marketindex.com.au/asx/vva/announcements/announcement-of-buy-back-3A687255"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:15am",
+      "ticker": "REZ",
+      "company": "Resources & Energy Group",
+      "heading": "DRILLING COMPLETED AT EAST MENZIES GOLD PROJECT $",
+      "link": "https://www.marketindex.com.au/asx/rez/announcements/drilling-completed-at-east-menzies-gold-project-2A1653938"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:11am",
+      "ticker": "ELT",
+      "company": "Elementos",
+      "heading": "Proposed issue of securities - ELT",
+      "link": "https://www.marketindex.com.au/asx/elt/announcements/proposed-issue-of-securities-elt-2A1653909"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:10am",
+      "ticker": "ELT",
+      "company": "Elementos",
+      "heading": "$29.5 Million Strategic Placement to L1 Capital $",
+      "link": "https://www.marketindex.com.au/asx/elt/announcements/-29-5-million-strategic-placement-to-l1-capital-2A1653928"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:06am",
+      "ticker": "PPL",
+      "company": "Pureprofile",
+      "heading": "Acquisition of Australian Qualitative Research Business $",
+      "link": "https://www.marketindex.com.au/asx/ppl/announcements/acquisition-of-australian-qualitative-research-business-2A1653937"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:04am",
+      "ticker": "ALM",
+      "company": "Alma Metals",
+      "heading": "Investor Presentation - RIU Fremantle $",
+      "link": "https://www.marketindex.com.au/asx/alm/announcements/investor-presentation-riu-fremantle-6A1312410"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:01am",
+      "ticker": "TZL",
+      "company": "TZ",
+      "heading": "TZL Business Update $",
+      "link": "https://www.marketindex.com.au/asx/tzl/announcements/tzl-business-update-2A1653936"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:00am",
+      "ticker": "CTM",
+      "company": "Centaurus Metals",
+      "heading": "RIU Explorers Conference Presentation",
+      "link": "https://www.marketindex.com.au/asx/ctm/announcements/riu-explorers-conference-presentation-6A1312409"
+    },
+    {
+      "date": "17/02/26",
+      "time": "10:00am",
+      "ticker": "VGN",
+      "company": "Virgin Australia Holdings",
+      "heading": "Release from Voluntary Escrow",
+      "link": "https://www.marketindex.com.au/asx/vgn/announcements/release-from-voluntary-escrow-2A1653934"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:59am",
+      "ticker": "CAMG",
+      "company": "Clime Capital",
+      "heading": "Notification of cessation of securities - CAM",
+      "link": "https://www.marketindex.com.au/asx/camg/announcements/notification-of-cessation-of-securities-cam-2A1653935"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:59am",
+      "ticker": "PGO",
+      "company": "Pacgold",
+      "heading": "Investor Presentation - RIU Explorers Conference",
+      "link": "https://www.marketindex.com.au/asx/pgo/announcements/investor-presentation-riu-explorers-conference-3A687254"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:58am",
+      "ticker": "FCL",
+      "company": "FINEOS Corporation Holdings PLC",
+      "heading": "FY25 result release date & conference call details",
+      "link": "https://www.marketindex.com.au/asx/fcl/announcements/fy25-result-release-date-conference-call-details-2A1653933"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:58am",
+      "ticker": "WHI",
+      "company": "Whitefield Income",
+      "heading": "App 4D, HY Accounts - December 2025 $",
+      "link": "https://www.marketindex.com.au/asx/whi/announcements/app-4d-hy-accounts-december-2025-2A1653930"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:57am",
+      "ticker": "EQR",
+      "company": "EQ Resources",
+      "heading": "Cleansing Notice",
+      "link": "https://www.marketindex.com.au/asx/eqr/announcements/cleansing-notice-2A1653932"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:56am",
+      "ticker": "EQR",
+      "company": "EQ Resources",
+      "heading": "Application for quotation of securities - EQR",
+      "link": "https://www.marketindex.com.au/asx/eqr/announcements/application-for-quotation-of-securities-eqr-2A1653931"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:54am",
+      "ticker": "SHV",
+      "company": "Select Harvests",
+      "heading": "FY25 AGM Chair Address and Managing Director's Presentation $",
+      "link": "https://www.marketindex.com.au/asx/shv/announcements/fy25-agm-chair-address-and-managing-director-s-presentation-3A687253"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:53am",
+      "ticker": "MQR",
+      "company": "Marquee Resources",
+      "heading": "MQR Expands Mt Clement MRE 69% to 10,000t contained Sb $",
+      "link": "https://www.marketindex.com.au/asx/mqr/announcements/mqr-expands-mt-clement-mre-69-to-10-000t-contained-sb-6A1312407"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:53am",
+      "ticker": "SMN",
+      "company": "Structural Monitoring Systems Plc",
+      "heading": "AEM launches new special-mission radio for global customers",
+      "link": "https://www.marketindex.com.au/asx/smn/announcements/aem-launches-new-special-mission-radio-for-global-customers-6A1312408"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:51am",
+      "ticker": "CXU",
+      "company": "Cauldron Energy",
+      "heading": "CXU adds 13.6Mlbs eU3O8 at Yanrey - a 32% increase $",
+      "link": "https://www.marketindex.com.au/asx/cxu/announcements/cxu-adds-13-6mlbs-eu3o8-at-yanrey-a-32-increase-6A1312406"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:51am",
+      "ticker": "CC5",
+      "company": "Clever Culture Systems",
+      "heading": "Half Yearly Report and Accounts $",
+      "link": "https://www.marketindex.com.au/asx/cc5/announcements/half-yearly-report-and-accounts-2A1653927"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:51am",
+      "ticker": "MGT",
+      "company": "Magnetite Mines",
+      "heading": "Razorback Project Awarded Major Project Status $",
+      "link": "https://www.marketindex.com.au/asx/mgt/announcements/razorback-project-awarded-major-project-status-6A1312402"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:50am",
+      "ticker": "HPC",
+      "company": "The Hydration Pharmaceuticals Company",
+      "heading": "Cost savings implemented & inventory replenishment completed $",
+      "link": "https://www.marketindex.com.au/asx/hpc/announcements/cost-savings-implemented-inventory-replenishment-completed-3A687252"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:49am",
+      "ticker": "FTI",
+      "company": "Fortifai",
+      "heading": "AI Data Plane - Corporate Investor Presentation",
+      "link": "https://www.marketindex.com.au/asx/fti/announcements/ai-data-plane-corporate-investor-presentation-2A1653926"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:49am",
+      "ticker": "MFD",
+      "company": "Mayfield Childcare",
+      "heading": "Change in substantial holding",
+      "link": "https://www.marketindex.com.au/asx/mfd/announcements/change-in-substantial-holding-3A687251"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:48am",
+      "ticker": "RNV",
+      "company": "ReNerve",
+      "heading": "Proposed issue of securities - RNV",
+      "link": "https://www.marketindex.com.au/asx/rnv/announcements/proposed-issue-of-securities-rnv-6A1312405"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:48am",
+      "ticker": "VMS",
+      "company": "Venari Minerals NL",
+      "heading": "Appendix 3Y (Anthony Leibowitz)",
+      "link": "https://www.marketindex.com.au/asx/vms/announcements/appendix-3y-anthony-leibowitz-6A1312403"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:48am",
+      "ticker": "KYP",
+      "company": "Kinatico",
+      "heading": "Investor webinar presentation $",
+      "link": "https://www.marketindex.com.au/asx/kyp/announcements/investor-webinar-presentation-6A1312397"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:46am",
+      "ticker": "VMS",
+      "company": "Venari Minerals NL",
+      "heading": "Presentation RIU Explorers Conference February 2026",
+      "link": "https://www.marketindex.com.au/asx/vms/announcements/presentation-riu-explorers-conference-february-2026-6A1312401"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:46am",
+      "ticker": "IDA",
+      "company": "Indiana Resources",
+      "heading": "Three New Priority Target Areas at Minos",
+      "link": "https://www.marketindex.com.au/asx/ida/announcements/three-new-priority-target-areas-at-minos-6A1312399"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:45am",
+      "ticker": "TPW",
+      "company": "Temple & Webster Group",
+      "heading": "Change in substantial holding",
+      "link": "https://www.marketindex.com.au/asx/tpw/announcements/change-in-substantial-holding-2A1653925"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:45am",
+      "ticker": "DNL",
+      "company": "Dyno Nobel",
+      "heading": "Appendix 3Y - Change of Director's Interest Notice",
+      "link": "https://www.marketindex.com.au/asx/dnl/announcements/appendix-3y-change-of-director-s-interest-notice-3A687250"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:45am",
+      "ticker": "CCR",
+      "company": "Credit Clear",
+      "heading": "Webinar notification - HY Results & Acquisition Progress",
+      "link": "https://www.marketindex.com.au/asx/ccr/announcements/webinar-notification-hy-results-acquisition-progress-3A687249"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:43am",
+      "ticker": "BOT",
+      "company": "Botanix Pharmaceuticals",
+      "heading": "Proposed issue of securities - BOT",
+      "link": "https://www.marketindex.com.au/asx/bot/announcements/proposed-issue-of-securities-bot-6A1312379"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:43am",
+      "ticker": "RML",
+      "company": "Resolution Minerals",
+      "heading": "Gold & Significant Tungsten Mineralisation in Drilling $",
+      "link": "https://www.marketindex.com.au/asx/rml/announcements/gold-significant-tungsten-mineralisation-in-drilling-2A1653924"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:43am",
+      "ticker": "BOT",
+      "company": "Botanix Pharmaceuticals",
+      "heading": "Proposed issue of securities - BOT",
+      "link": "https://www.marketindex.com.au/asx/bot/announcements/proposed-issue-of-securities-bot-6A1312376"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:43am",
+      "ticker": "BOT",
+      "company": "Botanix Pharmaceuticals",
+      "heading": "Botanix Pharmaceuticals Capital Raising Presentation",
+      "link": "https://www.marketindex.com.au/asx/bot/announcements/botanix-pharmaceuticals-capital-raising-presentation-6A1312367"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:42am",
+      "ticker": "BWN",
+      "company": "Bhagwan Marine",
+      "heading": "Cleansing Notice Under Section 708A(5)(e)",
+      "link": "https://www.marketindex.com.au/asx/bwn/announcements/cleansing-notice-under-section-708a-5-e-6A1312396"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:42am",
+      "ticker": "BOT",
+      "company": "Botanix Pharmaceuticals",
+      "heading": "Botanix Receives Capital Raise Commitments of A$45 Million $",
+      "link": "https://www.marketindex.com.au/asx/bot/announcements/botanix-receives-capital-raise-commitments-of-a-45-million-6A1312364"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:41am",
+      "ticker": "C1X",
+      "company": "Cosmos Exploration",
+      "heading": "EAU Lithium Executes Negotiation Agreement with YLB $",
+      "link": "https://www.marketindex.com.au/asx/c1x/announcements/eau-lithium-executes-negotiation-agreement-with-ylb-6A1312389"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:40am",
+      "ticker": "XRO",
+      "company": "Xero",
+      "heading": "Cleansing Notice",
+      "link": "https://www.marketindex.com.au/asx/xro/announcements/cleansing-notice-3A687248"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:40am",
+      "ticker": "KOB",
+      "company": "Koba Resources",
+      "heading": "RIU Explorers Conference Presentation",
+      "link": "https://www.marketindex.com.au/asx/kob/announcements/riu-explorers-conference-presentation-6A1312393"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:40am",
+      "ticker": "TM1",
+      "company": "Terra Metals",
+      "heading": "High-Grade PGM Feeder System Confirmed at Southwest SW6 $",
+      "link": "https://www.marketindex.com.au/asx/tm1/announcements/high-grade-pgm-feeder-system-confirmed-at-southwest-sw6-6A1312394"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:39am",
+      "ticker": "BWN",
+      "company": "Bhagwan Marine",
+      "heading": "Application for quotation of securities - BWN",
+      "link": "https://www.marketindex.com.au/asx/bwn/announcements/application-for-quotation-of-securities-bwn-6A1312395"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:39am",
+      "ticker": "AMH",
+      "company": "AMCIL",
+      "heading": "Announcement of Leadership Changes $",
+      "link": "https://www.marketindex.com.au/asx/amh/announcements/announcement-of-leadership-changes-3A687247"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:39am",
+      "ticker": "SIS",
+      "company": "Simble Solutions",
+      "heading": "General Meeting Notice of Meeting",
+      "link": "https://www.marketindex.com.au/asx/sis/announcements/general-meeting-notice-of-meeting-2A1653917"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:39am",
+      "ticker": "XRO",
+      "company": "Xero",
+      "heading": "Application for quotation of securities - XRO",
+      "link": "https://www.marketindex.com.au/asx/xro/announcements/application-for-quotation-of-securities-xro-3A687246"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:39am",
+      "ticker": "BMC",
+      "company": "BMC Minerals .",
+      "heading": "2026 Resource Drilling Program Commences at KZK Project",
+      "link": "https://www.marketindex.com.au/asx/bmc/announcements/2026-resource-drilling-program-commences-at-kzk-project-6A1312391"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:39am",
+      "ticker": "IMR",
+      "company": "Imricor Medical Systems Inc",
+      "heading": "FY25 Results Webinar",
+      "link": "https://www.marketindex.com.au/asx/imr/announcements/fy25-results-webinar-3A687244"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:38am",
+      "ticker": "MIR",
+      "company": "Mirrabooka Investments",
+      "heading": "Announcement of Leadership Changes $",
+      "link": "https://www.marketindex.com.au/asx/mir/announcements/announcement-of-leadership-changes-3A687245"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:38am",
+      "ticker": "EZZ",
+      "company": "EZZ Life Science Holdings",
+      "heading": "EZZ Appoints Aumake in $10m Exclusive Distributor Agreement $",
+      "link": "https://www.marketindex.com.au/asx/ezz/announcements/ezz-appoints-aumake-in-10m-exclusive-distributor-agreement-2A1653920"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:38am",
+      "ticker": "AUK",
+      "company": "Aumake",
+      "heading": "EZZ:EZZ Appoints Aumake in $10m Exclusive Dist Agreement $",
+      "link": "https://www.marketindex.com.au/asx/auk/announcements/ezz-ezz-appoints-aumake-in-10m-exclusive-dist-agreement-2A1653923"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:37am",
+      "ticker": "T92",
+      "company": "Terra Critical Minerals",
+      "heading": "Change in substantial holding",
+      "link": "https://www.marketindex.com.au/asx/t92/announcements/change-in-substantial-holding-6A1312390"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:37am",
+      "ticker": "GNG",
+      "company": "GR Engineering Services",
+      "heading": "Preferred Contractor - Laverton Processing Plant $",
+      "link": "https://www.marketindex.com.au/asx/gng/announcements/preferred-contractor-laverton-processing-plant-6A1312386"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:37am",
+      "ticker": "NVU",
+      "company": "Nanoveu",
+      "heading": "Proposed issue of securities - NVU",
+      "link": "https://www.marketindex.com.au/asx/nvu/announcements/proposed-issue-of-securities-nvu-6A1312330"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:37am",
+      "ticker": "BTR",
+      "company": "Brightstar Resources",
+      "heading": "GNG: Preferred Contractor - Laverton Processing Plant $",
+      "link": "https://www.marketindex.com.au/asx/btr/announcements/gng-preferred-contractor-laverton-processing-plant-6A1312392"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:37am",
+      "ticker": "RNX",
+      "company": "Renegade Exploration",
+      "heading": "Significant Gold and Silver Rock Chip results in Nevada $",
+      "link": "https://www.marketindex.com.au/asx/rnx/announcements/significant-gold-and-silver-rock-chip-results-in-nevada-6A1312387"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:37am",
+      "ticker": "RB6",
+      "company": "Rubix Resources",
+      "heading": "Change in substantial holding",
+      "link": "https://www.marketindex.com.au/asx/rb6/announcements/change-in-substantial-holding-6A1312388"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:35am",
+      "ticker": "DJW",
+      "company": "Djerriwarrh Investments",
+      "heading": "Announcement of Leadership Changes $",
+      "link": "https://www.marketindex.com.au/asx/djw/announcements/announcement-of-leadership-changes-3A687243"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:35am",
+      "ticker": "MA1",
+      "company": "MA Credit Income Trust",
+      "heading": "Daily Estimate NTA for 13.02.2026",
+      "link": "https://www.marketindex.com.au/asx/ma1/announcements/daily-estimate-nta-for-13-02-2026-2A1653922"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:34am",
+      "ticker": "AGD",
+      "company": "Austral Gold",
+      "heading": "Trading Halt $",
+      "link": "https://www.marketindex.com.au/asx/agd/announcements/trading-halt-2A1653921"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:33am",
+      "ticker": "LRT",
+      "company": "Lowell Resources Fund",
+      "heading": "LRT NAV Estimate - 13 February 2026",
+      "link": "https://www.marketindex.com.au/asx/lrt/announcements/lrt-nav-estimate-13-february-2026-3A687242"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:32am",
+      "ticker": "PRX",
+      "company": "Prodigy Gold NL",
+      "heading": "Exploration Update - 2026 Field Season Plans",
+      "link": "https://www.marketindex.com.au/asx/prx/announcements/exploration-update-2026-field-season-plans-6A1312384"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:31am",
+      "ticker": "BTR",
+      "company": "Brightstar Resources",
+      "heading": "EPC Contractor Engaged for Goldfields Project $",
+      "link": "https://www.marketindex.com.au/asx/btr/announcements/epc-contractor-engaged-for-goldfields-project-6A1312381"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:31am",
+      "ticker": "GNG",
+      "company": "GR Engineering Services",
+      "heading": "BTR: EPC Contractor Engaged for Goldfields Project $",
+      "link": "https://www.marketindex.com.au/asx/gng/announcements/btr-epc-contractor-engaged-for-goldfields-project-6A1312385"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:31am",
+      "ticker": "CAE",
+      "company": "Cannindah Resources",
+      "heading": "Investor Presentation - RIU Explorers Conference",
+      "link": "https://www.marketindex.com.au/asx/cae/announcements/investor-presentation-riu-explorers-conference-6A1312383"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:30am",
+      "ticker": "AFI",
+      "company": "Australian Foundation Investment Company",
+      "heading": "AFIC Announces Leadership Changes $",
+      "link": "https://www.marketindex.com.au/asx/afi/announcements/afic-announces-leadership-changes-3A687241"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:29am",
+      "ticker": "HNG",
+      "company": "Hancock & Gore",
+      "heading": "Change of Director's Interest Notice - Angus Murnaghan",
+      "link": "https://www.marketindex.com.au/asx/hng/announcements/change-of-director-s-interest-notice-angus-murnaghan-2A1653919"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:29am",
+      "ticker": "TNC",
+      "company": "True North Copper",
+      "heading": "Cloncurry Copper Project - Development Drilling Commences",
+      "link": "https://www.marketindex.com.au/asx/tnc/announcements/cloncurry-copper-project-development-drilling-commences-6A1312378"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:28am",
+      "ticker": "GT1",
+      "company": "Green Technology Metals",
+      "heading": "Corporate Presentation",
+      "link": "https://www.marketindex.com.au/asx/gt1/announcements/corporate-presentation-6A1312380"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:28am",
+      "ticker": "REA",
+      "company": "REA Group",
+      "heading": "Notification regarding unquoted securities - REA",
+      "link": "https://www.marketindex.com.au/asx/rea/announcements/notification-regarding-unquoted-securities-rea-3A687240"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:28am",
+      "ticker": "AZJ",
+      "company": "Aurizon Holdings",
+      "heading": "Update - Notification of buy-back - AZJ",
+      "link": "https://www.marketindex.com.au/asx/azj/announcements/update-notification-of-buy-back-azj-2A1653918"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:27am",
+      "ticker": "CAF",
+      "company": "Centrepoint Alliance",
+      "heading": "Unaudited Financial Result H1 FY26 and Divestment $",
+      "link": "https://www.marketindex.com.au/asx/caf/announcements/unaudited-financial-result-h1-fy26-and-divestment-2A1653913"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:27am",
+      "ticker": "GHM",
+      "company": "Golden Horse Minerals",
+      "heading": "RIU Explorers Conference Presentation",
+      "link": "https://www.marketindex.com.au/asx/ghm/announcements/riu-explorers-conference-presentation-6A1312377"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:27am",
+      "ticker": "IVG",
+      "company": "Invert Graphite",
+      "heading": "Company Presentation",
+      "link": "https://www.marketindex.com.au/asx/ivg/announcements/company-presentation-2A1653915"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:27am",
+      "ticker": "OVT",
+      "company": "Ovanti",
+      "heading": "Formation of Senior Industry Advisory Board",
+      "link": "https://www.marketindex.com.au/asx/ovt/announcements/formation-of-senior-industry-advisory-board-2A1653914"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:26am",
+      "ticker": "PTR",
+      "company": "PTR Minerals",
+      "heading": "Best Results to Date from Rosewood Resource Drilling $",
+      "link": "https://www.marketindex.com.au/asx/ptr/announcements/best-results-to-date-from-rosewood-resource-drilling-2A1653911"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:26am",
+      "ticker": "NYM",
+      "company": "Narryer Metals",
+      "heading": "PTR: Best Results to Date from Rosewood Resource Drilling $",
+      "link": "https://www.marketindex.com.au/asx/nym/announcements/ptr-best-results-to-date-from-rosewood-resource-drilling-6A1312382"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:25am",
+      "ticker": "CAMG",
+      "company": "Clime Capital",
+      "heading": "Update - Notification of buy-back - CAM",
+      "link": "https://www.marketindex.com.au/asx/camg/announcements/update-notification-of-buy-back-cam-2A1653916"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:25am",
+      "ticker": "WWI",
+      "company": "West Wits Mining",
+      "heading": "Investor Presentation - RIU Explorers Conference",
+      "link": "https://www.marketindex.com.au/asx/wwi/announcements/investor-presentation-riu-explorers-conference-3A687239"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:23am",
+      "ticker": "KNI",
+      "company": "Kuniko",
+      "heading": "Investor Presentation - RIU Explorers Conference",
+      "link": "https://www.marketindex.com.au/asx/kni/announcements/investor-presentation-riu-explorers-conference-6A1312375"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:22am",
+      "ticker": "NVU",
+      "company": "Nanoveu",
+      "heading": "NVU Secures Exclusive License to Autonomous Drone Swarm IP $",
+      "link": "https://www.marketindex.com.au/asx/nvu/announcements/nvu-secures-exclusive-license-to-autonomous-drone-swarm-ip-6A1312374"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:22am",
+      "ticker": "ASB",
+      "company": "Austal",
+      "heading": "Austal USA President to retire in June 2026",
+      "link": "https://www.marketindex.com.au/asx/asb/announcements/austal-usa-president-to-retire-in-june-2026-6A1312373"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:21am",
+      "ticker": "MBG",
+      "company": "MB Gold",
+      "heading": "MB Gold - Investor Presentation",
+      "link": "https://www.marketindex.com.au/asx/mbg/announcements/mb-gold-investor-presentation-6A1312372"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:21am",
+      "ticker": "AUK",
+      "company": "Aumake",
+      "heading": "$10m Exclusive Distribution Agreement with EZZ Life Sciences $",
+      "link": "https://www.marketindex.com.au/asx/auk/announcements/-10m-exclusive-distribution-agreement-with-ezz-life-sciences-2A1653910"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:21am",
+      "ticker": "EZZ",
+      "company": "EZZ Life Science Holdings",
+      "heading": "AUK: $10m Exclusive Dist Agreement with EZZ Life Sciences $",
+      "link": "https://www.marketindex.com.au/asx/ezz/announcements/auk-10m-exclusive-dist-agreement-with-ezz-life-sciences-2A1653912"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:21am",
+      "ticker": "VKA",
+      "company": "Viking Mines",
+      "heading": "VKA DATA INTEGRATION EXPANDS LINKA TUNGSTEN TO 1.6KM STRIKE $",
+      "link": "https://www.marketindex.com.au/asx/vka/announcements/vka-data-integration-expands-linka-tungsten-to-1-6km-strike-6A1312370"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:20am",
+      "ticker": "MRZ",
+      "company": "Mont Royal Resources",
+      "heading": "Data Review Highlights Growth Opportunity at the BD-Zone $",
+      "link": "https://www.marketindex.com.au/asx/mrz/announcements/data-review-highlights-growth-opportunity-at-the-bd-zone-6A1312369"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:19am",
+      "ticker": "HRZ",
+      "company": "Horizon Minerals",
+      "heading": "Trading Halt $",
+      "link": "https://www.marketindex.com.au/asx/hrz/announcements/trading-halt-6A1312371"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:19am",
+      "ticker": "MGU",
+      "company": "Magnum Mining and Exploration",
+      "heading": "Trading Halt $",
+      "link": "https://www.marketindex.com.au/asx/mgu/announcements/trading-halt-6A1312366"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:19am",
+      "ticker": "ZNC",
+      "company": "Zenith Minerals",
+      "heading": "Trading Halt $",
+      "link": "https://www.marketindex.com.au/asx/znc/announcements/trading-halt-6A1312368"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:16am",
+      "ticker": "WAT",
+      "company": "Waterco",
+      "heading": "Update - Notification of buy-back - WAT",
+      "link": "https://www.marketindex.com.au/asx/wat/announcements/update-notification-of-buy-back-wat-2A1653908"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:16am",
+      "ticker": "MM8",
+      "company": "Medallion Metals",
+      "heading": "FID Approved, US$50 million Loan Facility & Offtake Secured $",
+      "link": "https://www.marketindex.com.au/asx/mm8/announcements/fid-approved-us-50-million-loan-facility-offtake-secured-6A1312365"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:16am",
+      "ticker": "AAM",
+      "company": "AuMEGA Metals",
+      "heading": "Suspension from Quotation $",
+      "link": "https://www.marketindex.com.au/asx/aam/announcements/suspension-from-quotation-6A1312359"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:15am",
+      "ticker": "AQX",
+      "company": "Alice Queen",
+      "heading": "Change of Director's Interest Notice",
+      "link": "https://www.marketindex.com.au/asx/aqx/announcements/change-of-director-s-interest-notice-6A1312363"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:15am",
+      "ticker": "AQX",
+      "company": "Alice Queen",
+      "heading": "Change of Director's Interest Notice",
+      "link": "https://www.marketindex.com.au/asx/aqx/announcements/change-of-director-s-interest-notice-6A1312361"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:15am",
+      "ticker": "ADC",
+      "company": "ACDC Metals",
+      "heading": "Change of Director's Interest Notice - M Saxon",
+      "link": "https://www.marketindex.com.au/asx/adc/announcements/change-of-director-s-interest-notice-m-saxon-3A687238"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:14am",
+      "ticker": "MGH",
+      "company": "MAAS Group Holdings",
+      "heading": "Notification of cessation of securities - MGH",
+      "link": "https://www.marketindex.com.au/asx/mgh/announcements/notification-of-cessation-of-securities-mgh-2A1653907"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:14am",
+      "ticker": "AQX",
+      "company": "Alice Queen",
+      "heading": "Change of Director's Interest Notice",
+      "link": "https://www.marketindex.com.au/asx/aqx/announcements/change-of-director-s-interest-notice-6A1312360"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:14am",
+      "ticker": "NWM",
+      "company": "Norwest Minerals",
+      "heading": "Bulgera Phase 2 drilling results $",
+      "link": "https://www.marketindex.com.au/asx/nwm/announcements/bulgera-phase-2-drilling-results-6A1312362"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:14am",
+      "ticker": "TKM",
+      "company": "Trek Metals",
+      "heading": "Proposed issue of securities - TKM",
+      "link": "https://www.marketindex.com.au/asx/tkm/announcements/proposed-issue-of-securities-tkm-6A1312339"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:14am",
+      "ticker": "TKM",
+      "company": "Trek Metals",
+      "heading": "Proposed issue of securities - TKM",
+      "link": "https://www.marketindex.com.au/asx/tkm/announcements/proposed-issue-of-securities-tkm-6A1312338"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:13am",
+      "ticker": "TKM",
+      "company": "Trek Metals",
+      "heading": "$15M Capital Raising to Underpin Major Drilling Program $",
+      "link": "https://www.marketindex.com.au/asx/tkm/announcements/-15m-capital-raising-to-underpin-major-drilling-program-6A1312337"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:12am",
+      "ticker": "LML",
+      "company": "Lincoln Minerals",
+      "heading": "Investor Webinar Presentation",
+      "link": "https://www.marketindex.com.au/asx/lml/announcements/investor-webinar-presentation-2A1653906"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:12am",
+      "ticker": "PIA",
+      "company": "Pengana International Equities",
+      "heading": "Monthly Performance Report - 31 January 2026",
+      "link": "https://www.marketindex.com.au/asx/pia/announcements/monthly-performance-report-31-january-2026-2A1653905"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:11am",
+      "ticker": "SVL",
+      "company": "Silver Mines",
+      "heading": "Coomber Silver Prospect Exploration Update $",
+      "link": "https://www.marketindex.com.au/asx/svl/announcements/coomber-silver-prospect-exploration-update-2A1653903"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:10am",
+      "ticker": "AQX",
+      "company": "Alice Queen",
+      "heading": "Change of Director's Interest Notice",
+      "link": "https://www.marketindex.com.au/asx/aqx/announcements/change-of-director-s-interest-notice-6A1312358"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:10am",
+      "ticker": "RGN",
+      "company": "Region Group",
+      "heading": "Update - Notification of buy-back - RGN",
+      "link": "https://www.marketindex.com.au/asx/rgn/announcements/update-notification-of-buy-back-rgn-2A1653904"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:09am",
+      "ticker": "LML",
+      "company": "Lincoln Minerals",
+      "heading": "Lincoln positioning portfolio for growing copper demand",
+      "link": "https://www.marketindex.com.au/asx/lml/announcements/lincoln-positioning-portfolio-for-growing-copper-demand-2A1653901"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:08am",
+      "ticker": "SRL",
+      "company": "Sunrise Energy Metals",
+      "heading": "Application for quotation of securities - SRL",
+      "link": "https://www.marketindex.com.au/asx/srl/announcements/application-for-quotation-of-securities-srl-3A687237"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:07am",
+      "ticker": "VMM",
+      "company": "Viridis Mining and Minerals",
+      "heading": "Drilling Strengthens MRE Confidence & Expands MREO Footprint $",
+      "link": "https://www.marketindex.com.au/asx/vmm/announcements/drilling-strengthens-mre-confidence-expands-mreo-footprint-6A1312357"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:07am",
+      "ticker": "ASV",
+      "company": "Asset Vision Co",
+      "heading": "Investor Presentation - Half Year Results 2026 $",
+      "link": "https://www.marketindex.com.au/asx/asv/announcements/investor-presentation-half-year-results-2026-3A687236"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:05am",
+      "ticker": "ASV",
+      "company": "Asset Vision Co",
+      "heading": "Half Yearly Report and Accounts $",
+      "link": "https://www.marketindex.com.au/asx/asv/announcements/half-yearly-report-and-accounts-3A687235"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:04am",
+      "ticker": "RG1",
+      "company": "Regal Partners Global Investments",
+      "heading": "Update - Notification of buy-back - RG1",
+      "link": "https://www.marketindex.com.au/asx/rg1/announcements/update-notification-of-buy-back-rg1-2A1653900"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:03am",
+      "ticker": "RG8",
+      "company": "Regal Asian Investments",
+      "heading": "Update - Notification of buy-back - RG8",
+      "link": "https://www.marketindex.com.au/asx/rg8/announcements/update-notification-of-buy-back-rg8-2A1653898"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:03am",
+      "ticker": "MFF",
+      "company": "MFF Capital Investments",
+      "heading": "Appendix 3Y",
+      "link": "https://www.marketindex.com.au/asx/mff/announcements/appendix-3y-2A1653897"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:03am",
+      "ticker": "ACF",
+      "company": "Acrow",
+      "heading": "Acrow Confirms First Half 2026 Guidance Range $",
+      "link": "https://www.marketindex.com.au/asx/acf/announcements/acrow-confirms-first-half-2026-guidance-range-6A1312355"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:03am",
+      "ticker": "GHM",
+      "company": "Golden Horse Minerals",
+      "heading": "Visible Gold From First 2026 Diamond Hole At Hopes Hill $",
+      "link": "https://www.marketindex.com.au/asx/ghm/announcements/visible-gold-from-first-2026-diamond-hole-at-hopes-hill-6A1312356"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:00am",
+      "ticker": "WDS",
+      "company": "Woodside Energy Group",
+      "heading": "Woodside releases annual reserves statement",
+      "link": "https://www.marketindex.com.au/asx/wds/announcements/woodside-releases-annual-reserves-statement-6A1312354"
+    },
+    {
+      "date": "17/02/26",
+      "time": "9:00am",
+      "ticker": "CEN",
+      "company": "Contact Energy",
+      "heading": "Contact successfully completes NZ$450m Placement $",
+      "link": "https://www.marketindex.com.au/asx/cen/announcements/contact-successfully-completes-nz-450m-placement-2A1653851"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:58am",
+      "ticker": "MGH",
+      "company": "MAAS Group Holdings",
+      "heading": "Update - Notification of buy-back - MGH",
+      "link": "https://www.marketindex.com.au/asx/mgh/announcements/update-notification-of-buy-back-mgh-2A1653896"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:57am",
+      "ticker": "TPW",
+      "company": "Temple & Webster Group",
+      "heading": "Update - Notification of buy-back - TPW",
+      "link": "https://www.marketindex.com.au/asx/tpw/announcements/update-notification-of-buy-back-tpw-2A1653895"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:57am",
+      "ticker": "MEC",
+      "company": "Morphic Ethical Equities Fund",
+      "heading": "Update - Notification of buy-back - MEC",
+      "link": "https://www.marketindex.com.au/asx/mec/announcements/update-notification-of-buy-back-mec-2A1653894"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:57am",
+      "ticker": "M2MR",
+      "company": "Mt Malcolm Mines NL",
+      "heading": "Geological Interpretation Advances Golden Crown JORC $",
+      "link": "https://www.marketindex.com.au/asx/m2mr/announcements/geological-interpretation-advances-golden-crown-jorc-6A1312353"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:54am",
+      "ticker": "MLG",
+      "company": "MLG Oz",
+      "heading": "FY26 Half Year Financial Report Announcement $",
+      "link": "https://www.marketindex.com.au/asx/mlg/announcements/fy26-half-year-financial-report-announcement-6A1312352"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:54am",
+      "ticker": "MFF",
+      "company": "MFF Capital Investments",
+      "heading": "Appendix 3Y",
+      "link": "https://www.marketindex.com.au/asx/mff/announcements/appendix-3y-2A1653893"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:54am",
+      "ticker": "MLG",
+      "company": "MLG Oz",
+      "heading": "FY26 Half Year Financial Report Investor Presentation $",
+      "link": "https://www.marketindex.com.au/asx/mlg/announcements/fy26-half-year-financial-report-investor-presentation-6A1312351"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:53am",
+      "ticker": "AMPPB",
+      "company": "AMP",
+      "heading": "AMP Updated Sustainability supplement 2025",
+      "link": "https://www.marketindex.com.au/asx/amppb/announcements/amp-updated-sustainability-supplement-2025-2A1653892"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:53am",
+      "ticker": "MIR",
+      "company": "Mirrabooka Investments",
+      "heading": "Invitation to Shareholder Information Meetings",
+      "link": "https://www.marketindex.com.au/asx/mir/announcements/invitation-to-shareholder-information-meetings-3A687234"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:51am",
+      "ticker": "MIR",
+      "company": "Mirrabooka Investments",
+      "heading": "Half Year Review to 31 December 2025",
+      "link": "https://www.marketindex.com.au/asx/mir/announcements/half-year-review-to-31-december-2025-3A687233"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:50am",
+      "ticker": "LIS",
+      "company": "Li-S Energy",
+      "heading": "LIS receives first $1.9m and appoints Hatch $",
+      "link": "https://www.marketindex.com.au/asx/lis/announcements/lis-receives-first-1-9m-and-appoints-hatch-2A1653891"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:49am",
+      "ticker": "MLG",
+      "company": "MLG Oz",
+      "heading": "Dividend/Distribution - MLG",
+      "link": "https://www.marketindex.com.au/asx/mlg/announcements/dividend-distribution-mlg-6A1312350"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:48am",
+      "ticker": "MLG",
+      "company": "MLG Oz",
+      "heading": "FY26 Half Year Appendix 4D and Financial Statements $",
+      "link": "https://www.marketindex.com.au/asx/mlg/announcements/fy26-half-year-appendix-4d-and-financial-statements-6A1312348"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:47am",
+      "ticker": "BGD",
+      "company": "Barton Gold Holdings",
+      "heading": "Application for quotation of securities - BGD",
+      "link": "https://www.marketindex.com.au/asx/bgd/announcements/application-for-quotation-of-securities-bgd-6A1312349"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:47am",
+      "ticker": "WQG",
+      "company": "WCM Global Growth",
+      "heading": "Trading Halt $",
+      "link": "https://www.marketindex.com.au/asx/wqg/announcements/trading-halt-3A687231"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:46am",
+      "ticker": "MBH",
+      "company": "Maggie Beer Holdings",
+      "heading": "1HFY26 Results Update $",
+      "link": "https://www.marketindex.com.au/asx/mbh/announcements/1hfy26-results-update-3A687232"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:44am",
+      "ticker": "EDU",
+      "company": "EDU Holdings",
+      "heading": "Change in Substantial Holding",
+      "link": "https://www.marketindex.com.au/asx/edu/announcements/change-in-substantial-holding-2A1653890"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:44am",
+      "ticker": "JNS",
+      "company": "Janus Electric Holdings",
+      "heading": "Release of Shares from Escrow",
+      "link": "https://www.marketindex.com.au/asx/jns/announcements/release-of-shares-from-escrow-2A1653889"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:42am",
+      "ticker": "MIR",
+      "company": "Mirrabooka Investments",
+      "heading": "Application for quotation of securities - MIR",
+      "link": "https://www.marketindex.com.au/asx/mir/announcements/application-for-quotation-of-securities-mir-3A687230"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:40am",
+      "ticker": "AFI",
+      "company": "Australian Foundation Investment Company",
+      "heading": "Update - Notification of buy-back - AFI",
+      "link": "https://www.marketindex.com.au/asx/afi/announcements/update-notification-of-buy-back-afi-3A687229"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:40am",
+      "ticker": "HZR",
+      "company": "Hazer Group",
+      "heading": "Hazer Achieves ARENA Funding Milestone",
+      "link": "https://www.marketindex.com.au/asx/hzr/announcements/hazer-achieves-arena-funding-milestone-6A1312347"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:39am",
+      "ticker": "BHP",
+      "company": "BHP Group",
+      "heading": "Dividend/Distribution - BHP",
+      "link": "https://www.marketindex.com.au/asx/bhp/announcements/dividend-distribution-bhp-3A687227"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:39am",
+      "ticker": "RHY",
+      "company": "Rhythm Biosciences",
+      "heading": "Rhythm Bio enters ColoSTAT agreement with 4Cyte Pathology $",
+      "link": "https://www.marketindex.com.au/asx/rhy/announcements/rhythm-bio-enters-col-ostat-agreement-with-4cyte-pathology-3A687228"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:39am",
+      "ticker": "BHP",
+      "company": "BHP Group",
+      "heading": "HY2026 Results Presentation",
+      "link": "https://www.marketindex.com.au/asx/bhp/announcements/hy2026-results-presentation-3A687224"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:38am",
+      "ticker": "M4M",
+      "company": "Macro Metals",
+      "heading": "Notification of cessation of securities - M4M",
+      "link": "https://www.marketindex.com.au/asx/m4m/announcements/notification-of-cessation-of-securities-m4m-6A1312346"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:38am",
+      "ticker": "BHP",
+      "company": "BHP Group",
+      "heading": "Half Yearly Report and Accounts $",
+      "link": "https://www.marketindex.com.au/asx/bhp/announcements/half-yearly-report-and-accounts-3A687223"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:34am",
+      "ticker": "NVQ",
+      "company": "Noviqtech",
+      "heading": "Completion of TROEF Project & Strategic European Restructure",
+      "link": "https://www.marketindex.com.au/asx/nvq/announcements/completion-of-troef-project-strategic-european-restructure-3A687226"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:34am",
+      "ticker": "29M",
+      "company": "29Metals",
+      "heading": "Application for quotation of securities - 29M",
+      "link": "https://www.marketindex.com.au/asx/29m/announcements/application-for-quotation-of-securities-29m-3A687225"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:34am",
+      "ticker": "KCC",
+      "company": "Kincora Copper",
+      "heading": "Kincora Investor Presentation",
+      "link": "https://www.marketindex.com.au/asx/kcc/announcements/kincora-investor-presentation-6A1312345"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:33am",
+      "ticker": "BHP",
+      "company": "BHP Group",
+      "heading": "BHP Announces Silver Streaming Transaction",
+      "link": "https://www.marketindex.com.au/asx/bhp/announcements/bhp-announces-silver-streaming-transaction-3A687222"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:30am",
+      "ticker": "ATT",
+      "company": "Altitude Minerals",
+      "heading": "Drilling Supports Macquarie Arc Extension at Byrock Project $",
+      "link": "https://www.marketindex.com.au/asx/att/announcements/drilling-supports-macquarie-arc-extension-at-byrock-project-2A1653886"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:30am",
+      "ticker": "ALI",
+      "company": "Argo Global Listed Infrastructure",
+      "heading": "Weekly NTA estimate - Fri 13.2.26",
+      "link": "https://www.marketindex.com.au/asx/ali/announcements/weekly-nta-estimate-fri-13-2-26-2A1653888"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:30am",
+      "ticker": "NXM",
+      "company": "Nexus Minerals",
+      "heading": "RIU Explorers Conference Presentation",
+      "link": "https://www.marketindex.com.au/asx/nxm/announcements/riu-explorers-conference-presentation-6A1312344"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:29am",
+      "ticker": "GML",
+      "company": "Gateway Mining",
+      "heading": "Drilling to Commence at Great Western $",
+      "link": "https://www.marketindex.com.au/asx/gml/announcements/drilling-to-commence-at-great-western-2A1653887"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:29am",
+      "ticker": "GRL",
+      "company": "Godolphin Resources",
+      "heading": "Webinar - Lewis Ponds Gold and Silver Project Scoping Study",
+      "link": "https://www.marketindex.com.au/asx/grl/announcements/webinar-lewis-ponds-gold-and-silver-project-scoping-study-6A1312343"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:27am",
+      "ticker": "SEK",
+      "company": "SEEK",
+      "heading": "FY2026 Half Year Results Presentation $",
+      "link": "https://www.marketindex.com.au/asx/sek/announcements/fy2026-half-year-results-presentation-3A687221"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:27am",
+      "ticker": "29M",
+      "company": "29Metals",
+      "heading": "Completion of Retail Entitlement Offer $",
+      "link": "https://www.marketindex.com.au/asx/29m/announcements/completion-of-retail-entitlement-offer-3A687220"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:26am",
+      "ticker": "LVE",
+      "company": "Love Group Global",
+      "heading": "Appendix 4D and Interim Financial Report $",
+      "link": "https://www.marketindex.com.au/asx/lve/announcements/appendix-4d-and-interim-financial-report-2A1653885"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:25am",
+      "ticker": "STK",
+      "company": "Strickland Metals",
+      "heading": "Investor Presentation",
+      "link": "https://www.marketindex.com.au/asx/stk/announcements/investor-presentation-6A1312342"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:24am",
+      "ticker": "SEK",
+      "company": "SEEK",
+      "heading": "FY2026 Half Year Results Announcement $",
+      "link": "https://www.marketindex.com.au/asx/sek/announcements/fy2026-half-year-results-announcement-3A687219"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:23am",
+      "ticker": "SEK",
+      "company": "SEEK",
+      "heading": "Dividend/Distribution - SEK",
+      "link": "https://www.marketindex.com.au/asx/sek/announcements/dividend-distribution-sek-3A687217"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:23am",
+      "ticker": "SEK",
+      "company": "SEEK",
+      "heading": "FY2026 Appendix 4D and Half Year Report $",
+      "link": "https://www.marketindex.com.au/asx/sek/announcements/fy2026-appendix-4d-and-half-year-report-3A687216"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:22am",
+      "ticker": "AUI",
+      "company": "Australian United Investment Company",
+      "heading": "Weekly NTA - 13 February 2026",
+      "link": "https://www.marketindex.com.au/asx/aui/announcements/weekly-nta-13-february-2026-3A687218"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:21am",
+      "ticker": "LSF",
+      "company": "L1 Long Short Fund",
+      "heading": "Net Tangible Asset Backing",
+      "link": "https://www.marketindex.com.au/asx/lsf/announcements/net-tangible-asset-backing-3A687215"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:21am",
+      "ticker": "GBM",
+      "company": "GBM Resources",
+      "heading": "Corporate Presentation - RIU Explorers Conference",
+      "link": "https://www.marketindex.com.au/asx/gbm/announcements/corporate-presentation-riu-explorers-conference-6A1312341"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:20am",
+      "ticker": "ORI",
+      "company": "Orica",
+      "heading": "Update - Notification of buy-back - ORI",
+      "link": "https://www.marketindex.com.au/asx/ori/announcements/update-notification-of-buy-back-ori-3A687214"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:19am",
+      "ticker": "DJW",
+      "company": "Djerriwarrh Investments",
+      "heading": "Update - Notification of buy-back - DJW",
+      "link": "https://www.marketindex.com.au/asx/djw/announcements/update-notification-of-buy-back-djw-3A687213"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:19am",
+      "ticker": "DUI",
+      "company": "Diversified United Investment",
+      "heading": "Weekly NTA - 13 February 2026",
+      "link": "https://www.marketindex.com.au/asx/dui/announcements/weekly-nta-13-february-2026-3A687212"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:17am",
+      "ticker": "MGX",
+      "company": "MGX Resources",
+      "heading": "TAM: Investor Presentation $",
+      "link": "https://www.marketindex.com.au/asx/mgx/announcements/tam-investor-presentation-6A1312340"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:17am",
+      "ticker": "TAM",
+      "company": "Tanami Gold NL",
+      "heading": "Investor Presentation $",
+      "link": "https://www.marketindex.com.au/asx/tam/announcements/investor-presentation-6A1312280"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:17am",
+      "ticker": "BCA",
+      "company": "Black Canyon",
+      "heading": "Company Presentation - RIU Conference $",
+      "link": "https://www.marketindex.com.au/asx/bca/announcements/company-presentation-riu-conference-6A1312336"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:17am",
+      "ticker": "NMR",
+      "company": "Native Mineral Resources Holdings",
+      "heading": "NMR pours 1,543oz gold dore at Blackjack $",
+      "link": "https://www.marketindex.com.au/asx/nmr/announcements/nmr-pours-1-543oz-gold-dore-at-blackjack-2A1653879"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:17am",
+      "ticker": "CRN",
+      "company": "Coronado Global Resources Inc",
+      "heading": "Details of FY2025 Results Investor Webcast",
+      "link": "https://www.marketindex.com.au/asx/crn/announcements/details-of-fy2025-results-investor-webcast-2A1653876"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:17am",
+      "ticker": "AGE",
+      "company": "Alligator Energy",
+      "heading": "RIU Fremantle Investor Presentation",
+      "link": "https://www.marketindex.com.au/asx/age/announcements/riu-fremantle-investor-presentation-2A1653882"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:17am",
+      "ticker": "AEF",
+      "company": "Australian Ethical Investment",
+      "heading": "Change in substantial shareholding for SDR",
+      "link": "https://www.marketindex.com.au/asx/aef/announcements/change-in-substantial-shareholding-for-sdr-2A1653884"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:17am",
+      "ticker": "SDR",
+      "company": "SiteMinder",
+      "heading": "Change in substantial shareholding from AEF",
+      "link": "https://www.marketindex.com.au/asx/sdr/announcements/change-in-substantial-shareholding-from-aef-2A1653883"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:16am",
+      "ticker": "SGM",
+      "company": "Sims",
+      "heading": "1H FY26 Results Presentation $",
+      "link": "https://www.marketindex.com.au/asx/sgm/announcements/1h-fy26-results-presentation-2A1653878"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:16am",
+      "ticker": "SGM",
+      "company": "Sims",
+      "heading": "1H FY26 Results Release $",
+      "link": "https://www.marketindex.com.au/asx/sgm/announcements/1h-fy26-results-release-2A1653875"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:16am",
+      "ticker": "SGM",
+      "company": "Sims",
+      "heading": "Dividend/Distribution - SGM",
+      "link": "https://www.marketindex.com.au/asx/sgm/announcements/dividend-distribution-sgm-2A1653874"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:16am",
+      "ticker": "SGM",
+      "company": "Sims",
+      "heading": "Half Yearly Report and Accounts $",
+      "link": "https://www.marketindex.com.au/asx/sgm/announcements/half-yearly-report-and-accounts-2A1653870"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:15am",
+      "ticker": "JHX",
+      "company": "James Hardie Industries Plc",
+      "heading": "Notification regarding unquoted securities - JHX",
+      "link": "https://www.marketindex.com.au/asx/jhx/announcements/notification-regarding-unquoted-securities-jhx-2A1653850"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:15am",
+      "ticker": "FMR",
+      "company": "FMR Resources",
+      "heading": "RIU Explorers Conference Investor Presentation",
+      "link": "https://www.marketindex.com.au/asx/fmr/announcements/riu-explorers-conference-investor-presentation-6A1312328"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:15am",
+      "ticker": "SGI",
+      "company": "Stealth Group Holdings",
+      "heading": "Investor Webinar Registration - FY26 Half Year Results",
+      "link": "https://www.marketindex.com.au/asx/sgi/announcements/investor-webinar-registration-fy26-half-year-results-6A1312327"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:15am",
+      "ticker": "ADD",
+      "company": "Adavale Resources",
+      "heading": "Proposed issue of securities - ADD",
+      "link": "https://www.marketindex.com.au/asx/add/announcements/proposed-issue-of-securities-add-2A1653848"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:15am",
+      "ticker": "TTX",
+      "company": "Tetratherix",
+      "heading": "TetraDerm Cohort 1 Results $",
+      "link": "https://www.marketindex.com.au/asx/ttx/announcements/tetr-aderm-cohort-1-results-2A1653880"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:15am",
+      "ticker": "ADD",
+      "company": "Adavale Resources",
+      "heading": "Acquisition of Adjacent Strategic Exploration Tenure $",
+      "link": "https://www.marketindex.com.au/asx/add/announcements/acquisition-of-adjacent-strategic-exploration-tenure-2A1653849"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:15am",
+      "ticker": "BBN",
+      "company": "Baby Bunting Group",
+      "heading": "1H FY26 Investor Presentation $",
+      "link": "https://www.marketindex.com.au/asx/bbn/announcements/1h-fy26-investor-presentation-3A687211"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:15am",
+      "ticker": "BBN",
+      "company": "Baby Bunting Group",
+      "heading": "1H FY26 Results Announcement $",
+      "link": "https://www.marketindex.com.au/asx/bbn/announcements/1h-fy26-results-announcement-3A687210"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:14am",
+      "ticker": "DRR",
+      "company": "Deterra Royalties",
+      "heading": "Half Year Results Presentation",
+      "link": "https://www.marketindex.com.au/asx/drr/announcements/half-year-results-presentation-6A1312326"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:14am",
+      "ticker": "BBN",
+      "company": "Baby Bunting Group",
+      "heading": "Half Yearly Report and Accounts $",
+      "link": "https://www.marketindex.com.au/asx/bbn/announcements/half-yearly-report-and-accounts-3A687209"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:14am",
+      "ticker": "DRR",
+      "company": "Deterra Royalties",
+      "heading": "Notification of cessation of securities - DRR",
+      "link": "https://www.marketindex.com.au/asx/drr/announcements/notification-of-cessation-of-securities-drr-6A1312323"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:14am",
+      "ticker": "DRR",
+      "company": "Deterra Royalties",
+      "heading": "Dividend/Distribution - DRR",
+      "link": "https://www.marketindex.com.au/asx/drr/announcements/dividend-distribution-drr-6A1312324"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:14am",
+      "ticker": "SIQ",
+      "company": "Smartgroup Corporation",
+      "heading": "Appointment of Non-Executive Director",
+      "link": "https://www.marketindex.com.au/asx/siq/announcements/appointment-of-non-executive-director-2A1653873"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:14am",
+      "ticker": "OR3",
+      "company": "Ore Resources",
+      "heading": "RIU Explorers Conference Presentation",
+      "link": "https://www.marketindex.com.au/asx/or3/announcements/riu-explorers-conference-presentation-6A1312335"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:14am",
+      "ticker": "DRR",
+      "company": "Deterra Royalties",
+      "heading": "Half Year Accounts $",
+      "link": "https://www.marketindex.com.au/asx/drr/announcements/half-year-accounts-6A1312325"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:12am",
+      "ticker": "OLY",
+      "company": "Olympio Metals",
+      "heading": "Phase 2 Diamond Drilling Intersects Visible Gold at Bousquet $",
+      "link": "https://www.marketindex.com.au/asx/oly/announcements/phase-2-diamond-drilling-intersects-visible-gold-at-bousquet-6A1312322"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:12am",
+      "ticker": "ICL",
+      "company": "Iceni Gold",
+      "heading": "Anomalous Copper Detected in WCD001 at Welcome Creek $",
+      "link": "https://www.marketindex.com.au/asx/icl/announcements/anomalous-copper-detected-in-wcd001-at-welcome-creek-6A1312321"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:11am",
+      "ticker": "EDE",
+      "company": "Eden Innovations",
+      "heading": "Cleansing notice",
+      "link": "https://www.marketindex.com.au/asx/ede/announcements/cleansing-notice-6A1312307"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:11am",
+      "ticker": "IPT",
+      "company": "Impact Minerals",
+      "heading": "Drilling Underway at Commonwealth $",
+      "link": "https://www.marketindex.com.au/asx/ipt/announcements/drilling-underway-at-commonwealth-6A1312320"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:11am",
+      "ticker": "HCH",
+      "company": "Hot Chili",
+      "heading": "Hot Chili Corporate Presentation $",
+      "link": "https://www.marketindex.com.au/asx/hch/announcements/hot-chili-corporate-presentation-6A1312319"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:11am",
+      "ticker": "BKB",
+      "company": "Black Bear Minerals",
+      "heading": "Shafter Major Permitting Secured $",
+      "link": "https://www.marketindex.com.au/asx/bkb/announcements/shafter-major-permitting-secured-6A1312318"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:10am",
+      "ticker": "SPZ",
+      "company": "Smart Parking",
+      "heading": "H1 FY26 Investor Presentation $",
+      "link": "https://www.marketindex.com.au/asx/spz/announcements/h1-fy26-investor-presentation-3A687208"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:10am",
+      "ticker": "ABV",
+      "company": "Advanced Braking Technology",
+      "heading": "Change of Share Registry",
+      "link": "https://www.marketindex.com.au/asx/abv/announcements/change-of-share-registry-6A1312317"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:10am",
+      "ticker": "HYT",
+      "company": "Hyterra",
+      "heading": "McCoy-1 Production Test in Q2 2026 $",
+      "link": "https://www.marketindex.com.au/asx/hyt/announcements/m-ccoy-1-production-test-in-q2-2026-6A1312316"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:10am",
+      "ticker": "SPZ",
+      "company": "Smart Parking",
+      "heading": "Appendix 4D and Interim Report $",
+      "link": "https://www.marketindex.com.au/asx/spz/announcements/appendix-4d-and-interim-report-3A687206"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:10am",
+      "ticker": "FRS",
+      "company": "Forrestania Resources",
+      "heading": "Change of Director's Interest Notice - DR",
+      "link": "https://www.marketindex.com.au/asx/frs/announcements/change-of-director-s-interest-notice-dr-6A1312315"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:10am",
+      "ticker": "RAU",
+      "company": "Resouro Strategic Metals Inc",
+      "heading": "RAU Announces Forthcoming Appointment of New Board Chairman",
+      "link": "https://www.marketindex.com.au/asx/rau/announcements/rau-announces-forthcoming-appointment-of-new-board-chairman-6A1312334"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:10am",
+      "ticker": "CSL",
+      "company": "CSL",
+      "heading": "Update - Notification of buy-back - CSL",
+      "link": "https://www.marketindex.com.au/asx/csl/announcements/update-notification-of-buy-back-csl-3A687200"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:10am",
+      "ticker": "JDOPA",
+      "company": "Judo Capital Holdings",
+      "heading": "Judo 2026 Half Year Investor Presentation $",
+      "link": "https://www.marketindex.com.au/asx/jdopa/announcements/judo-2026-half-year-investor-presentation-2A1653869"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:09am",
+      "ticker": "JDOPA",
+      "company": "Judo Capital Holdings",
+      "heading": "Judo 2026 Half Year ASX Announcement $",
+      "link": "https://www.marketindex.com.au/asx/jdopa/announcements/judo-2026-half-year-asx-announcement-2A1653868"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:09am",
+      "ticker": "JDOPA",
+      "company": "Judo Capital Holdings",
+      "heading": "Judo 2026 Half Year Report including 4D $",
+      "link": "https://www.marketindex.com.au/asx/jdopa/announcements/judo-2026-half-year-report-including-4d-2A1653867"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:09am",
+      "ticker": "WQG",
+      "company": "WCM Global Growth",
+      "heading": "Weekly NTA 13 February 2026",
+      "link": "https://www.marketindex.com.au/asx/wqg/announcements/weekly-nta-13-february-2026-3A687199"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:09am",
+      "ticker": "DNL",
+      "company": "Dyno Nobel",
+      "heading": "Update - Notification of buy-back - DNL",
+      "link": "https://www.marketindex.com.au/asx/dnl/announcements/update-notification-of-buy-back-dnl-3A687198"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:09am",
+      "ticker": "MIDS",
+      "company": "Antipodes Global SMID Active ETF",
+      "heading": "January 2026 Investment Update MIDS",
+      "link": "https://www.marketindex.com.au/asx/mids/announcements/january-2026-investment-update-mids-2A1653859"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:09am",
+      "ticker": "PEC",
+      "company": "Perpetual Resources",
+      "heading": "High-Grade Caesium Results at Morro Grande, Brazil $",
+      "link": "https://www.marketindex.com.au/asx/pec/announcements/high-grade-caesium-results-at-morro-grande-brazil-6A1312314"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:08am",
+      "ticker": "CMO",
+      "company": "Cosmo Metals",
+      "heading": "Investor Presentation - RIU Explorers Conference",
+      "link": "https://www.marketindex.com.au/asx/cmo/announcements/investor-presentation-riu-explorers-conference-6A1312313"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:08am",
+      "ticker": "AGX1",
+      "company": "Antipodes Global Shares (Quoted Managed Fund)",
+      "heading": "January 2026 Investment Update AGX1",
+      "link": "https://www.marketindex.com.au/asx/agx1/announcements/january-2026-investment-update-agx1-2A1653856"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:08am",
+      "ticker": "TEK",
+      "company": "Thorney Technologies",
+      "heading": "Update - Notification of buy-back - TEK",
+      "link": "https://www.marketindex.com.au/asx/tek/announcements/update-notification-of-buy-back-tek-3A687197"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:08am",
+      "ticker": "BC8",
+      "company": "Black Cat Syndicate",
+      "heading": "High-grade Antimony Results Continue - Mt Clement $",
+      "link": "https://www.marketindex.com.au/asx/bc8/announcements/high-grade-antimony-results-continue-mt-clement-6A1312312"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:08am",
+      "ticker": "BOE",
+      "company": "Boss Energy",
+      "heading": "Becoming a substantial holder",
+      "link": "https://www.marketindex.com.au/asx/boe/announcements/becoming-a-substantial-holder-6A1312331"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:08am",
+      "ticker": "MAH",
+      "company": "Macmahon Holdings",
+      "heading": "Dividend/Distribution - MAH",
+      "link": "https://www.marketindex.com.au/asx/mah/announcements/dividend-distribution-mah-6A1312306"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:08am",
+      "ticker": "PRM",
+      "company": "Prominence Energy",
+      "heading": "First Field Work in PEL 803 Commencing $",
+      "link": "https://www.marketindex.com.au/asx/prm/announcements/first-field-work-in-pel-803-commencing-6A1312311"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:08am",
+      "ticker": "SMM",
+      "company": "Somerset Minerals",
+      "heading": "Presentation - High-Grade Discoveries, District-Scale Upside",
+      "link": "https://www.marketindex.com.au/asx/smm/announcements/presentation-high-grade-discoveries-district-scale-upside-6A1312310"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:07am",
+      "ticker": "TMX",
+      "company": "Terrain Minerals",
+      "heading": "Investor Presentation - RIU Conference Fremantle 2026",
+      "link": "https://www.marketindex.com.au/asx/tmx/announcements/investor-presentation-riu-conference-fremantle-2026-6A1312305"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:07am",
+      "ticker": "LM8",
+      "company": "Lunnon Metals",
+      "heading": "13m @ 5.70g/t Au Firms Up Lady Herial Cut-Back Potential $",
+      "link": "https://www.marketindex.com.au/asx/lm8/announcements/13m-5-70g-t-au-firms-up-lady-herial-cut-back-potential-6A1312304"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:07am",
+      "ticker": "GRE",
+      "company": "GreenTech Metals",
+      "heading": "GreenTech Appoints James Rattenbury as CEO $",
+      "link": "https://www.marketindex.com.au/asx/gre/announcements/gree-ntech-appoints-james-rattenbury-as-ceo-6A1312309"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:07am",
+      "ticker": "CRR",
+      "company": "Critical Resources",
+      "heading": "CRR Appoints Leading Solid-State Battery Specialist Advisor",
+      "link": "https://www.marketindex.com.au/asx/crr/announcements/crr-appoints-leading-solid-state-battery-specialist-advisor-6A1312308"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:07am",
+      "ticker": "SRG",
+      "company": "SRG Global",
+      "heading": "SRG Global Announces Board Changes",
+      "link": "https://www.marketindex.com.au/asx/srg/announcements/srg-global-announces-board-changes-6A1312303"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:07am",
+      "ticker": "SRG",
+      "company": "SRG Global",
+      "heading": "1H FY26 Half Year Results Announcement $",
+      "link": "https://www.marketindex.com.au/asx/srg/announcements/1h-fy26-half-year-results-announcement-6A1312301"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:07am",
+      "ticker": "SRG",
+      "company": "SRG Global",
+      "heading": "1H FY26 Half Year Results Presentation $",
+      "link": "https://www.marketindex.com.au/asx/srg/announcements/1h-fy26-half-year-results-presentation-6A1312300"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:06am",
+      "ticker": "SRG",
+      "company": "SRG Global",
+      "heading": "Appendix 4D & 1H FY26 Half Year Report $",
+      "link": "https://www.marketindex.com.au/asx/srg/announcements/appendix-4d-1h-fy26-half-year-report-6A1312302"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:06am",
+      "ticker": "EDE",
+      "company": "Eden Innovations",
+      "heading": "Application for quotation of securities - EDE",
+      "link": "https://www.marketindex.com.au/asx/ede/announcements/application-for-quotation-of-securities-ede-6A1312299"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:06am",
+      "ticker": "STV",
+      "company": "Swift TV",
+      "heading": "Swift in Sydneys Childrens Hospitals $",
+      "link": "https://www.marketindex.com.au/asx/stv/announcements/swift-in-sydneys-childrens-hospitals-6A1312298"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:05am",
+      "ticker": "SVM",
+      "company": "Sovereign Metals",
+      "heading": "Project Vault Participant Traxys Signs Offtake MOU",
+      "link": "https://www.marketindex.com.au/asx/svm/announcements/project-vault-participant-traxys-signs-offtake-mou-6A1312297"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:05am",
+      "ticker": "RGL",
+      "company": "Riversgold",
+      "heading": "Mining Lease Application Update - Kalgoorlie Gold Project $",
+      "link": "https://www.marketindex.com.au/asx/rgl/announcements/mining-lease-application-update-kalgoorlie-gold-project-6A1312296"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:05am",
+      "ticker": "RXL",
+      "company": "Rox Resources",
+      "heading": "RIU Explorers Conference Presentation",
+      "link": "https://www.marketindex.com.au/asx/rxl/announcements/riu-explorers-conference-presentation-6A1312295"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:05am",
+      "ticker": "RHI",
+      "company": "Red Hill Minerals",
+      "heading": "RIU Explorers Conference CEO Presentation $",
+      "link": "https://www.marketindex.com.au/asx/rhi/announcements/riu-explorers-conference-ceo-presentation-6A1312294"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:04am",
+      "ticker": "FRS",
+      "company": "Forrestania Resources",
+      "heading": "Proposed issue of securities - FRS",
+      "link": "https://www.marketindex.com.au/asx/frs/announcements/proposed-issue-of-securities-frs-6A1312293"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:04am",
+      "ticker": "AZY",
+      "company": "Antipa Minerals",
+      "heading": "RIU Explorers Conference Presentation",
+      "link": "https://www.marketindex.com.au/asx/azy/announcements/riu-explorers-conference-presentation-6A1312292"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:04am",
+      "ticker": "TMB",
+      "company": "Tambourah Metals",
+      "heading": "Investor Presentation February 2026 $",
+      "link": "https://www.marketindex.com.au/asx/tmb/announcements/investor-presentation-february-2026-6A1312291"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:04am",
+      "ticker": "COD",
+      "company": "Coda Minerals",
+      "heading": "Elizabeth Creek Project Economics Strengthen on Price Update $",
+      "link": "https://www.marketindex.com.au/asx/cod/announcements/elizabeth-creek-project-economics-strengthen-on-price-update-6A1312290"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:03am",
+      "ticker": "ARL",
+      "company": "Ardea Resources",
+      "heading": "RIU Explorers Conference Presentation 2026",
+      "link": "https://www.marketindex.com.au/asx/arl/announcements/riu-explorers-conference-presentation-2026-6A1312289"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:03am",
+      "ticker": "TG1",
+      "company": "TechGen Metals",
+      "heading": "Mt Boggola Cu-Au-Ag Drilling has commenced $",
+      "link": "https://www.marketindex.com.au/asx/tg1/announcements/mt-boggola-cu-au-ag-drilling-has-commenced-6A1312288"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:03am",
+      "ticker": "VTA",
+      "company": "Vita Resources NL",
+      "heading": "ICE Copper Gold Project Re-Evaluation Report $",
+      "link": "https://www.marketindex.com.au/asx/vta/announcements/ice-copper-gold-project-re-evaluation-report-2A1653847"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:03am",
+      "ticker": "BGL",
+      "company": "Bellevue Gold",
+      "heading": "Paste plant approval & further hedge book reduction",
+      "link": "https://www.marketindex.com.au/asx/bgl/announcements/paste-plant-approval-further-hedge-book-reduction-6A1312287"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:02am",
+      "ticker": "HMG",
+      "company": "Hamelin Gold",
+      "heading": "RIU Explorers Conference Presentation",
+      "link": "https://www.marketindex.com.au/asx/hmg/announcements/riu-explorers-conference-presentation-6A1312286"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:02am",
+      "ticker": "VNT",
+      "company": "Ventia Services Group",
+      "heading": "Ventia secures extension of Defence Maintenance Contract $",
+      "link": "https://www.marketindex.com.au/asx/vnt/announcements/ventia-secures-extension-of-defence-maintenance-contract-2A1653877"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:02am",
+      "ticker": "WGX",
+      "company": "Westgold Resources",
+      "heading": "Valiant Lodges Prospectus",
+      "link": "https://www.marketindex.com.au/asx/wgx/announcements/valiant-lodges-prospectus-6A1312281"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:02am",
+      "ticker": "MAH",
+      "company": "Macmahon Holdings",
+      "heading": "Investor Presentation Half Year Results",
+      "link": "https://www.marketindex.com.au/asx/mah/announcements/investor-presentation-half-year-results-6A1312285"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:02am",
+      "ticker": "MAH",
+      "company": "Macmahon Holdings",
+      "heading": "Macmahon Delivers Strong First Half Result",
+      "link": "https://www.marketindex.com.au/asx/mah/announcements/macmahon-delivers-strong-first-half-result-6A1312284"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:02am",
+      "ticker": "MAH",
+      "company": "Macmahon Holdings",
+      "heading": "Interim Financial Report",
+      "link": "https://www.marketindex.com.au/asx/mah/announcements/interim-financial-report-6A1312283"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:01am",
+      "ticker": "MAH",
+      "company": "Macmahon Holdings",
+      "heading": "Appendix 4D - Half Year Results $",
+      "link": "https://www.marketindex.com.au/asx/mah/announcements/appendix-4d-half-year-results-6A1312282"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:01am",
+      "ticker": "CGO",
+      "company": "CPT Global",
+      "heading": "Board Update",
+      "link": "https://www.marketindex.com.au/asx/cgo/announcements/board-update-3A687196"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:01am",
+      "ticker": "SGA",
+      "company": "Sarytogan Graphite",
+      "heading": "RIU Investor Presentation",
+      "link": "https://www.marketindex.com.au/asx/sga/announcements/riu-investor-presentation-6A1312278"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:00am",
+      "ticker": "STW",
+      "company": "SPDR S&P/ASX 200 Fund",
+      "heading": "Daily Fund Update",
+      "link": "https://www.marketindex.com.au/asx/stw/announcements/daily-fund-update-2A1653846"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:00am",
+      "ticker": "TXR",
+      "company": "Talonx Resources",
+      "heading": "RC Drilling to Commence at Talonx Gold Projects $",
+      "link": "https://www.marketindex.com.au/asx/txr/announcements/rc-drilling-to-commence-at-talonx-gold-projects-6A1312279"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:00am",
+      "ticker": "KYP",
+      "company": "Kinatico",
+      "heading": "Half Yearly Report and Accounts",
+      "link": "https://www.marketindex.com.au/asx/kyp/announcements/half-yearly-report-and-accounts-6A1312277"
+    },
+    {
+      "date": "17/02/26",
+      "time": "8:00am",
+      "ticker": "KYP",
+      "company": "Kinatico",
+      "heading": "Appendix 4D $",
+      "link": "https://www.marketindex.com.au/asx/kyp/announcements/appendix-4d-6A1312276"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:54am",
+      "ticker": "TWL",
+      "company": "Trade Window Holdings",
+      "heading": "Share Purchase Plan Results $",
+      "link": "https://www.marketindex.com.au/asx/twl/announcements/share-purchase-plan-results-2A1653872"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:54am",
+      "ticker": "SKT",
+      "company": "Sky Network Television",
+      "heading": "Sky evolves entertainment content offering",
+      "link": "https://www.marketindex.com.au/asx/skt/announcements/sky-evolves-entertainment-content-offering-2A1653871"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:49am",
+      "ticker": "RWC",
+      "company": "Reliance Worldwide Corporation",
+      "heading": "Notification of buy-back - RWC",
+      "link": "https://www.marketindex.com.au/asx/rwc/announcements/notification-of-buy-back-rwc-3A687207"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:48am",
+      "ticker": "RWC",
+      "company": "Reliance Worldwide Corporation",
+      "heading": "RWC Interim Results Presentation",
+      "link": "https://www.marketindex.com.au/asx/rwc/announcements/rwc-interim-results-presentation-3A687205"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:48am",
+      "ticker": "CGFPC",
+      "company": "Challenger",
+      "heading": "Notification of buy-back - CGF",
+      "link": "https://www.marketindex.com.au/asx/cgfpc/announcements/notification-of-buy-back-cgf-2A1653866"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:48am",
+      "ticker": "RWC",
+      "company": "Reliance Worldwide Corporation",
+      "heading": "RWC HY26 Interim Operating and Financial Review $",
+      "link": "https://www.marketindex.com.au/asx/rwc/announcements/rwc-hy26-interim-operating-and-financial-review-3A687204"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:48am",
+      "ticker": "CGFPC",
+      "company": "Challenger",
+      "heading": "1H26 Challenger Shareholder Newsletter $",
+      "link": "https://www.marketindex.com.au/asx/cgfpc/announcements/1h26-challenger-shareholder-newsletter-2A1653865"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:48am",
+      "ticker": "RWC",
+      "company": "Reliance Worldwide Corporation",
+      "heading": "RWC HY26 Interim Results Announcement $",
+      "link": "https://www.marketindex.com.au/asx/rwc/announcements/rwc-hy26-interim-results-announcement-3A687203"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:47am",
+      "ticker": "CGFPC",
+      "company": "Challenger",
+      "heading": "1H26 Challenger Capital Notes Newsletter $",
+      "link": "https://www.marketindex.com.au/asx/cgfpc/announcements/1h26-challenger-capital-notes-newsletter-2A1653864"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:47am",
+      "ticker": "CGFPC",
+      "company": "Challenger",
+      "heading": "1H26 Analyst Pack $",
+      "link": "https://www.marketindex.com.au/asx/cgfpc/announcements/1h26-analyst-pack-2A1653863"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:47am",
+      "ticker": "CGFPC",
+      "company": "Challenger",
+      "heading": "1H26 Investor Presentation and Outlook $",
+      "link": "https://www.marketindex.com.au/asx/cgfpc/announcements/1h26-investor-presentation-and-outlook-2A1653862"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:47am",
+      "ticker": "RWC",
+      "company": "Reliance Worldwide Corporation",
+      "heading": "Dividend/Distribution - RWC",
+      "link": "https://www.marketindex.com.au/asx/rwc/announcements/dividend-distribution-rwc-3A687202"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:47am",
+      "ticker": "RWC",
+      "company": "Reliance Worldwide Corporation",
+      "heading": "Appendix 4D and 31 December 2025 interim financial report $",
+      "link": "https://www.marketindex.com.au/asx/rwc/announcements/appendix-4d-and-31-december-2025-interim-financial-report-3A687201"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:47am",
+      "ticker": "CGFPC",
+      "company": "Challenger",
+      "heading": "1H26 Market Release $",
+      "link": "https://www.marketindex.com.au/asx/cgfpc/announcements/1h26-market-release-2A1653861"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:46am",
+      "ticker": "CGFPC",
+      "company": "Challenger",
+      "heading": "1H26 Financial Results $",
+      "link": "https://www.marketindex.com.au/asx/cgfpc/announcements/1h26-financial-results-2A1653860"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:45am",
+      "ticker": "CGFPC",
+      "company": "Challenger",
+      "heading": "Dividend/Distribution - CGF",
+      "link": "https://www.marketindex.com.au/asx/cgfpc/announcements/dividend-distribution-cgf-2A1653858"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:45am",
+      "ticker": "CGFPC",
+      "company": "Challenger",
+      "heading": "Appendix 4D $",
+      "link": "https://www.marketindex.com.au/asx/cgfpc/announcements/appendix-4d-2A1653857"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:30am",
+      "ticker": "HCW",
+      "company": "HealthCo Healthcare and Wellness REIT",
+      "heading": "HY26 Results Presentation $",
+      "link": "https://www.marketindex.com.au/asx/hcw/announcements/hy26-results-presentation-2A1653855"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:30am",
+      "ticker": "HCW",
+      "company": "HealthCo Healthcare and Wellness REIT",
+      "heading": "HY26 Results Announcement $",
+      "link": "https://www.marketindex.com.au/asx/hcw/announcements/hy26-results-announcement-2A1653854"
+    },
+    {
+      "date": "17/02/26",
+      "time": "7:30am",
+      "ticker": "HCW",
+      "company": "HealthCo Healthcare and Wellness REIT",
+      "heading": "Appendix 4D and HY26 Financial Report $",
+      "link": "https://www.marketindex.com.au/asx/hcw/announcements/appendix-4d-and-hy26-financial-report-2A1653853"
+    }
+  ]
+}

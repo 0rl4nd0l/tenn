@@ -1,0 +1,80 @@
+{
+  "input": "data/raw/marketindex_announcements.json",
+  "output_dir": "data/pdfs",
+  "total_processed": 10,
+  "downloaded": 0,
+  "skipped": 10,
+  "failed": 0,
+  "results": [
+    {
+      "index": 1,
+      "ticker": "STW",
+      "heading": "Daily Fund Update",
+      "link": null,
+      "status": "skipped_non_pdf_link"
+    },
+    {
+      "index": 2,
+      "ticker": "SLF",
+      "heading": "Daily Fund Update",
+      "link": null,
+      "status": "skipped_non_pdf_link"
+    },
+    {
+      "index": 3,
+      "ticker": "SFY",
+      "heading": "Daily Fund Update",
+      "link": null,
+      "status": "skipped_non_pdf_link"
+    },
+    {
+      "index": 4,
+      "ticker": "NHF",
+      "heading": "nib announces 2026 health insurance premium changes$",
+      "link": null,
+      "status": "skipped_non_pdf_link"
+    },
+    {
+      "index": 5,
+      "ticker": "BMT",
+      "heading": "Ceasing to be a substantial holder",
+      "link": "https://www.marketindex.com.au/asx/bmt/announcements/ceasing-to-be-a-substantial-holder-2A1654059",
+      "status": "skipped_non_pdf_link"
+    },
+    {
+      "index": 6,
+      "ticker": "BC8",
+      "heading": "Application for quotation of securities - BC8",
+      "link": "https://www.marketindex.com.au/asx/bc8/announcements/application-for-quotation-of-securities-bc8-6A1312497",
+      "status": "skipped_non_pdf_link"
+    },
+    {
+      "index": 7,
+      "ticker": "BC8",
+      "heading": "Exercise of Options",
+      "link": "https://www.marketindex.com.au/asx/bc8/announcements/exercise-of-options-6A1312496",
+      "status": "skipped_non_pdf_link"
+    },
+    {
+      "index": 8,
+      "ticker": "MKR",
+      "heading": "Cleansing Notice",
+      "link": "https://www.marketindex.com.au/asx/mkr/announcements/cleansing-notice-2A1654058",
+      "status": "skipped_non_pdf_link"
+    },
+    {
+      "index": 9,
+      "ticker": "MKR",
+      "heading": "Application for quotation of securities - MKR",
+      "link": "https://www.marketindex.com.au/asx/mkr/announcements/application-for-quotation-of-securities-mkr-2A1654057",
+      "status": "skipped_non_pdf_link"
+    },
+    {
+      "index": 10,
+      "ticker": "SQX",
+      "heading": "Appendix 3Y",
+      "link": "https://www.marketindex.com.au/asx/sqx/announcements/appendix-3y-2A1654056",
+      "status": "skipped_non_pdf_link"
+    }
+  ]
+}

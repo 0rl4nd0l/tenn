@@ -1,0 +1,173 @@
+{
+  "input": "data/raw/marketindex_announcements.json",
+  "output_dir": "data/pdfs",
+  "total_processed": 10,
+  "downloaded": 10,
+  "skipped": 0,
+  "failed": 0,
+  "candidate_total": 10,
+  "success_ratio": 1.0,
+  "quality_gate": {
+    "min_download_count": 5,
+    "min_success_ratio": 0.35,
+    "passed": true
+  },
+  "secondary_pass": {
+    "attempted": false,
+    "unresolved_initial": 0,
+    "recovered_links": 0,
+    "remaining_unresolved": 0
+  },
+  "results": [
+    {
+      "index": 1,
+      "ticker": "BRE",
+      "heading": "Notification of cessation of securities - BRE",
+      "link": "https://www.marketindex.com.au/asx/bre/announcements/notification-of-cessation-of-securities-bre-6A1312504",
+      "announcement_page_url": "https://www.marketindex.com.au/asx/bre/announcements/notification-of-cessation-of-securities-bre-6A1312504",
+      "candidate_links": [
+        "https://data-api.marketindex.com.au/api/v1/announcements/XASX:BRE:6A1312504/pdf/inline/notification-of-cessation-of-securities-bre"
+      ],
+      "file": "data/pdfs/XASX_BRE_6A1312504.pdf",
+      "status": "downloaded",
+      "bytes": 13097,
+      "content_type": "application/pdf; charset=utf-8",
+      "resolved_link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:BRE:6A1312504/pdf/inline/notification-of-cessation-of-securities-bre"
+    },
+    {
+      "index": 2,
+      "ticker": "BRE",
+      "heading": "Application for quotation of securities - BRE",
+      "link": "https://www.marketindex.com.au/asx/bre/announcements/application-for-quotation-of-securities-bre-6A1312503",
+      "announcement_page_url": "https://www.marketindex.com.au/asx/bre/announcements/application-for-quotation-of-securities-bre-6A1312503",
+      "candidate_links": [
+        "https://data-api.marketindex.com.au/api/v1/announcements/XASX:BRE:6A1312503/pdf/inline/application-for-quotation-of-securities-bre"
+      ],
+      "file": "data/pdfs/XASX_BRE_6A1312503.pdf",
+      "status": "downloaded",
+      "bytes": 19619,
+      "content_type": "application/pdf; charset=utf-8",
+      "resolved_link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:BRE:6A1312503/pdf/inline/application-for-quotation-of-securities-bre"
+    },
+    {
+      "index": 3,
+      "ticker": "JHX",
+      "heading": "Notification regarding unquoted securities - JHX",
+      "link": "https://www.marketindex.com.au/asx/jhx/announcements/notification-regarding-unquoted-securities-jhx-2A1654066",
+      "announcement_page_url": "https://www.marketindex.com.au/asx/jhx/announcements/notification-regarding-unquoted-securities-jhx-2A1654066",
+      "candidate_links": [
+        "https://data-api.marketindex.com.au/api/v1/announcements/XASX:JHX:2A1654066/pdf/inline/notification-regarding-unquoted-securities-jhx"
+      ],
+      "file": "data/pdfs/XASX_JHX_2A1654066.pdf",
+      "status": "downloaded",
+      "bytes": 15192,
+      "content_type": "application/pdf; charset=utf-8",
+      "resolved_link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:JHX:2A1654066/pdf/inline/notification-regarding-unquoted-securities-jhx"
+    },
+    {
+      "index": 4,
+      "ticker": "JHX",
+      "heading": "Notification regarding unquoted securities - JHX",
+      "link": "https://www.marketindex.com.au/asx/jhx/announcements/notification-regarding-unquoted-securities-jhx-2A1654065",
+      "announcement_page_url": "https://www.marketindex.com.au/asx/jhx/announcements/notification-regarding-unquoted-securities-jhx-2A1654065",
+      "candidate_links": [
+        "https://data-api.marketindex.com.au/api/v1/announcements/XASX:JHX:2A1654065/pdf/inline/notification-regarding-unquoted-securities-jhx"
+      ],
+      "file": "data/pdfs/XASX_JHX_2A1654065.pdf",
+      "status": "downloaded",
+      "bytes": 15190,
+      "content_type": "application/pdf; charset=utf-8",
+      "resolved_link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:JHX:2A1654065/pdf/inline/notification-regarding-unquoted-securities-jhx"
+    },
+    {
+      "index": 5,
+      "ticker": "KM1",
+      "heading": "Change in substantial holding from MIN",
+      "link": "https://www.marketindex.com.au/asx/km1/announcements/change-in-substantial-holding-from-min-6A1312500",
+      "announcement_page_url": "https://www.marketindex.com.au/asx/km1/announcements/change-in-substantial-holding-from-min-6A1312500",
+      "candidate_links": [
+        "https://data-api.marketindex.com.au/api/v1/announcements/XASX:KM1:6A1312500/pdf/inline/change-in-substantial-holding-from-min"
+      ],
+      "file": "data/pdfs/XASX_KM1_6A1312500.pdf",
+      "status": "downloaded",
+      "bytes": 478111,
+      "content_type": "application/pdf; charset=utf-8",
+      "resolved_link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:KM1:6A1312500/pdf/inline/change-in-substantial-holding-from-min"
+    },
+    {
+      "index": 6,
+      "ticker": "MIN",
+      "heading": "Change in substantial holding for KM1",
+      "link": "https://www.marketindex.com.au/asx/min/announcements/change-in-substantial-holding-for-km1-6A1312501",
+      "announcement_page_url": "https://www.marketindex.com.au/asx/min/announcements/change-in-substantial-holding-for-km1-6A1312501",
+      "candidate_links": [
+        "https://data-api.marketindex.com.au/api/v1/announcements/XASX:MIN:6A1312501/pdf/inline/change-in-substantial-holding-for-km1"
+      ],
+      "file": "data/pdfs/XASX_MIN_6A1312501.pdf",
+      "status": "downloaded",
+      "bytes": 478111,
+      "content_type": "application/pdf; charset=utf-8",
+      "resolved_link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:MIN:6A1312501/pdf/inline/change-in-substantial-holding-for-km1"
+    },
+    {
+      "index": 7,
+      "ticker": "SOR",
+      "heading": "Appendix 3X (correction)",
+      "link": "https://www.marketindex.com.au/asx/sor/announcements/appendix-3x-correction-6A1312498",
+      "announcement_page_url": "https://www.marketindex.com.au/asx/sor/announcements/appendix-3x-correction-6A1312498",
+      "candidate_links": [
+        "https://data-api.marketindex.com.au/api/v1/announcements/XASX:SOR:6A1312498/pdf/inline/appendix-3x-correction"
+      ],
+      "file": "data/pdfs/XASX_SOR_6A1312498.pdf",
+      "status": "downloaded",
+      "bytes": 215539,
+      "content_type": "application/pdf; charset=utf-8",
+      "resolved_link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:SOR:6A1312498/pdf/inline/appendix-3x-correction"
+    },
+    {
+      "index": 8,
+      "ticker": "BDX",
+      "heading": "Half Yearly Report and Accounts $",
+      "link": "https://www.marketindex.com.au/asx/bdx/announcements/half-yearly-report-and-accounts-2A1654064",
+      "announcement_page_url": "https://www.marketindex.com.au/asx/bdx/announcements/half-yearly-report-and-accounts-2A1654064",
+      "candidate_links": [
+        "https://data-api.marketindex.com.au/api/v1/announcements/XASX:BDX:2A1654064/pdf/inline/half-yearly-report-and-accounts"
+      ],
+      "file": "data/pdfs/XASX_BDX_2A1654064.pdf",
+      "status": "downloaded",
+      "bytes": 8404093,
+      "content_type": "application/pdf; charset=utf-8",
+      "resolved_link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:BDX:2A1654064/pdf/inline/half-yearly-report-and-accounts"
+    },
+    {
+      "index": 9,
+      "ticker": "STW",
+      "heading": "Daily Fund Update",
+      "link": "https://www.marketindex.com.au/asx/stw/announcements/daily-fund-update-2A1654063",
+      "announcement_page_url": "https://www.marketindex.com.au/asx/stw/announcements/daily-fund-update-2A1654063",
+      "candidate_links": [
+        "https://data-api.marketindex.com.au/api/v1/announcements/XASX:STW:2A1654063/pdf/inline/daily-fund-update"
+      ],
+      "file": "data/pdfs/XASX_STW_2A1654063.pdf",
+      "status": "downloaded",
+      "bytes": 179336,
+      "content_type": "application/pdf; charset=utf-8",
+      "resolved_link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:STW:2A1654063/pdf/inline/daily-fund-update"
+    },
+    {
+      "index": 10,
+      "ticker": "SLF",
+      "heading": "Daily Fund Update",
+      "link": "https://www.marketindex.com.au/asx/slf/announcements/daily-fund-update-2A1654062",
+      "announcement_page_url": "https://www.marketindex.com.au/asx/slf/announcements/daily-fund-update-2A1654062",
+      "candidate_links": [
+        "https://data-api.marketindex.com.au/api/v1/announcements/XASX:SLF:2A1654062/pdf/inline/daily-fund-update"
+      ],
+      "file": "data/pdfs/XASX_SLF_2A1654062.pdf",
+      "status": "downloaded",
+      "bytes": 75602,
+      "content_type": "application/pdf; charset=utf-8",
+      "resolved_link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:SLF:2A1654062/pdf/inline/daily-fund-update"
+    }
+  ]
+}

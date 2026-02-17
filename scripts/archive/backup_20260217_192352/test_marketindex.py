@@ -3,7 +3,7 @@ import json
 import re
 from collections import defaultdict, deque
 from datetime import datetime
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 from zoneinfo import ZoneInfo
 
 from playwright.async_api import async_playwright
@@ -121,16 +121,6 @@ def announcement_key(date, time, ticker, company, heading, pages):
     )
 
 
-def announcement_core_key(date, time, ticker, company, heading):
-    return (
-        normalize_key_part(date),
-        normalize_key_part(time),
-        normalize_key_part(ticker),
-        normalize_key_part(company),
-        normalize_key_part(heading),
-    )
-
-
 def parse_api_datetime_to_table_fields(date_time):
     if not date_time:
         return None, None
@@ -147,12 +137,7 @@ def parse_api_datetime_to_table_fields(date_time):
 def parse_ticker(symbol_id):
     if not symbol_id:
         return None
-    parts = [part for part in str(symbol_id).split(":") if part]
-    if not parts:
-        return None
-    if len(parts) >= 2:
-        return parts[1]
-    return parts[0]
+    return symbol_id.split(":")[0]
 
 
 def build_pdf_url(file_key):
@@ -215,15 +200,15 @@ async def extract_row_fallback_link(row):
             candidate_links.append(urljoin(BASE_URL, href))
 
     for link in candidate_links:
-        if is_pdf_url(link):
+        lower_link = link.lower()
+        if is_pdf_url(link) or "/announcements/" in lower_link:
             return link
 
     for link in candidate_links:
-        path = urlparse(link).path.lower()
-        if "/asx/" in path and "/announcements/" in path:
+        if "/asx/" in link.lower():
             return link
 
-    return None
+    return candidate_links[0] if candidate_links else None
 
 
 async def dismiss_email_popup(page):
@@ -311,12 +296,13 @@ async def fetch_announcements():
                 if not pdf_url:
                     continue
                 date, time = parse_api_datetime_to_table_fields(item.get("dateTime"))
-                key = announcement_core_key(
+                key = announcement_key(
                     date,
                     time,
                     parse_ticker(item.get("symbolId")),
                     item.get("securityName"),
                     item.get("heading"),
+                    item.get("pageCount"),
                 )
                 api_pdf_lookup[key].append(pdf_url)
 
@@ -376,7 +362,8 @@ async def fetch_announcements():
                 ticker = await cell_text(cols, row_map["ticker"])
                 company = await cell_text(cols, row_map["company"])
                 heading = await cell_text(cols, row_map["heading"])
-                key = announcement_core_key(date, time, ticker, company, heading)
+                pages = await cell_text(cols, row_map["pages"])
+                key = announcement_key(date, time, ticker, company, heading, pages)
 
                 link = None
                 if key in api_pdf_lookup and api_pdf_lookup[key]:

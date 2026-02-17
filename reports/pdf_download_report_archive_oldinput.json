@@ -1,0 +1,101 @@
+{
+  "input": "scripts/archive/backup_20260217_192352/marketindex_announcements.json",
+  "output_dir": "data/pdfs",
+  "total_processed": 10,
+  "downloaded": 7,
+  "skipped": 3,
+  "failed": 0,
+  "results": [
+    {
+      "index": 1,
+      "ticker": "FWD",
+      "heading": "Notification of cessation of securities - FWD",
+      "link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:FWD:6A1312493/pdf/inline/notification-of-cessation-of-securities-fwd",
+      "file": "data/pdfs/XASX_FWD_6A1312493.pdf",
+      "status": "downloaded",
+      "bytes": 12981,
+      "content_type": "application/pdf; charset=utf-8"
+    },
+    {
+      "index": 2,
+      "ticker": "ABE",
+      "heading": "Proposed issue of securities - ABE",
+      "link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:ABE:2A1654038/pdf/inline/proposed-issue-of-securities-abe",
+      "file": "data/pdfs/XASX_ABE_2A1654038.pdf",
+      "status": "downloaded",
+      "bytes": 15197,
+      "content_type": "application/pdf; charset=utf-8"
+    },
+    {
+      "index": 3,
+      "ticker": "ABE",
+      "heading": "Placement$",
+      "link": "https://www.marketindex.com.au/asx/abe",
+      "status": "skipped_non_pdf_link"
+    },
+    {
+      "index": 4,
+      "ticker": "ERL",
+      "heading": "Application for quotation of securities - ERL",
+      "link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:ERL:6A1312492/pdf/inline/application-for-quotation-of-securities-erl",
+      "file": "data/pdfs/XASX_ERL_6A1312492.pdf",
+      "status": "downloaded",
+      "bytes": 16188,
+      "content_type": "application/pdf; charset=utf-8"
+    },
+    {
+      "index": 5,
+      "ticker": "MGH",
+      "heading": "Notice of half year results release and webcast",
+      "link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:MGH:2A1654054/pdf/inline/notice-of-half-year-results-release-and-webcast",
+      "file": "data/pdfs/XASX_MGH_2A1654054.pdf",
+      "status": "downloaded",
+      "bytes": 152991,
+      "content_type": "application/pdf; charset=utf-8"
+    },
+    {
+      "index": 6,
+      "ticker": "AQI",
+      "heading": "Becoming a substantial holder",
+      "link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:AQI:6A1312491/pdf/inline/becoming-a-substantial-holder",
+      "file": "data/pdfs/XASX_AQI_6A1312491.pdf",
+      "status": "downloaded",
+      "bytes": 470537,
+      "content_type": "application/pdf; charset=utf-8"
+    },
+    {
+      "index": 7,
+      "ticker": "ERL",
+      "heading": "Completion of Tranche 1 Placement and Cleansing Notice$",
+      "link": "https://www.marketindex.com.au/asx/erl",
+      "status": "skipped_non_pdf_link"
+    },
+    {
+      "index": 8,
+      "ticker": "HUM",
+      "heading": "TOV: HUM Panel Makes Interim Orders$",
+      "link": "https://www.marketindex.com.au/asx/hum",
+      "status": "skipped_non_pdf_link"
+    },
+    {
+      "index": 9,
+      "ticker": "IXC",
+      "heading": "Results of Meeting",
+      "link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:IXC:6A1312489/pdf/inline/results-of-meeting",
+      "file": "data/pdfs/XASX_IXC_6A1312489.pdf",
+      "status": "downloaded",
+      "bytes": 156165,
+      "content_type": "application/pdf; charset=utf-8"
+    },
+    {
+      "index": 10,
+      "ticker": "TRE",
+      "heading": "Application for quotation of securities - TRE",
+      "link": "https://data-api.marketindex.com.au/api/v1/announcements/XASX:TRE:6A1312488/pdf/inline/application-for-quotation-of-securities-tre",
+      "file": "data/pdfs/XASX_TRE_6A1312488.pdf",
+      "status": "downloaded",
+      "bytes": 17877,
+      "content_type": "application/pdf; charset=utf-8"
+    }
+  ]
+}
