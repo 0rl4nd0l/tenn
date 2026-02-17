@@ -1,13 +1,11 @@
 import asyncio
 import json
-import math
 import re
 from datetime import datetime
 from playwright.async_api import async_playwright
 
-BASE_URL = "https://www.marketindex.com.au/asx/announcements?page="
+BASE_URL = "https://www.marketindex.com.au/asx/announcements"
 OUTPUT_FILE = "data/raw/marketindex_announcements.json"
-ROWS_PER_PAGE = 100
 
 
 async def fetch_announcements():
@@ -15,57 +13,25 @@ async def fetch_announcements():
 
         browser = await p.chromium.launch(
             headless=False,
+            slow_mo=150,
             args=["--disable-blink-features=AutomationControlled"]
         )
 
-        context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                       "AppleWebKit/537.36 (KHTML, like Gecko) "
-                       "Chrome/121.0.0.0 Safari/537.36",
-            viewport={"width": 1280, "height": 800}
-        )
-
+        context = await browser.new_context()
         page = await context.new_page()
 
-        print("Loading page 1...")
-        await page.goto(BASE_URL + "1", timeout=90000)
+        print("Opening page...")
+        await page.goto(BASE_URL, wait_until="networkidle", timeout=90000)
 
-        await page.wait_for_timeout(5000)
-        await page.wait_for_selector("tbody tr", timeout=60000)
-
-        summary_locator = page.locator("text=/Showing.*of.*/")
-        summary = await summary_locator.first.inner_text()
-        print("Pagination summary:", summary)
-
-        match = re.search(r"of\s+([\d,]+)", summary)
-
-        if not match:
-            print("Could not detect total count.")
-            await browser.close()
-            return
-
-        total_announcements = int(match.group(1).replace(",", ""))
-        total_pages = math.ceil(total_announcements / ROWS_PER_PAGE)
-
-        print(f"Total announcements: {total_announcements}")
-        print(f"Total pages: {total_pages}")
+        await page.wait_for_selector("tbody tr", timeout=30000)
 
         all_announcements = []
+        page_number = 1
 
-        for page_number in range(1, total_pages + 1):
+        while True:
 
-            print(f"\nLoading page {page_number}...")
-
-            if page_number > 1:
-                await page.goto(BASE_URL + str(page_number), timeout=90000)
-
-                # WAIT UNTIL URL ACTUALLY CHANGES
-                await page.wait_for_url(f"**page={page_number}", timeout=30000)
-
-                # Small delay to allow React to repaint table
-                await page.wait_for_timeout(3000)
-
-                await page.wait_for_selector("tbody tr", timeout=60000)
+            print(f"\nScraping page {page_number}...")
+            await page.wait_for_selector("tbody tr", timeout=30000)
 
             rows = await page.query_selector_all("tbody tr")
             print(f"Found {len(rows)} rows")
@@ -98,6 +64,27 @@ async def fetch_announcements():
                     "heading": heading.strip(),
                     "link": link
                 })
+
+            # Try clicking NEXT button
+            next_button = page.locator("div[data-item-id='next']")
+
+            if await next_button.count() == 0:
+                print("No next button found. Stopping.")
+                break
+
+            # Check if disabled
+            classes = await next_button.get_attribute("class")
+            if "disabled" in classes.lower():
+                print("Next button disabled. Finished pagination.")
+                break
+
+            print("Clicking next...")
+            await next_button.click()
+
+            # Wait for table to refresh
+            await page.wait_for_timeout(2000)
+
+            page_number += 1
 
         await browser.close()
 
