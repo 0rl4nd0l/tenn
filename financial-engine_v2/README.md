@@ -105,6 +105,23 @@ These are the two production workflows currently packaged.
    - Daily PDF names are structured:
      `DD-MM-YY_<time>_<ticker>_<heading-slug>_<announcement-id>.pdf`
 
+## Simplest Run (One Command)
+If you want a single command with hardcoded defaults, use:
+
+- `python3 run.py`
+
+This wrapper runs:
+- ticker full-history gathering
+- daily MarketIndex scrape/download
+
+All config is hardcoded in `run.py` under `CONFIG`.
+
+Common edits in `run.py`:
+- `CONFIG["workflow"]`: `"both"`, `"full_history"`, or `"daily_marketindex"`
+- `CONFIG["full_history"]["tickers"]` or `CONFIG["full_history"]["use_asx10"]`
+- `CONFIG["full_history"]["years"]`
+- `CONFIG["daily_marketindex"]["download_limit"]`
+
 ## Key environment variables
 - `OLLAMA_URL` (default `http://host.docker.internal:11434`)
 - `EMBED_MODEL` (default `nomic-embed-text`)
