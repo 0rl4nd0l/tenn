@@ -1,0 +1,2 @@
+-r financial-engine_v2/backend/requirements.txt
+-r financial-engine_v2/worker/requirements.txt

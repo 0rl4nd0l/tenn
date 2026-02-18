@@ -1,4 +1,6 @@
-# MarketIndex Architecture Snapshot
+# MarketIndex Architecture Snapshot (Legacy)
+
+Status: archived legacy reference. Active runtime moved to `financial-engine_v2`.
 
 Date: 2026-02-17  
 Checkpoint: `scripts/archive/system_checkpoint_20260217_212812`

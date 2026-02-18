@@ -1,12 +1,13 @@
 # Archived Script Snapshots
 
-This folder keeps point-in-time copies of the MarketIndex workflow scripts.
+This folder keeps point-in-time copies of legacy scripts.
 
 - `test_marketindex_2026-02-17.py`
 - `download_marketindex_pdfs_2026-02-17.py`
 
-These are preserved for rollback/reference while active development continues in:
+Legacy root scripts moved here:
+- `legacy_root_20260218/*`
 
-- `scripts/test_marketindex.py`
-- `scripts/download_marketindex_pdfs.py`
-- `scripts/daily_marketindex_action.py`
+Current active system lives in:
+- `financial-engine_v2/`
+- root launcher: `run.py`
