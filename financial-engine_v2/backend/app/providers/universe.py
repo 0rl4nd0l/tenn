@@ -1,0 +1,1 @@
+ASX20=['BHP','CBA','CSL','NAB','WBC','ANZ','WES','MQG','TLS','RIO','WOW','FMG','GMG','WDS','ALL','COL','TCL','QBE','IAG','SUN']

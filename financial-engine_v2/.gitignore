@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+data/fe_local.db
+data/asx/docs/*
+!data/asx/docs/.gitkeep
+data/marketindex/pdfs/*
+!data/marketindex/pdfs/.gitkeep
+
+releases/
+reports/*.json
+reports/**/*.json
