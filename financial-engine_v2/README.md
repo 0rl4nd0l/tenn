@@ -122,6 +122,28 @@ Common edits in `run.py`:
 - `CONFIG["full_history"]["years"]`
 - `CONFIG["daily_marketindex"]["download_limit"]`
 
+## Cockpit TUI (v1)
+Operate chat + ingestion + updater + verification from a single terminal UI.
+
+Run:
+- `python -m cockpit.main`
+- or `./scripts/cockpit_tui.py`
+
+CLI flags:
+- `--config config/cockpit.yaml`
+- `--profile default`
+- `--read-only`
+- `--no-web`
+
+Key bindings:
+- `c` chat
+- `o` ingestion operations
+- `u` updater + snapshot
+- `v` verification
+- `h` history
+- `s` settings
+- `q` quit
+
 ## Key environment variables
 - `OLLAMA_URL` (default `http://host.docker.internal:11434`)
 - `EMBED_MODEL` (default `nomic-embed-text`)

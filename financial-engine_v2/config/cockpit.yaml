@@ -1,0 +1,26 @@
+llm:
+  provider: ollama
+  ollama_url: http://localhost:11434
+  model: phi3:mini
+  timeout_seconds: 300
+
+paths:
+  allow_roots:
+    - /home
+  default_workspace: .
+
+memory:
+  mode: global_persisted
+  state_db: ~/.financial_engine_cockpit/state.db
+
+actions:
+  confirm_required: true
+
+web:
+  enabled_default: false
+
+exports:
+  dir: reports/analysis
+
+reports:
+  dir: reports

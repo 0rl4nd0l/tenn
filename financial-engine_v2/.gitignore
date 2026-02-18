@@ -1,4 +1,5 @@
 .venv/
+venv/
 __pycache__/
 *.pyc
 .DS_Store
@@ -12,3 +13,5 @@ data/marketindex/pdfs/*
 releases/
 reports/*.json
 reports/**/*.json
+reports/analysis/
+reports/cockpit/
