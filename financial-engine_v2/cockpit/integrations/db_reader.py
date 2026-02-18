@@ -55,6 +55,23 @@ class DbReader:
         rows = self.get_financials(ticker=ticker, limit=1)
         return rows[0] if rows else None
 
+    def get_announcement_context(self, ticker: str, limit: int = 10) -> list[dict[str, Any]]:
+        sql = text(
+            """
+            select document_id, ticker, published_at, title, pdf_path, excerpt, updated_at
+            from cockpit_announcement_context
+            where ticker = :ticker
+            order by published_at desc
+            limit :limit
+            """
+        )
+        rows = self._run_query(sql, {"ticker": ticker.upper(), "limit": limit})
+        # Table may not exist yet on older environments.
+        if self.last_error and "no such table" in self.last_error.lower():
+            self.last_error = None
+            return []
+        return rows
+
     def get_extraction_failures(self, limit: int = 50) -> list[dict[str, Any]]:
         sql = text(
             """

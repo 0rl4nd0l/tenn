@@ -18,6 +18,8 @@ os.chdir(REPO_ROOT)
 sys.path.insert(0, str(REPO_ROOT / "backend"))
 
 from app.core.db import SessionLocal  # noqa: E402
+from app.core.config import settings  # noqa: E402
+from app.services.announcement_importance import classify_documents_and_materialize  # noqa: E402
 from app.services.marketindex_headed_recovery import recover_marketindex_documents_headed  # noqa: E402
 
 
@@ -71,6 +73,24 @@ async def main():
             dry_run=args.dry_run,
             logger=print,
         )
+        if not args.dry_run:
+            recovered_ids = [
+                item.get("document_id")
+                for item in recovery.get("results", [])
+                if item.get("outcome") == "downloaded" and item.get("document_id")
+            ]
+            if recovered_ids:
+                try:
+                    recovery["importance_classification"] = classify_documents_and_materialize(
+                        db,
+                        document_ids=recovered_ids,
+                        output_root=settings.importance_output_root,
+                        include_pdf_text=settings.importance_include_pdf_text,
+                        link_mode=settings.importance_link_mode,
+                        sort_source_docs=settings.importance_sort_source_docs,
+                    )
+                except Exception as exc:
+                    recovery["importance_classification"] = {"error": str(exc)}
     finally:
         db.close()
 
@@ -87,7 +107,9 @@ async def main():
     print(
         f"Headed recovery complete: selected={report['selected_total']} "
         f"attempted={report['attempted']} recovered={report['recovered']} "
-        f"skipped={report['skipped']} failed={report['failed']} report={report_path}"
+        f"skipped={report['skipped']} failed={report['failed']} "
+        f"classified={((report.get('importance_classification') or {}).get('classified_count', 0))} "
+        f"report={report_path}"
     )
 
     if report["recovered"] < args.min_recovered_count:

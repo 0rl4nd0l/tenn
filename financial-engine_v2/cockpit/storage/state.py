@@ -137,3 +137,16 @@ class StateStore:
             (limit,),
         ).fetchall()
         return [dict(r) for r in rows]
+
+    def get_latest_export(self, thread_id: str) -> dict[str, Any] | None:
+        row = self.conn.execute(
+            """
+            select thread_id, question, markdown_path, json_path, created_at
+            from analysis_exports
+            where thread_id = ?
+            order by id desc
+            limit 1
+            """,
+            (thread_id,),
+        ).fetchone()
+        return dict(row) if row else None

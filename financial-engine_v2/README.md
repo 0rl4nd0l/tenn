@@ -94,6 +94,8 @@ These are the two production workflows currently packaged.
    - `python3 scripts/full_history_ticker_sync.py --ticker BHP,RIO,CSL --years 10`
    - `python3 scripts/full_history_ticker_sync.py --asx10 --years 10`
    - Includes retry handling and automatic pending-download resume.
+   - Includes automatic post-ingestion announcement-type classification into folders under `data/asx/importance/{ticker}/{announcement_type}`.
+   - Source docs are also sorted under `data/asx/docs/{ticker}/{announcement_type}` (configurable).
    - Saved PDF names are structured: `YYYY-MM-DD_<announcement-title>_<document_id>.pdf`
 
 2. Daily MarketIndex announcement scraping + PDF download:
@@ -104,6 +106,11 @@ These are the two production workflows currently packaged.
    - Output PDFs: `data/marketindex/pdfs`
    - Daily PDF names are structured:
      `DD-MM-YY_<time>_<ticker>_<heading-slug>_<announcement-id>.pdf`
+
+3. Daily ASX all-announcements ingest (separate from ticker backfill):
+   - `python3 scripts/daily_asx_all_announcements_action.py --date 2026-02-18`
+   - Ingests all announcements detected on ASX for the target day, inserts new docs, downloads PDFs, and classifies.
+   - Output JSON: `reports/asx/daily_asx_all_announcements_report.json`
 
 ## Simplest Run (One Command)
 If you want a single command with hardcoded defaults, use:
@@ -118,6 +125,22 @@ All config is hardcoded in `run.py` under `CONFIG`.
 
 Common edits in `run.py`:
 - `CONFIG["workflow"]`: `"both"`, `"full_history"`, or `"daily_marketindex"`
+
+## Announcement Type Classification (Manual Backfill)
+Rebuild announcement-type folders for existing ingested docs:
+
+- `python3 scripts/classify_announcement_importance.py --ticker BHP`
+- `python3 scripts/classify_announcement_importance.py --ticker BHP,RIO --limit 500`
+
+## Financial Rebuild + QA
+Rebuild financial rows from already-downloaded docs (no re-download):
+
+- `python3 scripts/rebuild_ticker_financials_from_docs.py --ticker BHP`
+- `python3 scripts/rebuild_ticker_financials_from_docs.py --ticker BHP --since 2024-01-01 --limit 100`
+
+Audit ticker financial quality (confidence, source-linkage, period gaps):
+
+- `python3 scripts/audit_ticker_financials.py --ticker BHP`
 - `CONFIG["full_history"]["tickers"]` or `CONFIG["full_history"]["use_asx10"]`
 - `CONFIG["full_history"]["years"]`
 - `CONFIG["daily_marketindex"]["download_limit"]`
@@ -149,6 +172,28 @@ Key bindings:
 - `EMBED_MODEL` (default `nomic-embed-text`)
 - `EXTRACT_MODEL` (default `llama3.1:8b`)
 - `DOCS_ROOT` (default `/data/asx/docs`)
+
+## Current model prompting + iteration setup
+- Prompting is schema-first and centralized in `backend/app/services/extraction.py` (`build_prompt`).
+  - Full PDF text is clipped to the first 18,000 characters before model input.
+  - The prompt asks for strict JSON containing period fields, metrics, risk/guidance summaries, and confidence values.
+- Extraction is a single-pass `/api/generate` call to Ollama (`backend/app/services/ollama.py`).
+  - No temperature/top-p/etc overrides are currently passed; runtime uses Ollama model defaults.
+  - The response parser extracts the first JSON object with regex and loads it.
+- Versioning is lightweight but explicit:
+  - `EXTRACTOR_VERSION="ollama_json_v1"`
+  - `prompt_hash="v1"` stored on `extraction_runs`
+- Iterations/retries today are operational retries around discovery/download, not multi-pass prompt refinement:
+  - `scripts/full_history_ticker_sync.py` retries backfill connect errors and runs a resume phase.
+  - `scripts/resume_pending_downloads.py` retries retryable network failures with linear backoff.
+  - `scripts/marketindex_download_pdfs.py` includes a secondary pass for unresolved announcement links.
+- Local isolated mode defaults extraction/embeddings OFF (`ENABLE_EXTRACTION=false`, `ENABLE_EMBEDDINGS=false`) for safe smoke testing; production workflows can enable processing via flags/env.
+
+
+## Model improvement roadmap
+If you want a practical setup for running now on limited hardware and scaling cleanly once an NVIDIA M40 is installed (including iterative evaluation, model selection, fine-tuning path, and a human-approved "commit to knowledge base" workflow for PDFs/books), see:
+
+- `docs_model_iteration_playbook.md`
 
 ## Notes
 - This discovery method is heuristic; ASX page structure may change. It’s modular (`backend/app/providers/asx_provider.py`).

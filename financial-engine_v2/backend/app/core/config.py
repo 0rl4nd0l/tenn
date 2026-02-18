@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     docs_root: str = "./data/asx/docs"
     ollama_url: str = "http://localhost:11434"
     embed_model: str = "nomic-embed-text"
-    extract_model: str = "llama3.1:8b"
+    extract_model: str = "llama3:latest"
 
     # Runtime controls for local isolated execution.
     task_mode: str = "celery"  # celery | sync
@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     enable_extraction: bool = True
     enable_marketindex_fallback: bool = False
     marketindex_announcements_file: str = "../data/raw/marketindex_announcements.json"
+    enable_importance_classification: bool = True
+    importance_output_root: str = "./data/asx/importance"
+    importance_include_pdf_text: bool = True
+    importance_link_mode: str = "symlink"
+    importance_sort_source_docs: bool = True
 
     class Config:
         env_file = ".env"

@@ -16,7 +16,13 @@ class ChatResponse:
 
 ACTION_KEYWORDS = {
     "full_history": ["backfill", "full history", "history sync"],
+    "update_ticker_financials": ["update ticker", "refresh ticker", "refresh financials", "update financial data"],
+    "rebuild_ticker_financials": ["rebuild financials", "rebuild ticker financials", "reprocess docs financials"],
+    "audit_ticker_financials": ["audit financials", "financial qa", "check financial quality"],
     "daily_marketindex": ["daily marketindex", "daily ingest", "marketindex today"],
+    "daily_asx_marketwide": ["daily asx", "asx daily all", "asx all announcements", "all asx announcements today"],
+    "asx_enrichment_sweep": ["asx enrichment", "bulk asx ingest", "ingest as many asx announcements", "asx sweep"],
+    "sort_asx_docs": ["sort asx docs", "classify announcements", "sort announcements", "organise asx docs"],
     "resume_pending": ["resume pending", "retry pending", "pending downloads"],
     "recover_headed": ["recover headed", "headed recovery", "recover marketindex"],
 }
@@ -28,18 +34,68 @@ class ChatController:
         self.tool_router = tool_router
         self.action_registry = action_registry
         self.llm_timeout_seconds = float(llm_timeout_seconds)
+        self.last_ticker: str | None = None
+
+    TICKER_STOPWORDS = {
+        "A",
+        "AN",
+        "AND",
+        "AS",
+        "ASK",
+        "ANALYSE",
+        "ANALYZE",
+        "ABOUT",
+        "CHECK",
+        "FOR",
+        "FROM",
+        "GIVE",
+        "HI",
+        "HOW",
+        "I",
+        "IN",
+        "IS",
+        "IT",
+        "LATEST",
+        "ME",
+        "MOST",
+        "OF",
+        "ON",
+        "ONE",
+        "PLEASE",
+        "RECENT",
+        "SUMMARISE",
+        "SUMMARIZE",
+        "TELL",
+        "THAT",
+        "THE",
+        "THIS",
+        "TO",
+        "UPDATE",
+        "WHAT",
+        "WHATS",
+        "WITH",
+        "YOU",
+        "YOUR",
+    }
 
     @staticmethod
-    def _detect_ticker(message: str) -> str | None:
-        # Accept lowercase ticker mentions and normalize to uppercase.
-        hit = re.search(r"\b([A-Za-z]{2,5})\b", message)
-        if not hit:
-            return None
-        token = hit.group(1).upper()
-        # Avoid obvious non-ticker common short words.
-        if token in {"ABOUT", "CHECK", "ANALYSE", "ANALYZE", "RECENT", "MOST"}:
-            return None
-        return token
+    def _extract_alpha_tokens(message: str) -> list[tuple[str, str]]:
+        return [(m.group(0), m.group(0).upper()) for m in re.finditer(r"\b([A-Za-z]{2,5})\b", message)]
+
+    def _detect_ticker(self, message: str, prior_ticker: str | None = None) -> str | None:
+        tokens = self._extract_alpha_tokens(message)
+        if not tokens:
+            return prior_ticker
+
+        # Prefer explicit uppercase ticker-like tokens first.
+        for original, upper in tokens:
+            if original.isupper() and upper not in self.TICKER_STOPWORDS:
+                return upper
+
+        for _, upper in tokens:
+            if upper not in self.TICKER_STOPWORDS:
+                return upper
+        return prior_ticker
 
     def detect_action_intent(self, message: str) -> str | None:
         text = message.lower()
@@ -48,8 +104,9 @@ class ChatController:
                 return action_id
         return None
 
-    def build_chat_response(self, message: str, enable_web: bool = False) -> ChatResponse:
-        ticker = self._detect_ticker(message)
+    def build_chat_response(self, message: str, enable_web: bool = False, prior_ticker: str | None = None) -> ChatResponse:
+        ticker = self._detect_ticker(message, prior_ticker=prior_ticker or self.last_ticker)
+        self.last_ticker = ticker or self.last_ticker
         local_context = self.tool_router.gather_local_context(ticker=ticker, query=message)
 
         evidence = [

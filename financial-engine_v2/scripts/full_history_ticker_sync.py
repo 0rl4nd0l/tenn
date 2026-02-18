@@ -163,7 +163,8 @@ def main():
                 print(
                     f"[backfill] {ticker} done found={result.get('found')} inserted={result.get('inserted')} "
                     f"processed={result.get('processed')} skipped={result.get('skipped_download')} "
-                    f"errors={result.get('error_count')}",
+                    f"errors={result.get('error_count')} "
+                    f"importance_classified={((result.get('importance_classification') or {}).get('classified_count', 0))}",
                     flush=True,
                 )
                 ticker_done = True

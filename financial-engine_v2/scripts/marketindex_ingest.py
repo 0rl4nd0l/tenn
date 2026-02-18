@@ -282,7 +282,7 @@ async def open_announcements_page(page):
     raise last_error
 
 
-async def fetch_announcements(output_file):
+async def fetch_announcements(output_file, max_pages=0):
     async with async_playwright() as p:
 
         browser = await p.chromium.launch(
@@ -428,6 +428,9 @@ async def fetch_announcements(output_file):
             await page.wait_for_timeout(2000)
 
             page_number += 1
+            if max_pages and page_number > max_pages:
+                print(f"Reached max_pages={max_pages}. Stopping pagination.")
+                break
 
         await browser.close()
 
@@ -448,5 +451,11 @@ async def fetch_announcements(output_file):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Scrape MarketIndex ASX announcements table to JSON.")
     parser.add_argument("--output", default=OUTPUT_FILE, help="Path for output announcements JSON.")
+    parser.add_argument(
+        "--max-pages",
+        type=int,
+        default=0,
+        help="Maximum pages to scrape (0 = all pages).",
+    )
     args = parser.parse_args()
-    asyncio.run(fetch_announcements(args.output))
+    asyncio.run(fetch_announcements(args.output, max_pages=args.max_pages))

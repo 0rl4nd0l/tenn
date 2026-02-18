@@ -19,6 +19,7 @@ from app.services.chunking import simple_chunk
 from app.services.embeddings import ensure_collection, upsert_points
 from app.services.extraction import EXTRACTOR_VERSION, build_prompt, parse_period_end
 from app.services.ollama import ollama_embed, ollama_generate_json
+from app.services.announcement_importance import classify_documents_and_materialize
 from app.services.storage import ensure_dir, sha256_file, write_bytes
 from app.services.text_extract import extract_text_from_pdf
 
@@ -116,22 +117,18 @@ def _ensure_document_pdf_path(doc):
     return canonical
 
 
-def discover_and_insert_documents(db, ticker, years=5):
-    ticker = ticker.upper()
-    end = datetime.now(timezone.utc)
-    start = end - timedelta(days=365 * years)
-    discovered = ASXProvider().discover(ticker, start, end)
-    if settings.enable_marketindex_fallback:
-        marketindex_docs = MarketIndexProvider(settings.marketindex_announcements_file).discover(ticker, start, end)
-        discovered_by_url = {item.source_url: item for item in discovered}
-        for item in marketindex_docs:
-            if item.source_url not in discovered_by_url:
-                discovered.append(item)
-
+def insert_discovered_documents(db, discovered_docs):
     inserted = 0
     new_document_ids = []
+    per_ticker_found: dict[str, int] = {}
+    per_ticker_inserted: dict[str, int] = {}
 
-    for discovered_doc in discovered:
+    for discovered_doc in discovered_docs:
+        ticker = (discovered_doc.ticker or "").upper().strip()
+        if not ticker:
+            continue
+        per_ticker_found[ticker] = per_ticker_found.get(ticker, 0) + 1
+
         existing = db.query(Document).filter(Document.source_url == discovered_doc.source_url).first()
         if existing:
             continue
@@ -140,7 +137,7 @@ def discover_and_insert_documents(db, ticker, years=5):
         row = Document(
             document_id=doc_id,
             ticker=ticker,
-            exchange="ASX",
+            exchange=discovered_doc.exchange or "ASX",
             doc_class=discovered_doc.doc_class,
             doc_subtype=discovered_doc.doc_subtype,
             published_at=discovered_doc.published_at,
@@ -158,13 +155,36 @@ def discover_and_insert_documents(db, ticker, years=5):
         db.add(row)
         inserted += 1
         new_document_ids.append(str(doc_id))
+        per_ticker_inserted[ticker] = per_ticker_inserted.get(ticker, 0) + 1
 
     db.commit()
     return {
-        "ticker": ticker,
-        "found": len(discovered),
+        "found": len(discovered_docs),
         "inserted": inserted,
         "new_document_ids": new_document_ids,
+        "found_by_ticker": per_ticker_found,
+        "inserted_by_ticker": per_ticker_inserted,
+    }
+
+
+def discover_and_insert_documents(db, ticker, years=5):
+    ticker = ticker.upper()
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=365 * years)
+    discovered = ASXProvider().discover(ticker, start, end)
+    if settings.enable_marketindex_fallback:
+        marketindex_docs = MarketIndexProvider(settings.marketindex_announcements_file).discover(ticker, start, end)
+        discovered_by_url = {item.source_url: item for item in discovered}
+        for item in marketindex_docs:
+            if item.source_url not in discovered_by_url:
+                discovered.append(item)
+
+    inserted_payload = insert_discovered_documents(db, discovered)
+    return {
+        "ticker": ticker,
+        "found": len(discovered),
+        "inserted": inserted_payload["inserted"],
+        "new_document_ids": inserted_payload["new_document_ids"],
     }
 
 
@@ -368,6 +388,21 @@ def backfill_ticker_sync(ticker, years=5, process_documents=True):
                 db.rollback()
                 errors.append({"document_id": document_id, "error": str(exc)})
 
+        importance_classification = None
+        if settings.enable_importance_classification:
+            try:
+                importance_classification = classify_documents_and_materialize(
+                    db,
+                    ticker=ticker,
+                    document_ids=discovery["new_document_ids"],
+                    output_root=settings.importance_output_root,
+                    include_pdf_text=settings.importance_include_pdf_text,
+                    link_mode=settings.importance_link_mode,
+                    sort_source_docs=settings.importance_sort_source_docs,
+                )
+            except Exception as exc:
+                importance_classification = {"error": str(exc)}
+
         return {
             "ticker": discovery["ticker"],
             "found": discovery["found"],
@@ -375,6 +410,7 @@ def backfill_ticker_sync(ticker, years=5, process_documents=True):
             "processed": processed,
             "skipped_download": skipped_download,
             "process_documents": process_documents,
+            "importance_classification": importance_classification,
             "errors": errors,
             "error_count": len(errors),
         }

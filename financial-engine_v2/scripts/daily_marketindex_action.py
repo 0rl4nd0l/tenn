@@ -85,6 +85,12 @@ def build_parser():
         default=15,
         help="Delay before one secondary pass for unresolved announcements.",
     )
+    parser.add_argument(
+        "--ingest-max-pages",
+        type=int,
+        default=8,
+        help="Max pages for MarketIndex ingest step (0 = all pages).",
+    )
     return parser
 
 
@@ -115,6 +121,7 @@ def main():
             "min_download_count": args.min_download_count,
             "min_success_ratio": args.min_success_ratio,
             "null_retry_delay_seconds": args.null_retry_delay_seconds,
+            "ingest_max_pages": args.ingest_max_pages,
         },
         "steps": [],
     }
@@ -139,6 +146,8 @@ def main():
         raise FileNotFoundError(f"Download script not found: {download_script}")
 
     ingest_cmd = [args.python, str(ingest_script), "--output", args.announcements_file]
+    if args.ingest_max_pages and args.ingest_max_pages > 0:
+        ingest_cmd.extend(["--max-pages", str(args.ingest_max_pages)])
     ingest_result = run_step("ingest_announcements", ingest_cmd, str(repo_root))
     summary["steps"].append(ingest_result)
 

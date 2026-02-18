@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import shutil
 import subprocess
+import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -89,6 +91,7 @@ class CockpitApp(App):
             db_reader=self.db_reader,
             file_indexer=self.file_indexer,
             web_fetcher=self.web_fetcher,
+            repo_root=self.repo_root,
             web_default_enabled=config["web"].get("enabled_default", False),
         )
         self.chat_controller = ChatController(
@@ -101,6 +104,7 @@ class CockpitApp(App):
         self.thread_id = "global-main"
         self.pending_action: dict[str, Any] | None = None
         self.last_verification_payload: dict[str, Any] | None = None
+        self.last_detected_ticker: str | None = None
 
     def _normalize_database_url(self, database_url: str) -> str:
         value = (database_url or "").strip()
@@ -226,12 +230,21 @@ class CockpitApp(App):
             response = self.chat_controller.build_chat_response(
                 message,
                 enable_web=self.config["web"].get("enabled_default", False),
+                prior_ticker=self.last_detected_ticker,
             )
         except Exception as exc:
             err = f"assistant: chat error: {exc}"
             log.write(err)
             self.state_store.add_chat_message(self.thread_id, "assistant", err, datetime.now(timezone.utc).isoformat())
             return
+
+        try:
+            local_details = (response.evidence or [{}])[0].get("details", {})
+            ticker = local_details.get("ticker")
+            if isinstance(ticker, str) and ticker.strip():
+                self.last_detected_ticker = ticker.strip().upper()
+        except Exception:
+            pass
 
         log.write(f"assistant: {response.text}")
         self.state_store.add_chat_message(self.thread_id, "assistant", response.text, datetime.now(timezone.utc).isoformat())
@@ -273,12 +286,14 @@ class CockpitApp(App):
 
         preview = self.action_registry.preview(action_id, args)
         if spec.requires_confirmation and not skip_confirm:
-            confirmed = await self.push_screen_wait(ConfirmActionScreen(preview={
-                "action_id": action_id,
-                "command": preview.command,
-                "impact": preview.estimated_impact,
-                "timeout_seconds": preview.timeout_seconds,
-            }))
+            confirmed = await self._confirm_action(
+                {
+                    "action_id": action_id,
+                    "command": preview.command,
+                    "impact": preview.estimated_impact,
+                    "timeout_seconds": preview.timeout_seconds,
+                }
+            )
             if not confirmed:
                 self._write_log(log_target, "Action cancelled")
                 return
@@ -308,7 +323,13 @@ class CockpitApp(App):
         self._write_log(log_target, f"Executing: {' '.join(preview.command)}")
 
         def _emit(line: str) -> None:
-            self.call_from_thread(lambda: self._write_log(log_target, line))
+            # JobRunner currently pumps output on the app event loop thread.
+            # call_from_thread must only be used from a non-app thread.
+            app_thread = getattr(self, "_thread_id", None)
+            if app_thread is not None and threading.get_ident() == app_thread:
+                self._write_log(log_target, line)
+            else:
+                self.call_from_thread(lambda: self._write_log(log_target, line))
 
         run_result = await self.job_runner.run(
             job=job,
@@ -334,6 +355,22 @@ class CockpitApp(App):
 
         self._write_log(log_target, f"Completed with status={run_result.status} exit={run_result.exit_code}")
 
+    async def _confirm_action(self, preview: dict[str, Any]) -> bool:
+        # Avoid push_screen_wait (requires worker context). Resolve a Future directly
+        # from modal button handlers so confirm/cancel is deterministic in UI events.
+        loop = asyncio.get_running_loop()
+        future: asyncio.Future[bool] = loop.create_future()
+
+        def _on_result(value: bool | None) -> None:
+            if not future.done():
+                future.set_result(bool(value))
+
+        self.push_screen(ConfirmActionScreen(preview=preview, on_decision=_on_result))
+        try:
+            return await asyncio.wait_for(future, timeout=3600)
+        except asyncio.TimeoutError:
+            return False
+
     async def run_updater_snapshot(self, ticker: str, years: int, process_documents: bool, log_target: str) -> None:
         before = self.db_reader.get_latest_financial_snapshot(ticker)
 
@@ -341,9 +378,9 @@ class CockpitApp(App):
             "ticker": ticker,
             "years": years,
             "process_documents": process_documents,
-            "report_path": f"reports/cockpit/updater_{ticker}_{self.timestamp()}.json",
+            "report_path": f"reports/financial_update_{ticker}_{self.timestamp()}.json",
         }
-        await self.execute_action("full_history", args, log_target=log_target)
+        await self.execute_action("update_ticker_financials", args, log_target=log_target)
 
         after = self.db_reader.get_latest_financial_snapshot(ticker)
         docs = self.db_reader.get_docs(ticker=ticker, limit=20)
@@ -428,6 +465,16 @@ class CockpitApp(App):
         if "chat" in screen_key:
             payload["chat_messages"] = self.state_store.get_chat_messages(self.thread_id, limit=200)
             payload["pending_action"] = self.pending_action
+            payload["last_detected_ticker"] = self.last_detected_ticker
+            latest = self.state_store.get_latest_export(self.thread_id)
+            if latest:
+                payload["latest_analysis_export_meta"] = latest
+                try:
+                    json_path = Path(str(latest.get("json_path", ""))).expanduser()
+                    if json_path.exists() and json_path.is_file():
+                        payload["latest_analysis_export"] = json.loads(json_path.read_text(encoding="utf-8"))
+                except Exception as exc:
+                    payload["latest_analysis_export_error"] = str(exc)
         elif "ops" in screen_key or "operation" in screen_key:
             payload["recent_jobs"] = self.state_store.list_jobs(limit=20)
         elif "updater" in screen_key:

@@ -21,7 +21,7 @@ REPO_ROOT = Path(__file__).resolve().parent
 
 # Hardcoded runtime profile.
 CONFIG = {
-    # "both" | "full_history" | "daily_marketindex"
+    # "both" | "full_history" | "daily_marketindex" | "daily_asx_marketwide"
     "workflow": "both",
 
     # Full-history ticker gathering config
@@ -42,6 +42,13 @@ CONFIG = {
         "min_download_count": 5,
         "min_success_ratio": 0.35,
         "null_retry_delay_seconds": 15,
+    },
+
+    # Daily ASX market-wide config
+    "daily_asx_marketwide": {
+        "days": 1,
+        "process_documents": False,
+        "skip_download": False,
     },
 }
 
@@ -121,18 +128,37 @@ def _build_daily_cmd() -> list[str]:
     return cmd
 
 
+def _build_daily_asx_marketwide_cmd() -> list[str]:
+    cfg = CONFIG["daily_asx_marketwide"]
+    cmd = [
+        sys.executable,
+        "scripts/daily_asx_marketwide_action.py",
+        "--days",
+        str(cfg["days"]),
+        "--report",
+        f"reports/asx/daily_asx_marketwide_action_report_{_timestamp()}.json",
+    ]
+    if cfg.get("process_documents"):
+        cmd.append("--process-documents")
+    if cfg.get("skip_download"):
+        cmd.append("--skip-download")
+    return cmd
+
+
 def main() -> int:
     workflow = str(CONFIG.get("workflow", "both")).strip().lower()
     env = _set_default_env()
 
-    if workflow not in {"both", "full_history", "daily_marketindex"}:
-        raise ValueError("CONFIG.workflow must be one of: both, full_history, daily_marketindex")
+    if workflow not in {"both", "full_history", "daily_marketindex", "daily_asx_marketwide"}:
+        raise ValueError("CONFIG.workflow must be one of: both, full_history, daily_marketindex, daily_asx_marketwide")
 
     results = []
     if workflow in {"both", "full_history"}:
         results.append(_run_step("full_history", _build_full_history_cmd(), env))
     if workflow in {"both", "daily_marketindex"}:
         results.append(_run_step("daily_marketindex", _build_daily_cmd(), env))
+    if workflow in {"daily_asx_marketwide"}:
+        results.append(_run_step("daily_asx_marketwide", _build_daily_asx_marketwide_cmd(), env))
 
     # Fail overall if any step failed.
     return 0 if all(code == 0 for code in results) else 1

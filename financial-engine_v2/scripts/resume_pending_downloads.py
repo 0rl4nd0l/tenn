@@ -15,8 +15,10 @@ if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.core.db import SessionLocal  # noqa: E402
+from app.core.config import settings  # noqa: E402
 from app.models.documents import Document  # noqa: E402
 from app.providers.universe import ASX20  # noqa: E402
+from app.services.announcement_importance import classify_documents_and_materialize  # noqa: E402
 from app.services.pipeline import download_pdf_for_document, process_document  # noqa: E402
 
 
@@ -76,6 +78,11 @@ def parse_args():
         default=2.0,
         help="Base delay between retries for retryable network failures.",
     )
+    parser.add_argument(
+        "--skip-importance-classification",
+        action="store_true",
+        help="Disable post-ingestion importance folder classification step.",
+    )
     return parser.parse_args()
 
 
@@ -117,7 +124,9 @@ def main():
                 "processed": 0,
                 "skipped_download": 0,
                 "errors": [],
+                "importance_classification": None,
             }
+            processed_document_ids: list[str] = []
 
             for row in rows:
                 attempts = max(1, int(args.max_retries))
@@ -130,6 +139,7 @@ def main():
                         if args.process_documents:
                             process_document(row.document_id)
                         ticker_result["processed"] += 1
+                        processed_document_ids.append(str(row.document_id))
                         last_error = None
                         break
                     except RuntimeError as exc:
@@ -175,6 +185,21 @@ def main():
                     )
 
             ticker_result["error_count"] = len(ticker_result["errors"])
+
+            if not args.skip_importance_classification and processed_document_ids:
+                try:
+                    ticker_result["importance_classification"] = classify_documents_and_materialize(
+                        db,
+                        ticker=ticker,
+                        document_ids=processed_document_ids,
+                        output_root=settings.importance_output_root,
+                        include_pdf_text=settings.importance_include_pdf_text,
+                        link_mode=settings.importance_link_mode,
+                        sort_source_docs=settings.importance_sort_source_docs,
+                    )
+                except Exception as exc:
+                    ticker_result["importance_classification"] = {"error": str(exc)}
+
             report["results"].append(ticker_result)
             report["totals"]["pending_selected"] += ticker_result["pending_selected"]
             report["totals"]["processed"] += ticker_result["processed"]
@@ -184,7 +209,8 @@ def main():
             print(
                 f"[resume] {ticker}: pending={ticker_result['pending_selected']} "
                 f"processed={ticker_result['processed']} skipped={ticker_result['skipped_download']} "
-                f"errors={ticker_result['error_count']}",
+                f"errors={ticker_result['error_count']} "
+                f"importance_classified={((ticker_result.get('importance_classification') or {}).get('classified_count', 0))}",
                 flush=True,
             )
     finally:

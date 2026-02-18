@@ -51,6 +51,8 @@ copy_file "${ROOT_DIR}/scripts/rename_document_files.py" "${APP_DIR}/scripts/ren
 copy_file "${ROOT_DIR}/scripts/marketindex_ingest.py" "${APP_DIR}/scripts/marketindex_ingest.py"
 copy_file "${ROOT_DIR}/scripts/marketindex_download_pdfs.py" "${APP_DIR}/scripts/marketindex_download_pdfs.py"
 copy_file "${ROOT_DIR}/scripts/daily_marketindex_action.py" "${APP_DIR}/scripts/daily_marketindex_action.py"
+copy_file "${ROOT_DIR}/scripts/daily_asx_all_announcements_action.py" "${APP_DIR}/scripts/daily_asx_all_announcements_action.py"
+copy_file "${ROOT_DIR}/scripts/asx_enrichment_sweep_action.py" "${APP_DIR}/scripts/asx_enrichment_sweep_action.py"
 copy_file "${ROOT_DIR}/scripts/test_marketindex_headed_recovery_logic.py" "${APP_DIR}/scripts/test_marketindex_headed_recovery_logic.py"
 copy_file "${ROOT_DIR}/scripts/build_production_bundle.sh" "${APP_DIR}/scripts/build_production_bundle.sh"
 
@@ -73,6 +75,10 @@ Included production workflows:
   - `python3 scripts/full_history_ticker_sync.py --ticker BHP --years 10`
 - Daily MarketIndex scrape/download:
   - `python3 scripts/daily_marketindex_action.py`
+- Daily ASX all-announcements ingest:
+  - `python3 scripts/daily_asx_all_announcements_action.py --date 2026-02-18`
+- Bulk ASX enrichment sweep:
+  - `python3 scripts/asx_enrichment_sweep_action.py --days-back 30 --process-documents`
 - Headed MarketIndex blocked-doc recovery:
   - `python3 scripts/recover_marketindex_headed.py`
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Callable
 
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
@@ -10,9 +10,15 @@ from textual.widgets import Button, DataTable, Input, Label, RichLog, Select, St
 
 
 class ConfirmActionScreen(ModalScreen[bool]):
-    def __init__(self, preview: dict[str, Any]) -> None:
+    BINDINGS = [
+        ("enter", "confirm", "Run"),
+        ("escape", "cancel", "Cancel"),
+    ]
+
+    def __init__(self, preview: dict[str, Any], on_decision: Callable[[bool], None] | None = None) -> None:
         super().__init__()
         self.preview = preview
+        self.on_decision = on_decision
 
     def compose(self) -> ComposeResult:
         command = " ".join(self.preview.get("command", []))
@@ -23,14 +29,28 @@ class ConfirmActionScreen(ModalScreen[bool]):
             Static(f"Timeout: {self.preview.get('timeout_seconds')}s"),
             Static(f"Command: {command}"),
             Horizontal(
-                Button("Cancel", id="cancel", variant="warning"),
-                Button("Run", id="run", variant="success"),
+                Button("Cancel", id="confirm-cancel", variant="warning"),
+                Button("Run", id="confirm-run", variant="success"),
             ),
             id="confirm-modal",
         )
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        self.dismiss(event.button.id == "run")
+        event.stop()
+        approved = event.button.id == "confirm-run"
+        if self.on_decision:
+            self.on_decision(approved)
+        self.dismiss(approved)
+
+    def action_confirm(self) -> None:
+        if self.on_decision:
+            self.on_decision(True)
+        self.dismiss(True)
+
+    def action_cancel(self) -> None:
+        if self.on_decision:
+            self.on_decision(False)
+        self.dismiss(False)
 
 
 class ChatScreen(Screen):
@@ -42,6 +62,9 @@ class ChatScreen(Screen):
         yield Static("No pending action", id="chat-pending")
         yield Horizontal(
             Button("Run Daily MarketIndex Check", id="chat-run-daily", variant="success"),
+            Button("Run Daily ASX Market-Wide Check", id="chat-run-daily-asx", variant="primary"),
+            Button("Run ASX Enrichment Sweep", id="chat-run-asx-sweep", variant="error"),
+            Button("Sort ASX Docs (Unsorted)", id="chat-sort-asx-docs", variant="warning"),
             Button("Open Operations", id="chat-open-ops"),
             Button("Copy Chat/Output", id="chat-copy-output"),
         )
@@ -68,6 +91,18 @@ class ChatScreen(Screen):
             args = self.app.action_registry.parse_kv_args("")
             await self.app.execute_action("daily_marketindex", args, log_target="chat-log")
             return
+        if event.button.id == "chat-run-daily-asx":
+            args = self.app.action_registry.parse_kv_args("")
+            await self.app.execute_action("daily_asx_marketwide", args, log_target="chat-log")
+            return
+        if event.button.id == "chat-run-asx-sweep":
+            args = self.app.action_registry.parse_kv_args("")
+            await self.app.execute_action("asx_enrichment_sweep", args, log_target="chat-log")
+            return
+        if event.button.id == "chat-sort-asx-docs":
+            args = self.app.action_registry.parse_kv_args("")
+            await self.app.execute_action("sort_asx_docs", args, log_target="chat-log")
+            return
         if event.button.id == "chat-copy-output":
             self.app.action_export_copy_bundle()
 
@@ -82,6 +117,9 @@ class OperationsScreen(Screen):
         yield Select(actions, value="full_history", id="ops-action")
         yield Input(value="ticker=BHP years=5", id="ops-args", placeholder="key=value pairs")
         yield Button("Run Daily MarketIndex Check", id="ops-run-daily", variant="success")
+        yield Button("Run Daily ASX Market-Wide Check", id="ops-run-daily-asx", variant="primary")
+        yield Button("Run ASX Enrichment Sweep", id="ops-run-asx-sweep", variant="error")
+        yield Button("Sort ASX Docs (Unsorted)", id="ops-sort-asx-docs", variant="warning")
         yield Horizontal(
             Button("Preview + Run", id="ops-run", variant="primary"),
             Button("Tail Last Logs", id="ops-tail"),
@@ -103,6 +141,18 @@ class OperationsScreen(Screen):
             # Keep defaults while allowing overrides from key=value input.
             await self.app.execute_action("daily_marketindex", args, log_target="ops-log")
             return
+        if event.button.id == "ops-run-daily-asx":
+            args = self.app.action_registry.parse_kv_args(self.query_one("#ops-args", Input).value)
+            await self.app.execute_action("daily_asx_marketwide", args, log_target="ops-log")
+            return
+        if event.button.id == "ops-run-asx-sweep":
+            args = self.app.action_registry.parse_kv_args(self.query_one("#ops-args", Input).value)
+            await self.app.execute_action("asx_enrichment_sweep", args, log_target="ops-log")
+            return
+        if event.button.id == "ops-sort-asx-docs":
+            args = self.app.action_registry.parse_kv_args(self.query_one("#ops-args", Input).value)
+            await self.app.execute_action("sort_asx_docs", args, log_target="ops-log")
+            return
 
         action_id = self.query_one("#ops-action", Select).value
         args_text = self.query_one("#ops-args", Input).value
@@ -123,10 +173,16 @@ class UpdaterScreen(Screen):
         yield Horizontal(
             Input(value="BHP", id="upd-ticker", placeholder="Ticker"),
             Input(value="5", id="upd-years", placeholder="Years"),
-            Input(value="false", id="upd-process", placeholder="process_documents true/false"),
+            Input(value="true", id="upd-process", placeholder="process_documents true/false"),
         )
         yield Horizontal(
-            Button("Run Update + Snapshot", id="upd-run", variant="primary"),
+            Input(value="", id="upd-since", placeholder="since YYYY-MM-DD (optional)"),
+            Input(value="0.40", id="upd-lowconf", placeholder="low confidence threshold"),
+        )
+        yield Horizontal(
+            Button("Run Financial Refresh + Snapshot", id="upd-run", variant="primary"),
+            Button("Rebuild Financials From Docs", id="upd-rebuild"),
+            Button("Audit Financials QA", id="upd-audit"),
             Button("Show Latest Financial Row", id="upd-latest"),
         )
         yield RichLog(id="upd-log", wrap=True, markup=False)
@@ -137,6 +193,20 @@ class UpdaterScreen(Screen):
         if event.button.id == "upd-latest":
             row = self.app.db_reader.get_latest_financial_snapshot(ticker)
             log.write(json.dumps(row or {"ticker": ticker, "message": "no data"}, default=str, indent=2))
+            return
+        if event.button.id == "upd-rebuild":
+            since = self.query_one("#upd-since", Input).value.strip()
+            args = {"ticker": ticker}
+            if since:
+                args["since"] = since
+            await self.app.execute_action("rebuild_ticker_financials", args, log_target="upd-log")
+            return
+        if event.button.id == "upd-audit":
+            lowconf_raw = self.query_one("#upd-lowconf", Input).value.strip()
+            args: dict[str, Any] = {"ticker": ticker}
+            if lowconf_raw:
+                args["low_confidence_threshold"] = lowconf_raw
+            await self.app.execute_action("audit_ticker_financials", args, log_target="upd-log")
             return
 
         years = int(self.query_one("#upd-years", Input).value.strip() or "5")
