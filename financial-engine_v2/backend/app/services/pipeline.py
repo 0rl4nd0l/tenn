@@ -396,6 +396,7 @@ def backfill_ticker_sync(ticker, years=5, process_documents=True):
                     ticker=ticker,
                     document_ids=discovery["new_document_ids"],
                     output_root=settings.importance_output_root,
+                    materialize_output=settings.importance_materialize_output,
                     include_pdf_text=settings.importance_include_pdf_text,
                     link_mode=settings.importance_link_mode,
                     sort_source_docs=settings.importance_sort_source_docs,

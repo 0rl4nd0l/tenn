@@ -212,6 +212,14 @@ class ActionRegistry:
                     "{stop_after_empty_days}",
                     "--fallback-max-tickers",
                     "{fallback_max_tickers}",
+                    "--request-delay-ms",
+                    "{request_delay_ms}",
+                    "--request-jitter-ms",
+                    "{request_jitter_ms}",
+                    "--failure-backoff-ms",
+                    "{failure_backoff_ms}",
+                    "--max-consecutive-failures",
+                    "{max_consecutive_failures}",
                     "--report",
                     "{asx_sweep_report}",
                 ],
@@ -222,9 +230,14 @@ class ActionRegistry:
                     "max_errors": int,
                     "stop_after_empty_days": int,
                     "fallback_max_tickers": int,
+                    "request_delay_ms": int,
+                    "request_jitter_ms": int,
+                    "failure_backoff_ms": int,
+                    "max_consecutive_failures": int,
                     "asx_sweep_report": str,
                     "process_documents": bool,
                     "skip_download": bool,
+                    "download_existing_missing": bool,
                     "no_historical_fallback": bool,
                 },
                 is_mutating=True,
@@ -344,6 +357,8 @@ class ActionRegistry:
             command.append("--process-documents")
         if action_id == "asx_enrichment_sweep" and normalized.get("skip_download"):
             command.append("--skip-download")
+        if action_id == "asx_enrichment_sweep" and normalized.get("download_existing_missing", True):
+            command.append("--download-existing-missing")
         if action_id == "asx_enrichment_sweep" and normalized.get("no_historical_fallback"):
             command.append("--no-historical-fallback")
         if action_id == "sort_asx_docs":
@@ -430,6 +445,11 @@ class ActionRegistry:
         out.setdefault("max_errors", 100)
         out.setdefault("stop_after_empty_days", 10)
         out.setdefault("fallback_max_tickers", 1000)
+        out.setdefault("request_delay_ms", 300)
+        out.setdefault("request_jitter_ms", 350)
+        out.setdefault("failure_backoff_ms", 1200)
+        out.setdefault("max_consecutive_failures", 50)
+        out.setdefault("download_existing_missing", True)
         out.setdefault("low_confidence_threshold", 0.40)
         out.setdefault("only_unsorted", True)
 

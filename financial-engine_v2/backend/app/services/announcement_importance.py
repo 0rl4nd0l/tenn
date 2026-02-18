@@ -342,6 +342,7 @@ def classify_documents_and_materialize(
     output_root: str = "./data/asx/importance",
     include_pdf_text: bool = True,
     link_mode: str = "symlink",
+    materialize_output: bool = True,
     sort_source_docs: bool = True,
     only_unsorted: bool = False,
 ) -> dict[str, Any]:
@@ -373,8 +374,9 @@ def classify_documents_and_materialize(
         query = query.limit(limit)
 
     rows = query.all()
-    root = Path(output_root)
-    root.mkdir(parents=True, exist_ok=True)
+    root = Path(output_root) if materialize_output else None
+    if root is not None:
+        root.mkdir(parents=True, exist_ok=True)
 
     counts = Counter()
     skipped = 0
@@ -417,17 +419,21 @@ def classify_documents_and_materialize(
                 path = moved_path
             except Exception:
                 db.rollback()
-        materialized = _materialize_document_link(
-            pdf_path=str(path),
-            ticker=row.ticker,
-            document_id=str(row.document_id),
-            label=decision["label"],
-            score=decision["score"],
-            published_at=row.published_at,
-            title=row.title,
-            output_root=root,
-            link_mode=link_mode,
-        )
+        if root is not None:
+            materialized = _materialize_document_link(
+                pdf_path=str(path),
+                ticker=row.ticker,
+                document_id=str(row.document_id),
+                label=decision["label"],
+                score=decision["score"],
+                published_at=row.published_at,
+                title=row.title,
+                output_root=root,
+                link_mode=link_mode,
+            )
+            target_path = materialized["target_path"]
+        else:
+            target_path = str(path)
 
         counts[decision["label"]] += 1
         classified.append(
@@ -439,7 +445,7 @@ def classify_documents_and_materialize(
                 "score": decision["score"],
                 "signals": decision["signals"],
                 "pdf_path": str(path),
-                "target_path": materialized["target_path"],
+                "target_path": target_path,
             }
         )
 
@@ -447,13 +453,15 @@ def classify_documents_and_materialize(
         docs_ticker_root = Path("./data/asx/docs") / ticker.upper()
         if docs_ticker_root.exists():
             _prune_empty_legacy_dirs(docs_ticker_root)
-        importance_ticker_root = root / ticker.upper()
-        if importance_ticker_root.exists():
+        if root is not None:
+            importance_ticker_root = root / ticker.upper()
+            if importance_ticker_root.exists():
             # Output mirror is generated data; remove legacy importance buckets during migration.
-            _purge_legacy_dirs(importance_ticker_root)
+                _purge_legacy_dirs(importance_ticker_root)
 
     return {
-        "output_root": str(root),
+        "output_root": str(root) if root is not None else None,
+        "materialize_output": bool(materialize_output),
         "classified_count": len(classified),
         "skipped_count": skipped,
         "by_type": dict(counts),

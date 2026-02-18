@@ -54,6 +54,12 @@ def parse_args() -> argparse.Namespace:
         help="How to materialize files in announcement-type folders.",
     )
     parser.add_argument(
+        "--materialize-output",
+        action="store_true",
+        default=settings.importance_materialize_output,
+        help="Also materialize a secondary output mirror (disabled by default).",
+    )
+    parser.add_argument(
         "--no-pdf-text",
         action="store_true",
         help="Skip PDF text scan and classify using metadata/title only.",
@@ -88,6 +94,7 @@ def main() -> None:
             "limit": args.limit,
             "output_root": args.output_root,
             "link_mode": args.link_mode,
+            "materialize_output": args.materialize_output,
             "include_pdf_text": not args.no_pdf_text,
             "only_unsorted": args.only_unsorted,
         },
@@ -103,6 +110,7 @@ def main() -> None:
                 ticker=ticker,
                 limit=args.limit,
                 output_root=args.output_root,
+                materialize_output=args.materialize_output,
                 include_pdf_text=not args.no_pdf_text,
                 link_mode=args.link_mode,
                 sort_source_docs=not args.no_sort_source_docs,

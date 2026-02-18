@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     marketindex_announcements_file: str = "../data/raw/marketindex_announcements.json"
     enable_importance_classification: bool = True
     importance_output_root: str = "./data/asx/importance"
+    importance_materialize_output: bool = False
     importance_include_pdf_text: bool = True
     importance_link_mode: str = "symlink"
     importance_sort_source_docs: bool = True
