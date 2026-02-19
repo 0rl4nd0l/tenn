@@ -152,6 +152,27 @@ class CockpitApp(App):
         except Exception:
             pass
 
+        # Early connectivity signal for the most common runtime failure path.
+        try:
+            health = self.ollama_client.health(timeout=4.0)
+            if health.get("ok"):
+                model = str(self.config.get("llm", {}).get("model", ""))
+                names = health.get("models") if isinstance(health.get("models"), list) else []
+                if model and names and model not in names:
+                    self._screen_log(
+                        "chat",
+                        f"startup: Ollama reachable at {health.get('url')} but model '{model}' is not pulled.",
+                    )
+                else:
+                    self._screen_log("chat", f"startup: Ollama reachable at {health.get('url')}")
+            else:
+                self._screen_log(
+                    "chat",
+                    f"startup: Ollama unavailable at {health.get('url')}: {health.get('error')}",
+                )
+        except Exception as exc:
+            self._screen_log("chat", f"startup: Ollama health check failed: {exc}")
+
     def timestamp(self) -> str:
         return datetime.now().strftime("%Y%m%d_%H%M%S")
 

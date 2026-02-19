@@ -49,6 +49,8 @@ class ChatController:
         "FOR",
         "FROM",
         "GIVE",
+        "HAVE",
+        "HAAVE",
         "HI",
         "HOW",
         "I",
@@ -56,11 +58,14 @@ class ChatController:
         "IS",
         "IT",
         "LATEST",
+        "MANY",
         "ME",
         "MOST",
+        "NEWS",
         "OF",
         "ON",
         "ONE",
+        "SHOW",
         "PLEASE",
         "RECENT",
         "SUMMARISE",
@@ -70,12 +75,23 @@ class ChatController:
         "THE",
         "THIS",
         "TO",
+        "TODAY",
         "UPDATE",
+        "WE",
         "WHAT",
         "WHATS",
         "WITH",
         "YOU",
         "YOUR",
+        "DO",
+        "DOES",
+        "DID",
+        "ANY",
+        "ALL",
+        "COUNT",
+        "NUMBER",
+        "ANNOUNCEMENT",
+        "ANNOUNCEMENTS",
     }
 
     @staticmethod
@@ -83,6 +99,13 @@ class ChatController:
         return [(m.group(0), m.group(0).upper()) for m in re.finditer(r"\b([A-Za-z]{2,5})\b", message)]
 
     def _detect_ticker(self, message: str, prior_ticker: str | None = None) -> str | None:
+        # Prefer explicit ticker-like mentions first, e.g. "$BHP" or "ASX:BHP".
+        explicit = re.search(r"(?:\bASX:|\$)([A-Za-z]{2,5})\b", message)
+        if explicit:
+            token = explicit.group(1).upper()
+            if token not in self.TICKER_STOPWORDS:
+                return token
+
         tokens = self._extract_alpha_tokens(message)
         if not tokens:
             return prior_ticker

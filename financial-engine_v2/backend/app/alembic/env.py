@@ -1,7 +1,17 @@
 import os
+import sys
+from pathlib import Path
+
 from alembic import context
 from sqlalchemy import engine_from_config, pool
+
+# Ensure `app.*` imports resolve regardless of current working directory.
+BACKEND_ROOT = Path(__file__).resolve().parents[2]
+if str(BACKEND_ROOT) not in sys.path:
+    sys.path.insert(0, str(BACKEND_ROOT))
+
 from app.models import Base
+
 config = context.config
 target_metadata = Base.metadata
 def get_url():

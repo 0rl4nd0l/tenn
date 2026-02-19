@@ -235,6 +235,23 @@ Validate a report:
 Run tests:
 - `python3 scripts/test_analysis_report_schema.py`
 
+## Agent context auto-refresh
+To keep Codex context current as the system evolves:
+
+- Refresh digest + update `~/.codex/config.toml` block:
+  - `make context-refresh`
+- Check whether current workspace changes are significant:
+  - `make context-check`
+- Install a pre-push notifier hook:
+  - `make hooks-install`
+
+The context refresher writes:
+- markdown digest: `reports/agent_context_digest.md`
+- JSON snapshot: `reports/agent_context_snapshot.json`
+- config block markers in `~/.codex/config.toml`:
+  - `# BEGIN TENN_AGENT_CONTEXT`
+  - `# END TENN_AGENT_CONTEXT`
+
 ## Notes
 - This discovery method is heuristic; ASX page structure may change. It’s modular (`backend/app/providers/asx_provider.py`).
 - Missing metrics are stored as NULL by design.

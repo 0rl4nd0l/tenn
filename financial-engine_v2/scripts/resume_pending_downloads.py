@@ -120,10 +120,22 @@ def main():
             if args.limit_per_ticker and args.limit_per_ticker > 0:
                 query = query.limit(args.limit_per_ticker)
             rows = query.all()
+            dedup_rows = []
+            seen_source_urls: set[str] = set()
+            duplicate_source_rows = 0
+            for row in rows:
+                source_key = str(getattr(row, "source_url", "") or "").strip().lower()
+                if source_key and source_key in seen_source_urls:
+                    duplicate_source_rows += 1
+                    continue
+                if source_key:
+                    seen_source_urls.add(source_key)
+                dedup_rows.append(row)
 
             ticker_result = {
                 "ticker": ticker,
-                "pending_selected": len(rows),
+                "pending_selected": len(dedup_rows),
+                "pending_duplicate_source_rows_skipped": duplicate_source_rows,
                 "processed": 0,
                 "skipped_download": 0,
                 "errors": [],
@@ -131,7 +143,7 @@ def main():
             }
             processed_document_ids: list[str] = []
 
-            for row in rows:
+            for row in dedup_rows:
                 attempts = max(1, int(args.max_retries))
                 last_error = None
                 attempts_used = 0
@@ -212,6 +224,7 @@ def main():
 
             print(
                 f"[resume] {ticker}: pending={ticker_result['pending_selected']} "
+                f"dup_source_skipped={ticker_result['pending_duplicate_source_rows_skipped']} "
                 f"processed={ticker_result['processed']} skipped={ticker_result['skipped_download']} "
                 f"errors={ticker_result['error_count']} "
                 f"importance_classified={((ticker_result.get('importance_classification') or {}).get('classified_count', 0))}",

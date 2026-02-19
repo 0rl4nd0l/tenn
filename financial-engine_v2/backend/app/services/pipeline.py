@@ -2,11 +2,12 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re
-from urllib.parse import urljoin
+from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 
 import httpx
 from bs4 import BeautifulSoup
 from qdrant_client import QdrantClient
+from sqlalchemy.exc import IntegrityError
 
 from app.core.config import settings
 from app.core.db import SessionLocal
@@ -60,6 +61,24 @@ def _coerce_uuid(value):
     if isinstance(value, uuid.UUID):
         return value
     return uuid.UUID(str(value))
+
+
+def _normalize_source_url(url: str | None) -> str:
+    text = str(url or "").strip()
+    if not text:
+        return ""
+    try:
+        parts = urlsplit(text)
+        scheme = (parts.scheme or "https").lower()
+        netloc = parts.netloc.lower()
+        path = re.sub(r"/{2,}", "/", parts.path or "")
+        if path != "/" and path.endswith("/"):
+            path = path[:-1]
+        query_items = parse_qsl(parts.query, keep_blank_values=True)
+        query = urlencode(sorted(query_items))
+        return urlunsplit((scheme, netloc, path, query, ""))
+    except Exception:
+        return text
 
 
 def _slugify_filename_component(value, max_length=96):
@@ -122,6 +141,11 @@ def insert_discovered_documents(db, discovered_docs):
     new_document_ids = []
     per_ticker_found: dict[str, int] = {}
     per_ticker_inserted: dict[str, int] = {}
+    duplicate_in_batch = 0
+    duplicate_existing = 0
+    skipped_missing_source_url = 0
+    prepared = []
+    seen_source_urls: set[str] = set()
 
     for discovered_doc in discovered_docs:
         ticker = (discovered_doc.ticker or "").upper().strip()
@@ -129,8 +153,25 @@ def insert_discovered_documents(db, discovered_docs):
             continue
         per_ticker_found[ticker] = per_ticker_found.get(ticker, 0) + 1
 
-        existing = db.query(Document).filter(Document.source_url == discovered_doc.source_url).first()
-        if existing:
+        source_url = _normalize_source_url(discovered_doc.source_url)
+        if not source_url:
+            skipped_missing_source_url += 1
+            continue
+        if source_url in seen_source_urls:
+            duplicate_in_batch += 1
+            continue
+        seen_source_urls.add(source_url)
+        prepared.append((discovered_doc, ticker, source_url))
+
+    source_urls = [row[2] for row in prepared]
+    existing_source_urls: set[str] = set()
+    if source_urls:
+        existing_rows = db.query(Document.source_url).filter(Document.source_url.in_(source_urls)).all()
+        existing_source_urls = {str(row[0]) for row in existing_rows if row and row[0]}
+
+    for discovered_doc, ticker, source_url in prepared:
+        if source_url in existing_source_urls:
+            duplicate_existing += 1
             continue
 
         doc_id = uuid.uuid4()
@@ -143,7 +184,7 @@ def insert_discovered_documents(db, discovered_docs):
             published_at=discovered_doc.published_at,
             period_end=discovered_doc.period_end,
             title=discovered_doc.title,
-            source_url=discovered_doc.source_url,
+            source_url=source_url,
             pdf_path=_doc_path(
                 ticker=ticker,
                 doc_id=str(doc_id),
@@ -157,13 +198,59 @@ def insert_discovered_documents(db, discovered_docs):
         new_document_ids.append(str(doc_id))
         per_ticker_inserted[ticker] = per_ticker_inserted.get(ticker, 0) + 1
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Race-safe fallback: if another worker inserted same source_url first, continue without aborting batch.
+        db.rollback()
+        inserted = 0
+        new_document_ids = []
+        per_ticker_inserted = {}
+        duplicate_existing = 0
+        for discovered_doc, ticker, source_url in prepared:
+            exists = db.query(Document.document_id).filter(Document.source_url == source_url).first()
+            if exists:
+                duplicate_existing += 1
+                continue
+            doc_id = uuid.uuid4()
+            row = Document(
+                document_id=doc_id,
+                ticker=ticker,
+                exchange=discovered_doc.exchange or "ASX",
+                doc_class=discovered_doc.doc_class,
+                doc_subtype=discovered_doc.doc_subtype,
+                published_at=discovered_doc.published_at,
+                period_end=discovered_doc.period_end,
+                title=discovered_doc.title,
+                source_url=source_url,
+                pdf_path=_doc_path(
+                    ticker=ticker,
+                    doc_id=str(doc_id),
+                    published_at=discovered_doc.published_at,
+                    title=discovered_doc.title,
+                ),
+                pdf_sha256="",
+            )
+            db.add(row)
+            try:
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+                duplicate_existing += 1
+                continue
+            inserted += 1
+            new_document_ids.append(str(doc_id))
+            per_ticker_inserted[ticker] = per_ticker_inserted.get(ticker, 0) + 1
+
     return {
         "found": len(discovered_docs),
         "inserted": inserted,
         "new_document_ids": new_document_ids,
         "found_by_ticker": per_ticker_found,
         "inserted_by_ticker": per_ticker_inserted,
+        "duplicate_in_batch": duplicate_in_batch,
+        "duplicate_existing": duplicate_existing,
+        "skipped_missing_source_url": skipped_missing_source_url,
     }
 
 
