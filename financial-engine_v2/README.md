@@ -93,10 +93,13 @@ These are the two production workflows currently packaged.
    - `python3 scripts/full_history_ticker_sync.py --ticker BHP --years 10`
    - `python3 scripts/full_history_ticker_sync.py --ticker BHP,RIO,CSL --years 10`
    - `python3 scripts/full_history_ticker_sync.py --asx10 --years 10`
+   - `python3 scripts/full_history_ticker_sync.py --ticker-universe-file data/raw/asx_ticker_universe.txt --max-tickers 50 --years 10`
    - Includes retry handling and automatic pending-download resume.
+   - Includes optional ticker pacing controls (`--ticker-delay-seconds`, `--ticker-delay-jitter-seconds`) and per-ticker progress logs.
    - Includes automatic post-ingestion announcement-type classification into folders under `data/asx/importance/{ticker}/{announcement_type}`.
    - Source docs are also sorted under `data/asx/docs/{ticker}/{announcement_type}` (configurable).
    - Saved PDF names are structured: `YYYY-MM-DD_<announcement-title>_<document_id>.pdf`
+   - JSON reports include `run_metadata` (script, python version, git branch/commit/dirty flag) for provenance.
 
 2. Daily MarketIndex announcement scraping + PDF download:
    - `python3 scripts/daily_marketindex_action.py`
@@ -104,13 +107,16 @@ These are the two production workflows currently packaged.
    - Uses headed browser mode for download step (headless download is blocked).
    - Output JSON: `data/raw/marketindex_announcements.json`
    - Output PDFs: `data/marketindex/pdfs`
+   - JSON reports include `run_metadata` (script, python version, git branch/commit/dirty flag).
    - Daily PDF names are structured:
      `DD-MM-YY_<time>_<ticker>_<heading-slug>_<announcement-id>.pdf`
 
 3. Daily ASX all-announcements ingest (separate from ticker backfill):
    - `python3 scripts/daily_asx_all_announcements_action.py --date 2026-02-18`
    - Ingests all announcements detected on ASX for the target day, inserts new docs, downloads PDFs, and classifies.
+   - Includes conservative ASX request pacing defaults in sweep mode (`request_delay_ms=700`, `request_jitter_ms=900`, `failure_backoff_ms=2500`).
    - Output JSON: `reports/asx/daily_asx_all_announcements_report.json`
+   - JSON reports include `run_metadata` (script, python version, git branch/commit/dirty flag).
 
 ## Simplest Run (One Command)
 If you want a single command with hardcoded defaults, use:
@@ -167,6 +173,10 @@ Key bindings:
 - `s` settings
 - `q` quit
 
+Operational controls:
+- Single active action at a time (new runs are blocked while one job is running).
+- "Kill Running Action" is available in both Chat and Operations screens for long-running jobs.
+
 ## Key environment variables
 - `OLLAMA_URL` (default `http://host.docker.internal:11434`)
 - `EMBED_MODEL` (default `nomic-embed-text`)
@@ -190,10 +200,31 @@ Key bindings:
 - Local isolated mode defaults extraction/embeddings OFF (`ENABLE_EXTRACTION=false`, `ENABLE_EMBEDDINGS=false`) for safe smoke testing; production workflows can enable processing via flags/env.
 
 
+## Resource folder workflow (custom-GPT style)
+You can now run a folder-driven workflow where you drop PDFs/TXT/MD files and curate what becomes analysis context.
+
+Script: `scripts/resource_library_workflow.py`
+
+1. Initialize folders:
+   - `python3 scripts/resource_library_workflow.py init`
+2. Add files to `data/resource_library/inbox/`
+3. Ingest into review candidates:
+   - `python3 scripts/resource_library_workflow.py ingest` (heuristic mode by default)
+   - `python3 scripts/resource_library_workflow.py ingest --use-llm` (Ollama opt-in)
+4. Review and approve/reject/edit takeaways:
+   - `python3 scripts/resource_library_workflow.py review`
+5. Build analysis context pack from approved resources:
+   - `python3 scripts/resource_library_workflow.py build-context --query "BHP earnings outlook and debt risk"`
+
+Approved resources become a reusable local knowledge layer that can be injected into report prompts.
+Dependencies for this workflow:
+- `pymupdf` for PDF text extraction
+- `httpx` + reachable Ollama endpoint when using `--use-llm`
+
 ## Model improvement roadmap
 If you want a practical setup for running now on limited hardware and scaling cleanly once an NVIDIA M40 is installed (including iterative evaluation, model selection, fine-tuning path, and a human-approved "commit to knowledge base" workflow for PDFs/books), see:
 
-- `docs_model_iteration_playbook.md`
+- `docs_model_iteration_playbook.md` (includes a dedicated section on training combined financial + news analysis reports with citation gates)
 
 ## Notes
 - This discovery method is heuristic; ASX page structure may change. It’s modular (`backend/app/providers/asx_provider.py`).

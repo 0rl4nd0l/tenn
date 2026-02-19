@@ -11,6 +11,8 @@ from pathlib import Path
 
 import httpx
 
+from _run_metadata import build_run_metadata
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BACKEND_ROOT = REPO_ROOT / "backend"
 if str(BACKEND_ROOT) not in sys.path:
@@ -91,19 +93,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--request-delay-ms",
         type=int,
-        default=300,
+        default=700,
         help="Base delay between historical per-ticker requests (ms).",
     )
     parser.add_argument(
         "--request-jitter-ms",
         type=int,
-        default=350,
+        default=900,
         help="Random additional delay per request (0..N ms).",
     )
     parser.add_argument(
         "--failure-backoff-ms",
         type=int,
-        default=1200,
+        default=2500,
         help="Base backoff delay after ticker fetch failure (ms, exponential by streak).",
     )
     parser.add_argument(
@@ -313,6 +315,7 @@ def main() -> None:
 
     summary: dict[str, object] = {
         "started_at": _utc_now(),
+        "run_metadata": build_run_metadata(REPO_ROOT, __file__),
         "settings": {
             "end_date": end_day.strftime("%Y-%m-%d"),
             "days_back": args.days_back,
@@ -508,11 +511,12 @@ def main() -> None:
                         day_report["errors"].append({"document_id": document_id, "error": str(exc)})
                         summary["totals"]["errors"] = int(summary["totals"]["errors"]) + 1
 
-            if settings.enable_importance_classification and new_document_ids:
+            classification_ids = list(dict.fromkeys(process_document_ids))
+            if settings.enable_importance_classification and classification_ids:
                 try:
                     result = classify_documents_and_materialize(
                         db,
-                        document_ids=new_document_ids,
+                        document_ids=classification_ids,
                         output_root=settings.importance_output_root,
                         materialize_output=settings.importance_materialize_output,
                         include_pdf_text=settings.importance_include_pdf_text,
