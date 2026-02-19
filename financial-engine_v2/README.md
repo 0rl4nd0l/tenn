@@ -112,6 +112,12 @@ These are the two production workflows currently packaged.
    - Ingests all announcements detected on ASX for the target day, inserts new docs, downloads PDFs, and classifies.
    - Output JSON: `reports/asx/daily_asx_all_announcements_report.json`
 
+4. YouTube transcript ingest for model-strategy knowledge base:
+   - `python3 scripts/youtube_transcript_strategy_ingest.py --url "https://www.youtube.com/watch?v=dQw4w9WgXcQ"`
+   - `python3 scripts/youtube_transcript_strategy_ingest.py --input-file data/model_strategy/youtube_seed_urls.txt --overwrite`
+   - Saves per-video artifacts in `data/model_strategy/youtube_transcripts/`.
+   - Maintains strategy DB index at `data/model_strategy/youtube_transcripts_index.json`.
+
 ## Simplest Run (One Command)
 If you want a single command with hardcoded defaults, use:
 
@@ -194,6 +200,7 @@ Key bindings:
 If you want a practical setup for running now on limited hardware and scaling cleanly once an NVIDIA M40 is installed (including iterative evaluation, model selection, fine-tuning path, and a human-approved "commit to knowledge base" workflow for PDFs/books), see:
 
 - `docs_model_iteration_playbook.md`
+- `docs_youtube_transcript_ingest.md`
 
 ## Notes
 - This discovery method is heuristic; ASX page structure may change. It’s modular (`backend/app/providers/asx_provider.py`).
