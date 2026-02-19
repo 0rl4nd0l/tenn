@@ -146,6 +146,9 @@ def cmd_ingest(args: argparse.Namespace) -> int:
         print("No supported files found in inbox.")
         return 0
 
+    mode = "heuristic" if args.no_llm else "llm"
+    print(f"Ingest mode: {mode}")
+
     for src in files:
         resource_id = str(uuid.uuid4())
         text = read_text(src)
@@ -181,7 +184,10 @@ def cmd_ingest(args: argparse.Namespace) -> int:
         if destination.exists():
             destination = paths.processed / f"{resource_id}_{src.name}"
         shutil.move(str(src), str(destination))
-        print(f"Created candidate: {candidate_path.name}")
+        print(
+            f"Created candidate: {candidate_path.name} "
+            f"(mode={payload['generation_mode']}, confidence={payload['confidence']:.2f})"
+        )
 
     return 0
 
@@ -205,12 +211,23 @@ def cmd_review(args: argparse.Namespace) -> int:
         payload = json.loads(candidate_file.read_text(encoding="utf-8"))
         print("\n" + "=" * 80)
         print(f"Resource: {payload['source_file']} ({payload['resource_id']})")
+        print(
+            "Generated via: "
+            f"{payload.get('generation_mode', 'unknown')} "
+            f"(confidence={float(payload.get('confidence', 0.0)):.2f})"
+        )
+        if payload.get("tags"):
+            print(f"Tags: {', '.join(payload.get('tags', []))}")
         print(f"Summary: {payload.get('summary', '')[:500]}")
         print("Takeaways:")
         for i, item in enumerate(payload.get("key_takeaways", []), 1):
             print(f"  {i}. {item}")
 
-        action = _prompt("[a]pprove [r]eject [e]dit [s]kip [q]uit > ").lower()
+        action = ""
+        while action not in {"a", "r", "e", "s", "q"}:
+            action = _prompt("[a]pprove [r]eject [e]dit [s]kip [q]uit > ").lower()
+            if action not in {"a", "r", "e", "s", "q"}:
+                print("Invalid action. Enter one of: a, r, e, s, q.")
         if action == "q":
             break
         if action == "s":
@@ -222,7 +239,11 @@ def cmd_review(args: argparse.Namespace) -> int:
             new_takeaways = _prompt("New takeaways separated by '||' (blank keeps current): ")
             if new_takeaways:
                 payload["key_takeaways"] = [x.strip() for x in new_takeaways.split("||") if x.strip()]
-            action = _prompt("Now [a]pprove or [r]eject? ").lower()
+            action = ""
+            while action not in {"a", "r"}:
+                action = _prompt("Now [a]pprove or [r]eject? ").lower()
+                if action not in {"a", "r"}:
+                    print("Invalid action. Enter one of: a, r.")
 
         payload["reviewed_at"] = utc_now()
         if action == "a":
