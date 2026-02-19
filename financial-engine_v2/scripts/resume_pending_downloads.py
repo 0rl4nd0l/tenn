@@ -9,6 +9,8 @@ from pathlib import Path
 import httpx
 from sqlalchemy import or_
 
+from _run_metadata import build_run_metadata
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BACKEND_ROOT = REPO_ROOT / "backend"
 if str(BACKEND_ROOT) not in sys.path:
@@ -93,6 +95,7 @@ def main():
     started = datetime.now(timezone.utc)
     report = {
         "started_at": started.isoformat(),
+        "run_metadata": build_run_metadata(REPO_ROOT, __file__),
         "tickers": tickers,
         "process_documents": args.process_documents,
         "limit_per_ticker": args.limit_per_ticker,

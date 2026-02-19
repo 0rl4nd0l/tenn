@@ -6,6 +6,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+from _run_metadata import build_run_metadata
+
 
 DEFAULT_INGEST_SCRIPT = "scripts/marketindex_ingest.py"
 DEFAULT_DOWNLOAD_SCRIPT = "scripts/marketindex_download_pdfs.py"
@@ -107,6 +109,7 @@ def main():
     summary = {
         "run_id": run_id,
         "started_at": utc_now(),
+        "run_metadata": build_run_metadata(repo_root, __file__),
         "settings": {
             "python": args.python,
             "ingest_script": args.ingest_script,

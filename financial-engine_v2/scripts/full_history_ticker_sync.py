@@ -2,6 +2,7 @@
 import argparse
 import json
 import os
+import random
 import subprocess
 import sys
 import time
@@ -9,6 +10,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
+
+from _run_metadata import build_run_metadata
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 os.chdir(REPO_ROOT)
@@ -37,6 +40,25 @@ def _parse_tickers(values):
     return ordered
 
 
+def _load_tickers_from_file(path: Path):
+    if not path.exists():
+        raise SystemExit(f"Ticker universe file not found: {path}")
+    raw = path.read_text(encoding="utf-8")
+    tokens = []
+    for line in raw.splitlines():
+        part = line.split("#", 1)[0]
+        tokens.extend(part.split(","))
+    cleaned = []
+    seen = set()
+    for token in tokens:
+        ticker = token.strip().upper()
+        if not ticker or ticker in seen:
+            continue
+        seen.add(ticker)
+        cleaned.append(ticker)
+    return cleaned
+
+
 def _utc_now():
     return datetime.now(timezone.utc).isoformat()
 
@@ -56,6 +78,17 @@ def build_parser():
         help="Use ASX10 universe (first 10 from ASX20) when --ticker is not provided.",
     )
     parser.add_argument(
+        "--ticker-universe-file",
+        default="",
+        help="Optional newline/comma-separated ticker universe file.",
+    )
+    parser.add_argument(
+        "--max-tickers",
+        type=int,
+        default=0,
+        help="Optional cap for loaded tickers (0 = all).",
+    )
+    parser.add_argument(
         "--years",
         type=int,
         default=10,
@@ -71,6 +104,18 @@ def build_parser():
         type=int,
         default=3,
         help="Retries per ticker for transient discovery connect errors.",
+    )
+    parser.add_argument(
+        "--ticker-delay-seconds",
+        type=float,
+        default=1.5,
+        help="Base delay between tickers to reduce request burstiness.",
+    )
+    parser.add_argument(
+        "--ticker-delay-jitter-seconds",
+        type=float,
+        default=1.0,
+        help="Random extra delay [0..jitter] between tickers.",
     )
     parser.add_argument(
         "--no-resume-pending",
@@ -106,25 +151,38 @@ def main():
     args = build_parser().parse_args()
 
     tickers = _parse_tickers(args.ticker)
+    if args.ticker_universe_file:
+        tickers = _load_tickers_from_file(Path(args.ticker_universe_file))
     if not tickers and args.asx10:
         tickers = ASX20[:10]
     if not tickers:
-        raise SystemExit("No tickers provided. Use --ticker <TICKER> or --asx10.")
+        raise SystemExit("No tickers provided. Use --ticker, --ticker-universe-file, or --asx10.")
+    if args.max_tickers < 0:
+        raise SystemExit("--max-tickers must be >= 0")
+    if args.max_tickers > 0:
+        tickers = tickers[: args.max_tickers]
     if args.years <= 0:
         raise SystemExit("--years must be > 0")
     if args.max_backfill_retries <= 0:
         raise SystemExit("--max-backfill-retries must be > 0")
+    if args.ticker_delay_seconds < 0:
+        raise SystemExit("--ticker-delay-seconds must be >= 0")
+    if args.ticker_delay_jitter_seconds < 0:
+        raise SystemExit("--ticker-delay-jitter-seconds must be >= 0")
 
     report_path = Path(args.report)
     report_path.parent.mkdir(parents=True, exist_ok=True)
 
     summary = {
         "started_at": _utc_now(),
+        "run_metadata": build_run_metadata(REPO_ROOT, __file__),
         "settings": {
             "tickers": tickers,
             "years": args.years,
             "process_documents": args.process_documents,
             "max_backfill_retries": args.max_backfill_retries,
+            "ticker_delay_seconds": args.ticker_delay_seconds,
+            "ticker_delay_jitter_seconds": args.ticker_delay_jitter_seconds,
             "resume_pending": not args.no_resume_pending,
             "resume_max_retries": args.resume_max_retries,
             "resume_retry_delay_seconds": args.resume_retry_delay_seconds,
@@ -143,7 +201,9 @@ def main():
     }
 
     backfill_failed = False
-    for ticker in tickers:
+    total_tickers = len(tickers)
+    for index, ticker in enumerate(tickers, start=1):
+        print(f"[progress] ticker_index={index}/{total_tickers} ticker={ticker}", flush=True)
         ticker_done = False
         for attempt in range(1, args.max_backfill_retries + 1):
             try:
@@ -197,6 +257,9 @@ def main():
                 break
         if not ticker_done and backfill_failed:
             continue
+        delay = args.ticker_delay_seconds + (random.random() * args.ticker_delay_jitter_seconds)
+        if delay > 0:
+            time.sleep(delay)
 
     resume_rc = 0
     if not args.no_resume_pending:

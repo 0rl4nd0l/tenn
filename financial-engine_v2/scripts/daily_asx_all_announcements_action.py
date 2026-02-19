@@ -9,6 +9,8 @@ from pathlib import Path
 
 import httpx
 
+from _run_metadata import build_run_metadata
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BACKEND_ROOT = REPO_ROOT / "backend"
 if str(BACKEND_ROOT) not in sys.path:
@@ -70,6 +72,7 @@ def main() -> None:
 
     summary: dict[str, object] = {
         "started_at": _utc_now(),
+        "run_metadata": build_run_metadata(REPO_ROOT, __file__),
         "settings": {
             "date": target_day.strftime("%Y-%m-%d"),
             "skip_download": args.skip_download,

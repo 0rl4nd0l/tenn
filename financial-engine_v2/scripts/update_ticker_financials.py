@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from _run_metadata import build_run_metadata
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 os.chdir(REPO_ROOT)
@@ -207,6 +208,7 @@ def main() -> None:
     database_url = os.getenv("DATABASE_URL", "sqlite:///./data/fe_local.db")
     summary: dict[str, Any] = {
         "started_at": utc_now(),
+        "run_metadata": build_run_metadata(REPO_ROOT, __file__),
         "settings": {
             "ticker": ticker,
             "years": args.years,
