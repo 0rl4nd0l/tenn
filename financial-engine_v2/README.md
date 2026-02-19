@@ -226,6 +226,15 @@ If you want a practical setup for running now on limited hardware and scaling cl
 
 - `docs_model_iteration_playbook.md` (includes a dedicated section on training combined financial + news analysis reports with citation gates)
 
+## Analysis report schema + citation gate validator
+Phase-E scaffolding now includes a strict JSON-first report contract and a citation/evidence gate validator.
+
+Validate a report:
+- `python3 scripts/validate_analysis_report.py --report scripts/fixtures/analysis_report_schema/report_valid.json --evidence scripts/fixtures/analysis_report_schema/evidence_bundle_valid.json`
+
+Run tests:
+- `python3 scripts/test_analysis_report_schema.py`
+
 ## Notes
 - This discovery method is heuristic; ASX page structure may change. It’s modular (`backend/app/providers/asx_provider.py`).
 - Missing metrics are stored as NULL by design.

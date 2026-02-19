@@ -59,11 +59,11 @@ Validation:
 - [ ] PDF ingestion path validated where `pymupdf` is available.
 
 ## Phase 5: Playbook-Driven Additions (Planned)
-- [ ] Evidence-object schema defined (financial/news/macro/citations).
-- [ ] JSON-first report contract defined.
+- [x] Evidence-object schema defined (financial/news/macro/citations).
+- [x] JSON-first report contract defined.
 - [ ] Reviewer feedback artifact format defined.
-- [ ] Citation and contradiction quality gates defined.
+- [x] Citation and contradiction quality gates defined.
 
 Validation:
-- [ ] Schema-level tests.
-- [ ] Gate evaluation tests using curated fixtures.
+- [x] Schema-level tests.
+- [x] Gate evaluation tests using curated fixtures.

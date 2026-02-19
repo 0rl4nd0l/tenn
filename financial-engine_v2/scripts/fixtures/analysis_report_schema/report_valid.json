@@ -1,0 +1,51 @@
+{
+  "thesis_summary": "BHP remains stable near term due to improved cash generation and lower capex pressure.",
+  "bull_case": "Capex moderation and disciplined costs can support free cash flow and balance-sheet flexibility.",
+  "bear_case": "Commodity price volatility and execution risk could pressure earnings trajectory.",
+  "financial_health_score": 78,
+  "news_sentiment_score": 66,
+  "key_risks": [
+    "Commodity demand softens faster than expected.",
+    "Unexpected cost inflation impacts margins."
+  ],
+  "near_term_catalysts": [
+    "Next production update confirms guidance trajectory.",
+    "Additional debt reduction milestone."
+  ],
+  "valuation_view": "Valuation appears balanced with moderate upside if guidance execution remains intact.",
+  "action_label": "watch",
+  "citations": [
+    {
+      "claim": "Capex moderation supports near-term free cash flow quality.",
+      "evidence_ids": ["E1", "E2"]
+    },
+    {
+      "claim": "Sentiment improved after management guidance updates.",
+      "evidence_ids": ["E3"]
+    },
+    {
+      "claim": "Commodity volatility remains a meaningful downside risk.",
+      "evidence_ids": ["E2", "E3"]
+    },
+    {
+      "claim": "Debt reduction trajectory is a key catalyst to monitor.",
+      "evidence_ids": ["E1"]
+    },
+    {
+      "claim": "Cost inflation can still pressure margins despite guidance discipline.",
+      "evidence_ids": ["E2"]
+    },
+    {
+      "claim": "Valuation has moderate upside contingent on execution quality.",
+      "evidence_ids": ["E1", "E3"]
+    },
+    {
+      "claim": "Commodity demand softness can materially affect near-term outcomes.",
+      "evidence_ids": ["E3"]
+    },
+    {
+      "claim": "Production updates are decisive catalysts for the current thesis.",
+      "evidence_ids": ["E2"]
+    }
+  ]
+}
