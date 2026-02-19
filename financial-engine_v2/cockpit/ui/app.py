@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import shutil
 import subprocess
 import threading
@@ -105,6 +106,9 @@ class CockpitApp(App):
         self.pending_action: dict[str, Any] | None = None
         self.last_verification_payload: dict[str, Any] | None = None
         self.last_detected_ticker: str | None = None
+        self.active_job_task: asyncio.Task[None] | None = None
+        self.active_job_id: str | None = None
+        self.active_log_target: str = "chat-log"
 
     def _normalize_database_url(self, database_url: str) -> str:
         value = (database_url or "").strip()
@@ -279,7 +283,16 @@ class CockpitApp(App):
         log_target: str,
         skip_confirm: bool = False,
     ) -> None:
-        spec = self.action_registry.get(action_id)
+        if self.active_job_task and not self.active_job_task.done():
+            self._write_log(log_target, f"Action already running (job_id={self.active_job_id or 'unknown'}). Kill it first.")
+            return
+
+        try:
+            spec = self.action_registry.get(action_id)
+        except KeyError as exc:
+            self._write_log(log_target, f"Unknown action: {action_id}")
+            self._write_log(log_target, f"Error: {exc}")
+            return
         if self.read_only and spec.is_mutating:
             self._write_log(log_target, "read-only mode: mutating action blocked")
             return
@@ -321,39 +334,84 @@ class CockpitApp(App):
         )
 
         self._write_log(log_target, f"Executing: {' '.join(preview.command)}")
+        self._write_log(log_target, f"Job queued: {job.job_id}")
+        self.active_job_id = job.job_id
+        self.active_log_target = log_target
+        last_ticker: str | None = None
+        last_day: str | None = None
 
         def _emit(line: str) -> None:
-            # JobRunner currently pumps output on the app event loop thread.
-            # call_from_thread must only be used from a non-app thread.
+            nonlocal last_ticker, last_day
             app_thread = getattr(self, "_thread_id", None)
             if app_thread is not None and threading.get_ident() == app_thread:
                 self._write_log(log_target, line)
             else:
                 self.call_from_thread(lambda: self._write_log(log_target, line))
 
-        run_result = await self.job_runner.run(
-            job=job,
-            command=preview.command,
-            timeout_seconds=preview.timeout_seconds,
-            on_output=_emit,
-        )
+            ticker_match = re.search(r"\[(?:backfill|probe)\]\s+([A-Z0-9.]+)\s+attempt\s+\d+", line)
+            if ticker_match:
+                ticker = ticker_match.group(1)
+                if ticker != last_ticker:
+                    last_ticker = ticker
+                    msg = f"[progress] ingesting ticker={ticker}"
+                    if app_thread is not None and threading.get_ident() == app_thread:
+                        self._write_log(log_target, msg)
+                    else:
+                        self.call_from_thread(lambda m=msg: self._write_log(log_target, m))
 
-        self.state_store.add_job(
-            {
-                "job_id": run_result.job_id,
-                "action_id": run_result.action_id,
-                "args": run_result.args,
-                "started_at": run_result.started_at.isoformat(),
-                "ended_at": run_result.ended_at.isoformat() if run_result.ended_at else None,
-                "status": run_result.status,
-                "exit_code": run_result.exit_code,
-                "stdout_path": run_result.stdout_path,
-                "stderr_path": run_result.stderr_path,
-                "artifacts": run_result.artifacts,
-            }
-        )
+            day_match = re.search(r"\[asx_sweep\]\s+date=([0-9]{4}-[0-9]{2}-[0-9]{2})", line)
+            if day_match:
+                day = day_match.group(1)
+                if day != last_day:
+                    last_day = day
+                    msg = f"[progress] sweep_day={day}"
+                    if app_thread is not None and threading.get_ident() == app_thread:
+                        self._write_log(log_target, msg)
+                    else:
+                        self.call_from_thread(lambda m=msg: self._write_log(log_target, m))
 
-        self._write_log(log_target, f"Completed with status={run_result.status} exit={run_result.exit_code}")
+        async def _run_and_finalize() -> None:
+            try:
+                self._write_log(log_target, f"Job started: {job.job_id}")
+                run_result = await self.job_runner.run(
+                    job=job,
+                    command=preview.command,
+                    timeout_seconds=preview.timeout_seconds,
+                    on_output=_emit,
+                )
+
+                self.state_store.add_job(
+                    {
+                        "job_id": run_result.job_id,
+                        "action_id": run_result.action_id,
+                        "args": run_result.args,
+                        "started_at": run_result.started_at.isoformat(),
+                        "ended_at": run_result.ended_at.isoformat() if run_result.ended_at else None,
+                        "status": run_result.status,
+                        "exit_code": run_result.exit_code,
+                        "stdout_path": run_result.stdout_path,
+                        "stderr_path": run_result.stderr_path,
+                        "artifacts": run_result.artifacts,
+                    }
+                )
+                self._write_log(log_target, f"Completed with status={run_result.status} exit={run_result.exit_code}")
+            except Exception as exc:
+                self._write_log(log_target, f"Action runner error: {exc}")
+            finally:
+                self.active_job_id = None
+                self.active_job_task = None
+
+        self.active_job_task = asyncio.create_task(_run_and_finalize())
+
+    async def cancel_active_action(self, log_target: str) -> None:
+        if not self.active_job_task or self.active_job_task.done():
+            self._write_log(log_target, "No running action to cancel.")
+            self.active_job_task = None
+            self.active_job_id = None
+            return
+
+        status = await self.job_runner.cancel_active()
+        self._write_log(log_target, f"Cancel request sent: {status} (job_id={self.active_job_id or 'unknown'})")
 
     async def _confirm_action(self, preview: dict[str, Any]) -> bool:
         # Avoid push_screen_wait (requires worker context). Resolve a Future directly

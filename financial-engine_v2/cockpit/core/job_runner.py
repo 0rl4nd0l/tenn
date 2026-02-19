@@ -14,6 +14,28 @@ class JobRunner:
         self.repo_root = repo_root
         self.logs_dir = logs_dir
         self.logs_dir.mkdir(parents=True, exist_ok=True)
+        self._active_proc: asyncio.subprocess.Process | None = None
+        self._active_job_id: str | None = None
+
+    @property
+    def active_job_id(self) -> str | None:
+        return self._active_job_id
+
+    async def cancel_active(self) -> str:
+        proc = self._active_proc
+        if proc is None:
+            return "none"
+        if proc.returncode is not None:
+            return "already_exited"
+
+        proc.terminate()
+        try:
+            await asyncio.wait_for(proc.wait(), timeout=5)
+            return "terminated"
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
+            return "killed"
 
     async def run(
         self,
@@ -41,6 +63,8 @@ class JobRunner:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
+            self._active_proc = proc
+            self._active_job_id = job.job_id
 
             async def _pump(reader: asyncio.StreamReader | None, sink, prefix: str) -> None:
                 if reader is None:
@@ -73,6 +97,10 @@ class JobRunner:
                 job.exit_code = 124
                 if on_output:
                     on_output(f"[err] timeout after {timeout_seconds}s")
+            finally:
+                if self._active_proc is proc:
+                    self._active_proc = None
+                    self._active_job_id = None
 
         job.ended_at = datetime.now(timezone.utc)
         return job

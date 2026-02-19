@@ -65,6 +65,7 @@ class ChatScreen(Screen):
             Button("Run Daily ASX Market-Wide Check", id="chat-run-daily-asx", variant="primary"),
             Button("Run ASX Enrichment Sweep", id="chat-run-asx-sweep", variant="error"),
             Button("Sort ASX Docs (Unsorted)", id="chat-sort-asx-docs", variant="warning"),
+            Button("Kill Running Action", id="chat-kill-action", variant="error"),
             Button("Open Operations", id="chat-open-ops"),
             Button("Copy Chat/Output", id="chat-copy-output"),
         )
@@ -103,6 +104,9 @@ class ChatScreen(Screen):
             args = self.app.action_registry.parse_kv_args("")
             await self.app.execute_action("sort_asx_docs", args, log_target="chat-log")
             return
+        if event.button.id == "chat-kill-action":
+            await self.app.cancel_active_action(log_target="chat-log")
+            return
         if event.button.id == "chat-copy-output":
             self.app.action_export_copy_bundle()
 
@@ -122,6 +126,7 @@ class OperationsScreen(Screen):
         yield Button("Sort ASX Docs (Unsorted)", id="ops-sort-asx-docs", variant="warning")
         yield Horizontal(
             Button("Preview + Run", id="ops-run", variant="primary"),
+            Button("Kill Running Action", id="ops-kill-action", variant="error"),
             Button("Tail Last Logs", id="ops-tail"),
         )
         yield RichLog(id="ops-log", wrap=True, markup=False)
@@ -134,6 +139,9 @@ class OperationsScreen(Screen):
         if event.button.id == "ops-tail":
             for job in self.app.state_store.list_jobs(limit=3):
                 log.write(f"{job['job_id']} {job['status']} out={job.get('stdout_path')}")
+            return
+        if event.button.id == "ops-kill-action":
+            await self.app.cancel_active_action(log_target="ops-log")
             return
 
         if event.button.id == "ops-run-daily":
