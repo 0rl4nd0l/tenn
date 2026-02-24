@@ -8,6 +8,26 @@ def _normalize_url(base: str) -> str:
     return base.rstrip("/")
 
 
+def _parse_json_response(text: str) -> dict:
+    raw = (text or "").strip()
+    if not raw:
+        raise ValueError("Empty response from Ollama")
+    try:
+        parsed = json.loads(raw)
+        if not isinstance(parsed, dict):
+            raise ValueError(f"JSON response is not an object: {type(parsed).__name__}")
+        return parsed
+    except json.JSONDecodeError:
+        # Backward compatibility: extract the first JSON object if model adds wrappers.
+        match = re.search(r"\{.*\}", raw, flags=re.DOTALL)
+        if not match:
+            raise
+        parsed = json.loads(match.group(0))
+        if not isinstance(parsed, dict):
+            raise ValueError(f"JSON response is not an object: {type(parsed).__name__}")
+        return parsed
+
+
 def ollama_embed(ollama_url: str, model: str, texts: list[str], timeout: float = 180.0) -> list[list[float]]:
     if not texts:
         return []
@@ -40,10 +60,19 @@ def ollama_embed(ollama_url: str, model: str, texts: list[str], timeout: float =
 
 def ollama_generate_json(ollama_url: str, model: str, prompt: str, timeout: float = 240.0) -> dict:
     with httpx.Client(timeout=timeout) as c:
-        r = c.post(f"{_normalize_url(ollama_url)}/api/generate", json={"model": model, "prompt": prompt, "stream": False})
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "stream": False,
+            # Ask Ollama to enforce valid JSON output where supported.
+            "format": "json",
+            "options": {"temperature": 0},
+        }
+        r = c.post(f"{_normalize_url(ollama_url)}/api/generate", json=payload)
+        if r.status_code >= 400:
+            # Fallback for older/limited runtimes that reject structured output args.
+            fallback = {"model": model, "prompt": prompt, "stream": False}
+            r = c.post(f"{_normalize_url(ollama_url)}/api/generate", json=fallback)
         r.raise_for_status()
         txt = r.json().get("response", "")
-    m = re.search(r"\{.*\}", txt, flags=re.DOTALL)
-    if not m:
-        raise ValueError(f"No JSON found in model response: {txt[:400]}")
-    return json.loads(m.group(0))
+    return _parse_json_response(txt)

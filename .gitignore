@@ -2,3 +2,7 @@ data/
 __pycache__/
 *.log
 .DS_Store
+reports/
+financial-engine_v2/.env
+financial-engine_v2/.env.local
+financial-engine_v2/.env.docker

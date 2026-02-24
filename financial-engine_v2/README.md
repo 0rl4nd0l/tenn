@@ -156,13 +156,27 @@ Operate chat + ingestion + updater + verification from a single terminal UI.
 
 Run:
 - `python -m cockpit.main`
-- or `./scripts/cockpit_tui.py`
+- or `./scripts/cockpit_tui.py` (recommended wrapper with auto-bootstrap)
+
+Wrapper bootstrap behavior (`./scripts/cockpit_tui.py`):
+- Ensures `.env` exists (creates from `.env.example` when missing).
+- Ensures `HOST_UID` and `HOST_GID` defaults exist in `.env`.
+- Runs `docker compose up -d` for default services:
+  - `postgres,redis,qdrant,worker,backend`
+- Runs `docker compose exec -T backend alembic upgrade head`.
 
 CLI flags:
 - `--config config/cockpit.yaml`
 - `--profile default`
 - `--read-only`
 - `--no-web`
+
+Wrapper-only flags:
+- `--no-boot` (skip bootstrap and launch cockpit immediately)
+- `--no-build` (skip compose build during bootstrap)
+- `--no-migrate` (skip Alembic migration during bootstrap)
+- `--services postgres,redis,qdrant,worker,backend` (override boot services)
+- `--env-file .env`
 
 Key bindings:
 - `c` chat

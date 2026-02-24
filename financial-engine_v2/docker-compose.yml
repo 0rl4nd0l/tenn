@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:16
     container_name: fe_postgres
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-fe}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fe}
@@ -17,17 +18,20 @@ services:
   redis:
     image: redis:7
     container_name: fe_redis
+    restart: unless-stopped
     ports: ["6379:6379"]
 
   qdrant:
     image: qdrant/qdrant:latest
     container_name: fe_qdrant
+    restart: unless-stopped
     ports: ["6333:6333"]
     volumes: [fe_qdrant:/qdrant/storage]
 
   backend:
     build: { context: ./backend }
     container_name: fe_backend
+    restart: unless-stopped
     env_file: [.env]
     ports: ["8000:8000"]
     volumes:
@@ -42,7 +46,14 @@ services:
   worker:
     build: { context: ./worker }
     container_name: fe_worker
+    restart: unless-stopped
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     env_file: [.env]
+    working_dir: /app_worker
+    command: ["celery", "-A", "worker_app.celery_app:celery", "worker", "--loglevel=INFO", "-Q", "default"]
+    environment:
+      PYTHONPATH: /app_backend:/app_worker
+      BACKEND_APP_ROOT: /app_backend
     volumes:
       - ./backend:/app_backend
       - ./worker:/app_worker

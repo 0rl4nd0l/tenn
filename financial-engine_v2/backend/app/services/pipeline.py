@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 from qdrant_client import QdrantClient
 from sqlalchemy.exc import IntegrityError
 
-from app.core.config import settings
+from app.core.config import PROJECT_ROOT, settings
 from app.core.db import SessionLocal
 from app.models.asx_financials import ASXPeriodicFinancial, ASXRiskNote
 from app.models.documents import Document
@@ -61,6 +61,35 @@ def _coerce_uuid(value):
     if isinstance(value, uuid.UUID):
         return value
     return uuid.UUID(str(value))
+
+
+def _coerce_float(value):
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+
+    text = str(value).strip()
+    if not text:
+        return None
+    if text.lower() in {"none", "null", "na", "n/a", "nan", "unknown"}:
+        return None
+    try:
+        return float(text)
+    except (TypeError, ValueError):
+        return None
+
+
+def _resolve_pdf_path(value: str | None) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return raw
+    path = Path(raw).expanduser()
+    if path.is_absolute():
+        return str(path)
+    return str((PROJECT_ROOT / path).resolve())
 
 
 def _normalize_source_url(url: str | None) -> str:
@@ -346,7 +375,7 @@ def _upsert_financial_rows(db, doc, structured):
         ]:
             setattr(row, field, metrics.get(field, None))
         row.source_document_id = doc.document_id
-        row.confidence_metrics = float(structured.get("confidence_metrics") or 0.0)
+        row.confidence_metrics = _coerce_float(structured.get("confidence_metrics"))
 
     risk_note = db.query(ASXRiskNote).filter(ASXRiskNote.document_id == doc.document_id).first()
     if not risk_note:
@@ -357,7 +386,7 @@ def _upsert_financial_rows(db, doc, structured):
     risk_note.risk_bullets = structured.get("risk_bullets")
     risk_note.guidance_summary = structured.get("guidance_summary")
     risk_note.material_changes = structured.get("material_changes")
-    risk_note.confidence_narrative = float(structured.get("confidence_narrative") or 0.0)
+    risk_note.confidence_narrative = _coerce_float(structured.get("confidence_narrative"))
     db.commit()
 
 
@@ -369,7 +398,7 @@ def process_document(document_id):
         if not doc:
             raise ValueError(f"Document not found: {document_id}")
 
-        text = extract_text_from_pdf(doc.pdf_path)
+        text = extract_text_from_pdf(_resolve_pdf_path(doc.pdf_path))
         chunks = simple_chunk(text, max_chars=4500)
 
         if settings.enable_embeddings and chunks:
@@ -408,7 +437,7 @@ def process_document(document_id):
                     settings.extract_model,
                     build_prompt(text),
                 )
-                confidence = float(structured.get("confidence_metrics") or 0.0)
+                confidence = _coerce_float(structured.get("confidence_metrics"))
                 status = "ok"
             except Exception as exc:
                 status = "failed"
