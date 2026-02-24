@@ -59,7 +59,8 @@ async def main():
         raise ValueError("--min-recovered-count must be >= 0")
 
     report_path = Path(args.report)
-    report_path.parent.mkdir(parents=True, exist_ok=True)
+    if not args.dry_run:
+        report_path.parent.mkdir(parents=True, exist_ok=True)
 
     started_at = utc_now()
     started_ts = time.time()
@@ -103,21 +104,28 @@ async def main():
         "duration_seconds": duration_seconds,
         **recovery,
     }
-    report_path.write_text(json.dumps(report, indent=2))
-
-    print(
-        f"Headed recovery complete: selected={report['selected_total']} "
-        f"attempted={report['attempted']} recovered={report['recovered']} "
-        f"skipped={report['skipped']} failed={report['failed']} "
-        f"classified={((report.get('importance_classification') or {}).get('classified_count', 0))} "
-        f"report={report_path}"
-    )
-
-    if report["recovered"] < args.min_recovered_count:
+    if not args.dry_run:
+        report_path.write_text(json.dumps(report, indent=2))
         print(
-            f"Recovered count {report['recovered']} is below --min-recovered-count {args.min_recovered_count}."
+            f"Headed recovery complete: selected={report['selected_total']} "
+            f"attempted={report['attempted']} recovered={report['recovered']} "
+            f"skipped={report['skipped']} failed={report['failed']} "
+            f"classified={((report.get('importance_classification') or {}).get('classified_count', 0))} "
+            f"report={report_path}"
         )
-        raise SystemExit(3)
+
+        if report["recovered"] < args.min_recovered_count:
+            print(
+                f"Recovered count {report['recovered']} is below --min-recovered-count {args.min_recovered_count}."
+            )
+            raise SystemExit(3)
+    else:
+        print(json.dumps(report, indent=2))
+        print(
+            f"Headed recovery dry-run complete: selected={report['selected_total']} "
+            f"attempted={report['attempted']} recovered={report['recovered']} "
+            f"skipped={report['skipped']} failed={report['failed']}"
+        )
 
 
 if __name__ == "__main__":

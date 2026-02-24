@@ -16,7 +16,7 @@ DEFAULT_CONFIG = {
         "timeout_seconds": 300,
     },
     "paths": {
-        "allow_roots": [str(Path.home())],
+        "allow_roots": ["."],
         "default_workspace": str(Path.cwd()),
     },
     "memory": {
@@ -26,11 +26,21 @@ DEFAULT_CONFIG = {
     "actions": {
         "confirm_required": True,
     },
+    "db": {
+        "diagnostic_query_enabled": False,
+    },
+    "backend": {
+        "api_base_url": "http://localhost:8000",
+        "auto_start": True,
+        "start_command": ["./scripts/run_local_backend.sh"],
+        "startup_timeout_seconds": 25,
+    },
     "web": {
         "enabled_default": False,
     },
     "exports": {
         "dir": "reports/analysis",
+        "chat_window_messages": 40,
     },
     "reports": {
         "dir": "reports",
@@ -82,10 +92,26 @@ def apply_runtime_flags(config: dict[str, Any], flags: RuntimeFlags) -> dict[str
         cfg.setdefault("web", {})
         cfg["web"]["enabled_default"] = False
 
-    # Environment override keeps Cockpit aligned with existing stack.
+    # Cockpit-specific env vars override config, then fall back to shared stack vars.
     cfg.setdefault("llm", {})
-    cfg["llm"]["ollama_url"] = os.getenv("OLLAMA_URL", cfg["llm"].get("ollama_url", "http://localhost:11434"))
-    cfg["llm"]["model"] = os.getenv("EXTRACT_MODEL", cfg["llm"].get("model", "llama3.1:8b"))
+    cfg["llm"]["ollama_url"] = os.getenv(
+        "COCKPIT_OLLAMA_URL",
+        os.getenv("OLLAMA_URL", cfg["llm"].get("ollama_url", "http://localhost:11434")),
+    )
+    cockpit_model = (os.getenv("COCKPIT_LLM_MODEL") or "").strip()
+    if cockpit_model:
+        cfg["llm"]["model"] = cockpit_model
+    else:
+        configured_model = str(cfg["llm"].get("model") or "").strip()
+        if configured_model:
+            cfg["llm"]["model"] = configured_model
+        else:
+            cfg["llm"]["model"] = os.getenv("EXTRACT_MODEL", "llama3.1:8b")
     cfg.setdefault("db", {})
     cfg["db"]["database_url"] = os.getenv("DATABASE_URL", "sqlite:///./data/fe_local.db")
+    cfg.setdefault("backend", {})
+    cfg["backend"]["api_base_url"] = os.getenv(
+        "COCKPIT_BACKEND_API_URL",
+        cfg["backend"].get("api_base_url", "http://localhost:8000"),
+    )
     return cfg

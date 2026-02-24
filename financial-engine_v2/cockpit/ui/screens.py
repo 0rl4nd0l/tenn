@@ -58,19 +58,44 @@ class ChatScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield Label("Chat + Actions")
+        yield Static("Model runtime: loading...", id="chat-model-status")
         yield RichLog(id="chat-log", wrap=True, markup=False)
+        yield Static("", id="chat-status")
         yield Static("No pending action", id="chat-pending")
         yield Horizontal(
-            Button("Run Daily MarketIndex Check", id="chat-run-daily", variant="success"),
-            Button("Run Daily ASX Market-Wide Check", id="chat-run-daily-asx", variant="primary"),
-            Button("Run ASX Enrichment Sweep", id="chat-run-asx-sweep", variant="error"),
-            Button("Sort ASX Docs (Unsorted)", id="chat-sort-asx-docs", variant="warning"),
-            Button("Kill Running Action", id="chat-kill-action", variant="error"),
-            Button("Open Operations", id="chat-open-ops"),
-            Button("Copy Chat/Output", id="chat-copy-output"),
+            Button("Mode: Operational", id="chat-toggle-mode", variant="primary"),
+            Button("Auto-Deep: On", id="chat-toggle-auto-deep", variant="success"),
+            id="chat-mode-controls",
+        )
+        yield Vertical(
+            Horizontal(
+                Button("Copy Output", id="chat-copy-output", variant="warning"),
+                Button("Operations", id="chat-open-ops"),
+                id="chat-top-actions",
+            ),
+            Horizontal(
+                Button("Daily MarketIndex", id="chat-run-daily", variant="success"),
+                Button("Daily ASX Market-Wide", id="chat-run-daily-asx", variant="primary"),
+            ),
+            Horizontal(
+                Button("ASX Enrichment Sweep", id="chat-run-asx-sweep", variant="error"),
+                Button("Sort ASX Docs", id="chat-sort-asx-docs", variant="warning"),
+            ),
+            Horizontal(
+                Button("Probe System Tickers (5y)", id="chat-run-probe-system", variant="primary"),
+                Button("ASX Enrichment Chunked (5y)", id="chat-run-asx-chunked", variant="error"),
+            ),
+            Horizontal(
+                Button("Kill Running Action", id="chat-kill-action", variant="error"),
+            ),
+            id="chat-actions",
         )
         yield Input(
-            placeholder="Ask questions or use /read <path> [max_chars=N], /confirm, /cancel",
+            placeholder=(
+                "Ask questions or use /mode deep|operational, /auto-deep on|off, "
+                "/request-access web|rag|dbdiag, /web on|off, /rag on|off, /dbdiag on|off, /sql tables, /read <path> [max_chars=N], /confirm, /cancel"
+                ", /actions list, /actions doctor, /run <action_id> ... dry_run=true"
+            ),
             id="chat-input",
         )
 
@@ -79,12 +104,28 @@ class ChatScreen(Screen):
         event.input.value = ""
         if not message:
             return
-        await self.app.handle_chat_message(message)
+        self.app.submit_chat_message(message)
 
     def action_clear_log(self) -> None:
         self.query_one("#chat-log", RichLog).clear()
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "chat-toggle-mode":
+            if self.app.chat_analysis_mode == "deep":
+                self.app.chat_analysis_mode = "operational"
+            else:
+                self.app.chat_analysis_mode = "deep"
+            self.app._update_chat_mode_widgets()
+            self.query_one("#chat-log", RichLog).write(
+                self.app.assistant_line(f"chat mode set to {self.app.chat_analysis_mode}.")
+            )
+            return
+        if event.button.id == "chat-toggle-auto-deep":
+            self.app.auto_deep_detection_enabled = not self.app.auto_deep_detection_enabled
+            self.app._update_chat_mode_widgets()
+            state = "enabled" if self.app.auto_deep_detection_enabled else "disabled"
+            self.query_one("#chat-log", RichLog).write(self.app.assistant_line(f"auto-deep {state}."))
+            return
         if event.button.id == "chat-open-ops":
             self.app.action_show_ops()
             return
@@ -99,6 +140,14 @@ class ChatScreen(Screen):
         if event.button.id == "chat-run-asx-sweep":
             args = self.app.action_registry.parse_kv_args("")
             await self.app.execute_action("asx_enrichment_sweep", args, log_target="chat-log")
+            return
+        if event.button.id == "chat-run-probe-system":
+            args = self.app.action_registry.parse_kv_args("")
+            await self.app.execute_action("probe_all_system_tickers", args, log_target="chat-log")
+            return
+        if event.button.id == "chat-run-asx-chunked":
+            args = self.app.action_registry.parse_kv_args("")
+            await self.app.execute_action("asx_enrichment_chunked", args, log_target="chat-log")
             return
         if event.button.id == "chat-sort-asx-docs":
             args = self.app.action_registry.parse_kv_args("")
@@ -120,10 +169,12 @@ class OperationsScreen(Screen):
         actions = [(spec.label, spec.id) for spec in self.app.action_registry.list_actions()]
         yield Select(actions, value="full_history", id="ops-action")
         yield Input(value="ticker=BHP years=5", id="ops-args", placeholder="key=value pairs")
-        yield Button("Run Daily MarketIndex Check", id="ops-run-daily", variant="success")
-        yield Button("Run Daily ASX Market-Wide Check", id="ops-run-daily-asx", variant="primary")
-        yield Button("Run ASX Enrichment Sweep", id="ops-run-asx-sweep", variant="error")
-        yield Button("Sort ASX Docs (Unsorted)", id="ops-sort-asx-docs", variant="warning")
+        yield Button("Daily MarketIndex", id="ops-run-daily", variant="success")
+        yield Button("Daily ASX Market-Wide", id="ops-run-daily-asx", variant="primary")
+        yield Button("ASX Enrichment Sweep", id="ops-run-asx-sweep", variant="error")
+        yield Button("Probe System Tickers (5y)", id="ops-run-probe-system", variant="primary")
+        yield Button("ASX Enrichment Chunked (5y)", id="ops-run-asx-chunked", variant="error")
+        yield Button("Sort ASX Docs", id="ops-sort-asx-docs", variant="warning")
         yield Horizontal(
             Button("Preview + Run", id="ops-run", variant="primary"),
             Button("Kill Running Action", id="ops-kill-action", variant="error"),
@@ -156,6 +207,14 @@ class OperationsScreen(Screen):
         if event.button.id == "ops-run-asx-sweep":
             args = self.app.action_registry.parse_kv_args(self.query_one("#ops-args", Input).value)
             await self.app.execute_action("asx_enrichment_sweep", args, log_target="ops-log")
+            return
+        if event.button.id == "ops-run-probe-system":
+            args = self.app.action_registry.parse_kv_args(self.query_one("#ops-args", Input).value)
+            await self.app.execute_action("probe_all_system_tickers", args, log_target="ops-log")
+            return
+        if event.button.id == "ops-run-asx-chunked":
+            args = self.app.action_registry.parse_kv_args(self.query_one("#ops-args", Input).value)
+            await self.app.execute_action("asx_enrichment_chunked", args, log_target="ops-log")
             return
         if event.button.id == "ops-sort-asx-docs":
             args = self.app.action_registry.parse_kv_args(self.query_one("#ops-args", Input).value)
@@ -282,6 +341,7 @@ class SettingsScreen(Screen):
     def on_mount(self) -> None:
         payload = {
             "runtime": self.app.config.get("runtime", {}),
+            "access": self.app.access_state(),
             "llm": self.app.config.get("llm", {}),
             "paths": self.app.config.get("paths", {}),
             "memory": self.app.config.get("memory", {}),

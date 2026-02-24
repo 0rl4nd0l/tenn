@@ -144,6 +144,11 @@ def parse_args() -> argparse.Namespace:
         default=str(REPO_ROOT / "reports" / "asx" / "asx_enrichment_sweep_report.json"),
         help="Output summary report path.",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print plan/estimates and exit without writing DB/files.",
+    )
     return parser.parse_args()
 
 
@@ -310,6 +315,40 @@ def main() -> None:
         raise SystemExit("--max-consecutive-failures must be >= 0")
 
     end_day = _parse_date(args.end_date)
+    if args.dry_run:
+        start_day = end_day - timedelta(days=max(1, int(args.days_back)) - 1)
+        plan = {
+            "dry_run": True,
+            "script": "asx_enrichment_sweep_action",
+            "settings": {
+                "end_date": end_day.strftime("%Y-%m-%d"),
+                "start_date": start_day.strftime("%Y-%m-%d"),
+                "days_back": args.days_back,
+                "max_new_docs": args.max_new_docs,
+                "max_errors": args.max_errors,
+                "stop_after_empty_days": args.stop_after_empty_days,
+                "fallback_max_tickers": args.fallback_max_tickers,
+                "ticker_universe_file": args.ticker_universe_file,
+                "historical_fallback_enabled": not args.no_historical_fallback,
+                "request_delay_ms": args.request_delay_ms,
+                "request_jitter_ms": args.request_jitter_ms,
+                "failure_backoff_ms": args.failure_backoff_ms,
+                "max_consecutive_failures": args.max_consecutive_failures,
+                "skip_complete_ticker_days": not args.no_skip_complete_ticker_days,
+                "skip_download": bool(args.skip_download),
+                "download_existing_missing": bool(args.download_existing_missing),
+                "process_documents": bool(args.process_documents),
+                "with_embeddings": bool(args.with_embeddings),
+                "report": str(args.report),
+                "database_url": getattr(settings, "database_url", None),
+            },
+            "notes": [
+                "Dry-run skips ASX discovery, DB inserts, PDF downloads, classification, and report writes.",
+            ],
+        }
+        print(json.dumps(plan, indent=2, default=str))
+        return
+
     report_path = Path(args.report)
     report_path.parent.mkdir(parents=True, exist_ok=True)
 

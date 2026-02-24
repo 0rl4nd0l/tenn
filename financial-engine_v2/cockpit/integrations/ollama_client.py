@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import json
 import re
+from typing import Callable
+
 import httpx
 
 
@@ -8,6 +11,11 @@ class OllamaClient:
     def __init__(self, base_url: str, model: str) -> None:
         self.base_url = self._normalize_base_url(base_url)
         self.model = model
+        self.default_options = {
+            "temperature": 0.1,
+            "top_p": 0.9,
+            "repeat_penalty": 1.05,
+        }
 
     def health(self, timeout: float = 5.0) -> dict:
         url = f"{self.base_url}/api/tags"
@@ -25,23 +33,49 @@ class OllamaClient:
             except Exception as exc:
                 return {"ok": False, "url": self.base_url, "error": str(exc)}
 
-    def chat(self, prompt: str, timeout: float = 120.0) -> str:
+    def chat(self, prompt: str, timeout: float = 120.0, on_chunk: Callable[[str], None] | None = None) -> str:
         with httpx.Client(timeout=timeout) as client:
             url = f"{self.base_url}/api/generate"
             payload = None
             # One retry for transient transport issues.
             for attempt in (1, 2):
                 try:
-                    response = client.post(
-                        url,
-                        json={
-                            "model": self.model,
-                            "prompt": prompt,
-                            "stream": False,
-                        },
-                    )
-                    response.raise_for_status()
-                    payload = response.json()
+                    if on_chunk is None:
+                        response = client.post(
+                            url,
+                            json={
+                                "model": self.model,
+                                "prompt": prompt,
+                                "stream": False,
+                                "options": self.default_options,
+                            },
+                        )
+                        response.raise_for_status()
+                        payload = response.json()
+                    else:
+                        full_response: list[str] = []
+                        with client.stream(
+                            "POST",
+                            url,
+                            json={
+                                "model": self.model,
+                                "prompt": prompt,
+                                "stream": True,
+                                "options": self.default_options,
+                            },
+                        ) as response:
+                            response.raise_for_status()
+                            for line in response.iter_lines():
+                                if not line:
+                                    continue
+                                item = json.loads(line)
+                                chunk = str(item.get("response") or "")
+                                if chunk:
+                                    full_response.append(chunk)
+                                    on_chunk(chunk)
+                                if item.get("done"):
+                                    break
+                        payload = {"response": "".join(full_response)}
                     break
                 except httpx.HTTPStatusError as exc:
                     body = exc.response.text[:300] if exc.response is not None else ""

@@ -1,12 +1,14 @@
 llm:
   provider: ollama
   ollama_url: http://localhost:11434
-  model: phi3:mini
+  model: qwen2.5:32b
   timeout_seconds: 300
 
 paths:
   allow_roots:
-    - /home
+    - .
+    - ./reports
+    - ./data
   default_workspace: .
 
 memory:
@@ -16,11 +18,38 @@ memory:
 actions:
   confirm_required: true
 
+backend:
+  api_base_url: http://localhost:8000
+  auto_start: true
+  start_command:
+    - ./scripts/run_local_backend.sh
+  startup_timeout_seconds: 25
+
 web:
   enabled_default: false
 
+db:
+  diagnostic_query_enabled: false
+
 exports:
   dir: reports/analysis
+  chat_window_messages: 40
 
 reports:
   dir: reports
+
+rag:
+  enabled: true
+  qualitative_context:
+    db_path: reports/qual_context/company.sqlite
+    embed_backend: sentence-transformers
+    embed_model: bge-large-en-v1.5
+    st_device: auto
+    dependency_policy: error
+    corpus_filter: company
+    top_k: 8
+    max_text_chars: 1200
+  news_context:
+    enabled: true
+    corpus_filter: news
+    top_k: 4

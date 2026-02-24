@@ -36,7 +36,19 @@ def parse_args() -> argparse.Namespace:
         "--ticker-universe-file",
         default=str(REPO_ROOT / "data" / "raw" / "asx_ticker_universe.txt"),
     )
-    parser.add_argument("--download-existing-missing", action="store_true", default=True)
+    parser.add_argument(
+        "--download-existing-missing",
+        dest="download_existing_missing",
+        action="store_true",
+        help="Enable recovery of existing DB rows with missing local PDFs.",
+    )
+    parser.add_argument(
+        "--no-download-existing-missing",
+        dest="download_existing_missing",
+        action="store_false",
+        help="Disable recovery of existing DB rows with missing local PDFs.",
+    )
+    parser.set_defaults(download_existing_missing=True)
     parser.add_argument("--process-documents", action="store_true")
     parser.add_argument("--request-delay-ms", type=int, default=700)
     parser.add_argument("--request-jitter-ms", type=int, default=900)
@@ -54,6 +66,11 @@ def parse_args() -> argparse.Namespace:
         default=str(REPO_ROOT / "reports" / "asx" / "asx_enrichment_chunked_rollup.json"),
     )
     parser.add_argument("--python", default=sys.executable)
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print plan/estimates and exit without writing DB/files.",
+    )
     return parser.parse_args()
 
 
@@ -76,6 +93,40 @@ def main() -> None:
         raise SystemExit("--chunk-days must be > 0")
 
     end_date = _parse_date(args.end_date)
+    if args.dry_run:
+        chunk_ends = _chunk_end_dates(end_date, args.total_days_back, args.chunk_days)
+        plan = {
+            "dry_run": True,
+            "script": "run_asx_enrichment_chunked",
+            "settings": {
+                "end_date": end_date.strftime("%Y-%m-%d"),
+                "total_days_back": args.total_days_back,
+                "chunk_days": args.chunk_days,
+                "chunks_total": len(chunk_ends),
+                "fallback_max_tickers": args.fallback_max_tickers,
+                "ticker_universe_file": args.ticker_universe_file,
+                "download_existing_missing": bool(args.download_existing_missing),
+                "process_documents": bool(args.process_documents),
+                "request_delay_ms": args.request_delay_ms,
+                "request_jitter_ms": args.request_jitter_ms,
+                "failure_backoff_ms": args.failure_backoff_ms,
+                "max_consecutive_failures": args.max_consecutive_failures,
+                "max_errors": args.max_errors,
+                "stop_after_empty_days": args.stop_after_empty_days,
+                "reports_dir": str(args.reports_dir),
+                "rollup_report": str(args.rollup_report),
+            },
+            "samples": {
+                "first_chunk_end": chunk_ends[0].strftime("%Y-%m-%d") if chunk_ends else None,
+                "last_chunk_end": chunk_ends[-1].strftime("%Y-%m-%d") if chunk_ends else None,
+            },
+            "notes": [
+                "Dry-run does not execute per-chunk sweep commands or write rollup/report files.",
+            ],
+        }
+        print(json.dumps(plan, indent=2, default=str))
+        return
+
     reports_dir = Path(args.reports_dir)
     reports_dir.mkdir(parents=True, exist_ok=True)
     rollup_path = Path(args.rollup_report)

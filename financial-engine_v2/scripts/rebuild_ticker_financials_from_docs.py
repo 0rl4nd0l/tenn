@@ -96,6 +96,11 @@ def parse_args() -> argparse.Namespace:
         default=str(REPO_ROOT / "reports" / "rebuild_ticker_financials_from_docs_report.json"),
         help="Output report path.",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print plan/estimates and exit without writing DB/files.",
+    )
     return parser.parse_args()
 
 
@@ -108,6 +113,39 @@ def main() -> None:
         raise SystemExit("--limit must be >= 0")
 
     since_dt = _parse_dt(args.since)
+    if args.dry_run:
+        total_docs = None
+        if since_dt:
+            db = SessionLocal()
+            try:
+                total_docs = (
+                    db.query(Document)
+                    .filter(Document.ticker == ticker, Document.published_at.isnot(None), Document.published_at >= since_dt)
+                    .count()
+                )
+            finally:
+                db.close()
+
+        plan = {
+            "dry_run": True,
+            "script": "rebuild_ticker_financials_from_docs",
+            "settings": {
+                "ticker": ticker,
+                "limit": args.limit,
+                "since": args.since or None,
+                "include_non_financial_candidates": bool(args.include_non_financial_candidates),
+                "force": bool(args.force),
+                "with_embeddings": bool(args.with_embeddings),
+                "report": str(args.report),
+            },
+            "estimates": {
+                "docs_since_count": total_docs,
+                "note": "docs_since_count is only computed when --since is provided; candidate filters apply at runtime.",
+            },
+        }
+        print(json.dumps(plan, indent=2, default=str))
+        return
+
     report_path = Path(args.report)
     report_path.parent.mkdir(parents=True, exist_ok=True)
 

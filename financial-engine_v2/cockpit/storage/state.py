@@ -55,6 +55,27 @@ class StateStore:
             )
             """
         )
+        cur.execute(
+            """
+            create table if not exists watchlist_items (
+                ticker text primary key,
+                added_at text not null
+            )
+            """
+        )
+        cur.execute(
+            """
+            create table if not exists update_events (
+                id integer primary key autoincrement,
+                thread_id text not null,
+                ticker text not null,
+                action_id text not null,
+                status text not null,
+                summary_json text not null,
+                created_at text not null
+            )
+            """
+        )
         self.conn.commit()
 
     def add_chat_message(self, thread_id: str, role: str, content: str, created_at: str) -> None:
@@ -70,12 +91,48 @@ class StateStore:
             select thread_id, role, content, created_at
             from chat_messages
             where thread_id = ?
-            order by id asc
+            order by id desc
             limit ?
             """,
             (thread_id, limit),
         ).fetchall()
-        return [dict(r) for r in rows]
+        # Return newest window in chronological order for display/export.
+        return [dict(r) for r in reversed(rows)]
+
+    def get_chat_messages_since(self, thread_id: str, created_at_since: str, limit: int = 200) -> list[dict[str, Any]]:
+        rows = self.conn.execute(
+            """
+            select thread_id, role, content, created_at
+            from chat_messages
+            where thread_id = ? and created_at >= ?
+            order by id desc
+            limit ?
+            """,
+            (thread_id, created_at_since, limit),
+        ).fetchall()
+        return [dict(r) for r in reversed(rows)]
+
+    def count_chat_messages(self, thread_id: str) -> int:
+        row = self.conn.execute(
+            """
+            select count(*) as n
+            from chat_messages
+            where thread_id = ?
+            """,
+            (thread_id,),
+        ).fetchone()
+        return int(row["n"] if row else 0)
+
+    def count_chat_messages_since(self, thread_id: str, created_at_since: str) -> int:
+        row = self.conn.execute(
+            """
+            select count(*) as n
+            from chat_messages
+            where thread_id = ? and created_at >= ?
+            """,
+            (thread_id, created_at_since),
+        ).fetchone()
+        return int(row["n"] if row else 0)
 
     def add_job(self, payload: dict[str, Any]) -> None:
         self.conn.execute(
@@ -150,3 +207,119 @@ class StateStore:
             (thread_id,),
         ).fetchone()
         return dict(row) if row else None
+
+    def get_latest_export_since(self, thread_id: str, created_at_since: str) -> dict[str, Any] | None:
+        row = self.conn.execute(
+            """
+            select thread_id, question, markdown_path, json_path, created_at
+            from analysis_exports
+            where thread_id = ? and created_at >= ?
+            order by id desc
+            limit 1
+            """,
+            (thread_id, created_at_since),
+        ).fetchone()
+        return dict(row) if row else None
+
+    def add_watch_ticker(self, ticker: str, added_at: str) -> bool:
+        ticker_norm = str(ticker or "").strip().upper()
+        if not ticker_norm:
+            return False
+        cur = self.conn.cursor()
+        cur.execute(
+            "insert or ignore into watchlist_items(ticker, added_at) values(?, ?)",
+            (ticker_norm, added_at),
+        )
+        self.conn.commit()
+        return cur.rowcount > 0
+
+    def remove_watch_ticker(self, ticker: str) -> bool:
+        ticker_norm = str(ticker or "").strip().upper()
+        if not ticker_norm:
+            return False
+        cur = self.conn.cursor()
+        cur.execute(
+            "delete from watchlist_items where ticker = ?",
+            (ticker_norm,),
+        )
+        self.conn.commit()
+        return cur.rowcount > 0
+
+    def clear_watch_tickers(self) -> int:
+        cur = self.conn.cursor()
+        cur.execute("delete from watchlist_items")
+        self.conn.commit()
+        return int(cur.rowcount)
+
+    def list_watch_tickers(self, limit: int = 200) -> list[dict[str, Any]]:
+        rows = self.conn.execute(
+            """
+            select ticker, added_at
+            from watchlist_items
+            order by added_at asc
+            limit ?
+            """,
+            (max(1, int(limit)),),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def add_update_event(
+        self,
+        thread_id: str,
+        ticker: str,
+        action_id: str,
+        status: str,
+        summary: dict[str, Any],
+        created_at: str,
+    ) -> None:
+        self.conn.execute(
+            """
+            insert into update_events(thread_id, ticker, action_id, status, summary_json, created_at)
+            values(?,?,?,?,?,?)
+            """,
+            (
+                thread_id,
+                str(ticker or "").strip().upper(),
+                str(action_id or "").strip(),
+                str(status or "").strip().lower() or "unknown",
+                json.dumps(summary or {}),
+                created_at,
+            ),
+        )
+        self.conn.commit()
+
+    def list_update_events(
+        self,
+        thread_id: str,
+        ticker: str | None = None,
+        limit: int = 20,
+        status: str | None = None,
+    ) -> list[dict[str, Any]]:
+        params: list[Any] = [thread_id]
+        where = ["thread_id = ?"]
+        if ticker:
+            where.append("ticker = ?")
+            params.append(str(ticker).strip().upper())
+        if status:
+            where.append("status = ?")
+            params.append(str(status).strip().lower())
+        params.append(max(1, int(limit)))
+
+        sql = (
+            "select thread_id, ticker, action_id, status, summary_json, created_at "
+            "from update_events "
+            f"where {' and '.join(where)} "
+            "order by id desc "
+            "limit ?"
+        )
+        rows = self.conn.execute(sql, tuple(params)).fetchall()
+        out: list[dict[str, Any]] = []
+        for row in rows:
+            item = dict(row)
+            try:
+                item["summary"] = json.loads(item.pop("summary_json"))
+            except Exception:
+                item["summary"] = {}
+                item.pop("summary_json", None)
+            out.append(item)
+        return out
