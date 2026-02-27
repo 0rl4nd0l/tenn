@@ -1,0 +1,67 @@
+name: Sloppy Scan
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      scan_provider:
+        description: "Scan provider"
+        required: true
+        default: "github-models"
+        type: choice
+        options:
+          - github-models
+          - agent
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      models: read
+    env:
+      SLOPPY_SCAN_PROVIDER: ${{ github.event_name == 'workflow_dispatch' && inputs.scan_provider || 'github-models' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Codex CLI compatibility shim
+        shell: bash
+        run: |
+          mkdir -p .github/bin
+          cat > .github/bin/codex <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          args=()
+          for arg in "$@"; do
+            if [[ "$arg" == "--quiet" ]]; then
+              continue
+            fi
+            args+=("$arg")
+          done
+
+          npm_root="$(npm root -g 2>/dev/null || true)"
+          for candidate in \
+            "$npm_root/@openai/codex/bin/codex.js" \
+            "$npm_root/@openai/codex/dist/cli.js" \
+            "$npm_root/@openai/codex/cli.js"; do
+            if [[ -f "$candidate" ]]; then
+              exec node "$candidate" "${args[@]}"
+            fi
+          done
+
+          exec npx -y @openai/codex "${args[@]}"
+          EOF
+          chmod +x .github/bin/codex
+          echo "$PWD/.github/bin" >> "$GITHUB_PATH"
+
+      - name: Run Sloppy (scan mode)
+        uses: braedonsaunders/sloppy@main
+        with:
+          mode: scan
+          scan-scope: auto
+          scan-provider: ${{ env.SLOPPY_SCAN_PROVIDER }}
+          agent: codex
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
