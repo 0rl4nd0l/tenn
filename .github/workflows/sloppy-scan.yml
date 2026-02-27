@@ -22,6 +22,7 @@ jobs:
       models: read
     env:
       SLOPPY_SCAN_PROVIDER: ${{ github.event_name == 'workflow_dispatch' && inputs.scan_provider || 'github-models' }}
+      CODEX_MODEL: gpt-5.2-codex
     steps:
       - uses: actions/checkout@v4
 
@@ -34,12 +35,19 @@ jobs:
           set -euo pipefail
 
           args=()
+          has_model=0
           for arg in "$@"; do
             if [[ "$arg" == "--quiet" ]]; then
               continue
             fi
+            if [[ "$arg" == "--model" ]]; then
+              has_model=1
+            fi
             args+=("$arg")
           done
+          if [[ "$has_model" -eq 0 ]]; then
+            args+=("--model" "${CODEX_MODEL:-gpt-5.2-codex}")
+          fi
 
           npm_root="$(npm root -g 2>/dev/null || true)"
           for candidate in \
@@ -56,6 +64,37 @@ jobs:
           chmod +x .github/bin/codex
           echo "$PWD/.github/bin" >> "$GITHUB_PATH"
 
+      - name: Codex preflight (agent provider only)
+        if: ${{ env.SLOPPY_SCAN_PROVIDER == 'agent' }}
+        shell: bash
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+            echo "::error::OPENAI_API_KEY is not set."
+            exit 1
+          fi
+          codex --version
+
+          tmp_home="$(mktemp -d)"
+          set +e
+          HOME="$tmp_home" CODEX_HOME="$tmp_home/.codex" \
+            timeout 120s codex exec --full-auto --skip-git-repo-check "Reply with exactly: codex-ok" \
+            >"$tmp_home/out.txt" 2>"$tmp_home/err.txt"
+          ec=$?
+          set -e
+
+          echo "preflight_exit=$ec"
+          if [[ "$ec" -ne 0 ]]; then
+            echo "---- codex preflight stderr ----"
+            sed -n '1,220p' "$tmp_home/err.txt"
+            exit "$ec"
+          fi
+
+          echo "---- codex preflight output ----"
+          sed -n '1,60p' "$tmp_home/out.txt"
+
       - name: Run Sloppy (scan mode)
         uses: braedonsaunders/sloppy@main
         with:
@@ -63,5 +102,6 @@ jobs:
           scan-scope: auto
           scan-provider: ${{ env.SLOPPY_SCAN_PROVIDER }}
           agent: codex
+          model: ${{ env.CODEX_MODEL }}
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
