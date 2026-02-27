@@ -64,6 +64,14 @@ if [[ "$STRICT_INTEGRITY" == "1" ]]; then
 fi
 "${risk_cmd[@]}"
 
+echo "[step] coverage report"
+python3 "$ROOT_DIR/scripts/metric_coverage_report.py" \
+  --canonical-json "$RUN_DIR/canonical.json" \
+  --sqlite "$RUN_DIR/metrics.sqlite" \
+  --out-json "$RUN_DIR/coverage.json" \
+  --out-csv "$RUN_DIR/coverage.csv" \
+  --out-period-csv "$RUN_DIR/coverage_periods.csv"
+
 echo "[step] rebuild review manifest"
 build_cmd=(
   python3 "$ROOT_DIR/scripts/build_pdf_metric_review_set.py"

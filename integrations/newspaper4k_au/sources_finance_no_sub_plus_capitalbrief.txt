@@ -1,0 +1,4 @@
+# Non-paywalled AU-friendly finance feeds + Capital Brief discovery
+rss:https://abc.net.au/news/feed/51120/rss.xml
+rss:https://theguardian.com/au/business/rss
+auto:https://www.capitalbrief.com

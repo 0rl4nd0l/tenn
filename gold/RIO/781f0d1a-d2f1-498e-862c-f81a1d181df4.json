@@ -1,0 +1,23 @@
+{
+  "doc_id": "781f0d1a-d2f1-498e-862c-f81a1d181df4",
+  "ticker": "RIO",
+  "pdf_sha256": "",
+  "published_at": "2025-07-30",
+  "fields": [
+    {
+      "metric": "net_debt",
+      "period_end": "2025-12-31",
+      "period_type": "H1 2025",
+      "value": "14.6",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2025-07-30_rio-tinto-2025-half-year-results-presentation_781f0d1a-d2f1-498e-862c-f81a1d181df4.pdf",
+        "page": "9",
+        "table_id": "2025-07-30_rio-tinto-2025-half-year-results-presentation_781f0d1a-d2f1-498e-862c-f81a1d181df4:p9-9:b4:t1"
+      }
+    }
+  ]
+}

@@ -44,14 +44,32 @@ def sanitize_xml_text(s: str) -> str:
     return "".join(ch for ch in s if _is_valid_xml_char(ch))
 
 
-def parse_bbox_lines(pdf: Path) -> List[Dict[str, object]]:
-    cp = subprocess.run(
-        ["pdftotext", "-bbox-layout", str(pdf), "-"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=False,
-        check=True,
-    )
+def _normalize_timeout_seconds(timeout_sec: Optional[float]) -> Optional[float]:
+    if timeout_sec is None:
+        return None
+    try:
+        t = float(timeout_sec)
+    except (TypeError, ValueError):
+        return None
+    if t <= 0:
+        return None
+    return t
+
+
+def parse_bbox_lines(pdf: Path, timeout_sec: Optional[float] = None) -> List[Dict[str, object]]:
+    timeout = _normalize_timeout_seconds(timeout_sec)
+    try:
+        cp = subprocess.run(
+            ["pdftotext", "-bbox-layout", str(pdf), "-"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=False,
+            check=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as exc:
+        sec = int(timeout) if timeout is not None else 0
+        raise RuntimeError(f"pdftotext timeout after {sec}s") from exc
     xml_text = cp.stdout.decode("utf-8", errors="replace")
     xml_text = sanitize_xml_text(xml_text)
     root = ET.fromstring(xml_text)
@@ -298,6 +316,12 @@ def main() -> int:
         default="canonical",
         help="Which extracted row scope to include in review samples",
     )
+    ap.add_argument(
+        "--pdftotext-timeout-sec",
+        type=float,
+        default=180.0,
+        help="Per-file timeout for pdftotext calls in seconds (<=0 disables timeout).",
+    )
     args = ap.parse_args()
 
     if args.max_samples <= 0:
@@ -331,7 +355,7 @@ def main() -> int:
     candidates: List[Dict[str, object]] = []
     for pdf in pdfs:
         try:
-            lines = parse_bbox_lines(pdf)
+            lines = parse_bbox_lines(pdf, timeout_sec=args.pdftotext_timeout_sec)
         except Exception as exc:
             print(f"[warn] failed bbox parse {pdf}: {exc}", file=sys.stderr)
             continue
@@ -344,12 +368,21 @@ def main() -> int:
                 except Exception:
                     source_kind = ""
             try:
-                table_rows = extract.extract_table_metrics(
-                    pdf,
-                    strict_metric_rows_only=True,
-                    source_kind=source_kind,
-                    review_scope=args.review_scope,
-                )
+                try:
+                    table_rows = extract.extract_table_metrics(
+                        pdf,
+                        strict_metric_rows_only=True,
+                        source_kind=source_kind,
+                        review_scope=args.review_scope,
+                        pdftotext_timeout_sec=args.pdftotext_timeout_sec,
+                    )
+                except TypeError:
+                    table_rows = extract.extract_table_metrics(
+                        pdf,
+                        strict_metric_rows_only=True,
+                        source_kind=source_kind,
+                        review_scope=args.review_scope,
+                    )
             except Exception as exc:
                 print(f"[warn] failed table parse {pdf}: {exc}", file=sys.stderr)
                 table_rows = []

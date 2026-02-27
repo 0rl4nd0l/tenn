@@ -270,14 +270,21 @@ def collect_spans_for_pdf(
     pdf_root: Path,
     content_scope: str,
     fallback_fulltext: bool,
+    company_allowlist: Optional[set[str]] = None,
 ) -> List[Any]:
     text = extract_pdf_text(pdf)
-    company = ctx.derive_company(pdf, pdf_root)
+    raw_company = ctx.derive_company(pdf, pdf_root)
+    company, bad_metadata_reason = ctx.validate_company_symbol(raw_company, allowlist=company_allowlist)
     doc_type = ctx.infer_doc_type(pdf, text)
     doc_date = ctx.infer_doc_date(pdf)
 
     if content_scope == "targeted":
-        spans = ctx.extract_target_sections(pdf, text, company)
+        spans = ctx.extract_target_sections(
+            pdf,
+            text,
+            company,
+            bad_metadata_reason=bad_metadata_reason,
+        )
         if spans:
             for span in spans:
                 span.corpus = "company"
@@ -292,6 +299,7 @@ def collect_spans_for_pdf(
                 corpus="company",
                 doc_type=doc_type,
                 doc_date=doc_date,
+                bad_metadata_reason=bad_metadata_reason,
             )
         return []
 
@@ -302,6 +310,7 @@ def collect_spans_for_pdf(
         corpus="company",
         doc_type=doc_type,
         doc_date=doc_date,
+        bad_metadata_reason=bad_metadata_reason,
     )
 
 
@@ -319,8 +328,18 @@ def sync_vector_store(
     hash_dim: int,
     st_device: str,
     st_batch_size: int,
+    company_allowlist_path: str = "",
+    invalid_company_fail_threshold_pct: float = 1.0,
+    invalid_company_fail_min_count: int = 20,
 ) -> Dict[str, int]:
     ctx = load_context_module()
+    company_allowlist: Optional[set[str]] = None
+    allowlist_path_value = str(company_allowlist_path or "").strip()
+    if allowlist_path_value:
+        allowlist_path = Path(allowlist_path_value).expanduser().resolve()
+        company_allowlist = ctx.load_company_allowlist(allowlist_path)
+        if not company_allowlist:
+            raise RuntimeError(f"Company allowlist is empty after parsing: {allowlist_path}")
     pdfs = find_pdfs(pdf_root)
     if not pdfs:
         raise RuntimeError(f"No PDFs found in: {pdf_root}")
@@ -373,6 +392,7 @@ def sync_vector_store(
                     pdf_root=pdf_root,
                     content_scope=content_scope,
                     fallback_fulltext=fallback_fulltext,
+                    company_allowlist=company_allowlist,
                 )
             )
             indexed_files.append(pdf)
@@ -383,6 +403,13 @@ def sync_vector_store(
     records: List[Any] = []
     if spans:
         records = ctx.build_chunk_records(spans, max_chars=max_chars, overlap_words=overlap_words)
+
+    company_summary = ctx.summarize_company_metadata(records)
+    gate_failed, gate_reason = ctx.company_validation_gate_failed(
+        company_summary,
+        threshold_pct=float(invalid_company_fail_threshold_pct),
+        min_count=int(invalid_company_fail_min_count),
+    )
 
     vectors: List[List[float]] = []
     if records:
@@ -417,6 +444,12 @@ def sync_vector_store(
     finally:
         conn.close()
 
+    if gate_failed:
+        raise RuntimeError(
+            "Company validation gate failed during pdf_rag index sync: "
+            f"{gate_reason}. Chunks were written with company=UNKNOWN and bad_metadata_reason."
+        )
+
     return {
         "total": len(pdfs),
         "changed": len(changed),
@@ -425,6 +458,7 @@ def sync_vector_store(
         "failed": len(failed_files),
         "chunks": len(records),
         "skipped": max(0, len(pdfs) - len(changed)),
+        "invalid_company_chunks": int(company_summary.get("invalid_company_count", 0)),
     }
 
 
@@ -527,6 +561,23 @@ def main() -> int:
         help="Device for sentence-transformers embeddings",
     )
     ap.add_argument("--st-batch-size", type=int, default=16, help="Batch size for sentence-transformers encode")
+    ap.add_argument(
+        "--company-allowlist-path",
+        default="",
+        help="Optional company ticker allowlist; invalid symbols become UNKNOWN during indexing.",
+    )
+    ap.add_argument(
+        "--invalid-company-fail-threshold-pct",
+        type=float,
+        default=1.0,
+        help="Fail index sync when invalid company chunk ratio exceeds this pct and min count is reached.",
+    )
+    ap.add_argument(
+        "--invalid-company-fail-min-count",
+        type=int,
+        default=20,
+        help="Minimum invalid company chunk count required before fail threshold applies.",
+    )
     ap.add_argument("--company", default="", help="Optional company/ticker filter for vector retrieval")
     ap.add_argument("--model", default="qwen2.5:32b", help="Ollama generation model name")
     ap.add_argument("--top-k", type=int, default=6, help="Number of chunks to retrieve")
@@ -543,6 +594,12 @@ def main() -> int:
     pdf_dir = Path(args.pdf_dir).resolve()
     if not pdf_dir.exists():
         print(f"PDF directory not found: {pdf_dir}", file=sys.stderr)
+        return 2
+    if float(args.invalid_company_fail_threshold_pct) < 0.0:
+        print("--invalid-company-fail-threshold-pct must be >= 0.", file=sys.stderr)
+        return 2
+    if int(args.invalid_company_fail_min_count) < 0:
+        print("--invalid-company-fail-min-count must be >= 0.", file=sys.stderr)
         return 2
 
     context = ""
@@ -568,12 +625,15 @@ def main() -> int:
                     hash_dim=int(args.hash_dim),
                     st_device=args.st_device,
                     st_batch_size=int(args.st_batch_size),
+                    company_allowlist_path=str(args.company_allowlist_path or ""),
+                    invalid_company_fail_threshold_pct=float(args.invalid_company_fail_threshold_pct),
+                    invalid_company_fail_min_count=int(args.invalid_company_fail_min_count),
                 )
                 print(
                     "[index] "
                     f"total={stats['total']} changed={stats['changed']} indexed={stats['indexed']} "
                     f"removed={stats['removed']} failed={stats['failed']} skipped={stats['skipped']} "
-                    f"chunks={stats['chunks']}",
+                    f"chunks={stats['chunks']} invalid_company_chunks={stats.get('invalid_company_chunks', 0)}",
                     file=sys.stderr,
                 )
             except RuntimeError as exc:

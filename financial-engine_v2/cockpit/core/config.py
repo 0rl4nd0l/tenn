@@ -114,4 +114,30 @@ def apply_runtime_flags(config: dict[str, Any], flags: RuntimeFlags) -> dict[str
         "COCKPIT_BACKEND_API_URL",
         cfg["backend"].get("api_base_url", "http://localhost:8000"),
     )
+
+    rag_cfg = cfg.setdefault("rag", {})
+    if not isinstance(rag_cfg, dict):
+        rag_cfg = {}
+        cfg["rag"] = rag_cfg
+    news_cfg = rag_cfg.setdefault("news_context", {})
+    if not isinstance(news_cfg, dict):
+        news_cfg = {}
+        rag_cfg["news_context"] = news_cfg
+
+    news_db_override = (os.getenv("COCKPIT_NEWS_DB_PATH") or "").strip()
+    if news_db_override:
+        news_cfg["db_path"] = news_db_override
+
+    news_corpus_override = (os.getenv("COCKPIT_NEWS_CORPUS_FILTER") or "").strip()
+    if news_corpus_override:
+        news_cfg["corpus_filter"] = news_corpus_override
+
+    ticker_mode_override = (os.getenv("COCKPIT_NEWS_TICKER_MATCH_MODE") or "").strip().lower()
+    if ticker_mode_override:
+        if ticker_mode_override not in {"soft", "strict"}:
+            raise ValueError(
+                "Invalid COCKPIT_NEWS_TICKER_MATCH_MODE value "
+                f"'{ticker_mode_override}'. Expected 'soft' or 'strict'."
+            )
+        news_cfg["ticker_match_mode"] = ticker_mode_override
     return cfg

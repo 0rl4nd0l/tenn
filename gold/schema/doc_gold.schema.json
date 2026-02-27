@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ASX financial extraction gold document",
+  "type": "object",
+  "required": [
+    "doc_id",
+    "ticker",
+    "pdf_sha256",
+    "published_at",
+    "fields"
+  ],
+  "properties": {
+    "doc_id": {"type": "string", "minLength": 1},
+    "ticker": {"type": "string", "minLength": 1},
+    "pdf_sha256": {"type": "string"},
+    "published_at": {"type": "string", "minLength": 1},
+    "fields": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "metric",
+          "period_end",
+          "period_type",
+          "value",
+          "unit_scale",
+          "currency",
+          "scope"
+        ],
+        "properties": {
+          "metric": {"type": "string", "minLength": 1},
+          "period_end": {"type": "string", "minLength": 1},
+          "period_type": {"type": "string"},
+          "value": {"type": ["number", "integer", "string"]},
+          "unit_scale": {"type": ["number", "integer", "string"]},
+          "currency": {"type": "string"},
+          "scope": {"type": "string"},
+          "statement_type": {"type": "string"},
+          "source_hint": {}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,5 @@
+# AFR-first finance collection. Prefer these sections for business/markets coverage.
+auto:https://www.afr.com/markets
+auto:https://www.afr.com/companies
+auto:https://www.afr.com/policy/economy
+auto:https://www.afr.com/wealth

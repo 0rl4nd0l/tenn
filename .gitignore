@@ -6,3 +6,9 @@ reports/
 financial-engine_v2/.env
 financial-engine_v2/.env.local
 financial-engine_v2/.env.docker
+.axon_scope/
+/.venv_axon/
+integrations/newspaper4k_au/.venv/
+integrations/newspaper4k_au/out/
+integrations/newspaper4k_au/secrets/
+integrations/newspaper4k_au/*cookie*.txt

@@ -149,6 +149,21 @@ class TestAuditFinancialMetricQuality(unittest.TestCase):
         issues = AUDIT.gather_issues(rows)
         self.assertEqual(len(issues["non_cash_label_metric_mismatch"]), 0)
 
+    def test_non_cash_label_allows_loss_after_income_tax_wording(self):
+        rows = [
+            {
+                "file": "h.pdf",
+                "statement_period_end": "2021-06-30",
+                "metric": "net_income",
+                "value": -4835687.0,
+                "row_label": "Loss after income tax",
+                "statement_scope": "consolidated_statement",
+                "inside_table": True,
+            }
+        ]
+        issues = AUDIT.gather_issues(rows)
+        self.assertEqual(len(issues["non_cash_label_metric_mismatch"]), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

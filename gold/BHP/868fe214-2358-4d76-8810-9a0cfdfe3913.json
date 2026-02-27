@@ -1,0 +1,53 @@
+{
+  "doc_id": "868fe214-2358-4d76-8810-9a0cfdfe3913",
+  "ticker": "BHP",
+  "pdf_sha256": "",
+  "published_at": "2024-02-20",
+  "fields": [
+    {
+      "metric": "net_income",
+      "period_end": "2023-12-31",
+      "period_type": "31 December 2023",
+      "value": "1706000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2024-02-20_half-yearly-report-and-accounts_868fe214-2358-4d76-8810-9a0cfdfe3913.pdf",
+        "page": "30",
+        "table_id": "2024-02-20_half-yearly-report-and-accounts_868fe214-2358-4d76-8810-9a0cfdfe3913:p30-30:b58:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2022-12-31",
+      "period_type": "31 Dec 2022",
+      "value": "7126000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2024-02-20_half-yearly-report-and-accounts_868fe214-2358-4d76-8810-9a0cfdfe3913.pdf",
+        "page": "30",
+        "table_id": "2024-02-20_half-yearly-report-and-accounts_868fe214-2358-4d76-8810-9a0cfdfe3913:p30-30:b58:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2023-06-30",
+      "period_type": "30 June 2023",
+      "value": "14324000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2024-02-20_half-yearly-report-and-accounts_868fe214-2358-4d76-8810-9a0cfdfe3913.pdf",
+        "page": "30",
+        "table_id": "2024-02-20_half-yearly-report-and-accounts_868fe214-2358-4d76-8810-9a0cfdfe3913:p30-30:b58:t1"
+      }
+    }
+  ]
+}

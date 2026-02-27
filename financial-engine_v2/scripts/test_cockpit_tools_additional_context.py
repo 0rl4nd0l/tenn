@@ -121,7 +121,17 @@ class _QualReaderStub:
         self.corpus = corpus
         self.hits = hits
 
-    def query(self, *, query: str, company: str, deep_mode: bool, top_k: int = 8):  # noqa: ARG002
+    def query(  # noqa: ARG002
+        self,
+        *,
+        query: str,
+        company: str,
+        deep_mode: bool,
+        top_k: int = 8,
+        ticker_filter: str = "",
+        source_filter: str = "",
+        **kwargs,
+    ):
         rows = []
         for idx in range(min(self.hits, top_k)):
             rows.append(
@@ -134,7 +144,13 @@ class _QualReaderStub:
                     "text": f"{self.corpus} evidence {idx}",
                 }
             )
-        return {"ok": True, "hits": rows}
+        return {
+            "ok": True,
+            "hits": rows,
+            "candidate_count": len(rows),
+            "filtered_count": len(rows),
+            "ticker_match_mode": "soft" if self.corpus == "news" else "strict",
+        }
 
 
 class CockpitToolsAdditionalContextTests(unittest.TestCase):
@@ -164,6 +180,8 @@ class CockpitToolsAdditionalContextTests(unittest.TestCase):
         payload = router.gather_local_context("BHP", "deep analysis", deep_mode=True).payload
         self.assertIn("qual_context_company", payload)
         self.assertIn("qual_context_news", payload)
+        self.assertEqual(payload["qual_context_news"].get("ticker_match_mode"), "soft")
+        self.assertEqual(payload["qual_context_news"].get("candidate_count"), 2)
         merged = payload.get("qual_context", {})
         hits = merged.get("hits", [])
         self.assertGreaterEqual(len(hits), 4)

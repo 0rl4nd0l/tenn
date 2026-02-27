@@ -196,8 +196,11 @@ class CockpitApp(App):
                     news_cfg_raw = news_cfg_raw if isinstance(news_cfg_raw, dict) else {}
                     news_cfg = dict(qc_cfg)
                     news_cfg.update(news_cfg_raw)
+                    # Pin to "news" by default for deterministic retrieval behavior.
                     news_cfg["corpus_filter"] = str(news_cfg.get("corpus_filter") or "news")
                     news_cfg["exclude_corpus_filter"] = str(news_cfg.get("exclude_corpus_filter") or "")
+                    news_cfg["ticker_match_mode"] = str(news_cfg.get("ticker_match_mode") or "soft")
+                    news_cfg["recall_top_k_multiplier"] = int(news_cfg.get("recall_top_k_multiplier") or 20)
                     news_cfg["top_k"] = int(news_cfg.get("top_k") or 4)
                     news_dependency_policy = resolve_rag_dependency_policy(
                         str(news_cfg.get("dependency_policy") or qc_cfg.get("dependency_policy") or "error"),
@@ -211,7 +214,9 @@ class CockpitApp(App):
                         startup_notices=self._startup_notices,
                     )
                     self._startup_notices.append(
-                        f"startup: optional news RAG enabled from {news_db_path}"
+                        "startup: optional news RAG enabled "
+                        f"db={news_db_path} corpus={news_cfg['corpus_filter']} "
+                        f"ticker_match_mode={news_cfg['ticker_match_mode']}"
                     )
         self.tool_router = ToolRouter(
             db_reader=self.db_reader,
@@ -683,11 +688,13 @@ class CockpitApp(App):
 
     def access_state(self) -> dict[str, Any]:
         runtime = self.config.get("runtime", {}) if isinstance(self.config, dict) else {}
+        company_reader = getattr(self.tool_router, "qual_context_company_reader", None)
+        news_reader = getattr(self.tool_router, "qual_context_news_reader", None)
         rag_available = any(
             reader is not None
             for reader in (
-                getattr(self.tool_router, "qual_context_company_reader", None),
-                getattr(self.tool_router, "qual_context_news_reader", None),
+                company_reader,
+                news_reader,
                 getattr(self.tool_router, "qual_context_reader", None),
             )
         )
@@ -696,18 +703,33 @@ class CockpitApp(App):
             "web_hard_disabled": bool(runtime.get("no_web")),
             "rag_enabled": bool(self.rag_enabled),
             "rag_available": rag_available,
+            "company_rag_db_path": str(getattr(company_reader, "db_path", "") or ""),
+            "company_rag_corpus_filter": str(getattr(company_reader, "corpus_filter", "") or ""),
+            "news_rag_db_path": str(getattr(news_reader, "db_path", "") or ""),
+            "news_rag_corpus_filter": str(getattr(news_reader, "corpus_filter", "") or ""),
+            "news_rag_ticker_match_mode": str(getattr(news_reader, "ticker_match_mode", "") or ""),
             "db_diagnostic_query_enabled": bool(self.db_diagnostic_query_enabled),
             "read_only": bool(self.read_only),
         }
 
     def _format_access_status(self) -> str:
         state = self.access_state()
+        company_db = state.get("company_rag_db_path") or "n/a"
+        company_corpus = state.get("company_rag_corpus_filter") or "n/a"
+        news_db = state.get("news_rag_db_path") or "n/a"
+        news_corpus = state.get("news_rag_corpus_filter") or "n/a"
+        news_ticker_mode = state.get("news_rag_ticker_match_mode") or "n/a"
         return (
             "access status:\n"
             f"- web: {'on' if state['web_enabled'] else 'off'}"
             f"{' (locked off by --no-web)' if state['web_hard_disabled'] else ''}\n"
             f"- rag: {'on' if state['rag_enabled'] else 'off'}"
             f"{'' if state['rag_available'] else ' (unavailable: no qualitative context backend)'}\n"
+            f"- rag company db: {company_db}\n"
+            f"- rag company corpus: {company_corpus}\n"
+            f"- rag news db: {news_db}\n"
+            f"- rag news corpus: {news_corpus}\n"
+            f"- rag news ticker mode: {news_ticker_mode}\n"
             f"- db diagnostics (/sql): {'on' if state['db_diagnostic_query_enabled'] else 'off'}\n"
             f"- actions: {'read-only' if state['read_only'] else 'read/write with confirmation'}"
         )

@@ -1,4 +1,5 @@
 import importlib.util
+import subprocess
 import sqlite3
 import tempfile
 import unittest
@@ -21,6 +22,24 @@ RAG = load_module(str(ROOT / "scripts" / "pdf_rag.py"), "pdf_rag")
 
 
 class TestExtractFinancialMetrics(unittest.TestCase):
+    def test_extract_pdf_text_timeout_raises_pdf_parse_timeout_error(self):
+        with mock.patch.object(
+            EXTRACT.subprocess,
+            "run",
+            side_effect=subprocess.TimeoutExpired(cmd=["pdftotext"], timeout=1),
+        ):
+            with self.assertRaises(EXTRACT.PDFParseTimeoutError):
+                EXTRACT.extract_pdf_text(Path("dummy.pdf"), timeout_sec=1)
+
+    def test_parse_bbox_layout_lines_timeout_raises_pdf_parse_timeout_error(self):
+        with mock.patch.object(
+            EXTRACT.subprocess,
+            "run",
+            side_effect=subprocess.TimeoutExpired(cmd=["pdftotext"], timeout=1),
+        ):
+            with self.assertRaises(EXTRACT.PDFParseTimeoutError):
+                EXTRACT.parse_bbox_layout_lines(Path("dummy.pdf"), timeout_sec=1)
+
     def test_prefers_money_amount_over_date_number(self):
         line = (
             "For the half year ended 31 December 2025, revenue for the Group from "
@@ -85,6 +104,10 @@ class TestExtractFinancialMetrics(unittest.TestCase):
             "period": "",
         }
         self.assertGreater(EXTRACT.score_confidence(amount_row), EXTRACT.score_confidence(text_row))
+
+    def test_infer_statement_family_comprehensive_income_is_income_statement(self):
+        family = EXTRACT.infer_statement_family("Consolidated statement of comprehensive income")
+        self.assertEqual(family, "income_statement")
 
     def test_extended_metric_coverage(self):
         line = (
@@ -714,6 +737,15 @@ class TestExtractFinancialMetrics(unittest.TestCase):
         self.assertEqual(scope, "appendix_statement")
         self.assertEqual(reason, "appendix_source_kind")
 
+    def test_classify_statement_scope_appendix_marker_metric_table(self):
+        scope, reason = EXTRACT.classify_statement_scope(
+            block_text="NPAT to EBITDA reconciliation Revenue EBITDA NPAT 2021 2020",
+            header_text="APPENDIX 4E AND ANNUAL FINANCIAL REPORT",
+            source_kind="canonical_report",
+        )
+        self.assertEqual(scope, "appendix_statement")
+        self.assertEqual(reason, "appendix_metric_table")
+
     def test_classify_statement_scope_notes_to_section_is_note_disclosure(self):
         scope, reason = EXTRACT.classify_statement_scope(
             block_text="NOTES TO THE CONSOLIDATED STATEMENT OF CASH FLOWS\nNote 12: ...",
@@ -744,6 +776,22 @@ class TestExtractFinancialMetrics(unittest.TestCase):
         self.assertEqual(
             EXTRACT.infer_statement_family("Consolidated statement of comprehensive income", "consolidated_statement"),
             "income_statement",
+        )
+        self.assertEqual(
+            EXTRACT.infer_statement_family(
+                "APPENDIX 4E AND ANNUAL FINANCIAL REPORT",
+                "appendix_statement",
+                context_text="NPAT TO EBITDA reconciliation Revenue EBITDA",
+            ),
+            "income_statement",
+        )
+        self.assertEqual(
+            EXTRACT.infer_statement_family(
+                "APPENDIX 4E AND ANNUAL FINANCIAL REPORT",
+                "appendix_statement",
+                context_text="Assets Current assets Total liabilities Net assets",
+            ),
+            "balance_sheet",
         )
 
     def test_infer_statement_family_detects_equity_rollforward_context(self):
@@ -810,6 +858,44 @@ class TestExtractFinancialMetrics(unittest.TestCase):
         self.assertEqual(len(demoted), 1)
         self.assertEqual(kept[0]["raw_value"], "100")
         self.assertEqual(demoted[0].get("context_reason"), "canonical_conflict_same_period")
+
+    def test_resolve_canonical_conflicts_dedupes_identical_values(self):
+        rows = [
+            {
+                "file": "a.pdf",
+                "metric": "net_debt",
+                "metric_variant": "",
+                "statement_period_end": "2024-06-30",
+                "balance_position": "",
+                "value": 9120.0,
+                "raw_value": "9,120",
+                "currency": "$",
+                "line_no": 100,
+                "row_label": "Net debt",
+                "statement_title": "Consolidated statement of financial position",
+                "table_header_text": "As at 30 June 2024",
+                "canonical_confidence_score": 4,
+            },
+            {
+                "file": "a.pdf",
+                "metric": "net_debt",
+                "metric_variant": "",
+                "statement_period_end": "2024-06-30",
+                "balance_position": "",
+                "value": 9120.0,
+                "raw_value": "9,120",
+                "currency": "$",
+                "line_no": 120,
+                "row_label": "Net debt",
+                "statement_title": "Consolidated statement of financial position",
+                "table_header_text": "As at 30 June 2024",
+                "canonical_confidence_score": 3,
+            },
+        ]
+        kept, demoted = EXTRACT.resolve_canonical_conflicts(rows)
+        self.assertEqual(len(kept), 1)
+        self.assertEqual(len(demoted), 1)
+        self.assertEqual(demoted[0].get("context_reason"), "canonical_duplicate_same_period")
 
     def test_classify_pdf_source_kind_detects_appendix_filename_with_prefix(self):
         pdf = Path("x__2022-01-27_appendix-4c-quarterly-activity-report.pdf")
@@ -1115,6 +1201,272 @@ class TestExtractFinancialMetrics(unittest.TestCase):
         self.assertEqual(len(split["context_rows"]), 1)
         self.assertEqual(split["context_rows"][0].get("context_reason"), "reconciliation_context")
 
+    def test_split_rows_by_scope_routes_net_assets_disposed_rows_to_context(self):
+        rows = [
+            {
+                "file": "a.pdf",
+                "metric": "total_assets",
+                "raw_value": "242",
+                "value": 242000000.0,
+                "period": "30 June 2022",
+                "statement_period_end": "2022-06-30",
+                "line": "242",
+                "row_label": "Total assets",
+                "table_header_text": "2022 US$M Net assets disposed",
+                "inside_table": True,
+                "statement_scope": "consolidated_statement",
+                "statement_title": "Consolidated statement of financial position",
+            }
+        ]
+        split = EXTRACT.split_rows_by_scope(rows)
+        self.assertEqual(len(split["canonical_rows"]), 0)
+        self.assertEqual(len(split["context_rows"]), 1)
+        self.assertEqual(split["context_rows"][0].get("context_reason"), "reconciliation_context")
+
+    def test_split_rows_by_scope_routes_news_release_rows_to_context(self):
+        rows = [
+            {
+                "file": "a.pdf",
+                "metric": "free_cash_flow",
+                "raw_value": "8.5",
+                "value": 8.5,
+                "period": "31 December 2020",
+                "statement_period_end": "2020-12-31",
+                "line": "8.5",
+                "row_label": "Free cash flow (continuing operations) of",
+                "table_header_text": "News release Cash flow and balance sheet",
+                "inside_table": True,
+                "statement_scope": "consolidated_statement",
+                "statement_title": "Our balance sheet remains strong with net debt at US$6.1 billion",
+            }
+        ]
+        split = EXTRACT.split_rows_by_scope(rows)
+        self.assertEqual(len(split["canonical_rows"]), 0)
+        self.assertEqual(len(split["context_rows"]), 1)
+        self.assertEqual(split["context_rows"][0].get("context_reason"), "reconciliation_context")
+
+    def test_split_rows_by_scope_routes_ambiguous_multi_metric_row_labels_to_context(self):
+        rows = [
+            {
+                "file": "a.pdf",
+                "metric": "total_assets",
+                "raw_value": "242",
+                "value": 242000000.0,
+                "period": "30 June 2022",
+                "statement_period_end": "2022-06-30",
+                "line": "242",
+                "row_label": "Total assets Liabilities Trade and other payables",
+                "row_label_metric_hit_count": 2,
+                "table_header_text": "Consolidated statement of financial position",
+                "inside_table": True,
+                "statement_scope": "consolidated_statement",
+                "statement_title": "Consolidated statement of financial position",
+            }
+        ]
+        split = EXTRACT.split_rows_by_scope(rows)
+        self.assertEqual(len(split["canonical_rows"]), 0)
+        self.assertEqual(len(split["context_rows"]), 1)
+        self.assertEqual(split["context_rows"][0].get("context_reason"), "ambiguous_row_label")
+
+    def test_split_rows_by_scope_routes_narrative_prefix_rows_to_context(self):
+        rows = [
+            {
+                "file": "a.pdf",
+                "metric": "net_debt",
+                "raw_value": "4.1",
+                "value": 4.1,
+                "period": "30 June 2020",
+                "statement_period_end": "2020-06-30",
+                "line": "4.1",
+                "row_label": "This resulted in Net debt",
+                "table_header_text": "was 6.9 per cent at 30 June 2021, compared",
+                "inside_table": True,
+                "statement_scope": "consolidated_statement",
+                "statement_title": "A strong balance sheet through the cycle",
+            }
+        ]
+        split = EXTRACT.split_rows_by_scope(rows)
+        self.assertEqual(len(split["canonical_rows"]), 0)
+        self.assertEqual(len(split["context_rows"]), 1)
+        self.assertEqual(split["context_rows"][0].get("context_reason"), "narrative_row_label")
+
+    def test_split_rows_by_scope_routes_component_adjustment_rows_to_context(self):
+        rows = [
+            {
+                "file": "a.pdf",
+                "metric": "net_debt",
+                "raw_value": "(1,572)",
+                "value": -1572.0,
+                "period": "30 June 2021",
+                "statement_period_end": "2021-06-30",
+                "line": "(1,572)",
+                "row_label": "Less: Net debt management related instruments 1",
+                "table_header_text": "Consolidated statement of financial position",
+                "inside_table": True,
+                "statement_scope": "consolidated_statement",
+                "statement_title": "Consolidated statement of financial position",
+            }
+        ]
+        split = EXTRACT.split_rows_by_scope(rows)
+        self.assertEqual(len(split["canonical_rows"]), 0)
+        self.assertEqual(len(split["context_rows"]), 1)
+        self.assertEqual(split["context_rows"][0].get("context_reason"), "reconciliation_context")
+
+    def test_split_rows_by_scope_routes_combined_liabilities_equity_rows_to_context(self):
+        rows = [
+            {
+                "file": "a.pdf",
+                "metric": "total_liabilities",
+                "raw_value": "579,972",
+                "value": 579972000.0,
+                "period": "31 December 2020",
+                "statement_period_end": "2020-12-31",
+                "line": "579,972",
+                "row_label": "Total liabilities and net assets attributable to partners in Golden Grove, LP",
+                "table_header_text": "Consolidated statement of financial position",
+                "inside_table": True,
+                "statement_scope": "consolidated_statement",
+                "statement_title": "Consolidated statement of financial position",
+            }
+        ]
+        split = EXTRACT.split_rows_by_scope(rows)
+        self.assertEqual(len(split["canonical_rows"]), 0)
+        self.assertEqual(len(split["context_rows"]), 1)
+        self.assertEqual(split["context_rows"][0].get("context_reason"), "combined_liabilities_equity_row")
+
+    def test_split_rows_by_scope_balance_sheet_identity_guard_demotes_equal_liabilities(self):
+        rows = [
+            {
+                "file": "a.pdf",
+                "metric": "total_assets",
+                "raw_value": "579,972",
+                "value": 579972000.0,
+                "period": "31 December 2020",
+                "statement_period_end": "2020-12-31",
+                "line": "579,972",
+                "row_label": "Total assets",
+                "table_header_text": "Consolidated statement of financial position",
+                "inside_table": True,
+                "statement_scope": "consolidated_statement",
+                "statement_title": "Consolidated statement of financial position",
+                "statement_family": "balance_sheet",
+            },
+            {
+                "file": "a.pdf",
+                "metric": "total_liabilities",
+                "raw_value": "579,972",
+                "value": 579972000.0,
+                "period": "31 December 2020",
+                "statement_period_end": "2020-12-31",
+                "line": "579,972",
+                "row_label": "Total liabilities",
+                "table_header_text": "Consolidated statement of financial position",
+                "inside_table": True,
+                "statement_scope": "consolidated_statement",
+                "statement_title": "Consolidated statement of financial position",
+                "statement_family": "balance_sheet",
+            },
+            {
+                "file": "a.pdf",
+                "metric": "total_equity",
+                "raw_value": "168,599",
+                "value": 168599000.0,
+                "period": "31 December 2020",
+                "statement_period_end": "2020-12-31",
+                "line": "168,599",
+                "row_label": "Net assets attributable to partners",
+                "table_header_text": "Consolidated statement of financial position",
+                "inside_table": True,
+                "statement_scope": "consolidated_statement",
+                "statement_title": "Consolidated statement of financial position",
+                "statement_family": "balance_sheet",
+            },
+        ]
+        split = EXTRACT.split_rows_by_scope(rows)
+        self.assertEqual(len(split["canonical_rows"]), 2)
+        self.assertEqual(
+            sorted(r.get("metric", "") for r in split["canonical_rows"]),
+            ["total_assets", "total_equity"],
+        )
+        guarded = [r for r in split["context_rows"] if r.get("context_reason") == "balance_sheet_identity_guard"]
+        self.assertEqual(len(guarded), 1)
+        self.assertEqual(guarded[0].get("metric"), "total_liabilities")
+
+    def test_split_rows_by_scope_normalizes_income_title_when_family_conflicts(self):
+        rows = [
+            {
+                "file": "a.pdf",
+                "metric": "net_income",
+                "raw_value": "(4,835,687)",
+                "value": -4835687.0,
+                "period": "year ended 30 June 2021",
+                "statement_period_end": "2021-06-30",
+                "line": "(4,835,687)",
+                "row_label": "Loss after income tax",
+                "table_header_text": "2021 AUD$ 2020 AUD$ Loss after income tax Total comprehensive income",
+                "inside_table": True,
+                "statement_scope": "consolidated_statement",
+                "statement_title": "Consolidated statement of financial position",
+                "statement_family": "income_statement",
+            }
+        ]
+        split = EXTRACT.split_rows_by_scope(rows)
+        self.assertEqual(len(split["canonical_rows"]), 1)
+        self.assertIn(
+            "comprehensive income",
+            str(split["canonical_rows"][0].get("statement_title", "")).lower(),
+        )
+
+    def test_split_rows_by_scope_normalizes_income_title_from_cashflow_label(self):
+        rows = [
+            {
+                "file": "a.pdf",
+                "metric": "revenue",
+                "raw_value": "600,762",
+                "value": 600762000.0,
+                "period": "31 December 2021",
+                "statement_period_end": "2021-12-31",
+                "line": "600,762",
+                "row_label": "Revenue",
+                "table_header_text": "NPAT TO EBITDA reconciliation Revenue EBITDA NPAT",
+                "inside_table": True,
+                "statement_scope": "appendix_statement",
+                "statement_title": "Consolidated statement of cash flows",
+                "statement_family": "income_statement",
+            }
+        ]
+        split = EXTRACT.split_rows_by_scope(rows)
+        self.assertEqual(len(split["canonical_rows"]), 1)
+        self.assertIn(
+            "comprehensive income",
+            str(split["canonical_rows"][0].get("statement_title", "")).lower(),
+        )
+
+    def test_split_rows_by_scope_normalizes_balance_title_from_cashflow_label(self):
+        rows = [
+            {
+                "file": "a.pdf",
+                "metric": "total_assets",
+                "raw_value": "579,972",
+                "value": 579972000.0,
+                "period": "31 December 2021",
+                "statement_period_end": "2021-12-31",
+                "line": "579,972",
+                "row_label": "Total assets",
+                "table_header_text": "Assets Current assets Total assets Total liabilities Net assets",
+                "inside_table": True,
+                "statement_scope": "appendix_statement",
+                "statement_title": "Consolidated statement of cash flows",
+                "statement_family": "balance_sheet",
+            }
+        ]
+        split = EXTRACT.split_rows_by_scope(rows)
+        self.assertEqual(len(split["canonical_rows"]), 1)
+        self.assertIn(
+            "financial position",
+            str(split["canonical_rows"][0].get("statement_title", "")).lower(),
+        )
+
     def test_split_rows_by_scope_routes_cash_reconciliation_rows_to_context(self):
         rows = [
             {
@@ -1179,7 +1531,53 @@ class TestExtractFinancialMetrics(unittest.TestCase):
         split = EXTRACT.split_rows_by_scope(rows)
         self.assertEqual(len(split["canonical_rows"]), 0)
         self.assertEqual(len(split["context_rows"]), 1)
-        self.assertEqual(split["context_rows"][0].get("context_reason"), "cash_reconciliation_context")
+        self.assertEqual(split["context_rows"][0].get("context_reason"), "reconciliation_context")
+
+    def test_split_rows_by_scope_routes_non_current_assets_row_to_context(self):
+        rows = [
+            {
+                "file": "a.pdf",
+                "metric": "current_assets",
+                "metric_base": "current_assets",
+                "raw_value": "3,833",
+                "value": 3833000000.0,
+                "period": "2 April 2024",
+                "statement_period_end": "2024-04-02",
+                "line": "3,833",
+                "row_label": "Total impairment of non-current assets",
+                "table_header_text": "Consolidated statement of financial position",
+                "inside_table": True,
+                "statement_scope": "consolidated_statement",
+                "statement_title": "Consolidated statement of financial position",
+            }
+        ]
+        split = EXTRACT.split_rows_by_scope(rows)
+        self.assertEqual(len(split["canonical_rows"]), 0)
+        self.assertEqual(len(split["context_rows"]), 1)
+        self.assertEqual(split["context_rows"][0].get("context_reason"), "non_current_row_label")
+
+    def test_split_rows_by_scope_routes_cash_award_row_to_context(self):
+        rows = [
+            {
+                "file": "a.pdf",
+                "metric": "cash_and_equivalents",
+                "metric_base": "cash_and_equivalents",
+                "raw_value": "120",
+                "value": 120.0,
+                "period": "Previous quarter - 31 March 2024",
+                "statement_period_end": "2024-03-31",
+                "line": "Consists of fixed remuneration, maximum CDP (a cash award of 120 per cent of base",
+                "row_label": "Consists of fixed remuneration, maximum CDP (a cash award of",
+                "table_header_text": "Consolidated statement of cash flows",
+                "inside_table": True,
+                "statement_scope": "consolidated_statement",
+                "statement_title": "Consolidated statement of cash flows",
+            }
+        ]
+        split = EXTRACT.split_rows_by_scope(rows)
+        self.assertEqual(len(split["canonical_rows"]), 0)
+        self.assertEqual(len(split["context_rows"]), 1)
+        self.assertEqual(split["context_rows"][0].get("context_reason"), "cash_keyword_false_positive")
 
     def test_split_rows_by_scope_repairs_non_month_end_statement_period_using_header_date(self):
         rows = [

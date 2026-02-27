@@ -1,0 +1,38 @@
+{
+  "doc_id": "84bea694-d2bc-46fc-ac86-755eb49c261e",
+  "ticker": "BHP",
+  "pdf_sha256": "",
+  "published_at": "2022-09-07",
+  "fields": [
+    {
+      "metric": "revenue",
+      "period_end": "2022-06-30",
+      "period_type": "30 June 2022",
+      "value": "38924000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2022-09-07_2022-us-annual-report-form-20-f_84bea694-d2bc-46fc-ac86-755eb49c261e.pdf",
+        "page": "281",
+        "table_id": "2022-09-07_2022-us-annual-report-form-20-f_84bea694-d2bc-46fc-ac86-755eb49c261e:p281-281:b223:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2022-06-30",
+      "period_type": "30 June 2022",
+      "value": "8628000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2022-09-07_2022-us-annual-report-form-20-f_84bea694-d2bc-46fc-ac86-755eb49c261e.pdf",
+        "page": "281",
+        "table_id": "2022-09-07_2022-us-annual-report-form-20-f_84bea694-d2bc-46fc-ac86-755eb49c261e:p281-281:b223:t1"
+      }
+    }
+  ]
+}

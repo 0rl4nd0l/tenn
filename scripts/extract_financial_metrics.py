@@ -115,7 +115,7 @@ METRIC_PATTERNS: List[Tuple[str, re.Pattern[str]]] = [
 ]
 METRIC_PATTERN_MAP = {metric: pat for metric, pat in METRIC_PATTERNS}
 TABLE_NEGATIVE_CONTEXT_RE = re.compile(
-    r"\b(received|sale|sold|disposal|divestment|proceeds|completion|compared|grew|grown|increased|decreased|improved|up by|down by|issued|stating|updating|was|were|amounted|represented|delivered|targeting|forecast|held|projection|projections|range|available|approximately|approx\.?|generated|underpinned|supports?)\b",
+    r"\b(received|sale|sold|disposal|divestment|proceeds|completion|compared|grew|grown|increased|decreased|improved|up by|down by|issued|stating|updating|was|were|amounted|represented|delivered|targeting|forecast|held|projection|projections|range|available|approximately|approx\.?|generated|underpinned|supports?|resulted|remains?)\b",
     re.IGNORECASE,
 )
 TABLE_COMPARATIVE_NARRATIVE_RE = re.compile(
@@ -139,6 +139,10 @@ RECONCILIATION_CONTEXT_RE = re.compile(
     r"net\s+debt\s+waterfall|alternative\s+performance\s+measures?|non[-\s]?ifrs|"
     r"net\s+operating\s+assets?|balance\s+sheet\s+movement|"
     r"reconcile(?:s|d)?\s+net\s+operating\s+assets|discontinued\s+operations|"
+    r"net\s+assets?\s+disposed|assets?\s+disposed|assets?\s+held\s+for\s+sale|"
+    r"assets?\s+acquired|net\s+identifiable\s+assets?|business\s+combinations?|"
+    r"news\s+release|apms?\s+derived|debt\s+and\s+sources\s+of\s+liquidity|"
+    r"net\s+debt\s+management\s+related\s+instruments?|"
     r"deed\s+of\s+cross\s+guarantee|party\s+to\s+the\s+deed|"
     r"financial\s+impacts?\s+of)\b",
     re.IGNORECASE,
@@ -152,6 +156,11 @@ CASH_RECONCILIATION_CONTEXT_RE = re.compile(
 CASH_NON_BALANCE_ROW_RE = re.compile(
     r"\b(net\s+(?:increase|decrease|movement|change)\s+in\s+cash\s+and\s+cash\s+equivalents|"
     r"cash\s+and\s+cash\s+equivalents\s+(?:acquired|disposed))\b",
+    re.IGNORECASE,
+)
+COMBINED_LIAB_EQUITY_ROW_RE = re.compile(
+    r"\b(total\s+liabilities\s+and\s+(?:equity|net\s+assets?|net\s+assets?\s+attributable)|"
+    r"liabilities?\s+and\s+equity|liabilities?\s+and\s+net\s+assets?)\b",
     re.IGNORECASE,
 )
 SECTION_EXCLUDED_RE = re.compile(
@@ -314,6 +323,12 @@ APPENDIX_FORM_LAYOUT_RE = re.compile(
     r"consolidated\s+statement\s+of\s+cash\s+flows?|listing\s+rule\s+4\.7b|item\s+\d+(?:\.\d+)?)\b",
     re.IGNORECASE,
 )
+APPENDIX_METRIC_TABLE_RE = re.compile(
+    r"\b(npat\s+to\s+ebitda|segment\s+ebitda|company\s+performance\s+metric|"
+    r"ebitda|npat|operating\s+profit|revenue|gross\s+profit|total\s+assets?|"
+    r"total\s+liabilities?|net\s+assets?)\b",
+    re.IGNORECASE,
+)
 EQUITY_ROLLFORWARD_RE = re.compile(
     r"\b(transactions?\s+with|movement[s]?\s+in|retained\s+earnings|reserves?|share\s+capital|"
     r"attributable\s+to\s+owners|opening\s+balance|closing\s+balance|"
@@ -348,14 +363,73 @@ MONTH_NUM_BY_TOKEN = {
 }
 
 
-def extract_pdf_text(pdf: Path) -> str:
-    cp = subprocess.run(
-        ["pdftotext", "-layout", str(pdf), "-"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        check=True,
-    )
+class PDFParseTimeoutError(RuntimeError):
+    pass
+
+
+def _normalize_timeout_seconds(timeout_sec: Optional[float]) -> Optional[float]:
+    if timeout_sec is None:
+        return None
+    try:
+        t = float(timeout_sec)
+    except (TypeError, ValueError):
+        return None
+    if t <= 0:
+        return None
+    return t
+
+
+def _build_parse_failure_context_row(pdf: Path, *, reason: str, message: str = "") -> Dict[str, object]:
+    return {
+        "file": str(pdf),
+        "line_no": 0,
+        "metric": "",
+        "metric_base": "",
+        "metric_variant": "",
+        "metric_alias": "",
+        "value_type": "",
+        "raw_value": "",
+        "value": "",
+        "currency": "",
+        "period": "",
+        "statement_period": "",
+        "statement_period_end": "",
+        "balance_position": "",
+        "balance_date": "",
+        "confidence": 0.0,
+        "line": "",
+        "row_label": "",
+        "inside_table": False,
+        "statement_scope": "other",
+        "statement_title": "",
+        "statement_family": "other",
+        "statement_scope_reason": reason,
+        "block_id": "",
+        "table_id": "",
+        "table_page": 0,
+        "page_number": 0,
+        "note_number": "",
+        "source_mode": "parse_error",
+        "canonical_confidence_score": 0,
+        "context_reason": reason,
+        "parse_error": message[:500],
+    }
+
+
+def extract_pdf_text(pdf: Path, timeout_sec: Optional[float] = None) -> str:
+    timeout = _normalize_timeout_seconds(timeout_sec)
+    try:
+        cp = subprocess.run(
+            ["pdftotext", "-layout", str(pdf), "-"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as exc:
+        sec = int(timeout) if timeout is not None else 0
+        raise PDFParseTimeoutError(f"pdftotext -layout timed out after {sec}s for {pdf}") from exc
     return cp.stdout.replace("\r", "\n")
 
 
@@ -379,14 +453,20 @@ def _local_name(tag: str) -> str:
     return tag.split("}", 1)[-1]
 
 
-def parse_bbox_layout_lines(pdf: Path) -> List[Dict[str, object]]:
-    cp = subprocess.run(
-        ["pdftotext", "-bbox-layout", str(pdf), "-"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=False,
-        check=True,
-    )
+def parse_bbox_layout_lines(pdf: Path, timeout_sec: Optional[float] = None) -> List[Dict[str, object]]:
+    timeout = _normalize_timeout_seconds(timeout_sec)
+    try:
+        cp = subprocess.run(
+            ["pdftotext", "-bbox-layout", str(pdf), "-"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=False,
+            check=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as exc:
+        sec = int(timeout) if timeout is not None else 0
+        raise PDFParseTimeoutError(f"pdftotext -bbox-layout timed out after {sec}s for {pdf}") from exc
     xml_text = sanitize_xml_text(cp.stdout.decode("utf-8", errors="replace"))
     root = ET.fromstring(xml_text)
     out: List[Dict[str, object]] = []
@@ -1087,11 +1167,27 @@ def infer_statement_family(statement_title: str, statement_scope: str = "", cont
     combined = _normalize_space(f"{statement_title} {context_text}").lower()
     scope = (statement_scope or "").strip().lower()
     if scope == "appendix_statement":
+        if re.search(
+            r"\b(profit\s+or\s+loss|statement\s+of\s+comprehensive\s+income|income\s+statement|"
+            r"\brevenue\b|\bgross\s+profit\b|\bebitda?\b|\bnpat\b|operating\s+profit|"
+            r"(?:profit|loss)\s+after\s+income\s+tax)\b",
+            combined,
+            re.IGNORECASE,
+        ):
+            return "income_statement"
+        if re.search(
+            r"\b(financial\s+position|balance\s+sheet|total\s+assets?|total\s+liabilities?|net\s+assets?|equity)\b",
+            combined,
+            re.IGNORECASE,
+        ):
+            return "balance_sheet"
         return "cash_flow"
     if not combined:
         return "other"
     if re.search(r"\b(cash\s+flows?|statement\s+of\s+cash\s+flows?)\b", combined):
         return "cash_flow"
+    if re.search(r"\b(profit\s+or\s+loss|statement\s+of\s+comprehensive\s+income|income\s+statement)\b", combined):
+        return "income_statement"
     if re.search(r"\bchanges?\s+in\s+equity\b", combined):
         return "equity_statement"
     if EQUITY_ROLLFORWARD_RE.search(combined) and not re.search(
@@ -1101,7 +1197,7 @@ def infer_statement_family(statement_title: str, statement_scope: str = "", cont
         return "equity_statement"
     if re.search(r"\b(financial\s+position|balance\s+sheet)\b", combined):
         return "balance_sheet"
-    if re.search(r"\b(profit\s+or\s+loss|comprehensive\s+income|income\s+statement)\b", combined):
+    if re.search(r"\bcomprehensive\s+income\b", combined):
         return "income_statement"
     return "other"
 
@@ -1837,8 +1933,8 @@ def classify_pdf_source_kind(pdf: Path) -> str:
     return "other"
 
 
-def _prepare_bbox_pages(pdf: Path) -> Dict[int, List[Dict[str, object]]]:
-    lines = parse_bbox_layout_lines(pdf)
+def _prepare_bbox_pages(pdf: Path, timeout_sec: Optional[float] = None) -> Dict[int, List[Dict[str, object]]]:
+    lines = parse_bbox_layout_lines(pdf, timeout_sec=timeout_sec)
     by_page: Dict[int, List[Dict[str, object]]] = {}
     for ln in lines:
         page = int(ln["page"])
@@ -1889,6 +1985,8 @@ def classify_statement_scope(block_text: str, header_text: str, source_kind: str
         return "note_disclosure", "note_marker"
     if source_kind == "appendix_report" and has_appendix_form_layout:
         return "appendix_statement", "appendix_source_kind"
+    if has_appendix_marker and APPENDIX_METRIC_TABLE_RE.search(text):
+        return "appendix_statement", "appendix_metric_table"
     if source_kind == "appendix_report" and has_statement_layout:
         return "appendix_statement", "appendix_layout_source_kind"
     if has_statement_layout and has_consolidated_marker:
@@ -2199,7 +2297,8 @@ def extract_metrics_from_blocks(
                             label_parts = []
                     row_label = " ".join(label_parts).strip()
 
-                metrics = list(iter_metric_hits(row_label)) if row_label else []
+                row_label_metric_hits = list(iter_metric_hits(row_label)) if row_label else []
+                metrics = list(row_label_metric_hits)
                 label_text_for_match = row_label or line_text
                 if not metrics and len([t for t in row_num_words if not bool(t.get("minor_for_table"))]) >= 2:
                     metrics = list(iter_metric_hits(line_text))
@@ -2353,6 +2452,7 @@ def extract_metrics_from_blocks(
                             "confidence": 0.0,
                             "line": str(line["text"]),
                             "row_label": row_label,
+                            "row_label_metric_hit_count": len(row_label_metric_hits),
                             "source_mode": "table_bbox",
                             "table_id": str(region.get("table_id", "")),
                             "table_page": int(page),
@@ -2621,6 +2721,27 @@ def split_rows_by_scope(rows: List[Dict[str, object]]) -> Dict[str, List[Dict[st
             context_text=str(rr.get("line", "")),
         )
         rr["statement_family"] = statement_family
+        title_ctx = _normalize_space(f"{rr.get('table_header_text', '')} {rr.get('statement_scope_header', '')}")
+        if statement_family == "income_statement" and re.search(
+            r"\b(financial\s+position|balance\s+sheet|cash\s+flows?)\b", statement_title, re.IGNORECASE
+        ):
+            if re.search(
+                r"\b(profit\s+or\s+loss|comprehensive\s+income|income\s+statement|"
+                r"loss\s+after\s+income\s+tax|profit\s+after\s+tax|"
+                r"\brevenue\b|\bgross\s+profit\b|\bebitda?\b|\bnpat\b|operating\s+profit)\b",
+                title_ctx,
+                re.IGNORECASE,
+            ):
+                rr["statement_title"] = "Consolidated statement of comprehensive income"
+                statement_title = rr["statement_title"].lower()
+        if statement_family == "balance_sheet" and re.search(r"\bcash\s+flows?\b", statement_title, re.IGNORECASE):
+            if re.search(
+                r"\b(financial\s+position|balance\s+sheet|total\s+assets?|total\s+liabilities?|net\s+assets?|equity)\b",
+                title_ctx,
+                re.IGNORECASE,
+            ):
+                rr["statement_title"] = "Consolidated statement of financial position"
+                statement_title = rr["statement_title"].lower()
         reconciliation_ctx = _normalize_space(
             f"{rr.get('table_header_text', '')} {rr.get('statement_title', '')} {rr.get('row_label', '')} {rr.get('line', '')}"
         )
@@ -2642,17 +2763,53 @@ def split_rows_by_scope(rows: List[Dict[str, object]]) -> Dict[str, List[Dict[st
         row_label_raw = str(rr.get("row_label", ""))
         row_label_text = _normalize_space(row_label_raw).lower()
         if metric_name in MONEY_METRICS and row_label_text:
-            if re.search(r"[•▪]", row_label_raw):
+            if re.search(r"[•▪◦]", row_label_raw):
                 rr["context_reason"] = "narrative_row_label"
                 context_rows.append(rr)
                 continue
+            if re.search(r"^(this|we|our|it)\b", row_label_text):
+                rr["context_reason"] = "narrative_row_label"
+                context_rows.append(rr)
+                continue
+            if metric_name in {"free_cash_flow", "operating_cash_flow", "net_debt"}:
+                if row_label_text.endswith(" of") or "annual report" in row_label_text:
+                    rr["context_reason"] = "narrative_row_label"
+                    context_rows.append(rr)
+                    continue
             if len(row_label_text.split()) > 10 and TABLE_NEGATIVE_CONTEXT_RE.search(row_label_text):
                 rr["context_reason"] = "narrative_row_label"
                 context_rows.append(rr)
                 continue
+        if metric_name == "current_assets" and re.search(r"\bnon[-\s]?current\s+assets?\b", row_label_text):
+            rr["context_reason"] = "non_current_row_label"
+            context_rows.append(rr)
+            continue
+        if metric_name == "current_liabilities" and re.search(r"\bnon[-\s]?current\s+liabilities?\b", row_label_text):
+            rr["context_reason"] = "non_current_row_label"
+            context_rows.append(rr)
+            continue
+        row_label_metric_hit_count = int(rr.get("row_label_metric_hit_count", 0) or 0)
+        if metric_name in MONEY_METRICS and row_label_metric_hit_count > 1:
+            if not COMBINED_LIAB_EQUITY_ROW_RE.search(row_label_text):
+                rr["context_reason"] = "ambiguous_row_label"
+                context_rows.append(rr)
+                continue
+        if metric_name in {"net_debt", "total_debt", "free_cash_flow", "operating_cash_flow"}:
+            if re.match(r"^(less|add)\s*[:\-]", row_label_text):
+                rr["context_reason"] = "component_adjustment_row"
+                context_rows.append(rr)
+                continue
+        if metric_name in {"total_liabilities", "total_equity"} and COMBINED_LIAB_EQUITY_ROW_RE.search(row_label_text):
+            rr["context_reason"] = "combined_liabilities_equity_row"
+            context_rows.append(rr)
+            continue
         if metric_name in {"cash_and_equivalents", "cash_and_equivalents_opening", "cash_and_equivalents_closing"}:
             if CASH_RECONCILIATION_CONTEXT_RE.search(reconciliation_ctx):
                 rr["context_reason"] = "cash_reconciliation_context"
+                context_rows.append(rr)
+                continue
+            if re.search(r"\bcash\s+award\b|\bremuneration\b|\bcdp\b", row_label_text):
+                rr["context_reason"] = "cash_keyword_false_positive"
                 context_rows.append(rr)
                 continue
             if metric_name == "cash_and_equivalents" and CASH_NON_BALANCE_ROW_RE.search(row_label_text):
@@ -2686,6 +2843,8 @@ def split_rows_by_scope(rows: List[Dict[str, object]]) -> Dict[str, List[Dict[st
         canonical_rows.append(rr)
     canonical_rows, conflict_rows = resolve_canonical_conflicts(canonical_rows)
     context_rows.extend(conflict_rows)
+    canonical_rows, bs_guard_rows = apply_balance_sheet_identity_guard(canonical_rows)
+    context_rows.extend(bs_guard_rows)
     return {
         "canonical_rows": dedupe(canonical_rows),
         "context_rows": dedupe(context_rows),
@@ -2742,8 +2901,9 @@ def extract_table_metrics(
     source_kind: str = "",
     review_scope: str = "canonical",
     include_blocks: bool = False,
+    pdftotext_timeout_sec: Optional[float] = None,
 ):
-    by_page = _prepare_bbox_pages(pdf)
+    by_page = _prepare_bbox_pages(pdf, timeout_sec=pdftotext_timeout_sec)
     if not by_page:
         empty_split = {"canonical_rows": [], "context_rows": [], "rejected_rows": []}
         if include_blocks:
@@ -3115,17 +3275,6 @@ def resolve_canonical_conflicts(canonical_rows: List[Dict[str, object]]) -> Tupl
         if len(rows) <= 1:
             kept.extend(rows)
             continue
-        uniq_vals = {
-            (
-                str(r.get("value", "")),
-                str(r.get("raw_value", "")),
-                str(r.get("currency", "")),
-            )
-            for r in rows
-        }
-        if len(uniq_vals) <= 1:
-            kept.extend(rows)
-            continue
         ranked = sorted(
             rows,
             key=lambda r: (
@@ -3137,12 +3286,85 @@ def resolve_canonical_conflicts(canonical_rows: List[Dict[str, object]]) -> Tupl
             reverse=True,
         )
         winner = ranked[0]
+        uniq_vals = {
+            (
+                str(r.get("value", "")),
+                str(r.get("raw_value", "")),
+                str(r.get("currency", "")),
+            )
+            for r in rows
+        }
+        if len(uniq_vals) <= 1:
+            kept.append(winner)
+            for loser in ranked[1:]:
+                rr = dict(loser)
+                rr["context_reason"] = "canonical_duplicate_same_period"
+                rr["canonical_conflict_winner_line_no"] = winner.get("line_no", 0)
+                demoted.append(rr)
+            continue
         kept.append(winner)
         for loser in ranked[1:]:
             rr = dict(loser)
             rr["context_reason"] = "canonical_conflict_same_period"
             rr["canonical_conflict_winner_line_no"] = winner.get("line_no", 0)
             demoted.append(rr)
+    return kept, demoted
+
+
+def apply_balance_sheet_identity_guard(
+    canonical_rows: List[Dict[str, object]],
+) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
+    grouped: Dict[Tuple[str, str], List[Dict[str, object]]] = {}
+    for rr in canonical_rows:
+        key = (str(rr.get("file", "")), str(rr.get("statement_period_end", "")))
+        grouped.setdefault(key, []).append(rr)
+
+    keep_ids = {id(r) for r in canonical_rows}
+    demoted: List[Dict[str, object]] = []
+
+    def _row_value(row: Dict[str, object]) -> Optional[float]:
+        try:
+            return float(row.get("value", ""))
+        except (TypeError, ValueError):
+            return None
+
+    def _row_rank(row: Dict[str, object]) -> Tuple[int, int]:
+        return (
+            int(row.get("canonical_confidence_score", 0) or 0),
+            1 if _is_strong_metric_row_label(str(row.get("metric", "")), str(row.get("row_label", ""))) else 0,
+        )
+
+    for _, rows in grouped.items():
+        assets = [r for r in rows if str(r.get("metric", "")) == "total_assets" and _row_value(r) is not None]
+        liabs = [r for r in rows if str(r.get("metric", "")) == "total_liabilities" and _row_value(r) is not None]
+        equity = [r for r in rows if str(r.get("metric", "")) == "total_equity" and _row_value(r) is not None]
+        if not assets or not liabs or not equity:
+            continue
+        asset_row = max(assets, key=_row_rank)
+        asset_value = _row_value(asset_row)
+        if asset_value is None:
+            continue
+        max_equity_abs = max(abs(_row_value(r) or 0.0) for r in equity)
+        tol = max(1.0, abs(asset_value) * 0.0005)
+        if max_equity_abs <= tol:
+            continue
+        for lr in liabs:
+            lr_val = _row_value(lr)
+            if lr_val is None:
+                continue
+            lbl = _normalize_space(str(lr.get("row_label", ""))).lower()
+            if not lbl.startswith("total liabilities"):
+                continue
+            if abs(lr_val - asset_value) > tol:
+                continue
+            if id(lr) not in keep_ids:
+                continue
+            keep_ids.remove(id(lr))
+            rr = dict(lr)
+            rr["context_reason"] = "balance_sheet_identity_guard"
+            demoted.append(rr)
+
+    kept = [r for r in canonical_rows if id(r) in keep_ids]
     return kept, demoted
 
 
@@ -3904,6 +4126,12 @@ def main() -> int:
             "Deprecated in strict mode. Canonical extraction is always table-first and no line fallback is used."
         ),
     )
+    ap.add_argument(
+        "--pdftotext-timeout-sec",
+        type=float,
+        default=180.0,
+        help="Per-file timeout for pdftotext calls in seconds (<=0 disables timeout).",
+    )
     args = ap.parse_args()
 
     if shutil.which("pdftotext") is None:
@@ -3938,11 +4166,24 @@ def main() -> int:
                     source_kind=source_kind,
                     review_scope="all",
                     include_blocks=True,
+                    pdftotext_timeout_sec=args.pdftotext_timeout_sec,
                 )
+            except PDFParseTimeoutError as e:
+                print(f"[warn] table parse timeout {pdf}: {e}", file=sys.stderr)
+                blocks = []
+                split = {
+                    "canonical_rows": [],
+                    "context_rows": [_build_parse_failure_context_row(pdf, reason="pdftotext_timeout", message=str(e))],
+                    "rejected_rows": [],
+                }
             except Exception as e:
                 print(f"[warn] table parse failed {pdf}: {e}", file=sys.stderr)
                 blocks = []
-                split = {"canonical_rows": [], "context_rows": [], "rejected_rows": []}
+                split = {
+                    "canonical_rows": [],
+                    "context_rows": [_build_parse_failure_context_row(pdf, reason="table_parse_failed", message=str(e))],
+                    "rejected_rows": [],
+                }
             rows.extend(list(split.get("canonical_rows", [])))
             context_rows.extend(list(split.get("context_rows", [])))
             rejected_rows.extend(list(split.get("rejected_rows", [])))
@@ -3957,9 +4198,14 @@ def main() -> int:
             continue
 
         try:
-            text = extract_pdf_text(pdf)
+            text = extract_pdf_text(pdf, timeout_sec=args.pdftotext_timeout_sec)
+        except PDFParseTimeoutError as e:
+            print(f"[warn] parse timeout {pdf}: {e}", file=sys.stderr)
+            context_rows.append(_build_parse_failure_context_row(pdf, reason="pdftotext_timeout", message=str(e)))
+            continue
         except subprocess.CalledProcessError as e:
             print(f"[warn] failed to parse {pdf}: {e}", file=sys.stderr)
+            context_rows.append(_build_parse_failure_context_row(pdf, reason="parse_failed", message=str(e)))
             continue
         lines = text.splitlines()
         active_section = ""
@@ -4077,7 +4323,7 @@ def main() -> int:
     rows = dedupe(rows)
     context_rows = dedupe(context_rows)
     rejected_rows = dedupe(rejected_rows)
-    if not rows and strict:
+    if not rows and strict and not context_rows and not rejected_rows:
         print("No metric candidates found. PDFs may be scanned images (OCR needed) or use unexpected formatting.")
         return 1
 

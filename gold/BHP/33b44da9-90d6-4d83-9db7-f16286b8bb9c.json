@@ -1,0 +1,53 @@
+{
+  "doc_id": "33b44da9-90d6-4d83-9db7-f16286b8bb9c",
+  "ticker": "BHP",
+  "pdf_sha256": "",
+  "published_at": "2023-02-21",
+  "fields": [
+    {
+      "metric": "free_cash_flow",
+      "period_end": "2022-12-31",
+      "period_type": "for the half year ended 31 December 2022",
+      "value": "-3481.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "cash_flow",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2023-02-21_half-yearly-report-and-accounts_33b44da9-90d6-4d83-9db7-f16286b8bb9c.pdf",
+        "page": "9",
+        "table_id": "2023-02-21_half-yearly-report-and-accounts_33b44da9-90d6-4d83-9db7-f16286b8bb9c:p9-9:b10:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2022-12-31",
+      "period_type": "31 December 2022",
+      "value": "6457000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2023-02-21_half-yearly-report-and-accounts_33b44da9-90d6-4d83-9db7-f16286b8bb9c.pdf",
+        "page": "13",
+        "table_id": "2023-02-21_half-yearly-report-and-accounts_33b44da9-90d6-4d83-9db7-f16286b8bb9c:p13-13:b17:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2021-12-31",
+      "period_type": "31 December 2021",
+      "value": "9443000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2023-02-21_half-yearly-report-and-accounts_33b44da9-90d6-4d83-9db7-f16286b8bb9c.pdf",
+        "page": "13",
+        "table_id": "2023-02-21_half-yearly-report-and-accounts_33b44da9-90d6-4d83-9db7-f16286b8bb9c:p13-13:b17:t1"
+      }
+    }
+  ]
+}

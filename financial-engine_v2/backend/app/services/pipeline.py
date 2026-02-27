@@ -1,7 +1,9 @@
+import json
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re
+from typing import Any, Mapping
 from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 
 import httpx
@@ -23,6 +25,86 @@ from app.services.ollama import ollama_embed, ollama_generate_json
 from app.services.announcement_importance import classify_documents_and_materialize
 from app.services.storage import ensure_dir, sha256_file, write_bytes
 from app.services.text_extract import extract_text_from_pdf
+
+
+EXTRACTION_FAILURE_TAXONOMY = (
+    "ocr_or_text_unavailable",
+    "parser_timeout",
+    "llm_invalid_json",
+    "provider_network",
+    "corrupted_pdf",
+    "unknown",
+)
+
+
+def classify_extraction_failure(error_text: Any, structured_json: Mapping[str, Any] | None = None) -> str:
+    text = str(error_text or "").strip().lower()
+    structured = dict(structured_json or {})
+    if not text and structured:
+        text = json.dumps(structured, ensure_ascii=False).lower()
+    if not text:
+        return "unknown"
+
+    if any(
+        token in text
+        for token in (
+            "empty text",
+            "no text",
+            "text unavailable",
+            "ocr",
+            "unable to extract text",
+            "could not extract text",
+        )
+    ):
+        return "ocr_or_text_unavailable"
+
+    if any(token in text for token in ("timeout", "timed out", "deadline exceeded", "took too long")):
+        return "parser_timeout"
+
+    if any(
+        token in text
+        for token in (
+            "invalid json",
+            "jsondecodeerror",
+            "expecting value",
+            "malformed json",
+            "could not parse json",
+            "json parse",
+        )
+    ):
+        return "llm_invalid_json"
+
+    if any(
+        token in text
+        for token in (
+            "connection",
+            "connecterror",
+            "network",
+            "name resolution",
+            "dns",
+            "refused",
+            "temporarily unavailable",
+            "httpx",
+            "ssl",
+        )
+    ):
+        return "provider_network"
+
+    if any(
+        token in text
+        for token in (
+            "not a pdf",
+            "corrupt",
+            "trailer not found",
+            "eof marker",
+            "pdfsyntaxerror",
+            "cannot open pdf",
+            "invalid pdf",
+        )
+    ):
+        return "corrupted_pdf"
+
+    return "unknown"
 
 
 def _extract_pdf_url_from_html(html_text, page_url):
@@ -80,6 +162,62 @@ def _coerce_float(value):
         return float(text)
     except (TypeError, ValueError):
         return None
+
+
+def _coerce_text(value, *, join_lists: bool = False):
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return str(value)
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, str):
+        txt = value.strip()
+        return txt or None
+    if isinstance(value, list):
+        parts = []
+        for item in value:
+            txt = _coerce_text(item)
+            if txt:
+                parts.append(txt)
+        if not parts:
+            return None
+        if join_lists:
+            return "\n".join(parts)
+        return json.dumps(parts, ensure_ascii=False)
+    if isinstance(value, dict):
+        return json.dumps(value, ensure_ascii=False)
+    txt = str(value).strip()
+    return txt or None
+
+
+def _coerce_risk_bullets(value):
+    if value is None:
+        return None
+    if isinstance(value, list):
+        out = []
+        for item in value:
+            txt = _coerce_text(item)
+            if txt:
+                out.append(txt)
+        return out or None
+    if isinstance(value, str):
+        txt = value.strip()
+        if not txt:
+            return None
+        if txt.startswith("[") and txt.endswith("]"):
+            try:
+                parsed = json.loads(txt)
+                if isinstance(parsed, list):
+                    return _coerce_risk_bullets(parsed)
+            except Exception:
+                pass
+        bits = [p.strip(" -\t") for p in re.split(r"[;\n]+", txt) if p.strip(" -\t")]
+        if len(bits) >= 2:
+            return bits
+        return [txt]
+    as_text = _coerce_text(value)
+    return [as_text] if as_text else None
 
 
 def _resolve_pdf_path(value: str | None) -> str:
@@ -373,7 +511,7 @@ def _upsert_financial_rows(db, doc, structured):
             "net_debt",
             "shares_outstanding",
         ]:
-            setattr(row, field, metrics.get(field, None))
+            setattr(row, field, _coerce_float(metrics.get(field, None)))
         row.source_document_id = doc.document_id
         row.confidence_metrics = _coerce_float(structured.get("confidence_metrics"))
 
@@ -382,10 +520,10 @@ def _upsert_financial_rows(db, doc, structured):
         risk_note = ASXRiskNote(document_id=doc.document_id)
         db.add(risk_note)
 
-    risk_note.risk_summary = structured.get("risk_summary")
-    risk_note.risk_bullets = structured.get("risk_bullets")
-    risk_note.guidance_summary = structured.get("guidance_summary")
-    risk_note.material_changes = structured.get("material_changes")
+    risk_note.risk_summary = _coerce_text(structured.get("risk_summary"))
+    risk_note.risk_bullets = _coerce_risk_bullets(structured.get("risk_bullets"))
+    risk_note.guidance_summary = _coerce_text(structured.get("guidance_summary"))
+    risk_note.material_changes = _coerce_text(structured.get("material_changes"), join_lists=True)
     risk_note.confidence_narrative = _coerce_float(structured.get("confidence_narrative"))
     db.commit()
 

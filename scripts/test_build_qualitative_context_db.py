@@ -66,6 +66,81 @@ class TestQualitativeContextDb(unittest.TestCase):
         self.assertTrue(all(bool(str(r.title).strip()) for r in rows))
         self.assertTrue(all(str(r.published_at).startswith("2026-02-18") for r in rows))
 
+    def test_validate_company_symbol_marks_invalid_as_unknown(self):
+        company, reason = MOD.validate_company_symbol("ownership_and_holders")
+        self.assertEqual(company, "UNKNOWN")
+        self.assertEqual(reason, "invalid_company_format")
+
+    def test_validate_company_symbol_checks_allowlist(self):
+        company, reason = MOD.validate_company_symbol("BHP", allowlist={"CBA"})
+        self.assertEqual(company, "UNKNOWN")
+        self.assertEqual(reason, "company_not_in_allowlist")
+
+    def test_chunk_records_preserve_bad_metadata_reason(self):
+        spans = [
+            MOD.SectionSpan(
+                file_path=Path("bad.pdf"),
+                company="UNKNOWN",
+                section="fulltext_context",
+                text="This is extracted from a document with invalid company metadata." * 20,
+                doc_date="2026-02-01",
+                bad_metadata_reason="invalid_company_format",
+            )
+        ]
+        rows = MOD.build_chunk_records(spans, max_chars=220, overlap_words=20)
+        self.assertTrue(rows)
+        self.assertTrue(all(r.company == "UNKNOWN" for r in rows))
+        self.assertTrue(all(r.bad_metadata_reason == "invalid_company_format" for r in rows))
+
+    def test_store_sqlite_persists_bad_metadata_reason_column(self):
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory() as td:
+            db_path = Path(td) / "ctx.sqlite"
+            rows = [
+                MOD.ChunkRecord(
+                    chunk_id="company:UNKNOWN:bad:0",
+                    company="UNKNOWN",
+                    file="bad.pdf",
+                    section="fulltext_context",
+                    text="bad metadata row",
+                    bad_metadata_reason="invalid_company_format",
+                )
+            ]
+            vecs = [MOD.hash_embed(rows[0].text, dim=64)]
+            MOD.store_sqlite(rows, vecs, db_path)
+
+            import sqlite3
+
+            conn = sqlite3.connect(str(db_path))
+            try:
+                cols = [r[1] for r in conn.execute("PRAGMA table_info(context_chunks)").fetchall()]
+                self.assertIn("bad_metadata_reason", cols)
+                value = conn.execute(
+                    "SELECT bad_metadata_reason FROM context_chunks WHERE chunk_id = ?",
+                    ("company:UNKNOWN:bad:0",),
+                ).fetchone()
+                self.assertEqual((value or [""])[0], "invalid_company_format")
+            finally:
+                conn.close()
+
+    def test_company_validation_gate_threshold_triggers(self):
+        records = [
+            MOD.ChunkRecord(
+                chunk_id=f"c{i}",
+                company="UNKNOWN" if i < 3 else "BHP",
+                file=f"f{i}.pdf",
+                section="fulltext_context",
+                text="example text",
+                bad_metadata_reason="invalid_company_format" if i < 3 else "",
+            )
+            for i in range(10)
+        ]
+        summary = MOD.summarize_company_metadata(records)
+        failed, reason = MOD.company_validation_gate_failed(summary, threshold_pct=20.0, min_count=2)
+        self.assertTrue(failed)
+        self.assertIn("invalid_company_ratio_pct", reason)
+
     def test_hash_embed_normalized(self):
         vec = MOD.hash_embed("one two three", dim=64)
         norm = sum(x * x for x in vec) ** 0.5

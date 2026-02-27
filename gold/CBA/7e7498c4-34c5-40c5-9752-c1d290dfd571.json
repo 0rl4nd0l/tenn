@@ -1,0 +1,68 @@
+{
+  "doc_id": "7e7498c4-34c5-40c5-9752-c1d290dfd571",
+  "ticker": "CBA",
+  "pdf_sha256": "",
+  "published_at": "2025-02-03",
+  "fields": [
+    {
+      "metric": "total_assets",
+      "period_end": "2024-06-30",
+      "period_type": "30 June 2024",
+      "value": "521670000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2025-02-03_items-impacting-cba-s-financial-reporting_7e7498c4-34c5-40c5-9752-c1d290dfd571.pdf",
+        "page": "8",
+        "table_id": "2025-02-03_items-impacting-cba-s-financial-reporting_7e7498c4-34c5-40c5-9752-c1d290dfd571:p8-8:b13:t1"
+      }
+    },
+    {
+      "metric": "total_liabilities",
+      "period_end": "2024-06-30",
+      "period_type": "30 June 2024",
+      "value": "390994000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2025-02-03_items-impacting-cba-s-financial-reporting_7e7498c4-34c5-40c5-9752-c1d290dfd571.pdf",
+        "page": "8",
+        "table_id": "2025-02-03_items-impacting-cba-s-financial-reporting_7e7498c4-34c5-40c5-9752-c1d290dfd571:p8-8:b13:t1"
+      }
+    },
+    {
+      "metric": "total_assets",
+      "period_end": "2025-06-30",
+      "period_type": "30 June 2025",
+      "value": "127068000000.0",
+      "unit_scale": 1,
+      "currency": "NZ$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2025-02-03_items-impacting-cba-s-financial-reporting_7e7498c4-34c5-40c5-9752-c1d290dfd571.pdf",
+        "page": "14",
+        "table_id": "2025-02-03_items-impacting-cba-s-financial-reporting_7e7498c4-34c5-40c5-9752-c1d290dfd571:p14-14:b27:t1"
+      }
+    },
+    {
+      "metric": "total_liabilities",
+      "period_end": "2025-06-30",
+      "period_type": "30 June 2025",
+      "value": "113735000000.0",
+      "unit_scale": 1,
+      "currency": "NZ$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2025-02-03_items-impacting-cba-s-financial-reporting_7e7498c4-34c5-40c5-9752-c1d290dfd571.pdf",
+        "page": "14",
+        "table_id": "2025-02-03_items-impacting-cba-s-financial-reporting_7e7498c4-34c5-40c5-9752-c1d290dfd571:p14-14:b27:t1"
+      }
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "doc_id": "1e726719-4e39-41b8-b225-d188382c19cf",
+  "ticker": "CBA",
+  "pdf_sha256": "",
+  "published_at": "2026-02-11",
+  "fields": [
+    {
+      "metric": "net_income",
+      "period_end": "2025-12-31",
+      "period_type": "31 December 2025",
+      "value": "993.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2026-02-11_asb-2026-half-year-financial-results-media-release_1e726719-4e39-41b8-b225-d188382c19cf.pdf",
+        "page": "5",
+        "table_id": "2026-02-11_asb-2026-half-year-financial-results-media-release_1e726719-4e39-41b8-b225-d188382c19cf:p5-5:b5:t1"
+      }
+    }
+  ]
+}

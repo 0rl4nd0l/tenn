@@ -1,0 +1,263 @@
+{
+  "doc_id": "76a78e2a-3a37-49a7-b00a-ae540bf5e678",
+  "ticker": "BHP",
+  "pdf_sha256": "",
+  "published_at": "2026-02-17",
+  "fields": [
+    {
+      "metric": "revenue",
+      "period_end": "2025-12-31",
+      "period_type": "31 Dec 2025",
+      "value": "27902000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678.pdf",
+        "page": "31",
+        "table_id": "2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678:p31-31:b59:t1"
+      }
+    },
+    {
+      "metric": "revenue",
+      "period_end": "2024-12-31",
+      "period_type": "31 Dec 2024",
+      "value": "25176000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678.pdf",
+        "page": "31",
+        "table_id": "2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678:p31-31:b59:t1"
+      }
+    },
+    {
+      "metric": "revenue",
+      "period_end": "2025-06-30",
+      "period_type": "30 June 2025",
+      "value": "51262000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678.pdf",
+        "page": "31",
+        "table_id": "2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678:p31-31:b59:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2025-12-31",
+      "period_type": "31 Dec 2025",
+      "value": "7124000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678.pdf",
+        "page": "31",
+        "table_id": "2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678:p31-31:b59:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2024-12-31",
+      "period_type": "31 Dec 2024",
+      "value": "5285000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678.pdf",
+        "page": "31",
+        "table_id": "2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678:p31-31:b59:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2025-06-30",
+      "period_type": "30 June 2025",
+      "value": "11143000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678.pdf",
+        "page": "31",
+        "table_id": "2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678:p31-31:b59:t1"
+      }
+    },
+    {
+      "metric": "total_assets",
+      "period_end": "2025-12-31",
+      "period_type": "31 December 2025",
+      "value": "116012000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678.pdf",
+        "page": "32",
+        "table_id": "2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678:p32-32:b63:t1"
+      }
+    },
+    {
+      "metric": "total_assets",
+      "period_end": "2025-06-30",
+      "period_type": "30 June 2025",
+      "value": "108790000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678.pdf",
+        "page": "32",
+        "table_id": "2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678:p32-32:b63:t1"
+      }
+    },
+    {
+      "metric": "total_liabilities",
+      "period_end": "2025-12-31",
+      "period_type": "31 December 2025",
+      "value": "60547000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678.pdf",
+        "page": "32",
+        "table_id": "2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678:p32-32:b63:t1"
+      }
+    },
+    {
+      "metric": "total_liabilities",
+      "period_end": "2025-06-30",
+      "period_type": "30 June 2025",
+      "value": "56572000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678.pdf",
+        "page": "32",
+        "table_id": "2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678:p32-32:b63:t1"
+      }
+    },
+    {
+      "metric": "total_equity",
+      "period_end": "2025-12-31",
+      "period_type": "31 December 2025",
+      "value": "55465000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678.pdf",
+        "page": "32",
+        "table_id": "2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678:p32-32:b63:t1"
+      }
+    },
+    {
+      "metric": "total_equity",
+      "period_end": "2025-06-30",
+      "period_type": "30 June 2025",
+      "value": "52218000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678.pdf",
+        "page": "32",
+        "table_id": "2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678:p32-32:b63:t1"
+      }
+    },
+    {
+      "metric": "ebitda",
+      "period_end": "2024-12-31",
+      "period_type": "31 December 2024",
+      "value": "12362000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678.pdf",
+        "page": "65",
+        "table_id": "2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678:p65-65:b125:t1"
+      }
+    },
+    {
+      "metric": "operating_cash_flow",
+      "period_end": "2025-06-30",
+      "period_type": "30 June 2025",
+      "value": "26265.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "cash_flow",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678.pdf",
+        "page": "33",
+        "table_id": "2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678:p33-33:b1:t1"
+      }
+    },
+    {
+      "metric": "operating_cash_flow",
+      "period_end": "2024-12-31",
+      "period_type": "31 Dec 2024",
+      "value": "11774.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "cash_flow",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678.pdf",
+        "page": "33",
+        "table_id": "2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678:p33-33:b1:t1"
+      }
+    },
+    {
+      "metric": "capital_expenditure",
+      "period_end": "2025-06-30",
+      "period_type": "30 June 2025",
+      "value": "-5070.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "cash_flow",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678.pdf",
+        "page": "33",
+        "table_id": "camelot:stream:p33:t0"
+      }
+    },
+    {
+      "metric": "operating_cash_flow",
+      "period_end": "2025-12-31",
+      "period_type": "UNSPECIFIED",
+      "value": "-150.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "cash_flow",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2026-02-17_half-yearly-report-and-accounts_76a78e2a-3a37-49a7-b00a-ae540bf5e678.pdf",
+        "page": "44",
+        "table_id": ""
+      }
+    }
+  ]
+}

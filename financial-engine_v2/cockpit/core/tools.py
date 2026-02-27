@@ -555,15 +555,23 @@ class ToolRouter:
         ticker: str,
         deep_mode: bool,
         top_k: int,
+        company_filter: str | None = None,
+        ticker_filter: str = "",
+        source_filter: str = "",
     ) -> dict[str, Any]:
         if reader is None:
             return {"ok": False, "hits": [], "error": "reader not configured"}
+        company_value = str(company_filter if company_filter is not None else ticker).strip().upper()
+        ticker_value = str(ticker_filter or "").strip().upper()
+        source_value = str(source_filter or "").strip()
         try:
             payload = reader.query(
                 query=query,
-                company=ticker,
+                company=company_value,
                 deep_mode=deep_mode,
                 top_k=top_k,
+                ticker_filter=ticker_value,
+                source_filter=source_value,
             )
         except Exception as exc:
             return {"ok": False, "hits": [], "error": str(exc)[:400]}
@@ -783,6 +791,8 @@ class ToolRouter:
                         ticker=ticker,
                         deep_mode=deep_mode,
                         top_k=rag_company_limit,
+                        company_filter=ticker,
+                        ticker_filter="",
                     )
                     payload["qual_context_company"] = company_payload
                 if self.qual_context_news_reader is not None:
@@ -792,6 +802,8 @@ class ToolRouter:
                         ticker=ticker,
                         deep_mode=deep_mode,
                         top_k=rag_news_limit,
+                        company_filter="",
+                        ticker_filter=ticker,
                     )
                     payload["qual_context_news"] = news_payload
                 payload["qual_context"] = self._merge_qual_context_hits(

@@ -1,0 +1,128 @@
+{
+  "doc_id": "f63b0efc-60b2-4d7a-87ac-aeb0aaf90c11",
+  "ticker": "BHP",
+  "pdf_sha256": "",
+  "published_at": "2025-08-25",
+  "fields": [
+    {
+      "metric": "total_assets",
+      "period_end": "2025-06-30",
+      "period_type": "YEAR ENDED 30 JUNE 2025",
+      "value": "108790.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2025-08-25_2025-us-annual-report-form-20-f_f63b0efc-60b2-4d7a-87ac-aeb0aaf90c11.pdf",
+        "page": "29",
+        "table_id": "2025-08-25_2025-us-annual-report-form-20-f_f63b0efc-60b2-4d7a-87ac-aeb0aaf90c11:p29-29:b15:t1"
+      }
+    },
+    {
+      "metric": "total_equity",
+      "period_end": "2025-06-30",
+      "period_type": "YEAR ENDED 30 JUNE 2025",
+      "value": "52218.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2025-08-25_2025-us-annual-report-form-20-f_f63b0efc-60b2-4d7a-87ac-aeb0aaf90c11.pdf",
+        "page": "29",
+        "table_id": "2025-08-25_2025-us-annual-report-form-20-f_f63b0efc-60b2-4d7a-87ac-aeb0aaf90c11:p29-29:b15:t1"
+      }
+    },
+    {
+      "metric": "total_assets",
+      "period_end": "2024-06-30",
+      "period_type": "30 June 2024",
+      "value": "102362.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2025-08-25_2025-us-annual-report-form-20-f_f63b0efc-60b2-4d7a-87ac-aeb0aaf90c11.pdf",
+        "page": "29",
+        "table_id": "2025-08-25_2025-us-annual-report-form-20-f_f63b0efc-60b2-4d7a-87ac-aeb0aaf90c11:p29-29:b15:t1"
+      }
+    },
+    {
+      "metric": "total_equity",
+      "period_end": "2024-06-30",
+      "period_type": "30 June 2024",
+      "value": "49120.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2025-08-25_2025-us-annual-report-form-20-f_f63b0efc-60b2-4d7a-87ac-aeb0aaf90c11.pdf",
+        "page": "29",
+        "table_id": "2025-08-25_2025-us-annual-report-form-20-f_f63b0efc-60b2-4d7a-87ac-aeb0aaf90c11:p29-29:b15:t1"
+      }
+    },
+    {
+      "metric": "net_debt",
+      "period_end": "2025-06-30",
+      "period_type": "YEAR ENDED 30 JUNE 2025",
+      "value": "12924.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2025-08-25_2025-us-annual-report-form-20-f_f63b0efc-60b2-4d7a-87ac-aeb0aaf90c11.pdf",
+        "page": "29",
+        "table_id": "2025-08-25_2025-us-annual-report-form-20-f_f63b0efc-60b2-4d7a-87ac-aeb0aaf90c11:p29-29:b15:t1"
+      }
+    },
+    {
+      "metric": "net_debt",
+      "period_end": "2024-06-30",
+      "period_type": "30 June 2024",
+      "value": "9120.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2025-08-25_2025-us-annual-report-form-20-f_f63b0efc-60b2-4d7a-87ac-aeb0aaf90c11.pdf",
+        "page": "29",
+        "table_id": "2025-08-25_2025-us-annual-report-form-20-f_f63b0efc-60b2-4d7a-87ac-aeb0aaf90c11:p29-29:b15:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2024-06-30",
+      "period_type": "30 June 2024",
+      "value": "9601000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2025-08-25_2025-us-annual-report-form-20-f_f63b0efc-60b2-4d7a-87ac-aeb0aaf90c11.pdf",
+        "page": "283",
+        "table_id": "2025-08-25_2025-us-annual-report-form-20-f_f63b0efc-60b2-4d7a-87ac-aeb0aaf90c11:p283-283:b221:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2025-06-30",
+      "period_type": "for the year ended 30 June 2025",
+      "value": "14324000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2025-08-25_2025-us-annual-report-form-20-f_f63b0efc-60b2-4d7a-87ac-aeb0aaf90c11.pdf",
+        "page": "283",
+        "table_id": "2025-08-25_2025-us-annual-report-form-20-f_f63b0efc-60b2-4d7a-87ac-aeb0aaf90c11:p283-283:b221:t1"
+      }
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "doc_id": "988be217-eda2-4b60-bb9d-781e231a9119",
+  "ticker": "CBA",
+  "pdf_sha256": "",
+  "published_at": "2024-08-14",
+  "fields": [
+    {
+      "metric": "revenue",
+      "period_end": "2024-06-30",
+      "period_type": "for the year ended 30 June 2024",
+      "value": "26921000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "appendix_statement",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2024-08-14_2024-full-year-results-profit-announcement_988be217-eda2-4b60-bb9d-781e231a9119.pdf",
+        "page": "2",
+        "table_id": "2024-08-14_2024-full-year-results-profit-announcement_988be217-eda2-4b60-bb9d-781e231a9119:p2-2:b1:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2024-06-30",
+      "period_type": "for the year ended 30 June 2024",
+      "value": "9394000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "appendix_statement",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2024-08-14_2024-full-year-results-profit-announcement_988be217-eda2-4b60-bb9d-781e231a9119.pdf",
+        "page": "2",
+        "table_id": "2024-08-14_2024-full-year-results-profit-announcement_988be217-eda2-4b60-bb9d-781e231a9119:p2-2:b1:t1"
+      }
+    }
+  ]
+}

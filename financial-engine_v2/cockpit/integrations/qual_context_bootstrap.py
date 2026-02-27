@@ -100,6 +100,8 @@ def make_qual_context_reader(
         hash_dim=int(qc_cfg.get("hash_dim") or 384),
         st_device=str(qc_cfg.get("st_device") or "auto"),
         st_batch_size=int(qc_cfg.get("st_batch_size") or 16),
+        ticker_match_mode=str(qc_cfg.get("ticker_match_mode") or "strict"),
+        recall_top_k_multiplier=int(qc_cfg.get("recall_top_k_multiplier") or 20),
     )
 
 

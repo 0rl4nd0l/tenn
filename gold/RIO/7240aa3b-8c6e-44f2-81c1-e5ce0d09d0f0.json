@@ -1,0 +1,38 @@
+{
+  "doc_id": "7240aa3b-8c6e-44f2-81c1-e5ce0d09d0f0",
+  "ticker": "RIO",
+  "pdf_sha256": "",
+  "published_at": "2023-07-26",
+  "fields": [
+    {
+      "metric": "net_income",
+      "period_end": "2023-12-31",
+      "period_type": "31 December 2023",
+      "value": "4947.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2023-07-26_rio-tinto-2023-half-year-results-presentation_7240aa3b-8c6e-44f2-81c1-e5ce0d09d0f0.pdf",
+        "page": "52",
+        "table_id": "2023-07-26_rio-tinto-2023-half-year-results-presentation_7240aa3b-8c6e-44f2-81c1-e5ce0d09d0f0:p52-52:b48:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2022-12-31",
+      "period_type": "31 December 2022",
+      "value": "-287.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2023-07-26_rio-tinto-2023-half-year-results-presentation_7240aa3b-8c6e-44f2-81c1-e5ce0d09d0f0.pdf",
+        "page": "52",
+        "table_id": "2023-07-26_rio-tinto-2023-half-year-results-presentation_7240aa3b-8c6e-44f2-81c1-e5ce0d09d0f0:p52-52:b48:t1"
+      }
+    }
+  ]
+}

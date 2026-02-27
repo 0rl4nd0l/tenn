@@ -1,0 +1,98 @@
+{
+  "doc_id": "8d3e536a-ab6e-43d8-9b6a-0f29ccc6fe18",
+  "ticker": "CBA",
+  "pdf_sha256": "",
+  "published_at": "2026-02-11",
+  "fields": [
+    {
+      "metric": "revenue",
+      "period_end": "2025-12-31",
+      "period_type": "for the half year ended 31 December 2025",
+      "value": "15000000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "appendix_statement",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2026-02-11_2026-half-year-results-profit-announcement_8d3e536a-ab6e-43d8-9b6a-0f29ccc6fe18.pdf",
+        "page": "2",
+        "table_id": "2026-02-11_2026-half-year-results-profit-announcement_8d3e536a-ab6e-43d8-9b6a-0f29ccc6fe18:p2-2:b1:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2025-12-31",
+      "period_type": "for the half year ended 31 December 2025",
+      "value": "5367000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "appendix_statement",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2026-02-11_2026-half-year-results-profit-announcement_8d3e536a-ab6e-43d8-9b6a-0f29ccc6fe18.pdf",
+        "page": "2",
+        "table_id": "2026-02-11_2026-half-year-results-profit-announcement_8d3e536a-ab6e-43d8-9b6a-0f29ccc6fe18:p2-2:b1:t1"
+      }
+    },
+    {
+      "metric": "total_assets",
+      "period_end": "2025-12-31",
+      "period_type": "For the half year ended 31 December 2025",
+      "value": "573167000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2026-02-11_2026-half-year-results-profit-announcement_8d3e536a-ab6e-43d8-9b6a-0f29ccc6fe18.pdf",
+        "page": "62",
+        "table_id": "2026-02-11_2026-half-year-results-profit-announcement_8d3e536a-ab6e-43d8-9b6a-0f29ccc6fe18:p62-62:b88:t1"
+      }
+    },
+    {
+      "metric": "total_liabilities",
+      "period_end": "2025-12-31",
+      "period_type": "For the half year ended 31 December 2025",
+      "value": "450004000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2026-02-11_2026-half-year-results-profit-announcement_8d3e536a-ab6e-43d8-9b6a-0f29ccc6fe18.pdf",
+        "page": "62",
+        "table_id": "2026-02-11_2026-half-year-results-profit-announcement_8d3e536a-ab6e-43d8-9b6a-0f29ccc6fe18:p62-62:b88:t1"
+      }
+    },
+    {
+      "metric": "total_assets",
+      "period_end": "2025-06-30",
+      "period_type": "Half Year Ended 30 June 2025",
+      "value": "549546000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2026-02-11_2026-half-year-results-profit-announcement_8d3e536a-ab6e-43d8-9b6a-0f29ccc6fe18.pdf",
+        "page": "103",
+        "table_id": "2026-02-11_2026-half-year-results-profit-announcement_8d3e536a-ab6e-43d8-9b6a-0f29ccc6fe18:p103-103:b171:t1"
+      }
+    },
+    {
+      "metric": "total_liabilities",
+      "period_end": "2025-06-30",
+      "period_type": "Half Year Ended 30 June 2025",
+      "value": "421946000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2026-02-11_2026-half-year-results-profit-announcement_8d3e536a-ab6e-43d8-9b6a-0f29ccc6fe18.pdf",
+        "page": "103",
+        "table_id": "2026-02-11_2026-half-year-results-profit-announcement_8d3e536a-ab6e-43d8-9b6a-0f29ccc6fe18:p103-103:b171:t1"
+      }
+    }
+  ]
+}

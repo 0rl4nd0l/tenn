@@ -1,0 +1,263 @@
+{
+  "doc_id": "2f337cbd-f131-4dc2-bce1-02edc20944b3",
+  "ticker": "RIO",
+  "pdf_sha256": "",
+  "published_at": "2026-02-19",
+  "fields": [
+    {
+      "metric": "ebitda",
+      "period_end": "2025-12-31",
+      "period_type": "31 December 2025",
+      "value": "25363.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3.pdf",
+        "page": "19",
+        "table_id": "2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3:p19-19:b23:t1"
+      }
+    },
+    {
+      "metric": "ebitda",
+      "period_end": "2024-12-31",
+      "period_type": "31 December 2024",
+      "value": "23314.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3.pdf",
+        "page": "19",
+        "table_id": "2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3:p19-19:b23:t1"
+      }
+    },
+    {
+      "metric": "eps",
+      "period_end": "2025-12-31",
+      "period_type": "31 December 2025",
+      "value": "669.2",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3.pdf",
+        "page": "19",
+        "table_id": "2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3:p19-19:b23:t1"
+      }
+    },
+    {
+      "metric": "eps",
+      "period_end": "2024-12-31",
+      "period_type": "31 December 2024",
+      "value": "669.5",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3.pdf",
+        "page": "19",
+        "table_id": "2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3:p19-19:b23:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2025-12-31",
+      "period_type": "Year ended 31 December 2025",
+      "value": "10249000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3.pdf",
+        "page": "103",
+        "table_id": "2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3:p103-103:b143:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2024-12-31",
+      "period_type": "31 December 2024",
+      "value": "11574000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3.pdf",
+        "page": "103",
+        "table_id": "2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3:p103-103:b143:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2023-12-31",
+      "period_type": "31 December 2023",
+      "value": "9953000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3.pdf",
+        "page": "103",
+        "table_id": "2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3:p103-103:b143:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2022-12-31",
+      "period_type": "31 December 2022",
+      "value": "13048000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3.pdf",
+        "page": "103",
+        "table_id": "2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3:p103-103:b143:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2021-12-31",
+      "period_type": "31 December 2021",
+      "value": "22597000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3.pdf",
+        "page": "103",
+        "table_id": "2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3:p103-103:b143:t1"
+      }
+    },
+    {
+      "metric": "total_assets",
+      "period_end": "2026-02-19",
+      "period_type": "19 February 2026",
+      "value": "128102.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3.pdf",
+        "page": "103",
+        "table_id": "2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3:p103-103:b144:t1"
+      }
+    },
+    {
+      "metric": "total_assets",
+      "period_end": "2025-12-31",
+      "period_type": "Year ended 31 December 2025",
+      "value": "128102000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3.pdf",
+        "page": "170",
+        "table_id": "2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3:p170-170:b263:t1"
+      }
+    },
+    {
+      "metric": "total_assets",
+      "period_end": "2024-12-31",
+      "period_type": "31 December 2024",
+      "value": "102786000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3.pdf",
+        "page": "170",
+        "table_id": "2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3:p170-170:b263:t1"
+      }
+    },
+    {
+      "metric": "total_equity",
+      "period_end": "2026-02-19",
+      "period_type": "19 February 2026",
+      "value": "67024.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3.pdf",
+        "page": "103",
+        "table_id": "2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3:p103-103:b144:t1"
+      }
+    },
+    {
+      "metric": "total_equity",
+      "period_end": "2025-12-31",
+      "period_type": "Year ended 31 December 2025",
+      "value": "67024000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3.pdf",
+        "page": "170",
+        "table_id": "2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3:p170-170:b263:t1"
+      }
+    },
+    {
+      "metric": "total_equity",
+      "period_end": "2024-12-31",
+      "period_type": "31 December 2024",
+      "value": "57965000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3.pdf",
+        "page": "170",
+        "table_id": "2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3:p170-170:b263:t1"
+      }
+    },
+    {
+      "metric": "total_liabilities",
+      "period_end": "2025-12-31",
+      "period_type": "Year ended 31 December 2025",
+      "value": "-61078000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3.pdf",
+        "page": "170",
+        "table_id": "2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3:p170-170:b263:t1"
+      }
+    },
+    {
+      "metric": "total_liabilities",
+      "period_end": "2024-12-31",
+      "period_type": "31 December 2024",
+      "value": "-44821000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3.pdf",
+        "page": "170",
+        "table_id": "2026-02-19_2025-annual-report_2f337cbd-f131-4dc2-bce1-02edc20944b3:p170-170:b263:t1"
+      }
+    }
+  ]
+}

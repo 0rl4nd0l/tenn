@@ -1,0 +1,38 @@
+{
+  "doc_id": "d3ff8317-73ab-4475-85a6-93ad4818fb89",
+  "ticker": "CBA",
+  "pdf_sha256": "",
+  "published_at": "2025-08-13",
+  "fields": [
+    {
+      "metric": "total_assets",
+      "period_end": "2025-06-30",
+      "period_type": "For the year ended 30 June 2025",
+      "value": "556889000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2025-08-13_2025-annual-report_d3ff8317-73ab-4475-85a6-93ad4818fb89.pdf",
+        "page": "250",
+        "table_id": "2025-08-13_2025-annual-report_d3ff8317-73ab-4475-85a6-93ad4818fb89:p250-250:b296:t1"
+      }
+    },
+    {
+      "metric": "total_liabilities",
+      "period_end": "2025-06-30",
+      "period_type": "For the year ended 30 June 2025",
+      "value": "425400000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2025-08-13_2025-annual-report_d3ff8317-73ab-4475-85a6-93ad4818fb89.pdf",
+        "page": "250",
+        "table_id": "2025-08-13_2025-annual-report_d3ff8317-73ab-4475-85a6-93ad4818fb89:p250-250:b296:t1"
+      }
+    }
+  ]
+}

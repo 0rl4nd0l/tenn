@@ -18,14 +18,21 @@ import sqlite3
 import shutil
 import sys
 import time
-from dataclasses import asdict, dataclass
+import tempfile
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Set, Tuple
+from urllib.parse import urlparse
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
 import build_qualitative_context_db as ctx
+from health_guard import assert_healthy, get_overall_status, load_health_snapshot
 
 
 DEFAULT_DATASET_ID = "Brianferrell787/financial-news-multisource"
+DEFAULT_ASX_ALLOWLIST_RELATIVE = "financial-engine_v2/data/raw/asx_ticker_universe.txt"
 
 COMPLIANCE_NOTICE = (
     "Compliance notice: This dataset is gated on Hugging Face with license='other'. "
@@ -38,6 +45,7 @@ WORD_RE = re.compile(r"[A-Za-z]+")
 TICKER_PATTERNS = [
     re.compile(r"\$([A-Z]{1,6})\b"),
     re.compile(r"\b(?:NYSE|NASDAQ|ASX|LSE|TSX|HKEX|TSE)\s*[:\-]\s*([A-Z]{1,6})\b"),
+    re.compile(r"(?<![A-Za-z0-9])([A-Z]{1,6})\.AX(?![A-Za-z0-9])"),
 ]
 TICKER_STOPWORDS = {
     "CEO",
@@ -76,6 +84,32 @@ EN_STOPWORDS = {
     "were",
     "will",
     "with",
+}
+ALLOWLIST_TOKEN_RE = re.compile(r"[A-Za-z0-9.\-]{1,12}")
+BOUNDARY_TICKER_TOKEN_RE = re.compile(r"(?<![A-Za-z0-9])([A-Za-z][A-Za-z0-9]{1,11})(?:\.AX)?(?![A-Za-z0-9])")
+ASX_TICKER_TOKEN_RE = re.compile(r"(?<![A-Za-z0-9])([A-Z][A-Z0-9]{1,11})(?:\.AX)?(?![A-Za-z0-9])")
+ASX_HEADLINE_PRIORITY_PATTERNS = [
+    re.compile(r"\bASX\b", re.IGNORECASE),
+    re.compile(r"\bASX:", re.IGNORECASE),
+    re.compile(r"\.AX\b"),
+    re.compile(r"\bshares\b", re.IGNORECASE),
+    re.compile(r"\bearnings\b", re.IGNORECASE),
+    re.compile(r"\bdividend\b", re.IGNORECASE),
+    re.compile(r"\bguidance\b", re.IGNORECASE),
+]
+COMPANY_NAME_STOPWORDS = {
+    "limited",
+    "ltd",
+    "inc",
+    "corp",
+    "corporation",
+    "plc",
+    "group",
+    "holdings",
+    "holding",
+    "pty",
+    "company",
+    "co",
 }
 
 
@@ -129,6 +163,98 @@ def parse_extra_fields(value: Any) -> Dict[str, Any]:
         except Exception:
             return {}
     return {}
+
+
+def parse_domain(value: Any) -> str:
+    raw = normalize_space(value).strip().lower()
+    if not raw:
+        return ""
+    candidate = raw
+    if "://" not in candidate and not candidate.startswith("//"):
+        candidate = "https://" + candidate
+    try:
+        host = str(urlparse(candidate).netloc or "").strip().lower()
+    except Exception:
+        host = ""
+    if not host:
+        host = raw.split("/")[0].strip().lower()
+    if host.startswith("www."):
+        host = host[4:]
+    return host
+
+
+def asx_headline_priority_score(title: Any) -> int:
+    text = normalize_space(title)
+    if not text:
+        return 0
+    return sum(1 for pat in ASX_HEADLINE_PRIORITY_PATTERNS if pat.search(text))
+
+
+def normalize_company_name_for_match(value: Any) -> str:
+    text = normalize_space(value).lower()
+    if not text:
+        return ""
+    text = re.sub(r"[^a-z0-9 ]+", " ", text)
+    tokens = [tok for tok in text.split() if tok and tok not in COMPANY_NAME_STOPWORDS]
+    if not tokens:
+        return ""
+    return " ".join(tokens)
+
+
+def default_asx_allowlist_path() -> Path:
+    # Resolve relative to repo root (this script lives under ./scripts).
+    return Path(__file__).resolve().parents[1] / DEFAULT_ASX_ALLOWLIST_RELATIVE
+
+
+def _collect_allowlist_tokens(value: Any, out: Set[str]) -> None:
+    if value is None:
+        return
+    if isinstance(value, dict):
+        for k, v in value.items():
+            _collect_allowlist_tokens(k, out)
+            _collect_allowlist_tokens(v, out)
+        return
+    if isinstance(value, (list, tuple, set)):
+        for item in value:
+            _collect_allowlist_tokens(item, out)
+        return
+
+    text = str(value).strip()
+    if not text:
+        return
+    for raw in ALLOWLIST_TOKEN_RE.findall(text):
+        sym = ctx.normalize_ticker_symbol(raw)
+        if sym:
+            if not re.search(r"[A-Z]", sym):
+                continue
+            out.add(sym)
+
+
+def load_ticker_allowlist(path: Path) -> Set[str]:
+    if not path.exists():
+        raise RuntimeError(f"Ticker allowlist path does not exist: {path}")
+    out: Set[str] = set()
+    suffix = path.suffix.lower()
+
+    if suffix == ".json":
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            _collect_allowlist_tokens(payload, out)
+            return out
+        except Exception:
+            pass
+    if suffix == ".jsonl":
+        for row in iter_jsonl(path):
+            _collect_allowlist_tokens(row, out)
+        return out
+
+    with path.open("r", encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            _collect_allowlist_tokens(line, out)
+    return out
 
 
 def first_non_empty(*values: Any) -> str:
@@ -269,15 +395,28 @@ def extract_tickers_from_value(value: Any) -> List[str]:
     return out
 
 
-def infer_tickers(title: str, body: str, existing: Sequence[str]) -> str:
+def infer_tickers(
+    title: str,
+    body: str,
+    existing: Sequence[str],
+    allowlist: Optional[Set[str]] = None,
+) -> str:
     out = list(existing)
-    merged_text = f"{title} {body[:1200]}"
+    merged_text = f"{title} {body[:2000]}"
     for pat in TICKER_PATTERNS:
         for match in pat.findall(merged_text):
             sym = ctx.normalize_ticker_symbol(match)
             if not sym or sym in TICKER_STOPWORDS:
                 continue
             out.append(sym)
+    if allowlist:
+        upper_text = merged_text.upper()
+        for match in BOUNDARY_TICKER_TOKEN_RE.findall(upper_text):
+            sym = ctx.normalize_ticker_symbol(match)
+            if not sym or sym in TICKER_STOPWORDS:
+                continue
+            if sym in allowlist:
+                out.append(sym)
     return ctx.serialize_tickers(out)
 
 
@@ -285,6 +424,9 @@ def normalize_news_row(
     row: Dict[str, Any],
     min_text_chars: int,
     keep_non_english: bool,
+    ticker_allowlist: Optional[Set[str]] = None,
+    drop_ticker_nonmatching_rows: bool = False,
+    skip_ticker_inference: bool = False,
 ) -> Tuple[Optional[NormalizedNewsRecord], str]:
     extra = parse_extra_fields(row.get("extra_fields"))
     raw_text = first_non_empty(
@@ -360,11 +502,23 @@ def normalize_news_row(
     row_id = re.sub(r"[^A-Za-z0-9._\-:]+", "_", row_id)[:180]
 
     tickers = []
+    tickers.extend(extract_tickers_from_value(row.get("ticker")))
     tickers.extend(extract_tickers_from_value(row.get("tickers")))
     tickers.extend(extract_tickers_from_value(row.get("stocks")))
+    tickers.extend(extract_tickers_from_value(extra.get("ticker")))
     tickers.extend(extract_tickers_from_value(extra.get("tickers")))
     tickers.extend(extract_tickers_from_value(extra.get("stocks")))
-    ticker_blob = infer_tickers(title=title, body=body, existing=tickers)
+    if skip_ticker_inference:
+        ticker_blob = ctx.serialize_tickers(tickers)
+    else:
+        ticker_blob = infer_tickers(title=title, body=body, existing=tickers, allowlist=ticker_allowlist)
+    if ticker_allowlist:
+        inferred = ctx.parse_ticker_blob(ticker_blob)
+        if inferred:
+            allowed = [sym for sym in inferred if sym in ticker_allowlist]
+            ticker_blob = ctx.serialize_tickers(allowed)
+            if not ticker_blob and drop_ticker_nonmatching_rows:
+                return None, "ticker_not_allowlisted"
 
     return (
         NormalizedNewsRecord(
@@ -395,6 +549,167 @@ def iter_jsonl(path: Path) -> Iterator[Dict[str, Any]]:
                 continue
             if isinstance(parsed, dict):
                 yield parsed
+
+
+def count_jsonl_rows(path: Path) -> int:
+    count = 0
+    with path.open("r", encoding="utf-8") as fh:
+        for line in fh:
+            if line.strip():
+                count += 1
+    return count
+
+
+def _collect_allowlist_company_names(value: Any, out: Set[str]) -> None:
+    if value is None:
+        return
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            key_text = str(key or "").strip().lower()
+            if any(tok in key_text for tok in ("name", "alias", "issuer", "company")):
+                _collect_allowlist_company_names(nested, out)
+            elif isinstance(nested, (dict, list, tuple, set)):
+                _collect_allowlist_company_names(nested, out)
+        return
+    if isinstance(value, (list, tuple, set)):
+        for item in value:
+            _collect_allowlist_company_names(item, out)
+        return
+
+    text = normalize_space(value)
+    if not text:
+        return
+    for part in re.split(r"[|,;\t]+", text):
+        normalized = normalize_company_name_for_match(part)
+        if not normalized:
+            continue
+        if re.fullmatch(r"[a-z0-9]{1,6}", normalized):
+            continue
+        if len(normalized) < 4:
+            continue
+        out.add(normalized)
+
+
+def load_allowlist_company_names(path: Path) -> Set[str]:
+    if not path.exists():
+        raise RuntimeError(f"Ticker allowlist path does not exist: {path}")
+    out: Set[str] = set()
+    suffix = path.suffix.lower()
+
+    if suffix == ".json":
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            _collect_allowlist_company_names(payload, out)
+            return out
+        except Exception:
+            pass
+    if suffix == ".jsonl":
+        for row in iter_jsonl(path):
+            _collect_allowlist_company_names(row, out)
+        return out
+
+    with path.open("r", encoding="utf-8") as fh:
+        for line in fh:
+            _collect_allowlist_company_names(line, out)
+    return out
+
+
+def asx_priority_headline(row: Dict[str, Any]) -> str:
+    extra = parse_extra_fields(row.get("extra_fields"))
+    return first_non_empty(
+        row.get("title"),
+        row.get("headline"),
+        extra.get("title"),
+        extra.get("headline"),
+    )
+
+
+def iter_asx_prioritized_rows(rows: Iterable[Dict[str, Any]]) -> Iterator[Dict[str, Any]]:
+    deferred: List[Dict[str, Any]] = []
+    for row in rows:
+        if asx_headline_priority_score(asx_priority_headline(row)) > 0:
+            yield row
+        else:
+            deferred.append(row)
+    for row in deferred:
+        yield row
+
+
+def row_matches_australia_country_or_au_domain(
+    *,
+    row: Dict[str, Any],
+    normalized: NormalizedNewsRecord,
+) -> bool:
+    extra = parse_extra_fields(row.get("extra_fields"))
+    country_candidates = [
+        row.get("source_country"),
+        row.get("sourcecountry"),
+        row.get("sourceCountry"),
+        row.get("country"),
+        extra.get("source_country"),
+        extra.get("sourcecountry"),
+        extra.get("sourceCountry"),
+        extra.get("country"),
+    ]
+    for value in country_candidates:
+        country = normalize_space(value).lower()
+        if not country:
+            continue
+        if country in {"australia", "au", "aus"} or "australia" in country:
+            return True
+
+    domain_candidates = [
+        row.get("domain"),
+        extra.get("domain"),
+        row.get("source"),
+        extra.get("source"),
+        row.get("publisher"),
+        extra.get("publisher"),
+        row.get("url"),
+        extra.get("url"),
+        normalized.source,
+        normalized.url,
+    ]
+    for value in domain_candidates:
+        domain = parse_domain(value)
+        if domain.endswith(".au"):
+            return True
+    return False
+
+
+def match_asx_allowlisted_tickers(
+    *,
+    normalized: NormalizedNewsRecord,
+    ticker_allowlist: Set[str],
+) -> Set[str]:
+    if not ticker_allowlist:
+        return set()
+    out: Set[str] = {sym for sym in ctx.parse_ticker_blob(normalized.ticker) if sym in ticker_allowlist}
+    payload = f"{normalized.title}\n{normalized.body[:3000]}"
+    for match in ASX_TICKER_TOKEN_RE.findall(payload):
+        sym = ctx.normalize_ticker_symbol(match)
+        if sym and sym in ticker_allowlist:
+            out.add(sym)
+    return out
+
+
+def match_asx_company_names(
+    *,
+    normalized: NormalizedNewsRecord,
+    company_names: Set[str],
+) -> bool:
+    if not company_names:
+        return False
+    haystack = normalize_company_name_for_match(f"{normalized.title}\n{normalized.body[:3000]}")
+    if not haystack:
+        return False
+    padded = f" {haystack} "
+    for name in company_names:
+        if not name:
+            continue
+        if f" {name} " in padded:
+            return True
+    return False
 
 
 def iter_local_rows(path: Path) -> Iterator[Dict[str, Any]]:
@@ -456,17 +771,76 @@ def iter_hf_rows(
             yield row
 
 
+def resolve_rss_identity_map_path(raw: str) -> Path:
+    txt = str(raw or "").strip()
+    if not txt:
+        return (Path(__file__).resolve().parents[1] / "financial-engine_v2" / "config" / "ticker_identity_map.json").resolve()
+    path = Path(txt).expanduser()
+    if path.is_absolute():
+        return path.resolve()
+    cwd_path = (Path.cwd() / path).resolve()
+    if cwd_path.exists():
+        return cwd_path
+    return (Path(__file__).resolve().parents[1] / path).resolve()
+
+
+def prepare_rss_input_jsonl(
+    *,
+    args: argparse.Namespace,
+    ticker_allowlist_path: Path,
+) -> Tuple[Path, Optional[Path], Dict[str, Any]]:
+    feed_list_path = Path(str(args.input_rss_feeds_file or "").strip()).expanduser().resolve()
+    if not feed_list_path.exists():
+        raise RuntimeError(f"RSS feeds file not found: {feed_list_path}")
+
+    try:
+        import ingest_asx_rss_headlines as rss_ingest
+    except Exception as exc:
+        raise RuntimeError(f"Unable to import RSS ingester module: {exc}") from exc
+
+    temp_dir: Optional[Path] = None
+    rss_out_jsonl_arg = str(getattr(args, "rss_out_jsonl", "") or "").strip()
+    if rss_out_jsonl_arg:
+        out_jsonl = Path(rss_out_jsonl_arg).expanduser().resolve()
+    else:
+        temp_dir = Path(tempfile.mkdtemp(prefix="asx_rss_ingest_", dir="/tmp"))
+        out_jsonl = temp_dir / "rss_headlines.jsonl"
+
+    try:
+        report = rss_ingest.ingest_asx_rss_headlines(
+            feed_urls=[],
+            feeds_file=feed_list_path,
+            out_jsonl=out_jsonl,
+            asx_tickers_file=ticker_allowlist_path,
+            identity_map_path=resolve_rss_identity_map_path(getattr(args, "rss_identity_map_path", "")),
+            corpus=str(getattr(args, "corpus", "") or "news_asx_rss"),
+            topic=str(getattr(args, "rss_topic", "") or "asx_rss_headline"),
+            request_timeout=float(getattr(args, "rss_request_timeout", 15.0)),
+            http_retries=int(getattr(args, "rss_http_retries", 2)),
+            user_agent=str(getattr(args, "rss_user_agent", "tenn-asx-rss-ingest/1.0")),
+        )
+    except Exception:
+        if temp_dir is not None and temp_dir.exists() and not bool(getattr(args, "rss_keep_temp", False)):
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        raise
+    return out_jsonl, temp_dir, report
+
+
 def normalize_records(
     rows: Iterable[Dict[str, Any]],
     min_text_chars: int,
     keep_non_english: bool,
     max_rows: int,
+    ticker_allowlist: Optional[Set[str]] = None,
+    drop_ticker_nonmatching_rows: bool = False,
+    skip_ticker_inference: bool = False,
 ) -> Tuple[List[NormalizedNewsRecord], Dict[str, int]]:
     stats: Dict[str, int] = {
         "input_rows": 0,
         "kept_rows": 0,
         "dropped_short_text": 0,
         "dropped_non_english": 0,
+        "dropped_ticker_not_allowlisted": 0,
         "dropped_duplicate_url": 0,
         "dropped_duplicate_exact": 0,
         "dropped_duplicate_near": 0,
@@ -486,6 +860,9 @@ def normalize_records(
             row=row,
             min_text_chars=min_text_chars,
             keep_non_english=keep_non_english,
+            ticker_allowlist=ticker_allowlist,
+            drop_ticker_nonmatching_rows=drop_ticker_nonmatching_rows,
+            skip_ticker_inference=skip_ticker_inference,
         )
         if not normalized:
             key = f"dropped_{reason}"
@@ -535,15 +912,159 @@ def init_stats() -> Dict[str, int]:
         "kept_rows": 0,
         "dropped_short_text": 0,
         "dropped_non_english": 0,
+        "dropped_ticker_not_allowlisted": 0,
         "dropped_missing_doc_date": 0,
         "dropped_before_min_doc_date": 0,
         "dropped_after_max_doc_date": 0,
+        "dropped_asx_country_or_domain": 0,
+        "dropped_asx_missing_entity_match": 0,
         "dropped_duplicate_url": 0,
         "dropped_duplicate_exact": 0,
         "dropped_duplicate_near": 0,
+        "kept_rows_with_ticker": 0,
+        "kept_rows_with_doc_date": 0,
         "output_chunks": 0,
         "flush_batches": 0,
     }
+
+
+def atomic_write_json(path: Path, payload: Dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    tmp_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    tmp_path.replace(path)
+
+
+def read_dedupe_counts(path: Path) -> Dict[str, int]:
+    if not path.exists():
+        return {"seen_url": 0, "seen_exact": 0, "seen_near": 0}
+    conn: Optional[sqlite3.Connection] = None
+    try:
+        conn = sqlite3.connect(str(path), timeout=10.0)
+        cur = conn.cursor()
+        out: Dict[str, int] = {}
+        for table in ("seen_url", "seen_exact", "seen_near"):
+            try:
+                row = cur.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
+                out[table] = int((row or [0])[0] or 0)
+            except Exception:
+                out[table] = 0
+        return out
+    except Exception:
+        return {"seen_url": 0, "seen_exact": 0, "seen_near": 0}
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+class ManifestWriter:
+    def __init__(
+        self,
+        *,
+        path: Path,
+        write_every: int,
+        args: argparse.Namespace,
+        out_path: Path,
+        dedupe_path: Path,
+        ticker_allowlist_size: int,
+    ) -> None:
+        self.path = path
+        self.write_every = int(max(1, write_every))
+        self.args = args
+        self.out_path = out_path
+        self.dedupe_path = dedupe_path
+        self.ticker_allowlist_size = int(max(0, ticker_allowlist_size))
+        self.started_at = datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+
+    def _payload(
+        self,
+        *,
+        stats: Dict[str, int],
+        elapsed_seconds: float,
+        status: str,
+        error: str = "",
+        extra: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        dropped = {
+            key: int(value)
+            for key, value in stats.items()
+            if key.startswith("dropped_")
+        }
+        keep_metrics = {
+            "input_rows": int(stats.get("input_rows", 0)),
+            "kept_rows": int(stats.get("kept_rows", 0)),
+            "kept_rows_with_ticker": int(stats.get("kept_rows_with_ticker", 0)),
+            "kept_rows_with_doc_date": int(stats.get("kept_rows_with_doc_date", 0)),
+            "unique_tickers": int(stats.get("unique_tickers", 0)),
+        }
+        payload: Dict[str, Any] = {
+            "status": status,
+            "error": str(error or ""),
+            "started_at_utc": self.started_at,
+            "updated_at_utc": datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+            "elapsed_seconds": round(float(max(0.0, elapsed_seconds)), 3),
+            "input": {
+                "input_path": str(getattr(self.args, "input_path", "") or ""),
+                "dataset_id": str(getattr(self.args, "dataset_id", "") or ""),
+                "split": str(getattr(self.args, "split", "") or ""),
+            },
+            "output": {
+                "db": str(getattr(self.args, "db", "") or ""),
+                "out_path": str(self.out_path),
+                "dedupe_path": str(self.dedupe_path),
+                "corpus": str(getattr(self.args, "corpus", "") or ""),
+                "doc_type": str(getattr(self.args, "doc_type", "") or ""),
+                "embed_backend": str(getattr(self.args, "embed_backend", "") or ""),
+                "embed_model": str(getattr(self.args, "embed_model", "") or ""),
+            },
+            "quality_gates": {
+                "min_text_chars": int(getattr(self.args, "min_text_chars", 0) or 0),
+                "min_doc_date": str(getattr(self.args, "min_doc_date", "") or ""),
+                "max_doc_date": str(getattr(self.args, "max_doc_date", "") or ""),
+                "keep_non_english": bool(getattr(self.args, "keep_non_english", False)),
+                "asx_optimised_mode": bool(getattr(self.args, "asx_optimised_mode", False)),
+                "ticker_allowlist_enabled": bool(getattr(self.args, "_ticker_allowlist", None)),
+                "ticker_allowlist_size": self.ticker_allowlist_size,
+                "asx_company_name_allowlist_size": int(
+                    len(getattr(self.args, "_asx_company_names", set()) or set())
+                ),
+                "ticker_allowlist_drop_nonmatching": bool(
+                    getattr(self.args, "ticker_allowlist_drop_nonmatching", False)
+                ),
+            },
+            "stats": {
+                **keep_metrics,
+                "rows_dropped": dropped,
+                "output_chunks": int(stats.get("output_chunks", 0)),
+                "flush_batches": int(stats.get("flush_batches", 0)),
+                "dedupe_db_counts": read_dedupe_counts(self.dedupe_path),
+            },
+        }
+        if extra:
+            payload["extra"] = extra
+        return payload
+
+    def write(
+        self,
+        *,
+        stats: Dict[str, int],
+        elapsed_seconds: float,
+        status: str,
+        force: bool = False,
+        error: str = "",
+        extra: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        if not force:
+            flush_batches = int(stats.get("flush_batches", 0))
+            if flush_batches <= 0 or flush_batches % self.write_every != 0:
+                return
+        atomic_write_json(
+            self.path,
+            self._payload(stats=stats, elapsed_seconds=elapsed_seconds, status=status, error=error, extra=extra),
+        )
 
 
 def dedupe_db_default_path(out_path: Path) -> Path:
@@ -554,16 +1075,36 @@ def dedupe_db_default_path(out_path: Path) -> Path:
 
 def init_dedupe_db(path: Path) -> sqlite3.Connection:
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(path))
+    conn = sqlite3.connect(str(path), timeout=60.0)
     cur = conn.cursor()
     cur.execute("PRAGMA journal_mode=WAL")
     cur.execute("PRAGMA synchronous=NORMAL")
     cur.execute("PRAGMA temp_store=MEMORY")
+    cur.execute("PRAGMA busy_timeout=60000")
     cur.execute("CREATE TABLE IF NOT EXISTS seen_url (url_hash TEXT PRIMARY KEY)")
     cur.execute("CREATE TABLE IF NOT EXISTS seen_exact (exact_hash TEXT PRIMARY KEY)")
     cur.execute("CREATE TABLE IF NOT EXISTS seen_near (near_hash TEXT PRIMARY KEY)")
     conn.commit()
     return conn
+
+
+def execute_with_retry(
+    cur: sqlite3.Cursor,
+    sql: str,
+    params: Tuple[Any, ...],
+    retries: int = 8,
+    base_delay_sec: float = 0.15,
+) -> None:
+    for attempt in range(retries + 1):
+        try:
+            cur.execute(sql, params)
+            return
+        except sqlite3.OperationalError as exc:
+            if "locked" not in str(exc).lower():
+                raise
+            if attempt >= retries:
+                raise
+            time.sleep(base_delay_sec * (attempt + 1))
 
 
 def near_duplicate_hash(rec: NormalizedNewsRecord) -> str:
@@ -585,21 +1126,21 @@ def dedupe_keep_record(
     cur = conn.cursor()
     if rec.url:
         url_key = hashlib.sha1(rec.url.lower().encode("utf-8")).hexdigest()
-        cur.execute("INSERT OR IGNORE INTO seen_url(url_hash) VALUES (?)", (url_key,))
+        execute_with_retry(cur, "INSERT OR IGNORE INTO seen_url(url_hash) VALUES (?)", (url_key,))
         if cur.rowcount == 0:
             return "duplicate_url"
 
     exact_key = hashlib.sha1(
         normalize_text_for_dedupe(f"{rec.title}\n{rec.body}").encode("utf-8")
     ).hexdigest()
-    cur.execute("INSERT OR IGNORE INTO seen_exact(exact_hash) VALUES (?)", (exact_key,))
+    execute_with_retry(cur, "INSERT OR IGNORE INTO seen_exact(exact_hash) VALUES (?)", (exact_key,))
     if cur.rowcount == 0:
         return "duplicate_exact"
 
     if not skip_near_dedupe:
         near_key = near_duplicate_hash(rec)
         if near_key:
-            cur.execute("INSERT OR IGNORE INTO seen_near(near_hash) VALUES (?)", (near_key,))
+            execute_with_retry(cur, "INSERT OR IGNORE INTO seen_near(near_hash) VALUES (?)", (near_key,))
             if cur.rowcount == 0:
                 return "duplicate_near"
     return None
@@ -703,12 +1244,20 @@ def stream_normalize_and_index(
     dedupe_conn: sqlite3.Connection,
     normalized_jsonl_path: Optional[Path],
     embedding_jsonl_path: Optional[Path],
+    manifest_writer: Optional[ManifestWriter],
+    stats: Optional[Dict[str, int]] = None,
 ) -> Tuple[Dict[str, int], List[ctx.ChunkRecord], List[List[float]]]:
-    stats = init_stats()
+    stats = stats if stats is not None else init_stats()
     started_at = time.time()
+    asx_mode = bool(getattr(args, "asx_optimised_mode", False))
+    rss_mode = bool(str(getattr(args, "input_rss_feeds_file", "") or "").strip())
+    effective_min_text_chars = int(max(1, getattr(args, "_effective_min_text_chars", args.min_text_chars)))
+    asx_ticker_allowlist = set(getattr(args, "_ticker_allowlist", set()) or set())
+    asx_company_names = set(getattr(args, "_asx_company_names", set()) or set())
     normalized_batch: List[NormalizedNewsRecord] = []
     faiss_records: List[ctx.ChunkRecord] = []
     faiss_vectors: List[List[float]] = []
+    ticker_seen: Set[str] = set()
 
     norm_fh = None
     if normalized_jsonl_path is not None:
@@ -721,8 +1270,11 @@ def stream_normalize_and_index(
 
             normalized, reason = normalize_news_row(
                 row=row,
-                min_text_chars=max(1, args.min_text_chars),
+                min_text_chars=effective_min_text_chars,
                 keep_non_english=args.keep_non_english,
+                ticker_allowlist=getattr(args, "_ticker_allowlist", None),
+                drop_ticker_nonmatching_rows=bool(getattr(args, "ticker_allowlist_drop_nonmatching", False)),
+                skip_ticker_inference=rss_mode,
             )
             if not normalized:
                 stats[f"dropped_{reason}"] = stats.get(f"dropped_{reason}", 0) + 1
@@ -759,6 +1311,38 @@ def stream_normalize_and_index(
                         print_progress(stats, started_at)
                     continue
 
+            if asx_mode:
+                if not row_matches_australia_country_or_au_domain(row=row, normalized=normalized):
+                    stats["dropped_asx_country_or_domain"] += 1
+                    if args.progress_every > 0 and stats["input_rows"] % args.progress_every == 0:
+                        dedupe_conn.commit()
+                        if norm_fh is not None:
+                            norm_fh.flush()
+                        print_progress(stats, started_at)
+                    continue
+
+                ticker_hits = match_asx_allowlisted_tickers(
+                    normalized=normalized,
+                    ticker_allowlist=asx_ticker_allowlist,
+                )
+                company_name_hit = match_asx_company_names(
+                    normalized=normalized,
+                    company_names=asx_company_names,
+                )
+                if not ticker_hits and not company_name_hit:
+                    stats["dropped_asx_missing_entity_match"] += 1
+                    if args.progress_every > 0 and stats["input_rows"] % args.progress_every == 0:
+                        dedupe_conn.commit()
+                        if norm_fh is not None:
+                            norm_fh.flush()
+                        print_progress(stats, started_at)
+                    continue
+                if ticker_hits:
+                    merged_tickers = sorted(set(ctx.parse_ticker_blob(normalized.ticker)) | set(ticker_hits))
+                    merged_blob = ctx.serialize_tickers(merged_tickers)
+                    if merged_blob != normalized.ticker:
+                        normalized = replace(normalized, ticker=merged_blob)
+
             dedupe_reason = dedupe_keep_record(
                 rec=normalized,
                 conn=dedupe_conn,
@@ -774,6 +1358,12 @@ def stream_normalize_and_index(
                 continue
 
             stats["kept_rows"] += 1
+            if normalized.doc_date:
+                stats["kept_rows_with_doc_date"] += 1
+            parsed_tickers = ctx.parse_ticker_blob(normalized.ticker)
+            if parsed_tickers:
+                stats["kept_rows_with_ticker"] += 1
+                ticker_seen.update(parsed_tickers)
             if norm_fh is not None:
                 norm_fh.write(json.dumps(asdict(normalized), ensure_ascii=False) + "\n")
             normalized_batch.append(normalized)
@@ -793,12 +1383,24 @@ def stream_normalize_and_index(
                 dedupe_conn.commit()
                 if norm_fh is not None:
                     norm_fh.flush()
+                if manifest_writer is not None:
+                    manifest_writer.write(
+                        stats=stats,
+                        elapsed_seconds=time.time() - started_at,
+                        status="running",
+                    )
 
             if args.progress_every > 0 and stats["input_rows"] % args.progress_every == 0:
                 dedupe_conn.commit()
                 if norm_fh is not None:
                     norm_fh.flush()
                 print_progress(stats, started_at)
+                if manifest_writer is not None:
+                    manifest_writer.write(
+                        stats=stats,
+                        elapsed_seconds=time.time() - started_at,
+                        status="running",
+                    )
 
             if reached_cap:
                 break
@@ -814,6 +1416,14 @@ def stream_normalize_and_index(
                 embedding_jsonl_path=embedding_jsonl_path,
             )
         dedupe_conn.commit()
+        stats["unique_tickers"] = len(ticker_seen)
+        if manifest_writer is not None:
+            manifest_writer.write(
+                stats=stats,
+                elapsed_seconds=time.time() - started_at,
+                status="running",
+                force=True,
+            )
     finally:
         if norm_fh is not None:
             norm_fh.close()
@@ -937,6 +1547,11 @@ def query_after_build(args, out_path: Path, corpus: str) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description="Build isolated news corpus vector DB (experimental research module)")
     ap.add_argument("--input-path", default="", help="Optional local JSONL file/dir (offline mode)")
+    ap.add_argument(
+        "--input-rss-feeds-file",
+        default="",
+        help="Optional newline-separated feed list (URLs or local XML paths); triggers RSS ingestion mode.",
+    )
     ap.add_argument("--dataset-id", default=DEFAULT_DATASET_ID, help="Hugging Face dataset id")
     ap.add_argument("--dataset-config", default="", help="Optional Hugging Face dataset config name")
     ap.add_argument("--split", default="train", help="Dataset split")
@@ -966,12 +1581,34 @@ def main() -> int:
     ap.add_argument("--max-chars", type=int, default=1200, help="Chunk size in characters")
     ap.add_argument("--overlap-words", type=int, default=60, help="Chunk overlap in words")
     ap.add_argument("--min-text-chars", type=int, default=200, help="Minimum body length gate")
+    ap.add_argument("--rss-min-text-chars", type=int, default=40, help="Minimum body length gate for RSS mode")
     ap.add_argument("--min-doc-date", default="", help="Optional inclusive ingest date gate (YYYY-MM-DD)")
     ap.add_argument("--max-doc-date", default="", help="Optional inclusive ingest date gate (YYYY-MM-DD)")
     ap.add_argument("--keep-non-english", action="store_true", help="Disable simple English language gate")
+    ap.add_argument("--ticker-allowlist-path", default="", help="Optional ticker allowlist path (txt/csv/json/jsonl)")
+    ap.add_argument(
+        "--use-default-asx-allowlist",
+        action="store_true",
+        help=f"Use default ASX ticker allowlist at ./{DEFAULT_ASX_ALLOWLIST_RELATIVE}",
+    )
+    ap.add_argument(
+        "--ticker-allowlist-drop-nonmatching",
+        action="store_true",
+        help="When allowlist is active, drop rows that mention tickers but none are allowlisted",
+    )
+    ap.add_argument(
+        "--asx-optimised-mode",
+        action="store_true",
+        help=(
+            "Enable ASX-focused GDELT ingestion filters: Australia/.au source gate, "
+            "headline prioritization, and ASX entity match requirement."
+        ),
+    )
     ap.add_argument("--max-rows", type=int, default=0, help="Optional cap on kept normalized rows")
     ap.add_argument("--row-batch-size", type=int, default=512, help="Normalized row batch size before embed/store flush")
     ap.add_argument("--progress-every", type=int, default=50000, help="Print progress every N input rows (0 disables)")
+    ap.add_argument("--manifest-json", default="", help="Optional path to continuously write build manifest JSON")
+    ap.add_argument("--manifest-write-every", type=int, default=1, help="Write manifest every N flush batches")
     ap.add_argument("--dedupe-db", default="", help="Path for persistent dedupe state SQLite")
     ap.add_argument("--reset-dedupe-db", action="store_true", help="Delete existing dedupe DB before run")
     ap.add_argument("--reset-output", action="store_true", help="Delete existing output artifact before run")
@@ -987,10 +1624,32 @@ def main() -> int:
     ap.add_argument("--date-to", default="", help="Optional inclusive date filter (YYYY-MM-DD)")
     ap.add_argument("--top-k", type=int, default=8, help="Top-k retrieval results")
     ap.add_argument(
+        "--health-json",
+        default="reports/research_engine_health.json",
+        help="Health snapshot JSON path used for pre-run gating.",
+    )
+    ap.add_argument(
+        "--allow-warning",
+        action="store_true",
+        help="Allow execution when health snapshot overall_status=warning.",
+    )
+    ap.add_argument(
         "--research-only-ack",
         action="store_true",
         help="Required flag acknowledging this module is research-only without legal approval",
     )
+    ap.add_argument("--rss-out-jsonl", default="", help="Optional path to persist RSS intermediate JSONL")
+    ap.add_argument(
+        "--rss-identity-map-path",
+        default="financial-engine_v2/config/ticker_identity_map.json",
+        help="Ticker identity map path used by RSS ingester",
+    )
+    ap.add_argument("--rss-topic", default="asx_rss_headline", help="Topic label used for RSS rows")
+    ap.add_argument("--rss-request-timeout", type=float, default=15.0, help="RSS HTTP timeout seconds")
+    ap.add_argument("--rss-http-retries", type=int, default=2, help="RSS HTTP retries per feed")
+    ap.add_argument("--rss-user-agent", default="tenn-asx-rss-ingest/1.0", help="RSS fetch User-Agent")
+    ap.add_argument("--rss-keep-temp", action="store_true", help="Keep temporary RSS JSONL when auto-generated")
+    ap.add_argument("--debug-rss-pipeline", action="store_true", help="Print RSS-mode stage counters for diagnosis")
     args = ap.parse_args()
 
     if not args.research_only_ack:
@@ -1018,6 +1677,84 @@ def main() -> int:
     if args.min_doc_date and args.max_doc_date and args.min_doc_date > args.max_doc_date:
         print("--min-doc-date cannot be after --max-doc-date.", file=sys.stderr)
         return 2
+    if int(args.manifest_write_every) <= 0:
+        print("--manifest-write-every must be > 0", file=sys.stderr)
+        return 2
+    if args.input_path and args.input_rss_feeds_file:
+        print("--input-path and --input-rss-feeds-file are mutually exclusive.", file=sys.stderr)
+        return 2
+    if args.input_rss_feeds_file and args.asx_optimised_mode:
+        print("--input-rss-feeds-file cannot be combined with --asx-optimised-mode.", file=sys.stderr)
+        return 2
+
+    snapshot = load_health_snapshot(str(args.health_json))
+    health_status = get_overall_status(snapshot)
+    if bool(getattr(args, "debug_rss_pipeline", False)):
+        print(f"[debug-rss] health gate status: {health_status}")
+    assert_healthy(snapshot, allow_warning=bool(args.allow_warning))
+
+    if args.input_rss_feeds_file:
+        if str(args.corpus or "").strip() != "news_asx_rss":
+            print("[rss-mode] forcing corpus=news_asx_rss")
+        args.corpus = "news_asx_rss"
+        args._effective_min_text_chars = int(max(1, args.rss_min_text_chars))
+        print(f"[rss-mode] using rss_min_text_chars={int(args._effective_min_text_chars)}")
+    else:
+        args._effective_min_text_chars = int(max(1, args.min_text_chars))
+
+    if args.asx_optimised_mode:
+        if str(args.corpus or "").strip() != "news_asx_gdelt":
+            print("[asx-optimised] forcing corpus=news_asx_gdelt")
+        args.corpus = "news_asx_gdelt"
+
+    allowlist_path = str(args.ticker_allowlist_path or "").strip()
+    if args.use_default_asx_allowlist and not allowlist_path:
+        allowlist_path = str(default_asx_allowlist_path())
+    if args.input_rss_feeds_file and not allowlist_path:
+        allowlist_path = str(default_asx_allowlist_path())
+    if args.asx_optimised_mode and not allowlist_path:
+        allowlist_path = str(default_asx_allowlist_path())
+    ticker_allowlist: Optional[Set[str]] = None
+    allowlist_resolved_path: Optional[Path] = None
+    if allowlist_path:
+        allowlist_resolved_path = Path(allowlist_path).expanduser().resolve()
+        try:
+            ticker_allowlist = load_ticker_allowlist(allowlist_resolved_path)
+        except RuntimeError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        if not ticker_allowlist:
+            print(f"Ticker allowlist is empty after parsing: {allowlist_path}", file=sys.stderr)
+            return 2
+        print(f"ticker_allowlist={allowlist_path} size={len(ticker_allowlist)}")
+    elif args.ticker_allowlist_drop_nonmatching:
+        print(
+            "--ticker-allowlist-drop-nonmatching requires --ticker-allowlist-path "
+            "or --use-default-asx-allowlist",
+            file=sys.stderr,
+        )
+        return 2
+
+    if args.asx_optimised_mode and not ticker_allowlist:
+        print("--asx-optimised-mode requires a non-empty ticker allowlist.", file=sys.stderr)
+        return 2
+    if args.input_rss_feeds_file and not ticker_allowlist:
+        print("--input-rss-feeds-file requires a non-empty ticker allowlist.", file=sys.stderr)
+        return 2
+
+    asx_company_names: Set[str] = set()
+    if args.asx_optimised_mode and allowlist_resolved_path is not None:
+        try:
+            asx_company_names = load_allowlist_company_names(allowlist_resolved_path)
+        except RuntimeError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        if asx_company_names:
+            print(f"asx_company_names={len(asx_company_names)}")
+
+    # Internal transport for stream worker path.
+    args._ticker_allowlist = ticker_allowlist
+    args._asx_company_names = asx_company_names
 
     out_path = Path(args.out).expanduser()
     if args.db == "sqlite" and out_path.suffix != ".sqlite":
@@ -1033,6 +1770,23 @@ def main() -> int:
         dedupe_path.unlink()
     dedupe_conn = init_dedupe_db(dedupe_path)
     print(f"dedupe_db={dedupe_path}")
+    debug_dedupe_before = read_dedupe_counts(dedupe_path) if bool(getattr(args, "debug_rss_pipeline", False)) else {}
+    manifest_writer: Optional[ManifestWriter] = None
+    if args.manifest_json:
+        manifest_writer = ManifestWriter(
+            path=Path(args.manifest_json).expanduser().resolve(),
+            write_every=int(args.manifest_write_every),
+            args=args,
+            out_path=out_path,
+            dedupe_path=dedupe_path,
+            ticker_allowlist_size=len(ticker_allowlist or set()),
+        )
+        manifest_writer.write(
+            stats=init_stats(),
+            elapsed_seconds=0.0,
+            status="running",
+            force=True,
+        )
 
     embedding_jsonl_path: Optional[Path] = None
     if args.write_embedding_jsonl:
@@ -1047,7 +1801,28 @@ def main() -> int:
     if args.normalized_jsonl:
         normalized_jsonl_path = Path(args.normalized_jsonl).expanduser()
 
-    if args.input_path:
+    rss_temp_dir: Optional[Path] = None
+    rss_jsonl_debug_count: Optional[int] = None
+    if args.input_rss_feeds_file:
+        assert allowlist_resolved_path is not None
+        rss_jsonl_path, rss_temp_dir, rss_report = prepare_rss_input_jsonl(
+            args=args,
+            ticker_allowlist_path=allowlist_resolved_path,
+        )
+        print(json.dumps({"rss_ingest": rss_report}, indent=2))
+        if bool(getattr(args, "debug_rss_pipeline", False)):
+            rss_exists = rss_jsonl_path.exists()
+            rss_size_bytes = int(rss_jsonl_path.stat().st_size) if rss_exists else 0
+            rss_jsonl_debug_count = count_jsonl_rows(rss_jsonl_path) if rss_exists else 0
+            print(
+                f"[debug-rss] rss_jsonl_path={rss_jsonl_path} exists={rss_exists} "
+                f"size_bytes={rss_size_bytes} rows={rss_jsonl_debug_count}"
+            )
+            print(f"[debug-rss] target_corpus={args.corpus}")
+            print(f"[debug-rss] min_text_chars={int(args._effective_min_text_chars)}")
+        args.input_path = str(rss_jsonl_path)
+        rows_iter = iter_local_rows(rss_jsonl_path)
+    elif args.input_path:
         rows_iter = iter_local_rows(Path(args.input_path).expanduser().resolve())
     else:
         rows_iter = iter_hf_rows(
@@ -1057,7 +1832,13 @@ def main() -> int:
             token_env=args.hf_token_env,
             dataset_config=args.dataset_config,
         )
+    if args.asx_optimised_mode:
+        rows_iter = iter_asx_prioritized_rows(rows_iter)
 
+    main_started_at = time.time()
+    stats: Dict[str, int] = init_stats()
+    faiss_records: List[ctx.ChunkRecord]
+    faiss_vectors: List[List[float]]
     try:
         stats, faiss_records, faiss_vectors = stream_normalize_and_index(
             rows=rows_iter,
@@ -1066,9 +1847,54 @@ def main() -> int:
             dedupe_conn=dedupe_conn,
             normalized_jsonl_path=normalized_jsonl_path,
             embedding_jsonl_path=embedding_jsonl_path,
+            manifest_writer=manifest_writer,
+            stats=stats,
         )
+    except Exception as exc:
+        if manifest_writer is not None:
+            manifest_writer.write(
+                stats=stats,
+                elapsed_seconds=time.time() - main_started_at,
+                status="failed",
+                force=True,
+                error=str(exc),
+            )
+        dedupe_conn.close()
+        raise
     finally:
         dedupe_conn.close()
+        if rss_temp_dir is not None and rss_temp_dir.exists() and not bool(getattr(args, "rss_keep_temp", False)):
+            shutil.rmtree(rss_temp_dir, ignore_errors=True)
+
+    if bool(getattr(args, "debug_rss_pipeline", False)) and args.input_rss_feeds_file:
+        dedupe_after = read_dedupe_counts(dedupe_path)
+        input_rows = int(stats.get("input_rows", 0) or 0)
+        dropped_short_text = int(stats.get("dropped_short_text", 0) or 0)
+        dropped_non_english = int(stats.get("dropped_non_english", 0) or 0)
+        rows_after_min_text = max(0, input_rows - dropped_short_text)
+        dedupe_dropped_total = int(stats.get("dropped_duplicate_url", 0) or 0) + int(
+            stats.get("dropped_duplicate_exact", 0) or 0
+        ) + int(stats.get("dropped_duplicate_near", 0) or 0)
+        print(
+            json.dumps(
+                {
+                    "debug_rss_pipeline": {
+                        "rows_read_from_jsonl": int(rss_jsonl_debug_count or 0),
+                        "rows_seen_by_normalizer": input_rows,
+                        "rows_surviving_min_text_chars": rows_after_min_text,
+                        "rows_dropped_short_text": dropped_short_text,
+                        "rows_dropped_non_english": dropped_non_english,
+                        "rows_surviving_dedupe_db": int(stats.get("kept_rows", 0) or 0),
+                        "rows_dropped_by_dedupe_db": dedupe_dropped_total,
+                        "rows_inserted_chunks": int(stats.get("output_chunks", 0) or 0),
+                        "corpus_to_write": str(args.corpus or ""),
+                        "dedupe_db_before": debug_dedupe_before,
+                        "dedupe_db_after": dedupe_after,
+                    }
+                },
+                indent=2,
+            )
+        )
 
     if stats["kept_rows"] == 0:
         # Keep SQLite schema available even when all rows are filtered out.
@@ -1076,8 +1902,30 @@ def main() -> int:
         # after --reset-output runs that intentionally produce zero records.
         if args.db == "sqlite":
             ctx.store_sqlite([], [], out_path)
+        if manifest_writer is not None:
+            manifest_writer.write(
+                stats=stats,
+                elapsed_seconds=time.time() - main_started_at,
+                status="failed",
+                force=True,
+                error="No normalized news records remained after quality and dedupe gates.",
+            )
         print("No normalized news records remained after quality and dedupe gates.", file=sys.stderr)
         print(json.dumps(stats, indent=2), file=sys.stderr)
+        if bool(getattr(args, "debug_rss_pipeline", False)) and args.db == "sqlite":
+            try:
+                conn = sqlite3.connect(str(out_path))
+                cur = conn.cursor()
+                row = cur.execute(
+                    "SELECT COUNT(*) FROM context_chunks WHERE corpus = ?",
+                    (str(args.corpus or ""),),
+                ).fetchone()
+                conn.close()
+                corpus_count = int((row or [0])[0] or 0)
+            except Exception as exc:
+                corpus_count = -1
+                print(f"[debug-rss] sqlite corpus count query failed: {exc}", file=sys.stderr)
+            print(f"[debug-rss] sqlite corpus chunk count after run: {corpus_count}", file=sys.stderr)
         return 1
 
     if args.db == "sqlite":
@@ -1092,7 +1940,27 @@ def main() -> int:
         print(f"Stored {len(faiss_records)} chunks in FAISS dir: {out_path}")
     else:
         raise AssertionError("Unhandled db backend")
+    if bool(getattr(args, "debug_rss_pipeline", False)) and args.db == "sqlite":
+        try:
+            conn = sqlite3.connect(str(out_path))
+            cur = conn.cursor()
+            row = cur.execute(
+                "SELECT COUNT(*) FROM context_chunks WHERE corpus = ?",
+                (str(args.corpus or ""),),
+            ).fetchone()
+            conn.close()
+            corpus_count = int((row or [0])[0] or 0)
+            print(f"[debug-rss] sqlite corpus chunk count after run: {corpus_count}")
+        except Exception as exc:
+            print(f"[debug-rss] sqlite corpus count query failed: {exc}")
 
+    if manifest_writer is not None:
+        manifest_writer.write(
+            stats=stats,
+            elapsed_seconds=time.time() - main_started_at,
+            status="success",
+            force=True,
+        )
     print(json.dumps(stats, indent=2))
     query_after_build(args=args, out_path=out_path, corpus=args.corpus)
     return 0

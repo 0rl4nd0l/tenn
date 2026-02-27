@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import collections
 import hashlib
 import json
 import math
@@ -14,7 +15,12 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+from health_guard import assert_healthy, load_health_snapshot
 
 
 SECTION_PATTERNS: Dict[str, List[re.Pattern[str]]] = {
@@ -46,6 +52,8 @@ SECTION_PATTERNS: Dict[str, List[re.Pattern[str]]] = {
 GENERIC_HEADING_RE = re.compile(r"^[A-Z][A-Z\s&/\-(),]{4,}$")
 TOKEN_RE = re.compile(r"[a-zA-Z0-9_]+")
 RERANK_TOKEN_RE = re.compile(r"[a-zA-Z0-9]+")
+ALLOWLIST_TOKEN_RE = re.compile(r"[A-Za-z0-9]{1,12}")
+COMPANY_SYMBOL_RE = re.compile(r"^[A-Z0-9]{2,6}$")
 _ST_MODEL_CACHE: Dict[Tuple[str, str], Any] = {}
 
 
@@ -58,6 +66,7 @@ class SectionSpan:
     corpus: str = "company"
     doc_type: str = "other"
     doc_date: str = ""
+    bad_metadata_reason: str = ""
 
 
 @dataclass
@@ -76,6 +85,7 @@ class ChunkRecord:
     url: str = ""
     title: str = ""
     published_at: str = ""
+    bad_metadata_reason: str = ""
 
 
 def clean_text(text: str) -> str:
@@ -270,6 +280,136 @@ def normalize_ticker_symbol(value: str) -> str:
     return sym
 
 
+def canonical_company_symbol(value: str) -> str:
+    sym = re.sub(r"[^A-Za-z0-9]", "", str(value or "").strip().upper())
+    if not sym:
+        return ""
+    if len(sym) > 6:
+        return ""
+    return sym
+
+
+def _is_valid_company_symbol(value: str) -> bool:
+    sym = canonical_company_symbol(value)
+    if not sym:
+        return False
+    if not COMPANY_SYMBOL_RE.fullmatch(sym):
+        return False
+    return bool(re.search(r"[A-Z]", sym))
+
+
+def validate_company_symbol(value: str, allowlist: Optional[Set[str]] = None) -> Tuple[str, str]:
+    raw = str(value or "").strip()
+    sym = canonical_company_symbol(raw)
+    if not raw:
+        return "UNKNOWN", "missing_company"
+    if not sym:
+        return "UNKNOWN", "invalid_company_format"
+    if not _is_valid_company_symbol(sym):
+        return "UNKNOWN", "invalid_company_format"
+    if allowlist is not None and allowlist and sym not in allowlist:
+        return "UNKNOWN", "company_not_in_allowlist"
+    return sym, ""
+
+
+def _collect_allowlist_tokens(value: Any, out: Set[str]) -> None:
+    if value is None:
+        return
+    if isinstance(value, dict):
+        for k, v in value.items():
+            _collect_allowlist_tokens(k, out)
+            _collect_allowlist_tokens(v, out)
+        return
+    if isinstance(value, (list, tuple, set)):
+        for item in value:
+            _collect_allowlist_tokens(item, out)
+        return
+    text = str(value).strip()
+    if not text:
+        return
+    for token in ALLOWLIST_TOKEN_RE.findall(text):
+        sym = canonical_company_symbol(token)
+        if _is_valid_company_symbol(sym):
+            out.add(sym)
+
+
+def _iter_jsonl(path: Path) -> Iterable[Dict[str, Any]]:
+    with path.open("r", encoding="utf-8") as fh:
+        for line in fh:
+            text = line.strip()
+            if not text:
+                continue
+            try:
+                row = json.loads(text)
+            except Exception:
+                continue
+            if isinstance(row, dict):
+                yield row
+
+
+def load_company_allowlist(path: Path) -> Set[str]:
+    if not path.exists():
+        raise RuntimeError(f"Company allowlist path does not exist: {path}")
+    out: Set[str] = set()
+    suffix = path.suffix.lower()
+    if suffix == ".json":
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            _collect_allowlist_tokens(payload, out)
+            return out
+        except Exception:
+            pass
+    if suffix == ".jsonl":
+        for row in _iter_jsonl(path):
+            _collect_allowlist_tokens(row, out)
+        return out
+    with path.open("r", encoding="utf-8") as fh:
+        for line in fh:
+            _collect_allowlist_tokens(line, out)
+    return out
+
+
+def summarize_company_metadata(records: Sequence[ChunkRecord]) -> Dict[str, Any]:
+    company_counts = collections.Counter(str(rec.company or "UNKNOWN") for rec in records)
+    invalid_reason_counts = collections.Counter(
+        str(rec.bad_metadata_reason or "").strip()
+        for rec in records
+        if str(rec.bad_metadata_reason or "").strip()
+    )
+    total = int(len(records))
+    invalid_count = int(sum(invalid_reason_counts.values()))
+    ratio_pct = (100.0 * invalid_count / total) if total > 0 else 0.0
+    top_companies = [
+        {"company": company, "count": int(count)}
+        for company, count in company_counts.most_common(20)
+    ]
+    invalid_reasons = {reason: int(count) for reason, count in invalid_reason_counts.items()}
+    return {
+        "total_chunks": total,
+        "invalid_company_count": invalid_count,
+        "invalid_company_ratio_pct": round(ratio_pct, 4),
+        "company_distribution_top": top_companies,
+        "invalid_reasons": invalid_reasons,
+    }
+
+
+def company_validation_gate_failed(
+    summary: Dict[str, Any],
+    threshold_pct: float,
+    min_count: int,
+) -> Tuple[bool, str]:
+    invalid_count = int(summary.get("invalid_company_count", 0) or 0)
+    ratio_pct = float(summary.get("invalid_company_ratio_pct", 0.0) or 0.0)
+    threshold = float(max(0.0, threshold_pct))
+    minimum = int(max(0, min_count))
+    tripped = invalid_count >= minimum and ratio_pct > threshold
+    reason = (
+        f"invalid_company_ratio_pct={ratio_pct:.4f} "
+        f"threshold_pct={threshold:.4f} invalid_company_count={invalid_count} min_count={minimum}"
+    )
+    return tripped, reason
+
+
 def serialize_tickers(values: Sequence[str]) -> str:
     seen = set()
     out: List[str] = []
@@ -304,7 +444,12 @@ def ticker_blob_contains(blob: str, ticker: str) -> bool:
     return target in set(parse_ticker_blob(blob))
 
 
-def extract_target_sections(file_path: Path, text: str, company: str) -> List[SectionSpan]:
+def extract_target_sections(
+    file_path: Path,
+    text: str,
+    company: str,
+    bad_metadata_reason: str = "",
+) -> List[SectionSpan]:
     out: List[SectionSpan] = []
     lines = text.splitlines()
     current_section: Optional[str] = None
@@ -315,7 +460,15 @@ def extract_target_sections(file_path: Path, text: str, company: str) -> List[Se
         if current_section and buffer:
             payload = "\n".join(x for x in buffer if x.strip()).strip()
             if payload:
-                out.append(SectionSpan(file_path=file_path, company=company, section=current_section, text=payload))
+                out.append(
+                    SectionSpan(
+                        file_path=file_path,
+                        company=company,
+                        section=current_section,
+                        text=payload,
+                        bad_metadata_reason=bad_metadata_reason,
+                    )
+                )
         buffer = []
 
     for raw in lines:
@@ -350,6 +503,7 @@ def extract_full_document_span(
     corpus: str,
     doc_type: str,
     doc_date: str,
+    bad_metadata_reason: str = "",
 ) -> List[SectionSpan]:
     payload = clean_text(text).strip()
     if not payload:
@@ -363,6 +517,7 @@ def extract_full_document_span(
             corpus=corpus,
             doc_type=doc_type,
             doc_date=doc_date,
+            bad_metadata_reason=bad_metadata_reason,
         )
     ]
 
@@ -432,6 +587,7 @@ def build_chunk_records(spans: Sequence[SectionSpan], max_chars: int, overlap_wo
                     ticker=ticker_blob,
                     title=title,
                     published_at=published_at,
+                    bad_metadata_reason=str(span.bad_metadata_reason or ""),
                 )
             )
     return records
@@ -665,6 +821,7 @@ def write_jsonl(records: Sequence[ChunkRecord], vectors: Sequence[Sequence[float
                 "url": rec.url,
                 "title": rec.title,
                 "published_at": rec.published_at,
+                "bad_metadata_reason": rec.bad_metadata_reason,
                 "text": rec.text,
                 "embedding": list(vec),
             }
@@ -694,6 +851,7 @@ def store_sqlite(records: Sequence[ChunkRecord], vectors: Sequence[Sequence[floa
                 url TEXT NOT NULL DEFAULT '',
                 title TEXT NOT NULL DEFAULT '',
                 published_at TEXT NOT NULL DEFAULT '',
+                bad_metadata_reason TEXT NOT NULL DEFAULT '',
                 company TEXT NOT NULL,
                 file TEXT NOT NULL,
                 section TEXT NOT NULL,
@@ -720,6 +878,8 @@ def store_sqlite(records: Sequence[ChunkRecord], vectors: Sequence[Sequence[floa
             cur.execute("ALTER TABLE context_chunks ADD COLUMN title TEXT NOT NULL DEFAULT ''")
         if "published_at" not in sqlite_columns(cur, "context_chunks"):
             cur.execute("ALTER TABLE context_chunks ADD COLUMN published_at TEXT NOT NULL DEFAULT ''")
+        if "bad_metadata_reason" not in sqlite_columns(cur, "context_chunks"):
+            cur.execute("ALTER TABLE context_chunks ADD COLUMN bad_metadata_reason TEXT NOT NULL DEFAULT ''")
 
         cur.execute("CREATE INDEX IF NOT EXISTS idx_context_corpus ON context_chunks(corpus)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_context_doc_type ON context_chunks(doc_type)")
@@ -741,6 +901,7 @@ def store_sqlite(records: Sequence[ChunkRecord], vectors: Sequence[Sequence[floa
                 rec.url,
                 rec.title,
                 rec.published_at,
+                rec.bad_metadata_reason,
                 rec.company,
                 rec.file,
                 rec.section,
@@ -753,9 +914,9 @@ def store_sqlite(records: Sequence[ChunkRecord], vectors: Sequence[Sequence[floa
             """
             INSERT INTO context_chunks(
                 chunk_id, corpus, doc_type, doc_date, source, ticker, topic, url, title, published_at,
-                company, file, section, text, embedding_json
+                bad_metadata_reason, company, file, section, text, embedding_json
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(chunk_id) DO UPDATE SET
                 corpus=excluded.corpus,
                 doc_type=excluded.doc_type,
@@ -766,6 +927,7 @@ def store_sqlite(records: Sequence[ChunkRecord], vectors: Sequence[Sequence[floa
                 url=excluded.url,
                 title=excluded.title,
                 published_at=excluded.published_at,
+                bad_metadata_reason=excluded.bad_metadata_reason,
                 company=excluded.company,
                 file=excluded.file,
                 section=excluded.section,
@@ -807,6 +969,7 @@ def store_faiss(records: Sequence[ChunkRecord], vectors: Sequence[Sequence[float
             "url": rec.url,
             "title": rec.title,
             "published_at": rec.published_at,
+            "bad_metadata_reason": rec.bad_metadata_reason,
             "company": rec.company,
             "file": rec.file,
             "section": rec.section,
@@ -841,6 +1004,7 @@ def store_chroma(records: Sequence[ChunkRecord], vectors: Sequence[Sequence[floa
             "url": rec.url,
             "title": rec.title,
             "published_at": rec.published_at,
+            "bad_metadata_reason": rec.bad_metadata_reason,
             "company": rec.company,
             "file": rec.file,
             "section": rec.section,
@@ -1058,6 +1222,7 @@ def query_sqlite(
         has_url = "url" in cols
         has_title = "title" in cols
         has_published_at = "published_at" in cols
+        has_bad_metadata_reason = "bad_metadata_reason" in cols
 
         select_cols = ["chunk_id", "company", "file", "section", "text", "embedding_json"]
         if has_corpus:
@@ -1078,6 +1243,8 @@ def query_sqlite(
             select_cols.append("title")
         if has_published_at:
             select_cols.append("published_at")
+        if has_bad_metadata_reason:
+            select_cols.append("bad_metadata_reason")
 
         base = f"SELECT {', '.join(select_cols)}"
         base += " FROM context_chunks"
@@ -1129,6 +1296,7 @@ def query_sqlite(
             url = str(row[col_idx["url"]]) if has_url else ""
             title = str(row[col_idx["title"]]) if has_title else ""
             published_at = str(row[col_idx["published_at"]]) if has_published_at else ""
+            bad_metadata_reason = str(row[col_idx["bad_metadata_reason"]]) if has_bad_metadata_reason else ""
 
             if source_filter and not has_source:
                 continue
@@ -1155,6 +1323,7 @@ def query_sqlite(
                 "url": url,
                 "title": title,
                 "published_at": published_at,
+                "bad_metadata_reason": bad_metadata_reason,
                 "text": text,
             }
             row_payload = enrich_company_row_metadata(row_payload)
@@ -1251,6 +1420,7 @@ def query_faiss(
         row.setdefault("url", "")
         row.setdefault("title", "")
         row.setdefault("published_at", "")
+        row.setdefault("bad_metadata_reason", "")
         row = enrich_company_row_metadata(row)
         if not doc_type_matches(str(row.get("doc_type", "other")), doc_type_filter, row):
             continue
@@ -1335,6 +1505,7 @@ def query_chroma(
         row.setdefault("url", "")
         row.setdefault("title", "")
         row.setdefault("published_at", "")
+        row.setdefault("bad_metadata_reason", "")
         row = enrich_company_row_metadata(row)
         if normalized_ticker and not ticker_blob_contains(str(row.get("ticker", "")), normalized_ticker):
             continue
@@ -1348,6 +1519,13 @@ def query_chroma(
     out.sort(key=lambda x: x[0], reverse=True)
     out = out[:top_k]
     return out
+
+
+def atomic_write_json(path: Path, payload: Dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    tmp.replace(path)
 
 
 def main() -> int:
@@ -1389,6 +1567,24 @@ def main() -> int:
     ap.add_argument("--hash-dim", type=int, default=384, help="Vector size for hash embeddings")
     ap.add_argument("--max-chars", type=int, default=1200, help="Max chunk size in characters")
     ap.add_argument("--overlap-words", type=int, default=60, help="Chunk overlap in words")
+    ap.add_argument(
+        "--company-allowlist-path",
+        default="",
+        help="Optional company ticker allowlist (txt/json/jsonl). Invalid symbols become UNKNOWN.",
+    )
+    ap.add_argument(
+        "--invalid-company-fail-threshold-pct",
+        type=float,
+        default=1.0,
+        help="Fail run when invalid company chunk ratio exceeds this pct and min count is reached.",
+    )
+    ap.add_argument(
+        "--invalid-company-fail-min-count",
+        type=int,
+        default=20,
+        help="Minimum invalid company chunk count required before fail threshold applies.",
+    )
+    ap.add_argument("--manifest-json", default="", help="Optional path to write run manifest JSON")
     ap.add_argument("--query", default="", help="Optional retrieval query to run after indexing")
     ap.add_argument("--company", default="", help="Optional company filter for retrieval query")
     ap.add_argument("--corpus-filter", default="", help="Optional corpus filter for retrieval query")
@@ -1404,6 +1600,16 @@ def main() -> int:
     ap.add_argument("--date-from", default="", help="Optional inclusive date filter (YYYY-MM-DD)")
     ap.add_argument("--date-to", default="", help="Optional inclusive date filter (YYYY-MM-DD)")
     ap.add_argument("--top-k", type=int, default=6, help="Top-k retrieval results")
+    ap.add_argument(
+        "--health-json",
+        default="reports/research_engine_health.json",
+        help="Health snapshot JSON path used for pre-run gating.",
+    )
+    ap.add_argument(
+        "--allow-warning",
+        action="store_true",
+        help="Allow execution when health snapshot overall_status=warning.",
+    )
     args = ap.parse_args()
 
     if shutil.which("pdftotext") is None:
@@ -1424,6 +1630,32 @@ def main() -> int:
     if args.date_from and args.date_to and args.date_from > args.date_to:
         print("--date-from cannot be after --date-to.", file=sys.stderr)
         return 2
+    if float(args.invalid_company_fail_threshold_pct) < 0.0:
+        print("--invalid-company-fail-threshold-pct must be >= 0.", file=sys.stderr)
+        return 2
+    if int(args.invalid_company_fail_min_count) < 0:
+        print("--invalid-company-fail-min-count must be >= 0.", file=sys.stderr)
+        return 2
+
+    snapshot = load_health_snapshot(str(args.health_json))
+    assert_healthy(snapshot, allow_warning=bool(args.allow_warning))
+
+    manifest_path = Path(args.manifest_json).expanduser().resolve() if args.manifest_json else None
+    run_started_at = datetime.datetime.utcnow()
+
+    allowlist_path_value = str(args.company_allowlist_path or "").strip()
+    company_allowlist: Optional[Set[str]] = None
+    if allowlist_path_value:
+        allowlist_path = Path(allowlist_path_value).expanduser().resolve()
+        try:
+            company_allowlist = load_company_allowlist(allowlist_path)
+        except RuntimeError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        if not company_allowlist:
+            print(f"Company allowlist is empty after parsing: {allowlist_path}", file=sys.stderr)
+            return 2
+        print(f"company_allowlist={allowlist_path} size={len(company_allowlist)}")
 
     pdfs = find_pdfs(pdf_root)
     if not pdfs:
@@ -1431,14 +1663,20 @@ def main() -> int:
         return 2
 
     spans: List[SectionSpan] = []
+    parse_failed_pdfs = 0
+    invalid_company_docs = 0
     for pdf in pdfs:
         try:
             text = extract_pdf_text(pdf)
         except subprocess.CalledProcessError as exc:
             print(f"[warn] failed to parse {pdf}: {exc}", file=sys.stderr)
+            parse_failed_pdfs += 1
             continue
 
-        company = derive_company(pdf, pdf_root)
+        raw_company = derive_company(pdf, pdf_root)
+        company, bad_metadata_reason = validate_company_symbol(raw_company, allowlist=company_allowlist)
+        if bad_metadata_reason:
+            invalid_company_docs += 1
         doc_type = infer_doc_type(pdf, text)
         doc_date = infer_doc_date(pdf)
         if args.content_scope == "fulltext":
@@ -1450,11 +1688,17 @@ def main() -> int:
                     corpus=args.corpus,
                     doc_type=doc_type,
                     doc_date=doc_date,
+                    bad_metadata_reason=bad_metadata_reason,
                 )
             )
             continue
 
-        target_spans = extract_target_sections(pdf, text, company)
+        target_spans = extract_target_sections(
+            pdf,
+            text,
+            company,
+            bad_metadata_reason=bad_metadata_reason,
+        )
         if target_spans:
             for sp in target_spans:
                 sp.corpus = args.corpus
@@ -1472,6 +1716,7 @@ def main() -> int:
                     corpus=args.corpus,
                     doc_type=doc_type,
                     doc_date=doc_date,
+                    bad_metadata_reason=bad_metadata_reason,
                 )
             )
 
@@ -1486,6 +1731,13 @@ def main() -> int:
     if not records:
         print("Sections found but no chunks generated.")
         return 1
+
+    company_summary = summarize_company_metadata(records)
+    gate_failed, gate_reason = company_validation_gate_failed(
+        company_summary,
+        threshold_pct=float(args.invalid_company_fail_threshold_pct),
+        min_count=int(args.invalid_company_fail_min_count),
+    )
 
     vectors = embed_texts(
         [r.text for r in records],
@@ -1513,6 +1765,7 @@ def main() -> int:
     else:
         raise AssertionError("Unhandled db backend")
 
+    query_result_count = 0
     if args.query:
         corpus_filter = args.corpus_filter or args.corpus
         if args.db == "sqlite":
@@ -1580,17 +1833,62 @@ def main() -> int:
 
         if not result_rows:
             print("No retrieval results for that query.")
-            return 0
+        else:
+            query_result_count = len(result_rows)
 
-        for rank, (score, row) in enumerate(result_rows, start=1):
-            print(
-                f"\n[{rank}] score={score:.4f} "
-                f"corpus={row.get('corpus', '')} company={row.get('company', '')} "
-                f"doc_type={row.get('doc_type', '')} doc_date={row.get('doc_date', '')} "
-                f"source={row.get('source', '')} ticker={row.get('ticker', '')} "
-                f"section={row.get('section', '')} file={row.get('file', '')}"
-            )
-            print(str(row.get("text", ""))[:600].strip())
+            for rank, (score, row) in enumerate(result_rows, start=1):
+                print(
+                    f"\n[{rank}] score={score:.4f} "
+                    f"corpus={row.get('corpus', '')} company={row.get('company', '')} "
+                    f"doc_type={row.get('doc_type', '')} doc_date={row.get('doc_date', '')} "
+                    f"source={row.get('source', '')} ticker={row.get('ticker', '')} "
+                    f"section={row.get('section', '')} file={row.get('file', '')}"
+                )
+                print(str(row.get("text", ""))[:600].strip())
+
+    manifest_payload = {
+        "status": "failed" if gate_failed else "success",
+        "error": gate_reason if gate_failed else "",
+        "started_at_utc": run_started_at.replace(microsecond=0).isoformat() + "Z",
+        "updated_at_utc": datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+        "elapsed_seconds": round((datetime.datetime.utcnow() - run_started_at).total_seconds(), 3),
+        "input": {
+            "pdf_dir": str(pdf_root),
+            "pdf_count": len(pdfs),
+            "parse_failed_pdfs": int(parse_failed_pdfs),
+            "invalid_company_docs": int(invalid_company_docs),
+            "content_scope": str(args.content_scope),
+            "fallback_fulltext": bool(args.fallback_fulltext),
+            "company_allowlist_path": allowlist_path_value,
+            "company_allowlist_size": int(len(company_allowlist or set())),
+        },
+        "output": {
+            "db": str(args.db),
+            "out_path": str(out_path),
+            "corpus": str(args.corpus),
+            "embed_backend": str(args.embed_backend),
+            "embed_model": str(args.embed_model),
+            "chunks_written": int(len(records)),
+            "query_result_count": int(query_result_count),
+        },
+        "company_validation": {
+            **company_summary,
+            "threshold_pct": float(args.invalid_company_fail_threshold_pct),
+            "min_count": int(args.invalid_company_fail_min_count),
+            "gate_failed": bool(gate_failed),
+            "gate_reason": gate_reason,
+        },
+    }
+    if manifest_path is not None:
+        atomic_write_json(manifest_path, manifest_payload)
+
+    if gate_failed:
+        print(
+            "Company validation gate failed: "
+            f"{gate_reason}. Chunks were written with company=UNKNOWN and bad_metadata_reason.",
+            file=sys.stderr,
+        )
+        return 1
 
     return 0
 

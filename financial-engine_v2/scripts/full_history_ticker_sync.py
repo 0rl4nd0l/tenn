@@ -16,9 +16,13 @@ from _run_metadata import build_run_metadata
 REPO_ROOT = Path(__file__).resolve().parents[1]
 os.chdir(REPO_ROOT)
 sys.path.insert(0, str(REPO_ROOT / "backend"))
+ROOT_SCRIPTS = REPO_ROOT.parent / "scripts"
+if str(ROOT_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(ROOT_SCRIPTS))
 
 from app.providers.universe import ASX20  # noqa: E402
 from app.services.pipeline import backfill_ticker_sync  # noqa: E402
+from health_guard import assert_healthy, load_health_snapshot  # noqa: E402
 
 
 def _parse_tickers(values):
@@ -149,6 +153,21 @@ def build_parser():
         default=sys.executable,
         help="Python executable for child scripts.",
     )
+    parser.add_argument(
+        "--audit-extraction-backlog",
+        action="store_true",
+        help="After sync/resume, run extraction backlog audit + failure taxonomy reports.",
+    )
+    parser.add_argument(
+        "--health-json",
+        default=str(REPO_ROOT.parent / "reports" / "research_engine_health.json"),
+        help="Health snapshot JSON path used for pre-run gating.",
+    )
+    parser.add_argument(
+        "--allow-warning",
+        action="store_true",
+        help="Allow execution when health snapshot overall_status=warning.",
+    )
     return parser
 
 
@@ -207,12 +226,16 @@ def main():
                 "resume_pending": not args.no_resume_pending,
                 "resume_max_retries": args.resume_max_retries,
                 "resume_retry_delay_seconds": args.resume_retry_delay_seconds,
+                "audit_extraction_backlog": bool(args.audit_extraction_backlog),
                 "report": str(args.report),
             },
             "resume_command": resume_cmd,
         }
         print(json.dumps(plan, indent=2, default=str))
         return
+
+    snapshot = load_health_snapshot(str(args.health_json))
+    assert_healthy(snapshot, allow_warning=bool(args.allow_warning))
 
     report_path = Path(args.report)
     report_path.parent.mkdir(parents=True, exist_ok=True)
@@ -230,6 +253,7 @@ def main():
             "resume_pending": not args.no_resume_pending,
             "resume_max_retries": args.resume_max_retries,
             "resume_retry_delay_seconds": args.resume_retry_delay_seconds,
+            "audit_extraction_backlog": bool(args.audit_extraction_backlog),
         },
         "backfill": {
             "results": [],
@@ -242,6 +266,7 @@ def main():
             },
         },
         "resume": None,
+        "post_reports": {},
     }
 
     backfill_failed = False
@@ -339,6 +364,43 @@ def main():
             except Exception as exc:
                 resume_payload["report_load_error"] = str(exc)
         summary["resume"] = resume_payload
+
+    if args.audit_extraction_backlog:
+        backlog_audit_path = report_path.with_name(f"{report_path.stem}_extraction_backlog_audit.json")
+        taxonomy_path = report_path.with_name(f"{report_path.stem}_extraction_failure_taxonomy.json")
+        audit_cmd = [
+            args.python,
+            str(REPO_ROOT / "scripts" / "audit_extraction_backlog.py"),
+            "--out-json",
+            str(backlog_audit_path),
+        ]
+        classify_cmd = [
+            args.python,
+            str(REPO_ROOT / "scripts" / "classify_extraction_failures.py"),
+            "--out-json",
+            str(taxonomy_path),
+        ]
+        env = os.environ.copy()
+        existing_pythonpath = env.get("PYTHONPATH", "")
+        env["PYTHONPATH"] = f"backend{os.pathsep}{existing_pythonpath}" if existing_pythonpath else "backend"
+        env.setdefault("DATABASE_URL", "sqlite:///./data/fe_local.db")
+
+        print(f"[post] running: {' '.join(audit_cmd)}", flush=True)
+        audit_run = subprocess.run(audit_cmd, cwd=str(REPO_ROOT), env=env, check=False)
+        print(f"[post] running: {' '.join(classify_cmd)}", flush=True)
+        classify_run = subprocess.run(classify_cmd, cwd=str(REPO_ROOT), env=env, check=False)
+        summary["post_reports"] = {
+            "extraction_backlog_audit": {
+                "returncode": int(audit_run.returncode),
+                "report_path": str(backlog_audit_path),
+            },
+            "extraction_failure_taxonomy": {
+                "returncode": int(classify_run.returncode),
+                "report_path": str(taxonomy_path),
+            },
+        }
+        if int(audit_run.returncode) != 0 or int(classify_run.returncode) != 0:
+            backfill_failed = True
 
     summary["ended_at"] = _utc_now()
     summary["status"] = "success" if not backfill_failed and resume_rc == 0 else "failed"

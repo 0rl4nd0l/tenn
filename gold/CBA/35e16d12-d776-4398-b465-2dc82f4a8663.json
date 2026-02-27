@@ -1,0 +1,53 @@
+{
+  "doc_id": "35e16d12-d776-4398-b465-2dc82f4a8663",
+  "ticker": "CBA",
+  "pdf_sha256": "",
+  "published_at": "2025-08-13",
+  "fields": [
+    {
+      "metric": "net_income",
+      "period_end": "2024-06-30",
+      "period_type": "30 June 2024",
+      "value": "1875.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2025-08-13_asb-2025-full-year-financial-results-media-release_35e16d12-d776-4398-b465-2dc82f4a8663.pdf",
+        "page": "5",
+        "table_id": "2025-08-13_asb-2025-full-year-financial-results-media-release_35e16d12-d776-4398-b465-2dc82f4a8663:p5-5:b5:t1"
+      }
+    },
+    {
+      "metric": "total_assets",
+      "period_end": "2024-06-30",
+      "period_type": "30 June 2024",
+      "value": "135.2",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2025-08-13_asb-2025-full-year-financial-results-media-release_35e16d12-d776-4398-b465-2dc82f4a8663.pdf",
+        "page": "5",
+        "table_id": "2025-08-13_asb-2025-full-year-financial-results-media-release_35e16d12-d776-4398-b465-2dc82f4a8663:p5-5:b6:t1"
+      }
+    },
+    {
+      "metric": "total_liabilities",
+      "period_end": "2024-06-30",
+      "period_type": "30 June 2024",
+      "value": "123.7",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2025-08-13_asb-2025-full-year-financial-results-media-release_35e16d12-d776-4398-b465-2dc82f4a8663.pdf",
+        "page": "5",
+        "table_id": "2025-08-13_asb-2025-full-year-financial-results-media-release_35e16d12-d776-4398-b465-2dc82f4a8663:p5-5:b6:t1"
+      }
+    }
+  ]
+}
