@@ -1,0 +1,6 @@
+# Non-paywalled AU-friendly finance feeds + Capital Brief + Kalkine + Benzinga
+rss:https://abc.net.au/news/feed/51120/rss.xml
+rss:https://theguardian.com/au/business/rss
+auto:https://www.capitalbrief.com
+auto:https://www.kalkinemedia.com
+auto:https://www.benzinga.com

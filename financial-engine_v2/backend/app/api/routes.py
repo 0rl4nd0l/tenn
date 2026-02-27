@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from celery import Celery
 from app.core.config import settings
@@ -6,10 +6,14 @@ from app.core.db import get_db
 from app.models.documents import Document
 from app.models.asx_financials import ASXPeriodicFinancial, ASXRiskNote
 from app.providers.universe import ASX20
+from app.providers.market_price_provider import MarketPriceProvider, MarketPriceProviderError
 from app.services.pipeline import backfill_ticker_sync
 
 router=APIRouter()
 celery=Celery("fe_api", broker=settings.celery_broker_url, backend=settings.celery_result_backend)
+celery.conf.task_default_queue = "default"
+celery.conf.task_default_exchange = "default"
+celery.conf.task_default_routing_key = "default"
 
 @router.get("/health")
 def health(): return {"status":"ok"}
@@ -36,13 +40,31 @@ def risk(document_id:str, db:Session=Depends(get_db)):
     return {"document_id":str(r.document_id),"risk_summary":r.risk_summary,"risk_bullets":r.risk_bullets,
             "guidance_summary":r.guidance_summary,"material_changes":r.material_changes,"confidence_narrative":r.confidence_narrative}
 
+@router.get("/price")
+def price(
+    ticker:str,
+    range_:str=Query("1mo", alias="range"),
+    interval:str=Query("1d"),
+    exchange:str=Query("ASX"),
+):
+    provider=MarketPriceProvider(
+        base_url=getattr(settings, "market_data_base_url", "https://query1.finance.yahoo.com"),
+        timeout=getattr(settings, "market_data_timeout_seconds", 20.0),
+    )
+    try:
+        return provider.fetch(ticker=ticker, exchange=exchange, range_=range_, interval=interval)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except MarketPriceProviderError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
 @router.post("/backfill/asx20")
 def backfill_asx20(years:int=1, process_documents:bool=False):
     if settings.task_mode.lower()=="sync":
         results=[backfill_ticker_sync(t, years=years, process_documents=process_documents) for t in ASX20]
         return {"mode":"sync","processed":len(results),"results":results}
     for t in ASX20:
-        celery.send_task("backfill_ticker", args=[t])
+        celery.send_task("backfill_ticker", args=[t], queue="default", routing_key="default")
     return {"mode":"celery","enqueued":len(ASX20),"tickers":ASX20}
 
 @router.post("/backfill/ticker/{ticker}")
@@ -50,5 +72,5 @@ def backfill_ticker(ticker:str, years:int=1, process_documents:bool=False):
     if settings.task_mode.lower()=="sync":
         result=backfill_ticker_sync(ticker.upper(), years=years, process_documents=process_documents)
         return {"mode":"sync", **result}
-    celery.send_task("backfill_ticker", args=[ticker.upper()])
+    celery.send_task("backfill_ticker", args=[ticker.upper()], queue="default", routing_key="default")
     return {"mode":"celery","enqueued":1,"ticker":ticker.upper()}

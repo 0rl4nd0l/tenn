@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from _run_metadata import build_run_metadata
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 os.chdir(REPO_ROOT)
@@ -52,6 +53,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output path for report JSON.",
     )
     parser.add_argument("--python", default=sys.executable, help="Python executable for child scripts.")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print plan/estimates and exit without writing DB/files.",
+    )
     return parser
 
 
@@ -191,7 +197,6 @@ def _refresh_announcement_context(database_url: str, ticker: str, repo_root: Pat
 
 def main() -> None:
     args = build_parser().parse_args()
-    from app.services.pipeline import backfill_ticker_sync  # noqa: E402
 
     ticker = args.ticker.strip().upper()
     if not ticker:
@@ -201,12 +206,70 @@ def main() -> None:
     if args.max_backfill_retries <= 0:
         raise SystemExit("--max-backfill-retries must be > 0")
 
+    database_url = os.getenv("DATABASE_URL", "sqlite:///./data/fe_local.db")
+    if args.dry_run:
+        resume_report = Path(args.report).with_name(f"{Path(args.report).stem}_resume.json")
+        resume_cmd = [
+            args.python,
+            str(REPO_ROOT / "scripts" / "resume_pending_downloads.py"),
+            "--ticker",
+            ticker,
+            "--max-retries",
+            str(args.resume_max_retries),
+            "--retry-delay-seconds",
+            str(args.resume_retry_delay_seconds),
+            "--report",
+            str(resume_report),
+        ]
+        if args.process_documents:
+            resume_cmd.append("--process-documents")
+
+        rebuild_report = Path(args.report).with_name(f"{Path(args.report).stem}_rebuild.json")
+        rebuild_cmd = [
+            args.python,
+            str(REPO_ROOT / "scripts" / "rebuild_ticker_financials_from_docs.py"),
+            "--ticker",
+            ticker,
+            "--limit",
+            "120",
+            "--force",
+            "--report",
+            str(rebuild_report),
+        ]
+
+        plan = {
+            "dry_run": True,
+            "script": "update_ticker_financials",
+            "settings": {
+                "ticker": ticker,
+                "years": args.years,
+                "process_documents": bool(args.process_documents),
+                "max_backfill_retries": args.max_backfill_retries,
+                "resume_max_retries": args.resume_max_retries,
+                "resume_retry_delay_seconds": args.resume_retry_delay_seconds,
+                "skip_resume_pending": bool(args.skip_resume_pending),
+                "zero_rows_policy": args.zero_rows_policy,
+                "report": str(args.report),
+                "database_url": database_url,
+            },
+            "before": _query_financial_state(database_url, ticker),
+            "resume_command": None if args.skip_resume_pending else resume_cmd,
+            "auto_rebuild_command": rebuild_cmd,
+            "notes": [
+                "Dry-run skips backfill/resume/rebuild execution and does not write reports.",
+                "auto_rebuild_command is shown for zero-row quality gate planning only.",
+            ],
+        }
+        print(json.dumps(plan, indent=2, default=str))
+        return
+
+    from app.services.pipeline import backfill_ticker_sync  # noqa: E402
+
     report_path = Path(args.report)
     report_path.parent.mkdir(parents=True, exist_ok=True)
-
-    database_url = os.getenv("DATABASE_URL", "sqlite:///./data/fe_local.db")
     summary: dict[str, Any] = {
         "started_at": utc_now(),
+        "run_metadata": build_run_metadata(REPO_ROOT, __file__),
         "settings": {
             "ticker": ticker,
             "years": args.years,

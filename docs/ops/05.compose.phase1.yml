@@ -1,0 +1,121 @@
+name: fe_phase1_host_gpu
+
+services:
+  postgres:
+    image: postgres:16.4
+    container_name: fe2_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fe}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fe}
+      POSTGRES_DB: ${POSTGRES_DB:-fe}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - fe2_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fe} -d ${POSTGRES_DB:-fe}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  redis:
+    image: redis:7.2
+    container_name: fe2_redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - fe2_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  qdrant:
+    image: qdrant/qdrant:v1.11.0
+    container_name: fe2_qdrant
+    restart: unless-stopped
+    ports:
+      - "${QDRANT_PORT:-6333}:6333"
+    volumes:
+      - fe2_qdrant:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:6333/healthz >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  backend:
+    build:
+      context: ../../financial-engine_v2/backend
+    container_name: fe2_backend
+    restart: unless-stopped
+    env_file:
+      - ./05.env.template
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND}
+      QDRANT_URL: ${QDRANT_URL}
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION}
+      OLLAMA_URL: ${OLLAMA_URL}
+      TASK_MODE: ${TASK_MODE:-celery}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ../../financial-engine_v2/data:/data
+      - ../../financial-engine_v2/reports:/reports
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:8000/api/health >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  worker_cpu:
+    build:
+      context: ../../financial-engine_v2/worker
+    container_name: fe2_worker_cpu
+    restart: unless-stopped
+    env_file:
+      - ./05.env.template
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND}
+      QDRANT_URL: ${QDRANT_URL}
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION}
+      OLLAMA_URL: ${OLLAMA_URL}
+      TASK_MODE: ${TASK_MODE:-celery}
+      WORKER_QUEUES: ${WORKER_QUEUES:-ingest,embed,score,llm_cpu}
+    volumes:
+      - ../../financial-engine_v2/data:/data
+      - ../../financial-engine_v2/reports:/reports
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  fe2_pgdata:
+  fe2_redisdata:
+  fe2_qdrant:

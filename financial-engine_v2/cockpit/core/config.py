@@ -16,7 +16,7 @@ DEFAULT_CONFIG = {
         "timeout_seconds": 300,
     },
     "paths": {
-        "allow_roots": [str(Path.home())],
+        "allow_roots": ["."],
         "default_workspace": str(Path.cwd()),
     },
     "memory": {
@@ -26,11 +26,21 @@ DEFAULT_CONFIG = {
     "actions": {
         "confirm_required": True,
     },
+    "db": {
+        "diagnostic_query_enabled": False,
+    },
+    "backend": {
+        "api_base_url": "http://localhost:8000",
+        "auto_start": True,
+        "start_command": ["./scripts/run_local_backend.sh"],
+        "startup_timeout_seconds": 25,
+    },
     "web": {
         "enabled_default": False,
     },
     "exports": {
         "dir": "reports/analysis",
+        "chat_window_messages": 40,
     },
     "reports": {
         "dir": "reports",
@@ -82,10 +92,52 @@ def apply_runtime_flags(config: dict[str, Any], flags: RuntimeFlags) -> dict[str
         cfg.setdefault("web", {})
         cfg["web"]["enabled_default"] = False
 
-    # Environment override keeps Cockpit aligned with existing stack.
+    # Cockpit-specific env vars override config, then fall back to shared stack vars.
     cfg.setdefault("llm", {})
-    cfg["llm"]["ollama_url"] = os.getenv("OLLAMA_URL", cfg["llm"].get("ollama_url", "http://localhost:11434"))
-    cfg["llm"]["model"] = os.getenv("EXTRACT_MODEL", cfg["llm"].get("model", "llama3.1:8b"))
+    cfg["llm"]["ollama_url"] = os.getenv(
+        "COCKPIT_OLLAMA_URL",
+        os.getenv("OLLAMA_URL", cfg["llm"].get("ollama_url", "http://localhost:11434")),
+    )
+    cockpit_model = (os.getenv("COCKPIT_LLM_MODEL") or "").strip()
+    if cockpit_model:
+        cfg["llm"]["model"] = cockpit_model
+    else:
+        configured_model = str(cfg["llm"].get("model") or "").strip()
+        if configured_model:
+            cfg["llm"]["model"] = configured_model
+        else:
+            cfg["llm"]["model"] = os.getenv("EXTRACT_MODEL", "llama3.1:8b")
     cfg.setdefault("db", {})
     cfg["db"]["database_url"] = os.getenv("DATABASE_URL", "sqlite:///./data/fe_local.db")
+    cfg.setdefault("backend", {})
+    cfg["backend"]["api_base_url"] = os.getenv(
+        "COCKPIT_BACKEND_API_URL",
+        cfg["backend"].get("api_base_url", "http://localhost:8000"),
+    )
+
+    rag_cfg = cfg.setdefault("rag", {})
+    if not isinstance(rag_cfg, dict):
+        rag_cfg = {}
+        cfg["rag"] = rag_cfg
+    news_cfg = rag_cfg.setdefault("news_context", {})
+    if not isinstance(news_cfg, dict):
+        news_cfg = {}
+        rag_cfg["news_context"] = news_cfg
+
+    news_db_override = (os.getenv("COCKPIT_NEWS_DB_PATH") or "").strip()
+    if news_db_override:
+        news_cfg["db_path"] = news_db_override
+
+    news_corpus_override = (os.getenv("COCKPIT_NEWS_CORPUS_FILTER") or "").strip()
+    if news_corpus_override:
+        news_cfg["corpus_filter"] = news_corpus_override
+
+    ticker_mode_override = (os.getenv("COCKPIT_NEWS_TICKER_MATCH_MODE") or "").strip().lower()
+    if ticker_mode_override:
+        if ticker_mode_override not in {"soft", "strict"}:
+            raise ValueError(
+                "Invalid COCKPIT_NEWS_TICKER_MATCH_MODE value "
+                f"'{ticker_mode_override}'. Expected 'soft' or 'strict'."
+            )
+        news_cfg["ticker_match_mode"] = ticker_mode_override
     return cfg

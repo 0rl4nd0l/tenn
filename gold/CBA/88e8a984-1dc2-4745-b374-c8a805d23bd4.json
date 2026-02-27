@@ -1,0 +1,68 @@
+{
+  "doc_id": "88e8a984-1dc2-4745-b374-c8a805d23bd4",
+  "ticker": "CBA",
+  "pdf_sha256": "",
+  "published_at": "2024-02-14",
+  "fields": [
+    {
+      "metric": "revenue",
+      "period_end": "2023-12-31",
+      "period_type": "for the half year ended 31 December 2023",
+      "value": "13578000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "appendix_statement",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2024-02-14_2024-half-year-results-profit-announcement_88e8a984-1dc2-4745-b374-c8a805d23bd4.pdf",
+        "page": "2",
+        "table_id": "2024-02-14_2024-half-year-results-profit-announcement_88e8a984-1dc2-4745-b374-c8a805d23bd4:p2-2:b1:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2023-12-31",
+      "period_type": "for the half year ended 31 December 2023",
+      "value": "4759000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "appendix_statement",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2024-02-14_2024-half-year-results-profit-announcement_88e8a984-1dc2-4745-b374-c8a805d23bd4.pdf",
+        "page": "2",
+        "table_id": "2024-02-14_2024-half-year-results-profit-announcement_88e8a984-1dc2-4745-b374-c8a805d23bd4:p2-2:b1:t1"
+      }
+    },
+    {
+      "metric": "total_assets",
+      "period_end": "2023-12-31",
+      "period_type": "For the half year ended 31 December 2023",
+      "value": "511892.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2024-02-14_2024-half-year-results-profit-announcement_88e8a984-1dc2-4745-b374-c8a805d23bd4.pdf",
+        "page": "68",
+        "table_id": "2024-02-14_2024-half-year-results-profit-announcement_88e8a984-1dc2-4745-b374-c8a805d23bd4:p68-68:b100:t1"
+      }
+    },
+    {
+      "metric": "total_liabilities",
+      "period_end": "2023-12-31",
+      "period_type": "For the half year ended 31 December 2023",
+      "value": "382037.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2024-02-14_2024-half-year-results-profit-announcement_88e8a984-1dc2-4745-b374-c8a805d23bd4.pdf",
+        "page": "68",
+        "table_id": "2024-02-14_2024-half-year-results-profit-announcement_88e8a984-1dc2-4745-b374-c8a805d23bd4:p68-68:b100:t1"
+      }
+    }
+  ]
+}

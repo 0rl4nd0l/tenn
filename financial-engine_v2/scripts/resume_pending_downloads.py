@@ -9,6 +9,8 @@ from pathlib import Path
 import httpx
 from sqlalchemy import or_
 
+from _run_metadata import build_run_metadata
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BACKEND_ROOT = REPO_ROOT / "backend"
 if str(BACKEND_ROOT) not in sys.path:
@@ -83,16 +85,62 @@ def parse_args():
         action="store_true",
         help="Disable post-ingestion importance folder classification step.",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print plan/estimates and exit without writing DB/files.",
+    )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
     tickers = _parse_tickers(args.ticker) or ASX20[:10]
+    if args.dry_run:
+        pending_by_ticker: dict[str, int] = {}
+        db = SessionLocal()
+        try:
+            for ticker in tickers:
+                query = (
+                    db.query(Document)
+                    .filter(Document.ticker == ticker)
+                    .filter(or_(Document.pdf_sha256 == "", Document.pdf_sha256.is_(None)))
+                    .order_by(Document.published_at.desc().nullslast())
+                )
+                if args.limit_per_ticker and args.limit_per_ticker > 0:
+                    query = query.limit(args.limit_per_ticker)
+                pending_by_ticker[ticker] = int(query.count())
+        finally:
+            db.close()
+
+        plan = {
+            "dry_run": True,
+            "script": "resume_pending_downloads",
+            "settings": {
+                "tickers_total": len(tickers),
+                "tickers": tickers,
+                "limit_per_ticker": args.limit_per_ticker,
+                "process_documents": bool(args.process_documents),
+                "max_retries": args.max_retries,
+                "retry_delay_seconds": args.retry_delay_seconds,
+                "skip_importance_classification": bool(args.skip_importance_classification),
+                "report": str(args.report),
+            },
+            "estimates": {
+                "pending_by_ticker": pending_by_ticker,
+                "pending_total": sum(pending_by_ticker.values()),
+            },
+            "notes": [
+                "Dry-run does not download PDFs, run extraction, classify docs, or write reports.",
+            ],
+        }
+        print(json.dumps(plan, indent=2, default=str))
+        return
 
     started = datetime.now(timezone.utc)
     report = {
         "started_at": started.isoformat(),
+        "run_metadata": build_run_metadata(REPO_ROOT, __file__),
         "tickers": tickers,
         "process_documents": args.process_documents,
         "limit_per_ticker": args.limit_per_ticker,
@@ -117,10 +165,22 @@ def main():
             if args.limit_per_ticker and args.limit_per_ticker > 0:
                 query = query.limit(args.limit_per_ticker)
             rows = query.all()
+            dedup_rows = []
+            seen_source_urls: set[str] = set()
+            duplicate_source_rows = 0
+            for row in rows:
+                source_key = str(getattr(row, "source_url", "") or "").strip().lower()
+                if source_key and source_key in seen_source_urls:
+                    duplicate_source_rows += 1
+                    continue
+                if source_key:
+                    seen_source_urls.add(source_key)
+                dedup_rows.append(row)
 
             ticker_result = {
                 "ticker": ticker,
-                "pending_selected": len(rows),
+                "pending_selected": len(dedup_rows),
+                "pending_duplicate_source_rows_skipped": duplicate_source_rows,
                 "processed": 0,
                 "skipped_download": 0,
                 "errors": [],
@@ -128,7 +188,7 @@ def main():
             }
             processed_document_ids: list[str] = []
 
-            for row in rows:
+            for row in dedup_rows:
                 attempts = max(1, int(args.max_retries))
                 last_error = None
                 attempts_used = 0
@@ -209,6 +269,7 @@ def main():
 
             print(
                 f"[resume] {ticker}: pending={ticker_result['pending_selected']} "
+                f"dup_source_skipped={ticker_result['pending_duplicate_source_rows_skipped']} "
                 f"processed={ticker_result['processed']} skipped={ticker_result['skipped_download']} "
                 f"errors={ticker_result['error_count']} "
                 f"importance_classified={((ticker_result.get('importance_classification') or {}).get('classified_count', 0))}",

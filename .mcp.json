@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "axon": {
+      "command": "/home/l4nd0/tenn/scripts/axon.sh",
+      "args": ["mcp"]
+    },
+    "github": {
+      "command": "/home/l4nd0/tenn/scripts/mcp/github.sh"
+    },
+    "playwright": {
+      "command": "/home/l4nd0/tenn/scripts/mcp/playwright.sh"
+    },
+    "redis": {
+      "command": "/home/l4nd0/tenn/scripts/mcp/redis.sh"
+    },
+    "qdrant": {
+      "command": "/home/l4nd0/tenn/scripts/mcp/qdrant.sh"
+    }
+  }
+}

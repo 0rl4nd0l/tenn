@@ -1,0 +1,53 @@
+import sys
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from cockpit.core.actions import ActionRegistry
+
+
+class TestActionRegistrySmoke(unittest.TestCase):
+    def test_build_preview_does_not_crash(self):
+        reg = ActionRegistry(repo_root=ROOT, confirm_required=True)
+        preview = reg.preview("full_history", {"ticker": "BHP", "years": 1})
+        self.assertEqual(preview.action_id, "full_history")
+        self.assertTrue(preview.command)
+
+    def test_update_ticker_financials_supports_no_process_documents_flag(self):
+        reg = ActionRegistry(repo_root=ROOT, confirm_required=True)
+        cmd = reg.build_command(
+            "update_ticker_financials",
+            {"ticker": "BHP", "years": 1, "process_documents": False},
+        )
+        self.assertIn("--no-process-documents", cmd)
+        self.assertNotIn("--process-documents", cmd)
+
+    def test_asx_chunked_supports_no_download_existing_missing_flag(self):
+        reg = ActionRegistry(repo_root=ROOT, confirm_required=True)
+        cmd = reg.build_command(
+            "asx_enrichment_chunked",
+            {"download_existing_missing": False},
+        )
+        self.assertIn("--no-download-existing-missing", cmd)
+        self.assertNotIn("--download-existing-missing", cmd)
+
+    def test_extract_control_args_dry_run_aliases(self):
+        clean, control = ActionRegistry.extract_control_args(
+            {"ticker": "BHP", "dry_run": "true", "preview-only": "false"},
+        )
+        self.assertEqual(clean, {"ticker": "BHP"})
+        self.assertTrue(control["dry_run"])
+
+    def test_doctor_quick_single_action(self):
+        reg = ActionRegistry(repo_root=ROOT, confirm_required=True)
+        report = reg.doctor(check_help=False, action_id="update_ticker_financials")
+        self.assertEqual(report["counts"]["total"], 1)
+        self.assertEqual(report["counts"]["failed"], 0)
+        self.assertTrue(report["checks"][0]["ok"])
+
+
+if __name__ == "__main__":
+    unittest.main()

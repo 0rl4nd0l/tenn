@@ -1,0 +1,128 @@
+{
+  "doc_id": "77ea4d72-97cb-4e8d-803d-0638f91a4a78",
+  "ticker": "RIO",
+  "pdf_sha256": "",
+  "published_at": "2025-02-20",
+  "fields": [
+    {
+      "metric": "net_income",
+      "period_end": "2024-12-31",
+      "period_type": "Year ended 31 December 2024",
+      "value": "11574000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2025-02-20_rio-tinto-2024-full-year-results_77ea4d72-97cb-4e8d-803d-0638f91a4a78.pdf",
+        "page": "26",
+        "table_id": "2025-02-20_rio-tinto-2024-full-year-results_77ea4d72-97cb-4e8d-803d-0638f91a4a78:p26-26:b46:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2023-12-31",
+      "period_type": "31 December 2023",
+      "value": "9953000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2025-02-20_rio-tinto-2024-full-year-results_77ea4d72-97cb-4e8d-803d-0638f91a4a78.pdf",
+        "page": "26",
+        "table_id": "2025-02-20_rio-tinto-2024-full-year-results_77ea4d72-97cb-4e8d-803d-0638f91a4a78:p26-26:b46:t1"
+      }
+    },
+    {
+      "metric": "total_liabilities",
+      "period_end": "2024-12-31",
+      "period_type": "Year ended 31 December 2024",
+      "value": "-44821000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2025-02-20_rio-tinto-2024-full-year-results_77ea4d72-97cb-4e8d-803d-0638f91a4a78.pdf",
+        "page": "30",
+        "table_id": "2025-02-20_rio-tinto-2024-full-year-results_77ea4d72-97cb-4e8d-803d-0638f91a4a78:p30-30:b52:t1"
+      }
+    },
+    {
+      "metric": "total_equity",
+      "period_end": "2024-12-31",
+      "period_type": "Year ended 31 December 2024",
+      "value": "57965000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2025-02-20_rio-tinto-2024-full-year-results_77ea4d72-97cb-4e8d-803d-0638f91a4a78.pdf",
+        "page": "30",
+        "table_id": "2025-02-20_rio-tinto-2024-full-year-results_77ea4d72-97cb-4e8d-803d-0638f91a4a78:p30-30:b52:t1"
+      }
+    },
+    {
+      "metric": "total_liabilities",
+      "period_end": "2023-12-31",
+      "period_type": "31 December 2023",
+      "value": "-47208000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2025-02-20_rio-tinto-2024-full-year-results_77ea4d72-97cb-4e8d-803d-0638f91a4a78.pdf",
+        "page": "30",
+        "table_id": "2025-02-20_rio-tinto-2024-full-year-results_77ea4d72-97cb-4e8d-803d-0638f91a4a78:p30-30:b52:t1"
+      }
+    },
+    {
+      "metric": "total_equity",
+      "period_end": "2023-12-31",
+      "period_type": "31 December 2023",
+      "value": "56341000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2025-02-20_rio-tinto-2024-full-year-results_77ea4d72-97cb-4e8d-803d-0638f91a4a78.pdf",
+        "page": "30",
+        "table_id": "2025-02-20_rio-tinto-2024-full-year-results_77ea4d72-97cb-4e8d-803d-0638f91a4a78:p30-30:b52:t1"
+      }
+    },
+    {
+      "metric": "net_debt",
+      "period_end": "2024-12-31",
+      "period_type": "Year ended 31 December 2024",
+      "value": "5491000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2025-02-20_rio-tinto-2024-full-year-results_77ea4d72-97cb-4e8d-803d-0638f91a4a78.pdf",
+        "page": "46",
+        "table_id": "2025-02-20_rio-tinto-2024-full-year-results_77ea4d72-97cb-4e8d-803d-0638f91a4a78:p46-46:b89:t1"
+      }
+    },
+    {
+      "metric": "net_debt",
+      "period_end": "2023-12-31",
+      "period_type": "31 December 2023",
+      "value": "4231000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2025-02-20_rio-tinto-2024-full-year-results_77ea4d72-97cb-4e8d-803d-0638f91a4a78.pdf",
+        "page": "46",
+        "table_id": "2025-02-20_rio-tinto-2024-full-year-results_77ea4d72-97cb-4e8d-803d-0638f91a4a78:p46-46:b89:t1"
+      }
+    }
+  ]
+}

@@ -11,6 +11,8 @@ from pathlib import Path
 
 import httpx
 
+from _run_metadata import build_run_metadata
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BACKEND_ROOT = REPO_ROOT / "backend"
 if str(BACKEND_ROOT) not in sys.path:
@@ -91,19 +93,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--request-delay-ms",
         type=int,
-        default=300,
+        default=700,
         help="Base delay between historical per-ticker requests (ms).",
     )
     parser.add_argument(
         "--request-jitter-ms",
         type=int,
-        default=350,
+        default=900,
         help="Random additional delay per request (0..N ms).",
     )
     parser.add_argument(
         "--failure-backoff-ms",
         type=int,
-        default=1200,
+        default=2500,
         help="Base backoff delay after ticker fetch failure (ms, exponential by streak).",
     )
     parser.add_argument(
@@ -141,6 +143,11 @@ def parse_args() -> argparse.Namespace:
         "--report",
         default=str(REPO_ROOT / "reports" / "asx" / "asx_enrichment_sweep_report.json"),
         help="Output summary report path.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print plan/estimates and exit without writing DB/files.",
     )
     return parser.parse_args()
 
@@ -308,11 +315,46 @@ def main() -> None:
         raise SystemExit("--max-consecutive-failures must be >= 0")
 
     end_day = _parse_date(args.end_date)
+    if args.dry_run:
+        start_day = end_day - timedelta(days=max(1, int(args.days_back)) - 1)
+        plan = {
+            "dry_run": True,
+            "script": "asx_enrichment_sweep_action",
+            "settings": {
+                "end_date": end_day.strftime("%Y-%m-%d"),
+                "start_date": start_day.strftime("%Y-%m-%d"),
+                "days_back": args.days_back,
+                "max_new_docs": args.max_new_docs,
+                "max_errors": args.max_errors,
+                "stop_after_empty_days": args.stop_after_empty_days,
+                "fallback_max_tickers": args.fallback_max_tickers,
+                "ticker_universe_file": args.ticker_universe_file,
+                "historical_fallback_enabled": not args.no_historical_fallback,
+                "request_delay_ms": args.request_delay_ms,
+                "request_jitter_ms": args.request_jitter_ms,
+                "failure_backoff_ms": args.failure_backoff_ms,
+                "max_consecutive_failures": args.max_consecutive_failures,
+                "skip_complete_ticker_days": not args.no_skip_complete_ticker_days,
+                "skip_download": bool(args.skip_download),
+                "download_existing_missing": bool(args.download_existing_missing),
+                "process_documents": bool(args.process_documents),
+                "with_embeddings": bool(args.with_embeddings),
+                "report": str(args.report),
+                "database_url": getattr(settings, "database_url", None),
+            },
+            "notes": [
+                "Dry-run skips ASX discovery, DB inserts, PDF downloads, classification, and report writes.",
+            ],
+        }
+        print(json.dumps(plan, indent=2, default=str))
+        return
+
     report_path = Path(args.report)
     report_path.parent.mkdir(parents=True, exist_ok=True)
 
     summary: dict[str, object] = {
         "started_at": _utc_now(),
+        "run_metadata": build_run_metadata(REPO_ROOT, __file__),
         "settings": {
             "end_date": end_day.strftime("%Y-%m-%d"),
             "days_back": args.days_back,
@@ -508,11 +550,12 @@ def main() -> None:
                         day_report["errors"].append({"document_id": document_id, "error": str(exc)})
                         summary["totals"]["errors"] = int(summary["totals"]["errors"]) + 1
 
-            if settings.enable_importance_classification and new_document_ids:
+            classification_ids = list(dict.fromkeys(process_document_ids))
+            if settings.enable_importance_classification and classification_ids:
                 try:
                     result = classify_documents_and_materialize(
                         db,
-                        document_ids=new_document_ids,
+                        document_ids=classification_ids,
                         output_root=settings.importance_output_root,
                         materialize_output=settings.importance_materialize_output,
                         include_pdf_text=settings.importance_include_pdf_text,

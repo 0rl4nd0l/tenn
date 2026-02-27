@@ -1,0 +1,53 @@
+{
+  "doc_id": "1ead4e7e-82b0-42f2-a04b-b235e3959c47",
+  "ticker": "RIO",
+  "pdf_sha256": "",
+  "published_at": "2024-02-21",
+  "fields": [
+    {
+      "metric": "net_income",
+      "period_end": "2024-02-21",
+      "period_type": "21 February 2024",
+      "value": "9953.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2024-02-21_rio-tinto-2023-full-year-results-presentation_1ead4e7e-82b0-42f2-a04b-b235e3959c47.pdf",
+        "page": "32",
+        "table_id": "2024-02-21_rio-tinto-2023-full-year-results-presentation_1ead4e7e-82b0-42f2-a04b-b235e3959c47:p32-32:b20:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2023-02-21",
+      "period_type": "21 February 2023",
+      "value": "1608.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2024-02-21_rio-tinto-2023-full-year-results-presentation_1ead4e7e-82b0-42f2-a04b-b235e3959c47.pdf",
+        "page": "32",
+        "table_id": "2024-02-21_rio-tinto-2023-full-year-results-presentation_1ead4e7e-82b0-42f2-a04b-b235e3959c47:p32-32:b20:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2022-02-21",
+      "period_type": "21 February 2022",
+      "value": "965.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2024-02-21_rio-tinto-2023-full-year-results-presentation_1ead4e7e-82b0-42f2-a04b-b235e3959c47.pdf",
+        "page": "32",
+        "table_id": "2024-02-21_rio-tinto-2023-full-year-results-presentation_1ead4e7e-82b0-42f2-a04b-b235e3959c47:p32-32:b20:t1"
+      }
+    }
+  ]
+}

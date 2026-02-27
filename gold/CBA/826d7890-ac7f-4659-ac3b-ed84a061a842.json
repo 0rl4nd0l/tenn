@@ -1,0 +1,23 @@
+{
+  "doc_id": "826d7890-ac7f-4659-ac3b-ed84a061a842",
+  "ticker": "CBA",
+  "pdf_sha256": "",
+  "published_at": "2026-02-11",
+  "fields": [
+    {
+      "metric": "total_assets",
+      "period_end": "2025-12-31",
+      "period_type": "31 December 2025",
+      "value": "901300000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2026-02-11_2026-half-year-results-presentation_826d7890-ac7f-4659-ac3b-ed84a061a842.pdf",
+        "page": "56",
+        "table_id": "2026-02-11_2026-half-year-results-presentation_826d7890-ac7f-4659-ac3b-ed84a061a842:p56-56:b60:t1"
+      }
+    }
+  ]
+}

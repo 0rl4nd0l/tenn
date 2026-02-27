@@ -1,0 +1,68 @@
+{
+  "doc_id": "d4dc28ca-670e-421c-94d9-2d90dca3fad8",
+  "ticker": "CBA",
+  "pdf_sha256": "",
+  "published_at": "2025-02-12",
+  "fields": [
+    {
+      "metric": "revenue",
+      "period_end": "2024-12-31",
+      "period_type": "for the half year ended 31 December 2024",
+      "value": "14098000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "appendix_statement",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2025-02-12_2025-half-year-results-profit-announcement_d4dc28ca-670e-421c-94d9-2d90dca3fad8.pdf",
+        "page": "2",
+        "table_id": "2025-02-12_2025-half-year-results-profit-announcement_d4dc28ca-670e-421c-94d9-2d90dca3fad8:p2-2:b1:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2024-12-31",
+      "period_type": "for the half year ended 31 December 2024",
+      "value": "5134000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "appendix_statement",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2025-02-12_2025-half-year-results-profit-announcement_d4dc28ca-670e-421c-94d9-2d90dca3fad8.pdf",
+        "page": "2",
+        "table_id": "2025-02-12_2025-half-year-results-profit-announcement_d4dc28ca-670e-421c-94d9-2d90dca3fad8:p2-2:b1:t1"
+      }
+    },
+    {
+      "metric": "total_assets",
+      "period_end": "2024-06-30",
+      "period_type": "Half Year Ended 30 June 2024",
+      "value": "521670000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2025-02-12_2025-half-year-results-profit-announcement_d4dc28ca-670e-421c-94d9-2d90dca3fad8.pdf",
+        "page": "103",
+        "table_id": "2025-02-12_2025-half-year-results-profit-announcement_d4dc28ca-670e-421c-94d9-2d90dca3fad8:p103-103:b176:t1"
+      }
+    },
+    {
+      "metric": "total_liabilities",
+      "period_end": "2024-06-30",
+      "period_type": "Half Year Ended 30 June 2024",
+      "value": "390994000000.0",
+      "unit_scale": 1,
+      "currency": "$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/CBA/financial_performance/2025-02-12_2025-half-year-results-profit-announcement_d4dc28ca-670e-421c-94d9-2d90dca3fad8.pdf",
+        "page": "103",
+        "table_id": "2025-02-12_2025-half-year-results-profit-announcement_d4dc28ca-670e-421c-94d9-2d90dca3fad8:p103-103:b176:t1"
+      }
+    }
+  ]
+}

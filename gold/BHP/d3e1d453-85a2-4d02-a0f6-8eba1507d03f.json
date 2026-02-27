@@ -1,0 +1,23 @@
+{
+  "doc_id": "d3e1d453-85a2-4d02-a0f6-8eba1507d03f",
+  "ticker": "BHP",
+  "pdf_sha256": "",
+  "published_at": "2023-08-22",
+  "fields": [
+    {
+      "metric": "total_equity",
+      "period_end": "2023-06-30",
+      "period_type": "30 June 2023",
+      "value": "48530000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "appendix_statement",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2023-08-22_appendix-4e-and-bhp-2023-annual-report_d3e1d453-85a2-4d02-a0f6-8eba1507d03f.pdf",
+        "page": "94",
+        "table_id": "2023-08-22_appendix-4e-and-bhp-2023-annual-report_d3e1d453-85a2-4d02-a0f6-8eba1507d03f:p94-94:b123:t1"
+      }
+    }
+  ]
+}

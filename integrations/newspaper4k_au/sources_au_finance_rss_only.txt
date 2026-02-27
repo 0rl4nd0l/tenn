@@ -1,0 +1,3 @@
+# Deterministic RSS-only source list for stable runs.
+rss:https://www.abc.net.au/news/feed/51120/rss.xml
+rss:https://www.theguardian.com/au/business/rss

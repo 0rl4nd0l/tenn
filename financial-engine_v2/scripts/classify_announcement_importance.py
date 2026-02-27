@@ -70,6 +70,11 @@ def parse_args() -> argparse.Namespace:
         help="Report JSON output path.",
     )
     parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print plan/estimates and exit without writing DB/files.",
+    )
+    parser.add_argument(
         "--no-sort-source-docs",
         action="store_true",
         help="Do not move source files under docs/<ticker>/<label>.",
@@ -85,6 +90,28 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     tickers = _parse_tickers(args.ticker)
+    if args.dry_run:
+        plan = {
+            "dry_run": True,
+            "script": "classify_announcement_importance",
+            "settings": {
+                "tickers": tickers,
+                "limit": args.limit,
+                "output_root": args.output_root,
+                "link_mode": args.link_mode,
+                "materialize_output": bool(args.materialize_output),
+                "include_pdf_text": not args.no_pdf_text,
+                "only_unsorted": bool(args.only_unsorted),
+                "sort_source_docs": not bool(args.no_sort_source_docs),
+                "report": str(args.report),
+            },
+            "notes": [
+                "Dry-run skips DB queries, PDF reads, file operations, and report writes.",
+            ],
+        }
+        print(json.dumps(plan, indent=2, default=str))
+        return
+
     started_at = datetime.now(timezone.utc)
 
     report: dict[str, object] = {

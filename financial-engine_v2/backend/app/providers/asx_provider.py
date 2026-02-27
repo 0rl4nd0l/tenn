@@ -168,7 +168,7 @@ class ASXProvider:
                     seen=seen,
                 )
                 if not batch:
-                    break
+                    continue
                 docs.extend(batch)
         return docs
 

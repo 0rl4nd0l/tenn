@@ -1,0 +1,14 @@
+# Source format:
+# - auto:https://example.com/section      (default if no prefix)
+# - web:https://example.com/section       (web discovery only)
+# - rss:https://example.com/feed.xml      (RSS/Atom discovery)
+# - url:https://example.com/article-slug  (single article URL)
+#
+# Use explicit rss: entries for more deterministic runs.
+
+auto:https://www.afr.com/markets
+auto:https://www.afr.com/companies
+auto:https://www.afr.com/policy/economy
+rss:https://www.abc.net.au/news/feed/51120/rss.xml
+auto:https://www.smh.com.au/business
+rss:https://www.theguardian.com/au/business/rss

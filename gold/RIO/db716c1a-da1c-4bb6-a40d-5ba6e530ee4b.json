@@ -1,0 +1,128 @@
+{
+  "doc_id": "db716c1a-da1c-4bb6-a40d-5ba6e530ee4b",
+  "ticker": "RIO",
+  "pdf_sha256": "",
+  "published_at": "2025-07-30",
+  "fields": [
+    {
+      "metric": "net_income",
+      "period_end": "2025-06-30",
+      "period_type": "30 June 2025",
+      "value": "4536000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2025-07-30_rio-tinto-2025-half-year-results_db716c1a-da1c-4bb6-a40d-5ba6e530ee4b.pdf",
+        "page": "33",
+        "table_id": "2025-07-30_rio-tinto-2025-half-year-results_db716c1a-da1c-4bb6-a40d-5ba6e530ee4b:p33-33:b57:t1"
+      }
+    },
+    {
+      "metric": "total_liabilities",
+      "period_end": "2025-12-31",
+      "period_type": "31 December 2025",
+      "value": "-58838000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2025-07-30_rio-tinto-2025-half-year-results_db716c1a-da1c-4bb6-a40d-5ba6e530ee4b.pdf",
+        "page": "35",
+        "table_id": "2025-07-30_rio-tinto-2025-half-year-results_db716c1a-da1c-4bb6-a40d-5ba6e530ee4b:p35-35:b61:t1"
+      }
+    },
+    {
+      "metric": "total_equity",
+      "period_end": "2025-12-31",
+      "period_type": "31 December 2025",
+      "value": "61967000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2025-07-30_rio-tinto-2025-half-year-results_db716c1a-da1c-4bb6-a40d-5ba6e530ee4b.pdf",
+        "page": "35",
+        "table_id": "2025-07-30_rio-tinto-2025-half-year-results_db716c1a-da1c-4bb6-a40d-5ba6e530ee4b:p35-35:b61:t1"
+      }
+    },
+    {
+      "metric": "total_liabilities",
+      "period_end": "2025-06-30",
+      "period_type": "30 June 2025",
+      "value": "-44821000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2025-07-30_rio-tinto-2025-half-year-results_db716c1a-da1c-4bb6-a40d-5ba6e530ee4b.pdf",
+        "page": "35",
+        "table_id": "2025-07-30_rio-tinto-2025-half-year-results_db716c1a-da1c-4bb6-a40d-5ba6e530ee4b:p35-35:b61:t1"
+      }
+    },
+    {
+      "metric": "total_equity",
+      "period_end": "2025-06-30",
+      "period_type": "30 June 2025",
+      "value": "57965000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2025-07-30_rio-tinto-2025-half-year-results_db716c1a-da1c-4bb6-a40d-5ba6e530ee4b.pdf",
+        "page": "35",
+        "table_id": "2025-07-30_rio-tinto-2025-half-year-results_db716c1a-da1c-4bb6-a40d-5ba6e530ee4b:p35-35:b61:t1"
+      }
+    },
+    {
+      "metric": "ebitda",
+      "period_end": "2025-06-30",
+      "period_type": "30 June 2025",
+      "value": "11547000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2025-07-30_rio-tinto-2025-half-year-results_db716c1a-da1c-4bb6-a40d-5ba6e530ee4b.pdf",
+        "page": "42",
+        "table_id": "2025-07-30_rio-tinto-2025-half-year-results_db716c1a-da1c-4bb6-a40d-5ba6e530ee4b:p42-42:b75:t1"
+      }
+    },
+    {
+      "metric": "ebitda",
+      "period_end": "2024-06-30",
+      "period_type": "30 June 2024",
+      "value": "12093000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2025-07-30_rio-tinto-2025-half-year-results_db716c1a-da1c-4bb6-a40d-5ba6e530ee4b.pdf",
+        "page": "42",
+        "table_id": "2025-07-30_rio-tinto-2025-half-year-results_db716c1a-da1c-4bb6-a40d-5ba6e530ee4b:p42-42:b75:t1"
+      }
+    },
+    {
+      "metric": "free_cash_flow",
+      "period_end": "2025-06-30",
+      "period_type": "30 June 2025",
+      "value": "2843000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "cash_flow",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2025-07-30_rio-tinto-2025-half-year-results_db716c1a-da1c-4bb6-a40d-5ba6e530ee4b.pdf",
+        "page": "70",
+        "table_id": "2025-07-30_rio-tinto-2025-half-year-results_db716c1a-da1c-4bb6-a40d-5ba6e530ee4b:p70-70:b122:t1"
+      }
+    }
+  ]
+}

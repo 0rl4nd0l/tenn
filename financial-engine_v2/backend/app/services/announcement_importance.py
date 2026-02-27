@@ -407,6 +407,7 @@ def classify_documents_and_materialize(
             pdf_excerpt=excerpt,
         )
         if sort_source_docs:
+            original_path = path
             try:
                 moved_path = _relocate_source_into_label_dir(
                     source_path=path,
@@ -415,7 +416,19 @@ def classify_documents_and_materialize(
                 )
                 if str(moved_path) != (row.pdf_path or ""):
                     row.pdf_path = str(moved_path)
-                    db.commit()
+                    try:
+                        db.commit()
+                    except Exception:
+                        db.rollback()
+                        # Best-effort rollback of file move if DB update cannot be persisted.
+                        try:
+                            if moved_path.exists() and moved_path.resolve() != original_path.resolve():
+                                original_path.parent.mkdir(parents=True, exist_ok=True)
+                                moved_path.rename(original_path)
+                        except Exception:
+                            pass
+                        row.pdf_path = str(original_path)
+                        continue
                 path = moved_path
             except Exception:
                 db.rollback()

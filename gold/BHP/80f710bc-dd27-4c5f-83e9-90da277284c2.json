@@ -1,0 +1,128 @@
+{
+  "doc_id": "80f710bc-dd27-4c5f-83e9-90da277284c2",
+  "ticker": "BHP",
+  "pdf_sha256": "",
+  "published_at": "2022-08-16",
+  "fields": [
+    {
+      "metric": "ebitda",
+      "period_end": "2022-06-30",
+      "period_type": "30 June 2022",
+      "value": "35073.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "appendix_statement",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2022-08-16_preliminary-final-report_80f710bc-dd27-4c5f-83e9-90da277284c2.pdf",
+        "page": "21",
+        "table_id": "2022-08-16_preliminary-final-report_80f710bc-dd27-4c5f-83e9-90da277284c2:p21-21:b31:t1"
+      }
+    },
+    {
+      "metric": "revenue",
+      "period_end": "2021-06-30",
+      "period_type": "Year ended 30 June 2021",
+      "value": "15726000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "appendix_statement",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2022-08-16_preliminary-final-report_80f710bc-dd27-4c5f-83e9-90da277284c2.pdf",
+        "page": "123",
+        "table_id": "2022-08-16_preliminary-final-report_80f710bc-dd27-4c5f-83e9-90da277284c2:p123-123:b189:t1"
+      }
+    },
+    {
+      "metric": "ebitda",
+      "period_end": "2021-06-30",
+      "period_type": "Year ended 30 June 2021",
+      "value": "8489000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "appendix_statement",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2022-08-16_preliminary-final-report_80f710bc-dd27-4c5f-83e9-90da277284c2.pdf",
+        "page": "123",
+        "table_id": "2022-08-16_preliminary-final-report_80f710bc-dd27-4c5f-83e9-90da277284c2:p123-123:b189:t1"
+      }
+    },
+    {
+      "metric": "revenue",
+      "period_end": "2022-12-31",
+      "period_type": "FY2022",
+      "value": "10254000000.0",
+      "unit_scale": 1,
+      "currency": "A$",
+      "scope": "appendix_statement",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2022-08-16_preliminary-final-report_80f710bc-dd27-4c5f-83e9-90da277284c2.pdf",
+        "page": "77",
+        "table_id": "2022-08-16_preliminary-final-report_80f710bc-dd27-4c5f-83e9-90da277284c2:p77-77:b94:t1"
+      }
+    },
+    {
+      "metric": "ebitda",
+      "period_end": "2022-12-31",
+      "period_type": "FY2022",
+      "value": "6335000000.0",
+      "unit_scale": 1,
+      "currency": "A$",
+      "scope": "appendix_statement",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2022-08-16_preliminary-final-report_80f710bc-dd27-4c5f-83e9-90da277284c2.pdf",
+        "page": "77",
+        "table_id": "2022-08-16_preliminary-final-report_80f710bc-dd27-4c5f-83e9-90da277284c2:p77-77:b94:t1"
+      }
+    },
+    {
+      "metric": "revenue",
+      "period_end": "2021-12-31",
+      "period_type": "FY2021",
+      "value": "3537000000.0",
+      "unit_scale": 1,
+      "currency": "A$",
+      "scope": "appendix_statement",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2022-08-16_preliminary-final-report_80f710bc-dd27-4c5f-83e9-90da277284c2.pdf",
+        "page": "77",
+        "table_id": "2022-08-16_preliminary-final-report_80f710bc-dd27-4c5f-83e9-90da277284c2:p77-77:b94:t1"
+      }
+    },
+    {
+      "metric": "ebitda",
+      "period_end": "2021-12-31",
+      "period_type": "FY2021",
+      "value": "567000000.0",
+      "unit_scale": 1,
+      "currency": "A$",
+      "scope": "appendix_statement",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2022-08-16_preliminary-final-report_80f710bc-dd27-4c5f-83e9-90da277284c2.pdf",
+        "page": "77",
+        "table_id": "2022-08-16_preliminary-final-report_80f710bc-dd27-4c5f-83e9-90da277284c2:p77-77:b94:t1"
+      }
+    },
+    {
+      "metric": "ebitda",
+      "period_end": "2020-06-30",
+      "period_type": "Year ended 30 June 2020",
+      "value": "-149.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "appendix_statement",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/BHP/financial_performance/2022-08-16_preliminary-final-report_80f710bc-dd27-4c5f-83e9-90da277284c2.pdf",
+        "page": "80",
+        "table_id": "2022-08-16_preliminary-final-report_80f710bc-dd27-4c5f-83e9-90da277284c2:p80-80:b105:t1"
+      }
+    }
+  ]
+}

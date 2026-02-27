@@ -1,0 +1,2 @@
+# Capital Brief focused source list
+auto:https://www.capitalbrief.com

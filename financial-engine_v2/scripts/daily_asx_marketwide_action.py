@@ -10,6 +10,8 @@ from pathlib import Path
 import httpx
 from dateutil import parser as dtparser
 
+from _run_metadata import build_run_metadata
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BACKEND_ROOT = REPO_ROOT / "backend"
 if str(BACKEND_ROOT) not in sys.path:
@@ -60,6 +62,11 @@ def parse_args() -> argparse.Namespace:
         "--disable-marketwide-fallback",
         action="store_true",
         help="Disable fallback ticker sweep when market-wide ASX page returns empty.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print plan/estimates and exit without writing DB/files.",
     )
     return parser.parse_args()
 
@@ -114,14 +121,38 @@ def main() -> None:
     if args.days <= 0:
         raise SystemExit("--days must be > 0")
 
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=args.days)
+    if args.dry_run:
+        plan = {
+            "dry_run": True,
+            "script": "daily_asx_marketwide_action",
+            "settings": {
+                "days": args.days,
+                "start": start.isoformat(),
+                "end": end.isoformat(),
+                "process_documents": bool(args.process_documents),
+                "skip_download": bool(args.skip_download),
+                "fallback_max_tickers": args.fallback_max_tickers,
+                "disable_marketwide_fallback": bool(args.disable_marketwide_fallback),
+                "report": str(args.report),
+                "database_url": getattr(settings, "database_url", None),
+                "docs_root": getattr(settings, "docs_root", None),
+                "enable_importance_classification": bool(getattr(settings, "enable_importance_classification", False)),
+            },
+            "notes": [
+                "Dry-run skips ASX network discovery, DB inserts, PDF downloads, classification, and report writes.",
+            ],
+        }
+        print(json.dumps(plan, indent=2, default=str))
+        return
+
     report_path = Path(args.report)
     report_path.parent.mkdir(parents=True, exist_ok=True)
 
-    end = datetime.now(timezone.utc)
-    start = end - timedelta(days=args.days)
-
     summary: dict[str, object] = {
         "started_at": _utc_now(),
+        "run_metadata": build_run_metadata(REPO_ROOT, __file__),
         "settings": {
             "days": args.days,
             "start": start.isoformat(),
@@ -135,6 +166,7 @@ def main() -> None:
         "insert": {},
         "processing": {
             "processed": 0,
+            "extraction_failed_count": 0,
             "skipped_download": 0,
             "errors": [],
         },
@@ -186,7 +218,18 @@ def main() -> None:
                 try:
                     download_pdf_for_document(db, document_id)
                     if args.process_documents:
-                        process_document(document_id)
+                        process_result = process_document(document_id)
+                        if (
+                            isinstance(process_result, dict)
+                            and process_result.get("extraction_status") == "failed"
+                        ):
+                            summary["processing"]["extraction_failed_count"] = int(
+                                summary["processing"]["extraction_failed_count"]
+                            ) + 1
+                            summary["processing"]["errors"].append(
+                                {"document_id": document_id, "error": "process_document_extraction_failed"}
+                            )
+                            continue
                     summary["processing"]["processed"] = int(summary["processing"]["processed"]) + 1
                 except RuntimeError as exc:
                     msg = str(exc)

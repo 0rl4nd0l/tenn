@@ -1,0 +1,128 @@
+{
+  "doc_id": "aa699456-f112-4828-bd34-0dcbba859c95",
+  "ticker": "RIO",
+  "pdf_sha256": "",
+  "published_at": "2024-07-31",
+  "fields": [
+    {
+      "metric": "net_income",
+      "period_end": "2024-06-30",
+      "period_type": "30 June 2024",
+      "value": "5890000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2024-07-31_rio-tinto-2024-half-year-results_aa699456-f112-4828-bd34-0dcbba859c95.pdf",
+        "page": "30",
+        "table_id": "2024-07-31_rio-tinto-2024-half-year-results_aa699456-f112-4828-bd34-0dcbba859c95:p30-30:b54:t1"
+      }
+    },
+    {
+      "metric": "total_liabilities",
+      "period_end": "2024-06-30",
+      "period_type": "30 June 2024",
+      "value": "-44723000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2024-07-31_rio-tinto-2024-half-year-results_aa699456-f112-4828-bd34-0dcbba859c95.pdf",
+        "page": "33",
+        "table_id": "2024-07-31_rio-tinto-2024-half-year-results_aa699456-f112-4828-bd34-0dcbba859c95:p33-33:b60:t1"
+      }
+    },
+    {
+      "metric": "total_equity",
+      "period_end": "2024-06-30",
+      "period_type": "30 June 2024",
+      "value": "57164000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2024-07-31_rio-tinto-2024-half-year-results_aa699456-f112-4828-bd34-0dcbba859c95.pdf",
+        "page": "33",
+        "table_id": "2024-07-31_rio-tinto-2024-half-year-results_aa699456-f112-4828-bd34-0dcbba859c95:p33-33:b60:t1"
+      }
+    },
+    {
+      "metric": "total_liabilities",
+      "period_end": "2023-12-31",
+      "period_type": "31 December 2023",
+      "value": "-47208000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2024-07-31_rio-tinto-2024-half-year-results_aa699456-f112-4828-bd34-0dcbba859c95.pdf",
+        "page": "33",
+        "table_id": "2024-07-31_rio-tinto-2024-half-year-results_aa699456-f112-4828-bd34-0dcbba859c95:p33-33:b60:t1"
+      }
+    },
+    {
+      "metric": "total_equity",
+      "period_end": "2023-12-31",
+      "period_type": "31 December 2023",
+      "value": "56341000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2024-07-31_rio-tinto-2024-half-year-results_aa699456-f112-4828-bd34-0dcbba859c95.pdf",
+        "page": "33",
+        "table_id": "2024-07-31_rio-tinto-2024-half-year-results_aa699456-f112-4828-bd34-0dcbba859c95:p33-33:b60:t1"
+      }
+    },
+    {
+      "metric": "net_debt",
+      "period_end": "2024-06-30",
+      "period_type": "30 June 2024",
+      "value": "-5077000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2024-07-31_rio-tinto-2024-half-year-results_aa699456-f112-4828-bd34-0dcbba859c95.pdf",
+        "page": "69",
+        "table_id": "2024-07-31_rio-tinto-2024-half-year-results_aa699456-f112-4828-bd34-0dcbba859c95:p69-69:b122:t1"
+      }
+    },
+    {
+      "metric": "net_debt",
+      "period_end": "2023-12-31",
+      "period_type": "31 December 2023",
+      "value": "-4231000000.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "balance_sheet",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2024-07-31_rio-tinto-2024-half-year-results_aa699456-f112-4828-bd34-0dcbba859c95.pdf",
+        "page": "69",
+        "table_id": "2024-07-31_rio-tinto-2024-half-year-results_aa699456-f112-4828-bd34-0dcbba859c95:p69-69:b122:t1"
+      }
+    },
+    {
+      "metric": "net_income",
+      "period_end": "2023-06-30",
+      "period_type": "30 June 2023",
+      "value": "5808.0",
+      "unit_scale": 1,
+      "currency": "US$",
+      "scope": "group",
+      "statement_type": "income_statement",
+      "source_hint": {
+        "file": "/home/l4nd0/tenn/financial-engine_v2/data/asx/docs/RIO/financial_performance/2024-07-31_rio-tinto-2024-half-year-results_aa699456-f112-4828-bd34-0dcbba859c95.pdf",
+        "page": "70",
+        "table_id": "2024-07-31_rio-tinto-2024-half-year-results_aa699456-f112-4828-bd34-0dcbba859c95:p70-70:b123:t1"
+      }
+    }
+  ]
+}

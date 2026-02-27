@@ -1,0 +1,33 @@
+{
+  "query": "BHP earnings outlook and debt risk",
+  "generated_at": "2026-02-19T00:00:00+00:00",
+  "evidence": [
+    {
+      "evidence_id": "E1",
+      "source_type": "financial_statement",
+      "source_id": "BHP_FY25_RESULT",
+      "source_url": "https://example.com/bhp-fy25",
+      "timestamp": "2025-08-20T00:00:00+00:00",
+      "confidence": 0.95,
+      "content": "Capex guidance reduced while operating cash flow remained resilient."
+    },
+    {
+      "evidence_id": "E2",
+      "source_type": "asx_announcement",
+      "source_id": "BHP_ASX_2025_09",
+      "source_url": "https://example.com/bhp-asx-2025-09",
+      "timestamp": "2025-09-01T00:00:00+00:00",
+      "confidence": 0.9,
+      "content": "Management highlighted cost discipline and portfolio simplification."
+    },
+    {
+      "evidence_id": "E3",
+      "source_type": "news",
+      "source_id": "NEWS_BHP_001",
+      "source_url": "https://example.com/news-bhp",
+      "timestamp": "2025-09-03T00:00:00+00:00",
+      "confidence": 0.8,
+      "content": "Analysts revised near-term expectations upward after guidance update."
+    }
+  ]
+}

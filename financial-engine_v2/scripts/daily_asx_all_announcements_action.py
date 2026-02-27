@@ -9,6 +9,8 @@ from pathlib import Path
 
 import httpx
 
+from _run_metadata import build_run_metadata
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BACKEND_ROOT = REPO_ROOT / "backend"
 if str(BACKEND_ROOT) not in sys.path:
@@ -59,17 +61,43 @@ def parse_args() -> argparse.Namespace:
         default=str(REPO_ROOT / "reports" / "asx" / "daily_asx_all_announcements_report.json"),
         help="Output summary report path.",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print plan/estimates and exit without writing DB/files.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     target_day = _parse_date(args.date)
+    if args.dry_run:
+        plan = {
+            "dry_run": True,
+            "script": "daily_asx_all_announcements_action",
+            "settings": {
+                "date": target_day.strftime("%Y-%m-%d"),
+                "skip_download": bool(args.skip_download),
+                "process_documents": bool(args.process_documents),
+                "report": str(args.report),
+                "database_url": getattr(settings, "database_url", None),
+                "docs_root": getattr(settings, "docs_root", None),
+                "enable_importance_classification": bool(getattr(settings, "enable_importance_classification", False)),
+            },
+            "notes": [
+                "Dry-run skips ASX network discovery, DB inserts, PDF downloads, and report writes.",
+            ],
+        }
+        print(json.dumps(plan, indent=2, default=str))
+        return
+
     report_path = Path(args.report)
     report_path.parent.mkdir(parents=True, exist_ok=True)
 
     summary: dict[str, object] = {
         "started_at": _utc_now(),
+        "run_metadata": build_run_metadata(REPO_ROOT, __file__),
         "settings": {
             "date": target_day.strftime("%Y-%m-%d"),
             "skip_download": args.skip_download,
@@ -79,6 +107,7 @@ def main() -> None:
         "insert": {},
         "processing": {
             "processed": 0,
+            "extraction_failed_count": 0,
             "skipped_download": 0,
             "errors": [],
         },
@@ -108,7 +137,18 @@ def main() -> None:
                 try:
                     download_pdf_for_document(db, document_id)
                     if args.process_documents:
-                        process_document(document_id)
+                        process_result = process_document(document_id)
+                        if (
+                            isinstance(process_result, dict)
+                            and process_result.get("extraction_status") == "failed"
+                        ):
+                            summary["processing"]["extraction_failed_count"] = int(
+                                summary["processing"]["extraction_failed_count"]
+                            ) + 1
+                            summary["processing"]["errors"].append(
+                                {"document_id": document_id, "error": "process_document_extraction_failed"}
+                            )
+                            continue
                     summary["processing"]["processed"] = int(summary["processing"]["processed"]) + 1
                 except RuntimeError as exc:
                     msg = str(exc)

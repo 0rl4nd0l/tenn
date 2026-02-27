@@ -14,7 +14,7 @@ class Document(Base):
     published_at: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), index=True, nullable=True)
     period_end: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), index=True, nullable=True)
     title: Mapped[str | None] = mapped_column(Text, nullable=True)
-    source_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_url: Mapped[str | None] = mapped_column(Text, nullable=True, unique=True, index=True)
     pdf_path: Mapped[str] = mapped_column(Text)
     pdf_sha256: Mapped[str] = mapped_column(String(64), index=True)
     ingested_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())

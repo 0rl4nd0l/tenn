@@ -1,12 +1,14 @@
 llm:
   provider: ollama
   ollama_url: http://localhost:11434
-  model: phi3:mini
+  model: qwen2.5:32b
   timeout_seconds: 300
 
 paths:
   allow_roots:
-    - /home
+    - .
+    - ./reports
+    - ./data
   default_workspace: .
 
 memory:
@@ -16,11 +18,70 @@ memory:
 actions:
   confirm_required: true
 
+backend:
+  api_base_url: http://localhost:8000
+  auto_start: true
+  start_command:
+    - ./scripts/run_local_backend.sh
+  startup_timeout_seconds: 25
+
 web:
   enabled_default: false
 
+db:
+  diagnostic_query_enabled: false
+
 exports:
   dir: reports/analysis
+  chat_window_messages: 40
 
 reports:
   dir: reports
+
+rag:
+  enabled: true
+  qualitative_context:
+    db_path: reports/qual_context/company.sqlite
+    embed_backend: sentence-transformers
+    embed_model: bge-large-en-v1.5
+    st_device: auto
+    dependency_policy: error
+    corpus_filter: company
+    top_k: 8
+    max_text_chars: 1200
+  news_context:
+    enabled: true
+    db_path: reports/qual_context/news.sqlite
+    corpus_filter: news
+    ticker_match_mode: soft
+    recall_top_k_multiplier: 20
+    enable_signal_weighting: true
+    signal_weighting:
+      recency_half_life_hours: 24
+      recency_max_boost: 0.35
+      ticker_match_boosts:
+        exact: 0.24
+        strong: 0.14
+        weak: 0.06
+      ticker_identity:
+        enable_identity_hardening: true
+        canonical_name_required_for_acronym: true
+        acronym_min_length: 4
+        downgrade_ambiguous_acronym_boost: 0.02
+        allow_headline_only_medium: true
+      ticker_identity_map_path: config/ticker_identity_map.json
+      au_domain_boost: 0.05
+      au_domain_suffixes:
+        - .com.au
+        - .au
+      title_keyword_boost: 0.05
+      title_keywords:
+        - earnings
+        - guidance
+        - downgrade
+        - upgrade
+        - dividend
+        - profit
+        - rba
+        - asx
+    top_k: 4
