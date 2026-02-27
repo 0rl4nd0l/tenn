@@ -1,16 +1,27 @@
-name: Sloppy Fix
+name: Sloppy Scan
 
 on:
-  schedule:
-    - cron: "0 6 * * 1"
+  pull_request:
   workflow_dispatch:
+    inputs:
+      scan_provider:
+        description: "Scan provider"
+        required: true
+        default: "github-models"
+        type: choice
+        options:
+          - github-models
+          - agent
 
 jobs:
-  fix:
+  scan:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
+      models: read
+    env:
+      SLOPPY_SCAN_PROVIDER: ${{ github.event_name == 'workflow_dispatch' && inputs.scan_provider || 'github-models' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -45,12 +56,12 @@ jobs:
           chmod +x .github/bin/codex
           echo "$PWD/.github/bin" >> "$GITHUB_PATH"
 
-      - name: Run Sloppy (fix mode)
+      - name: Run Sloppy (scan mode)
         uses: braedonsaunders/sloppy@main
         with:
-          mode: fix
+          mode: scan
+          scan-scope: auto
+          scan-provider: ${{ env.SLOPPY_SCAN_PROVIDER }}
           agent: codex
-          timeout: 30m
-          max-cost: "$5.00"
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
