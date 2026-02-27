@@ -5,9 +5,11 @@ import argparse
 import datetime as dt
 import json
 import re
+import socket
 import sqlite3
 import subprocess
 import sys
+import time
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -18,10 +20,16 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_NEWS_ARTICLES_DB = REPO_ROOT / "reports" / "qual_context" / "news_articles.sqlite"
 DEFAULT_TICKERS_FILE = REPO_ROOT / "financial-engine_v2" / "data" / "raw" / "asx_ticker_universe.txt"
 DEFAULT_FULL_HISTORY_SCRIPT = REPO_ROOT / "financial-engine_v2" / "scripts" / "full_history_ticker_sync.py"
+DEFAULT_FULL_HISTORY_HEALTH_JSON = REPO_ROOT / "reports" / "research_engine_health.json"
 DEFAULT_OUT_JSON = REPO_ROOT / "reports" / "asx" / "missing_universe_announcement_backfill_plan.json"
 DEFAULT_OUT_MISSING_TICKERS = REPO_ROOT / "reports" / "asx" / "missing_universe_tickers.txt"
 DEFAULT_FULL_HISTORY_REPORT = REPO_ROOT / "financial-engine_v2" / "reports" / "asx" / "missing_universe_full_history_report.json"
 DEFAULT_CHILD_PYTHON = REPO_ROOT / "financial-engine_v2" / ".venv" / "bin" / "python"
+DEFAULT_ASX_DNS_HOSTS = (
+    "www.asx.com.au",
+    "www2.asx.com.au",
+    "announcements.asx.com.au",
+)
 
 ASX_PATTERN_RE = re.compile(r"\bASX\s*[:\-]\s*([A-Z][A-Z0-9]{1,5})\b", flags=re.IGNORECASE)
 AX_SUFFIX_RE = re.compile(r"(?<![A-Za-z0-9])([A-Z][A-Z0-9]{1,5})\.AX(?![A-Za-z0-9])", flags=re.IGNORECASE)
@@ -282,6 +290,106 @@ def _since_utc_from_lookback_days(days: int) -> str:
     return start.isoformat().replace("+00:00", "Z")
 
 
+def _health_preflight(*, health_json_path: Path, allow_warning: bool) -> Dict[str, Any]:
+    resolved = health_json_path.resolve()
+    out: Dict[str, Any] = {
+        "health_json": str(resolved),
+        "allow_warning": bool(allow_warning),
+        "status": "",
+        "blocked": False,
+    }
+    if not resolved.exists() or not resolved.is_file():
+        out["status"] = "missing"
+        out["reason"] = "snapshot_missing"
+        return out
+
+    try:
+        payload = json.loads(resolved.read_text(encoding="utf-8"))
+    except Exception as exc:
+        out["status"] = "degraded"
+        out["blocked"] = True
+        out["reason"] = "invalid_json"
+        out["error"] = str(exc)
+        return out
+
+    status = str((payload or {}).get("overall_status") or "").strip().lower()
+    if status not in {"healthy", "warning", "degraded"}:
+        out["status"] = "degraded"
+        out["blocked"] = True
+        out["reason"] = "invalid_schema_missing_overall_status"
+        return out
+
+    out["status"] = status
+    if status == "degraded":
+        out["blocked"] = True
+        out["reason"] = "health_gate_degraded"
+    elif status == "warning" and not bool(allow_warning):
+        out["blocked"] = True
+        out["reason"] = "health_gate_warning_without_allow_warning"
+    return out
+
+
+def _dns_preflight(hosts: Sequence[str]) -> Dict[str, Any]:
+    checks: List[Dict[str, Any]] = []
+    resolved_count = 0
+    for raw_host in hosts:
+        host = str(raw_host or "").strip()
+        if not host:
+            continue
+        row: Dict[str, Any] = {"host": host, "resolved": False}
+        try:
+            addrs = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
+            ips = sorted({str(item[4][0]) for item in addrs if isinstance(item, tuple) and len(item) >= 5 and item[4]})
+            row["resolved"] = True
+            row["ip_sample"] = ips[:5]
+            resolved_count += 1
+        except Exception as exc:
+            row["error"] = str(exc)
+        checks.append(row)
+    blocked = bool(checks) and resolved_count == 0
+    out: Dict[str, Any] = {
+        "hosts": [str(item.get("host") or "") for item in checks],
+        "checks": checks,
+        "resolved_host_count": int(resolved_count),
+        "blocked": bool(blocked),
+    }
+    if blocked:
+        out["reason"] = "all_dns_lookups_failed"
+    return out
+
+
+def _file_signature(path: Path) -> Dict[str, int] | None:
+    if not path.exists() or not path.is_file():
+        return None
+    stat = path.stat()
+    return {
+        "size_bytes": int(stat.st_size),
+        "mtime_ns": int(stat.st_mtime_ns),
+    }
+
+
+def _attach_fresh_full_history_report(
+    *,
+    execution: Dict[str, Any],
+    full_history_report: Path,
+    signature_before: Dict[str, int] | None,
+) -> None:
+    signature_after = _file_signature(full_history_report)
+    execution["full_history_report_signature_before"] = signature_before
+    execution["full_history_report_signature_after"] = signature_after
+    if signature_after is None:
+        return
+    if signature_before is not None and signature_after == signature_before:
+        execution["full_history_report_ignored"] = "unchanged_since_command_start"
+        return
+    try:
+        execution["full_history_report_payload"] = json.loads(
+            full_history_report.read_text(encoding="utf-8")
+        )
+    except Exception as exc:
+        execution["full_history_report_load_error"] = str(exc)
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description=(
@@ -300,6 +408,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--process-documents", action="store_true", help="Pass --process-documents to full_history_ticker_sync.")
     ap.add_argument("--allow-warning", action="store_true", help="Pass --allow-warning to full_history_ticker_sync.")
     ap.add_argument("--full-history-health-json", default="", help="Optional --health-json path passed to full_history_ticker_sync.")
+    ap.add_argument(
+        "--dns-hosts",
+        default=",".join(DEFAULT_ASX_DNS_HOSTS),
+        help="Comma-separated hosts used for execute DNS preflight.",
+    )
+    ap.add_argument("--skip-dns-preflight", action="store_true", help="Skip DNS preflight when --execute is set.")
     ap.add_argument("--python-bin", default=_default_python_bin(), help="Python executable for child workflow.")
     ap.add_argument("--full-history-script", default=str(DEFAULT_FULL_HISTORY_SCRIPT), help="Path to full_history_ticker_sync.py.")
     ap.add_argument("--full-history-report", default=str(DEFAULT_FULL_HISTORY_REPORT), help="Output report path for full_history_ticker_sync.")
@@ -311,9 +425,14 @@ def main(argv: list[str] | None = None) -> int:
     tickers_file = _resolve_path(args.tickers_file)
     full_history_script = _resolve_path(args.full_history_script)
     full_history_report = _resolve_path(args.full_history_report)
-    full_history_health_json = _resolve_path(args.full_history_health_json) if str(args.full_history_health_json or "").strip() else None
+    full_history_health_json = (
+        _resolve_path(args.full_history_health_json)
+        if str(args.full_history_health_json or "").strip()
+        else DEFAULT_FULL_HISTORY_HEALTH_JSON
+    )
     out_json = _resolve_path(args.out_json)
     out_missing_tickers = _resolve_path(args.out_missing_tickers)
+    dns_hosts = [host.strip() for host in str(args.dns_hosts or "").split(",") if host.strip()]
 
     since_utc = _since_utc_from_lookback_days(int(args.source_lookback_days))
     provider_filter = _parse_provider_list(args.providers)
@@ -376,11 +495,23 @@ def main(argv: list[str] | None = None) -> int:
             "full_history_report": str(full_history_report),
             "stdout_tail": [],
             "stderr_tail": [],
+            "preflight": {
+                "health": {},
+                "dns": {
+                    "skipped": bool(args.skip_dns_preflight),
+                    "hosts": dns_hosts,
+                    "checks": [],
+                    "resolved_host_count": 0,
+                    "blocked": False,
+                },
+                "blocked_reasons": [],
+            },
         },
     }
 
     exit_code = 0
     if args.execute and selected_missing:
+        execution = result["execution"]
         cmd = build_full_history_command(
             python_bin=str(args.python_bin),
             full_history_script=full_history_script,
@@ -391,33 +522,65 @@ def main(argv: list[str] | None = None) -> int:
             allow_warning=bool(args.allow_warning),
             health_json_path=full_history_health_json,
         )
-        cp = subprocess.run(
-            cmd,
-            cwd=str(REPO_ROOT / "financial-engine_v2"),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=False,
+        execution["command"] = cmd
+
+        health_preflight = _health_preflight(
+            health_json_path=full_history_health_json,
+            allow_warning=bool(args.allow_warning),
         )
-        result["execution"] = {
-            "requested": True,
-            "ran": True,
-            "success": bool(cp.returncode == 0),
-            "returncode": int(cp.returncode),
-            "command": cmd,
-            "full_history_report": str(full_history_report),
-            "stdout_tail": str(cp.stdout or "").splitlines()[-40:],
-            "stderr_tail": str(cp.stderr or "").splitlines()[-40:],
-        }
-        if cp.returncode != 0:
-            exit_code = 1
-        if full_history_report.exists() and full_history_report.is_file():
-            try:
-                result["execution"]["full_history_report_payload"] = json.loads(
-                    full_history_report.read_text(encoding="utf-8")
-                )
-            except Exception as exc:
-                result["execution"]["full_history_report_load_error"] = str(exc)
+        execution["preflight"]["health"] = health_preflight
+        if health_preflight.get("blocked"):
+            execution["preflight"]["blocked_reasons"].append(str(health_preflight.get("reason") or "health_preflight_blocked"))
+
+        if bool(args.skip_dns_preflight):
+            execution["preflight"]["dns"] = {
+                "skipped": True,
+                "hosts": dns_hosts,
+                "checks": [],
+                "resolved_host_count": 0,
+                "blocked": False,
+            }
+        else:
+            dns_preflight = _dns_preflight(dns_hosts)
+            execution["preflight"]["dns"] = dns_preflight
+            if dns_preflight.get("blocked"):
+                execution["preflight"]["blocked_reasons"].append(str(dns_preflight.get("reason") or "dns_preflight_blocked"))
+
+        if execution["preflight"]["blocked_reasons"]:
+            execution["ran"] = False
+            execution["success"] = False
+            execution["returncode"] = 2
+            execution["stderr_tail"] = [
+                "Preflight blocked execution.",
+                *[str(item) for item in execution["preflight"]["blocked_reasons"]],
+            ]
+            exit_code = 2
+        else:
+            report_signature_before = _file_signature(full_history_report)
+            _started_ns = time.time_ns()
+            cp = subprocess.run(
+                cmd,
+                cwd=str(REPO_ROOT / "financial-engine_v2"),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=False,
+            )
+            _finished_ns = time.time_ns()
+            execution["ran"] = True
+            execution["success"] = bool(cp.returncode == 0)
+            execution["returncode"] = int(cp.returncode)
+            execution["stdout_tail"] = str(cp.stdout or "").splitlines()[-40:]
+            execution["stderr_tail"] = str(cp.stderr or "").splitlines()[-40:]
+            execution["started_epoch_ns"] = int(_started_ns)
+            execution["finished_epoch_ns"] = int(_finished_ns)
+            if cp.returncode != 0:
+                exit_code = 1
+            _attach_fresh_full_history_report(
+                execution=execution,
+                full_history_report=full_history_report,
+                signature_before=report_signature_before,
+            )
     elif args.execute:
         result["execution"]["success"] = True
     else:

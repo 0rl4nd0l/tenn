@@ -3,6 +3,7 @@ import sqlite3
 import sys
 import tempfile
 import unittest
+import unittest.mock as mock
 from pathlib import Path
 
 
@@ -152,6 +153,61 @@ class BackfillMissingUniverseAnnouncementsTests(unittest.TestCase):
                 "--allow-warning",
             ],
         )
+
+    def test_health_preflight_blocks_degraded(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            health_path = tmp / "health.json"
+            health_path.write_text('{"overall_status":"degraded"}', encoding="utf-8")
+            preflight = MOD._health_preflight(health_json_path=health_path, allow_warning=True)
+            self.assertEqual(preflight["status"], "degraded")
+            self.assertTrue(preflight["blocked"])
+            self.assertEqual(preflight["reason"], "health_gate_degraded")
+
+    def test_health_preflight_allows_missing_snapshot(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            health_path = tmp / "missing_health.json"
+            preflight = MOD._health_preflight(health_json_path=health_path, allow_warning=False)
+            self.assertEqual(preflight["status"], "missing")
+            self.assertFalse(preflight["blocked"])
+
+    def test_dns_preflight_blocks_when_all_hosts_fail(self):
+        with mock.patch.object(MOD.socket, "getaddrinfo", side_effect=OSError("dns failed")):
+            preflight = MOD._dns_preflight(["www.asx.com.au", "announcements.asx.com.au"])
+            self.assertTrue(preflight["blocked"])
+            self.assertEqual(preflight["reason"], "all_dns_lookups_failed")
+            self.assertEqual(preflight["resolved_host_count"], 0)
+
+    def test_attach_fresh_report_ignores_unchanged_file(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            report = tmp / "report.json"
+            report.write_text('{"status":"old"}', encoding="utf-8")
+            before = MOD._file_signature(report)
+            execution = {}
+            MOD._attach_fresh_full_history_report(
+                execution=execution,
+                full_history_report=report,
+                signature_before=before,
+            )
+            self.assertEqual(execution.get("full_history_report_ignored"), "unchanged_since_command_start")
+            self.assertNotIn("full_history_report_payload", execution)
+
+    def test_attach_fresh_report_loads_when_file_updated(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            report = tmp / "report.json"
+            report.write_text('{"status":"old"}', encoding="utf-8")
+            before = MOD._file_signature(report)
+            report.write_text('{"status":"updated_now"}', encoding="utf-8")
+            execution = {}
+            MOD._attach_fresh_full_history_report(
+                execution=execution,
+                full_history_report=report,
+                signature_before=before,
+            )
+            self.assertEqual(execution["full_history_report_payload"]["status"], "updated_now")
 
 
 if __name__ == "__main__":
