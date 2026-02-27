@@ -1,0 +1,27 @@
+mode: fix
+agent: codex
+timeout: 30m
+max-cost: "$5.00"
+max-passes: 6
+min-passes: 2
+scan-scope: full
+strictness: high
+min-severity: medium
+test-command: "python -m pytest"
+
+fix-types:
+  - security
+  - bugs
+  - types
+  - lint
+  - dead-code
+  - stubs
+  - duplicates
+  - coverage
+
+ignore:
+  - "archives/"
+  - "reports/"
+  - "gold/"
+  - "scripts/archive/"
+  - "**/__pycache__/"

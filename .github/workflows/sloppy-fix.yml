@@ -1,0 +1,25 @@
+name: Sloppy Fix
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Sloppy (fix mode)
+        uses: braedonsaunders/sloppy@main
+        with:
+          mode: fix
+          agent: codex
+          timeout: 30m
+          max-cost: "$5.00"
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
