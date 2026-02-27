@@ -532,7 +532,11 @@ def build_health_snapshot(
     invalid_company_exceeded = bool(company_rag["drift_flags"]["invalid_company_ratio_exceeded"])
     gpu_unavailable = not bool(gpu.get("nvml_available"))
 
-    if gpu_unavailable or invalid_company_exceeded:
+    # CPU-only hosts are common; treat missing NVML/GPU as warning, not degraded.
+    if gpu_unavailable:
+        warning_flags.append("gpu.unavailable")
+
+    if invalid_company_exceeded:
         overall_status = "degraded"
     elif warning_flags:
         overall_status = "warning"

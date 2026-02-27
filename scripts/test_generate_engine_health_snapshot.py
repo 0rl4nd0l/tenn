@@ -285,7 +285,7 @@ class TestGenerateEngineHealthSnapshot(unittest.TestCase):
             company_invalid_chunks=0,
             gpu_probe=_unavailable_gpu,
         )
-        self.assertEqual(payload["overall_status"], "degraded")
+        self.assertEqual(payload["overall_status"], "warning")
         self.assertFalse(payload["gpu"]["nvml_available"])
         self.assertEqual(payload["gpu"]["status"], "unavailable")
 
