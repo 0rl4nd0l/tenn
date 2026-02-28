@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
+
   fix:
     runs-on: ubuntu-latest
     environment: OPEN
@@ -15,25 +16,12 @@ jobs:
     env:
       CODEX_MODEL: gpt-5.2-codex
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Normalize OpenAI API key
-        shell: bash
+           - uses: braedonsaunders/sloppy@main
+        with:
+          mode: fix
+          agent: codex
         env:
-          OPENAI_API_KEY_RAW: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          set -euo pipefail
-          raw="${OPENAI_API_KEY_RAW:-}"
-          cleaned="$(printf '%s' "$raw" | tr -d '\r\n')"
-          if [[ -z "$cleaned" ]]; then
-            echo "::error::OPENAI_API_KEY secret is empty."
-            exit 1
-          fi
-          echo "::add-mask::$cleaned"
-          {
-            echo "OPENAI_API_KEY_CLEAN=$cleaned"
-            echo "OPENAI_API_KEY_LEN=${#cleaned}"
-          } >> "$GITHUB_ENV"
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
       - name: Codex CLI compatibility shim
         shell: bash
