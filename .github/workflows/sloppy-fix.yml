@@ -6,7 +6,6 @@ on:
   workflow_dispatch:
 
 jobs:
-
   fix:
     runs-on: ubuntu-latest
     environment: OPEN
@@ -16,14 +15,14 @@ jobs:
     env:
       CODEX_MODEL: gpt-5.2-codex
     steps:
-           - uses: braedonsaunders/sloppy@main
+        uses: braedonsaunders/sloppy@main
         with:
           mode: fix
           agent: codex
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
-      - name: Codex CLI compatibility shim
+        name: Codex CLI compatibility shim
         shell: bash
         run: |
           mkdir -p .github/bin
