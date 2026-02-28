@@ -1,5 +1,4 @@
 name: Sloppy Fix
-cd "$GITHUB_WORKSPACE"
 on:
   schedule:
     - cron: "0 6 * * 1"
@@ -25,6 +24,7 @@ jobs:
       - name: Codex CLI compatibility shim
         shell: bash
         run: |
+          cd "$GITHUB_WORKSPACE"
           mkdir -p .github/bin
           cat > .github/bin/codex <<'EOF'
           #!/usr/bin/env bash
