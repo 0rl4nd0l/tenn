@@ -67,6 +67,7 @@ jobs:
           codex --version
 
           tmp_home="$(mktemp -d)"
+          mkdir -p "$tmp_home/.codex"
           set +e
           HOME="$tmp_home" CODEX_HOME="$tmp_home/.codex" \
             timeout 120s codex exec --full-auto --skip-git-repo-check "Reply with exactly: codex-ok" \
