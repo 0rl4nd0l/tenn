@@ -15,14 +15,14 @@ jobs:
     env:
       CODEX_MODEL: gpt-5.2-codex
     steps:
-        uses: braedonsaunders/sloppy@main
+      - uses: braedonsaunders/sloppy@main
         with:
           mode: fix
           agent: codex
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
-        name: Codex CLI compatibility shim
+      - name: Codex CLI compatibility shim
         shell: bash
         run: |
           mkdir -p .github/bin
@@ -63,15 +63,15 @@ jobs:
       - name: Codex preflight (auth/model)
         shell: bash
         env:
-          OPENAI_API_KEY: ${{ env.OPENAI_API_KEY_CLEAN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           set -euo pipefail
           if [[ -z "${OPENAI_API_KEY:-}" ]]; then
             echo "::error::OPENAI_API_KEY is not set."
             exit 1
           fi
-          if [[ "${OPENAI_API_KEY_LEN:-0}" -lt 20 ]]; then
-            echo "::error::OPENAI_API_KEY appears too short (len=${OPENAI_API_KEY_LEN:-0})."
+          if [[ ${#OPENAI_API_KEY} -lt 20 ]]; then
+            echo "::error::OPENAI_API_KEY appears too short (len=${#OPENAI_API_KEY})."
             exit 1
           fi
 
@@ -116,4 +116,4 @@ jobs:
           timeout: 30m
           max-cost: "$5.00"
         env:
-          OPENAI_API_KEY: ${{ env.OPENAI_API_KEY_CLEAN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
