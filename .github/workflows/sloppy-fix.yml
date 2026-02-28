@@ -1,5 +1,5 @@
 name: Sloppy Fix
-
+cd "$GITHUB_WORKSPACE"
 on:
   schedule:
     - cron: "0 6 * * 1"
