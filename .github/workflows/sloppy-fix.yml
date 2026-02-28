@@ -16,6 +16,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Normalize OpenAI API key
+        shell: bash
+        env:
+          OPENAI_API_KEY_RAW: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set -euo pipefail
+          raw="${OPENAI_API_KEY_RAW:-}"
+          cleaned="$(printf '%s' "$raw" | tr -d '\r\n')"
+          if [[ -z "$cleaned" ]]; then
+            echo "::error::OPENAI_API_KEY secret is empty."
+            exit 1
+          fi
+          echo "::add-mask::$cleaned"
+          {
+            echo "OPENAI_API_KEY_CLEAN=$cleaned"
+            echo "OPENAI_API_KEY_LEN=${#cleaned}"
+          } >> "$GITHUB_ENV"
+
       - name: Codex CLI compatibility shim
         shell: bash
         run: |
@@ -57,11 +75,15 @@ jobs:
       - name: Codex preflight (auth/model)
         shell: bash
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_API_KEY: ${{ env.OPENAI_API_KEY_CLEAN }}
         run: |
           set -euo pipefail
           if [[ -z "${OPENAI_API_KEY:-}" ]]; then
             echo "::error::OPENAI_API_KEY is not set."
+            exit 1
+          fi
+          if [[ "${OPENAI_API_KEY_LEN:-0}" -lt 20 ]]; then
+            echo "::error::OPENAI_API_KEY appears too short (len=${OPENAI_API_KEY_LEN:-0})."
             exit 1
           fi
           codex --version
@@ -94,4 +116,4 @@ jobs:
           timeout: 30m
           max-cost: "$5.00"
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_API_KEY: ${{ env.OPENAI_API_KEY_CLEAN }}
