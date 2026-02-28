@@ -98,9 +98,21 @@ jobs:
             echo "::error::OPENAI_API_KEY appears too short (len=${OPENAI_API_KEY_LEN:-0})."
             exit 1
           fi
-          codex --version
 
           tmp_home="$(mktemp -d)"
+          code="$(
+            curl -sS -o "$tmp_home/openai_models.json" -w "%{http_code}" \
+              -H "Authorization: Bearer $OPENAI_API_KEY" \
+              https://api.openai.com/v1/models
+          )"
+          if [[ "$code" != "200" ]]; then
+            echo "::error::OpenAI API auth preflight failed (HTTP $code)."
+            sed -n '1,120p' "$tmp_home/openai_models.json"
+            exit 1
+          fi
+
+          codex --version
+
           mkdir -p "$tmp_home/.codex"
           set +e
           HOME="$tmp_home" CODEX_HOME="$tmp_home/.codex" \
