@@ -1,119 +1,20 @@
+# .github/workflows/sloppy-fix.yml
 name: Sloppy Fix
 on:
   schedule:
-    - cron: "0 6 * * 1"
+    - cron: '0 6 * * 1'
   workflow_dispatch:
-
 jobs:
   fix:
     runs-on: ubuntu-latest
-    environment: OPEN
     permissions:
       contents: write
       pull-requests: write
-    env:
-      CODEX_MODEL: gpt-5.2-codex
     steps:
+      - uses: actions/checkout@v4
       - uses: braedonsaunders/sloppy@main
         with:
           mode: fix
           agent: codex
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
-      - name: Codex CLI compatibility shim
-        shell: bash
-        run: |
-          cd "$GITHUB_WORKSPACE"
-          mkdir -p .github/bin
-          cat > .github/bin/codex <<'EOF'
-          #!/usr/bin/env bash
-          set -euo pipefail
-
-          args=()
-          has_model=0
-          for arg in "$@"; do
-            if [[ "$arg" == "--quiet" ]]; then
-              continue
-            fi
-            if [[ "$arg" == "--model" ]]; then
-              has_model=1
-            fi
-            args+=("$arg")
-          done
-          if [[ "$has_model" -eq 0 ]]; then
-            args+=("--model" "${CODEX_MODEL:-gpt-5.2-codex}")
-          fi
-
-          npm_root="$(npm root -g 2>/dev/null || true)"
-          for candidate in \
-            "$npm_root/@openai/codex/bin/codex.js" \
-            "$npm_root/@openai/codex/dist/cli.js" \
-            "$npm_root/@openai/codex/cli.js"; do
-            if [[ -f "$candidate" ]]; then
-              exec node "$candidate" "${args[@]}"
-            fi
-          done
-
-          exec npx -y @openai/codex "${args[@]}"
-          EOF
-          chmod +x .github/bin/codex
-          echo "$PWD/.github/bin" >> "$GITHUB_PATH"
-
-      - name: Codex preflight (auth/model)
-        shell: bash
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          set -euo pipefail
-          if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-            echo "::error::OPENAI_API_KEY is not set."
-            exit 1
-          fi
-          if [[ ${#OPENAI_API_KEY} -lt 20 ]]; then
-            echo "::error::OPENAI_API_KEY appears too short (len=${#OPENAI_API_KEY})."
-            exit 1
-          fi
-
-          tmp_home="$(mktemp -d)"
-          code="$(
-            curl -sS -o "$tmp_home/openai_models.json" -w "%{http_code}" \
-              -H "Authorization: Bearer $OPENAI_API_KEY" \
-              https://api.openai.com/v1/models
-          )"
-          if [[ "$code" != "200" ]]; then
-            echo "::error::OpenAI API auth preflight failed (HTTP $code)."
-            sed -n '1,120p' "$tmp_home/openai_models.json"
-            exit 1
-          fi
-
-          codex --version
-
-          mkdir -p "$tmp_home/.codex"
-          set +e
-          HOME="$tmp_home" CODEX_HOME="$tmp_home/.codex" \
-            timeout 120s codex exec --full-auto --skip-git-repo-check "Reply with exactly: codex-ok" \
-            >"$tmp_home/out.txt" 2>"$tmp_home/err.txt"
-          ec=$?
-          set -e
-
-          echo "preflight_exit=$ec"
-          if [[ "$ec" -ne 0 ]]; then
-            echo "---- codex preflight stderr ----"
-            sed -n '1,220p' "$tmp_home/err.txt"
-            exit "$ec"
-          fi
-
-          echo "---- codex preflight output ----"
-          sed -n '1,60p' "$tmp_home/out.txt"
-
-      - name: Run Sloppy (fix mode)
-        uses: braedonsaunders/sloppy@main
-        with:
-          mode: fix
-          agent: codex
-          model: ${{ env.CODEX_MODEL }}
-          timeout: 30m
-          max-cost: "$5.00"
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
