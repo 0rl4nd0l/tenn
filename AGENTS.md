@@ -17,13 +17,30 @@ PYTHONPATH=backend \
 DATABASE_URL=sqlite:///./data/fe_local.db \
 TASK_MODE=sync AUTO_CREATE_TABLES=true \
 ENABLE_EMBEDDINGS=false ENABLE_QDRANT=false ENABLE_EXTRACTION=false \
+OLLAMA_HOST=127.0.0.1:11434 OLLAMA_URL=http://127.0.0.1:11434 \
+DOCS_ROOT=/workspace/financial-engine_v2/data/asx/docs \
 ENABLE_MARKETINDEX_FALLBACK=true \
 /workspace/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 Or use the convenience script: `financial-engine_v2/scripts/run_local_backend.sh` (requires `.venv` inside `financial-engine_v2/`).
 
-Key local-mode defaults: SQLite DB at `data/fe_local.db`, sync task mode (no Celery/Redis), embeddings/extraction/Qdrant disabled.
+Key local-mode defaults: SQLite DB at `data/fe_local.db`, sync task mode (no Celery/Redis), embeddings/extraction/Qdrant disabled, `OLLAMA_HOST=127.0.0.1:11434`, and `DOCS_ROOT=/workspace/financial-engine_v2/data/asx/docs`.
+
+### Cursor Cloud environment bootstrap
+- Cloud env config is in `.cursor/environment.json`.
+- Install hook runs `financial-engine_v2/scripts/cloud_env_install.sh` to:
+  - install Python `zstandard` in `/workspace/.venv`
+  - install Ollama in user space (`~/.local/ollama`, symlinked at `~/.local/bin/ollama`)
+  - pre-pull `qwen2.5:1.5b` (fallback `qwen2.5:0.5b`)
+- Start hook runs `financial-engine_v2/scripts/cloud_env_start.sh` to persist shell exports:
+  - `OLLAMA_HOST=127.0.0.1:11434`
+  - `OLLAMA_URL=http://127.0.0.1:11434`
+  - `DOCS_ROOT=/workspace/financial-engine_v2/data/asx/docs`
+- Startup terminals launch:
+  - Ollama server (`OLLAMA_HOST=127.0.0.1:11434`)
+  - local backend (`./scripts/run_local_backend.sh`)
+  - startup health checks (`/api/tags` and `/api/health`)
 
 ### Running tests
 ```
