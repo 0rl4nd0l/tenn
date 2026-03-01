@@ -622,6 +622,32 @@ class ChatController:
         "investor",
     }
     DEEP_REQUIRED_HEADERS = ("Verdict", "Evidence", "Risks", "Counterpoints", "Unknowns")
+    MONTH_NAME_TOKENS = {
+        "JAN",
+        "JANUARY",
+        "FEB",
+        "FEBRUARY",
+        "MAR",
+        "MARCH",
+        "APR",
+        "APRIL",
+        "MAY",
+        "JUN",
+        "JUNE",
+        "JUL",
+        "JULY",
+        "AUG",
+        "AUGUST",
+        "SEP",
+        "SEPT",
+        "SEPTEMBER",
+        "OCT",
+        "OCTOBER",
+        "NOV",
+        "NOVEMBER",
+        "DEC",
+        "DECEMBER",
+    }
 
     @classmethod
     def _is_ticker_universe_request(cls, message: str) -> bool:
@@ -672,6 +698,24 @@ class ChatController:
             return False
         # Handles terse prompts like "cba", "cba?", "$bhp", "ASX:RIO".
         return re.fullmatch(r"\s*(?:asx:|\$)?[A-Za-z]{2,5}\s*[?!.,]*\s*", message, flags=re.IGNORECASE) is not None
+
+    @classmethod
+    def _looks_like_month_date_token(cls, token: str, message: str) -> bool:
+        raw = str(token or "").strip()
+        if not raw:
+            return False
+        upper = raw.upper()
+        if upper not in cls.MONTH_NAME_TOKENS:
+            return False
+        # Prevent month names in date phrases (e.g. "on Feb 3 2025") from being treated as tickers.
+        return (
+            re.search(
+                rf"\b{re.escape(raw)}\b\s+\d{{1,2}}(?:st|nd|rd|th)?(?:\s*,?\s*\d{{2,4}})?\b",
+                str(message or ""),
+                flags=re.IGNORECASE,
+            )
+            is not None
+        )
 
     @classmethod
     def _wants_full_report(cls, message: str) -> bool:
@@ -2072,6 +2116,8 @@ class ChatController:
         )
         for intent_match in intent_pattern.finditer(message):
             token = intent_match.group(1).upper()
+            if self._looks_like_month_date_token(token, message):
+                continue
             if token not in self.TICKER_STOPWORDS:
                 return token
 
