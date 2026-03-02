@@ -3,7 +3,7 @@ set -euo pipefail
 
 BASE_URL="${OLLAMA_URL:-http://127.0.0.1:11434}"
 MODEL_FAST="${HEALTHCHECK_FAST_MODEL:-llama3:latest}"
-MODEL_DEEP="${HEALTHCHECK_DEEP_MODEL:-qwen2.5:32b}"
+MODEL_DEEP="${HEALTHCHECK_DEEP_MODEL:-qwen2.5:1.5b}"
 
 log() { echo "[health] $*"; }
 

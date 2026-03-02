@@ -23,16 +23,30 @@ FINANCIAL_TITLE_HINTS = {
     "appendix 4c",
     "appendix 4d",
     "appendix 4e",
-    "quarterly",
+    "quarterly activities report",
     "half year",
     "half-year",
+    "half yearly report",
+    "results announcement",
+    "results presentation",
     "annual report",
     "financial report",
-    "results",
     "cash flow",
     "cashflow",
-    "activities report",
-    "production report",
+}
+
+NON_FINANCIAL_TITLE_HINTS = {
+    "annual general meeting",
+    "agm",
+    "notice of annual general meeting",
+    "proxy form",
+    "change of director",
+    "substantial holding",
+    "notification of cessation",
+    "notification regarding unquoted securities",
+    "dividend/distribution",
+    "group action",
+    "prices us bond",
 }
 
 
@@ -43,8 +57,12 @@ def _utc_now() -> str:
 def _is_financial_candidate(doc: Document) -> bool:
     subtype = (doc.doc_subtype or "").strip().lower()
     title = (doc.title or "").strip().lower()
-    if subtype in {"4c", "4d", "4e", "report", "activities"}:
+    if any(h in title for h in NON_FINANCIAL_TITLE_HINTS):
+        return False
+    if subtype in {"4c", "4d", "4e", "activities"}:
         return True
+    if subtype == "report":
+        return any(h in title for h in {"annual report", "financial report", "half year", "half-year", "results announcement"})
     return any(h in title for h in FINANCIAL_TITLE_HINTS)
 
 

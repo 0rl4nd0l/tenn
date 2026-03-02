@@ -20,7 +20,14 @@ from app.providers.asx_provider import ASXProvider
 from app.providers.marketindex_provider import MarketIndexProvider
 from app.services.chunking import simple_chunk
 from app.services.embeddings import ensure_collection, upsert_points
-from app.services.extraction import EXTRACTOR_VERSION, build_prompt, parse_period_end
+from app.services.extraction import (
+    EXTRACTOR_VERSION,
+    EXTRACTION_JSON_SCHEMA,
+    build_prompt,
+    normalize_extraction_payload,
+    parse_period_end,
+    validate_extraction_payload,
+)
 from app.services.ollama import ollama_embed, ollama_generate_json
 from app.services.announcement_importance import classify_documents_and_materialize
 from app.services.storage import ensure_dir, sha256_file, write_bytes
@@ -70,6 +77,8 @@ def classify_extraction_failure(error_text: Any, structured_json: Mapping[str, A
             "malformed json",
             "could not parse json",
             "json parse",
+            "schema validation",
+            "schema_validation_failed",
         )
     ):
         return "llm_invalid_json"
@@ -570,13 +579,33 @@ def process_document(document_id):
 
         if settings.enable_extraction:
             try:
-                structured = ollama_generate_json(
+                raw_structured = ollama_generate_json(
                     settings.ollama_url,
                     settings.extract_model,
                     build_prompt(text),
+                    json_schema=EXTRACTION_JSON_SCHEMA,
                 )
-                confidence = _coerce_float(structured.get("confidence_metrics"))
-                status = "ok"
+                normalized = normalize_extraction_payload(
+                    raw_structured,
+                    doc_title=str(doc.title or ""),
+                    doc_class=str(doc.doc_class or ""),
+                    doc_subtype=str(doc.doc_subtype or ""),
+                    published_at=doc.published_at,
+                )
+                validation_errors = validate_extraction_payload(normalized, published_at=doc.published_at)
+                if validation_errors:
+                    status = "failed"
+                    error = f"schema_validation_failed: {', '.join(validation_errors)}"
+                    structured = {
+                        "error": error,
+                        "schema_validation_errors": validation_errors,
+                        "normalized_payload": normalized,
+                        "raw_payload": raw_structured if isinstance(raw_structured, dict) else {},
+                    }
+                else:
+                    structured = normalized
+                    confidence = _coerce_float(structured.get("confidence_metrics"))
+                    status = "ok"
             except Exception as exc:
                 status = "failed"
                 error = str(exc)

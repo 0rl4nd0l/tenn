@@ -1,5 +1,6 @@
 import json
 import re
+from typing import Any
 
 import httpx
 
@@ -116,16 +117,22 @@ def ollama_embed(ollama_url: str, model: str, texts: list[str], timeout: float =
         return embeddings
 
 
-def ollama_generate_json(ollama_url: str, model: str, prompt: str, timeout: float = 480.0) -> dict:
+def ollama_generate_json(
+    ollama_url: str,
+    model: str,
+    prompt: str,
+    timeout: float = 900.0,
+    json_schema: dict[str, Any] | None = None,
+) -> dict:
     with httpx.Client(timeout=timeout) as c:
         payload = {
             "model": model,
             "prompt": prompt,
             "stream": False,
-            # Ask Ollama to enforce valid JSON output where supported.
-            "format": "json",
             "options": {"temperature": 0},
         }
+        # Ask Ollama to enforce valid JSON output where supported.
+        payload["format"] = json_schema if json_schema is not None else "json"
         r = c.post(f"{_normalize_url(ollama_url)}/api/generate", json=payload)
         if r.status_code >= 400:
             # Fallback for older/limited runtimes that reject structured output args.
@@ -137,18 +144,21 @@ def ollama_generate_json(ollama_url: str, model: str, prompt: str, timeout: floa
             return _parse_json_response(txt)
         except Exception:
             # Last-resort repair pass: ask model to emit strict JSON only.
+            schema_block = ""
+            if json_schema is not None:
+                schema_block = f"\nRequired JSON schema:\n{json.dumps(json_schema, ensure_ascii=False)}\n"
             repair_prompt = (
                 "Return ONLY a valid JSON object. No markdown, no commentary.\n"
-                "If keys are malformed, normalize them to the expected extraction schema.\n\n"
+                f"{schema_block}"
                 f"RAW_RESPONSE:\n{txt[:20000]}"
             )
             repair_payload = {
                 "model": model,
                 "prompt": repair_prompt,
                 "stream": False,
-                "format": "json",
                 "options": {"temperature": 0},
             }
+            repair_payload["format"] = json_schema if json_schema is not None else "json"
             rr = c.post(f"{_normalize_url(ollama_url)}/api/generate", json=repair_payload)
             if rr.status_code >= 400:
                 rr = c.post(

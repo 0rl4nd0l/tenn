@@ -1,0 +1,32 @@
+{
+  "name": "financial-engine-v2-cockpit-local",
+  "install": "bash ./financial-engine_v2/scripts/cloud_env_install.sh",
+  "start": "bash ./financial-engine_v2/scripts/cloud_env_start.sh",
+  "ports": [
+    {
+      "name": "backend-api",
+      "port": 8000
+    },
+    {
+      "name": "ollama-api",
+      "port": 11434
+    }
+  ],
+  "terminals": [
+    {
+      "name": "Ollama",
+      "command": "bash ./financial-engine_v2/scripts/cloud_start_ollama.sh",
+      "description": "Start local Ollama on 127.0.0.1:11434."
+    },
+    {
+      "name": "Backend",
+      "command": "bash ./financial-engine_v2/scripts/run_local_backend.sh",
+      "description": "Start the financial-engine_v2 backend in local mode."
+    },
+    {
+      "name": "Startup health checks",
+      "command": "bash ./financial-engine_v2/scripts/cloud_startup_healthcheck.sh",
+      "description": "Check Ollama /api/tags and backend /api/health."
+    }
+  ]
+}
