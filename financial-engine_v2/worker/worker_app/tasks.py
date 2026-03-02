@@ -23,7 +23,14 @@ from app.services.text_extract import extract_text_from_pdf
 from app.services.chunking import simple_chunk
 from app.services.ollama import ollama_embed, ollama_generate_json
 from app.services.embeddings import ensure_collection, upsert_points
-from app.services.extraction import build_prompt, parse_period_end, EXTRACTOR_VERSION
+from app.services.extraction import (
+    EXTRACTOR_VERSION,
+    EXTRACTION_JSON_SCHEMA,
+    build_prompt,
+    normalize_extraction_payload,
+    parse_period_end,
+    validate_extraction_payload,
+)
 from qdrant_client import QdrantClient
 from .celery_app import celery
 
@@ -158,9 +165,33 @@ def process_document(prev, document_id: str = None):
         conf = None
         if ENABLE_EXTRACTION:
             try:
-                structured = ollama_generate_json(OLLAMA_URL, EXTRACT_MODEL, build_prompt(text))
-                conf = float(structured.get("confidence_metrics") or 0.0)
-                status = "ok"
+                raw_structured = ollama_generate_json(
+                    OLLAMA_URL,
+                    EXTRACT_MODEL,
+                    build_prompt(text),
+                    json_schema=EXTRACTION_JSON_SCHEMA,
+                )
+                normalized = normalize_extraction_payload(
+                    raw_structured,
+                    doc_title=str(doc.title or ""),
+                    doc_class=str(doc.doc_class or ""),
+                    doc_subtype=str(doc.doc_subtype or ""),
+                    published_at=doc.published_at,
+                )
+                validation_errors = validate_extraction_payload(normalized, published_at=doc.published_at)
+                if validation_errors:
+                    status = "failed"
+                    err = f"schema_validation_failed: {', '.join(validation_errors)}"
+                    structured = {
+                        "error": err,
+                        "schema_validation_errors": validation_errors,
+                        "normalized_payload": normalized,
+                        "raw_payload": raw_structured if isinstance(raw_structured, dict) else {},
+                    }
+                else:
+                    structured = normalized
+                    conf = float(structured.get("confidence_metrics") or 0.0)
+                    status = "ok"
             except Exception as e:
                 status = "failed"
                 err = str(e)
