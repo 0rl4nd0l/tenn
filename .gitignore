@@ -2,6 +2,10 @@ data/
 __pycache__/
 *.log
 .DS_Store
+.venv
+.venv/
+financial-engine_v2/.venv
+financial-engine_v2/.venv/
 reports/
 financial-engine_v2/.env
 financial-engine_v2/.env.local
