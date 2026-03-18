@@ -34,6 +34,7 @@ class PipelineResult(TypedDict):
     importance_classification: dict[str, Any] | None
     provider_metrics: dict[str, Any]
     provider_failures_sample: list[dict[str, Any]]
+    news_intelligence: dict[str, Any] | None
     errors: list[dict[str, Any]]
     error_count: int
 
@@ -132,6 +133,15 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
             except Exception as exc:
                 importance_classification = {"error": str(exc)}
 
+        news_intelligence = None
+        try:
+            from app.services.news_intelligence import build_news_intelligence_for_ticker
+
+            run_mode = "backfill" if int(spec.years) > 1 else "incremental"
+            news_intelligence = build_news_intelligence_for_ticker(db, ticker=ticker, run_mode=run_mode)
+        except Exception as exc:
+            news_intelligence = {"error": str(exc)}
+
         return {
             "ticker": discovery["ticker"],
             "found": discovery["found"],
@@ -144,6 +154,7 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
             "importance_classification": importance_classification,
             "provider_metrics": discovery.get("provider_metrics") or {},
             "provider_failures_sample": discovery.get("provider_failures_sample") or [],
+            "news_intelligence": news_intelligence,
             "errors": errors,
             "error_count": len(errors),
         }

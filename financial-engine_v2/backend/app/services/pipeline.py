@@ -658,6 +658,15 @@ def backfill_ticker_sync(ticker, years=5, process_documents=True):
             except Exception as exc:
                 importance_classification = {"error": str(exc)}
 
+        news_intelligence = None
+        try:
+            from app.services.news_intelligence import build_news_intelligence_for_ticker
+
+            run_mode = "backfill" if int(years) > 1 else "incremental"
+            news_intelligence = build_news_intelligence_for_ticker(db, ticker=ticker, run_mode=run_mode)
+        except Exception as exc:
+            news_intelligence = {"error": str(exc)}
+
         return {
             "ticker": discovery["ticker"],
             "found": discovery["found"],
@@ -666,6 +675,7 @@ def backfill_ticker_sync(ticker, years=5, process_documents=True):
             "skipped_download": skipped_download,
             "process_documents": process_documents,
             "importance_classification": importance_classification,
+            "news_intelligence": news_intelligence,
             "errors": errors,
             "error_count": len(errors),
         }

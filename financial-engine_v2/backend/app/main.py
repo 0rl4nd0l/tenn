@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi import FastAPI
 
 from app.api.routes import router
+from app import models  # noqa: F401
 from app.core.config import settings
 from app.core.db import engine
 from app.models.base import Base

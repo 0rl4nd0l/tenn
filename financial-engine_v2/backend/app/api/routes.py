@@ -8,6 +8,14 @@ from app.models.asx_financials import ASXPeriodicFinancial, ASXRiskNote
 from app.providers.universe import ASX20
 from app.providers.market_price_provider import MarketPriceProvider, MarketPriceProviderError
 from app.services.pipeline import backfill_ticker_sync
+from app.services.news_intelligence import (
+    build_news_intelligence_for_ticker,
+    get_company_news,
+    get_company_narratives,
+    get_company_news_snapshot,
+    get_company_sentiment,
+    semantic_news_search,
+)
 
 router=APIRouter()
 celery=Celery("fe_api", broker=settings.celery_broker_url, backend=settings.celery_result_backend)
@@ -74,3 +82,58 @@ def backfill_ticker(ticker:str, years:int=1, process_documents:bool=False):
         return {"mode":"sync", **result}
     celery.send_task("backfill_ticker", args=[ticker.upper()], queue="default", routing_key="default")
     return {"mode":"celery","enqueued":1,"ticker":ticker.upper()}
+
+
+@router.post("/news/rebuild/{ticker}")
+def rebuild_news_intelligence(
+    ticker: str,
+    run_mode: str = Query("incremental", pattern="^(incremental|backfill)$"),
+    db: Session = Depends(get_db),
+):
+    return build_news_intelligence_for_ticker(db, ticker.upper(), run_mode=run_mode)
+
+
+@router.get("/news/company/{ticker}")
+def company_news(
+    ticker: str,
+    window: str = Query("30d"),
+    limit: int = Query(20, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
+    return get_company_news(db, ticker.upper(), window=window, limit=limit)
+
+
+@router.get("/news/sentiment/{ticker}")
+def company_sentiment(
+    ticker: str,
+    window: str = Query("30d"),
+    db: Session = Depends(get_db),
+):
+    return get_company_sentiment(db, ticker.upper(), window=window)
+
+
+@router.get("/news/narratives/{ticker}")
+def company_narratives(
+    ticker: str,
+    window: str = Query("30d"),
+    limit: int = Query(8, ge=1, le=50),
+    db: Session = Depends(get_db),
+):
+    return get_company_narratives(db, ticker.upper(), window=window, limit=limit)
+
+
+@router.get("/news/snapshot/{ticker}")
+def company_news_snapshot(ticker: str, db: Session = Depends(get_db)):
+    return get_company_news_snapshot(db, ticker.upper())
+
+
+@router.get("/news/semantic-search")
+def company_semantic_news_search(
+    query: str,
+    ticker: str | None = None,
+    record_type: str | None = None,
+    top_k: int = Query(8, ge=1, le=50),
+    db: Session = Depends(get_db),
+):
+    filters = {"ticker": ticker, "record_type": record_type}
+    return semantic_news_search(db, query=query, filters=filters, top_k=top_k)
