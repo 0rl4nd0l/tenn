@@ -101,12 +101,12 @@ def main():
         db = SessionLocal()
         try:
             for ticker in tickers:
-                query = (
-                    db.query(Document)
-                    .filter(Document.ticker == ticker)
-                    .filter(or_(Document.pdf_sha256 == "", Document.pdf_sha256.is_(None)))
-                    .order_by(Document.published_at.desc().nullslast())
-                )
+                query = db.query(Document).filter(Document.ticker == ticker)
+                try:
+                    condition = or_(Document.pdf_sha256 == "", Document.pdf_sha256.is_(None))
+                except Exception:
+                    condition = Document.pdf_sha256
+                query = query.filter(condition).order_by(Document.published_at.desc().nullslast())
                 if args.limit_per_ticker and args.limit_per_ticker > 0:
                     query = query.limit(args.limit_per_ticker)
                 pending_by_ticker[ticker] = int(query.count())
@@ -156,12 +156,12 @@ def main():
     db = SessionLocal()
     try:
         for ticker in tickers:
-            query = (
-                db.query(Document)
-                .filter(Document.ticker == ticker)
-                .filter(or_(Document.pdf_sha256 == "", Document.pdf_sha256.is_(None)))
-                .order_by(Document.published_at.desc().nullslast())
-            )
+            query = db.query(Document).filter(Document.ticker == ticker)
+            try:
+                condition = or_(Document.pdf_sha256 == "", Document.pdf_sha256.is_(None))
+            except Exception:
+                condition = Document.pdf_sha256
+            query = query.filter(condition).order_by(Document.published_at.desc().nullslast())
             if args.limit_per_ticker and args.limit_per_ticker > 0:
                 query = query.limit(args.limit_per_ticker)
             rows = query.all()

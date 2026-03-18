@@ -207,7 +207,7 @@ def main() -> None:
         raise SystemExit("--max-backfill-retries must be > 0")
 
     database_url = os.getenv("DATABASE_URL", "sqlite:///./data/fe_local.db")
-    if args.dry_run:
+    if bool(getattr(args, "dry_run", False)):
         resume_report = Path(args.report).with_name(f"{Path(args.report).stem}_resume.json")
         resume_cmd = [
             args.python,
