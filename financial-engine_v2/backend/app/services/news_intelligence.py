@@ -115,6 +115,7 @@ class _StoryState:
     sentiment_scores: list[float]
     sentiment_confidences: list[float]
     text_candidates: list[str]
+    title_candidates: list[str]
 
 
 def _utc(value: datetime | None) -> datetime | None:
@@ -344,7 +345,7 @@ def _refresh_story_assignments(db: Session, ticker: str) -> dict[str, Any]:
                 if similarity > best_similarity:
                     best_similarity = similarity
                     best_story_id = candidate_story.canonical_story_id
-            if best_story_id and best_similarity >= 0.9:
+            if best_story_id and best_similarity >= 0.84:
                 story_id = best_story_id
 
         if story_id is None:
@@ -362,6 +363,7 @@ def _refresh_story_assignments(db: Session, ticker: str) -> dict[str, Any]:
                 sentiment_scores=[],
                 sentiment_confidences=[],
                 text_candidates=[],
+                title_candidates=[],
             )
 
         state = stories[story_id]
@@ -379,6 +381,8 @@ def _refresh_story_assignments(db: Session, ticker: str) -> dict[str, Any]:
             state.sentiment_confidences.append(float(article.sentiment_confidence))
         if article.raw_text:
             state.text_candidates.append(article.raw_text)
+        if article.title:
+            state.title_candidates.append(article.title)
 
         article.canonical_story_id = story_id
         for exact_key in (article.canonical_url, article.content_hash, article.headline_hash):
@@ -399,7 +403,7 @@ def _refresh_story_assignments(db: Session, ticker: str) -> dict[str, Any]:
         if state.text_candidates:
             story_text = max(state.text_candidates, key=len)
         if story_text is None:
-            story_text = " ".join(related_articles[:3]) if related_articles else None
+            story_text = " ".join(state.title_candidates[:3]) if state.title_candidates else None
 
         db.add(
             CanonicalStory(
