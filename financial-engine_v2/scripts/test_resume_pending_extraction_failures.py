@@ -50,10 +50,19 @@ class _Field:
 if "app.core.db" not in sys.modules:
     db_stub = types.ModuleType("app.core.db")
     db_stub.SessionLocal = lambda: None
+    def get_db():
+        db = db_stub.SessionLocal()
+        try:
+            yield db
+        finally:
+            pass
+    db_stub.get_db = get_db
     sys.modules["app.core.db"] = db_stub
 if "app.core.config" not in sys.modules:
     cfg_stub = types.ModuleType("app.core.config")
     cfg_stub.settings = SimpleNamespace(
+        celery_broker_url="memory://",
+        celery_result_backend="cache+memory://",
         enable_embeddings=True,
         enable_qdrant=True,
         importance_output_root=None,

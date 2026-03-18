@@ -23,6 +23,8 @@ if "httpx" not in sys.modules:
 if "app.core.config" not in sys.modules:
     config_stub = types.ModuleType("app.core.config")
     config_stub.settings = types.SimpleNamespace(
+        celery_broker_url="memory://",
+        celery_result_backend="cache+memory://",
         enable_importance_classification=False,
         importance_output_root=None,
         importance_materialize_output=False,
@@ -34,6 +36,13 @@ if "app.core.config" not in sys.modules:
 if "app.core.db" not in sys.modules:
     db_stub = types.ModuleType("app.core.db")
     db_stub.SessionLocal = lambda: mock.MagicMock()
+    def get_db():
+        db = db_stub.SessionLocal()
+        try:
+            yield db
+        finally:
+            pass
+    db_stub.get_db = get_db
     sys.modules["app.core.db"] = db_stub
 if "app.models.documents" not in sys.modules:
     documents_stub = types.ModuleType("app.models.documents")

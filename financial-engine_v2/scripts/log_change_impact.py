@@ -65,6 +65,22 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _validate_required(args: argparse.Namespace) -> tuple[bool, list[str]]:
+    """
+    Validate that required narrative fields are populated with something more
+    meaningful than the default placeholder values.
+    """
+    required_fields = ["scope", "why", "expected-impact", "validation", "rollback"]
+    missing: list[str] = []
+    for field in required_fields:
+        attr = field.replace("-", "_")
+        value = str(getattr(args, attr, "") or "").strip()
+        if not value or value.upper() == "TBD":
+            missing.append(attr)
+    ok = not missing
+    return ok, missing
+
+
 def main() -> int:
     args = build_parser().parse_args()
     files = _changed_files()

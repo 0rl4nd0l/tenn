@@ -23,6 +23,8 @@ if "app.core.config" not in sys.modules:
     cfg_stub.PROJECT_ROOT = REPO_ROOT
     cfg_stub.settings = SimpleNamespace(
         database_url="sqlite:////tmp/fe_local.db",
+        celery_broker_url="memory://",
+        celery_result_backend="cache+memory://",
         enable_embeddings=True,
         enable_qdrant=True,
     )
