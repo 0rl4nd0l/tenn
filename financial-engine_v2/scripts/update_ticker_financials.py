@@ -353,8 +353,42 @@ def main() -> None:
         limit=40,
     )
     summary["ended_at"] = utc_now()
+
     backfill_errors = int((summary["backfill"] or {}).get("error_count", 0))
-    summary["status"] = "success" if backfill_result and backfill_errors == 0 and resume_rc == 0 else "failed"
+    extraction_failed_count = int((summary["backfill"] or {}).get("extraction_failed_count", 0))
+    before_rows = int((summary.get("before") or {}).get("rows", 0))
+    after_rows = int((summary.get("after") or {}).get("rows", 0))
+    zero_rows_policy = str(getattr(args, "zero_rows_policy", "warn") or "warn")
+
+    quality_gate = {
+        "policy": zero_rows_policy,
+        "passed": True,
+        "before_rows": before_rows,
+        "after_rows": after_rows,
+        "reasons": [],
+        "rebuild": None,
+    }
+
+    extraction_failures = {"total": extraction_failed_count}
+    summary["extraction_failures"] = extraction_failures
+
+    base_success = bool(backfill_result) and backfill_errors == 0 and resume_rc == 0
+
+    if extraction_failed_count > 0:
+        quality_gate["passed"] = False
+        quality_gate["reasons"].append("extraction failures present")
+
+    if after_rows == 0:
+        if zero_rows_policy == "auto_rebuild_fail":
+            quality_gate["passed"] = False
+            quality_gate["rebuild"] = {
+                "reason": "zero rows after backfill with auto_rebuild_fail policy",
+            }
+        elif zero_rows_policy == "warn":
+            quality_gate["reasons"].append("warn mode: zero rows after backfill")
+
+    summary["quality_gate"] = quality_gate
+    summary["status"] = "success" if base_success and quality_gate["passed"] and extraction_failed_count == 0 else "failed"
 
     report_path.write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
     print(f"[update] status={summary['status']} report={report_path}", flush=True)

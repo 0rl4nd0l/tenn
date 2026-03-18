@@ -149,6 +149,7 @@ def main():
             "pending_selected": 0,
             "processed": 0,
             "skipped_download": 0,
+            "extraction_failed_count": 0,
             "errors": 0,
         },
     }
@@ -183,6 +184,7 @@ def main():
                 "pending_duplicate_source_rows_skipped": duplicate_source_rows,
                 "processed": 0,
                 "skipped_download": 0,
+                "extraction_failed_count": 0,
                 "errors": [],
                 "importance_classification": None,
             }
@@ -197,7 +199,16 @@ def main():
                     try:
                         download_pdf_for_document(db, row.document_id)
                         if args.process_documents:
-                            process_document(row.document_id)
+                            extraction_result = process_document(row.document_id)
+                            status = str((extraction_result or {}).get("extraction_status") or "").strip().lower()
+                            if status == "failed":
+                                ticker_result["extraction_failed_count"] += 1
+                                ticker_result["errors"].append(
+                                    {
+                                        "document_id": str(row.document_id),
+                                        "error": "extraction_failed",
+                                    }
+                                )
                         ticker_result["processed"] += 1
                         processed_document_ids.append(str(row.document_id))
                         last_error = None
@@ -265,6 +276,7 @@ def main():
             report["totals"]["pending_selected"] += ticker_result["pending_selected"]
             report["totals"]["processed"] += ticker_result["processed"]
             report["totals"]["skipped_download"] += ticker_result["skipped_download"]
+            report["totals"]["extraction_failed_count"] += ticker_result["extraction_failed_count"]
             report["totals"]["errors"] += ticker_result["error_count"]
 
             print(
@@ -286,7 +298,7 @@ def main():
     report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
     print(f"[resume] report={report_path}")
 
-    if report["totals"]["errors"] > 0:
+    if report["totals"]["errors"] > 0 or report["totals"]["extraction_failed_count"] > 0:
         raise SystemExit(1)
 
 
