@@ -65,8 +65,25 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _validate_required(args: argparse.Namespace) -> tuple[bool, list[str]]:
+    required = ("change_id", "scope", "why", "expected_impact", "validation", "rollback")
+    missing: list[str] = []
+    for field in required:
+        value = str(getattr(args, field, "") or "").strip()
+        if not value or value.upper() == "TBD":
+            missing.append(field)
+    return (len(missing) == 0), missing
+
+
 def main() -> int:
     args = build_parser().parse_args()
+    ok, missing = _validate_required(args)
+    if not ok:
+        joined = ", ".join(missing)
+        print(f"Missing required change-impact fields: {joined}")
+        print("Provide explicit values instead of defaults (TBD).")
+        return 2
+
     files = _changed_files()
     date_text = datetime.now(timezone.utc).date().isoformat()
 

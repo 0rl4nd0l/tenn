@@ -96,7 +96,7 @@ def parse_args():
 def main():
     args = parse_args()
     tickers = _parse_tickers(args.ticker) or ASX20[:10]
-    if args.dry_run:
+    if getattr(args, "dry_run", False):
         pending_by_ticker: dict[str, int] = {}
         db = SessionLocal()
         try:
@@ -148,6 +148,7 @@ def main():
         "totals": {
             "pending_selected": 0,
             "processed": 0,
+            "extraction_failed_count": 0,
             "skipped_download": 0,
             "errors": 0,
         },
@@ -182,6 +183,7 @@ def main():
                 "pending_selected": len(dedup_rows),
                 "pending_duplicate_source_rows_skipped": duplicate_source_rows,
                 "processed": 0,
+                "extraction_failed_count": 0,
                 "skipped_download": 0,
                 "errors": [],
                 "importance_classification": None,
@@ -197,7 +199,18 @@ def main():
                     try:
                         download_pdf_for_document(db, row.document_id)
                         if args.process_documents:
-                            process_document(row.document_id)
+                            extraction_result = process_document(row.document_id)
+                            extraction_status = str((extraction_result or {}).get("extraction_status") or "").strip().lower()
+                            if extraction_status == "failed":
+                                ticker_result["extraction_failed_count"] += 1
+                                ticker_result["errors"].append(
+                                    {
+                                        "document_id": str(row.document_id),
+                                        "error": "extraction_failed",
+                                        "attempts": attempts_used,
+                                        "details": extraction_result,
+                                    }
+                                )
                         ticker_result["processed"] += 1
                         processed_document_ids.append(str(row.document_id))
                         last_error = None
@@ -264,6 +277,7 @@ def main():
             report["results"].append(ticker_result)
             report["totals"]["pending_selected"] += ticker_result["pending_selected"]
             report["totals"]["processed"] += ticker_result["processed"]
+            report["totals"]["extraction_failed_count"] += int(ticker_result["extraction_failed_count"])
             report["totals"]["skipped_download"] += ticker_result["skipped_download"]
             report["totals"]["errors"] += ticker_result["error_count"]
 

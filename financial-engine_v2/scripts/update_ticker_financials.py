@@ -58,6 +58,16 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print plan/estimates and exit without writing DB/files.",
     )
+    parser.add_argument(
+        "--zero-rows-policy",
+        choices=["warn", "auto_rebuild_fail", "strict_fail"],
+        default="warn",
+        help=(
+            "Behavior when no financial rows exist after update. "
+            "warn=allow success with warning, auto_rebuild_fail=attempt rebuild then fail if still zero, "
+            "strict_fail=fail immediately."
+        ),
+    )
     return parser
 
 
@@ -207,7 +217,7 @@ def main() -> None:
         raise SystemExit("--max-backfill-retries must be > 0")
 
     database_url = os.getenv("DATABASE_URL", "sqlite:///./data/fe_local.db")
-    if args.dry_run:
+    if getattr(args, "dry_run", False):
         resume_report = Path(args.report).with_name(f"{Path(args.report).stem}_resume.json")
         resume_cmd = [
             args.python,
@@ -248,7 +258,7 @@ def main() -> None:
                 "resume_max_retries": args.resume_max_retries,
                 "resume_retry_delay_seconds": args.resume_retry_delay_seconds,
                 "skip_resume_pending": bool(args.skip_resume_pending),
-                "zero_rows_policy": args.zero_rows_policy,
+                "zero_rows_policy": getattr(args, "zero_rows_policy", "warn"),
                 "report": str(args.report),
                 "database_url": database_url,
             },
@@ -278,6 +288,7 @@ def main() -> None:
             "resume_max_retries": args.resume_max_retries,
             "resume_retry_delay_seconds": args.resume_retry_delay_seconds,
             "resume_pending": not args.skip_resume_pending,
+            "zero_rows_policy": getattr(args, "zero_rows_policy", "warn"),
         },
         "database_url": database_url,
         "before": _query_financial_state(database_url, ticker),
@@ -346,6 +357,64 @@ def main() -> None:
         }
 
     summary["after"] = _query_financial_state(database_url, ticker)
+    after_rows = int((summary["after"] or {}).get("rows", 0) or 0)
+    extraction_failed_total = int((summary["backfill"] or {}).get("extraction_failed_count", 0) or 0)
+    zero_rows_policy = str(getattr(args, "zero_rows_policy", "warn") or "warn").strip().lower()
+    quality_gate: dict[str, Any] = {
+        "policy": zero_rows_policy,
+        "after_rows": after_rows,
+        "passed": True,
+        "reasons": [],
+        "rebuild": None,
+    }
+    summary["extraction_failures"] = {"total": extraction_failed_total}
+
+    if extraction_failed_total > 0:
+        quality_gate["passed"] = False
+        quality_gate["reasons"].append(
+            f"extraction_failed_count={extraction_failed_total}; forcing failed status."
+        )
+
+    if after_rows <= 0:
+        if zero_rows_policy == "warn":
+            quality_gate["reasons"].append("warn mode: zero rows accepted without hard failure.")
+        elif zero_rows_policy == "auto_rebuild_fail":
+            rebuild_report = report_path.with_name(f"{report_path.stem}_rebuild.json")
+            rebuild_cmd = [
+                args.python,
+                str(REPO_ROOT / "scripts" / "rebuild_ticker_financials_from_docs.py"),
+                "--ticker",
+                ticker,
+                "--limit",
+                "120",
+                "--force",
+                "--report",
+                str(rebuild_report),
+            ]
+            env = os.environ.copy()
+            existing_pythonpath = env.get("PYTHONPATH", "")
+            env["PYTHONPATH"] = f"backend{os.pathsep}{existing_pythonpath}" if existing_pythonpath else "backend"
+            env.setdefault("DATABASE_URL", database_url)
+            rebuild_run = subprocess.run(rebuild_cmd, cwd=str(REPO_ROOT), env=env, check=False)
+            post_rebuild = _query_financial_state(database_url, ticker)
+            post_rows = int((post_rebuild or {}).get("rows", 0) or 0)
+            quality_gate["rebuild"] = {
+                "command": rebuild_cmd,
+                "returncode": int(rebuild_run.returncode),
+                "report_path": str(rebuild_report),
+                "after_rebuild": post_rebuild,
+            }
+            quality_gate["after_rows"] = post_rows
+            if post_rows <= 0:
+                quality_gate["passed"] = False
+                quality_gate["reasons"].append(
+                    "auto_rebuild_fail mode: financial rows are still zero after rebuild."
+                )
+        else:
+            quality_gate["passed"] = False
+            quality_gate["reasons"].append("strict_fail mode: financial rows are zero after update.")
+
+    summary["quality_gate"] = quality_gate
     summary["announcement_context"] = _refresh_announcement_context(
         database_url=database_url,
         ticker=ticker,
@@ -354,7 +423,17 @@ def main() -> None:
     )
     summary["ended_at"] = utc_now()
     backfill_errors = int((summary["backfill"] or {}).get("error_count", 0))
-    summary["status"] = "success" if backfill_result and backfill_errors == 0 and resume_rc == 0 else "failed"
+    summary["status"] = (
+        "success"
+        if (
+            backfill_result
+            and backfill_errors == 0
+            and resume_rc == 0
+            and bool(quality_gate.get("passed"))
+            and extraction_failed_total == 0
+        )
+        else "failed"
+    )
 
     report_path.write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
     print(f"[update] status={summary['status']} report={report_path}", flush=True)
