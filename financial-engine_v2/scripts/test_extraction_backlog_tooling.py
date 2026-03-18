@@ -27,6 +27,12 @@ if "app.core.config" not in sys.modules:
         celery_result_backend="cache+memory://",
         enable_embeddings=True,
         enable_qdrant=True,
+        enable_importance_classification=False,
+        importance_output_root=None,
+        importance_materialize_output=False,
+        importance_include_pdf_text=False,
+        importance_link_mode="symlink",
+        importance_sort_source_docs=False,
     )
     sys.modules["app.core.config"] = cfg_stub
 

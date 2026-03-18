@@ -96,7 +96,7 @@ def parse_args():
 def main():
     args = parse_args()
     tickers = _parse_tickers(args.ticker) or ASX20[:10]
-    if args.dry_run:
+    if bool(getattr(args, "dry_run", False)):
         pending_by_ticker: dict[str, int] = {}
         db = SessionLocal()
         try:

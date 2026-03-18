@@ -36,6 +36,7 @@ if "app.core.config" not in sys.modules:
 if "app.core.db" not in sys.modules:
     db_stub = types.ModuleType("app.core.db")
     db_stub.SessionLocal = lambda: mock.MagicMock()
+    db_stub.engine = None
     def get_db():
         db = db_stub.SessionLocal()
         try:

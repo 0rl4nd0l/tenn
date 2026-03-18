@@ -50,6 +50,7 @@ class _Field:
 if "app.core.db" not in sys.modules:
     db_stub = types.ModuleType("app.core.db")
     db_stub.SessionLocal = lambda: None
+    db_stub.engine = None
     def get_db():
         db = db_stub.SessionLocal()
         try:
