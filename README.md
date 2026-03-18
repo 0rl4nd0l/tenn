@@ -17,6 +17,18 @@ Current active runtime is `financial-engine_v2`.
 
 That single command delegates to `financial-engine_v2/run.py`, where defaults are hardcoded.
 
+## Runtime workflow map (financial-engine_v2)
+- `full_history`: `financial-engine_v2/scripts/full_history_ticker_sync.py`
+- `daily_marketindex`: `financial-engine_v2/scripts/daily_marketindex_action.py`
+- `daily_asx_marketwide`: `financial-engine_v2/scripts/daily_asx_marketwide_action.py`
+- Additional bulk workflows:
+  - `financial-engine_v2/scripts/asx_enrichment_sweep_action.py`
+  - `financial-engine_v2/scripts/run_asx_enrichment_chunked.py`
+  - `financial-engine_v2/scripts/probe_all_system_tickers.py`
+
+For detailed flags, runbooks, marker states, and API surface, use:
+- `financial-engine_v2/README.md`
+
 ## Isolated AU News Collector (`newspaper4k`)
 For a separate, research-only AU finance article collector, use:
 - `integrations/newspaper4k_au/`
