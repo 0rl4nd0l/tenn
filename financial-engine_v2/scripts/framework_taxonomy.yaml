@@ -1,0 +1,58 @@
+framework_families:
+
+  valuation:
+    description: Methods used to determine intrinsic value of companies
+    examples:
+      - discounted cash flow
+      - residual income model
+      - ROIC analysis
+      - owner earnings
+      - valuation multiples
+
+  behavioral_finance:
+    description: Investor psychology and market behavioral effects
+    examples:
+      - loss aversion
+      - overconfidence bias
+      - disposition effect
+      - herd behavior
+      - home bias
+
+  technical_analysis:
+    description: Price and volume based trading indicators
+    examples:
+      - moving averages
+      - RSI
+      - MACD
+      - support and resistance
+      - trend channels
+
+  sector_rotation:
+    description: Macro-driven sector allocation strategies
+    examples:
+      - investment clock
+      - cyclical vs defensive rotation
+      - momentum-based sector allocation
+      - macro regime analysis
+
+  porters_five_forces:
+    description: Industry structure analysis framework
+    examples:
+      - threat of new entrants
+      - supplier power
+      - buyer power
+      - threat of substitutes
+      - competitive rivalry
+
+  peter_lynch_classification:
+    description: Company classification framework from Peter Lynch
+    examples:
+      - fast growers
+      - stalwarts
+      - cyclicals
+      - turnarounds
+      - asset plays
+      - slow growers
+
+  other:
+    description: Miscellaneous frameworks not matching predefined families

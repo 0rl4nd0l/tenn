@@ -85,12 +85,57 @@ def parse_args():
         action="store_true",
         help="Disable post-ingestion importance folder classification step.",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print plan/estimates and exit without writing DB/files.",
+    )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
     tickers = _parse_tickers(args.ticker) or ASX20[:10]
+    if args.dry_run:
+        pending_by_ticker: dict[str, int] = {}
+        db = SessionLocal()
+        try:
+            for ticker in tickers:
+                query = (
+                    db.query(Document)
+                    .filter(Document.ticker == ticker)
+                    .filter(or_(Document.pdf_sha256 == "", Document.pdf_sha256.is_(None)))
+                    .order_by(Document.published_at.desc().nullslast())
+                )
+                if args.limit_per_ticker and args.limit_per_ticker > 0:
+                    query = query.limit(args.limit_per_ticker)
+                pending_by_ticker[ticker] = int(query.count())
+        finally:
+            db.close()
+
+        plan = {
+            "dry_run": True,
+            "script": "resume_pending_downloads",
+            "settings": {
+                "tickers_total": len(tickers),
+                "tickers": tickers,
+                "limit_per_ticker": args.limit_per_ticker,
+                "process_documents": bool(args.process_documents),
+                "max_retries": args.max_retries,
+                "retry_delay_seconds": args.retry_delay_seconds,
+                "skip_importance_classification": bool(args.skip_importance_classification),
+                "report": str(args.report),
+            },
+            "estimates": {
+                "pending_by_ticker": pending_by_ticker,
+                "pending_total": sum(pending_by_ticker.values()),
+            },
+            "notes": [
+                "Dry-run does not download PDFs, run extraction, classify docs, or write reports.",
+            ],
+        }
+        print(json.dumps(plan, indent=2, default=str))
+        return
 
     started = datetime.now(timezone.utc)
     report = {

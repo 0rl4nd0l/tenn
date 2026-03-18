@@ -87,6 +87,11 @@ def parse_args() -> argparse.Namespace:
         default=sys.executable,
         help="Python executable for child scripts.",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print plan/estimates and exit without writing DB/files.",
+    )
     return parser.parse_args()
 
 
@@ -145,6 +150,46 @@ def main() -> None:
     tickers = load_system_tickers(explicit_tickers, args.max_tickers)
     if not tickers:
         raise SystemExit("No tickers found in system. Populate documents first or pass --ticker.")
+
+    if args.dry_run:
+        resume_cmd = [
+            args.python,
+            str(REPO_ROOT / "scripts" / "resume_pending_downloads.py"),
+            "--ticker",
+            ",".join(tickers),
+            "--max-retries",
+            str(args.resume_max_retries),
+            "--retry-delay-seconds",
+            str(args.resume_retry_delay_seconds),
+            "--report",
+            str(Path(args.report).with_name(f"{Path(args.report).stem}_resume.json")),
+        ]
+        if args.process_documents:
+            resume_cmd.append("--process-documents")
+
+        plan = {
+            "dry_run": True,
+            "script": "probe_all_system_tickers",
+            "settings": {
+                "tickers_total": len(tickers),
+                "tickers_sample": tickers[:25],
+                "years": args.years,
+                "process_documents": bool(args.process_documents),
+                "max_backfill_retries": args.max_backfill_retries,
+                "resume_pending": not args.no_resume_pending,
+                "resume_max_retries": args.resume_max_retries,
+                "resume_retry_delay_seconds": args.resume_retry_delay_seconds,
+                "explicit_tickers": explicit_tickers,
+                "max_tickers": args.max_tickers,
+                "report": str(args.report),
+            },
+            "resume_command": None if args.no_resume_pending else resume_cmd,
+            "notes": [
+                "Dry-run skips backfill/resume execution and does not write reports.",
+            ],
+        }
+        print(json.dumps(plan, indent=2, default=str))
+        return
 
     report_path = Path(args.report)
     report_path.parent.mkdir(parents=True, exist_ok=True)

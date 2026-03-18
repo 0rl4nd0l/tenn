@@ -93,6 +93,11 @@ def build_parser():
         default=8,
         help="Max pages for MarketIndex ingest step (0 = all pages).",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print plan/estimates and exit without writing files.",
+    )
     return parser
 
 
@@ -103,6 +108,58 @@ def main():
     ingest_script = repo_root / args.ingest_script
     download_script = repo_root / args.download_script
     daily_report_path = repo_root / args.daily_report
+
+    ingest_cmd = [args.python, str(ingest_script), "--output", args.announcements_file]
+    if args.ingest_max_pages and args.ingest_max_pages > 0:
+        ingest_cmd.extend(["--max-pages", str(args.ingest_max_pages)])
+
+    download_cmd = None
+    if not args.skip_download:
+        download_cmd = [
+            args.python,
+            str(download_script),
+            "--input",
+            args.announcements_file,
+            "--output-dir",
+            args.pdf_dir,
+            "--report",
+            args.download_report,
+        ]
+        if args.download_limit > 0:
+            download_cmd.extend(["--limit", str(args.download_limit)])
+        if args.overwrite_pdfs:
+            download_cmd.append("--overwrite")
+        download_cmd.extend(["--min-download-count", str(args.min_download_count)])
+        download_cmd.extend(["--min-success-ratio", str(args.min_success_ratio)])
+        download_cmd.extend(["--null-retry-delay-seconds", str(args.null_retry_delay_seconds)])
+
+    if args.dry_run:
+        plan = {
+            "dry_run": True,
+            "script": "daily_marketindex_action",
+            "settings": {
+                "ingest_script": str(ingest_script),
+                "download_script": str(download_script),
+                "announcements_file": args.announcements_file,
+                "pdf_dir": args.pdf_dir,
+                "download_report": args.download_report,
+                "daily_report": str(daily_report_path),
+                "download_limit": args.download_limit,
+                "overwrite_pdfs": bool(args.overwrite_pdfs),
+                "skip_download": bool(args.skip_download),
+                "min_download_count": args.min_download_count,
+                "min_success_ratio": args.min_success_ratio,
+                "null_retry_delay_seconds": args.null_retry_delay_seconds,
+                "ingest_max_pages": args.ingest_max_pages,
+            },
+            "commands": {
+                "ingest": ingest_cmd,
+                "download": download_cmd,
+            },
+        }
+        print(json.dumps(plan, indent=2, default=str))
+        return
+
     daily_report_path.parent.mkdir(parents=True, exist_ok=True)
 
     run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -148,9 +205,6 @@ def main():
     if not download_script.exists() and not args.skip_download:
         raise FileNotFoundError(f"Download script not found: {download_script}")
 
-    ingest_cmd = [args.python, str(ingest_script), "--output", args.announcements_file]
-    if args.ingest_max_pages and args.ingest_max_pages > 0:
-        ingest_cmd.extend(["--max-pages", str(args.ingest_max_pages)])
     ingest_result = run_step("ingest_announcements", ingest_cmd, str(repo_root))
     summary["steps"].append(ingest_result)
 
@@ -162,24 +216,6 @@ def main():
         raise SystemExit(ingest_result["returncode"])
 
     if not args.skip_download:
-        download_cmd = [
-            args.python,
-            str(download_script),
-            "--input",
-            args.announcements_file,
-            "--output-dir",
-            args.pdf_dir,
-            "--report",
-            args.download_report,
-        ]
-        if args.download_limit > 0:
-            download_cmd.extend(["--limit", str(args.download_limit)])
-        if args.overwrite_pdfs:
-            download_cmd.append("--overwrite")
-        download_cmd.extend(["--min-download-count", str(args.min_download_count)])
-        download_cmd.extend(["--min-success-ratio", str(args.min_success_ratio)])
-        download_cmd.extend(["--null-retry-delay-seconds", str(args.null_retry_delay_seconds)])
-
         download_result = run_step("download_pdfs", download_cmd, str(repo_root))
         summary["steps"].append(download_result)
 

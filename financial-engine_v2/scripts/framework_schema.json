@@ -1,0 +1,123 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Investment Framework Record",
+    "type": "object",
+    "required": [
+      "framework_id",
+      "framework_family",
+      "title",
+      "principles",
+      "source_file_name",
+      "source_pages"
+    ],
+    "properties": {
+      "framework_id": {
+        "type": "string",
+        "description": "Unique deterministic ID for the framework record"
+      },
+      "framework_family": {
+        "type": "string",
+        "enum": [
+          "valuation",
+          "behavioral_finance",
+          "technical_analysis",
+          "sector_rotation",
+          "porters_five_forces",
+          "peter_lynch_classification",
+          "other"
+        ]
+      },
+      "title": {
+        "type": "string"
+      },
+      "summary": {
+        "type": "string"
+      },
+      "principles": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "signals_or_indicators": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "decision_rules": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "risk_notes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "source_doc_id": {
+        "type": "string"
+      },
+      "source_file_name": {
+        "type": "string"
+      },
+      "source_path": {
+        "type": "string"
+      },
+      "source_sha256": {
+        "type": "string"
+      },
+      "source_pages": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["page"],
+          "properties": {
+            "page": {
+              "type": "integer"
+            },
+            "quote": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "evidence_chunk_ids": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "confidence": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "metadata": {
+        "type": "object",
+        "properties": {
+          "extractor_model": {
+            "type": "string"
+          },
+          "extractor_version": {
+            "type": "string"
+          },
+          "prompt_hash": {
+            "type": "string"
+          },
+          "extracted_at_utc": {
+            "type": "string"
+          },
+          "review_status": {
+            "type": "string",
+            "enum": ["pending", "approved", "rejected"]
+          }
+        }
+      }
+    }
+  }

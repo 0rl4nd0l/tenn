@@ -7,6 +7,12 @@ from bs4 import BeautifulSoup
 from dateutil import parser as dtparser
 from urllib.parse import urljoin, urlparse, parse_qs
 
+_ScraplingFetcher = None
+try:
+    from scrapling.fetchers import Fetcher as _ScraplingFetcher
+except ImportError:
+    pass
+
 ASX_ANNOUNCEMENTS_URL="https://www.asx.com.au/asx/v2/statistics/announcements.do"
 ASX_BASE_URL="https://www.asx.com.au"
 ASX_TODAY_URL = "https://www.asx.com.au/asx/v2/statistics/todayAnns.do"
@@ -96,6 +102,75 @@ class ASXProvider:
     ) -> list[DiscoveredDoc]:
         docs: list[DiscoveredDoc] = []
         seen_urls = seen if seen is not None else set()
+
+        if _ScraplingFetcher is not None:
+            try:
+                page = _ScraplingFetcher.get(
+                    ASX_ANNOUNCEMENTS_URL, params=params, timeout=self.timeout
+                )
+                links = page.css(
+                    'a[href*=".pdf"], a[href*="displayannouncement.do"]',
+                    auto_save=True,
+                )
+                for link in links:
+                    href = link.css("::attr(href)").get()
+                    if not href:
+                        continue
+                    url = urljoin(ASX_BASE_URL, href)
+                    if url in seen_urls:
+                        continue
+                    seen_urls.add(url)
+                    title = _clean_title(
+                        " ".join(link.css("::text").getall()).strip()
+                        or link.css("::attr(title)").get()
+                        or "ASX Announcement"
+                    )
+                    row_text = " ".join(
+                        link.xpath("./ancestor::tr[1]//text()").getall()
+                    ).strip()
+                    published = None
+                    if row_text:
+                        m = re.search(r"(\d{1,2}/\d{1,2}/\d{2,4})", row_text)
+                        if m:
+                            try:
+                                published = dtparser.parse(
+                                    m.group(1), dayfirst=True
+                                ).replace(tzinfo=timezone.utc)
+                            except Exception:
+                                published = None
+                        if published is None:
+                            m2 = re.search(
+                                r"(\d{1,2}\s+[A-Za-z]+\s+\d{4})", row_text
+                            )
+                            if m2:
+                                try:
+                                    published = dtparser.parse(
+                                        m2.group(1), dayfirst=True
+                                    ).replace(tzinfo=timezone.utc)
+                                except Exception:
+                                    published = None
+                    if published and (published < start or published > end):
+                        continue
+                    ticker = _infer_ticker(href, row_text, fallback=ticker_hint)
+                    if not ticker:
+                        continue
+                    doc_class, doc_subtype = _classify(title)
+                    docs.append(
+                        DiscoveredDoc(
+                            ticker=ticker,
+                            exchange="ASX",
+                            doc_class=doc_class,
+                            doc_subtype=doc_subtype,
+                            title=title,
+                            source_url=url,
+                            published_at=published,
+                            period_end=_try_period_end(title),
+                        )
+                    )
+                return docs
+            except Exception:
+                pass
+
         r = c.get(ASX_ANNOUNCEMENTS_URL, params=params, headers={"User-Agent":"Mozilla/5.0"})
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "lxml")
