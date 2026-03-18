@@ -46,8 +46,20 @@ curl -X POST "http://127.0.0.1:8000/api/backfill/ticker/BHP?years=1&process_docu
 curl "http://127.0.0.1:8000/api/docs?ticker=BHP"
 ```
 
+### Chat / Agent endpoint
+The backend exposes `POST /api/chat` for LLM-driven analysis with tool calling. It requires Ollama running at `OLLAMA_URL` (default `http://localhost:11434`). Tools (price, docs, chart, financials, search) work without Ollama — only the LLM orchestration requires it.
+
+```
+curl -X POST http://127.0.0.1:8000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What is BHP price?"}'
+```
+
+The agent loop (in `backend/app/services/chat_agent.py`) runs up to 5 iterations: LLM decides to respond or call a tool, tool results are fed back, repeat. All tool usage is logged in the response `tool_log` array.
+
 ### Gotchas
 - The `.env.example` in `financial-engine_v2/` targets Docker mode (Postgres URLs, `TASK_MODE=celery`). For local dev, override env vars as shown above or use `run_local_backend.sh`.
 - Playwright Chromium is needed for MarketIndex PDF downloads. Install with: `/workspace/.venv/bin/python -m playwright install chromium`.
 - No lint tooling (flake8/ruff/mypy) is configured in this repo. CI uses an external "Sloppy" scan tool.
 - Tests live in `financial-engine_v2/scripts/test_*.py` (not a standard `tests/` directory). They use `unittest` and `pytest`, with `sys.path` manipulation to import from `backend/`.
+- The `/api/chat` endpoint requires Ollama for the LLM loop but individual tool functions (price, docs, chart) work independently via the existing REST endpoints.
