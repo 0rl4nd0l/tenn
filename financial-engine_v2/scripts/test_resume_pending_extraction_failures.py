@@ -90,8 +90,10 @@ if "app.services.announcement_importance" not in sys.modules:
     sys.modules["app.services.announcement_importance"] = importance_stub
 if "app.services.pipeline" not in sys.modules:
     pipeline_stub = types.ModuleType("app.services.pipeline")
+    pipeline_stub.discover_and_insert_documents = lambda *args, **kwargs: {}
     pipeline_stub.download_pdf_for_document = lambda *args, **kwargs: None
     pipeline_stub.process_document = lambda *args, **kwargs: {"extraction_status": "ok"}
+    pipeline_stub.backfill_ticker_sync = lambda *args, **kwargs: {}
     sys.modules["app.services.pipeline"] = pipeline_stub
 
 

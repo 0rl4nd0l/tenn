@@ -52,7 +52,10 @@ if "app.services.pipeline" not in sys.modules:
         return "unknown"
 
     pipe_stub.classify_extraction_failure = _classify  # type: ignore[attr-defined]
+    pipe_stub.discover_and_insert_documents = lambda *args, **kwargs: {}
+    pipe_stub.download_pdf_for_document = lambda *args, **kwargs: None
     pipe_stub.process_document = lambda document_id: {"document_id": document_id, "extraction_status": "ok"}  # type: ignore[attr-defined]
+    pipe_stub.backfill_ticker_sync = lambda *args, **kwargs: {}
     sys.modules["app.services.pipeline"] = pipe_stub
 
 
