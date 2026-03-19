@@ -1,0 +1,222 @@
+{
+  "operations": [
+    {
+      "id": "daily_news_ingestion",
+      "triggers": [
+        "run news ingestion",
+        "daily news ingestion",
+        "run daily news ingestion",
+        "start news ingestion",
+        "ingest news",
+        "run news ingest",
+        "news ingest",
+        "news pipeline run",
+        "kick off news ingestion",
+        "launch news ingestion"
+      ],
+      "goal": "Run daily news ingestion via scripts/fetch_daily_news.py, then report output artifacts",
+      "checks": [
+        "confirm script invocation returns success",
+        "confirm news_runs report_summary.json is produced",
+        "confirm no ingestion errors are reported"
+      ],
+      "outputs": [
+        "reports/qual_context/news_runs/*/report_summary.json",
+        "any generated raw/processed news output files"
+      ],
+      "constraints": [
+        "avoid destructive changes",
+        "do not alter database schema"
+      ]
+    },
+    {
+      "id": "historical_news_ingestion",
+      "triggers": [
+        "run historical news ingestion",
+        "historical news ingestion",
+        "run news backfill",
+        "backfill news",
+        "news back fill",
+        "news back-fill",
+        "historical news back-fill",
+        "historical news ingest"
+      ],
+      "goal": "Run historical news backfill via scripts/backfill_news.py and report output artifacts",
+      "checks": [
+        "confirm backfill completed without fatal exceptions",
+        "collect report summary path",
+        "note any per-ticker failures"
+      ],
+      "outputs": [
+        "reports/qual_context/news_runs/*/report_summary.json"
+      ],
+      "constraints": [
+        "avoid destructive changes",
+        "skip retries unless configured"
+      ]
+    },
+    {
+      "id": "announcement_ingestion",
+      "triggers": [
+        "run announcement ingestion",
+        "daily announcement ingestion",
+        "announcement ingest",
+        "run announcement ingest",
+        "announcement pipeline",
+        "announcement pipeline run",
+        "run announcement job"
+      ],
+      "goal": "Run daily announcement ingestion action and report outputs",
+      "checks": [
+        "confirm script completes",
+        "confirm expected announcement output files are present"
+      ],
+      "outputs": [
+        "reports/qual_context/announcement_runs/*/report_summary.json"
+      ],
+      "constraints": [
+        "avoid destructive changes"
+      ]
+    },
+    {
+      "id": "pipeline_run",
+      "triggers": [
+        "run pipeline",
+        "run ingestion pipeline",
+        "run backfill",
+        "trigger backfill",
+        "start pipeline",
+        "execute pipeline",
+        "kick off pipeline",
+        "pipeline job"
+      ],
+      "goal": "Trigger a pipeline/backfill run and report completion status and key outputs",
+      "checks": [
+        "confirm run command executes",
+        "collect any generated pipeline report path",
+        "capture top-level failure mode if present"
+      ],
+      "outputs": [
+        "autodev/worker_outputs/*",
+        "reports/*"
+      ],
+      "constraints": [
+        "avoid destructive operations"
+      ]
+    },
+    {
+      "id": "news_pipeline_tests",
+      "triggers": [
+        "news pipeline tests",
+        "test news ingestion",
+        "run news tests",
+        "verify news ingestion",
+        "validate news pipeline",
+        "check news ingestion",
+        "audit news ingestion",
+        "news ingest tests",
+        "news pipeline qa"
+      ],
+      "goal": "Run news ingestion focused checks and report pass/fail plus artefacts",
+      "checks": [
+        "execute relevant news ingestion checks",
+        "report test results with failures and stack traces"
+      ],
+      "outputs": [
+        "autodev/worker_outputs/*/report.md"
+      ],
+      "constraints": [
+        "limit surface area to news ingestion modules"
+      ]
+    },
+    {
+      "id": "system_health_check",
+      "triggers": [
+        "run full system check",
+        "run system check",
+        "run a system check",
+        "system checks",
+        "system health check",
+        "test system",
+        "check system",
+        "system audit",
+        "system status audit",
+        "run health checks"
+      ],
+      "goal": "Run current health checks and report failures plus mitigation steps",
+      "checks": [
+        "run health check command outputs successfully",
+        "include any failing dependency names"
+      ],
+      "outputs": [
+        "health check outputs",
+        "service status snapshots"
+      ],
+      "constraints": [
+        "do not restart services unless explicitly requested"
+      ]
+    },
+    {
+      "id": "run_unit_tests",
+      "triggers": [
+        "run tests",
+        "run unit tests",
+        "run targeted tests",
+        "execute tests",
+        "test suite",
+        "run regression tests",
+        "execute unit tests"
+      ],
+      "goal": "Run the requested tests and report pass/fail and failure diagnostics",
+      "checks": [
+        "collect command and exit code",
+        "include failing test names and traces if any"
+      ],
+      "outputs": [
+        "test execution output"
+      ],
+      "constraints": [
+        "avoid unrelated broad test suites"
+      ]
+    },
+    {
+      "id": "analysis_request",
+      "triggers": [
+        "analyze news ingestion",
+        "analyse news ingestion",
+        "analyze ingestion pipeline",
+        "analyse ingestion pipeline",
+        "analyze the project",
+        "audit the project",
+        "review the project",
+        "analyze pipeline",
+        "audit pipeline",
+        "review pipeline",
+        "analyze news pipeline",
+        "audit news pipeline",
+        "review news pipeline",
+        "analysis request",
+        "project analysis",
+        "repository review",
+        "codebase review",
+        "codebase audit",
+        "ingestion audit",
+        "ingestion review",
+        "system analysis",
+        "system review"
+      ],
+      "goal": "Analyze the requested scope and deliver findings plus recommended fixes",
+      "checks": [
+        "identify failure modes or risks",
+        "propose concrete fixes with priority",
+        "note missing tests or coverage gaps"
+      ],
+      "outputs": [
+        "analysis.md"
+      ],
+      "constraints": [
+        "do not modify code unless the task explicitly requests fixes"
+      ]
+    }
+  ]
+}
