@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 import time
+import venv
 from pathlib import Path
 from typing import Any
 
@@ -34,6 +35,33 @@ def _run(cmd: list[str], *, cwd: Path, check: bool = True) -> subprocess.Complet
 
 def _log(msg: str) -> None:
     print(f"[cockpit-bootstrap] {msg}", flush=True)
+
+
+def _ensure_cockpit_venv(repo_root: Path) -> Path:
+    """Ensure a venv exists with Cockpit's Python deps."""
+    venv_dir = (repo_root / ".venv").resolve()
+    python_bin = venv_dir / "bin" / "python"
+    if python_bin.exists():
+        return python_bin
+
+    _log(f"creating python venv: {venv_dir.relative_to(repo_root)}")
+    venv.create(str(venv_dir), with_pip=True, clear=False)
+    pip_bin = venv_dir / "bin" / "pip"
+    _run(
+        [
+            str(pip_bin),
+            "install",
+            "--disable-pip-version-check",
+            "--no-cache-dir",
+            # Cockpit runtime deps (minimal set; backend deps are handled via Docker images).
+            "textual>=0.80.0",
+            "httpx>=0.27.0",
+            "pyyaml>=6.0",
+        ],
+        cwd=repo_root,
+        check=True,
+    )
+    return python_bin
 
 
 def _ensure_env_file(repo_root: Path, env_file: str) -> Path:
@@ -380,8 +408,7 @@ def main(argv: list[str] | None = None) -> None:
         f"config_exists={feature_flags.get('config_exists')}"
     )
 
-    venv_python = REPO_ROOT / ".venv" / "bin" / "python"
-    launcher = str(venv_python if venv_python.exists() else Path(sys.executable))
+    launcher = str(_ensure_cockpit_venv(REPO_ROOT))
     cmd = [launcher, "-m", "cockpit.main", *cockpit_argv]
     _run(cmd, cwd=REPO_ROOT, check=True)
 
