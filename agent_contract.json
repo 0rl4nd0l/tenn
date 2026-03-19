@@ -1,0 +1,7 @@
+{
+  "canonical_entrypoint": "financial-engine_v2/scripts/run_local_backend.sh",
+  "recommended_wrapper": "scripts/start_system.sh",
+  "healthcheck": "/api/health",
+  "validation": "scripts/validate_system.sh"
+}
+

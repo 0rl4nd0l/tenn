@@ -46,3 +46,14 @@ Agents MUST NOT use these paths unless a task explicitly requires them:
   - Why: adds an interactive UI layer and optional bootstrap behaviors; increases nondeterminism for agents.
 - Docker (`docker compose ...`)
   - Why: adds hidden dependencies (Docker daemon, Postgres/Redis/Qdrant, host Ollama) and longer startup surface area.
+
+### Programmatic Interface
+
+Use these wrappers for deterministic agent control:
+
+- `scripts/start_system.sh`
+  - Starts the canonical backend (if not already running), waits briefly, then runs `scripts/agent_check.sh`.
+- `scripts/validate_system.sh`
+  - Runs `scripts/agent_check.sh` and then `financial-engine_v2/scripts/smoke_local.sh` (when available).
+- `agent_contract.json`
+  - Machine-readable pointers to the canonical entrypoint, wrapper, healthcheck route, and validation script.
