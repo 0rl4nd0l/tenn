@@ -36,6 +36,7 @@ services:
     network_mode: host
     environment:
       TENN_HOST_NETWORK: "true"
+      TASK_MODE: "sync"
     env_file: [.env]
     volumes:
       - ./backend:/app
