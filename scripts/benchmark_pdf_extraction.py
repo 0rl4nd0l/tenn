@@ -527,12 +527,21 @@ def _extract_financial_metrics_command(
 def _load_financial_metrics_artifacts(out_dir: Path) -> dict[str, Any]:
     canonical_rows = _read_json(out_dir / "canonical.json", [])
     diagnostics = _read_json(out_dir / "document_diagnostics.json", [])
+    context_rows = _read_json(out_dir / "context.json", [])
+    rejected_rows = _read_json(out_dir / "rejected.json", [])
+    primary_rows = _read_json(out_dir / "primary.json", [])
     return {
         "canonical_rows": canonical_rows if isinstance(canonical_rows, list) else [],
+        "context_rows": context_rows if isinstance(context_rows, list) else [],
+        "rejected_rows": rejected_rows if isinstance(rejected_rows, list) else [],
+        "primary_rows": primary_rows if isinstance(primary_rows, list) else [],
         "document_diagnostics": diagnostics if isinstance(diagnostics, list) else [],
         "artifacts": {
             "canonical_json": str(out_dir / "canonical.json"),
             "canonical_csv": str(out_dir / "canonical.csv"),
+            "context_json": str(out_dir / "context.json"),
+            "rejected_json": str(out_dir / "rejected.json"),
+            "primary_json": str(out_dir / "primary.json"),
             "document_diagnostics_json": str(out_dir / "document_diagnostics.json"),
         },
     }
@@ -599,6 +608,9 @@ def _run_financial_metrics_pdftotext(
         "status": "ok" if result.returncode == 0 else "failed",
         "output_type": "canonical_rows",
         "canonical_rows": loaded["canonical_rows"],
+        "context_rows": loaded.get("context_rows") or [],
+        "rejected_rows": loaded.get("rejected_rows") or [],
+        "primary_rows": loaded.get("primary_rows") or [],
         "document_diagnostics": loaded["document_diagnostics"],
         "stdout": result.stdout,
         "stderr": result.stderr,
@@ -681,6 +693,9 @@ def _run_financial_metrics_docling(
         "status": status,
         "output_type": "canonical_rows",
         "canonical_rows": loaded["canonical_rows"],
+        "context_rows": loaded.get("context_rows") or [],
+        "rejected_rows": loaded.get("rejected_rows") or [],
+        "primary_rows": loaded.get("primary_rows") or [],
         "document_diagnostics": loaded["document_diagnostics"],
         "stdout": str(subprocess_result.get("stdout") or ""),
         "stderr": str(subprocess_result.get("stderr") or ""),
@@ -914,6 +929,10 @@ def _run_method(
             "output_type": spec.output_type,
             "error": f"timeout_after_{exc.timeout}_seconds",
             "normalized_metrics": [],
+            "canonical_rows": [],
+            "context_rows": [],
+            "rejected_rows": [],
+            "primary_rows": [],
             "completeness": {},
             "artifacts": {},
         }
@@ -923,6 +942,10 @@ def _run_method(
             "output_type": spec.output_type,
             "error": str(exc),
             "normalized_metrics": [],
+            "canonical_rows": [],
+            "context_rows": [],
+            "rejected_rows": [],
+            "primary_rows": [],
             "completeness": {},
             "artifacts": {},
         }
@@ -979,6 +1002,10 @@ def _run_method(
         "artifacts": dict(payload.get("artifacts") or {}),
         "normalized_metrics": normalized_metrics,
         "canonical_metrics": canonical_metrics,
+        "canonical_rows": list(payload.get("canonical_rows") or []),
+        "context_rows": list(payload.get("context_rows") or []),
+        "rejected_rows": list(payload.get("rejected_rows") or []),
+        "primary_rows": list(payload.get("primary_rows") or []),
         "metric_coverage_rate": round(metric_coverage_rate(canonical_metrics), 6),
         "verification_ratio": round(float(verification_ratio), 6),
         "verification": {

@@ -31,7 +31,9 @@ from services.evaluation.confidence import (
     missing_required_metrics,
 )
 from services.evaluation.anomaly import detect_anomalies
+from services.evaluation.consistency import compute_extraction_consistency_checks
 from services.evaluation.evidence import verify_metrics
+from services.evaluation.failure_analysis import build_failure_analysis
 from services.extraction.router import select_extractor_with_reason
 from services.extraction.docling_runner import run_docling_subprocess
 
@@ -423,6 +425,13 @@ def main() -> int:
         selected_meta["verification_ratio"] = verification_ratio
         selected_meta["strict_truth_mode"] = bool(args.strict_truth_mode)
 
+        consistency_checks = compute_extraction_consistency_checks(
+            selected_payload=selected_payload,
+            verified_metrics=verified_metrics,
+            final_metrics=final_metrics,
+            strict_truth_mode=bool(args.strict_truth_mode),
+        )
+
         selected_score = dict(selected_payload.get("score") or {})
         selected_accuracy = None
         if str(selected_score.get("status") or "") == "SUCCESS":
@@ -492,6 +501,7 @@ def main() -> int:
                 "status": str(selected_payload.get("status") or "failed"),
                 "runtime_seconds": selected_payload.get("runtime_seconds"),
                 "routing_metadata": selected_meta,
+                "consistency_checks": consistency_checks,
             }
         )
 
