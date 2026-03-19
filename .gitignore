@@ -6,6 +6,8 @@ reports/
 financial-engine_v2/.env
 financial-engine_v2/.env.local
 financial-engine_v2/.env.docker
+.venv/
+.venv
 .axon_scope/
 /.venv_axon/
 integrations/newspaper4k_au/.venv/
