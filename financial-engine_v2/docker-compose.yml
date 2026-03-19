@@ -5,7 +5,6 @@ services:
     network_mode: host
     environment:
       TENN_HOST_NETWORK: "true"
-    environment:
       POSTGRES_USER: ${POSTGRES_USER:-fe}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fe}
       POSTGRES_DB: ${POSTGRES_DB:-fe}
