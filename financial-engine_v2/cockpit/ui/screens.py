@@ -3,7 +3,10 @@ from __future__ import annotations
 import json
 from typing import Any, Callable
 
-from textual.app import ComposeResult
+try:
+    from textual.app import ComposeResult  # textual>=0.25-ish
+except Exception:  # pragma: no cover
+    ComposeResult = object  # type: ignore[misc,assignment]
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen, Screen
 from textual.widgets import Button, DataTable, Input, Label, RichLog, Select, Static

@@ -270,6 +270,12 @@ def query_rag(
         limit=limit,
         ticker=resolved_ticker,
     )
+    warning: str | None = None
+    if not points:
+        warning = (
+            f"No vectors found in Qdrant collection '{settings.qdrant_collection}'. "
+            "RAG retrieval will return no hits until ingestion/backfill writes embeddings."
+        )
 
     hits: List[Dict[str, Any]] = []
     skipped_invalid_payloads = 0
@@ -361,6 +367,8 @@ def query_rag(
         "filtered_count": filtered_count,
         "research_context": _build_research_context(q, hits),
     }
+    if warning:
+        result["warning"] = warning
     if debug:
         scores = [float(p.score or 0.0) for p in points]
         n = len(scores)
@@ -382,6 +390,7 @@ def query_rag(
             "filter_applied": filter_applied,
             "fallback_used": used_ticker_fallback,
             "skipped_invalid_payloads": skipped_invalid_payloads,
+            "qdrant_points_found": candidate_count,
             "top_payload_keys": sorted(
                 set(
                     key

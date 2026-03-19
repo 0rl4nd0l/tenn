@@ -11,7 +11,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from textual.app import App, ComposeResult
+from textual.app import App
+try:
+    from textual.app import ComposeResult  # textual>=0.25-ish
+except Exception:  # pragma: no cover
+    ComposeResult = object  # type: ignore[misc,assignment]
 from textual.binding import Binding
 from textual.widgets import Footer, Header, RichLog
 
