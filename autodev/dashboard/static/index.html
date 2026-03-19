@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AutoDev Dashboard</title>
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --card: #ffffff;
+      --text: #1e2a35;
+      --muted: #607080;
+      --ok: #18794e;
+      --bad: #c0392b;
+      --border: #d9e1e8;
+      --accent: #1f6feb;
+    }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, #eef3f9, #f8fafc 220px, var(--bg));
+    }
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      gap: 16px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.6rem;
+    }
+    h2 {
+      margin: 0 0 10px;
+      font-size: 1.1rem;
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 6px;
+    }
+    .grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+    .value {
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+    .ok { color: var(--ok); }
+    .bad { color: var(--bad); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+    th, td {
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      padding: 8px;
+      vertical-align: top;
+    }
+    tr:hover { background: #f3f8ff; cursor: pointer; }
+    pre {
+      margin: 0;
+      overflow: auto;
+      white-space: pre-wrap;
+      background: #0d1117;
+      color: #d9e0e8;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      min-height: 220px;
+    }
+    .small {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+    @media (max-width: 700px) {
+      th:nth-child(5), td:nth-child(5) { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>AutoDev Dashboard</h1>
+      <div class="meta">Read-only view of runtime artifacts in <code>autodev/reports</code>. Auto-refresh: 5s.</div>
+    </div>
+
+    <div class="card">
+      <h2>System Status</h2>
+      <div id="status" class="grid"></div>
+    </div>
+
+    <div class="card">
+      <h2>Run History</h2>
+      <div class="small">Click a row to load run details and diff.</div>
+      <table>
+        <thead>
+          <tr>
+            <th>run_id</th>
+            <th>task</th>
+            <th>gates</th>
+            <th>worker</th>
+            <th>duration</th>
+          </tr>
+        </thead>
+        <tbody id="runs-body"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Experiment Results</h2>
+      <ul id="experiments"></ul>
+    </div>
+
+    <div class="card">
+      <h2>Patch Diff</h2>
+      <div id="diff-source" class="small"></div>
+      <pre id="diff-view">No diff loaded.</pre>
+    </div>
+
+    <div class="card">
+      <h2>Run Details</h2>
+      <pre id="run-details">No run selected.</pre>
+    </div>
+  </div>
+
+  <script>
+    let selectedRunId = null;
+
+    async function fetchJSON(url) {
+      const res = await fetch(url);
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`${url}: ${res.status} ${text}`);
+      }
+      return await res.json();
+    }
+
+    function fmtDuration(seconds) {
+      const n = Number(seconds || 0);
+      return `${n.toFixed(2)}s`;
+    }
+
+    function renderStatus(data) {
+      const root = document.getElementById("status");
+      const gatesClass = data.last_result === "pass" ? "ok" : data.last_result === "fail" ? "bad" : "";
+      root.innerHTML = `
+        <div><div class="small">daemon</div><div class="value ${data.daemon_running ? "ok" : "bad"}">${String(data.daemon_running)}</div></div>
+        <div><div class="small">latest run</div><div class="value">${data.last_run_id || "none"}</div></div>
+        <div><div class="small">latest task</div><div class="value">${data.latest_task_id || "unknown"}</div></div>
+        <div><div class="small">task title</div><div class="value">${data.latest_task_title || "unknown"}</div></div>
+        <div><div class="small">gates</div><div class="value ${gatesClass}">${data.last_result || "unknown"}</div></div>
+        <div><div class="small">regression</div><div class="value">${data.regression || "unknown"}</div></div>
+      `;
+    }
+
+    function renderRuns(runs) {
+      const body = document.getElementById("runs-body");
+      body.innerHTML = "";
+      for (const run of runs) {
+        const tr = document.createElement("tr");
+        const gatesClass = run.gates === "pass" ? "ok" : run.gates === "fail" ? "bad" : "";
+        tr.innerHTML = `
+          <td>${run.run_id}</td>
+          <td>${run.task || "unknown"}</td>
+          <td class="${gatesClass}">${run.gates}</td>
+          <td>${run.worker}</td>
+          <td>${fmtDuration(run.duration_seconds)}</td>
+        `;
+        tr.addEventListener("click", () => {
+          selectedRunId = run.run_id;
+          loadRunDetails(run.run_id);
+          loadDiff(run.run_id);
+        });
+        body.appendChild(tr);
+      }
+    }
+
+    function renderExperiments(items) {
+      const root = document.getElementById("experiments");
+      root.innerHTML = "";
+      if (!items.length) {
+        root.innerHTML = "<li class='small'>No experiment reports found.</li>";
+        return;
+      }
+      for (const exp of items) {
+        const li = document.createElement("li");
+        li.innerHTML = `<strong>${exp.file}</strong> | winner=<strong>${exp.winner ?? "n/a"}</strong> | score=${exp.benchmark_score ?? "n/a"} | variants=${exp.variants ?? "n/a"}<br><span class='small'>${exp.task ?? ""}</span>`;
+        root.appendChild(li);
+      }
+    }
+
+    async function loadRunDetails(runId) {
+      const pre = document.getElementById("run-details");
+      try {
+        const data = await fetchJSON(`/run/${runId}`);
+        pre.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        pre.textContent = `Failed to load run details: ${err}`;
+      }
+    }
+
+    async function loadDiff(runId) {
+      const pre = document.getElementById("diff-view");
+      const src = document.getElementById("diff-source");
+      try {
+        const data = await fetchJSON(`/diff/${runId}`);
+        src.textContent = `source: ${data.source}`;
+        pre.textContent = data.diff || "(empty diff)";
+      } catch (err) {
+        src.textContent = "";
+        pre.textContent = `No diff available: ${err}`;
+      }
+    }
+
+    async function refreshAll() {
+      try {
+        const [statusData, runsData, expData] = await Promise.all([
+          fetchJSON("/status"),
+          fetchJSON("/runs"),
+          fetchJSON("/experiments"),
+        ]);
+
+        renderStatus(statusData);
+        const runs = runsData.runs || [];
+        renderRuns(runs);
+        renderExperiments(expData.experiments || []);
+
+        if (!selectedRunId && runs.length) {
+          selectedRunId = runs[0].run_id;
+        }
+        if (selectedRunId) {
+          await loadRunDetails(selectedRunId);
+          await loadDiff(selectedRunId);
+        }
+      } catch (err) {
+        document.getElementById("status").innerHTML = `<div class="bad">Failed to refresh dashboard: ${err}</div>`;
+      }
+    }
+
+    refreshAll();
+    setInterval(refreshAll, 5000);
+  </script>
+</body>
+</html>

@@ -16,8 +16,8 @@ from app.services import router_metrics
 
 
 ROUTER_QUEUE_NAMES = ("ingest", "embed", "score", "llm_gpu", "llm_cpu")
-ANALYZER_REPORT_PATH = Path(getattr(settings, "data_root", "/data")) / "reports" / "system_analyzer" / "latest.json"
-ANALYZER_ALLOWED_ROOT = Path(getattr(settings, "data_root", "/data"))
+ANALYZER_ALLOWED_ROOT = Path(getattr(settings, "data_root", "./data")).expanduser().resolve()
+ANALYZER_REPORT_PATH = ANALYZER_ALLOWED_ROOT / "reports" / "system_analyzer" / "latest.json"
 ANALYZER_SCORE_THRESHOLD = 0.45
 ANALYZER_FALLBACK_PENALTY = 0.35
 

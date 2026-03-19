@@ -106,7 +106,7 @@ class OptimalModelDecision:
 
 
 def _benchmark_report_path() -> Path:
-    path = Path("/data/reports/model_benchmark.json")
+    path = Path(getattr(settings, "data_root", "/data")) / "reports" / "model_benchmark.json"
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
     except OSError:

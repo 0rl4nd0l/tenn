@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+AGENT=${1:-coder-local}
+
+SESSION_DIR="$HOME/.openclaw/agents/$AGENT/sessions"
+
+LATEST=$(ls -t "$SESSION_DIR" | head -n 1)
+
+if [ -z "$LATEST" ]; then
+  echo "No sessions found for agent: $AGENT"
+  exit 1
+fi
+
+echo "Latest session:"
+echo "$SESSION_DIR/$LATEST"
+echo
+
+cat "$SESSION_DIR/$LATEST"

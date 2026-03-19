@@ -12,6 +12,33 @@ Current active runtime is `financial-engine_v2`.
 
 That single command delegates to `financial-engine_v2/run.py`, where defaults are hardcoded.
 
+Canonical environment and runtime docs:
+- `docs/setup/environment.md`
+- `docs/setup/runtime.md`
+- `docs/setup/troubleshooting.md`
+
+## Local Backend Status
+Current verified local backend entrypoint is:
+- `financial-engine_v2/scripts/run_local_backend.sh`
+
+Two supported local profiles:
+- `LOCAL_BACKEND_PROFILE=isolated`
+  - safe smoke mode
+  - embeddings/Qdrant/extraction off
+  - `/chat` returns a degraded response instead of failing
+- `LOCAL_BACKEND_PROFILE=full`
+  - verified working with local Qdrant + local llama.cpp + commentary retrieval
+  - known-good docs are in [financial-engine_v2/README.md](/home/l4nd0/tenn/financial-engine_v2/README.md)
+
+Known current behavior:
+- `/chat` retrieves from `commentary_chunks` and optional `commentary_chunks_v2`, not `asx_docs`
+- local launcher now keeps `DATA_ROOT` on the repo `data/` directory unless explicitly overridden
+- explicit shell env overrides `.env` and `.env.local` for local runs
+
+## Scope
+`financial-engine_v2/` is the primary live runtime.
+Root `scripts/` still contains auxiliary pipelines, tests, and tooling, but it is not the main launcher surface for the active engine.
+
 ## Legacy scripts
-Old root scripts are archived in:
+Legacy root launcher scripts are archived in:
 - `scripts/archive/legacy_root_20260218/`

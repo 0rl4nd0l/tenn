@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>ASX Fixture Feed</title>
+    <link>https://fixture.example.com.au</link>
+    <description>Fixture feed for ASX RSS ingestion tests.</description>
+    <item>
+      <title>CSL Limited reports earnings guidance</title>
+      <link>https://www.fixture.com.au/news/csl-guidance</link>
+      <pubDate>Tue, 24 Feb 2026 09:30:00 GMT</pubDate>
+      <description>CSL Limited said earnings and guidance remain on track.</description>
+    </item>
+    <item>
+      <title>CSL signs leasing update</title>
+      <link>https://www.fixture.com.au/news/csl-ambiguous</link>
+      <pubDate>Tue, 24 Feb 2026 10:00:00 GMT</pubDate>
+      <description>Leasing desks cited portfolio updates and tenant changes.</description>
+    </item>
+    <item>
+      <title>CSL Limited reports earnings guidance</title>
+      <link>https://www.fixture.com.au/news/csl-guidance</link>
+      <pubDate>Tue, 24 Feb 2026 09:31:00 GMT</pubDate>
+      <description>Duplicate headline entry to validate dedupe behavior.</description>
+    </item>
+    <item>
+      <title>ASX:BHP lifts dividend outlook</title>
+      <link>https://www.fixture.com.au/news/bhp-dividend</link>
+      <pubDate>Tue, 24 Feb 2026 11:15:00 GMT</pubDate>
+      <description>BHP announced higher dividends after a stronger earnings release.</description>
+    </item>
+  </channel>
+</rss>

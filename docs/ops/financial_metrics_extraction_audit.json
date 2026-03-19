@@ -1,0 +1,79 @@
+{
+  "status": "SUCCESS",
+  "work_log": {
+    "assumptions": [
+      "2-digit year rule 00-50 -> 20xx, 51-99 -> 19xx is intentional and correct.",
+      "Context rows with empty statement_period_end are intentionally kept (not rejected) with context_reason.",
+      "Column-to-period mapping by index when header has multiple dates is acceptable; order follows _extract_explicit_date_labels output order."
+    ],
+    "sources_used": [
+      "scripts/extract_financial_metrics.py (lines 36, 349-374, 661-716, 792-847, 903-1043, 1286-1330, 2536-2621, 2655-2810, 2847-2876, 2980-3040, 3408-3421, 3412-3415)",
+      "scripts/test_pdf_financial_tools.py (lines 418-428, 330-355, 424-428)",
+      "scripts/reconcile_user_table_vs_evidence.py (99, 155, 233)",
+      "section_capture_layer.py (424, 633, 659, 684, 704, 755-756)",
+      "scripts/validation_quality_cycle.py (40, 46, 50, 65)",
+      "scripts/run_ticker_expansion_batch.py (212)"
+    ],
+    "files_read": [
+      "scripts/extract_financial_metrics.py",
+      "scripts/test_pdf_financial_tools.py",
+      "scripts/reconcile_user_table_vs_evidence.py",
+      "section_capture_layer.py",
+      "scripts/validation_quality_cycle.py",
+      "scripts/run_ticker_expansion_batch.py"
+    ],
+    "files_modified": [],
+    "validation_checks": [
+      "_extract_explicit_date_labels 2-digit year and invalid day/month handling",
+      "_resolve_table_period_for_column use of header_dates and _date_for_col",
+      "infer_column_metadata use of extract_period_labels (no DD-MON-YY)",
+      "split_rows_by_scope missing_statement_period_end and context_reason",
+      "normalize_period_for_db with _parse_date_label for '30 June 2025'",
+      "Downstream consumers of statement_period_end"
+    ]
+  },
+  "result": {
+    "critical": [
+      {
+        "file": "scripts/test_pdf_financial_tools.py",
+        "location": "test_extract_explicit_date_labels_as_at_dd_mon_yy_prospectus",
+        "issue": "No tests for 2-digit year boundaries (00, 50, 51, 99), 4-digit year, invalid month/day; missing tests for column mapping (2 dates in header -> 2 columns get correct period).",
+        "fix_example": "Add test_extract_explicit_date_labels_2digit_year_boundaries (00->2000, 50->2050, 51->1951, 99->1999), test_extract_explicit_date_labels_four_digit_year, test_extract_explicit_date_labels_invalid_month_skipped, test_extract_explicit_date_labels_invalid_day_skipped; add test that _resolve_table_period_for_column with table_header_text 'AS AT 30-JUN-25 AS AT 30-JUN-24' and col_idx 0/1 returns '30 June 2025' and '30 June 2024' respectively."
+      }
+    ],
+    "warnings": [
+      {
+        "file": "scripts/extract_financial_metrics.py",
+        "location": "_extract_explicit_date_labels (967-1043), _date_for_col (2677-2694)",
+        "issue": "When header has mixed formats (e.g. AS AT 30-JUN-25 and 31 December 2024), output list order follows finditer order (DATE_PERIOD_RE then as_at_dd_mon_re), which may not match visual left-to-right; column mapping can assign wrong period to column.",
+        "fix_example": "Document behaviour or consider building header_dates in left-to-right order (e.g. by match start position) when mixing patterns."
+      },
+      {
+        "file": "scripts/extract_financial_metrics.py",
+        "location": "infer_column_metadata (684-715)",
+        "issue": "Column period uses extract_period_labels (and infer_header_date_from_mixed_text) which do not use _extract_explicit_date_labels; DD-MON-YY-only column header yields empty column period.",
+        "fix_example": "Optionally run _extract_explicit_date_labels on per-column near_text in infer_column_metadata and use first match for period when extract_period_labels returns nothing."
+      },
+      {
+        "file": "scripts/extract_financial_metrics.py",
+        "location": "_date_for_col when ncols=2 and duplicate date in header (2681-2693)",
+        "issue": "Duplicate date in header deduped to one label; _date_for_col returns '' for both columns; both columns fall back to base_period/context.",
+        "fix_example": "Document that duplicate dates in header result in no column-level date from header_dates; or allow duplicate labels when building header_dates for mapping (by position) if needed."
+      }
+    ],
+    "suggestions": [
+      {
+        "file": "docs/ops/ or scripts/",
+        "location": "Prospectus / multi-entity blocks",
+        "issue": "Blocks with multiple subsidiary names (Peak View, Deep Dykes) and multiple AS AT dates have no entity-to-period association; mapping is by column order only.",
+        "fix_example": "Document that period-entity association in multi-entity blocks is positional; consider a data-quality flag when block contains multiple entity-like names and multiple dates."
+      },
+      {
+        "file": "section_capture_layer.py, scripts/reconcile_user_table_vs_evidence.py",
+        "location": "Keys using statement_period_end",
+        "issue": "Downstream assumes statement_period_end when present; empty can create one bucket for all empty-period rows.",
+        "fix_example": "Document that statement_period_end may be empty for context rows; callers that key on (file, statement_period_end) should treat empty explicitly or filter."
+      }
+    ]
+  }
+}

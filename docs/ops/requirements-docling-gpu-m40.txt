@@ -1,0 +1,16 @@
+# Optional: try this in a venv to get Docling working on Tesla M40 (sm_52) with GPU.
+# Install order: PyTorch first (from CUDA index), then numpy<2, then docling.
+# PyTorch 2.2.2 was built for NumPy 1.x; NumPy 2.x breaks torch.from_numpy ("Numpy is not available").
+# GPU is the default path. Use --cpu only as a fallback if you still get "no kernel image".
+#
+# Usage:
+#   python3 -m venv .venv-docling-gpu && source .venv-docling-gpu/bin/activate
+#   pip install -r docs/ops/requirements-docling-gpu-m40.txt
+#   pip install docling pandas
+#   python3 scripts/docling_export_tables.py --pdf /path/to/file.pdf --out-dir reports/docling_tables
+
+--extra-index-url https://download.pytorch.org/whl/cu118
+numpy<2
+torch==2.2.2
+torchvision==0.17.2
+torchaudio==2.2.2

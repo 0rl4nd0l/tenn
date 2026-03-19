@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "${REPO_ROOT}"
+
+DEFAULT_VENV_PY="${REPO_ROOT}/.venv-autodev/bin/python"
+if [[ -n "${PYTHON_BIN:-}" ]]; then
+  PYTHON_BIN="${PYTHON_BIN}"
+elif [[ -x "${DEFAULT_VENV_PY}" ]]; then
+  PYTHON_BIN="${DEFAULT_VENV_PY}"
+else
+  PYTHON_BIN="python3"
+fi
+RUN_ID_RE='^[0-9]{8}T[0-9]{6}Z$'
+# Local 7b worker responses can exceed 120s end-to-end once tool hops are involved.
+# Keep a higher default while still allowing explicit env overrides per invocation.
+: "${OPENCLAW_TENN_WORKER_TIMEOUT_SECONDS:=300}"
+export OPENCLAW_TENN_WORKER_TIMEOUT_SECONDS
+
+usage() {
+  cat <<'EOF'
+Usage: scripts/openclaw-autodev <command> [args]
+
+Commands:
+  status                    Show native OpenClaw/Tenn manager status
+  doctor                    Run native bridge diagnostics
+  latest                    Show latest run summary
+  runs [n]                  List latest runs (default: 10)
+  report [run_id]           Show report artifact (latest by default)
+  commands [run_id]         Show command log artifact (latest by default)
+  analyze <description...>  Create an isolated analysis run; any file edits are discarded
+  fix <description...>      Create an isolated fix run and apply a safe patch back
+  verify <description...>   Verify a previous analysis/fix request in an isolated workspace
+  run <description...>      Deprecated alias routed into analyze/fix/verify
+  task <description...>     Deprecated alias for analyze
+  task-run <description...> Deprecated alias routed into analyze/fix/verify
+  start|stop|discover|rag-index|worker|gates
+                            Deprecated legacy commands; return an error
+  help                      Show this message
+EOF
+}
+
+die() {
+  echo "error: $*" >&2
+  exit 1
+}
+
+run_native() {
+  "${PYTHON_BIN}" -m autodev.runtime.native_manager "$@"
+}
+
+run_doctor() {
+  run_native doctor
+}
+
+validate_run_id() {
+  local run_id="${1:-}"
+  [[ "${run_id}" =~ ${RUN_ID_RE} ]] || die "run_id must match YYYYMMDDTHHMMSSZ"
+}
+
+if [[ $# -lt 1 ]]; then
+  usage
+  exit 1
+fi
+
+command="$1"
+shift
+
+case "${command}" in
+  status)
+    run_native status
+    ;;
+  run)
+    run_native run "$@"
+    ;;
+  start)
+    run_native start "$@"
+    ;;
+  stop)
+    run_native stop "$@"
+    ;;
+  latest)
+    run_native latest
+    ;;
+  runs)
+    count="${1:-10}"
+    [[ "${count}" =~ ^[0-9]+$ ]] || die "runs count must be an integer"
+    [[ $# -le 1 ]] || die "unexpected arguments for runs"
+    run_native runs "${count}"
+    ;;
+  report|commands)
+    file_key="${command}"
+    run_id="${1:-}"
+    if [[ -n "${run_id}" ]]; then
+      validate_run_id "${run_id}"
+      [[ $# -eq 1 ]] || die "unexpected arguments for ${command}"
+      run_native "${file_key}" "${run_id}"
+    else
+      run_native "${file_key}"
+    fi
+    ;;
+  analyze|fix|verify|discover|rag-index|worker|gates)
+    run_native "${command}" "$@"
+    ;;
+  doctor)
+    run_doctor
+    ;;
+  task)
+    [[ $# -gt 0 ]] || die "task description is required"
+    run_native task "$@"
+    ;;
+  task-run)
+    [[ $# -gt 0 ]] || die "task description is required"
+    run_native task-run "$@"
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    usage
+    die "unknown command: ${command}"
+    ;;
+esac

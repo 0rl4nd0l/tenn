@@ -261,6 +261,37 @@ def _parse_flat_yaml(path: Path) -> dict[str, Any]:
     return values
 
 
+def _normalize_backend_base_url(base_url: str) -> str:
+    normalized = str(base_url or "").strip().rstrip("/")
+    if normalized.endswith("/v1"):
+        normalized = normalized[: -len("/v1")]
+    return normalized.rstrip("/")
+
+
+def _resolve_provider_base_url(
+    *,
+    provider: str,
+    configured_base_url: str,
+    fallback_base_url: str,
+) -> str:
+    normalized_provider = str(provider or "").strip().lower()
+    configured_text = str(configured_base_url or "").strip()
+
+    if normalized_provider == "llamacpp":
+        resolved = _normalize_backend_base_url(settings.llamacpp_url)
+        if not resolved:
+            raise ValueError("LLAMACPP_URL must be set when provider is 'llamacpp'")
+        return resolved
+    if normalized_provider == "ollama":
+        resolved = _normalize_backend_base_url(settings.ollama_url)
+        if not resolved:
+            raise ValueError("OLLAMA_URL must be set when provider is 'ollama'")
+        return resolved
+    if normalized_provider == "local":
+        return configured_text or str(fallback_base_url).strip()
+    raise ValueError(f"Unknown backend: {provider}")
+
+
 def _default_config() -> ModelRoutingConfig:
     return ModelRoutingConfig(
         router=ModelRole(
@@ -329,10 +360,16 @@ def load_model_routing_config(path: str | Path | None = None) -> ModelRoutingCon
                 or ""
             ).strip()
             env_base_url = str(os.getenv("EMBEDDING_URL") or "").strip()
+        provider = str(_configured_value(f"{prefix}_provider", fallback.provider)).strip().lower()
+        configured_base_url = env_base_url or str(_configured_value(f"{prefix}_base_url", "")).strip()
         return ModelRole(
             model_name=env_model or str(_configured_value(f"{prefix}_model", fallback.model_name)).strip(),
-            provider=str(_configured_value(f"{prefix}_provider", fallback.provider)).strip().lower(),
-            base_url=env_base_url or str(_configured_value(f"{prefix}_base_url", fallback.base_url)).strip(),
+            provider=provider,
+            base_url=_resolve_provider_base_url(
+                provider=provider,
+                configured_base_url=configured_base_url,
+                fallback_base_url=fallback.base_url,
+            ),
         )
 
     return ModelRoutingConfig(

@@ -136,6 +136,8 @@ class RetrievalOrchestrator:
                 "does not exist",
                 "not found",
                 "missing collection",
+                "vector dimension error",
+                "dimension mismatch",
             )
         )
 

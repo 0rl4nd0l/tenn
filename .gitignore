@@ -2,3 +2,16 @@ data/
 __pycache__/
 *.log
 .DS_Store
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+.env
+.env.local
+*.db
+*.db-journal
+*.sqlite
+financial-engine_v2/config/system.env

@@ -1,11 +1,18 @@
 # Financial Engine (Local) — v2 “Operational Ingestion”
-Generated: 2026-02-17 07:53:15
+Generated: 2026-03-18 18:35:00
 
 ## Objective
 Local-first ingestion + retrieval + extraction pipeline for ASX periodic documents (quarterly/half-year/annual).
 Cold PDFs on disk, hot metrics in Postgres, embeddings in Qdrant, jobs via Celery/Redis, extraction/embeddings via Ollama.
 
 Target: start with ASX20 backfill (5 years) and scale to ASX300+.
+
+Canonical setup docs now live in:
+- `../docs/setup/environment.md`
+- `../docs/setup/runtime.md`
+- `../docs/setup/troubleshooting.md`
+
+If this README conflicts with those setup docs, the `docs/setup/*` files are the source of truth.
 
 ## What works now (no stubs for ingestion)
 - ASX announcements discovery (parses ASX announcements HTML for PDF links)
@@ -25,9 +32,34 @@ Target: start with ASX20 backfill (5 years) and scale to ASX300+.
   - GET `/api/risk?document_id=...`
   - POST `/api/backfill/asx20`
   - POST `/api/backfill/ticker/{ticker}`
+  - POST `/api/rag/query`
+  - Compatibility route: POST `/rag/query`
+  - GET `/api/price`
+  - GET `/api/fundamentals/profile`
+  - GET `/api/fundamentals/summary`
+  - GET `/api/fundamentals/statements`
+  - POST `/api/chat`
+  - Compatibility route: POST `/chat`
+
+## Current Verified Local State (2026-03-18)
+- `LOCAL_BACKEND_PROFILE=isolated ./scripts/run_local_backend.sh` starts a safe local API with embeddings/Qdrant/extraction disabled and `/chat` returning a degraded-but-stable response instead of a `500`.
+- `LOCAL_BACKEND_PROFILE=full ./scripts/run_local_backend.sh` is now verified working locally against:
+  - SQLite in `/tmp`
+  - local Qdrant on `127.0.0.1:6333`
+  - local llama.cpp on `127.0.0.1:8001/v1`
+- `/chat` is verified end-to-end for local commentary retrieval plus llama.cpp JSON generation.
+- `/chat` uses commentary collections, not `asx_docs`.
+  - Primary collection: `commentary_chunks`
+  - Optional secondary collection: `commentary_chunks_v2`
+- `commentary_chunks_v2` is optional at runtime. If only `commentary_chunks` exists, the retriever now falls back cleanly.
+- Local launcher precedence is now:
+  - `.env`
+  - `.env.local`
+  - explicit shell env wins over both
+- Local launcher also forces `DATA_ROOT` to the repo `data/` directory unless you explicitly override `DATA_ROOT`, which avoids accidental `/data/...` Docker paths in local runs.
 
 ## What isn’t included (next phase)
-- Frontend UI
+- Web frontend UI
 - Factor scoring / signals / proposals
 - Broker execution
 
@@ -51,11 +83,13 @@ Run this mode when you want to validate functionality without touching your exis
    - `.venv/bin/pip install -r backend/requirements.txt -r worker/requirements.txt`
    - `.venv/bin/playwright install chromium`
 2. Start backend in isolated local mode:
-   - `./scripts/run_local_backend.sh`
+   - `export PATH="$PWD/.venv/bin:$PATH"`
+   - `LOCAL_BACKEND_PROFILE=isolated ./scripts/run_local_backend.sh`
 3. Smoke test:
    - `curl http://localhost:8000/api/health`
    - `curl "http://localhost:8000/api/docs?ticker=BHP"`
    - `curl -X POST "http://localhost:8000/api/backfill/ticker/BHP?years=1&process_documents=false"`
+   - `curl -X POST http://localhost:8000/chat -H "Content-Type: application/json" -d '{"message":"What drives mining stock returns?","mode":"analysis"}'`
    - or run `./scripts/smoke_local.sh`
 
 Defaults in local mode:
@@ -64,8 +98,90 @@ Defaults in local mode:
 - Auto-create tables enabled
 - Embeddings/Qdrant/LLM extraction disabled by default
 - MarketIndex fallback enabled by default (`ENABLE_MARKETINDEX_FALLBACK=true`) using `../data/raw/marketindex_announcements.json`
+- `.env.local` is loaded when present before profile defaults are applied
+- `LOCAL_BACKEND_PROFILE=full` enables embeddings, Qdrant, and extraction for local runs
+- If the default SQLite file is unreadable in isolated mode, launcher fallback is `./data/fe_local_runtime.db`
+- Local llama.cpp/auth env support includes `LLAMACPP_URL`, `LLM_API_KEY`, and `EMBEDDING_API_KEY`
+- Explicit shell env now overrides `.env` and `.env.local` for local runs
+- Local runs default `DATA_ROOT` to `./data`, not `/data`
 - If MarketIndex URLs return Cloudflare `403`, those docs are marked `blocked_marketindex_403` and skipped
 - MarketIndex documents are treated as headed-only and marked `blocked_marketindex_headed_required` in local non-headed mode
+
+## Local Full Mode (Verified)
+Use this mode when you want real `/chat` responses from local Qdrant + llama.cpp.
+
+Prerequisites:
+- active venv or `export PATH="$PWD/.venv/bin:$PATH"`
+- Qdrant running on `127.0.0.1:6333`
+- llama.cpp server running on `127.0.0.1:8001/v1`
+- matching local auth key, e.g. `local-openai-key`
+- commentary data loaded into `commentary_chunks`
+
+Known-good command:
+
+```bash
+cd ~/tenn/financial-engine_v2
+export PATH="$PWD/.venv/bin:$PATH"
+
+LOCAL_BACKEND_PROFILE=full \
+DATABASE_URL=sqlite:////tmp/financial-engine_v2-full.db \
+DOCS_ROOT="$HOME/tenn/financial-engine_v2/data/asx/docs" \
+QDRANT_URL=http://127.0.0.1:6333 \
+QDRANT_TIMEOUT_SECONDS=120 \
+LLAMACPP_URL=http://127.0.0.1:8001/v1 \
+LLAMACPP_TIMEOUT_SECONDS=180 \
+LLM_API_KEY=local-openai-key \
+EMBEDDING_API_KEY=local-openai-key \
+EMBED_MODEL=nomic-embed-text \
+EMBEDDING_MODEL=nomic-embed-text \
+EXTRACT_MODEL=qwen2.5-coder-14b \
+ENABLE_EXTRACTION=false \
+./scripts/run_local_backend.sh
+```
+
+Expected launcher output:
+- `data_root=/home/.../financial-engine_v2/data`
+- `database=sqlite:////tmp/financial-engine_v2-full.db`
+- `docs_root=/home/.../financial-engine_v2/data/asx/docs`
+
+Smoke test:
+
+```bash
+curl http://127.0.0.1:8000/api/health
+
+curl -X POST http://127.0.0.1:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message":"What drives mining stock returns?","mode":"analysis"}'
+```
+
+Notes:
+- `/chat` can work with `ENABLE_EXTRACTION=false`; extraction is not required for commentary-based chat.
+- If `/chat` returns a degraded response saying retrieval is unavailable, first check that `commentary_chunks` exists and contains points.
+- If `/chat` times out in full mode, increase `LLAMACPP_TIMEOUT_SECONDS` to `300`.
+- `commentary_chunks_v2` is optional.
+- Keep the embedding model aligned with your commentary collection dimension. The checked-in commentary tests assume `nomic-embed-text` style 768-d embeddings.
+- If `LLAMACPP_URL` is your only local llama.cpp server and it is serving a chat GGUF, set `EMBEDDING_URL` to a separate embedding runtime or rebuild the commentary collections for that model's embedding dimension.
+
+Example commentary ingest:
+
+```bash
+cd ~/tenn/financial-engine_v2
+
+PYTHONPATH=backend \
+QDRANT_URL=http://127.0.0.1:6333 \
+LLAMACPP_URL=http://127.0.0.1:8001/v1 \
+LLM_API_KEY=local-openai-key \
+EMBEDDING_API_KEY=local-openai-key \
+EMBED_MODEL=nomic-embed-text \
+EMBEDDING_MODEL=nomic-embed-text \
+./.venv/bin/python scripts/ingest_transcript.py \
+  <transcript-path> \
+  --source-name "<source-name>" \
+  --source-type youtube_transcript \
+  --speaker "<speaker>" \
+  --published-at "2026-03-18T00:00:00Z" \
+  --topic-tags "mining,stocks,commentary"
+```
 
 ## Headed MarketIndex Recovery (Manual)
 Use this manual command after backfill to recover blocked/pending MarketIndex docs with a headed browser session.
@@ -87,7 +203,7 @@ Recommended sequence:
 3. Run PDF integrity audit before enabling extraction/embeddings
 
 ## Production CLIs
-These are the two production workflows currently packaged.
+These are the packaged production-style workflows currently checked in.
 
 1. Ticker-based full announcement history gathering:
    - `python3 scripts/full_history_ticker_sync.py --ticker BHP --years 10`
@@ -126,11 +242,12 @@ If you want a single command with hardcoded defaults, use:
 This wrapper runs:
 - ticker full-history gathering
 - daily MarketIndex scrape/download
+- or daily ASX market-wide ingest when `CONFIG["workflow"] = "daily_asx_marketwide"`
 
 All config is hardcoded in `run.py` under `CONFIG`.
 
 Common edits in `run.py`:
-- `CONFIG["workflow"]`: `"both"`, `"full_history"`, or `"daily_marketindex"`
+- `CONFIG["workflow"]`: `"both"`, `"full_history"`, `"daily_marketindex"`, or `"daily_asx_marketwide"`
 
 ## Announcement Type Classification (Manual Backfill)
 Rebuild announcement-type folders for existing ingested docs:
@@ -178,10 +295,28 @@ Operational controls:
 - "Kill Running Action" is available in both Chat and Operations screens for long-running jobs.
 
 ## Key environment variables
-- `OLLAMA_URL` (default `http://host.docker.internal:11434`)
+- `OLLAMA_URL` (default `http://127.0.0.1:11434`)
+- `LLAMACPP_URL` (default `http://127.0.0.1:8001/v1` from the local launcher)
+- `LLAMACPP_URL` and `OLLAMA_URL` must point to different endpoints; startup fails fast if they match.
 - `EMBED_MODEL` (default `nomic-embed-text`)
-- `EXTRACT_MODEL` (default `llama3.1:8b`)
-- `DOCS_ROOT` (default `/data/asx/docs`)
+- `EXTRACT_MODEL` (default `llama3:latest`)
+- `DOCS_ROOT` (default `./data/asx/docs` in local mode)
+- `LLM_API_KEY` and `EMBEDDING_API_KEY` for llama.cpp-compatible auth headers
+- `MARKET_DATA_MODE` (`yahoo` or `openbb_sidecar`)
+- `OPENBB_SIDECAR_BASE_URL`
+
+## LLM Backend Configuration
+You MUST configure separate endpoints:
+
+- `LLAMACPP_URL=http://127.0.0.1:8001/v1`
+- `OLLAMA_URL=http://127.0.0.1:11434`
+
+The application will fail to start if:
+- both URLs resolve to the same host:port
+- llama.cpp endpoint behaves like Ollama
+- Ollama endpoint is unreachable
+
+This prevents silent backend aliasing.
 
 ## Current model prompting + iteration setup
 - Prompting is schema-first and centralized in `backend/app/services/extraction.py` (`build_prompt`).

@@ -101,7 +101,7 @@ def resolve_embedding_runtime_config(
 def _build_runtime_headers(
     *,
     api_key_env_names: tuple[str, ...],
-    fallback_api_key_env_names: tuple[str, ...] = ("OLLAMA_API_KEY", "OPENAI_API_KEY"),
+    legacy_api_key_env_names: tuple[str, ...] = ("OLLAMA_API_KEY", "OPENAI_API_KEY"),
 ) -> dict[str, str]:
     headers: dict[str, str] = {}
 
@@ -112,7 +112,7 @@ def _build_runtime_headers(
             break
 
     if "Authorization" not in headers:
-        for legacy_env_name in fallback_api_key_env_names:
+        for legacy_env_name in legacy_api_key_env_names:
             api_key = str(os.getenv(legacy_env_name) or "").strip()
             if api_key:
                 headers["Authorization"] = f"Bearer {api_key}"
@@ -135,7 +135,7 @@ def build_llm_headers() -> dict[str, str]:
 def build_embedding_headers() -> dict[str, str]:
     headers = _build_runtime_headers(
         api_key_env_names=("LLM_API_KEY",),
-        fallback_api_key_env_names=("EMBEDDING_API_KEY", "OLLAMA_API_KEY", "OPENAI_API_KEY"),
+        legacy_api_key_env_names=("EMBEDDING_API_KEY", "OLLAMA_API_KEY", "OPENAI_API_KEY"),
     )
     headers["Content-Type"] = "application/json"
     return headers
@@ -302,7 +302,7 @@ def generate_json_llamacpp(
                 {"role": "user", "content": prompt},
             ],
             "temperature": 0,
-            "max_tokens": 512,
+            "max_tokens": 2048,
             "response_format": {"type": "json_object"},
         }
         try:

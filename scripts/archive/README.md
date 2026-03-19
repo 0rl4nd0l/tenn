@@ -8,6 +8,9 @@ This folder keeps point-in-time copies of legacy scripts.
 Legacy root scripts moved here:
 - `legacy_root_20260218/*`
 
+Recent cleanup archive:
+- `legacy_cleanup_20260309/*` — scripts moved during stewardship cleanup.
+
 Current active system lives in:
 - `financial-engine_v2/`
 - root launcher: `run.py`

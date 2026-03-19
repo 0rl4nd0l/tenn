@@ -7,6 +7,7 @@ from typing import Any
 from app.core.config import settings
 from app.services.hybrid_retriever import HybridRetriever
 from app.services.llm import generate_json
+from app.services.rag import query_rag
 from app.services.source_weighting import apply_weighting_to_chunk
 from app.services.strategy_controller import get_active_strategy_state
 
@@ -138,15 +139,41 @@ def chat_with_tenn(query: str) -> dict[str, Any]:
         )
 
     try:
+        rag_result = query_rag(query=normalized_query, top_k=10)
+        rag_hits = rag_result.get("hits") or []
+        evidence = rag_result.get("research_context", {}).get("evidence_chunks") or rag_hits
+
         retriever = HybridRetriever(collection_name="commentary_chunks")
-        retrieval = retriever.retrieve(
-            query=normalized_query,
-            framework_families=None,
-            top_k_vector=10,
-            top_k_keyword=10,
-        )
-        ranked_chunks = _apply_chat_strategy(list(retrieval.get("chunks") or []))
+        try:
+            retrieval = retriever.retrieve(
+                query=normalized_query,
+                framework_families=None,
+                top_k_vector=10,
+                top_k_keyword=10,
+            )
+            commentary_chunks = list(retrieval.get("chunks") or [])
+        except Exception:
+            commentary_chunks = []
+
+        ranked_chunks = _apply_chat_strategy(commentary_chunks)
         context_rows = _context_rows(ranked_chunks)
+
+        if not context_rows and evidence:
+            context_rows = [
+                {
+                    "text": str(hit.get("text") or hit.get("title") or "").strip(),
+                    "source_name": str(hit.get("title") or hit.get("document_id") or "").strip(),
+                    "relevance_score": float(hit.get("score") or 0.0),
+                    "recency_decay": 1.0,
+                    "final_score": float(hit.get("score") or 0.0),
+                    "source_type": str(hit.get("doc_class") or "").strip(),
+                    "published_at": str(hit.get("published_at") or "").strip(),
+                    "retrieval_strategies": ["rag_vector"],
+                }
+                for hit in evidence[:10]
+                if str(hit.get("text") or hit.get("title") or "").strip()
+            ]
+
         if not context_rows:
             return _degraded_chat_payload("I do not have enough retrieved context to answer safely.")
 

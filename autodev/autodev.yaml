@@ -1,0 +1,16 @@
+worker: llm_patch
+llm_routing_mode: simple
+llm_provider_balanced: llamacpp
+llm_provider_heavy: llamacpp
+llama_cpp_base_url: http://127.0.0.1:8001/v1
+llama_cpp_api_key: local-openai-key
+llama_cpp_model_balanced: qwen2.5-coder-14b
+llama_cpp_model_heavy: qwen2.5-coder-14b
+ollama_host: http://127.0.0.1:11434
+ollama_model_balanced: qwen2.5-coder:7b
+ollama_model_heavy: qwen2.5:32b
+ollama_timeout_seconds: 120
+llm_max_generation_attempts: 3
+allowed_paths: autodev/,openclaw/,scripts/
+protected_paths: .github/,financial-engine_v2/,docs/,openclaw-dashboard/,node_modules/,backups/,memory/
+allow_network: false

@@ -1,0 +1,32 @@
+# TASKS
+
+- [x] T_auto_perf_slow_function_autodev_runtim_500527a6 | milestone:M1 | slug:auto-perf-slow-function-autodev-runtime-autode-500527a6 | title:Optimize potentially slow function _write_run_report in autodev/runtime/autodev_loop.py (nested loops depth 2) (priority=100)
+- [x] T_auto_perf_slow_function_autodev_runtim_f47f5a6f | milestone:M1 | slug:auto-perf-slow-function-autodev-runtime-repo-o-f47f5a6f | title:Optimize potentially slow function revert_paths in autodev/runtime/repo_ops.py (nested loops depth 3) (priority=100)
+- [x] T_auto_perf_slow_function_autodev_runtim_85ce7bde | milestone:M1 | slug:auto-perf-slow-function-autodev-runtime-task-d-85ce7bde | title:Optimize potentially slow function scan_repository in autodev/runtime/task_discovery.py (nested loops depth 2) (priority=100)
+- [x] T_auto_perf_slow_function_autodev_runtim_e11dc41b | milestone:M1 | slug:auto-perf-slow-function-autodev-runtime-task-d-e11dc41b | title:Optimize potentially slow function _imported_names in autodev/runtime/task_discovery.py (nested loops depth 2) (priority=100)
+- [x] T_auto_perf_slow_function_autodev_runtim_bdfb0df4 | milestone:M1 | slug:auto-perf-slow-function-autodev-runtime-task-d-bdfb0df4 | title:Optimize potentially slow function discover_todo_tasks in autodev/runtime/task_discovery.py (nested loops depth 2) (priority=100)
+- [x] T_auto_perf_slow_function_autodev_runtim_cf233f72 | milestone:M1 | slug:auto-perf-slow-function-autodev-runtime-task-d-cf233f72 | title:Optimize potentially slow function discover_large_functions in autodev/runtime/task_discovery.py (nested loops depth 2) (priority=100)
+- [x] T_auto_perf_slow_function_autodev_runtim_97bb8ee1 | milestone:M1 | slug:auto-perf-slow-function-autodev-runtime-task-d-97bb8ee1 | title:Optimize potentially slow function discover_slow_functions in autodev/runtime/task_discovery.py (nested loops depth 2) (priority=100)
+- [x] T_auto_perf_slow_function_autodev_runtim_3669efd7 | milestone:M1 | slug:auto-perf-slow-function-autodev-runtime-task-d-3669efd7 | title:Optimize potentially slow function discover_dead_imports in autodev/runtime/task_discovery.py (nested loops depth 2) (priority=100)
+- [x] T_auto_perf_slow_function_autodev_runtim_34642a18 | milestone:M1 | slug:auto-perf-slow-function-autodev-runtime-task-d-34642a18 | title:Optimize potentially slow function discover_missing_docstrings in autodev/runtime/task_discovery.py (nested loops depth 2) (priority=100)
+- [x] T_auto_perf_slow_function_autodev_runtim_c9583ff3 | milestone:M1 | slug:auto-perf-slow-function-autodev-runtime-task-q-c9583ff3 | title:Optimize potentially slow function load_milestones in autodev/runtime/task_queue.py (nested loops depth 2) (priority=100)
+- [x] T_auto_tests_missing_tests_autodev_runtim_99473987 | milestone:M1 | slug:auto-tests-missing-tests-autodev-runtime-autode-99473987 | title:Add tests for module autodev/runtime/autodev_loop.py (priority=90)
+- [x] T_auto_tests_missing_tests_autodev_runtim_737866c5 | milestone:M1 | slug:auto-tests-missing-tests-autodev-runtime-config-737866c5 | title:Add tests for module autodev/runtime/config.py (priority=90)
+- [x] T_auto_tests_missing_tests_autodev_runtim_63538627 | milestone:M1 | slug:auto-tests-missing-tests-autodev-runtime-contro-63538627 | title:Add tests for module autodev/runtime/control.py (priority=90)
+- [x] T_auto_tests_missing_tests_autodev_runtim_44e3de6d | milestone:M1 | slug:auto-tests-missing-tests-autodev-runtime-debate-44e3de6d | title:Add tests for module autodev/runtime/debate.py (priority=90)
+- [x] T_auto_tests_missing_tests_autodev_runtim_3480483e | milestone:M1 | slug:auto-tests-missing-tests-autodev-runtime-gates--3480483e | title:Add tests for module autodev/runtime/gates.py (priority=90)
+- [x] T_auto_tests_missing_tests_autodev_runtim_dbba7bb7 | milestone:M1 | slug:auto-tests-missing-tests-autodev-runtime-pr-ops-dbba7bb7 | title:Add tests for module autodev/runtime/pr_ops.py (priority=90)
+- [x] T_auto_tests_missing_tests_autodev_runtim_328041b9 | milestone:M1 | slug:auto-tests-missing-tests-autodev-runtime-repo-o-328041b9 | title:Add tests for module autodev/runtime/repo_ops.py (priority=90)
+- [x] T_auto_tests_missing_tests_autodev_runtim_8588b49c | milestone:M1 | slug:auto-tests-missing-tests-autodev-runtime-sandbo-8588b49c | title:Add tests for module autodev/runtime/sandbox_runner.py (priority=90)
+- [x] T_auto_tests_missing_tests_autodev_runtim_f1575b31 | milestone:M1 | slug:auto-tests-missing-tests-autodev-runtime-task-q-f1575b31 | title:Add tests for module autodev/runtime/task_queue.py (priority=90)
+- [x] T_auto_tests_missing_tests_autodev_runtim_53f53b36 | milestone:M1 | slug:auto-tests-missing-tests-autodev-runtime-worker-53f53b36 | title:Add tests for module autodev/runtime/workers/local_patch_worker.py (priority=90)
+- [x] T_user_20260305082724_hi Hi
+- [x] T_user_20260305082746_optimize_pdf_parser [experiment:pytest -q] Optimize pdf parser
+- [ ] T_user_20260308223923_list_available_commands List available commands
+- [ ] T_user_20260308224041_run_a_smoke_test_verify_openclaw_is_processing Run a smoke test: verify openclaw is processing a tiny no-op and report success
+- [x] T_user_20260308224533_verify_openclaw_end_to_end_execution Verify openclaw end-to-end execution
+- [ ] T_user_20260308225431_add_a_no_op_constant_openclaw_autodev_smoke Add a no-op constant OPENCLAW_AUTODEV_SMOKE_TAG='2026-03-09' in openclaw/nl_router.py and keep behavior unchanged.
+- [ ] T_user_20260308225617_in_openclaw_nl_router_py_add_module_constant In openclaw/nl_router.py add module constant OPENCLAW_AUTODEV_SMOKE_TAG = '2026-03-09' with no behavior change.
+- [ ] T_user_20260308225658_in_openclaw_nl_router_py_add_module_constant In openclaw/nl_router.py add module constant OPENCLAW_AUTODEV_SMOKE_TAG = '2026-03-09' with no behavior change.
+- [ ] T_user_20260308231406_in_openclaw_nl_router_py_add_module_constant In openclaw/nl_router.py add module constant OPENCLAW_AUTODEV_SMOKE_TAG = '2026-03-09' with no behavior change.
+- [ ] T_user_20260308231540_in_openclaw_nl_router_py_add_module_constant In openclaw/nl_router.py add module constant OPENCLAW_AUTODEV_SMOKE_TAG = '2026-03-09' with no behavior change.

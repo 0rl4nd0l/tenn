@@ -17,6 +17,7 @@ if str(BACKEND) not in sys.path:
     sys.path.insert(0, str(BACKEND))
 
 from app.services.router import load_model_routing_config
+from app.core.config import settings
 from app.services.router_state import _gpu_utilization_percent
 
 
@@ -29,6 +30,8 @@ DEFAULT_PROMPTS = {
         "guidance quality, capital allocation, and the biggest open questions for follow-up."
     ),
 }
+
+_DEFAULT_BENCHMARK_OUTPUT = Path(getattr(settings, "data_root", str(ROOT))).expanduser().resolve() / "reports" / "model_benchmark.json"
 
 
 def _normalize_url(base_url: str) -> str:
@@ -158,7 +161,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--timeout", type=float, default=120.0, help="Per-request timeout in seconds.")
     parser.add_argument(
         "--output",
-        default=str(ROOT / "reports" / "model_benchmark.json"),
+        default=str(_DEFAULT_BENCHMARK_OUTPUT),
         help="Output path for the benchmark report.",
     )
     parser.add_argument(

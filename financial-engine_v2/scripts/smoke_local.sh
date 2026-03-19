@@ -48,7 +48,7 @@ request_json() {
 
 echo "[1/4] Health"
 request_json GET "${BASE_URL}/api/health" "${TMP_DIR}/health.json"
-python3 - "${TMP_DIR}/health.json" <<'PY'
+python - "${TMP_DIR}/health.json" <<'PY'
 import json
 import sys
 
@@ -67,7 +67,7 @@ if grep -Fq "expected sync mode" "${TMP_DIR}/backfill.json"; then
   echo "Backend not running in sync mode." >&2
   exit 1
 fi
-python3 - "${TMP_DIR}/backfill.json" "${TICKER}" <<'PY'
+python - "${TMP_DIR}/backfill.json" "${TICKER}" <<'PY'
 import json
 import sys
 
@@ -82,7 +82,7 @@ PY
 
 echo "[3/4] Docs endpoint"
 request_json GET "${BASE_URL}/api/docs?ticker=${TICKER}" "${TMP_DIR}/docs.json"
-python3 - "${TMP_DIR}/docs.json" "${TICKER}" <<'PY'
+python - "${TMP_DIR}/docs.json" "${TICKER}" <<'PY'
 import json
 import sys
 
@@ -95,7 +95,7 @@ if not isinstance(rows, list) or not rows:
 print(json.dumps({"ticker": sys.argv[2], "count": len(rows)}))
 PY
 
-python3 - "${TMP_DIR}/rag_request.json" "${RAG_QUERY}" "${TICKER}" <<'PY'
+python - "${TMP_DIR}/rag_request.json" "${RAG_QUERY}" "${TICKER}" <<'PY'
 import json
 import sys
 
@@ -106,7 +106,7 @@ PY
 
 echo "[4/4] RAG query"
 request_json POST "${BASE_URL}/rag/query" "${TMP_DIR}/rag.json" "${TMP_DIR}/rag_request.json"
-python3 - "${TMP_DIR}/rag.json" "${TICKER}" <<'PY'
+python - "${TMP_DIR}/rag.json" "${TICKER}" <<'PY'
 import json
 import sys
 

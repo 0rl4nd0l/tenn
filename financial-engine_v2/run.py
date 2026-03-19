@@ -55,14 +55,27 @@ CONFIG = {
 
 def _set_default_env() -> dict:
     env = os.environ.copy()
-    env.setdefault("DATABASE_URL", "sqlite:///./data/fe_local.db")
+    data_root = env.setdefault("DATA_ROOT", "./data")
+    env.setdefault("DATABASE_URL", f"sqlite:///{data_root}/fe_local.db")
+    env.setdefault("DOCS_ROOT", f"{data_root}/asx/docs")
+    env.setdefault("MARKETINDEX_ANNOUNCEMENTS_FILE", f"{data_root}/raw/marketindex_announcements.json")
+    env.setdefault("QDRANT_URL", "http://127.0.0.1:6333")
+    env.setdefault("OLLAMA_URL", "http://127.0.0.1:11434")
+    env.setdefault("LLM_URL", "http://127.0.0.1:8001")
+    env.setdefault("LLAMACPP_URL", "http://127.0.0.1:8001/v1")
+    env.setdefault("LLM_API_KEY", "local-openai-key")
+    env.setdefault("EMBEDDING_BATCH_SIZE", "32")
+    env.setdefault("ROUTER_FEEDBACK_ENABLED", "true")
+    env.setdefault("ANALYZER_MAX_AGE_SECONDS", "600")
+    env.setdefault("REDIS_URL", "redis://127.0.0.1:6379/0")
+    env.setdefault("CELERY_BROKER_URL", env["REDIS_URL"])
+    env.setdefault("CELERY_RESULT_BACKEND", "redis://127.0.0.1:6379/1")
     env.setdefault("TASK_MODE", "sync")
     env.setdefault("AUTO_CREATE_TABLES", "true")
     env.setdefault("ENABLE_EMBEDDINGS", "false")
     env.setdefault("ENABLE_QDRANT", "false")
     env.setdefault("ENABLE_EXTRACTION", "false")
     env.setdefault("ENABLE_MARKETINDEX_FALLBACK", "true")
-    env.setdefault("MARKETINDEX_ANNOUNCEMENTS_FILE", "../data/raw/marketindex_announcements.json")
     return env
 
 
@@ -148,6 +161,8 @@ def _build_daily_asx_marketwide_cmd() -> list[str]:
 def main() -> int:
     workflow = str(CONFIG.get("workflow", "both")).strip().lower()
     env = _set_default_env()
+    print(f"[startup] LLAMACPP_URL={env['LLAMACPP_URL']}")
+    print(f"[startup] OLLAMA_URL={env['OLLAMA_URL']}")
 
     if workflow not in {"both", "full_history", "daily_marketindex", "daily_asx_marketwide"}:
         raise ValueError("CONFIG.workflow must be one of: both, full_history, daily_marketindex, daily_asx_marketwide")

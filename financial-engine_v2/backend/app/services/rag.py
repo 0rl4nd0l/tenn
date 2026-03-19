@@ -304,18 +304,23 @@ def query_rag(
             expected_ticker=resolved_ticker,
             financial_intents=financial_intents,
         )
-        hits.append(
-            {
-                "score": raw_score,
-                "_adjusted_score": adjusted_score,
-                "ticker": hit_ticker,
-                "title": str(payload.get("title") or ""),
-                "document_id": str(payload.get("document_id") or ""),
-                "doc_class": payload.get("doc_class"),
-                "doc_subtype": payload.get("doc_subtype"),
-                "chunk_index": payload.get("chunk_index"),
-            }
-        )
+        hit: dict[str, Any] = {
+            "score": raw_score,
+            "_adjusted_score": adjusted_score,
+            "ticker": hit_ticker,
+            "title": str(payload.get("title") or ""),
+            "document_id": str(payload.get("document_id") or ""),
+            "doc_class": payload.get("doc_class"),
+            "doc_subtype": payload.get("doc_subtype"),
+            "chunk_index": payload.get("chunk_index"),
+        }
+        text_value = str(payload.get("text") or "").strip()
+        if text_value:
+            hit["text"] = text_value
+        published_at_value = str(payload.get("published_at") or "").strip()
+        if published_at_value:
+            hit["published_at"] = published_at_value
+        hits.append(hit)
 
     hits.sort(key=lambda hit: float(hit.get("_adjusted_score") or 0.0), reverse=True)
     for hit in hits:

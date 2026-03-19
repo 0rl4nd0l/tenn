@@ -17,6 +17,7 @@ from app.services.commentary_memo_extractor import (
 from app.services.embeddings import (
     embed_texts_batched,
     ensure_collection,
+    is_qdrant_vector_dimension_mismatch_error,
     resolve_llamacpp_embedding_config,
     upsert_points,
     verify_qdrant,
@@ -177,7 +178,25 @@ def ingest_transcript(
             }
         )
     if points:
-        upsert_points(client, resolved_collection_name, points)
+        try:
+            upsert_points(client, resolved_collection_name, points)
+        except Exception as exc:
+            if (
+                resolved_collection_name == "commentary_chunks"
+                and is_qdrant_vector_dimension_mismatch_error(exc)
+            ):
+                resolved_collection_name = ensure_collection(
+                    client,
+                    "commentary_chunks_v2",
+                    len(vectors[0]),
+                )
+                print(
+                    "[WARN] commentary_chunks upsert hit a vector dimension mismatch; "
+                    f"retrying with {resolved_collection_name}"
+                )
+                upsert_points(client, resolved_collection_name, points)
+            else:
+                raise
 
     resolved_memos_path = Path(
         getattr(memo_extractor, "memos_path", None) or memos_path or DEFAULT_COMMENTARY_MEMOS_PATH

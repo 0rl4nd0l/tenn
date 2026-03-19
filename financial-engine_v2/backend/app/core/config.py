@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from urllib.parse import urlparse, urlunparse
 
@@ -12,6 +13,12 @@ DOCKER_ENV_FILE_NAMES = (".env", ".env.docker")
 
 def _sqlite_url(path: Path) -> str:
     return f"sqlite:///{path.as_posix()}"
+
+
+DEFAULT_DATABASE_URL = _sqlite_url(DATA_ROOT / "fe_local.db")
+DEFAULT_DOCS_ROOT = str(DATA_ROOT / "asx" / "docs")
+DEFAULT_MARKETINDEX_ANNOUNCEMENTS_FILE = str(DATA_ROOT / "raw" / "marketindex_announcements.json")
+DEFAULT_IMPORTANCE_OUTPUT_ROOT = str(DATA_ROOT / "asx" / "importance")
 
 
 def _resolve_env_file_paths(*env_file_names: str) -> tuple[Path, ...]:
@@ -57,6 +64,51 @@ def _resolve_project_path(value: str) -> str:
     if not p.is_absolute():
         p = (PROJECT_ROOT / p).resolve()
     return str(p)
+
+
+def _shell_override_present(name: str) -> bool:
+    return name in os.environ
+
+
+def _normalize_base_url(url: str, *, default: str, strip_v1: bool = False) -> str:
+    text = str(url or "").strip() or str(default).strip()
+    normalized = text.rstrip("/")
+    if strip_v1 and normalized.endswith("/v1"):
+        normalized = normalized[: -len("/v1")]
+    return normalized.rstrip("/")
+
+
+def _extract_host_port(url: str) -> tuple[str, int | None]:
+    normalized = _normalize_base_url(url, default="", strip_v1=True)
+    parsed = urlparse(normalized)
+    return str(parsed.hostname or "").strip().lower(), parsed.port
+
+
+def validate_llm_endpoints(llamacpp_url: str, ollama_url: str) -> None:
+    normalized_llamacpp = _normalize_base_url(
+        llamacpp_url,
+        default="",
+        strip_v1=True,
+    )
+    normalized_ollama = _normalize_base_url(
+        ollama_url,
+        default="",
+        strip_v1=True,
+    )
+    if not normalized_llamacpp or not normalized_ollama:
+        raise ValueError("Both LLAMACPP_URL and OLLAMA_URL must be set")
+    llamacpp_host, llamacpp_port = _extract_host_port(normalized_llamacpp)
+    ollama_host, ollama_port = _extract_host_port(normalized_ollama)
+    if normalized_llamacpp == normalized_ollama or (
+        llamacpp_host
+        and ollama_host
+        and llamacpp_host == ollama_host
+        and llamacpp_port == ollama_port
+    ):
+        raise RuntimeError(
+            "Invalid configuration: LLAMACPP_URL and OLLAMA_URL resolve to the same host:port. "
+            "This causes backend aliasing."
+        )
 
 
 def _normalize_database_url(url: str) -> str:
@@ -138,7 +190,7 @@ class Settings(BaseSettings):
     )
 
     app_env: str = "dev"
-    database_url: str = _sqlite_url(DATA_ROOT / "fe_local.db")
+    database_url: str = DEFAULT_DATABASE_URL
     redis_url: str = f"{_default_redis_base_url()}/0"
     celery_broker_url: str = f"{_default_redis_base_url()}/0"
     celery_result_backend: str = f"{_default_redis_base_url()}/1"
@@ -147,9 +199,9 @@ class Settings(BaseSettings):
     qdrant_timeout_seconds: int = 60
     qdrant_collection: str = "asx_docs"
     data_root: str = str(DATA_ROOT)
-    docs_root: str = str(DATA_ROOT / "asx" / "docs")
+    docs_root: str = DEFAULT_DOCS_ROOT
     ollama_url: str = "http://127.0.0.1:11434"
-    llamacpp_url: str = "http://127.0.0.1:8001"
+    llamacpp_url: str = "http://127.0.0.1:8080"
     llamacpp_timeout_seconds: float = 120.0
     model_routing_config: str = str(_model_routing_config_path_from_module_path(Path(__file__)))
     embed_model: str = "nomic-embed-text"
@@ -168,9 +220,9 @@ class Settings(BaseSettings):
     enable_qdrant: bool = True
     enable_extraction: bool = True
     enable_marketindex_fallback: bool = False
-    marketindex_announcements_file: str = str(DATA_ROOT / "raw" / "marketindex_announcements.json")
+    marketindex_announcements_file: str = DEFAULT_MARKETINDEX_ANNOUNCEMENTS_FILE
     enable_importance_classification: bool = True
-    importance_output_root: str = str(DATA_ROOT / "asx" / "importance")
+    importance_output_root: str = DEFAULT_IMPORTANCE_OUTPUT_ROOT
     importance_materialize_output: bool = False
     importance_include_pdf_text: bool = True
     importance_link_mode: str = "symlink"
@@ -196,8 +248,38 @@ RUNTIME_ENV_FILES = _select_runtime_env_files()
 LOADED_ENV_FILES = _loaded_env_file_names(RUNTIME_ENV_FILES)
 
 settings = Settings(_env_file=tuple(str(path) for path in RUNTIME_ENV_FILES))
+settings.data_root = _resolve_project_path(settings.data_root or "./data")
+if (
+    not _shell_override_present("DATABASE_URL")
+    and (not str(settings.database_url or "").strip() or settings.database_url == DEFAULT_DATABASE_URL)
+):
+    settings.database_url = _sqlite_url(Path(settings.data_root) / "fe_local.db")
+if (
+    not _shell_override_present("DOCS_ROOT")
+    and (not str(settings.docs_root or "").strip() or settings.docs_root == DEFAULT_DOCS_ROOT)
+):
+    settings.docs_root = str(Path(settings.data_root) / "asx" / "docs")
+if (
+    not _shell_override_present("MARKETINDEX_ANNOUNCEMENTS_FILE")
+    and (
+        not str(settings.marketindex_announcements_file or "").strip()
+        or settings.marketindex_announcements_file == DEFAULT_MARKETINDEX_ANNOUNCEMENTS_FILE
+    )
+):
+    settings.marketindex_announcements_file = str(Path(settings.data_root) / "raw" / "marketindex_announcements.json")
+if (
+    not _shell_override_present("IMPORTANCE_OUTPUT_ROOT")
+    and (
+        not str(settings.importance_output_root or "").strip()
+        or settings.importance_output_root == DEFAULT_IMPORTANCE_OUTPUT_ROOT
+    )
+):
+    settings.importance_output_root = str(Path(settings.data_root) / "asx" / "importance")
 settings.database_url = _normalize_database_url(settings.database_url)
-settings.qdrant_url = _normalize_qdrant_url(settings.qdrant_url)
+settings.qdrant_url = _normalize_base_url(
+    _normalize_qdrant_url(settings.qdrant_url),
+    default="http://127.0.0.1:6333",
+)
 settings.redis_url = _normalize_redis_url(settings.redis_url, default_db=0)
 settings.celery_broker_url = _normalize_redis_url(
     settings.celery_broker_url or settings.redis_url,
@@ -207,9 +289,18 @@ settings.celery_result_backend = _normalize_redis_url(
     settings.celery_result_backend or settings.redis_url,
     default_db=1,
 )
-settings.data_root = _resolve_project_path(settings.data_root)
 settings.docs_root = _resolve_project_path(settings.docs_root)
 settings.marketindex_announcements_file = _resolve_project_path(settings.marketindex_announcements_file)
 settings.importance_output_root = _resolve_project_path(settings.importance_output_root)
 settings.model_routing_config = _resolve_project_path(settings.model_routing_config)
+settings.ollama_url = _normalize_base_url(settings.ollama_url, default="http://127.0.0.1:11434", strip_v1=True)
+settings.llamacpp_url = _normalize_base_url(
+    settings.llamacpp_url,
+    default="http://127.0.0.1:8080",
+    strip_v1=True,
+)
+validate_llm_endpoints(
+    settings.llamacpp_url,
+    settings.ollama_url,
+)
 _validate_runtime_configuration(settings, RUNTIME_ENV_FILES)

@@ -1,0 +1,12 @@
+target-version = "py310"
+
+[lint]
+ignore = [
+    "E401",  # legacy multi-import lines
+    "E402",  # path bootstrap imports
+    "E701",  # compact one-line conditionals
+    "E741",  # legacy single-letter loop vars
+    "F401",  # unused imports in legacy modules
+    "F541",  # static f-strings in legacy scripts
+    "F841",  # assigned-but-unused temps
+]

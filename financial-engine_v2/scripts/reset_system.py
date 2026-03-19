@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -11,7 +12,7 @@ from qdrant_client import QdrantClient
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DATA_ROOT = REPO_ROOT / "data"
+DATA_ROOT = Path(os.getenv("DATA_ROOT") or (REPO_ROOT / "data")).expanduser().resolve()
 RUNTIME_EMBEDDING_MODEL_FILE = REPO_ROOT / "reports" / "runtime_embedding_model.txt"
 
 
@@ -68,7 +69,7 @@ def run_reset(
     *,
     dry_run: bool = True,
     confirm: bool = False,
-    qdrant_url: str = "http://localhost:6333",
+    qdrant_url: str = "http://127.0.0.1:6333",
     collection_name: str = "asx_docs",
     db_files: list[Path] | None = None,
     qdrant_client_factory=None,
@@ -129,7 +130,7 @@ def run_reset(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Reset local Financial Engine state.")
-    parser.add_argument("--qdrant-url", default="http://localhost:6333")
+    parser.add_argument("--qdrant-url", default=os.getenv("QDRANT_URL", "http://127.0.0.1:6333"))
     parser.add_argument("--collection", default="asx_docs")
     parser.add_argument(
         "--confirm",

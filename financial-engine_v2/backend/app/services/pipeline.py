@@ -629,6 +629,32 @@ def insert_discovered_documents(db, discovered_docs):
     }
 
 
+def _load_discovered_document_ids(db, discovered_docs) -> list[str]:
+    source_urls: list[str] = []
+    seen_source_urls: set[str] = set()
+    for discovered_doc in discovered_docs:
+        source_url = _normalize_source_url(getattr(discovered_doc, "source_url", None))
+        if not source_url or source_url in seen_source_urls:
+            continue
+        seen_source_urls.add(source_url)
+        source_urls.append(source_url)
+
+    if not source_urls:
+        return []
+
+    rows = (
+        db.query(Document.document_id, Document.source_url)
+        .filter(Document.source_url.in_(source_urls))
+        .all()
+    )
+    document_id_by_source_url = {
+        str(source_url): str(document_id)
+        for document_id, source_url in rows
+        if document_id and source_url
+    }
+    return [document_id_by_source_url[source_url] for source_url in source_urls if source_url in document_id_by_source_url]
+
+
 def discover_and_insert_documents(db, ticker, years=5):
     ticker = ticker.upper()
     end = datetime.now(timezone.utc)
@@ -664,13 +690,15 @@ def discover_and_insert_documents(db, ticker, years=5):
         discovered = retained
 
     inserted_payload = insert_discovered_documents(db, discovered)
+    discovered_document_ids = _load_discovered_document_ids(db, discovered)
     return {
         "ticker": ticker,
         "found": discovered_before_quarantine,
         "eligible_found": len(discovered),
         "quarantined": quarantined_count,
         "inserted": inserted_payload["inserted"],
-        "new_document_ids": inserted_payload["new_document_ids"],
+        "new_document_ids": discovered_document_ids,
+        "inserted_document_ids": inserted_payload["new_document_ids"],
     }
 
 

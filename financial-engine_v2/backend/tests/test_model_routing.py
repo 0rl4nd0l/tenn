@@ -217,3 +217,64 @@ def test_critical_drift_prefers_fallback(
 
     assert decision.model_name == "cpu-router"
     assert decision.execution_queue == "llm_cpu"
+
+
+def test_load_model_routing_config_uses_provider_specific_runtime_urls(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config_path = tmp_path / "config" / "model_routing.yaml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(
+        "\n".join(
+            [
+                "router_provider: ollama",
+                "router_model: router-ollama",
+                "router_base_url: http://should-not-be-used-router.local",
+                "coding_provider: llamacpp",
+                "coding_model: coding-cpp",
+                "coding_base_url: http://should-not-be-used-coding.local",
+                "reasoning_provider: llamacpp",
+                "reasoning_model: reasoning-cpp",
+                "reasoning_base_url: http://should-not-be-used-reasoning.local",
+                "deep_reasoning_provider: llamacpp",
+                "deep_reasoning_model: deep-cpp",
+                "deep_reasoning_base_url: http://should-not-be-used-deep.local",
+                "embedding_provider: local",
+                "embedding_model: embed-local",
+                "router_strategy: adaptive",
+                "adaptive_routing: true",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(settings, "model_routing_config", str(config_path), raising=False)
+    monkeypatch.setattr(settings, "llamacpp_url", "http://llamacpp.local:8001", raising=False)
+    monkeypatch.setattr(settings, "ollama_url", "http://ollama.local:11434", raising=False)
+
+    config = router.load_model_routing_config(path=config_path)
+
+    assert config.router.provider == "ollama"
+    assert config.router.base_url == "http://ollama.local:11434"
+    assert config.coding.base_url == "http://llamacpp.local:8001"
+    assert config.reasoning.base_url == "http://llamacpp.local:8001"
+    assert config.deep_reasoning.base_url == "http://llamacpp.local:8001"
+
+
+def test_load_model_routing_config_rejects_unknown_backend(
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "config" / "model_routing.yaml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(
+        "\n".join(
+            [
+                "router_provider: unsupported_backend",
+                "router_model: router-unknown",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Unknown backend: unsupported_backend"):
+        router.load_model_routing_config(path=config_path)

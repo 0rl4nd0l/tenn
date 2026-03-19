@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import re
-import uuid
+from hashlib import sha1
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -39,6 +39,11 @@ def _append_jsonl(path: Path, row: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
+def _build_proposal_id(user_input: str) -> str:
+    seed = f"{_utc_now_iso()}::{str(user_input or '').strip()}"
+    return f"proposal_{sha1(seed.encode('utf-8')).hexdigest()[:12]}"
 
 
 def _load_json(path: Path, *, default: dict[str, Any]) -> dict[str, Any]:
@@ -231,7 +236,7 @@ def get_active_strategy_state() -> dict[str, Any]:
 
 def propose_change(user_input: str) -> dict[str, Any]:
     proposal = _build_strategy_change(user_input)
-    proposal_id = f"proposal_{uuid.uuid4().hex[:12]}"
+    proposal_id = _build_proposal_id(user_input)
     payload = {
         "proposal_id": proposal_id,
         **proposal,

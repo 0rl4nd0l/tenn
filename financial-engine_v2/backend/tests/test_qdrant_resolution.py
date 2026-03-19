@@ -8,6 +8,7 @@ import pytest
 import app.core.config as config
 import app.main as main
 import app.services.commentary_ingest as commentary_ingest
+import app.services.embeddings as embeddings_service
 
 
 class StubMemoExtractor:
@@ -26,6 +27,27 @@ def test_normalize_qdrant_url_rewrites_docker_hostname_for_host_runtime(monkeypa
 def test_normalize_qdrant_url_keeps_docker_hostname_inside_container(monkeypatch):
     monkeypatch.setattr(config, "_running_in_docker", lambda: True)
     assert config._normalize_qdrant_url("http://qdrant:6333") == "http://qdrant:6333"
+
+
+def test_validate_llm_endpoints_rejects_aliasing() -> None:
+    with pytest.raises(RuntimeError, match="same host:port"):
+        config.validate_llm_endpoints(
+            "http://127.0.0.1:11434/v1",
+            "http://127.0.0.1:11434",
+        )
+
+
+def test_validate_llm_endpoints_rejects_same_host_port_with_different_paths() -> None:
+    with pytest.raises(RuntimeError, match="same host:port"):
+        config.validate_llm_endpoints(
+            "http://localhost:8001/v1",
+            "http://localhost:8001/api",
+        )
+
+
+def test_validate_llm_endpoints_requires_both_values() -> None:
+    with pytest.raises(ValueError, match="Both LLAMACPP_URL and OLLAMA_URL must be set"):
+        config.validate_llm_endpoints("", "http://127.0.0.1:11434")
 
 
 @pytest.mark.parametrize(
@@ -120,6 +142,87 @@ def test_ingest_transcript_verifies_qdrant_before_embedding_and_upsert(monkeypat
     assert result["memo"] is None
     assert result["memos_path"] == str(memos_path.resolve())
     assert "[INFO] memo extraction queued" in capsys.readouterr().out
+
+
+def test_ingest_transcript_retries_commentary_upsert_with_v2_on_dimension_mismatch(
+    monkeypatch,
+    tmp_path,
+    capsys,
+):
+    call_order: list[str] = []
+    collections_written: list[str] = []
+    fake_client = object()
+
+    def fake_verify_qdrant(*, qdrant_url: str | None = None):
+        assert qdrant_url == "http://qdrant:6333"
+        call_order.append("verify_qdrant")
+        return fake_client
+
+    def fake_embed_batch(texts: list[str], *, llm_url: str | None, model: str | None):
+        call_order.append("embed")
+        return [[0.1, 0.2, 0.3] for _ in texts]
+
+    def fake_ensure_collection(client, collection: str, dim: int) -> str:
+        assert client is fake_client
+        assert dim == 3
+        call_order.append(f"ensure_collection:{collection}")
+        return collection
+
+    def fake_upsert_points(client, collection: str, points: list[dict]) -> None:
+        assert client is fake_client
+        collections_written.append(collection)
+        call_order.append(f"upsert_points:{collection}")
+        if collection == "commentary_chunks":
+            raise RuntimeError(
+                "Unexpected Response: 400 (Bad Request) Raw response content: "
+                "Vector dimension error: expected dim: 768, got 4096"
+            )
+
+    monkeypatch.setattr(commentary_ingest, "verify_qdrant", fake_verify_qdrant)
+    monkeypatch.setattr(commentary_ingest, "ensure_collection", fake_ensure_collection)
+    monkeypatch.setattr(commentary_ingest, "upsert_points", fake_upsert_points)
+    monkeypatch.setattr(
+        commentary_ingest,
+        "extract_commentary_memo_task",
+        type("QueuedMemoTask", (), {"delay": staticmethod(lambda payload: None)})(),
+    )
+
+    result = commentary_ingest.ingest_transcript(
+        transcript_text="A short transcript about a company update.",
+        source_name="Example Channel",
+        source_type="youtube_transcript",
+        speaker="Example Speaker",
+        published_at="2026-03-12T00:00:00Z",
+        registry_path=tmp_path / "source_registry.jsonl",
+        memos_path=tmp_path / "commentary_memos.jsonl",
+        qdrant_url="http://qdrant:6333",
+        embed_batch_fn=fake_embed_batch,
+        memo_extractor=StubMemoExtractor(tmp_path / "commentary_memos.jsonl"),
+    )
+
+    assert call_order == [
+        "verify_qdrant",
+        "embed",
+        "ensure_collection:commentary_chunks",
+        "upsert_points:commentary_chunks",
+        "ensure_collection:commentary_chunks_v2",
+        "upsert_points:commentary_chunks_v2",
+    ]
+    assert collections_written == ["commentary_chunks", "commentary_chunks_v2"]
+    assert result["collection"] == "commentary_chunks_v2"
+    assert "retrying with commentary_chunks_v2" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    ("message", "expected"),
+    [
+        ("Wrong input: Vector dimension error: expected dim: 768, got 4096", True),
+        ("Qdrant collection 'commentary_chunks' dimension mismatch: expected 4096, got 768.", True),
+        ("some unrelated qdrant error", False),
+    ],
+)
+def test_is_qdrant_vector_dimension_mismatch_error(message, expected):
+    assert embeddings_service.is_qdrant_vector_dimension_mismatch_error(RuntimeError(message)) is expected
 
 
 def test_validate_qdrant_on_startup_skips_permission_error(monkeypatch, caplog):
@@ -271,6 +374,51 @@ def test_validate_qdrant_on_startup_allows_zero_vector_collection_and_logs_dims(
 
     assert "expected_dim" in caplog.text
     assert "0 vectors" in caplog.text.lower()
+
+
+def test_validate_backends_checks_both_endpoints(monkeypatch) -> None:
+    calls: list[tuple[str, str]] = []
+
+    monkeypatch.setattr(main, "check_llamacpp", lambda base_url: calls.append(("llamacpp", base_url)) or True)
+    monkeypatch.setattr(main, "check_ollama", lambda base_url: calls.append(("ollama", base_url)) or True)
+
+    main.validate_backends("http://127.0.0.1:8001", "http://127.0.0.1:11434")
+
+    assert calls == [
+        ("llamacpp", "http://127.0.0.1:8001"),
+        ("ollama", "http://127.0.0.1:11434"),
+    ]
+
+
+def test_validate_backends_raises_for_invalid_llamacpp(monkeypatch) -> None:
+    monkeypatch.setattr(
+        main,
+        "check_llamacpp",
+        lambda base_url: (_ for _ in ()).throw(RuntimeError("connection failed")),
+    )
+    monkeypatch.setattr(main, "check_ollama", lambda base_url: True)
+
+    with pytest.raises(RuntimeError, match="llama.cpp endpoint invalid: connection failed"):
+        main.validate_backends("http://127.0.0.1:8001", "http://127.0.0.1:11434")
+
+
+def test_validate_backends_raises_for_overlap() -> None:
+    with pytest.raises(RuntimeError, match="Potential backend overlap detected"):
+        main.validate_backends("http://127.0.0.1:8001/v1", "http://127.0.0.1:800")
+
+
+def test_llamacpp_rejects_ollama_signature(monkeypatch) -> None:
+    class DummyResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"data": [{"id": "llama3.1:8b"}]}
+
+    monkeypatch.setattr(main.httpx, "get", lambda *args, **kwargs: DummyResponse())
+
+    with pytest.raises(RuntimeError, match="Endpoint appears to be Ollama, not llama.cpp"):
+        main.check_llamacpp("http://127.0.0.1:8001/v1")
 
 
 def test_system_status_snapshot_reports_latest_ingestion_activity(monkeypatch):

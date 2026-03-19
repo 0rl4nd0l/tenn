@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+from collections.abc import Mapping
 from typing import Any, Optional
 
 from qdrant_client import QdrantClient
@@ -16,6 +17,33 @@ from app.services.llamacpp_runtime import resolve_embedding_runtime_config
 
 
 logger = logging.getLogger(__name__)
+
+
+def _extract_vector_params(candidate: Any) -> tuple[int | None, Any | None]:
+    if candidate is None:
+        return None, None
+
+    if isinstance(candidate, qmodels.VectorParams):
+        return int(candidate.size), candidate.distance
+
+    size = getattr(candidate, "size", None)
+    distance = getattr(candidate, "distance", None)
+    if size is not None:
+        try:
+            return int(size), distance
+        except (TypeError, ValueError):
+            pass
+
+    if isinstance(candidate, Mapping):
+        first = next(iter(candidate.values()), None)
+        return _extract_vector_params(first)
+
+    return None, None
+
+
+def is_qdrant_vector_dimension_mismatch_error(exc: Exception) -> bool:
+    message = str(exc or "").strip().lower()
+    return "vector dimension error" in message or "dimension mismatch" in message
 
 
 def _is_canonical_document_id(value: Any) -> bool:
@@ -236,17 +264,7 @@ def get_qdrant_collection_vector_config(
     params = getattr(info.config, "params", None)
     vectors = getattr(params, "vectors", None) if params is not None else None
 
-    actual_dim = None
-    actual_distance = None
-
-    if isinstance(vectors, qmodels.VectorParams):
-        actual_dim = int(vectors.size)
-        actual_distance = vectors.distance
-    elif isinstance(vectors, dict):
-        first = next(iter(vectors.values()), None)
-        if isinstance(first, qmodels.VectorParams):
-            actual_dim = int(first.size)
-            actual_distance = first.distance
+    actual_dim, actual_distance = _extract_vector_params(vectors)
 
     raw_points_count = getattr(info, "points_count", None)
     if raw_points_count is None:

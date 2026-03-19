@@ -22,12 +22,13 @@ logger = logging.getLogger(__name__)
 
 def _log_route(operation: str, decision: RoutingDecision, payload_size: int) -> None:
     logger.info(
-        "llm_route operation=%s task_type=%s queue=%s model=%s provider=%s deferred=%s confidence=%s payload_size=%s gpu_util=%s",
+        "llm_route operation=%s task_type=%s queue=%s model=%s provider=%s base_url=%s deferred=%s confidence=%s payload_size=%s gpu_util=%s",
         operation,
         decision.task_type,
         decision.execution_queue,
         decision.model_name,
         decision.provider,
+        decision.base_url,
         decision.deferred,
         f"{decision.confidence:.3f}",
         payload_size,
@@ -72,11 +73,17 @@ def get_routing_decision(prompt: str, metadata: dict[str, Any] | None = None) ->
     return route_request(prompt, metadata)
 
 
-def _resolve_runtime_from_metadata(metadata: dict[str, Any] | None) -> tuple[str, str]:
+def _resolve_runtime_from_metadata(
+    decision: RoutingDecision,
+    metadata: dict[str, Any] | None,
+) -> tuple[str, str]:
     payload = dict(metadata or {})
+    provider = str(decision.provider or "").strip().lower()
+    if provider not in {"llamacpp", "ollama"}:
+        raise ValueError(f"Unknown backend: {decision.provider}")
     return resolve_llm_runtime_config(
-        base_url=payload.get("requested_base_url") or payload.get("llm_url"),
-        model=payload.get("requested_model") or payload.get("llm_model"),
+        base_url=payload.get("requested_base_url") or payload.get("llm_url") or decision.base_url,
+        model=payload.get("requested_model") or payload.get("llm_model") or decision.model_name,
     )
 
 
@@ -101,7 +108,7 @@ def _effective_llamacpp_decision(
         execution_queue=decision.execution_queue,
         task_type=decision.task_type,
         financial_task_type=decision.financial_task_type,
-        provider="llamacpp",
+        provider=decision.provider,
         base_url=base_url,
         deferred=decision.deferred,
         gpu_utilization_percent=decision.gpu_utilization_percent,
@@ -113,9 +120,9 @@ def _resolved_model_name_for_metrics(
     decision: RoutingDecision,
     metadata: dict[str, Any] | None,
 ) -> str:
-    if decision.provider != "llamacpp":
+    if decision.provider not in {"llamacpp", "ollama"}:
         return decision.model_name
-    _, resolved_model = _resolve_runtime_from_metadata(metadata)
+    _, resolved_model = _resolve_runtime_from_metadata(decision, metadata)
     return resolved_model
 
 
@@ -164,13 +171,13 @@ def _fallback_decision_for_failure(
                 queue_depth_at_dispatch=decision.queue_depth_at_dispatch,
                 confidence=min(decision.confidence, 0.75),
             )
-        resolved_base_url, resolved_model = _resolve_runtime_from_metadata(metadata)
+        resolved_base_url, resolved_model = _resolve_runtime_from_metadata(decision, metadata)
         return RoutingDecision(
             model_name=resolved_model,
             execution_queue="llm_cpu",
             task_type=decision.task_type,
             financial_task_type=decision.financial_task_type,
-            provider="llamacpp",
+            provider=decision.provider,
             base_url=resolved_base_url,
             deferred=True,
             gpu_utilization_percent=decision.gpu_utilization_percent,
@@ -201,7 +208,7 @@ def _execute_generate_json(
     timeout: float | None,
     client: Optional[httpx.Client],
 ) -> tuple[dict[str, Any], dict[str, Any], str]:
-    resolved_base_url, resolved_model = _resolve_runtime_from_metadata(metadata)
+    resolved_base_url, resolved_model = _resolve_runtime_from_metadata(decision, metadata)
     effective_timeout = float(
         timeout
         if timeout not in (None, 0, 0.0)
