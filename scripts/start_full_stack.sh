@@ -154,9 +154,13 @@ if [[ -n "${LLAMACPP_URL_CONTAINER:-}" ]]; then
   compose_network="$(basename "${ENGINE_ROOT}")_default"
   models_url="${LLAMACPP_URL_CONTAINER%/}/models"
   echo "🔍 Preflight (compose net): GET ${models_url}"
-  if ! docker run --rm --network "${compose_network}" curlimages/curl:8.5.0 sh -lc "curl -fsS -m 5 -H 'Authorization: Bearer ${llm_api_key}' '${models_url}' >/dev/null"; then
-    echo "ERROR: llamacpp models endpoint not reachable from compose network: ${models_url}" >&2
-    exit 1
+  if docker network inspect "${compose_network}" >/dev/null 2>&1; then
+    if ! docker run --rm --network "${compose_network}" curlimages/curl:8.5.0 sh -lc "curl -fsS -m 5 -H 'Authorization: Bearer ${llm_api_key}' '${models_url}' >/dev/null"; then
+      echo "ERROR: llamacpp models endpoint not reachable from compose network: ${models_url}" >&2
+      exit 1
+    fi
+  else
+    echo "⚠️  compose network '${compose_network}' not present yet; skipping early probe"
   fi
 fi
 
