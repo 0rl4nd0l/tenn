@@ -34,6 +34,12 @@ from services.evaluation.anomaly import detect_anomalies
 from services.evaluation.consistency import compute_extraction_consistency_checks
 from services.evaluation.evidence import verify_metrics
 from services.evaluation.failure_analysis import build_failure_analysis
+from services.extraction.remediation import (
+    assess_non_financial_explicit_drop,
+    build_candidate_profile,
+    should_escalate_docling_after_probe,
+    should_suppress_docling_for_explicit_non_financial,
+)
 from services.extraction.router import select_extractor_with_reason
 from services.extraction.docling_runner import run_docling_subprocess
 
@@ -289,6 +295,7 @@ def main() -> int:
     documents: list[dict[str, Any]] = []
     probe_runs = 0
     docling_runs = 0
+    escalation_runs = 0
     fallback_count = 0
     selected_confidences: list[float] = []
     selected_accuracies: list[float] = []
@@ -337,13 +344,33 @@ def main() -> int:
             complexity_bucket=complexity_bucket,
             is_financial=is_financial,
         )
+        probe_profile = build_candidate_profile(probe_method_payload)
+        explicit_non_financial = assess_non_financial_explicit_drop(classifier, probe_profile)
+        escalate_docling, escalate_reason = should_escalate_docling_after_probe(
+            classifier=classifier,
+            profile=probe_profile,
+            fallback_reasons=reasons,
+            explicit_non_financial_drop=bool(explicit_non_financial.get("applied")),
+        )
+        suppress_docling = should_suppress_docling_for_explicit_non_financial(explicit_non_financial, reasons)
         fallback_triggered = len(reasons) > 0
+        docling_from_policy = (fallback_triggered or escalate_docling) and not suppress_docling
         fallback_reason = ",".join(reasons)
         selected_method = PDFTOTEXT_EXTRACTOR
         selected_payload: dict[str, Any] = dict(probe_method_payload)
         selected_confidence = probe_confidence
         selected_coverage = probe_coverage
         selected_anomaly = probe_anomaly
+        remediation_attempts: list[dict[str, Any]] = [
+            {
+                "stage": "probe_pdftotext",
+                "extractor": PDFTOTEXT_EXTRACTOR,
+                "outcome": str(probe_method_payload.get("status") or "unknown"),
+                "candidate_profile": probe_profile,
+                "confidence": round(float(probe_confidence), 6),
+                "coverage": round(float(probe_coverage), 6),
+            }
+        ]
         selected_meta: dict[str, Any] = {
             "selected_from_probe": True,
             "probe_run": probe_meta,
@@ -356,14 +383,19 @@ def main() -> int:
             "probe_row_count": probe_row_count,
             "document_type": document_type,
             "complexity_bucket": complexity_bucket,
+            "escalate_docling": escalate_docling,
+            "escalate_reason": escalate_reason,
+            "suppress_docling_for_non_financial": suppress_docling,
         }
         docling_confidence: float | None = None
         docling_coverage: float | None = None
         docling_anomaly: dict[str, Any] | None = None
 
-        if fallback_triggered:
+        if docling_from_policy:
             fallback_count += 1
             docling_runs += 1
+            if not fallback_triggered:
+                escalation_runs += 1
             selected_json = doc_run_root / "selected_benchmark.json"
             selected_run_root = doc_run_root / "selected_runs"
             selected_benchmark_payload, selected_benchmark_meta = _run_benchmark_for_pdf(
@@ -405,7 +437,22 @@ def main() -> int:
                 "probe_row_count": probe_row_count,
                 "document_type": document_type,
                 "complexity_bucket": complexity_bucket,
+                "escalate_docling": escalate_docling,
+                "escalate_reason": escalate_reason,
+                "suppress_docling_for_non_financial": suppress_docling,
             }
+            doc_profile = build_candidate_profile(docling_payload)
+            remediation_attempts.append(
+                {
+                    "stage": "docling_remediation",
+                    "extractor": DOCLING_EXTRACTOR,
+                    "outcome": str(docling_payload.get("status") or "unknown"),
+                    "candidate_profile": doc_profile,
+                    "trigger": "fallback_reasons" if fallback_triggered else escalate_reason,
+                    "confidence": round(float(docling_confidence or 0.0), 6),
+                    "coverage": round(float(docling_coverage or 0.0), 6),
+                }
+            )
 
         raw_text = _payload_raw_text(selected_payload) or _extract_pdf_raw_text(
             pdf_path=pdf,
@@ -432,6 +479,25 @@ def main() -> int:
             strict_truth_mode=bool(args.strict_truth_mode),
         )
 
+        failure_analysis = build_failure_analysis(
+            selected_payload=selected_payload,
+            verification={
+                "verified": verification.get("verified"),
+                "rejected": verification.get("rejected"),
+                "verified_count": verification.get("verified_count"),
+                "rejected_count": verification.get("rejected_count"),
+                "verification_ratio": verification.get("verification_ratio"),
+            },
+            strict_truth_mode=bool(args.strict_truth_mode),
+            fallback_triggered=fallback_triggered,
+            docling_executed=bool(docling_from_policy),
+            selected_method=selected_method,
+            document_type=document_type,
+            is_financial=is_financial,
+            probe_method_payload=probe_method_payload,
+            probe_coverage=float(probe_coverage),
+        )
+
         selected_score = dict(selected_payload.get("score") or {})
         selected_accuracy = None
         if str(selected_score.get("status") or "") == "SUCCESS":
@@ -446,7 +512,7 @@ def main() -> int:
             {"documents": 0.0, "fallbacks": 0.0},
         )
         doc_type_bucket["documents"] += 1.0
-        if fallback_triggered:
+        if docling_from_policy:
             doc_type_bucket["fallbacks"] += 1.0
 
         complexity_bucket_entry = fallback_by_complexity_bucket.setdefault(
@@ -454,7 +520,7 @@ def main() -> int:
             {"documents": 0.0, "fallbacks": 0.0},
         )
         complexity_bucket_entry["documents"] += 1.0
-        if fallback_triggered:
+        if docling_from_policy:
             complexity_bucket_entry["fallbacks"] += 1.0
 
         probe_confidence_by_doc_type.setdefault(document_type, []).append(float(probe_confidence))
@@ -466,6 +532,20 @@ def main() -> int:
         if probe_missing:
             missing_bucket["docs_with_missing"] += 1.0
         missing_bucket["missing_metric_total"] += float(len(probe_missing))
+
+        remediation: dict[str, Any] = {
+            "version": 1,
+            "probe_candidate_profile": probe_profile,
+            "non_financial_explicit_drop": explicit_non_financial,
+            "escalation": {
+                "requested": escalate_docling,
+                "reason": escalate_reason,
+            },
+            "docling_suppressed": suppress_docling,
+            "docling_executed": bool(docling_from_policy),
+            "fallback_reasons_triggered": fallback_triggered,
+            "attempts": remediation_attempts,
+        }
 
         documents.append(
             {
@@ -483,8 +563,10 @@ def main() -> int:
                 "probe_missing_required_metrics": probe_missing,
                 "probe_canonical_metric_count": probe_canonical_metric_count,
                 "probe_row_count": probe_row_count,
+                "docling_executed": bool(docling_from_policy),
                 "fallback_triggered": fallback_triggered,
                 "fallback_reason": fallback_reason,
+                "remediation": remediation,
                 "confidence_threshold": CONFIDENCE_THRESHOLD,
                 "min_coverage": MIN_COVERAGE,
                 "anomaly": selected_anomaly,
@@ -502,6 +584,7 @@ def main() -> int:
                 "runtime_seconds": selected_payload.get("runtime_seconds"),
                 "routing_metadata": selected_meta,
                 "consistency_checks": consistency_checks,
+                "failure_analysis": failure_analysis,
             }
         )
 
@@ -556,6 +639,8 @@ def main() -> int:
             "probe_runs": probe_runs,
             "docling_runs": docling_runs,
             "docling_run_rate": round(float(docling_runs) / float(max(1, len(documents))), 6),
+            "escalation_runs": escalation_runs,
+            "escalation_rate": round(float(escalation_runs) / float(max(1, len(documents))), 6),
             "fallback_count": fallback_count,
             "fallback_rate": round(float(fallback_count) / float(max(1, len(documents))), 6),
             "confidence_distribution": _confidence_distribution(selected_confidences),
