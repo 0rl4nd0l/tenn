@@ -132,7 +132,15 @@ def _defer_non_financial_unknown_fallback(
     row_count: int,
     coverage: float,
     anomaly: Mapping[str, Any],
+    method_status: str | None = None,
 ) -> bool:
+    # If the extractor itself failed (e.g. pdftotext couldn't find any metric candidates),
+    # we should not "defer" fallback on the assumption that the PDF is non-financial.
+    # Instead, attempt a higher-recall extraction route (e.g. Docling).
+    normalized_status = str(method_status or "").strip().lower()
+    if normalized_status in {"failed", "error", "crash"}:
+        return False
+
     if is_financial is not False:
         return False
     if str(doc_type or "").strip().lower() != "unknown":
@@ -396,6 +404,7 @@ def fallback_reasons(
     canonical_metric_count = _canonical_metric_count(payload)
     row_count = _row_count(payload)
     anomaly = _effective_anomaly(payload)
+    method_status = str(payload.get("status") or "").strip().lower()
     resolved_confidence_threshold, resolved_min_coverage = _resolve_thresholds(
         doc_type=doc_type,
         complexity_bucket=complexity_bucket,
@@ -412,6 +421,7 @@ def fallback_reasons(
         row_count=row_count,
         coverage=float(coverage),
         anomaly=anomaly,
+        method_status=method_status,
     ):
         if bool(anomaly.get("has_anomaly")) and str(anomaly.get("severity") or "").lower() == "high":
             reasons.append("financial_anomaly")
