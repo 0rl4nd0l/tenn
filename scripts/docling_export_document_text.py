@@ -23,6 +23,11 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Force CPU mode (CUDA disabled).",
     )
+    ap.add_argument(
+        "--docling-ocr",
+        action="store_true",
+        help="Enable Docling OCR (for scanned/image-only PDFs).",
+    )
     ap.add_argument("--log-level", default="ERROR", help="Docling/RapidOCR logging verbosity.")
     return ap.parse_args()
 
@@ -40,13 +45,21 @@ def main() -> int:
 
     # Import Docling only inside the subprocess environment.
     try:
+        from docling.datamodel.base_models import InputFormat  # type: ignore[import-not-found]
+        from docling.datamodel.pipeline_options import PdfPipelineOptions  # type: ignore[import-not-found]
         from docling.document_converter import DocumentConverter  # type: ignore[import-not-found]
+        from docling.datamodel.pipeline_options import PdfFormatOption  # type: ignore[import-not-found]
     except Exception as e:  # pragma: no cover
         print(f"docling import failed: {e}", file=sys.stderr)
         return 1
 
     try:
-        converter = DocumentConverter()
+        pipeline_options = PdfPipelineOptions(do_ocr=bool(args.docling_ocr), do_table_structure=False)
+        converter = DocumentConverter(
+            format_options={
+                InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options),
+            }
+        )
         conv_res = converter.convert(str(pdf_path))
         doc = conv_res.document
 

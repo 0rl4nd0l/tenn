@@ -249,6 +249,7 @@ def _extract_pdf_raw_text(
     ]
     if docling_cpu:
         docling_args.append("--cpu")
+    docling_args.append("--docling-ocr")
 
     # run_docling_subprocess expects the command as args inside the docling venv.
     # We pass the repo root as cwd so relative paths resolve.

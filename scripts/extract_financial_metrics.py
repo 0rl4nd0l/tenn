@@ -4798,7 +4798,7 @@ def _get_docling_converter(
     num_threads: int = 0,
 ):
     """Lazily initialize and cache a Docling converter for this process."""
-    use_ocr = False
+    use_ocr = bool(do_ocr)
     mode = str(table_mode or "fast").strip().lower()
     if mode not in {"accurate", "fast"}:
         mode = "fast"
@@ -4819,8 +4819,7 @@ def _get_docling_converter(
         _DOCLING_INIT_ERROR_CACHE[cache_key] = "Docling environment not available. Ensure .venv-docling-gpu exists."
         return None, _DOCLING_INIT_ERROR_CACHE[cache_key]
     try:
-        pipeline_options = PdfPipelineOptions(do_ocr=False, do_table_structure=True)
-        pipeline_options.do_ocr = False
+        pipeline_options = PdfPipelineOptions(do_ocr=use_ocr, do_table_structure=True)
         pipeline_options.do_table_structure = True
         if hasattr(pipeline_options, "do_layout_analysis"):
             pipeline_options.do_layout_analysis = True
@@ -7601,12 +7600,12 @@ def main() -> int:
                 f"cuda_available={cuda_available} "
                 f"table_mode={docling_table_mode} "
                 f"num_threads={docling_num_threads if docling_num_threads > 0 else 'default'} "
-                "ocr=False"
+                f"ocr={bool(args.docling_ocr)}"
             ),
             file=sys.stderr,
         )
         docling_converter, docling_init_error = _get_docling_converter(
-            do_ocr=False,
+            do_ocr=bool(args.docling_ocr),
             table_mode=docling_table_mode,
             num_threads=docling_num_threads,
         )

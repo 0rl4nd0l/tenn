@@ -437,7 +437,16 @@ def _run_backend_llm_json(
     }
 
 
-def _extract_financial_metrics_command(pdf_path: Path, out_dir: Path, extractor: str, *, docling_cpu: bool) -> list[str]:
+def _extract_financial_metrics_command(
+    pdf_path: Path,
+    out_dir: Path,
+    extractor: str,
+    *,
+    docling_cpu: bool,
+    allow_narrative: bool = False,
+    expanded_metric_scope: bool = False,
+    docling_ocr: bool = False,
+) -> list[str]:
     canonical_json = out_dir / "canonical.json"
     canonical_csv = out_dir / "canonical.csv"
     primary_csv = out_dir / "primary.csv"
@@ -506,6 +515,12 @@ def _extract_financial_metrics_command(pdf_path: Path, out_dir: Path, extractor:
     ]
     if extractor == "docling" and docling_cpu:
         command.append("--cpu")
+    if allow_narrative:
+        command.append("--allow-narrative")
+    if expanded_metric_scope:
+        command.append("--expanded-metric-scope")
+    if extractor == "docling" and docling_ocr:
+        command.append("--docling-ocr")
     return command
 
 
@@ -536,10 +551,13 @@ def _run_financial_metrics_pdftotext(
         raise RuntimeError("pdftotext_not_available")
     out_dir = run_dir / "financial_metrics_pdftotext"
     out_dir.mkdir(parents=True, exist_ok=True)
-    command = [sys.executable, *_extract_financial_metrics_command(pdf_path, out_dir, "pdftotext", docling_cpu=docling_cpu)]
+    command_strict = [
+        sys.executable,
+        *_extract_financial_metrics_command(pdf_path, out_dir, "pdftotext", docling_cpu=docling_cpu),
+    ]
 
     result = subprocess.run(
-        command,
+        command_strict,
         cwd=str(REPO_ROOT),
         timeout=subprocess_timeout_sec,
         stdout=subprocess.PIPE,
@@ -547,6 +565,36 @@ def _run_financial_metrics_pdftotext(
         text=True,
     )
     loaded = _load_financial_metrics_artifacts(out_dir)
+
+    # Recall recovery: when strict table-only extraction yields no canonical rows,
+    # rerun with less strict extraction over narrative lines and expanded metric scope.
+    needs_retry = (result.returncode != 0) or (not loaded.get("canonical_rows"))
+    if needs_retry:
+        # Use the same out_dir so that later loads reflect the retry artifacts.
+        command_retry = [
+            sys.executable,
+            *_extract_financial_metrics_command(
+                pdf_path,
+                out_dir,
+                "pdftotext",
+                docling_cpu=docling_cpu,
+                allow_narrative=True,
+                expanded_metric_scope=True,
+            ),
+        ]
+        result_retry = subprocess.run(
+            command_retry,
+            cwd=str(REPO_ROOT),
+            timeout=subprocess_timeout_sec,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        # Prefer retry stdout/stderr for observability.
+        if result_retry.returncode == 0 or loaded.get("canonical_rows") is None or not loaded.get("canonical_rows"):
+            # Reload artifacts from the same out_dir.
+            loaded = _load_financial_metrics_artifacts(out_dir)
+            result = result_retry
     return {
         "status": "ok" if result.returncode == 0 else "failed",
         "output_type": "canonical_rows",
@@ -572,9 +620,9 @@ def _run_financial_metrics_docling(
 ) -> dict[str, Any]:
     out_dir = run_dir / "financial_metrics_docling"
     out_dir.mkdir(parents=True, exist_ok=True)
-    command = _extract_financial_metrics_command(pdf_path, out_dir, "docling", docling_cpu=docling_cpu)
+    command_strict = _extract_financial_metrics_command(pdf_path, out_dir, "docling", docling_cpu=docling_cpu)
     subprocess_result = run_docling_subprocess(
-        command,
+        command_strict,
         cwd=REPO_ROOT,
         timeout_sec=subprocess_timeout_sec,
         venv_path=docling_venv_path,
@@ -584,6 +632,51 @@ def _run_financial_metrics_docling(
     status = "ok"
     if not subprocess_result.get("ok", False):
         status = "failed" if subprocess_result.get("returncode") is not None else "unavailable"
+
+    # Recall recovery: if strict canonical output is empty, rerun with
+    # narrative line extraction and expanded metric scope.
+    canonical_rows = loaded.get("canonical_rows") or []
+    needs_retry = status != "ok" or not canonical_rows
+    if needs_retry:
+        command_retry = _extract_financial_metrics_command(
+            pdf_path,
+            out_dir,
+            "docling",
+            docling_cpu=docling_cpu,
+            allow_narrative=True,
+            expanded_metric_scope=True,
+        )
+        subprocess_result = run_docling_subprocess(
+            command_retry,
+            cwd=REPO_ROOT,
+            timeout_sec=subprocess_timeout_sec,
+            venv_path=docling_venv_path,
+            create_venv_if_missing=docling_create_venv,
+        )
+        loaded = _load_financial_metrics_artifacts(out_dir)
+        status = "ok" if subprocess_result.get("ok", False) else status
+
+    # Third recall-recovery: if Docling still yielded no canonical rows,
+    # enable Docling OCR.
+    canonical_rows_after = loaded.get("canonical_rows") or []
+    if (not canonical_rows_after) and str(status).lower() == "ok":
+        command_retry_ocr = _extract_financial_metrics_command(
+            pdf_path,
+            out_dir,
+            "docling",
+            docling_cpu=docling_cpu,
+            allow_narrative=True,
+            expanded_metric_scope=True,
+            docling_ocr=True,
+        )
+        subprocess_result = run_docling_subprocess(
+            command_retry_ocr,
+            cwd=REPO_ROOT,
+            timeout_sec=subprocess_timeout_sec,
+            venv_path=docling_venv_path,
+            create_venv_if_missing=docling_create_venv,
+        )
+        loaded = _load_financial_metrics_artifacts(out_dir)
     return {
         "status": status,
         "output_type": "canonical_rows",
@@ -837,6 +930,8 @@ def _run_method(
     normalized_metrics = list(payload.get("normalized_metrics") or [])
     canonical_metrics = rows_to_canonical_metrics(normalized_metrics)
     score = score_metric_maps(canonical_metrics, ground_truth_metrics, tolerance_pct=0.02)
+    # Evidence grounding must be PDF-derived. Prefer pdftotext output; if empty and
+    # the current method is Docling, fall back to Docling-exported document text.
     raw_text = ""
     try:
         completed = subprocess.run(
@@ -850,6 +945,26 @@ def _run_method(
             raw_text = str(completed.stdout or "")
     except FileNotFoundError:
         raw_text = ""
+
+    if not raw_text.strip() and str(spec.name).strip().lower() == "financial_metrics_docling":
+        # Docling subprocess: never import docling into the main process.
+        docling_export_cmd = [
+            str(REPO_ROOT / "scripts" / "docling_export_document_text.py"),
+            "--pdf",
+            str(pdf_path),
+        ]
+        if docling_cpu:
+            docling_export_cmd.append("--cpu")
+        docling_export_cmd.append("--docling-ocr")
+        ev = run_docling_subprocess(
+            docling_export_cmd,
+            cwd=REPO_ROOT,
+            timeout_sec=120.0,
+            venv_path=docling_venv_path,
+            create_venv_if_missing=docling_create_venv,
+        )
+        if ev.get("ok"):
+            raw_text = str(ev.get("stdout") or "")
 
     verification = verify_metrics(canonical_metrics, raw_text)
     verification_ratio = _safe_float(verification.get("verification_ratio"))
