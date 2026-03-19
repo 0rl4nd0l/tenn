@@ -23,6 +23,7 @@ CANONICAL_METRICS: tuple[str, ...] = (
     "free_cash_flow",
     "total_debt",
     "net_debt",
+    "impairment_expense",
 )
 
 _ALIAS_TO_CANONICAL: dict[str, str] = {
@@ -65,6 +66,7 @@ _ALIAS_TO_CANONICAL: dict[str, str] = {
     "free_cash_flow": "free_cash_flow",
     "total_debt": "total_debt",
     "net_debt": "net_debt",
+    "impairment_expense": "impairment_expense",
 }
 
 _DATE_RE = re.compile(r"(\d{4})-(\d{2})-(\d{2})")

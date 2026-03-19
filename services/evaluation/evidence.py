@@ -23,6 +23,7 @@ _METRIC_LABEL_ALIASES: dict[str, tuple[str, ...]] = {
     "free_cash_flow": ("free cash flow", "fcf"),
     "total_debt": ("total debt", "total borrowings", "borrowings"),
     "net_debt": ("net debt",),
+    "impairment_expense": ("impairment expense", "impairment", "impairment loss", "one-off impairment"),
 }
 
 

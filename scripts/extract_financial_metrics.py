@@ -5673,6 +5673,16 @@ def resolve_canonical_conflicts(canonical_rows: List[Dict[str, object]]) -> Tupl
             rows,
             key=lambda r: (
                 1 if str(r.get("canonical_tier", "strict")).strip().lower() == "strict" else 0,
+                1
+                if (
+                    (
+                        parse_accounting_number(
+                            str(r.get("raw_value") or r.get("value") or "").replace("$", "").replace("€", "").replace("£", "")
+                        )  # type: ignore[arg-type]
+                        is not None
+                    )
+                )
+                else 0,
                 int(r.get("canonical_confidence_score", 0)),
                 1 if _is_strong_metric_row_label(str(r.get("metric", "")), str(r.get("row_label", ""))) else 0,
                 0 if _is_layout_weak(str(r.get("statement_title", "")), str(r.get("table_header_text", ""))) else 1,
@@ -6815,8 +6825,37 @@ def _primary_row_rank(row: Dict[str, object]) -> Tuple[int, int, int, int, int, 
     row_label = str(row.get("row_label", ""))
     source_mode = str(row.get("source_mode", "")).strip().lower()
     doc_profile_score = int(DOC_PROFILE_PREFERENCE.get(_document_profile_from_row(row), 0))
+    # Prefer rows that actually contain a parseable numeric value, even when
+    # confidence/period extraction is weak. Without this, label-only rows
+    # can be incorrectly promoted to "primary_metric_value".
+    raw = row.get("raw_value")
+    val = row.get("value")
+    raw_s = ""
+    if isinstance(raw, str):
+        raw_s = raw
+    elif raw is not None:
+        raw_s = str(raw)
+    val_s = ""
+    if isinstance(val, str):
+        val_s = val
+    elif val is not None and not isinstance(val, (int, float)):
+        val_s = str(val)
+    has_numeric = 0
+    try:
+        raw_norm = raw_s.replace("$", "").replace("€", "").replace("£", "")
+        val_norm = val_s.replace("$", "").replace("€", "").replace("£", "")
+        if raw_s.strip():
+            has_numeric = 1 if parse_accounting_number(raw_norm) is not None else 0
+        elif isinstance(val, (int, float)):
+            has_numeric = 1 if val is not None else 0
+        elif val_s.strip():
+            has_numeric = 1 if parse_accounting_number(val_norm) is not None else 0
+    except Exception:
+        has_numeric = 0
+
     return (
         1 if str(row.get("canonical_tier", "strict")).strip().lower() == "strict" else 0,
+        has_numeric,
         -_primary_variant_rank(str(row.get("metric_variant", ""))),
         int(row.get("canonical_confidence_score", 0) or 0),
         doc_profile_score,
