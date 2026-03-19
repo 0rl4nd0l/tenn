@@ -356,19 +356,30 @@ def _validate_qdrant_on_startup() -> None:
     existing_collection, points_count = _qdrant_collection_state(client, settings.qdrant_collection)
     snapshot = _get_embedding_state_snapshot(client=client)
     _validate_embedding_model_on_startup(client=client)
-    vectors = embed_texts(
-        ["x"],
-        metadata={
-            "task_type": "embedding",
-            "component": "startup_validation",
-            "operation": "qdrant_dimension_probe",
-        },
-    )
-    if not vectors or not vectors[0]:
-        raise RuntimeError(
-            "Could not get embedding dimension from model: embedding service returned no vector. "
-            "Ensure the embedding model is available before starting the application."
+    try:
+        vectors = embed_texts(
+            ["x"],
+            metadata={
+                "task_type": "embedding",
+                "component": "startup_validation",
+                "operation": "qdrant_dimension_probe",
+            },
         )
+        if not vectors or not vectors[0]:
+            raise RuntimeError(
+                "Could not get embedding dimension from model: embedding service returned no vector."
+            )
+    except (httpx.ConnectError, httpx.TimeoutException, OSError, RuntimeError) as exc:
+        logger.warning(
+            "Embedding provider unavailable at startup; continuing without blocking backend",
+            extra={
+                "embeddings_ready": False,
+                "llm_url": getattr(settings, "llamacpp_url", None),
+                "embedding_model": str(getattr(settings, "embed_model", "") or "").strip(),
+                "exception_type": type(exc).__name__,
+            },
+        )
+        return
 
     expected_dim = len(vectors[0])
     actual_dim = None

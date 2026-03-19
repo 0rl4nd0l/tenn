@@ -1,4 +1,5 @@
 import base64
+import httpx
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -117,7 +118,24 @@ def _persist_openbb_fundamental_snapshot(
         db.close()
 
 @router.get("/health")
-def health(): return {"status":"ok"}
+def health():
+    embeddings_ready = None
+    llm_url = str(getattr(settings, "llamacpp_url", "") or "").strip().rstrip("/")
+    embed_model = str(getattr(settings, "embed_model", "") or "").strip()
+    if llm_url and embed_model and bool(getattr(settings, "enable_embeddings", True)):
+        try:
+            with httpx.Client(timeout=2.0) as client:
+                client.get(f"{llm_url}/v1/models").raise_for_status()
+                payload = {"model": embed_model, "input": ["ping"]}
+                client.post(f"{llm_url}/v1/embeddings", json=payload).raise_for_status()
+            embeddings_ready = True
+        except Exception:
+            embeddings_ready = False
+    return {
+        "status": "ok",
+        "backend_alive": True,
+        "embeddings_ready": embeddings_ready,
+    }
 
 
 @router.post("/ingest/transcript", dependencies=[Depends(require_api_key)])
