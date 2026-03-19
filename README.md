@@ -2,6 +2,17 @@
 
 Current active runtime is `financial-engine_v2`.
 
+## Canonical Execution (Agents)
+
+Canonical entrypoint documentation: `docs/entrypoints.md`.
+
+Short boot sequence:
+1. `pip install -r requirements.txt`
+2. `bash financial-engine_v2/scripts/run_local_backend.sh`
+3. `bash financial-engine_v2/scripts/smoke_local.sh`
+
+Note: `python run.py` is **NOT** the canonical startup path for agents (it is a batch runner).
+
 ## Lightweight Execution Workflow
 - Track live work state in `STATE.md`.
 - Use phase gates in `docs/phase_checklist.md`.
