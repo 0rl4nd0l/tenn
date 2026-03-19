@@ -103,7 +103,6 @@ def build_failure_analysis(
     row_count = _safe_int(completeness.get("row_count"))
     rows_with_numeric = _safe_int(completeness.get("rows_with_numeric_value"))
 
-    verified = dict(verification.get("verified") or {})
     rejected_metrics = dict(verification.get("rejected") or {})
     verified_count = _safe_int(verification.get("verified_count"))
     rejected_count = _safe_int(verification.get("rejected_count"))
