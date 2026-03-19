@@ -4,6 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+echo "Starting canonical execution path: financial-engine_v2/scripts/run_local_backend.sh"
+
 if [[ ! -x "$ROOT_DIR/.venv/bin/python" ]]; then
   echo "Missing virtualenv at $ROOT_DIR/.venv"
   echo "Create it with: python3 -m venv .venv && .venv/bin/pip install -r backend/requirements.txt -r worker/requirements.txt"

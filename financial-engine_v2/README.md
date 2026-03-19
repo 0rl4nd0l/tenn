@@ -31,6 +31,16 @@ Target: start with ASX20 backfill (5 years) and scale to ASX300+.
 - Factor scoring / signals / proposals
 - Broker execution
 
+## Canonical Execution (Agents)
+
+Canonical entrypoint documentation: `../docs/entrypoints.md`.
+
+Canonical (isolated backend mode, no Docker):
+- `bash scripts/run_local_backend.sh`
+- Validate: `bash scripts/smoke_local.sh`
+
+Docker is supported for full infrastructure, but it is not the default path for agents.
+
 ## Quickstart
 1. Install Docker + Docker Compose (Ubuntu)
 2. Ensure Ollama is installed on the host and running

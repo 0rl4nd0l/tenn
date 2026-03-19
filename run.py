@@ -30,4 +30,9 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    print(
+        "WARNING: This is not the canonical execution path.\n"
+        "Use financial-engine_v2/scripts/run_local_backend.sh instead.",
+        flush=True,
+    )
     raise SystemExit(main())
