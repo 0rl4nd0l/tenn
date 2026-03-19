@@ -2731,6 +2731,32 @@ class TestMetricAccuracy(unittest.TestCase):
         self.assertIsNone(EXTRACT.parse_scaled_number("n/a", None))
         self.assertIsNone(EXTRACT.parse_scaled_number("", "m"))
 
+    def test_parse_numeric_word_token_paren_prefixed_currency(self):
+        p = EXTRACT.parse_numeric_word_token("($1,234)")
+        self.assertIsNotNone(p)
+        self.assertEqual(p.get("value_type"), "amount")
+        self.assertEqual(p.get("value"), 1234.0)
+        self.assertEqual(p.get("currency"), "$")
+
+    def test_parse_numeric_word_token_usd_in_parens(self):
+        p = EXTRACT.parse_numeric_word_token("(US$1,234)")
+        self.assertIsNotNone(p)
+        self.assertEqual(p.get("value"), 1234.0)
+        self.assertEqual(p.get("currency"), "US$")
+
+    def test_parse_numeric_word_token_trailing_period_after_amount(self):
+        p = EXTRACT.parse_numeric_word_token("1,234.")
+        self.assertIsNotNone(p)
+        self.assertEqual(p.get("value_type"), "amount")
+        self.assertEqual(p.get("value"), 1234.0)
+
+    def test_parse_numeric_word_token_search_fallback_currency(self):
+        # Letter before "$" blocks NUM_RE's leading-edge match; punctuation does not.
+        p = EXTRACT.parse_numeric_word_token(";$1,234")
+        self.assertIsNotNone(p)
+        self.assertEqual(p.get("value"), 1234.0)
+        self.assertEqual(p.get("currency"), "$")
+
     def test_apply_unit_multiplier_scales_money_metric(self):
         row = {
             "metric": "revenue",
