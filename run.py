@@ -20,11 +20,6 @@ ENGINE_ROOT = ROOT / "financial-engine_v2"
 
 
 def main() -> int:
-    print(
-        "WARNING: This is not the canonical execution path.\n"
-        "Use financial-engine_v2/scripts/run_local_backend.sh instead.",
-        flush=True,
-    )
     target = ENGINE_ROOT / "run.py"
     if not target.exists():
         print(f"Missing runner: {target}")
@@ -35,4 +30,9 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    print(
+        "WARNING: This is not the canonical execution path.\n"
+        "Use financial-engine_v2/scripts/run_local_backend.sh instead.",
+        flush=True,
+    )
     raise SystemExit(main())
