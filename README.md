@@ -35,6 +35,36 @@ Known current behavior:
 - local launcher now keeps `DATA_ROOT` on the repo `data/` directory unless explicitly overridden
 - explicit shell env overrides `.env` and `.env.local` for local runs
 
+## Validated Baseline (2026-03-19)
+Validated command sequence:
+1. `bash scripts/start_system.sh`
+2. `bash scripts/validate_system.sh`
+3. `python -m ruff check autodev financial-engine_v2/backend scripts`
+4. `pytest autodev/tests`
+5. `pytest financial-engine_v2/backend/tests`
+6. `pytest scripts`
+7. `bash scripts/run_canonical_dataset_checks.sh`
+8. `python scripts/check_canonical_regression.py --baseline reports/baselines/canonical_eval_baseline_latest.json --news-report reports/news_eval_report.json --company-report reports/company_eval_report_v2.json --reference-report reports/eval_queries_report.json`
+9. `python scripts/validate_financial_metrics_gates.py reports/financial_metrics.json --out-json reports/financial_metrics.gates.json`
+10. `python scripts/validate_financial_coverage_gates.py reports/financial_metrics.json --out-json reports/financial_metrics.coverage_gates.json`
+
+Current passing gate set:
+- Ruff gate across `autodev`, `financial-engine_v2/backend`, and `scripts`
+- Pytest gate across `autodev/tests`, `financial-engine_v2/backend/tests`, and `scripts`
+- Canonical dataset eval + canonical regression baseline gate
+- Financial metrics hard gates
+- Financial coverage gates
+
+Operational notes:
+- In restricted environments where socket creation is blocked, health/smoke can return `SKIP due restricted environment`; this is expected and non-fatal.
+- Canonical dataset checks support CPU fallback by default (`REQUIRE_CUDA=0`), and only require GPU when `REQUIRE_CUDA=1`.
+- Canonical regression depends on these baseline fixtures:
+  - `reports/baselines/canonical_eval_baseline_latest.json`
+  - `reports/news_eval_queries.json`
+  - `reports/company_eval_queries.json`
+  - `reports/eval_queries.json`
+- Full runbook is in `docs/validation_baseline.md`.
+
 ## Scope
 `financial-engine_v2/` is the primary live runtime.
 Root `scripts/` still contains auxiliary pipelines, tests, and tooling, but it is not the main launcher surface for the active engine.

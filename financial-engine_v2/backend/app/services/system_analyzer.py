@@ -26,9 +26,10 @@ DEFAULT_CHECK_TIMEOUT_SECONDS = 5.0
 DEFAULT_WATCHDOG_SECONDS = 45.0
 DEFAULT_BENCHMARK_MAX_AGE_HOURS = 168.0
 MIN_METRICS_SAMPLE_SIZE = int(getattr(router_optimizer, "MIN_DEGRADATION_SAMPLE_SIZE", 5.0) or 5)
-ARTIFACT_ROOT = Path(getattr(settings, "data_root", "/data")) / "reports" / "system_analyzer"
+CANONICAL_DATA_ROOT = Path("/data")
+ARTIFACT_ROOT = CANONICAL_DATA_ROOT / "reports" / "system_analyzer"
 PATCH_ROOT = ARTIFACT_ROOT / "patch_candidates"
-EXPECTED_BENCHMARK_PATH = Path(getattr(settings, "data_root", "/data")) / "reports" / "model_benchmark.json"
+EXPECTED_BENCHMARK_PATH = CANONICAL_DATA_ROOT / "reports" / "model_benchmark.json"
 LEGACY_BENCHMARK_PATH = PROJECT_ROOT / "reports" / "model_benchmark.json"
 SOURCE_SCAN_PATHS = (
     PROJECT_ROOT / "backend" / "app" / "main.py",
@@ -55,8 +56,7 @@ def validate_artifact_path(path: str | Path) -> Path:
     resolved = Path(path).expanduser()
     if not resolved.is_absolute():
         raise ValueError("Analyzer artifact paths must be absolute and rooted under the data root.")
-    parts = resolved.parts
-    allowed_root = Path(getattr(settings, "data_root", "/data")).expanduser().resolve()
+    allowed_root = CANONICAL_DATA_ROOT.resolve()
     resolved_root = resolved.resolve()
     resolved_root.relative_to(allowed_root)
     return resolved

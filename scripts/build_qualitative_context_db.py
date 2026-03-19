@@ -2,8 +2,10 @@
 import argparse
 import collections
 import hashlib
+import logging
 import json
 import math
+import os
 import re
 import shutil
 import sqlite3
@@ -13,6 +15,7 @@ import datetime
 import types
 import urllib.error
 import urllib.request
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
@@ -672,12 +675,37 @@ def choose_sentence_transformers_device(preferred: str) -> str:
     return "cuda"
 
 
+def _truthy_env(name: str) -> bool:
+    return str(os.environ.get(name, "")).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def configure_expected_offline_noise_controls() -> None:
+    if not _truthy_env("TENN_CANONICAL_QUIET_EXPECTED_OFFLINE_NOISE"):
+        return
+
+    warnings.filterwarnings("ignore", message=".*urllib3.*chardet.*", category=Warning)
+    warnings.filterwarnings("ignore", message="pkg_resources is deprecated as an API.*", category=UserWarning)
+    try:
+        from requests.exceptions import RequestsDependencyWarning
+    except Exception:
+        RequestsDependencyWarning = None
+    if RequestsDependencyWarning is not None:
+        warnings.filterwarnings("ignore", category=RequestsDependencyWarning)
+
+    logging.getLogger("huggingface_hub.file_download").setLevel(logging.ERROR)
+    logging.getLogger("huggingface_hub.utils._http").setLevel(logging.ERROR)
+    logging.getLogger("urllib3.connectionpool").setLevel(logging.ERROR)
+
+
 def embed_sentence_transformers(
     texts: Sequence[str],
     model_name: str,
     device: str = "auto",
     batch_size: int = 16,
 ) -> List[List[float]]:
+    configure_expected_offline_noise_controls()
+    quiet_expected_noise = _truthy_env("TENN_CANONICAL_QUIET_EXPECTED_OFFLINE_NOISE")
+
     # setuptools>=82 removed pkg_resources, but older accelerate paths still import it.
     try:
         import pkg_resources  # type: ignore  # noqa: F401
@@ -740,7 +768,7 @@ def embed_sentence_transformers(
         vectors = model.encode(
             payload,
             normalize_embeddings=True,
-            show_progress_bar=True,
+            show_progress_bar=not quiet_expected_noise,
             batch_size=max(1, int(batch_size)),
         )
     except Exception as exc:
@@ -757,7 +785,7 @@ def embed_sentence_transformers(
             vectors = model.encode(
                 payload,
                 normalize_embeddings=True,
-                show_progress_bar=True,
+                show_progress_bar=not quiet_expected_noise,
                 batch_size=max(1, int(batch_size)),
             )
         else:

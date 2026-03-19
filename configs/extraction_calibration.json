@@ -1,0 +1,16 @@
+{
+  "confidence_threshold": 0.5,
+  "min_coverage": 0.2,
+  "penalties": {
+    "high": 0.3,
+    "medium": 0.6,
+    "low": 0.8
+  },
+  "non_critical_flags": [],
+  "metrics": {
+    "baseline_fallback_rate": 0.0,
+    "calibrated_fallback_rate": 0.0,
+    "baseline_accuracy": 0.0,
+    "calibrated_accuracy": 0.0
+  }
+}

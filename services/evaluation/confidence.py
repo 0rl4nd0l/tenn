@@ -1,13 +1,23 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from services.evaluation.anomaly import detect_anomalies
+from services.evaluation.anomaly import _HIGH_FLAGS, _MEDIUM_FLAGS, detect_anomalies
 
 
-CONFIDENCE_THRESHOLD = 0.75
-MIN_COVERAGE = 0.6
+REPO_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_CALIBRATION_PATH = REPO_ROOT / "configs" / "extraction_calibration.json"
+
+DEFAULT_CONFIDENCE_THRESHOLD = 0.75
+DEFAULT_MIN_COVERAGE = 0.6
+DEFAULT_PENALTIES = {
+    "high": 0.3,
+    "medium": 0.6,
+    "low": 0.8,
+}
 REQUIRED_METRICS: tuple[str, ...] = (
     "revenue",
     "ebitda",
@@ -29,8 +39,85 @@ def _safe_int(value: Any) -> int:
         return 0
 
 
+def _float_or_default(value: Any, default: float) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return float(default)
+
+
 def _clamp(value: float, low: float = 0.0, high: float = 1.0) -> float:
     return max(low, min(high, value))
+
+
+def _default_calibration() -> dict[str, Any]:
+    return {
+        "confidence_threshold": DEFAULT_CONFIDENCE_THRESHOLD,
+        "min_coverage": DEFAULT_MIN_COVERAGE,
+        "penalties": dict(DEFAULT_PENALTIES),
+        "non_critical_flags": [],
+        "metrics": {
+            "baseline_fallback_rate": 0.0,
+            "calibrated_fallback_rate": 0.0,
+            "baseline_accuracy": 0.0,
+            "calibrated_accuracy": 0.0,
+        },
+    }
+
+
+def load_calibration(calibration_path: str | None = None) -> dict[str, Any]:
+    calibration = _default_calibration()
+    path = Path(calibration_path).expanduser().resolve() if calibration_path else DEFAULT_CALIBRATION_PATH
+    if not path.exists() or not path.is_file():
+        return calibration
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return calibration
+    if not isinstance(payload, Mapping):
+        return calibration
+
+    penalties = payload.get("penalties")
+    if isinstance(penalties, Mapping):
+        calibration["penalties"] = {
+            "high": _clamp(_float_or_default(penalties.get("high"), DEFAULT_PENALTIES["high"])),
+            "medium": _clamp(_float_or_default(penalties.get("medium"), DEFAULT_PENALTIES["medium"])),
+            "low": _clamp(_float_or_default(penalties.get("low"), DEFAULT_PENALTIES["low"])),
+        }
+    non_critical = payload.get("non_critical_flags")
+    if isinstance(non_critical, Sequence) and not isinstance(non_critical, (str, bytes)):
+        calibration["non_critical_flags"] = sorted({str(flag) for flag in non_critical if str(flag)})
+    metrics = payload.get("metrics")
+    if isinstance(metrics, Mapping):
+        calibration["metrics"] = {
+            "baseline_fallback_rate": _clamp(_float_or_default(metrics.get("baseline_fallback_rate"), 0.0)),
+            "calibrated_fallback_rate": _clamp(_float_or_default(metrics.get("calibrated_fallback_rate"), 0.0)),
+            "baseline_accuracy": _clamp(_float_or_default(metrics.get("baseline_accuracy"), 0.0)),
+            "calibrated_accuracy": _clamp(_float_or_default(metrics.get("calibrated_accuracy"), 0.0)),
+        }
+
+    calibration["confidence_threshold"] = _clamp(
+        _float_or_default(payload.get("confidence_threshold"), DEFAULT_CONFIDENCE_THRESHOLD),
+    )
+    calibration["min_coverage"] = _clamp(
+        _float_or_default(payload.get("min_coverage"), DEFAULT_MIN_COVERAGE),
+    )
+    return calibration
+
+
+CALIBRATED = load_calibration()
+CONFIDENCE_THRESHOLD = _clamp(
+    _float_or_default(CALIBRATED.get("confidence_threshold"), DEFAULT_CONFIDENCE_THRESHOLD),
+)
+MIN_COVERAGE = _clamp(
+    _float_or_default(CALIBRATED.get("min_coverage"), DEFAULT_MIN_COVERAGE),
+)
+ANOMALY_PENALTIES = {
+    "high": _clamp(_float_or_default((CALIBRATED.get("penalties") or {}).get("high"), DEFAULT_PENALTIES["high"])),
+    "medium": _clamp(_float_or_default((CALIBRATED.get("penalties") or {}).get("medium"), DEFAULT_PENALTIES["medium"])),
+    "low": _clamp(_float_or_default((CALIBRATED.get("penalties") or {}).get("low"), DEFAULT_PENALTIES["low"])),
+}
+NON_CRITICAL_FLAGS = set(str(flag) for flag in (CALIBRATED.get("non_critical_flags") or []))
 
 
 def _first_diagnostics(method_payload: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -89,6 +176,32 @@ def _inconsistency_penalty(method_payload: Mapping[str, Any]) -> float:
     return _clamp(float(composite) / 80.0)
 
 
+def _effective_anomaly(method_payload: Mapping[str, Any]) -> dict[str, Any]:
+    anomaly = detect_anomalies(dict(method_payload or {}))
+    raw_flags = anomaly.get("flags")
+    flags: list[str] = []
+    if isinstance(raw_flags, Sequence) and not isinstance(raw_flags, (str, bytes)):
+        for flag in raw_flags:
+            name = str(flag or "").strip()
+            if name and name not in NON_CRITICAL_FLAGS:
+                flags.append(name)
+    critical_flags = sorted(set(flags))
+    if not critical_flags:
+        return {"has_anomaly": False, "severity": "low", "flags": []}
+    flag_set = set(critical_flags)
+    if flag_set & set(_HIGH_FLAGS):
+        severity = "high"
+    elif flag_set & set(_MEDIUM_FLAGS):
+        severity = "medium"
+    else:
+        severity = "low"
+    return {
+        "has_anomaly": True,
+        "severity": severity,
+        "flags": critical_flags,
+    }
+
+
 def compute_confidence(method_payload: dict[str, Any]) -> float:
     payload = dict(method_payload or {})
     if str(payload.get("status") or "").lower() not in {"ok", "success"}:
@@ -104,15 +217,11 @@ def compute_confidence(method_payload: dict[str, Any]) -> float:
         - 0.06 * rejected_penalty
         - 0.04 * inconsistency_penalty
     )
-    anomaly = detect_anomalies(payload)
+    anomaly = _effective_anomaly(payload)
     if bool(anomaly.get("has_anomaly")):
-        severity = str(anomaly.get("severity") or "").lower()
-        if severity == "high":
-            confidence *= 0.3
-        elif severity == "medium":
-            confidence *= 0.6
-        else:
-            confidence *= 0.8
+        severity = str(anomaly.get("severity") or "low").lower()
+        penalty = _clamp(_float_or_default(ANOMALY_PENALTIES.get(severity), ANOMALY_PENALTIES["low"]))
+        confidence *= penalty
     return round(_clamp(confidence), 6)
 
 
@@ -155,14 +264,14 @@ def fallback_reasons(
     confidence = compute_confidence(payload)
     coverage = metric_coverage(payload)
     missing = missing_required_metrics(payload, required_metrics=required_metrics)
-    anomaly = detect_anomalies(payload)
+    anomaly = _effective_anomaly(payload)
     if confidence < float(confidence_threshold):
         reasons.append("low_confidence")
     if coverage < float(min_coverage):
         reasons.append("low_coverage")
     if missing:
         reasons.append("missing_required_metrics")
-    if bool(anomaly.get("has_anomaly")):
+    if bool(anomaly.get("has_anomaly")) and str(anomaly.get("severity") or "").lower() == "high":
         reasons.append("financial_anomaly")
     if has_inconsistent_values(payload):
         reasons.append("inconsistent_metric_values")

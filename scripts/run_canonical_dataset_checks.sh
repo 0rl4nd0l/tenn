@@ -15,6 +15,13 @@ if [ ! -x "$PYTHON_BIN" ]; then
   exit 2
 fi
 
+if [ "${TENN_CANONICAL_QUIET_EXPECTED_OFFLINE_NOISE:-1}" = "1" ]; then
+  export TENN_CANONICAL_QUIET_EXPECTED_OFFLINE_NOISE=1
+  export HF_HUB_DISABLE_PROGRESS_BARS="${HF_HUB_DISABLE_PROGRESS_BARS:-1}"
+  export TRANSFORMERS_VERBOSITY="${TRANSFORMERS_VERBOSITY:-error}"
+  echo "[info] canonical checks: reducing expected offline Hugging Face/requests warning noise; failures still fail."
+fi
+
 if [ "$ST_DEVICE" = "cuda" ] && [ "$REQUIRE_CUDA" = "1" ]; then
   if ! "$PYTHON_BIN" - <<'PY'
 import sys
@@ -38,7 +45,7 @@ ok = torch.cuda.is_available() and torch.cuda.device_count() > 0
 sys.exit(0 if ok else 1)
 PY
   then
-    echo "[cuda-check] CUDA not visible; switching ST_DEVICE=cpu because REQUIRE_CUDA=0."
+    echo "[cuda-check] CUDA not visible; switching ST_DEVICE=cpu because REQUIRE_CUDA=0 (CPU fallback is supported by default)."
     ST_DEVICE="cpu"
   fi
 fi

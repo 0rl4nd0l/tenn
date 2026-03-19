@@ -90,7 +90,7 @@ class TestDocumentClassifier(unittest.TestCase):
 
 class TestDocumentClassifierIntegration(unittest.TestCase):
     def _write_pdf(self, path: Path, pages: list[str]) -> None:
-        pdf = canvas.Canvas(str(path))
+        pdf = canvas_mod.Canvas(str(path))
         for page_text in pages:
             y = 800
             for line in page_text.splitlines():

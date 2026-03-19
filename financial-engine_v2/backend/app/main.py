@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
+import httpx
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import func
@@ -128,6 +129,59 @@ def _log_runtime_config() -> None:
 def _socket_can_connect(host: str, port: int, timeout: float = 1.0) -> bool:
     with socket.create_connection((host, port), timeout=timeout):
         return True
+
+
+def check_llamacpp(base_url: str) -> bool:
+    target = str(base_url or "").strip().rstrip("/")
+    if not target:
+        raise RuntimeError("missing base URL")
+    response = httpx.get(f"{target}/v1/models", timeout=5.0)
+    response.raise_for_status()
+    payload = response.json()
+    models = payload.get("data") if isinstance(payload, dict) else None
+    if not isinstance(models, list):
+        raise RuntimeError("unexpected /v1/models payload")
+    for row in models:
+        if not isinstance(row, dict):
+            continue
+        model_id = str(row.get("id") or "").strip()
+        if ":" in model_id:
+            raise RuntimeError("Endpoint appears to be Ollama, not llama.cpp")
+    return True
+
+
+def check_ollama(base_url: str) -> bool:
+    target = str(base_url or "").strip().rstrip("/")
+    if not target:
+        raise RuntimeError("missing base URL")
+    response = httpx.get(f"{target}/api/tags", timeout=5.0)
+    response.raise_for_status()
+    payload = response.json()
+    models = payload.get("models") if isinstance(payload, dict) else None
+    if not isinstance(models, list):
+        raise RuntimeError("unexpected /api/tags payload")
+    return True
+
+
+def validate_backends(llamacpp_base_url: str, ollama_base_url: str) -> None:
+    llama_url = str(llamacpp_base_url or "").strip().rstrip("/")
+    ollama_url = str(ollama_base_url or "").strip().rstrip("/")
+    if not llama_url or not ollama_url:
+        raise RuntimeError("Both llama.cpp and Ollama base URLs must be configured.")
+    if (
+        llama_url == ollama_url
+        or llama_url.startswith(ollama_url)
+        or ollama_url.startswith(llama_url)
+    ):
+        raise RuntimeError("Potential backend overlap detected")
+    try:
+        check_llamacpp(llama_url)
+    except Exception as exc:
+        raise RuntimeError(f"llama.cpp endpoint invalid: {exc}") from exc
+    try:
+        check_ollama(ollama_url)
+    except Exception as exc:
+        raise RuntimeError(f"Ollama endpoint invalid: {exc}") from exc
 
 
 def _redis_socket_target() -> tuple[str, int]:
