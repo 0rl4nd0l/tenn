@@ -5,6 +5,7 @@ import argparse
 import json
 import subprocess
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
@@ -206,39 +207,30 @@ def _complexity_bucket(complexity_score: Any) -> str:
 
 
 def _payload_raw_text(method_payload: Mapping[str, Any]) -> str:
+    # NO SELF-VALIDATION: never synthesize evidence text from extracted metrics.
     raw_text = method_payload.get("raw_text")
     if isinstance(raw_text, str) and raw_text.strip():
         return raw_text
     text = method_payload.get("text")
     if isinstance(text, str) and text.strip():
         return text
-    normalized_metrics = method_payload.get("normalized_metrics")
-    if not isinstance(normalized_metrics, list):
+    return ""
+
+
+def _extract_pdf_raw_text(pdf_path: Path) -> str:
+    try:
+        completed = subprocess.run(
+            ["pdftotext", str(pdf_path), "-"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError:
         return ""
-    parts: list[str] = []
-    keys = (
-        "metric",
-        "metric_base",
-        "label",
-        "metric_label",
-        "value",
-        "raw_value",
-        "line_text",
-        "source_text",
-        "context",
-        "context_text",
-    )
-    for row in normalized_metrics:
-        if not isinstance(row, Mapping):
-            continue
-        for key in keys:
-            value = row.get(key)
-            if value is None:
-                continue
-            text_value = str(value).strip()
-            if text_value:
-                parts.append(text_value)
-    return "\n".join(parts)
+    if completed.returncode != 0:
+        return ""
+    return str(completed.stdout or "")
 
 
 def main() -> int:
@@ -381,7 +373,7 @@ def main() -> int:
                 "complexity_bucket": complexity_bucket,
             }
 
-        raw_text = _payload_raw_text(selected_payload)
+        raw_text = _payload_raw_text(selected_payload) or _extract_pdf_raw_text(pdf)
         canonical_metrics = dict(selected_payload.get("canonical_metrics") or {})
         verification = verify_metrics(canonical_metrics, raw_text)
         verified_metrics = dict(verification.get("verified") or {})

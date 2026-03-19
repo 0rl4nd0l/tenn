@@ -343,7 +343,8 @@ def compute_confidence(method_payload: dict[str, Any]) -> float:
         severity = str(anomaly.get("severity") or "low").lower()
         penalty = _clamp(_float_or_default(ANOMALY_PENALTIES.get(severity), ANOMALY_PENALTIES["low"]))
         confidence *= penalty
-    verification_ratio = _clamp(_float_or_default(payload.get("verification_ratio"), 1.0))
+    # Fail-closed: missing verification_ratio means "unverified".
+    verification_ratio = _clamp(_float_or_default(payload.get("verification_ratio"), 0.0))
     confidence *= verification_ratio
     confidence = max(confidence, 0.05)
     return round(_clamp(confidence), 6)

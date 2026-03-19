@@ -6,6 +6,37 @@ from typing import Any, Mapping
 from services.evaluation.evidence_utils import numeric_match, verify_with_context
 
 
+_METRIC_LABEL_ALIASES: dict[str, tuple[str, ...]] = {
+    "revenue": ("revenue", "total revenue", "sales", "turnover", "total income"),
+    "ebitda": ("ebitda",),
+    "net_income": ("net income", "net profit", "profit after tax", "profit attributable", "npat"),
+    "assets": ("total assets", "assets"),
+    "liabilities": ("total liabilities", "liabilities"),
+    "equity": ("total equity", "equity", "net assets"),
+    "operating_cash_flow": ("operating cash flow", "cash from operations", "net cash from operating activities"),
+    "free_cash_flow": ("free cash flow", "fcf"),
+}
+
+
+def _label_candidates(metric_name: str) -> tuple[str, ...]:
+    normalized = str(metric_name or "").strip().lower()
+    if not normalized:
+        return ()
+    candidates = [normalized]
+    if "_" in normalized:
+        candidates.append(normalized.replace("_", " "))
+    candidates.extend(_METRIC_LABEL_ALIASES.get(normalized, ()))
+    # de-dup while preserving order
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for cand in candidates:
+        c = str(cand or "").strip().lower()
+        if c and c not in seen:
+            ordered.append(c)
+            seen.add(c)
+    return tuple(ordered)
+
+
 def verify_metrics(metrics: Mapping[str, Any] | None, raw_text: str | None) -> dict[str, Any]:
     verified: dict[str, Any] = {}
     rejected: dict[str, dict[str, Any]] = {}
@@ -15,7 +46,10 @@ def verify_metrics(metrics: Mapping[str, Any] | None, raw_text: str | None) -> d
         if not metric_name:
             continue
         numeric_ok = numeric_match(value, raw_text)
-        context_ok = verify_with_context(value, metric_name, raw_text)
+        context_ok = any(
+            verify_with_context(value, label, raw_text)
+            for label in _label_candidates(metric_name)
+        )
         if numeric_ok and context_ok:
             verified[metric_name] = value
         else:

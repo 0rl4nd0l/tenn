@@ -42,6 +42,7 @@ if str(BACKEND_ROOT) not in sys.path:
 from services.evaluation.ground_truth_loader import DEFAULT_GROUND_TRUTH_DIR, load_ground_truth_index, lookup_ground_truth_metrics  # noqa: E402
 from services.evaluation.normalizer import canonical_metric_keys, metric_coverage_rate, rows_to_canonical_metrics  # noqa: E402
 from services.evaluation.scorer import score_metric_maps  # noqa: E402
+from services.evaluation.evidence import verify_metrics  # noqa: E402
 from services.extraction.docling_runner import ensure_docling_venv, run_docling_subprocess  # noqa: E402
 
 
@@ -836,9 +837,24 @@ def _run_method(
     normalized_metrics = list(payload.get("normalized_metrics") or [])
     canonical_metrics = rows_to_canonical_metrics(normalized_metrics)
     score = score_metric_maps(canonical_metrics, ground_truth_metrics, tolerance_pct=0.02)
-    verification_ratio = _safe_float(payload.get("verification_ratio"))
+    raw_text = ""
+    try:
+        completed = subprocess.run(
+            ["pdftotext", str(pdf_path), "-"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=False,
+        )
+        if completed.returncode == 0:
+            raw_text = str(completed.stdout or "")
+    except FileNotFoundError:
+        raw_text = ""
+
+    verification = verify_metrics(canonical_metrics, raw_text)
+    verification_ratio = _safe_float(verification.get("verification_ratio"))
     if verification_ratio is None:
-        verification_ratio = 1.0
+        verification_ratio = 0.0
     return {
         "status": str(payload.get("status") or "failed"),
         "runtime_seconds": runtime_seconds,
@@ -850,6 +866,11 @@ def _run_method(
         "canonical_metrics": canonical_metrics,
         "metric_coverage_rate": round(metric_coverage_rate(canonical_metrics), 6),
         "verification_ratio": round(float(verification_ratio), 6),
+        "verification": {
+            "verified_count": int(verification.get("verified_count") or 0),
+            "rejected_count": int(verification.get("rejected_count") or 0),
+            "rejected": dict(verification.get("rejected") or {}),
+        },
         "text_stats": dict(payload.get("text_stats") or {}),
         "document_diagnostics": list(payload.get("document_diagnostics") or []),
         "structured_json": payload.get("structured_json"),
