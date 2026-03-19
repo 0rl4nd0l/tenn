@@ -225,10 +225,45 @@ if [[ "${compose_includes_backend}" == "true" && -n "${LLAMACPP_URL_CONTAINER:-}
   compose_network="$(basename "${ENGINE_ROOT}")_default"
   models_url="${LLAMACPP_URL_CONTAINER%/}/models"
   echo "🔍 Preflight (compose net, just-before-backend): GET ${models_url}"
-  if ! docker run --rm --network "${compose_network}" curlimages/curl:8.5.0 sh -lc "curl -fsS -m 5 -H 'Authorization: Bearer ${llm_api_key}' '${models_url}' >/dev/null"; then
-    echo "ERROR: llamacpp models endpoint not reachable from compose network: ${models_url}" >&2
-    exit 1
-  fi
+  embeddings_url="${LLAMACPP_URL_CONTAINER%/}/embeddings"
+
+  # Readiness gate: llama.cpp can be transiently unavailable; require a few consecutive successes.
+  gate_deadline=$(( $(date +%s) + 60 ))
+  ok_models=0
+  ok_embeddings=0
+  sleep_s=1
+
+  while true; do
+    now=$(date +%s)
+    if (( now > gate_deadline )); then
+      echo "ERROR: llama.cpp readiness gate timed out (models_ok=${ok_models} embeddings_ok=${ok_embeddings})" >&2
+      echo "  models_url=${models_url}" >&2
+      echo "  embeddings_url=${embeddings_url}" >&2
+      exit 1
+    fi
+
+    if docker run --rm --network "${compose_network}" curlimages/curl:8.5.0 sh -lc "curl -fsS -m 5 -H 'Authorization: Bearer ${llm_api_key}' '${models_url}' >/dev/null"; then
+      ok_models=$(( ok_models + 1 ))
+    else
+      ok_models=0
+    fi
+
+    if docker run --rm --network "${compose_network}" curlimages/curl:8.5.0 sh -lc "curl -fsS -m 8 -H 'Content-Type: application/json' -H 'Authorization: Bearer ${llm_api_key}' -d '{\"model\":\"${EMBED_MODEL:-sentence-transformers/all-MiniLM-L6-v2}\",\"input\":[\"hello\"]}' '${embeddings_url}' >/dev/null"; then
+      ok_embeddings=$(( ok_embeddings + 1 ))
+    else
+      ok_embeddings=0
+    fi
+
+    if (( ok_models >= 3 && ok_embeddings >= 3 )); then
+      echo "✅ llama.cpp readiness gate passed (models+embeddings)"
+      break
+    fi
+
+    sleep "${sleep_s}"
+    if (( sleep_s < 5 )); then
+      sleep_s=$(( sleep_s + 1 ))
+    fi
+  done
 fi
 
 echo "running migrations..."
