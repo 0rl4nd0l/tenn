@@ -53,6 +53,7 @@ services:
     environment:
       TENN_HOST_NETWORK: "true"
     env_file: [.env]
+    command: ["celery","-A","app.celery_app.celery","worker","--loglevel=INFO","-Q","default,ingest,embed,score,llm_gpu,llm_cpu"]
     volumes:
       - ./backend:/app_backend
       - ./worker:/app_worker
