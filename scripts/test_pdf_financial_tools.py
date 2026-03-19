@@ -198,6 +198,24 @@ class TestExtractFinancialMetrics(unittest.TestCase):
         self.assertTrue(guidance_rows)
         self.assertEqual(guidance_rows[0]["value_type"], "text")
 
+    def test_guidance_metric_does_not_match_drill_targets_word(self):
+        line = "Results. potential remaining targets."
+        rows = EXTRACT.parse_line(Path("dummy.pdf"), 592, line, strict_table_only=False)
+        self.assertEqual([r for r in rows if r["metric"] == "guidance"], [])
+
+    def test_guidance_metric_does_not_match_policy_business_english(self):
+        line = (
+            "As set out in our guidance for 2022, we will continue to invest in growth this year. "
+            "Investment will include further"
+        )
+        rows = EXTRACT.parse_line(Path("dummy.pdf"), 37, line, strict_table_only=False)
+        self.assertEqual([r for r in rows if r["metric"] == "guidance"], [])
+
+    def test_guidance_metric_does_not_match_expects_that_mineral_resources(self):
+        line = "29Metals expects that its updated Mineral Resources estimates will incorporate the results"
+        rows = EXTRACT.parse_line(Path("dummy.pdf"), 214, line, strict_table_only=False)
+        self.assertEqual([r for r in rows if r["metric"] == "guidance"], [])
+
     def test_confidence_scores_money_higher_than_text(self):
         amount_row = {
             "metric": "revenue",

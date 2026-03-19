@@ -295,7 +295,7 @@ METRIC_PATTERNS: List[Tuple[str, re.Pattern[str]]] = [
     ("shares_outstanding", re.compile(r"\b(shares outstanding|shares on issue|issued shares|ordinary shares on issue|weighted average number of ordinary shares)\b", re.IGNORECASE)),
     ("roic_pct", re.compile(r"\b(roic|return on invested capital)\b", re.IGNORECASE)),
     ("capex", re.compile(r"\b(capex|capital expenditure)\b", re.IGNORECASE)),
-    ("guidance", re.compile(r"\b(guidance|outlook|forecast|expects?|targets?)\b", re.IGNORECASE)),
+    ("guidance", re.compile(r"\b(guidance|outlook|forecast)\b", re.IGNORECASE)),
     ("growth_pct", GROWTH_LABEL_RE),
 ]
 METRIC_PATTERN_MAP = {metric: pat for metric, pat in METRIC_PATTERNS}
@@ -315,6 +315,20 @@ TABLE_COMPARATIVE_NARRATIVE_RE = re.compile(
 )
 TABLE_SENTENCE_CONTEXT_RE = re.compile(
     r"\b(with|while|because|therefore|reflecting|driven|following|which|that|due to|to settle|had available|amounted to)\b",
+    re.IGNORECASE,
+)
+# Narrative uses of "guidance" that are not extractable FY/outlook guidance (metric hit filter).
+GUIDANCE_POLICY_NARRATIVE_RE = re.compile(
+    r"(?:"
+    r"\b(?:"
+    r"(?:accounting|regulatory|policy)\s+guidance|"
+    r"guidance\s+(?:on|from|issued|under)\s+(?:accounting|the\s+)?(?:policies|standards?)|"
+    r"corporate\s+governance|"
+    r"(?:ifrs|ias|aasb)\s+guidance"
+    r")\b|"
+    r"\bour\s+guidance\s+for\s+\d{4},\s*we\s+will\b|"
+    r"\bguidance\s+for\s+\d{4},\s*we\s+(?:will|continue)\b"
+    r")",
     re.IGNORECASE,
 )
 TABLE_ROW_CONTAMINATION_RE = re.compile(
@@ -507,7 +521,7 @@ METRIC_TABLE_LABELS: Dict[str, re.Pattern[str]] = {
     ),
     "roic_pct": re.compile(r"\b(roic|return\s+on\s+invested\s+capital)\b", re.IGNORECASE),
     "capex": re.compile(r"\b(capex|capital\s+expenditure)\b", re.IGNORECASE),
-    "guidance": re.compile(r"\b(guidance|outlook|forecast|expects?|targets?)\b", re.IGNORECASE),
+    "guidance": re.compile(r"\b(guidance|outlook|forecast)\b", re.IGNORECASE),
     "growth_pct": GROWTH_LABEL_RE,
 }
 UNIT_HINT_RE = [
@@ -930,17 +944,62 @@ def parse_bbox_layout_lines(pdf: Path, timeout_sec: Optional[float] = None) -> L
 
 def _clean_numeric_token(text: str) -> str:
     t = text.replace("\u2212", "-").strip()
+    for ch in ("\u00a0", "\u2009", "\u202f", "\u2007", "\u2060"):
+        t = t.replace(ch, "")
     t = t.strip("[]{}")
     # Strip trailing punctuation that is not part of numeric formats.
     while t and t[-1] in {";", ":"}:
         t = t[:-1]
     if t.endswith(","):
         t = t[:-1]
+    # Sentence-ending period after a numeric token (e.g. "1,234.") — not a decimal fraction.
+    if t.endswith(".") and not re.search(r"\.\d+$", t):
+        t = t[:-1].rstrip()
     return t.strip()
 
 
+def _unwrap_paren_currency_token(t: str) -> str:
+    """Turn `(US$1,234)` / `($1,234)` into `US$1,234` / `$1,234` for NUM_RE/NUM_TOKEN_RE."""
+    m = re.fullmatch(r"\(\s*((?:A|US|C|NZ)?[$€£])[\s]*([^)]*)\)\s*", t)
+    if m:
+        return f"{m.group(1)}{m.group(2)}".strip()
+    return t
+
+
+def _amount_dict_from_num_regex_match(m: re.Match[str], raw_value: str) -> Optional[Dict[str, object]]:
+    raw_num = m.group("num")
+    suffix = m.group("suffix") or ""
+    val = parse_scaled_number(raw_num, suffix)
+    if val is None:
+        return None
+    currency = m.group("currency") or ""
+    return {
+        "raw_value": raw_value,
+        "value_type": "amount",
+        "value": float(val),
+        "currency": currency,
+        "suffix": suffix,
+        "minor_for_table": (
+            (not (currency or suffix))
+            and (
+                (
+                    float(val).is_integer()
+                    and (
+                        1900 <= abs(float(val)) <= 2100
+                        or len(raw_num.replace(",", "").replace("(", "").replace(")", "").replace("-", "")) <= 2
+                    )
+                )
+                or ("." in raw_num and abs(float(val)) < 10.0)
+            )
+        ),
+    }
+
+
 def parse_numeric_word_token(word_text: str) -> Optional[Dict[str, object]]:
-    t = _clean_numeric_token(word_text)
+    t0 = _clean_numeric_token(word_text)
+    t = _unwrap_paren_currency_token(t0)
+    if t != t0:
+        t = _clean_numeric_token(t)
     if not t:
         return None
 
@@ -961,32 +1020,10 @@ def parse_numeric_word_token(word_text: str) -> Optional[Dict[str, object]]:
 
     m = NUM_TOKEN_RE.fullmatch(t)
     if not m:
+        m = NUM_RE.search(t)
+    if not m:
         return None
-    raw_num = m.group("num")
-    suffix = m.group("suffix") or ""
-    val = parse_scaled_number(raw_num, suffix)
-    if val is None:
-        return None
-    return {
-        "raw_value": t,
-        "value_type": "amount",
-        "value": float(val),
-        "currency": m.group("currency") or "",
-        "suffix": suffix,
-        "minor_for_table": (
-            (not (m.group("currency") or suffix))
-            and (
-                (
-                    float(val).is_integer()
-                    and (
-                        1900 <= abs(float(val)) <= 2100
-                        or len(raw_num.replace(",", "").replace("(", "").replace(")", "").replace("-", "")) <= 2
-                    )
-                )
-                or ("." in raw_num and abs(float(val)) < 10.0)
-            )
-        ),
-    }
+    return _amount_dict_from_num_regex_match(m, t)
 
 
 def cluster_positions(xs: List[float], tol: float = 26.0) -> List[float]:
@@ -5518,8 +5555,11 @@ def classify_statement_context(lines: List[str], idx_1based: int, active_section
 
 def iter_metric_hits(line: str) -> Iterable[str]:
     hits: List[str] = []
+    skip_guidance_policy = bool(GUIDANCE_POLICY_NARRATIVE_RE.search(line))
     for metric, pat in METRIC_PATTERNS:
         if pat.search(line):
+            if metric == "guidance" and skip_guidance_policy:
+                continue
             hits.append(metric)
     hit_set = set(hits)
     if "operating_cash_flow" in hit_set and any(m in hit_set for m in OCF_COMPONENT_METRICS):

@@ -35,6 +35,17 @@ class TestFinancialNormalization(unittest.TestCase):
     def test_parse_accounting_number_parentheses_with_commas(self):
         self.assertEqual(MOD.parse_accounting_number("(1,234)"), -1234)
 
+    def test_parse_accounting_number_strips_leading_iso_currency(self):
+        self.assertEqual(MOD.parse_accounting_number("USD 1,234"), 1234)
+        self.assertEqual(MOD.parse_accounting_number("AUD 12.5"), 12.5)
+
+    def test_parse_accounting_number_unicode_spaces(self):
+        self.assertEqual(MOD.parse_accounting_number("1\u00a0234"), 1234)
+
+    def test_parse_accounting_number_european_decimal_comma(self):
+        self.assertEqual(MOD.parse_accounting_number("1.234,56"), 1234.56)
+        self.assertEqual(MOD.parse_accounting_number("12.345,6"), 12345.6)
+
     def test_normalize_financial_value_expense_metric_positive_input(self):
         self.assertEqual(MOD.normalize_financial_value("depreciation_and_amortisation", "123"), -123)
 
