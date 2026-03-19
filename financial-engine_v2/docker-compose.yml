@@ -4,6 +4,8 @@ services:
     container_name: fe_postgres
     network_mode: host
     environment:
+      TENN_HOST_NETWORK: "true"
+    environment:
       POSTGRES_USER: ${POSTGRES_USER:-fe}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fe}
       POSTGRES_DB: ${POSTGRES_DB:-fe}
@@ -18,17 +20,23 @@ services:
     image: redis:7
     container_name: fe_redis
     network_mode: host
+    environment:
+      TENN_HOST_NETWORK: "true"
 
   qdrant:
     image: qdrant/qdrant:latest
     container_name: fe_qdrant
     network_mode: host
+    environment:
+      TENN_HOST_NETWORK: "true"
     volumes: [fe_qdrant:/qdrant/storage]
 
   backend:
     build: { context: ./backend }
     container_name: fe_backend
     network_mode: host
+    environment:
+      TENN_HOST_NETWORK: "true"
     env_file: [.env]
     volumes:
       - ./backend:/app
@@ -43,6 +51,8 @@ services:
     build: { context: ./worker }
     container_name: fe_worker
     network_mode: host
+    environment:
+      TENN_HOST_NETWORK: "true"
     env_file: [.env]
     volumes:
       - ./backend:/app_backend

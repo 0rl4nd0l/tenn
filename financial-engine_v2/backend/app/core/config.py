@@ -125,7 +125,8 @@ def _normalize_database_url(url: str) -> str:
 
 
 def _default_redis_base_url() -> str:
-    host = "redis" if is_running_in_docker() else "127.0.0.1"
+    host_network = str(os.getenv("TENN_HOST_NETWORK") or "").strip().lower() in {"1", "true", "yes"}
+    host = "redis" if (is_running_in_docker() and not host_network) else "127.0.0.1"
     return f"redis://{host}:6379"
 
 
@@ -141,7 +142,8 @@ def _normalize_redis_url(url: str, *, default_db: int = 0) -> str:
     if parsed.scheme not in {"redis", "rediss"}:
         return text
 
-    runtime_hostname = "redis" if is_running_in_docker() else "127.0.0.1"
+    host_network = str(os.getenv("TENN_HOST_NETWORK") or "").strip().lower() in {"1", "true", "yes"}
+    runtime_hostname = "redis" if (is_running_in_docker() and not host_network) else "127.0.0.1"
     if hostname not in {"", "redis", "127.0.0.1", "localhost"}:
         return text
 
