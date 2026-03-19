@@ -2,11 +2,11 @@ services:
   postgres:
     image: postgres:16
     container_name: fe_postgres
+    network_mode: host
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-fe}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fe}
       POSTGRES_DB: ${POSTGRES_DB:-fe}
-    ports: ["5432:5432"]
     volumes: [fe_pgdata:/var/lib/postgresql/data]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fe} -d ${POSTGRES_DB:-fe}"]
@@ -17,19 +17,19 @@ services:
   redis:
     image: redis:7
     container_name: fe_redis
-    ports: ["6379:6379"]
+    network_mode: host
 
   qdrant:
     image: qdrant/qdrant:latest
     container_name: fe_qdrant
-    ports: ["6333:6333"]
+    network_mode: host
     volumes: [fe_qdrant:/qdrant/storage]
 
   backend:
     build: { context: ./backend }
     container_name: fe_backend
+    network_mode: host
     env_file: [.env]
-    ports: ["8000:8000"]
     volumes:
       - ./backend:/app
       - ./data:/data
@@ -42,6 +42,7 @@ services:
   worker:
     build: { context: ./worker }
     container_name: fe_worker
+    network_mode: host
     env_file: [.env]
     volumes:
       - ./backend:/app_backend
