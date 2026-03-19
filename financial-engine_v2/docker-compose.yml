@@ -44,6 +44,9 @@ services:
     container_name: fe_worker
     network_mode: host
     env_file: [.env]
+    working_dir: /app_backend
+    environment:
+      PYTHONPATH: /app_backend
     volumes:
       - ./backend:/app_backend
       - ./worker:/app_worker

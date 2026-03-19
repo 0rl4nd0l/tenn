@@ -21,8 +21,8 @@ from app.core.db import SessionLocal
 from app.models.asx_financials import ASXPeriodicFinancial, ASXRiskNote
 from app.models.documents import Document
 from app.models.extractions import ExtractionRun
-from app.providers.asx_provider import ASXProvider
 from app.providers.marketindex_provider import MarketIndexProvider
+from app.services.asx import ASXProvider
 from app.services.chunking import simple_chunk
 from app.services.embeddings import ensure_collection, log_rejected_payload, upsert_points, validate_payload
 from app.services.extraction import EXTRACTOR_VERSION, build_prompt, parse_period_end
@@ -878,7 +878,7 @@ def process_document(
                     ensure_collection(qc, settings.qdrant_collection, vector_dimension)
                     points = []
                     for index, vector in enumerate(usable_vectors):
-                        point_id = f"{doc_id_str}:{index}"
+                        point_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"{doc_id_str}:{index}"))
                         payload = {
                             "document_id": doc_id_str,
                             "ticker": doc.ticker,

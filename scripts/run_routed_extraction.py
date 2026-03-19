@@ -391,6 +391,8 @@ def main() -> int:
             final_metrics = verified_metrics
         else:
             final_metrics = canonical_metrics
+        if not final_metrics:
+            selected_meta["warning"] = "empty_metrics_after_routing"
         selected_confidence = round(float(selected_confidence) * float(verification_ratio), 6)
         selected_meta["verification_ratio"] = verification_ratio
         selected_meta["strict_truth_mode"] = bool(args.strict_truth_mode)
@@ -451,7 +453,8 @@ def main() -> int:
                 "confidence_threshold": CONFIDENCE_THRESHOLD,
                 "min_coverage": MIN_COVERAGE,
                 "anomaly": selected_anomaly,
-                "metrics": final_metrics,
+                "metrics": dict(final_metrics or {}),
+                "raw_text": raw_text,
                 "verification_ratio": round(float(verification_ratio), 6),
                 "verification": {
                     "verified_count": int(verification.get("verified_count") or 0),

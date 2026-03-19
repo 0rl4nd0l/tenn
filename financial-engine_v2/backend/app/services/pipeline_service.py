@@ -5,8 +5,10 @@ from typing import Any, TypedDict
 
 from app.core.config import settings
 from app.core.db import SessionLocal
+from app.models.documents import Document
 from app.services.announcement_importance import classify_documents_and_materialize
 from app.services import pipeline as pipeline_core
+from qdrant_client import QdrantClient
 
 
 @dataclass
@@ -53,6 +55,27 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
             years=int(spec.years),
         )
         doc_ids = discovery["new_document_ids"]
+
+        # If we have no new docs, but processing is enabled and Qdrant collection is missing,
+        # opportunistically re-process recent existing documents for this ticker to rebuild RAG.
+        if not doc_ids and bool(spec.process_documents) and settings.enable_qdrant:
+            try:
+                q = QdrantClient(url=settings.qdrant_url, timeout=10)
+                existing = {c.name for c in q.get_collections().collections}
+                if settings.qdrant_collection not in existing:
+                    cutoff_days = int(spec.years) * 365
+                    recent_ids = (
+                        db.query(Document.document_id)
+                        .filter(Document.ticker == ticker)
+                        .filter((Document.pdf_sha256.is_(None)) | (~Document.pdf_sha256.like("blocked_%")))
+                        .order_by(Document.published_at.desc())
+                        .limit(200)
+                        .all()
+                    )
+                    doc_ids = [str(row[0]) for row in recent_ids]
+            except Exception:
+                # If Qdrant is unreachable or query fails, fall back to "new docs only".
+                pass
         max_workers = max(1, settings.backfill_concurrency)
         processed, skipped_download, extraction_failed_count, errors, ingestion_metrics = (
             pipeline_core._download_and_process_document_ids(

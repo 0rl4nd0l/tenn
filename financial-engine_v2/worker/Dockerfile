@@ -4,4 +4,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends build-essential
 COPY requirements.txt /app_worker/requirements.txt
 RUN pip install --no-cache-dir -r /app_worker/requirements.txt
 COPY . /app_worker
-CMD ["celery", "-A", "app.celery_app.celery", "worker", "--loglevel=INFO", "-Q", "default"]
+CMD ["celery", "-A", "app.celery_app.celery", "worker", "--loglevel=INFO", "-Q", "ingest,embed,score,llm_cpu,llm_gpu"]
