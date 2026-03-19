@@ -21,8 +21,16 @@ DOCLING_EXTRACTOR = "financial_metrics_docling"
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from services.evaluation.confidence import CONFIDENCE_THRESHOLD, MIN_COVERAGE, compute_confidence, fallback_reasons, metric_coverage
+from services.evaluation.confidence import (
+    CONFIDENCE_THRESHOLD,
+    MIN_COVERAGE,
+    compute_confidence,
+    fallback_reasons,
+    metric_coverage,
+    missing_required_metrics,
+)
 from services.evaluation.anomaly import detect_anomalies
+from services.evaluation.evidence import verify_metrics
 from services.extraction.router import select_extractor_with_reason
 
 
@@ -81,6 +89,11 @@ def _parse_args() -> argparse.Namespace:
         "--docling-cpu",
         action="store_true",
         help="Force CPU mode for Docling.",
+    )
+    parser.add_argument(
+        "--strict-truth-mode",
+        action="store_true",
+        help="Drop unverifiable metrics from routed outputs.",
     )
     return parser.parse_args()
 
@@ -173,6 +186,61 @@ def _confidence_distribution(values: list[float]) -> dict[str, float]:
     }
 
 
+def _safe_int(value: Any) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _complexity_bucket(complexity_score: Any) -> str:
+    try:
+        score = float(complexity_score)
+    except (TypeError, ValueError):
+        score = 0.0
+    if score < 0.2:
+        return "low"
+    if score < 0.6:
+        return "medium"
+    return "high"
+
+
+def _payload_raw_text(method_payload: Mapping[str, Any]) -> str:
+    raw_text = method_payload.get("raw_text")
+    if isinstance(raw_text, str) and raw_text.strip():
+        return raw_text
+    text = method_payload.get("text")
+    if isinstance(text, str) and text.strip():
+        return text
+    normalized_metrics = method_payload.get("normalized_metrics")
+    if not isinstance(normalized_metrics, list):
+        return ""
+    parts: list[str] = []
+    keys = (
+        "metric",
+        "metric_base",
+        "label",
+        "metric_label",
+        "value",
+        "raw_value",
+        "line_text",
+        "source_text",
+        "context",
+        "context_text",
+    )
+    for row in normalized_metrics:
+        if not isinstance(row, Mapping):
+            continue
+        for key in keys:
+            value = row.get(key)
+            if value is None:
+                continue
+            text_value = str(value).strip()
+            if text_value:
+                parts.append(text_value)
+    return "\n".join(parts)
+
+
 def main() -> int:
     args = _parse_args()
     ground_truth = Path(args.ground_truth).expanduser().resolve()
@@ -198,6 +266,10 @@ def main() -> int:
     fallback_count = 0
     selected_confidences: list[float] = []
     selected_accuracies: list[float] = []
+    fallback_by_doc_type: dict[str, dict[str, float]] = {}
+    fallback_by_complexity_bucket: dict[str, dict[str, float]] = {}
+    probe_confidence_by_doc_type: dict[str, list[float]] = {}
+    probe_missing_required_metrics_by_doc_type: dict[str, dict[str, float]] = {}
 
     for pdf in pdfs:
         doc_id = _doc_id_from_path(pdf)
@@ -223,19 +295,28 @@ def main() -> int:
         probe_method_payload = dict(probe_methods.get(PDFTOTEXT_EXTRACTOR) or {})
         diagnostics = _document_diagnostics(probe_methods)
         routing_hint = select_extractor_with_reason(diagnostics, probe_methods)
+        classifier = dict((routing_hint or {}).get("classifier") or {})
+        document_type = str(classifier.get("document_type") or "unknown")
+        complexity_bucket = _complexity_bucket(classifier.get("complexity_score"))
+        is_financial = bool(classifier.get("is_financial"))
         probe_confidence = compute_confidence(probe_method_payload)
         probe_anomaly = detect_anomalies(probe_method_payload)
         probe_coverage = metric_coverage(probe_method_payload)
+        probe_missing = missing_required_metrics(probe_method_payload)
+        probe_canonical_metric_count = len(dict(probe_method_payload.get("canonical_metrics") or {}))
+        probe_row_count = _safe_int(dict(probe_method_payload.get("completeness") or {}).get("row_count"))
         reasons = fallback_reasons(
             probe_method_payload,
-            confidence_threshold=CONFIDENCE_THRESHOLD,
-            min_coverage=MIN_COVERAGE,
+            doc_type=document_type,
+            complexity_bucket=complexity_bucket,
+            is_financial=is_financial,
         )
-        fallback_triggered = bool(reasons)
+        fallback_triggered = len(reasons) > 0
         fallback_reason = ",".join(reasons)
         selected_method = PDFTOTEXT_EXTRACTOR
         selected_payload: dict[str, Any] = dict(probe_method_payload)
         selected_confidence = probe_confidence
+        selected_coverage = probe_coverage
         selected_anomaly = probe_anomaly
         selected_meta: dict[str, Any] = {
             "selected_from_probe": True,
@@ -244,8 +325,14 @@ def main() -> int:
             "probe_confidence": probe_confidence,
             "probe_anomaly": probe_anomaly,
             "probe_coverage": probe_coverage,
+            "probe_missing_required_metrics": probe_missing,
+            "probe_canonical_metric_count": probe_canonical_metric_count,
+            "probe_row_count": probe_row_count,
+            "document_type": document_type,
+            "complexity_bucket": complexity_bucket,
         }
         docling_confidence: float | None = None
+        docling_coverage: float | None = None
         docling_anomaly: dict[str, Any] | None = None
 
         if fallback_triggered:
@@ -268,11 +355,13 @@ def main() -> int:
             selected_methods = dict(selected_document.get("methods") or {})
             docling_payload = dict(selected_methods.get(DOCLING_EXTRACTOR) or {})
             docling_confidence = compute_confidence(docling_payload)
+            docling_coverage = metric_coverage(docling_payload)
             docling_anomaly = detect_anomalies(docling_payload)
-            if docling_confidence > selected_confidence:
+            if docling_confidence >= selected_confidence:
                 selected_method = DOCLING_EXTRACTOR
                 selected_payload = docling_payload
                 selected_confidence = docling_confidence
+                selected_coverage = docling_coverage
                 selected_anomaly = docling_anomaly
             selected_meta = {
                 "selected_from_probe": selected_method == PDFTOTEXT_EXTRACTOR,
@@ -281,10 +370,30 @@ def main() -> int:
                 "routing_hint": routing_hint,
                 "probe_confidence": probe_confidence,
                 "docling_confidence": docling_confidence,
+                "docling_coverage": docling_coverage,
                 "probe_anomaly": probe_anomaly,
                 "docling_anomaly": docling_anomaly,
                 "probe_coverage": probe_coverage,
+                "probe_missing_required_metrics": probe_missing,
+                "probe_canonical_metric_count": probe_canonical_metric_count,
+                "probe_row_count": probe_row_count,
+                "document_type": document_type,
+                "complexity_bucket": complexity_bucket,
             }
+
+        raw_text = _payload_raw_text(selected_payload)
+        canonical_metrics = dict(selected_payload.get("canonical_metrics") or {})
+        verification = verify_metrics(canonical_metrics, raw_text)
+        verified_metrics = dict(verification.get("verified") or {})
+        rejected_metrics = dict(verification.get("rejected") or {})
+        verification_ratio = float(verification.get("verification_ratio") or 0.0)
+        if bool(args.strict_truth_mode):
+            final_metrics = verified_metrics
+        else:
+            final_metrics = canonical_metrics
+        selected_confidence = round(float(selected_confidence) * float(verification_ratio), 6)
+        selected_meta["verification_ratio"] = verification_ratio
+        selected_meta["strict_truth_mode"] = bool(args.strict_truth_mode)
 
         selected_score = dict(selected_payload.get("score") or {})
         selected_accuracy = None
@@ -295,6 +404,32 @@ def main() -> int:
                 selected_accuracies.append(selected_accuracy)
         selected_confidences.append(float(selected_confidence))
 
+        doc_type_bucket = fallback_by_doc_type.setdefault(
+            document_type,
+            {"documents": 0.0, "fallbacks": 0.0},
+        )
+        doc_type_bucket["documents"] += 1.0
+        if fallback_triggered:
+            doc_type_bucket["fallbacks"] += 1.0
+
+        complexity_bucket_entry = fallback_by_complexity_bucket.setdefault(
+            complexity_bucket,
+            {"documents": 0.0, "fallbacks": 0.0},
+        )
+        complexity_bucket_entry["documents"] += 1.0
+        if fallback_triggered:
+            complexity_bucket_entry["fallbacks"] += 1.0
+
+        probe_confidence_by_doc_type.setdefault(document_type, []).append(float(probe_confidence))
+        missing_bucket = probe_missing_required_metrics_by_doc_type.setdefault(
+            document_type,
+            {"documents": 0.0, "docs_with_missing": 0.0, "missing_metric_total": 0.0},
+        )
+        missing_bucket["documents"] += 1.0
+        if probe_missing:
+            missing_bucket["docs_with_missing"] += 1.0
+        missing_bucket["missing_metric_total"] += float(len(probe_missing))
+
         documents.append(
             {
                 "pdf": str(pdf),
@@ -302,13 +437,28 @@ def main() -> int:
                 "selected_method": selected_method,
                 "routing_reason": str((routing_hint or {}).get("reason") or ""),
                 "classifier": (routing_hint or {}).get("classifier"),
+                "document_type": document_type,
+                "complexity_bucket": complexity_bucket,
                 "confidence": round(float(selected_confidence), 6),
+                "coverage": round(float(selected_coverage), 6),
+                "probe_confidence": round(float(probe_confidence), 6),
+                "probe_coverage": round(float(probe_coverage), 6),
+                "probe_missing_required_metrics": probe_missing,
+                "probe_canonical_metric_count": probe_canonical_metric_count,
+                "probe_row_count": probe_row_count,
                 "fallback_triggered": fallback_triggered,
                 "fallback_reason": fallback_reason,
                 "confidence_threshold": CONFIDENCE_THRESHOLD,
                 "min_coverage": MIN_COVERAGE,
                 "anomaly": selected_anomaly,
-                "metrics": dict(selected_payload.get("canonical_metrics") or {}),
+                "metrics": final_metrics,
+                "verification_ratio": round(float(verification_ratio), 6),
+                "verification": {
+                    "verified_count": int(verification.get("verified_count") or 0),
+                    "rejected_count": int(verification.get("rejected_count") or 0),
+                    "verification_ratio": round(float(verification_ratio), 6),
+                    "rejected_metrics": rejected_metrics,
+                },
                 "score": selected_score,
                 "selected_accuracy": selected_accuracy,
                 "status": str(selected_payload.get("status") or "failed"),
@@ -316,6 +466,42 @@ def main() -> int:
                 "routing_metadata": selected_meta,
             }
         )
+
+    fallback_by_doc_type_summary: dict[str, dict[str, float]] = {}
+    for key, bucket in fallback_by_doc_type.items():
+        documents_total = float(bucket.get("documents") or 0.0)
+        fallbacks = float(bucket.get("fallbacks") or 0.0)
+        fallback_by_doc_type_summary[key] = {
+            "documents": int(documents_total),
+            "fallbacks": int(fallbacks),
+            "fallback_rate": round(fallbacks / float(max(1.0, documents_total)), 6),
+        }
+
+    fallback_by_complexity_bucket_summary: dict[str, dict[str, float]] = {}
+    for key, bucket in fallback_by_complexity_bucket.items():
+        documents_total = float(bucket.get("documents") or 0.0)
+        fallbacks = float(bucket.get("fallbacks") or 0.0)
+        fallback_by_complexity_bucket_summary[key] = {
+            "documents": int(documents_total),
+            "fallbacks": int(fallbacks),
+            "fallback_rate": round(fallbacks / float(max(1.0, documents_total)), 6),
+        }
+
+    probe_confidence_by_doc_type_summary: dict[str, dict[str, float]] = {}
+    for key, values in probe_confidence_by_doc_type.items():
+        probe_confidence_by_doc_type_summary[key] = _confidence_distribution(values)
+
+    probe_missing_required_metrics_by_doc_type_summary: dict[str, dict[str, float]] = {}
+    for key, payload in probe_missing_required_metrics_by_doc_type.items():
+        documents_total = float(payload.get("documents") or 0.0)
+        docs_with_missing = float(payload.get("docs_with_missing") or 0.0)
+        missing_metric_total = float(payload.get("missing_metric_total") or 0.0)
+        probe_missing_required_metrics_by_doc_type_summary[key] = {
+            "documents": int(documents_total),
+            "docs_with_missing": int(docs_with_missing),
+            "missing_doc_rate": round(docs_with_missing / float(max(1.0, documents_total)), 6),
+            "missing_metric_mean": round(missing_metric_total / float(max(1.0, documents_total)), 6),
+        }
 
     output = {
         "status": "SUCCESS",
@@ -325,6 +511,7 @@ def main() -> int:
             "pdfs": [str(pdf) for pdf in pdfs],
             "ground_truth": str(ground_truth),
             "docling_venv": str(docling_venv),
+            "strict_truth_mode": bool(args.strict_truth_mode),
         },
         "summary": {
             "documents_total": len(documents),
@@ -335,6 +522,10 @@ def main() -> int:
             "fallback_rate": round(float(fallback_count) / float(max(1, len(documents))), 6),
             "confidence_distribution": _confidence_distribution(selected_confidences),
             "accuracy_with_fallback": round(sum(selected_accuracies) / float(len(selected_accuracies)), 6) if selected_accuracies else 0.0,
+            "fallback_by_doc_type": fallback_by_doc_type_summary,
+            "fallback_by_complexity_bucket": fallback_by_complexity_bucket_summary,
+            "probe_confidence_by_doc_type": probe_confidence_by_doc_type_summary,
+            "probe_missing_required_metrics_by_doc_type": probe_missing_required_metrics_by_doc_type_summary,
         },
         "documents": documents,
     }

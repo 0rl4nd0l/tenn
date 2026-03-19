@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+script_path="${BASH_SOURCE[0]}"
+if command -v realpath >/dev/null 2>&1; then
+  script_path="$(realpath "${script_path}")"
+elif command -v readlink >/dev/null 2>&1; then
+  # readlink -f is supported on Linux
+  script_path="$(readlink -f "${script_path}" 2>/dev/null || echo "${script_path}")"
+fi
+
+REPO_ROOT="$(cd "$(dirname "${script_path}")/.." && pwd)"
 CONFIG_FILE="${REPO_ROOT}/scripts/start_config.env"
 
 if [[ ! -f "${CONFIG_FILE}" ]]; then
@@ -83,6 +91,46 @@ launch_cockpit_tui() {
 
   local cockpit_cmd=("${py}" "${launcher}" "${no_boot_flag}" --cockpit-config "" -- --config "${cfg}" --profile "${profile}")
 
+  run_with_pseudo_tty() {
+    local term_value="xterm-256color"
+    # Use a Python PTY wrapper so `cockpit_tui.py` sees a real TTY and TERM is valid.
+    "${py}" -c '
+import os, pty, sys, select
+term = sys.argv[1]
+cmd = sys.argv[2:]
+env = os.environ.copy()
+env["TERM"] = term
+
+pid, fd = pty.fork()
+if pid == 0:
+    os.execvpe(cmd[0], cmd, env)
+
+stdin_fd = sys.stdin.fileno()
+out_fd = sys.stdout.fileno()
+
+while True:
+    r, _, _ = select.select([fd, stdin_fd], [], [])
+    if fd in r:
+        try:
+            data = os.read(fd, 1024)
+        except OSError:
+            break
+        if not data:
+            break
+        os.write(out_fd, data)
+    if stdin_fd in r:
+        try:
+            data = os.read(stdin_fd, 1024)
+        except OSError:
+            break
+        if not data:
+            break
+        os.write(fd, data)
+
+os.waitpid(pid, 0)
+' "${term_value}" "${cockpit_cmd[@]}"
+  }
+
   case "${TERMINAL_MODE:-auto}" in
     tmux)
       if [[ -z "${TMUX:-}" ]]; then
@@ -93,17 +141,26 @@ launch_cockpit_tui() {
       ;;
     gnome-terminal)
       command -v gnome-terminal >/dev/null 2>&1 || { echo "ERROR: gnome-terminal missing"; exit 1; }
-      gnome-terminal -- bash -lc "${cockpit_cmd[*]}"
+      gnome-terminal -- bash -lc "${cockpit_cmd[*]}" || {
+        echo "⚠️  gnome-terminal failed; running Cockpit in foreground" >&2
+        run_with_pseudo_tty
+      }
+      ;;
+    foreground)
+      run_with_pseudo_tty
       ;;
     auto)
       if [[ -n "${TMUX:-}" ]] && command -v tmux >/dev/null 2>&1; then
         tmux split-window -v "${cockpit_cmd[*]}"
       elif command -v gnome-terminal >/dev/null 2>&1; then
-        gnome-terminal -- bash -lc "${cockpit_cmd[*]}"
+        gnome-terminal -- bash -lc "${cockpit_cmd[*]}" || {
+          echo "⚠️  gnome-terminal failed; running Cockpit in foreground" >&2
+          run_with_pseudo_tty
+        }
       elif command -v x-terminal-emulator >/dev/null 2>&1; then
         x-terminal-emulator -e bash -lc "${cockpit_cmd[*]}"
       else
-        "${cockpit_cmd[@]}"
+        run_with_pseudo_tty
       fi
       ;;
     *)

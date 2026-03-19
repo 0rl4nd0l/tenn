@@ -836,6 +836,9 @@ def _run_method(
     normalized_metrics = list(payload.get("normalized_metrics") or [])
     canonical_metrics = rows_to_canonical_metrics(normalized_metrics)
     score = score_metric_maps(canonical_metrics, ground_truth_metrics, tolerance_pct=0.02)
+    verification_ratio = _safe_float(payload.get("verification_ratio"))
+    if verification_ratio is None:
+        verification_ratio = 1.0
     return {
         "status": str(payload.get("status") or "failed"),
         "runtime_seconds": runtime_seconds,
@@ -846,6 +849,7 @@ def _run_method(
         "normalized_metrics": normalized_metrics,
         "canonical_metrics": canonical_metrics,
         "metric_coverage_rate": round(metric_coverage_rate(canonical_metrics), 6),
+        "verification_ratio": round(float(verification_ratio), 6),
         "text_stats": dict(payload.get("text_stats") or {}),
         "document_diagnostics": list(payload.get("document_diagnostics") or []),
         "structured_json": payload.get("structured_json"),

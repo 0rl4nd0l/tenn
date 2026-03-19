@@ -34,6 +34,8 @@ Key values:
 - `OLLAMA_URL_HOST`: host Ollama endpoint used by diagnostics (default `http://127.0.0.1:11434`)
 - `BACKEND_START_TIMEOUT`: backend readiness timeout for startup
 - `TERMINAL_MODE`: how `cockpit start` launches the TUI (`auto | gnome-terminal | tmux`)
+- `ENABLE_EMBEDDINGS_ON_STARTUP`: forces backend `ENABLE_EMBEDDINGS` (default `false` in this environment)
+- `ENABLE_QDRANT_ON_STARTUP`: forces backend `ENABLE_QDRANT` (default `false` in this environment)
 
 Docker vs host routing:
 - **Host tools** (doctor, host-run cockpit launcher) should use `127.0.0.1` / `localhost`.
@@ -46,6 +48,43 @@ The CLI uses explicit interpreter selection:
 - Otherwise fall back to `python3`
 
 No venv activation is used.
+
+### RAG / Embeddings Behavior
+
+By default, the system starts in a lightweight mode:
+
+```bash
+ENABLE_EMBEDDINGS_ON_STARTUP=false
+ENABLE_QDRANT_ON_STARTUP=false
+```
+
+This disables:
+- embedding generation
+- vector storage (Qdrant)
+- RAG-style retrieval
+
+Why:
+- faster startup
+- fewer external dependencies
+- more deterministic behavior
+
+To enable full pipeline:
+
+1. Edit:
+   `scripts/start_config.env`
+
+2. Set:
+   `ENABLE_EMBEDDINGS_ON_STARTUP=true`  
+   `ENABLE_QDRANT_ON_STARTUP=true`
+
+3. Restart:
+
+```bash
+cockpit stop
+cockpit start
+```
+
+These flags are applied at startup and propagated into the backend runtime environment.
 
 ### Doctor
 

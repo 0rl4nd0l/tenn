@@ -91,6 +91,75 @@ if [[ ! -f "${COMPOSE_ENV_PATH}" ]]; then
   fi
 fi
 
+# Deterministically set container-facing LLM endpoints required for backend startup.
+set_env_key() {
+  local key="$1"
+  local value="$2"
+  local file="$3"
+
+  if grep -q "^${key}=" "${file}" 2>/dev/null; then
+    sed -i "s|^${key}=.*|${key}=${value}|" "${file}"
+  else
+    printf '%s=%s\n' "${key}" "${value}" >> "${file}"
+  fi
+}
+
+if [[ -n "${LLAMACPP_URL_CONTAINER:-}" ]]; then
+  current_llamacpp="$(grep -E '^LLAMACPP_URL=' "${COMPOSE_ENV_PATH}" 2>/dev/null | tail -n 1 | cut -d= -f2- || true)"
+  if [[ -z "${current_llamacpp}" || "${current_llamacpp}" != "${LLAMACPP_URL_CONTAINER}" ]]; then
+    echo "🔧 Setting ${COMPOSE_ENV_PATH}: LLAMACPP_URL=${LLAMACPP_URL_CONTAINER}"
+    set_env_key "LLAMACPP_URL" "${LLAMACPP_URL_CONTAINER}" "${COMPOSE_ENV_PATH}"
+  fi
+fi
+
+if [[ -n "${OLLAMA_URL_CONTAINER:-}" ]]; then
+  current_ollama="$(grep -E '^OLLAMA_URL=' "${COMPOSE_ENV_PATH}" 2>/dev/null | tail -n 1 | cut -d= -f2- || true)"
+  if [[ -z "${current_ollama}" || "${current_ollama}" != "${OLLAMA_URL_CONTAINER}" ]]; then
+    echo "🔧 Setting ${COMPOSE_ENV_PATH}: OLLAMA_URL=${OLLAMA_URL_CONTAINER}"
+    set_env_key "OLLAMA_URL" "${OLLAMA_URL_CONTAINER}" "${COMPOSE_ENV_PATH}"
+  fi
+fi
+
+# Backend startup embeds/probes need EMBEDDING_API_KEY; default it to LLM_API_KEY if missing.
+llm_api_key="$(grep -E '^LLM_API_KEY=' "${COMPOSE_ENV_PATH}" 2>/dev/null | tail -n 1 | cut -d= -f2- || true)"
+if [[ -n "${llm_api_key}" ]]; then
+  current_embedding_api_key="$(grep -E '^EMBEDDING_API_KEY=' "${COMPOSE_ENV_PATH}" 2>/dev/null | tail -n 1 | cut -d= -f2- || true)"
+  if [[ -z "${current_embedding_api_key}" ]]; then
+    echo "🔧 Setting ${COMPOSE_ENV_PATH}: EMBEDDING_API_KEY=${llm_api_key}"
+    set_env_key "EMBEDDING_API_KEY" "${llm_api_key}" "${COMPOSE_ENV_PATH}"
+  fi
+fi
+
+# Deterministic boot: disable embeddings/qdrant startup validation by default.
+if [[ -n "${ENABLE_EMBEDDINGS_ON_STARTUP:-}" ]]; then
+  echo "🔧 Setting ${COMPOSE_ENV_PATH}: ENABLE_EMBEDDINGS=${ENABLE_EMBEDDINGS_ON_STARTUP}"
+  set_env_key "ENABLE_EMBEDDINGS" "${ENABLE_EMBEDDINGS_ON_STARTUP}" "${COMPOSE_ENV_PATH}"
+fi
+if [[ -n "${ENABLE_QDRANT_ON_STARTUP:-}" ]]; then
+  echo "🔧 Setting ${COMPOSE_ENV_PATH}: ENABLE_QDRANT=${ENABLE_QDRANT_ON_STARTUP}"
+  set_env_key "ENABLE_QDRANT" "${ENABLE_QDRANT_ON_STARTUP}" "${COMPOSE_ENV_PATH}"
+fi
+
+# Explicit runtime mapping: propagate startup config flags into the docker compose
+# environment as well (in case compose relies on shell env rather than env_file).
+if [[ -n "${ENABLE_EMBEDDINGS_ON_STARTUP:-}" ]]; then
+  export ENABLE_EMBEDDINGS="${ENABLE_EMBEDDINGS_ON_STARTUP}"
+fi
+if [[ -n "${ENABLE_QDRANT_ON_STARTUP:-}" ]]; then
+  export ENABLE_QDRANT="${ENABLE_QDRANT_ON_STARTUP}"
+fi
+
+# Preflight probe: verify llama.cpp models endpoint is reachable from Docker network.
+if [[ -n "${LLAMACPP_URL_CONTAINER:-}" ]]; then
+  compose_network="$(basename "${ENGINE_ROOT}")_default"
+  models_url="${LLAMACPP_URL_CONTAINER%/}/models"
+  echo "🔍 Preflight (compose net): GET ${models_url}"
+  if ! docker run --rm --network "${compose_network}" curlimages/curl:8.5.0 sh -lc "curl -fsS -m 5 -H 'Authorization: Bearer ${llm_api_key}' '${models_url}' >/dev/null"; then
+    echo "ERROR: llamacpp models endpoint not reachable from compose network: ${models_url}" >&2
+    exit 1
+  fi
+fi
+
 # Fail fast on common host port conflicts (compose publishes these).
 check_port_free 8000 "Backend" "fe_backend"
 check_port_free 5432 "Postgres" "fe_postgres"
@@ -120,20 +189,54 @@ fi
 
 cd "${ENGINE_ROOT}"
 
-echo "starting full stack via docker compose..."
+compose_includes_backend="false"
+backend_services=()
+infra_services=()
+
 if [[ "${#SERVICES_ARG[@]}" -gt 0 ]]; then
-  "${COMPOSE[@]}" up -d --build "${SERVICES_ARG[@]}"
+  for s in "${SERVICES_ARG[@]}"; do
+    if [[ "${s}" == "backend" ]]; then
+      compose_includes_backend="true"
+      backend_services+=("${s}")
+    else
+      infra_services+=("${s}")
+    fi
+  done
+else
+  # Default full-stack mode: start infra first, then backend.
+  infra_services=(postgres redis qdrant worker)
+  backend_services=(backend)
+  compose_includes_backend="true"
+fi
+
+echo "starting full stack infra via docker compose..."
+if [[ "${#infra_services[@]}" -gt 0 ]]; then
+  "${COMPOSE[@]}" up -d --build "${infra_services[@]}"
 else
   "${COMPOSE[@]}" up -d --build
 fi
 
+# Re-probe llamacpp immediately before starting backend.
+if [[ "${compose_includes_backend}" == "true" && -n "${LLAMACPP_URL_CONTAINER:-}" && -n "${llm_api_key:-}" ]]; then
+  compose_network="$(basename "${ENGINE_ROOT}")_default"
+  models_url="${LLAMACPP_URL_CONTAINER%/}/models"
+  echo "🔍 Preflight (compose net, just-before-backend): GET ${models_url}"
+  if ! docker run --rm --network "${compose_network}" curlimages/curl:8.5.0 sh -lc "curl -fsS -m 5 -H 'Authorization: Bearer ${llm_api_key}' '${models_url}' >/dev/null"; then
+    echo "ERROR: llamacpp models endpoint not reachable from compose network: ${models_url}" >&2
+    exit 1
+  fi
+fi
+
 echo "running migrations..."
-if "${COMPOSE[@]}" ps backend >/dev/null 2>&1; then
-  "${COMPOSE[@]}" exec -T backend alembic upgrade head
+if [[ "${compose_includes_backend}" == "true" ]]; then
+  "${COMPOSE[@]}" run --rm -T backend alembic upgrade head
 else
   echo "ERROR: backend service missing from compose; cannot run migrations" >&2
   exit 1
 fi
+
+echo "starting backend via docker compose..."
+"${COMPOSE[@]}" up -d --build "${backend_services[@]}"
 
 echo "waiting for backend health..."
 deadline=$(( $(date +%s) + ${BACKEND_START_TIMEOUT:-60} ))

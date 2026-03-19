@@ -65,6 +65,18 @@ else
 fi
 
 echo ""
+echo "📊 RAG Runtime Check:"
+if command -v curl >/dev/null 2>&1; then
+  if curl -s http://127.0.0.1:8000/api/health | grep -q '"rag_enabled":'; then
+    curl -s http://127.0.0.1:8000/api/health | grep '"rag_enabled"'
+  else
+    echo "⚠️  Backend does not expose rag_enabled"
+  fi
+else
+  echo "❌ curl missing (cannot check backend health payload)"
+fi
+
+echo ""
 echo "🧠 Ollama:"
 if command -v curl >/dev/null 2>&1; then
   if curl -fsS "${OLLAMA_URL_HOST}" >/dev/null 2>&1; then
@@ -87,6 +99,11 @@ else
     echo "❌ python3 missing"
   fi
 fi
+
+echo ""
+echo "📊 RAG Status:"
+echo "ENABLE_EMBEDDINGS=${ENABLE_EMBEDDINGS_ON_STARTUP:-}"
+echo "ENABLE_QDRANT=${ENABLE_QDRANT_ON_STARTUP:-}"
 
 echo ""
 echo "🔌 Port conflicts:"

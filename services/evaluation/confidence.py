@@ -23,6 +23,34 @@ REQUIRED_METRICS: tuple[str, ...] = (
     "ebitda",
     "net_income",
 )
+DOC_TYPE_THRESHOLDS: dict[str, dict[str, float]] = {
+    "structured_financial_reports": {
+        "confidence_threshold": 0.6,
+        "min_coverage": 0.4,
+    },
+    "semi_structured_presentations": {
+        "confidence_threshold": 0.5,
+        "min_coverage": 0.3,
+    },
+    "complex_ocr_heavy": {
+        "confidence_threshold": 0.75,
+        "min_coverage": 0.6,
+    },
+}
+DOC_TYPE_PROFILE_MAP: dict[str, str] = {
+    "appendix_report": "structured_financial_reports",
+    "annual_report": "structured_financial_reports",
+    "half_year_report": "structured_financial_reports",
+    "quarterly_report": "structured_financial_reports",
+    "structured_financial_reports": "structured_financial_reports",
+    "investor_update": "semi_structured_presentations",
+    "announcement": "semi_structured_presentations",
+    "presentation": "semi_structured_presentations",
+    "semi_structured_presentations": "semi_structured_presentations",
+    "scanned_financial": "complex_ocr_heavy",
+    "ocr_heavy": "complex_ocr_heavy",
+    "complex_ocr_heavy": "complex_ocr_heavy",
+}
 
 
 def _safe_float(value: Any) -> float:
@@ -48,6 +76,74 @@ def _float_or_default(value: Any, default: float) -> float:
 
 def _clamp(value: float, low: float = 0.0, high: float = 1.0) -> float:
     return max(low, min(high, value))
+
+
+def _canonical_metric_count(method_payload: Mapping[str, Any]) -> int:
+    canonical_metrics = method_payload.get("canonical_metrics")
+    if isinstance(canonical_metrics, Mapping):
+        return len(canonical_metrics)
+    return 0
+
+
+def _row_count(method_payload: Mapping[str, Any]) -> int:
+    completeness = method_payload.get("completeness")
+    if isinstance(completeness, Mapping):
+        return _safe_int(completeness.get("row_count"))
+    return 0
+
+
+def _doc_type_profile(doc_type: str | None, complexity_bucket: str | None = None) -> str | None:
+    normalized = str(doc_type or "").strip().lower()
+    if normalized in DOC_TYPE_PROFILE_MAP:
+        return DOC_TYPE_PROFILE_MAP[normalized]
+    if str(complexity_bucket or "").strip().lower() == "high":
+        return "complex_ocr_heavy"
+    return None
+
+
+def _resolve_thresholds(
+    *,
+    doc_type: str | None,
+    complexity_bucket: str | None,
+    confidence_threshold: float,
+    min_coverage: float,
+) -> tuple[float, float]:
+    profile = _doc_type_profile(doc_type, complexity_bucket=complexity_bucket)
+    if profile is None:
+        return float(confidence_threshold), float(min_coverage)
+    override = DOC_TYPE_THRESHOLDS.get(profile) or {}
+    resolved_confidence = float(override.get("confidence_threshold", confidence_threshold))
+    resolved_coverage = float(override.get("min_coverage", min_coverage))
+    return resolved_confidence, resolved_coverage
+
+
+def _effective_required_metrics(required_metrics: Sequence[str], doc_type: str | None, is_financial: bool | None) -> tuple[str, ...]:
+    normalized = str(doc_type or "").strip().lower()
+    if is_financial is False and normalized == "unknown":
+        return ()
+    return tuple(str(metric) for metric in required_metrics)
+
+
+def _defer_non_financial_unknown_fallback(
+    *,
+    doc_type: str | None,
+    is_financial: bool | None,
+    canonical_metric_count: int,
+    row_count: int,
+    coverage: float,
+    anomaly: Mapping[str, Any],
+) -> bool:
+    if is_financial is not False:
+        return False
+    if str(doc_type or "").strip().lower() != "unknown":
+        return False
+    if canonical_metric_count > 0 or row_count > 0:
+        return False
+    if float(coverage) > 0.05:
+        return False
+    if bool(anomaly.get("has_anomaly")) and str(anomaly.get("severity") or "").lower() == "high":
+        return False
+    return True
 
 
 def _default_calibration() -> dict[str, Any]:
@@ -130,13 +226,23 @@ def _first_diagnostics(method_payload: Mapping[str, Any]) -> Mapping[str, Any]:
 
 
 def metric_coverage(method_payload: Mapping[str, Any]) -> float:
-    metric_coverage_rate = method_payload.get("metric_coverage_rate")
-    if isinstance(metric_coverage_rate, (int, float)):
-        return _clamp(float(metric_coverage_rate))
+    val = method_payload.get("metric_coverage_rate")
+    if isinstance(val, (int, float)):
+        return _clamp(float(val))
+
     canonical_metrics = method_payload.get("canonical_metrics")
-    if isinstance(canonical_metrics, Mapping):
+    if isinstance(canonical_metrics, Mapping) and canonical_metrics:
         return _clamp(float(len(canonical_metrics)) / 5.0)
-    return 0.0
+
+    score = method_payload.get("score")
+    if isinstance(score, Mapping):
+        aggregate = score.get("aggregate")
+        if isinstance(aggregate, Mapping):
+            completeness = aggregate.get("completeness")
+            if isinstance(completeness, (int, float)):
+                return _clamp(float(completeness))
+
+    return 0.3
 
 
 def _completeness_score(method_payload: Mapping[str, Any]) -> float:
@@ -204,9 +310,14 @@ def _effective_anomaly(method_payload: Mapping[str, Any]) -> dict[str, Any]:
 
 def compute_confidence(method_payload: dict[str, Any]) -> float:
     payload = dict(method_payload or {})
-    if str(payload.get("status") or "").lower() not in {"ok", "success"}:
+    status = str(payload.get("status") or "").lower()
+    if status in {"error", "failed", "crash"}:
         return 0.0
     coverage = metric_coverage(payload)
+    if coverage is None:
+        coverage = 0.3
+    canonical_metric_count = _canonical_metric_count(payload)
+    row_count = _row_count(payload)
     completeness = _completeness_score(payload)
     rejected_penalty = _rejected_rows_penalty(payload)
     inconsistency_penalty = _inconsistency_penalty(payload)
@@ -217,11 +328,24 @@ def compute_confidence(method_payload: dict[str, Any]) -> float:
         - 0.06 * rejected_penalty
         - 0.04 * inconsistency_penalty
     )
+    if confidence <= 0.0:
+        confidence = (0.1 * coverage) + 0.1
     anomaly = _effective_anomaly(payload)
+    if (
+        canonical_metric_count >= 3
+        and row_count >= 8
+        and str(anomaly.get("severity") or "").lower() != "high"
+    ):
+        confidence += 0.05
+        if row_count >= 20:
+            confidence += 0.03
     if bool(anomaly.get("has_anomaly")):
         severity = str(anomaly.get("severity") or "low").lower()
         penalty = _clamp(_float_or_default(ANOMALY_PENALTIES.get(severity), ANOMALY_PENALTIES["low"]))
         confidence *= penalty
+    verification_ratio = _clamp(_float_or_default(payload.get("verification_ratio"), 1.0))
+    confidence *= verification_ratio
+    confidence = max(confidence, 0.05)
     return round(_clamp(confidence), 6)
 
 
@@ -258,19 +382,52 @@ def fallback_reasons(
     confidence_threshold: float = CONFIDENCE_THRESHOLD,
     min_coverage: float = MIN_COVERAGE,
     required_metrics: Sequence[str] = REQUIRED_METRICS,
+    doc_type: str | None = None,
+    complexity_bucket: str | None = None,
+    is_financial: bool | None = None,
 ) -> list[str]:
     payload = dict(method_payload or {})
     reasons: list[str] = []
     confidence = compute_confidence(payload)
     coverage = metric_coverage(payload)
-    missing = missing_required_metrics(payload, required_metrics=required_metrics)
+    if coverage is None:
+        coverage = 0.3
+    canonical_metric_count = _canonical_metric_count(payload)
+    row_count = _row_count(payload)
     anomaly = _effective_anomaly(payload)
-    if confidence < float(confidence_threshold):
+    resolved_confidence_threshold, resolved_min_coverage = _resolve_thresholds(
+        doc_type=doc_type,
+        complexity_bucket=complexity_bucket,
+        confidence_threshold=float(confidence_threshold),
+        min_coverage=float(min_coverage),
+    )
+    effective_required_metrics = _effective_required_metrics(required_metrics, doc_type=doc_type, is_financial=is_financial)
+    missing = missing_required_metrics(payload, required_metrics=effective_required_metrics)
+
+    if _defer_non_financial_unknown_fallback(
+        doc_type=doc_type,
+        is_financial=is_financial,
+        canonical_metric_count=canonical_metric_count,
+        row_count=row_count,
+        coverage=float(coverage),
+        anomaly=anomaly,
+    ):
+        if bool(anomaly.get("has_anomaly")) and str(anomaly.get("severity") or "").lower() == "high":
+            reasons.append("financial_anomaly")
+        if has_inconsistent_values(payload):
+            reasons.append("inconsistent_metric_values")
+        return reasons
+
+    if confidence < float(resolved_confidence_threshold):
         reasons.append("low_confidence")
-    if coverage < float(min_coverage):
+    if coverage is not None and coverage < float(resolved_min_coverage) and confidence < 0.5:
         reasons.append("low_coverage")
-    if missing:
-        reasons.append("missing_required_metrics")
+    missing_count = len(missing)
+    if missing_count:
+        if missing_count >= 2 or confidence < 0.5:
+            reasons.append("missing_required_metrics")
+        elif missing_count == 1 and not (confidence >= 0.65 and canonical_metric_count >= 3):
+            reasons.append("missing_required_metrics")
     if bool(anomaly.get("has_anomaly")) and str(anomaly.get("severity") or "").lower() == "high":
         reasons.append("financial_anomaly")
     if has_inconsistent_values(payload):
