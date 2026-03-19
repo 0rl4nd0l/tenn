@@ -525,15 +525,40 @@ def insert_discovered_documents(db, discovered_docs):
     for discovered_doc in discovered_docs:
         ticker = (discovered_doc.ticker or "").upper().strip()
         if not ticker:
+            logger.warning(
+                "ASX skip",
+                extra={
+                    "reason": "invalid_structure",
+                    "data": {"missing": "ticker", "discovered_doc": str(discovered_doc)},
+                },
+            )
             continue
         per_ticker_found[ticker] = per_ticker_found.get(ticker, 0) + 1
 
         source_url = _normalize_source_url(discovered_doc.source_url)
         if not source_url:
             skipped_missing_source_url += 1
+            logger.warning(
+                "ASX skip",
+                extra={
+                    "reason": "missing_source_url",
+                    "data": {
+                        "ticker": ticker,
+                        "title": str(getattr(discovered_doc, "title", "") or "")[:200],
+                        "source_url": str(getattr(discovered_doc, "source_url", "") or "")[:500],
+                    },
+                },
+            )
             continue
         if source_url in seen_source_urls:
             duplicate_in_batch += 1
+            logger.warning(
+                "ASX skip",
+                extra={
+                    "reason": "duplicate",
+                    "data": {"ticker": ticker, "source_url": source_url, "scope": "batch"},
+                },
+            )
             continue
         seen_source_urls.add(source_url)
         prepared.append((discovered_doc, ticker, source_url))
@@ -547,6 +572,13 @@ def insert_discovered_documents(db, discovered_docs):
     for discovered_doc, ticker, source_url in prepared:
         if source_url in existing_source_urls:
             duplicate_existing += 1
+            logger.warning(
+                "ASX skip",
+                extra={
+                    "reason": "duplicate",
+                    "data": {"ticker": ticker, "source_url": source_url, "scope": "db"},
+                },
+            )
             continue
 
         doc_id = uuid.uuid4()
@@ -586,6 +618,13 @@ def insert_discovered_documents(db, discovered_docs):
             exists = db.query(Document.document_id).filter(Document.source_url == source_url).first()
             if exists:
                 duplicate_existing += 1
+                logger.warning(
+                    "ASX skip",
+                    extra={
+                        "reason": "duplicate",
+                        "data": {"ticker": ticker, "source_url": source_url, "scope": "db_race"},
+                    },
+                )
                 continue
             doc_id = uuid.uuid4()
             row = Document(
@@ -612,6 +651,13 @@ def insert_discovered_documents(db, discovered_docs):
             except IntegrityError:
                 db.rollback()
                 duplicate_existing += 1
+                logger.warning(
+                    "ASX skip",
+                    extra={
+                        "reason": "duplicate",
+                        "data": {"ticker": ticker, "source_url": source_url, "scope": "db_commit"},
+                    },
+                )
                 continue
             inserted += 1
             new_document_ids.append(str(doc_id))
