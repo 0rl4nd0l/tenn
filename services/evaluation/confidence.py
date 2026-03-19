@@ -234,13 +234,27 @@ def _first_diagnostics(method_payload: Mapping[str, Any]) -> Mapping[str, Any]:
 
 
 def metric_coverage(method_payload: Mapping[str, Any]) -> float:
-    val = method_payload.get("metric_coverage_rate")
-    if isinstance(val, (int, float)):
-        return _clamp(float(val))
-
+    # Coverage is evaluated only against REQUIRED_METRICS so routing/confidence
+    # behavior stays stable even if the canonical output metric set expands.
     canonical_metrics = method_payload.get("canonical_metrics")
-    if isinstance(canonical_metrics, Mapping) and canonical_metrics:
-        return _clamp(float(len(canonical_metrics)) / 5.0)
+    if not isinstance(canonical_metrics, Mapping):
+        return 0.0
+
+    present = 0
+    for metric in REQUIRED_METRICS:
+        if metric not in canonical_metrics:
+            continue
+        value = canonical_metrics.get(metric)
+        if value is None:
+            continue
+        try:
+            float(str(value))
+            # Allow zero values too; we only care that it's parseable.
+            present += 1
+        except Exception:
+            continue
+
+    return _clamp(present / float(max(1, len(REQUIRED_METRICS))))
 
     score = method_payload.get("score")
     if isinstance(score, Mapping):

@@ -12,6 +12,17 @@ CANONICAL_METRICS: tuple[str, ...] = (
     "net_income",
     "assets",
     "liabilities",
+    "equity",
+    "current_assets",
+    "current_liabilities",
+    "cash_and_equivalents",
+    "ebit",
+    "gross_profit",
+    "capital_expenditure",
+    "operating_cash_flow",
+    "free_cash_flow",
+    "total_debt",
+    "net_debt",
 )
 
 _ALIAS_TO_CANONICAL: dict[str, str] = {
@@ -40,6 +51,20 @@ _ALIAS_TO_CANONICAL: dict[str, str] = {
     "liabilities": "liabilities",
     "total_liabilities": "liabilities",
     "liabilities_total": "liabilities",
+    "equity": "equity",
+    "total_equity": "equity",
+    "current_assets": "current_assets",
+    "current_liabilities": "current_liabilities",
+    "cash_and_equivalents": "cash_and_equivalents",
+    "cash_and_cash_equivalents": "cash_and_equivalents",
+    "ebit": "ebit",
+    "gross_profit": "gross_profit",
+    "capital_expenditure": "capital_expenditure",
+    "capex": "capital_expenditure",
+    "operating_cash_flow": "operating_cash_flow",
+    "free_cash_flow": "free_cash_flow",
+    "total_debt": "total_debt",
+    "net_debt": "net_debt",
 }
 
 _DATE_RE = re.compile(r"(\d{4})-(\d{2})-(\d{2})")
