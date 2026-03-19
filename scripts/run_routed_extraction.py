@@ -33,6 +33,7 @@ from services.evaluation.confidence import (
 from services.evaluation.anomaly import detect_anomalies
 from services.evaluation.evidence import verify_metrics
 from services.extraction.router import select_extractor_with_reason
+from services.extraction.docling_runner import run_docling_subprocess
 
 
 def utc_now() -> str:
@@ -217,7 +218,12 @@ def _payload_raw_text(method_payload: Mapping[str, Any]) -> str:
     return ""
 
 
-def _extract_pdf_raw_text(pdf_path: Path) -> str:
+def _extract_pdf_raw_text(
+    *,
+    pdf_path: Path,
+    docling_venv: Path,
+    docling_cpu: bool,
+) -> str:
     try:
         completed = subprocess.run(
             ["pdftotext", str(pdf_path), "-"],
@@ -230,7 +236,32 @@ def _extract_pdf_raw_text(pdf_path: Path) -> str:
         return ""
     if completed.returncode != 0:
         return ""
-    return str(completed.stdout or "")
+    pdftotext_text = str(completed.stdout or "")
+    if pdftotext_text.strip():
+        return pdftotext_text
+
+    # If pdftotext yields empty evidence text (common for scanned/near-empty PDFs),
+    # fall back to Docling-derived document text (subprocess-only).
+    docling_args = [
+        "scripts/docling_export_document_text.py",
+        "--pdf",
+        str(pdf_path),
+    ]
+    if docling_cpu:
+        docling_args.append("--cpu")
+
+    # run_docling_subprocess expects the command as args inside the docling venv.
+    # We pass the repo root as cwd so relative paths resolve.
+    result = run_docling_subprocess(
+        docling_args,
+        cwd=REPO_ROOT,
+        timeout_sec=120.0,
+        venv_path=str(docling_venv),
+        create_venv_if_missing=False,
+    )
+    if not result.get("ok"):
+        return ""
+    return str(result.get("stdout") or "")
 
 
 def main() -> int:
@@ -373,7 +404,11 @@ def main() -> int:
                 "complexity_bucket": complexity_bucket,
             }
 
-        raw_text = _payload_raw_text(selected_payload) or _extract_pdf_raw_text(pdf)
+        raw_text = _payload_raw_text(selected_payload) or _extract_pdf_raw_text(
+            pdf_path=pdf,
+            docling_venv=docling_venv,
+            docling_cpu=bool(args.docling_cpu),
+        )
         canonical_metrics = dict(selected_payload.get("canonical_metrics") or {})
         verification = verify_metrics(canonical_metrics, raw_text)
         verified_metrics = dict(verification.get("verified") or {})
