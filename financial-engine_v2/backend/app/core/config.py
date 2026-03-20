@@ -40,6 +40,11 @@ def _running_in_docker() -> bool:
     return is_running_in_docker()
 
 
+def _host_network_enabled() -> bool:
+    value = str(os.getenv("TENN_HOST_NETWORK", "")).strip().lower()
+    return value in {"1", "true", "yes", "on"}
+
+
 def _select_runtime_env_files() -> tuple[Path, ...]:
     docker_env_files = _resolve_env_file_paths(*DOCKER_ENV_FILE_NAMES)
     if _running_in_docker() and len(docker_env_files) > 1 and docker_env_files[1].exists():
@@ -113,8 +118,31 @@ def validate_llm_endpoints(llamacpp_url: str, ollama_url: str) -> None:
 
 def _normalize_database_url(url: str) -> str:
     text = str(url or "").strip()
-    if not text.lower().startswith("sqlite:///"):
-        return text
+    lowered = text.lower()
+    if not lowered.startswith("sqlite:///"):
+        parsed = urlparse(text)
+        if parsed.scheme not in {
+            "postgresql",
+            "postgresql+psycopg",
+            "postgresql+psycopg2",
+            "postgresql+asyncpg",
+        }:
+            return text
+        hostname = str(parsed.hostname or "").strip().lower()
+        if hostname not in {"", "postgres", "127.0.0.1", "localhost"}:
+            return text
+
+        runtime_hostname = "postgres" if is_running_in_docker() and not _host_network_enabled() else "127.0.0.1"
+        rewritten_netloc = runtime_hostname
+        if parsed.port is not None:
+            rewritten_netloc = f"{rewritten_netloc}:{parsed.port}"
+        if parsed.username:
+            credentials = parsed.username
+            if parsed.password is not None:
+                credentials = f"{credentials}:{parsed.password}"
+            rewritten_netloc = f"{credentials}@{rewritten_netloc}"
+        return urlunparse(parsed._replace(netloc=rewritten_netloc))
+
     raw_path = text[len("sqlite:///") :]
     if raw_path in {"", ":memory:"} or raw_path.startswith("file:"):
         return text
@@ -141,7 +169,7 @@ def _normalize_redis_url(url: str, *, default_db: int = 0) -> str:
     if parsed.scheme not in {"redis", "rediss"}:
         return text
 
-    runtime_hostname = "redis" if is_running_in_docker() else "127.0.0.1"
+    runtime_hostname = "redis" if is_running_in_docker() and not _host_network_enabled() else "127.0.0.1"
     if hostname not in {"", "redis", "127.0.0.1", "localhost"}:
         return text
 
@@ -167,7 +195,9 @@ def _normalize_qdrant_url(url: str) -> str:
 
     parsed = urlparse(text)
     hostname = str(parsed.hostname or "").strip().lower()
-    if hostname != "qdrant" or _running_in_docker():
+    if hostname != "qdrant":
+        return text
+    if _running_in_docker() and not _host_network_enabled():
         return text
 
     rewritten_netloc = "127.0.0.1"

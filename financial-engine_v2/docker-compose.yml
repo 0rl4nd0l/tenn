@@ -30,6 +30,8 @@ services:
     container_name: fe_backend
     network_mode: host
     env_file: [.env]
+    environment:
+      TENN_HOST_NETWORK: ${TENN_HOST_NETWORK:-true}
     volumes:
       - ./backend:/app
       - ./data:/data
@@ -40,16 +42,15 @@ services:
       qdrant: { condition: service_started }
 
   worker:
-    build: { context: ./worker }
+    build: { context: ./backend }
     container_name: fe_worker
     network_mode: host
     env_file: [.env]
-    working_dir: /app_backend
     environment:
-      PYTHONPATH: /app_backend
+      TENN_HOST_NETWORK: ${TENN_HOST_NETWORK:-true}
+    command: ["celery", "-A", "app.celery_app.celery", "worker", "--loglevel=INFO", "-Q", "ingest,embed,score,llm_cpu,llm_gpu"]
     volumes:
-      - ./backend:/app_backend
-      - ./worker:/app_worker
+      - ./backend:/app
       - ./data:/data
     depends_on:
       postgres: { condition: service_healthy }

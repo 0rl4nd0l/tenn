@@ -21,12 +21,20 @@ class StubMemoExtractor:
 
 def test_normalize_qdrant_url_rewrites_docker_hostname_for_host_runtime(monkeypatch):
     monkeypatch.setattr(config, "_running_in_docker", lambda: False)
+    monkeypatch.delenv("TENN_HOST_NETWORK", raising=False)
     assert config._normalize_qdrant_url("http://qdrant:6333") == "http://127.0.0.1:6333"
 
 
 def test_normalize_qdrant_url_keeps_docker_hostname_inside_container(monkeypatch):
     monkeypatch.setattr(config, "_running_in_docker", lambda: True)
+    monkeypatch.delenv("TENN_HOST_NETWORK", raising=False)
     assert config._normalize_qdrant_url("http://qdrant:6333") == "http://qdrant:6333"
+
+
+def test_normalize_qdrant_url_rewrites_to_loopback_when_host_network_enabled(monkeypatch):
+    monkeypatch.setattr(config, "_running_in_docker", lambda: True)
+    monkeypatch.setenv("TENN_HOST_NETWORK", "true")
+    assert config._normalize_qdrant_url("http://qdrant:6333") == "http://127.0.0.1:6333"
 
 
 def test_validate_llm_endpoints_rejects_aliasing() -> None:
@@ -51,15 +59,60 @@ def test_validate_llm_endpoints_requires_both_values() -> None:
 
 
 @pytest.mark.parametrize(
-    ("runtime_in_docker", "url", "default_db", "expected"),
+    ("runtime_in_docker", "host_network", "url", "expected"),
     [
-        (False, "", 0, "redis://127.0.0.1:6379/0"),
-        (False, "redis://redis:6379", 1, "redis://127.0.0.1:6379/1"),
-        (True, "redis://127.0.0.1:6379/0", 0, "redis://redis:6379/0"),
+        (
+            False,
+            False,
+            "postgresql+psycopg://fe:fe@postgres:5432/fe",
+            "postgresql+psycopg://fe:fe@127.0.0.1:5432/fe",
+        ),
+        (
+            True,
+            False,
+            "postgresql+psycopg://fe:fe@127.0.0.1:5432/fe",
+            "postgresql+psycopg://fe:fe@postgres:5432/fe",
+        ),
+        (
+            True,
+            True,
+            "postgresql+psycopg://fe:fe@postgres:5432/fe",
+            "postgresql+psycopg://fe:fe@127.0.0.1:5432/fe",
+        ),
     ],
 )
-def test_normalize_redis_url_aligns_with_runtime(monkeypatch, runtime_in_docker, url, default_db, expected):
+def test_normalize_database_url_aligns_with_runtime(monkeypatch, runtime_in_docker, host_network, url, expected):
     monkeypatch.setattr(config, "is_running_in_docker", lambda: runtime_in_docker)
+    if host_network:
+        monkeypatch.setenv("TENN_HOST_NETWORK", "true")
+    else:
+        monkeypatch.delenv("TENN_HOST_NETWORK", raising=False)
+
+    assert config._normalize_database_url(url) == expected
+
+@pytest.mark.parametrize(
+    ("runtime_in_docker", "host_network", "url", "default_db", "expected"),
+    [
+        (False, False, "", 0, "redis://127.0.0.1:6379/0"),
+        (False, False, "redis://redis:6379", 1, "redis://127.0.0.1:6379/1"),
+        (True, False, "redis://127.0.0.1:6379/0", 0, "redis://redis:6379/0"),
+        (True, True, "redis://redis:6379/0", 0, "redis://127.0.0.1:6379/0"),
+        (True, True, "redis://127.0.0.1:6379/0", 0, "redis://127.0.0.1:6379/0"),
+    ],
+)
+def test_normalize_redis_url_aligns_with_runtime(
+    monkeypatch,
+    runtime_in_docker,
+    host_network,
+    url,
+    default_db,
+    expected,
+):
+    monkeypatch.setattr(config, "is_running_in_docker", lambda: runtime_in_docker)
+    if host_network:
+        monkeypatch.setenv("TENN_HOST_NETWORK", "true")
+    else:
+        monkeypatch.delenv("TENN_HOST_NETWORK", raising=False)
 
     assert config._normalize_redis_url(url, default_db=default_db) == expected
 
