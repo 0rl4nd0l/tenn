@@ -35,7 +35,7 @@ from services.evaluation.consistency import compute_extraction_consistency_check
 from services.evaluation.evidence import verify_metrics
 from services.evaluation.failure_analysis import build_failure_analysis
 from services.evaluation.fact_tuple_assembly import build_fact_assembly_summary
-from services.evaluation.verification_candidates import build_verification_candidates
+from services.evaluation.verification_candidates import build_verification_candidates_with_stats
 from services.extraction.feature_flags import (
     ENABLE_ANOMALY_FILTER,
     ENABLE_STRICT_EVIDENCE,
@@ -469,7 +469,7 @@ def main() -> int:
             docling_cpu=bool(args.docling_cpu),
         )
         canonical_metrics = dict(selected_payload.get("canonical_metrics") or {})
-        verification_candidates = build_verification_candidates(
+        verification_candidates, candidate_stats = build_verification_candidates_with_stats(
             selected_payload,
             strict_period_filter=ENABLE_STRICT_PERIOD_FILTER,
             strict_scope_filter=ENABLE_STRICT_SCOPE_FILTER,
@@ -489,6 +489,22 @@ def main() -> int:
             selected_confidence = round(float(selected_confidence), 6)
         selected_meta["verification_ratio"] = verification_ratio
         selected_meta["strict_truth_mode"] = bool(args.strict_truth_mode)
+
+        completeness = dict(selected_payload.get("completeness") or {})
+        rows_detected = _safe_int(completeness.get("row_count"))
+        numeric_rows = _safe_int(completeness.get("rows_with_numeric_value"))
+        sent_to_verification = len(verification_candidates)
+        verified_count = int(verification.get("verified_count") or 0)
+        stage_counts = {
+            "rows_detected": rows_detected,
+            "numeric_rows": numeric_rows,
+            "candidate_rows": int(candidate_stats.get("candidate_rows") or 0),
+            "dropped_period": int(candidate_stats.get("dropped_period") or 0),
+            "dropped_scope": int(candidate_stats.get("dropped_scope") or 0),
+            "dropped_noncanonical": int(candidate_stats.get("dropped_noncanonical") or 0),
+            "sent_to_verification": sent_to_verification,
+            "verified": verified_count,
+        }
 
         consistency_checks = compute_extraction_consistency_checks(
             selected_payload=selected_payload,
@@ -629,6 +645,7 @@ def main() -> int:
                     "ENABLE_STRICT_EVIDENCE": ENABLE_STRICT_EVIDENCE,
                     "ENABLE_ANOMALY_FILTER": ENABLE_ANOMALY_FILTER,
                 },
+                "stage_counts": stage_counts,
             }
         )
 
