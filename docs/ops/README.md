@@ -48,9 +48,9 @@ Artifacts:
   - From repo root, run `bash scripts/check_markdown_hygiene.sh`.
 - Open and verify `docs/legacy_runtime_index.md` for intentionally retained historical references.
 - If the script reports broken links, fix links before merge.
-- Route architecture/cleanup/debt tasks through:
-  - `.cursor/agents/agent-index.md` (local dictionary and routing entrypoint)
-  - `.cursor/agents/architecture-cleanup-steward.md` (steward execution contract)
-  - `.codex/skills/architecture-cleanup-steward/SKILL.md` (Codex side skill contract)
-- Run stewardship audit:
-  - `bash scripts/run_stewardship_audit.sh`
+- Route repository audit tasks through:
+  - `.cursor/agents/repository_audit.md` (local audit contract)
+  - `.codex/skills/repository-audit/SKILL.md` (repo-local Codex skill source)
+- Sync repo-local Codex skills into the active Codex registry:
+  - `bash scripts/sync_codex_skills.sh`
+- Global Codex-only skills, including `architecture-cleanup-steward`, continue to live under `$CODEX_HOME/skills/`.

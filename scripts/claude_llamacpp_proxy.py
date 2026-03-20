@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import json
 import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any
+from typing import Any, Iterable
 from urllib import error as urlerror
 from urllib import parse as urlparse
 from urllib import request as urlrequest
@@ -32,6 +32,16 @@ class ProxyConfig:
     upstream_api_key: str
     upstream_model: str
     timeout_seconds: float
+
+
+@dataclass
+class ToolUseStreamState:
+    index: int
+    tool_id: str
+    name: str
+    input_parts: list[str]
+    started: bool = False
+    stopped: bool = False
 
 
 def parse_args() -> argparse.Namespace:
@@ -259,7 +269,7 @@ def build_openai_payload(request_body: dict[str, Any], config: ProxyConfig) -> d
         "model": config.upstream_model,
         "messages": payload_messages,
         "max_tokens": int(request_body.get("max_tokens") or 4096),
-        "stream": False,
+        "stream": bool(request_body.get("stream")),
     }
     if "temperature" in request_body:
         openai_payload["temperature"] = request_body["temperature"]
@@ -333,13 +343,10 @@ def build_anthropic_message_response(
                 }
             )
 
-    finish_reason = str(choice.get("finish_reason") or "").strip().lower()
-    if any(block["type"] == TOOL_USE_BLOCK_TYPE for block in content_blocks):
-        stop_reason = "tool_use"
-    elif finish_reason in {"length", "max_tokens"}:
-        stop_reason = "max_tokens"
-    else:
-        stop_reason = "end_turn"
+    stop_reason = _stop_reason_from_finish_reason(
+        choice.get("finish_reason"),
+        saw_tool_use=any(block["type"] == TOOL_USE_BLOCK_TYPE for block in content_blocks),
+    )
 
     usage = _usage_from_request_response(request_body, openai_response)
     return {
@@ -359,6 +366,15 @@ def build_count_tokens_response(request_body: dict[str, Any]) -> dict[str, int]:
     total_text += _flatten_text(request_body.get("messages")) + "\n"
     total_text += _flatten_text(request_body.get("tools"))
     return {"input_tokens": _count_tokens_approx(total_text)}
+
+
+def _stop_reason_from_finish_reason(finish_reason: Any, *, saw_tool_use: bool) -> str:
+    normalized = str(finish_reason or "").strip().lower()
+    if saw_tool_use:
+        return "tool_use"
+    if normalized in {"length", "max_tokens"}:
+        return "max_tokens"
+    return "end_turn"
 
 
 def iter_sse_events(message_payload: dict[str, Any]) -> list[tuple[str, dict[str, Any]]]:
@@ -460,14 +476,230 @@ def iter_sse_events(message_payload: dict[str, Any]) -> list[tuple[str, dict[str
     return events
 
 
-def _call_upstream_openai(payload: dict[str, Any], config: ProxyConfig) -> dict[str, Any]:
+def _iter_sse_payloads(stream: Any) -> Iterable[str]:
+    event_lines: list[str] = []
+    while True:
+        raw_line = stream.readline()
+        if not raw_line:
+            break
+        line = raw_line.decode("utf-8", errors="ignore").rstrip("\r\n")
+        if not line:
+            if event_lines:
+                payload_lines = [item[5:] for item in event_lines if item.startswith("data:")]
+                if payload_lines:
+                    yield "\n".join(payload_lines).strip()
+                event_lines = []
+            continue
+        event_lines.append(line)
+    if event_lines:
+        payload_lines = [item[5:] for item in event_lines if item.startswith("data:")]
+        if payload_lines:
+            yield "\n".join(payload_lines).strip()
+
+
+def _iter_openai_stream_chunks(stream: Any) -> Iterable[dict[str, Any]]:
+    for payload in _iter_sse_payloads(stream):
+        if not payload or payload == "[DONE]":
+            continue
+        parsed = _json_loads(payload)
+        if isinstance(parsed, dict):
+            yield parsed
+
+
+def iter_openai_to_anthropic_sse_events(
+    request_body: dict[str, Any],
+    openai_chunks: Iterable[dict[str, Any]],
+    *,
+    fallback_model: str,
+) -> Iterable[tuple[str, dict[str, Any]]]:
+    input_tokens = build_count_tokens_response(request_body)["input_tokens"]
+    message_id: str | None = None
+    model_name = fallback_model
+    message_started = False
+    text_block_index: int | None = None
+    next_content_index = 0
+    saw_tool_use = False
+    finish_reason: Any = None
+    output_fragments: list[str] = []
+    output_tokens = 0
+    tool_states: dict[int, ToolUseStreamState] = {}
+    tool_order: list[int] = []
+
+    def build_message_start_event() -> tuple[str, dict[str, Any]]:
+        return (
+            "message_start",
+            {
+                "type": "message_start",
+                "message": {
+                    "id": message_id or f"msg_{uuid.uuid4().hex}",
+                    "type": "message",
+                    "role": "assistant",
+                    "model": model_name,
+                    "content": [],
+                    "stop_reason": None,
+                    "stop_sequence": None,
+                    "usage": {
+                        "input_tokens": input_tokens,
+                        "output_tokens": 0,
+                    },
+                },
+            },
+        )
+
+    def stop_text_block() -> tuple[str, dict[str, Any]] | None:
+        nonlocal text_block_index
+        if text_block_index is None:
+            return None
+        stopped_index = text_block_index
+        text_block_index = None
+        return ("content_block_stop", {"type": "content_block_stop", "index": stopped_index})
+
+    for chunk in openai_chunks:
+        if not message_started:
+            message_id = str(chunk.get("id") or f"msg_{uuid.uuid4().hex}")
+            model_name = str(chunk.get("model") or fallback_model)
+            yield build_message_start_event()
+            message_started = True
+
+        usage = chunk.get("usage")
+        if isinstance(usage, dict) and usage.get("completion_tokens") is not None:
+            output_tokens = int(usage.get("completion_tokens") or 0)
+
+        choices = chunk.get("choices")
+        if not isinstance(choices, list) or not choices:
+            continue
+        choice = choices[0]
+        if not isinstance(choice, dict):
+            continue
+        finish_reason = choice.get("finish_reason") or finish_reason
+        delta = choice.get("delta")
+        if not isinstance(delta, dict):
+            continue
+
+        content_delta = delta.get("content")
+        if isinstance(content_delta, str) and content_delta:
+            if text_block_index is None:
+                text_block_index = next_content_index
+                next_content_index += 1
+                yield (
+                    "content_block_start",
+                    {
+                        "type": "content_block_start",
+                        "index": text_block_index,
+                        "content_block": {"type": TEXT_BLOCK_TYPE, "text": ""},
+                    },
+                )
+            output_fragments.append(content_delta)
+            yield (
+                "content_block_delta",
+                {
+                    "type": "content_block_delta",
+                    "index": text_block_index,
+                    "delta": {"type": "text_delta", "text": content_delta},
+                },
+            )
+
+        tool_calls = delta.get("tool_calls")
+        if isinstance(tool_calls, list) and tool_calls:
+            saw_tool_use = True
+            text_stop_event = stop_text_block()
+            if text_stop_event is not None:
+                yield text_stop_event
+
+            for tool_call in tool_calls:
+                if not isinstance(tool_call, dict):
+                    continue
+                stream_index = int(tool_call.get("index") or 0)
+                function_payload = tool_call.get("function")
+                function_payload = function_payload if isinstance(function_payload, dict) else {}
+
+                state = tool_states.get(stream_index)
+                if state is None:
+                    state = ToolUseStreamState(
+                        index=next_content_index,
+                        tool_id=str(tool_call.get("id") or f"toolu_{uuid.uuid4().hex[:24]}"),
+                        name=str(function_payload.get("name") or ""),
+                        input_parts=[],
+                    )
+                    tool_states[stream_index] = state
+                    tool_order.append(stream_index)
+                    next_content_index += 1
+                elif not state.name and function_payload.get("name"):
+                    state.name = str(function_payload.get("name") or "")
+
+                if not state.started:
+                    state.started = True
+                    yield (
+                        "content_block_start",
+                        {
+                            "type": "content_block_start",
+                            "index": state.index,
+                            "content_block": {
+                                "type": TOOL_USE_BLOCK_TYPE,
+                                "id": state.tool_id,
+                                "name": state.name,
+                                "input": {},
+                            },
+                        },
+                    )
+
+                arguments_delta = function_payload.get("arguments")
+                if isinstance(arguments_delta, str) and arguments_delta:
+                    state.input_parts.append(arguments_delta)
+                    output_fragments.append(arguments_delta)
+                    yield (
+                        "content_block_delta",
+                        {
+                            "type": "content_block_delta",
+                            "index": state.index,
+                            "delta": {"type": "input_json_delta", "partial_json": arguments_delta},
+                        },
+                    )
+
+    if not message_started:
+        yield build_message_start_event()
+
+    text_stop_event = stop_text_block()
+    if text_stop_event is not None:
+        yield text_stop_event
+
+    for stream_index in tool_order:
+        state = tool_states[stream_index]
+        if state.started and not state.stopped:
+            state.stopped = True
+            yield ("content_block_stop", {"type": "content_block_stop", "index": state.index})
+
+    if output_tokens <= 0:
+        output_tokens = _count_tokens_approx("\n".join(output_fragments))
+
+    yield (
+        "message_delta",
+        {
+            "type": "message_delta",
+            "delta": {
+                "stop_reason": _stop_reason_from_finish_reason(finish_reason, saw_tool_use=saw_tool_use),
+                "stop_sequence": None,
+            },
+            "usage": {
+                "output_tokens": output_tokens,
+            },
+        },
+    )
+    yield ("message_stop", {"type": "message_stop"})
+
+
+def _build_upstream_request(payload: dict[str, Any], config: ProxyConfig) -> urlrequest.Request:
     url = f"{config.upstream_base_url.rstrip('/')}/chat/completions"
     request_payload = _json_dumps(payload).encode("utf-8")
     headers = {
         "Authorization": f"Bearer {config.upstream_api_key}",
         "Content-Type": "application/json",
     }
-    req = urlrequest.Request(url=url, method="POST", data=request_payload, headers=headers)
+    return urlrequest.Request(url=url, method="POST", data=request_payload, headers=headers)
+
+
+def _call_upstream_openai(payload: dict[str, Any], config: ProxyConfig) -> dict[str, Any]:
+    req = _build_upstream_request(payload, config)
     try:
         with urlrequest.urlopen(req, timeout=config.timeout_seconds) as response:
             body = response.read().decode("utf-8")
@@ -567,16 +799,16 @@ class ClaudeLlamaProxyHandler(BaseHTTPRequestHandler):
     def _handle_messages(self, request_body: dict[str, Any]) -> None:
         config = _server_config_from_class(type(self))
         openai_payload = build_openai_payload(request_body, config)
+        wants_stream = bool(request_body.get("stream"))
+        if wants_stream:
+            self._send_sse_from_upstream(request_body, openai_payload, config)
+            return
         openai_response = _call_upstream_openai(openai_payload, config)
         anthropic_response = build_anthropic_message_response(
             request_body,
             openai_response,
             fallback_model=config.upstream_model,
         )
-        wants_stream = bool(request_body.get("stream"))
-        if wants_stream:
-            self._send_sse(anthropic_response)
-            return
         self._send_json(200, anthropic_response)
 
     def _send_json(self, status_code: int, payload: dict[str, Any]) -> None:
@@ -595,9 +827,41 @@ class ClaudeLlamaProxyHandler(BaseHTTPRequestHandler):
         self.send_header("Connection", "close")
         self.end_headers()
         for event_name, event_payload in iter_sse_events(payload):
-            self.wfile.write(f"event: {event_name}\n".encode("utf-8"))
-            self.wfile.write(f"data: {_json_dumps(event_payload)}\n\n".encode("utf-8"))
-            self.wfile.flush()
+            self._write_sse_event(event_name, event_payload)
+
+    def _write_sse_event(self, event_name: str, event_payload: dict[str, Any]) -> None:
+        self.wfile.write(f"event: {event_name}\n".encode("utf-8"))
+        self.wfile.write(f"data: {_json_dumps(event_payload)}\n\n".encode("utf-8"))
+        self.wfile.flush()
+
+    def _send_sse_from_upstream(
+        self,
+        request_body: dict[str, Any],
+        openai_payload: dict[str, Any],
+        config: ProxyConfig,
+    ) -> None:
+        req = _build_upstream_request(openai_payload, config)
+        try:
+            upstream_response = urlrequest.urlopen(req, timeout=config.timeout_seconds)
+        except urlerror.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="ignore")
+            raise RuntimeError(f"Upstream llama.cpp HTTP {exc.code}: {detail[:400]}") from exc
+        except urlerror.URLError as exc:
+            raise RuntimeError(f"Could not reach upstream llama.cpp endpoint: {exc}") from exc
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "close")
+        self.end_headers()
+
+        with upstream_response:
+            for event_name, event_payload in iter_openai_to_anthropic_sse_events(
+                request_body,
+                _iter_openai_stream_chunks(upstream_response),
+                fallback_model=config.upstream_model,
+            ):
+                self._write_sse_event(event_name, event_payload)
 
 
 def build_config(args: argparse.Namespace) -> ProxyConfig:

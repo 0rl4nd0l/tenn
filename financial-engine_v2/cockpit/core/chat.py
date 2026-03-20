@@ -50,7 +50,6 @@ class ChatController:
         "FROM",
         "GIVE",
         "HAVE",
-        "HAAVE",
         "HI",
         "HOW",
         "I",
@@ -96,7 +95,8 @@ class ChatController:
 
     @staticmethod
     def _extract_alpha_tokens(message: str) -> list[tuple[str, str]]:
-        return [(m.group(0), m.group(0).upper()) for m in re.finditer(r"\b([A-Za-z]{2,5})\b", message)]
+        # Match ASX-style tickers: letter-started, 2-5 alphanumeric chars (e.g. MP1, A200).
+        return [(m.group(0), m.group(0).upper()) for m in re.finditer(r"\b([A-Za-z][A-Za-z0-9]{1,4})\b", message)]
 
     def _detect_ticker(self, message: str, prior_ticker: str | None = None) -> str | None:
         # Prefer explicit ticker-like mentions first, e.g. "$BHP" or "ASX:BHP".

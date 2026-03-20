@@ -69,6 +69,7 @@ class ClaudeLlamaProxyTests(unittest.TestCase):
         payload = self.proxy.build_openai_payload(request_body, self.config)
 
         self.assertEqual(payload["model"], "qwen2.5-coder-14b")
+        self.assertFalse(payload["stream"])
         self.assertEqual(payload["messages"][0], {"role": "system", "content": "You are precise."})
         self.assertEqual(payload["messages"][1]["role"], "assistant")
         self.assertEqual(payload["messages"][1]["tool_calls"][0]["function"]["name"], "Read")
@@ -154,6 +155,147 @@ class ClaudeLlamaProxyTests(unittest.TestCase):
         self.assertEqual(events[4][1]["content_block"]["type"], "tool_use")
         self.assertEqual(events[5][1]["delta"]["type"], "input_json_delta")
         self.assertEqual(events[-1][0], "message_stop")
+
+    def test_build_openai_payload_preserves_stream_flag(self) -> None:
+        payload = self.proxy.build_openai_payload(
+            {
+                "model": "qwen2.5-coder-14b",
+                "messages": [{"role": "user", "content": [{"type": "text", "text": "Stream this."}]}],
+                "stream": True,
+            },
+            self.config,
+        )
+
+        self.assertTrue(payload["stream"])
+
+    def test_iter_openai_to_anthropic_sse_events_streams_text_deltas(self) -> None:
+        request_body = {
+            "system": [{"type": "text", "text": "You are concise."}],
+            "messages": [{"role": "user", "content": [{"type": "text", "text": "Say hello."}]}],
+            "stream": True,
+        }
+        openai_chunks = [
+            {
+                "id": "chatcmpl_stream_text",
+                "model": "qwen2.5-coder-14b",
+                "choices": [{"index": 0, "delta": {"role": "assistant", "content": None}, "finish_reason": None}],
+            },
+            {
+                "id": "chatcmpl_stream_text",
+                "model": "qwen2.5-coder-14b",
+                "choices": [{"index": 0, "delta": {"content": "Hello"}, "finish_reason": None}],
+            },
+            {
+                "id": "chatcmpl_stream_text",
+                "model": "qwen2.5-coder-14b",
+                "choices": [{"index": 0, "delta": {"content": " world"}, "finish_reason": "stop"}],
+                "usage": {"completion_tokens": 2},
+            },
+        ]
+
+        events = list(
+            self.proxy.iter_openai_to_anthropic_sse_events(
+                request_body,
+                openai_chunks,
+                fallback_model="qwen2.5-coder-14b",
+            )
+        )
+
+        self.assertEqual(events[0][0], "message_start")
+        self.assertGreater(events[0][1]["message"]["usage"]["input_tokens"], 0)
+        self.assertEqual(events[1][0], "content_block_start")
+        self.assertEqual(events[2][1]["delta"]["text"], "Hello")
+        self.assertEqual(events[3][1]["delta"]["text"], " world")
+        self.assertEqual(events[4], ("content_block_stop", {"type": "content_block_stop", "index": 0}))
+        self.assertEqual(events[5][0], "message_delta")
+        self.assertEqual(events[5][1]["delta"]["stop_reason"], "end_turn")
+        self.assertEqual(events[5][1]["usage"]["output_tokens"], 2)
+        self.assertEqual(events[6][0], "message_stop")
+
+    def test_iter_openai_to_anthropic_sse_events_streams_tool_call_deltas(self) -> None:
+        request_body = {
+            "messages": [{"role": "user", "content": [{"type": "text", "text": "Read a file."}]}],
+            "stream": True,
+        }
+        openai_chunks = [
+            {
+                "id": "chatcmpl_stream_tool",
+                "model": "qwen2.5-coder-14b",
+                "choices": [
+                    {
+                        "index": 0,
+                        "delta": {
+                            "tool_calls": [
+                                {
+                                    "index": 0,
+                                    "id": "call_1",
+                                    "type": "function",
+                                    "function": {"name": "Read", "arguments": ""},
+                                }
+                            ]
+                        },
+                        "finish_reason": None,
+                    }
+                ],
+            },
+            {
+                "id": "chatcmpl_stream_tool",
+                "model": "qwen2.5-coder-14b",
+                "choices": [
+                    {
+                        "index": 0,
+                        "delta": {
+                            "tool_calls": [
+                                {
+                                    "index": 0,
+                                    "function": {"arguments": '{"file_path":"'},
+                                }
+                            ]
+                        },
+                        "finish_reason": None,
+                    }
+                ],
+            },
+            {
+                "id": "chatcmpl_stream_tool",
+                "model": "qwen2.5-coder-14b",
+                "choices": [
+                    {
+                        "index": 0,
+                        "delta": {
+                            "tool_calls": [
+                                {
+                                    "index": 0,
+                                    "function": {"arguments": '/tmp/example.py"}'},
+                                }
+                            ]
+                        },
+                        "finish_reason": "tool_calls",
+                    }
+                ],
+                "usage": {"completion_tokens": 6},
+            },
+        ]
+
+        events = list(
+            self.proxy.iter_openai_to_anthropic_sse_events(
+                request_body,
+                openai_chunks,
+                fallback_model="qwen2.5-coder-14b",
+            )
+        )
+
+        self.assertEqual(events[0][0], "message_start")
+        self.assertEqual(events[1][0], "content_block_start")
+        self.assertEqual(events[1][1]["content_block"]["type"], "tool_use")
+        self.assertEqual(events[1][1]["content_block"]["id"], "call_1")
+        self.assertEqual(events[1][1]["content_block"]["name"], "Read")
+        self.assertEqual(events[2][1]["delta"]["partial_json"], '{"file_path":"')
+        self.assertEqual(events[3][1]["delta"]["partial_json"], '/tmp/example.py"}')
+        self.assertEqual(events[4], ("content_block_stop", {"type": "content_block_stop", "index": 0}))
+        self.assertEqual(events[5][1]["delta"]["stop_reason"], "tool_use")
+        self.assertEqual(events[5][1]["usage"]["output_tokens"], 6)
+        self.assertEqual(events[6][0], "message_stop")
 
 
 if __name__ == "__main__":

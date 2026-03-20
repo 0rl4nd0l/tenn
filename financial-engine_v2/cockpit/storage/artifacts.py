@@ -27,7 +27,7 @@ class ArtifactStore:
         return str(path)
 
     def write_analysis(self, thread_id: str, question: str, answer: str, payload: dict[str, Any]) -> tuple[str, str]:
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         base = self.exports_dir / thread_id
         base.mkdir(parents=True, exist_ok=True)
 

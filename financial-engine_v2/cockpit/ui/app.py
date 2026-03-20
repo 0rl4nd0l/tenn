@@ -5,7 +5,6 @@ import json
 import re
 import shutil
 import subprocess
-import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -242,7 +241,7 @@ class CockpitApp(App):
                 f"{', truncated' if result['truncated'] else ''}).\n"
                 f"{result['content']}"
             )
-            log.write(snippet[:14000])
+            log.write(snippet[:max_chars])
             self.state_store.add_chat_message(
                 self.thread_id,
                 "assistant",
@@ -362,34 +361,24 @@ class CockpitApp(App):
         last_day: str | None = None
 
         def _emit(line: str) -> None:
+            # _emit is always called from within the asyncio event loop (via _pump in
+            # job_runner), so direct calls to _write_log are safe — no thread-hopping needed.
             nonlocal last_ticker, last_day
-            app_thread = getattr(self, "_thread_id", None)
-            if app_thread is not None and threading.get_ident() == app_thread:
-                self._write_log(log_target, line)
-            else:
-                self.call_from_thread(lambda: self._write_log(log_target, line))
+            self._write_log(log_target, line)
 
             ticker_match = re.search(r"\[(?:backfill|probe)\]\s+([A-Z0-9.]+)\s+attempt\s+\d+", line)
             if ticker_match:
                 ticker = ticker_match.group(1)
                 if ticker != last_ticker:
                     last_ticker = ticker
-                    msg = f"[progress] ingesting ticker={ticker}"
-                    if app_thread is not None and threading.get_ident() == app_thread:
-                        self._write_log(log_target, msg)
-                    else:
-                        self.call_from_thread(lambda m=msg: self._write_log(log_target, m))
+                    self._write_log(log_target, f"[progress] ingesting ticker={ticker}")
 
             day_match = re.search(r"\[asx_sweep\]\s+date=([0-9]{4}-[0-9]{2}-[0-9]{2})", line)
             if day_match:
                 day = day_match.group(1)
                 if day != last_day:
                     last_day = day
-                    msg = f"[progress] sweep_day={day}"
-                    if app_thread is not None and threading.get_ident() == app_thread:
-                        self._write_log(log_target, msg)
-                    else:
-                        self.call_from_thread(lambda m=msg: self._write_log(log_target, m))
+                    self._write_log(log_target, f"[progress] sweep_day={day}")
 
         async def _run_and_finalize() -> None:
             try:
@@ -550,9 +539,8 @@ class CockpitApp(App):
                 payload["latest_analysis_export_meta"] = latest
                 try:
                     json_path = Path(str(latest.get("json_path", ""))).expanduser()
-                    if json_path.exists() and json_path.is_file():
-                        payload["latest_analysis_export"] = json.loads(json_path.read_text(encoding="utf-8"))
-                except Exception as exc:
+                    payload["latest_analysis_export"] = json.loads(json_path.read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError) as exc:
                     payload["latest_analysis_export_error"] = str(exc)
         elif "ops" in screen_key or "operation" in screen_key:
             payload["recent_jobs"] = self.state_store.list_jobs(limit=20)

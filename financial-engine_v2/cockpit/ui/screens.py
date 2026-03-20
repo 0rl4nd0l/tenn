@@ -24,8 +24,8 @@ class ConfirmActionScreen(ModalScreen[bool]):
         command = " ".join(self.preview.get("command", []))
         yield Vertical(
             Label("Confirm Action"),
-            Static(f"Action: {self.preview.get('action_id')}") ,
-            Static(f"Impact: {self.preview.get('impact')}") ,
+            Static(f"Action: {self.preview.get('action_id')}"),
+            Static(f"Impact: {self.preview.get('impact')}"),
             Static(f"Timeout: {self.preview.get('timeout_seconds')}s"),
             Static(f"Command: {command}"),
             Horizontal(
@@ -217,8 +217,12 @@ class UpdaterScreen(Screen):
             await self.app.execute_action("audit_ticker_financials", args, log_target="upd-log")
             return
 
-        years = int(self.query_one("#upd-years", Input).value.strip() or "5")
-        process_documents = self.query_one("#upd-process", Input).value.strip().lower() in {"1", "true", "yes"}
+        try:
+            years = int(self.query_one("#upd-years", Input).value.strip() or "5")
+        except (ValueError, TypeError):
+            log.write("Invalid years value, defaulting to 5")
+            years = 5
+        process_documents = self.query_one("#upd-process", Input).value.strip().lower() in {"1", "true", "yes", "on"}
         await self.app.run_updater_snapshot(ticker=ticker, years=years, process_documents=process_documents, log_target="upd-log")
 
 

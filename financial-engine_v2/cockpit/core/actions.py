@@ -357,7 +357,7 @@ class ActionRegistry:
             command.append("--process-documents")
         if action_id == "asx_enrichment_sweep" and normalized.get("skip_download"):
             command.append("--skip-download")
-        if action_id == "asx_enrichment_sweep" and normalized.get("download_existing_missing", True):
+        if action_id == "asx_enrichment_sweep" and normalized.get("download_existing_missing"):
             command.append("--download-existing-missing")
         if action_id == "asx_enrichment_sweep" and normalized.get("no_historical_fallback"):
             command.append("--no-historical-fallback")
@@ -419,9 +419,15 @@ class ActionRegistry:
                 else:
                     out[key] = str(value).lower() in {"1", "true", "yes", "on"}
             elif value_type is int:
-                out[key] = int(value)
+                try:
+                    out[key] = int(value)
+                except (ValueError, TypeError) as exc:
+                    raise ValueError(f"Arg '{key}' must be an integer, got {value!r}") from exc
             elif value_type is float:
-                out[key] = float(value)
+                try:
+                    out[key] = float(value)
+                except (ValueError, TypeError) as exc:
+                    raise ValueError(f"Arg '{key}' must be a number, got {value!r}") from exc
             else:
                 out[key] = str(value)
 

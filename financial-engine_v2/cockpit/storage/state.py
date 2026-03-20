@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +11,7 @@ class StateStore:
     def __init__(self, db_path: str) -> None:
         self.db_path = Path(db_path).expanduser()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._lock = threading.Lock()
         self.conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         self._init_schema()
@@ -58,11 +60,12 @@ class StateStore:
         self.conn.commit()
 
     def add_chat_message(self, thread_id: str, role: str, content: str, created_at: str) -> None:
-        self.conn.execute(
-            "insert into chat_messages(thread_id, role, content, created_at) values(?,?,?,?)",
-            (thread_id, role, content, created_at),
-        )
-        self.conn.commit()
+        with self._lock:
+            self.conn.execute(
+                "insert into chat_messages(thread_id, role, content, created_at) values(?,?,?,?)",
+                (thread_id, role, content, created_at),
+            )
+            self.conn.commit()
 
     def get_chat_messages(self, thread_id: str, limit: int = 200) -> list[dict[str, Any]]:
         rows = self.conn.execute(
@@ -78,27 +81,28 @@ class StateStore:
         return [dict(r) for r in rows]
 
     def add_job(self, payload: dict[str, Any]) -> None:
-        self.conn.execute(
-            """
-            insert or replace into jobs(
-                job_id, action_id, args_json, started_at, ended_at, status,
-                exit_code, stdout_path, stderr_path, artifacts_json
-            ) values(?,?,?,?,?,?,?,?,?,?)
-            """,
-            (
-                payload["job_id"],
-                payload["action_id"],
-                json.dumps(payload.get("args", {})),
-                payload["started_at"],
-                payload.get("ended_at"),
-                payload["status"],
-                payload.get("exit_code"),
-                payload.get("stdout_path"),
-                payload.get("stderr_path"),
-                json.dumps(payload.get("artifacts", [])),
-            ),
-        )
-        self.conn.commit()
+        with self._lock:
+            self.conn.execute(
+                """
+                insert or replace into jobs(
+                    job_id, action_id, args_json, started_at, ended_at, status,
+                    exit_code, stdout_path, stderr_path, artifacts_json
+                ) values(?,?,?,?,?,?,?,?,?,?)
+                """,
+                (
+                    payload["job_id"],
+                    payload["action_id"],
+                    json.dumps(payload.get("args", {})),
+                    payload["started_at"],
+                    payload.get("ended_at"),
+                    payload["status"],
+                    payload.get("exit_code"),
+                    payload.get("stdout_path"),
+                    payload.get("stderr_path"),
+                    json.dumps(payload.get("artifacts", [])),
+                ),
+            )
+            self.conn.commit()
 
     def list_jobs(self, limit: int = 100) -> list[dict[str, Any]]:
         rows = self.conn.execute(
@@ -120,11 +124,12 @@ class StateStore:
         return out
 
     def add_export(self, thread_id: str, question: str, markdown_path: str, json_path: str, created_at: str) -> None:
-        self.conn.execute(
-            "insert into analysis_exports(thread_id, question, markdown_path, json_path, created_at) values(?,?,?,?,?)",
-            (thread_id, question, markdown_path, json_path, created_at),
-        )
-        self.conn.commit()
+        with self._lock:
+            self.conn.execute(
+                "insert into analysis_exports(thread_id, question, markdown_path, json_path, created_at) values(?,?,?,?,?)",
+                (thread_id, question, markdown_path, json_path, created_at),
+            )
+            self.conn.commit()
 
     def list_exports(self, limit: int = 100) -> list[dict[str, Any]]:
         rows = self.conn.execute(
