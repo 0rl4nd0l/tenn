@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 from celery import Celery
 from kombu import Queue
 
@@ -8,6 +10,11 @@ from app.services.router import route_request
 
 
 _SPECIALIZED_QUEUES = ("ingest", "embed", "score", "llm_gpu", "llm_cpu")
+
+# Celery resolves broker/result URLs from CELERY_* env vars with higher precedence
+# than app-provided config values. Force normalized runtime values into env first.
+os.environ["CELERY_BROKER_URL"] = settings.celery_broker_url
+os.environ["CELERY_RESULT_BACKEND"] = settings.celery_result_backend
 
 
 def _resolve_task_route(
@@ -38,11 +45,11 @@ def _resolve_task_route(
 
 celery = Celery(
     "financial_engine",
-    broker=settings.celery_broker_url,
-    backend=settings.celery_result_backend,
     include=["app.worker_tasks", "app.tasks.commentary_tasks"],
 )
 celery.conf.update(
+    broker_url=settings.celery_broker_url,
+    result_backend=settings.celery_result_backend,
     task_serializer="json",
     accept_content=["json"],
     result_serializer="json",
