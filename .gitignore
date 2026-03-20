@@ -8,6 +8,8 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .venv/
+.venv_main/
+.venv_docling/
 venv/
 .env
 .env.local
