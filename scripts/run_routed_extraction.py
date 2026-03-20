@@ -34,6 +34,7 @@ from services.evaluation.anomaly import detect_anomalies
 from services.evaluation.consistency import compute_extraction_consistency_checks
 from services.evaluation.evidence import verify_metrics
 from services.evaluation.failure_analysis import build_failure_analysis
+from services.evaluation.fact_tuple_assembly import build_fact_assembly_summary
 from services.extraction.remediation import (
     assess_non_financial_explicit_drop,
     build_candidate_profile,
@@ -42,6 +43,7 @@ from services.extraction.remediation import (
 )
 from services.extraction.router import select_extractor_with_reason
 from services.extraction.docling_runner import run_docling_subprocess
+from services.extraction.source_ladder import choose_source_tier, detect_structured_reporting_signals
 
 
 def utc_now() -> str:
@@ -498,6 +500,24 @@ def main() -> int:
             probe_coverage=float(probe_coverage),
         )
 
+        fact_assembly_summary = build_fact_assembly_summary(selected_payload, raw_text)
+
+        structured_signals = detect_structured_reporting_signals(pdf, raw_text, pdf.name)
+        chosen_tier, tier_reason = choose_source_tier(
+            structured_signals=structured_signals,
+            raw_text_len=len(raw_text or ""),
+            probe_row_count=probe_row_count,
+            fallback_triggered=fallback_triggered,
+            docling_executed=bool(docling_from_policy),
+            verification_ratio=float(verification_ratio),
+            classifier=classifier,
+        )
+        source_ladder: dict[str, Any] = {
+            "structured_signals": structured_signals,
+            "chosen_tier": chosen_tier,
+            "tier_reason": tier_reason,
+        }
+
         selected_score = dict(selected_payload.get("score") or {})
         selected_accuracy = None
         if str(selected_score.get("status") or "") == "SUCCESS":
@@ -585,6 +605,8 @@ def main() -> int:
                 "routing_metadata": selected_meta,
                 "consistency_checks": consistency_checks,
                 "failure_analysis": failure_analysis,
+                "fact_assembly_summary": fact_assembly_summary,
+                "source_ladder": source_ladder,
             }
         )
 

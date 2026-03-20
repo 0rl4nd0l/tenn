@@ -46,6 +46,19 @@ def _label_candidates(metric_name: str) -> tuple[str, ...]:
     return tuple(ordered)
 
 
+def verify_single_metric(metric_name: str, value: Any, raw_text: str | None) -> bool:
+    """Same acceptance rule as ``verify_metrics`` for one (metric, value) pair."""
+    name = str(metric_name or "").strip()
+    if not name:
+        return False
+    numeric_ok = numeric_match(value, raw_text)
+    context_ok = any(
+        verify_with_context(value, label, raw_text)
+        for label in _label_candidates(name)
+    )
+    return bool(numeric_ok and context_ok)
+
+
 def verify_metrics(metrics: Mapping[str, Any] | None, raw_text: str | None) -> dict[str, Any]:
     verified: dict[str, Any] = {}
     rejected: dict[str, dict[str, Any]] = {}
@@ -54,14 +67,14 @@ def verify_metrics(metrics: Mapping[str, Any] | None, raw_text: str | None) -> d
         metric_name = str(metric or "").strip()
         if not metric_name:
             continue
-        numeric_ok = numeric_match(value, raw_text)
-        context_ok = any(
-            verify_with_context(value, label, raw_text)
-            for label in _label_candidates(metric_name)
-        )
-        if numeric_ok and context_ok:
+        if verify_single_metric(metric_name, value, raw_text):
             verified[metric_name] = value
         else:
+            numeric_ok = numeric_match(value, raw_text)
+            context_ok = any(
+                verify_with_context(value, label, raw_text)
+                for label in _label_candidates(metric_name)
+            )
             rejected[metric_name] = {
                 "value": value,
                 "numeric_match": bool(numeric_ok),
