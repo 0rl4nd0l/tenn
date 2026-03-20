@@ -1,0 +1,55 @@
+llm:
+  provider: ollama
+  ollama_url: http://localhost:11434
+  model: qwen2.5:32b
+  timeout_seconds: 300
+
+paths:
+  allow_roots:
+    - .
+    - ./reports
+    - ./data
+  default_workspace: .
+
+memory:
+  mode: global_persisted
+  state_db: ~/.financial_engine_cockpit/state.db
+
+actions:
+  confirm_required: true
+
+backend:
+  api_base_url: http://localhost:8000
+  auto_start: true
+  start_command:
+    - ./scripts/run_local_backend.sh
+  startup_timeout_seconds: 25
+
+web:
+  enabled_default: false
+
+db:
+  diagnostic_query_enabled: false
+
+exports:
+  dir: reports/analysis
+  chat_window_messages: 40
+
+reports:
+  dir: reports
+
+rag:
+  enabled: true
+  qualitative_context:
+    db_path: reports/qual_context/company.sqlite
+    embed_backend: hash
+    embed_model: hash
+    st_device: auto
+    dependency_policy: fallback_hash
+    corpus_filter: company
+    top_k: 8
+    max_text_chars: 1200
+  news_context:
+    enabled: true
+    corpus_filter: news
+    top_k: 4

@@ -292,3 +292,147 @@ class SettingsScreen(Screen):
             "web": self.app.config.get("web", {}),
         }
         self.query_one("#settings-json", Static).update(json.dumps(payload, indent=2))
+
+
+_LOOKBACK_OPTIONS: list[tuple[str, str]] = [
+    ("24h", "24h"),
+    ("7d", "7d"),
+    ("30d", "30d"),
+    ("All", "all"),
+]
+
+_LOOKBACK_DATE_FROM: dict[str, str | None] = {
+    "24h": None,  # computed at search time
+    "7d": None,
+    "30d": None,
+    "all": None,
+}
+
+
+class NewsSearchScreen(Screen):
+    BINDINGS = [("escape", "app.show_chat", "Back")]
+
+    def compose(self) -> ComposeResult:
+        from datetime import datetime, timedelta, timezone
+
+        yield Label("News Search")
+        yield Horizontal(
+            Input(placeholder="Search query", id="news-query"),
+            Input(placeholder="Ticker (optional)", id="news-ticker"),
+            id="news-inputs-row1",
+        )
+        yield Horizontal(
+            Input(placeholder="date_from YYYY-MM-DD (optional)", id="news-date-from"),
+            Input(placeholder="date_to YYYY-MM-DD (optional)", id="news-date-to"),
+            Select(
+                [(label, value) for label, value in _LOOKBACK_OPTIONS],
+                value="all",
+                id="news-lookback",
+                prompt="Lookback",
+            ),
+            id="news-inputs-row2",
+        )
+        yield Horizontal(
+            Button("Search", id="news-search", variant="primary"),
+            Button("Clear", id="news-clear"),
+            id="news-controls",
+        )
+        yield Static("", id="news-source-status")
+        yield RichLog(id="news-results", wrap=True, markup=False)
+
+    def _compute_date_from(self, lookback: str) -> str | None:
+        from datetime import datetime, timedelta, timezone
+
+        now = datetime.now(timezone.utc)
+        if lookback == "24h":
+            return (now - timedelta(hours=24)).strftime("%Y-%m-%d")
+        if lookback == "7d":
+            return (now - timedelta(days=7)).strftime("%Y-%m-%d")
+        if lookback == "30d":
+            return (now - timedelta(days=30)).strftime("%Y-%m-%d")
+        return None
+
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "news-clear":
+            self.query_one("#news-query", Input).value = ""
+            self.query_one("#news-ticker", Input).value = ""
+            self.query_one("#news-date-from", Input).value = ""
+            self.query_one("#news-date-to", Input).value = ""
+            self.query_one("#news-results", RichLog).clear()
+            self.query_one("#news-source-status", Static).update("")
+            return
+
+        if event.button.id == "news-search":
+            await self._run_search()
+
+    async def on_input_submitted(self, event: Input.Submitted) -> None:
+        if event.input.id in ("news-query", "news-ticker", "news-date-from", "news-date-to"):
+            await self._run_search()
+
+    async def _run_search(self) -> None:
+        query = self.query_one("#news-query", Input).value.strip()
+        ticker_raw = self.query_one("#news-ticker", Input).value.strip().upper()
+        date_from_raw = self.query_one("#news-date-from", Input).value.strip()
+        date_to_raw = self.query_one("#news-date-to", Input).value.strip()
+        lookback = str(self.query_one("#news-lookback", Select).value or "all")
+        log = self.query_one("#news-results", RichLog)
+        source_status = self.query_one("#news-source-status", Static)
+
+        if not query:
+            log.write("Enter a search query.")
+            return
+
+        log.clear()
+        log.write("Searching...")
+
+        # Date range: explicit inputs take priority over lookback selector.
+        date_from = date_from_raw or self._compute_date_from(lookback)
+        date_to = date_to_raw or None
+        ticker = ticker_raw or None
+
+        tool_router = self.app.tool_router
+        try:
+            result = tool_router.get_news_context(
+                query=query,
+                top_k=20,
+                ticker=ticker,
+                date_from=date_from,
+                date_to=date_to,
+            )
+        except Exception as exc:
+            log.clear()
+            log.write(f"Error: {exc}")
+            source_status.update("[ERROR] Search failed")
+            return
+
+        log.clear()
+        source = result.get("_source", "unknown")
+        hits = result.get("hits") or []
+
+        if source == "qdrant":
+            source_status.update("Source: Qdrant")
+        else:
+            source_status.update("Source: SQLite (fallback) [WARNING: Qdrant unavailable]")
+
+        if not hits:
+            log.write("No results found.")
+            return
+
+        for i, hit in enumerate(hits, 1):
+            title = str(hit.get("title") or hit.get("headline") or "(no title)")
+            provider = str(hit.get("provider") or hit.get("source") or hit.get("source_domain") or "")
+            published = str(hit.get("published_at") or hit.get("doc_date") or "")
+            hit_ticker = str(hit.get("ticker") or "")
+            score = hit.get("score") or hit.get("final_score") or hit.get("semantic_score")
+            score_str = f"{float(score):.4f}" if score is not None else "n/a"
+
+            line_parts = [f"[{i}] {title}"]
+            if provider:
+                line_parts.append(f"  Source: {provider}")
+            if published:
+                line_parts.append(f"  Published: {published}")
+            if hit_ticker:
+                line_parts.append(f"  Ticker: {hit_ticker}")
+            line_parts.append(f"  Score: {score_str}")
+            log.write("\n".join(line_parts))
+            log.write("")

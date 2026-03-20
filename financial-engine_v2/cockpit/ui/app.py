@@ -31,6 +31,7 @@ from cockpit.ui.screens import (
     ChatScreen,
     ConfirmActionScreen,
     HistoryScreen,
+    NewsSearchScreen,
     OperationsScreen,
     SettingsScreen,
     UpdaterScreen,
@@ -62,6 +63,7 @@ class CockpitApp(App):
         Binding("v", "show_verification", "Verify"),
         Binding("h", "show_history", "History"),
         Binding("s", "show_settings", "Settings"),
+        Binding("ctrl+n", "show_news_search", "News Search"),
         Binding("x", "export_copy_bundle", "Export"),
         Binding("q", "quit", "Quit"),
     ]
@@ -139,6 +141,7 @@ class CockpitApp(App):
         self.install_screen(VerificationScreen(), name="verification")
         self.install_screen(HistoryScreen(), name="history")
         self.install_screen(SettingsScreen(), name="settings")
+        self.install_screen(NewsSearchScreen(), name="news_search")
         # Defer initial screen activation one tick to avoid startup stack race.
         self.set_timer(0.01, self._activate_initial_screen)
 
@@ -505,6 +508,9 @@ class CockpitApp(App):
 
     def action_show_settings(self) -> None:
         self.push_screen("settings")
+
+    def action_show_news_search(self) -> None:
+        self.push_screen("news_search")
 
     def _activate_initial_screen(self) -> None:
         # Only push if app is still on default screen.
