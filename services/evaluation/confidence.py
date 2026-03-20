@@ -132,7 +132,15 @@ def _defer_non_financial_unknown_fallback(
     row_count: int,
     coverage: float,
     anomaly: Mapping[str, Any],
+    method_status: str | None = None,
 ) -> bool:
+    # If the extractor itself failed (e.g. pdftotext couldn't find any metric candidates),
+    # we should not "defer" fallback on the assumption that the PDF is non-financial.
+    # Instead, attempt a higher-recall extraction route (e.g. Docling).
+    normalized_status = str(method_status or "").strip().lower()
+    if normalized_status in {"failed", "error", "crash"}:
+        return False
+
     if is_financial is not False:
         return False
     if str(doc_type or "").strip().lower() != "unknown":
@@ -226,13 +234,27 @@ def _first_diagnostics(method_payload: Mapping[str, Any]) -> Mapping[str, Any]:
 
 
 def metric_coverage(method_payload: Mapping[str, Any]) -> float:
-    val = method_payload.get("metric_coverage_rate")
-    if isinstance(val, (int, float)):
-        return _clamp(float(val))
-
+    # Coverage is evaluated only against REQUIRED_METRICS so routing/confidence
+    # behavior stays stable even if the canonical output metric set expands.
     canonical_metrics = method_payload.get("canonical_metrics")
-    if isinstance(canonical_metrics, Mapping) and canonical_metrics:
-        return _clamp(float(len(canonical_metrics)) / 5.0)
+    if not isinstance(canonical_metrics, Mapping):
+        return 0.0
+
+    present = 0
+    for metric in REQUIRED_METRICS:
+        if metric not in canonical_metrics:
+            continue
+        value = canonical_metrics.get(metric)
+        if value is None:
+            continue
+        try:
+            float(str(value))
+            # Allow zero values too; we only care that it's parseable.
+            present += 1
+        except Exception:
+            continue
+
+    return _clamp(present / float(max(1, len(REQUIRED_METRICS))))
 
     score = method_payload.get("score")
     if isinstance(score, Mapping):
@@ -343,7 +365,8 @@ def compute_confidence(method_payload: dict[str, Any]) -> float:
         severity = str(anomaly.get("severity") or "low").lower()
         penalty = _clamp(_float_or_default(ANOMALY_PENALTIES.get(severity), ANOMALY_PENALTIES["low"]))
         confidence *= penalty
-    verification_ratio = _clamp(_float_or_default(payload.get("verification_ratio"), 1.0))
+    # Fail-closed: missing verification_ratio means "unverified".
+    verification_ratio = _clamp(_float_or_default(payload.get("verification_ratio"), 0.0))
     confidence *= verification_ratio
     confidence = max(confidence, 0.05)
     return round(_clamp(confidence), 6)
@@ -395,6 +418,7 @@ def fallback_reasons(
     canonical_metric_count = _canonical_metric_count(payload)
     row_count = _row_count(payload)
     anomaly = _effective_anomaly(payload)
+    method_status = str(payload.get("status") or "").strip().lower()
     resolved_confidence_threshold, resolved_min_coverage = _resolve_thresholds(
         doc_type=doc_type,
         complexity_bucket=complexity_bucket,
@@ -411,6 +435,7 @@ def fallback_reasons(
         row_count=row_count,
         coverage=float(coverage),
         anomaly=anomaly,
+        method_status=method_status,
     ):
         if bool(anomaly.get("has_anomaly")) and str(anomaly.get("severity") or "").lower() == "high":
             reasons.append("financial_anomaly")

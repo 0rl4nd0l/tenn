@@ -84,7 +84,10 @@ def _metric_coverage(method_payload: Mapping[str, Any]) -> float:
         return _clamp(float(metric_coverage_rate))
     canonical_metrics = method_payload.get("canonical_metrics")
     if isinstance(canonical_metrics, Mapping):
-        return _clamp(float(len(canonical_metrics)) / 5.0)
+        from services.evaluation.normalizer import canonical_metric_keys  # local import to avoid cycles
+
+        denom = float(max(1, len(canonical_metric_keys())))
+        return _clamp(float(len(canonical_metrics)) / denom)
     return 0.0
 
 

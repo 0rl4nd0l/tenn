@@ -14,11 +14,47 @@ def normalize_numeric_string(s: Any) -> str:
 def numeric_match(value: Any, text: str | None) -> bool:
     if text is None:
         return False
-    v = normalize_numeric_string(value)
-    t = normalize_numeric_string(text)
-    if not v:
+    raw = str(text)
+    if not raw:
         return False
-    return v in t
+
+    candidates: list[str] = []
+    v0 = normalize_numeric_string(value)
+    if v0:
+        candidates.append(v0)
+
+    # Add common scale variants (k/m/b) so extracted normalized values can still be
+    # verified against PDF-rendered units like "1,234" or "1.234".
+    try:
+        num = float(value)
+    except (TypeError, ValueError):
+        num = None
+    if num is not None:
+        for scale in (1.0, 1e3, 1e6, 1e9, 1e12):
+            scaled = num / scale
+            for rounded in (round(scaled), round(scaled, 1), round(scaled, 2)):
+                c = normalize_numeric_string(rounded)
+                if c:
+                    candidates.append(c)
+
+    # De-dup candidates and reject empty.
+    seen: set[str] = set()
+    uniq: list[str] = []
+    for c in candidates:
+        if c and c not in seen:
+            uniq.append(c)
+            seen.add(c)
+    if not uniq:
+        return False
+
+    sep = r"[,\s\.\u00A0]*"
+    for v in uniq:
+        escaped_digits = [re.escape(ch) for ch in v]
+        body = sep.join(escaped_digits)
+        pattern = re.compile(rf"(?<!\d){body}(?!\d)")
+        if pattern.search(raw):
+            return True
+    return False
 
 
 def verify_with_context(value: Any, label: Any, raw_text: str | None, window: int = 120) -> bool:

@@ -19,6 +19,26 @@ def _normalize_space(value: object) -> str:
     return re.sub(r"\s+", " ", str(value or "")).strip()
 
 
+def _strip_unicode_numeric_spaces(s: str) -> str:
+    for ch in ("\u00a0", "\u2009", "\u202f", "\u2007", "\u2060"):
+        s = s.replace(ch, "")
+    return s
+
+
+def _maybe_european_decimal_to_us(s: str) -> str:
+    """If s looks like EU-style grouping (1.234,56), convert to US decimal form."""
+    if "," not in s or "." not in s:
+        return s
+    last_comma = s.rfind(",")
+    dec = s[last_comma + 1 :]
+    if not re.fullmatch(r"\d{1,4}", dec):
+        return s
+    int_part = s[:last_comma]
+    if not re.fullmatch(r"\d{1,3}(?:\.\d{3})+", int_part):
+        return s
+    return int_part.replace(".", "") + "." + dec
+
+
 def parse_accounting_number(value: object) -> Optional[float]:
     """Parse a numeric token with accounting-style negatives."""
     if isinstance(value, bool):
@@ -28,9 +48,22 @@ def parse_accounting_number(value: object) -> Optional[float]:
     if value is None:
         return None
 
-    parsed_value = _normalize_space(value)
+    parsed_value = str(value or "").strip()
+    parsed_value = _strip_unicode_numeric_spaces(parsed_value)
+    parsed_value = _normalize_space(parsed_value)
     if not parsed_value:
         return None
+
+    # Strip a single leading currency / ISO prefix (OCR often glues symbols to amounts).
+    parsed_value = re.sub(
+        r"^(?:(?:USD|AUD|NZD|EUR|GBP)\s+|(?:A|US|C|NZ)?[$€£]\s*)",
+        "",
+        parsed_value,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    parsed_value = parsed_value.strip()
+    parsed_value = _maybe_european_decimal_to_us(parsed_value)
 
     negative_parentheses = parsed_value.startswith("(") and parsed_value.endswith(")")
     if negative_parentheses:

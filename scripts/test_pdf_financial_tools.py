@@ -198,6 +198,24 @@ class TestExtractFinancialMetrics(unittest.TestCase):
         self.assertTrue(guidance_rows)
         self.assertEqual(guidance_rows[0]["value_type"], "text")
 
+    def test_guidance_metric_does_not_match_drill_targets_word(self):
+        line = "Results. potential remaining targets."
+        rows = EXTRACT.parse_line(Path("dummy.pdf"), 592, line, strict_table_only=False)
+        self.assertEqual([r for r in rows if r["metric"] == "guidance"], [])
+
+    def test_guidance_metric_does_not_match_policy_business_english(self):
+        line = (
+            "As set out in our guidance for 2022, we will continue to invest in growth this year. "
+            "Investment will include further"
+        )
+        rows = EXTRACT.parse_line(Path("dummy.pdf"), 37, line, strict_table_only=False)
+        self.assertEqual([r for r in rows if r["metric"] == "guidance"], [])
+
+    def test_guidance_metric_does_not_match_expects_that_mineral_resources(self):
+        line = "29Metals expects that its updated Mineral Resources estimates will incorporate the results"
+        rows = EXTRACT.parse_line(Path("dummy.pdf"), 214, line, strict_table_only=False)
+        self.assertEqual([r for r in rows if r["metric"] == "guidance"], [])
+
     def test_confidence_scores_money_higher_than_text(self):
         amount_row = {
             "metric": "revenue",
@@ -2712,6 +2730,32 @@ class TestMetricAccuracy(unittest.TestCase):
     def test_parse_scaled_number_invalid_returns_none(self):
         self.assertIsNone(EXTRACT.parse_scaled_number("n/a", None))
         self.assertIsNone(EXTRACT.parse_scaled_number("", "m"))
+
+    def test_parse_numeric_word_token_paren_prefixed_currency(self):
+        p = EXTRACT.parse_numeric_word_token("($1,234)")
+        self.assertIsNotNone(p)
+        self.assertEqual(p.get("value_type"), "amount")
+        self.assertEqual(p.get("value"), 1234.0)
+        self.assertEqual(p.get("currency"), "$")
+
+    def test_parse_numeric_word_token_usd_in_parens(self):
+        p = EXTRACT.parse_numeric_word_token("(US$1,234)")
+        self.assertIsNotNone(p)
+        self.assertEqual(p.get("value"), 1234.0)
+        self.assertEqual(p.get("currency"), "US$")
+
+    def test_parse_numeric_word_token_trailing_period_after_amount(self):
+        p = EXTRACT.parse_numeric_word_token("1,234.")
+        self.assertIsNotNone(p)
+        self.assertEqual(p.get("value_type"), "amount")
+        self.assertEqual(p.get("value"), 1234.0)
+
+    def test_parse_numeric_word_token_search_fallback_currency(self):
+        # Letter before "$" blocks NUM_RE's leading-edge match; punctuation does not.
+        p = EXTRACT.parse_numeric_word_token(";$1,234")
+        self.assertIsNotNone(p)
+        self.assertEqual(p.get("value"), 1234.0)
+        self.assertEqual(p.get("currency"), "$")
 
     def test_apply_unit_multiplier_scales_money_metric(self):
         row = {

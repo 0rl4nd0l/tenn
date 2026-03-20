@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from services.extraction.pdf_classifier import classify_pdf
+from services.evaluation.normalizer import canonical_metric_keys
 
 
 DEFAULT_EXTRACTOR = "financial_metrics_pdftotext"
@@ -28,7 +29,8 @@ def _coverage(method_payload: Mapping[str, Any] | None) -> float:
         return float(metric_coverage)
     canonical_metrics = method_payload.get("canonical_metrics")
     if isinstance(canonical_metrics, Mapping):
-        return float(len(canonical_metrics)) / 5.0
+        denom = float(max(1, len(canonical_metric_keys())))
+        return float(len(canonical_metrics)) / denom
     return 0.0
 
 

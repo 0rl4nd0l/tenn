@@ -18,8 +18,11 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from financial_normalization import (
     normalize_financial_value,
@@ -36,6 +39,14 @@ from table_scope_classifier import classify_table_scope
 from table_structure_reconciliation import compute_table_identity, detect_year_columns, reconcile_table_dataframe
 from validate_financial_coverage_gates import build_report as build_financial_coverage_gate_report
 from validate_financial_metrics_gates import build_report as build_financial_metrics_gate_report
+
+from services.extraction.ocr_policy import (
+    OcrPolicySignals,
+    apply_force_full_page_ocr_to_pipeline,
+    decide_forced_ocr,
+    count_numeric_canonical_rows,
+    pdf_page_count,
+)
 
 
 DEFAULT_DOCUMENT_QUARANTINE_RULES_PATH = (
@@ -295,7 +306,7 @@ METRIC_PATTERNS: List[Tuple[str, re.Pattern[str]]] = [
     ("shares_outstanding", re.compile(r"\b(shares outstanding|shares on issue|issued shares|ordinary shares on issue|weighted average number of ordinary shares)\b", re.IGNORECASE)),
     ("roic_pct", re.compile(r"\b(roic|return on invested capital)\b", re.IGNORECASE)),
     ("capex", re.compile(r"\b(capex|capital expenditure)\b", re.IGNORECASE)),
-    ("guidance", re.compile(r"\b(guidance|outlook|forecast|expects?|targets?)\b", re.IGNORECASE)),
+    ("guidance", re.compile(r"\b(guidance|outlook|forecast)\b", re.IGNORECASE)),
     ("growth_pct", GROWTH_LABEL_RE),
 ]
 METRIC_PATTERN_MAP = {metric: pat for metric, pat in METRIC_PATTERNS}
@@ -315,6 +326,20 @@ TABLE_COMPARATIVE_NARRATIVE_RE = re.compile(
 )
 TABLE_SENTENCE_CONTEXT_RE = re.compile(
     r"\b(with|while|because|therefore|reflecting|driven|following|which|that|due to|to settle|had available|amounted to)\b",
+    re.IGNORECASE,
+)
+# Narrative uses of "guidance" that are not extractable FY/outlook guidance (metric hit filter).
+GUIDANCE_POLICY_NARRATIVE_RE = re.compile(
+    r"(?:"
+    r"\b(?:"
+    r"(?:accounting|regulatory|policy)\s+guidance|"
+    r"guidance\s+(?:on|from|issued|under)\s+(?:accounting|the\s+)?(?:policies|standards?)|"
+    r"corporate\s+governance|"
+    r"(?:ifrs|ias|aasb)\s+guidance"
+    r")\b|"
+    r"\bour\s+guidance\s+for\s+\d{4},\s*we\s+will\b|"
+    r"\bguidance\s+for\s+\d{4},\s*we\s+(?:will|continue)\b"
+    r")",
     re.IGNORECASE,
 )
 TABLE_ROW_CONTAMINATION_RE = re.compile(
@@ -507,7 +532,7 @@ METRIC_TABLE_LABELS: Dict[str, re.Pattern[str]] = {
     ),
     "roic_pct": re.compile(r"\b(roic|return\s+on\s+invested\s+capital)\b", re.IGNORECASE),
     "capex": re.compile(r"\b(capex|capital\s+expenditure)\b", re.IGNORECASE),
-    "guidance": re.compile(r"\b(guidance|outlook|forecast|expects?|targets?)\b", re.IGNORECASE),
+    "guidance": re.compile(r"\b(guidance|outlook|forecast)\b", re.IGNORECASE),
     "growth_pct": GROWTH_LABEL_RE,
 }
 UNIT_HINT_RE = [
@@ -930,17 +955,62 @@ def parse_bbox_layout_lines(pdf: Path, timeout_sec: Optional[float] = None) -> L
 
 def _clean_numeric_token(text: str) -> str:
     t = text.replace("\u2212", "-").strip()
+    for ch in ("\u00a0", "\u2009", "\u202f", "\u2007", "\u2060"):
+        t = t.replace(ch, "")
     t = t.strip("[]{}")
     # Strip trailing punctuation that is not part of numeric formats.
     while t and t[-1] in {";", ":"}:
         t = t[:-1]
     if t.endswith(","):
         t = t[:-1]
+    # Sentence-ending period after a numeric token (e.g. "1,234.") — not a decimal fraction.
+    if t.endswith(".") and not re.search(r"\.\d+$", t):
+        t = t[:-1].rstrip()
     return t.strip()
 
 
+def _unwrap_paren_currency_token(t: str) -> str:
+    """Turn `(US$1,234)` / `($1,234)` into `US$1,234` / `$1,234` for NUM_RE/NUM_TOKEN_RE."""
+    m = re.fullmatch(r"\(\s*((?:A|US|C|NZ)?[$€£])[\s]*([^)]*)\)\s*", t)
+    if m:
+        return f"{m.group(1)}{m.group(2)}".strip()
+    return t
+
+
+def _amount_dict_from_num_regex_match(m: re.Match[str], raw_value: str) -> Optional[Dict[str, object]]:
+    raw_num = m.group("num")
+    suffix = m.group("suffix") or ""
+    val = parse_scaled_number(raw_num, suffix)
+    if val is None:
+        return None
+    currency = m.group("currency") or ""
+    return {
+        "raw_value": raw_value,
+        "value_type": "amount",
+        "value": float(val),
+        "currency": currency,
+        "suffix": suffix,
+        "minor_for_table": (
+            (not (currency or suffix))
+            and (
+                (
+                    float(val).is_integer()
+                    and (
+                        1900 <= abs(float(val)) <= 2100
+                        or len(raw_num.replace(",", "").replace("(", "").replace(")", "").replace("-", "")) <= 2
+                    )
+                )
+                or ("." in raw_num and abs(float(val)) < 10.0)
+            )
+        ),
+    }
+
+
 def parse_numeric_word_token(word_text: str) -> Optional[Dict[str, object]]:
-    t = _clean_numeric_token(word_text)
+    t0 = _clean_numeric_token(word_text)
+    t = _unwrap_paren_currency_token(t0)
+    if t != t0:
+        t = _clean_numeric_token(t)
     if not t:
         return None
 
@@ -961,32 +1031,10 @@ def parse_numeric_word_token(word_text: str) -> Optional[Dict[str, object]]:
 
     m = NUM_TOKEN_RE.fullmatch(t)
     if not m:
+        m = NUM_RE.search(t)
+    if not m:
         return None
-    raw_num = m.group("num")
-    suffix = m.group("suffix") or ""
-    val = parse_scaled_number(raw_num, suffix)
-    if val is None:
-        return None
-    return {
-        "raw_value": t,
-        "value_type": "amount",
-        "value": float(val),
-        "currency": m.group("currency") or "",
-        "suffix": suffix,
-        "minor_for_table": (
-            (not (m.group("currency") or suffix))
-            and (
-                (
-                    float(val).is_integer()
-                    and (
-                        1900 <= abs(float(val)) <= 2100
-                        or len(raw_num.replace(",", "").replace("(", "").replace(")", "").replace("-", "")) <= 2
-                    )
-                )
-                or ("." in raw_num and abs(float(val)) < 10.0)
-            )
-        ),
-    }
+    return _amount_dict_from_num_regex_match(m, t)
 
 
 def cluster_positions(xs: List[float], tol: float = 26.0) -> List[float]:
@@ -4755,8 +4803,8 @@ def extract_table_metrics(
     return selected
 
 
-_DOCLING_CONVERTER_CACHE: Dict[Tuple[bool, str, int], object] = {}
-_DOCLING_INIT_ERROR_CACHE: Dict[Tuple[bool, str, int], str] = {}
+_DOCLING_CONVERTER_CACHE: Dict[Tuple[bool, str, int, bool], object] = {}
+_DOCLING_INIT_ERROR_CACHE: Dict[Tuple[bool, str, int, bool], str] = {}
 
 
 def _docling_cuda_available() -> bool:
@@ -4796,14 +4844,17 @@ def _get_docling_converter(
     do_ocr: bool = False,
     table_mode: str = "fast",
     num_threads: int = 0,
+    *,
+    force_full_page_ocr: bool = False,
 ):
     """Lazily initialize and cache a Docling converter for this process."""
-    use_ocr = False
+    use_ocr = bool(do_ocr)
     mode = str(table_mode or "fast").strip().lower()
     if mode not in {"accurate", "fast"}:
         mode = "fast"
     threads = int(num_threads or 0)
-    cache_key = (use_ocr, mode, max(0, threads))
+    ff = bool(force_full_page_ocr) and use_ocr
+    cache_key = (use_ocr, mode, max(0, threads), ff)
     cached_converter = _DOCLING_CONVERTER_CACHE.get(cache_key)
     if cached_converter is not None:
         return cached_converter, None
@@ -4819,8 +4870,7 @@ def _get_docling_converter(
         _DOCLING_INIT_ERROR_CACHE[cache_key] = "Docling environment not available. Ensure .venv-docling-gpu exists."
         return None, _DOCLING_INIT_ERROR_CACHE[cache_key]
     try:
-        pipeline_options = PdfPipelineOptions(do_ocr=False, do_table_structure=True)
-        pipeline_options.do_ocr = False
+        pipeline_options = PdfPipelineOptions(do_ocr=use_ocr, do_table_structure=True)
         pipeline_options.do_table_structure = True
         if hasattr(pipeline_options, "do_layout_analysis"):
             pipeline_options.do_layout_analysis = True
@@ -4828,6 +4878,7 @@ def _get_docling_converter(
         pipeline_options.table_structure_options.do_cell_matching = False
         if threads > 0:
             pipeline_options.accelerator_options.num_threads = threads
+        apply_force_full_page_ocr_to_pipeline(pipeline_options, ff)
         converter = DocumentConverter(
             format_options={
                 InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options),
@@ -5519,8 +5570,11 @@ def classify_statement_context(lines: List[str], idx_1based: int, active_section
 
 def iter_metric_hits(line: str) -> Iterable[str]:
     hits: List[str] = []
+    skip_guidance_policy = bool(GUIDANCE_POLICY_NARRATIVE_RE.search(line))
     for metric, pat in METRIC_PATTERNS:
         if pat.search(line):
+            if metric == "guidance" and skip_guidance_policy:
+                continue
             hits.append(metric)
     hit_set = set(hits)
     if "operating_cash_flow" in hit_set and any(m in hit_set for m in OCF_COMPONENT_METRICS):
@@ -5674,6 +5728,16 @@ def resolve_canonical_conflicts(canonical_rows: List[Dict[str, object]]) -> Tupl
             rows,
             key=lambda r: (
                 1 if str(r.get("canonical_tier", "strict")).strip().lower() == "strict" else 0,
+                1
+                if (
+                    (
+                        parse_accounting_number(
+                            str(r.get("raw_value") or r.get("value") or "").replace("$", "").replace("€", "").replace("£", "")
+                        )  # type: ignore[arg-type]
+                        is not None
+                    )
+                )
+                else 0,
                 int(r.get("canonical_confidence_score", 0)),
                 1 if _is_strong_metric_row_label(str(r.get("metric", "")), str(r.get("row_label", ""))) else 0,
                 0 if _is_layout_weak(str(r.get("statement_title", "")), str(r.get("table_header_text", ""))) else 1,
@@ -6816,8 +6880,37 @@ def _primary_row_rank(row: Dict[str, object]) -> Tuple[int, int, int, int, int, 
     row_label = str(row.get("row_label", ""))
     source_mode = str(row.get("source_mode", "")).strip().lower()
     doc_profile_score = int(DOC_PROFILE_PREFERENCE.get(_document_profile_from_row(row), 0))
+    # Prefer rows that actually contain a parseable numeric value, even when
+    # confidence/period extraction is weak. Without this, label-only rows
+    # can be incorrectly promoted to "primary_metric_value".
+    raw = row.get("raw_value")
+    val = row.get("value")
+    raw_s = ""
+    if isinstance(raw, str):
+        raw_s = raw
+    elif raw is not None:
+        raw_s = str(raw)
+    val_s = ""
+    if isinstance(val, str):
+        val_s = val
+    elif val is not None and not isinstance(val, (int, float)):
+        val_s = str(val)
+    has_numeric = 0
+    try:
+        raw_norm = raw_s.replace("$", "").replace("€", "").replace("£", "")
+        val_norm = val_s.replace("$", "").replace("€", "").replace("£", "")
+        if raw_s.strip():
+            has_numeric = 1 if parse_accounting_number(raw_norm) is not None else 0
+        elif isinstance(val, (int, float)):
+            has_numeric = 1 if val is not None else 0
+        elif val_s.strip():
+            has_numeric = 1 if parse_accounting_number(val_norm) is not None else 0
+    except Exception:
+        has_numeric = 0
+
     return (
         1 if str(row.get("canonical_tier", "strict")).strip().lower() == "strict" else 0,
+        has_numeric,
         -_primary_variant_rank(str(row.get("metric_variant", ""))),
         int(row.get("canonical_confidence_score", 0) or 0),
         doc_profile_score,
@@ -7476,6 +7569,11 @@ def main() -> int:
         help="Enable OCR in Docling. Default is disabled for faster parsing on text-layer PDFs.",
     )
     ap.add_argument(
+        "--no-docling-auto-ocr",
+        action="store_true",
+        help="Disable automatic forced-OCR retry for hard PDFs (low text density, empty tables, etc.).",
+    )
+    ap.add_argument(
         "--docling-table-mode",
         choices=["auto", "accurate", "fast"],
         default="auto",
@@ -7601,12 +7699,12 @@ def main() -> int:
                 f"cuda_available={cuda_available} "
                 f"table_mode={docling_table_mode} "
                 f"num_threads={docling_num_threads if docling_num_threads > 0 else 'default'} "
-                "ocr=False"
+                f"ocr={bool(args.docling_ocr)}"
             ),
             file=sys.stderr,
         )
         docling_converter, docling_init_error = _get_docling_converter(
-            do_ocr=False,
+            do_ocr=bool(args.docling_ocr),
             table_mode=docling_table_mode,
             num_threads=docling_num_threads,
         )
@@ -7712,6 +7810,7 @@ def main() -> int:
                 "consistency_report": {"failed_checks": []},
             }
             docling_split_diagnostics: Dict[str, object] = {}
+            forced_ocr_policy_audit: Dict[str, object] = {}
             try:
                 document_classifier = normalize_document_classifier_result(classify_document(pdf))
             except Exception as e:
@@ -7751,6 +7850,93 @@ def main() -> int:
                                 docling_row_count_before_filtering,
                                 tsr_tables_processed,
                             )
+                        if bool(args.docling_ocr):
+                            forced_ocr_policy_audit = dict(
+                                decide_forced_ocr(
+                                    OcrPolicySignals(0, 1, 0, 0, 0, 0),
+                                    user_requested_docling_ocr=True,
+                                )
+                            )
+                        elif bool(args.no_docling_auto_ocr):
+                            try:
+                                text_layer = extract_pdf_text(pdf, timeout_sec=args.pdftotext_timeout_sec)
+                            except (PDFParseTimeoutError, subprocess.CalledProcessError, OSError):
+                                text_layer = ""
+                            pages = pdf_page_count(pdf)
+                            canon_num = count_numeric_canonical_rows(list(split.get("canonical_rows", [])))
+                            ctx_n = len(list(split.get("context_rows", [])))
+                            forced_ocr_policy_audit = dict(
+                                decide_forced_ocr(
+                                    OcrPolicySignals(
+                                        text_layer_chars=len(text_layer),
+                                        pdf_page_count=pages,
+                                        docling_row_count_before_filtering=docling_row_count_before_filtering,
+                                        tsr_tables_processed=tsr_tables_processed,
+                                        canonical_numeric_rows=canon_num,
+                                        context_row_count=ctx_n,
+                                    ),
+                                    policy_disabled=True,
+                                )
+                            )
+                        else:
+                            try:
+                                text_layer = extract_pdf_text(pdf, timeout_sec=args.pdftotext_timeout_sec)
+                            except (PDFParseTimeoutError, subprocess.CalledProcessError, OSError):
+                                text_layer = ""
+                            pages = pdf_page_count(pdf)
+                            canon_num = count_numeric_canonical_rows(list(split.get("canonical_rows", [])))
+                            ctx_n = len(list(split.get("context_rows", [])))
+                            policy_out = decide_forced_ocr(
+                                OcrPolicySignals(
+                                    text_layer_chars=len(text_layer),
+                                    pdf_page_count=pages,
+                                    docling_row_count_before_filtering=docling_row_count_before_filtering,
+                                    tsr_tables_processed=tsr_tables_processed,
+                                    canonical_numeric_rows=canon_num,
+                                    context_row_count=ctx_n,
+                                ),
+                                user_requested_docling_ocr=False,
+                            )
+                            forced_ocr_policy_audit = dict(policy_out)
+                            if bool(policy_out.get("forced")):
+                                want_ff = bool(policy_out.get("force_full_page_ocr"))
+                                ocr_converter, ocr_init_err = _get_docling_converter(
+                                    do_ocr=True,
+                                    table_mode=docling_table_mode,
+                                    num_threads=docling_num_threads,
+                                    force_full_page_ocr=want_ff,
+                                )
+                                if ocr_converter is not None:
+                                    reasons_txt = ",".join(str(x) for x in (policy_out.get("reasons") or []))
+                                    print(
+                                        f"[info] docling forced OCR policy triggered: {reasons_txt}",
+                                        file=sys.stderr,
+                                    )
+                                    _, blocks, split = extract_table_metrics_docling(
+                                        pdf,
+                                        strict_metric_rows_only=True,
+                                        expanded_metric_scope=bool(args.expanded_metric_scope),
+                                        source_kind=source_kind,
+                                        review_scope="all",
+                                        include_blocks=True,
+                                        converter=ocr_converter,
+                                    )
+                                    docling_split_diagnostics = _document_split_diagnostics(split)
+                                    docling_row_count_before_filtering = int(
+                                        docling_split_diagnostics.get("docling_row_count_before_filtering", 0) or 0
+                                    )
+                                    tsr_tables_processed = int(
+                                        docling_split_diagnostics.get("tsr_tables_processed", 0) or 0
+                                    )
+                                    if strict_docling_mode and strict:
+                                        skip_pdftotext_pass = not should_enable_hybrid(
+                                            docling_row_count_before_filtering,
+                                            tsr_tables_processed,
+                                        )
+                                    forced_ocr_policy_audit["forced_ocr_applied"] = True
+                                    forced_ocr_policy_audit["force_full_page_ocr_requested"] = want_ff
+                                else:
+                                    forced_ocr_policy_audit["forced_ocr_init_error"] = str(ocr_init_err or "")
                         fallback_decision = evaluate_docling_fallback(split)
                         if fallback_decision.get("should_fallback"):
                             reason_text = ",".join(str(reason) for reason in fallback_decision.get("reasons", []))
@@ -7858,6 +8044,7 @@ def main() -> int:
                     "identity_resolution_conflicts": int(selected_split_diagnostics.get("identity_resolution_conflicts", 0) or 0),
                     "consistency_failures": consistency_failures,
                     "normalization_corrections": int(selected_split_diagnostics.get("normalization_corrections", 0) or 0),
+                    "forced_ocr_policy": dict(forced_ocr_policy_audit),
                 }
             )
             rows.extend(list(split.get("canonical_rows", [])))
