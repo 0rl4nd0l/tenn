@@ -15,3 +15,4 @@ lxml==5.3.0
 python-dateutil==2.9.0.post0
 playwright==1.54.0
 textual==0.86.3
+zeroboot @ git+https://github.com/zerobootdev/zeroboot.git@main#subdirectory=sdk/python

@@ -8,6 +8,7 @@ from app.models.asx_financials import ASXPeriodicFinancial, ASXRiskNote
 from app.providers.universe import ASX20
 from app.providers.market_price_provider import MarketPriceProvider, MarketPriceProviderError
 from app.services.pipeline import backfill_ticker_sync
+from app.services.sandbox import run_code as sandbox_run_code
 
 router=APIRouter()
 celery=Celery("fe_api", broker=settings.celery_broker_url, backend=settings.celery_result_backend)
@@ -74,3 +75,23 @@ def backfill_ticker(ticker:str, years:int=1, process_documents:bool=False):
         return {"mode":"sync", **result}
     celery.send_task("backfill_ticker", args=[ticker.upper()], queue="default", routing_key="default")
     return {"mode":"celery","enqueued":1,"ticker":ticker.upper()}
+
+@router.post("/sandbox/exec")
+def sandbox_exec(payload: dict):
+    code = payload.get("code", "")
+    language = payload.get("language", "python")
+    timeout = payload.get("timeout_seconds", 30)
+    if not code:
+        raise HTTPException(status_code=400, detail="code is required")
+    try:
+        result = sandbox_run_code(code, language=language, timeout_seconds=timeout)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return {
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+        "exit_code": result.exit_code,
+        "fork_time_ms": result.fork_time_ms,
+        "exec_time_ms": result.exec_time_ms,
+        "total_time_ms": result.total_time_ms,
+    }

@@ -58,6 +58,10 @@ class Settings(BaseSettings):
     importance_link_mode: str = "symlink"
     importance_sort_source_docs: bool = True
 
+    # Zeroboot sandbox
+    zeroboot_api_key: str = ""
+    zeroboot_base_url: str = "https://api.zeroboot.dev"
+
     class Config:
         env_file = str(PROJECT_ROOT / ".env")
         extra = "ignore"
