@@ -5530,7 +5530,7 @@ def iter_metric_hits(line: str) -> Iterable[str]:
 
 
 def detect_metric_variant(metric: str, row_label: str = "", line_text: str = "", table_header_text: str = "") -> str:
-    if metric not in {"revenue", "gross_profit", "ebitda", "ebit", "net_income", "npat"}:
+    if metric not in {"revenue", "gross_profit", "ebitda", "ebit", "net_income", "npat", "eps", "dps"}:
         return ""
     text = _normalize_space(f"{row_label} {line_text} {table_header_text}").lower()
     if not text:

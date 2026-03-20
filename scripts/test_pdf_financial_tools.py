@@ -2825,5 +2825,36 @@ class TestPdfRag(unittest.TestCase):
         self.assertTrue(any("value_type" in e for e in errors))
 
 
+    def test_detect_metric_variant_underlying_eps_gets_underlying_variant(self):
+        """Underlying EPS row should be tagged as 'underlying', not '' ."""
+        variant = EXTRACT.detect_metric_variant(
+            "eps",
+            row_label="Underlying basic earnings per share",
+            line_text="",
+            table_header_text="",
+        )
+        self.assertEqual(variant, "underlying")
+
+    def test_detect_metric_variant_statutory_eps_gets_empty_variant(self):
+        """Plain statutory EPS row should return '' so it competes separately from underlying."""
+        variant = EXTRACT.detect_metric_variant(
+            "eps",
+            row_label="Basic earnings per share",
+            line_text="",
+            table_header_text="",
+        )
+        self.assertEqual(variant, "")
+
+    def test_detect_metric_variant_dps_underlying_gets_underlying_variant(self):
+        """Underlying DPS should be tagged as 'underlying'."""
+        variant = EXTRACT.detect_metric_variant(
+            "dps",
+            row_label="Underlying dividends per share",
+            line_text="",
+            table_header_text="",
+        )
+        self.assertEqual(variant, "underlying")
+
+
 if __name__ == "__main__":
     unittest.main()
