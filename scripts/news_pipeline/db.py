@@ -629,6 +629,8 @@ class NewsArticleStore:
     ) -> List[Dict[str, Any]]:
         where = []
         args: List[Any] = []
+        # Language gate: only include English, empty, or NULL language articles.
+        where.append("(language IN ('en', '') OR language IS NULL)")
         if provider_filter:
             marks = ",".join(["?"] * len(provider_filter))
             where.append(f"provider_best IN ({marks})")

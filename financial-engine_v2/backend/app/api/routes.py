@@ -1,4 +1,5 @@
 import base64
+from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -331,3 +332,56 @@ def backfill_ticker(ticker:str, years:int=1, process_documents:bool=False):
         routing_key="ingest",
     )
     return {"mode":"celery","enqueued":1,"ticker":ticker.upper()}
+
+@router.get("/rag/query")
+def rag_query(
+    q: str = Query(..., description="Search query text"),
+    top_k: int = Query(10, description="Number of results to return"),
+    provider: Optional[str] = Query(None, description="Filter by provider"),
+    ticker: Optional[str] = Query(None, description="Filter by ticker"),
+    language: Optional[str] = Query("en", description="Filter by language"),
+    date_from: Optional[str] = Query(None, description="ISO date lower bound (inclusive)"),
+    date_to: Optional[str] = Query(None, description="ISO date upper bound (inclusive)"),
+):
+    from qdrant_client import QdrantClient
+    from qdrant_client.http import models as qmodels
+    from app.services.ollama import ollama_embed
+
+    qdrant_url = str(getattr(settings, "qdrant_url", "http://localhost:6333"))
+    embed_model = str(getattr(settings, "embed_model", "nomic-embed-text"))
+    ollama_url = str(getattr(settings, "ollama_url", "http://localhost:11434"))
+    collection = "news_chunks"
+
+    try:
+        vec = ollama_embed([q], model=embed_model, base_url=ollama_url)[0]
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Embedding failed: {exc}") from exc
+
+    must_filters = []
+    if language:
+        must_filters.append(qmodels.FieldCondition(key="language", match=qmodels.MatchValue(value=language)))
+    if provider:
+        must_filters.append(qmodels.FieldCondition(key="provider", match=qmodels.MatchValue(value=provider)))
+    if ticker:
+        must_filters.append(qmodels.FieldCondition(key="ticker", match=qmodels.MatchValue(value=ticker)))
+    if date_from:
+        must_filters.append(qmodels.FieldCondition(key="published_at", range=qmodels.Range(gte=date_from)))
+    if date_to:
+        must_filters.append(qmodels.FieldCondition(key="published_at", range=qmodels.Range(lte=date_to)))
+
+    query_filter = qmodels.Filter(must=must_filters) if must_filters else None
+
+    try:
+        client = QdrantClient(url=qdrant_url)
+        hits = client.search(
+            collection_name=collection,
+            query_vector=vec,
+            limit=int(top_k),
+            query_filter=query_filter,
+            with_payload=True,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Qdrant search failed: {exc}") from exc
+
+    results = [{"score": float(h.score), "payload": h.payload} for h in hits]
+    return {"results": results}

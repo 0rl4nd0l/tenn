@@ -27,6 +27,40 @@ def _first_non_empty(*values: Any) -> str:
     return ""
 
 
+_LANG_NAME_TO_ISO: Dict[str, str] = {
+    "english": "en",
+    "french": "fr",
+    "german": "de",
+    "spanish": "es",
+    "italian": "it",
+    "portuguese": "pt",
+    "dutch": "nl",
+    "chinese": "zh",
+    "japanese": "ja",
+    "korean": "ko",
+    "arabic": "ar",
+    "russian": "ru",
+}
+
+
+def _normalize_language(raw: str) -> str:
+    """Normalize language tag to ISO 639-1 lowercase (e.g. 'English' -> 'en', 'EN' -> 'en')."""
+    txt = str(raw or "").strip().lower()
+    if not txt:
+        return ""
+    if txt in _LANG_NAME_TO_ISO:
+        return _LANG_NAME_TO_ISO[txt]
+    # Already looks like a valid 2-char code.
+    if len(txt) == 2 and txt.isalpha():
+        return txt
+    # Try stripping region suffix (e.g. 'en-US' -> 'en').
+    if "-" in txt:
+        prefix = txt.split("-", 1)[0]
+        if len(prefix) == 2 and prefix.isalpha():
+            return prefix
+    return txt
+
+
 def _utc_date(value: str) -> str:
     ts = parse_datetime_utc(value)
     if not ts:
@@ -346,7 +380,7 @@ class EodhdProvider(ProviderClient):
             extra.get("source"),
             extra.get("site"),
         )
-        language = _first_non_empty(item.get("language"), item.get("lang"), extra.get("language"))
+        language = _normalize_language(_first_non_empty(item.get("language"), item.get("lang"), extra.get("language")))
 
         published_raw = _first_non_empty(
             item.get("published_at"),

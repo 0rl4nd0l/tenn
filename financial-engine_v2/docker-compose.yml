@@ -57,6 +57,26 @@ services:
       redis: { condition: service_started }
       qdrant: { condition: service_started }
 
+  fe_beat:
+    build: { context: ./worker }
+    container_name: fe_beat
+    restart: unless-stopped
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    env_file: [.env]
+    working_dir: /app_worker
+    command: ["celery", "-A", "worker_app.celery_app:celery", "beat", "--loglevel=INFO"]
+    environment:
+      PYTHONPATH: /app_backend:/app_worker
+      BACKEND_APP_ROOT: /app_backend
+    volumes:
+      - ./backend:/app_backend
+      - ./worker:/app_worker
+      - ./data:/data
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
+      qdrant: { condition: service_started }
+
 volumes:
   fe_pgdata:
   fe_qdrant:
