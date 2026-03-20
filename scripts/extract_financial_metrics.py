@@ -18,8 +18,11 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from financial_normalization import (
     normalize_financial_value,
@@ -36,6 +39,14 @@ from table_scope_classifier import classify_table_scope
 from table_structure_reconciliation import compute_table_identity, detect_year_columns, reconcile_table_dataframe
 from validate_financial_coverage_gates import build_report as build_financial_coverage_gate_report
 from validate_financial_metrics_gates import build_report as build_financial_metrics_gate_report
+
+from services.extraction.ocr_policy import (
+    OcrPolicySignals,
+    apply_force_full_page_ocr_to_pipeline,
+    decide_forced_ocr,
+    count_numeric_canonical_rows,
+    pdf_page_count,
+)
 
 
 DEFAULT_DOCUMENT_QUARANTINE_RULES_PATH = (
@@ -4792,8 +4803,8 @@ def extract_table_metrics(
     return selected
 
 
-_DOCLING_CONVERTER_CACHE: Dict[Tuple[bool, str, int], object] = {}
-_DOCLING_INIT_ERROR_CACHE: Dict[Tuple[bool, str, int], str] = {}
+_DOCLING_CONVERTER_CACHE: Dict[Tuple[bool, str, int, bool], object] = {}
+_DOCLING_INIT_ERROR_CACHE: Dict[Tuple[bool, str, int, bool], str] = {}
 
 
 def _docling_cuda_available() -> bool:
@@ -4833,6 +4844,8 @@ def _get_docling_converter(
     do_ocr: bool = False,
     table_mode: str = "fast",
     num_threads: int = 0,
+    *,
+    force_full_page_ocr: bool = False,
 ):
     """Lazily initialize and cache a Docling converter for this process."""
     use_ocr = bool(do_ocr)
@@ -4840,7 +4853,8 @@ def _get_docling_converter(
     if mode not in {"accurate", "fast"}:
         mode = "fast"
     threads = int(num_threads or 0)
-    cache_key = (use_ocr, mode, max(0, threads))
+    ff = bool(force_full_page_ocr) and use_ocr
+    cache_key = (use_ocr, mode, max(0, threads), ff)
     cached_converter = _DOCLING_CONVERTER_CACHE.get(cache_key)
     if cached_converter is not None:
         return cached_converter, None
@@ -4864,6 +4878,7 @@ def _get_docling_converter(
         pipeline_options.table_structure_options.do_cell_matching = False
         if threads > 0:
             pipeline_options.accelerator_options.num_threads = threads
+        apply_force_full_page_ocr_to_pipeline(pipeline_options, ff)
         converter = DocumentConverter(
             format_options={
                 InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options),
@@ -7554,6 +7569,11 @@ def main() -> int:
         help="Enable OCR in Docling. Default is disabled for faster parsing on text-layer PDFs.",
     )
     ap.add_argument(
+        "--no-docling-auto-ocr",
+        action="store_true",
+        help="Disable automatic forced-OCR retry for hard PDFs (low text density, empty tables, etc.).",
+    )
+    ap.add_argument(
         "--docling-table-mode",
         choices=["auto", "accurate", "fast"],
         default="auto",
@@ -7790,6 +7810,7 @@ def main() -> int:
                 "consistency_report": {"failed_checks": []},
             }
             docling_split_diagnostics: Dict[str, object] = {}
+            forced_ocr_policy_audit: Dict[str, object] = {}
             try:
                 document_classifier = normalize_document_classifier_result(classify_document(pdf))
             except Exception as e:
@@ -7829,6 +7850,93 @@ def main() -> int:
                                 docling_row_count_before_filtering,
                                 tsr_tables_processed,
                             )
+                        if bool(args.docling_ocr):
+                            forced_ocr_policy_audit = dict(
+                                decide_forced_ocr(
+                                    OcrPolicySignals(0, 1, 0, 0, 0, 0),
+                                    user_requested_docling_ocr=True,
+                                )
+                            )
+                        elif bool(args.no_docling_auto_ocr):
+                            try:
+                                text_layer = extract_pdf_text(pdf, timeout_sec=args.pdftotext_timeout_sec)
+                            except (PDFParseTimeoutError, subprocess.CalledProcessError, OSError):
+                                text_layer = ""
+                            pages = pdf_page_count(pdf)
+                            canon_num = count_numeric_canonical_rows(list(split.get("canonical_rows", [])))
+                            ctx_n = len(list(split.get("context_rows", [])))
+                            forced_ocr_policy_audit = dict(
+                                decide_forced_ocr(
+                                    OcrPolicySignals(
+                                        text_layer_chars=len(text_layer),
+                                        pdf_page_count=pages,
+                                        docling_row_count_before_filtering=docling_row_count_before_filtering,
+                                        tsr_tables_processed=tsr_tables_processed,
+                                        canonical_numeric_rows=canon_num,
+                                        context_row_count=ctx_n,
+                                    ),
+                                    policy_disabled=True,
+                                )
+                            )
+                        else:
+                            try:
+                                text_layer = extract_pdf_text(pdf, timeout_sec=args.pdftotext_timeout_sec)
+                            except (PDFParseTimeoutError, subprocess.CalledProcessError, OSError):
+                                text_layer = ""
+                            pages = pdf_page_count(pdf)
+                            canon_num = count_numeric_canonical_rows(list(split.get("canonical_rows", [])))
+                            ctx_n = len(list(split.get("context_rows", [])))
+                            policy_out = decide_forced_ocr(
+                                OcrPolicySignals(
+                                    text_layer_chars=len(text_layer),
+                                    pdf_page_count=pages,
+                                    docling_row_count_before_filtering=docling_row_count_before_filtering,
+                                    tsr_tables_processed=tsr_tables_processed,
+                                    canonical_numeric_rows=canon_num,
+                                    context_row_count=ctx_n,
+                                ),
+                                user_requested_docling_ocr=False,
+                            )
+                            forced_ocr_policy_audit = dict(policy_out)
+                            if bool(policy_out.get("forced")):
+                                want_ff = bool(policy_out.get("force_full_page_ocr"))
+                                ocr_converter, ocr_init_err = _get_docling_converter(
+                                    do_ocr=True,
+                                    table_mode=docling_table_mode,
+                                    num_threads=docling_num_threads,
+                                    force_full_page_ocr=want_ff,
+                                )
+                                if ocr_converter is not None:
+                                    reasons_txt = ",".join(str(x) for x in (policy_out.get("reasons") or []))
+                                    print(
+                                        f"[info] docling forced OCR policy triggered: {reasons_txt}",
+                                        file=sys.stderr,
+                                    )
+                                    _, blocks, split = extract_table_metrics_docling(
+                                        pdf,
+                                        strict_metric_rows_only=True,
+                                        expanded_metric_scope=bool(args.expanded_metric_scope),
+                                        source_kind=source_kind,
+                                        review_scope="all",
+                                        include_blocks=True,
+                                        converter=ocr_converter,
+                                    )
+                                    docling_split_diagnostics = _document_split_diagnostics(split)
+                                    docling_row_count_before_filtering = int(
+                                        docling_split_diagnostics.get("docling_row_count_before_filtering", 0) or 0
+                                    )
+                                    tsr_tables_processed = int(
+                                        docling_split_diagnostics.get("tsr_tables_processed", 0) or 0
+                                    )
+                                    if strict_docling_mode and strict:
+                                        skip_pdftotext_pass = not should_enable_hybrid(
+                                            docling_row_count_before_filtering,
+                                            tsr_tables_processed,
+                                        )
+                                    forced_ocr_policy_audit["forced_ocr_applied"] = True
+                                    forced_ocr_policy_audit["force_full_page_ocr_requested"] = want_ff
+                                else:
+                                    forced_ocr_policy_audit["forced_ocr_init_error"] = str(ocr_init_err or "")
                         fallback_decision = evaluate_docling_fallback(split)
                         if fallback_decision.get("should_fallback"):
                             reason_text = ",".join(str(reason) for reason in fallback_decision.get("reasons", []))
@@ -7936,6 +8044,7 @@ def main() -> int:
                     "identity_resolution_conflicts": int(selected_split_diagnostics.get("identity_resolution_conflicts", 0) or 0),
                     "consistency_failures": consistency_failures,
                     "normalization_corrections": int(selected_split_diagnostics.get("normalization_corrections", 0) or 0),
+                    "forced_ocr_policy": dict(forced_ocr_policy_audit),
                 }
             )
             rows.extend(list(split.get("canonical_rows", [])))

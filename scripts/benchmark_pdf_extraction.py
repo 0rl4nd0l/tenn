@@ -668,27 +668,8 @@ def _run_financial_metrics_docling(
         loaded = _load_financial_metrics_artifacts(out_dir)
         status = "ok" if subprocess_result.get("ok", False) else status
 
-    # Third recall-recovery: if Docling still yielded no canonical rows,
-    # enable Docling OCR.
-    canonical_rows_after = loaded.get("canonical_rows") or []
-    if (not canonical_rows_after) and str(status).lower() == "ok":
-        command_retry_ocr = _extract_financial_metrics_command(
-            pdf_path,
-            out_dir,
-            "docling",
-            docling_cpu=docling_cpu,
-            allow_narrative=True,
-            expanded_metric_scope=True,
-            docling_ocr=True,
-        )
-        subprocess_result = run_docling_subprocess(
-            command_retry_ocr,
-            cwd=REPO_ROOT,
-            timeout_sec=subprocess_timeout_sec,
-            venv_path=docling_venv_path,
-            create_venv_if_missing=docling_create_venv,
-        )
-        loaded = _load_financial_metrics_artifacts(out_dir)
+    # Forced Docling OCR for hard PDFs is handled inside scripts/extract_financial_metrics.py
+    # (see forced_ocr_policy in document_diagnostics); avoid a duplicate OCR subprocess here.
     return {
         "status": status,
         "output_type": "canonical_rows",
