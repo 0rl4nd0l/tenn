@@ -35,6 +35,13 @@ from services.evaluation.consistency import compute_extraction_consistency_check
 from services.evaluation.evidence import verify_metrics
 from services.evaluation.failure_analysis import build_failure_analysis
 from services.evaluation.fact_tuple_assembly import build_fact_assembly_summary
+from services.evaluation.verification_candidates import build_verification_candidates
+from services.extraction.feature_flags import (
+    ENABLE_ANOMALY_FILTER,
+    ENABLE_STRICT_EVIDENCE,
+    ENABLE_STRICT_PERIOD_FILTER,
+    ENABLE_STRICT_SCOPE_FILTER,
+)
 from services.extraction.remediation import (
     assess_non_financial_explicit_drop,
     build_candidate_profile,
@@ -462,15 +469,24 @@ def main() -> int:
             docling_cpu=bool(args.docling_cpu),
         )
         canonical_metrics = dict(selected_payload.get("canonical_metrics") or {})
-        verification = verify_metrics(canonical_metrics, raw_text)
+        verification_candidates = build_verification_candidates(
+            selected_payload,
+            strict_period_filter=ENABLE_STRICT_PERIOD_FILTER,
+            strict_scope_filter=ENABLE_STRICT_SCOPE_FILTER,
+            strict_evidence=ENABLE_STRICT_EVIDENCE,
+        )
+        verification = verify_metrics(verification_candidates, raw_text)
         verified_metrics = dict(verification.get("verified") or {})
         rejected_metrics = dict(verification.get("rejected") or {})
         verification_ratio = float(verification.get("verification_ratio") or 0.0)
         if bool(args.strict_truth_mode):
             final_metrics = verified_metrics
         else:
-            final_metrics = canonical_metrics
-        selected_confidence = round(float(selected_confidence) * float(verification_ratio), 6)
+            final_metrics = verification_candidates
+        if ENABLE_ANOMALY_FILTER:
+            selected_confidence = round(float(selected_confidence) * float(verification_ratio), 6)
+        else:
+            selected_confidence = round(float(selected_confidence), 6)
         selected_meta["verification_ratio"] = verification_ratio
         selected_meta["strict_truth_mode"] = bool(args.strict_truth_mode)
 
@@ -607,6 +623,12 @@ def main() -> int:
                 "failure_analysis": failure_analysis,
                 "fact_assembly_summary": fact_assembly_summary,
                 "source_ladder": source_ladder,
+                "feature_flags": {
+                    "ENABLE_STRICT_PERIOD_FILTER": ENABLE_STRICT_PERIOD_FILTER,
+                    "ENABLE_STRICT_SCOPE_FILTER": ENABLE_STRICT_SCOPE_FILTER,
+                    "ENABLE_STRICT_EVIDENCE": ENABLE_STRICT_EVIDENCE,
+                    "ENABLE_ANOMALY_FILTER": ENABLE_ANOMALY_FILTER,
+                },
             }
         )
 
