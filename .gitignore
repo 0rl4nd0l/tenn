@@ -25,4 +25,5 @@ exports/
 tools/
 archive/
 .claude/worktrees/
+.worktrees/
 reports/change_review_agents/
