@@ -14,11 +14,12 @@ from app.models.documents import Document
 from app.models.extractions import ExtractionRun
 from app.models.asx_financials import ASXPeriodicFinancial, ASXRiskNote
 from app.services.storage import write_bytes, sha256_file, ensure_dir
-from app.services.text_extract import extract_text_from_pdf
-from app.services.chunking import simple_chunk
-from app.services.ollama import ollama_embed, ollama_generate_json
+from app.services.structured_chunking import chunk_prose_sections
+from app.services.docling_extract import StructuredDocument
 from app.services.embeddings import ensure_collection, upsert_points
-from app.services.extraction import build_prompt, parse_period_end, EXTRACTOR_VERSION
+from app.services.multipass_extraction import run_multipass_extraction, parse_period_end, EXTRACTOR_VERSION
+from app.services.llamacpp_runtime import resolve_embedding_runtime_config
+from app.services.llamacpp_embeddings import llamacpp_embed
 from qdrant_client import QdrantClient
 from app.celery_app import celery
 
@@ -26,7 +27,8 @@ DATABASE_URL=os.environ['DATABASE_URL']
 DOCS_ROOT=os.environ.get('DOCS_ROOT','/data/asx/docs')
 QDRANT_URL=os.environ.get('QDRANT_URL','http://qdrant:6333')
 QDRANT_COLLECTION=os.environ.get('QDRANT_COLLECTION','asx_docs')
-OLLAMA_URL=os.environ.get('OLLAMA_URL', settings.ollama_url)
+LLM_URL=os.environ.get('LLM_URL', os.environ.get('LLAMACPP_URL', settings.llamacpp_url))
+EMBEDDING_URL=os.environ.get('EMBEDDING_URL', LLM_URL)
 EMBED_MODEL=os.environ.get('EMBED_MODEL', settings.embed_model)
 EXTRACT_MODEL=os.environ.get('EXTRACT_MODEL', settings.extract_model)
 
@@ -56,7 +58,8 @@ def backfill_ticker(ticker:str, years:int=5):
             row=Document(document_id=doc_id,ticker=ticker,exchange='ASX',doc_class=d.doc_class,doc_subtype=d.doc_subtype,
                          published_at=d.published_at,period_end=d.period_end,title=d.title,source_url=d.source_url,
                          pdf_path=_doc_path(ticker,str(doc_id)),pdf_sha256='')
-            db.add(row); inserted+=1
+            db.add(row)
+            inserted += 1
         db.commit()
         new_docs=db.query(Document).filter(Document.ticker==ticker, Document.pdf_sha256=='').all()
         for r in new_docs:
@@ -91,25 +94,54 @@ def process_document(prev, document_id:str=None):
     try:
         doc=db.query(Document).filter(Document.document_id==document_id).first()
         if not doc: return {"error":"not found","document_id":document_id}
-        text=extract_text_from_pdf(doc.pdf_path)
-        chunks=simple_chunk(text, max_chars=4500)
-        if chunks:
-            vecs=ollama_embed(OLLAMA_URL, EMBED_MODEL, chunks)
-            dim=len(vecs[0])
-            ensure_collection(q, QDRANT_COLLECTION, dim)
-            points=[{"id":str(uuid.uuid4()),"vector":v,"payload":{"document_id":str(doc.document_id),"ticker":doc.ticker,"doc_class":doc.doc_class,"doc_subtype":doc.doc_subtype,"chunk_index":i,"title":doc.title}} for i,(v,_) in enumerate(zip(vecs,chunks))]
-            upsert_points(q, QDRANT_COLLECTION, points)
-
-        status="ok"; err=None; structured=None; conf=None
+        existing_run=db.query(ExtractionRun).filter(
+            ExtractionRun.document_id==doc.document_id,
+            ExtractionRun.extractor_version==EXTRACTOR_VERSION,
+            ExtractionRun.status=="ok",
+        ).first()
+        if existing_run:
+            return {"ok":True,"document_id":document_id,"skipped":True,"reason":"already_extracted"}
+        status = "ok"
+        err = None
+        structured = None
+        conf = None
+        chunks: list[str] = []
         try:
-            structured=ollama_generate_json(OLLAMA_URL, EXTRACT_MODEL, build_prompt(text))
+            doc_metadata={
+                "document_id": str(doc.document_id),
+                "ticker": str(doc.ticker or ""),
+                "title": str(doc.title or ""),
+            }
+            multipass_result=run_multipass_extraction(doc.pdf_path, doc_metadata, None)
+            chunks=chunk_prose_sections(StructuredDocument(sections=multipass_result.sections))
+            status=multipass_result.status
+            err=multipass_result.error
+            structured=multipass_result.payload
             conf=float(structured.get("confidence_metrics") or 0.0)
         except Exception as e:
-            status="failed"; err=str(e); structured={"error":err}
+            status = "failed"
+            err = str(e)
+            structured = {"error": err}
+
+        if chunks:
+            embedding_base_url, embedding_model = resolve_embedding_runtime_config(
+                base_url=EMBEDDING_URL,
+                model=EMBED_MODEL,
+            )
+            batch_size=settings.embedding_batch_size
+            vecs: list[list[float]] = []
+            for batch_start in range(0, len(chunks), batch_size):
+                batch=chunks[batch_start:batch_start + batch_size]
+                vecs.extend(llamacpp_embed(embedding_base_url, embedding_model, batch))
+            dim=len(vecs[0])
+            ensure_collection(q, QDRANT_COLLECTION, dim)
+            points=[{"id":str(uuid.uuid4()),"vector":v,"payload":{"document_id":str(doc.document_id),"ticker":doc.ticker,"doc_class":doc.doc_class,"doc_subtype":doc.doc_subtype,"chunk_index":i,"title":doc.title}} for i,(v,chunk) in enumerate(zip(vecs,chunks))]
+            upsert_points(q, QDRANT_COLLECTION, points)
 
         run=ExtractionRun(document_id=doc.document_id, extractor_version=EXTRACTOR_VERSION, model_name=EXTRACT_MODEL, prompt_hash="v1",
                           status=status, confidence_overall=conf, error=err, structured_json=structured)
-        db.add(run); db.commit()
+        db.add(run)
+        db.commit()
 
         if status=="ok":
             ptype=structured.get("period_type")
@@ -128,7 +160,8 @@ def process_document(prev, document_id:str=None):
 
             rn=db.query(ASXRiskNote).filter(ASXRiskNote.document_id==doc.document_id).first()
             if not rn:
-                rn=ASXRiskNote(document_id=doc.document_id); db.add(rn)
+                rn=ASXRiskNote(document_id=doc.document_id)
+                db.add(rn)
             rn.risk_summary=structured.get("risk_summary")
             rn.risk_bullets=structured.get("risk_bullets")
             rn.guidance_summary=structured.get("guidance_summary")

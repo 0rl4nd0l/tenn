@@ -94,7 +94,7 @@ def _run_docling(pdf_path: str) -> StructuredDocument:
     tables: list[DoclingTable] = []
     for table_item in doc.tables:
         try:
-            df = table_item.export_to_dataframe()
+            df = table_item.export_to_dataframe(doc=doc)
             rows = [list(df.columns)] + df.values.tolist()
             rows = [[str(c) for c in row] for row in rows]
             headers = rows[0] if rows else []

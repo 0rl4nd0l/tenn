@@ -14,19 +14,19 @@ class LlamaCppClient:
         self.base_url = self._normalize_base_url(base_url)
         self.model = model
         self._api_key = api_key.strip()
+        self._client = httpx.Client()
 
     def health(self, timeout: float = 5.0) -> dict:
         url = f"{self.base_url}/v1/models"
         headers = self._build_headers()
-        with httpx.Client(timeout=timeout) as client:
-            try:
-                response = client.get(url, headers=headers)
-                response.raise_for_status()
-                payload = response.json() if response.content else {}
-                names = [str(m.get("id", "")).strip() for m in payload.get("data", []) if m.get("id")]
-                return {"ok": True, "url": self.base_url, "models": names}
-            except Exception as exc:
-                return {"ok": False, "url": self.base_url, "error": str(exc)}
+        try:
+            response = self._client.get(url, headers=headers, timeout=timeout)
+            response.raise_for_status()
+            payload = response.json() if response.content else {}
+            names = [str(m.get("id", "")).strip() for m in payload.get("data", []) if m.get("id")]
+            return {"ok": True, "url": self.base_url, "models": names}
+        except Exception as exc:
+            return {"ok": False, "url": self.base_url, "error": str(exc)}
 
     def _build_headers(self) -> dict[str, str]:
         headers: dict[str, str] = {}
@@ -67,51 +67,51 @@ class LlamaCppClient:
         parts: list[str] = []
         headers = self._build_headers()
 
-        with httpx.Client(timeout=timeout) as client:
-            try:
-                with client.stream(
-                    "POST",
-                    url,
-                    headers=headers,
-                    json={
-                        "model": self.model,
-                        "messages": [{"role": "user", "content": prompt}],
-                        "stream": True,
-                    },
-                ) as response:
-                    response.raise_for_status()
-                    for line in response.iter_lines():
-                        if not line:
-                            continue
-                        if isinstance(line, bytes):
-                            line = line.decode("utf-8", errors="ignore")
-                        if line == "data: [DONE]":
-                            break
-                        if line.startswith("data: "):
-                            line = line[6:]
-                        try:
-                            payload = json.loads(line)
-                        except json.JSONDecodeError:
-                            continue
-                        choices = payload.get("choices") or []
-                        chunk = (choices[0].get("delta", {}) if choices else {}).get("content") or ""
-                        if chunk:
-                            parts.append(chunk)
-                            if on_chunk is not None:
-                                on_chunk(chunk)
-            except httpx.HTTPStatusError as exc:
-                body = self._error_body_preview(exc.response)
-                hint = ""
-                if exc.response is not None and exc.response.status_code == 401:
-                    hint = " Verify LLM_API_KEY / LLM_AUTH_HEADER for the llama.cpp endpoint."
-                raise RuntimeError(
-                    f"llama.cpp request failed ({exc.response.status_code}) at {url}: {body}{hint}"
-                ) from exc
-            except (httpx.ConnectError, httpx.TimeoutException) as exc:
-                raise RuntimeError(
-                    f"llama.cpp request error at {url}: {exc}. "
-                    "Verify llama-server is running (curl http://localhost:8001/v1/models)."
-                ) from exc
+        try:
+            with self._client.stream(
+                "POST",
+                url,
+                headers=headers,
+                timeout=timeout,
+                json={
+                    "model": self.model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "stream": True,
+                },
+            ) as response:
+                response.raise_for_status()
+                for line in response.iter_lines():
+                    if not line:
+                        continue
+                    if isinstance(line, bytes):
+                        line = line.decode("utf-8", errors="ignore")
+                    if line == "data: [DONE]":
+                        break
+                    if line.startswith("data: "):
+                        line = line[6:]
+                    try:
+                        payload = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    choices = payload.get("choices") or []
+                    chunk = (choices[0].get("delta", {}) if choices else {}).get("content") or ""
+                    if chunk:
+                        parts.append(chunk)
+                        if on_chunk is not None:
+                            on_chunk(chunk)
+        except httpx.HTTPStatusError as exc:
+            body = self._error_body_preview(exc.response)
+            hint = ""
+            if exc.response is not None and exc.response.status_code == 401:
+                hint = " Verify LLM_API_KEY / LLM_AUTH_HEADER for the llama.cpp endpoint."
+            raise RuntimeError(
+                f"llama.cpp request failed ({exc.response.status_code}) at {url}: {body}{hint}"
+            ) from exc
+        except (httpx.ConnectError, httpx.TimeoutException) as exc:
+            raise RuntimeError(
+                f"llama.cpp request error at {url}: {exc}. "
+                "Verify llama-server is running (curl http://localhost:8001/v1/models)."
+            ) from exc
 
         if not parts:
             raise RuntimeError(f"llama.cpp returned no content from {url}")

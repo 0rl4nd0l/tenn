@@ -33,6 +33,9 @@ _LOCAL_OPENAI_HOSTS: Final[set[str]] = {
     "host.docker.internal",
 }
 
+# Cached OpenAI client — (api_key, base_url) keyed to avoid re-instantiation per call.
+_openai_client_cache: tuple[str, str | None, object] | None = None  # (api_key, base_url, client)
+
 # Ordered rules: earlier rules win when phrases overlap.
 _RULES: Final[tuple[tuple[str, tuple[str, ...]], ...]] = (
     ("help", ("what can you do",)),
@@ -155,6 +158,33 @@ def _normalize(text: str) -> str:
 
 def _normalize_rule(text: str) -> str:
     return _normalize(text)
+
+
+# Normalized token sets that are clearly conversational — no LLM call needed.
+_SMALL_TALK_EXACT: Final[frozenset[str]] = frozenset({
+    "hi", "hey", "hello", "yo", "sup", "ok", "okay", "k",
+    "thanks", "thank you", "thx", "ty", "cheers",
+    "cool", "great", "nice", "awesome", "good", "yep", "yup", "nope",
+    "how are you", "how s it going", "what s up", "morning", "good morning",
+    "good afternoon", "good evening", "good night",
+})
+
+_SMALL_TALK_PREFIXES: Final[tuple[str, ...]] = (
+    "tell me a joke",
+    "what is your name",
+    "who are you",
+    "how are you",
+)
+
+
+def _is_obviously_non_task(normalized: str) -> bool:
+    """Return True if the message is clearly conversational with no command intent."""
+    if normalized in _SMALL_TALK_EXACT:
+        return True
+    for prefix in _SMALL_TALK_PREFIXES:
+        if normalized.startswith(prefix):
+            return True
+    return False
 
 
 def _format_task_text_from_manifest(item: dict[str, object]) -> str:
@@ -395,6 +425,7 @@ def _run_ollama(prompt: str) -> str:
 
 
 def _run_openai(prompt: str) -> str:
+    global _openai_client_cache
     from openai import OpenAI
 
     model = os.getenv("OPENCLAW_ROUTER_OPENAI_MODEL", "gpt-4.1-mini").strip()
@@ -403,11 +434,13 @@ def _run_openai(prompt: str) -> str:
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY missing")
 
-    client_kwargs: dict[str, str] = {"api_key": api_key}
-    if base_url:
-        client_kwargs["base_url"] = base_url
+    if _openai_client_cache is None or _openai_client_cache[0] != api_key or _openai_client_cache[1] != base_url:
+        client_kwargs: dict[str, str] = {"api_key": api_key}
+        if base_url:
+            client_kwargs["base_url"] = base_url
+        _openai_client_cache = (api_key, base_url, OpenAI(**client_kwargs))
 
-    client = OpenAI(**client_kwargs)
+    client = _openai_client_cache[2]
     response = client.chat.completions.create(
         model=model,
         messages=[{"role": "user", "content": prompt}],
@@ -432,17 +465,17 @@ def _run_model_prompt(prompt: str) -> str:
         raise RuntimeError("LLM router disabled")
 
     errors: list[str] = []
-    if provider in {"auto", "ollama"}:
-        try:
-            return _run_ollama(prompt)
-        except Exception as exc:  # pragma: no cover - depends on local model tooling
-            errors.append(f"ollama: {exc}")
-
     if provider in {"auto", "openai", "llamacpp", "llama.cpp"}:
         try:
             return _run_openai(prompt)
         except Exception as exc:  # pragma: no cover - depends on network/model availability
             errors.append(f"openai: {exc}")
+
+    if provider in {"auto", "ollama"}:
+        try:
+            return _run_ollama(prompt)
+        except Exception as exc:  # pragma: no cover - depends on local model tooling
+            errors.append(f"ollama: {exc}")
 
     raise RuntimeError("; ".join(errors) if errors else "No supported LLM provider configured")
 
@@ -487,6 +520,9 @@ def route_user_message(text: str) -> RouteDecision:
     command = _route_with_rules(normalized)
     if command != "unknown":
         return _decision(command, None, source="rules")
+
+    if _is_obviously_non_task(normalized):
+        return _decision("unknown", None, source="small_talk")
 
     llm_result = _route_with_llm(text)
     if llm_result is not None:

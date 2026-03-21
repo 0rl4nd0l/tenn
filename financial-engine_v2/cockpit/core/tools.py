@@ -42,7 +42,7 @@ class ToolRouter:
             reader is not None
             for reader in (self.qual_context_company_reader, self.qual_context_news_reader)
         )
-        self._ticker_cache_ttl_seconds = 15.0
+        self._ticker_cache_ttl_seconds = 120.0
         self._ticker_cache: dict[tuple[Any, ...], tuple[float, dict[str, Any]]] = {}
         self._price_cache_ttl_seconds = 20.0
         self._price_cache: dict[tuple[str, str, str, int], tuple[float, dict[str, Any]]] = {}
