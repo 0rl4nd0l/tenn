@@ -1,0 +1,30 @@
+{
+  "_source": "Hand-verified from ASX Appendix 4D (Ramelius Resources, Dec 2025 half-year). All values AUD, scale=thousands applied.",
+  "ticker": "RMS",
+  "pdf_path": "data/asx/docs/RMS/financial_performance/2026-02-20_appendix-4d-and-december-2025-half-yearly-financial-report_ef0e8def-850b-4131-808e-481092fe7675.pdf",
+  "document_id": "rms_2025h1_appendix4d",
+  "period_type": "H",
+  "period_end": "2025-12-31",
+  "currency": "AUD",
+  "scale": "thousands",
+  "metrics": {
+    "revenue": 485630000,
+    "ebit": 31284000,
+    "np_attributable": -11716000,
+    "operating_cf": 171179000,
+    "investing_cf": -211390000,
+    "financing_cf": -84747000,
+    "cash_end": 658721000,
+    "capex": -25239000,
+    "shares_outstanding": 1924937480,
+    "net_debt": null
+  },
+  "expected_nulls": ["net_debt"],
+  "notes": {
+    "ebit": "Confirmed from Appendix 4D highlights: EBIT 31,284 (000). Cross-check: PBT 40,607 + finance_costs 5,849 - interest_income 15,172 = 31,284.",
+    "np_attributable": "Net loss for the half-year. Acquisition-related costs ($133.2M stamp duty) and royalty obligation FV adjustment ($46.6M) depressed result.",
+    "capex": "PP&E payments only from investing activities. Mine development payments (83,614) excluded as they are typically reported separately.",
+    "net_debt": "RMS has no formal debt. Only lease liabilities (87,994,000 total). Net debt concept unclear — marked null.",
+    "shares_outstanding": "From Note 14: 1,924,937,480 ordinary shares at 31 Dec 2025, post Spartan acquisition (752,904,179 shares issued)."
+  }
+}

@@ -123,10 +123,11 @@ def test_live_eval_accuracy_against_fixtures():
     llm_client = httpx.Client(base_url="http://127.0.0.1:8001/v1", timeout=60.0)
 
     for fixture in fixtures:
-        pdf_path = str(
-            Path(__file__).parent.parent.parent
-            / "data" / fixture["ticker"] / fixture["pdf_filename"]
-        )
+        root = Path(__file__).parent.parent.parent
+        if "pdf_path" in fixture:
+            pdf_path = str(root / fixture["pdf_path"])
+        else:
+            pdf_path = str(root / "data" / fixture["ticker"] / fixture["pdf_filename"])
         if not Path(pdf_path).exists():
             pytest.skip(f"PDF not found: {pdf_path}")
 
