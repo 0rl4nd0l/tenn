@@ -1,5 +1,8 @@
 data/
 .superpowers/
+*.png
+TUI EVIDENCE/
+financial-engine_v2/backend/reports/
 __pycache__/
 *.log
 .DS_Store
