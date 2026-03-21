@@ -20,9 +20,11 @@ from cockpit.core.job_runner import JobRunner
 from cockpit.core.snapshot import build_snapshot_payload
 from cockpit.core.types import JobRun
 from cockpit.core.verification import run_verification
+from cockpit.integrations.backend_api import BackendApiClient
 from cockpit.integrations.db_reader import DbReader
 from cockpit.integrations.file_indexer import FileIndexer
 from cockpit.integrations.ollama_client import OllamaClient
+from cockpit.integrations.qual_context_bootstrap import build_qual_context_reader, context_enabled
 from cockpit.integrations.web_fetcher import WebFetcher
 from cockpit.core.tools import ToolRouter
 from cockpit.storage.artifacts import ArtifactStore
@@ -89,12 +91,56 @@ class CockpitApp(App):
         self.ollama_client = OllamaClient(config["llm"]["ollama_url"], config["llm"]["model"])
         self.action_registry = ActionRegistry(repo_root=repo_root, confirm_required=config["actions"].get("confirm_required", True))
         self.job_runner = JobRunner(repo_root=repo_root, logs_dir=self.artifacts.logs_dir)
+
+        # Wire production pipeline: BackendApiClient → qual/news context readers.
+        backend_cfg = config.get("backend") or {}
+        backend_api_url = str(backend_cfg.get("api_base_url") or "").strip()
+        self._backend_client: BackendApiClient | None = None
+        self._startup_warnings: list[str] = []
+
+        if backend_api_url:
+            self._backend_client = BackendApiClient(backend_api_url)
+
+        rag_cfg = config.get("rag") or {}
+        qual_company = None
+        qual_news = None
+
+        if self._backend_client is not None:
+            qc_cfg = rag_cfg.get("qualitative_context") if isinstance(rag_cfg.get("qualitative_context"), dict) else None
+            if context_enabled(qc_cfg, default=False):
+                try:
+                    qual_company = build_qual_context_reader(
+                        repo_root=repo_root,
+                        qc_cfg=qc_cfg,
+                        backend_api_client=self._backend_client,
+                        context_name="qualitative_context",
+                    )
+                except Exception as exc:
+                    self._startup_warnings.append(f"qual_context (company) disabled: {exc}")
+
+            news_cfg = rag_cfg.get("news_context") if isinstance(rag_cfg.get("news_context"), dict) else None
+            if context_enabled(news_cfg, default=False):
+                try:
+                    qual_news = build_qual_context_reader(
+                        repo_root=repo_root,
+                        qc_cfg=news_cfg,
+                        backend_api_client=self._backend_client,
+                        context_name="news_context",
+                    )
+                except Exception as exc:
+                    self._startup_warnings.append(f"qual_context (news) disabled: {exc}")
+        else:
+            self._startup_warnings.append("backend.api_base_url not set — price, RAG, and news context disabled")
+
         self.tool_router = ToolRouter(
             db_reader=self.db_reader,
             file_indexer=self.file_indexer,
             web_fetcher=self.web_fetcher,
             repo_root=self.repo_root,
             web_default_enabled=config["web"].get("enabled_default", False),
+            backend_api_client=self._backend_client,
+            qual_context_company_reader=qual_company,
+            qual_context_news_reader=qual_news,
         )
         self.chat_controller = ChatController(
             ollama_client=self.ollama_client,
@@ -153,6 +199,21 @@ class CockpitApp(App):
                 log.write(f"{message['role']}: {message['content']}")
         except Exception:
             pass
+
+        # Surface any startup wiring warnings (backend/RAG/news context).
+        for warning in self._startup_warnings:
+            self._screen_log("chat", f"startup warning: {warning}")
+
+        # Report backend connectivity if client is configured.
+        if self._backend_client is not None:
+            try:
+                health = self._backend_client.health(timeout=4.0)
+                if health.get("ok"):
+                    self._screen_log("chat", f"startup: backend API reachable at {self._backend_client.base_url}")
+                else:
+                    self._screen_log("chat", f"startup: backend API unreachable at {self._backend_client.base_url}: {health.get('error')}")
+            except Exception as exc:
+                self._screen_log("chat", f"startup: backend health check failed: {exc}")
 
         # Early connectivity signal for the most common runtime failure path.
         try:

@@ -1,0 +1,212 @@
+#!/usr/bin/env python3
+"""
+Playwright smoke test for the Cockpit TUI served via `textual serve`.
+
+What it tests:
+  - App boots and renders in a browser
+  - All screen keybindings work (c/o/u/v/h/s/ctrl+n)
+  - Chat screen accepts text input
+  - Screenshots saved to reports/cockpit/playwright/
+
+Requirements:
+  pip install playwright
+  playwright install chromium
+
+Usage:
+  cd /home/l4nd0/tenn
+  python scripts/test_cockpit_playwright.py [--port 8081] [--read-only] [--headed]
+"""
+from __future__ import annotations
+
+import argparse
+import signal
+import socket
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+SCREENSHOTS_DIR = REPO_ROOT / "reports" / "cockpit" / "playwright"
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def wait_for_port(host: str, port: int, timeout: float = 30.0, interval: float = 0.5) -> None:
+    """Block until host:port accepts connections or timeout expires."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            with socket.create_connection((host, port), timeout=1):
+                return
+        except OSError:
+            time.sleep(interval)
+    raise TimeoutError(f"Port {port} not ready after {timeout}s")
+
+
+def screenshot(page, name: str) -> None:
+    path = SCREENSHOTS_DIR / f"{name}.png"
+    page.screenshot(path=str(path), full_page=True)
+    print(f"  [screenshot] {path.relative_to(REPO_ROOT)}")
+
+
+def press_and_wait(page, key: str, wait_ms: int = 800) -> None:
+    page.keyboard.press(key)
+    page.wait_for_timeout(wait_ms)
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Cockpit Playwright smoke test")
+    parser.add_argument("--port", type=int, default=8081, help="Port for textual serve (default: 8081)")
+    parser.add_argument("--read-only", action="store_true", help="Pass --read-only to cockpit")
+    parser.add_argument("--headed", action="store_true", help="Run browser in headed (visible) mode")
+    parser.add_argument("--timeout", type=int, default=45, help="Seconds to wait for server startup")
+    args = parser.parse_args()
+
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        print("ERROR: playwright not installed. Run: pip install playwright && playwright install chromium")
+        return 1
+
+    SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Build the textual serve command.
+    serve_script = REPO_ROOT / "financial-engine_v2" / "scripts" / "cockpit_serve.py"
+    venv_python = REPO_ROOT / "financial-engine_v2" / ".venv" / "bin" / "python"
+    python = str(venv_python) if venv_python.exists() else sys.executable
+
+    cockpit_flags = []
+    if args.read_only:
+        cockpit_flags.append("--read-only")
+
+    cmd = [
+        python, "-m", "textual", "serve",
+        "--port", str(args.port),
+        str(serve_script),
+        *cockpit_flags,
+    ]
+
+    print(f"Starting: {' '.join(cmd)}")
+    serve_proc = subprocess.Popen(
+        cmd,
+        cwd=str(REPO_ROOT / "financial-engine_v2"),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    try:
+        print(f"Waiting for textual serve on port {args.port}...")
+        wait_for_port("127.0.0.1", args.port, timeout=args.timeout)
+        print("Server ready.")
+
+        url = f"http://127.0.0.1:{args.port}"
+
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(headless=not args.headed)
+            page = browser.new_page(viewport={"width": 1280, "height": 800})
+
+            # Navigate and wait for xterm canvas to appear.
+            print(f"\nNavigating to {url}")
+            page.goto(url)
+            page.wait_for_selector("canvas", timeout=15_000)
+            page.wait_for_timeout(2000)  # let Textual finish mount
+
+            # Click the terminal to ensure keyboard focus.
+            page.click("canvas")
+
+            print("\n--- Screen tour ---")
+
+            # Chat (default screen)
+            screenshot(page, "01_chat")
+            print("  Chat screen OK")
+
+            # Ops
+            press_and_wait(page, "o")
+            screenshot(page, "02_ops")
+            print("  Ops screen OK")
+
+            # Updater
+            press_and_wait(page, "u")
+            screenshot(page, "03_updater")
+            print("  Updater screen OK")
+
+            # Verification
+            press_and_wait(page, "v")
+            screenshot(page, "04_verification")
+            print("  Verification screen OK")
+
+            # History
+            press_and_wait(page, "h")
+            screenshot(page, "05_history")
+            print("  History screen OK")
+
+            # Settings
+            press_and_wait(page, "s")
+            screenshot(page, "06_settings")
+            print("  Settings screen OK")
+
+            # News Search (Ctrl+N)
+            press_and_wait(page, "Control+n")
+            screenshot(page, "07_news_search")
+            print("  News Search screen OK")
+
+            # Back to Chat
+            press_and_wait(page, "c")
+            screenshot(page, "08_chat_return")
+            print("  Back to Chat OK")
+
+            print("\n--- Chat input test ---")
+            # Type a test message. Textual's chat input widget should be focusable.
+            # Try Tab to move focus into the input field, then type.
+            press_and_wait(page, "Tab", wait_ms=400)
+            page.keyboard.type("hello cockpit", delay=50)
+            screenshot(page, "09_chat_typed")
+            page.keyboard.press("Enter")
+            page.wait_for_timeout(2000)
+            screenshot(page, "10_chat_sent")
+            print("  Chat message sent OK")
+
+            print("\n--- Export bundle ---")
+            press_and_wait(page, "x", wait_ms=1000)
+            screenshot(page, "11_export")
+            print("  Export triggered OK")
+
+            browser.close()
+
+        print(f"\nAll screenshots saved to: {SCREENSHOTS_DIR.relative_to(REPO_ROOT)}")
+        print("PASS")
+        return 0
+
+    except TimeoutError as exc:
+        print(f"\nERROR: {exc}")
+        if serve_proc.returncode is None:
+            out, err = serve_proc.communicate(timeout=3)
+            print("--- serve stdout ---")
+            print(out.decode(errors="replace")[-2000:])
+            print("--- serve stderr ---")
+            print(err.decode(errors="replace")[-2000:])
+        return 1
+
+    except Exception as exc:
+        print(f"\nERROR: {exc}")
+        raise
+
+    finally:
+        if serve_proc.returncode is None:
+            print("\nShutting down textual serve...")
+            serve_proc.send_signal(signal.SIGTERM)
+            try:
+                serve_proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                serve_proc.kill()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

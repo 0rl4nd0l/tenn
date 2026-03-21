@@ -293,6 +293,63 @@ def bootstrap_stack(
         _run(compose_cmd + ["exec", "-T", "backend", "alembic", "upgrade", "head"], cwd=repo_root, check=True)
 
 
+def _run_preboot_screen(
+    backend_url: str,
+    ollama_url: str,
+    initial_flags: dict[str, Any],
+) -> dict[str, Any] | None:
+    """
+    Run the pre-boot setup screen and return chosen flags, or None if cancelled.
+    Imported lazily so that --no-setup bypasses all Textual imports.
+    """
+    try:
+        from cockpit.ui.preboot import PreBootApp
+    except ImportError as exc:
+        _log(f"pre-boot screen unavailable ({exc}); continuing with defaults")
+        return initial_flags
+
+    app = PreBootApp(
+        backend_url=backend_url,
+        ollama_url=ollama_url,
+        initial_flags=initial_flags,
+    )
+    result = app.run()
+    if result is None or result.get("cancelled"):
+        return None
+    return result
+
+
+def _merge_preboot_flags(cockpit_argv: list[str], flags: dict[str, Any]) -> list[str]:
+    """
+    Inject pre-boot flag choices into cockpit_argv and os.environ.
+    Flags already present in cockpit_argv take priority (explicit wins over UI default).
+    env vars from the profile are applied unless already set in the environment.
+    """
+    argv = list(cockpit_argv)
+
+    def _has(flag: str) -> bool:
+        return any(a == flag or a.startswith(f"{flag}=") for a in argv)
+
+    if flags.get("read_only") and not _has("--read-only"):
+        argv.append("--read-only")
+
+    if flags.get("no_web") and not _has("--no-web"):
+        argv.append("--no-web")
+
+    profile = str(flags.get("profile") or "").strip()
+    if profile and not _has("--profile"):
+        argv.extend(["--profile", profile])
+
+    # Apply profile env vars (pre-boot choices override _apply_* defaults which
+    # only set values when the key is absent, so we apply them here after those calls).
+    for key, value in (flags.get("env") or {}).items():
+        if key not in os.environ:
+            os.environ[key] = value
+            _log(f"preboot env: {key}={value}")
+
+    return argv
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
@@ -301,6 +358,7 @@ def build_parser() -> argparse.ArgumentParser:
         )
     )
     parser.add_argument("--no-boot", action="store_true", help="Skip bootstrap and launch cockpit only.")
+    parser.add_argument("--no-setup", action="store_true", help="Skip pre-boot setup screen and launch directly.")
     parser.add_argument(
         "--services",
         default=",".join(DEFAULT_SERVICES),
@@ -362,6 +420,25 @@ def main(argv: list[str] | None = None) -> None:
         if "host.docker.internal" in ollama_from_env.lower():
             os.environ["COCKPIT_OLLAMA_URL"] = "http://localhost:11434"
             _log("defaulted COCKPIT_OLLAMA_URL=http://localhost:11434")
+
+    skip_setup = args.no_setup or os.environ.get("COCKPIT_SKIP_SETUP", "").strip() in {"1", "true", "yes"}
+    if not skip_setup:
+        backend_url = (os.environ.get("COCKPIT_BACKEND_API_URL") or "http://localhost:8000").strip()
+        ollama_url = (os.environ.get("COCKPIT_OLLAMA_URL") or "http://localhost:11434").strip()
+        initial_flags: dict[str, Any] = {
+            "read_only": "--read-only" in cockpit_argv,
+            "no_web": "--no-web" in cockpit_argv,
+            "profile": "default",
+        }
+        for i, arg in enumerate(cockpit_argv):
+            if arg == "--profile" and i + 1 < len(cockpit_argv):
+                initial_flags["profile"] = cockpit_argv[i + 1]
+        chosen = _run_preboot_screen(backend_url, ollama_url, initial_flags)
+        if chosen is None:
+            _log("pre-boot setup cancelled — exiting")
+            raise SystemExit(0)
+        cockpit_argv = _merge_preboot_flags(cockpit_argv, chosen)
+        _log(f"pre-boot flags applied: read_only={chosen.get('read_only')} no_web={chosen.get('no_web')} profile={chosen.get('profile')}")
 
     _emit_startup_header(cockpit_argv)
     effective_config_path = _resolve_effective_config_path(
