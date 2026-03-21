@@ -699,6 +699,257 @@ class TestCashflowLayoutAdapter(unittest.TestCase):
         )
         self.assertEqual(ocf_periods, ["2024-06-30", "2025-06-30"])
 
+    def test_context_line_phrase_label_without_inline_numeric_not_promoted_as_capex(self):
+        """Risk 1: label-only phrase lines must not grab adjacent note refs as canonical values.
+
+        A context block where the CAPEX phrase line has no inline numeric and an adjacent
+        line contains a bare note reference number ("5") must not produce a canonical
+        capital_expenditure row.  The phrase match should require an inline numeric on the
+        same line; the note reference may only produce a cashflow_unmapped row, which is
+        excluded from canonical output.
+        """
+
+        def dedupe_rows(rows):
+            seen = set()
+            out = []
+            for r in rows:
+                k = (str(r.get("file", "")), str(r.get("metric", "")), str(r.get("statement_period_end", "")), str(r.get("raw_value", "")))
+                if k in seen:
+                    continue
+                seen.add(k)
+                out.append(r)
+            return out
+
+        extract_mod = SimpleNamespace(
+            segment_statement_blocks=lambda pdf, source_kind="", prepared_pages=None: [
+                {
+                    "title": "Consolidated Statement of Cash Flows",
+                    # Label line has no inline numeric; adjacent "5" is a note reference.
+                    "context_text": "Purchases of property, plant and equipment\n5\nFinancing activities",
+                    "statement_family": "cash_flow",
+                    "page_start": 7,
+                    "line_start": 1,
+                    "block_id": "p7:b1",
+                }
+            ],
+            extract_metrics_from_blocks=lambda pdf, blocks, strict_metric_rows_only=False, prepared_pages=None: [],
+            split_rows_by_scope=lambda rows: {"canonical_rows": rows, "context_rows": [], "rejected_rows": []},
+            dedupe=dedupe_rows,
+            infer_doc_date_from_path=lambda _path: "2024-08-27",
+            normalize_period_for_db=lambda label, doc_date=None: ("", ""),
+        )
+
+        rows, stats = CF_ADAPTER.extract_cashflow_candidates(
+            extract_mod=extract_mod,
+            pdf=Path("/tmp/demo.pdf"),
+            source_kind="annual_report",
+            prepared_pages={7: [{"text": "Consolidated Statement of Cash Flows"}]},
+            selected_cashflow_pages={7},
+            missing_periods={"2024-06-30"},
+            exclusion_fn=lambda _text: False,
+        )
+
+        capex_rows = [r for r in rows if str(r.get("metric_base", r.get("metric", ""))) in {"capital_expenditure", "capex"}]
+        self.assertEqual(len(capex_rows), 0, "Note reference '5' adjacent to label-only CAPEX phrase must not become canonical capex")
+
+    def test_period_rebalance_does_not_assign_period_to_empty_period_rows(self):
+        """Risk 2: _rebalance_duplicate_cashflow_periods must not assign speculative periods
+        to rows that have no statement_period_end.  Empty-period rows should pass through
+        unchanged so that _repair_statement_period_end can handle them later.
+        """
+
+        def dedupe_rows(rows):
+            return list(rows)
+
+        extract_mod = SimpleNamespace(
+            segment_statement_blocks=lambda pdf, source_kind="", prepared_pages=None: [
+                {"title": "Consolidated Statement of Cash Flows", "context_text": "", "statement_family": "cash_flow"}
+            ],
+            extract_metrics_from_blocks=lambda pdf, blocks, strict_metric_rows_only=False, prepared_pages=None: [
+                {
+                    "file": str(Path("/tmp/demo.pdf")),
+                    "metric": "operating_cash_flow",
+                    "metric_base": "operating_cash_flow",
+                    "row_label": "Net cash from operating activities",
+                    "line": "500",
+                    "raw_value": "500",
+                    "value": 500.0,
+                    "value_type": "amount",
+                    "statement_scope": "consolidated_statement",
+                    "statement_type": "consolidated_statement",
+                    "statement_family": "cash_flow",
+                    "statement_period": "",
+                    "period": "",
+                    # Empty period — must not get a speculative assignment via rebalance.
+                    "statement_period_end": "",
+                    "table_header_text": "Consolidated statement of cash flows",
+                    "statement_title": "Consolidated statement of cash flows",
+                    "page_number": 5,
+                    "table_page": 5,
+                    "inside_table": True,
+                    "canonical_confidence_score": 3,
+                },
+            ],
+            split_rows_by_scope=lambda rows: {"canonical_rows": rows, "context_rows": [], "rejected_rows": []},
+            dedupe=dedupe_rows,
+            infer_doc_date_from_path=lambda _path: "2024-08-27",
+            # normalize_period_for_db returns empty so _repair also can't help here.
+            normalize_period_for_db=lambda label, doc_date=None: ("", ""),
+        )
+
+        rows, _stats = CF_ADAPTER.extract_cashflow_candidates(
+            extract_mod=extract_mod,
+            pdf=Path("/tmp/demo.pdf"),
+            source_kind="annual_report",
+            prepared_pages={5: [{"text": "Consolidated Statement of Cash Flows"}]},
+            selected_cashflow_pages={5},
+            missing_periods={"2024-06-30", "2023-06-30"},
+            exclusion_fn=lambda _text: False,
+        )
+
+        # Row had no period end and normalize_period_for_db can't help →
+        # must be dropped from canonical output (missing_period_filtered), not assigned a speculative period.
+        ocf_rows = [r for r in rows if str(r.get("metric_base", r.get("metric", ""))) == "operating_cash_flow"]
+        self.assertEqual(len(ocf_rows), 0, "Empty-period row must not receive a speculative period from rebalance and must not appear in canonical output")
+
+    def test_scope_override_blocked_when_statement_title_is_notes(self):
+        """Risk 3: hard statement-family conflict via statement_title must block scope override promotion.
+
+        A row labelled as a cash-flow metric but whose statement_title includes 'Notes to
+        the financial statements' must be blocked by the exclusion_fn when the fn covers
+        statement_title.  With the fix, exclusion text includes statement_title.
+        """
+
+        def dedupe_rows(rows):
+            seen = set()
+            out = []
+            for r in rows:
+                k = (str(r.get("file", "")), str(r.get("metric", "")), str(r.get("statement_period_end", "")), str(r.get("raw_value", "")))
+                if k in seen:
+                    continue
+                seen.add(k)
+                out.append(r)
+            return out
+
+        extract_mod = SimpleNamespace(
+            segment_statement_blocks=lambda pdf, source_kind="", prepared_pages=None: [
+                {"title": "Consolidated Statement of Cash Flows", "context_text": "", "statement_family": "cash_flow"}
+            ],
+            extract_metrics_from_blocks=lambda pdf, blocks, strict_metric_rows_only=False, prepared_pages=None: [
+                {
+                    "file": str(Path("/tmp/demo.pdf")),
+                    "metric": "operating_cash_flow",
+                    "metric_base": "operating_cash_flow",
+                    "row_label": "Net cash from operating activities",
+                    "line": "300",
+                    "raw_value": "300",
+                    "value": 300.0,
+                    "value_type": "amount",
+                    "statement_scope": "other",
+                    "statement_type": "other",
+                    "statement_family": "cash_flow",
+                    "statement_period": "Year ended 30 June 2024",
+                    "period": "Year ended 30 June 2024",
+                    "statement_period_end": "2024-06-30",
+                    # statement_title signals this is from the notes section.
+                    "statement_title": "Notes to the financial statements",
+                    "table_header_text": "Consolidated Statement of Cash Flows",
+                    "page_number": 20,
+                    "table_page": 20,
+                    "inside_table": True,
+                    "canonical_confidence_score": 3,
+                },
+            ],
+            split_rows_by_scope=lambda rows: {
+                "canonical_rows": [],
+                "context_rows": [dict(rows[0], context_reason="component_adjustment_row")],
+                "rejected_rows": [],
+            },
+            dedupe=dedupe_rows,
+            infer_doc_date_from_path=lambda _path: "2024-08-27",
+            normalize_period_for_db=lambda label, doc_date=None: ("2024-06-30", "2024-06-30"),
+        )
+
+        rows, stats = CF_ADAPTER.extract_cashflow_candidates(
+            extract_mod=extract_mod,
+            pdf=Path("/tmp/demo.pdf"),
+            source_kind="annual_report",
+            prepared_pages={20: [{"text": "Consolidated Statement of Cash Flows"}]},
+            selected_cashflow_pages={20},
+            missing_periods={"2024-06-30"},
+            # exclusion_fn that catches notes in any text field.
+            exclusion_fn=lambda text: "notes to the financial statements" in str(text).lower(),
+        )
+
+        self.assertEqual(stats["rows_recovered_scope_override"], 0, "Row with notes statement_title must be blocked by exclusion_fn via statement_title inclusion in override check")
+        self.assertEqual(len(rows), 0)
+
+    def test_audit_collector_records_dropped_rows_with_reason(self):
+        """Risk 4: audit artifacts must capture dropped rows with drop reasons.
+
+        A canonical_rows list containing a cashflow_unmapped row must produce a
+        post_scope/dropped audit entry with context_reason='cashflow_unmapped_excluded'.
+        """
+
+        def dedupe_rows(rows):
+            return list(rows)
+
+        audit_collector = {
+            "run_id": "test-run",
+            "file_stem": "demo",
+            "pdf_path": "/tmp/demo.pdf",
+            "target_periods": ["2024-06-30"],
+            "target_pages": [9],
+        }
+
+        _unmapped_row = {
+            "file": str(Path("/tmp/demo.pdf")),
+            "metric": "cashflow_unmapped",
+            "metric_base": "cashflow_unmapped",
+            "row_label": "Some unlabelled line",
+            "line": "77",
+            "raw_value": "77",
+            "value": 77.0,
+            "value_type": "amount",
+            "statement_scope": "consolidated_statement",
+            "statement_type": "consolidated_statement",
+            "statement_family": "cash_flow",
+            "statement_period_end": "2024-06-30",
+            "inside_table": True,
+            "page_number": 9,
+            "table_page": 9,
+            "canonical_confidence_score": 3,
+        }
+        extract_mod = SimpleNamespace(
+            segment_statement_blocks=lambda pdf, source_kind="", prepared_pages=None: [
+                {"title": "Consolidated Statement of Cash Flows", "context_text": "", "statement_family": "cash_flow"}
+            ],
+            # Row comes from extraction so scoped_rows is non-empty; split passes it to canonical.
+            extract_metrics_from_blocks=lambda pdf, blocks, strict_metric_rows_only=False, prepared_pages=None: [dict(_unmapped_row)],
+            split_rows_by_scope=lambda rows: {"canonical_rows": list(rows), "context_rows": [], "rejected_rows": []},
+            dedupe=dedupe_rows,
+            infer_doc_date_from_path=lambda _path: "2024-08-27",
+            normalize_period_for_db=lambda label, doc_date=None: ("2024-06-30", "2024-06-30"),
+        )
+
+        rows, _stats = CF_ADAPTER.extract_cashflow_candidates(
+            extract_mod=extract_mod,
+            pdf=Path("/tmp/demo.pdf"),
+            source_kind="annual_report",
+            prepared_pages={9: [{"text": "Consolidated Statement of Cash Flows"}]},
+            selected_cashflow_pages={9},
+            missing_periods={"2024-06-30"},
+            exclusion_fn=lambda _text: False,
+            audit_collector=audit_collector,
+        )
+
+        self.assertEqual(len(rows), 0, "cashflow_unmapped row must be excluded from canonical output")
+        post_rows = audit_collector.get("post_scope_rows", [])
+        dropped = [r for r in post_rows if str(r.get("scope", "")).lower() == "dropped"]
+        self.assertGreater(len(dropped), 0, "Dropped cashflow_unmapped row must appear in post_scope audit with scope='dropped'")
+        reasons = {str(r.get("context_reason", "")) for r in dropped}
+        self.assertIn("cashflow_unmapped_excluded", reasons)
+
 
 if __name__ == "__main__":
     unittest.main()

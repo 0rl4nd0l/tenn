@@ -1384,12 +1384,32 @@ def run_section_capture_layer(
         merged_keys_basic = set()
         has_raw_value_col = "raw_value" in merged_df.columns
         key_cols = [c for c in ["file", "metric", "statement_period_end"] if c in merged_df.columns]
+
+        def _normalize_audit_key_path(value: object) -> str:
+            raw = str(value or "").strip()
+            if not raw:
+                return ""
+            path = Path(raw).expanduser()
+            if path.exists():
+                try:
+                    return str(path.resolve())
+                except OSError:
+                    return raw
+            return raw
+
+        def _normalize_audit_key_metric(value: object) -> str:
+            return _norm_metric(str(value or "").strip())
+
         if key_cols:
-            cols = key_cols + (["raw_value"] if has_raw_value_col else [])
+            cols = list(key_cols)
+            if "metric_base" in merged_df.columns and "metric_base" not in cols:
+                cols.append("metric_base")
+            if has_raw_value_col:
+                cols.append("raw_value")
             for rec in merged_df[cols].to_dict(orient="records"):
                 basic = (
-                    str(rec.get("file", "")),
-                    str(rec.get("metric", "")),
+                    _normalize_audit_key_path(rec.get("file", "")),
+                    _normalize_audit_key_metric(rec.get("metric_base", rec.get("metric", ""))),
                     str(rec.get("statement_period_end", "")),
                 )
                 merged_keys_basic.add(basic)
@@ -1399,8 +1419,8 @@ def run_section_capture_layer(
         kept_written_rows: List[Dict[str, object]] = []
         for rec in written_df.to_dict(orient="records"):
             key_basic = (
-                str(rec.get("pdf_path", "")),
-                str(rec.get("metric", "")),
+                _normalize_audit_key_path(rec.get("pdf_path", "")),
+                _normalize_audit_key_metric(rec.get("metric_base", rec.get("metric", ""))),
                 str(rec.get("period_end", "")),
             )
             key_full = key_basic + (str(rec.get("chosen_value", "")),)

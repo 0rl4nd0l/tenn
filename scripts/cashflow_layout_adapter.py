@@ -464,7 +464,14 @@ def _rebalance_duplicate_cashflow_periods(
             out.append(r)
             continue
 
-        # Duplicate/synthetic period: deterministically assign next candidate.
+        if not per_end:
+            # Empty period: pass through without speculative assignment.
+            # _repair_statement_period_end handles period recovery from label hints.
+            out.append(r)
+            continue
+
+        # Duplicate/synthetic period: per_end is non-empty but already used.
+        # Only rebalance when there is clear collision evidence (same metric+label+page).
         md_hint = per_end[5:] if re.match(r"\d{4}-\d{2}-\d{2}", per_end) else ""
         candidate_pool = [p for p in missing_norm if p not in used]
         if md_hint:
@@ -1073,7 +1080,8 @@ def _context_line_candidates(
     for idx, line in enumerate(lines):
         if exclusion_fn(line):
             continue
-        mapped_metric, mapped_source = _phrase_map_metric(line, has_numeric=True)
+        line_has_numeric = bool(NUMERIC_TOKEN_RE.findall(line))
+        mapped_metric, mapped_source = _phrase_map_metric(line, has_numeric=line_has_numeric)
         numeric = _best_nearby_numeric(lines, idx, window=3)
         if not numeric:
             continue
@@ -1549,7 +1557,7 @@ def extract_cashflow_candidates(
             continue
         if not _has_numeric_value(rr):
             continue
-        text = _norm_text(rr.get("row_label", ""), rr.get("line", ""), rr.get("table_header_text", ""))
+        text = _norm_text(rr.get("row_label", ""), rr.get("line", ""), rr.get("table_header_text", ""), rr.get("statement_title", ""))
         if exclusion_fn(text):
             continue
         out = dict(rr)
@@ -1570,13 +1578,19 @@ def extract_cashflow_candidates(
     stats["rows_recovered_scope_override"] = len(recovered)
     combined = extract_mod.dedupe(canonical_rows + recovered)
     filtered: List[Dict[str, object]] = []
-    for rr in combined:
+    for drop_idx, rr in enumerate(combined):
         metric = str(rr.get("metric_base", rr.get("metric", ""))).strip().lower()
         if CASHFLOW_EXCLUDE_UNMAPPED_FROM_CANONICAL and metric == "cashflow_unmapped":
+            if audit_collector is not None:
+                _append_audit_row(audit_collector, dict(rr), row_idx=drop_idx, scope_stage="post_scope", scope="dropped", context_reason="cashflow_unmapped_excluded")
             continue
         if int(rr.get("canonical_confidence_score", 0) or 0) < int(CASHFLOW_SCOPE_OVERRIDE_MIN_CANONICAL_CONFIDENCE):
+            if audit_collector is not None:
+                _append_audit_row(audit_collector, dict(rr), row_idx=drop_idx, scope_stage="post_scope", scope="dropped", context_reason="low_confidence_filtered")
             continue
         if not str(rr.get("statement_period_end", "")).strip():
+            if audit_collector is not None:
+                _append_audit_row(audit_collector, dict(rr), row_idx=drop_idx, scope_stage="post_scope", scope="dropped", context_reason="missing_period_filtered")
             continue
         filtered.append(rr)
     combined = extract_mod.dedupe(filtered)

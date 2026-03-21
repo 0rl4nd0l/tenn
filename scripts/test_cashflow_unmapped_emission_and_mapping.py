@@ -225,6 +225,19 @@ class TestCashflowUnmappedEmissionAndMapping(unittest.TestCase):
         metrics = [str(r.get("metric", "")).strip().lower() for r in rows]
         self.assertIn("capital_expenditure", metrics)
         self.assertIn("operating_cash_flow", metrics)
+
+        total_cash_rows = [
+            r for r in rows if "total cash and cash equivalents" in str(r.get("row_label", "")).lower()
+        ]
+        impairment_rows = [
+            r
+            for r in rows
+            if "impairments of property, plant and equipment" in str(r.get("row_label", "")).lower()
+        ]
+        self.assertNotIn("cashflow_unmapped", metrics)
+        self.assertEqual(total_cash_rows, [])
+        self.assertEqual(impairment_rows, [])
+
         self.assertNotIn("reconciliation of net debt", "\n".join(str(r.get("row_label", "")) for r in rows).lower())
 
         capex_labels = [
@@ -243,7 +256,7 @@ class TestCashflowUnmappedEmissionAndMapping(unittest.TestCase):
                 any(str(r.get("mapping_source", "")).strip() == "cashflow_phrase_map_v2" for r in matched)
             )
 
-        self.assertGreaterEqual(int(stats.get("rows_emitted_unmapped_numeric", 0)), 1)
+        self.assertGreaterEqual(int(stats.get("rows_emitted_unmapped_numeric", 0)), 2)
         self.assertGreaterEqual(int(stats.get("rows_mapped_to_capex", 0)), 1)
         self.assertGreaterEqual(int(stats.get("rows_mapped_to_capex_v2", 0)), 4)
         self.assertGreaterEqual(int(stats.get("rows_mapped_to_ocf", 0)), 1)

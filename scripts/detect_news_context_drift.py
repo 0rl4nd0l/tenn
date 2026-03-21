@@ -109,7 +109,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument(
         "--news-only",
         action="store_true",
-        help="Restrict to corpora matching corpus LIKE 'news%'",
+        help="Restrict to corpora matching corpus LIKE 'news%%'",
     )
     ap.add_argument(
         "--tolerance-pct",
