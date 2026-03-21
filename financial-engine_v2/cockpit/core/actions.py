@@ -15,6 +15,7 @@ from cockpit.core.types import ActionSpec
 VISIBLE_ACTION_IDS: tuple[str, ...] = (
     "daily_news_ingest",
     "historical_news_ingest",
+    "load_news_to_qdrant",
     "daily_announcement_ingest",
     "single_ticker_announcement_backfill",
     "universe_announcement_enrichment_backfill",
@@ -453,6 +454,35 @@ class ActionRegistry:
                 requires_confirmation=confirm_required,
                 expected_outputs=["../reports/qual_context/news_runs/*/report_summary.json"],
                 timeout_seconds=14400,
+            ),
+            "load_news_to_qdrant": ActionSpec(
+                id="load_news_to_qdrant",
+                label="Load news chunks to Qdrant",
+                command_template=[
+                    py,
+                    "../scripts/load_news_to_qdrant.py",
+                    "--db-path",
+                    "{db_path}",
+                    "--qdrant-url",
+                    "{qdrant_url}",
+                    "--collection",
+                    "{collection}",
+                    "--batch-size",
+                    "{batch_size}",
+                    "--since-hours",
+                    "{since_hours}",
+                ],
+                arg_schema={
+                    "db_path": str,
+                    "qdrant_url": str,
+                    "collection": str,
+                    "batch_size": int,
+                    "since_hours": int,
+                },
+                is_mutating=True,
+                requires_confirmation=confirm_required,
+                expected_outputs=[],
+                timeout_seconds=1800,
             ),
             "daily_announcement_ingest": ActionSpec(
                 id="daily_announcement_ingest",
@@ -991,6 +1021,10 @@ class ActionRegistry:
         out.setdefault("single_ticker_backfill_report", f"reports/ticker_full_history_report_{ts}.json")
         out.setdefault("universe_backfill_rollup_report", f"reports/asx/asx_enrichment_chunked_rollup_{ts}.json")
         out.setdefault("metric_extraction_report", f"reports/rebuild_ticker_financials_from_docs_{out.get('ticker', 'BHP')}_{ts}.json")
+        out.setdefault("db_path", str(self.repo_root.parent / "reports" / "qual_context" / "news_articles.sqlite"))
+        out.setdefault("qdrant_url", "http://localhost:6333")
+        out.setdefault("collection", "news_chunks")
+        out.setdefault("batch_size", 64)
         out.setdefault("providers", "eodhd,gdelt")
         out.setdefault("since_hours", 36)
         out.setdefault("news_runs_root", str(self.repo_root.parent / "reports" / "qual_context" / "news_runs"))

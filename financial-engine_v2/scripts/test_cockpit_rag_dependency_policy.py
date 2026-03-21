@@ -16,15 +16,11 @@ from cockpit.integrations.qual_context_bootstrap import (  # noqa: E402
 
 
 class _BackendStub:
-    def query_rag(self, *, query: str, ticker: str | None = None, top_k: int = 8, timeout: float = 12.0):  # noqa: ARG002
+    def rag_query(self, q: str, *, top_k: int = 10, ticker: str | None = None, timeout: float = 15.0, **kwargs):  # noqa: ARG002
         return {
-            "ok": True,
-            "payload": {
-                "ok": True,
-                "hits": [{"score": 0.9, "title": "stub hit", "ticker": ticker}],
-                "candidate_count": 1,
-                "filtered_count": 1,
-            },
+            "results": [
+                {"score": 0.9, "payload": {"title": "stub hit", "ticker": ticker}},
+            ]
         }
 
 
@@ -67,7 +63,7 @@ class CockpitRagBackendOnlyPolicyTests(unittest.TestCase):
                 backend_api_client=object(),
                 context_name="qualitative_context",
             )
-        self.assertIn("backend_api_client.query_rag", str(ctx.exception))
+        self.assertIn("backend_api_client.rag_query", str(ctx.exception))
 
 
 if __name__ == "__main__":

@@ -13,10 +13,20 @@ from cockpit.integrations.qual_context import QualContextReader  # noqa: E402
 
 
 class _BackendStub:
-    def __init__(self, payload: dict | None = None) -> None:
-        self.payload = payload or {"ok": True, "payload": {"ok": True, "hits": []}}
+    """Stub matching BackendApiClient.rag_query() — the real production interface."""
 
-    def query_rag(self, *, query: str, ticker: str | None = None, top_k: int = 8, timeout: float = 12.0):  # noqa: ARG002
+    def __init__(self, payload: dict | None = None) -> None:
+        self.payload = payload if payload is not None else {"results": []}
+
+    def rag_query(
+        self,
+        q: str,
+        *,
+        top_k: int = 10,
+        ticker: str | None = None,
+        timeout: float = 15.0,
+        **kwargs,
+    ) -> dict:
         return dict(self.payload)
 
 
@@ -43,22 +53,22 @@ class CockpitBackendOnlyRagPolicyTests(unittest.TestCase):
             reader.validate_runtime()
         self.assertEqual(str(ctx.exception), "Cockpit RAG must use backend API. Local embeddings disabled.")
 
-    def test_query_uses_results_fallback_shape(self):
+    def test_query_parses_results_list_shape(self):
+        """Backend returns {"results": [{"score": ..., "payload": {...}}]} — hits are unwrapped."""
         reader = QualContextReader(
             repo_root=REPO_ROOT,
             backend_api_client=_BackendStub(
                 {
-                    "ok": True,
-                    "payload": {
-                        "ok": True,
-                        "results": [
-                            {
-                                "score": 0.77,
-                                "title": "Fallback results shape",
+                    "results": [
+                        {
+                            "score": 0.77,
+                            "payload": {
+                                "title": "Results list shape",
                                 "text": "backend result item",
-                            }
-                        ],
-                    },
+                                "article_id": "x1",
+                            },
+                        }
+                    ],
                 }
             ),
             embed_backend="ollama",
@@ -73,8 +83,10 @@ class CockpitBackendOnlyRagPolicyTests(unittest.TestCase):
             ticker_filter="BHP",
         )
         self.assertTrue(payload.get("ok"))
-        self.assertEqual(len(payload.get("hits", [])), 1)
-        self.assertEqual(payload["hits"][0].get("title"), "Fallback results shape")
+        hits = payload.get("hits", [])
+        self.assertEqual(len(hits), 1)
+        self.assertEqual(hits[0].get("title"), "Results list shape")
+        self.assertAlmostEqual(hits[0].get("semantic_score"), 0.77)
 
 
 if __name__ == "__main__":

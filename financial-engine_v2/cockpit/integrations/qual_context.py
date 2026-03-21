@@ -16,7 +16,7 @@ class QualContextReader:
     """Backend-only qualitative context adapter for Cockpit.
 
     Cockpit intentionally does not embed or query local vector stores. Instead it calls the
-    backend RAG endpoint via `backend_api_client.query_rag(...)` and normalizes the response
+    backend RAG endpoint via `backend_api_client.rag_query(...)` and normalizes the response
     into a stable "hits" shape for downstream use.
     """
 
@@ -45,8 +45,8 @@ class QualContextReader:
     def validate_runtime(self) -> None:
         if self.embed_backend != "ollama":
             raise RuntimeError("Cockpit RAG must use backend API. Local embeddings disabled.")
-        if not hasattr(self.backend_api_client, "query_rag"):
-            raise RuntimeError("backend_api_client.query_rag is required for Cockpit RAG.")
+        if not hasattr(self.backend_api_client, "rag_query"):
+            raise RuntimeError("backend_api_client.rag_query is required for Cockpit RAG.")
 
     def query(
         self,
@@ -72,50 +72,41 @@ class QualContextReader:
             return {"ok": False, "hits": [], "error": str(exc)}
 
         self._last_backend_call = _BackendCall(query=q, ticker=ticker, top_k=limit)
-        result = self.backend_api_client.query_rag(query=q, ticker=ticker, top_k=limit, timeout=self.timeout)
-        if not isinstance(result, dict) or not result.get("ok"):
-            err = ""
-            if isinstance(result, dict):
-                err = str(result.get("error") or "")
-            return {"ok": False, "hits": [], "error": err or "backend unavailable"}
+        try:
+            result = self.backend_api_client.rag_query(q=q, ticker=ticker, top_k=limit, timeout=self.timeout)
+        except Exception as exc:
+            return {"ok": False, "hits": [], "error": str(exc)[:400]}
 
-        payload = result.get("payload") if isinstance(result.get("payload"), dict) else {}
-        if not payload.get("ok", True):
-            return {
-                "ok": False,
-                "hits": [],
-                "error": str(payload.get("error") or result.get("error") or "backend unavailable"),
-            }
+        if not isinstance(result, dict):
+            return {"ok": False, "hits": [], "error": "backend unavailable"}
 
-        raw_hits = payload.get("hits")
-        if not isinstance(raw_hits, list):
-            raw_hits = payload.get("results")
-        if not isinstance(raw_hits, list):
-            raw_hits = []
+        # rag_query() returns {"results": [{"score": float, "payload": {...}}, ...]} directly.
+        raw_results = result.get("results")
+        if not isinstance(raw_results, list):
+            return {"ok": False, "hits": [], "error": "unexpected backend response shape"}
 
         hits: list[dict[str, Any]] = []
-        for item in raw_hits:
+        for item in raw_results:
             if not isinstance(item, dict):
                 continue
             score = float(item.get("score") or 0.0)
-            corpus = str(item.get("corpus") or "")
+            item_payload = item.get("payload") if isinstance(item.get("payload"), dict) else {}
+            corpus = str(item_payload.get("corpus") or "")
             if self.corpus_filter and corpus and corpus != self.corpus_filter:
                 continue
-            hit = dict(item)
+            hit = dict(item_payload)
             hit.setdefault("semantic_score", score)
             hit.setdefault("final_score", float(hit.get("semantic_score") or score))
             hits.append(hit)
 
-        candidate_count = int(payload.get("candidate_count") or len(raw_hits))
-        filtered_count = int(payload.get("filtered_count") or len(hits))
         return {
             "ok": True,
             "query": q,
             "company": str(company or "").strip().upper(),
             "ticker_filter": ticker_filter,
             "top_k": limit,
-            "candidate_count": candidate_count,
-            "filtered_count": filtered_count,
+            "candidate_count": len(raw_results),
+            "filtered_count": len(hits),
             "hits": hits,
         }
 

@@ -46,6 +46,13 @@ ACTION_KEYWORDS = {
         "today news ingest",
     ],
     "historical_news_ingest": ["historical news ingest", "news backfill", "backfill news", "news history ingest"],
+    "load_news_to_qdrant": [
+        "load news to qdrant",
+        "sync news chunks to qdrant",
+        "news to qdrant",
+        "push news to qdrant",
+        "upload news chunks",
+    ],
     "daily_announcement_ingest": [
         "daily announcement ingest",
         "daily announcements",
