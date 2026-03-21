@@ -1,0 +1,65 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"Branch: $(git rev-parse --abbrev-ref HEAD 2>/dev/null)\" && git status --short 2>/dev/null | head -20",
+            "statusMessage": "Loading repo state..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"\nimport json, sys\nd = json.load(sys.stdin)\nfp = d.get('tool_input', {}).get('file_path', '')\nwarned = ['embeddings.py', 'alembic/versions', '.env']\nif fp and any(w in fp for w in warned):\n    print(f'WARNING: embedding/schema/secret-sensitive path: {fp}', flush=True)\n\" 2>/dev/null || true",
+            "statusMessage": "Checking sensitive path..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"\nimport json, sys, subprocess, os\ndata = json.load(sys.stdin)\nfp = data.get('tool_input', {}).get('file_path', '')\nif fp and fp.endswith('.py') and os.path.exists(fp):\n    ruff = '/home/l4nd0/tenn/financial-engine_v2/.venv/bin/ruff'\n    if os.path.exists(ruff):\n        subprocess.run([ruff, 'check', '--fix', fp])\n\" 2>/dev/null || true",
+            "statusMessage": "ruff --fix"
+          },
+          {
+            "type": "command",
+            "command": "python3 -c \"\nimport json, sys, os\nd = json.load(sys.stdin)\nfp = d.get('tool_input', {}).get('file_path', '')\nif fp and fp.endswith('.sh') and os.path.exists(fp):\n    os.chmod(fp, 0o755)\n\" 2>/dev/null || true",
+            "statusMessage": "chmod +x"
+          },
+          {
+            "type": "command",
+            "command": "python3 -c \"\nimport json, sys, subprocess, os\nd = json.load(sys.stdin)\nfp = d.get('tool_input', {}).get('file_path', '')\nvenv_pytest = '/home/l4nd0/tenn/financial-engine_v2/.venv/bin/pytest'\nif fp and 'financial-engine_v2/backend/app' in fp and fp.endswith('.py') and os.path.exists(venv_pytest):\n    subprocess.run(\n        [venv_pytest, '-x', '-q', '--tb=short', 'financial-engine_v2/backend/tests/'],\n        cwd='/home/l4nd0/tenn',\n        capture_output=True\n    )\n\" 2>/dev/null || true",
+            "statusMessage": "Running backend tests..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "git diff --stat HEAD 2>/dev/null || true",
+            "statusMessage": "Summarising changes..."
+          },
+          {
+            "type": "command",
+            "command": "python3 -c \"\nimport subprocess, os\nos.chdir('/home/l4nd0/tenn')\ndiff = subprocess.run(['git', 'diff', '--name-only', 'HEAD'], capture_output=True, text=True).stdout\nuntracked = subprocess.run(['git', 'ls-files', '--others', '--exclude-standard'], capture_output=True, text=True).stdout\nall_changed = set((diff + untracked).strip().splitlines())\ninfra_patterns = ['.mcp.json', 'settings.json', 'settings.local.json', 'scripts/mcp/', 'scripts/', '.claude/commands/', '.claude/skills/', '.claude/agents/', '.claude/hooks', 'docker-compose', '.env.example']\ndoc_paths = [f for f in all_changed if 'docs/claude/' in f or f == 'CLAUDE.md']\ninfra_changed = [f for f in all_changed if any(p in f for p in infra_patterns) and 'docs/' not in f]\nif infra_changed and not doc_paths:\n    print('WARNING: Infrastructure/config files changed but no docs/claude/ files updated.')\n    print('Changed infra files: ' + ', '.join(sorted(infra_changed)[:5]))\n    print('Review docs/claude/mcp-servers.md, current-state.md, hooks.md, commands.md, gap-analysis.md')\n\" 2>/dev/null || true",
+            "statusMessage": "Checking doc coverage..."
+          }
+        ]
+      }
+    ]
+  }
+}
