@@ -1,0 +1,22 @@
+{
+  "_comment": "Accuracy thresholds for live_eval regression gate. Apply to pytest -m live_eval runs only.",
+  "min_accuracy_overall": 0.85,
+  "min_accuracy_per_metric": {
+    "operating_cf": 0.90,
+    "revenue": 0.90,
+    "period_end": 1.00
+  },
+  "warn_threshold": 0.80,
+  "tolerances": {
+    "revenue": 0.005,
+    "ebit": 0.005,
+    "np_attributable": 0.005,
+    "operating_cf": 0.01,
+    "investing_cf": 0.01,
+    "financing_cf": 0.01,
+    "cash_end": 0.001,
+    "net_debt": 0.001,
+    "capex": 0.02,
+    "shares_outstanding": 0.0001
+  }
+}
