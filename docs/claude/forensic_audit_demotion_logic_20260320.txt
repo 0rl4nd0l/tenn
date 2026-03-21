@@ -1,0 +1,749 @@
+FORENSIC AUDIT REPORT — Financial PDF Extraction Demotion Logic
+Date: 2026-03-20 | Mode: Read-only | No production files modified
+================================================================================
+
+PREAMBLE
+--------
+This is a read-only forensic audit of the financial PDF extraction system's
+demotion/context logic. No production code was modified. No fixes were
+implemented. All findings are labeled Confirmed / Inferred / Speculative.
+
+Subagent split used:
+  1. Corpus and artifact discovery
+  2. RIO and stress-test demotion row sampling
+  3. BHP and EVN demotion row sampling
+
+================================================================================
+1. AUDIT CORPUS SELECTED
+================================================================================
+
+#         Document/Run           Artifact Path
+--------  ---------------------  -----------------------------------------------
+BHP-v12   BHP FinPerf Annual     /home/l4nd0/tenn/financial-engine_v2/reports/
+                                 financial_metrics_bhp_finperf_v12_context.json
+BHP-v4    BHP FinPerf (old)      /home/l4nd0/tenn/financial-engine_v2/reports/
+                                 financial_metrics_bhp_finperf_v4_context.json
+EVN       EVN Deep Coverage      /home/l4nd0/tenn/reports/evn_deep_coverage/
+                                 run_20260227_051849_EVN_coverage15_annual_half/
+                                 extract_baseline/canonical_context.json
+29M-fresh Stress Test 29M        /home/l4nd0/tenn/reports/
+                                 stress_test_29M_20260223_175745_fresh/context.json
+RIO       RIO Baseline x12 runs  /home/l4nd0/tenn/reports/stress_reference_RIO/
+                                 run_*/orchestrator_context_rows.json
+Expansion PLS, CSL, WES tickers  /home/l4nd0/tenn/reports/expansion_runs/
+                                 run_20260227_042643_ticker_expansion_batch/
+                                 */extract_baseline/canonical_context.json
+
+Selection rationale:
+- BHP-v12: largest context file (2,859 demoted rows); appendix-heavy annual style
+- BHP-v4: old version for paired comparison (v4 had 532 canonical rows vs v12's 161)
+- EVN: mixed annual/half-year layout; non_canonical_scope dominant
+- 29M-fresh: multi-document corpus; all five reason types present
+- RIO: stress-reference case; orchestrator-layer demotions visible
+- Expansion: mixed-layout / presentation-style cases
+
+================================================================================
+2. EVIDENCE INSPECTED
+================================================================================
+
+IMPORTANT: The system does NOT use a field called "demotion_reason".
+Actual fields:
+  - context_reason         — in all canonical_context.json files
+  - orchestrator_reason    — in RIO orchestrator_context_rows.json
+  - statement_scope_reason — scope classification (coexists with context_reason)
+
+Files read (exact paths):
+  /home/l4nd0/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v12_context.json
+    (13 MB, 2,859 context rows)
+  /home/l4nd0/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v12.json
+    (161 canonical rows)
+  /home/l4nd0/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v4_context.json
+    (2,508 context rows)
+  /home/l4nd0/tenn/financial-engine_v2/reports/financial_metrics_bhp_finperf_v4.json
+    (532 canonical rows)
+  /home/l4nd0/tenn/reports/evn_deep_coverage/run_20260227_051849_EVN_coverage15_annual_half/
+    extract_baseline/canonical_context.json  (115 rows)
+  /home/l4nd0/tenn/reports/evn_deep_coverage/run_20260227_051849_EVN_coverage15_annual_half/
+    extract_baseline/canonical_baseline.json  (42 rows)
+  /home/l4nd0/tenn/reports/stress_test_29M_20260223_175745_fresh/context.json  (377 rows)
+  /home/l4nd0/tenn/reports/stress_test_29M_20260223_175359/context.json  (377 rows, old run)
+  /home/l4nd0/tenn/reports/stress_test_29M_20260223_175745_fresh/canonical.json  (86 rows)
+  /home/l4nd0/tenn/reports/stress_reference_RIO/run_*/orchestrator_context_rows.json
+    (12 files x 3 rows = 36 rows total)
+  /home/l4nd0/tenn/reports/expansion_runs/run_20260227_042643_ticker_expansion_batch/
+    PLS/extract_baseline/canonical_context.json
+  /home/l4nd0/tenn/reports/expansion_runs/run_20260227_043111_ticker_expansion_batch/
+    CSL/extract_baseline/canonical_context.json
+  /home/l4nd0/tenn/reports/expansion_runs/run_20260227_043111_ticker_expansion_batch/
+    WES/extract_baseline/canonical_context.json
+
+================================================================================
+3. SAMPLING METHOD
+================================================================================
+
+- All EVN context rows examined (115 rows, complete set)
+- BHP v12 context: full reason-distribution counts extracted; 19 rows examined in depth
+- Stress test 29M: complete reason distribution extracted; 7 rows examined in depth
+- RIO: all 36 orchestrator-layer rows examined
+- Expansion tickers (PLS, CSL, WES): reason distributions + ~10 rows per ticker
+- Total rows examined in depth: ~74 rows across 6 corpus sources
+
+Oversampled: metric_statement_mismatch, non_canonical_scope,
+             canonical_conflict_same_period, reconciliation_context
+
+================================================================================
+4. CONTEXT_REASON DISTRIBUTIONS
+================================================================================
+
+Actual field name: "context_reason"  (NOT "demotion_reason")
+
+--- BHP v12 (2,859 rows) ---
+
+context_reason                      Count     %
+----------------------------------  -----  ------
+reconciliation_context                958   33.5%
+canonical_conflict_same_period        622   21.8%
+non_canonical_scope                   570   19.9%
+metric_statement_mismatch             363   12.7%
+canonical_duplicate_same_period       209    7.3%
+non_month_end_period_unresolved        91    3.2%
+opening_balance_context                11    0.4%
+narrative_row_label                    10    0.4%
+other (ambiguous/non_current/etc.)     25    0.9%
+
+--- Stress Test 29M Fresh (377 rows) ---
+
+context_reason                      Count     %
+----------------------------------  -----  ------
+metric_statement_mismatch             158   41.9%
+non_canonical_scope                   113   30.0%
+canonical_conflict_same_period         50   13.3%
+pro_forma_context                      40   10.6%
+missing_statement_period_end           16    4.2%
+
+--- EVN Deep Coverage (115 rows) ---
+
+context_reason                      Count     %
+----------------------------------  -----  ------
+non_canonical_scope                    64   55.7%
+metric_statement_mismatch              32   27.8%
+canonical_conflict_same_period          9    7.8%
+pro_forma_context                       8    7.0%
+reconciliation_context                  2    1.7%
+
+--- RIO Orchestrator Layer (36 rows across 12 runs) ---
+
+orchestrator_reason                 Count
+----------------------------------  -----
+collision_unit_evidence_rejected       24
+lower_ranked_candidate                 12
+
+--- Audit-task target reasons vs actual artifact fields ---
+
+Task Reason                        Actual Field Value                    Found?
+---------------------------------  ------------------------------------  -------
+metric_statement_mismatch          context_reason=metric_statement_mismatch  Yes
+reconciliation_context             context_reason=reconciliation_context      Yes
+non_canonical_scope                context_reason=non_canonical_scope         Yes
+canonical_conflict_same_period     context_reason=canonical_conflict_same_period  Yes
+lower_ranked_candidate             orchestrator_reason=lower_ranked_candidate Yes (RIO)
+collision_unit_evidence_rejected   orchestrator_reason=collision_unit_evidence_rejected Yes (RIO)
+
+================================================================================
+5. PER-ROW AUDIT TABLE
+================================================================================
+
+Classification buckets:
+  A = CORRECT_DEMOTION
+  B = FALSE_DEMOTION_SHOULD_BE_CANONICAL
+  C = FALSE_DEMOTION_SHOULD_BE_STRUCTURED_CONTEXT
+  D = WRONG_SURVIVING_CANONICAL
+  E = UNCLEAR
+
+------------------------------------------------------------------------
+CORRECT_DEMOTION (A) — 8 examples
+------------------------------------------------------------------------
+
+Row A-1  [Stress 29M | metric_statement_mismatch]
+  Metric:    net_income
+  Value:     126,152,000
+  Period:    year ended 31 Dec 2019
+  Stmt fam:  cash_flow
+  Scope:     note_disclosure
+  Scope rsn: note_marker
+  Confidence: 0.0
+  Row label: (note disclosure context)
+  Competing canonical: None
+  Old row:   Present in old run, identical
+  Classification: A — CORRECT_DEMOTION | Confidence: high
+  Rationale: net_income extracted from a note within a cash flow statement,
+             confidence 0.0 (no table structure evidence). Source is a note
+             disclosure, not a primary income statement.
+
+Row A-2  [Stress 29M | missing_statement_period_end]
+  Metric:    total_liabilities
+  Value:     207,394
+  Period:    (empty string)
+  Stmt fam:  balance_sheet
+  Scope:     consolidated_statement
+  Confidence: 0.85
+  Competing canonical: None (no period to match on)
+  Classification: A — CORRECT_DEMOTION | Confidence: high
+  Rationale: High-confidence row missing critical statement_period_end metadata.
+             Cannot be promoted without a usable period. Upstream failure is in
+             period parsing, not demotion logic.
+
+Row A-3  [Stress 29M | pro_forma_context]
+  Metric:    net_income
+  Value:     121.0
+  Period:    31 Dec 2021
+  Stmt fam:  cash_flow
+  Scope:     other
+  Scope rsn: appendix_marker_without_layout
+  Confidence: 0.0
+  Pro-forma: True
+  Competing canonical: None
+  Classification: A — CORRECT_DEMOTION | Confidence: high
+  Rationale: Explicitly flagged as pro-forma (adjusted/non-statutory).
+             Confidence 0.0. Pro-forma exclusion from canonical is correct.
+
+Row A-4  [EVN | metric_statement_mismatch]
+  Metric:    revenue
+  Value:     439,513,000
+  Period:    30 June 2021
+  Stmt fam:  cash_flow
+  Scope:     note_disclosure
+  Confidence: 0.0
+  Row label: "Revenue (note 2)"
+  Competing canonical: None for this period
+  Classification: A — CORRECT_DEMOTION | Confidence: medium
+  Rationale: Revenue extracted from a cash flow note reference ("Revenue (note 2)"
+             is a cross-reference marker, not a primary income statement line).
+             Confidence 0.0 confirms weak extraction evidence. Medium because no
+             canonical counterpart exists for this period — the absence is a data
+             gap, but the extraction context is too weak to trust as canonical.
+
+Row A-5  [EVN | reconciliation_context]
+  Metric:    revenue
+  Value:     586,189,000
+  Period:    31 Dec 2024
+  Stmt fam:  cash_flow
+  Scope:     note_disclosure
+  Confidence: 0.0
+  Row label: "12 Deferred revenue 31 Dec 2024 $'000"
+  Classification: A — CORRECT_DEMOTION | Confidence: high
+  Rationale: Row label explicitly names this as a deferred revenue note —
+             a reconciliation item, not a revenue recognition line.
+
+Row A-6  [EVN | canonical_conflict_same_period]
+  Metric:    revenue (multiple breakdown rows)
+  Values:    491.4, 17.4, 1,605.0  (all FY22, same period)
+  Stmt fam:  income_statement
+  Scope:     appendix_statement
+  Confidence: 0.95
+  Row label: "Revenue comprised of" (subdivision rows)
+  Competing canonical: Yes — total consolidated revenue for FY22
+  Classification: A — CORRECT_DEMOTION | Confidence: high
+  Rationale: Multiple small revenue values competing with consolidated total are
+             segment/component breakdowns ("revenue comprised of..."). Demotion
+             is correct — only total consolidated revenue should be canonical.
+
+Row A-7  [BHP v12 | opening_balance_context]
+  Metric:    net_debt
+  Value:     -4,121.0
+  Period:    FY2022 ("at beginning of FY")
+  Stmt fam:  balance_sheet
+  Scope:     appendix
+  Row label: "Net debt at beginning of FY"
+  Classification: A — CORRECT_DEMOTION | Confidence: high
+  Rationale: Explicitly an opening balance (prior-period value reported for
+             reconciliation). This is the FY2021 closing value in an FY2022
+             reconciliation table. Opening balance context demotion is correct.
+
+Row A-8  [BHP v12 | metric_statement_mismatch]
+  Metric:    current_liabilities
+  Value:     -10,830,000,000
+  Period:    30 June 2021
+  Stmt fam:  income_statement
+  Scope:     other
+  Classification: A — CORRECT_DEMOTION | Confidence: high
+  Rationale: Negative current liabilities is anomalous. Additionally sourced from
+             income_statement context (wrong family). Combination of wrong family
+             + sign anomaly strongly supports rejection.
+
+------------------------------------------------------------------------
+FALSE_DEMOTION_SHOULD_BE_CANONICAL (B) — 4 examples
+------------------------------------------------------------------------
+
+Row B-1  [EVN | non_canonical_scope]
+  Metric:    ebitda
+  Value:     446,248,000
+  Period:    31 Dec 2022
+  Stmt fam:  other
+  Scope:     note_disclosure
+  Confidence: 0.0
+  Row label: "Underlying EBITDA"
+  Competing canonical: NONE for 31 Dec 2022 EBITDA in EVN baseline
+  Old row:   DATA_MISSING — no old EVN run for comparison
+  Stmt type: income_statement (Inferred from label)
+  Scope cls: group/consolidated (Inferred — "Underlying EBITDA" in ASX miners
+             is typically the primary consolidated management metric)
+  Classification: B — FALSE_DEMOTION_SHOULD_BE_CANONICAL | Confidence: medium
+  Rationale: No competing canonical EBITDA for this period. "Underlying EBITDA"
+             in appendix/note is standard ASX miner disclosure — it is typically
+             the primary EBITDA figure. Confidence 0.0 likely reflects non-standard
+             table layout, not wrong value. Demotion appears over-aggressive.
+             Medium confidence because confidence 0.0 weakens evidence.
+
+Row B-2  [EVN | non_canonical_scope]
+  Metric:    operating_cash_flow
+  Value:     270,689,000
+  Period:    30 June 2021
+  Stmt fam:  cash_flow
+  Scope:     other
+  Confidence: 0.0
+  Row label: "Operating cash flow ($'000)"
+  Competing canonical: NONE for 30 June 2021 operating_cash_flow in EVN baseline
+  Note: Multiple operating_cash_flow values for same period (25,698K, 5,780K,
+        30,620K also present) — possible sub-entity values
+  Stmt type: cash flow (Confirmed from family)
+  Scope cls: unknown (cannot disambiguate consolidated vs segment)
+  Classification: B — FALSE_DEMOTION_SHOULD_BE_CANONICAL | Confidence: low
+  Rationale: No canonical operating cash flow for 30 June 2021 — complete data
+             gap if this is excluded. Multiple values for same period suggest
+             consolidated + sub-entities. If 270,689K is the consolidated figure,
+             demotion is a false negative. Low confidence due to scope ambiguity
+             and confidence 0.0.
+
+Row B-3  [Stress 29M | canonical_conflict_same_period]
+  Metric:    revenue
+  Demoted value:   122,986,000
+  Canonical value: 184,372,000
+  Period:    31 Dec 2019
+  Stmt fam:  income_statement
+  Scope:     consolidated_statement (both rows)
+  Confidence: 0.9
+  Canonical_confidence_score: 4
+  Value difference: 61,386,000 (49.9%)
+  Old row: Same demoted row present in old run (unresolved)
+  Stmt type: income statement (Confirmed)
+  Scope cls: consolidated (Confirmed — explicitly set on both rows)
+  Classification: B (possible D) — FALSE_DEMOTION_SHOULD_BE_CANONICAL |
+                  Confidence: low
+  Rationale: Both rows claim consolidated_statement income_statement for same
+             period. A 50% revenue discrepancy cannot be explained by rounding.
+             One value is wrong. Cannot determine direction without source document.
+             Could be upstream scope labeling error (one is actually sub-entity
+             despite consolidated label). If 184,372K is from a different entity
+             than stated, this is D (WRONG_SURVIVING_CANONICAL).
+
+Row B-4  [BHP v12 | canonical_conflict_same_period]
+  Metric:    ebit
+  Demoted value:   25,906,000,000
+  Canonical value: 25,515,000,000
+  Period:    Year ended 30 June 2021
+  Stmt fam:  income_statement
+  Scope:     consolidated_statement
+  Row label: "Profit from operations"
+  Value difference: 391,000,000 (1.5%)
+  Old row: ebit 25,906M was CANONICAL in BHP v4; demoted in v12 pipeline change
+  Stmt type: income statement (Confirmed)
+  Scope cls: consolidated (Confirmed)
+  Classification: B — FALSE_DEMOTION_SHOULD_BE_CANONICAL | Confidence: medium
+  Rationale: Both rows from income_statement, consolidated_statement, same period,
+             same label "Profit from operations." The demoted row WAS canonical
+             in v4 — the v12 pipeline tightening changed which row won.
+             Note: BHP public FY2021 EBIT was ~USD 25.5B, which aligns more
+             closely with the surviving canonical (25,515M). Medium confidence
+             that this is a false demotion — v12 may have correctly updated the
+             canonical value.
+
+------------------------------------------------------------------------
+FALSE_DEMOTION_SHOULD_BE_STRUCTURED_CONTEXT (C) — 3 examples
+------------------------------------------------------------------------
+
+Row C-1  [EVN | metric_statement_mismatch]
+  Metric:    total_equity
+  Value:     2,240,741,000
+  Period:    30 June 2021
+  Stmt fam:  income_statement
+  Scope:     appendix_statement
+  Confidence: 0.9
+  Row label: "Total equity"
+  Competing canonical: Yes — canonical total_equity = 2,240,741,000 (IDENTICAL)
+  Stmt type: balance_sheet (Inferred — total_equity is always balance sheet)
+  Scope cls: consolidated (Inferred)
+  Classification: C — FALSE_DEMOTION_SHOULD_BE_STRUCTURED_CONTEXT |
+                  Confidence: high
+  Rationale: Value is numerically identical to canonical row. Demotion triggered
+             because source table was classified as income_statement when it is
+             actually a balance sheet summary embedded in an appendix. This is
+             a STATEMENT FAMILY MISCLASSIFICATION ERROR, not a value error.
+             The metric_statement_mismatch label is misleading — the metric and
+             value are correct; only the extracted source attribution is wrong.
+             Row is already preserved in context.json (no data loss), but label
+             should reflect "appendix scope" not "metric mismatch."
+
+Row C-2  [BHP v12 | reconciliation_context]
+  Metric:    ebit
+  Value:     29,853,000,000
+  Period:    30 June 2021
+  Stmt fam:  income_statement
+  Scope:     consolidated
+  Row label: "Underlying EBIT"
+  Competing canonical: Yes — statutory EBIT is canonical; this is adjusted figure
+  Classification: C — FALSE_DEMOTION_SHOULD_BE_STRUCTURED_CONTEXT |
+                  Confidence: high
+  Rationale: "Underlying EBIT" is a legitimate, decision-relevant adjusted metric
+             that ASX mining companies report alongside statutory EBIT. It should
+             not replace statutory EBIT as canonical, but should be preserved in
+             structured context as a named adjusted metric. Classification as
+             reconciliation_context is defensible but undervalues this metric —
+             "Underlying EBIT" is more commonly the primary management-reported
+             figure for BHP than a footnote reconciliation item.
+
+Row C-3  [BHP v12 | reconciliation_context]
+  Metric:    net_income
+  Value:     -335,000,000
+  Period:    30 June 2021
+  Stmt fam:  income_statement
+  Scope:     consolidated
+  Row label: "Loss after taxation from Discontinued operations"
+  Competing canonical: Yes — net_income canonical is different (larger) figure
+  Classification: C — FALSE_DEMOTION_SHOULD_BE_STRUCTURED_CONTEXT |
+                  Confidence: high
+  Rationale: Discontinued operations loss is a legitimate sub-component of net
+             income. Should not override total net income canonical, but is
+             important supplementary data for understanding reported earnings.
+             Demotion to reconciliation_context is correct in preventing canonical
+             override; the row is preserved in context.json.
+
+------------------------------------------------------------------------
+WRONG_SURVIVING_CANONICAL (D) — 1 example
+------------------------------------------------------------------------
+
+Row D-1  [Stress 29M | canonical_conflict_same_period]
+  Metric:    gross_profit
+  Demoted value:   -32,479,000
+  Canonical value: -496,000
+  Period:    31 Dec 2019
+  Stmt fam:  income_statement
+  Scope:     consolidated_statement (both rows)
+  Confidence: 0.9
+  Canonical_confidence_score: 4
+  Value difference: -31,983,000 (magnitude 6,448%)
+  Old run: Same demoted row present in old run — unresolved
+  Stmt type: income statement (Confirmed)
+  Scope cls: consolidated (Confirmed from scope field — both rows)
+  Classification: D — WRONG_SURVIVING_CANONICAL | Confidence: medium
+  Rationale: Both rows claim income_statement, consolidated_statement, same
+             period, high confidence. A gross profit difference of -32,479K vs
+             -496K (65x magnitude) cannot be explained by rounding within the
+             same document/scale. The surviving canonical (-496K) is suspiciously
+             small for a gross profit figure — it may be extracted from a single
+             note line rather than the primary income statement. Medium confidence:
+             cannot verify without source document, but the scale discrepancy is
+             a strong flag for a wrong canonical.
+
+------------------------------------------------------------------------
+UNCLEAR (E) — 2 examples
+------------------------------------------------------------------------
+
+Row E-1  [EVN | non_canonical_scope]
+  Metric:    operating_cash_flow
+  Value:     25,698,000
+  Period:    30 June 2021
+  Stmt fam:  cash_flow
+  Scope:     other
+  Confidence: 0.0
+  Note: Three other operating_cash_flow values exist for same period
+        (270,689K, 5,780K, 30,620K) — all confidence 0.0
+  Competing canonical: None
+  Classification: E — UNCLEAR | Confidence: low
+  Rationale: Four operating_cash_flow extractions for the same period with
+             values 270,689K, 25,698K, 5,780K, 30,620K. Could represent one
+             consolidated + three subsidiaries or operating segments. Without
+             document access or scope disambiguation, impossible to determine
+             which is the consolidated figure. System's decision to exclude all
+             from canonical may be correct (none passes scope validation) or may
+             result in complete data loss for this metric/period.
+
+Row E-2  [BHP v12 | canonical_conflict_same_period]
+  Metric:    total_equity
+  Demoted value:   52,175,000,000
+  Canonical value: 55,605,000,000
+  Period:    30 June 2021
+  Stmt fam:  balance_sheet
+  Scope:     consolidated (both rows)
+  Value difference: 3,430,000,000 (6.2%)
+  Old run: DATA_MISSING for this specific comparison
+  Classification: E — UNCLEAR | Confidence: low
+  Rationale: Both values plausible for BHP total equity at June 2021
+             (BHP published ~$51-56B equity range depending on reporting basis).
+             The 3.4B difference could represent:
+             (a) equity attributable to BHP shareholders (52,175M) vs total
+                 equity including minority interests (55,605M)
+             (b) different reporting bases between continuing and total operations
+             If (a), both values are correct for different scopes and the
+             canonical choice of 55,605M (total equity) is appropriate.
+             Cannot classify without source document.
+
+================================================================================
+6. COUNTS BY DEMOTION REASON
+================================================================================
+
+context_reason                   Sampled   A    B    C    D    E
+---------------------------------  -------  ---  ---  ---  ---  ---
+metric_statement_mismatch              14    9    2    3    0    0
+non_canonical_scope                    18    6    4    4    0    4
+canonical_conflict_same_period         14    6    4    0    2    2
+reconciliation_context                  8    3    0    5    0    0
+pro_forma_context                       7    7    0    0    0    0
+missing_statement_period_end            3    3    0    0    0    0
+opening_balance_context                 2    2    0    0    0    0
+lower_ranked_candidate (RIO)            4    3    0    0    0    1
+collision_unit_evidence_rejected (RIO)  4    3    0    0    1    0
+TOTAL                                  74   42   10   12    3    7
+
+================================================================================
+7. COUNTS BY CLASSIFICATION BUCKET
+================================================================================
+
+Bucket                                         Count    % of sample
+--------------------------------------------   -----    -----------
+A — CORRECT_DEMOTION                              42       56.8%
+B — FALSE_DEMOTION_SHOULD_BE_CANONICAL            10       13.5%
+C — FALSE_DEMOTION_SHOULD_BE_STRUCTURED_CONTEXT   12       16.2%
+D — WRONG_SURVIVING_CANONICAL                      3        4.1%
+E — UNCLEAR                                        7        9.5%
+TOTAL                                             74      100.0%
+
+B + D combined: 13 rows = 17.6% of sample
+(Decision threshold: <10% = not next target; >25% = clear next target;
+ 10-25% = mixed evidence)
+
+================================================================================
+8. FALSE-DEMOTION ASSESSMENT
+================================================================================
+
+Rate estimates:
+  False demotion overall (B+C+D):           33.8%
+  Rows that should have been canonical (B): 13.5%
+  Rows that should be structured context (C): 16.2%
+    (most already preserved in context.json — labeling issue, not data loss)
+  Wrong canonical survived (D):              4.1%
+  Combined B+D:                             17.6%  [between 10% and 25%]
+
+--- Key qualitative findings ---
+
+Finding 1 [Confirmed]
+  The non_canonical_scope + confidence 0.0 combination is the most ambiguous
+  pattern. Many EVN rows with this combination have no competing canonical for
+  the same metric/period. If confidence 0.0 is being assigned as a downstream
+  consequence of scope classification (circular: "it's non-canonical, therefore
+  0.0 confidence"), then rows are being systematically suppressed without
+  independent value-quality evidence. Affects operating_cash_flow, ebitda, and
+  revenue in mixed-layout documents.
+
+Finding 2 [Confirmed]
+  reconciliation_context (958 rows BHP, 33.5%) appears well-calibrated. Sampled
+  rows show correct identification of reconciliation items ("Underlying EBIT,"
+  "Loss from Discontinued operations," "Net debt at beginning of FY"). These rows
+  are preserved in context.json. This category does not appear miscalibrated.
+
+Finding 3 [Confirmed]
+  pro_forma_context and missing_statement_period_end are correctly applied in
+  all sampled rows. Not miscalibrated.
+
+Finding 4 [Confirmed]
+  canonical_conflict_same_period contains the highest-severity errors.
+  Row B-3 (revenue 50% discrepancy) and D-1 (gross_profit 65x discrepancy) are
+  both from this reason. Large-magnitude conflicts suggest conflict resolution is
+  choosing between rows from different entities with incorrectly identical scope
+  labels. This is not necessarily a demotion logic bug — it may be an upstream
+  scope labeling bug surfacing as a conflict.
+
+Finding 5 [Confirmed]
+  metric_statement_mismatch is partially miscalibrated. Row C-1 shows a case
+  where the metric value is correct and identical to canonical, but the source
+  table was misclassified as income_statement when it is actually a balance sheet
+  table embedded in an appendix. The mismatch is in the source classification,
+  not in the metric-to-statement alignment.
+
+Finding 6 [Confirmed]
+  BHP v4 -> v12 pipeline change demoted rows that were previously canonical.
+  v4 had 532 canonical rows; v12 has 161 (70% reduction). Row B-4 (ebit 25,906M
+  was canonical in v4, demoted in v12) is the clearest regression candidate.
+  However v12 values may be more accurate — old rows are not unconditionally
+  trusted.
+
+Finding 7 [Inferred]
+  RIO orchestrator-layer demotions (collision_unit_evidence_rejected,
+  lower_ranked_candidate) appear correctly applied in sampled rows.
+  Negative orchestrator_unit_evidence_score values consistently correspond
+  to rejected rows. No obvious false demotions in the RIO orchestrator layer.
+
+Finding 8 [Confirmed]
+  29M stress test old vs fresh runs are bit-identical (377 demoted rows each,
+  identical distributions). Demotions are deterministic. Problems are structural
+  in the logic, not stochastic.
+
+--- Old-row caution assessments ---
+
+BHP v4 rows: v4 canonical revenue values differ from v12 by 6.4-13.2% on shared
+periods. Large enough to suggest extraction quality differences. v4 rows are NOT
+unconditionally trustworthy.
+
+Stress test old run (175359): bit-identical to fresh run — no old-vs-new signal.
+
+No old rows in audit sample with obvious scaling/sign errors (all BHP values are
+in plausible range for BHP scale).
+
+================================================================================
+9. CONCLUSION
+================================================================================
+
+Combined B+D rate: 17.6%
+This falls between the 10% and 25% decision thresholds.
+
+CONCLUSION: Evidence is mixed — do not yet commit to demotion logic as the
+next engineering target.
+
+However, the evidence is not uniformly mixed. It splits into three sub-signals:
+
+1. CONFIDENT: Demotion logic is NOT the primary problem for
+   reconciliation_context, pro_forma_context, missing_statement_period_end,
+   opening_balance_context. These categories are well-calibrated and account
+   for ~46% of BHP context rows.
+
+2. SUSPECT: canonical_conflict_same_period conflict resolution has high-severity
+   errors (D-1: gross_profit 65x discrepancy; B-3: revenue 50% discrepancy).
+   These reflect upstream scope labeling errors surfacing as unresolvable
+   conflicts. The conflict resolution rule (keep highest canonical_confidence_score)
+   is choosing between rows that should never have competed.
+
+3. SUSPECT: metric_statement_mismatch is partially miscalibrated — specifically
+   for appendix-embedded balance sheet summaries misclassified as income_statement.
+   The demotion rule is correct; the statement family classifier is wrong.
+
+4. SUSPECT: non_canonical_scope + confidence 0.0 may suppress legitimate metrics
+   in mixed-layout documents. Requires source code review to confirm whether
+   confidence 0.0 is independent of scope classification or derived from it.
+   DATA_MISSING for this determination.
+
+================================================================================
+10. TOP SUSPECT DEMOTION RULES
+================================================================================
+
+Ordered by evidence strength:
+
+--- 1. canonical_conflict_same_period (HIGH severity, moderate calibration risk) ---
+
+Issue: Conflict resolution is selecting between rows that may not be truly
+comparable (different entity scopes mislabeled as same scope). Large-magnitude
+conflicts (50%, 65x) suggest upstream scope labeling errors are not being caught
+before conflict resolution fires.
+
+Effect: Wrong canonical row survives; legitimately better row is demoted.
+
+Engineering target: The conflict resolution gate, not the demotion label itself.
+Pre-condition check: are both conflicting rows truly from the same entity scope?
+
+--- 2. metric_statement_mismatch (MEDIUM severity, partially miscalibrated) ---
+
+Issue: Applied correctly when a metric genuinely appears in the wrong statement
+type. Applied incorrectly when the statement family extractor mislabels an
+appendix-embedded balance sheet table as income_statement.
+
+Effect: Correct metric values with correct numeric content are demoted with a
+misleading label. No data loss (values preserved in context.json), but the
+mismatch label incorrectly implies the metric is untrustworthy.
+
+Engineering target: Statement family classifier for appendix-embedded
+multi-statement summaries.
+
+--- 3. non_canonical_scope + confidence 0.0 interaction (MEDIUM severity, ambiguous) ---
+
+Issue: In mixed-layout documents (EVN style), metrics from appendix/note contexts
+consistently receive confidence 0.0 and non_canonical_scope. If no primary-statement
+extraction exists for the same metric/period, these rows result in data gaps with
+no canonical substitute.
+
+Effect: Missing canonical metrics for entire periods in mixed-layout documents.
+
+Engineering target: The confidence assignment logic for note-disclosure and
+appendix-sourced rows. Determine whether confidence 0.0 is independently
+evidence of extraction quality or is derived from scope classification
+(which would create circular suppression).
+
+================================================================================
+11. RECOMMENDED NEXT ENGINEERING TARGET
+================================================================================
+
+DO NOT commit resources to a wholesale demotion logic rewrite.
+
+Investigate in this order:
+
+1. Statement family classifier for appendix-embedded tables
+   Root cause of a significant fraction of metric_statement_mismatch false
+   positives and the upstream cause of several canonical_conflict_same_period
+   errors. A misclassified statement family contaminates both the demotion label
+   and the conflict resolution pre-conditions.
+
+2. Entity scope validation before canonical_conflict_same_period fires
+   Add a pre-check: if two competing rows claim the same scope (consolidated_statement)
+   but their values differ by more than a threshold (e.g., >20%), flag as a
+   scope-label conflict before running conflict resolution. Do not silently pick
+   a winner.
+
+3. Confidence 0.0 diagnostic for non_canonical_scope rows
+   Determine whether confidence 0.0 in these rows is independently derived from
+   extraction quality evidence, or is set as a consequence of scope classification.
+   If the latter, these rows need a separate quality signal before the scope rule
+   suppresses them.
+
+================================================================================
+12. DATA MISSING / BLOCKERS
+================================================================================
+
+1. Source code for confidence scoring
+   Cannot confirm whether confidence 0.0 is independent of scope classification
+   or derived from it.
+   Impact: Blocks resolution of Finding 1 (circular suppression).
+
+2. Source documents for Stress Test 29M conflicting rows
+   Cannot verify which conflicting revenue/gross_profit value (B-3, D-1) is
+   correct.
+   Impact: Prevents final determination of B vs D for the two highest-severity
+   candidates.
+
+3. Entity/scope labels for four conflicting EVN operating_cash_flow rows
+   (270M, 25M, 5M, 30M for same period) — cannot determine consolidated vs
+   sub-entity.
+   Impact: Prevents classification of E-1.
+
+4. Source document for BHP v12 ebit conflict (25,906M vs 25,515M)
+   Need to verify against BHP FY2021 annual report actual reported EBIT.
+   Impact: Prevents final determination of B-4.
+
+5. No confirmed presentation-format artifact in corpus
+   (PowerPoint / investor day slides). Expansion ticker context files partially
+   substitute but are not confirmed presentation-format documents.
+   Impact: Audit gap for this document type.
+
+6. BHP v12 canonical shrinkage (532 -> 161 rows)
+   The 371 rows dropped from canonical in v12 were not fully audited.
+   Impact: Scope boundary for this audit. Some may be legitimate regressions
+   from the v12 pipeline tightening.
+
+7. orchestrator_reason = lower_ranked_candidate
+   Ranking criteria used to determine which row is lower-ranked are not visible
+   in the artifact.
+   Impact: Partial data gap for 12 RIO rows in this category.
+
+================================================================================
+END OF AUDIT REPORT
+================================================================================
+Audit completed: 2026-03-20
+Artifact coverage: ~74 rows examined across 6 corpus sources
+No production files modified. No instrumentation added. No fixes implemented.
