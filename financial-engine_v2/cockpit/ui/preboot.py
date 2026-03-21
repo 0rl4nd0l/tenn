@@ -429,19 +429,22 @@ class PreBootScreen(Screen):
             env.setdefault("COCKPIT_VERBOSE_LOGGING", "1")
             env.setdefault("COCKPIT_LOG_TO_STDERR", "1")
 
-        # For llamacpp, raw_model_value is a full .gguf path.
-        # Derive the alias (what the API client sends as "model") from the stem.
+        # For llamacpp, raw_model_value is a full path (local .gguf or Ollama blob).
+        # Blob paths have no .gguf extension — look up alias from discovered models list.
         if llm_provider == "llamacpp":
             model_path = raw_model_value
-            if model_path and model_path.endswith(".gguf"):
-                # Use the running process alias if this is the active model.
-                if self._llama_proc and self._llama_proc.get("model_path") == model_path:
+            if model_path:
+                # Look up the human-readable alias from discovered models (covers both
+                # local .gguf files and Ollama blobs whose stem is a sha256 hash).
+                model_info = next((m for m in self._llama_fs_models if m["path"] == model_path), None)
+                if model_info:
+                    model_alias = model_info["stem"]
+                elif self._llama_proc and self._llama_proc.get("model_path") == model_path:
                     model_alias = self._llama_proc.get("model_alias") or Path(model_path).stem
                 else:
                     model_alias = Path(model_path).stem
             else:
-                model_path = ""
-                model_alias = raw_model_value or "local"
+                model_alias = "local"
         else:
             model_path = ""
             model_alias = raw_model_value or "llama3:latest"
