@@ -50,6 +50,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "python3 -c \"\nimport subprocess, json, os\nos.chdir('/home/l4nd0/tenn')\ndiff = subprocess.run(['git', 'diff', '--name-only', 'HEAD'], capture_output=True, text=True).stdout.strip()\nstaged = subprocess.run(['git', 'diff', '--cached', '--name-only'], capture_output=True, text=True).stdout.strip()\nuntracked = subprocess.run(['git', 'ls-files', '--others', '--exclude-standard'], capture_output=True, text=True).stdout.strip()\nchanged = [f for f in set((diff + '\\n' + staged + '\\n' + untracked).splitlines()) if f]\nif changed:\n    count = len(changed)\n    sample = ', '.join(changed[:3]) + (f' +{count-3} more' if count > 3 else '')\n    msg = f'MILESTONE NOT COMMITTED: {count} file(s) changed and not committed ({sample}). Commit working state before ending the session to preserve regression traceability.'\n    print(json.dumps({'systemMessage': msg}))\n\" 2>/dev/null || true",
+            "statusMessage": "Checking for uncommitted milestone state..."
+          },
+          {
+            "type": "command",
             "command": "git diff --stat HEAD 2>/dev/null || true",
             "statusMessage": "Summarising changes..."
           },

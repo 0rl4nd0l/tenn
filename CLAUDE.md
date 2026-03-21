@@ -107,6 +107,42 @@ In restricted socket environments, `SKIP due restricted environment` from health
 
 ---
 
+## Milestone Commit Protocol (MANDATORY — ALL AGENTS)
+
+**This rule is non-negotiable and applies to every agent and every session.**
+
+A **milestone** is any point where a discrete unit of functionality is confirmed working:
+- A feature, fix, or refactor that passes its tests
+- A subsystem that boots, responds to health checks, or produces correct output
+- A test suite that reaches green after previously failing
+- A pipeline stage that completes end-to-end without errors
+
+### At Every Milestone You MUST:
+
+1. **Create a git commit** with the message format:
+   ```
+   milestone(<subsystem>): <what works now>
+
+   Working: <brief description of the confirmed-working behavior>
+   Tested: <how it was verified — test name, curl output, log line, etc.>
+   ```
+2. **Stage all relevant files** — do not leave working state unstaged.
+3. **Do NOT bundle a broken partial change with a milestone commit.** If something is half-done, stash or omit it.
+
+### Regression Traceability Requirement
+
+The purpose of milestone commits is **regression traceability**: if a future change breaks functionality, `git bisect` and `git log` must be able to pinpoint when it last worked.
+
+- **Never end a session with uncommitted working state.** The Stop hook will warn you.
+- If a task is incomplete, commit what works and clearly note what remains in the commit body.
+- If you cannot verify something works, do not commit it as a milestone — commit it as `wip(<subsystem>): ...` instead.
+
+### Non-Compliance
+
+Failing to commit at milestones is a **violation of this operating contract**. A Stop hook will emit a warning if uncommitted changes exist at session end. Do not dismiss this warning — commit before finishing.
+
+---
+
 ## Post-Write Documentation (ENFORCED)
 
 If a change touches any of these surfaces, the corresponding `docs/claude/` documentation **must** be updated in the same session:
