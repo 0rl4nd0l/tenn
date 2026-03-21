@@ -173,9 +173,8 @@ _PASS3A_PROMPT = """You are a financial metric extractor. Output ONLY valid JSON
 Document metadata:
 - Period: {period_type} ending {period_end}
 - Currency: {currency}
-- Scale: {scale} (ALL output values must be multiplied by the scale factor)
-  - thousands → multiply by 1,000
-  - millions → multiply by 1,000,000
+- Scale: {scale} (for your information only — output RAW values as they appear in the table)
+  - Do NOT pre-multiply. Output 3241 if the table shows "3,241". The system applies the scale.
 
 Table type: {table_type}
 Table (markdown):
@@ -185,7 +184,7 @@ Extract ONLY these metrics relevant to {table_type}:
 {metric_list}
 
 Rules:
-- Values in parentheses like (412) mean NEGATIVE: output -412000 (if scale=thousands)
+- Values in parentheses like (412) mean NEGATIVE: output -412 (raw, not pre-multiplied)
 - null if the metric is not in this table
 - period_col: which column header represents the current period
 
