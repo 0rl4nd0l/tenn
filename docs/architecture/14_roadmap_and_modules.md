@@ -34,7 +34,7 @@ Outputs feed the document store, vector index (for RAG), and any staging/snapsho
 - Single API: `POST /rag/query` (see [07_rag_contract.md](07_rag_contract.md)).
 - Inputs: query text, optional ticker, top_k.
 - Outputs: ordered list of hits (score, document_id, ticker, title, chunk_index, etc.). No side effects; deterministic for same query and index state.
-- All embedding and vector store rules from [backend_architecture](../../.cursor/rules/backend_architecture.md) apply (Ollama, Qdrant, deterministic vector IDs).
+- All embedding and vector store rules from [04_ingestion_pipeline.md](04_ingestion_pipeline.md) and [10_failure_model.md](10_failure_model.md) apply (Ollama, Qdrant, deterministic vector IDs, no silent degradation).
 
 ### 3. Analysis modules
 
@@ -134,7 +134,7 @@ No implementation of this structure is implied here; it is a roadmap for where t
 - **Deterministic:** For the same inputs (ticker, date range, config, and upstream data), a module must produce the same outputs. No reliance on `uuid4()` or other non-deterministic IDs for artifacts; no unsupported randomness in business logic.
 - **Artifact-producing:** Every module run must write at least one artifact under `reports/` (or a configured output root). Artifacts are the canonical record of the run and enable audit, comparison, and reuse by downstream phases (e.g. portfolio module consuming analysis artifacts).
 
-These rules align with the existing [backend architecture](../../.cursor/rules/backend_architecture.md) (idempotency, deterministic vector IDs, no silent degradation) and ensure the Analyse Company pipeline remains reproducible and auditable.
+These rules align with the tracked guidance in [04_ingestion_pipeline.md](04_ingestion_pipeline.md) and [10_failure_model.md](10_failure_model.md) (idempotency, deterministic vector IDs, no silent degradation) and ensure the Analyse Company pipeline remains reproducible and auditable.
 
 ---
 

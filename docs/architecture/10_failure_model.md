@@ -35,6 +35,6 @@ This document describes how the system behaves when dependencies or operations f
 
 ## References
 
-- [.cursor/rules/backend_architecture.md](../../.cursor/rules/backend_architecture.md) — no silent degradation; fail fast on config errors.
+- [06_embeddings_and_vector_store.md](06_embeddings_and_vector_store.md) — embedding/vector store invariants and fail-fast expectations.
 - [07_rag_contract.md](07_rag_contract.md) — RAG API contract.
 - [11_rebuild_and_recovery.md](11_rebuild_and_recovery.md) — rebuild and recovery after index/config mismatch.

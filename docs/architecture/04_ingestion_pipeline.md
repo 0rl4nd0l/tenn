@@ -44,7 +44,7 @@ Discovery and persist are done once per backfill run; download → extract → c
   - `document_id` is the canonical lowercase UUID string of the document (same as in the `documents` table).
   - `chunk_index` is the zero-based index of the chunk within that document.
 
-- **Why deterministic:** Same document + same chunking always yields the same point ID. Re-embedding and re-upserting replace the same points instead of creating duplicates. This is required by [vector store invariants](../../.cursor/rules/vector_store_invariants.md) and [backend architecture](../../.cursor/rules/backend_architecture.md).
+- **Why deterministic:** Same document + same chunking always yields the same point ID. Re-embedding and re-upserting replace the same points instead of creating duplicates. This is required by [06_embeddings_and_vector_store.md](06_embeddings_and_vector_store.md), [08_backfill_contract.md](08_backfill_contract.md), and [10_failure_model.md](10_failure_model.md).
 
 - **Implementation:** In `pipeline.process_document`, for each chunk: `point_id = f"{doc_id_str}:{index}"` with `doc_id_str = str(doc.document_id).lower()`.
 

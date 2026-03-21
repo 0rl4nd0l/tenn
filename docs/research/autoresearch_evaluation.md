@@ -205,7 +205,7 @@ These must never be enabled, regardless of implementation maturity:
 
 ## Related Docs
 
-- `docs/architecture/future_capabilities.md` — "Autonomous Dev Optimization Loop" section
+- `docs/architecture/14_roadmap_and_modules.md` — "Autonomous Dev Optimization Loop" section
 - `docs/architecture/12_evaluation_and_drift_monitoring.md` — existing eval/drift infrastructure
 - `docs/validation_baseline.md` — 10-step validation gate set
 - `docs/architecture/model-routing.md` — routing weights (candidate optimization target)
