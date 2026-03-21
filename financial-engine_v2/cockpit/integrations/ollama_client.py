@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import json
 import re
+from typing import Callable
+
 import httpx
 
 
@@ -25,26 +28,61 @@ class OllamaClient:
             except Exception as exc:
                 return {"ok": False, "url": self.base_url, "error": str(exc)}
 
-    def chat(self, prompt: str, timeout: float = 120.0) -> str:
+    @staticmethod
+    def _error_body_preview(response: httpx.Response | None, limit: int = 300) -> str:
+        if response is None:
+            return ""
+        try:
+            body = response.read().decode("utf-8", errors="replace")
+        except Exception:
+            try:
+                body = response.text
+            except Exception:
+                body = ""
+        return body[:limit]
+
+    def chat(self, prompt: str, timeout: float = 120.0, on_chunk: Callable[[str], None] | None = None) -> str:
+        url = f"{self.base_url}/api/generate"
+        parts: list[str] = []
+        emitted_any = False
+
         with httpx.Client(timeout=timeout) as client:
-            url = f"{self.base_url}/api/generate"
-            payload = None
-            # One retry for transient transport issues.
+            # One retry for transient startup issues before any text has been emitted.
             for attempt in (1, 2):
                 try:
-                    response = client.post(
+                    with client.stream(
+                        "POST",
                         url,
                         json={
                             "model": self.model,
                             "prompt": prompt,
-                            "stream": False,
+                            "stream": True,
                         },
-                    )
-                    response.raise_for_status()
-                    payload = response.json()
+                    ) as response:
+                        response.raise_for_status()
+                        for line in response.iter_lines():
+                            if not line:
+                                continue
+                            if isinstance(line, bytes):
+                                line = line.decode("utf-8", errors="ignore")
+                            try:
+                                payload = json.loads(str(line))
+                            except json.JSONDecodeError:
+                                continue
+
+                            chunk = str(payload.get("response") or "")
+                            if chunk:
+                                parts.append(chunk)
+                                emitted_any = True
+                                if on_chunk is not None:
+                                    on_chunk(chunk)
+
+                            if payload.get("done"):
+                                return "".join(parts)
+
                     break
                 except httpx.HTTPStatusError as exc:
-                    body = exc.response.text[:300] if exc.response is not None else ""
+                    body = self._error_body_preview(exc.response)
                     hint = ""
                     if exc.response is not None and exc.response.status_code == 404:
                         hint = " Hint: if OLLAMA_URL ends with '/api', remove that suffix."
@@ -53,7 +91,7 @@ class OllamaClient:
                         f"Response: {body}. Verify OLLAMA_URL, model name, and that Ollama is running.{hint}"
                     ) from exc
                 except (httpx.ConnectError, httpx.TimeoutException) as exc:
-                    if attempt == 1:
+                    if attempt == 1 and not emitted_any:
                         continue
                     raise RuntimeError(
                         f"Ollama request error at {url}: {exc}. "
@@ -63,9 +101,10 @@ class OllamaClient:
                     raise RuntimeError(
                         f"Ollama request error at {url}: {exc}"
                     ) from exc
-        if payload is None:
+
+        if not parts:
             raise RuntimeError(f"Ollama request failed with no response payload at {url}")
-        return str(payload.get("response") or "")
+        return "".join(parts)
 
     @staticmethod
     def _normalize_base_url(raw: str) -> str:

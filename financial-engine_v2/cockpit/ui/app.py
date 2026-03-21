@@ -18,6 +18,7 @@ from textual.widgets import Footer, Header, RichLog, Static
 from cockpit.core.actions import ActionRegistry
 from cockpit.core.chat import ChatController
 from cockpit.core.job_runner import JobRunner
+from cockpit.core.plotly_html import build_candlestick_dashboard_html, build_price_dashboard_html, build_snapshot_dashboard_html
 from cockpit.core.snapshot import build_snapshot_payload
 from cockpit.core.types import JobRun
 from cockpit.core.verification import run_verification
@@ -25,7 +26,6 @@ from cockpit.integrations.backend_api import BackendApiClient
 from cockpit.integrations.db_reader import DbReader
 from cockpit.integrations.file_indexer import FileIndexer
 from cockpit.integrations.llamacpp_client import LlamaCppClient
-from cockpit.integrations.ollama_client import OllamaClient
 from cockpit.integrations.qual_context_bootstrap import build_qual_context_reader, context_enabled
 from cockpit.integrations.web_fetcher import WebFetcher
 from cockpit.core.tools import ToolRouter
@@ -135,12 +135,14 @@ class CockpitApp(App):
         self.file_indexer = FileIndexer(config["paths"]["allow_roots"])
         self.web_fetcher = WebFetcher()
         llm_cfg = config.get("llm", {})
-        llm_provider = llm_cfg.get("provider", "ollama")
+        llm_provider = llm_cfg.get("provider", "llamacpp")
         llm_model = llm_cfg.get("model", "llama3:latest")
         if llm_provider == "llamacpp":
-            self.ollama_client = LlamaCppClient(llm_cfg.get("llamacpp_url", "http://localhost:8001"), llm_model)
-        else:
-            self.ollama_client = OllamaClient(llm_cfg.get("ollama_url", "http://localhost:11434"), llm_model)
+            self.ollama_client = LlamaCppClient(
+                llm_cfg.get("llamacpp_url", "http://localhost:8001"),
+                llm_model,
+                api_key=llm_cfg.get("llamacpp_api_key", ""),
+            )
         self.action_registry = ActionRegistry(repo_root=repo_root, confirm_required=config["actions"].get("confirm_required", True))
         self.job_runner = JobRunner(repo_root=repo_root, logs_dir=self.artifacts.logs_dir)
 
@@ -204,7 +206,9 @@ class CockpitApp(App):
         self.thread_id = "global-main"
         self.pending_action: dict[str, Any] | None = None
         self.last_verification_payload: dict[str, Any] | None = None
+        self.last_snapshot_payload: dict[str, Any] | None = None
         self.last_detected_ticker: str | None = None
+        self.last_response_mode: str | None = None
         self.chat_inflight = False
         self.active_job_task: asyncio.Task[None] | None = None
         self.active_job_id: str | None = None
@@ -296,17 +300,17 @@ class CockpitApp(App):
                 if model and names and model not in names:
                     self._screen_log(
                         "chat",
-                        f"startup: Ollama reachable at {health.get('url')} but model '{model}' is not pulled.",
+                        f"startup: llama.cpp reachable at {health.get('url')} but model '{model}' is not pulled.",
                     )
                 else:
-                    self._screen_log("chat", f"startup: Ollama reachable at {health.get('url')}")
+                    self._screen_log("chat", f"startup: llama.cpp reachable at {health.get('url')}")
             else:
                 self._screen_log(
                     "chat",
-                    f"startup: Ollama unavailable at {health.get('url')}: {health.get('error')}",
+                    f"startup: llama.cpp unavailable at {health.get('url')}: {health.get('error')}",
                 )
         except Exception as exc:
-            self._screen_log("chat", f"startup: Ollama health check failed: {exc}")
+            self._screen_log("chat", f"startup: llama.cpp health check failed: {exc}")
 
         self._schedule_model_status_refresh()
         self._model_status_timer = self.set_interval(15.0, self._schedule_model_status_refresh)
@@ -386,7 +390,7 @@ class CockpitApp(App):
         provider = str(llm_cfg.get("provider") or "ollama")
         model = str(llm_cfg.get("model") or getattr(self.ollama_client, "model", "") or "unknown")
         endpoint = str(getattr(self.ollama_client, "base_url", "") or llm_cfg.get("ollama_url", ""))
-        provider_label = "llama.cpp" if provider == "llamacpp" else "Ollama"
+        provider_label = "llama.cpp"
 
         health, sys_metrics = await asyncio.to_thread(self._collect_runtime_snapshot, endpoint)
 
@@ -400,6 +404,7 @@ class CockpitApp(App):
         lines = [
             f"Provider: {provider_label}  |  Model: {loaded}",
             f"Endpoint: {endpoint}",
+            f"Last mode: {self.last_response_mode or 'none'}",
         ]
 
         if health.get("ok"):
@@ -488,6 +493,9 @@ class CockpitApp(App):
     def write_report_json(self, rel_path: str, payload: dict[str, Any]) -> str:
         return self.artifacts.write_json(rel_path, payload)
 
+    def write_report_html(self, rel_path: str, content: str) -> str:
+        return self.artifacts.write_text(rel_path, content)
+
     async def handle_chat_message(self, message: str) -> None:
         chat = self.get_screen("chat")
         log = chat.query_one("#chat-log", RichLog)
@@ -566,11 +574,20 @@ class CockpitApp(App):
 
         spinner_frames = ["|", "/", "-", "\\"]
         stream_state = {"text": "", "last_flush": 0.0}
+        action_id = self.chat_controller.detect_action_intent(message)
+        if action_id:
+            provisional_mode = "action"
+        else:
+            provisional_mode = self.chat_controller.classify_request(
+                message,
+                enable_web=self.config["web"].get("enabled_default", False),
+            ).value
+        thinking_prefix = f"{self.ASSISTANT_NAME} (thinking: {provisional_mode})"
 
         async def _spinner() -> None:
             idx = 0
             while self.chat_inflight:
-                status.update(f"{self.ASSISTANT_NAME} (thinking) {spinner_frames[idx % len(spinner_frames)]}")
+                status.update(f"{thinking_prefix} {spinner_frames[idx % len(spinner_frames)]}")
                 idx += 1
                 await asyncio.sleep(0.12)
 
@@ -589,7 +606,7 @@ class CockpitApp(App):
 
         try:
             self.chat_inflight = True
-            status.update(f"{self.ASSISTANT_NAME} (thinking) |")
+            status.update(f"{thinking_prefix} |")
             spinner_task = asyncio.create_task(_spinner())
             def _build_response():
                 try:
@@ -634,6 +651,7 @@ class CockpitApp(App):
 
         assistant_text = (response.text or stream_state["text"]).strip()
         self._set_chat_live_response("")
+        self.last_response_mode = str(response.mode or provisional_mode)
 
         try:
             local_details = (response.evidence or [{}])[0].get("details", {})
@@ -661,6 +679,7 @@ class CockpitApp(App):
         export_payload = {
             "question": message,
             "answer": assistant_text,
+            "response_mode": response.mode,
             "evidence": response.evidence,
             "actions_taken": [response.action_preview] if response.action_preview else [],
             "sources": ["local_context"],
@@ -835,8 +854,14 @@ class CockpitApp(App):
             after=after,
             verification_summary=verification,
         )
+        self.last_snapshot_payload = payload
         out_path = self.write_report_json(f"reports/snapshots/{ticker}_{self.timestamp()}.json", payload)
         self._write_log(log_target, f"Snapshot written: {out_path}")
+        html_path = self.write_report_html(
+            f"reports/cockpit/{ticker}_{self.timestamp()}_snapshot_dashboard.html",
+            build_snapshot_dashboard_html(payload),
+        )
+        self._write_log(log_target, f"Snapshot dashboard written: {html_path}")
         self._write_log(log_target, json.dumps(payload, default=str, indent=2)[:6000])
 
     def run_verification(self, ticker: str | None = None) -> dict[str, Any]:

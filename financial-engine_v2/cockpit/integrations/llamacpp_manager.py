@@ -140,16 +140,55 @@ def models_dir_from_process(proc_info: dict) -> str:
     return os.environ.get("LLAMACPP_MODELS_DIR", str(Path.home() / "tenn" / "models"))
 
 
+_KNOWN_SYSTEMD_SERVICES = [
+    "llama-cpp-qwen25",
+    "llama-cpp",
+    "llama-server",
+]
+
+
+def _stop_systemd_service(on_status: object) -> str | None:
+    """
+    Stop the systemd user service managing llama-server, if one is active.
+    Returns the service name if stopped, else None.
+    """
+    for svc in _KNOWN_SYSTEMD_SERVICES:
+        try:
+            result = subprocess.run(
+                ["systemctl", "--user", "is-active", svc],
+                capture_output=True, text=True, timeout=5,
+            )
+            if result.returncode == 0:
+                if callable(on_status):
+                    on_status(f"Stopping systemd service {svc}...")
+                subprocess.run(
+                    ["systemctl", "--user", "stop", svc],
+                    capture_output=True, timeout=15,
+                )
+                return svc
+        except Exception:
+            continue
+    return None
+
+
+def has_no_mmap(raw_args: list[str]) -> bool:
+    """Return True if --no-mmap is present in the process arg list."""
+    return "--no-mmap" in raw_args
+
+
 def restart_with_model(
     proc_info: dict,
     new_model_path: str,
     new_model_alias: str,
-    startup_timeout: float = 90.0,
+    startup_timeout: float = 600.0,
     on_status: object = None,
+    mmap_disabled: bool | None = None,
 ) -> bool:
     """
     Kill the current llama-server and relaunch it with a different model.
     All other startup args (GPU layers, context size, host, port, etc.) are preserved.
+    If a systemd user service is managing the process, it is stopped first to
+    prevent auto-restart interference.
 
     on_status: optional callable(str) called with progress messages.
     Returns True if the new server becomes ready within startup_timeout seconds.
@@ -158,11 +197,14 @@ def restart_with_model(
         if callable(on_status):
             on_status(msg)
 
+    # Stop any systemd service that would respawn the old model.
+    _stop_systemd_service(_status)
+
     pid = proc_info["pid"]
     binary = proc_info["binary"]
     raw_args = proc_info["raw_args"]
 
-    # Rebuild args, replacing -m/-a values.
+    # Rebuild args, replacing -m/-a values and toggling --no-mmap if requested.
     new_args: list[str] = []
     i = 0
     while i < len(raw_args):
@@ -172,6 +214,9 @@ def restart_with_model(
         elif raw_args[i] in ("-a", "--alias") and i + 1 < len(raw_args):
             new_args += [raw_args[i], new_model_alias]
             i += 2
+        elif raw_args[i] == "--no-mmap" and mmap_disabled is not None:
+            # Handled below — skip original value.
+            i += 1
         else:
             new_args.append(raw_args[i])
             i += 1
@@ -180,8 +225,13 @@ def restart_with_model(
     if "-a" not in raw_args and "--alias" not in raw_args:
         new_args += ["-a", new_model_alias]
 
+    # Apply mmap override.
+    if mmap_disabled is True:
+        new_args.append("--no-mmap")
+    # mmap_disabled=False means remove --no-mmap (already stripped above).
+
     # Graceful shutdown: SIGTERM then SIGKILL.
-    _status("Sending SIGTERM to llama-server...")
+    _status("Stopping current model...")
     try:
         os.kill(pid, signal.SIGTERM)
         for _ in range(20):
@@ -191,12 +241,14 @@ def restart_with_model(
             except ProcessLookupError:
                 break
         else:
-            _status("Graceful shutdown timed out — sending SIGKILL")
+            _status("Server slow to stop — forcing shutdown")
             os.kill(pid, signal.SIGKILL)
     except ProcessLookupError:
         pass  # already gone
 
-    _status(f"Starting llama-server with {Path(new_model_path).name}...")
+    # Use alias (human-readable) if the path is an Ollama blob (no .gguf suffix).
+    model_label = new_model_alias if Path(new_model_path).suffix != ".gguf" else Path(new_model_path).name
+    _status(f"Loading {model_label} — large models may take several minutes...")
     subprocess.Popen(
         [binary] + new_args,
         start_new_session=True,
@@ -209,11 +261,12 @@ def restart_with_model(
     port = _extract_arg(raw_args, ("--port",)) or "8001"
     ready_url = f"http://{host}:{port}/v1/models"
     deadline = time.monotonic() + startup_timeout
-    dots = 0
+    elapsed = 0
     while time.monotonic() < deadline:
-        time.sleep(2)
-        dots += 1
-        _status(f"Waiting for server{'.' * (dots % 4)}  ({int(deadline - time.monotonic())}s left)")
+        time.sleep(5)
+        elapsed += 5
+        remaining = int(deadline - time.monotonic())
+        _status(f"Loading model... {elapsed}s elapsed  ({remaining}s timeout)")
         try:
             urllib.request.urlopen(ready_url, timeout=3)
             return True

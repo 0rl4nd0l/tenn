@@ -10,10 +10,11 @@ import yaml
 
 DEFAULT_CONFIG = {
     "llm": {
-        "provider": "ollama",
-        "ollama_url": "http://localhost:11434",
+        "provider": "llamacpp",
+        "ollama_url": "",
         "llamacpp_url": "http://localhost:8001",
-        "model": "llama3:latest",
+        "llamacpp_api_key": "local-openai-key",
+        "model": "qwen2.5-coder-14b",
         "timeout_seconds": 300,
     },
     "paths": {
@@ -37,6 +38,8 @@ DEFAULT_CONFIG = {
         "dir": "reports",
     },
 }
+
+VALID_LLM_PROVIDERS = {"llamacpp", "ollama"}
 
 
 @dataclass
@@ -85,9 +88,23 @@ def apply_runtime_flags(config: dict[str, Any], flags: RuntimeFlags) -> dict[str
 
     # Environment override keeps Cockpit aligned with existing stack.
     cfg.setdefault("llm", {})
-    cfg["llm"]["ollama_url"] = os.getenv("OLLAMA_URL", cfg["llm"].get("ollama_url", "http://localhost:11434"))
-    cfg["llm"]["llamacpp_url"] = os.getenv("LLAMACPP_URL", cfg["llm"].get("llamacpp_url", "http://localhost:8001"))
-    cfg["llm"]["model"] = os.getenv("EXTRACT_MODEL", cfg["llm"].get("model", "llama3.1:8b"))
+    provider = str(os.getenv("COCKPIT_LLM_PROVIDER", cfg["llm"].get("provider", "llamacpp")) or "").strip().lower()
+    if provider not in VALID_LLM_PROVIDERS:
+        raise ValueError(f"Unsupported Cockpit LLM provider: {provider}")
+    cfg["llm"]["provider"] = provider
+    cfg["llm"]["ollama_url"] = os.getenv(
+        "COCKPIT_OLLAMA_URL",
+        os.getenv("OLLAMA_URL", cfg["llm"].get("ollama_url", "")),
+    )
+    cfg["llm"]["llamacpp_url"] = os.getenv(
+        "COCKPIT_LLAMACPP_URL",
+        os.getenv("LLAMACPP_URL", cfg["llm"].get("llamacpp_url", "http://localhost:8001")),
+    )
+    cfg["llm"]["model"] = os.getenv(
+        "COCKPIT_LLM_MODEL",
+        os.getenv("EXTRACT_MODEL", cfg["llm"].get("model", "qwen2.5-coder-14b")),
+    )
+    cfg["llm"]["llamacpp_api_key"] = os.getenv("LLAMACPP_API_KEY") or os.getenv("LLM_API_KEY") or cfg["llm"].get("llamacpp_api_key", "")
     cfg.setdefault("db", {})
     cfg["db"]["database_url"] = os.getenv("DATABASE_URL", "sqlite:///./data/fe_local.db")
     return cfg

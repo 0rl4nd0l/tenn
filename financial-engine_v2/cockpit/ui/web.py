@@ -45,6 +45,11 @@ class CockpitWebApp(CockpitApp):
         # Sentinel: signals that _init_services() has not yet run.
         self._services_ready = False
 
+        # Attrs normally set by CockpitApp.__init__ — must exist for on_unmount
+        # even if services are never initialised (e.g. user cancels at pre-boot).
+        self._model_status_timer = None
+        self._chat_tasks: set = set()
+
     # ------------------------------------------------------------------
     # Compose: provide the standard chrome (Header + Footer) up-front so
     # the pre-boot screen renders inside a consistent shell.
@@ -60,10 +65,28 @@ class CockpitWebApp(CockpitApp):
     # ------------------------------------------------------------------
 
     def on_mount(self) -> None:
+        cfg = load_config(self._config_path)
+        cfg = apply_runtime_flags(
+            cfg,
+            RuntimeFlags(
+                config_path=self._config_path,
+                profile="default",
+                read_only=False,
+                no_web=False,
+            ),
+        )
+        llm_cfg = cfg.get("llm", {})
         self.push_screen(
             PreBootScreen(
                 backend_url=self._backend_url,
                 ollama_url=self._ollama_url,
+                initial_flags={
+                    "profile": "default",
+                    "read_only": False,
+                    "no_web": False,
+                    "llm_provider": str(llm_cfg.get("provider") or "llamacpp"),
+                    "llm_model": str(llm_cfg.get("model") or "qwen2.5-coder-14b"),
+                },
                 on_launch=self._on_preboot_launch,
                 on_cancel=lambda: self.exit({"cancelled": True}),
             )

@@ -19,6 +19,7 @@ from cockpit.integrations.llamacpp_manager import (
     discover_models,
     discover_ollama_models,
     find_llama_server_process,
+    has_no_mmap,
     models_dir_from_process,
     restart_with_model,
 )
@@ -37,17 +38,14 @@ class _ServiceCheck:
     models: list[str] = field(default_factory=list)
 
 
-def _build_service_checks(backend_url: str, ollama_url: str) -> list[_ServiceCheck]:
+def _build_service_checks(backend_url: str, ollama_url: str = "") -> list[_ServiceCheck]:  # noqa: ARG001
     backend_health = backend_url.rstrip("/") + "/api/health"
-    checks = [
+    return [
         _ServiceCheck("Backend API",  backend_health),
         _ServiceCheck("llama.cpp",     "http://localhost:8001/v1/models"),
         _ServiceCheck("Qdrant",        "http://localhost:6333/readyz"),
         _ServiceCheck("Redis",         "tcp://localhost:6379"),
     ]
-    if str(ollama_url or "").strip():
-        checks.insert(1, _ServiceCheck("Ollama", ollama_url.rstrip("/") + "/api/tags"))
-    return checks
 
 
 def _probe(svc: _ServiceCheck) -> None:
@@ -70,21 +68,14 @@ def _probe(svc: _ServiceCheck) -> None:
         with urllib.request.urlopen(req, timeout=3) as resp:
             svc.status = "ok"
             svc.detail = f"HTTP {resp.status}"
-            if svc.name in ("Ollama", "llama.cpp"):
+            if svc.name == "llama.cpp":
                 try:
                     body = json.loads(resp.read().decode("utf-8"))
-                    if svc.name == "Ollama":
-                        svc.models = [
-                            m.get("name", "").strip()
-                            for m in body.get("models", [])
-                            if m.get("name", "").strip()
-                        ]
-                    else:  # llama.cpp
-                        svc.models = [
-                            m.get("id", "").strip()
-                            for m in body.get("data", [])
-                            if m.get("id", "").strip()
-                        ]
+                    svc.models = [
+                        m.get("id", "").strip()
+                        for m in body.get("data", [])
+                        if m.get("id", "").strip()
+                    ]
                 except Exception:
                     pass
     except urllib.error.HTTPError as exc:
@@ -126,10 +117,7 @@ PROFILE_FLAGS: dict[str, dict[str, Any]] = {
     },
 }
 
-LLM_PROVIDERS: list[tuple[str, str]] = [
-    ("llama.cpp  (localhost:8001)", "llamacpp"),
-    ("Ollama  (localhost:11434)", "ollama"),
-]
+LLM_PROVIDERS: list[tuple[str, str]] = [("llama.cpp  (localhost:8001)", "llamacpp")]
 
 _FALLBACK_MODELS: list[tuple[str, str]] = [("llama3:latest", "llama3:latest")]
 
@@ -223,6 +211,7 @@ class PreBootScreen(Screen):
     #model-row { height: 3; margin-top: 1; width: 1fr; }
     #model-label { width: 10; padding-top: 1; }
     #opt-model { width: 1fr; }
+    #mmap-row { height: 3; margin-top: 1; width: 1fr; }
     #btn-row { height: 3; margin-top: 1; margin-bottom: 1; width: 1fr; }
     #btn-spacer { width: 1fr; }
     #btn-cancel { margin-right: 1; width: auto; }
@@ -277,6 +266,8 @@ class PreBootScreen(Screen):
                 with Horizontal(id="model-row"):
                     yield Label("Model:", id="model-label")
                     yield Select(_FALLBACK_MODELS, value="llama3:latest", id="opt-model", allow_blank=False)
+                with Horizontal(id="mmap-row"):
+                    yield Checkbox("Load model into RAM  (disable mmap — faster prefill, slower startup)", id="opt-mmap-off", value=True)
             with Horizontal(id="btn-row"):
                 yield Static("", id="btn-spacer")
                 yield Button("Cancel", id="btn-cancel", variant="warning")
@@ -304,16 +295,9 @@ class PreBootScreen(Screen):
         results = await asyncio.gather(*probe_tasks, proc_task, return_exceptions=True)
         self._llama_proc = results[-1] if isinstance(results[-1], dict) else None
 
-        # Discover models: local .gguf dir + Ollama blob store (both run in parallel).
         if self._llama_proc:
             models_dir = models_dir_from_process(self._llama_proc)
-            local_models, ollama_models = await asyncio.gather(
-                asyncio.to_thread(discover_models, models_dir),
-                asyncio.to_thread(discover_ollama_models),
-            )
-            # Merge: local files first, then Ollama models not already present by path.
-            local_paths = {m["path"] for m in local_models}
-            self._llama_fs_models = local_models + [m for m in ollama_models if m["path"] not in local_paths]
+            self._llama_fs_models = await asyncio.to_thread(discover_models, models_dir)
 
         self._render_health()
 
@@ -327,43 +311,33 @@ class PreBootScreen(Screen):
     def _refresh_llm_widgets(self) -> None:
         """Update provider status badge and model dropdown from health check results."""
         svc_map = {s.name: s for s in self._checks}
-        ollama = svc_map.get("Ollama")
         llamacpp = svc_map.get("llama.cpp")
-
-        parts = []
-        if ollama:
-            icon = "[OK]" if ollama.status == "ok" else "[!!]"
-            parts.append(f"Ollama {icon}")
         if llamacpp:
             icon = "[OK]" if llamacpp.status == "ok" else "[!!]"
-            parts.append(f"llama.cpp {icon}")
-        self.query_one("#provider-status", Static).update("  ".join(parts))
+            self.query_one("#provider-status", Static).update(f"llama.cpp {icon}")
+        else:
+            self.query_one("#provider-status", Static).update("llama.cpp [??]")
+        self._set_model_options("llamacpp", svc_map)
 
-        provider = str(self.query_one("#opt-provider", Select).value or "ollama")
-        self._set_model_options(provider, svc_map)
+        # Reflect current mmap state from running process.
+        if self._llama_proc:
+            current_no_mmap = has_no_mmap(self._llama_proc.get("raw_args", []))
+            self.query_one("#opt-mmap-off", Checkbox).value = current_no_mmap
 
     def _set_model_options(self, provider: str, svc_map: dict) -> None:
-        """Repopulate the model Select for the chosen provider."""
+        """Repopulate the model Select for the llama.cpp runtime."""
         model_select = self.query_one("#opt-model", Select)
-
-        if provider == "llamacpp":
-            options = self._llamacpp_model_options()
-        else:
-            # Ollama: use models from health check
-            svc = svc_map.get("Ollama")
-            api_models = svc.models if svc else []
-            if api_models:
-                options = [(m, m) for m in api_models]
-            else:
-                options = _FALLBACK_MODELS
+        options = self._llamacpp_model_options()
 
         model_select.set_options(options)
-        # Try to keep preferred selection.
-        preferred = self._initial.get("llm_model", "")
         available_values = [v for _, v in options]
-        if preferred in available_values:
-            model_select.value = preferred
-        elif available_values:
+        if not available_values:
+            return
+        # Prefer the currently active model path, then fall back to first.
+        active_path = (self._llama_proc or {}).get("model_path", "")
+        if active_path in available_values:
+            model_select.value = active_path
+        else:
             model_select.value = available_values[0]
 
     def _llamacpp_model_options(self) -> list[tuple[str, str]]:
@@ -429,13 +403,13 @@ class PreBootScreen(Screen):
             env.setdefault("COCKPIT_VERBOSE_LOGGING", "1")
             env.setdefault("COCKPIT_LOG_TO_STDERR", "1")
 
-        # For llamacpp, raw_model_value is a full path (local .gguf or Ollama blob).
+        # For llamacpp, raw_model_value is a full path (local .gguf).
         # Blob paths have no .gguf extension — look up alias from discovered models list.
         if llm_provider == "llamacpp":
             model_path = raw_model_value
             if model_path:
                 # Look up the human-readable alias from discovered models (covers both
-                # local .gguf files and Ollama blobs whose stem is a sha256 hash).
+                # local .gguf files whose stem is a sha256 hash).
                 model_info = next((m for m in self._llama_fs_models if m["path"] == model_path), None)
                 if model_info:
                     model_alias = model_info["stem"]
@@ -449,6 +423,7 @@ class PreBootScreen(Screen):
             model_path = ""
             model_alias = raw_model_value or "llama3:latest"
 
+        mmap_disabled = self.query_one("#opt-mmap-off", Checkbox).value
         return {
             "read_only": read_only,
             "no_web": not web_enabled,
@@ -458,19 +433,25 @@ class PreBootScreen(Screen):
             "llm_provider": llm_provider,
             "llm_model": model_alias,
             "llm_model_path": model_path,
+            "mmap_disabled": mmap_disabled,
             "env": env,
             "cancelled": False,
         }
 
+    def _needs_restart(self, flags: dict[str, Any]) -> bool:
+        if flags["llm_provider"] != "llamacpp" or not self._llama_proc:
+            return False
+        model_changed = (
+            flags.get("llm_model_path")
+            and self._llama_proc.get("model_path") != flags["llm_model_path"]
+        )
+        current_no_mmap = has_no_mmap(self._llama_proc.get("raw_args", []))
+        mmap_changed = flags.get("mmap_disabled", False) != current_no_mmap
+        return bool(model_changed or mmap_changed)
+
     def action_launch(self) -> None:
         flags = self._collect_flags()
-        # For llamacpp, check if the selected model differs from what's running.
-        if (
-            flags["llm_provider"] == "llamacpp"
-            and self._llama_proc
-            and flags.get("llm_model_path")
-            and self._llama_proc.get("model_path") != flags["llm_model_path"]
-        ):
+        if self._needs_restart(flags):
             asyncio.create_task(self._restart_and_launch(flags))
             return
         if self._on_launch:
@@ -485,24 +466,26 @@ class PreBootScreen(Screen):
         model_path = flags["llm_model_path"]
         model_alias = flags["llm_model"]
 
-        log.write(f"\n  [ ] Switching to {Path(model_path).name}...")
+        log.write(f"\n  Switching model → {model_alias}")
+        log.write("  (this may take several minutes for large models)")
 
         def _status(msg: str) -> None:
-            self.call_from_thread(log.write, f"  ... {msg}")
+            self.call_from_thread(log.write, f"  {msg}")
 
         success = await asyncio.to_thread(
             restart_with_model,
             self._llama_proc,
             model_path,
             model_alias,
-            90.0,
+            600.0,
             _status,
+            flags.get("mmap_disabled"),
         )
 
         if success:
-            log.write("  [OK] llama-server ready — launching cockpit")
+            log.write(f"  Ready — {model_alias} loaded. Launching cockpit...")
         else:
-            log.write("  [!!] Server startup timed out — proceeding anyway")
+            log.write("  Timed out waiting for server — launching anyway (model may still be loading)")
 
         btn.disabled = False
         if self._on_launch:
