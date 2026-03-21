@@ -59,60 +59,73 @@ def discover_models(models_dir: str) -> list[dict]:
     )
 
 
+def _ollama_model_roots() -> list[Path]:
+    """
+    Return all candidate Ollama model root directories to search.
+    Ollama may store models under the service user's home (/usr/share/ollama),
+    the current user's home (~/.ollama), or a custom OLLAMA_MODELS path.
+    """
+    candidates = [
+        Path.home() / ".ollama" / "models",
+        Path("/usr/share/ollama/.ollama/models"),
+        Path("/var/lib/ollama/.ollama/models"),
+    ]
+    env_override = os.environ.get("OLLAMA_MODELS")
+    if env_override:
+        candidates.insert(0, Path(env_override))
+    return [p for p in candidates if p.is_dir()]
+
+
 def discover_ollama_models() -> list[dict]:
     """
-    Read Ollama's manifest store and return usable models as GGUF blob paths.
+    Read Ollama's manifest store(s) and return usable models as GGUF blob paths.
     Returns list of {path, name, stem} dicts — compatible with discover_models output.
 
     Ollama stores model weights as plain GGUF files named by their SHA256 digest
-    (sha256-<hex>) in ~/.ollama/models/blobs/.  The manifests map model:tag names
-    to those digests.
+    (sha256-<hex>) in <root>/blobs/.  The manifests map model:tag names to digests.
+    Checks all known Ollama model roots (user home + system service dir).
     """
-    blobs_dir = Path.home() / ".ollama" / "models" / "blobs"
-    manifests_root = Path.home() / ".ollama" / "models" / "manifests"
-    if not manifests_root.is_dir() or not blobs_dir.is_dir():
-        return []
-
     results: list[dict] = []
     seen_digests: set[str] = set()
 
-    # Walk registry.ollama.ai/library/<model>/<tag>
-    for manifest_path in manifests_root.rglob("*"):
-        if not manifest_path.is_file():
-            continue
-        try:
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        except Exception:
+    for root in _ollama_model_roots():
+        blobs_dir = root / "blobs"
+        manifests_root = root / "manifests"
+        if not manifests_root.is_dir() or not blobs_dir.is_dir():
             continue
 
-        # Derive human-readable name from path: library/<model>/<tag> → <model>:<tag>
-        parts = manifest_path.parts
-        try:
-            lib_idx = list(parts).index("library")
-            model_name = parts[lib_idx + 1]
-            tag = parts[lib_idx + 2]
-            display = f"{model_name}:{tag}"
-        except (ValueError, IndexError):
-            display = manifest_path.name
+        for manifest_path in manifests_root.rglob("*"):
+            if not manifest_path.is_file():
+                continue
+            try:
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            except Exception:
+                continue
 
-        # Find the model-weight layer (the actual GGUF).
-        for layer in manifest.get("layers", []):
-            if layer.get("mediaType") != "application/vnd.ollama.image.model":
-                continue
-            digest = layer.get("digest", "")
-            if not digest:
-                continue
-            # digest looks like "sha256:<hex>" → blob filename is "sha256-<hex>"
-            blob_name = digest.replace("sha256:", "sha256-", 1)
-            blob_path = blobs_dir / blob_name
-            if not blob_path.exists() or digest in seen_digests:
-                continue
-            seen_digests.add(digest)
-            results.append({
-                "path": str(blob_path),
-                "name": f"{display}  (ollama)",
-                "stem": display,
-            })
+            # Derive human-readable name: library/<model>/<tag> → <model>:<tag>
+            parts = manifest_path.parts
+            try:
+                lib_idx = list(parts).index("library")
+                display = f"{parts[lib_idx + 1]}:{parts[lib_idx + 2]}"
+            except (ValueError, IndexError):
+                display = manifest_path.name
+
+            for layer in (manifest.get("layers") or []):
+                if layer.get("mediaType") != "application/vnd.ollama.image.model":
+                    continue
+                digest = layer.get("digest", "")
+                if not digest or digest in seen_digests:
+                    continue
+                blob_name = digest.replace("sha256:", "sha256-", 1)
+                blob_path = blobs_dir / blob_name
+                if not blob_path.exists():
+                    continue
+                seen_digests.add(digest)
+                results.append({
+                    "path": str(blob_path),
+                    "name": f"{display}  (ollama)",
+                    "stem": display,
+                })
 
     return sorted(results, key=lambda d: d["stem"])
 
