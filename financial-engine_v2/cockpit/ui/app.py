@@ -382,24 +382,34 @@ class CockpitApp(App):
         return health, self._collect_system_metrics()
 
     async def _refresh_model_status_widget(self) -> None:
-        model = str(self.config.get("llm", {}).get("model") or self.ollama_client.model or "unknown")
-        endpoint = str(getattr(self.ollama_client, "base_url", "") or self.config.get("llm", {}).get("ollama_url", ""))
+        llm_cfg = self.config.get("llm", {})
+        provider = str(llm_cfg.get("provider") or "ollama")
+        model = str(llm_cfg.get("model") or getattr(self.ollama_client, "model", "") or "unknown")
+        endpoint = str(getattr(self.ollama_client, "base_url", "") or llm_cfg.get("ollama_url", ""))
+        provider_label = "llama.cpp" if provider == "llamacpp" else "Ollama"
 
         health, sys_metrics = await asyncio.to_thread(self._collect_runtime_snapshot, endpoint)
 
+        # For llama.cpp, get the actually-loaded model from the API.
+        if health.get("ok") and provider == "llamacpp":
+            api_models = health.get("models") or []
+            loaded = api_models[0] if api_models else model
+        else:
+            loaded = model
+
         lines = [
-            f"Model Runtime: {model}",
+            f"Provider: {provider_label}  |  Model: {loaded}",
             f"Endpoint: {endpoint}",
         ]
 
         if health.get("ok"):
             names = health.get("models") if isinstance(health.get("models"), list) else []
-            if model and names and model not in names:
-                lines.append("Ollama: reachable, configured model not pulled")
+            if provider == "ollama" and model and names and model not in names:
+                lines.append(f"{provider_label}: reachable — configured model not pulled")
             else:
-                lines.append("Ollama: reachable")
+                lines.append(f"{provider_label}: reachable")
         else:
-            lines.append(f"Ollama: unavailable ({health.get('error') or 'unknown error'})")
+            lines.append(f"{provider_label}: unavailable ({health.get('error') or 'unknown error'})")
 
         gpus = sys_metrics.get("gpus") if isinstance(sys_metrics.get("gpus"), list) else []
         if gpus:
