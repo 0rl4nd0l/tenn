@@ -20,7 +20,13 @@ def load_module(path: str, name: str):
 SCRIPT_DIR = Path(__file__).resolve().parent
 SECTION_PATH = SCRIPT_DIR / "section_capture_layer.py"
 if not SECTION_PATH.exists():
-    pytest.skip("section_capture_layer.py is not available in this checkout.", allow_module_level=True)
+    pytest.skip(
+        "INCOMPLETE MIGRATION — section_capture_layer.py exists on main "
+        "(commits 710fe968, af7f8e57) but was not merged into cloud/session-20260319. "
+        "Merge main or cherry-pick those commits to restore pre-scope audit. "
+        "See backend/tests/test_extraction_capability_guards.py for the tracking xfail.",
+        allow_module_level=True,
+    )
 SECTION = load_module(str(SECTION_PATH), "section_capture_layer_audit")
 
 

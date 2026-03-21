@@ -18,7 +18,13 @@ def load_module(path: str, name: str):
 SCRIPT_DIR = Path(__file__).resolve().parent
 MODULE_PATH = SCRIPT_DIR / "cashflow_layout_adapter.py"
 if not MODULE_PATH.exists():
-    pytest.skip("cashflow_layout_adapter.py is not available in this checkout.", allow_module_level=True)
+    pytest.skip(
+        "INCOMPLETE MIGRATION — cashflow_layout_adapter.py exists on main "
+        "(commits 710fe968, af7f8e57) but was not merged into cloud/session-20260319. "
+        "Merge main or cherry-pick those commits to restore horizontal reconstruction. "
+        "See backend/tests/test_extraction_capability_guards.py for the tracking xfail.",
+        allow_module_level=True,
+    )
 CF_ADAPTER = load_module(str(MODULE_PATH), "cashflow_layout_adapter_hrecon")
 
 

@@ -20,7 +20,11 @@ ADAPTER_PATH = SCRIPT_DIR / "cashflow_layout_adapter.py"
 TABLE_FB_PATH = SCRIPT_DIR / "cashflow_table_fallback.py"
 if not ADAPTER_PATH.exists() or not TABLE_FB_PATH.exists():
     pytest.skip(
-        "cashflow fallback modules are not available in this checkout.",
+        "INCOMPLETE MIGRATION — cashflow_layout_adapter.py and cashflow_table_fallback.py "
+        "exist on main (commits 710fe968, af7f8e57) but were not merged into "
+        "cloud/session-20260319. Merge main or cherry-pick those commits to restore "
+        "camelot-backed table fallback tests. "
+        "See backend/tests/test_extraction_capability_guards.py for the tracking xfail.",
         allow_module_level=True,
     )
 CF_ADAPTER = load_module(str(ADAPTER_PATH), "cashflow_layout_adapter_table_fallback")

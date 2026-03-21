@@ -23,7 +23,11 @@ ADAPTER_PATH = SCRIPT_DIR / "cashflow_layout_adapter.py"
 SECTION_PATH = SCRIPT_DIR / "section_capture_layer.py"
 if not ADAPTER_PATH.exists() or not SECTION_PATH.exists():
     pytest.skip(
-        "cashflow layout modules are not available in this checkout.",
+        "INCOMPLETE MIGRATION — cashflow_layout_adapter.py and section_capture_layer.py "
+        "exist on main (commits 710fe968, af7f8e57) but were not merged into "
+        "cloud/session-20260319. Merge main or cherry-pick those commits to restore "
+        "full layout adapter integration tests. "
+        "See backend/tests/test_extraction_capability_guards.py for the tracking xfail.",
         allow_module_level=True,
     )
 CF_ADAPTER = load_module(str(ADAPTER_PATH), "cashflow_layout_adapter")
