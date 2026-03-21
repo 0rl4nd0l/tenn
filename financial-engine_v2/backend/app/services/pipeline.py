@@ -23,13 +23,13 @@ from app.models.documents import Document
 from app.models.extractions import ExtractionRun
 from app.providers.marketindex_provider import MarketIndexProvider
 from app.services.asx import ASXProvider
-from app.services.chunking import simple_chunk
-from app.services.embeddings import ensure_collection, log_rejected_payload, upsert_points, validate_payload
-from app.services.extraction import EXTRACTOR_VERSION, build_prompt, parse_period_end
+from app.services.embeddings import delete_points_for_document, ensure_collection, log_rejected_payload, upsert_points, validate_payload
 from app.services.announcement_importance import classify_documents_and_materialize
 from app.services.llm import embed_texts, generate_json, get_routing_decision
+from app.services.multipass_extraction import run_multipass_extraction, EXTRACTOR_VERSION, parse_period_end
+from app.services.structured_chunking import chunk_prose_sections
+from app.services.docling_extract import StructuredDocument
 from app.services.storage import ensure_dir, sha256_file, write_bytes
-from app.services.text_extract import extract_text_from_pdf
 
 
 logger = logging.getLogger(__name__)
@@ -857,8 +857,42 @@ def process_document(
         if not doc:
             raise ValueError(f"Document not found: {document_id}")
 
-        text = extract_text_from_pdf(_resolve_pdf_path(doc.pdf_path))
-        chunks = simple_chunk(text, max_chars=4500)
+        # --- New multi-pass extraction ---
+        multipass_result = None
+        sections_for_chunks: list[dict] = []
+        status = "skipped"
+        error = None
+        structured: dict = {"status": "skipped_extraction"}
+        confidence = None
+        extraction_model_name = None
+
+        if settings.enable_extraction:
+            try:
+                doc_metadata = {
+                    "document_id": str(doc.document_id),
+                    "ticker": str(doc.ticker or ""),
+                    "title": str(doc.title or ""),
+                }
+                multipass_result = run_multipass_extraction(
+                    _resolve_pdf_path(doc.pdf_path),
+                    doc_metadata,
+                    ollama_client,
+                )
+                sections_for_chunks = multipass_result.sections
+                status = multipass_result.status
+                error = multipass_result.error
+                structured = multipass_result.payload
+                confidence = structured.get("confidence_metrics")
+                extraction_model_name = "qwen2.5-32b-instruct"
+            except Exception as exc:
+                status = "failed"
+                error = str(exc)
+                structured = {"error": error}
+                sections_for_chunks = []
+
+        # --- Use structured sections for prose chunking (not raw text) ---
+        _doc_for_chunks = StructuredDocument(sections=sections_for_chunks)
+        chunks = chunk_prose_sections(_doc_for_chunks)
         chunks_created = len(chunks)
         chunks_skipped = 0
         invalid_payloads = 0
@@ -953,6 +987,8 @@ def process_document(
                                 "payload": payload,
                             }
                         )
+                    if points:
+                        delete_points_for_document(qc, settings.qdrant_collection, doc_id_str)
                     upsert_result = dict(upsert_points(qc, settings.qdrant_collection, points) or {})
                     written_points += int(upsert_result.get("written_points", 0))
                     rejected_payloads = int(upsert_result.get("rejected_payloads", 0))
@@ -972,35 +1008,6 @@ def process_document(
                 "skipped_invalid_vectors": skipped_invalid_vectors,
             },
         )
-
-        status = "skipped"
-        error = None
-        structured = {"status": "skipped_extraction"}
-        confidence = None
-        extraction_model_name = None
-
-        if settings.enable_extraction:
-            try:
-                extraction_metadata = {
-                    "task_type": "reasoning",
-                    "component": "pipeline.process_document",
-                    "operation": "document_extraction",
-                    "document_id": str(doc.document_id),
-                    "ticker": str(doc.ticker or ""),
-                }
-                prompt = build_prompt(text)
-                extraction_model_name = get_routing_decision(prompt, extraction_metadata).model_name
-                structured = generate_json(
-                    prompt,
-                    metadata=extraction_metadata,
-                    client=ollama_client,
-                )
-                confidence = _coerce_float(structured.get("confidence_metrics"))
-                status = "ok"
-            except Exception as exc:
-                status = "failed"
-                error = str(exc)
-                structured = {"error": error}
 
         run = ExtractionRun(
             document_id=doc.document_id,
