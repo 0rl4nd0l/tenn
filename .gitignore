@@ -17,3 +17,7 @@ venv/
 *.db-journal
 *.sqlite
 financial-engine_v2/config/system.env
+exports/
+tools/
+archive/
+.claude/worktrees/
