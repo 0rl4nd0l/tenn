@@ -58,16 +58,31 @@ class ChatScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield Label("Chat + Actions")
+        yield Static("Model runtime: loading...", id="chat-model-status")
         yield RichLog(id="chat-log", wrap=True, markup=False)
+        yield Static("", id="chat-status")
         yield Static("No pending action", id="chat-pending")
-        yield Horizontal(
-            Button("Run Daily MarketIndex Check", id="chat-run-daily", variant="success"),
-            Button("Run Daily ASX Market-Wide Check", id="chat-run-daily-asx", variant="primary"),
-            Button("Run ASX Enrichment Sweep", id="chat-run-asx-sweep", variant="error"),
-            Button("Sort ASX Docs (Unsorted)", id="chat-sort-asx-docs", variant="warning"),
-            Button("Kill Running Action", id="chat-kill-action", variant="error"),
-            Button("Open Operations", id="chat-open-ops"),
-            Button("Copy Chat/Output", id="chat-copy-output"),
+        yield Vertical(
+            Horizontal(
+                Button("Copy Chat/Output", id="chat-copy-output"),
+                Button("Open Operations", id="chat-open-ops"),
+            ),
+            Horizontal(
+                Button("Daily News Ingest", id="chat-run-daily-news", variant="success"),
+                Button("Daily Announcement Ingest", id="chat-run-daily-announcements", variant="primary"),
+            ),
+            Horizontal(
+                Button("Historical News Ingest", id="chat-run-historical-news", variant="warning"),
+                Button("Single Ticker Backfill", id="chat-run-single-ticker-backfill", variant="primary"),
+            ),
+            Horizontal(
+                Button("Universe Announcement Backfill", id="chat-run-universe-backfill", variant="error"),
+                Button("Metric Extraction", id="chat-run-metric-extraction", variant="warning"),
+            ),
+            Horizontal(
+                Button("Kill Running Action", id="chat-kill-action", variant="error"),
+            ),
+            id="chat-actions",
         )
         yield Input(
             placeholder="Ask questions or use /read <path> [max_chars=N], /confirm, /cancel",
@@ -88,21 +103,29 @@ class ChatScreen(Screen):
         if event.button.id == "chat-open-ops":
             self.app.action_show_ops()
             return
-        if event.button.id == "chat-run-daily":
+        if event.button.id == "chat-run-daily-news":
             args = self.app.action_registry.parse_kv_args("")
-            await self.app.execute_action("daily_marketindex", args, log_target="chat-log")
+            await self.app.execute_action("daily_news_ingest", args, log_target="chat-log")
             return
-        if event.button.id == "chat-run-daily-asx":
+        if event.button.id == "chat-run-daily-announcements":
             args = self.app.action_registry.parse_kv_args("")
-            await self.app.execute_action("daily_asx_marketwide", args, log_target="chat-log")
+            await self.app.execute_action("daily_announcement_ingest", args, log_target="chat-log")
             return
-        if event.button.id == "chat-run-asx-sweep":
+        if event.button.id == "chat-run-historical-news":
             args = self.app.action_registry.parse_kv_args("")
-            await self.app.execute_action("asx_enrichment_sweep", args, log_target="chat-log")
+            await self.app.execute_action("historical_news_ingest", args, log_target="chat-log")
             return
-        if event.button.id == "chat-sort-asx-docs":
+        if event.button.id == "chat-run-single-ticker-backfill":
             args = self.app.action_registry.parse_kv_args("")
-            await self.app.execute_action("sort_asx_docs", args, log_target="chat-log")
+            await self.app.execute_action("single_ticker_announcement_backfill", args, log_target="chat-log")
+            return
+        if event.button.id == "chat-run-universe-backfill":
+            args = self.app.action_registry.parse_kv_args("")
+            await self.app.execute_action("universe_announcement_enrichment_backfill", args, log_target="chat-log")
+            return
+        if event.button.id == "chat-run-metric-extraction":
+            args = self.app.action_registry.parse_kv_args("")
+            await self.app.execute_action("metric_extraction", args, log_target="chat-log")
             return
         if event.button.id == "chat-kill-action":
             await self.app.cancel_active_action(log_target="chat-log")
@@ -112,18 +135,20 @@ class ChatScreen(Screen):
 
 
 class OperationsScreen(Screen):
-    BINDINGS = [("d", "run_daily_marketindex", "Daily Check")]
+    BINDINGS = [("d", "run_daily_news_ingest", "Daily News")]
 
     def compose(self) -> ComposeResult:
         yield Label("Ingestion Control")
         yield Button("Back to Chat", id="ops-back", variant="warning")
         actions = [(spec.label, spec.id) for spec in self.app.action_registry.list_actions()]
-        yield Select(actions, value="full_history", id="ops-action")
+        yield Select(actions, value="daily_news_ingest", id="ops-action")
         yield Input(value="ticker=BHP years=5", id="ops-args", placeholder="key=value pairs")
-        yield Button("Run Daily MarketIndex Check", id="ops-run-daily", variant="success")
-        yield Button("Run Daily ASX Market-Wide Check", id="ops-run-daily-asx", variant="primary")
-        yield Button("Run ASX Enrichment Sweep", id="ops-run-asx-sweep", variant="error")
-        yield Button("Sort ASX Docs (Unsorted)", id="ops-sort-asx-docs", variant="warning")
+        yield Button("Daily News Ingest", id="ops-run-daily-news", variant="success")
+        yield Button("Daily Announcement Ingest", id="ops-run-daily-announcements", variant="primary")
+        yield Button("Historical News Ingest", id="ops-run-historical-news", variant="warning")
+        yield Button("Single Ticker Backfill", id="ops-run-single-ticker-backfill", variant="primary")
+        yield Button("Universe Announcement Backfill", id="ops-run-universe-backfill", variant="error")
+        yield Button("Metric Extraction", id="ops-run-metric-extraction", variant="warning")
         yield Horizontal(
             Button("Preview + Run", id="ops-run", variant="primary"),
             Button("Kill Running Action", id="ops-kill-action", variant="error"),
@@ -144,22 +169,29 @@ class OperationsScreen(Screen):
             await self.app.cancel_active_action(log_target="ops-log")
             return
 
-        if event.button.id == "ops-run-daily":
+        if event.button.id == "ops-run-daily-news":
             args = self.app.action_registry.parse_kv_args(self.query_one("#ops-args", Input).value)
-            # Keep defaults while allowing overrides from key=value input.
-            await self.app.execute_action("daily_marketindex", args, log_target="ops-log")
+            await self.app.execute_action("daily_news_ingest", args, log_target="ops-log")
             return
-        if event.button.id == "ops-run-daily-asx":
+        if event.button.id == "ops-run-daily-announcements":
             args = self.app.action_registry.parse_kv_args(self.query_one("#ops-args", Input).value)
-            await self.app.execute_action("daily_asx_marketwide", args, log_target="ops-log")
+            await self.app.execute_action("daily_announcement_ingest", args, log_target="ops-log")
             return
-        if event.button.id == "ops-run-asx-sweep":
+        if event.button.id == "ops-run-historical-news":
             args = self.app.action_registry.parse_kv_args(self.query_one("#ops-args", Input).value)
-            await self.app.execute_action("asx_enrichment_sweep", args, log_target="ops-log")
+            await self.app.execute_action("historical_news_ingest", args, log_target="ops-log")
             return
-        if event.button.id == "ops-sort-asx-docs":
+        if event.button.id == "ops-run-single-ticker-backfill":
             args = self.app.action_registry.parse_kv_args(self.query_one("#ops-args", Input).value)
-            await self.app.execute_action("sort_asx_docs", args, log_target="ops-log")
+            await self.app.execute_action("single_ticker_announcement_backfill", args, log_target="ops-log")
+            return
+        if event.button.id == "ops-run-universe-backfill":
+            args = self.app.action_registry.parse_kv_args(self.query_one("#ops-args", Input).value)
+            await self.app.execute_action("universe_announcement_enrichment_backfill", args, log_target="ops-log")
+            return
+        if event.button.id == "ops-run-metric-extraction":
+            args = self.app.action_registry.parse_kv_args(self.query_one("#ops-args", Input).value)
+            await self.app.execute_action("metric_extraction", args, log_target="ops-log")
             return
 
         action_id = self.query_one("#ops-action", Select).value
@@ -170,9 +202,9 @@ class OperationsScreen(Screen):
         args = self.app.action_registry.parse_kv_args(args_text)
         await self.app.execute_action(action_id, args, log_target="ops-log")
 
-    async def action_run_daily_marketindex(self) -> None:
+    async def action_run_daily_news_ingest(self) -> None:
         args = self.app.action_registry.parse_kv_args(self.query_one("#ops-args", Input).value)
-        await self.app.execute_action("daily_marketindex", args, log_target="ops-log")
+        await self.app.execute_action("daily_news_ingest", args, log_target="ops-log")
 
 
 class UpdaterScreen(Screen):

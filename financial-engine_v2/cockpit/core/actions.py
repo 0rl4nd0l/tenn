@@ -1,13 +1,25 @@
 from __future__ import annotations
 
+import os
 import shlex
+import subprocess
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from cockpit.core.types import ActionSpec
+
+
+VISIBLE_ACTION_IDS: tuple[str, ...] = (
+    "daily_news_ingest",
+    "historical_news_ingest",
+    "daily_announcement_ingest",
+    "single_ticker_announcement_backfill",
+    "universe_announcement_enrichment_backfill",
+    "metric_extraction",
+)
 
 
 @dataclass
@@ -245,6 +257,61 @@ class ActionRegistry:
                 expected_outputs=["reports/asx/asx_enrichment_sweep_report*.json"],
                 timeout_seconds=14400,
             ),
+            "asx_enrichment_chunked": ActionSpec(
+                id="asx_enrichment_chunked",
+                label="ASX enrichment chunked (legacy)",
+                command_template=[
+                    py,
+                    "scripts/run_asx_enrichment_chunked.py",
+                    "--end-date",
+                    "{date}",
+                    "--total-days-back",
+                    "{total_days_back}",
+                    "--chunk-days",
+                    "{chunk_days}",
+                    "--fallback-max-tickers",
+                    "{fallback_max_tickers}",
+                    "--ticker-universe-file",
+                    "{ticker_universe_file}",
+                    "--request-delay-ms",
+                    "{request_delay_ms}",
+                    "--request-jitter-ms",
+                    "{request_jitter_ms}",
+                    "--failure-backoff-ms",
+                    "{failure_backoff_ms}",
+                    "--max-consecutive-failures",
+                    "{max_consecutive_failures}",
+                    "--max-errors",
+                    "{max_errors}",
+                    "--stop-after-empty-days",
+                    "{stop_after_empty_days}",
+                    "--reports-dir",
+                    "{asx_chunk_reports_dir}",
+                    "--rollup-report",
+                    "{asx_chunk_rollup_report}",
+                ],
+                arg_schema={
+                    "date": str,
+                    "total_days_back": int,
+                    "chunk_days": int,
+                    "fallback_max_tickers": int,
+                    "ticker_universe_file": str,
+                    "request_delay_ms": int,
+                    "request_jitter_ms": int,
+                    "failure_backoff_ms": int,
+                    "max_consecutive_failures": int,
+                    "max_errors": int,
+                    "stop_after_empty_days": int,
+                    "asx_chunk_reports_dir": str,
+                    "asx_chunk_rollup_report": str,
+                    "download_existing_missing": bool,
+                    "process_documents": bool,
+                },
+                is_mutating=True,
+                requires_confirmation=confirm_required,
+                expected_outputs=["reports/asx/asx_enrichment_chunked_rollup*.json"],
+                timeout_seconds=14400,
+            ),
             "sort_asx_docs": ActionSpec(
                 id="sort_asx_docs",
                 label="Sort all ASX docs into announcement-type folders",
@@ -313,10 +380,221 @@ class ActionRegistry:
                 expected_outputs=["reports/marketindex_headed_recovery_report.json"],
                 timeout_seconds=7200,
             ),
+            "daily_news_ingest": ActionSpec(
+                id="daily_news_ingest",
+                label="Daily news ingest",
+                command_template=[
+                    py,
+                    "../scripts/fetch_daily_news.py",
+                    "--providers",
+                    "{providers}",
+                    "--since-hours",
+                    "{since_hours}",
+                    "--lane",
+                    "{lane}",
+                    "--max-tickers",
+                    "{max_tickers}",
+                    "--news-runs-root",
+                    "{news_runs_root}",
+                ],
+                arg_schema={
+                    "providers": str,
+                    "since_hours": int,
+                    "lane": str,
+                    "max_tickers": int,
+                    "news_runs_root": str,
+                    "asx_wide": bool,
+                    "tickers": str,
+                    "auto_live_when_capture_missing": bool,
+                },
+                is_mutating=True,
+                requires_confirmation=confirm_required,
+                expected_outputs=["../reports/qual_context/news_runs/*/report_summary.json"],
+                timeout_seconds=5400,
+            ),
+            "historical_news_ingest": ActionSpec(
+                id="historical_news_ingest",
+                label="Historical news ingest",
+                command_template=[
+                    py,
+                    "../scripts/backfill_news.py",
+                    "--provider",
+                    "{provider}",
+                    "--from",
+                    "{from_day}",
+                    "--to",
+                    "{to_day}",
+                    "--lane",
+                    "{lane}",
+                    "--run-id",
+                    "{run_id}",
+                    "--max-days",
+                    "{max_days}",
+                    "--max-tickers",
+                    "{max_tickers}",
+                    "--news-runs-root",
+                    "{news_runs_root}",
+                ],
+                arg_schema={
+                    "provider": str,
+                    "from_day": str,
+                    "to_day": str,
+                    "lane": str,
+                    "run_id": str,
+                    "max_days": int,
+                    "max_tickers": int,
+                    "news_runs_root": str,
+                    "no_resume": bool,
+                    "asx_wide": bool,
+                    "tickers": str,
+                    "auto_live_when_capture_missing": bool,
+                },
+                is_mutating=True,
+                requires_confirmation=confirm_required,
+                expected_outputs=["../reports/qual_context/news_runs/*/report_summary.json"],
+                timeout_seconds=14400,
+            ),
+            "daily_announcement_ingest": ActionSpec(
+                id="daily_announcement_ingest",
+                label="Daily announcement ingest",
+                command_template=[
+                    py,
+                    "scripts/daily_asx_all_announcements_action.py",
+                    "--date",
+                    "{date}",
+                    "--report",
+                    "{daily_announcement_report}",
+                ],
+                arg_schema={
+                    "date": str,
+                    "daily_announcement_report": str,
+                    "process_documents": bool,
+                    "skip_download": bool,
+                },
+                is_mutating=True,
+                requires_confirmation=confirm_required,
+                expected_outputs=["reports/asx/daily_asx_all_announcements_report*.json"],
+                timeout_seconds=7200,
+            ),
+            "single_ticker_announcement_backfill": ActionSpec(
+                id="single_ticker_announcement_backfill",
+                label="Single ticker backfill",
+                command_template=[
+                    py,
+                    "scripts/full_history_ticker_sync.py",
+                    "--ticker",
+                    "{ticker}",
+                    "--years",
+                    "{years}",
+                    "--max-backfill-retries",
+                    "{max_backfill_retries}",
+                    "--resume-max-retries",
+                    "{resume_max_retries}",
+                    "--resume-retry-delay-seconds",
+                    "{resume_retry_delay_seconds}",
+                    "--report",
+                    "{single_ticker_backfill_report}",
+                ],
+                arg_schema={
+                    "ticker": str,
+                    "years": float,
+                    "max_backfill_retries": int,
+                    "resume_max_retries": int,
+                    "resume_retry_delay_seconds": float,
+                    "single_ticker_backfill_report": str,
+                    "process_documents": bool,
+                    "no_resume_pending": bool,
+                    "allow_warning": bool,
+                },
+                is_mutating=True,
+                requires_confirmation=confirm_required,
+                expected_outputs=["reports/ticker_full_history_report*.json"],
+                timeout_seconds=14400,
+            ),
+            "universe_announcement_enrichment_backfill": ActionSpec(
+                id="universe_announcement_enrichment_backfill",
+                label="Universe announcement backfill",
+                command_template=[
+                    py,
+                    "scripts/run_asx_enrichment_chunked.py",
+                    "--end-date",
+                    "{date}",
+                    "--total-days-back",
+                    "{total_days_back}",
+                    "--chunk-days",
+                    "{chunk_days}",
+                    "--fallback-max-tickers",
+                    "{fallback_max_tickers}",
+                    "--ticker-universe-file",
+                    "{ticker_universe_file}",
+                    "--request-delay-ms",
+                    "{request_delay_ms}",
+                    "--request-jitter-ms",
+                    "{request_jitter_ms}",
+                    "--failure-backoff-ms",
+                    "{failure_backoff_ms}",
+                    "--max-consecutive-failures",
+                    "{max_consecutive_failures}",
+                    "--max-errors",
+                    "{max_errors}",
+                    "--stop-after-empty-days",
+                    "{stop_after_empty_days}",
+                    "--reports-dir",
+                    "{asx_chunk_reports_dir}",
+                    "--rollup-report",
+                    "{universe_backfill_rollup_report}",
+                ],
+                arg_schema={
+                    "date": str,
+                    "total_days_back": int,
+                    "chunk_days": int,
+                    "fallback_max_tickers": int,
+                    "ticker_universe_file": str,
+                    "request_delay_ms": int,
+                    "request_jitter_ms": int,
+                    "failure_backoff_ms": int,
+                    "max_consecutive_failures": int,
+                    "max_errors": int,
+                    "stop_after_empty_days": int,
+                    "asx_chunk_reports_dir": str,
+                    "universe_backfill_rollup_report": str,
+                    "download_existing_missing": bool,
+                    "process_documents": bool,
+                },
+                is_mutating=True,
+                requires_confirmation=confirm_required,
+                expected_outputs=["reports/asx/asx_enrichment_chunked_rollup*.json"],
+                timeout_seconds=21600,
+            ),
+            "metric_extraction": ActionSpec(
+                id="metric_extraction",
+                label="Metric extraction",
+                command_template=[
+                    py,
+                    "scripts/rebuild_ticker_financials_from_docs.py",
+                    "--ticker",
+                    "{ticker}",
+                    "--report",
+                    "{metric_extraction_report}",
+                ],
+                arg_schema={
+                    "ticker": str,
+                    "limit": int,
+                    "since": str,
+                    "include_non_financial_candidates": bool,
+                    "force": bool,
+                    "with_embeddings": bool,
+                    "metric_extraction_report": str,
+                },
+                is_mutating=True,
+                requires_confirmation=confirm_required,
+                expected_outputs=["reports/rebuild_ticker_financials_from_docs_*.json"],
+                timeout_seconds=10800,
+            ),
         }
 
     def list_actions(self) -> list[ActionSpec]:
-        return list(self._actions.values())
+        return [self._actions[action_id] for action_id in VISIBLE_ACTION_IDS if action_id in self._actions]
 
     def get(self, action_id: str) -> ActionSpec:
         if action_id not in self._actions:
@@ -336,11 +614,12 @@ class ActionRegistry:
             else:
                 command.append(token)
 
-        # Optional flags toggles.
         if action_id == "full_history" and normalized.get("process_documents"):
             command.append("--process-documents")
         if action_id == "update_ticker_financials" and normalized.get("process_documents", True):
             command.append("--process-documents")
+        if action_id == "update_ticker_financials" and not normalized.get("process_documents", True):
+            command.append("--no-process-documents")
         if action_id == "update_ticker_financials" and normalized.get("skip_resume_pending"):
             command.append("--skip-resume-pending")
         if action_id == "daily_marketindex" and normalized.get("overwrite_pdfs"):
@@ -357,10 +636,59 @@ class ActionRegistry:
             command.append("--process-documents")
         if action_id == "asx_enrichment_sweep" and normalized.get("skip_download"):
             command.append("--skip-download")
-        if action_id == "asx_enrichment_sweep" and normalized.get("download_existing_missing"):
+        if action_id == "asx_enrichment_sweep" and normalized.get("download_existing_missing", True):
             command.append("--download-existing-missing")
         if action_id == "asx_enrichment_sweep" and normalized.get("no_historical_fallback"):
             command.append("--no-historical-fallback")
+        if action_id in {"asx_enrichment_chunked", "universe_announcement_enrichment_backfill"}:
+            if normalized.get("download_existing_missing", True):
+                command.append("--download-existing-missing")
+            else:
+                command.append("--no-download-existing-missing")
+            if normalized.get("process_documents"):
+                command.append("--process-documents")
+        if action_id == "daily_news_ingest":
+            if normalized.get("asx_wide"):
+                command.append("--asx-wide")
+            tickers_raw = str(normalized.get("tickers", "")).strip()
+            if tickers_raw:
+                command.extend(["--tickers", tickers_raw])
+            if normalized.get("auto_live_when_capture_missing"):
+                command.append("--auto-live-when-capture-missing")
+        if action_id == "historical_news_ingest":
+            if normalized.get("no_resume"):
+                command.append("--no-resume")
+            if normalized.get("asx_wide"):
+                command.append("--asx-wide")
+            tickers_raw = str(normalized.get("tickers", "")).strip()
+            if tickers_raw:
+                command.extend(["--tickers", tickers_raw])
+            if normalized.get("auto_live_when_capture_missing"):
+                command.append("--auto-live-when-capture-missing")
+        if action_id == "daily_announcement_ingest":
+            if normalized.get("process_documents"):
+                command.append("--process-documents")
+            if normalized.get("skip_download"):
+                command.append("--skip-download")
+        if action_id == "single_ticker_announcement_backfill":
+            if normalized.get("process_documents"):
+                command.append("--process-documents")
+            if normalized.get("no_resume_pending"):
+                command.append("--no-resume-pending")
+            if normalized.get("allow_warning", True):
+                command.append("--allow-warning")
+        if action_id == "metric_extraction":
+            if int(normalized.get("limit", 0)) > 0:
+                command.extend(["--limit", str(normalized["limit"])])
+            since = str(normalized.get("since", "")).strip()
+            if since:
+                command.extend(["--since", since])
+            if normalized.get("include_non_financial_candidates"):
+                command.append("--include-non-financial-candidates")
+            if normalized.get("force"):
+                command.append("--force")
+            if normalized.get("with_embeddings"):
+                command.append("--with-embeddings")
         if action_id == "sort_asx_docs":
             if str(normalized.get("ticker", "")).strip():
                 command.extend(["--ticker", str(normalized["ticker"]).strip().upper()])
@@ -407,6 +735,155 @@ class ActionRegistry:
             result[key.strip()] = value.strip()
         return result
 
+    @staticmethod
+    def _to_bool(value: Any, default: bool = False) -> bool:
+        if isinstance(value, bool):
+            return value
+        if value is None:
+            return default
+        text = str(value).strip().lower()
+        if text in {"1", "true", "yes", "on", "y"}:
+            return True
+        if text in {"0", "false", "no", "off", "n"}:
+            return False
+        return default
+
+    @classmethod
+    def extract_control_args(cls, args: dict[str, Any] | None) -> tuple[dict[str, Any], dict[str, Any]]:
+        src = dict(args or {})
+        dry_run = False
+        for key in (
+            "dry_run",
+            "dry-run",
+            "dryrun",
+            "preview_only",
+            "preview-only",
+            "noop",
+            "no-op",
+        ):
+            if key in src:
+                raw_value = src.pop(key)
+                dry_run = dry_run or cls._to_bool(raw_value, default=False)
+        return src, {"dry_run": dry_run}
+
+    def doctor(self, check_help: bool = True, action_id: str | None = None) -> dict[str, Any]:
+        specs = [self.get(action_id)] if action_id else self.list_actions()
+        preflight = self._run_preflight(specs)
+
+        checks: list[dict[str, Any]] = []
+        ok_count = 0
+        for spec in specs:
+            row: dict[str, Any] = {
+                "action_id": spec.id,
+                "label": spec.label,
+                "is_mutating": bool(spec.is_mutating),
+                "requires_confirmation": bool(spec.requires_confirmation),
+                "timeout_seconds": int(spec.timeout_seconds),
+            }
+            try:
+                command = self.build_command(spec.id, {})
+                row["command"] = command
+            except Exception as exc:
+                row["ok"] = False
+                row["error"] = f"build_command failed: {exc}"
+                checks.append(row)
+                continue
+
+            python_path = str(command[0]) if command else ""
+            row["python"] = python_path
+            row["python_exists"] = bool(python_path) and Path(python_path).exists()
+
+            script_rel = str(command[1]) if len(command) > 1 else ""
+            script_path = (self.repo_root / script_rel).resolve() if script_rel else self.repo_root
+            row["script"] = script_rel
+            row["script_exists"] = bool(script_rel) and script_path.exists()
+
+            if check_help and row["python_exists"] and row["script_exists"]:
+                try:
+                    proc = subprocess.run(
+                        [python_path, script_rel, "--help"],
+                        cwd=str(self.repo_root),
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                        timeout=20,
+                    )
+                    row["help_returncode"] = int(proc.returncode)
+                    stderr = str(proc.stderr or "").strip()
+                    if stderr:
+                        row["help_stderr"] = stderr.splitlines()[:3]
+                except Exception as exc:
+                    row["help_error"] = str(exc)
+
+            row_ok = bool(row.get("python_exists")) and bool(row.get("script_exists"))
+            if check_help:
+                row_ok = row_ok and int(row.get("help_returncode", 1)) == 0 and not row.get("help_error")
+            row["ok"] = row_ok
+            if row_ok:
+                ok_count += 1
+            checks.append(row)
+
+        return {
+            "ok": ok_count == len(checks) and bool(preflight.get("ok", True)),
+            "preflight": preflight,
+            "counts": {
+                "total": len(checks),
+                "ok": ok_count,
+                "failed": max(0, len(checks) - ok_count),
+            },
+            "checks": checks,
+        }
+
+    def _run_preflight(self, specs: list[ActionSpec]) -> dict[str, Any]:
+        output_dirs: set[Path] = set()
+        for spec in specs:
+            for pattern in spec.expected_outputs:
+                parent = Path(pattern).parent
+                output_dirs.add((self.repo_root / parent).resolve())
+
+        output_rows = [self._check_writable_dir(path) for path in sorted(output_dirs, key=str)]
+        outputs_ok = all(bool(row.get("ok")) for row in output_rows)
+        return {
+            "ok": outputs_ok,
+            "checked_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "warnings": [],
+            "checks": [
+                {
+                    "id": "write_permissions",
+                    "ok": outputs_ok,
+                    "output_dirs_checked": len(output_rows),
+                    "output_dirs": output_rows,
+                }
+            ],
+        }
+
+    @staticmethod
+    def _first_existing_parent(path: Path) -> Path:
+        current = path
+        while not current.exists() and current != current.parent:
+            current = current.parent
+        return current
+
+    @classmethod
+    def _check_writable_dir(cls, dir_path: Path) -> dict[str, Any]:
+        exists = dir_path.exists()
+        is_dir = dir_path.is_dir() if exists else False
+        writable = os.access(str(dir_path), os.W_OK) if exists else False
+        parent = cls._first_existing_parent(dir_path)
+        parent_exists = parent.exists()
+        parent_writable = os.access(str(parent), os.W_OK) if parent_exists else False
+        ok = (exists and is_dir and writable) or (not exists and parent_exists and parent_writable)
+        return {
+            "path": str(dir_path),
+            "exists": exists,
+            "is_dir": is_dir,
+            "writable": writable,
+            "parent": str(parent),
+            "parent_exists": parent_exists,
+            "parent_writable": parent_writable,
+            "ok": ok,
+        }
+
     def _normalize_args(self, spec: ActionSpec, args: dict[str, Any]) -> dict[str, Any]:
         out: dict[str, Any] = {}
         for key, value_type in spec.arg_schema.items():
@@ -414,10 +891,7 @@ class ActionRegistry:
             if value is None:
                 continue
             if value_type is bool:
-                if isinstance(value, bool):
-                    out[key] = value
-                else:
-                    out[key] = str(value).lower() in {"1", "true", "yes", "on"}
+                out[key] = self._to_bool(value, default=False)
             elif value_type is int:
                 try:
                     out[key] = int(value)
@@ -431,8 +905,9 @@ class ActionRegistry:
             else:
                 out[key] = str(value)
 
-        # Runtime defaults.
         ts = uuid.uuid4().hex[:8]
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
         out.setdefault("ticker", "BHP")
         out.setdefault("years", 5)
         out.setdefault("max_backfill_retries", 3)
@@ -445,8 +920,10 @@ class ActionRegistry:
         out.setdefault("max_retries", 4)
         out.setdefault("retry_delay_seconds", 2.0)
         out.setdefault("limit", 50)
-        out.setdefault("date", datetime.now().strftime("%Y-%m-%d"))
+        out.setdefault("date", today)
         out.setdefault("days_back", 30)
+        out.setdefault("total_days_back", 1825)
+        out.setdefault("chunk_days", 14)
         out.setdefault("max_new_docs", 0)
         out.setdefault("max_errors", 100)
         out.setdefault("stop_after_empty_days", 10)
@@ -458,19 +935,53 @@ class ActionRegistry:
         out.setdefault("download_existing_missing", True)
         out.setdefault("low_confidence_threshold", 0.40)
         out.setdefault("only_unsorted", True)
+        out.setdefault("max_tickers", 0)
+        out.setdefault("ticker_universe_file", str(self.repo_root / "data" / "raw" / "asx_ticker_universe.txt"))
+        out.setdefault("process_documents", False)
+        out.setdefault("allow_warning", True)
+        out.setdefault("no_resume_pending", False)
+        out.setdefault("include_non_financial_candidates", False)
+        out.setdefault("force", False)
+        out.setdefault("with_embeddings", False)
+
+        if spec.id in {
+            "update_ticker_financials",
+            "daily_announcement_ingest",
+            "single_ticker_announcement_backfill",
+            "universe_announcement_enrichment_backfill",
+            "asx_enrichment_chunked",
+        }:
+            out["process_documents"] = self._to_bool(args.get("process_documents"), default=True)
 
         out.setdefault("report_path", f"reports/cockpit_{spec.id}_{ts}.json")
         if spec.id == "update_ticker_financials":
             out.setdefault("report_path", f"reports/financial_update_{out.get('ticker', 'BHP')}_{ts}.json")
-            out.setdefault("process_documents", True)
         if spec.id == "sort_asx_docs" and "ticker" not in args:
             out["ticker"] = ""
         if spec.id == "sort_asx_docs" and "limit" not in args:
             out["limit"] = 0
+
         out.setdefault("daily_report", f"reports/marketindex/daily_marketindex_action_report_{ts}.json")
         out.setdefault("download_report", f"reports/marketindex/pdf_download_report_{ts}.json")
         out.setdefault("daily_asx_report", f"reports/asx/daily_asx_all_announcements_report_{ts}.json")
         out.setdefault("asx_sweep_report", f"reports/asx/asx_enrichment_sweep_report_{ts}.json")
+        out.setdefault("asx_chunk_reports_dir", "reports/asx")
+        out.setdefault("asx_chunk_rollup_report", f"reports/asx/asx_enrichment_chunked_rollup_{ts}.json")
+        out.setdefault("daily_announcement_report", f"reports/asx/daily_asx_all_announcements_report_{ts}.json")
+        out.setdefault("single_ticker_backfill_report", f"reports/ticker_full_history_report_{ts}.json")
+        out.setdefault("universe_backfill_rollup_report", f"reports/asx/asx_enrichment_chunked_rollup_{ts}.json")
+        out.setdefault("metric_extraction_report", f"reports/rebuild_ticker_financials_from_docs_{out.get('ticker', 'BHP')}_{ts}.json")
+        out.setdefault("providers", "eodhd,gdelt")
+        out.setdefault("since_hours", 36)
+        out.setdefault("news_runs_root", str(self.repo_root.parent / "reports" / "qual_context" / "news_runs"))
+        out.setdefault("provider", "gdelt")
+        out.setdefault("from_day", "2026-01-01")
+        out.setdefault("to_day", today)
+        out.setdefault("run_id", "")
+        out.setdefault("max_days", 0)
+        out.setdefault("lane", "high_precision")
+        out.setdefault("tickers", "")
+        out.setdefault("no_resume", False)
         out.setdefault("importance_report", f"reports/importance/announcement_importance_report_{ts}.json")
         out.setdefault("rebuild_report", f"reports/rebuild_ticker_financials_from_docs_{out.get('ticker', 'BHP')}_{ts}.json")
         out.setdefault("audit_report", f"reports/audit_ticker_financials_{out.get('ticker', 'BHP')}_{ts}.json")

@@ -12,7 +12,7 @@ from typing import Any
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.widgets import Footer, Header, RichLog
+from textual.widgets import Footer, Header, RichLog, Static
 
 from cockpit.core.actions import ActionRegistry
 from cockpit.core.chat import ChatController
@@ -42,6 +42,8 @@ from cockpit.ui.screens import (
 
 
 class CockpitApp(App):
+    ASSISTANT_NAME = "Tenn"
+
     CSS = """
     #confirm-modal {
         border: round $accent;
@@ -56,6 +58,33 @@ class CockpitApp(App):
     Button#chat-copy-output:hover {
         background: $accent;
         color: $text;
+    }
+    #chat-status {
+        height: 1;
+        margin: 0 0 1 0;
+    }
+    #chat-pending {
+        height: 1;
+        margin: 0 0 1 0;
+    }
+    #chat-model-status {
+        height: 5;
+        border: round $primary;
+        padding: 0 1;
+        margin: 0 0 1 0;
+    }
+    #chat-actions {
+        margin: 0 0 1 0;
+    }
+    #chat-actions Horizontal {
+        margin: 0;
+    }
+    #chat-actions Button {
+        width: 1fr;
+    }
+    #chat-log {
+        height: 1fr;
+        min-height: 8;
     }
     """
     BINDINGS = [
@@ -72,6 +101,10 @@ class CockpitApp(App):
 
     def __init__(self, repo_root: Path, config: dict[str, Any], read_only: bool) -> None:
         super().__init__()
+        self._init_services(repo_root, config, read_only)
+
+    def _init_services(self, repo_root: Path, config: dict[str, Any], read_only: bool) -> None:
+        """Initialize all cockpit services. Called from __init__ and from CockpitWebApp after pre-boot."""
         self.repo_root = repo_root
         self.config = config
         self.read_only = read_only
@@ -153,9 +186,11 @@ class CockpitApp(App):
         self.pending_action: dict[str, Any] | None = None
         self.last_verification_payload: dict[str, Any] | None = None
         self.last_detected_ticker: str | None = None
+        self.chat_inflight = False
         self.active_job_task: asyncio.Task[None] | None = None
         self.active_job_id: str | None = None
         self.active_log_target: str = "chat-log"
+        self._model_status_timer = None
 
     def _normalize_database_url(self, database_url: str) -> str:
         value = (database_url or "").strip()
@@ -181,6 +216,20 @@ class CockpitApp(App):
         yield Footer()
 
     def on_mount(self) -> None:
+        # CockpitWebApp sets _services_ready=False to defer initialization until
+        # after the pre-boot screen. Skip here; _finish_mount() is called directly.
+        if not getattr(self, "_services_ready", True):
+            return
+        self._finish_mount()
+
+    def on_unmount(self) -> None:
+        if self._model_status_timer is not None:
+            self._model_status_timer.stop()
+            self._model_status_timer = None
+
+    def _finish_mount(self) -> None:
+        """Install screens and surface startup info. Called by on_mount (normal flow)
+        and by CockpitWebApp._on_preboot_launch (deferred web flow)."""
         self.install_screen(ChatScreen(), name="chat")
         self.install_screen(OperationsScreen(), name="ops")
         self.install_screen(UpdaterScreen(), name="updater")
@@ -236,8 +285,127 @@ class CockpitApp(App):
         except Exception as exc:
             self._screen_log("chat", f"startup: Ollama health check failed: {exc}")
 
+        self._schedule_model_status_refresh()
+        self._model_status_timer = self.set_interval(15.0, self._schedule_model_status_refresh)
+
     def timestamp(self) -> str:
         return datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    def _schedule_model_status_refresh(self) -> None:
+        asyncio.create_task(self._refresh_model_status_widget())
+
+    def _collect_system_metrics(self) -> dict[str, Any]:
+        metrics: dict[str, Any] = {
+            "gpus": [],
+            "gpu_error": None,
+        }
+
+        try:
+            proc = subprocess.run(
+                [
+                    "nvidia-smi",
+                    "--query-gpu=name,utilization.gpu,memory.used,memory.total",
+                    "--format=csv,noheader,nounits",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=2.0,
+            )
+            if proc.returncode != 0:
+                err = (proc.stderr or proc.stdout or "").strip()
+                metrics["gpu_error"] = err.splitlines()[0] if err else "nvidia-smi failed"
+                return metrics
+
+            rows = [line.strip() for line in (proc.stdout or "").splitlines() if line.strip()]
+            gpus: list[dict[str, Any]] = []
+            for row in rows:
+                parts = [part.strip() for part in row.split(",")]
+                if len(parts) < 4:
+                    continue
+                try:
+                    util = float(parts[1])
+                except Exception:
+                    util = None
+                try:
+                    mem_used = float(parts[2])
+                except Exception:
+                    mem_used = None
+                try:
+                    mem_total = float(parts[3])
+                except Exception:
+                    mem_total = None
+                gpus.append(
+                    {
+                        "name": parts[0] or "GPU",
+                        "util_percent": util,
+                        "mem_used_mib": mem_used,
+                        "mem_total_mib": mem_total,
+                    }
+                )
+            metrics["gpus"] = gpus
+        except FileNotFoundError:
+            metrics["gpu_error"] = "nvidia-smi not installed"
+        except Exception as exc:
+            metrics["gpu_error"] = str(exc).splitlines()[0]
+
+        return metrics
+
+    def _collect_runtime_snapshot(self, endpoint: str) -> tuple[dict[str, Any], dict[str, Any]]:
+        try:
+            health = self.ollama_client.health(timeout=2.0)
+        except Exception as exc:
+            health = {"ok": False, "error": str(exc), "url": endpoint, "models": []}
+        return health, self._collect_system_metrics()
+
+    async def _refresh_model_status_widget(self) -> None:
+        model = str(self.config.get("llm", {}).get("model") or self.ollama_client.model or "unknown")
+        endpoint = str(getattr(self.ollama_client, "base_url", "") or self.config.get("llm", {}).get("ollama_url", ""))
+
+        health, sys_metrics = await asyncio.to_thread(self._collect_runtime_snapshot, endpoint)
+
+        lines = [
+            f"Model Runtime: {model}",
+            f"Endpoint: {endpoint}",
+        ]
+
+        if health.get("ok"):
+            names = health.get("models") if isinstance(health.get("models"), list) else []
+            if model and names and model not in names:
+                lines.append("Ollama: reachable, configured model not pulled")
+            else:
+                lines.append("Ollama: reachable")
+        else:
+            lines.append(f"Ollama: unavailable ({health.get('error') or 'unknown error'})")
+
+        gpus = sys_metrics.get("gpus") if isinstance(sys_metrics.get("gpus"), list) else []
+        if gpus:
+            preview_lines: list[str] = []
+            for gpu in gpus[:2]:
+                name = str(gpu.get("name") or "GPU")
+                util = gpu.get("util_percent")
+                used = gpu.get("mem_used_mib")
+                total = gpu.get("mem_total_mib")
+                util_txt = f"{float(util):.0f}%" if util is not None else "n/a"
+                mem_txt = (
+                    f"{float(used):.0f}/{float(total):.0f} MiB"
+                    if used is not None and total is not None
+                    else "n/a"
+                )
+                preview_lines.append(f"{name} {util_txt} {mem_txt}")
+            if len(gpus) > 2:
+                preview_lines.append(f"+{len(gpus) - 2} more GPU(s)")
+            lines.append("GPU: " + " | ".join(preview_lines))
+        else:
+            gpu_error = str(sys_metrics.get("gpu_error") or "").strip()
+            lines.append(f"GPU: unavailable ({gpu_error or 'no devices reported'})")
+
+        try:
+            screen = self.get_screen("chat")
+            panel = screen.query_one("#chat-model-status", Static)
+            panel.update("\n".join(lines))
+        except Exception:
+            pass
 
     def _screen_log(self, screen_name: str, text: str) -> None:
         try:
@@ -252,7 +420,17 @@ class CockpitApp(App):
     async def handle_chat_message(self, message: str) -> None:
         chat = self.get_screen("chat")
         log = chat.query_one("#chat-log", RichLog)
+        status = chat.query_one("#chat-status", Static)
         pending = chat.query_one("#chat-pending")
+
+        if (
+            self.chat_inflight
+            and message.strip() not in {"/cancel", "/confirm"}
+            and not message.startswith("/run ")
+            and not message.startswith("/read ")
+        ):
+            log.write(f"{self.ASSISTANT_NAME}: still thinking about the previous message.")
+            return
 
         created = datetime.now(timezone.utc).isoformat()
         self.state_store.add_chat_message(self.thread_id, "user", message, created)
@@ -314,17 +492,42 @@ class CockpitApp(App):
             )
             return
 
+        spinner_frames = ["|", "/", "-", "\\"]
+
+        async def _spinner() -> None:
+            idx = 0
+            while self.chat_inflight:
+                status.update(f"{self.ASSISTANT_NAME} (thinking) {spinner_frames[idx % len(spinner_frames)]}")
+                idx += 1
+                await asyncio.sleep(0.12)
+
         try:
-            response = self.chat_controller.build_chat_response(
+            self.chat_inflight = True
+            status.update(f"{self.ASSISTANT_NAME} (thinking) |")
+            spinner_task = asyncio.create_task(_spinner())
+            response = await asyncio.to_thread(
+                self.chat_controller.build_chat_response,
                 message,
-                enable_web=self.config["web"].get("enabled_default", False),
-                prior_ticker=self.last_detected_ticker,
+                self.config["web"].get("enabled_default", False),
+                self.last_detected_ticker,
             )
         except Exception as exc:
+            self.chat_inflight = False
+            status.update("")
             err = f"assistant: chat error: {exc}"
             log.write(err)
             self.state_store.add_chat_message(self.thread_id, "assistant", err, datetime.now(timezone.utc).isoformat())
             return
+        finally:
+            self.chat_inflight = False
+            spinner_task = locals().get("spinner_task")
+            if isinstance(spinner_task, asyncio.Task) and not spinner_task.done():
+                spinner_task.cancel()
+                try:
+                    await spinner_task
+                except asyncio.CancelledError:
+                    pass
+            status.update("")
 
         try:
             local_details = (response.evidence or [{}])[0].get("details", {})
@@ -625,23 +828,42 @@ class CockpitApp(App):
             payload["recent_jobs"] = self.state_store.list_jobs(limit=20)
 
         text_blob = json.dumps(payload, indent=2, default=str)
-        copied = self._copy_to_clipboard(text_blob)
-        if copied:
-            notice = "Copied chat/output bundle to clipboard."
-            self._write_log("chat-log", notice)
-            self.notify(notice)
-            return
 
-        # Fallback only when clipboard command is unavailable/fails.
+        # Always write a fixed-path file so Claude can read it without hunting for
+        # a timestamped filename.  Overwritten on every export — always fresh.
         out_dir = self.repo_root / "reports" / "cockpit" / "exports"
         out_dir.mkdir(parents=True, exist_ok=True)
-        txt_path = out_dir / f"copy_bundle_{ts}.txt"
-        txt_path.write_text(text_blob, encoding="utf-8")
-        notice = f"Clipboard unavailable. Wrote fallback export: {txt_path}"
+        claude_path = out_dir / "claude_context.json"
+        claude_path.write_text(text_blob, encoding="utf-8")
+
+        copied = self._copy_to_clipboard(text_blob)
+        if copied:
+            notice = f"Copied to clipboard + saved: {claude_path}"
+        else:
+            # Also write a timestamped copy as a permanent record.
+            txt_path = out_dir / f"copy_bundle_{ts}.txt"
+            txt_path.write_text(text_blob, encoding="utf-8")
+            notice = f"Saved for Claude: {claude_path}  (clipboard unavailable)"
         self._write_log("chat-log", notice)
         self.notify(notice)
 
     def _copy_to_clipboard(self, text: str) -> bool:
+        # OSC 52 — works over SSH; the terminal emulator on the far end sets the
+        # clipboard.  iTerm2: Prefs → General → "Allow clipboard access to terminal apps".
+        # kitty, WezTerm, and most modern terminals support it without configuration.
+        import base64
+
+        try:
+            encoded = base64.b64encode(text.encode("utf-8")).decode("ascii")
+            # Write directly to the controlling terminal, not stdout, so Textual's
+            # rendering pipeline doesn't intercept the escape sequence.
+            with open("/dev/tty", "w") as tty:
+                tty.write(f"\033]52;c;{encoded}\a")
+                tty.flush()
+            return True
+        except Exception:
+            pass
+
         # Linux Wayland
         if shutil.which("wl-copy"):
             try:

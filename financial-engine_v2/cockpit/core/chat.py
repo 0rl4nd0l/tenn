@@ -16,15 +16,47 @@ class ChatResponse:
 
 ACTION_KEYWORDS = {
     "full_history": ["backfill", "full history", "history sync"],
-    "update_ticker_financials": ["update ticker", "refresh ticker", "refresh financials", "update financial data"],
+    "update_ticker_financials": ["refresh financials", "update financial data", "financial refresh"],
     "rebuild_ticker_financials": ["rebuild financials", "rebuild ticker financials", "reprocess docs financials"],
     "audit_ticker_financials": ["audit financials", "financial qa", "check financial quality"],
-    "daily_marketindex": ["daily marketindex", "daily ingest", "marketindex today"],
-    "daily_asx_marketwide": ["daily asx", "asx daily all", "asx all announcements", "all asx announcements today"],
-    "asx_enrichment_sweep": ["asx enrichment", "bulk asx ingest", "ingest as many asx announcements", "asx sweep"],
+    "daily_news_ingest": [
+        "daily news ingest",
+        "ingest daily news",
+        "run news ingestion",
+        "news ingestion",
+        "news ingewstion",
+        "today news ingest",
+    ],
+    "historical_news_ingest": ["historical news ingest", "news backfill", "backfill news", "news history ingest"],
+    "daily_announcement_ingest": [
+        "daily announcement ingest",
+        "daily announcements",
+        "daily asx announcements",
+        "asx announcements today",
+    ],
+    "single_ticker_announcement_backfill": [
+        "single ticker backfill",
+        "ticker announcement backfill",
+        "backfill ticker announcements",
+        "refresh announcements",
+        "update announcements",
+    ],
+    "universe_announcement_enrichment_backfill": [
+        "asx enrichment chunked",
+        "chunked enrichment",
+        "5 year asx enrichment",
+        "universe announcement backfill",
+        "announcement enrichment backfill",
+    ],
+    "metric_extraction": [
+        "metric extraction",
+        "extract metrics",
+        "extract financial metrics",
+        "financial metric extraction",
+    ],
     "sort_asx_docs": ["sort asx docs", "classify announcements", "sort announcements", "organise asx docs"],
     "resume_pending": ["resume pending", "retry pending", "pending downloads"],
-    "recover_headed": ["recover headed", "headed recovery", "recover marketindex"],
+    "recover_headed": ["recover headed", "headed recovery"],
 }
 
 

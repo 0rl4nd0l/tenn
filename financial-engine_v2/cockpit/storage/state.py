@@ -68,17 +68,20 @@ class StateStore:
             self.conn.commit()
 
     def get_chat_messages(self, thread_id: str, limit: int = 200) -> list[dict[str, Any]]:
+        # Fetch the most recent `limit` messages, then reverse so the result
+        # is chronological (oldest→newest).  Previously used ASC which returned
+        # the oldest 200 rows — useless for context when history is long.
         rows = self.conn.execute(
             """
             select thread_id, role, content, created_at
             from chat_messages
             where thread_id = ?
-            order by id asc
+            order by id desc
             limit ?
             """,
             (thread_id, limit),
         ).fetchall()
-        return [dict(r) for r in rows]
+        return list(reversed([dict(r) for r in rows]))
 
     def add_job(self, payload: dict[str, Any]) -> None:
         with self._lock:

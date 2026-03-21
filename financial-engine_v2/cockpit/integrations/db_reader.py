@@ -72,7 +72,19 @@ class DbReader:
             return []
         return rows
 
-    def get_extraction_failures(self, limit: int = 50) -> list[dict[str, Any]]:
+    def get_extraction_failures(self, limit: int = 50, ticker: str | None = None) -> list[dict[str, Any]]:
+        if ticker:
+            sql = text(
+                """
+                select r.run_id, r.document_id, r.status, r.error, r.created_at
+                from extraction_runs r
+                join documents d on d.document_id = r.document_id
+                where r.status = 'failed' and d.ticker = :ticker
+                order by r.created_at desc
+                limit :limit
+                """
+            )
+            return self._run_query(sql, {"ticker": ticker.upper(), "limit": limit})
         sql = text(
             """
             select run_id, document_id, status, error, created_at
@@ -84,7 +96,19 @@ class DbReader:
         )
         return self._run_query(sql, {"limit": limit})
 
-    def get_low_confidence_financials(self, threshold: float = 0.4, limit: int = 100) -> list[dict[str, Any]]:
+    def get_low_confidence_financials(self, threshold: float = 0.4, limit: int = 100, ticker: str | None = None) -> list[dict[str, Any]]:
+        if ticker:
+            sql = text(
+                """
+                select ticker, period_end, period_type, confidence_metrics, source_document_id
+                from asx_periodic_financials
+                where confidence_metrics is not null and confidence_metrics < :threshold
+                  and ticker = :ticker
+                order by confidence_metrics asc
+                limit :limit
+                """
+            )
+            return self._run_query(sql, {"threshold": threshold, "ticker": ticker.upper(), "limit": limit})
         sql = text(
             """
             select ticker, period_end, period_type, confidence_metrics, source_document_id
