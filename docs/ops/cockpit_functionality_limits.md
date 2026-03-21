@@ -34,6 +34,7 @@ This note lists Cockpit flags, config settings, and environment variables that c
 | `db.diagnostic_query_enabled` | `false` | `/sql` is blocked until `/dbdiag on` is set for session. | `financial-engine_v2/config/cockpit.yaml`, `financial-engine_v2/cockpit/ui/app.py` |
 | `rag.qualitative_context.enabled` | `false` (base config) | Company qualitative context is off unless local override enables it. | `financial-engine_v2/config/cockpit.yaml` |
 | `rag.news_context.enabled` | `false` (base config) | News qualitative context is off unless local override enables it. | `financial-engine_v2/config/cockpit.yaml` |
+| `backend.api_key` | `""` (empty) | When set, Cockpit sends `X-API-Key: <value>` on all `BackendApiClient.rag_query()` calls. Required when `local_api_key` is configured in the backend — omitting it causes 403 on `/api/rag/query`. | `financial-engine_v2/cockpit/integrations/backend_api.py`, `financial-engine_v2/cockpit/ui/app.py` |
 | `backend.auto_start` | `true` | If set `false` and backend is down, cockpit will not attempt to self-recover by launching backend. | `financial-engine_v2/config/cockpit.yaml`, `financial-engine_v2/cockpit/ui/app.py` |
 | `backend.startup_timeout_seconds` | `25` | Low values produce false negative "health check timed out" startup states for slow hosts. | `financial-engine_v2/config/cockpit.yaml`, `financial-engine_v2/cockpit/ui/app.py` |
 
