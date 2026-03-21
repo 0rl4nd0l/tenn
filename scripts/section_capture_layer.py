@@ -128,7 +128,7 @@ ROOT = _SELF_DIR.parent if _SELF_DIR.name == "scripts" else _SELF_DIR
 EXTRACT = _load_module(ROOT / "scripts" / "extract_financial_metrics.py", "extract_financial_metrics")
 VALIDATION = _load_module(ROOT / "scripts" / "validation_quality_cycle.py", "validation_quality_cycle")
 FORENSIC = _load_module(ROOT / "balance_sheet_forensic_analysis.py", "balance_sheet_forensic_analysis")
-CASHFLOW_ADAPTER = _load_module(ROOT / "cashflow_layout_adapter.py", "cashflow_layout_adapter")
+CASHFLOW_ADAPTER = _load_module(ROOT / "scripts" / "cashflow_layout_adapter.py", "cashflow_layout_adapter")
 ORCHESTRATOR = _load_module(ROOT / "scripts" / "extract_pass_orchestrator.py", "extract_pass_orchestrator")
 PROVENANCE = _load_module(ROOT / "scripts" / "provenance_contract.py", "provenance_contract")
 OCR_LAST_RESORT = _load_module(ROOT / "scripts" / "ocr_last_resort.py", "ocr_last_resort")
