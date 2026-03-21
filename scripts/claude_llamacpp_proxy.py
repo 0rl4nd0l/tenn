@@ -700,6 +700,7 @@ def _build_upstream_request(payload: dict[str, Any], config: ProxyConfig) -> url
 
 def _call_upstream_openai(payload: dict[str, Any], config: ProxyConfig) -> dict[str, Any]:
     req = _build_upstream_request(payload, config)
+    url = f"{config.upstream_base_url.rstrip('/')}/chat/completions"
     try:
         with urlrequest.urlopen(req, timeout=config.timeout_seconds) as response:
             body = response.read().decode("utf-8")

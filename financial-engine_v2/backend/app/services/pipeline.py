@@ -924,7 +924,7 @@ def process_document(
                     ensure_collection(qc, settings.qdrant_collection, vector_dimension)
                     points = []
                     for index, vector in enumerate(usable_vectors):
-                        point_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"{doc_id_str}:{index}"))
+                        point_id = f"{doc_id_str}:{index}"
                         payload = {
                             "document_id": doc_id_str,
                             "ticker": doc.ticker,

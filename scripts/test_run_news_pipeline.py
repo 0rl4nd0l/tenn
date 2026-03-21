@@ -1,58 +1,52 @@
-import importlib.util
-import io
 import json
 import sys
 import unittest
-from contextlib import redirect_stdout
-from pathlib import Path
+from io import StringIO
+from unittest.mock import MagicMock, patch
 
-
-def load_module(path: Path, name: str):
-    spec = importlib.util.spec_from_file_location(name, str(path))
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"failed to load module: {path}")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[name] = module
-    spec.loader.exec_module(module)
-    return module
-
-
-ROOT = Path(__file__).resolve().parents[1]
-RUN = load_module(ROOT / "scripts" / "run_news_pipeline.py", "news_pipeline_run_news_pipeline")
+import scripts.run_news_pipeline as RUN
 
 
 class RunNewsPipelineTests(unittest.TestCase):
-    def _run_dry(self, argv: list[str]) -> tuple[int, str]:
-        buf = io.StringIO()
-        with redirect_stdout(buf):
-            rc = RUN.main(argv + ["--dry-run"])
-        return rc, buf.getvalue()
+    def _run_main(self, argv):
+        """Run main() and capture stdout, return (rc, parsed_json_output)."""
+        buf = StringIO()
+        with patch("sys.stdout", buf):
+            rc = RUN.main(argv)
+        output = buf.getvalue()
+        # Find the first top-level JSON object (starts at column 0)
+        first_brace = output.find("{")
+        payload = json.loads(output[first_brace:]) if first_brace >= 0 else {}
+        return rc, payload
 
-    def _parse_payload(self, output: str) -> dict:
-        start = output.rfind("\n{")
-        if start >= 0:
-            payload_text = output[start + 1 :].strip()
-        else:
-            payload_text = output.strip()
-        self.assertTrue(payload_text, "expected payload text")
-        return json.loads(payload_text)
-
-    def test_default_run_includes_newspaper4k_collect_step(self):
-        rc, output = self._run_dry([])
+    @patch("scripts.run_news_pipeline.write_run_reports", return_value={})
+    @patch("scripts.run_news_pipeline.run_provider_daily", return_value=("test-run-id", []))
+    @patch("scripts.run_news_pipeline.build_provider", return_value=MagicMock())
+    @patch("scripts.run_news_pipeline.EntityLinker")
+    @patch("scripts.run_news_pipeline.NewsArticleStore")
+    @patch("scripts.run_news_pipeline.load_tickers", return_value=["CBA.AX", "BHP.AX"])
+    def test_main_returns_zero_with_providers_and_runs(
+        self, mock_lt, mock_store, mock_linker, mock_bp, mock_rpd, mock_wrr
+    ):
+        """main() succeeds and emits payload with 'providers' and 'runs' keys."""
+        rc, payload = self._run_main(["--skip-gdelt-doc-api"])
         self.assertEqual(rc, 0)
-        self.assertIn("newspaper4k_collect", output)
-        self.assertIn("au_finance_news_orchestrated.jsonl", output)
-        payload = self._parse_payload(output)
-        step_names = [step.get("step") for step in payload.get("steps", [])]
-        self.assertIn("newspaper4k_collect", step_names)
+        self.assertIn("providers", payload)
+        self.assertIn("runs", payload)
 
-    def test_skip_newspaper4k_disables_default_collect_step(self):
-        rc, output = self._run_dry(["--skip-newspaper4k"])
+    @patch("scripts.run_news_pipeline.write_run_reports", return_value={})
+    @patch("scripts.run_news_pipeline.run_provider_daily", return_value=("test-run-id", []))
+    @patch("scripts.run_news_pipeline.build_provider", return_value=MagicMock())
+    @patch("scripts.run_news_pipeline.EntityLinker")
+    @patch("scripts.run_news_pipeline.NewsArticleStore")
+    @patch("scripts.run_news_pipeline.load_tickers", return_value=["CBA.AX", "BHP.AX"])
+    def test_main_skip_gdelt_doc_api_flag(
+        self, mock_lt, mock_store, mock_linker, mock_bp, mock_rpd, mock_wrr
+    ):
+        """--skip-gdelt-doc-api flag is accepted and reflected in output."""
+        rc, payload = self._run_main(["--skip-gdelt-doc-api"])
         self.assertEqual(rc, 0)
-        self.assertNotIn("newspaper4k_collect", output)
-        payload = self._parse_payload(output)
-        step_names = [step.get("step") for step in payload.get("steps", [])]
-        self.assertNotIn("newspaper4k_collect", step_names)
+        self.assertTrue(payload.get("skip_gdelt_doc_api"))
 
 
 if __name__ == "__main__":
