@@ -8,6 +8,7 @@ from pathlib import Path
 
 from scripts.change_review_agents import (
     ChangeSummary,
+    build_change_signature,
     build_consistency_findings,
     build_planner_payload,
     build_validation_findings,
@@ -256,6 +257,52 @@ class ChangeReviewAgentsTest(unittest.TestCase):
             with patch("scripts.change_review_agents.snapshot_changes", side_effect=RuntimeError("boom")):
                 result = watch("consistency", state_dir, state_dir, poll_seconds=1.0, once=True)
             self.assertEqual(result, 1)
+
+
+    def test_build_change_signature_changes_when_untracked_content_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            notes = root / "notes.txt"
+            notes.write_text("first\n", encoding="utf-8")
+            first = build_change_signature(
+                root,
+                head_sha="a" * 40,
+                dirty=True,
+                status_lines=["?? notes.txt"],
+                tracked_patch="",
+                untracked_files=["notes.txt"],
+            )
+            notes.write_text("second\n", encoding="utf-8")
+            second = build_change_signature(
+                root,
+                head_sha="a" * 40,
+                dirty=True,
+                status_lines=["?? notes.txt"],
+                tracked_patch="",
+                untracked_files=["notes.txt"],
+            )
+            self.assertNotEqual(first, second)
+
+    def test_build_change_signature_changes_when_tracked_patch_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            first = build_change_signature(
+                root,
+                head_sha="a" * 40,
+                dirty=True,
+                status_lines=[" M scripts/change_review_agents.py"],
+                tracked_patch="diff --git a/x b/x\n+one\n",
+                untracked_files=[],
+            )
+            second = build_change_signature(
+                root,
+                head_sha="a" * 40,
+                dirty=True,
+                status_lines=[" M scripts/change_review_agents.py"],
+                tracked_patch="diff --git a/x b/x\n+two\n",
+                untracked_files=[],
+            )
+            self.assertNotEqual(first, second)
 
 
 if __name__ == "__main__":

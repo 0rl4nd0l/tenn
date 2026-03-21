@@ -57,6 +57,18 @@ def press_and_wait(page, key: str, wait_ms: int = 800) -> None:
     page.wait_for_timeout(wait_ms)
 
 
+def dismiss_intro_dialog(page) -> None:
+    """Dismiss Textual Serve's intro overlay once the terminal is connected."""
+    page.wait_for_selector("#terminal.-connected", timeout=15_000)
+    intro_dialog = page.locator(".dialog-container.intro-dialog")
+    if intro_dialog.count() == 0:
+        return
+    if not intro_dialog.first.is_visible():
+        return
+    page.evaluate("document.body.classList.add('-first-byte')")
+    page.wait_for_selector(".dialog-container.intro-dialog", state="hidden", timeout=5_000)
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -66,7 +78,12 @@ def main() -> int:
     parser.add_argument("--port", type=int, default=8081, help="Port for textual serve (default: 8081)")
     parser.add_argument("--read-only", action="store_true", help="Pass --read-only to cockpit")
     parser.add_argument("--headed", action="store_true", help="Run browser in headed (visible) mode")
-    parser.add_argument("--timeout", type=int, default=45, help="Seconds to wait for server startup")
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=300,
+        help="Seconds to wait for server startup (Cockpit init can be slow)",
+    )
     args = parser.parse_args()
 
     try:
@@ -77,28 +94,36 @@ def main() -> int:
 
     SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Build the textual serve command.
+    # Build the textual serve command. Use the `textual` console script — `python -m textual`
+    # only runs Textual's DemoApp (see textual/__main__.py), not the serve subcommand.
     serve_script = REPO_ROOT / "financial-engine_v2" / "scripts" / "cockpit_serve.py"
-    venv_python = REPO_ROOT / "financial-engine_v2" / ".venv" / "bin" / "python"
-    python = str(venv_python) if venv_python.exists() else sys.executable
+    venv_bin = REPO_ROOT / "financial-engine_v2" / ".venv" / "bin"
+    textual_cli = venv_bin / "textual"
+    if not textual_cli.exists():
+        print(f"ERROR: textual CLI not found at {textual_cli} (pip install textual)")
+        return 1
 
     cockpit_flags = []
     if args.read_only:
         cockpit_flags.append("--read-only")
 
     cmd = [
-        python, "-m", "textual", "serve",
-        "--port", str(args.port),
+        str(textual_cli),
+        "serve",
+        "--port",
+        str(args.port),
         str(serve_script),
         *cockpit_flags,
     ]
 
     print(f"Starting: {' '.join(cmd)}")
+    # Do not use PIPE here: Cockpit/Textual can write enough during startup to fill the
+    # pipe buffer and deadlock before the HTTP server binds (see textual serve + long init).
     serve_proc = subprocess.Popen(
         cmd,
         cwd=str(REPO_ROOT / "financial-engine_v2"),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
     )
 
     try:
@@ -116,10 +141,11 @@ def main() -> int:
             print(f"\nNavigating to {url}")
             page.goto(url)
             page.wait_for_selector("canvas", timeout=15_000)
+            dismiss_intro_dialog(page)
             page.wait_for_timeout(2000)  # let Textual finish mount
 
-            # Click the terminal to ensure keyboard focus.
-            page.click("canvas")
+            # Focus Textual's hidden textarea so key presses go to the terminal.
+            page.locator("textarea.xterm-helper-textarea").focus()
 
             print("\n--- Screen tour ---")
 
@@ -187,11 +213,11 @@ def main() -> int:
     except TimeoutError as exc:
         print(f"\nERROR: {exc}")
         if serve_proc.returncode is None:
-            out, err = serve_proc.communicate(timeout=3)
-            print("--- serve stdout ---")
-            print(out.decode(errors="replace")[-2000:])
-            print("--- serve stderr ---")
-            print(err.decode(errors="replace")[-2000:])
+            serve_proc.terminate()
+            try:
+                serve_proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                serve_proc.kill()
         return 1
 
     except Exception as exc:

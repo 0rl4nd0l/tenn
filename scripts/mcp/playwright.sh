@@ -9,4 +9,4 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
-docker run --rm -i --init --network host --pull "${PULL_POLICY}" "${IMAGE}" "$@"
+docker run --rm -i --init --network host --pull "${PULL_POLICY}" "${IMAGE}" --browser chromium "$@"

@@ -96,6 +96,42 @@ def severity_rank(value: str) -> int:
     return order.get(value, 9)
 
 
+def file_content_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(65536), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def build_change_signature(
+    repo_root: Path,
+    *,
+    head_sha: str,
+    dirty: bool,
+    status_lines: Sequence[str],
+    tracked_patch: str,
+    untracked_files: Sequence[str],
+) -> str:
+    if not dirty:
+        source = f"clean:{head_sha}"
+    else:
+        untracked_entries: list[str] = []
+        for relative_path in sorted(dict.fromkeys(untracked_files)):
+            target = repo_root / relative_path
+            if not target.exists():
+                descriptor = "missing"
+            elif target.is_dir():
+                descriptor = "directory"
+            else:
+                descriptor = file_content_sha256(target)
+            untracked_entries.append(f"{relative_path}:{descriptor}")
+        source = "\n--status--\n".join(
+            ["\n".join(status_lines), tracked_patch, "\n".join(untracked_entries)]
+        )
+    return hashlib.sha256(source.encode("utf-8")).hexdigest()[:12]
+
+
 def resolve_python_executable(repo_root: Path) -> str:
     candidates = [
         os.environ.get("CHANGE_REVIEW_PYTHON", "").strip(),
@@ -201,6 +237,7 @@ def snapshot_changes(repo_root: Path) -> ChangeSummary:
     tracked_files = git_lines(("diff", "--name-only", "HEAD"), cwd=repo_root)
     untracked_files = git_lines(("ls-files", "--others", "--exclude-standard"), cwd=repo_root)
     changed_files = sorted(dict.fromkeys(tracked_files + untracked_files))
+    tracked_patch = git_text(("diff", "--no-color", "HEAD"), cwd=repo_root)
     diff_stat = git_text(("diff", "--stat", "HEAD"), cwd=repo_root).strip()
 
     diff_check = run_optional_command(
@@ -212,8 +249,14 @@ def snapshot_changes(repo_root: Path) -> ChangeSummary:
     diff_check_output = diff_check.output_excerpt if diff_check.status != "passed" else ""
 
     dirty = bool(status_lines)
-    signature_source = "\n".join(status_lines) if dirty else f"clean:{head_sha}"
-    signature = hashlib.sha256(signature_source.encode("utf-8")).hexdigest()[:12]
+    signature = build_change_signature(
+        repo_root,
+        head_sha=head_sha,
+        dirty=dirty,
+        status_lines=status_lines,
+        tracked_patch=tracked_patch,
+        untracked_files=untracked_files,
+    )
     event_id = f"{slugify(branch)}-{signature}"
     return ChangeSummary(
         branch=branch,

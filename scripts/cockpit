@@ -23,7 +23,8 @@ source "${CONFIG_FILE}"
 usage() {
   cat <<'EOF'
 Usage:
-  cockpit start
+  cockpit start          Start full stack + terminal TUI
+  cockpit start web      Start full stack + web UI (browser)
   cockpit stop
   cockpit status
   cockpit logs
@@ -170,10 +171,54 @@ os.waitpid(pid, 0)
   esac
 }
 
+launch_cockpit_web() {
+  local py
+  py="$(python_cmd)"
+
+  # Resolve textual CLI from the same venv as python.
+  local venv_dir
+  venv_dir="$(dirname "${py}")"
+  local textual_bin="${venv_dir}/textual"
+  if [[ ! -x "${textual_bin}" ]]; then
+    echo "ERROR: textual CLI not found at ${textual_bin}." >&2
+    echo "       Install it with: pip install textual-dev" >&2
+    exit 1
+  fi
+
+  local cfg="${COCKPIT_CONFIG:-config/cockpit.yaml}"
+  if [[ "${cfg}" != /* ]]; then
+    cfg="${ENGINE_ROOT}/${cfg}"
+  fi
+
+  local backend_url="${COCKPIT_BACKEND_URL:-http://localhost:8000}"
+  local ollama_url="${OLLAMA_URL:-http://localhost:11434}"
+  local port="${COCKPIT_WEB_PORT:-8080}"
+  local launcher="${ENGINE_ROOT}/scripts/cockpit_web.py"
+  if [[ ! -f "${launcher}" ]]; then
+    echo "ERROR: cockpit web launcher not found: ${launcher}" >&2
+    exit 1
+  fi
+
+  export COCKPIT_CONFIG="${cfg}"
+  export COCKPIT_BACKEND_URL="${backend_url}"
+  export OLLAMA_URL="${ollama_url}"
+
+  echo "Starting Cockpit web UI on http://localhost:${port}"
+  echo "Open that URL in your browser."
+  (cd "${ENGINE_ROOT}" && "${textual_bin}" serve --port "${port}" -c "${py} ${launcher}")
+}
+
 case "${cmd}" in
   start)
-    "${REPO_ROOT}/scripts/start_full_stack.sh"
-    launch_cockpit_tui
+    sub="${1:-}"
+    shift || true
+    if [[ "${sub}" == "web" ]]; then
+      "${REPO_ROOT}/scripts/start_full_stack.sh"
+      launch_cockpit_web
+    else
+      "${REPO_ROOT}/scripts/start_full_stack.sh"
+      launch_cockpit_tui
+    fi
     ;;
   stop)
     (cd "${ENGINE_ROOT}" && "${COMPOSE[@]}" down)
