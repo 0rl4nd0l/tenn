@@ -76,8 +76,8 @@ def _probe(svc: _ServiceCheck) -> None:
 #   env        dict[str,str] — extra env vars forwarded to cockpit.main
 
 LAUNCH_PROFILES: list[tuple[str, str]] = [
-    ("full",    "Full"),
-    ("testing", "Testing"),
+    ("Full",    "full"),
+    ("Testing", "testing"),
 ]
 
 PROFILE_FLAGS: dict[str, dict[str, Any]] = {
@@ -105,8 +105,7 @@ PROFILE_FLAGS: dict[str, dict[str, Any]] = {
 # Pre-boot Textual App
 # ---------------------------------------------------------------------------
 
-_STATUS_ICON = {"ok": "✓", "warn": "~", "error": "✗", "checking": "·"}
-_STATUS_COLOR = {"ok": "green", "warn": "yellow", "error": "red", "checking": "dim"}
+_STATUS_ICON = {"ok": "[OK]", "warn": "[??]", "error": "[!!]", "checking": "[ ]"}
 
 
 class PreBootApp(App[dict[str, Any]]):
@@ -119,12 +118,11 @@ class PreBootApp(App[dict[str, Any]]):
 
     CSS = """
     Screen {
-        align: center middle;
+        background: $background;
     }
     #preboot-root {
-        width: 80;
-        height: auto;
-        border: round $accent;
+        width: 1fr;
+        height: 1fr;
         padding: 1 2;
     }
     #preboot-title {
@@ -132,33 +130,35 @@ class PreBootApp(App[dict[str, Any]]):
         color: $accent;
         margin-bottom: 1;
         text-align: center;
+        width: 1fr;
     }
     #health-section {
-        border: round $panel;
+        border: round $accent;
         padding: 0 1;
         height: auto;
         margin-bottom: 1;
+        width: 1fr;
     }
     #health-label {
         text-style: bold;
-        margin-bottom: 0;
     }
     #health-log {
-        height: 7;
+        height: 8;
     }
     #options-section {
         border: round $panel;
         padding: 0 1;
         height: auto;
         margin-bottom: 1;
+        width: 1fr;
     }
     #options-label {
         text-style: bold;
-        margin-bottom: 0;
     }
     #profile-row {
         height: 3;
         margin-top: 1;
+        width: 1fr;
     }
     #profile-label {
         width: 10;
@@ -170,10 +170,17 @@ class PreBootApp(App[dict[str, Any]]):
     #btn-row {
         height: 3;
         margin-top: 1;
-        align: right middle;
+        width: 1fr;
+    }
+    #btn-spacer {
+        width: 1fr;
     }
     #btn-cancel {
         margin-right: 1;
+        width: auto;
+    }
+    #btn-launch {
+        width: auto;
     }
     """
 
@@ -191,7 +198,13 @@ class PreBootApp(App[dict[str, Any]]):
         super().__init__()
         self._backend_url = backend_url
         self._ollama_url = ollama_url
-        self._initial = initial_flags or {}
+        raw = dict(initial_flags or {})
+        # Sanitize profile: if the incoming value isn't a known profile, use the first.
+        # LAUNCH_PROFILES format is (label, value) — values are the second element.
+        _valid = {v for _, v in LAUNCH_PROFILES}
+        if raw.get("profile") not in _valid:
+            raw["profile"] = LAUNCH_PROFILES[0][1]
+        self._initial = raw
         self._checks = _build_service_checks(backend_url, ollama_url)
 
     def compose(self) -> ComposeResult:
@@ -205,30 +218,18 @@ class PreBootApp(App[dict[str, Any]]):
 
             with Vertical(id="options-section"):
                 yield Label("Launch Options", id="options-label")
-                yield Checkbox(
-                    "Read-only mode  (block mutating actions)",
-                    id="opt-readonly",
-                    value=self._initial.get("read_only", False),
-                )
-                yield Checkbox(
-                    "Enable web fetch",
-                    id="opt-web",
-                    value=not self._initial.get("no_web", True),
-                )
-                yield Checkbox(
-                    "Verbose logging  (DEBUG level + stderr)",
-                    id="opt-verbose",
-                    value=self._initial.get("verbose", False),
-                )
+                yield Checkbox("Read-only mode  (block mutating actions)", id="opt-readonly")
+                yield Checkbox("Enable web fetch", id="opt-web")
+                yield Checkbox("Verbose logging  (DEBUG level + stderr)", id="opt-verbose")
                 with Horizontal(id="profile-row"):
                     yield Label("Profile:", id="profile-label")
                     yield Select(
                         LAUNCH_PROFILES,
-                        value=self._initial.get("profile", LAUNCH_PROFILES[0][0]),
                         id="opt-profile",
                     )
 
             with Horizontal(id="btn-row"):
+                yield Static("", id="btn-spacer")
                 yield Button("Cancel", id="btn-cancel", variant="warning")
                 yield Button("Launch  [Enter]", id="btn-launch", variant="success")
         yield Footer()
@@ -238,6 +239,14 @@ class PreBootApp(App[dict[str, Any]]):
     # ------------------------------------------------------------------
 
     def on_mount(self) -> None:
+        # Set initial widget values here (after mount) to avoid Select validation
+        # errors that occur when value= is passed before options are registered.
+        profile = self._initial.get("profile", LAUNCH_PROFILES[0][1])
+        self.query_one("#opt-profile", Select).value = profile
+        self.query_one("#opt-readonly", Checkbox).value = self._initial.get("read_only", False)
+        self.query_one("#opt-web", Checkbox).value = not self._initial.get("no_web", True)
+        self.query_one("#opt-verbose", Checkbox).value = self._initial.get("verbose", False)
+
         log = self.query_one("#health-log", RichLog)
         for svc in self._checks:
             log.write(f"  {_STATUS_ICON['checking']}  {svc.name}")
@@ -284,7 +293,7 @@ class PreBootApp(App[dict[str, Any]]):
         read_only = self.query_one("#opt-readonly", Checkbox).value
         web_enabled = self.query_one("#opt-web", Checkbox).value
         verbose = self.query_one("#opt-verbose", Checkbox).value
-        profile = str(self.query_one("#opt-profile", Select).value or LAUNCH_PROFILES[0][0])
+        profile = str(self.query_one("#opt-profile", Select).value or LAUNCH_PROFILES[0][1])
         env = dict(PROFILE_FLAGS.get(profile, {}).get("env", {}))
         if verbose:
             env.setdefault("COCKPIT_LOG_LEVEL", "DEBUG")

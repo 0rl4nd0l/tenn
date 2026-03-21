@@ -135,3 +135,64 @@ No implementation of this structure is implied here; it is a roadmap for where t
 - **Artifact-producing:** Every module run must write at least one artifact under `reports/` (or a configured output root). Artifacts are the canonical record of the run and enable audit, comparison, and reuse by downstream phases (e.g. portfolio module consuming analysis artifacts).
 
 These rules align with the existing [backend architecture](../../.cursor/rules/backend_architecture.md) (idempotency, deterministic vector IDs, no silent degradation) and ensure the Analyse Company pipeline remains reproducible and auditable.
+
+---
+
+## Future Capability: Autonomous Dev Optimization Loop
+
+**Status:** Deferred. Not implemented. Decision record only.
+**Full evaluation:** [docs/research/autoresearch_evaluation.md](../research/autoresearch_evaluation.md)
+
+### What it is
+
+A bounded, development-side experiment loop that autonomously sweeps parameters for a single subsystem, measures the effect against a deterministic eval metric, and retains improvements. Conceptually: try → measure → keep/discard → log → repeat.
+
+Inspired by the pattern in `karpathy/autoresearch` and `davebcn87/pi-autoresearch`, but neither repo is suitable for direct adoption. A Tenn-native implementation would be built if and when prerequisites are met.
+
+### Why it is deferred
+
+The primary prerequisite does not yet exist: a fast, stable, deterministic eval harness covering each candidate subsystem (routing weights, retrieval parameters, extraction quality, latency). Without a valid metric to optimize, an experiment loop produces no reliable signal.
+
+Secondary constraint: this capability must never touch the production financial-agent runtime. Financial reasoning must remain auditable and deterministic. Any implementation must operate in development/shadow mode only.
+
+### When to consider implementing
+
+Revisit this decision when ALL of the following are true:
+
+1. At least one candidate subsystem has a deterministic eval harness with a scalar metric (e.g., routing: latency P95 + accuracy on labeled dataset; retrieval: NDCG on canonical eval set).
+2. The eval harness runs in under 10 minutes end-to-end.
+3. The eval harness is stable across reruns (variance < 5% on same inputs).
+4. There is a specific, measurable optimization goal (e.g., "reduce routing P95 by 20% without accuracy regression").
+5. A human reviewer is available to approve any experiment result before it is applied.
+
+### Candidate subsystems (priority order)
+
+| Subsystem | Candidate metric | Config surface |
+|-----------|-----------------|----------------|
+| Model routing thresholds | Latency P95 + accuracy on labeled queries | `model_routing.yaml` score weights |
+| Retrieval parameters | NDCG on canonical RAG eval set | `top_k`, score cutoff in RAG config |
+| Extraction quality | Precision/recall on labeled financial extraction set | Prompt templates in `services/extraction.py` |
+| Latency/cost tradeoffs | Wall-clock time + token cost per pipeline run | Routing config + model selection |
+
+### Safety boundaries (non-negotiable)
+
+- **Dev-only:** Experiment loops run only in isolated dev environments against frozen eval datasets. Never in production runtime.
+- **Human-in-the-loop required:** No experiment result is auto-applied. All results require human review and explicit approval before any config change is committed.
+- **Append-only logs:** All experiment runs are logged to a JSONL file. Logs are never deleted or modified.
+- **Backpressure gate required:** Full validation gate set (`pytest` + ruff + smoke) must pass before any result is marked `keep`.
+- **Frozen eval data:** The eval dataset used during an optimization session must not change mid-session.
+- **Prohibited targets:** Production prompts for final investment reasoning, DB schema, benchmark definitions, and the optimization loop itself are never mutable targets.
+
+### Rollout phases (if approved)
+
+1. **Phase 0 — Eval harness prerequisite:** Build and validate a fast, deterministic eval harness for one subsystem. Gate: harness runs in <10 min, <5% variance across 3 reruns.
+2. **Phase 1 — Manual experiment loop:** A developer manually runs parameter sweeps using the harness and logs results in `reports/optim_sessions/`. No automation. Gate: 3+ successful manual sessions with documented improvements.
+3. **Phase 2 — Scripted loop:** Automate the try/measure/log cycle in a CLI script (`scripts/optim_loop.py`). Human reviews results before any config change. Gate: script produces correct JSONL output; backpressure gate passes on all kept results.
+4. **Phase 3 — Agent-assisted (optional):** Allow a Claude agent to propose parameter deltas in the scripted loop. Human still approves before commit. Gate: agent proposals are no worse than manual on held-out eval set.
+
+### Kill-switch / disable conditions
+
+- Remove or rename `scripts/optim_loop.py` to disable the scripted loop.
+- Delete the session's `autoresearch.md` equivalent to reset loop state.
+- Any validation gate failure on a `keep` result immediately halts the session.
+- Production deployment never depends on optimization loop state.
