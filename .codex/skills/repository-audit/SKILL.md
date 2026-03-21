@@ -31,4 +31,4 @@ Use this skill for full-repository audit requests in this workspace.
 
 ## Output
 
-Return the evidence-rich markdown report and JSON structure defined in `.cursor/agents/repository_audit.md`.
+Follow the evidence requirements from `.cursor/agents/repository_audit.md`, but default the user-facing response to normal prose/markdown sections rather than raw JSON. Only emit raw JSON if the user explicitly asks for JSON.
