@@ -86,8 +86,8 @@ class TestCashflowPreScopeAudit(unittest.TestCase):
 
             row_capex = {
                 "file": str(pdf_path.resolve()),
-                "metric": "capex",
-                "metric_base": "capex",
+                "metric": "capital_expenditure",
+                "metric_base": "capital_expenditure",
                 "row_label": "Payments for property, plant and equipment",
                 "line": "(1,250)",
                 "raw_value": "(1,250)",
@@ -104,6 +104,8 @@ class TestCashflowPreScopeAudit(unittest.TestCase):
                 "page_number": 2,
                 "table_page": 2,
                 "inside_table": True,
+                "currency": "AUD",
+                "canonical_confidence_score": 2,
             }
             row_recon = {
                 "file": str(pdf_path.resolve()),
@@ -125,6 +127,8 @@ class TestCashflowPreScopeAudit(unittest.TestCase):
                 "page_number": 2,
                 "table_page": 2,
                 "inside_table": True,
+                "currency": "AUD",
+                "canonical_confidence_score": 2,
             }
             row_notes = {
                 "file": str(pdf_path.resolve()),
@@ -146,6 +150,8 @@ class TestCashflowPreScopeAudit(unittest.TestCase):
                 "page_number": 3,
                 "table_page": 3,
                 "inside_table": True,
+                "currency": "AUD",
+                "canonical_confidence_score": 2,
             }
 
             def fake_split(rows):

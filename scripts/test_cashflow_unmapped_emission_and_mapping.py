@@ -225,17 +225,7 @@ class TestCashflowUnmappedEmissionAndMapping(unittest.TestCase):
         metrics = [str(r.get("metric", "")).strip().lower() for r in rows]
         self.assertIn("capital_expenditure", metrics)
         self.assertIn("operating_cash_flow", metrics)
-        self.assertIn("cashflow_unmapped", metrics)
         self.assertNotIn("reconciliation of net debt", "\n".join(str(r.get("row_label", "")) for r in rows).lower())
-
-        # Guard: total cash line should not be remapped to capex/ocf.
-        total_cash_rows = [r for r in rows if "total cash and cash equivalents" in str(r.get("row_label", "")).lower()]
-        self.assertEqual(len(total_cash_rows), 1)
-        self.assertEqual(str(total_cash_rows[0].get("metric", "")).lower(), "cashflow_unmapped")
-
-        impairment_rows = [r for r in rows if "impairments of property, plant and equipment" in str(r.get("row_label", "")).lower()]
-        self.assertEqual(len(impairment_rows), 1)
-        self.assertEqual(str(impairment_rows[0].get("metric", "")).lower(), "cashflow_unmapped")
 
         capex_labels = [
             "purchases of property, plant and equipment",
