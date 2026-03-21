@@ -132,11 +132,11 @@ def test_vector_ids_use_document_id_and_chunk_index(monkeypatch):
             captured_ids.append(p["id"])
 
     monkeypatch.setattr(pipeline, "SessionLocal", fake_session_local)
-    monkeypatch.setattr(pipeline, "extract_text_from_pdf", fake_extract_text_from_pdf)
-    monkeypatch.setattr(pipeline, "simple_chunk", fake_simple_chunk)
+    monkeypatch.setattr(pipeline, "chunk_prose_sections", lambda doc: ["chunk-0", "chunk-1"])
     monkeypatch.setattr(pipeline, "embed_texts", fake_embed_texts)
     monkeypatch.setattr(pipeline, "QdrantClient", DummyQdrantClient)
     monkeypatch.setattr(pipeline, "ensure_collection", fake_ensure_collection)
+    monkeypatch.setattr(pipeline, "delete_points_for_document", lambda client, collection, doc_id: None)
     monkeypatch.setattr(pipeline, "upsert_points", fake_upsert_points)
 
     # Ensure embeddings path is enabled but extraction path is disabled for test simplicity.
@@ -220,15 +220,11 @@ def test_process_document_integration_vector_id_and_payload(monkeypatch):
             captured_points.append({"id": p["id"], "payload": dict(p["payload"])})
 
     monkeypatch.setattr(pipeline, "SessionLocal", fake_session_local)
-    monkeypatch.setattr(
-        pipeline, "extract_text_from_pdf", lambda path: "Sample text for chunks."
-    )
-    monkeypatch.setattr(
-        pipeline, "simple_chunk", lambda text, max_chars=4500: ["chunk0", "chunk1"]
-    )
+    monkeypatch.setattr(pipeline, "chunk_prose_sections", lambda doc: ["chunk0", "chunk1"])
     monkeypatch.setattr(pipeline, "embed_texts", lambda chunks, **kwargs: [[0.0] * 2, [0.0] * 2])
     monkeypatch.setattr(pipeline, "QdrantClient", lambda url: None)
     monkeypatch.setattr(pipeline, "ensure_collection", lambda c, col, dim: None)
+    monkeypatch.setattr(pipeline, "delete_points_for_document", lambda client, collection, doc_id: None)
     monkeypatch.setattr(pipeline, "upsert_points", fake_upsert_points)
     monkeypatch.setattr(pipeline.settings, "enable_embeddings", True, raising=False)
     monkeypatch.setattr(pipeline.settings, "enable_qdrant", True, raising=False)

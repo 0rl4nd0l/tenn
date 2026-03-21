@@ -283,8 +283,7 @@ def test_process_document_deletes_existing_points_before_upsert(monkeypatch):
             pass
 
     monkeypatch.setattr(pipeline, "SessionLocal", lambda: DummySession())
-    monkeypatch.setattr(pipeline, "extract_text_from_pdf", lambda path: "chunk me")
-    monkeypatch.setattr(pipeline, "simple_chunk", lambda text, max_chars=4500: ["chunk-0", "chunk-1"])
+    monkeypatch.setattr(pipeline, "chunk_prose_sections", lambda doc: ["chunk-0", "chunk-1"])
     monkeypatch.setattr(pipeline, "_embed_chunks", lambda chunks, ollama_client=None: [[0.1, 0.2], [0.3, 0.4]])
     monkeypatch.setattr(pipeline, "QdrantClient", lambda url: None)
     monkeypatch.setattr(pipeline, "ensure_collection", lambda client, collection, dim: collection)
@@ -349,8 +348,7 @@ def test_process_document_skips_invalid_chunk_payloads(monkeypatch):
             pass
 
     monkeypatch.setattr(pipeline, "SessionLocal", lambda: DummySession())
-    monkeypatch.setattr(pipeline, "extract_text_from_pdf", lambda path: "chunk me")
-    monkeypatch.setattr(pipeline, "simple_chunk", lambda text, max_chars=4500: ["chunk-0", "chunk-1"])
+    monkeypatch.setattr(pipeline, "chunk_prose_sections", lambda doc: ["chunk-0", "chunk-1"])
     monkeypatch.setattr(pipeline, "_embed_chunks", lambda chunks, ollama_client=None: [[0.1, 0.2], [0.3, 0.4]])
     monkeypatch.setattr(pipeline, "QdrantClient", lambda url: None)
     monkeypatch.setattr(pipeline, "ensure_collection", lambda client, collection, dim: collection)
