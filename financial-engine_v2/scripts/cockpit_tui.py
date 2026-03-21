@@ -347,6 +347,11 @@ def _merge_preboot_flags(cockpit_argv: list[str], flags: dict[str, Any]) -> list
             os.environ[key] = value
             _log(f"preboot env: {key}={value}")
 
+    # Propagate chosen flags via env for cockpit_serve.py (web mode).
+    os.environ["COCKPIT_PREBOOT_PROFILE"] = str(flags.get("profile") or "default")
+    os.environ["COCKPIT_PREBOOT_READ_ONLY"] = "1" if flags.get("read_only") else "0"
+    os.environ["COCKPIT_PREBOOT_NO_WEB"] = "1" if flags.get("no_web") else "0"
+
     return argv
 
 
@@ -359,6 +364,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--no-boot", action="store_true", help="Skip bootstrap and launch cockpit only.")
     parser.add_argument("--no-setup", action="store_true", help="Skip pre-boot setup screen and launch directly.")
+    parser.add_argument("--web", action="store_true", help="Launch cockpit_serve.py (direct app.run) instead of cockpit.main.")
     parser.add_argument(
         "--services",
         default=",".join(DEFAULT_SERVICES),
@@ -459,7 +465,13 @@ def main(argv: list[str] | None = None) -> None:
 
     venv_python = REPO_ROOT / ".venv" / "bin" / "python"
     launcher = str(venv_python if venv_python.exists() else Path(sys.executable))
-    cmd = [launcher, "-m", "cockpit.main", *cockpit_argv]
+
+    if args.web:
+        serve_script = REPO_ROOT / "scripts" / "cockpit_serve.py"
+        cmd = [launcher, str(serve_script), *cockpit_argv]
+        _log(f"web mode: launching cockpit_serve.py directly")
+    else:
+        cmd = [launcher, "-m", "cockpit.main", *cockpit_argv]
     _run(cmd, cwd=REPO_ROOT, check=True)
 
 

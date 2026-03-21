@@ -4,12 +4,15 @@
 Bypasses the interactive TTY guard in cockpit/main.py so that
 `textual serve` can host the app over WebSocket for browser access.
 
-Usage:
-    textual serve financial-engine_v2/scripts/cockpit_serve.py [-- --read-only --no-web]
+Usage (from financial-engine_v2/, after `pip install textual`):
+    .venv/bin/textual serve scripts/cockpit_serve.py [-- --read-only --no-web]
+
+Do not use `python -m textual serve` — that runs Textual's demo app, not `serve`.
 """
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -24,9 +27,9 @@ from cockpit.ui.app import CockpitApp
 def _parse() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Cockpit serve wrapper (no TTY required)")
     p.add_argument("--config", default="config/cockpit.yaml", help="Cockpit config path (relative to repo root)")
-    p.add_argument("--profile", default="default")
-    p.add_argument("--read-only", action="store_true", help="Disable mutating actions")
-    p.add_argument("--no-web", action="store_true", help="Disable web fetch tools")
+    p.add_argument("--profile", default=os.environ.get("COCKPIT_PREBOOT_PROFILE", "default"))
+    p.add_argument("--read-only", action="store_true", default=os.environ.get("COCKPIT_PREBOOT_READ_ONLY", "") in {"1", "true"})
+    p.add_argument("--no-web", action="store_true", default=os.environ.get("COCKPIT_PREBOOT_NO_WEB", "") in {"1", "true"})
     args, _ = p.parse_known_args()
     return args
 

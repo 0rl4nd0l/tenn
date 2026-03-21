@@ -10,6 +10,21 @@ from cockpit.core.actions import ActionRegistry
 
 
 class TestActionRegistrySmoke(unittest.TestCase):
+    def test_visible_actions_use_streamlined_surface(self):
+        reg = ActionRegistry(repo_root=ROOT, confirm_required=True)
+        ids = [spec.id for spec in reg.list_actions()]
+        self.assertEqual(
+            ids,
+            [
+                "daily_news_ingest",
+                "historical_news_ingest",
+                "daily_announcement_ingest",
+                "single_ticker_announcement_backfill",
+                "universe_announcement_enrichment_backfill",
+                "metric_extraction",
+            ],
+        )
+
     def test_build_preview_does_not_crash(self):
         reg = ActionRegistry(repo_root=ROOT, confirm_required=True)
         preview = reg.preview("full_history", {"ticker": "BHP", "years": 1})
