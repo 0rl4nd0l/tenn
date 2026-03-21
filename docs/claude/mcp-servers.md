@@ -18,6 +18,7 @@ MCP (Model Context Protocol) servers extend Claude Code with direct access to ex
 | **playwright** | `scripts/mcp/playwright.sh` | `mcr.microsoft.com/playwright/mcp:latest` | Browser automation, API response inspection, Lighthouse audits |
 | **github** | `scripts/mcp/github.sh` | `ghcr.io/github/github-mcp-server:latest` | GitHub issues, PRs, checks, releases |
 | **tenn** | `scripts/mcp/tenn.sh` | _(native Python)_ | Custom Tenn/OpenClaw MCP server (`openclaw.tenn_mcp_server`) |
+| **screenpipe** | `scripts/mcp/screenpipe.sh` | _(native macOS app + npx mcp-remote)_ | Query screen/audio history captured by Screenpipe on Mac |
 
 ---
 
@@ -30,6 +31,7 @@ MCP (Model Context Protocol) servers extend Claude Code with direct access to ex
 | **playwright** | Docker; image auto-pulls on first use |
 | **github** | Docker; `GITHUB_PERSONAL_ACCESS_TOKEN` env var set |
 | **tenn** | `.venv-autodev` with `openclaw` package installed |
+| **screenpipe** | Screenpipe app installed and running on Mac; Node.js/npx on Linux; SSH tunnel on port 3030 active |
 
 ---
 
@@ -39,6 +41,7 @@ MCP launcher scripts read these from the environment:
 
 | Variable | Default | Used By |
 |----------|---------|---------|
+| `SCREENPIPE_URL` | `http://localhost:3030/sse` | screenpipe |
 | `QDRANT_URL` | `http://127.0.0.1:6333` | qdrant |
 | `QDRANT_API_KEY` | _(none)_ | qdrant (optional) |
 | `COLLECTION_NAME` | _(none)_ | qdrant (optional) |
@@ -69,6 +72,9 @@ All servers use `--network host` for Docker, so they connect to localhost servic
 | GitHub MCP fails to start | Missing PAT | Export `GITHUB_PERSONAL_ACCESS_TOKEN` |
 | Tenn MCP fails to start | `.venv-autodev` missing | Create venv and install `openclaw` package |
 | Server starts but can't reach service | Service not running | Start the backing service (Qdrant, Redis, etc.) |
+| Screenpipe MCP fails | SSH tunnel not active | `ssh -L 3030:localhost:3030 <mac-host>` |
+| Screenpipe MCP fails | Screenpipe not running on Mac | Launch Screenpipe.app on Mac |
+| Screenpipe MCP fails | npx not installed | Install Node.js on Linux host |
 
 ---
 
