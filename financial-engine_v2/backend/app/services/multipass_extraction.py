@@ -62,6 +62,33 @@ class MultipassResult:
 
 
 # ---------------------------------------------------------------------------
+# Scale detection (deterministic, from table headers)
+# ---------------------------------------------------------------------------
+
+import re as _re
+
+_SCALE_PATTERNS: list[tuple[str, str]] = [
+    (r"\$'?000[,s]?\b|\bthousands?\b", "thousands"),
+    (r"\$'?000,000|\bmillions?\b", "millions"),
+    (r"\bbillions?\b", "billions"),
+]
+
+
+def _detect_scale_from_tables(tables) -> str:
+    """
+    Scan table column headers for scale indicators ($'000, millions, etc.).
+    Returns the first match, or 'unknown' if none found.
+    ASX reports consistently encode scale in column headings (e.g. "31 Dec 2025 $'000").
+    """
+    for table in tables[:15]:
+        header_text = " ".join(table.headers)
+        for pattern, scale in _SCALE_PATTERNS:
+            if _re.search(pattern, header_text, _re.IGNORECASE):
+                return scale
+    return "unknown"
+
+
+# ---------------------------------------------------------------------------
 # Pass 1 — Document Classifier
 # ---------------------------------------------------------------------------
 
@@ -522,6 +549,13 @@ def run_multipass_extraction(
             error=f"classifier_low_confidence:{pass1.get('classifier_confidence')}",
         )
 
+    # Override scale if Pass 1 missed it — table headers are more reliable
+    if pass1.get("scale", "unknown") in ("unknown", None, ""):
+        detected = _detect_scale_from_tables(structured_doc.tables)
+        if detected != "unknown":
+            logger.info("scale overridden by table-header detector: %s", detected)
+            pass1["scale"] = detected
+
     # Pass 2: Locate tables
     labelled = _run_pass2_locator(structured_doc.tables)
 
@@ -557,7 +591,38 @@ def _llm_json_call(prompt: str, llm_client, max_tokens: int = 512) -> dict:
     """
     Call the LLM with JSON mode enforced. Returns parsed dict.
     Raises on invalid JSON or connection failure.
+
+    llm_client may be:
+    - httpx.Client pointing at an OpenAI-compatible endpoint (llamacpp / Ollama)
+    - anthropic.Anthropic instance — uses Claude directly via the Anthropic SDK
     """
+    import json as _json
+
+    # Anthropic SDK path
+    try:
+        import anthropic as _anthropic
+        if isinstance(llm_client, _anthropic.Anthropic):
+            model = getattr(llm_client, "_extraction_model", "claude-opus-4-6")
+            msg = llm_client.messages.create(
+                model=model,
+                max_tokens=max_tokens,
+                messages=[{"role": "user", "content": prompt}],
+                system="You are a financial document extraction assistant. Always respond with valid JSON only, no markdown, no explanation.",
+            )
+            text = msg.content[0].text.strip()
+            # Strip markdown fences if present
+            if text.startswith("```"):
+                text = text.split("```")[1]
+                if text.startswith("json"):
+                    text = text[4:]
+            result = _json.loads(text)
+            if not isinstance(result, dict):
+                raise ValueError(f"LLM returned non-dict: {type(result)}")
+            return result
+    except ImportError:
+        pass
+
+    # OpenAI-compatible path (llamacpp / Ollama)
     from app.services.llm import generate_json
     metadata = {"task_type": "reasoning", "component": "multipass_extraction"}
     result = generate_json(prompt, metadata=metadata, client=llm_client)

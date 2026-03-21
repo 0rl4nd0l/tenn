@@ -227,12 +227,17 @@ def _message_content_to_text(content: Any) -> str:
 
 
 def _parse_json_text(text: str) -> Any:
+    import re as _re
     raw = _message_content_to_text(text).strip()
     if not raw:
         raise ValueError("Empty response from llama.cpp")
 
     stripped = _strip_code_fences(raw)
-    candidates = [raw, stripped, _extract_first_json_value(stripped)]
+    # Also try with thousands separators removed (e.g. 1,969,907 → 1969907).
+    # The regex strips commas that sit between digits without touching JSON's
+    # structural commas (which are always followed by whitespace or a quote).
+    cleaned = _re.sub(r'(?<=\d),(?=\d)', '', stripped)
+    candidates = [raw, stripped, _extract_first_json_value(stripped), cleaned, _extract_first_json_value(cleaned)]
     seen = set()
     for candidate in candidates:
         value = str(candidate or "").strip()
