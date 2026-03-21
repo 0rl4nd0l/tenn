@@ -149,28 +149,25 @@ def test_backend_does_not_depend_on_camelot():
 # Guard E — Incomplete migration: cashflow_layout_adapter not yet merged
 # ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "INCOMPLETE MIGRATION — cashflow_layout_adapter.py and section_capture_layer.py "
-        "exist on main and in the script-test suite but are not present in this branch "
-        "(cloud/session-20260319). The merge commit 41476da1 had no effect. "
-        "Until these are merged, multi-column/multi-page capex reconstruction and "
-        "section continuation indexing are unavailable. "
-        "Resolution: merge main → cloud/session-20260319 or cherry-pick "
-        "commits 710fe968 and af7f8e57. "
-        "This xfail documents the gap; it does not block CI."
-    ),
-)
-def test_cashflow_layout_adapter_present():
+def test_cashflow_layout_modules_present():
     """
-    cashflow_layout_adapter.py must be present in the scripts/ directory.
-    This test is xfail because the module is on main but not yet merged
-    into this branch. It will start passing once the merge is complete.
+    Regression guard: cashflow_layout_adapter.py, section_capture_layer.py, and
+    cashflow_table_fallback.py must all be present in scripts/.
+
+    If this fails, the layout modules were lost (e.g., branch diverged from main
+    again). Restore with:
+        git checkout main -- cashflow_layout_adapter.py section_capture_layer.py \\
+            cashflow_table_fallback.py balance_sheet_forensic_analysis.py
+        cp <each file> scripts/
     """
     scripts_dir = Path(__file__).resolve().parent.parent.parent.parent / "scripts"
-    adapter_path = scripts_dir / "cashflow_layout_adapter.py"
-    assert adapter_path.exists(), (
-        f"cashflow_layout_adapter.py missing at {adapter_path}. "
-        "See xfail reason above for resolution steps."
+    required = [
+        "cashflow_layout_adapter.py",
+        "section_capture_layer.py",
+        "cashflow_table_fallback.py",
+    ]
+    missing = [f for f in required if not (scripts_dir / f).exists()]
+    assert not missing, (
+        f"Layout modules missing from scripts/: {missing}. "
+        "Restore from main branch — see docstring for commands."
     )

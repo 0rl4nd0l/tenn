@@ -461,7 +461,7 @@ def run_ticker_onboarding(cfg: ExpansionConfig, ticker: str, batch_dir: Path) ->
     section_out_dir.mkdir(parents=True, exist_ok=True)
     section_cmd = [
         str(cfg.python_bin),
-        str(cfg.repo_root / "section_capture_layer.py"),
+        str(cfg.repo_root / "scripts" / "section_capture_layer.py"),
         "--pdf-dir",
         str(subset_pdf_dir),
         "--canonical",
