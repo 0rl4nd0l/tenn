@@ -1,34 +1,75 @@
 # Project Agent Rules
 
 Use this file as the authoritative Codex context for `financial-engine_v2` tasks.
+Read [../CLAUDE.md](../CLAUDE.md) first — all rules there apply to Codex equally.
 
-## Session Context
-- Repository focus: ASX ingestion and retrieval platform (financial-engine-v2)
-- Primary runtime: `financial-engine-v2`
-- Active branch/commit context is tracked in `~/.codex/config.toml` under `project.agent_context`
+## Cross-Agent Coordination
+
+This repo uses Claude Code and Codex in parallel. Before acting on any non-trivial task:
+1. Read Claude's memory index: `/home/l4nd0/.claude/projects/-home-l4nd0-tenn/memory/MEMORY.md`
+2. Read Codex memories: `~/.codex/memories/`
+3. Check specs and plans in `docs/superpowers/specs/` and `docs/superpowers/plans/`
+
+## Current Sprint (as of 2026-03-21)
+
+**Active:** Extraction pipeline redesign — replace PyMuPDF flat-text + single-pass LLM with docling multi-pass.
+
+| Item | Status | Location |
+|------|--------|----------|
+| Spec | ✅ Complete | `docs/superpowers/specs/2026-03-21-extraction-redesign.md` |
+| Plan | ✅ Complete | `docs/superpowers/plans/2026-03-21-extraction-redesign.md` |
+| Implementation (8 tasks) | 🔲 Not started | See plan |
+| Guard E fix | 🔲 `git merge main` (commits 710fe968, af7f8e57) | |
+| Eval fixtures | 🔲 Not started | `backend/tests/eval_fixtures/` |
 
 ## Operating Rules
+
 - Keep edits scoped to the current task; avoid unrelated churn.
 - Prefer existing code patterns and config shape in `financial-engine_v2`.
 - Do not revert user changes unless explicitly asked.
-- Avoid destructive git operations (`git reset --hard`, `git checkout --`) unless explicitly requested.
+- Avoid destructive git operations unless explicitly requested.
 - Do not run tests unless explicitly requested.
 - Preserve existing behavior unless the task is to change it.
+- Do not read, echo, or log `.env` files or secrets.
+
+## Milestone Commit Protocol (mandatory)
+
+```
+milestone(<subsystem>): <what works now>
+
+Working: <confirmed-working behavior>
+Tested: <how verified>
+```
+
+WIP state: `wip(<subsystem>): <description>`. Never end a session with uncommitted state.
+
+## Key Files
+
+| Item | Path |
+|------|------|
+| Capability guards | `backend/tests/test_extraction_capability_guards.py` |
+| Current extraction | `backend/app/services/extraction.py` |
+| Pipeline | `backend/app/services/pipeline.py` |
+| DB models | `backend/app/models/asx_financials.py` |
+| Model routing config | `backend/app/config/model_routing.yaml` |
+
+## Canonical Entrypoint
+
+```bash
+export PATH="$PWD/.venv/bin:$PATH"
+LOCAL_BACKEND_PROFILE=isolated ./scripts/run_local_backend.sh
+curl -sS http://127.0.0.1:8000/api/health
+```
 
 ## Useful Local References
-- `financial-engine_v2/backend/app/config/model_routing.yaml`
-- `financial-engine_v2/backend/tests/test_model_routing.py`
 
-## Runtime and Model Rules
-- Runtime default: `financial-engine-v2`
-  - Keep edits within this runtime unless explicitly asked to touch another workspace.
-  - Prefer existing config-driven paths over hardcoded defaults (for routing, ingestion, and persistence settings).
-  - Avoid broad architecture changes unless explicitly requested.
-- Model default: `gpt-5.4`
-  - Use concise, direct outputs and avoid speculative changes.
-  - Prioritize actionable steps and concrete file changes over broad prose.
-  - Maintain strict boundary: only run tests when explicitly requested.
+- `backend/app/config/model_routing.yaml`
+- `backend/tests/test_model_routing.py`
+- `docs/superpowers/specs/2026-03-21-extraction-redesign.md`
+- `docs/superpowers/plans/2026-03-21-extraction-redesign.md`
 
-## How Codex Uses This
-- This file is a manual handoff reference.
-- For automatic persistence across sessions, keep this file in sync with `~/.codex/config.toml`.
+## Runtime and Model
+
+- Model: `gpt-5.4` at `xhigh` reasoning effort
+- Use concise, direct outputs and avoid speculative changes
+- Prioritize actionable steps and concrete file changes over broad prose
