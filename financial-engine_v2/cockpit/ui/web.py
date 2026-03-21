@@ -134,6 +134,18 @@ class CockpitWebApp(CockpitApp):
         self._init_services(self._repo_root, cfg, flags.get("read_only", False))
         self._services_ready = True
 
-        # Pop the pre-boot screen, then run the standard cockpit mount sequence.
-        self.pop_screen()
+        # Pop the pre-boot screen if there is a screen beneath it.
+        # In textual serve mode the default screen may not be on the stack
+        # (stack=[PreBootScreen] only), so guard against the ScreenStackError
+        # that pop_screen() raises when len(stack) <= 1.
+        if len(self._screen_stack) > 1:
+            self.pop_screen()
+
         self._finish_mount()
+
+    def _activate_initial_screen(self) -> None:
+        """Override: always push chat — PreBootScreen guarantees we want it."""
+        try:
+            self.push_screen("chat")
+        except Exception:
+            pass
