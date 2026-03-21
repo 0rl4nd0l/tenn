@@ -17,6 +17,7 @@ from textual.widgets import Button, Checkbox, Label, RichLog, Select, Static
 
 from cockpit.integrations.llamacpp_manager import (
     discover_models,
+    discover_ollama_models,
     find_llama_server_process,
     models_dir_from_process,
     restart_with_model,
@@ -38,15 +39,15 @@ class _ServiceCheck:
 
 def _build_service_checks(backend_url: str, ollama_url: str) -> list[_ServiceCheck]:
     backend_health = backend_url.rstrip("/") + "/api/health"
-    # Probe /api/tags for Ollama so we also get the installed model list.
-    ollama_tags = ollama_url.rstrip("/") + "/api/tags"
-    return [
+    checks = [
         _ServiceCheck("Backend API",  backend_health),
-        _ServiceCheck("Ollama",        ollama_tags),
         _ServiceCheck("llama.cpp",     "http://localhost:8001/v1/models"),
         _ServiceCheck("Qdrant",        "http://localhost:6333/readyz"),
         _ServiceCheck("Redis",         "tcp://localhost:6379"),
     ]
+    if str(ollama_url or "").strip():
+        checks.insert(1, _ServiceCheck("Ollama", ollama_url.rstrip("/") + "/api/tags"))
+    return checks
 
 
 def _probe(svc: _ServiceCheck) -> None:
@@ -126,8 +127,8 @@ PROFILE_FLAGS: dict[str, dict[str, Any]] = {
 }
 
 LLM_PROVIDERS: list[tuple[str, str]] = [
-    ("Ollama  (localhost:11434)", "ollama"),
     ("llama.cpp  (localhost:8001)", "llamacpp"),
+    ("Ollama  (localhost:11434)", "ollama"),
 ]
 
 _FALLBACK_MODELS: list[tuple[str, str]] = [("llama3:latest", "llama3:latest")]
@@ -141,9 +142,9 @@ def _resolve_initial_option_state(initial_flags: dict[str, Any] | None) -> dict[
         profile = LAUNCH_PROFILES[0][1]
     defaults = PROFILE_FLAGS.get(profile, {})
     valid_providers = {value for _, value in LLM_PROVIDERS}
-    llm_provider = raw.get("llm_provider", "ollama")
+    llm_provider = raw.get("llm_provider", "llamacpp")
     if llm_provider not in valid_providers:
-        llm_provider = "ollama"
+        llm_provider = "llamacpp"
     return {
         "profile": profile,
         "read_only": bool(raw["read_only"]) if "read_only" in raw else bool(defaults.get("read_only", False)),
@@ -151,7 +152,7 @@ def _resolve_initial_option_state(initial_flags: dict[str, Any] | None) -> dict[
         "verbose": bool(raw["verbose"]) if "verbose" in raw else bool(defaults.get("verbose", False)),
         "enable_rag": bool(raw["enable_rag"]) if "enable_rag" in raw else True,
         "llm_provider": llm_provider,
-        "llm_model": raw.get("llm_model", "llama3:latest"),
+        "llm_model": raw.get("llm_model", "qwen2.5-coder-14b"),
     }
 
 
@@ -303,10 +304,16 @@ class PreBootScreen(Screen):
         results = await asyncio.gather(*probe_tasks, proc_task, return_exceptions=True)
         self._llama_proc = results[-1] if isinstance(results[-1], dict) else None
 
-        # Discover models on the filesystem from the process's model dir (or fallback).
+        # Discover models: local .gguf dir + Ollama blob store (both run in parallel).
         if self._llama_proc:
             models_dir = models_dir_from_process(self._llama_proc)
-            self._llama_fs_models = await asyncio.to_thread(discover_models, models_dir)
+            local_models, ollama_models = await asyncio.gather(
+                asyncio.to_thread(discover_models, models_dir),
+                asyncio.to_thread(discover_ollama_models),
+            )
+            # Merge: local files first, then Ollama models not already present by path.
+            local_paths = {m["path"] for m in local_models}
+            self._llama_fs_models = local_models + [m for m in ollama_models if m["path"] not in local_paths]
 
         self._render_health()
 

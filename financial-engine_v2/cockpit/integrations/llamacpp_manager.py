@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import signal
 import subprocess
@@ -56,6 +57,64 @@ def discover_models(models_dir: str) -> list[dict]:
         [{"path": str(f), "name": f.name, "stem": f.stem} for f in path.glob("*.gguf")],
         key=lambda d: d["name"],
     )
+
+
+def discover_ollama_models() -> list[dict]:
+    """
+    Read Ollama's manifest store and return usable models as GGUF blob paths.
+    Returns list of {path, name, stem} dicts — compatible with discover_models output.
+
+    Ollama stores model weights as plain GGUF files named by their SHA256 digest
+    (sha256-<hex>) in ~/.ollama/models/blobs/.  The manifests map model:tag names
+    to those digests.
+    """
+    blobs_dir = Path.home() / ".ollama" / "models" / "blobs"
+    manifests_root = Path.home() / ".ollama" / "models" / "manifests"
+    if not manifests_root.is_dir() or not blobs_dir.is_dir():
+        return []
+
+    results: list[dict] = []
+    seen_digests: set[str] = set()
+
+    # Walk registry.ollama.ai/library/<model>/<tag>
+    for manifest_path in manifests_root.rglob("*"):
+        if not manifest_path.is_file():
+            continue
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+
+        # Derive human-readable name from path: library/<model>/<tag> → <model>:<tag>
+        parts = manifest_path.parts
+        try:
+            lib_idx = list(parts).index("library")
+            model_name = parts[lib_idx + 1]
+            tag = parts[lib_idx + 2]
+            display = f"{model_name}:{tag}"
+        except (ValueError, IndexError):
+            display = manifest_path.name
+
+        # Find the model-weight layer (the actual GGUF).
+        for layer in manifest.get("layers", []):
+            if layer.get("mediaType") != "application/vnd.ollama.image.model":
+                continue
+            digest = layer.get("digest", "")
+            if not digest:
+                continue
+            # digest looks like "sha256:<hex>" → blob filename is "sha256-<hex>"
+            blob_name = digest.replace("sha256:", "sha256-", 1)
+            blob_path = blobs_dir / blob_name
+            if not blob_path.exists() or digest in seen_digests:
+                continue
+            seen_digests.add(digest)
+            results.append({
+                "path": str(blob_path),
+                "name": f"{display}  (ollama)",
+                "stem": display,
+            })
+
+    return sorted(results, key=lambda d: d["stem"])
 
 
 def models_dir_from_process(proc_info: dict) -> str:
