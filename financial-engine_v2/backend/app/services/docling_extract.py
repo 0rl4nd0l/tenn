@@ -80,8 +80,14 @@ def _run_docling_with_timeout(pdf_path: str) -> StructuredDocument:
 
 
 def _run_docling(pdf_path: str) -> StructuredDocument:
-    from docling.document_converter import DocumentConverter
-    converter = DocumentConverter()
+    from docling.document_converter import DocumentConverter, PdfFormatOption
+    from docling.datamodel.pipeline_options import PdfPipelineOptions
+
+    # Disable OCR: ASX PDFs are native-text; no OCR needed.
+    pipeline_options = PdfPipelineOptions(do_ocr=False)
+    converter = DocumentConverter(
+        format_options={"pdf": PdfFormatOption(pipeline_options=pipeline_options)}
+    )
     result = converter.convert(pdf_path)
     doc = result.document
 

@@ -1,3 +1,10 @@
+# PyTorch pinned for Tesla M40 (sm_52, CUDA 5.2) compatibility.
+# PyTorch 2.3+ dropped sm_52; cu118 wheel is the last to support it.
+# See docs/ops/docling_gpu_tesla_m40.md and docs/ops/requirements-docling-gpu-m40.txt
+--extra-index-url https://download.pytorch.org/whl/cu118
+torch==2.2.2
+torchvision==0.17.2
+
 fastapi==0.115.6
 uvicorn[standard]==0.30.6
 pydantic==2.9.2
