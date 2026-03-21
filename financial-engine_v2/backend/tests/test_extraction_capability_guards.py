@@ -29,31 +29,23 @@ import pytest
 
 def test_extraction_prompt_declares_cashflow_metrics():
     """
-    The LLM extraction prompt must declare operating_cf and capex as extractable
-    metrics with the expected type annotation.
+    Pass 3a in multipass_extraction must declare all 10 metric fields
+    in its per-table extraction schema. Replaces the old extraction.py guard.
 
-    If this fails, a field was renamed, typo'd, or dropped from the prompt schema.
-    Fix: restore the field in extraction.py:build_prompt() and confirm the LLM
-    output parser and _upsert_financial_rows both use the same name.
+    If this fails: a metric was dropped from METRIC_FIELDS in
+    multipass_extraction.py. Restore it and update _upsert_financial_rows.
     """
-    from app.services.extraction import build_prompt
-
-    prompt = build_prompt("")
+    from app.services.multipass_extraction import METRIC_FIELDS
 
     required = {
-        '"operating_cf": "number|null"',
-        '"investing_cf": "number|null"',
-        '"financing_cf": "number|null"',
-        '"capex": "number|null"',
-        '"cash_end": "number|null"',
-        '"net_debt": "number|null"',
+        "revenue", "ebit", "np_attributable",
+        "operating_cf", "investing_cf", "financing_cf",
+        "capex", "cash_end", "net_debt", "shares_outstanding",
     }
-    missing = {fragment for fragment in required if fragment not in prompt}
+    missing = required - set(METRIC_FIELDS)
     assert not missing, (
-        "Extraction prompt is missing required cash-flow schema fields.\n"
-        f"Missing: {sorted(missing)}\n"
-        "Update build_prompt() in extraction.py or fix this test if the field "
-        "was intentionally renamed (update both prompt and _upsert_financial_rows)."
+        f"multipass_extraction.METRIC_FIELDS is missing: {sorted(missing)}\n"
+        "Restore the field in METRIC_FIELDS and in _upsert_financial_rows."
     )
 
 
@@ -171,3 +163,68 @@ def test_cashflow_layout_modules_present():
         f"Layout modules missing from scripts/: {missing}. "
         "Restore from main branch — see docstring for commands."
     )
+
+
+# ---------------------------------------------------------------------------
+# Guard F — docling_extract module is present and importable
+# ---------------------------------------------------------------------------
+
+def test_docling_extract_module_importable():
+    """
+    services/docling_extract.py must exist and be importable.
+    If this fails: the module was deleted or has a syntax error.
+    Fix: restore docling_extract.py and verify `from app.services.docling_extract import extract_structured`.
+    """
+    try:
+        from app.services.docling_extract import extract_structured  # noqa: F401
+    except ImportError as e:
+        raise AssertionError(
+            f"Cannot import extract_structured from docling_extract: {e}\n"
+            "Ensure docling_extract.py exists in app/services/."
+        ) from e
+
+
+# ---------------------------------------------------------------------------
+# Guard G — Validation gate rejects missing period_end
+# ---------------------------------------------------------------------------
+
+def test_validation_gate_rejects_missing_period_end():
+    """
+    _validate_gate() must return status='failed' when period_end is None.
+    If this fails: the gate was weakened and bad extractions will reach the DB.
+    """
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = {
+        "period_type": "H",
+        "period_end": None,
+        "metrics": {"operating_cf": 1000, "revenue": 2000, "cash_end": 500},
+        "confidence_metrics": 0.9,
+    }
+    status, error = _validate_gate(payload)
+    assert status == "failed", f"Expected 'failed', got '{status}'"
+    assert error is not None
+
+
+# ---------------------------------------------------------------------------
+# Guard H — Validation gate rejects fewer than 3 non-null metrics
+# ---------------------------------------------------------------------------
+
+def test_validation_gate_rejects_insufficient_metrics():
+    """
+    _validate_gate() must return status='failed' when fewer than 3 metrics are non-null.
+    If this fails: sparse extractions will pollute the financial history table.
+    """
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = {
+        "period_type": "H",
+        "period_end": "2024-12-31",
+        "metrics": {"operating_cf": 1000, "revenue": None, "cash_end": None,
+                    "ebit": None, "np_attributable": None, "investing_cf": None,
+                    "financing_cf": None, "capex": None, "net_debt": None,
+                    "shares_outstanding": None},
+        "confidence_metrics": 0.9,
+    }
+    status, error = _validate_gate(payload)
+    assert status == "failed", f"Expected 'failed', got '{status}'"
