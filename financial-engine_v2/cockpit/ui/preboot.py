@@ -6,6 +6,7 @@ import socket
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Callable
 
 from textual.app import App, ComposeResult
@@ -13,6 +14,13 @@ from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
 from textual.widgets import Button, Checkbox, Label, RichLog, Select, Static
+
+from cockpit.integrations.llamacpp_manager import (
+    discover_models,
+    find_llama_server_process,
+    models_dir_from_process,
+    restart_with_model,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -89,13 +97,6 @@ def _probe(svc: _ServiceCheck) -> None:
 # ---------------------------------------------------------------------------
 # Launch profiles
 # ---------------------------------------------------------------------------
-# Each profile pre-fills the option widgets and injects env vars at launch.
-#
-# Keys:
-#   read_only  bool        — block mutating actions
-#   no_web     bool        — disable web fetch tool
-#   verbose    bool        — enable DEBUG log level + verbose output
-#   env        dict[str,str] — extra env vars forwarded to cockpit.main
 
 LAUNCH_PROFILES: list[tuple[str, str]] = [
     ("Full",    "full"),
@@ -123,7 +124,6 @@ PROFILE_FLAGS: dict[str, dict[str, Any]] = {
         },
     },
 }
-
 
 LLM_PROVIDERS: list[tuple[str, str]] = [
     ("Ollama  (localhost:11434)", "ollama"),
@@ -248,6 +248,9 @@ class PreBootScreen(Screen):
         # Guard: Select fires Changed on mount; block on_select_changed until
         # initial widget values are set and the first refresh has passed.
         self._selects_active = False
+        # llama.cpp process info + discovered models (populated after health checks).
+        self._llama_proc: dict | None = None
+        self._llama_fs_models: list[dict] = []
 
     def compose(self) -> ComposeResult:
         with Vertical(id="preboot-root"):
@@ -287,15 +290,24 @@ class PreBootScreen(Screen):
         for svc in self._checks:
             log.write(f"  {_STATUS_ICON['checking']}  {svc.name}")
         asyncio.create_task(self._run_health_checks())
-        # Activate all select handlers after first refresh so mount-time
-        # Select.Changed messages are ignored.
         self.call_after_refresh(self._activate_selects)
 
     def _activate_selects(self) -> None:
         self._selects_active = True
 
     async def _run_health_checks(self) -> None:
-        await asyncio.gather(*[asyncio.to_thread(_probe, svc) for svc in self._checks])
+        # Run HTTP/TCP probes and llama-server process discovery in parallel.
+        probe_tasks = [asyncio.to_thread(_probe, svc) for svc in self._checks]
+        proc_task = asyncio.to_thread(find_llama_server_process)
+
+        results = await asyncio.gather(*probe_tasks, proc_task, return_exceptions=True)
+        self._llama_proc = results[-1] if isinstance(results[-1], dict) else None
+
+        # Discover models on the filesystem from the process's model dir (or fallback).
+        if self._llama_proc:
+            models_dir = models_dir_from_process(self._llama_proc)
+            self._llama_fs_models = await asyncio.to_thread(discover_models, models_dir)
+
         self._render_health()
 
     def _render_health(self) -> None:
@@ -311,7 +323,6 @@ class PreBootScreen(Screen):
         ollama = svc_map.get("Ollama")
         llamacpp = svc_map.get("llama.cpp")
 
-        # Provider status badge
         parts = []
         if ollama:
             icon = "[OK]" if ollama.status == "ok" else "[!!]"
@@ -321,32 +332,58 @@ class PreBootScreen(Screen):
             parts.append(f"llama.cpp {icon}")
         self.query_one("#provider-status", Static).update("  ".join(parts))
 
-        # Model dropdown — populate from the currently selected provider
         provider = str(self.query_one("#opt-provider", Select).value or "ollama")
         self._set_model_options(provider, svc_map)
 
     def _set_model_options(self, provider: str, svc_map: dict) -> None:
-        """Repopulate the model Select with models available from the chosen provider."""
-        if provider == "ollama":
-            svc = svc_map.get("Ollama")
-        else:
-            svc = svc_map.get("llama.cpp")
-
-        models = svc.models if svc else []
-        if not models:
-            options = _FALLBACK_MODELS
-        else:
-            options = [(m, m) for m in models]
-
+        """Repopulate the model Select for the chosen provider."""
         model_select = self.query_one("#opt-model", Select)
-        preferred = self._initial.get("llm_model", "")
+
+        if provider == "llamacpp":
+            options = self._llamacpp_model_options()
+        else:
+            # Ollama: use models from health check
+            svc = svc_map.get("Ollama")
+            api_models = svc.models if svc else []
+            if api_models:
+                options = [(m, m) for m in api_models]
+            else:
+                options = _FALLBACK_MODELS
+
         model_select.set_options(options)
-        # Try to restore preferred model; fall back to first option.
-        available = [v for _, v in options]
-        if preferred in available:
+        # Try to keep preferred selection.
+        preferred = self._initial.get("llm_model", "")
+        available_values = [v for _, v in options]
+        if preferred in available_values:
             model_select.value = preferred
-        elif available:
-            model_select.value = available[0]
+        elif available_values:
+            model_select.value = available_values[0]
+
+    def _llamacpp_model_options(self) -> list[tuple[str, str]]:
+        """
+        Build model options for llama.cpp from filesystem-discovered .gguf files.
+        Each option value is the full path; the label shows the alias + filename.
+        The currently loaded model is marked with (active).
+        """
+        if not self._llama_fs_models:
+            # Fallback: if we have the running process, show its model.
+            if self._llama_proc and self._llama_proc.get("model_path"):
+                alias = self._llama_proc.get("model_alias") or Path(self._llama_proc["model_path"]).stem
+                label = f"{alias}  (active)"
+                return [(label, self._llama_proc["model_path"])]
+            return _FALLBACK_MODELS
+
+        active_path = (self._llama_proc or {}).get("model_path", "")
+        active_alias = (self._llama_proc or {}).get("model_alias", "")
+        options: list[tuple[str, str]] = []
+        for m in self._llama_fs_models:
+            if m["path"] == active_path:
+                alias = active_alias or m["stem"]
+                label = f"{alias}  [{m['name']}]  (active)"
+            else:
+                label = f"{m['stem']}  [{m['name']}]"
+            options.append((label, m["path"]))
+        return options
 
     def on_select_changed(self, event: Select.Changed) -> None:
         if not self._selects_active:
@@ -378,12 +415,30 @@ class PreBootScreen(Screen):
         verbose = self.query_one("#opt-verbose", Checkbox).value
         profile = str(self.query_one("#opt-profile", Select).value or LAUNCH_PROFILES[0][1])
         llm_provider = str(self.query_one("#opt-provider", Select).value or "ollama")
-        llm_model = str(self.query_one("#opt-model", Select).value or "llama3:latest")
+        raw_model_value = str(self.query_one("#opt-model", Select).value or "")
         env = dict(PROFILE_FLAGS.get(profile, {}).get("env", {}))
         if verbose:
             env.setdefault("COCKPIT_LOG_LEVEL", "DEBUG")
             env.setdefault("COCKPIT_VERBOSE_LOGGING", "1")
             env.setdefault("COCKPIT_LOG_TO_STDERR", "1")
+
+        # For llamacpp, raw_model_value is a full .gguf path.
+        # Derive the alias (what the API client sends as "model") from the stem.
+        if llm_provider == "llamacpp":
+            model_path = raw_model_value
+            if model_path and model_path.endswith(".gguf"):
+                # Use the running process alias if this is the active model.
+                if self._llama_proc and self._llama_proc.get("model_path") == model_path:
+                    model_alias = self._llama_proc.get("model_alias") or Path(model_path).stem
+                else:
+                    model_alias = Path(model_path).stem
+            else:
+                model_path = ""
+                model_alias = raw_model_value or "local"
+        else:
+            model_path = ""
+            model_alias = raw_model_value or "llama3:latest"
+
         return {
             "read_only": read_only,
             "no_web": not web_enabled,
@@ -391,13 +446,55 @@ class PreBootScreen(Screen):
             "verbose": verbose,
             "profile": profile,
             "llm_provider": llm_provider,
-            "llm_model": llm_model,
+            "llm_model": model_alias,
+            "llm_model_path": model_path,
             "env": env,
             "cancelled": False,
         }
 
     def action_launch(self) -> None:
         flags = self._collect_flags()
+        # For llamacpp, check if the selected model differs from what's running.
+        if (
+            flags["llm_provider"] == "llamacpp"
+            and self._llama_proc
+            and flags.get("llm_model_path")
+            and self._llama_proc.get("model_path") != flags["llm_model_path"]
+        ):
+            asyncio.create_task(self._restart_and_launch(flags))
+            return
+        if self._on_launch:
+            self._on_launch(flags)
+
+    async def _restart_and_launch(self, flags: dict[str, Any]) -> None:
+        """Restart llama-server with the selected model, then launch the cockpit."""
+        log = self.query_one("#health-log", RichLog)
+        btn = self.query_one("#btn-launch", Button)
+        btn.disabled = True
+
+        model_path = flags["llm_model_path"]
+        model_alias = flags["llm_model"]
+
+        log.write(f"\n  [ ] Switching to {Path(model_path).name}...")
+
+        def _status(msg: str) -> None:
+            self.call_from_thread(log.write, f"  ... {msg}")
+
+        success = await asyncio.to_thread(
+            restart_with_model,
+            self._llama_proc,
+            model_path,
+            model_alias,
+            90.0,
+            _status,
+        )
+
+        if success:
+            log.write("  [OK] llama-server ready — launching cockpit")
+        else:
+            log.write("  [!!] Server startup timed out — proceeding anyway")
+
+        btn.disabled = False
         if self._on_launch:
             self._on_launch(flags)
 

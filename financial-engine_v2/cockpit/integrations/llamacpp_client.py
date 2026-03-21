@@ -25,6 +25,19 @@ class LlamaCppClient:
             except Exception as exc:
                 return {"ok": False, "url": self.base_url, "error": str(exc)}
 
+    @staticmethod
+    def _error_body_preview(response: httpx.Response | None, limit: int = 300) -> str:
+        if response is None:
+            return ""
+        try:
+            body = response.read().decode("utf-8", errors="replace")
+        except Exception:
+            try:
+                body = response.text
+            except Exception:
+                body = ""
+        return body[:limit]
+
     def chat(self, prompt: str, timeout: float = 120.0, on_chunk: Callable[[str], None] | None = None) -> str:
         url = f"{self.base_url}/v1/chat/completions"
         parts: list[str] = []
@@ -61,7 +74,7 @@ class LlamaCppClient:
                             if on_chunk is not None:
                                 on_chunk(chunk)
             except httpx.HTTPStatusError as exc:
-                body = exc.response.text[:300] if exc.response is not None else ""
+                body = self._error_body_preview(exc.response)
                 raise RuntimeError(
                     f"llama.cpp request failed ({exc.response.status_code}) at {url}: {body}"
                 ) from exc
