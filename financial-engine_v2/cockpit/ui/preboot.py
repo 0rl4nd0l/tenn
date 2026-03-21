@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import socket
 import urllib.error
 import urllib.request
@@ -11,7 +12,7 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
-from textual.widgets import Button, Checkbox, Input, Label, RichLog, Select, Static
+from textual.widgets import Button, Checkbox, Label, RichLog, Select, Static
 
 
 # ---------------------------------------------------------------------------
@@ -24,13 +25,16 @@ class _ServiceCheck:
     url: str           # HTTP URL, or "tcp://host:port" for raw TCP
     status: str = "checking"   # checking | ok | warn | error
     detail: str = ""
+    models: list[str] = field(default_factory=list)
 
 
 def _build_service_checks(backend_url: str, ollama_url: str) -> list[_ServiceCheck]:
     backend_health = backend_url.rstrip("/") + "/api/health"
+    # Probe /api/tags for Ollama so we also get the installed model list.
+    ollama_tags = ollama_url.rstrip("/") + "/api/tags"
     return [
         _ServiceCheck("Backend API",  backend_health),
-        _ServiceCheck("Ollama",        ollama_url.rstrip("/")),
+        _ServiceCheck("Ollama",        ollama_tags),
         _ServiceCheck("llama.cpp",     "http://localhost:8001/v1/models"),
         _ServiceCheck("Qdrant",        "http://localhost:6333/readyz"),
         _ServiceCheck("Redis",         "tcp://localhost:6379"),
@@ -57,6 +61,23 @@ def _probe(svc: _ServiceCheck) -> None:
         with urllib.request.urlopen(req, timeout=3) as resp:
             svc.status = "ok"
             svc.detail = f"HTTP {resp.status}"
+            if svc.name in ("Ollama", "llama.cpp"):
+                try:
+                    body = json.loads(resp.read().decode("utf-8"))
+                    if svc.name == "Ollama":
+                        svc.models = [
+                            m.get("name", "").strip()
+                            for m in body.get("models", [])
+                            if m.get("name", "").strip()
+                        ]
+                    else:  # llama.cpp
+                        svc.models = [
+                            m.get("id", "").strip()
+                            for m in body.get("data", [])
+                            if m.get("id", "").strip()
+                        ]
+                except Exception:
+                    pass
     except urllib.error.HTTPError as exc:
         svc.status = "warn"
         svc.detail = f"HTTP {exc.code}"
@@ -109,10 +130,7 @@ LLM_PROVIDERS: list[tuple[str, str]] = [
     ("llama.cpp  (localhost:8001)", "llamacpp"),
 ]
 
-_DEFAULT_MODEL: dict[str, str] = {
-    "ollama": "llama3:latest",
-    "llamacpp": "",
-}
+_FALLBACK_MODELS: list[tuple[str, str]] = [("llama3:latest", "llama3:latest")]
 
 
 def _resolve_initial_option_state(initial_flags: dict[str, Any] | None) -> dict[str, Any]:
@@ -133,7 +151,7 @@ def _resolve_initial_option_state(initial_flags: dict[str, Any] | None) -> dict[
         "verbose": bool(raw["verbose"]) if "verbose" in raw else bool(defaults.get("verbose", False)),
         "enable_rag": bool(raw["enable_rag"]) if "enable_rag" in raw else True,
         "llm_provider": llm_provider,
-        "llm_model": raw.get("llm_model", _DEFAULT_MODEL.get(llm_provider, "llama3:latest")),
+        "llm_model": raw.get("llm_model", "llama3:latest"),
     }
 
 
@@ -160,6 +178,7 @@ class PreBootScreen(Screen):
         width: 1fr;
         height: 1fr;
         padding: 1 2;
+        overflow-y: auto;
     }
     #preboot-title {
         text-style: bold;
@@ -176,7 +195,7 @@ class PreBootScreen(Screen):
         width: 1fr;
     }
     #health-label { text-style: bold; }
-    #health-log { height: 8; }
+    #health-log { height: 5; }
     #options-section {
         border: round $panel;
         padding: 0 1;
@@ -188,10 +207,6 @@ class PreBootScreen(Screen):
     #profile-row { height: 3; margin-top: 1; width: 1fr; }
     #profile-label { width: 10; padding-top: 1; }
     #opt-profile { width: 1fr; }
-    #btn-row { height: 3; margin-top: 1; width: 1fr; }
-    #btn-spacer { width: 1fr; }
-    #btn-cancel { margin-right: 1; width: auto; }
-    #btn-launch { width: auto; }
     #llm-section {
         border: round $panel;
         padding: 0 1;
@@ -207,6 +222,10 @@ class PreBootScreen(Screen):
     #model-row { height: 3; margin-top: 1; width: 1fr; }
     #model-label { width: 10; padding-top: 1; }
     #opt-model { width: 1fr; }
+    #btn-row { height: 3; margin-top: 1; margin-bottom: 1; width: 1fr; }
+    #btn-spacer { width: 1fr; }
+    #btn-cancel { margin-right: 1; width: auto; }
+    #btn-launch { width: auto; }
     """
 
     DEFAULT_CSS = _SHARED_CSS
@@ -228,7 +247,7 @@ class PreBootScreen(Screen):
         self._on_cancel = on_cancel
         # Guard: Select fires Changed on mount; block on_select_changed until
         # initial widget values are set and the first refresh has passed.
-        self._profile_select_active = False
+        self._selects_active = False
 
     def compose(self) -> ComposeResult:
         with Vertical(id="preboot-root"):
@@ -253,7 +272,7 @@ class PreBootScreen(Screen):
                     yield Static("", id="provider-status")
                 with Horizontal(id="model-row"):
                     yield Label("Model:", id="model-label")
-                    yield Input(placeholder="e.g. llama3:latest", id="opt-model")
+                    yield Select(_FALLBACK_MODELS, value="llama3:latest", id="opt-model", allow_blank=False)
             with Horizontal(id="btn-row"):
                 yield Static("", id="btn-spacer")
                 yield Button("Cancel", id="btn-cancel", variant="warning")
@@ -264,17 +283,16 @@ class PreBootScreen(Screen):
         self.query_one("#opt-web", Checkbox).value = not self._initial["no_web"]
         self.query_one("#opt-rag", Checkbox).value = self._initial["enable_rag"]
         self.query_one("#opt-verbose", Checkbox).value = self._initial["verbose"]
-        self.query_one("#opt-model", Input).value = self._initial.get("llm_model", "llama3:latest")
         log = self.query_one("#health-log", RichLog)
         for svc in self._checks:
             log.write(f"  {_STATUS_ICON['checking']}  {svc.name}")
         asyncio.create_task(self._run_health_checks())
-        # Activate profile-select handler after the next refresh so any
-        # Select.Changed message posted during mount is ignored.
-        self.call_after_refresh(self._activate_profile_select)
+        # Activate all select handlers after first refresh so mount-time
+        # Select.Changed messages are ignored.
+        self.call_after_refresh(self._activate_selects)
 
-    def _activate_profile_select(self) -> None:
-        self._profile_select_active = True
+    def _activate_selects(self) -> None:
+        self._selects_active = True
 
     async def _run_health_checks(self) -> None:
         await asyncio.gather(*[asyncio.to_thread(_probe, svc) for svc in self._checks])
@@ -285,13 +303,15 @@ class PreBootScreen(Screen):
         log.clear()
         for svc in self._checks:
             log.write(f"  {_STATUS_ICON[svc.status]}  {svc.name:<16} {svc.detail}")
-        self._update_provider_status()
+        self._refresh_llm_widgets()
 
-    def _update_provider_status(self) -> None:
-        """Refresh the inline backend status badge next to the provider selector."""
+    def _refresh_llm_widgets(self) -> None:
+        """Update provider status badge and model dropdown from health check results."""
         svc_map = {s.name: s for s in self._checks}
         ollama = svc_map.get("Ollama")
         llamacpp = svc_map.get("llama.cpp")
+
+        # Provider status badge
         parts = []
         if ollama:
             icon = "[OK]" if ollama.status == "ok" else "[!!]"
@@ -301,8 +321,35 @@ class PreBootScreen(Screen):
             parts.append(f"llama.cpp {icon}")
         self.query_one("#provider-status", Static).update("  ".join(parts))
 
+        # Model dropdown — populate from the currently selected provider
+        provider = str(self.query_one("#opt-provider", Select).value or "ollama")
+        self._set_model_options(provider, svc_map)
+
+    def _set_model_options(self, provider: str, svc_map: dict) -> None:
+        """Repopulate the model Select with models available from the chosen provider."""
+        if provider == "ollama":
+            svc = svc_map.get("Ollama")
+        else:
+            svc = svc_map.get("llama.cpp")
+
+        models = svc.models if svc else []
+        if not models:
+            options = _FALLBACK_MODELS
+        else:
+            options = [(m, m) for m in models]
+
+        model_select = self.query_one("#opt-model", Select)
+        preferred = self._initial.get("llm_model", "")
+        model_select.set_options(options)
+        # Try to restore preferred model; fall back to first option.
+        available = [v for _, v in options]
+        if preferred in available:
+            model_select.value = preferred
+        elif available:
+            model_select.value = available[0]
+
     def on_select_changed(self, event: Select.Changed) -> None:
-        if not self._profile_select_active:
+        if not self._selects_active:
             return
         if event.select.id == "opt-profile":
             flags = PROFILE_FLAGS.get(str(event.value or ""), {})
@@ -315,11 +362,8 @@ class PreBootScreen(Screen):
             if "verbose" in flags:
                 self.query_one("#opt-verbose", Checkbox).value = flags["verbose"]
         elif event.select.id == "opt-provider":
-            provider = str(event.value or "ollama")
-            model_input = self.query_one("#opt-model", Input)
-            # Pre-fill a sensible default when model field is blank.
-            if not model_input.value.strip():
-                model_input.value = _DEFAULT_MODEL.get(provider, "llama3:latest")
+            svc_map = {s.name: s for s in self._checks}
+            self._set_model_options(str(event.value or "ollama"), svc_map)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-launch":
@@ -334,7 +378,7 @@ class PreBootScreen(Screen):
         verbose = self.query_one("#opt-verbose", Checkbox).value
         profile = str(self.query_one("#opt-profile", Select).value or LAUNCH_PROFILES[0][1])
         llm_provider = str(self.query_one("#opt-provider", Select).value or "ollama")
-        llm_model = self.query_one("#opt-model", Input).value.strip() or "llama3:latest"
+        llm_model = str(self.query_one("#opt-model", Select).value or "llama3:latest")
         env = dict(PROFILE_FLAGS.get(profile, {}).get("env", {}))
         if verbose:
             env.setdefault("COCKPIT_LOG_LEVEL", "DEBUG")
