@@ -24,7 +24,7 @@ from app.models.extractions import ExtractionRun
 from app.providers.marketindex_provider import MarketIndexProvider
 from app.services.asx import ASXProvider
 from app.services.chunking import simple_chunk
-from app.services.embeddings import ensure_collection, log_rejected_payload, upsert_points, validate_payload
+from app.services.embeddings import delete_points_for_document, ensure_collection, log_rejected_payload, upsert_points, validate_payload
 from app.services.extraction import EXTRACTOR_VERSION, build_prompt, parse_period_end
 from app.services.announcement_importance import classify_documents_and_materialize
 from app.services.llm import embed_texts, generate_json, get_routing_decision
@@ -953,6 +953,8 @@ def process_document(
                                 "payload": payload,
                             }
                         )
+                    if points:
+                        delete_points_for_document(qc, settings.qdrant_collection, doc_id_str)
                     upsert_result = dict(upsert_points(qc, settings.qdrant_collection, points) or {})
                     written_points += int(upsert_result.get("written_points", 0))
                     rejected_payloads = int(upsert_result.get("rejected_payloads", 0))

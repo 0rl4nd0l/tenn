@@ -363,6 +363,27 @@ def ensure_collection(client: QdrantClient, collection: str, dim: int) -> str:
     return collection
 
 
+def delete_points_for_document(client: QdrantClient, collection: str, document_id: str) -> None:
+    document_id_str = str(document_id or "").strip().lower()
+    if not _is_canonical_document_id(document_id_str):
+        raise ValueError("document_id must be a canonical UUID")
+
+    client.delete(
+        collection_name=collection,
+        points_selector=qmodels.FilterSelector(
+            filter=qmodels.Filter(
+                must=[
+                    qmodels.FieldCondition(
+                        key="document_id",
+                        match=qmodels.MatchValue(value=document_id_str),
+                    )
+                ]
+            )
+        ),
+        wait=True,
+    )
+
+
 def upsert_points(client: QdrantClient, collection: str, points: list[dict]) -> dict[str, int]:
     is_local_mode = "qdrant_client.local." in type(getattr(client, "_client", None)).__module__
 

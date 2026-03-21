@@ -227,6 +227,91 @@ def test_upsert_points_skips_invalid_asx_docs_payloads_before_write(monkeypatch,
     assert any(record.reason == "payload field ticker is missing" for record in warning_records)
 
 
+def test_delete_points_for_document_filters_by_document_id():
+    calls: list[dict] = []
+
+    class DummyClient:
+        def delete(self, **kwargs):
+            calls.append(kwargs)
+
+    document_id = str(uuid.uuid4())
+    embeddings.delete_points_for_document(DummyClient(), "asx_docs", document_id)
+
+    assert len(calls) == 1
+    call = calls[0]
+    assert call["collection_name"] == "asx_docs"
+    assert call["wait"] is True
+    selector = call["points_selector"]
+    assert selector.filter.must[0].key == "document_id"
+    assert selector.filter.must[0].match.value == document_id
+
+
+def test_process_document_deletes_existing_points_before_upsert(monkeypatch):
+    call_order: list[tuple] = []
+    doc_id = uuid.uuid4()
+
+    class DummyDoc:
+        document_id = doc_id
+        ticker = "ABC"
+        doc_class = "announcement"
+        doc_subtype = "periodic"
+        title = "Valid doc"
+        pdf_path = "/tmp/valid.pdf"
+        source_url = "https://example.com/doc.pdf"
+
+    class DummyQuery:
+        def filter(self, *args, **kwargs):
+            return self
+
+        def first(self):
+            return DummyDoc()
+
+    class DummySession:
+        def query(self, model):
+            return DummyQuery()
+
+        def add(self, obj):
+            pass
+
+        def commit(self):
+            pass
+
+        def rollback(self):
+            pass
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(pipeline, "SessionLocal", lambda: DummySession())
+    monkeypatch.setattr(pipeline, "extract_text_from_pdf", lambda path: "chunk me")
+    monkeypatch.setattr(pipeline, "simple_chunk", lambda text, max_chars=4500: ["chunk-0", "chunk-1"])
+    monkeypatch.setattr(pipeline, "_embed_chunks", lambda chunks, ollama_client=None: [[0.1, 0.2], [0.3, 0.4]])
+    monkeypatch.setattr(pipeline, "QdrantClient", lambda url: None)
+    monkeypatch.setattr(pipeline, "ensure_collection", lambda client, collection, dim: collection)
+    monkeypatch.setattr(
+        pipeline,
+        "delete_points_for_document",
+        lambda client, collection, document_id: call_order.append(("delete", collection, document_id)),
+    )
+
+    def fake_upsert_points(client, collection, points):
+        call_order.append(("upsert", collection, [point["id"] for point in points]))
+        return {"written_points": len(points), "rejected_payloads": 0}
+
+    monkeypatch.setattr(pipeline, "upsert_points", fake_upsert_points)
+    monkeypatch.setattr(pipeline.settings, "enable_embeddings", True, raising=False)
+    monkeypatch.setattr(pipeline.settings, "enable_qdrant", True, raising=False)
+    monkeypatch.setattr(pipeline.settings, "qdrant_collection", "asx_docs", raising=False)
+    monkeypatch.setattr(pipeline.settings, "enable_extraction", False, raising=False)
+
+    result = pipeline.process_document(str(doc_id))
+
+    expected_document_id = str(doc_id).lower()
+    assert result["written_points"] == 2
+    assert call_order[0] == ("delete", "asx_docs", expected_document_id)
+    assert call_order[1][0] == "upsert"
+
+
 def test_process_document_skips_invalid_chunk_payloads(monkeypatch):
     captured_points: list[dict] = []
     doc_id = uuid.uuid4()

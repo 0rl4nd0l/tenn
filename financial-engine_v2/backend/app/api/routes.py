@@ -333,7 +333,7 @@ def backfill_ticker(ticker:str, years:int=1, process_documents:bool=False):
     )
     return {"mode":"celery","enqueued":1,"ticker":ticker.upper()}
 
-@router.get("/rag/query")
+@router.get("/rag/query", dependencies=[Depends(require_api_key)])
 def rag_query(
     q: str = Query(..., description="Search query text"),
     top_k: int = Query(10, description="Number of results to return"),
