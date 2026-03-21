@@ -14,6 +14,9 @@ celery.conf.update(
     task_serializer="json",
     accept_content=["json"],
     result_serializer="json",
+    task_soft_time_limit=900,
+    task_time_limit=960,
+    result_expires=86400,
     broker_connection_retry=True,
     broker_connection_retry_on_startup=True,
     beat_schedule={
