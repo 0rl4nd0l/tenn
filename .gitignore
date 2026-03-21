@@ -21,3 +21,4 @@ exports/
 tools/
 archive/
 .claude/worktrees/
+reports/change_review_agents/
