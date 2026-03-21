@@ -12,6 +12,7 @@ DEFAULT_CONFIG = {
     "llm": {
         "provider": "ollama",
         "ollama_url": "http://localhost:11434",
+        "llamacpp_url": "http://localhost:8001",
         "model": "llama3:latest",
         "timeout_seconds": 300,
     },
@@ -85,6 +86,7 @@ def apply_runtime_flags(config: dict[str, Any], flags: RuntimeFlags) -> dict[str
     # Environment override keeps Cockpit aligned with existing stack.
     cfg.setdefault("llm", {})
     cfg["llm"]["ollama_url"] = os.getenv("OLLAMA_URL", cfg["llm"].get("ollama_url", "http://localhost:11434"))
+    cfg["llm"]["llamacpp_url"] = os.getenv("LLAMACPP_URL", cfg["llm"].get("llamacpp_url", "http://localhost:8001"))
     cfg["llm"]["model"] = os.getenv("EXTRACT_MODEL", cfg["llm"].get("model", "llama3.1:8b"))
     cfg.setdefault("db", {})
     cfg["db"]["database_url"] = os.getenv("DATABASE_URL", "sqlite:///./data/fe_local.db")

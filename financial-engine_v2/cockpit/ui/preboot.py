@@ -11,7 +11,7 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
-from textual.widgets import Button, Checkbox, Label, RichLog, Select, Static
+from textual.widgets import Button, Checkbox, Input, Label, RichLog, Select, Static
 
 
 # ---------------------------------------------------------------------------
@@ -104,6 +104,17 @@ PROFILE_FLAGS: dict[str, dict[str, Any]] = {
 }
 
 
+LLM_PROVIDERS: list[tuple[str, str]] = [
+    ("Ollama  (localhost:11434)", "ollama"),
+    ("llama.cpp  (localhost:8001)", "llamacpp"),
+]
+
+_DEFAULT_MODEL: dict[str, str] = {
+    "ollama": "llama3:latest",
+    "llamacpp": "",
+}
+
+
 def _resolve_initial_option_state(initial_flags: dict[str, Any] | None) -> dict[str, Any]:
     raw = dict(initial_flags or {})
     valid_profiles = {value for _, value in LAUNCH_PROFILES}
@@ -111,12 +122,18 @@ def _resolve_initial_option_state(initial_flags: dict[str, Any] | None) -> dict[
     if profile not in valid_profiles:
         profile = LAUNCH_PROFILES[0][1]
     defaults = PROFILE_FLAGS.get(profile, {})
+    valid_providers = {value for _, value in LLM_PROVIDERS}
+    llm_provider = raw.get("llm_provider", "ollama")
+    if llm_provider not in valid_providers:
+        llm_provider = "ollama"
     return {
         "profile": profile,
         "read_only": bool(raw["read_only"]) if "read_only" in raw else bool(defaults.get("read_only", False)),
         "no_web": bool(raw["no_web"]) if "no_web" in raw else bool(defaults.get("no_web", False)),
         "verbose": bool(raw["verbose"]) if "verbose" in raw else bool(defaults.get("verbose", False)),
         "enable_rag": bool(raw["enable_rag"]) if "enable_rag" in raw else True,
+        "llm_provider": llm_provider,
+        "llm_model": raw.get("llm_model", _DEFAULT_MODEL.get(llm_provider, "llama3:latest")),
     }
 
 
@@ -175,6 +192,21 @@ class PreBootScreen(Screen):
     #btn-spacer { width: 1fr; }
     #btn-cancel { margin-right: 1; width: auto; }
     #btn-launch { width: auto; }
+    #llm-section {
+        border: round $panel;
+        padding: 0 1;
+        height: auto;
+        margin-bottom: 1;
+        width: 1fr;
+    }
+    #llm-label { text-style: bold; }
+    #provider-row { height: 3; margin-top: 1; width: 1fr; }
+    #provider-label { width: 10; padding-top: 1; }
+    #opt-provider { width: 1fr; }
+    #provider-status { width: 22; padding-top: 1; color: $text-muted; text-align: right; }
+    #model-row { height: 3; margin-top: 1; width: 1fr; }
+    #model-label { width: 10; padding-top: 1; }
+    #opt-model { width: 1fr; }
     """
 
     DEFAULT_CSS = _SHARED_CSS
@@ -213,6 +245,15 @@ class PreBootScreen(Screen):
                 with Horizontal(id="profile-row"):
                     yield Label("Profile:", id="profile-label")
                     yield Select(LAUNCH_PROFILES, value=self._initial.get("profile", LAUNCH_PROFILES[0][1]), id="opt-profile")
+            with Vertical(id="llm-section"):
+                yield Label("LLM Backend", id="llm-label")
+                with Horizontal(id="provider-row"):
+                    yield Label("Provider:", id="provider-label")
+                    yield Select(LLM_PROVIDERS, value=self._initial.get("llm_provider", "ollama"), id="opt-provider")
+                    yield Static("", id="provider-status")
+                with Horizontal(id="model-row"):
+                    yield Label("Model:", id="model-label")
+                    yield Input(placeholder="e.g. llama3:latest", id="opt-model")
             with Horizontal(id="btn-row"):
                 yield Static("", id="btn-spacer")
                 yield Button("Cancel", id="btn-cancel", variant="warning")
@@ -223,6 +264,7 @@ class PreBootScreen(Screen):
         self.query_one("#opt-web", Checkbox).value = not self._initial["no_web"]
         self.query_one("#opt-rag", Checkbox).value = self._initial["enable_rag"]
         self.query_one("#opt-verbose", Checkbox).value = self._initial["verbose"]
+        self.query_one("#opt-model", Input).value = self._initial.get("llm_model", "llama3:latest")
         log = self.query_one("#health-log", RichLog)
         for svc in self._checks:
             log.write(f"  {_STATUS_ICON['checking']}  {svc.name}")
@@ -243,19 +285,41 @@ class PreBootScreen(Screen):
         log.clear()
         for svc in self._checks:
             log.write(f"  {_STATUS_ICON[svc.status]}  {svc.name:<16} {svc.detail}")
+        self._update_provider_status()
+
+    def _update_provider_status(self) -> None:
+        """Refresh the inline backend status badge next to the provider selector."""
+        svc_map = {s.name: s for s in self._checks}
+        ollama = svc_map.get("Ollama")
+        llamacpp = svc_map.get("llama.cpp")
+        parts = []
+        if ollama:
+            icon = "[OK]" if ollama.status == "ok" else "[!!]"
+            parts.append(f"Ollama {icon}")
+        if llamacpp:
+            icon = "[OK]" if llamacpp.status == "ok" else "[!!]"
+            parts.append(f"llama.cpp {icon}")
+        self.query_one("#provider-status", Static).update("  ".join(parts))
 
     def on_select_changed(self, event: Select.Changed) -> None:
-        if not self._profile_select_active or event.select.id != "opt-profile":
+        if not self._profile_select_active:
             return
-        flags = PROFILE_FLAGS.get(str(event.value or ""), {})
-        if "read_only" in flags:
-            self.query_one("#opt-readonly", Checkbox).value = flags["read_only"]
-        if "no_web" in flags:
-            self.query_one("#opt-web", Checkbox).value = not flags["no_web"]
-        if "enable_rag" in flags:
-            self.query_one("#opt-rag", Checkbox).value = flags["enable_rag"]
-        if "verbose" in flags:
-            self.query_one("#opt-verbose", Checkbox).value = flags["verbose"]
+        if event.select.id == "opt-profile":
+            flags = PROFILE_FLAGS.get(str(event.value or ""), {})
+            if "read_only" in flags:
+                self.query_one("#opt-readonly", Checkbox).value = flags["read_only"]
+            if "no_web" in flags:
+                self.query_one("#opt-web", Checkbox).value = not flags["no_web"]
+            if "enable_rag" in flags:
+                self.query_one("#opt-rag", Checkbox).value = flags["enable_rag"]
+            if "verbose" in flags:
+                self.query_one("#opt-verbose", Checkbox).value = flags["verbose"]
+        elif event.select.id == "opt-provider":
+            provider = str(event.value or "ollama")
+            model_input = self.query_one("#opt-model", Input)
+            # Pre-fill a sensible default when model field is blank.
+            if not model_input.value.strip():
+                model_input.value = _DEFAULT_MODEL.get(provider, "llama3:latest")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-launch":
@@ -269,12 +333,24 @@ class PreBootScreen(Screen):
         rag_enabled = self.query_one("#opt-rag", Checkbox).value
         verbose = self.query_one("#opt-verbose", Checkbox).value
         profile = str(self.query_one("#opt-profile", Select).value or LAUNCH_PROFILES[0][1])
+        llm_provider = str(self.query_one("#opt-provider", Select).value or "ollama")
+        llm_model = self.query_one("#opt-model", Input).value.strip() or "llama3:latest"
         env = dict(PROFILE_FLAGS.get(profile, {}).get("env", {}))
         if verbose:
             env.setdefault("COCKPIT_LOG_LEVEL", "DEBUG")
             env.setdefault("COCKPIT_VERBOSE_LOGGING", "1")
             env.setdefault("COCKPIT_LOG_TO_STDERR", "1")
-        return {"read_only": read_only, "no_web": not web_enabled, "enable_rag": rag_enabled, "verbose": verbose, "profile": profile, "env": env, "cancelled": False}
+        return {
+            "read_only": read_only,
+            "no_web": not web_enabled,
+            "enable_rag": rag_enabled,
+            "verbose": verbose,
+            "profile": profile,
+            "llm_provider": llm_provider,
+            "llm_model": llm_model,
+            "env": env,
+            "cancelled": False,
+        }
 
     def action_launch(self) -> None:
         flags = self._collect_flags()

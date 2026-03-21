@@ -91,6 +91,14 @@ class CockpitWebApp(CockpitApp):
             ),
         )
 
+        # Apply LLM backend choice from the pre-boot screen.
+        llm_provider = flags.get("llm_provider", "ollama")
+        llm_model = flags.get("llm_model", "")
+        cfg.setdefault("llm", {})
+        cfg["llm"]["provider"] = llm_provider
+        if llm_model:
+            cfg["llm"]["model"] = llm_model
+
         # Apply RAG/embedding toggle from the pre-boot checkbox.
         # The checkbox is the authoritative control; it overrides any YAML value.
         rag_enabled = bool(flags.get("enable_rag", False))

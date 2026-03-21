@@ -5,6 +5,7 @@ import json
 import re
 import shutil
 import subprocess
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -23,6 +24,7 @@ from cockpit.core.verification import run_verification
 from cockpit.integrations.backend_api import BackendApiClient
 from cockpit.integrations.db_reader import DbReader
 from cockpit.integrations.file_indexer import FileIndexer
+from cockpit.integrations.llamacpp_client import LlamaCppClient
 from cockpit.integrations.ollama_client import OllamaClient
 from cockpit.integrations.qual_context_bootstrap import build_qual_context_reader, context_enabled
 from cockpit.integrations.web_fetcher import WebFetcher
@@ -86,6 +88,17 @@ class CockpitApp(App):
         height: 1fr;
         min-height: 8;
     }
+    #chat-live-response {
+        display: none;
+        margin: 0 0 1 0;
+        padding: 0 1;
+        border: round $accent;
+        max-height: 12;
+        overflow-y: auto;
+    }
+    #chat-live-response.-visible {
+        display: block;
+    }
     """
     BINDINGS = [
         Binding("c", "show_chat", "Chat"),
@@ -121,7 +134,13 @@ class CockpitApp(App):
         self.db_reader = DbReader(db_url)
         self.file_indexer = FileIndexer(config["paths"]["allow_roots"])
         self.web_fetcher = WebFetcher()
-        self.ollama_client = OllamaClient(config["llm"]["ollama_url"], config["llm"]["model"])
+        llm_cfg = config.get("llm", {})
+        llm_provider = llm_cfg.get("provider", "ollama")
+        llm_model = llm_cfg.get("model", "llama3:latest")
+        if llm_provider == "llamacpp":
+            self.ollama_client = LlamaCppClient(llm_cfg.get("llamacpp_url", "http://localhost:8001"), llm_model)
+        else:
+            self.ollama_client = OllamaClient(llm_cfg.get("ollama_url", "http://localhost:11434"), llm_model)
         self.action_registry = ActionRegistry(repo_root=repo_root, confirm_required=config["actions"].get("confirm_required", True))
         self.job_runner = JobRunner(repo_root=repo_root, logs_dir=self.artifacts.logs_dir)
 
@@ -191,6 +210,7 @@ class CockpitApp(App):
         self.active_job_id: str | None = None
         self.active_log_target: str = "chat-log"
         self._model_status_timer = None
+        self._chat_tasks: set[asyncio.Task[None]] = set()
 
     def _normalize_database_url(self, database_url: str) -> str:
         value = (database_url or "").strip()
@@ -226,6 +246,9 @@ class CockpitApp(App):
         if self._model_status_timer is not None:
             self._model_status_timer.stop()
             self._model_status_timer = None
+        for task in list(self._chat_tasks):
+            task.cancel()
+        self._chat_tasks.clear()
 
     def _finish_mount(self) -> None:
         """Install screens and surface startup info. Called by on_mount (normal flow)
@@ -410,9 +433,47 @@ class CockpitApp(App):
     def _screen_log(self, screen_name: str, text: str) -> None:
         try:
             screen = self.get_screen(screen_name)
-            screen.query_one("#chat-log", RichLog).write(text)
+            self._append_log(screen.query_one("#chat-log", RichLog), text)
         except Exception:
             pass
+
+    @staticmethod
+    def _append_log(widget: RichLog, text: str) -> None:
+        widget.write(text, scroll_end=True)
+        try:
+            widget.scroll_end(animate=False)
+        except Exception:
+            pass
+
+    def _set_chat_live_response(self, text: str) -> None:
+        try:
+            screen = self.get_screen("chat")
+            widget = screen.query_one("#chat-live-response", Static)
+        except Exception:
+            return
+
+        cleaned = text.rstrip()
+        if cleaned:
+            widget.update(f"{self.ASSISTANT_NAME}: {cleaned}")
+            widget.add_class("-visible")
+        else:
+            widget.update("")
+            widget.remove_class("-visible")
+
+    def launch_chat_message(self, message: str) -> None:
+        task = asyncio.create_task(self.handle_chat_message(message))
+        self._chat_tasks.add(task)
+
+        def _on_done(done_task: asyncio.Task[None]) -> None:
+            self._chat_tasks.discard(done_task)
+            try:
+                done_task.result()
+            except asyncio.CancelledError:
+                return
+            except Exception as exc:
+                self._write_log("chat-log", f"assistant: chat task error: {exc}")
+
+        task.add_done_callback(_on_done)
 
     def write_report_json(self, rel_path: str, payload: dict[str, Any]) -> str:
         return self.artifacts.write_json(rel_path, payload)
@@ -429,23 +490,24 @@ class CockpitApp(App):
             and not message.startswith("/run ")
             and not message.startswith("/read ")
         ):
-            log.write(f"{self.ASSISTANT_NAME}: still thinking about the previous message.")
+            self._append_log(log, f"{self.ASSISTANT_NAME}: still thinking about the previous message.")
             return
 
         created = datetime.now(timezone.utc).isoformat()
         self.state_store.add_chat_message(self.thread_id, "user", message, created)
-        log.write(f"user: {message}")
+        self._append_log(log, f"user: {message}")
+        self._set_chat_live_response("")
 
         if message.strip() == "/cancel":
             self.pending_action = None
             pending.update("No pending action")
-            log.write("assistant: Pending action canceled.")
+            self._append_log(log, "assistant: Pending action canceled.")
             self.state_store.add_chat_message(self.thread_id, "assistant", "Pending action canceled.", datetime.now(timezone.utc).isoformat())
             return
 
         if message.strip() == "/confirm":
             if not self.pending_action:
-                log.write("assistant: No pending action.")
+                self._append_log(log, "assistant: No pending action.")
                 return
             action = self.pending_action
             self.pending_action = None
@@ -473,7 +535,7 @@ class CockpitApp(App):
             result = self.file_indexer.read_file(raw, max_chars=max_chars)
             if not result.get("ok"):
                 text = f"assistant: /read failed: {result.get('error')}"
-                log.write(text)
+                self._append_log(log, text)
                 self.state_store.add_chat_message(self.thread_id, "assistant", text, datetime.now(timezone.utc).isoformat())
                 return
 
@@ -483,7 +545,7 @@ class CockpitApp(App):
                 f"{', truncated' if result['truncated'] else ''}).\n"
                 f"{result['content']}"
             )
-            log.write(snippet[:max_chars])
+            self._append_log(log, snippet[:max_chars])
             self.state_store.add_chat_message(
                 self.thread_id,
                 "assistant",
@@ -493,6 +555,7 @@ class CockpitApp(App):
             return
 
         spinner_frames = ["|", "/", "-", "\\"]
+        stream_state = {"text": "", "last_flush": 0.0}
 
         async def _spinner() -> None:
             idx = 0
@@ -501,21 +564,51 @@ class CockpitApp(App):
                 idx += 1
                 await asyncio.sleep(0.12)
 
+        def _on_chunk(chunk: str) -> None:
+            if not chunk:
+                return
+            stream_state["text"] += chunk
+            now = time.monotonic()
+            if now - float(stream_state["last_flush"]) < 0.03 and "\n" not in chunk:
+                return
+            stream_state["last_flush"] = now
+            try:
+                self.call_from_thread(self._set_chat_live_response, stream_state["text"])
+            except Exception:
+                pass
+
         try:
             self.chat_inflight = True
             status.update(f"{self.ASSISTANT_NAME} (thinking) |")
             spinner_task = asyncio.create_task(_spinner())
-            response = await asyncio.to_thread(
-                self.chat_controller.build_chat_response,
-                message,
-                self.config["web"].get("enabled_default", False),
-                self.last_detected_ticker,
-            )
+            def _build_response():
+                try:
+                    return self.chat_controller.build_chat_response(
+                        message,
+                        self.config["web"].get("enabled_default", False),
+                        self.last_detected_ticker,
+                        on_chunk=_on_chunk,
+                    )
+                except TypeError as exc:
+                    if "on_chunk" not in str(exc):
+                        raise
+                    return self.chat_controller.build_chat_response(
+                        message,
+                        self.config["web"].get("enabled_default", False),
+                        self.last_detected_ticker,
+                    )
+
+            response = await asyncio.to_thread(_build_response)
         except Exception as exc:
             self.chat_inflight = False
             status.update("")
+            partial = stream_state["text"].strip()
+            if partial:
+                self._append_log(log, f"assistant: {partial}")
+                self.state_store.add_chat_message(self.thread_id, "assistant", partial, datetime.now(timezone.utc).isoformat())
+            self._set_chat_live_response("")
             err = f"assistant: chat error: {exc}"
-            log.write(err)
+            self._append_log(log, err)
             self.state_store.add_chat_message(self.thread_id, "assistant", err, datetime.now(timezone.utc).isoformat())
             return
         finally:
@@ -529,6 +622,9 @@ class CockpitApp(App):
                     pass
             status.update("")
 
+        assistant_text = (response.text or stream_state["text"]).strip()
+        self._set_chat_live_response("")
+
         try:
             local_details = (response.evidence or [{}])[0].get("details", {})
             ticker = local_details.get("ticker")
@@ -537,8 +633,8 @@ class CockpitApp(App):
         except Exception:
             pass
 
-        log.write(f"assistant: {response.text}")
-        self.state_store.add_chat_message(self.thread_id, "assistant", response.text, datetime.now(timezone.utc).isoformat())
+        self._append_log(log, f"assistant: {assistant_text}")
+        self.state_store.add_chat_message(self.thread_id, "assistant", assistant_text, datetime.now(timezone.utc).isoformat())
 
         if response.action_preview:
             self.pending_action = {
@@ -554,13 +650,13 @@ class CockpitApp(App):
 
         export_payload = {
             "question": message,
-            "answer": response.text,
+            "answer": assistant_text,
             "evidence": response.evidence,
             "actions_taken": [response.action_preview] if response.action_preview else [],
             "sources": ["local_context"],
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
-        md_path, json_path = self.artifacts.write_analysis(self.thread_id, message, response.text, export_payload)
+        md_path, json_path = self.artifacts.write_analysis(self.thread_id, message, assistant_text, export_payload)
         self.state_store.add_export(self.thread_id, message, md_path, json_path, datetime.now(timezone.utc).isoformat())
 
     async def execute_action(
@@ -740,7 +836,7 @@ class CockpitApp(App):
         try:
             screen = self.screen
             widget = screen.query_one(f"#{log_target}", RichLog)
-            widget.write(text)
+            self._append_log(widget, text)
             return
         except Exception:
             pass
@@ -750,7 +846,7 @@ class CockpitApp(App):
             try:
                 screen = self.get_screen(name)
                 widget = screen.query_one(f"#{log_target}", RichLog)
-                widget.write(text)
+                self._append_log(widget, text)
                 return
             except Exception:
                 continue
