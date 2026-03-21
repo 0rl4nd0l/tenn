@@ -393,6 +393,15 @@ class CockpitApp(App):
         return health, self._collect_system_metrics()
 
     async def _refresh_model_status_widget(self) -> None:
+        # Entire body is guarded: this runs in an asyncio.create_task which bypasses
+        # Textual's run_worker error isolation. An unhandled exception here would
+        # propagate through Textual's global exception handler and terminate the session.
+        try:
+            await self._refresh_model_status_widget_inner()
+        except Exception:
+            pass
+
+    async def _refresh_model_status_widget_inner(self) -> None:
         llm_cfg = self.config.get("llm", {})
         provider = str(llm_cfg.get("provider") or "ollama")
         model = str(llm_cfg.get("model") or getattr(self.ollama_client, "model", "") or "unknown")

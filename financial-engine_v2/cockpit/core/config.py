@@ -15,7 +15,7 @@ DEFAULT_CONFIG = {
         "llamacpp_url": "http://localhost:8001",
         "llamacpp_api_key": "local-openai-key",
         "model": "qwen2.5-coder-14b",
-        "timeout_seconds": 300,
+        "timeout_seconds": 120,
     },
     "paths": {
         "allow_roots": [str(Path.home())],
