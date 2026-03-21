@@ -153,7 +153,10 @@ class CockpitApp(App):
         self._startup_warnings: list[str] = []
 
         if backend_api_url:
-            self._backend_client = BackendApiClient(backend_api_url)
+            self._backend_client = BackendApiClient(
+                backend_api_url,
+                api_key=str(backend_cfg.get("api_key") or "").strip(),
+            )
 
         rag_cfg = config.get("rag") or {}
         qual_company = None

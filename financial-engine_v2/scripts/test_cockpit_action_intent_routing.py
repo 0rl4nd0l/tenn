@@ -77,6 +77,11 @@ class CockpitLoadNewsQdrantActionTests(unittest.TestCase):
         command = self.registry.build_command("load_news_to_qdrant", {})
         self.assertTrue(any("load_news_to_qdrant.py" in part for part in command))
 
+    def test_load_news_to_qdrant_since_hours_defaults_to_zero(self):
+        command = self.registry.build_command("load_news_to_qdrant", {})
+        idx = command.index("--since-hours")
+        self.assertEqual(command[idx + 1], "0", "since_hours must default to 0 (sync all) for load_news_to_qdrant")
+
 
 if __name__ == "__main__":
     unittest.main()

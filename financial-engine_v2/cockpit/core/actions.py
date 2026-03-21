@@ -1026,6 +1026,8 @@ class ActionRegistry:
         out.setdefault("collection", "news_chunks")
         out.setdefault("batch_size", 64)
         out.setdefault("providers", "eodhd,gdelt")
+        if spec.id == "load_news_to_qdrant":
+            out.setdefault("since_hours", 0)
         out.setdefault("since_hours", 36)
         out.setdefault("news_runs_root", str(self.repo_root.parent / "reports" / "qual_context" / "news_runs"))
         out.setdefault("provider", "gdelt")

@@ -6,8 +6,9 @@ import httpx
 
 
 class BackendApiClient:
-    def __init__(self, base_url: str) -> None:
+    def __init__(self, base_url: str, *, api_key: str = "") -> None:
         self.base_url = self._normalize_base_url(base_url)
+        self.api_key = str(api_key or "").strip()
 
     def health(self, timeout: float = 5.0) -> dict[str, Any]:
         url = f"{self.base_url}/api/health"
@@ -80,8 +81,11 @@ class BackendApiClient:
             params["date_from"] = date_from
         if date_to is not None:
             params["date_to"] = date_to
+        headers: dict[str, str] = {}
+        if self.api_key:
+            headers["X-API-Key"] = self.api_key
         with httpx.Client(timeout=timeout, follow_redirects=True) as client:
-            response = client.get(url, params=params)
+            response = client.get(url, params=params, headers=headers)
             response.raise_for_status()
             return response.json() if response.content else {"results": []}
 
