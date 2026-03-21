@@ -458,6 +458,49 @@ class ToolRouter:
             max_history_rows=max_history_rows,
         )
 
+    def build_candlestick_ohlc_lines(
+        self,
+        ticker: str,
+        *,
+        range_: str = "1y",
+        interval: str = "1d",
+        max_history_rows: int = 260,
+    ) -> list[dict]:
+        """Extract OHLCV rows for candlestick chart.
+
+        Returns list of dicts with keys: timestamp, open, high, low, close, volume.
+        Returns empty list if no price data available.
+        """
+        try:
+            bundle = self.get_price_context_for_window(
+                ticker,
+                range_=range_,
+                interval=interval,
+                max_history_rows=max_history_rows,
+            )
+            price = bundle.get("price") if isinstance(bundle, dict) else {}
+            price = price if isinstance(price, dict) else {}
+            history = price.get("recent_history")
+            if not isinstance(history, list) or not history:
+                return []
+            rows: list[dict] = []
+            for row in history:
+                if not isinstance(row, dict):
+                    continue
+                rows.append(
+                    {
+                        "timestamp": row.get("timestamp"),
+                        "open": row.get("open"),
+                        "high": row.get("high"),
+                        "low": row.get("low"),
+                        "close": row.get("close"),
+                        "volume": row.get("volume"),
+                    }
+                )
+            return rows
+        except Exception:
+            return []
+
     def get_price_state(self, ticker: str, *, deep_mode: bool = False) -> dict[str, Any]:
         bundle = self._load_price_context(ticker=ticker, deep_mode=deep_mode)
         state = bundle.get("price_state")
@@ -771,6 +814,16 @@ class ToolRouter:
         logger.info("news_context: no backend or reader configured")
         return {"ok": False, "hits": [], "_source": "sqlite_fallback", "error": "no news source configured"}
 
+    _FILE_SEARCH_KEYWORDS = (
+        "report", "file", "document", "log", "output", "export", "read",
+        "list", "show", "find", "search", "recent", "latest", "what's in",
+    )
+
+    @classmethod
+    def _query_wants_file_search(cls, query: str) -> bool:
+        lower = query.lower()
+        return any(kw in lower for kw in cls._FILE_SEARCH_KEYWORDS)
+
     def gather_local_context(self, ticker: str | None, query: str, deep_mode: bool = False) -> ToolResult:
         reports_limit = 25 if deep_mode else 10
         matches_limit = 80 if deep_mode else 20
@@ -787,9 +840,10 @@ class ToolRouter:
         payload: dict[str, Any] = {
             "query": query,
             "ticker": ticker,
-            "reports": self.file_indexer.list_recent_reports(limit=reports_limit),
-            "matches": self.file_indexer.search_text(pattern=query, limit=matches_limit),
         }
+        if deep_mode or self._query_wants_file_search(query):
+            payload["reports"] = self.file_indexer.list_recent_reports(limit=reports_limit)
+            payload["matches"] = self.file_indexer.search_text(pattern=query, limit=matches_limit)
         if ticker:
             ticker_payload = self._load_ticker_context(
                 ticker,

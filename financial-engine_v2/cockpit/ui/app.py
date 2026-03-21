@@ -18,7 +18,7 @@ from textual.widgets import Footer, Header, RichLog, Static
 from cockpit.core.actions import ActionRegistry
 from cockpit.core.chat import ChatController
 from cockpit.core.job_runner import JobRunner
-from cockpit.core.plotly_html import build_candlestick_dashboard_html, build_price_dashboard_html, build_snapshot_dashboard_html
+from cockpit.core.plotly_html import build_candlestick_dashboard_html, build_snapshot_dashboard_html
 from cockpit.core.snapshot import build_snapshot_payload
 from cockpit.core.types import JobRun
 from cockpit.core.verification import run_verification
@@ -207,6 +207,7 @@ class CockpitApp(App):
         self.pending_action: dict[str, Any] | None = None
         self.last_verification_payload: dict[str, Any] | None = None
         self.last_snapshot_payload: dict[str, Any] | None = None
+        self.last_chart_path: str | None = None
         self.last_detected_ticker: str | None = None
         self.last_response_mode: str | None = None
         self.chat_inflight = False
@@ -280,10 +281,17 @@ class CockpitApp(App):
         for warning in self._startup_warnings:
             self._screen_log("chat", f"startup warning: {warning}")
 
-        # Report backend connectivity if client is configured.
+        # Health checks are blocking HTTP — run off the event loop.
+        asyncio.create_task(self._run_startup_health_checks())
+
+        self._schedule_model_status_refresh()
+        self._model_status_timer = self.set_interval(15.0, self._schedule_model_status_refresh)
+
+    async def _run_startup_health_checks(self) -> None:
+        """Offload blocking health checks so the event loop stays responsive at startup."""
         if self._backend_client is not None:
             try:
-                health = self._backend_client.health(timeout=4.0)
+                health = await asyncio.to_thread(self._backend_client.health, 4.0)
                 if health.get("ok"):
                     self._screen_log("chat", f"startup: backend API reachable at {self._backend_client.base_url}")
                 else:
@@ -291,9 +299,8 @@ class CockpitApp(App):
             except Exception as exc:
                 self._screen_log("chat", f"startup: backend health check failed: {exc}")
 
-        # Early connectivity signal for the most common runtime failure path.
         try:
-            health = self.ollama_client.health(timeout=4.0)
+            health = await asyncio.to_thread(self.ollama_client.health, 4.0)
             if health.get("ok"):
                 model = str(self.config.get("llm", {}).get("model", ""))
                 names = health.get("models") if isinstance(health.get("models"), list) else []
@@ -311,9 +318,6 @@ class CockpitApp(App):
                 )
         except Exception as exc:
             self._screen_log("chat", f"startup: llama.cpp health check failed: {exc}")
-
-        self._schedule_model_status_refresh()
-        self._model_status_timer = self.set_interval(15.0, self._schedule_model_status_refresh)
 
     def timestamp(self) -> str:
         return datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -675,6 +679,38 @@ class CockpitApp(App):
                 f"args={response.action_preview['args']} "
                 "(/confirm or /cancel)"
             )
+
+            # Candlestick chart — generate HTML dashboard immediately.
+            if response.action_preview.get("action_id") == "show_candlestick":
+                try:
+                    chart_args = response.action_preview.get("args") or {}
+                    chart_ticker = str(chart_args.get("ticker") or self.last_detected_ticker or "UNKNOWN")
+                    bundle = self.tool_router.get_price_context_for_window(
+                        chart_ticker,
+                        range_="1y",
+                        interval=str(chart_args.get("timeframe") or "1d"),
+                        max_history_rows=260,
+                    )
+                    price = bundle.get("price") if isinstance(bundle, dict) else {}
+                    price = price if isinstance(price, dict) else {}
+                    dashboard_payload = {
+                        "ticker": chart_ticker,
+                        "window": "1y",
+                        "price_state": bundle.get("price_state", {}),
+                        "recent_history": price.get("recent_history", []),
+                        "generated_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                    html = build_candlestick_dashboard_html(dashboard_payload)
+                    ts = self.timestamp()
+                    chart_path = self.write_report_html(
+                        f"reports/cockpit/{chart_ticker}_{ts}_candlestick_dashboard.html",
+                        html,
+                    )
+                    self.last_chart_path = chart_path
+                    self._append_log(log, f"assistant: Chart dashboard written: {chart_path}")
+                    self.pending_action = None  # chart already generated; no subprocess needed
+                except Exception as exc:
+                    self._append_log(log, f"assistant: chart generation error: {exc}")
 
         export_payload = {
             "question": message,

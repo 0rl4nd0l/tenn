@@ -591,6 +591,26 @@ class ActionRegistry:
                 expected_outputs=["reports/rebuild_ticker_financials_from_docs_*.json"],
                 timeout_seconds=10800,
             ),
+            "show_candlestick": ActionSpec(
+                id="show_candlestick",
+                label="Generate candlestick / price chart",
+                command_template=[
+                    py,
+                    "scripts/noop_chart.py",
+                    "--ticker",
+                    "{ticker}",
+                ],
+                arg_schema={
+                    "ticker": str,
+                    "mode_flag": str,
+                    "mode_value": str,
+                    "timeframe": str,
+                },
+                is_mutating=False,
+                requires_confirmation=False,
+                expected_outputs=["reports/cockpit/*candle*.html"],
+                timeout_seconds=60,
+            ),
         }
 
     def list_actions(self) -> list[ActionSpec]:

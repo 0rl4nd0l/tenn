@@ -95,6 +95,8 @@ class ChatController:
         "ANALYSE",
         "ANALYZE",
         "ABOUT",
+        "CANDLE",
+        "CHART",
         "CHECK",
         "FOR",
         "FROM",
@@ -116,6 +118,8 @@ class ChatController:
         "ONE",
         "SHOW",
         "PLEASE",
+        "PLOT",
+        "PRICE",
         "RECENT",
         "SUMMARISE",
         "SUMMARIZE",
@@ -171,8 +175,9 @@ class ChatController:
         return prior_ticker
 
     # Chart intent keywords — checked before general action detection.
+    # NOTE: "price history" is a price-query pattern, not a chart request.
     _CHART_KEYWORDS = re.compile(
-        r"\b(?:candlestick|candle|chart|price\s+history|plot)\b"
+        r"\b(?:candlestick|candle|chart|plot)\b"
         r"|show\s+\S+\s*chart",
         re.IGNORECASE,
     )
@@ -186,6 +191,151 @@ class ChatController:
         for action_id, words in ACTION_KEYWORDS.items():
             if any(w in text for w in words):
                 return action_id
+        return None
+
+    # --- Price history patterns ---
+    _ON_DATE_RE = re.compile(
+        r"(?:price|was|close|closing)\b.*?\b(\d{4}-\d{2}-\d{2})",
+        re.IGNORECASE,
+    )
+    _RANGE_RE = re.compile(
+        r"between\s+(\d{4}-\d{2}-\d{2})\s+and\s+(\d{4}-\d{2}-\d{2})",
+        re.IGNORECASE,
+    )
+    _FULL_HISTORY_RE = re.compile(
+        r"\bprice\s+history\b",
+        re.IGNORECASE,
+    )
+
+    def _try_price_history_shortcircuit(self, message: str, ticker: str | None) -> ChatResponse | None:
+        """Detect price-on-date, range, or full-history queries and short-circuit."""
+        if ticker is None:
+            return None
+
+        # Fetch price context (10y window gives us maximum coverage for queries).
+        try:
+            bundle = self.tool_router.get_price_context_for_window(
+                ticker, range_="10y", interval="1d", max_history_rows=3000,
+            )
+        except Exception:
+            return None
+
+        price = bundle.get("price") if isinstance(bundle, dict) else {}
+        price = price if isinstance(price, dict) else {}
+        symbol = str(price.get("symbol") or f"{ticker}.AX")
+        history = price.get("recent_history") if isinstance(price, dict) else None
+        if history is None:
+            history = price.get("history") if isinstance(price, dict) else []
+        if not isinstance(history, list):
+            history = []
+
+        # Build sorted (date_str, close) pairs.
+        dated_closes: list[tuple[str, float]] = []
+        for row in history:
+            if not isinstance(row, dict):
+                continue
+            ts = str(row.get("timestamp") or "")
+            close = row.get("close")
+            if not ts or close is None:
+                continue
+            date_str = ts[:10]
+            try:
+                dated_closes.append((date_str, float(close)))
+            except (ValueError, TypeError):
+                continue
+        dated_closes.sort(key=lambda item: item[0])
+
+        if not dated_closes:
+            return None
+
+        # --- Range query: "between DATE and DATE" ---
+        range_match = self._RANGE_RE.search(message)
+        if range_match:
+            start_date = range_match.group(1)
+            end_date = range_match.group(2)
+            in_range = [(d, c) for d, c in dated_closes if start_date <= d <= end_date]
+            if not in_range:
+                text = f"No price history for {symbol} between {start_date} and {end_date}."
+                return ChatResponse(
+                    text=text,
+                    evidence=[{"type": "local_context", "details": {"price_history_query": {"kind": "range", "ticker": ticker, "start": start_date, "end": end_date}}}],
+                    mode=ResponseMode.FAST,
+                )
+            first_close = in_range[0][1]
+            last_close = in_range[-1][1]
+            period_return = ((last_close / first_close) - 1.0) * 100.0 if first_close != 0 else 0.0
+            high = max(c for _, c in in_range)
+            low = min(c for _, c in in_range)
+            text = (
+                f"Historical range for {symbol}: {start_date} to {end_date}\n"
+                f"Period return (close-to-close): {period_return:+.2f}%\n"
+                f"High: {high:.4f}  Low: {low:.4f}  Points: {len(in_range)}"
+            )
+            return ChatResponse(
+                text=text,
+                evidence=[{"type": "local_context", "details": {"price_history_query": {"kind": "range", "ticker": ticker, "start": start_date, "end": end_date}}}],
+                mode=ResponseMode.FAST,
+            )
+
+        # --- On-date query: "price on DATE" ---
+        on_date_match = self._ON_DATE_RE.search(message)
+        if on_date_match:
+            query_date = on_date_match.group(1)
+            # Find exact or nearest preceding date.
+            exact = [(d, c) for d, c in dated_closes if d == query_date]
+            if exact:
+                date_str, close_val = exact[0]
+                text = (
+                    f"Historical close for {symbol} on {query_date}: {close_val:.4f}\n"
+                    f"Matched candle date: {date_str} (exact)"
+                )
+                return ChatResponse(
+                    text=text,
+                    evidence=[{"type": "local_context", "details": {"price_history_query": {"kind": "on_date", "ticker": ticker, "date": query_date}}}],
+                    mode=ResponseMode.FAST,
+                )
+            # Try nearest preceding date.
+            preceding = [(d, c) for d, c in dated_closes if d <= query_date]
+            if preceding:
+                date_str, close_val = preceding[-1]
+                text = (
+                    f"Historical close for {symbol} on {query_date}: {close_val:.4f}\n"
+                    f"Matched candle date: {date_str} (nearest)"
+                )
+                return ChatResponse(
+                    text=text,
+                    evidence=[{"type": "local_context", "details": {"price_history_query": {"kind": "on_date", "ticker": ticker, "date": query_date}}}],
+                    mode=ResponseMode.FAST,
+                )
+            text = f"No price history exists on or before {query_date} for {symbol}."
+            return ChatResponse(
+                text=text,
+                evidence=[{"type": "local_context", "details": {"price_history_query": {"kind": "on_date", "ticker": ticker, "date": query_date}}}],
+                mode=ResponseMode.FAST,
+            )
+
+        # --- Full history query: "price history TICKER" ---
+        if self._FULL_HISTORY_RE.search(message):
+            first_date = dated_closes[0][0]
+            last_date = dated_closes[-1][0]
+            n_points = len(dated_closes)
+            first_close = dated_closes[0][1]
+            last_close = dated_closes[-1][1]
+            total_return = ((last_close / first_close) - 1.0) * 100.0 if first_close != 0 else 0.0
+            high = max(c for _, c in dated_closes)
+            low = min(c for _, c in dated_closes)
+            text = (
+                f"Full historical summary for {symbol}\n"
+                f"Coverage: {first_date} to {last_date} ({n_points} points)\n"
+                f"Total return: {total_return:+.2f}%\n"
+                f"High: {high:.4f}  Low: {low:.4f}"
+            )
+            return ChatResponse(
+                text=text,
+                evidence=[{"type": "local_context", "details": {"price_history_query": {"kind": "full_summary", "ticker": ticker}}}],
+                mode=ResponseMode.FAST,
+            )
+
         return None
 
     @staticmethod
@@ -246,9 +396,20 @@ class ChatController:
 
             chart_ticker = ticker or "BHP"
             out_dir = Path("reports") / "candles"
+
+            def _default_parse_kv(raw: str) -> dict:
+                out: dict = {}
+                for tok in str(raw or "").split():
+                    if "=" not in tok:
+                        continue
+                    k, v = tok.split("=", 1)
+                    out[k] = v
+                return out
+
+            _parse_kv = getattr(self.action_registry, "parse_kv_args", _default_parse_kv)
             chart_args, chart_err = prepare_chart_action_args(
-                message if not ticker else chart_ticker,
-                parse_kv_args=self.action_registry.parse_kv_args,
+                chart_ticker,
+                parse_kv_args=_parse_kv,
                 tool_router=self.tool_router,
                 out_dir=out_dir,
             )
@@ -259,7 +420,13 @@ class ChatController:
                     action_preview=None,
                     mode=ResponseMode.ACTION,
                 )
-            assert chart_args is not None
+            if chart_args is None:
+                return ChatResponse(
+                    text=f"/chart failed: no chart args returned for {chart_ticker}",
+                    evidence=[{"type": "chart_error", "details": {"ticker": chart_ticker}}],
+                    action_preview=None,
+                    mode=ResponseMode.ACTION,
+                )
             chart_args["ticker"] = chart_ticker
             preview = self.action_registry.preview("show_candlestick", chart_args)
             return ChatResponse(
@@ -274,6 +441,11 @@ class ChatController:
                 },
                 mode=ResponseMode.ACTION,
             )
+
+        # --- Price history short-circuit ---
+        price_history_result = self._try_price_history_shortcircuit(message, ticker)
+        if price_history_result is not None:
+            return price_history_result
 
         action_id = self.detect_action_intent(message)
         if action_id:
