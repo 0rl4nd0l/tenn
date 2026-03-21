@@ -24,10 +24,9 @@ from app.models.extractions import ExtractionRun
 from app.providers.marketindex_provider import MarketIndexProvider
 from app.services.asx import ASXProvider
 from app.services.embeddings import delete_points_for_document, ensure_collection, log_rejected_payload, upsert_points, validate_payload
-from app.services.extraction import parse_period_end
 from app.services.announcement_importance import classify_documents_and_materialize
 from app.services.llm import embed_texts, generate_json, get_routing_decision
-from app.services.multipass_extraction import run_multipass_extraction, EXTRACTOR_VERSION
+from app.services.multipass_extraction import run_multipass_extraction, EXTRACTOR_VERSION, parse_period_end
 from app.services.structured_chunking import chunk_prose_sections
 from app.services.docling_extract import StructuredDocument
 from app.services.storage import ensure_dir, sha256_file, write_bytes

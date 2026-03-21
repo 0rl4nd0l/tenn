@@ -15,9 +15,22 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass, field
+from datetime import date
 from typing import Any, Optional
 
+from dateutil import parser as dtparser
+
 logger = logging.getLogger(__name__)
+
+
+def parse_period_end(s: str | None) -> date | None:
+    """Parse a period-end date string into a date object. Returns None on failure."""
+    if not s:
+        return None
+    try:
+        return dtparser.parse(s).date()
+    except Exception:
+        return None
 
 EXTRACTOR_VERSION = "docling_multipass_v1"
 

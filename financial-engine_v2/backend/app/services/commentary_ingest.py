@@ -9,7 +9,7 @@ from typing import Any, Callable
 from qdrant_client import QdrantClient
 
 from app.tasks.commentary_tasks import extract_commentary_memo_task
-from app.services.chunking import simple_chunk
+from app.services.structured_chunking import simple_chunk
 from app.services.commentary_memo_extractor import (
     DEFAULT_COMMENTARY_MEMOS_PATH,
     CommentaryMemoExtractor,
