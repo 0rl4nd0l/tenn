@@ -79,11 +79,11 @@ class _HeaderCaptureClient:
     def __exit__(self, exc_type, exc, tb) -> None:
         return None
 
-    def get(self, url, headers=None):  # noqa: ANN001
+    def get(self, url, headers=None, timeout=None):  # noqa: ANN001
         self.capture["get"] = {"url": url, "headers": dict(headers or {})}
         return _HealthResponse({"data": [{"id": "qwen"}]})
 
-    def stream(self, method, url, headers=None, json=None):  # noqa: ANN001
+    def stream(self, method, url, headers=None, json=None, timeout=None):  # noqa: ANN001
         self.capture["stream"] = {
             "method": method,
             "url": url,

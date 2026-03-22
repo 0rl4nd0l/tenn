@@ -81,9 +81,21 @@ def _resolve_runtime_from_metadata(
     provider = str(decision.provider or "").strip().lower()
     if provider not in {"llamacpp", "ollama"}:
         raise ValueError(f"Unknown backend: {decision.provider}")
+    # generate_json always uses the llamacpp wire protocol (OpenAI-compatible JSON
+    # extraction).  When the router selected "ollama", forwarding decision.base_url
+    # (e.g. http://localhost:11434) as the first candidate would beat the
+    # LLM_URL env var in resolve_llm_runtime_config and misdirect the call.
+    # Only use decision hints when the provider is already llamacpp.
+    use_decision_hints = provider == "llamacpp"
     return resolve_llm_runtime_config(
-        base_url=payload.get("requested_base_url") or payload.get("llm_url") or decision.base_url,
-        model=payload.get("requested_model") or payload.get("llm_model") or decision.model_name,
+        base_url=(
+            payload.get("requested_base_url") or payload.get("llm_url")
+            or (decision.base_url if use_decision_hints else None)
+        ),
+        model=(
+            payload.get("requested_model") or payload.get("llm_model")
+            or (decision.model_name if use_decision_hints else None)
+        ),
     )
 
 

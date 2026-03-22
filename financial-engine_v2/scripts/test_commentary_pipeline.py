@@ -276,6 +276,8 @@ class StubHybridRetriever:
         *,
         query: str,
         framework_families: list[str] | None,
+        ticker: str | None = None,
+        financial_intents: list[str] | None = None,
         top_k_vector: int = 20,
         top_k_keyword: int = 20,
     ) -> dict:
@@ -537,6 +539,11 @@ def test_generate_json_uses_llamacpp_even_when_router_selects_ollama(monkeypatch
     )
     monkeypatch.setenv("LLM_URL", "http://127.0.0.1:8001")
     monkeypatch.setenv("LLM_MODEL", "qwen2.5-coder-14b")
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    monkeypatch.delenv("LLAMACPP_API_KEY", raising=False)
+    monkeypatch.delenv("OLLAMA_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("LLM_AUTH_HEADER", raising=False)
     monkeypatch.setattr(llm_service.router_state, "mark_task_started", lambda queue: None)
     monkeypatch.setattr(llm_service.router_state, "mark_task_finished", lambda queue: None)
     monkeypatch.setattr(llm_service.router_metrics, "record", lambda **kwargs: records.append(dict(kwargs)))
@@ -565,7 +572,7 @@ def test_generate_json_uses_llamacpp_even_when_router_selects_ollama(monkeypatch
                     {"role": "user", "content": "Transcript text about improving demand."},
                 ],
                 "temperature": 0,
-                "max_tokens": 512,
+                "max_tokens": 2048,
                 "response_format": {"type": "json_object"},
             },
             "headers": {},
@@ -758,6 +765,7 @@ def test_embedding_runtime_uses_generation_values_when_embedding_env_missing(mon
 
 def test_embedding_runtime_defaults_to_local_llamacpp_when_env_missing(monkeypatch) -> None:
     from app.services.embeddings import resolve_llamacpp_embedding_config
+    from app.services import llamacpp_runtime
 
     monkeypatch.delenv("LLM_URL", raising=False)
     monkeypatch.delenv("LLAMACPP_URL", raising=False)
@@ -765,6 +773,10 @@ def test_embedding_runtime_defaults_to_local_llamacpp_when_env_missing(monkeypat
     monkeypatch.delenv("LLM_MODEL", raising=False)
     monkeypatch.delenv("LLAMACPP_MODEL", raising=False)
     monkeypatch.delenv("EMBEDDING_MODEL", raising=False)
+    monkeypatch.delenv("EMBED_MODEL", raising=False)
+    # settings.embed_model is loaded from .env at import time; patch it out so
+    # resolve_embedding_runtime_config falls through to DEFAULT_LLM_MODEL.
+    monkeypatch.setattr(llamacpp_runtime.settings, "embed_model", "")
 
     assert resolve_llamacpp_embedding_config() == ("http://127.0.0.1:8001", "qwen2.5-coder-14b")
 
