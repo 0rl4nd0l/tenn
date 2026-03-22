@@ -5,6 +5,16 @@ from typing import Any
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
 
+# Allowlisted diagnostic queries — names map to safe, read-only SQL.
+_DIAGNOSTIC_QUERIES: dict[str, str] = {
+    "tables_sqlite": (
+        "SELECT name AS table_name FROM sqlite_master WHERE type='table' ORDER BY name LIMIT :limit"
+    ),
+    "tables": (
+        "SELECT name AS table_name FROM sqlite_master WHERE type='table' ORDER BY name LIMIT :limit"
+    ),
+}
+
 
 class DbReader:
     def __init__(self, database_url: str) -> None:
@@ -95,6 +105,26 @@ class DbReader:
             """
         )
         return self._run_query(sql, {"limit": limit})
+
+    def run_diagnostic_query(self, name: str, limit: int = 100) -> dict[str, Any]:
+        """Run an allowlisted read-only diagnostic query by name.
+
+        Returns {ok, columns, rows} on success, or {ok: False, error, allowed} on failure.
+        """
+        name = (name or "").strip()
+        if not name:
+            return {"ok": False, "error": "query name required"}
+        allowed = sorted(_DIAGNOSTIC_QUERIES.keys())
+        if name not in _DIAGNOSTIC_QUERIES:
+            return {"ok": False, "error": f"query '{name}' not in allowlist", "allowed": allowed}
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute(text(_DIAGNOSTIC_QUERIES[name]), {"limit": limit})
+                columns = list(result.keys())
+                rows = [dict(zip(columns, row)) for row in result.fetchall()]
+            return {"ok": True, "columns": columns, "rows": rows}
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)}
 
     def get_low_confidence_financials(self, threshold: float = 0.4, limit: int = 100, ticker: str | None = None) -> list[dict[str, Any]]:
         if ticker:
