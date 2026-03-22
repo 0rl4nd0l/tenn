@@ -405,6 +405,9 @@ To keep Codex context current as the system evolves:
 
 - Refresh digest + update `~/.codex/config.toml` block:
   - `make context-refresh`
+- Refresh digest + install a Tenn `developer_instructions` profile into `~/.codex/config.toml`:
+  - `make codex-prompt-refresh`
+  - optional override: `DEVELOPER_INSTRUCTIONS_FILE=/path/to/prompt.md make codex-prompt-refresh`
 - Check whether current workspace changes are significant:
   - `make context-check`
 - Install a pre-push notifier hook:
@@ -416,6 +419,10 @@ The context refresher writes:
 - config block markers in `~/.codex/config.toml`:
   - `# BEGIN TENN_AGENT_CONTEXT`
   - `# END TENN_AGENT_CONTEXT`
+  - `# BEGIN TENN_DEVELOPER_INSTRUCTIONS`
+  - `# END TENN_DEVELOPER_INSTRUCTIONS`
+- bundled repo prompt profile:
+  - `codex_prompts/tenn-default.md`
 
 ## Notes
 - This discovery method is heuristic; ASX page structure may change. It’s modular (`backend/app/providers/asx_provider.py`).

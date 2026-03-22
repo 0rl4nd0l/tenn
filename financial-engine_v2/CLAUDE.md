@@ -33,6 +33,9 @@ docker compose exec backend alembic upgrade head
 
 # Agent context refresh (updates ~/.codex/config.toml)
 make context-refresh
+
+# Agent context + Tenn developer_instructions profile
+make codex-prompt-refresh
 ```
 
 ---

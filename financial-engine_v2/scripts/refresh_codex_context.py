@@ -12,8 +12,11 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = Path.home() / ".codex" / "config.toml"
 DEFAULT_DIGEST_PATH = REPO_ROOT / "reports" / "agent_context_digest.md"
 DEFAULT_STATE_PATH = REPO_ROOT / "reports" / "agent_context_snapshot.json"
-BEGIN_MARKER = "# BEGIN TENN_AGENT_CONTEXT"
-END_MARKER = "# END TENN_AGENT_CONTEXT"
+DEFAULT_INSTRUCTIONS_PATH = REPO_ROOT / "codex_prompts" / "tenn-default.md"
+CONTEXT_BEGIN_MARKER = "# BEGIN TENN_AGENT_CONTEXT"
+CONTEXT_END_MARKER = "# END TENN_AGENT_CONTEXT"
+INSTRUCTIONS_BEGIN_MARKER = "# BEGIN TENN_DEVELOPER_INSTRUCTIONS"
+INSTRUCTIONS_END_MARKER = "# END TENN_DEVELOPER_INSTRUCTIONS"
 
 
 def _run_git(*args: str) -> str:
@@ -173,7 +176,7 @@ def _context_block(digest: dict) -> str:
     reason_text = ", ".join(reasons) if reasons else "none"
     summary = _summary_line(digest)
     return (
-        f"{BEGIN_MARKER}\n"
+        f"{CONTEXT_BEGIN_MARKER}\n"
         "[project]\n"
         'name = "tenn"\n'
         'active_runtime = "financial-engine-v2"\n'
@@ -197,19 +200,61 @@ def _context_block(digest: dict) -> str:
         "significant_change_definition = '''Treat changes as significant if they alter ingestion behavior, "
         "data/report contracts, operator controls, runtime defaults, or quality gates.'''"
         "\n"
-        f"{END_MARKER}\n"
+        f"{CONTEXT_END_MARKER}\n"
     )
 
 
-def _update_config_file(config_path: Path, block: str) -> None:
+def _digest_brief(digest: dict) -> str:
+    reasons = digest.get("significance_reasons", [])
+    caps = digest.get("capability_impact", {})
+    lines = [
+        "Workspace snapshot:",
+        f"- Branch: {digest.get('branch') or 'unknown'}",
+        f"- Commit: {digest.get('commit') or 'unknown'}",
+        f"- Mode: {digest.get('mode') or 'unknown'}",
+        f"- Changed files: {digest.get('changed_files_count', 0)}",
+        f"- Significant change: {digest.get('significant_change')}",
+    ]
+    if reasons:
+        lines.append(f"- Significance reasons: {', '.join(reasons)}")
+    if caps:
+        impact = ", ".join(f"{key}:{value}" for key, value in sorted(caps.items()))
+        lines.append(f"- Capability impact: {impact}")
+    return "\n".join(lines)
+
+
+def _toml_literal_multiline(value: str) -> str:
+    if "'''" in value:
+        raise ValueError("developer instructions cannot contain triple single quotes")
+    normalized = value.rstrip("\n")
+    return "'''\n" + normalized + "\n'''"
+
+
+def _developer_instructions_block(prompt_text: str, digest: dict, prompt_path: Path) -> str:
+    try:
+        prompt_label = str(prompt_path.relative_to(REPO_ROOT))
+    except ValueError:
+        prompt_label = str(prompt_path)
+    combined = prompt_text.rstrip()
+    combined += "\n\nCurrent workspace context\n"
+    combined += _digest_brief(digest)
+    return (
+        f"{INSTRUCTIONS_BEGIN_MARKER}\n"
+        f"# source = \"{prompt_label}\"\n"
+        f"developer_instructions = {_toml_literal_multiline(combined)}\n"
+        f"{INSTRUCTIONS_END_MARKER}\n"
+    )
+
+
+def _update_marked_block(config_path: Path, begin_marker: str, end_marker: str, block: str) -> None:
     config_path.parent.mkdir(parents=True, exist_ok=True)
     if config_path.exists():
         text = config_path.read_text(encoding="utf-8")
     else:
         text = ""
-    if BEGIN_MARKER in text and END_MARKER in text:
-        start = text.index(BEGIN_MARKER)
-        end = text.index(END_MARKER) + len(END_MARKER)
+    if begin_marker in text and end_marker in text:
+        start = text.index(begin_marker)
+        end = text.index(end_marker) + len(end_marker)
         new_text = text[:start].rstrip() + "\n\n" + block + "\n" + text[end:].lstrip()
     else:
         suffix = "\n\n" if text and not text.endswith("\n") else ""
@@ -230,6 +275,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--digest-path", default=str(DEFAULT_DIGEST_PATH), help="Markdown digest output path.")
     parser.add_argument("--state-path", default=str(DEFAULT_STATE_PATH), help="JSON state snapshot output path.")
     parser.add_argument("--write-config", action="store_true", help="Write/update context block in config.toml.")
+    parser.add_argument(
+        "--write-developer-instructions",
+        action="store_true",
+        help="Write/update developer_instructions in config.toml from a prompt file.",
+    )
+    parser.add_argument(
+        "--developer-instructions-file",
+        default=str(DEFAULT_INSTRUCTIONS_PATH),
+        help="Prompt file used for developer_instructions.",
+    )
     parser.add_argument("--check-significant", action="store_true", help="Exit non-zero if significant changes exist.")
     return parser.parse_args()
 
@@ -257,8 +312,24 @@ def main() -> int:
     state_path.write_text(json.dumps(digest, indent=2), encoding="utf-8")
 
     if args.write_config:
-        _update_config_file(Path(args.config_path), _context_block(digest))
+        _update_marked_block(
+            Path(args.config_path),
+            CONTEXT_BEGIN_MARKER,
+            CONTEXT_END_MARKER,
+            _context_block(digest),
+        )
         print(f"Updated config context block: {args.config_path}")
+
+    if args.write_developer_instructions:
+        prompt_path = Path(args.developer_instructions_file)
+        prompt_text = prompt_path.read_text(encoding="utf-8").strip()
+        _update_marked_block(
+            Path(args.config_path),
+            INSTRUCTIONS_BEGIN_MARKER,
+            INSTRUCTIONS_END_MARKER,
+            _developer_instructions_block(prompt_text, digest, prompt_path),
+        )
+        print(f"Updated developer instructions block: {args.config_path}")
 
     print(f"Wrote digest: {digest_path}")
     print(f"Wrote snapshot: {state_path}")

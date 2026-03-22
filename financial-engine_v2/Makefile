@@ -17,6 +17,9 @@ impact-log:
 context-refresh:
 	python3 scripts/refresh_codex_context.py --mode workspace --write-config --config-path $$HOME/.codex/config.toml
 
+codex-prompt-refresh:
+	python3 scripts/refresh_codex_context.py --mode workspace --write-config --write-developer-instructions --developer-instructions-file $${DEVELOPER_INSTRUCTIONS_FILE:-codex_prompts/tenn-default.md} --config-path $$HOME/.codex/config.toml
+
 context-check:
 	python3 scripts/refresh_codex_context.py --mode workspace --check-significant
 
