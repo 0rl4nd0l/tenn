@@ -16,7 +16,7 @@ MCP (Model Context Protocol) servers extend Claude Code with direct access to ex
 | **qdrant** | `scripts/mcp/qdrant.sh` | `mcp-server-qdrant:latest` | Search vectors, inspect collections, verify embeddings |
 | **redis** | `scripts/mcp/redis.sh` | `mcp/redis:latest` | Inspect Celery task queues, check worker state, monitor backlog |
 | **playwright** | `scripts/mcp/playwright.sh` | `mcr.microsoft.com/playwright/mcp:latest` | Browser automation, API response inspection, Lighthouse audits |
-| **github** | `scripts/mcp/github.sh` | `ghcr.io/github/github-mcp-server:latest` | GitHub issues, PRs, checks, releases |
+| **github** | `scripts/mcp/github.sh` | `ghcr.io/github/github-mcp-server:latest` | GitHub issues, PRs, checks, releases — active as of 2026-03-22 |
 | **tenn** | `scripts/mcp/tenn.sh` | _(native Python)_ | Custom Tenn/OpenClaw MCP server (`openclaw.tenn_mcp_server`) |
 | **screenpipe** | `scripts/mcp/screenpipe.sh` | _(native macOS app + npx mcp-remote)_ | Query screen/audio history captured by Screenpipe on Mac |
 
@@ -29,7 +29,7 @@ MCP (Model Context Protocol) servers extend Claude Code with direct access to ex
 | **qdrant** | Docker; `mcp-server-qdrant:latest` image (build: `docker build -t mcp-server-qdrant:latest https://github.com/qdrant/mcp-server-qdrant.git`) |
 | **redis** | Docker; `mcp/redis:latest` image (`docker pull mcp/redis`) |
 | **playwright** | Docker; image auto-pulls on first use |
-| **github** | Docker; `GITHUB_PERSONAL_ACCESS_TOKEN` env var set |
+| **github** | Docker; `GITHUB_PERSONAL_ACCESS_TOKEN` env var set; image must be pulled (`docker pull ghcr.io/github/github-mcp-server:latest`) |
 | **tenn** | `.venv-autodev` with `openclaw` package installed |
 | **screenpipe** | Screenpipe app installed and running on Mac; Node.js/npx on Linux; SSH tunnel on port 3030 active |
 
@@ -90,6 +90,19 @@ All servers use `--network host` for Docker, so they connect to localhost servic
 
 **Ops:**
 - Use **tenn** MCP for OpenClaw-specific operations (when `.venv-autodev` is available)
+
+---
+
+## Claude Code GitHub Actions
+
+`.github/workflows/claude.yml` integrates Claude Code into GitHub CI.
+
+| Job | Trigger | Behavior |
+|-----|---------|----------|
+| `claude-on-mention` | `@claude` in any PR/issue comment | Claude responds to the mention with tool access |
+| `claude-pr-review` | PR opened or `synchronize` | Claude auto-reviews the diff against CLAUDE.md rules |
+
+**Setup:** Add `ANTHROPIC_API_KEY` as a GitHub Actions secret in the repo settings. The PAT from the MCP server is unrelated — Actions use the `GITHUB_TOKEN` granted by GitHub automatically.
 
 ---
 
