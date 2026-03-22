@@ -76,7 +76,7 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
             except Exception:
                 # If Qdrant is unreachable or query fails, fall back to "new docs only".
                 pass
-        max_workers = max(1, settings.backfill_concurrency)
+        max_workers = max(1, getattr(settings, "backfill_concurrency", 1))
         processed, skipped_download, extraction_failed_count, errors, ingestion_metrics = (
             pipeline_core._download_and_process_document_ids(
                 doc_ids,

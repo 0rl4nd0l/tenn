@@ -52,6 +52,13 @@ def _default_author() -> str:
     return _run_git("config", "user.name") or "unknown"
 
 
+def _validate_required(args: argparse.Namespace) -> tuple[bool, list[str]]:
+    """Return (ok, missing_fields) where missing_fields are still at their TBD default."""
+    required = ["scope", "why", "expected_impact", "validation", "rollback"]
+    missing = [f for f in required if getattr(args, f.replace("-", "_"), "TBD") == "TBD"]
+    return (len(missing) == 0, missing)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Append a structured entry to reports/change_impact_log.md.")
     parser.add_argument("--change-id", default=_default_change_id())

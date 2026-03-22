@@ -22,6 +22,18 @@ VISIBLE_ACTION_IDS: tuple[str, ...] = (
     "metric_extraction",
 )
 
+# Streamlined UI surface — subset of VISIBLE_ACTION_IDS that appears in list_actions().
+# load_news_to_qdrant is intentionally excluded: it is accessible via intent routing
+# but not surfaced as a first-class action in the cockpit action panel.
+_STREAMLINED_ACTION_IDS: tuple[str, ...] = (
+    "daily_news_ingest",
+    "historical_news_ingest",
+    "daily_announcement_ingest",
+    "single_ticker_announcement_backfill",
+    "universe_announcement_enrichment_backfill",
+    "metric_extraction",
+)
+
 
 @dataclass
 class ActionPreview:
@@ -644,7 +656,7 @@ class ActionRegistry:
         }
 
     def list_actions(self) -> list[ActionSpec]:
-        return [self._actions[action_id] for action_id in VISIBLE_ACTION_IDS if action_id in self._actions]
+        return [self._actions[action_id] for action_id in _STREAMLINED_ACTION_IDS if action_id in self._actions]
 
     def get(self, action_id: str) -> ActionSpec:
         if action_id not in self._actions:
