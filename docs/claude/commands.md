@@ -2,10 +2,10 @@
 
 Custom slash commands available in this repo via `.claude/commands/`. Invoke with `/command-name`.
 
-All commands are direct ports of Codex skills from `~/.codex/skills/` so all agents have identical capability.
+Most commands now have matching repo-local Codex skill ports under `.codex/skills/`, synced into the active Codex registry with `bash scripts/sync_codex_skills.sh`.
 
 ## Source Trace
-- `~/.codex/skills/*/SKILL.md` (Confirmed — all content ported verbatim)
+- `.codex/skills/*/SKILL.md` (Confirmed — repo-local Codex skill ports)
 - `.claude/commands/*.md` (Confirmed — created 2026-03-20)
 
 ---
@@ -22,6 +22,7 @@ All commands are direct ports of Codex skills from `~/.codex/skills/` so all age
 | Code Fix | `/code-fix` | Applies findings from `/code-review` or `/function-quality`. Critical first, then warnings, then suggestions. |
 | Function Quality | `/function-quality` | Deep feature analysis (EXTRACT → ANALYZE). Pass a feature name; output is `/code-fix`-compatible. |
 | Intelligence Pack | `/intelligence-pack` | Analyzes latest `reports/weekly/*.json`; produces 4-section executive brief. Read-only. |
+| Investigation Orchestrator | `/investigation-orchestrator` | Structured investigation workflow for larger or harder bugs, diagnoses, refactors, and redesigns. Maps code first, writes a spec, then implements. |
 | Performance Check | `/performance-check` | Checks GPU memory, embedding throughput, batch efficiency, and search latency. Read-only diagnostics. |
 | Prompt Crafter | `/prompt-crafter` | Turns a task outline into structured EXTRACT/ANALYZE/IMPLEMENT prompts; can create `.cursor/agents/` files. |
 | Prompt Structure | `/prompt-structure` | Reference for the structured prompt schema and chaining patterns used across agents. |
@@ -36,6 +37,7 @@ These are invoked by Claude automatically (not user-facing slash commands).
 | Skill | Invocation | Purpose |
 |-------|-----------|---------|
 | `embedding-change-checklist` | Claude-only | Runs the 5-step RAG/embedding safety checklist before any PR touching `embeddings.py`, `config.py` (EMBED_MODEL), or `alembic/versions/`. |
+| `investigation-orchestrator` | Claude-only and Codex ported | Process skill for larger or harder investigations and redesigns that require mapping, spec-before-edit discipline, and evidence-based implementation. |
 
 ---
 
@@ -49,6 +51,11 @@ These are invoked by Claude automatically (not user-facing slash commands).
 **Deep feature analysis then fix:**
 ```
 /function-quality  →  /code-fix
+```
+
+**Investigate before fixing a non-trivial issue:**
+```
+/investigation-orchestrator
 ```
 
 **Check system health:**
@@ -89,6 +96,7 @@ Subagents are invoked by Claude during complex tasks requiring specialized revie
 | `code-fixer` | `/code-fix` | Ported |
 | `function-quality` | `/function-quality` | Ported |
 | `intelligence-pack-review` | `/intelligence-pack` | Ported |
+| `investigation-orchestrator` | `/investigation-orchestrator` | Ported |
 | `performance-check` | `/performance-check` | Ported |
 | `prompt-crafter` | `/prompt-crafter` | Ported |
 | `prompt-structure-reference` | `/prompt-structure` | Ported |
@@ -98,6 +106,24 @@ Subagents are invoked by Claude during complex tasks requiring specialized revie
 | `embedding-change-checklist` | Claude-invocable skill | New (repo-native) |
 | `migration-reviewer` | Claude subagent | New (repo-native) |
 | `news-pipeline-remaining-fixes` | — | Not ported (one-time fix, not a general skill) |
+
+Repo-local Codex ports now present for:
+
+- `architecture-check`
+- `architecture-cleanup-steward`
+- `code-reviewer`
+- `code-fixer`
+- `function-quality`
+- `intelligence-pack-review`
+- `investigation-orchestrator`
+- `performance-check`
+- `prompt-crafter`
+- `prompt-structure-reference`
+- `rag-stability-eval`
+- `repository-audit`
+- `ingest-ticker`
+- `embedding-change-checklist`
+- `migration-reviewer`
 
 ---
 

@@ -40,7 +40,7 @@ As of 2026-03-20 audit. Source: deep inventory of `/home/l4nd0/tenn`.
 | Vector baseline comparison thresholds | **Present** | Gate conditions confirmed from `scripts/validate_financial_metrics_gates.py`: zero duplicates, zero conflicts, zero empty_currency; documented in `domain-financial-pipeline.md` | — | — |
 | `commentary_chunks_v2` fallback policy | **Present** | Confirmed: collection is config-driven via `settings.qdrant_collection`; not automatic code fallback; documented in `domain-financial-pipeline.md` | — | — |
 | Retry/backoff policy for LLM failures | **Present** | Confirmed from `10_failure_model.md`: fail-fast at startup, retry at request/task time, skip per-item in batch; documented in `runbook.md` | — | — |
-| Codex skills registry integration | **Partial** | `.codex/skills/repository-audit/SKILL.md` exists; `sync_codex_skills.sh` exists; registry state not confirmed | Run `bash scripts/sync_codex_skills.sh` to confirm | Low |
+| Codex skills registry integration | **Present** | Repo-local Codex skill ports exist under `.codex/skills/`, including `investigation-orchestrator`; `bash scripts/sync_codex_skills.sh` links them into `$CODEX_HOME/skills/` | Re-run sync after adding or updating repo-local skills | Low |
 | Domain skill: news substrate | **Present** | Created `docs/claude/skills/domain-news-substrate.md` from `15_news_substrate.md` | — | — |
 | Domain skill: model routing | **Present** | Created `docs/claude/skills/domain-model-routing.md` from `model-routing.md` | — | — |
 | Domain skill: OpenClaw/llama.cpp ops | **Deferred** | OpenClaw no longer primary workflow; not prioritized | Defer indefinitely unless OpenClaw re-enters active use | Low |

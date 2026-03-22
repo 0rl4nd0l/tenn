@@ -27,14 +27,18 @@ When OpenBB sidecar is used: **8081** (OpenBB sidecar HTTP API).
 
 ## Ports summary
 
-| Port  | Service        | Notes                    |
-|-------|----------------|--------------------------|
-| 8000  | backend        | Main API                 |
-| 5432  | postgres       | DB                       |
-| 6379  | redis          | Broker/cache             |
-| 6333  | qdrant         | Vector store             |
-| 8001  | llama.cpp (host) | LLM inference         |
-| 8081  | OpenBB sidecar | When sidecar is enabled |
+**Canonical assignment** — these are fixed. Any code defaulting to a different port is a bug.
+The corresponding env vars and their defaults are defined in `financial-engine_v2/.env.example`.
+
+| Port  | Service          | Env var                    | Notes                    |
+|-------|------------------|----------------------------|--------------------------|
+| 8000  | backend          | `PORT`                     | FastAPI/uvicorn          |
+| 8001  | llama.cpp (host) | `LLAMACPP_URL`             | LLM inference            |
+| 5432  | postgres         | `DATABASE_URL`             | Primary DB               |
+| 6379  | redis            | `REDIS_URL`                | Broker/cache             |
+| 6333  | qdrant           | `QDRANT_URL`               | Vector store             |
+| 11434 | ollama           | `OLLAMA_URL`               | Embeddings               |
+| 8081  | OpenBB sidecar   | `OPENBB_SIDECAR_BASE_URL`  | Optional; market data    |
 
 ---
 

@@ -16,11 +16,11 @@ Containers:
 - Celery CPU workers
 
 Host service:
-- Ollama (systemd-managed on host)
+- llama.cpp (systemd-managed on host); keep Ollama on host only for legacy backend/embedding compatibility
 
 Networking convention:
-- Containers call host Ollama via a host-resolvable endpoint.
-- Use explicit `OLLAMA_URL` in env to avoid implicit fallback behavior.
+- Containers call the configured embedding endpoint (`LLAMACPP_URL` or fallback `OLLAMA_URL`) via a host-resolvable endpoint.
+- Use explicit `LLAMACPP_URL` in env for the primary runtime; specify `OLLAMA_URL` only when legacy compatibility is required.
 - Validate connectivity from app/worker containers before production runs.
 
 ## Files
@@ -84,7 +84,7 @@ Log policy:
 
 Promote only after:
 - NVML stability acceptance suite passes (3 reboot criterion)
-- Ollama GPU usage proven stable on host
+- Host llama.cpp runtime proves stable and reliable
 - No repeated NVRM/Xid error pattern in observation window
 
 Phase-2 additions:

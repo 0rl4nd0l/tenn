@@ -16,7 +16,8 @@ The source-of-truth application runtime is the financial engine. OpenClaw usage 
 | Model router | Metadata-aware, finance-aware request classification plus self-optimizing routing across configured router/coding/reasoning/deep_reasoning roles from `model_routing.yaml`; the checked-in local profile currently uses `llama3.1:8b` for generation and `nomic-embed-text` for embeddings | `financial-engine_v2/backend/app/services/router.py`, `docs/architecture/model-routing.md` |
 | Postgres | Structured persistence for documents, extractions, financial rows, snapshots | `financial-engine_v2/backend/app/models/`, `financial-engine_v2/docker-compose.yml` |
 | Qdrant | Runtime vector store for backend RAG | `financial-engine_v2/backend/app/services/rag.py`, `docs/architecture/06_embeddings_and_vector_store.md` |
-| Ollama | Embedding and optional generation backend for runtime financial workflows | `financial-engine_v2/backend/app/core/config.py`, `docs/architecture/06_embeddings_and_vector_store.md` |
+| Ollama | Legacy embedding/generation backend kept for compatibility with older pipelines | `financial-engine_v2/backend/app/core/config.py`, `docs/architecture/06_embeddings_and_vector_store.md` |
+| llama.cpp | Primary inference engine for coding/agent workloads and backend routing | `scripts/run_llama_server.sh`, `financial-engine_v2/backend/app/services/llm.py` |
 | OpenBB sidecar | Optional market-data sidecar for profile, summary, and statements endpoints | `financial-engine_v2/openbb_sidecar/README.md`, `financial-engine_v2/docker-compose.yml` |
 | Cockpit | Operator client layered on top of backend APIs and local context artifacts | `financial-engine_v2/cockpit/`, `financial-engine_v2/config/cockpit.yaml` |
 
@@ -54,7 +55,7 @@ The active score weights are `latency=0.4`, `throughput=0.3`, `error=0.2`, `queu
 
 ## OpenClaw/Tenn ops surface
 
-The repo also carries local operations documentation for OpenClaw session orchestration and llama.cpp host management:
+The repo also carries local operations documentation for OpenClaw session orchestration and llama.cpp host management (llama.cpp remains the primary in-host inference engine; Ollama is optional for compatibility):
 
 - OpenClaw config source of truth: `~/.openclaw/openclaw.json`
 - llama.cpp launcher: `scripts/run_llama_server.sh`

@@ -5,10 +5,10 @@ This folder is the production-safe operations pack for the Tesla M40 + GT1030 ho
 Scope:
 - Preferred local agent/runtime path: llama.cpp via OpenClaw and the checked-in Tenn launcher.
 - Host NVML stabilization (headless, Ubuntu package path only by default)
-- Ollama GPU validation and Maxwell-specific mitigation
+- Optional Ollama GPU validation and Maxwell-specific mitigation for backend/legacy workloads that still depend on it
 - Model tiering for 24GB VRAM / 32GB RAM / SATA disk
 - Batch-first architecture for FastAPI + Celery + Postgres + Qdrant
-- Phase-1 Docker blueprint with Ollama kept on host
+- Phase-1 Docker blueprint keeping Ollama on host as a legacy compatibility path while llama.cpp stays local
 - Production acceptance gates before scaling
 
 Scope note:
@@ -53,4 +53,18 @@ Artifacts:
   - `.codex/skills/repository-audit/SKILL.md` (repo-local Codex skill source)
 - Sync repo-local Codex skills into the active Codex registry:
   - `bash scripts/sync_codex_skills.sh`
-- Global Codex-only skills, including `architecture-cleanup-steward`, continue to live under `$CODEX_HOME/skills/`.
+- Repo-local Codex ports now also include:
+  - `architecture-check`
+  - `architecture-cleanup-steward`
+  - `code-reviewer`
+  - `code-fixer`
+  - `function-quality`
+  - `intelligence-pack-review`
+  - `performance-check`
+  - `prompt-crafter`
+  - `prompt-structure-reference`
+  - `rag-stability-eval`
+  - `ingest-ticker`
+  - `embedding-change-checklist`
+  - `migration-reviewer`
+- System-only Codex skills continue to live under `$CODEX_HOME/skills/.system/`.

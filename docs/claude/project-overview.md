@@ -12,7 +12,7 @@
 
 **Tenn** is a financial document ingestion, retrieval, and analysis system targeting ASX (Australian Securities Exchange) announcements.
 
-Active runtime: `financial-engine_v2/` — a FastAPI + Celery + Postgres + Qdrant + Ollama/llama.cpp stack.
+Active runtime: `financial-engine_v2/` — a FastAPI + Celery + Postgres + Qdrant stack with llama.cpp as the primary inference service (Ollama retained only as a legacy compatibility option for backend pipelines that have not migrated).
 
 Secondary surface: OpenClaw/Tenn local ops tooling — orchestration for local agent coding sessions and llama.cpp host management.
 
@@ -29,8 +29,8 @@ There is **no robotics or actuator-control runtime** in this repository.
 | Model router | Self-optimizing request classification across router/coding/reasoning/deep_reasoning roles | `financial-engine_v2/backend/app/services/router.py` |
 | Postgres | Structured persistence (documents, extractions, financial rows, snapshots) | `financial-engine_v2/backend/app/models/` |
 | Qdrant | Vector store for RAG retrieval | `financial-engine_v2/backend/app/services/rag.py` |
-| Ollama | Embedding and optional generation backend | `financial-engine_v2/backend/app/core/config.py` |
-| llama.cpp | Preferred local coding/agent inference endpoint | `scripts/run_llama_server.sh` |
+| Ollama | Legacy embedding/generation backend kept for compatibility | `financial-engine_v2/backend/app/core/config.py` |
+| llama.cpp | Preferred local coding/agent inference endpoint and worker routing target | `scripts/run_llama_server.sh` |
 | OpenBB sidecar | Optional market-data sidecar | `financial-engine_v2/openbb_sidecar/` |
 | Cockpit | Operator TUI layered on backend APIs | `financial-engine_v2/cockpit/` |
 
@@ -53,7 +53,7 @@ Host: Tesla M40 (24GB VRAM) + GT1030, Ubuntu.
 | 8080 | llama.cpp direct endpoint |
 | 6333 | Qdrant vector store |
 | 6379 | Redis (Celery broker/result) |
-| 11434 | Ollama inference |
+| 11434 | Ollama inference (legacy compatibility only) |
 | 5432 | Postgres (Docker mode only) |
 
 ---

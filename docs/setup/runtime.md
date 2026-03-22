@@ -9,7 +9,7 @@
 | `8080` | llama.cpp | Direct llama.cpp runtime |
 | `6333` | qdrant | Vector store |
 | `6379` | redis | Celery broker/result backend |
-| `11434` | ollama | Ollama inference |
+| `11434` | ollama | Legacy compatibility runtime when explicitly enabled |
 
 ## Start order
 
@@ -17,7 +17,7 @@
 2. Start Redis on `6379` if you run Celery mode.
 3. Start the direct llama.cpp server on `8080`.
 4. Start the primary LLM endpoint on `8001` if you use a proxy/router in front of llama.cpp.
-5. Start Ollama on `11434` if you use Ollama-backed paths.
+5. Start Ollama on `11434` only if you still run an explicit compatibility path that has not been migrated.
 6. Start the backend on `8000`.
 
 ## Start commands

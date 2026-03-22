@@ -59,8 +59,8 @@ The worker process must see the same logical configuration as the backend, becau
 |--------------------------|--------|
 | `DATABASE_URL`           | PostgreSQL (or SQLite) URL for `SessionLocal` and all DB access in pipeline and pipeline_service. |
 | `QDRANT_URL`             | Qdrant base URL for embeddings/vector writes (e.g. `http://qdrant:6333` in Docker). |
-| `OLLAMA_URL`             | Ollama API base for local LLM (extraction, etc.). |
-| `LLAMACPP_URL`           | llama.cpp OpenAI-compatible base URL for coding-model requests. |
+| `LLAMACPP_URL`           | Primary llama.cpp/OpenAI-compatible base URL for coding-model requests; used by default for embeddings and JSON generation. |
+| `OLLAMA_URL`             | Optional legacy Ollama API base kept for backward-compatible extraction or embedding paths; only necessary if `LLAMACPP_URL` is unavailable or you intentionally target Ollama. |
 | `DOCS_ROOT`              | Maps to `settings.docs_root`. Root directory for storing and resolving PDFs; must match backend so paths are consistent. In Docker, `/data/asx/docs`. When running the **standalone script** (e.g. `full_history_ticker_sync.py`) on the host, set to a writable path (e.g. `$(pwd)/data/asx/docs`) and `DATABASE_URL` to `postgresql+psycopg://fe:fe@localhost:5432/fe` so the script can connect and write PDFs. The `make backfill-asx20` target in `financial-engine_v2` sets these for you. |
 | `BACKFILL_CONCURRENCY`   | Max parallel documents per ticker when running sync backfill (script `--concurrency` or API/worker). Default 1 (sequential). 2–4 recommended for faster ingestion; HTTP and Qdrant clients are reused per run when concurrency is used. |
 | `CELERY_BROKER_URL`      | Redis URL for Celery broker (e.g. `redis://redis:6379/0`). The adaptive router also uses this broker URL for `LLEN` queue-depth probes when Redis is reachable. |

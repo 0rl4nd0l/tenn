@@ -14,7 +14,7 @@ This document describes how the system behaves when dependencies or operations f
 
 | Failure Type | Component | Expected Behavior | Remediation |
 |--------------|-----------|-------------------|-------------|
-| **Ollama unavailable** | Backend startup, RAG, pipeline, cockpit | **Startup**: fail-fast — startup validates embedding model by calling Ollama; if unreachable or no vector returned, raise and do not start. **RAG query**: if embedding call fails or returns empty, request fails (no silent fallback). **Pipeline/worker**: task fails; Celery can retry (retry). **Cockpit**: health check warns; chat/embed calls fail (retry by user). | Ensure Ollama is running and `nomic-embed-text` (or configured model) is pulled. For transient outages, rely on task/request retry. |
+| **Embedding endpoint unavailable** | Backend startup, RAG, pipeline, cockpit | **Startup**: fail-fast — startup validates the configured embedding service (LLAMACPP/OLLAMA/OpenAI); if unreachable or no vector returned, raise and do not start. **RAG query**: if embedding call fails or returns empty, request fails (no silent fallback). **Pipeline/worker**: task fails; Celery can retry (retry). **Cockpit**: health check warns; chat/embed calls fail (retry by user). | Ensure the configured embedding endpoint (`LLAMACPP_URL`, `OLLAMA_URL`, or `EMBEDDING_URL`) is reachable and the expected model (e.g. `nomic-embed-text`) is installed. For transient outages, rely on task/request retry. |
 | **Qdrant unavailable** | Backend startup, RAG, pipeline | **Startup**: fail-fast — startup connects to Qdrant and validates collection; connection failure prevents startup. **RAG query**: request fails with 503. **Pipeline upsert**: task fails (retry). | Ensure Qdrant is running and reachable. Retry transient connection failures. |
 | **Dimension mismatch** | RAG, pipeline, embeddings | **Fail-fast**. On startup and at upsert/query, collection vector size must match embedding dimension. `ensure_collection` / `validate_qdrant_collection` raise `RuntimeError` if existing collection dimension ≠ expected. | Recreate the Qdrant collection with the correct dimension (e.g. via rebuild RAG index) or change embedding model and rebuild; do not run with mismatch. |
 | **Distance mismatch** | RAG, pipeline, embeddings | **Fail-fast**. Collection must use COSINE distance. Validation raises if collection uses a different distance (e.g. DOT, EUCLID). | Recreate the collection with COSINE distance; do not run with mismatch. |
@@ -27,8 +27,8 @@ This document describes how the system behaves when dependencies or operations f
 
 ## Summary by category
 
-- **Fail-fast**: Dimension mismatch, distance mismatch, embedding model mismatch; Qdrant/Ollama/DB unreachable at **startup**; OpenBB empty payload; RAG disabled or misconfigured (per backend rules).
-- **Retry**: Ollama/Qdrant/DB transiently unavailable at **request or task** time; OpenBB empty due to transient issue; task-level failures where retry is meaningful.
+- **Fail-fast**: Dimension mismatch, distance mismatch, embedding model mismatch; Qdrant/primary embedding endpoint or DB unreachable at **startup**; OpenBB empty payload; RAG disabled or misconfigured (per backend rules).
+- **Retry**: Primary embedding endpoint/Qdrant/DB transiently unavailable at **request or task** time; OpenBB empty due to transient issue; task-level failures where retry is meaningful.
 - **Skip**: Per-document failures in batch backfill (e.g. one PDF corrupt or missing, one document extraction failure); duplicate source_url handling (skip insert).
 
 ---

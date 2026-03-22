@@ -166,14 +166,14 @@ Source: `docs/architecture/10_failure_model.md` (Confirmed)
 
 | Behavior | When Used | Examples |
 |----------|-----------|---------|
-| **Fail-fast** | Misconfiguration, invariant violations, startup validation | Dimension mismatch, distance mismatch, embedding model mismatch, Qdrant/Ollama/DB unreachable at startup, OpenBB empty payload |
-| **Retry** | Transient service unavailability (request or task time) | Ollama/Qdrant/DB transiently unavailable; Celery task retry |
+| **Fail-fast** | Misconfiguration, invariant violations, startup validation | Dimension mismatch, distance mismatch, embedding model mismatch, Qdrant/primary embedding endpoint or DB unreachable at startup, OpenBB empty payload |
+| **Retry** | Transient service unavailability (request or task time) | Primary embedding endpoint/Qdrant/DB transiently unavailable; Celery task retry |
 | **Skip** | Per-item failures in batch jobs | One PDF corrupt/missing in backfill; duplicate `source_url` (skip insert) |
 
 No silent degradation. Fail fast on config errors.
 
 **Startup fail-fast conditions:**
-- Ollama unreachable or embedding returns empty → startup raises, does not start
+- Embedding endpoint (LLAMACPP/OLLAMA/OpenAI) unreachable or returns empty → startup raises, does not start
 - Qdrant unreachable or collection validation fails → startup raises (503 at request time)
 - Dimension mismatch (collection ≠ embedding model) → `RuntimeError`
 - Distance mismatch (must be COSINE) → `RuntimeError`
