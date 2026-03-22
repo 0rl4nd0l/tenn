@@ -520,6 +520,49 @@ class ChatController:
 
         return ResponseMode.FAST
 
+    def _compute_announcement_sync_status(self, ticker: str, docs: list[dict], message: str) -> dict:  # noqa: ARG002
+        """Return {status, needs_update_offer} based on recency of docs."""
+        if not docs:
+            return {"status": "missing", "needs_update_offer": True}
+        freshness_threshold_hours = 72
+        now = datetime.now(timezone.utc)
+        latest_doc = docs[0]
+        published_at_str = str(latest_doc.get("published_at") or "")
+        try:
+            published_at = datetime.fromisoformat(published_at_str)
+            if published_at.tzinfo is None:
+                published_at = published_at.replace(tzinfo=timezone.utc)
+            age_hours = (now - published_at).total_seconds() / 3600
+        except (ValueError, TypeError):
+            return {"status": "stale", "needs_update_offer": True}
+        if age_hours < freshness_threshold_hours:
+            return {"status": "fresh", "needs_update_offer": False}
+        return {"status": "stale", "needs_update_offer": True}
+
+    def _build_ticker_update_offer(self, ticker: str, sync: dict) -> dict:
+        """Build an offer dict for updating ticker announcements."""
+        if not sync.get("needs_update_offer"):
+            return {
+                "note": f"Announcement sync check for {ticker}: up to date",
+                "action_preview": None,
+            }
+        args: dict[str, Any] = {"ticker": ticker, "years": 1, "process_documents": True}
+        action_preview: dict[str, Any] = {"action_id": "update_ticker_financials", "args": args}
+        if self.action_registry:
+            try:
+                preview = self.action_registry.preview("update_ticker_financials", args)
+                action_preview["command"] = preview.command
+                action_preview["impact"] = preview.estimated_impact
+                action_preview["timeout_seconds"] = preview.timeout_seconds
+            except Exception:
+                pass
+        status = sync.get("status", "unknown")
+        note = (
+            f"Announcement sync check for {ticker}: {status}. "
+            f"Use /confirm to update or /cancel to skip."
+        )
+        return {"note": note, "action_preview": action_preview}
+
     def build_chat_response(
         self,
         message: str,
@@ -527,9 +570,51 @@ class ChatController:
         prior_ticker: str | None = None,
         on_chunk=None,
         analysis_mode: str | None = None,
+        context_profile: str | None = None,
     ) -> ChatResponse:
         ticker = self._detect_ticker(message, prior_ticker=prior_ticker or self.last_ticker)
         self.last_ticker = ticker or self.last_ticker
+
+        msg_lower = message.lower()
+        effective_profile = context_profile or os.environ.get("COCKPIT_CONTEXT_PROFILE", "balanced")
+
+        # --- Conversational update shortcut: "update <ticker> announcements" ---
+        explicit_ticker_in_message = self._detect_ticker(message, prior_ticker=None)
+        if "update" in msg_lower and "announcement" in msg_lower and explicit_ticker_in_message:
+            args: dict[str, Any] = {"ticker": explicit_ticker_in_message, "years": 1, "process_documents": True}
+            action_preview: dict[str, Any] = {"action_id": "update_ticker_financials", "args": args}
+            if self.action_registry:
+                try:
+                    preview = self.action_registry.preview("update_ticker_financials", args)
+                    action_preview["command"] = preview.command
+                    action_preview["impact"] = preview.estimated_impact
+                    action_preview["timeout_seconds"] = preview.timeout_seconds
+                except Exception:
+                    pass
+            return ChatResponse(
+                text=f"Preparing to update announcements for {explicit_ticker_in_message}. Use /confirm to execute.",
+                evidence=[],
+                action_preview=action_preview,
+                mode=ResponseMode.ACTION,
+            )
+
+        # --- Access request: URL in message but web is disabled ---
+        if any(p in message for p in ("http://", "https://")) and not enable_web:
+            return ChatResponse(
+                text="Web access is required to fetch that URL. Enable web and try again.",
+                evidence=[],
+                action_preview={"action_id": "__access_request__", "args": {"scope": "web"}},
+                mode=ResponseMode.FAST,
+            )
+
+        # --- Access request: max-depth profile requires web enrichment ---
+        if effective_profile == "max-depth" and not enable_web:
+            return ChatResponse(
+                text="Max-depth analysis requires web enrichment. Enable web and try again.",
+                evidence=[],
+                action_preview={"action_id": "__access_request__", "args": {"scope": "web"}},
+                mode=ResponseMode.FAST,
+            )
 
         # --- Chart intent short-circuit (before general action detection) ---
         if self.detect_chart_intent(message):
@@ -594,6 +679,17 @@ class ChatController:
         else:
             mode = self.classify_request(message, enable_web=enable_web)
 
+        # --- Access request: deep analysis requires RAG but it's disabled ---
+        rag_available = bool(getattr(self.tool_router, "qual_context_reader", None))
+        rag_enabled = bool(getattr(self.tool_router, "qual_context_enabled", False))
+        if analysis_mode == "deep" and rag_available and not rag_enabled:
+            return ChatResponse(
+                text="Deep analysis requires RAG context. Enable RAG and try again.",
+                evidence=[],
+                action_preview={"action_id": "__access_request__", "args": {"scope": "rag"}},
+                mode=ResponseMode.FAST,
+            )
+
         deep_mode = mode in {ResponseMode.DEEP_ANALYSIS, ResponseMode.VERIFICATION}
         local_context = self.tool_router.gather_local_context(ticker=ticker, query=message, deep_mode=deep_mode)
 
@@ -627,6 +723,25 @@ class ChatController:
                 web = self.tool_router.fetch_web(maybe_url.group(0), enabled=True)
                 evidence.append({"type": "web", "details": web.payload})
 
+        # --- Web enrichment for deep mode or max-depth profile ---
+        if (analysis_mode == "deep" or effective_profile == "max-depth") and enable_web:
+            if hasattr(self.tool_router, "web_enrich"):
+                web_query = f"{ticker}: {message}" if ticker else message
+                web_result = self.tool_router.web_enrich(web_query, enabled=True)
+                evidence.append({"type": "web", "details": web_result.payload})
+
+        # --- Announcement sync check ---
+        if "announcement" in msg_lower and ticker:
+            local_docs = (local_context.payload or {}).get("docs", []) if isinstance(local_context.payload, dict) else []
+            sync = self._compute_announcement_sync_status(ticker, docs=local_docs, message=message)
+            offer = self._build_ticker_update_offer(ticker, sync)
+            return ChatResponse(
+                text=offer.get("note", ""),
+                evidence=evidence,
+                action_preview=offer.get("action_preview"),
+                mode=ResponseMode.FAST,
+            )
+
         local_payload = dict(local_context.payload) if isinstance(local_context.payload, dict) else {}
         if mode == ResponseMode.WEB:
             local_payload["web_requested"] = True
@@ -649,9 +764,8 @@ class ChatController:
         elif mode == ResponseMode.WEB:
             system_instruction += "The user supplied a URL. Incorporate any fetched web evidence if it is available.\n"
 
-        context_profile = os.environ.get("COCKPIT_CONTEXT_PROFILE", "balanced")
         runtime_settings = {
-            "context_profile": context_profile,
+            "context_profile": effective_profile,
             "response_mode": mode.value,
         }
         prompt = (

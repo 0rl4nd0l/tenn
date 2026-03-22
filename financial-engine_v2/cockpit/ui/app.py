@@ -418,7 +418,7 @@ class CockpitApp(App):
             loaded = model
 
         lines = [
-            f"Provider: {provider_label}  |  Model: {loaded}",
+            f"Provider: {provider_label}  |  Model Runtime: {loaded}",
             f"Endpoint: {endpoint}",
             f"Last mode: {self.last_response_mode or 'none'}",
         ]
@@ -598,7 +598,7 @@ class CockpitApp(App):
                 message,
                 enable_web=self.config["web"].get("enabled_default", False),
             ).value
-        thinking_prefix = f"{self.ASSISTANT_NAME} (thinking: {provisional_mode})"
+        thinking_prefix = f"{self.ASSISTANT_NAME} (thinking)"
 
         async def _spinner() -> None:
             idx = 0

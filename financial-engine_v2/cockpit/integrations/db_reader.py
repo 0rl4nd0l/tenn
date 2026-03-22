@@ -86,7 +86,8 @@ class DbReader:
         if ticker:
             sql = text(
                 """
-                select r.run_id, r.document_id, r.status, r.error, r.created_at
+                select r.run_id, r.document_id, r.status, r.error, r.created_at,
+                       d.ticker, d.title
                 from extraction_runs r
                 join documents d on d.document_id = r.document_id
                 where r.status = 'failed' and d.ticker = :ticker

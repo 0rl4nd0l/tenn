@@ -95,9 +95,18 @@ class ArtifactStore:
         md_path = base / f"{ts}.md"
         json_path = base / f"{ts}.json"
 
-        md_path.write_text(
-            f"# Analysis\n\n## Question\n{question}\n\n## Answer\n{answer}\n",
-            encoding="utf-8",
-        )
+        # Find price_state in payload evidence.
+        price_state: dict | None = None
+        for ev in (payload.get("evidence") or []):
+            ps = (ev.get("details") or {}).get("price_state")
+            if isinstance(ps, dict):
+                price_state = ps
+                break
+
+        md = f"# Analysis\n\n## Question\n{question}\n\n## Answer\n{answer}\n"
+        if price_state is not None:
+            md += "\n" + _render_price_state_md(price_state) + "\n"
+
+        md_path.write_text(md, encoding="utf-8")
         json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         return str(md_path), str(json_path)
