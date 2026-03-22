@@ -48,9 +48,10 @@ logger = logging.getLogger("run_analysis")
 class LlamaCppChatClient:
     """Minimal chat client for llama.cpp /v1/chat/completions."""
 
-    def __init__(self, base_url: str, model: str = "local") -> None:
+    def __init__(self, base_url: str, model: str = "local", api_key: str = "") -> None:
         self._url = base_url.rstrip("/") + "/v1/chat/completions"
         self._model = model
+        self._headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
 
     def chat(self, prompt: str, *, timeout: float = 120.0) -> str:
         payload: dict[str, Any] = {
@@ -59,7 +60,7 @@ class LlamaCppChatClient:
             "temperature": 0.1,
             "max_tokens": 1024,
         }
-        resp = httpx.post(self._url, json=payload, timeout=timeout)
+        resp = httpx.post(self._url, json=payload, headers=self._headers, timeout=timeout)
         resp.raise_for_status()
         data = resp.json()
         return data["choices"][0]["message"]["content"]
@@ -116,7 +117,7 @@ def main() -> None:
         raise SystemExit("--ticker is required")
 
     llm_url = args.llm_url or settings.llamacpp_url
-    llm_client = LlamaCppChatClient(base_url=llm_url)
+    llm_client = LlamaCppChatClient(base_url=llm_url, api_key=settings.local_api_key)
 
     logger.info("run_analysis ticker=%s period_type=%s max_periods=%s llm_url=%s",
                 ticker, args.period_type, args.max_periods, llm_url)
