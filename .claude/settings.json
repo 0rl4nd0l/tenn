@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo \"Branch: $(git rev-parse --abbrev-ref HEAD 2>/dev/null)\" && git status --short 2>/dev/null | head -20",
+            "command": "echo \"Branch: $(git rev-parse --abbrev-ref HEAD 2>/dev/null)\" && git status --short 2>/dev/null | head -20 || true",
             "statusMessage": "Loading repo state..."
           }
         ]

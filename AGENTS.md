@@ -34,6 +34,9 @@ A skill is a set of local instructions to follow that is stored in a `SKILL.md` 
 - Coordination and sequencing:
   - If multiple skills apply, choose the minimal set that covers the request and state the order you'll use them.
   - Announce which skill(s) you're using and why (one short line). If you skip an obvious skill, say why.
+- User-facing responses:
+  - Use the skill workflow and collect any required structured artifacts internally, but default to normal prose responses to the user.
+  - Only return raw JSON or schema-shaped output when the user explicitly asks for it or when a downstream tool invocation requires it in-band.
 - Context hygiene:
   - Keep context small: summarize long sections instead of pasting them; only load extra files when needed.
   - Avoid deep reference-chasing: prefer opening only files directly linked from `SKILL.md` unless you're blocked.

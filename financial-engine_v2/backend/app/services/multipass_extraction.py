@@ -155,6 +155,7 @@ _TABLE_KEYWORDS: dict[str, list[str]] = {
     "balance_sheet": [
         "total assets", "shareholders equity", "net assets", "total liabilities",
         "balance sheet", "statement of financial position",
+        "ordinary shares", "number of shares", "shares on issue",  # share capital note
     ],
     "highlights": [
         "highlights", "key metrics", "summary", "at a glance", "key financials",
@@ -345,7 +346,15 @@ def _run_pass3a_metric_extractor(
                     out[m] = None
             else:
                 out[m] = None
-        out["pass3_confidence"] = float(raw.get("pass3_confidence", 0.5))
+        # Compute confidence from observable results rather than relying on the
+        # model's self-reported value (which is typically 0.0 regardless of quality).
+        # Use fraction of expected metrics that were extracted as the signal.
+        n_extracted = sum(1 for m in metrics if out.get(m) is not None)
+        computed_conf = n_extracted / max(len(metrics), 1)
+        model_conf = float(raw.get("pass3_confidence", 0.0))
+        # Take max so a model that correctly reports high confidence is rewarded,
+        # but a model that reports 0 doesn't drag down an otherwise complete extraction.
+        out["pass3_confidence"] = max(computed_conf, model_conf)
         out["row_refs"] = raw.get("row_refs", {})
         results.append(out)
 
