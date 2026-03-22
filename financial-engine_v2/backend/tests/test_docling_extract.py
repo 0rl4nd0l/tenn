@@ -1,0 +1,151 @@
+from __future__ import annotations
+
+import os
+from pathlib import Path
+from types import SimpleNamespace
+
+from app.services import docling_extract
+from app.services.docling_extract import DoclingTable, StructuredDocument
+
+
+def test_extract_structured_reads_fresh_cache(tmp_path, monkeypatch):
+    pdf_path = tmp_path / "report.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4 test")
+
+    cached_doc = StructuredDocument(
+        tables=[
+            DoclingTable(
+                page_number=2,
+                caption="Cached table",
+                rows=[["Metric", "Value"], ["Revenue", "100"]],
+                headers=["Metric", "Value"],
+            )
+        ],
+        sections=[{"heading": True, "text": "Cached heading", "page": 1}],
+        extraction_method="docling",
+        page_count=3,
+    )
+    cache_path = Path(str(pdf_path) + ".docling.json")
+    docling_extract._save_cache(cache_path, cached_doc)
+    pdf_mtime = pdf_path.stat().st_mtime
+    os.utime(cache_path, (pdf_mtime + 5, pdf_mtime + 5))
+
+    monkeypatch.setattr(
+        docling_extract,
+        "_run_docling_with_timeout",
+        lambda path: (_ for _ in ()).throw(AssertionError("docling should not run when cache is fresh")),
+    )
+
+    loaded = docling_extract.extract_structured(str(pdf_path))
+
+    assert loaded == cached_doc
+
+
+def test_extract_structured_reextracts_when_cache_is_corrupt(tmp_path, monkeypatch):
+    pdf_path = tmp_path / "report.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4 test")
+    cache_path = Path(str(pdf_path) + ".docling.json")
+    cache_path.write_text("{not valid json", encoding="utf-8")
+    pdf_mtime = pdf_path.stat().st_mtime
+    os.utime(cache_path, (pdf_mtime + 5, pdf_mtime + 5))
+
+    extracted_doc = StructuredDocument(
+        tables=[],
+        sections=[{"heading": False, "text": "Re-extracted body", "page": 1}],
+        extraction_method="docling",
+        page_count=1,
+    )
+    calls: list[str] = []
+
+    def fake_run(path: str) -> StructuredDocument:
+        calls.append(path)
+        return extracted_doc
+
+    monkeypatch.setattr(docling_extract, "_run_docling_with_timeout", fake_run)
+
+    loaded = docling_extract.extract_structured(str(pdf_path))
+
+    assert loaded == extracted_doc
+    assert calls == [str(pdf_path)]
+    assert docling_extract._load_cache(cache_path) == extracted_doc
+
+
+def test_extract_structured_uses_pymupdf_fallback_when_docling_fails(tmp_path, monkeypatch):
+    pdf_path = tmp_path / "report.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4 test")
+
+    fallback_doc = StructuredDocument(
+        tables=[],
+        sections=[{"heading": False, "text": "Fallback text", "page": 1}],
+        extraction_method="pymupdf_fallback",
+        page_count=1,
+    )
+
+    monkeypatch.setattr(
+        docling_extract,
+        "_run_docling_with_timeout",
+        lambda path: (_ for _ in ()).throw(TimeoutError("docling timeout")),
+    )
+    monkeypatch.setattr(docling_extract, "_pymupdf_fallback", lambda path: fallback_doc)
+
+    loaded = docling_extract.extract_structured(str(pdf_path))
+
+    assert loaded == fallback_doc
+
+
+def test_pymupdf_fallback_extracts_sections_and_tables(monkeypatch):
+    rows = [["Metric", "Value"], ["Revenue", "100"]]
+
+    class FakeTable:
+        def extract(self):
+            return rows
+
+    class FakePage:
+        def __init__(self, text: str):
+            self._text = text
+
+        def get_text(self, mode: str) -> str:
+            assert mode == "text"
+            return self._text
+
+        def find_tables(self):
+            return [FakeTable()]
+
+    class FakeDoc:
+        def __init__(self):
+            self.pages = [FakePage(" First page text "), FakePage("Second page text")]
+
+        def __len__(self):
+            return len(self.pages)
+
+        def __iter__(self):
+            return iter(self.pages)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    monkeypatch.setattr(docling_extract.fitz, "open", lambda path: FakeDoc())
+
+    loaded = docling_extract._pymupdf_fallback("/tmp/fake.pdf")
+
+    assert loaded.extraction_method == "pymupdf_fallback"
+    assert loaded.page_count == 2
+    assert loaded.sections == [
+        {"heading": False, "text": "First page text", "page": 1},
+        {"heading": False, "text": "Second page text", "page": 2},
+    ]
+    assert len(loaded.tables) == 2
+    assert loaded.tables[0].headers == ["Metric", "Value"]
+    assert loaded.tables[0].rows == rows
+
+
+def test_extract_caption_prefers_captions_list():
+    table_item = SimpleNamespace(
+        captions=[SimpleNamespace(text="Statement of Cash Flows")],
+        caption="Older caption",
+    )
+
+    assert docling_extract._extract_caption(table_item) == "Statement of Cash Flows"
