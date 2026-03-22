@@ -58,6 +58,13 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print plan/estimates and exit without writing DB/files.",
     )
+    parser.add_argument(
+        "--zero-rows-policy",
+        dest="zero_rows_policy",
+        choices=["auto_rebuild_fail", "warn", "ignore"],
+        default="ignore",
+        help="Policy when zero financial rows are found after backfill.",
+    )
     return parser
 
 
@@ -358,6 +365,46 @@ def main() -> None:
     summary["ended_at"] = utc_now()
     backfill_errors = int((summary["backfill"] or {}).get("error_count", 0))
     summary["status"] = "success" if backfill_result and backfill_errors == 0 and resume_rc == 0 else "failed"
+
+    # Quality gate and extraction failure accounting.
+    extraction_failed_count = int((backfill_result or {}).get("extraction_failed_count", 0))
+    summary["extraction_failures"] = {"total": extraction_failed_count}
+    zero_rows_policy = getattr(args, "zero_rows_policy", "ignore")
+    after_rows = int((summary.get("after") or {}).get("rows", -1))
+    quality_gate: dict[str, Any] = {
+        "policy": zero_rows_policy,
+        "after_rows": after_rows,
+        "passed": True,
+        "reasons": [],
+        "rebuild": None,
+    }
+    if extraction_failed_count > 0:
+        quality_gate["passed"] = False
+        quality_gate["reasons"].append(f"extraction_failed_count={extraction_failed_count}")
+        summary["status"] = "failed"
+    elif after_rows == 0 and zero_rows_policy == "auto_rebuild_fail":
+        rebuild_report_path = report_path.with_name(f"{report_path.stem}_rebuild.json")
+        rebuild_cmd = [
+            args.python,
+            str(REPO_ROOT / "scripts" / "rebuild_ticker_financials_from_docs.py"),
+            "--ticker", ticker,
+            "--limit", "120",
+            "--force",
+            "--report", str(rebuild_report_path),
+        ]
+        rebuild_completed = subprocess.run(rebuild_cmd, cwd=str(REPO_ROOT), check=False)
+        post_rebuild_state = _query_financial_state(database_url, ticker)
+        after_rows_post = int((post_rebuild_state or {}).get("rows", 0))
+        quality_gate["rebuild"] = {"returncode": rebuild_completed.returncode}
+        quality_gate["after_rows"] = after_rows_post
+        if after_rows_post == 0:
+            quality_gate["passed"] = False
+            quality_gate["reasons"].append("rows still 0 after auto rebuild")
+            summary["status"] = "failed"
+    elif after_rows == 0 and zero_rows_policy == "warn":
+        quality_gate["passed"] = True
+        quality_gate["reasons"].append("warn mode: zero rows but no errors")
+    summary["quality_gate"] = quality_gate
 
     report_path.write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
     print(f"[update] status={summary['status']} report={report_path}", flush=True)
