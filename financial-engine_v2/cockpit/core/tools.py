@@ -1199,6 +1199,14 @@ class ToolRouter:
                             ]
                 except Exception:
                     pass
+            # Inject agent memory: accumulated observations about this ticker
+            if self._state_store is not None and ticker:
+                try:
+                    observations = self._state_store.get_entity_observations(ticker, limit=8)
+                    if observations:
+                        payload["agent_memory"] = observations
+                except Exception:
+                    pass
         return ToolResult(ok=True, title="local_context", payload=payload)
 
     def fetch_web(self, url: str, enabled: bool, max_chars: int | None = 8000) -> ToolResult:

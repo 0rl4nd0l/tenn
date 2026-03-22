@@ -202,6 +202,7 @@ class CockpitApp(App):
             backend_api_client=self._backend_client,
             qual_context_company_reader=qual_company,
             qual_context_news_reader=qual_news,
+            state_store=self.state_store,
         )
         self.chat_controller = ChatController(
             ollama_client=self.ollama_client,

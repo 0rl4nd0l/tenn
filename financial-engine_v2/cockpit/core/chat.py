@@ -208,6 +208,54 @@ class ChatController:
         return "cannot be verified based on available data" in text.lower()
 
     @staticmethod
+    def _extract_ticker_observations(ticker: str, assistant_text: str) -> list[dict]:
+        """
+        Extract financial observations from LLM response text using rule-based matching.
+        Returns list of {'type': str, 'content': str}.
+        """
+        import re as _re
+
+        # Financial signal vocabulary by type
+        SIGNAL_WORDS = {
+            "revenue": ["revenue", "sales", "turnover", "top-line", "top line"],
+            "profitability": ["profit", "ebit", "ebitda", "npat", "margin", "earnings", "loss"],
+            "cashflow": ["cash flow", "cashflow", "fcf", "operating cash", "free cash"],
+            "debt": ["debt", "leverage", "net debt", "borrowings", "net cash", "gearing"],
+            "guidance": ["guidance", "outlook", "forecast", "expects", "target", "projected"],
+            "risk": ["risk", "headwind", "concern", "impairment", "write-down", "write-off"],
+            "catalyst": ["catalyst", "upgrade", "acquisition", "merger", "buyback", "dividend"],
+            "valuation": ["cheap", "expensive", "overvalued", "undervalued", "discount", "premium", "p/e", "ev/ebit"],
+        }
+
+        observations = []
+        ticker_upper = ticker.upper()
+        ticker_lower = ticker.lower()
+
+        # Split into sentences
+        sentences = _re.split(r"(?<=[.!?])\s+", assistant_text)
+
+        for sentence in sentences:
+            sentence = sentence.strip()
+            if len(sentence) < 20 or len(sentence) > 300:
+                continue
+
+            # Sentence must mention the ticker
+            if ticker_upper not in sentence and ticker_lower not in sentence:
+                continue
+
+            # Check for signal words
+            for obs_type, words in SIGNAL_WORDS.items():
+                if any(w in sentence.lower() for w in words):
+                    observations.append({
+                        "type": obs_type,
+                        "content": sentence,
+                    })
+                    break  # one type per sentence
+
+        # Cap at 3 observations per turn to avoid noise
+        return observations[:3]
+
+    @staticmethod
     def _sanitize_prompt_local_payload(payload: Any, *, deep_mode: bool = False) -> dict[str, Any]:
         """
         Trim doc lists and snippet excerpts to safe sizes before building the prompt.
@@ -840,6 +888,13 @@ class ChatController:
             if mv_lines:
                 context_sections.append("Valuation Multiples:\n" + "\n".join(mv_lines))
 
+        if local_payload.get("agent_memory"):
+            mem_lines = []
+            for obs in local_payload["agent_memory"]:
+                mem_lines.append(f"  [{obs.get('type', 'note')}] {obs.get('content', '')}")
+            if mem_lines:
+                context_sections.append("Prior agent observations about this ticker:\n" + "\n".join(mem_lines[:6]))
+
         runtime_settings = {
             "context_profile": effective_profile,
             "response_mode": mode.value,
@@ -889,6 +944,20 @@ class ChatController:
                 message=message,
                 local_payload=local_payload,
             )
+
+        # Extract and store ticker observations from this response
+        if self._state_store is not None and ticker:
+            try:
+                obs_list = ChatController._extract_ticker_observations(ticker, answer)
+                for obs in obs_list:
+                    self._state_store.add_entity_observation(
+                        ticker=ticker,
+                        observation_type=obs["type"],
+                        content=obs["content"],
+                        source="chat",
+                    )
+            except Exception:
+                pass  # observations are best-effort, never block the response
 
         return ChatResponse(text=answer.strip(), evidence=evidence, mode=mode, prompt=prompt)
 

@@ -78,6 +78,21 @@ class StateStore:
             )
             """
         )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS entity_observations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticker TEXT NOT NULL,
+                observation_type TEXT NOT NULL,
+                content TEXT NOT NULL,
+                source TEXT NOT NULL DEFAULT 'chat',
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_entity_obs_ticker ON entity_observations(ticker)"
+        )
         self.conn.commit()
 
     def add_chat_message(self, thread_id: str, role: str, content: str, created_at: str) -> None:
@@ -275,3 +290,31 @@ class StateStore:
             item["summary"] = json.loads(item.pop("summary_json"))
             out.append(item)
         return out
+
+    # ------------------------------------------------------------------ #
+    # Entity observations                                                  #
+    # ------------------------------------------------------------------ #
+
+    def add_entity_observation(
+        self,
+        ticker: str,
+        observation_type: str,
+        content: str,
+        source: str = "chat",
+    ) -> None:
+        """Store a fact extracted from a conversation turn about a ticker."""
+        with self._lock:
+            self.conn.execute(
+                "INSERT INTO entity_observations (ticker, observation_type, content, source) VALUES (?, ?, ?, ?)",
+                (ticker.upper(), observation_type, content[:300], source),
+            )
+            self.conn.commit()
+
+    def get_entity_observations(self, ticker: str, limit: int = 8) -> list[dict]:
+        """Retrieve recent observations about a ticker."""
+        rows = self.conn.execute(
+            "SELECT observation_type, content, created_at FROM entity_observations "
+            "WHERE ticker = ? ORDER BY created_at DESC LIMIT ?",
+            (ticker.upper(), limit),
+        ).fetchall()
+        return [{"type": r[0], "content": r[1], "date": r[2][:10]} for r in rows]
