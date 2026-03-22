@@ -403,13 +403,16 @@ class PreBootScreen(Screen):
             env.setdefault("COCKPIT_VERBOSE_LOGGING", "1")
             env.setdefault("COCKPIT_LOG_TO_STDERR", "1")
 
-        # For llamacpp, raw_model_value is a full path (local .gguf).
-        # Blob paths have no .gguf extension — look up alias from discovered models list.
+        # For llamacpp, raw_model_value is a full absolute path (local .gguf).
+        # Non-path values (e.g. "llama3:latest" fallback) are treated as no selection.
+        # Selecting the currently active model is also treated as "no change" — return
+        # model_path="" so _needs_restart() skips an unnecessary restart.
         if llm_provider == "llamacpp":
-            model_path = raw_model_value
-            if model_path:
-                # Look up the human-readable alias from discovered models (covers both
-                # local .gguf files whose stem is a sha256 hash).
+            active_path = (self._llama_proc or {}).get("model_path", "")
+            is_real_path = raw_model_value.startswith("/")
+            if is_real_path and raw_model_value != active_path:
+                # User explicitly selected a different model path.
+                model_path = raw_model_value
                 model_info = next((m for m in self._llama_fs_models if m["path"] == model_path), None)
                 if model_info:
                     model_alias = model_info["stem"]
@@ -418,12 +421,13 @@ class PreBootScreen(Screen):
                 else:
                     model_alias = Path(model_path).stem
             else:
-                model_alias = "local"
+                # No real path selected (fallback value or same as running model).
+                model_path = ""
+                model_alias = self._initial.get("llm_model", "local")
         else:
             model_path = ""
             model_alias = raw_model_value or "llama3:latest"
 
-        mmap_disabled = self.query_one("#opt-mmap-off", Checkbox).value
         return {
             "read_only": read_only,
             "no_web": not web_enabled,
@@ -433,7 +437,6 @@ class PreBootScreen(Screen):
             "llm_provider": llm_provider,
             "llm_model": model_alias,
             "llm_model_path": model_path,
-            "mmap_disabled": mmap_disabled,
             "env": env,
             "cancelled": False,
         }
@@ -446,7 +449,8 @@ class PreBootScreen(Screen):
             and self._llama_proc.get("model_path") != flags["llm_model_path"]
         )
         current_no_mmap = has_no_mmap(self._llama_proc.get("raw_args", []))
-        mmap_changed = flags.get("mmap_disabled", False) != current_no_mmap
+        mmap_disabled = self.query_one("#opt-mmap-off", Checkbox).value
+        mmap_changed = mmap_disabled != current_no_mmap
         return bool(model_changed or mmap_changed)
 
     def action_launch(self) -> None:
@@ -479,7 +483,7 @@ class PreBootScreen(Screen):
             model_alias,
             600.0,
             _status,
-            flags.get("mmap_disabled"),
+            self.query_one("#opt-mmap-off", Checkbox).value,
         )
 
         if success:
