@@ -42,7 +42,7 @@ METRIC_FIELDS = [
 ]
 
 # Source priority for reconciliation (index 0 = highest priority)
-SOURCE_PRIORITY = ["income_statement", "cashflow_statement", "balance_sheet", "highlights"]
+SOURCE_PRIORITY = ["income_statement", "cashflow_statement", "balance_sheet", "share_capital", "highlights"]
 
 SCALE_MULTIPLIERS = {
     "thousands": 1_000,
@@ -155,7 +155,10 @@ _TABLE_KEYWORDS: dict[str, list[str]] = {
     "balance_sheet": [
         "total assets", "shareholders equity", "net assets", "total liabilities",
         "balance sheet", "statement of financial position",
-        "ordinary shares", "number of shares", "shares on issue",  # share capital note
+    ],
+    "share_capital": [
+        "ordinary shares", "number of shares", "shares on issue", "shares issued",
+        "share capital", "shares at end",
     ],
     "highlights": [
         "highlights", "key metrics", "summary", "at a glance", "key financials",
@@ -171,6 +174,7 @@ _STATEMENT_HEADERS: dict[str, list[str]] = {
         "income statement", "statement of profit", "statement of comprehensive income",
     ],
     "balance_sheet": ["balance sheet", "statement of financial position"],
+    "share_capital": ["share capital", "number of shares"],
     "highlights": ["appendix 4d", "results for announcement"],
 }
 _HEADER_BONUS = 10
@@ -188,6 +192,7 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
 
     labelled: dict[str, Any] = {k: None for k in _TABLE_KEYWORDS}
     labelled["unmatched"] = []
+    # share_capital is handled via _TABLE_KEYWORDS and pools above
 
     def _score(table: DoclingTable, label: str, keywords: list[str]) -> int:
         # Include caption, all header cells, and first-column of first 8 rows
@@ -195,9 +200,12 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
         body_text = " ".join(row[0] for row in table.rows[:8] if row).lower()
         text = table.caption.lower() + " " + header_text + " " + body_text
         score = sum(1 for kw in keywords if kw in text)
-        # Bonus for explicit statement-type header (e.g. "STATEMENT OF CASH FLOWS")
+        # Bonus only when the explicit statement name appears in the column HEADERS
+        # (not body text) — prevents index/checklist tables from claiming the bonus
+        # just because they reference another statement by name in a row label.
+        header_only = table.caption.lower() + " " + header_text
         for phrase in _STATEMENT_HEADERS.get(label, []):
-            if phrase in text:
+            if phrase in header_only:
                 score += _HEADER_BONUS
                 break
         return score
@@ -265,6 +273,7 @@ _METRIC_SCHEMA_BY_TABLE = {
     "cashflow_statement": ["operating_cf", "investing_cf", "financing_cf", "cash_end", "capex"],
     "income_statement": ["revenue", "ebit", "np_attributable"],
     "balance_sheet": ["net_debt", "shares_outstanding"],
+    "share_capital": ["shares_outstanding"],
     "highlights": METRIC_FIELDS,  # highlights may have any metric
 }
 
@@ -335,13 +344,16 @@ def _run_pass3a_metric_extractor(
                 logger.error("Pass 3a retry also failed for %s: %s", table_type, e2)
                 continue
 
-        # Apply scale multiplier to all numeric values
+        # Apply scale multiplier to monetary values only.
+        # Count metrics (share counts etc.) are always absolute integers — never scaled.
+        _COUNT_METRICS = {"shares_outstanding"}
         out = {"_source": table_type}
         for m in metrics:
             val = raw.get(m)
             if val is not None:
                 try:
-                    out[m] = float(val) * multiplier
+                    effective_multiplier = 1 if m in _COUNT_METRICS else multiplier
+                    out[m] = float(val) * effective_multiplier
                 except (TypeError, ValueError):
                     out[m] = None
             else:
