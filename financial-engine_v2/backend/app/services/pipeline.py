@@ -1022,7 +1022,7 @@ def process_document(
         db.add(run)
         db.commit()
 
-        if status == "ok":
+        if status in {"ok", "ok_low_confidence"}:
             _upsert_financial_rows(db, doc, structured)
 
         return {

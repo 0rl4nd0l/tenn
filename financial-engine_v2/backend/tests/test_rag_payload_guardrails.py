@@ -369,6 +369,110 @@ def test_process_document_skips_invalid_chunk_payloads(monkeypatch):
     assert captured_points == []
 
 
+def test_process_document_upserts_financial_rows_for_ok_low_confidence(monkeypatch):
+    doc_id = uuid.uuid4()
+    upsert_calls: list[tuple[object, object, dict]] = []
+
+    class DummyDoc:
+        document_id = doc_id
+        ticker = "ABC"
+        doc_class = "announcement"
+        doc_subtype = "periodic"
+        title = "Low confidence periodic"
+        pdf_path = "/tmp/low_confidence.pdf"
+        source_url = "https://example.com/low_confidence.pdf"
+
+    class DummyQuery:
+        def filter(self, *args, **kwargs):
+            return self
+
+        def first(self):
+            return DummyDoc()
+
+    class DummySession:
+        def __init__(self):
+            self.added: list[object] = []
+
+        def query(self, model):
+            return DummyQuery()
+
+        def add(self, obj):
+            self.added.append(obj)
+
+        def commit(self):
+            pass
+
+        def rollback(self):
+            pass
+
+        def close(self):
+            pass
+
+    session = DummySession()
+    structured_payload = {
+        "period_type": "H",
+        "period_end": "2024-12-31",
+        "confidence_metrics": 0.65,
+        "confidence_narrative": 0.5,
+        "metrics": {
+            "revenue": 1000,
+            "ebit": None,
+            "np_attributable": None,
+            "operating_cf": 500,
+            "investing_cf": None,
+            "financing_cf": None,
+            "capex": None,
+            "cash_end": 200,
+            "net_debt": None,
+            "shares_outstanding": None,
+        },
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "provenance": {},
+        "revenue": 1000,
+        "ebit": None,
+        "np_attributable": None,
+        "operating_cf": 500,
+        "investing_cf": None,
+        "financing_cf": None,
+        "capex": None,
+        "cash_end": 200,
+        "net_debt": None,
+        "shares_outstanding": None,
+    }
+
+    monkeypatch.setattr(pipeline, "SessionLocal", lambda: session)
+    monkeypatch.setattr(
+        pipeline,
+        "run_multipass_extraction",
+        lambda *args, **kwargs: SimpleNamespace(
+            status="ok_low_confidence",
+            payload=structured_payload,
+            sections=[{"text": "Narrative section", "page": 1}],
+            error=None,
+        ),
+    )
+    monkeypatch.setattr(pipeline, "chunk_prose_sections", lambda doc: [])
+    monkeypatch.setattr(
+        pipeline,
+        "_upsert_financial_rows",
+        lambda db, doc, structured: upsert_calls.append((db, doc, structured)),
+    )
+    monkeypatch.setattr(pipeline.settings, "enable_extraction", True, raising=False)
+    monkeypatch.setattr(pipeline.settings, "enable_embeddings", False, raising=False)
+    monkeypatch.setattr(pipeline.settings, "enable_qdrant", False, raising=False)
+
+    result = pipeline.process_document(str(doc_id))
+
+    assert result["extraction_status"] == "ok_low_confidence"
+    assert len(upsert_calls) == 1
+    assert upsert_calls[0][0] is session
+    assert upsert_calls[0][1].document_id == doc_id
+    assert upsert_calls[0][2] is structured_payload
+
+
 def test_query_rag_logs_when_ticker_results_are_missing_after_fallback(monkeypatch, caplog):
     class EmptyClient:
         def __init__(self) -> None:
