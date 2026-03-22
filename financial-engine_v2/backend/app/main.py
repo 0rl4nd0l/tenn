@@ -166,18 +166,23 @@ def check_ollama(base_url: str) -> bool:
 def validate_backends(llamacpp_base_url: str, ollama_base_url: str) -> None:
     llama_url = str(llamacpp_base_url or "").strip().rstrip("/")
     ollama_url = str(ollama_base_url or "").strip().rstrip("/")
-    if not llama_url or not ollama_url:
-        raise RuntimeError("Both llama.cpp and Ollama base URLs must be configured.")
+    if not llama_url:
+        raise RuntimeError("llama.cpp base URL must be configured.")
     if (
+        ollama_url
+        and (
         llama_url == ollama_url
         or llama_url.startswith(ollama_url)
         or ollama_url.startswith(llama_url)
+        )
     ):
         raise RuntimeError("Potential backend overlap detected")
     try:
         check_llamacpp(llama_url)
     except Exception as exc:
         raise RuntimeError(f"llama.cpp endpoint invalid: {exc}") from exc
+    if not ollama_url:
+        return
     try:
         check_ollama(ollama_url)
     except Exception as exc:

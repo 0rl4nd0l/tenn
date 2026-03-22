@@ -53,9 +53,13 @@ def test_validate_llm_endpoints_rejects_same_host_port_with_different_paths() ->
         )
 
 
-def test_validate_llm_endpoints_requires_both_values() -> None:
-    with pytest.raises(ValueError, match="Both LLAMACPP_URL and OLLAMA_URL must be set"):
+def test_validate_llm_endpoints_requires_llamacpp_value() -> None:
+    with pytest.raises(ValueError, match="LLAMACPP_URL must be set"):
         config.validate_llm_endpoints("", "http://127.0.0.1:11434")
+
+
+def test_validate_llm_endpoints_allows_missing_ollama_value() -> None:
+    config.validate_llm_endpoints("http://127.0.0.1:8001", "")
 
 
 @pytest.mark.parametrize(
@@ -441,6 +445,17 @@ def test_validate_backends_checks_both_endpoints(monkeypatch) -> None:
         ("llamacpp", "http://127.0.0.1:8001"),
         ("ollama", "http://127.0.0.1:11434"),
     ]
+
+
+def test_validate_backends_allows_missing_ollama(monkeypatch) -> None:
+    calls: list[tuple[str, str]] = []
+
+    monkeypatch.setattr(main, "check_llamacpp", lambda base_url: calls.append(("llamacpp", base_url)) or True)
+    monkeypatch.setattr(main, "check_ollama", lambda base_url: calls.append(("ollama", base_url)) or True)
+
+    main.validate_backends("http://127.0.0.1:8001", "")
+
+    assert calls == [("llamacpp", "http://127.0.0.1:8001")]
 
 
 def test_validate_backends_raises_for_invalid_llamacpp(monkeypatch) -> None:

@@ -120,7 +120,18 @@ def test_live_eval_accuracy_against_fixtures():
     per_metric_results: dict[str, list[bool]] = {}
     overall_results: list[bool] = []
 
-    llm_client = httpx.Client(base_url="http://127.0.0.1:8001/v1", timeout=60.0)
+    import os
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if anthropic_key:
+        import anthropic
+        llm_client = anthropic.Anthropic(api_key=anthropic_key)
+        llm_client._extraction_model = os.getenv("EVAL_CLAUDE_MODEL", "claude-opus-4-6")
+    else:
+        headers = {}
+        api_key = os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY") or ""
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        llm_client = httpx.Client(base_url="http://127.0.0.1:8001/v1", timeout=60.0, headers=headers)
 
     for fixture in fixtures:
         root = Path(__file__).parent.parent.parent

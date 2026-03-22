@@ -100,8 +100,10 @@ def validate_llm_endpoints(llamacpp_url: str, ollama_url: str) -> None:
         default="",
         strip_v1=True,
     )
-    if not normalized_llamacpp or not normalized_ollama:
-        raise ValueError("Both LLAMACPP_URL and OLLAMA_URL must be set")
+    if not normalized_llamacpp:
+        raise ValueError("LLAMACPP_URL must be set")
+    if not normalized_ollama:
+        return
     llamacpp_host, llamacpp_port = _extract_host_port(normalized_llamacpp)
     ollama_host, ollama_port = _extract_host_port(normalized_ollama)
     if normalized_llamacpp == normalized_ollama or (
@@ -230,8 +232,8 @@ class Settings(BaseSettings):
     qdrant_collection: str = "asx_docs"
     data_root: str = str(DATA_ROOT)
     docs_root: str = DEFAULT_DOCS_ROOT
-    ollama_url: str = "http://127.0.0.1:11434"
-    llamacpp_url: str = "http://127.0.0.1:8080"
+    ollama_url: str = ""
+    llamacpp_url: str = "http://127.0.0.1:8001"
     llamacpp_timeout_seconds: float = 120.0
     model_routing_config: str = str(_model_routing_config_path_from_module_path(Path(__file__)))
     embed_model: str = "nomic-embed-text"
@@ -323,10 +325,10 @@ settings.docs_root = _resolve_project_path(settings.docs_root)
 settings.marketindex_announcements_file = _resolve_project_path(settings.marketindex_announcements_file)
 settings.importance_output_root = _resolve_project_path(settings.importance_output_root)
 settings.model_routing_config = _resolve_project_path(settings.model_routing_config)
-settings.ollama_url = _normalize_base_url(settings.ollama_url, default="http://127.0.0.1:11434", strip_v1=True)
+settings.ollama_url = _normalize_base_url(settings.ollama_url, default="", strip_v1=True)
 settings.llamacpp_url = _normalize_base_url(
     settings.llamacpp_url,
-    default="http://127.0.0.1:8080",
+    default="http://127.0.0.1:8001",
     strip_v1=True,
 )
 validate_llm_endpoints(

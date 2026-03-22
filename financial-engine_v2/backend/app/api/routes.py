@@ -345,15 +345,19 @@ def rag_query(
 ):
     from qdrant_client import QdrantClient
     from qdrant_client.http import models as qmodels
-    from app.services.ollama import ollama_embed
+    from app.services.embeddings import embed_texts_batched
 
     qdrant_url = str(getattr(settings, "qdrant_url", "http://localhost:6333"))
     embed_model = str(getattr(settings, "embed_model", "nomic-embed-text"))
-    ollama_url = str(getattr(settings, "ollama_url", "http://localhost:11434"))
+    embedding_url = str(
+        getattr(settings, "llamacpp_url", "")
+        or getattr(settings, "ollama_url", "")
+        or "http://localhost:8001"
+    )
     collection = "news_chunks"
 
     try:
-        vec = ollama_embed([q], model=embed_model, base_url=ollama_url)[0]
+        vec = embed_texts_batched([q], llm_url=embedding_url, model=embed_model)[0]
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Embedding failed: {exc}") from exc
 

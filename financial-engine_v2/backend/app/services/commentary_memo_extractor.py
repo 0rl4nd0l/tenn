@@ -11,7 +11,7 @@ from app.services.source_registry import RESEARCH_MEMORY_ROOT
 
 
 DEFAULT_COMMENTARY_MEMOS_PATH = RESEARCH_MEMORY_ROOT / "commentary_memos.jsonl"
-DEFAULT_LLAMACPP_URL = os.getenv("LLAMACPP_URL", "http://127.0.0.1:8080").rstrip("/")
+DEFAULT_LLAMACPP_URL = os.getenv("LLAMACPP_URL", "http://127.0.0.1:8001").rstrip("/")
 DEFAULT_LLAMACPP_MODEL = os.getenv("LLAMACPP_MODEL", "model.gguf").strip()
 
 
