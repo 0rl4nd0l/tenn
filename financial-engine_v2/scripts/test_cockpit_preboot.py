@@ -5,6 +5,7 @@ import os
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from textual.app import App
 
@@ -14,6 +15,7 @@ os.chdir(REPO_ROOT)
 sys.path.insert(0, str(REPO_ROOT))
 
 from cockpit.ui.preboot import PreBootScreen  # noqa: E402
+from scripts.cockpit_tui import _build_preboot_initial_flags, _merge_preboot_flags  # noqa: E402
 
 
 class _PreBootTestApp(App[None]):
@@ -50,6 +52,9 @@ class PreBootScreenTests(unittest.IsolatedAsyncioTestCase):
                     "enable_rag": True,
                     "verbose": False,
                     "profile": "testing",
+                    "llm_provider": "llamacpp",
+                    "llm_model": "qwen2.5-coder-14b",
+                    "llm_model_path": "",
                     "env": {
                         "COCKPIT_LOG_LEVEL": "DEBUG",
                         "COCKPIT_VERBOSE_LOGGING": "1",
@@ -59,6 +64,28 @@ class PreBootScreenTests(unittest.IsolatedAsyncioTestCase):
                     "cancelled": False,
                 },
             )
+
+    def test_build_preboot_initial_flags_seeds_llm_from_effective_config(self) -> None:
+        initial = _build_preboot_initial_flags(REPO_ROOT, ["--config", "config/cockpit.local.yaml"], "config/cockpit.yaml")
+        self.assertEqual(initial["llm_provider"], "ollama")
+        self.assertEqual(initial["llm_model"], "qwen2.5:32b")
+
+    def test_merge_preboot_flags_exports_llm_choice(self) -> None:
+        with mock.patch.dict(os.environ, {}, clear=True):
+            argv = _merge_preboot_flags(
+                [],
+                {
+                    "profile": "default",
+                    "read_only": False,
+                    "no_web": False,
+                    "llm_provider": "ollama",
+                    "llm_model": "qwen2.5:32b",
+                    "env": {},
+                },
+            )
+        self.assertEqual(argv, ["--profile", "default"])
+        self.assertEqual(os.environ["COCKPIT_LLM_PROVIDER"], "ollama")
+        self.assertEqual(os.environ["COCKPIT_LLM_MODEL"], "qwen2.5:32b")
 
 
 if __name__ == "__main__":

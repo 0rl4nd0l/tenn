@@ -36,6 +36,11 @@ make context-refresh
 
 # Agent context + Tenn developer_instructions profile
 make codex-prompt-refresh
+
+# Alternate Codex prompt profiles
+CODEX_PROFILE=bug make codex-prompt-refresh
+CODEX_PROFILE=review make codex-prompt-refresh
+CODEX_PROFILE=extraction make codex-prompt-refresh
 ```
 
 ---

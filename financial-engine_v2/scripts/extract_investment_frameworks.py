@@ -21,7 +21,7 @@ BACKEND_ROOT = REPO_ROOT / "backend"
 DEFAULT_SEMANTIC_CHUNKS = WORKSPACE_ROOT / "reports" / "investment_preprocess" / "semantic_chunks.jsonl"
 TOKEN_RE = re.compile(r"[A-Za-z0-9_]+")
 DEFAULT_MAX_PROMPT_CHARS = 18000
-DEFAULT_LLM_URL = "http://127.0.0.1:8080"
+DEFAULT_LLM_URL = "http://127.0.0.1:8001"
 DEFAULT_LLM_MODEL = "local-model"
 
 

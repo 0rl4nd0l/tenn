@@ -8,8 +8,9 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
-from textual.widgets import Static
+from textual.widgets import Input, RichLog, Static
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -27,6 +28,10 @@ def _widget_text(widget: Static) -> str:
     return str(renderable)
 
 
+def _log_text(widget: RichLog) -> str:
+    return "\n".join(strip.text for strip in widget.lines)
+
+
 def _build_config(tmpdir: Path) -> dict[str, object]:
     return {
         "exports": {"dir": str(tmpdir / "exports")},
@@ -35,7 +40,8 @@ def _build_config(tmpdir: Path) -> dict[str, object]:
         "db": {"database_url": f"sqlite:///{tmpdir / 'cockpit.sqlite'}"},
         "paths": {"allow_roots": [str(REPO_ROOT)]},
         "llm": {
-            "ollama_url": "http://localhost:11434",
+            "provider": "llamacpp",
+            "llamacpp_url": "http://localhost:8001",
             "model": "test-model",
             "timeout_seconds": 5,
         },
@@ -68,7 +74,12 @@ class CockpitChatStatusWidgetTests(unittest.IsolatedAsyncioTestCase):
                 "gpu_error": None,
             }
 
-            def _slow_response(message: str, enable_web: bool = False, prior_ticker: str | None = None) -> ChatResponse:
+            def _slow_response(
+                message: str,
+                enable_web: bool = False,
+                prior_ticker: str | None = None,
+                on_chunk=None,
+            ) -> ChatResponse:
                 time.sleep(0.25)
                 return ChatResponse(
                     text="Done",
@@ -98,6 +109,55 @@ class CockpitChatStatusWidgetTests(unittest.IsolatedAsyncioTestCase):
                 await task
                 await pilot.pause()
                 self.assertEqual(_widget_text(status), "")
+
+    async def test_input_submit_echoes_and_streams_into_chat(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            app = CockpitApp(repo_root=REPO_ROOT, config=_build_config(Path(tmp)), read_only=True)
+
+            def _streaming_response(
+                message: str,
+                enable_web: bool = False,
+                prior_ticker: str | None = None,
+                on_chunk=None,
+            ) -> ChatResponse:
+                for chunk in ("First ", "draft", "\nSecond line"):
+                    if on_chunk is not None:
+                        on_chunk(chunk)
+                    time.sleep(0.06)
+                return ChatResponse(
+                    text="First draft\nSecond line",
+                    evidence=[{"details": {"ticker": "BHP"}}],
+                )
+
+            app.chat_controller.build_chat_response = _streaming_response
+
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                screen = app.get_screen("chat")
+                input_widget = screen.query_one("#chat-input", Input)
+                input_widget.value = "analyse bhp"
+
+                await screen.on_input_submitted(SimpleNamespace(value="analyse bhp", input=input_widget))
+                self.assertEqual(input_widget.value, "")
+
+                await asyncio.sleep(0.05)
+                await pilot.pause()
+
+                log = screen.query_one("#chat-log", RichLog)
+                status = screen.query_one("#chat-status", Static)
+                live = screen.query_one("#chat-live-response", Static)
+
+                self.assertIn("user: analyse bhp", _log_text(log))
+                self.assertIn("Tenn (thinking)", _widget_text(status))
+                self.assertIn("Tenn: First", _widget_text(live))
+
+                await asyncio.sleep(0.25)
+                await pilot.pause()
+
+                self.assertEqual(_widget_text(status), "")
+                self.assertEqual(_widget_text(live), "")
+                self.assertIn("assistant: First draft", _log_text(log))
+                self.assertIn("Second line", _log_text(log))
 
 
 if __name__ == "__main__":

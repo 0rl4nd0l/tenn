@@ -26,6 +26,12 @@ class ArtifactStore:
         path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         return str(path)
 
+    def write_text(self, rel_path: str, content: str) -> str:
+        path = (self.repo_root / rel_path).resolve()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+        return str(path)
+
     def write_analysis(self, thread_id: str, question: str, answer: str, payload: dict[str, Any]) -> tuple[str, str]:
         ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         base = self.exports_dir / thread_id

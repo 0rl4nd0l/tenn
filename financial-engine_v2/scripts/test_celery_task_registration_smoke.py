@@ -40,7 +40,7 @@ class TestCeleryTaskRegistrationSmoke(unittest.TestCase):
             os.environ["CELERY_RESULT_BACKEND"] = "redis://redis:6379/1"
             os.environ["TENN_HOST_NETWORK"] = "true"
             os.environ["DATABASE_URL"] = "sqlite:////tmp/celery_smoke.db"
-            os.environ["LLAMACPP_URL"] = "http://127.0.0.1:8080"
+            os.environ["LLAMACPP_URL"] = "http://127.0.0.1:8001"
             os.environ["OLLAMA_URL"] = "http://127.0.0.1:11434"
 
             import app.core.config as config_module

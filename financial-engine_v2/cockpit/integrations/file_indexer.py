@@ -20,14 +20,31 @@ class FileIndexer:
         files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
         return [str(p) for p in files[:limit]]
 
+    # Subdirectories searched per root; intentionally narrow to avoid scanning
+    # the full home directory on every chat message.
+    _SEARCH_SUBDIRS = ("reports", "data")
+
     def search_text(self, pattern: str, limit: int = 50) -> list[dict[str, Any]]:
         results: list[dict[str, Any]] = []
         if not pattern.strip():
             return results
         for root in self.roots:
-            cmd = ["rg", "-n", "-m", str(limit), pattern, str(root)]
+            search_dirs = [root / sub for sub in self._SEARCH_SUBDIRS if (root / sub).is_dir()]
+            if not search_dirs:
+                continue
+            cmd = [
+                "rg", "-n", "-m", str(limit),
+                "--max-filesize", "1M",
+                "--max-depth", "6",
+                pattern,
+                *[str(d) for d in search_dirs],
+            ]
             try:
-                output = subprocess.check_output(cmd, text=True, stderr=subprocess.DEVNULL)
+                output = subprocess.check_output(
+                    cmd, text=True, stderr=subprocess.DEVNULL, timeout=5
+                )
+            except subprocess.TimeoutExpired:
+                continue
             except Exception:
                 continue
             for line in output.splitlines():

@@ -319,6 +319,44 @@ def _run_preboot_screen(
     return result
 
 
+def _build_preboot_initial_flags(
+    repo_root: Path,
+    cockpit_argv: list[str],
+    default_cockpit_config: str,
+) -> dict[str, Any]:
+    initial_flags: dict[str, Any] = {
+        "read_only": "--read-only" in cockpit_argv,
+        "no_web": "--no-web" in cockpit_argv,
+        "profile": "default",
+    }
+    for i, arg in enumerate(cockpit_argv):
+        if arg == "--profile" and i + 1 < len(cockpit_argv):
+            initial_flags["profile"] = cockpit_argv[i + 1]
+        elif arg.startswith("--profile="):
+            initial_flags["profile"] = arg.split("=", 1)[1]
+
+    config_path = _resolve_effective_config_path(repo_root, cockpit_argv, default_cockpit_config)
+    if config_path is None or not config_path.exists():
+        return initial_flags
+
+    from cockpit.core.config import RuntimeFlags, apply_runtime_flags, load_config
+
+    cfg = load_config(str(config_path))
+    cfg = apply_runtime_flags(
+        cfg,
+        RuntimeFlags(
+            config_path=str(config_path),
+            profile=str(initial_flags["profile"]),
+            read_only=bool(initial_flags["read_only"]),
+            no_web=bool(initial_flags["no_web"]),
+        ),
+    )
+    llm_cfg = cfg.get("llm", {})
+    initial_flags["llm_provider"] = str(llm_cfg.get("provider") or "llamacpp")
+    initial_flags["llm_model"] = str(llm_cfg.get("model") or "qwen2.5-coder-14b")
+    return initial_flags
+
+
 def _merge_preboot_flags(cockpit_argv: list[str], flags: dict[str, Any]) -> list[str]:
     """
     Inject pre-boot flag choices into cockpit_argv and os.environ.
@@ -351,6 +389,10 @@ def _merge_preboot_flags(cockpit_argv: list[str], flags: dict[str, Any]) -> list
     os.environ["COCKPIT_PREBOOT_PROFILE"] = str(flags.get("profile") or "default")
     os.environ["COCKPIT_PREBOOT_READ_ONLY"] = "1" if flags.get("read_only") else "0"
     os.environ["COCKPIT_PREBOOT_NO_WEB"] = "1" if flags.get("no_web") else "0"
+    if flags.get("llm_provider"):
+        os.environ["COCKPIT_LLM_PROVIDER"] = str(flags["llm_provider"])
+    if flags.get("llm_model"):
+        os.environ["COCKPIT_LLM_MODEL"] = str(flags["llm_model"])
 
     return argv
 
@@ -431,14 +473,7 @@ def main(argv: list[str] | None = None) -> None:
     if not skip_setup:
         backend_url = (os.environ.get("COCKPIT_BACKEND_API_URL") or "http://localhost:8000").strip()
         ollama_url = (os.environ.get("COCKPIT_OLLAMA_URL") or "http://localhost:11434").strip()
-        initial_flags: dict[str, Any] = {
-            "read_only": "--read-only" in cockpit_argv,
-            "no_web": "--no-web" in cockpit_argv,
-            "profile": "default",
-        }
-        for i, arg in enumerate(cockpit_argv):
-            if arg == "--profile" and i + 1 < len(cockpit_argv):
-                initial_flags["profile"] = cockpit_argv[i + 1]
+        initial_flags = _build_preboot_initial_flags(REPO_ROOT, cockpit_argv, default_cockpit_config)
         chosen = _run_preboot_screen(backend_url, ollama_url, initial_flags)
         if chosen is None:
             _log("pre-boot setup cancelled — exiting")

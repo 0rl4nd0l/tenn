@@ -59,6 +59,19 @@ class TestRefreshCodexContext(unittest.TestCase):
         self.assertIn("Current workspace context", block)
         self.assertIn("entrypoint/orchestration changed", block)
 
+    def test_repo_prompt_profiles_exist(self):
+        for name in [
+            "tenn-default.md",
+            "tenn-bug.md",
+            "tenn-review.md",
+            "tenn-extraction.md",
+        ]:
+            prompt_path = ROOT / "codex_prompts" / name
+            self.assertTrue(prompt_path.exists(), msg=f"missing prompt profile: {name}")
+            text = prompt_path.read_text(encoding="utf-8")
+            self.assertIn("SYSTEM", text)
+            self.assertIn("VALIDATION", text)
+
 
 if __name__ == "__main__":
     unittest.main()

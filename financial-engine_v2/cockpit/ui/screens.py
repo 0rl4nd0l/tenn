@@ -8,6 +8,8 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen, Screen
 from textual.widgets import Button, DataTable, Input, Label, RichLog, Select, Static
 
+from cockpit.core.plotly_html import build_verification_dashboard_html
+
 
 class ConfirmActionScreen(ModalScreen[bool]):
     BINDINGS = [
@@ -60,6 +62,7 @@ class ChatScreen(Screen):
         yield Label("Chat + Actions")
         yield Static("Model runtime: loading...", id="chat-model-status")
         yield RichLog(id="chat-log", wrap=True, markup=False)
+        yield Static("", id="chat-live-response")
         yield Static("", id="chat-status")
         yield Static("No pending action", id="chat-pending")
         yield Vertical(
@@ -94,7 +97,7 @@ class ChatScreen(Screen):
         event.input.value = ""
         if not message:
             return
-        await self.app.handle_chat_message(message)
+        self.app.launch_chat_message(message)
 
     def action_clear_log(self) -> None:
         self.query_one("#chat-log", RichLog).clear()
@@ -283,7 +286,12 @@ class VerificationScreen(Screen):
             f"reports/cockpit/verification_{self.app.timestamp()}.json",
             self.app.last_verification_payload,
         )
-        self.query_one("#ver-log", RichLog).write(f"Exported: {out_path}")
+        html_path = self.app.write_report_html(
+            f"reports/cockpit/verification_{self.app.timestamp()}_dashboard.html",
+            build_verification_dashboard_html(self.app.last_verification_payload),
+        )
+        self.query_one("#ver-log", RichLog).write(f"Exported JSON: {out_path}")
+        self.query_one("#ver-log", RichLog).write(f"Exported HTML dashboard: {html_path}")
 
 
 class HistoryScreen(Screen):

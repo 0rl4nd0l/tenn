@@ -152,6 +152,11 @@ class ChatController:
         "NUMBER",
         "ANNOUNCEMENT",
         "ANNOUNCEMENTS",
+        # Market/exchange scope words — not company tickers.
+        "ASX",
+        # Common English words that happen to be 2-5 chars.
+        "RUN",
+        "SOME",
     }
 
     @staticmethod
@@ -180,6 +185,19 @@ class ChatController:
             if upper not in self.TICKER_STOPWORDS:
                 return upper
         return prior_ticker
+
+    _GLOBAL_NEWS_RE = re.compile(r"\basx\s+news\b|\bmarket\s+news\b|\ball\s+news\b", re.IGNORECASE)
+    _GLOBAL_ANNOUNCEMENT_RE = re.compile(
+        r"\basx\s+announc|\ball\s+announc|\bmarket.?wide\s+announc", re.IGNORECASE
+    )
+
+    def _is_global_news_request(self, message: str) -> bool:
+        """Return True when the message targets market-wide news rather than a specific company."""
+        return bool(self._GLOBAL_NEWS_RE.search(message))
+
+    def _is_global_announcement_request(self, message: str) -> bool:
+        """Return True when the message targets market-wide ASX announcements."""
+        return bool(self._GLOBAL_ANNOUNCEMENT_RE.search(message))
 
     # Chart intent keywords — checked before general action detection.
     # NOTE: "price history" is a price-query pattern, not a chart request.
