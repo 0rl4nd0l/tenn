@@ -60,17 +60,20 @@ class TestRefreshCodexContext(unittest.TestCase):
         self.assertIn("entrypoint/orchestration changed", block)
 
     def test_repo_prompt_profiles_exist(self):
-        for name in [
-            "tenn-default.md",
-            "tenn-bug.md",
-            "tenn-review.md",
-            "tenn-extraction.md",
-        ]:
+        required_snippets = {
+            "tenn-default.md": ["SYSTEM", "VALIDATION"],
+            "tenn-bug.md": ["root-cause fixes", "VALIDATION"],
+            "tenn-review.md": ["findings first", "file and line references"],
+            "tenn-extraction.md": ["4-pass", "classifier confidence", "metric confidence"],
+        }
+        for name, snippets in required_snippets.items():
             prompt_path = ROOT / "codex_prompts" / name
             self.assertTrue(prompt_path.exists(), msg=f"missing prompt profile: {name}")
             text = prompt_path.read_text(encoding="utf-8")
             self.assertIn("SYSTEM", text)
             self.assertIn("VALIDATION", text)
+            for snippet in snippets:
+                self.assertIn(snippet, text, msg=f"missing prompt detail {snippet!r} in {name}")
 
 
 if __name__ == "__main__":

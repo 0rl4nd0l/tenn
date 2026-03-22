@@ -57,6 +57,27 @@ class StateStore:
             )
             """
         )
+        cur.execute(
+            """
+            create table if not exists watchlist (
+                ticker text primary key,
+                added_at text not null
+            )
+            """
+        )
+        cur.execute(
+            """
+            create table if not exists update_events (
+                id integer primary key autoincrement,
+                thread_id text not null,
+                ticker text not null,
+                action_id text not null,
+                status text not null,
+                summary_json text not null,
+                created_at text not null
+            )
+            """
+        )
         self.conn.commit()
 
     def add_chat_message(self, thread_id: str, role: str, content: str, created_at: str) -> None:
@@ -158,3 +179,99 @@ class StateStore:
             (thread_id,),
         ).fetchone()
         return dict(row) if row else None
+
+    # ------------------------------------------------------------------ #
+    # Watchlist                                                            #
+    # ------------------------------------------------------------------ #
+
+    def add_watch_ticker(self, ticker: str, added_at: str) -> bool:
+        """Add ticker to watchlist (normalised to uppercase). Returns True if inserted, False if duplicate."""
+        upper = ticker.upper()
+        with self._lock:
+            cur = self.conn.execute(
+                "insert or ignore into watchlist(ticker, added_at) values(?,?)",
+                (upper, added_at),
+            )
+            self.conn.commit()
+            return cur.rowcount == 1
+
+    def list_watch_tickers(self) -> list[dict[str, Any]]:
+        """Return watchlist rows sorted alphabetically by ticker."""
+        rows = self.conn.execute(
+            "select ticker, added_at from watchlist order by ticker asc"
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def remove_watch_ticker(self, ticker: str) -> bool:
+        """Remove ticker from watchlist. Returns True if removed, False if not found."""
+        upper = ticker.upper()
+        with self._lock:
+            cur = self.conn.execute("delete from watchlist where ticker = ?", (upper,))
+            self.conn.commit()
+            return cur.rowcount == 1
+
+    def clear_watch_tickers(self) -> int:
+        """Remove all tickers from watchlist. Returns count removed."""
+        with self._lock:
+            cur = self.conn.execute("delete from watchlist")
+            self.conn.commit()
+            return cur.rowcount
+
+    # ------------------------------------------------------------------ #
+    # Update events                                                        #
+    # ------------------------------------------------------------------ #
+
+    def add_update_event(
+        self,
+        thread_id: str,
+        ticker: str,
+        action_id: str,
+        status: str,
+        summary: dict[str, Any],
+        created_at: str,
+    ) -> None:
+        """Record a completed update event with a structured summary."""
+        with self._lock:
+            self.conn.execute(
+                """
+                insert into update_events(thread_id, ticker, action_id, status, summary_json, created_at)
+                values(?,?,?,?,?,?)
+                """,
+                (thread_id, ticker.upper(), action_id, status, json.dumps(summary), created_at),
+            )
+            self.conn.commit()
+
+    def list_update_events(
+        self,
+        thread_id: str,
+        *,
+        ticker: str | None = None,
+        limit: int = 10,
+        status: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return recent update events for a thread, optionally filtered by ticker/status."""
+        clauses = ["thread_id = ?"]
+        params: list[Any] = [thread_id]
+        if ticker is not None:
+            clauses.append("ticker = ?")
+            params.append(ticker.upper())
+        if status is not None:
+            clauses.append("status = ?")
+            params.append(status)
+        where = " AND ".join(clauses)
+        rows = self.conn.execute(
+            f"""
+            select thread_id, ticker, action_id, status, summary_json, created_at
+            from update_events
+            where {where}
+            order by id desc
+            limit ?
+            """,
+            (*params, limit),
+        ).fetchall()
+        out = []
+        for row in rows:
+            item = dict(row)
+            item["summary"] = json.loads(item.pop("summary_json"))
+            out.append(item)
+        return out
