@@ -76,14 +76,33 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
             except Exception:
                 # If Qdrant is unreachable or query fails, fall back to "new docs only".
                 pass
-        max_workers = max(1, getattr(settings, "backfill_concurrency", 1))
-        processed, skipped_download, extraction_failed_count, errors, ingestion_metrics = (
-            pipeline_core._download_and_process_document_ids(
-                doc_ids,
-                bool(spec.process_documents),
-                max_workers=max_workers,
-            )
-        )
+        processed = 0
+        skipped_download = 0
+        extraction_failed_count = 0
+        errors: list[dict[str, Any]] = []
+        ingestion_metrics: dict[str, int] = {}
+
+        for document_id in doc_ids:
+            try:
+                pipeline_core.download_pdf_for_document(db, document_id)
+            except Exception as exc:
+                errors.append({"document_id": document_id, "stage": "download", "error": str(exc)})
+                continue
+            processed += 1
+            if bool(spec.process_documents):
+                try:
+                    proc_result = pipeline_core.process_document(document_id) or {}
+                    if (proc_result.get("extraction_status") or "").strip().lower() == "failed":
+                        extraction_failed_count += 1
+                        errors.append({
+                            "document_id": document_id,
+                            "stage": "process_document",
+                            "error": "extraction_failed",
+                            "extraction_status": proc_result.get("extraction_status"),
+                        })
+                except Exception as exc:
+                    errors.append({"document_id": document_id, "stage": "process_document", "error": str(exc)})
+
         processed_ok_count = processed - extraction_failed_count
 
         importance_classification = None
