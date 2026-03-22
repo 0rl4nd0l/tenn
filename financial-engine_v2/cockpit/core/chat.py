@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
 import re
-from dataclasses import dataclass
+import threading
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 try:
     from enum import StrEnum
@@ -30,6 +32,13 @@ class ChatResponse:
     action_preview: dict[str, Any] | None = None
     mode: str = ResponseMode.FAST
     prompt: str | None = None
+
+
+@dataclass
+class _ContextResult:
+    """Lightweight result wrapper for gather_local_context calls."""
+    payload: dict[str, Any]
+    ok: bool = True
 
 
 ACTION_KEYWORDS = {
@@ -92,6 +101,8 @@ class ChatController:
         self.action_registry = action_registry
         self.llm_timeout_seconds = float(llm_timeout_seconds)
         self.last_ticker: str | None = None
+        # Prevents concurrent context-gather calls from stacking up.
+        self._context_gather_lock = threading.Lock()
 
     TICKER_STOPWORDS = {
         "A",
@@ -158,6 +169,110 @@ class ChatController:
         "RUN",
         "SOME",
     }
+
+    # ------------------------------------------------------------------ #
+    # Post-processing classifiers                                          #
+    # ------------------------------------------------------------------ #
+
+    _PROMPT_ECHO_MARKERS = (
+        "cockpit context",
+        "as of my last update",
+        "my knowledge cutoff",
+        "i don't have access to real-time",
+        "i cannot access real-time",
+        "as an ai",
+    )
+
+    @staticmethod
+    def _looks_like_prompt_echo(text: str) -> bool:
+        """Return True if the LLM appears to have echoed the system prompt back."""
+        lower = text.lower()
+        if lower.startswith("final context prompt"):
+            return True
+        count = sum(1 for m in ChatController._PROMPT_ECHO_MARKERS if m in lower)
+        return count >= 2
+
+    @staticmethod
+    def _has_verification_disclaimer(text: str) -> bool:
+        """Return True if the text contains a 'cannot be verified' disclaimer."""
+        return "cannot be verified based on available data" in text.lower()
+
+    @staticmethod
+    def _sanitize_prompt_local_payload(payload: Any, *, deep_mode: bool = False) -> dict[str, Any]:
+        """
+        Trim doc lists and snippet excerpts to safe sizes before building the prompt.
+
+        - docs: 10 items (operational) or 20 items (deep)
+        - doc_snippets: excerpt clipped to 1200 chars each
+        - Non-dict payload: returns {}
+        """
+        if not isinstance(payload, dict):
+            return {}
+        out = dict(payload)
+        max_docs = 20 if deep_mode else 10
+        if isinstance(out.get("docs"), list):
+            out["docs"] = out["docs"][:max_docs]
+        if isinstance(out.get("doc_snippets"), list):
+            snippets = []
+            for s in out["doc_snippets"]:
+                if isinstance(s, dict) and len(str(s.get("excerpt", ""))) > 1200:
+                    s = dict(s)
+                    s["excerpt"] = str(s["excerpt"])[:1200]
+                snippets.append(s)
+            out["doc_snippets"] = snippets
+        return out
+
+    # ------------------------------------------------------------------ #
+    # Context gather with timeout                                          #
+    # ------------------------------------------------------------------ #
+
+    def _gather_local_context_with_timeout(
+        self, ticker: str | None, query: str, deep_mode: bool
+    ) -> _ContextResult:
+        """
+        Run tool_router.gather_local_context in a background thread with a timeout.
+
+        - If already running: returns immediately with note="context_gather_busy".
+        - If timeout exceeded: returns note="context_gather_timeout" (worker keeps running,
+          lock stays held until the worker exits — so the next call sees "busy").
+        - If exception: returns note="context_gather_error" with db_error field.
+        - On success: returns the router result directly.
+        """
+        timeout = float(os.environ.get("COCKPIT_CONTEXT_GATHER_TIMEOUT_SECONDS", "30"))
+
+        # Non-blocking acquire: if already locked the worker is still running.
+        if not self._context_gather_lock.acquire(blocking=False):
+            return _ContextResult(ok=False, payload={"note": "context_gather_busy", "ticker": ticker})
+
+        result_holder: list[Any] = [None]
+        error_holder: list[BaseException | None] = [None]
+
+        def _run() -> None:
+            try:
+                result_holder[0] = self.tool_router.gather_local_context(
+                    ticker=ticker, query=query, deep_mode=deep_mode
+                )
+            except Exception as exc:
+                error_holder[0] = exc
+            finally:
+                # Release unconditionally so the next call can proceed.
+                self._context_gather_lock.release()
+
+        worker = threading.Thread(target=_run, daemon=True)
+        worker.start()
+        worker.join(timeout=timeout)
+
+        if worker.is_alive():
+            # Worker timed out — lock still held by worker thread until it finishes.
+            return _ContextResult(ok=False, payload={"note": "context_gather_timeout", "ticker": ticker})
+
+        if error_holder[0] is not None:
+            return _ContextResult(
+                ok=False,
+                payload={"note": "context_gather_error", "ticker": ticker, "db_error": str(error_holder[0])},
+            )
+
+        return result_holder[0]
 
     @staticmethod
     def _extract_alpha_tokens(message: str) -> list[tuple[str, str]]:
@@ -534,11 +649,19 @@ class ChatController:
         elif mode == ResponseMode.WEB:
             system_instruction += "The user supplied a URL. Incorporate any fetched web evidence if it is available.\n"
 
+        context_profile = os.environ.get("COCKPIT_CONTEXT_PROFILE", "balanced")
+        runtime_settings = {
+            "context_profile": context_profile,
+            "response_mode": mode.value,
+        }
         prompt = (
             system_instruction
             + f"User question: {message}\n\n"
             + "Local evidence JSON:\n"
             + f"{json.dumps(local_payload)[:7000]}\n"
+            + "\nRuntime settings JSON:\n"
+            + f"{json.dumps(runtime_settings)}\n"
+            + "Change context depth: /context-profile balanced|max-depth\n"
         )
 
         if on_chunk is not None:
