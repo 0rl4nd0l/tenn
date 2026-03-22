@@ -41,6 +41,7 @@ make codex-prompt-refresh
 CODEX_PROFILE=bug make codex-prompt-refresh
 CODEX_PROFILE=review make codex-prompt-refresh
 CODEX_PROFILE=extraction make codex-prompt-refresh
+CODEX_PROFILE=audit make codex-prompt-refresh
 ```
 
 ---

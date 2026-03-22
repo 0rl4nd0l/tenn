@@ -61,10 +61,11 @@ class TestRefreshCodexContext(unittest.TestCase):
 
     def test_repo_prompt_profiles_exist(self):
         required_snippets = {
-            "tenn-default.md": ["SYSTEM", "VALIDATION"],
-            "tenn-bug.md": ["root-cause fixes", "VALIDATION"],
-            "tenn-review.md": ["findings first", "file and line references"],
-            "tenn-extraction.md": ["4-pass", "classifier confidence", "metric confidence"],
+            "tenn-default.md": ["CODEX.md", "Think independently from Claude"],
+            "tenn-bug.md": ["CODEX.md", "Claude-authored code"],
+            "tenn-review.md": ["CODEX.md", "somewhat skeptical of Claude-authored"],
+            "tenn-extraction.md": ["CODEX.md", "4-pass", "classifier confidence", "metric confidence"],
+            "tenn-audit.md": ["older sibling", "Claude-authored", "VALIDATION"],
         }
         for name, snippets in required_snippets.items():
             prompt_path = ROOT / "codex_prompts" / name
@@ -74,6 +75,14 @@ class TestRefreshCodexContext(unittest.TestCase):
             self.assertIn("VALIDATION", text)
             for snippet in snippets:
                 self.assertIn(snippet, text, msg=f"missing prompt detail {snippet!r} in {name}")
+
+    def test_codex_identity_doc_exists(self):
+        codex_doc = ROOT.parent / "CODEX.md"
+        self.assertTrue(codex_doc.exists(), msg="missing CODEX.md")
+        text = codex_doc.read_text(encoding="utf-8")
+        self.assertIn("independent senior engineer", text)
+        self.assertIn("skeptical reviewer", text)
+        self.assertIn("git diff --cached --name-only", text)
 
 
 if __name__ == "__main__":

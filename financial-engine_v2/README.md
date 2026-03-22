@@ -410,6 +410,7 @@ To keep Codex context current as the system evolves:
   - `CODEX_PROFILE=bug make codex-prompt-refresh`
   - `CODEX_PROFILE=review make codex-prompt-refresh`
   - `CODEX_PROFILE=extraction make codex-prompt-refresh`
+  - `CODEX_PROFILE=audit make codex-prompt-refresh`
   - optional override: `DEVELOPER_INSTRUCTIONS_FILE=/path/to/prompt.md make codex-prompt-refresh`
 - Check whether current workspace changes are significant:
   - `make context-check`
@@ -429,6 +430,15 @@ The context refresher writes:
   - `codex_prompts/tenn-bug.md`
   - `codex_prompts/tenn-review.md`
   - `codex_prompts/tenn-extraction.md`
+  - `codex_prompts/tenn-audit.md`
+
+Codex now has a repo-specific identity file:
+- `../CODEX.md`
+
+The intended split is:
+- `AGENTS.md` + `CLAUDE.md` = shared repo rules and constraints
+- `CODEX.md` = Codex-only operating identity
+- `codex_prompts/tenn-*.md` = Codex launch profiles layered on top
 
 ## Notes
 - This discovery method is heuristic; ASX page structure may change. It’s modular (`backend/app/providers/asx_provider.py`).
