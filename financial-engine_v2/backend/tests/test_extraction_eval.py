@@ -133,6 +133,8 @@ def test_live_eval_accuracy_against_fixtures():
             headers["Authorization"] = f"Bearer {api_key}"
         llm_client = httpx.Client(base_url="http://127.0.0.1:8001/v1", timeout=60.0, headers=headers)
 
+    fixture_failures: list[str] = []
+
     for fixture in fixtures:
         root = Path(__file__).parent.parent.parent
         if "pdf_path" in fixture:
@@ -149,26 +151,49 @@ def test_live_eval_accuracy_against_fixtures():
         }
         result = run_multipass_extraction(pdf_path, doc_metadata, llm_client)
 
+        # Per-fixture tolerances override global; per-fixture min_accuracy if set.
+        fixture_tolerances = {**tolerances, **fixture.get("tolerances", {})}
+        fixture_min_acc = fixture.get("config", {}).get(
+            "min_accuracy_overall", config["min_accuracy_overall"]
+        )
+        fixture_results: list[bool] = []
+
         for metric, expected_val in fixture["metrics"].items():
-            tol = tolerances.get(metric, 0.01)
+            tol = fixture_tolerances.get(metric, 0.01)
             extracted_val = result.payload.get("metrics", {}).get(metric)
             match = metric_matches(extracted_val, expected_val, tol)
             per_metric_results.setdefault(metric, []).append(match)
             overall_results.append(match)
+            fixture_results.append(match)
 
         # Check expected nulls
         for null_metric in fixture.get("expected_nulls", []):
             val = result.payload.get("metrics", {}).get(null_metric)
-            per_metric_results.setdefault(null_metric, []).append(val is None)
-            overall_results.append(val is None)
+            ok = val is None
+            per_metric_results.setdefault(null_metric, []).append(ok)
+            overall_results.append(ok)
+            fixture_results.append(ok)
 
-    # Assert overall accuracy
+        # Per-fixture accuracy gate
+        fixture_acc = sum(fixture_results) / len(fixture_results) if fixture_results else 0
+        if fixture_acc < fixture_min_acc:
+            label = fixture.get("ticker", fixture.get("document_id", "?"))
+            fixture_failures.append(
+                f"{label}: {fixture_acc:.1%} < {fixture_min_acc:.1%}"
+            )
+
+    # Per-fixture failures reported first (most actionable)
+    assert not fixture_failures, (
+        f"Per-fixture accuracy failures:\n" + "\n".join(f"  {f}" for f in fixture_failures)
+    )
+
+    # Overall accuracy across all fixtures
     overall_acc = sum(overall_results) / len(overall_results) if overall_results else 0
     assert overall_acc >= config["min_accuracy_overall"], (
         f"Overall accuracy {overall_acc:.1%} below threshold {config['min_accuracy_overall']:.1%}"
     )
 
-    # Assert per-metric accuracy
+    # Per-metric accuracy across all fixtures
     for metric, min_acc in config["min_accuracy_per_metric"].items():
         if metric not in per_metric_results:
             continue

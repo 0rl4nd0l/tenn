@@ -1,18 +1,16 @@
 # Agent Context Digest
 
-- Generated: 2026-02-19T05:48:55.560513+00:00
-- Branch: main
-- Commit: 4e686c898cd08cf808ec165b5d0a07afb6273db4
+- Generated: 2026-03-22T07:10:51.131430+00:00
+- Branch: cloud/session-20260319
+- Commit: de4a259c29d076afeb75153a903b06bdea0c2160
 - Mode: workspace
 - Since ref: None
-- Changed files: 10
+- Changed files: 5
 - Significant change: True
-- Significance reasons:
-  - entrypoint/orchestration changed
 - Capability impact:
-  - docs_and_governance: 4
-  - other: 5
-  - runtime_orchestration: 1
+  - docs_and_governance: 1
+  - operator_surface: 2
+  - other: 2
 
 ## High-level Context
 TENN is a local-first ASX ingestion, processing, and operator workflow system.
