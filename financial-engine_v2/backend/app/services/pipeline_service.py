@@ -86,7 +86,7 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
             try:
                 pipeline_core.download_pdf_for_document(db, document_id)
             except Exception as exc:
-                errors.append({"document_id": document_id, "stage": "download", "error": str(exc)})
+                errors.append({"document_id": str(document_id), "stage": "download", "error": str(exc)})
                 continue
             processed += 1
             if bool(spec.process_documents):
@@ -95,13 +95,14 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
                     if (proc_result.get("extraction_status") or "").strip().lower() == "failed":
                         extraction_failed_count += 1
                         errors.append({
-                            "document_id": document_id,
+                            "document_id": str(document_id),
                             "stage": "process_document",
                             "error": "extraction_failed",
                             "extraction_status": proc_result.get("extraction_status"),
                         })
                 except Exception as exc:
-                    errors.append({"document_id": document_id, "stage": "process_document", "error": str(exc)})
+                    extraction_failed_count += 1
+                    errors.append({"document_id": str(document_id), "stage": "process_document", "error": str(exc)})
 
         processed_ok_count = processed - extraction_failed_count
 
