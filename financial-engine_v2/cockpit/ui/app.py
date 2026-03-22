@@ -61,6 +61,10 @@ class CockpitApp(App):
         background: $accent;
         color: $text;
     }
+    #chat-ticker-context {
+        height: 1;
+        color: $accent;
+    }
     #chat-status {
         height: 1;
         margin: 0 0 1 0;
@@ -204,6 +208,8 @@ class CockpitApp(App):
             tool_router=self.tool_router,
             action_registry=self.action_registry,
             llm_timeout_seconds=float(config.get("llm", {}).get("timeout_seconds", 300)),
+            state_store=self.state_store,
+            thread_id="global-main",
         )
 
         self.thread_id = "global-main"
@@ -214,6 +220,8 @@ class CockpitApp(App):
         self.last_detected_ticker: str | None = None
         self.last_response_mode: str | None = None
         self.chat_inflight = False
+        self._input_history: list[str] = []
+        self._history_idx: int = -1
         self.active_job_task: asyncio.Task[None] | None = None
         self.active_job_id: str | None = None
         self.active_log_target: str = "chat-log"
@@ -532,6 +540,10 @@ class CockpitApp(App):
         self._append_log(log, f"user: {message}")
         self._set_chat_live_response("")
 
+        if message.strip():
+            self._input_history.append(message.strip())
+            self._history_idx = len(self._input_history)  # reset index to end
+
         if message.strip() == "/cancel":
             self.pending_action = None
             pending.update("No pending action")
@@ -674,6 +686,13 @@ class CockpitApp(App):
             ticker = local_details.get("ticker")
             if isinstance(ticker, str) and ticker.strip():
                 self.last_detected_ticker = ticker.strip().upper()
+        except Exception:
+            pass
+
+        try:
+            self.query_one("#chat-ticker-context", Static).update(
+                f"Context: {self.last_detected_ticker}" if self.last_detected_ticker else ""
+            )
         except Exception:
             pass
 

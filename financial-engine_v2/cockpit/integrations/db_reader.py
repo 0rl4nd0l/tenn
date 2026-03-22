@@ -41,7 +41,14 @@ class DbReader:
             select document_id, ticker, doc_class, doc_subtype, published_at, title, source_url, pdf_path, pdf_sha256
             from documents
             where ticker = :ticker
-            order by published_at desc
+            order by
+                CASE
+                    WHEN doc_class IN ('results', 'annual_report', 'half_year_report') THEN 1
+                    WHEN doc_class = 'guidance' THEN 2
+                    WHEN doc_class IN ('capital_raising', 'dividend', 'acquisition') THEN 3
+                    ELSE 4
+                END ASC,
+                published_at DESC
             limit :limit
             """
         )

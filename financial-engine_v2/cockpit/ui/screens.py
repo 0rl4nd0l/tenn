@@ -4,6 +4,7 @@ import json
 from typing import Any, Callable
 
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen, Screen
 from textual.widgets import Button, DataTable, Input, Label, RichLog, Select, Static
@@ -56,11 +57,16 @@ class ConfirmActionScreen(ModalScreen[bool]):
 
 
 class ChatScreen(Screen):
-    BINDINGS = [("ctrl+l", "clear_log", "Clear")]
+    BINDINGS = [
+        ("ctrl+l", "clear_log", "Clear"),
+        Binding("ctrl+up", "history_prev", "Previous input", show=False),
+        Binding("ctrl+down", "history_next", "Next input", show=False),
+    ]
 
     def compose(self) -> ComposeResult:
         yield Label("Chat + Actions")
         yield Static("Model runtime: loading...", id="chat-model-status")
+        yield Static("", id="chat-ticker-context")
         yield RichLog(id="chat-log", wrap=True, markup=False)
         yield Static("", id="chat-live-response")
         yield Static("", id="chat-status")
@@ -101,6 +107,31 @@ class ChatScreen(Screen):
 
     def action_clear_log(self) -> None:
         self.query_one("#chat-log", RichLog).clear()
+
+    def action_history_prev(self) -> None:
+        app = self.app  # type: ignore
+        if not app._input_history or app._history_idx <= 0:
+            return
+        app._history_idx -= 1
+        try:
+            input_widget = self.query_one("#chat-input")
+            input_widget.value = app._input_history[app._history_idx]
+        except Exception:
+            pass
+
+    def action_history_next(self) -> None:
+        app = self.app  # type: ignore
+        if not app._input_history:
+            return
+        app._history_idx = min(app._history_idx + 1, len(app._input_history))
+        try:
+            input_widget = self.query_one("#chat-input")
+            if app._history_idx < len(app._input_history):
+                input_widget.value = app._input_history[app._history_idx]
+            else:
+                input_widget.value = ""
+        except Exception:
+            pass
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "chat-open-ops":

@@ -4,7 +4,7 @@ import json
 import os
 import re
 import threading
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 try:
     from enum import StrEnum
@@ -95,12 +95,22 @@ ACTION_KEYWORDS = {
 
 
 class ChatController:
-    def __init__(self, ollama_client, tool_router, action_registry, llm_timeout_seconds: float = 300.0) -> None:
+    def __init__(
+        self,
+        ollama_client,
+        tool_router,
+        action_registry,
+        llm_timeout_seconds: float = 300.0,
+        state_store=None,
+        thread_id: str = "global-main",
+    ) -> None:
         self.ollama_client = ollama_client
         self.tool_router = tool_router
         self.action_registry = action_registry
         self.llm_timeout_seconds = float(llm_timeout_seconds)
         self.last_ticker: str | None = None
+        self._state_store = state_store
+        self._thread_id = thread_id
         # Prevents concurrent context-gather calls from stacking up.
         self._context_gather_lock = threading.Lock()
 
@@ -563,6 +573,41 @@ class ChatController:
         )
         return {"note": note, "action_preview": action_preview}
 
+    def _build_system_instruction(self, mode: str, ticker: str | None, local_payload: dict) -> str:  # noqa: ARG002
+        """Build the ASX-domain-specific system prompt for the LLM."""
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        return (
+            "You are Tenn, an advanced ASX equity research analyst and financial intelligence agent.\n"
+            "\n"
+            "Your primary function: deliver rigorous, evidence-grounded analysis of ASX-listed companies."
+            " You have access to real-time price data, multi-period financial statements, regulatory"
+            " announcements, and qualitative context from company filings.\n"
+            "\n"
+            "Domain context:\n"
+            "- Exchange: Australian Securities Exchange (ASX), Sydney AEST/AEDT timezone\n"
+            "- Reporting: Semi-annual (interim + full-year), calendar year-end typical for resources,"
+            " June 30 FY for most corporates\n"
+            "- Key metrics: Revenue, EBIT, NPAT, operating CF, FCF (OCF - capex), net debt, shares on issue\n"
+            "- Valuation lenses: P/E, EV/EBIT, FCF yield, net debt/EBIT leverage. Use these when multiples"
+            " data is available in the payload.\n"
+            "- Price signals: trend regime (bull/bear/neutral via SMA), momentum (1d/20d/63d returns),"
+            " annualised vol, drawdown from 63d high\n"
+            "- Announcement types: results > guidance > capital raising > dividend > administrative."
+            " Weight by type when synthesising.\n"
+            "\n"
+            "Analyst standards:\n"
+            "- Lead with the most material facts. Flag data limitations explicitly.\n"
+            "- Distinguish between confirmed financial data and qualitative inference.\n"
+            "- When financials_narrative is provided, use it as your starting point for trend commentary.\n"
+            "- When valuation_multiples are provided, anchor your valuation assessment to them.\n"
+            "- When post-announcement price reactions are provided, include market interpretation.\n"
+            "- Never fabricate metrics not present in the evidence payload.\n"
+            "- If data is absent, state \"data not available\" rather than estimating.\n"
+            "\n"
+            f"Current mode: {mode}\n"
+            f"Current date (AEST): {date_str}\n"
+        )
+
     def build_chat_response(
         self,
         message: str,
@@ -747,9 +792,8 @@ class ChatController:
             local_payload["web_requested"] = True
         local_payload["response_mode"] = mode.value
 
-        system_instruction = (
-            "You are the Financial Engine cockpit analyst.\n"
-            "Use the local evidence below first. If confidence is weak, say so.\n"
+        system_instruction = self._build_system_instruction(
+            mode=mode.value, ticker=ticker, local_payload=local_payload
         )
         if mode == ResponseMode.DEEP_ANALYSIS:
             system_instruction += (
@@ -764,19 +808,65 @@ class ChatController:
         elif mode == ResponseMode.WEB:
             system_instruction += "The user supplied a URL. Incorporate any fetched web evidence if it is available.\n"
 
+        # Inject recent conversation history for context continuity
+        history_block = ""
+        if self._state_store is not None:
+            try:
+                history_msgs = self._state_store.get_chat_messages(self._thread_id, limit=12)
+                # Exclude the most recent message (current turn, just stored)
+                prior_turns = history_msgs[:-1] if history_msgs else []
+                if prior_turns:
+                    lines = []
+                    for m in prior_turns[-6:]:  # last 6 turns max
+                        role = m.get("role", "user")
+                        content = str(m.get("content", ""))[:400]  # cap per message
+                        lines.append(f"{role}: {content}")
+                    history_block = "Recent conversation:\n" + "\n".join(lines)
+            except Exception:
+                pass  # history is best-effort, never fail the main response
+
+        # Prepend pre-computed financial summaries for LLM clarity
+        context_sections = []
+
+        if local_payload.get("financials_narrative"):
+            context_sections.append("Financial Trend Summary:\n" + local_payload["financials_narrative"])
+
+        if local_payload.get("valuation_multiples"):
+            vm = local_payload["valuation_multiples"]
+            mv_lines = []
+            for k, v in vm.items():
+                if v is not None:
+                    mv_lines.append(f"  {k}: {v}")
+            if mv_lines:
+                context_sections.append("Valuation Multiples:\n" + "\n".join(mv_lines))
+
         runtime_settings = {
             "context_profile": effective_profile,
             "response_mode": mode.value,
         }
-        prompt = (
-            system_instruction
-            + f"User question: {message}\n\n"
-            + "Local evidence JSON:\n"
+        evidence_section = (
+            "Local evidence JSON:\n"
             + f"{json.dumps(local_payload)[:7000]}\n"
             + "\nRuntime settings JSON:\n"
             + f"{json.dumps(runtime_settings)}\n"
             + "Change context depth: /context-profile balanced|max-depth\n"
         )
+
+        if context_sections:
+            evidence_section += "\n\n" + "\n\n".join(context_sections)
+
+        if history_block:
+            prompt = (
+                system_instruction
+                + "\n\n"
+                + history_block
+                + "\n\nUser question: "
+                + message
+                + "\n\n"
+                + evidence_section
+            )
+        else:
+            prompt = system_instruction + f"User question: {message}\n\n" + evidence_section
 
         if on_chunk is not None:
             try:

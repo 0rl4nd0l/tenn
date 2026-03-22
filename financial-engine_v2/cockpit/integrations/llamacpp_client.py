@@ -62,10 +62,21 @@ class LlamaCppClient:
                 body = ""
         return body[:limit]
 
-    def chat(self, prompt: str, timeout: float = 120.0, on_chunk: Callable[[str], None] | None = None) -> str:
+    def chat(
+        self,
+        prompt: str,
+        timeout: float = 120.0,
+        on_chunk: Callable[[str], None] | None = None,
+        prior_messages: list[dict] | None = None,
+    ) -> str:
         url = f"{self.base_url}/v1/chat/completions"
         parts: list[str] = []
         headers = self._build_headers()
+
+        if prior_messages:
+            messages = prior_messages + [{"role": "user", "content": prompt}]
+        else:
+            messages = [{"role": "user", "content": prompt}]
 
         try:
             with self._client.stream(
@@ -75,7 +86,7 @@ class LlamaCppClient:
                 timeout=timeout,
                 json={
                     "model": self.model,
-                    "messages": [{"role": "user", "content": prompt}],
+                    "messages": messages,
                     "stream": True,
                 },
             ) as response:

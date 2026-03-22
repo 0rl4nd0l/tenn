@@ -27,6 +27,7 @@ class ToolRouter:
         qual_context_news_reader=None,
         news_context_db_path: str = "",
         news_context_corpus_filter: str = "news",
+        state_store=None,
     ) -> None:
         self.db_reader = db_reader
         self.file_indexer = file_indexer
@@ -42,6 +43,7 @@ class ToolRouter:
         self.web_default_enabled = web_default_enabled
         self.news_context_db_path = str(news_context_db_path or "").strip()
         self.news_context_corpus_filter = str(news_context_corpus_filter or "news").strip()
+        self._state_store = state_store
         self.qual_context_enabled = (
             any(
                 reader is not None
@@ -252,6 +254,7 @@ class ToolRouter:
                 "ret_63d": None,
                 "sma20": None,
                 "sma50": None,
+                "rsi_14": None,
                 "vol_20d_ann": None,
                 "drawdown_from_63d_high": None,
                 "market_time_utc": None,
@@ -309,6 +312,30 @@ class ToolRouter:
         ret_63d = _ret(63)
         sma20 = _sma(20)
         sma50 = _sma(50)
+
+        # RSI-14 (Wilder smoothing, requires >= 14 bars)
+        rsi_14: float | None = None
+        if len(closes) >= 14:
+            deltas = [closes[i] - closes[i - 1] for i in range(1, len(closes))]
+            gains = [d if d > 0 else 0.0 for d in deltas]
+            losses = [-d if d < 0 else 0.0 for d in deltas]
+
+            # Initial averages over first 14 periods
+            avg_gain = sum(gains[:14]) / 14
+            avg_loss = sum(losses[:14]) / 14
+
+            # Wilder smoothing for remaining periods
+            for i in range(14, len(gains)):
+                avg_gain = (avg_gain * 13 + gains[i]) / 14
+                avg_loss = (avg_loss * 13 + losses[i]) / 14
+
+            if avg_loss == 0:
+                rsi_14 = 100.0
+            else:
+                rs = avg_gain / avg_loss
+                rsi_14 = 100.0 - (100.0 / (1.0 + rs))
+
+            rsi_14 = round(rsi_14, 1)
 
         vol_20d_ann = None
         if len(closes) >= 21:
@@ -368,6 +395,7 @@ class ToolRouter:
             "ret_63d": ret_63d,
             "sma20": sma20,
             "sma50": sma50,
+            "rsi_14": rsi_14,
             "vol_20d_ann": vol_20d_ann,
             "drawdown_from_63d_high": drawdown_from_63d_high,
             "market_time_utc": market_time_utc,
@@ -553,6 +581,59 @@ class ToolRouter:
         return out
 
     @staticmethod
+    def _build_financials_narrative(financials: list[dict]) -> str:
+        """Build a human-readable financial trend summary for LLM context."""
+        if not financials or len(financials) < 1:
+            return ""
+
+        latest = financials[0]
+        prior = financials[1] if len(financials) > 1 else {}
+
+        parts = []
+
+        # Revenue trend
+        rev = latest.get("revenue")
+        rev_prior = prior.get("revenue")
+        if rev is not None:
+            if rev_prior and rev_prior != 0:
+                rev_yoy = (rev - rev_prior) / abs(rev_prior) * 100
+                direction = "grew" if rev_yoy > 0 else "declined"
+                parts.append(f"Revenue {direction} {abs(rev_yoy):.1f}% YoY to ${rev:,.0f}.")
+            else:
+                parts.append(f"Latest revenue: ${rev:,.0f}.")
+
+        # EBIT margin
+        ebit = latest.get("ebit")
+        if ebit is not None and rev and rev != 0:
+            margin = ebit / rev * 100
+            parts.append(f"EBIT margin: {margin:.1f}%.")
+
+        # FCF signal
+        ocf = latest.get("operating_cf")
+        capex = latest.get("capex")
+        if ocf is not None and capex is not None:
+            fcf = ocf - abs(capex)
+            signal = "positive" if fcf > 0 else "negative"
+            parts.append(f"Free cash flow is {signal} at ${fcf:,.0f}.")
+
+        # Net debt
+        net_debt = latest.get("net_debt")
+        if net_debt is not None:
+            if net_debt < 0:
+                parts.append(f"Balance sheet is net cash (${abs(net_debt):,.0f}).")
+            elif net_debt > 0:
+                parts.append(f"Net debt: ${net_debt:,.0f}.")
+
+        # EBIT trend
+        ebit_prior = prior.get("ebit")
+        if ebit is not None and ebit_prior is not None and ebit_prior != 0:
+            ebit_yoy = (ebit - ebit_prior) / abs(ebit_prior) * 100
+            direction = "improved" if ebit_yoy > 0 else "deteriorated"
+            parts.append(f"EBIT {direction} {abs(ebit_yoy):.1f}% YoY.")
+
+        return " ".join(parts) if parts else ""
+
+    @staticmethod
     def _build_data_quality_payload(
         *,
         extraction_failures: list[dict[str, Any]],
@@ -721,10 +802,31 @@ class ToolRouter:
         company_quota = 8 if deep_mode else 4
         news_quota = 4 if deep_mode else 2
 
+        MIN_RAG_SCORE = 0.35
+
         company_hits_raw = (company_payload or {}).get("hits")
         news_hits_raw = (news_payload or {}).get("hits")
         company_hits = [row for row in company_hits_raw if isinstance(row, dict)] if isinstance(company_hits_raw, list) else []
         news_hits = [row for row in news_hits_raw if isinstance(row, dict)] if isinstance(news_hits_raw, list) else []
+
+        # Filter by minimum RAG score
+        company_hits = [h for h in company_hits if h.get("final_score", h.get("semantic_score", 1.0)) >= MIN_RAG_SCORE]
+        news_hits = [h for h in news_hits if h.get("final_score", h.get("semantic_score", 1.0)) >= MIN_RAG_SCORE]
+
+        # Enforce max 2 chunks per source document
+        def _dedup_by_doc(hits: list[dict[str, Any]]) -> list[dict[str, Any]]:
+            doc_chunk_counts: dict[str, int] = {}
+            deduped_hits: list[dict[str, Any]] = []
+            for h in hits:
+                chunk_id = h.get("chunk_id", "")
+                doc_id = chunk_id.rsplit(":", 1)[0] if ":" in chunk_id else chunk_id
+                if doc_chunk_counts.get(doc_id, 0) < 2:
+                    deduped_hits.append(h)
+                    doc_chunk_counts[doc_id] = doc_chunk_counts.get(doc_id, 0) + 1
+            return deduped_hits
+
+        company_hits = _dedup_by_doc(company_hits)
+        news_hits = _dedup_by_doc(news_hits)
 
         selected_company = company_hits[:company_quota]
         selected_news = news_hits[:news_quota]
@@ -963,7 +1065,12 @@ class ToolRouter:
                             "excerpt": excerpt,
                         }
                     )
-            payload["financials"] = ticker_payload.get("financials", [])
+            financials = ticker_payload.get("financials", [])
+            payload["financials"] = financials
+            if financials:
+                narrative = ToolRouter._build_financials_narrative(financials)
+                if narrative:
+                    payload["financials_narrative"] = narrative
             payload["data_quality"] = self._build_data_quality_payload(
                 extraction_failures=[row for row in extraction_failures if isinstance(row, dict)],
                 low_conf_rows=[row for row in low_conf_rows if isinstance(row, dict)],
@@ -972,7 +1079,21 @@ class ToolRouter:
             )
             price_bundle = self._load_price_context(ticker=ticker, deep_mode=deep_mode)
             payload["price"] = price_bundle.get("price", {})
-            payload["price_state"] = price_bundle.get("price_state", self._compute_price_state(payload["price"]))
+            price_state = price_bundle.get("price_state", self._compute_price_state(payload["price"]))
+            payload["price_state"] = price_state
+            try:
+                from backend.app.services.analysis.financial_metrics import compute_valuation_multiples  # type: ignore
+                if price_state and price_state.get("last_close") and financials:
+                    vm = compute_valuation_multiples(
+                        price_last_close=price_state["last_close"],
+                        financials_row=financials[0],
+                    )
+                    if vm:
+                        payload["valuation_multiples"] = vm
+            except ImportError:
+                pass  # valuation multiples are best-effort
+            except Exception:
+                pass
             if deep_mode:
                 horizons: dict[str, Any] = {}
                 for horizon, max_rows in (
@@ -989,6 +1110,23 @@ class ToolRouter:
                     )
                     horizons[horizon] = self._build_price_horizon_metrics(horizon, bundle)
                 payload["price_horizons"] = horizons
+                # Attach price reaction to each doc snippet in deep mode
+                doc_snippets = payload.get("doc_snippets", [])
+                if doc_snippets:
+                    try:
+                        from cockpit.core.update_delta import build_close_series, compute_reaction_for_time
+                        close_series = build_close_series(price_bundle.get("price", {}))
+                        if close_series:
+                            for snippet in doc_snippets:
+                                published_at_raw = snippet.get("published_at")
+                                if published_at_raw:
+                                    pub_dt = self._parse_timestamp_utc(published_at_raw)
+                                    if pub_dt is not None:
+                                        reaction = compute_reaction_for_time(close_series, published_at=pub_dt)
+                                        if reaction:
+                                            snippet["price_reaction"] = reaction
+                    except Exception:
+                        pass  # best-effort
             if db_error:
                 payload["db_warning"] = (
                     "Database unavailable or schema not initialized for cockpit reads. "
@@ -1036,6 +1174,31 @@ class ToolRouter:
                     news_payload=news_payload,
                     deep_mode=deep_mode,
                 )
+            # Inject watchlist history if ticker is being watched
+            if ticker and self._state_store is not None:
+                try:
+                    watchlist = self._state_store.list_watch_tickers() if hasattr(self._state_store, "list_watch_tickers") else []
+                    watched_tickers = [t["ticker"].upper() if isinstance(t, dict) else str(t).upper() for t in watchlist]
+                    if ticker.upper() in watched_tickers:
+                        update_events = (
+                            self._state_store.list_update_events(
+                                "", ticker=ticker, limit=5
+                            )
+                            if hasattr(self._state_store, "list_update_events")
+                            else []
+                        )
+                        if update_events:
+                            payload["watchlist_history"] = [
+                                {
+                                    "action": e.get("action_id"),
+                                    "status": e.get("status"),
+                                    "date": e.get("created_at", "")[:10],
+                                    "summary": e.get("summary", e.get("summary_json", {})),
+                                }
+                                for e in update_events
+                            ]
+                except Exception:
+                    pass
         return ToolResult(ok=True, title="local_context", payload=payload)
 
     def fetch_web(self, url: str, enabled: bool, max_chars: int | None = 8000) -> ToolResult:

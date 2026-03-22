@@ -197,3 +197,51 @@ def build_metrics_summary(
         "financial_health_score": health_score,
         "period_count": len(computed),
     }
+
+
+def compute_valuation_multiples(price_last_close: float, financials_row: dict[str, Any]) -> dict[str, Any]:
+    """
+    Compute valuation multiples from price and financial data.
+    Returns a dict with available multiples; missing values are None.
+    """
+    result: dict[str, Any] = {}
+
+    shares = _f(financials_row.get("shares_outstanding"))
+    np_attr = _f(financials_row.get("np_attributable"))
+    net_debt = _f(financials_row.get("net_debt"))
+    ebit = _f(financials_row.get("ebit"))
+    operating_cf = _f(financials_row.get("operating_cf"))
+    capex = _f(financials_row.get("capex"))
+
+    # Market cap
+    market_cap: float | None = None
+    if price_last_close and price_last_close > 0 and shares and shares > 0:
+        market_cap = price_last_close * shares
+        result["market_cap"] = round(market_cap, 0)
+
+    # P/E ratio
+    if market_cap and np_attr and np_attr > 0:
+        result["pe_ratio"] = round(market_cap / np_attr, 1)
+    else:
+        result["pe_ratio"] = None
+
+    # FCF yield
+    if market_cap and market_cap > 0 and operating_cf is not None and capex is not None:
+        fcf = operating_cf - abs(capex)
+        result["fcf_yield_pct"] = round(fcf / market_cap * 100, 1)
+    else:
+        result["fcf_yield_pct"] = None
+
+    # EV (approx: market_cap + net_debt)
+    ev: float | None = None
+    if market_cap and net_debt is not None:
+        ev = market_cap + net_debt
+        result["ev_approx"] = round(ev, 0)
+
+    # EV/EBIT (using EBIT as EBITDA proxy since D&A not available)
+    if ev and ev > 0 and ebit and ebit > 0:
+        result["ev_ebit"] = round(ev / ebit, 1)
+    else:
+        result["ev_ebit"] = None
+
+    return result
