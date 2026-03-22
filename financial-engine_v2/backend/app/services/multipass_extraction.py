@@ -69,7 +69,8 @@ import re as _re
 
 _SCALE_PATTERNS: list[tuple[str, str]] = [
     (r"\$'?000[,s]?\b|\bthousands?\b", "thousands"),
-    (r"\$'?000,000|\bmillions?\b", "millions"),
+    # Millions: spelled-out, $'000,000, compact $M / A$M notation (common in AU mining)
+    (r"\$'?000,000|\bmillions?\b|A?\$M\b|\$m\b", "millions"),
     (r"\bbillions?\b", "billions"),
 ]
 
@@ -145,16 +146,16 @@ def _run_pass1_classifier(
 
 _TABLE_KEYWORDS: dict[str, list[str]] = {
     "cashflow_statement": [
-        "cash flow", "cash from operations", "financing activities",
-        "investing activities", "net cash", "cash at end",
+        "cash flow", "cash from operations", "operating activities",
+        "financing activities", "investing activities", "net cash", "cash at end",
     ],
     "income_statement": [
         "revenue", "profit", "earnings before", "ebit", "net profit",
         "profit after tax", "income statement", "statement of profit",
     ],
     "balance_sheet": [
-        "total assets", "shareholders equity", "net assets", "total liabilities",
-        "balance sheet", "statement of financial position",
+        "total assets", "current assets", "shareholders equity", "net assets",
+        "total liabilities", "balance sheet", "statement of financial position",
     ],
     "share_capital": [
         "ordinary shares", "number of shares", "shares on issue", "shares issued",
@@ -194,41 +195,56 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
     labelled["unmatched"] = []
     # share_capital is handled via _TABLE_KEYWORDS and pools above
 
+    def _table_is_toc(table: DoclingTable) -> bool:
+        """True when any individual column header is a bare 1-3 digit integer (page number)."""
+        return any(
+            _re.match(r"^\s*\d{1,3}\s*$", str(h or ""))
+            for h in table.headers
+            if str(h or "").strip()
+        )
+
     def _score(table: DoclingTable, label: str, keywords: list[str]) -> int:
-        # Include caption, all header cells, and first-column of first 8 rows
+        # Include caption, all header cells, and first-column of first 15 rows.
+        # 15-row scan covers all three cash-flow sections and full asset/liability blocks.
         header_text = " ".join(table.headers).lower()
-        body_text = " ".join(row[0] for row in table.rows[:8] if row).lower()
+        body_text = " ".join(row[0] for row in table.rows[:15] if row).lower()
         text = table.caption.lower() + " " + header_text + " " + body_text
         score = sum(1 for kw in keywords if kw in text)
         # Bonus only when the explicit statement name appears in the column HEADERS
         # (not body text) — prevents index/checklist tables from claiming the bonus
         # just because they reference another statement by name in a row label.
+        # Skip the bonus for TOC tables (bare page-number column header).
         header_only = table.caption.lower() + " " + header_text
-        for phrase in _STATEMENT_HEADERS.get(label, []):
-            if phrase in header_only:
-                score += _HEADER_BONUS
-                break
+        if not _table_is_toc(table):
+            for phrase in _STATEMENT_HEADERS.get(label, []):
+                if phrase in header_only:
+                    score += _HEADER_BONUS
+                    break
         return score
 
     # Score each table against ALL statement types — a table may appear in multiple
     # candidate pools. This allows summary tables (e.g. Appendix 4D highlights) that
     # partially match income_statement keywords to also compete for the highlights slot.
-    pools: dict[str, list[tuple[int, Any]]] = {k: [] for k in _TABLE_KEYWORDS}
+    # Pool tuple: (score, is_not_toc, table) — tiebreak prefers non-TOC tables.
+    pools: dict[str, list[tuple[int, bool, Any]]] = {k: [] for k in _TABLE_KEYWORDS}
     for table in tables:
         any_match = False
+        is_not_toc = not _table_is_toc(table)
         for label, keywords in _TABLE_KEYWORDS.items():
             score = _score(table, label, keywords)
             if score > 0:
-                pools[label].append((score, table))
+                pools[label].append((score, is_not_toc, table))
                 any_match = True
         if not any_match:
             labelled["unmatched"].append(table)
 
-    # For each label, keep the highest-scoring table; earlier page as tiebreak
-    # (formal statements appear before notes/supplementary tables in ASX filings)
+    # For each label: highest score wins; if tied, non-TOC beats TOC; if still tied,
+    # earlier page wins (formal statements appear before notes in ASX filings).
     for label in _TABLE_KEYWORDS:
         if pools[label]:
-            labelled[label] = max(pools[label], key=lambda x: (x[0], -x[1].page_number))[1]
+            labelled[label] = max(
+                pools[label], key=lambda x: (x[0], x[1], -x[2].page_number)
+            )[2]
 
     return labelled
 
