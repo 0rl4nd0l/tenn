@@ -25,6 +25,8 @@ class ToolRouter:
         qual_context_reader=None,
         qual_context_company_reader=None,
         qual_context_news_reader=None,
+        news_context_db_path: str = "",
+        news_context_corpus_filter: str = "news",
     ) -> None:
         self.db_reader = db_reader
         self.file_indexer = file_indexer
@@ -38,9 +40,14 @@ class ToolRouter:
         self.qual_context_reader = self.qual_context_company_reader
         self.repo_root = Path(repo_root).resolve()
         self.web_default_enabled = web_default_enabled
-        self.qual_context_enabled = any(
-            reader is not None
-            for reader in (self.qual_context_company_reader, self.qual_context_news_reader)
+        self.news_context_db_path = str(news_context_db_path or "").strip()
+        self.news_context_corpus_filter = str(news_context_corpus_filter or "news").strip()
+        self.qual_context_enabled = (
+            any(
+                reader is not None
+                for reader in (self.qual_context_company_reader, self.qual_context_news_reader)
+            )
+            or bool(self.news_context_db_path)
         )
         self._ticker_cache_ttl_seconds = 120.0
         self._ticker_cache: dict[tuple[Any, ...], tuple[float, dict[str, Any]]] = {}
@@ -593,6 +600,82 @@ class ToolRouter:
             "recent_low_conf_rows": trimmed_low_conf,
         }
 
+    def _query_news_sqlite_context(
+        self,
+        ticker: str,
+        corpus_filter: str,
+        top_k: int = 10,
+    ) -> dict[str, Any]:
+        """Read pre-ranked news chunks from context_chunks SQLite table."""
+        import json as _json
+        import sqlite3 as _sqlite3
+
+        db = Path(self.news_context_db_path).expanduser().resolve()
+        if not db.exists():
+            return {"ok": False, "hits": [], "source": "news_sqlite_context", "error": "db not found"}
+
+        ticker_upper = str(ticker or "").strip().upper()
+        conn = _sqlite3.connect(str(db))
+        conn.row_factory = _sqlite3.Row
+        try:
+            col_cursor = conn.execute("PRAGMA table_info(context_chunks)")
+            columns = {row[1] for row in col_cursor.fetchall()}
+            has_relevance = "ticker_relevance_json" in columns
+
+            rows = conn.execute(
+                "SELECT * FROM context_chunks WHERE ticker LIKE ? ORDER BY published_at DESC",
+                (f"%|{ticker_upper}|%",),
+            ).fetchall()
+        finally:
+            conn.close()
+
+        # Apply corpus prefix filter.
+        def _matches(corpus: str) -> bool:
+            return not corpus_filter or str(corpus or "").startswith(corpus_filter)
+
+        filtered = [r for r in rows if _matches(str(r["corpus"] or ""))]
+
+        # Build hits, parse relevance, dedupe by URL (keep best score).
+        hits_by_url: dict[str, dict[str, Any]] = {}
+        for row in filtered:
+            url = str(row["url"] or "")
+            final_score = 0.5
+            ticker_relation_type = "mention"
+            if has_relevance:
+                try:
+                    rel = _json.loads(str(row["ticker_relevance_json"] or "{}") or "{}")
+                    td = rel.get(ticker_upper) if isinstance(rel, dict) else None
+                    if isinstance(td, dict):
+                        final_score = float(td.get("score") or 0.5)
+                        ticker_relation_type = str(td.get("label") or "mention")
+                except Exception:
+                    pass
+            hit: dict[str, Any] = {
+                "chunk_id": str(row["chunk_id"] or ""),
+                "corpus": str(row["corpus"] or ""),
+                "title": str(row["title"] or ""),
+                "text": str(row["text"] or ""),
+                "source": str(row["source"] or ""),
+                "url": url,
+                "published_at": str(row["published_at"] or ""),
+                "ticker": str(row["ticker"] or ""),
+                "company": str(row["company"] or ""),
+                "final_score": final_score,
+                "ticker_relation_type": ticker_relation_type,
+                "source_corpus": str(row["corpus"] or ""),
+            }
+            if url not in hits_by_url or final_score > hits_by_url[url]["final_score"]:
+                hits_by_url[url] = hit
+
+        hits = sorted(hits_by_url.values(), key=lambda h: h["final_score"], reverse=True)[:top_k]
+        return {
+            "ok": True,
+            "hits": hits,
+            "source": "news_sqlite_context",
+            "candidate_count": len(filtered),
+            "filtered_count": len(hits),
+        }
+
     def _query_qual_context_reader(
         self,
         reader,
@@ -913,7 +996,9 @@ class ToolRouter:
                 )
                 payload["db_error"] = str(db_error)[:400]
             if self.qual_context_enabled and (
-                self.qual_context_company_reader is not None or self.qual_context_news_reader is not None
+                self.qual_context_company_reader is not None
+                or self.qual_context_news_reader is not None
+                or bool(self.news_context_db_path)
             ):
                 company_payload = None
                 news_payload = None
@@ -937,6 +1022,13 @@ class ToolRouter:
                         top_k=rag_news_limit,
                         company_filter="",
                         ticker_filter=ticker,
+                    )
+                    payload["qual_context_news"] = news_payload
+                elif self.news_context_db_path and ticker:
+                    news_payload = self._query_news_sqlite_context(
+                        ticker=ticker,
+                        corpus_filter=self.news_context_corpus_filter,
+                        top_k=rag_news_limit,
                     )
                     payload["qual_context_news"] = news_payload
                 payload["qual_context"] = self._merge_qual_context_hits(

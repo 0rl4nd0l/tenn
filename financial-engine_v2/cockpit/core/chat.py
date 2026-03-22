@@ -393,6 +393,7 @@ class ChatController:
         enable_web: bool = False,
         prior_ticker: str | None = None,
         on_chunk=None,
+        analysis_mode: str | None = None,
     ) -> ChatResponse:
         ticker = self._detect_ticker(message, prior_ticker=prior_ticker or self.last_ticker)
         self.last_ticker = ticker or self.last_ticker
@@ -532,8 +533,143 @@ class ChatController:
         else:
             answer = self.ollama_client.chat(prompt, timeout=self.llm_timeout_seconds)
 
+        if analysis_mode == "deep" and (
+            self._looks_like_framework_only_analysis(
+                answer=answer, ticker=ticker or "", local_payload=local_payload
+            )
+            or self._violates_deep_output_contract(answer)
+        ):
+            answer = self._build_grounded_deep_analysis_brief(
+                ticker=ticker or str(local_payload.get("ticker") or ""),
+                message=message,
+                local_payload=local_payload,
+            )
+
         return ChatResponse(text=answer.strip(), evidence=evidence, mode=mode, prompt=prompt)
 
     @staticmethod
     def now_iso() -> str:
         return datetime.now(timezone.utc).isoformat()
+
+    _DEEP_REQUIRED_HEADERS = ("Verdict:", "Evidence:", "Risks:", "Counterpoints:", "Unknowns:")
+
+    def _violates_deep_output_contract(self, text: str) -> bool:
+        """Return True if text is missing required deep-analysis headers or source anchors."""
+        for header in self._DEEP_REQUIRED_HEADERS:
+            if header not in text:
+                return True
+        return "[source:" not in text.lower()
+
+    def _looks_like_framework_only_analysis(
+        self, *, answer: str, ticker: str, local_payload: dict[str, Any]  # noqa: ARG002
+    ) -> bool:
+        """Return True if the answer looks like an empty outline with no grounded evidence."""
+        # Must have numbered markdown section headers (### N. ...) to be a framework answer.
+        if not re.search(r"^###\s+\d+\.", answer, re.MULTILINE):
+            return False
+        # If the answer contains date anchors or score values, it has some grounding.
+        if re.search(r"\d{4}-\d{2}-\d{2}", answer):
+            return False
+        if re.search(r"\bscore\b\s+\d+\.\d|\b0\.\d{3,}\b", answer, re.IGNORECASE):
+            return False
+        return True
+
+    def _build_grounded_deep_analysis_brief(
+        self, *, ticker: str, message: str, local_payload: dict[str, Any]  # noqa: ARG002
+    ) -> str:
+        """Build a structured evidence brief directly from local_payload, bypassing the LLM."""
+        lines: list[str] = []
+        evidence_lines: list[str] = []
+
+        # --- Qual context hits (deduped by file, path-cleaned) ---
+        qual = local_payload.get("qual_context") or {}
+        hits = [h for h in (qual.get("hits") or []) if isinstance(h, dict)]
+        seen_files: dict[str, float] = {}
+        unique_hits: list[dict[str, Any]] = []
+        for hit in sorted(hits, key=lambda h: float(h.get("score") or h.get("final_score") or 0.0), reverse=True):
+            file_key = str(hit.get("file") or hit.get("title") or "")
+            score = float(hit.get("score") or hit.get("final_score") or 0.0)
+            if file_key and file_key in seen_files:
+                continue
+            if file_key:
+                seen_files[file_key] = score
+            unique_hits.append(hit)
+        for hit in unique_hits:
+            score = float(hit.get("score") or hit.get("final_score") or 0.0)
+            date = str(hit.get("published_at") or "")[:10]
+            raw_file = str(hit.get("file") or "")
+            title = str(hit.get("title") or "")
+            # Clean absolute paths — use basename only.
+            src_label = Path(raw_file).name if raw_file else title
+            evidence_lines.append(f"- score {score:.3f} | {date} | {title or src_label} [source: {src_label}]")
+
+        # --- Doc snippets — signal extraction for liquidity/refinancing terms ---
+        _SIGNAL_TERMS = re.compile(
+            r"liquidity|refinanc|cash\s+runway|undrawn|debt\s+facilit|maturity|covenant", re.IGNORECASE
+        )
+        snippets = [s for s in (local_payload.get("doc_snippets") or []) if isinstance(s, dict)]
+        signal_snippets: list[str] = []
+        for snippet in snippets:
+            excerpt = str(snippet.get("excerpt") or "")
+            if _SIGNAL_TERMS.search(excerpt):
+                src = str(snippet.get("title") or "document")
+                excerpt_short = excerpt[:200]
+                signal_snippets.append(f'- "{excerpt_short}" [source: {src}]')
+        if signal_snippets:
+            evidence_lines.append("Signal extraction identified concrete liquidity/refinancing snippets:")
+            evidence_lines.extend(signal_snippets)
+
+        # --- Data quality signals ---
+        dq = local_payload.get("data_quality") or {}
+        for failure in (dq.get("recent_failures") or []):
+            if isinstance(failure, dict):
+                evidence_lines.append(
+                    f"- Extraction failed for {failure.get('title', 'unknown')} [source: extraction_runs/documents]"
+                )
+        for row in (dq.get("recent_low_conf_rows") or []):
+            if isinstance(row, dict):
+                conf = float(row.get("confidence_metrics") or 0.0)
+                period = str(row.get("period_type") or "")
+                period_end = str(row.get("period_end") or "")
+                evidence_lines.append(
+                    f"- Low-confidence financials: {period} {period_end} conf={conf:.2f} [source: asx_periodic_financials]"
+                )
+
+        # --- Price horizons ---
+        for period, ph in (local_payload.get("price_horizons") or {}).items():
+            if isinstance(ph, dict) and ph.get("ok"):
+                tr = float(ph.get("total_return_pct") or 0.0)
+                md = float(ph.get("max_drawdown_pct") or 0.0)
+                vol = float(ph.get("volatility_ann_pct") or 0.0)
+                evidence_lines.append(
+                    f"- total_return={tr:.2f}% max_drawdown={md:.2f}% volatility={vol:.2f}% over {period} "
+                    f"[source: price_horizon_{period}]"
+                )
+
+        # --- Web facts ---
+        for fact in (local_payload.get("web_facts") or []):
+            if isinstance(fact, dict):
+                claim = str(fact.get("claim") or "")
+                url = str(fact.get("url") or "")
+                evidence_lines.append(f"- Web fact: {claim} [source: {url}]")
+
+        # Assemble structured brief.
+        n_sources = len(evidence_lines)
+        lines.append("Verdict:")
+        lines.append(
+            f"{ticker}: Grounded analysis based on {n_sources} evidence item(s) from local context."
+        )
+        lines.append("")
+        lines.append("Evidence:")
+        lines.extend(evidence_lines if evidence_lines else ["- No local evidence available."])
+        lines.append("")
+        lines.append("Risks:")
+        lines.append("- Dependent on availability and recency of evidence above.")
+        lines.append("")
+        lines.append("Counterpoints:")
+        lines.append("- Data coverage may be partial; full picture requires additional sources.")
+        lines.append("")
+        lines.append("Unknowns:")
+        lines.append("- Items not yet disclosed or unavailable in local evidence.")
+
+        return "\n".join(lines)
