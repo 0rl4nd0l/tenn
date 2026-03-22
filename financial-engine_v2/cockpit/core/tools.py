@@ -1207,6 +1207,22 @@ class ToolRouter:
                         payload["agent_memory"] = observations
                 except Exception:
                     pass
+            # Inject most recent prior analysis export for this ticker (best-effort)
+            if self._state_store is not None and ticker:
+                try:
+                    if hasattr(self._state_store, "list_exports"):
+                        recent_exports = self._state_store.list_exports(limit=20)
+                        ticker_upper = ticker.upper()
+                        for exp in recent_exports:
+                            question = str(exp.get("question") or "")
+                            if ticker_upper in question.upper():
+                                payload["prior_export"] = {
+                                    "question": question[:200],
+                                    "date": str(exp.get("created_at") or "")[:10],
+                                }
+                                break
+                except Exception:
+                    pass
         return ToolResult(ok=True, title="local_context", payload=payload)
 
     def fetch_web(self, url: str, enabled: bool, max_chars: int | None = 8000) -> ToolResult:

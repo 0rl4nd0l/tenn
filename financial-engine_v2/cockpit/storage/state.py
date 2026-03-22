@@ -93,6 +93,26 @@ class StateStore:
         cur.execute(
             "CREATE INDEX IF NOT EXISTS idx_entity_obs_ticker ON entity_observations(ticker)"
         )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_preferences (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS session_summaries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_date TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                tickers_mentioned TEXT NOT NULL DEFAULT '[]',
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """
+        )
         self.conn.commit()
 
     def add_chat_message(self, thread_id: str, role: str, content: str, created_at: str) -> None:
@@ -318,3 +338,50 @@ class StateStore:
             (ticker.upper(), limit),
         ).fetchall()
         return [{"type": r[0], "content": r[1], "date": r[2][:10]} for r in rows]
+
+    # ------------------------------------------------------------------ #
+    # User preferences                                                     #
+    # ------------------------------------------------------------------ #
+
+    def set_preference(self, key: str, value: str) -> None:
+        """Set or update a user preference."""
+        with self._lock:
+            self.conn.execute(
+                "INSERT INTO user_preferences (key, value) VALUES (?, ?) "
+                "ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=datetime('now')",
+                (key, value),
+            )
+            self.conn.commit()
+
+    def get_preferences(self) -> dict[str, str]:
+        """Return all user preferences as a dict."""
+        rows = self.conn.execute(
+            "SELECT key, value FROM user_preferences"
+        ).fetchall()
+        return {r[0]: r[1] for r in rows}
+
+    def get_preference(self, key: str, default: str = "") -> str:
+        """Return a single preference value."""
+        return self.get_preferences().get(key, default)
+
+    # ------------------------------------------------------------------ #
+    # Session summaries                                                    #
+    # ------------------------------------------------------------------ #
+
+    def add_session_summary(self, summary: str, tickers: list[str]) -> None:
+        """Store a session summary for cross-session context."""
+        with self._lock:
+            self.conn.execute(
+                "INSERT INTO session_summaries (session_date, summary, tickers_mentioned) VALUES (date('now'), ?, ?)",
+                (summary[:1000], json.dumps(tickers)),
+            )
+            self.conn.commit()
+
+    def get_recent_session_summaries(self, limit: int = 3) -> list[dict]:
+        """Return the N most recent session summaries."""
+        rows = self.conn.execute(
+            "SELECT session_date, summary, tickers_mentioned FROM session_summaries "
+            "ORDER BY created_at DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [{"date": r[0], "summary": r[1], "tickers": json.loads(r[2])} for r in rows]

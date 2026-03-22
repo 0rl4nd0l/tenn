@@ -68,6 +68,7 @@ class ChatScreen(Screen):
         yield Static("Model runtime: loading...", id="chat-model-status")
         yield Static("", id="chat-ticker-context")
         yield RichLog(id="chat-log", wrap=True, markup=False)
+        yield RichLog(id="chat-assistant-log", markup=True, highlight=True, wrap=True)
         yield Static("", id="chat-live-response")
         yield Static("", id="chat-status")
         yield Static("No pending action", id="chat-pending")
@@ -384,7 +385,6 @@ class NewsSearchScreen(Screen):
     BINDINGS = [("escape", "app.show_chat", "Back")]
 
     def compose(self) -> ComposeResult:
-        from datetime import datetime, timedelta, timezone
 
         yield Label("News Search")
         yield Horizontal(

@@ -624,7 +624,7 @@ class ChatController:
     def _build_system_instruction(self, mode: str, ticker: str | None, local_payload: dict) -> str:  # noqa: ARG002
         """Build the ASX-domain-specific system prompt for the LLM."""
         date_str = datetime.now().strftime("%Y-%m-%d")
-        return (
+        instruction = (
             "You are Tenn, an advanced ASX equity research analyst and financial intelligence agent.\n"
             "\n"
             "Your primary function: deliver rigorous, evidence-grounded analysis of ASX-listed companies."
@@ -655,6 +655,35 @@ class ChatController:
             f"Current mode: {mode}\n"
             f"Current date (AEST): {date_str}\n"
         )
+
+        prefs: dict[str, str] = {}
+        if self._state_store is not None:
+            try:
+                prefs = self._state_store.get_preferences()
+            except Exception:
+                pass
+
+        if prefs:
+            pref_lines = [f"  {k}: {v}" for k, v in prefs.items()]
+            instruction += "\nUser preferences:\n" + "\n".join(pref_lines) + "\n"
+
+        # Cross-session episodic memory
+        if self._state_store:
+            try:
+                recent_sessions = self._state_store.get_recent_session_summaries(limit=2)
+                if recent_sessions:
+                    session_lines = []
+                    for s in recent_sessions:
+                        tickers_str = ", ".join(s.get("tickers", [])[:5])
+                        session_lines.append(
+                            f"  {s['date']}: {s['summary']}"
+                            + (f" [tickers: {tickers_str}]" if tickers_str else "")
+                        )
+                    instruction += "\nPrior session context:\n" + "\n".join(session_lines) + "\n"
+            except Exception:
+                pass
+
+        return instruction
 
     def build_chat_response(
         self,
@@ -894,6 +923,15 @@ class ChatController:
                 mem_lines.append(f"  [{obs.get('type', 'note')}] {obs.get('content', '')}")
             if mem_lines:
                 context_sections.append("Prior agent observations about this ticker:\n" + "\n".join(mem_lines[:6]))
+
+        if local_payload.get("prior_export"):
+            pe = local_payload["prior_export"]
+            prior_ticker = ticker or str(local_payload.get("ticker") or "")
+            context_sections.append(
+                f"Most recent prior analysis for {prior_ticker}:\n"
+                f"  Question: {pe.get('question', '')}\n"
+                f"  (Run on {pe.get('date', 'unknown')})"
+            )
 
         runtime_settings = {
             "context_profile": effective_profile,

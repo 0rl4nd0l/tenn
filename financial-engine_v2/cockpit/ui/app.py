@@ -92,6 +92,14 @@ class CockpitApp(App):
         height: 1fr;
         min-height: 8;
     }
+    #chat-assistant-log {
+        height: auto;
+        min-height: 0;
+        max-height: 20;
+        margin: 0 0 1 0;
+        border: round $accent;
+        padding: 0 1;
+    }
     #chat-live-response {
         display: none;
         margin: 0 0 1 0;
@@ -259,13 +267,78 @@ class CockpitApp(App):
             return
         self._finish_mount()
 
-    def on_unmount(self) -> None:
+    async def on_unmount(self) -> None:
         if self._model_status_timer is not None:
             self._model_status_timer.stop()
             self._model_status_timer = None
         for task in list(self._chat_tasks):
             task.cancel()
         self._chat_tasks.clear()
+        try:
+            await self._summarize_and_store_session()
+        except Exception:
+            pass  # never block shutdown
+
+    async def _summarize_and_store_session(self) -> None:
+        """Summarize the current session and store for future cross-session context."""
+        if not getattr(self, "state_store", None):
+            return
+
+        msgs = self.state_store.get_chat_messages("global-main", limit=30)
+        if len(msgs) < 4:  # skip trivial sessions
+            return
+
+        # Build a compact transcript
+        transcript_lines = []
+        tickers_seen: set[str] = set()
+        for m in msgs[-20:]:  # last 20 messages max
+            role = m.get("role", "user")
+            content = str(m.get("content", ""))[:200]
+            transcript_lines.append(f"{role}: {content}")
+            # crude ticker extraction: uppercase 2-4 char words
+            for t in re.findall(r"\b[A-Z]{2,4}\b", content):
+                if t not in {"ASX", "LLM", "RAG", "FCF", "PDF", "EPS", "YOY"}:
+                    tickers_seen.add(t)
+
+        transcript = "\n".join(transcript_lines)
+
+        summary_prompt = (
+            "You are summarising a financial analysis session in 2-3 sentences for future reference. "
+            "Focus on: what companies were analysed, key findings or conclusions, and any decisions or actions taken. "
+            "Be concise and factual.\n\nSession transcript:\n"
+            + transcript
+            + "\n\nSummary (2-3 sentences):"
+        )
+
+        llm_client = getattr(self, "ollama_client", None)
+        if llm_client is None:
+            return
+
+        def _run_summary() -> str:
+            result: list[str] = []
+
+            def _collect(chunk: str) -> None:
+                result.append(chunk)
+
+            try:
+                llm_client.chat(summary_prompt, timeout=30.0, on_chunk=_collect)
+            except TypeError:
+                # on_chunk not supported — try without
+                try:
+                    text = llm_client.chat(summary_prompt, timeout=30.0)
+                    return str(text or "").strip()
+                except Exception:
+                    return ""
+            return "".join(result)
+
+        summary_text = await asyncio.to_thread(_run_summary)
+        summary_text = summary_text.strip()[:800]
+
+        if summary_text and len(summary_text) > 20:
+            self.state_store.add_session_summary(
+                summary=summary_text,
+                tickers=list(tickers_seen)[:10],
+            )
 
     def _finish_mount(self) -> None:
         """Install screens and surface startup info. Called by on_mount (normal flow)
@@ -601,6 +674,20 @@ class CockpitApp(App):
             )
             return
 
+        if message.startswith("/prefer "):
+            rest = message[len("/prefer "):].strip()
+            if "=" in rest:
+                key, _, value = rest.partition("=")
+                self.state_store.set_preference(key.strip(), value.strip())
+                self._append_log(log, f"assistant: Preference saved: {key.strip()} = {value.strip()}")
+            else:
+                prefs = self.state_store.get_preferences()
+                if prefs:
+                    self._append_log(log, "assistant: Current preferences:\n" + "\n".join(f"  {k} = {v}" for k, v in prefs.items()))
+                else:
+                    self._append_log(log, "assistant: No preferences set. Use /prefer key=value to set one.")
+            return
+
         spinner_frames = ["|", "/", "-", "\\"]
         stream_state = {"text": "", "last_flush": 0.0}
         action_id = self.chat_controller.detect_action_intent(message)
@@ -637,6 +724,8 @@ class CockpitApp(App):
             self.chat_inflight = True
             status.update(f"{thinking_prefix} |")
             spinner_task = asyncio.create_task(_spinner())
+            _deep = provisional_mode == "deep_analysis"
+            _analysis_mode_kw = {"analysis_mode": "deep"} if _deep else {}
             def _build_response():
                 try:
                     return self.chat_controller.build_chat_response(
@@ -644,10 +733,24 @@ class CockpitApp(App):
                         self.config["web"].get("enabled_default", False),
                         self.last_detected_ticker,
                         on_chunk=_on_chunk,
+                        **_analysis_mode_kw,
                     )
                 except TypeError as exc:
-                    if "on_chunk" not in str(exc):
+                    exc_str = str(exc)
+                    if "on_chunk" not in exc_str and "analysis_mode" not in exc_str:
                         raise
+                    # analysis_mode not accepted — retry with on_chunk but no analysis_mode
+                    if _analysis_mode_kw and "analysis_mode" in exc_str:
+                        try:
+                            return self.chat_controller.build_chat_response(
+                                message,
+                                self.config["web"].get("enabled_default", False),
+                                self.last_detected_ticker,
+                                on_chunk=_on_chunk,
+                            )
+                        except TypeError:
+                            pass
+                    # on_chunk not accepted — bare call (oldest signature)
                     return self.chat_controller.build_chat_response(
                         message,
                         self.config["web"].get("enabled_default", False),
@@ -697,7 +800,12 @@ class CockpitApp(App):
         except Exception:
             pass
 
-        self._append_log(log, f"assistant: {assistant_text}")
+        try:
+            from rich.markdown import Markdown as _Markdown
+            assistant_log = chat.query_one("#chat-assistant-log", RichLog)
+            assistant_log.write(_Markdown(f"**{self.ASSISTANT_NAME}:** {assistant_text}"), scroll_end=True)
+        except Exception:
+            self._append_log(log, f"assistant: {assistant_text}")
         self.state_store.add_chat_message(self.thread_id, "assistant", assistant_text, datetime.now(timezone.utc).isoformat())
 
         if response.action_preview:
