@@ -158,14 +158,29 @@ _TABLE_KEYWORDS: dict[str, list[str]] = {
     ],
     "highlights": [
         "highlights", "key metrics", "summary", "at a glance", "key financials",
+        "key information",  # Appendix 4D "Key Information" table (has EBIT, EBITDA labeled)
     ],
 }
+
+# High-confidence header phrases — matching any grants a large bonus score so
+# these tables win decisively over footnote/note tables with incidental keyword matches.
+_STATEMENT_HEADERS: dict[str, list[str]] = {
+    "cashflow_statement": ["statement of cash flows", "cash flow statement"],
+    "income_statement": [
+        "income statement", "statement of profit", "statement of comprehensive income",
+    ],
+    "balance_sheet": ["balance sheet", "statement of financial position"],
+    "highlights": ["appendix 4d", "results for announcement"],
+}
+_HEADER_BONUS = 10
 
 
 def _run_pass2_locator(tables) -> dict[str, Any]:
     """
     Pass 2: score each DoclingTable against keyword map. Returns labelled dict.
-    Tables are matched to statement type by caption + first column text.
+    Tables are matched to statement type by caption + first column text + headers.
+    Tables with explicit statement-name headers receive a large bonus score so
+    they win over footnote tables with incidental keyword matches.
     Unmatched tables go to 'unmatched' list.
     """
     from app.services.docling_extract import DoclingTable
@@ -173,33 +188,38 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
     labelled: dict[str, Any] = {k: None for k in _TABLE_KEYWORDS}
     labelled["unmatched"] = []
 
-    def _score(table: DoclingTable, keywords: list[str]) -> int:
-        text = (table.caption + " " + " ".join(
-            row[0] for row in table.rows[:5] if row
-        )).lower()
-        return sum(1 for kw in keywords if kw in text)
+    def _score(table: DoclingTable, label: str, keywords: list[str]) -> int:
+        # Include caption, all header cells, and first-column of first 8 rows
+        header_text = " ".join(table.headers).lower()
+        body_text = " ".join(row[0] for row in table.rows[:8] if row).lower()
+        text = table.caption.lower() + " " + header_text + " " + body_text
+        score = sum(1 for kw in keywords if kw in text)
+        # Bonus for explicit statement-type header (e.g. "STATEMENT OF CASH FLOWS")
+        for phrase in _STATEMENT_HEADERS.get(label, []):
+            if phrase in text:
+                score += _HEADER_BONUS
+                break
+        return score
 
-    # Score each table against each statement type
-    scored: list[tuple[str, int, Any]] = []
+    # Score each table against ALL statement types — a table may appear in multiple
+    # candidate pools. This allows summary tables (e.g. Appendix 4D highlights) that
+    # partially match income_statement keywords to also compete for the highlights slot.
+    pools: dict[str, list[tuple[int, Any]]] = {k: [] for k in _TABLE_KEYWORDS}
     for table in tables:
-        best_label = None
-        best_score = 0
+        any_match = False
         for label, keywords in _TABLE_KEYWORDS.items():
-            score = _score(table, keywords)
-            if score > best_score:
-                best_score = score
-                best_label = label
-        if best_label and best_score > 0:
-            scored.append((best_label, best_score, table))
-        else:
+            score = _score(table, label, keywords)
+            if score > 0:
+                pools[label].append((score, table))
+                any_match = True
+        if not any_match:
             labelled["unmatched"].append(table)
 
-    # For each label, keep the highest-scoring table (page order as tiebreak)
+    # For each label, keep the highest-scoring table; earlier page as tiebreak
+    # (formal statements appear before notes/supplementary tables in ASX filings)
     for label in _TABLE_KEYWORDS:
-        candidates = [(s, t) for (lbl, s, t) in scored if lbl == label]
-        if candidates:
-            # highest score; page order tiebreak (later page = more authoritative)
-            labelled[label] = max(candidates, key=lambda x: (x[0], x[1].page_number))[1]
+        if pools[label]:
+            labelled[label] = max(pools[label], key=lambda x: (x[0], -x[1].page_number))[1]
 
     return labelled
 
@@ -225,7 +245,10 @@ Extract ONLY these metrics relevant to {table_type}:
 
 Rules:
 - Values in parentheses like (412) mean NEGATIVE: output -412 (raw, not pre-multiplied)
-- null if the metric is not in this table
+- Output null if the metric is NOT explicitly labeled in this table — do NOT estimate or derive it
+- ebit: only output if a row is explicitly labeled "EBIT", "Earnings Before Interest and Tax", or equivalent — do NOT use PBT or Profit Before Tax as a proxy
+- capex: look for "Payments for property, plant and equipment" or "Capital expenditure" in investing activities — output null if not found
+- shares_outstanding: look for total ordinary shares on issue (count, not dollar amount) — typically labeled "Ordinary shares" or "Shares on issue"
 - period_col: which column header represents the current period
 
 Schema:
@@ -238,7 +261,7 @@ Schema:
 """
 
 _METRIC_SCHEMA_BY_TABLE = {
-    "cashflow_statement": ["operating_cf", "investing_cf", "financing_cf", "cash_end"],
+    "cashflow_statement": ["operating_cf", "investing_cf", "financing_cf", "cash_end", "capex"],
     "income_statement": ["revenue", "ebit", "np_attributable"],
     "balance_sheet": ["net_debt", "shares_outstanding"],
     "highlights": METRIC_FIELDS,  # highlights may have any metric
