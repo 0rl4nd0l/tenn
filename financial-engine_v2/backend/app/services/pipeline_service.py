@@ -100,6 +100,8 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
                             "error": "extraction_failed",
                             "extraction_status": proc_result.get("extraction_status"),
                         })
+                    for key in ("chunks_created", "chunks_skipped", "invalid_payloads", "written_points"):
+                        ingestion_metrics[key] = ingestion_metrics.get(key, 0) + int(proc_result.get(key) or 0)
                 except Exception as exc:
                     extraction_failed_count += 1
                     errors.append({"document_id": str(document_id), "stage": "process_document", "error": str(exc)})
