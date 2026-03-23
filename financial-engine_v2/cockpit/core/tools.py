@@ -1062,6 +1062,7 @@ class ToolRouter:
                             "title": row.get("title"),
                             "published_at": row.get("published_at"),
                             "pdf_path": row.get("pdf_path"),
+                            "doc_class": row.get("doc_class"),
                             "excerpt": excerpt,
                         }
                     )

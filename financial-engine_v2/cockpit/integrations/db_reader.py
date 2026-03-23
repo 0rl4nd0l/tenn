@@ -43,7 +43,7 @@ class DbReader:
             where ticker = :ticker
             order by
                 CASE
-                    WHEN doc_class IN ('results', 'annual_report', 'half_year_report') THEN 1
+                    WHEN doc_class IN ('results', 'annual_report', 'half_year_report', 'annual', 'half_year') THEN 1
                     WHEN doc_class = 'guidance' THEN 2
                     WHEN doc_class IN ('capital_raising', 'dividend', 'acquisition') THEN 3
                     ELSE 4
