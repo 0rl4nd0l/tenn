@@ -452,6 +452,97 @@ def test_pass3a_prompt_includes_period_end_for_column_selection():
 # Docling adaptive timeout (B3)
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Pass 4 — net_debt derivation (B4)
+# ---------------------------------------------------------------------------
+
+def test_pass4_reconciler_derives_net_debt_from_total_debt():
+    """Reconciler must derive net_debt = total_debt - cash_end when net_debt is null."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "cashflow_statement",
+            "operating_cf": 500_000_000, "investing_cf": None, "financing_cf": None,
+            "cash_end": 200_000_000, "capex": None,
+            "pass3_confidence": 0.9, "row_refs": {},
+        },
+        {
+            "_source": "balance_sheet",
+            "net_debt": None, "total_debt": 800_000_000, "shares_outstanding": None,
+            "pass3_confidence": 0.8, "row_refs": {},
+        },
+    ]
+    pass3b = {
+        "risk_summary": None, "risk_bullets": None,
+        "guidance_summary": None, "material_changes": None, "confidence_narrative": 0.5,
+    }
+    pass1 = {"report_type": "H", "period_end": "2024-12-31", "currency": "AUD"}
+
+    payload = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert payload["metrics"]["net_debt"] == 600_000_000, (
+        "net_debt must be derived as total_debt(800M) - cash_end(200M) = 600M"
+    )
+    assert "derived:balance_sheet" in payload["provenance"].get("net_debt", ""), (
+        "provenance must record that net_debt was derived"
+    )
+
+
+def test_pass4_reconciler_skips_derivation_when_net_debt_already_extracted():
+    """Explicitly extracted net_debt must not be overwritten by derivation."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "cashflow_statement",
+            "operating_cf": 100_000_000, "investing_cf": None, "financing_cf": None,
+            "cash_end": 50_000_000, "capex": None,
+            "pass3_confidence": 0.9, "row_refs": {},
+        },
+        {
+            "_source": "balance_sheet",
+            "net_debt": 300_000_000, "total_debt": 999_000_000, "shares_outstanding": None,
+            "pass3_confidence": 0.9, "row_refs": {},
+        },
+    ]
+    pass3b = {
+        "risk_summary": None, "risk_bullets": None,
+        "guidance_summary": None, "material_changes": None, "confidence_narrative": 0.5,
+    }
+    pass1 = {"report_type": "H", "period_end": "2024-12-31", "currency": "AUD"}
+
+    payload = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert payload["metrics"]["net_debt"] == 300_000_000, (
+        "Explicitly extracted net_debt(300M) must not be overwritten by total_debt(999M)-cash_end"
+    )
+
+
+def test_pass4_reconciler_skips_derivation_when_cash_end_missing():
+    """Derivation must not run when cash_end is not available."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "balance_sheet",
+            "net_debt": None, "total_debt": 500_000_000, "shares_outstanding": 100_000_000,
+            "pass3_confidence": 0.7, "row_refs": {},
+        },
+    ]
+    pass3b = {
+        "risk_summary": None, "risk_bullets": None,
+        "guidance_summary": None, "material_changes": None, "confidence_narrative": 0.5,
+    }
+    pass1 = {"report_type": "H", "period_end": "2024-12-31", "currency": "AUD"}
+
+    payload = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert payload["metrics"]["net_debt"] is None, (
+        "net_debt must remain null when cash_end is unavailable — cannot derive safely"
+    )
+
+
 def test_compute_docling_timeout_floor():
     """Short PDFs must never drop below the 120s floor."""
     from app.services.docling_extract import _compute_docling_timeout

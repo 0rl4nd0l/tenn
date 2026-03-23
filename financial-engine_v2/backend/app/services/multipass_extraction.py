@@ -280,6 +280,9 @@ Rules:
   extract values ONLY from the column whose header best matches the reporting date {period_end}.
   Never extract from prior-period or comparative columns.
   Set period_col to the exact column header you chose.
+- total_debt (balance_sheet only): sum of all financial debt — current + non-current borrowings,
+  bonds, notes payable. Exclude AASB 16 / IFRS 16 lease liabilities unless no other financial
+  debt exists. Output null if no financial debt is present (e.g. company is debt-free).
 
 Schema:
 {{
@@ -293,7 +296,9 @@ Schema:
 _METRIC_SCHEMA_BY_TABLE = {
     "cashflow_statement": ["operating_cf", "investing_cf", "financing_cf", "cash_end", "capex"],
     "income_statement": ["revenue", "ebit", "np_attributable"],
-    "balance_sheet": ["net_debt", "shares_outstanding"],
+    # total_debt is an internal capture metric: not in METRIC_FIELDS, not stored in DB.
+    # Pass 4 uses it to derive net_debt = total_debt - cash_end when net_debt is null.
+    "balance_sheet": ["net_debt", "total_debt", "shares_outstanding"],
     "share_capital": ["shares_outstanding"],
     "highlights": METRIC_FIELDS,  # highlights may have any metric
 }
@@ -502,6 +507,27 @@ def _run_pass4_reconciler(
                 provenance[m] = f"{source}:{extraction.get('row_refs', {}).get(m, 'unknown')}"
                 contributed += 1
         source_stats[source] = (conf, contributed)
+
+    # B4: derive net_debt from balance sheet total_debt when not directly extracted.
+    # total_debt is an internal capture field (not in METRIC_FIELDS) so it survives
+    # only in the raw pass3a extraction dict, not in merged_metrics.
+    if merged_metrics.get("net_debt") is None:
+        bs_result = next(
+            (r for r in pass3a_results if r.get("_source") == "balance_sheet"), None
+        )
+        if bs_result is not None:
+            total_debt = bs_result.get("total_debt")
+            cash_end = merged_metrics.get("cash_end")
+            if total_debt is not None and cash_end is not None:
+                merged_metrics["net_debt"] = total_debt - cash_end
+                provenance["net_debt"] = (
+                    f"derived:balance_sheet:total_debt({total_debt:.0f})"
+                    f"-cash_end({cash_end:.0f})"
+                )
+                logger.info(
+                    "net_debt derived from balance sheet: %.0f - %.0f = %.0f",
+                    total_debt, cash_end, merged_metrics["net_debt"],
+                )
 
     # Weighted average confidence — each source weighted by metrics contributed
     total_weight = sum(n for _, n in source_stats.values())
