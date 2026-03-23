@@ -68,8 +68,8 @@ def prepare_chart_action_args(
             interval=timeframe,
             max_history_rows=260,
         )
-    except Exception:
-        rows = []
+    except Exception as exc:
+        return None, f"no OHLC data for {ticker}: {exc}"
 
     if not rows:
         return None, f"no OHLC data for {ticker}"

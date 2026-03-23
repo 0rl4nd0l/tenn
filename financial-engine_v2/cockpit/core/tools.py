@@ -515,6 +515,8 @@ class ToolRouter:
             )
             price = bundle.get("price") if isinstance(bundle, dict) else {}
             price = price if isinstance(price, dict) else {}
+            if price.get("ok") is False:
+                raise RuntimeError(str(price.get("error") or "price lookup failed"))
             history = price.get("recent_history")
             if not isinstance(history, list) or not history:
                 return []
@@ -533,6 +535,8 @@ class ToolRouter:
                     }
                 )
             return rows
+        except RuntimeError:
+            raise
         except Exception:
             return []
 

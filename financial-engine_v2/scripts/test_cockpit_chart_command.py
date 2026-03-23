@@ -64,6 +64,18 @@ class _ToolRouterEmpty:
         return []
 
 
+class _ToolRouterBackendError:
+    def build_candlestick_ohlc_lines(
+        self,
+        ticker: str,
+        *,
+        range_: str = "1y",
+        interval: str = "1d",
+        max_history_rows: int = 260,
+    ) -> list[dict]:  # noqa: ARG002
+        raise RuntimeError("market price provider rate limited (HTTP 429)")
+
+
 class CockpitChartCommandTests(unittest.TestCase):
     def test_prepare_chart_args_equity_builds_csv(self):
         with tempfile.TemporaryDirectory() as td:
@@ -92,6 +104,19 @@ class CockpitChartCommandTests(unittest.TestCase):
             self.assertIsNone(args)
             self.assertIsInstance(err, str)
             self.assertIn("no OHLC data for BHP", str(err))
+
+    def test_prepare_chart_args_equity_backend_error_includes_reason(self):
+        with tempfile.TemporaryDirectory() as td:
+            args, err = prepare_chart_action_args(
+                "BHP",
+                parse_kv_args=_ActionRegistryStub.parse_kv_args,
+                tool_router=_ToolRouterBackendError(),
+                out_dir=Path(td) / "reports" / "candles",
+            )
+            self.assertIsNone(args)
+            self.assertIsInstance(err, str)
+            self.assertIn("no OHLC data for BHP", str(err))
+            self.assertIn("rate limited", str(err))
 
     def test_prepare_chart_args_crypto_shorthand(self):
         with tempfile.TemporaryDirectory() as td:
