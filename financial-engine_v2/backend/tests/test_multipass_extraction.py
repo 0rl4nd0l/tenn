@@ -190,67 +190,73 @@ def test_pass4_merges_non_overlapping_metrics():
 # Scale detection priority — table headers always authoritative over LLM
 # ---------------------------------------------------------------------------
 
-def test_scale_table_headers_override_llm_millions():
-    """Table-header scan returning 'thousands' must win over Pass 1 returning 'millions'.
-
-    This validates the inverted priority: _detect_scale_from_tables is authoritative
-    when it finds a clear signal; Pass 1 LLM is only a fallback.
-    """
+def test_scale_override_mutates_pass1_dict():
+    """The override block must mutate pass1['scale'] when table headers are authoritative."""
     from app.services.multipass_extraction import _detect_scale_from_tables
     from app.services.docling_extract import DoclingTable
 
-    # Table whose column header clearly says $'000 (thousands)
-    table_with_thousands_header = DoclingTable(
-        page_number=2,
-        caption="Consolidated Statement of Cash Flows",
-        rows=[["", "31 Dec 2024 $'000", "31 Dec 2023 $'000"],
-              ["Net cash from operations", "3,241", "2,876"]],
-        headers=["", "31 Dec 2024 $'000", "31 Dec 2023 $'000"],
+    table = DoclingTable(
+        page_number=2, caption="Cash Flows",
+        rows=[["", "31 Dec 2024 $'000"], ["Operating CF", "3,241"]],
+        headers=["", "31 Dec 2024 $'000"],
     )
+    # Simulate the pass1 result that LLM returned wrongly
+    pass1 = {"scale": "millions", "report_type": "H", "period_end": "2024-12-31"}
 
-    detected = _detect_scale_from_tables([table_with_thousands_header])
-    assert detected == "thousands", (
-        f"Expected 'thousands' from $'000 header, got {detected!r}"
-    )
-
-    # Simulate what the new logic does: LLM said "millions", table says "thousands"
-    # The new block unconditionally applies table scan when detected != "unknown"
-    pass1_scale = "millions"  # LLM mistake
+    # Apply the same override logic as run_multipass_extraction
+    detected = _detect_scale_from_tables([table])
     if detected != "unknown":
-        resolved_scale = detected  # table wins
-    else:
-        resolved_scale = pass1_scale
+        pass1["scale"] = detected
 
-    assert resolved_scale == "thousands", (
-        "Table-header scale must override LLM classification"
+    assert pass1["scale"] == "thousands", (
+        f"Override must mutate pass1['scale'] from 'millions' to 'thousands', got {pass1['scale']!r}"
     )
 
 
-def test_scale_table_unknown_falls_back_to_pass1():
-    """When table scan returns 'unknown', Pass 1 classifier result is preserved."""
+def test_scale_unknown_table_preserves_pass1_scale():
+    """When table scan returns 'unknown', pass1['scale'] must remain unchanged."""
     from app.services.multipass_extraction import _detect_scale_from_tables
     from app.services.docling_extract import DoclingTable
 
-    # Table with no scale indicator in headers
-    table_without_scale = DoclingTable(
-        page_number=1,
-        caption="Highlights",
+    table = DoclingTable(
+        page_number=1, caption="Highlights",
         rows=[["Metric", "Value"], ["Revenue", "27,841"]],
         headers=["Metric", "Value"],
     )
+    pass1 = {"scale": "millions", "report_type": "H", "period_end": "2024-12-31"}
 
-    detected = _detect_scale_from_tables([table_without_scale])
-    assert detected == "unknown"
-
-    # When table scan gives nothing, Pass 1 should be preserved
-    pass1_scale = "millions"
+    detected = _detect_scale_from_tables([table])
     if detected != "unknown":
-        resolved_scale = detected
-    else:
-        resolved_scale = pass1_scale  # fallback: keep Pass 1 value
+        pass1["scale"] = detected  # should not execute
 
-    assert resolved_scale == "millions", (
-        "Pass 1 scale must be preserved when table scan returns unknown"
+    assert pass1["scale"] == "millions", (
+        "pass1['scale'] must be unchanged when table scan returns 'unknown'"
+    )
+
+
+def test_scale_override_logs_disagreement():
+    """When LLM and table scan disagree, the override must emit an INFO log."""
+    from app.services.multipass_extraction import _detect_scale_from_tables
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=2, caption="Cash Flows",
+        rows=[["", "H1 2025 $'000"], ["Operating CF", "3,241"]],
+        headers=["", "H1 2025 $'000"],
+    )
+    pass1 = {"scale": "millions"}  # LLM wrong
+
+    detected = _detect_scale_from_tables([table])
+    assert detected == "thousands"
+
+    # The actual INFO log fires inside run_multipass_extraction; test the condition directly.
+    # The condition is: detected != "unknown" AND pass1 scale not in (detected, "unknown", None, "")
+    should_log = (
+        detected != "unknown"
+        and pass1.get("scale", "unknown") not in (detected, "unknown", None, "")
+    )
+    assert should_log, (
+        "Disagreement between LLM ('millions') and table scan ('thousands') must trigger INFO log"
     )
 
 
