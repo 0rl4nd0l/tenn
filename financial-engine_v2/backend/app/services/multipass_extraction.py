@@ -136,6 +136,8 @@ def _run_pass1_classifier(
     result.setdefault("period_end", None)
     result.setdefault("currency", "AUD")
     result.setdefault("scale", "unknown")
+    if not result.get("scale"):
+        result["scale"] = "unknown"
     result.setdefault("classifier_confidence", 0.0)
     return result
 

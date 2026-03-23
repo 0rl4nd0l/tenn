@@ -234,8 +234,8 @@ def test_scale_unknown_table_preserves_pass1_scale():
     )
 
 
-def test_scale_override_logs_disagreement():
-    """When LLM and table scan disagree, the override must emit an INFO log."""
+def test_scale_override_log_condition_fires_on_disagreement():
+    """The INFO log gate condition must be True when LLM and table scan disagree."""
     from app.services.multipass_extraction import _detect_scale_from_tables
     from app.services.docling_extract import DoclingTable
 
@@ -244,25 +244,19 @@ def test_scale_override_logs_disagreement():
         rows=[["", "H1 2025 $'000"], ["Operating CF", "3,241"]],
         headers=["", "H1 2025 $'000"],
     )
-    pass1 = {"scale": "millions"}  # LLM wrong
-
     detected = _detect_scale_from_tables([table])
     assert detected == "thousands"
 
-    # The actual INFO log fires inside run_multipass_extraction; test the condition directly.
-    # The condition is: detected != "unknown" AND pass1 scale not in (detected, "unknown", None, "")
-    should_log = (
-        detected != "unknown"
-        and pass1.get("scale", "unknown") not in (detected, "unknown", None, "")
-    )
-    assert should_log, (
-        "Disagreement between LLM ('millions') and table scan ('thousands') must trigger INFO log"
-    )
+    pass1_scale = "millions"  # LLM wrong
+
+    # This is the exact condition guarding logger.info in run_multipass_extraction.
+    gate = pass1_scale not in (detected, "unknown", None, "")
+    assert gate, f"INFO log gate must be True when LLM='{pass1_scale}' vs table='{detected}'"
 
 
-def test_scale_table_headers_override_in_pass3a():
-    """End-to-end: when LLM says 'millions' but table header says $'000,
-    the final multiplier applied in Pass 3a must be 1000 (thousands), not 1_000_000."""
+def test_pass3a_applies_corrected_scale_multiplier():
+    """When scale='thousands' (whether set by table-header override or Pass 1),
+    Pass 3a must multiply raw values by 1000 (thousands), not 1_000_000 (millions)."""
     from unittest.mock import patch
     from app.services.multipass_extraction import _run_pass3a_metric_extractor
     from app.services.docling_extract import DoclingTable
@@ -276,9 +270,9 @@ def test_scale_table_headers_override_in_pass3a():
     labelled = {"cashflow_statement": table, "income_statement": None,
                 "balance_sheet": None, "highlights": None, "unmatched": []}
 
-    # pass1 already has the corrected scale (simulating what the new block does)
+    # scale already corrected (e.g. by the table-header override in run_multipass_extraction)
     pass1 = {"report_type": "H", "period_end": "2024-12-31",
-             "currency": "AUD", "scale": "thousands"}  # corrected from "millions"
+             "currency": "AUD", "scale": "thousands"}
 
     mock_raw = {
         "operating_cf": 3241,
