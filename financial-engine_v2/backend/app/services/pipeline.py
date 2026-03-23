@@ -831,6 +831,8 @@ def _upsert_financial_rows(db, doc, structured):
             setattr(row, field, _coerce_float(metrics.get(field, None)))
         row.source_document_id = doc.document_id
         row.confidence_metrics = _coerce_float(structured.get("confidence_metrics"))
+        row.period_start = parse_period_end(structured.get("period_start"))
+        row.currency = structured.get("currency") or None
 
     risk_note = db.query(ASXRiskNote).filter(ASXRiskNote.document_id == doc.document_id).first()
     if not risk_note:

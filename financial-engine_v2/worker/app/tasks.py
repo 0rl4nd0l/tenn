@@ -156,6 +156,8 @@ def process_document(prev, document_id:str=None):
                     setattr(row, f, metrics.get(f, None))
                 row.source_document_id=doc.document_id
                 row.confidence_metrics=float(structured.get("confidence_metrics") or 0.0)
+                row.period_start=parse_period_end(structured.get("period_start"))
+                row.currency=structured.get("currency") or None
                 db.commit()
 
             rn=db.query(ASXRiskNote).filter(ASXRiskNote.document_id==doc.document_id).first()

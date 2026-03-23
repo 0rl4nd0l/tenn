@@ -17,9 +17,17 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
+import importlib.metadata
+
 import fitz  # PyMuPDF — fallback only
 
 logger = logging.getLogger(__name__)
+
+# Resolved once at import time so all cache reads/writes use the same value.
+try:
+    DOCLING_VERSION: str = importlib.metadata.version("docling")
+except importlib.metadata.PackageNotFoundError:
+    DOCLING_VERSION = "unknown"
 
 DOCLING_TIMEOUT_SECONDS = 120
 DOCLING_TIMEOUT_SECONDS_PER_PAGE = 4
@@ -42,6 +50,7 @@ class StructuredDocument:
     sections: list[dict] = field(default_factory=list)  # [{heading, text, page}]
     extraction_method: str = "docling"   # "docling" | "pymupdf_fallback"
     page_count: int = 0
+    docling_version: str = ""  # populated at extraction time; used for cache invalidation
 
 
 def _get_page_count_fast(pdf_path: str) -> int:
@@ -73,7 +82,15 @@ def extract_structured(pdf_path: str) -> StructuredDocument:
 
     if cache_path.exists() and cache_path.stat().st_mtime > pdf_mtime:
         try:
-            return _load_cache(cache_path)
+            cached = _load_cache(cache_path)
+            if cached.docling_version == DOCLING_VERSION:
+                return cached
+            logger.info(
+                "docling version changed (%s → %s), re-extracting: %s",
+                cached.docling_version,
+                DOCLING_VERSION,
+                cache_path,
+            )
         except Exception as e:
             logger.warning("docling cache corrupt, re-extracting: %s", e)
 
@@ -152,6 +169,7 @@ def _run_docling(pdf_path: str) -> StructuredDocument:
         sections=sections,
         extraction_method="docling",
         page_count=page_count,
+        docling_version=DOCLING_VERSION,
     )
 
 
@@ -189,6 +207,7 @@ def _pymupdf_fallback(pdf_path: str) -> StructuredDocument:
         sections=sections,
         extraction_method="pymupdf_fallback",
         page_count=page_count,
+        docling_version=DOCLING_VERSION,
     )
 
 
@@ -213,6 +232,7 @@ def _save_cache(cache_path: Path, doc: StructuredDocument) -> None:
     data = {
         "extraction_method": doc.extraction_method,
         "page_count": doc.page_count,
+        "docling_version": doc.docling_version,
         "tables": [
             {
                 "page_number": t.page_number,
@@ -243,4 +263,5 @@ def _load_cache(cache_path: Path) -> StructuredDocument:
         sections=data.get("sections", []),
         extraction_method=data.get("extraction_method", "docling"),
         page_count=data.get("page_count", 0),
+        docling_version=data.get("docling_version", ""),
     )

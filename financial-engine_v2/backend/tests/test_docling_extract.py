@@ -24,6 +24,7 @@ def test_extract_structured_reads_fresh_cache(tmp_path, monkeypatch):
         sections=[{"heading": True, "text": "Cached heading", "page": 1}],
         extraction_method="docling",
         page_count=3,
+        docling_version=docling_extract.DOCLING_VERSION,
     )
     cache_path = Path(str(pdf_path) + ".docling.json")
     docling_extract._save_cache(cache_path, cached_doc)
@@ -54,6 +55,7 @@ def test_extract_structured_reextracts_when_cache_is_corrupt(tmp_path, monkeypat
         sections=[{"heading": False, "text": "Re-extracted body", "page": 1}],
         extraction_method="docling",
         page_count=1,
+        docling_version=docling_extract.DOCLING_VERSION,
     )
     calls: list[str] = []
 

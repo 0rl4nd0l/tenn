@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.core.db import SessionLocal, get_db
 from app.models.documents import Document
 from app.models.asx_financials import ASXPeriodicFinancial, ASXRiskNote
+from app.models.extractions import ExtractionRun
 from app.providers.universe import ASX20
 from app.providers.market_price_provider import MarketPriceProvider, MarketPriceProviderError
 from app.providers.openbb_sidecar_provider import OpenBBSidecarProvider, OpenBBSidecarProviderError
@@ -341,6 +342,71 @@ def backfill_ticker(ticker:str, years:int=1, process_documents:bool=False):
         routing_key="ingest",
     )
     return {"mode":"celery","enqueued":1,"ticker":ticker.upper()}
+
+@router.post("/process/document/{document_id}", dependencies=[Depends(require_api_key)])
+def process_single_document(document_id: str):
+    """Trigger extraction (and embedding) for a single already-downloaded document.
+
+    Useful for re-processing a document without re-running discovery or download.
+    The pipeline skips re-extraction if a successful ExtractionRun already exists
+    for the current EXTRACTOR_VERSION.
+    """
+    from app.services.pipeline import process_document
+    if settings.task_mode.lower() == "sync":
+        result = process_document(document_id)
+        return {"mode": "sync", "document_id": document_id, **(result or {})}
+    celery.send_task(
+        "process_document",
+        args=[{"document_id": document_id}, document_id],
+        queue="ingest",
+        routing_key="ingest",
+    )
+    return {"mode": "celery", "enqueued": 1, "document_id": document_id}
+
+
+@router.post("/process/ticker/{ticker}", dependencies=[Depends(require_api_key)])
+def process_unextracted_for_ticker(ticker: str, limit: int = Query(default=50, le=500)):
+    """Process all downloaded-but-unextracted documents for a ticker.
+
+    Identifies documents where pdf_sha256 is populated but no ExtractionRun exists,
+    and triggers process_document for each. Useful to recover from the state where
+    backfill ran without process_documents=true.
+    """
+    from app.services.pipeline import process_document
+    db = SessionLocal()
+    try:
+        extracted_doc_ids = db.query(ExtractionRun.document_id)
+        unextracted = (
+            db.query(Document)
+            .filter(
+                Document.ticker == ticker.upper(),
+                Document.pdf_sha256 != "",
+                ~Document.document_id.in_(extracted_doc_ids),
+            )
+            .limit(limit)
+            .all()
+        )
+        if not unextracted:
+            return {"ticker": ticker.upper(), "queued": 0, "message": "no unextracted documents found"}
+
+        if settings.task_mode.lower() == "sync":
+            results = []
+            for doc in unextracted:
+                r = process_document(str(doc.document_id))
+                results.append({"document_id": str(doc.document_id), **(r or {})})
+            return {"mode": "sync", "ticker": ticker.upper(), "queued": len(results), "results": results}
+
+        for doc in unextracted:
+            celery.send_task(
+                "process_document",
+                args=[{"document_id": str(doc.document_id)}, str(doc.document_id)],
+                queue="ingest",
+                routing_key="ingest",
+            )
+        return {"mode": "celery", "ticker": ticker.upper(), "queued": len(unextracted)}
+    finally:
+        db.close()
+
 
 @router.get("/rag/query", dependencies=[Depends(require_api_key)])
 def rag_query(

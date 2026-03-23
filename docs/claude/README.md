@@ -28,6 +28,7 @@ When in doubt, prefer the source file. When a conflict exists between a doc here
 | [mcp-servers.md](mcp-servers.md) | MCP server inventory, prerequisites, troubleshooting, and workflow integration |
 | [commands.md](commands.md) | All available slash commands, Claude-only skills, and subagents |
 | [tasks/README.md](tasks/README.md) | Task process and template |
+| [lessons.md](lessons.md) | Bug regression lessons — pattern + rule that prevents recurrence |
 | [gap-analysis.md](gap-analysis.md) | Missing capabilities and recommended actions |
 | [introduction-plan.md](introduction-plan.md) | Staged plan to introduce missing pieces safely |
 
