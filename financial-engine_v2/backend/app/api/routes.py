@@ -1,5 +1,8 @@
 import base64
+import logging
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -195,20 +198,26 @@ def price(
     try:
         mode = _market_data_mode()
         if mode == "openbb_sidecar":
-            payload = _openbb_sidecar_provider().fetch_price(
-                ticker=ticker,
-                exchange=exchange,
-                range_=range_,
-                interval=interval,
-            )
-            _persist_openbb_price_snapshot(
-                ticker=ticker,
-                exchange=exchange,
-                payload=payload,
-                range_=range_,
-                interval=interval,
-            )
-            return payload
+            try:
+                payload = _openbb_sidecar_provider().fetch_price(
+                    ticker=ticker,
+                    exchange=exchange,
+                    range_=range_,
+                    interval=interval,
+                )
+                _persist_openbb_price_snapshot(
+                    ticker=ticker,
+                    exchange=exchange,
+                    payload=payload,
+                    range_=range_,
+                    interval=interval,
+                )
+                return payload
+            except OpenBBSidecarProviderError as sidecar_exc:
+                logger.warning(
+                    "openbb sidecar unavailable (%s), falling back to Yahoo Finance for %s",
+                    sidecar_exc, ticker,
+                )
 
         provider=MarketPriceProvider(
             base_url=getattr(settings, "market_data_base_url", "https://query1.finance.yahoo.com"),
