@@ -73,6 +73,18 @@ def _apply_chat_strategy(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return ranked[:10]
 
 
+def _normalize_news_chunk(chunk: dict[str, Any]) -> dict[str, Any]:
+    """Map news payload fields to the shape expected by _apply_chat_strategy."""
+    normalized = dict(chunk)
+    if not normalized.get("source_name"):
+        normalized["source_name"] = str(
+            normalized.get("title") or normalized.get("provider") or "news"
+        ).strip()
+    if not normalized.get("source_type"):
+        normalized["source_type"] = "news_article"
+    return normalized
+
+
 def _context_rows(chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for chunk in chunks:
@@ -155,7 +167,22 @@ def chat_with_tenn(query: str) -> dict[str, Any]:
         except Exception:
             commentary_chunks = []
 
-        ranked_chunks = _apply_chat_strategy(commentary_chunks)
+        news_retriever = HybridRetriever(collection_name="news_chunks")
+        try:
+            news_retrieval = news_retriever.retrieve(
+                query=normalized_query,
+                framework_families=None,
+                top_k_vector=10,
+                top_k_keyword=10,
+            )
+            news_chunks = [
+                _normalize_news_chunk(c)
+                for c in list(news_retrieval.get("chunks") or [])
+            ]
+        except Exception:
+            news_chunks = []
+
+        ranked_chunks = _apply_chat_strategy(commentary_chunks + news_chunks)
         context_rows = _context_rows(ranked_chunks)
 
         if not context_rows and evidence:
