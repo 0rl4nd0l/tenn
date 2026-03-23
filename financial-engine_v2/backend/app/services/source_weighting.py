@@ -22,7 +22,7 @@ DEFAULT_HALF_LIFE_DAYS = {
     "youtube_transcript": 14.0,
     "podcast_transcript": 14.0,
     "market_commentary": 7.0,
-    "news_article": 14.0,
+    "news_article": 1.0,
 }
 
 

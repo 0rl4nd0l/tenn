@@ -565,14 +565,9 @@
   },
   "BNZ": {
     "canonical_names": [
-      "Benz Mining",
-      "The granted Mining",
-      "following limited"
+      "Benz Mining"
     ],
-    "aliases": [
-      "granted Mining",
-      "following"
-    ]
+    "aliases": []
   },
   "BOE": {
     "canonical_names": [

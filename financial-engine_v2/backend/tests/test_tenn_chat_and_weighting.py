@@ -20,13 +20,13 @@ class TestSourceWeightingNewsArticle:
 
     def test_news_article_half_life_explicit(self):
         assert "news_article" in DEFAULT_HALF_LIFE_DAYS
-        assert DEFAULT_HALF_LIFE_DAYS["news_article"] == 14.0
+        assert DEFAULT_HALF_LIFE_DAYS["news_article"] == 1.0
 
     def test_source_weight_for_type_news_article(self):
         assert source_weight_for_type("news_article") == 0.5
 
     def test_half_life_for_type_news_article(self):
-        assert half_life_for_type("news_article") == 14.0
+        assert half_life_for_type("news_article") == 1.0
 
     def test_apply_weighting_news_chunk_fresh(self):
         """Fresh news (today) should not be heavily decayed."""
@@ -43,7 +43,7 @@ class TestSourceWeightingNewsArticle:
         assert result["source_weight"] == 0.5
 
     def test_apply_weighting_news_chunk_stale(self):
-        """Old news (90 days) should decay significantly with 14-day half-life."""
+        """Old news (90 days) should decay significantly with 1-day half-life."""
         import datetime as dt
         ninety_days_ago = (
             dt.datetime.now(tz=dt.timezone.utc) - dt.timedelta(days=90)
@@ -54,7 +54,7 @@ class TestSourceWeightingNewsArticle:
             "published_at": ninety_days_ago,
         }
         result = apply_weighting_to_chunk(chunk)
-        # 90 days / 14-day half-life ≈ 6.4 half-lives → decay < 0.02
+        # 90 days / 1-day half-life = 90 half-lives → decay effectively 0
         assert result["recency_decay"] < 0.02
 
 
