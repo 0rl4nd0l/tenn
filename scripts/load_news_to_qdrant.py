@@ -105,7 +105,7 @@ def _iter_chunks(
     return out
 
 
-def _build_chunk_payload(art: Dict[str, Any], idx: int) -> Dict[str, Any]:
+def _build_chunk_payload(art: Dict[str, Any], idx: int, chunk_text: str = "") -> Dict[str, Any]:
     """Build the Qdrant point payload for one chunk of a news article."""
     ticker = art["tickers"][0] if art["tickers"] else ""
     return {
@@ -118,6 +118,8 @@ def _build_chunk_payload(art: Dict[str, Any], idx: int) -> Dict[str, Any]:
         "language": art["language"],
         "title": art["title"],
         "url": art["url"],
+        "source_type": "news_article",
+        "text": chunk_text,
     }
 
 
@@ -208,7 +210,7 @@ def sync_news_to_qdrant(
         article_id = art["article_id"]
         chunks = _split_chunks(art["text"])
         for idx, chunk_text in enumerate(chunks):
-            payload = _build_chunk_payload(art, idx)
+            payload = _build_chunk_payload(art, idx, chunk_text)
             point_id = _chunk_point_id(payload["chunk_id"])
             batch.append({"id": point_id, "_text": chunk_text, "payload": payload})
             total_chunks += 1

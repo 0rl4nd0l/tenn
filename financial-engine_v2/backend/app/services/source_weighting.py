@@ -12,6 +12,7 @@ DEFAULT_SOURCE_WEIGHTS = {
     "youtube_transcript": 0.55,
     "podcast_transcript": 0.55,
     "market_commentary": 0.45,
+    "news_article": 0.5,
 }
 
 DEFAULT_HALF_LIFE_DAYS = {
@@ -21,6 +22,7 @@ DEFAULT_HALF_LIFE_DAYS = {
     "youtube_transcript": 14.0,
     "podcast_transcript": 14.0,
     "market_commentary": 7.0,
+    "news_article": 14.0,
 }
 
 
