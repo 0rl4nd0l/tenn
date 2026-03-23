@@ -389,6 +389,7 @@ def _run_pass3a_metric_extractor(
         # but a model that reports 0 doesn't drag down an otherwise complete extraction.
         out["pass3_confidence"] = max(computed_conf, model_conf)
         out["row_refs"] = raw.get("row_refs", {})
+        out["period_col"] = raw.get("period_col")
         results.append(out)
 
     return results

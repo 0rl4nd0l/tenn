@@ -399,9 +399,8 @@ def test_pass3a_prompt_contains_column_selection_instruction():
     """_PASS3A_PROMPT must instruct the LLM to select the period_end column."""
     from app.services.multipass_extraction import _PASS3A_PROMPT
     prompt_lower = _PASS3A_PROMPT.lower()
-    assert "prior" in prompt_lower or "comparative" in prompt_lower, (
-        "Prompt must warn against extracting from prior-period columns"
-    )
+    assert "prior" in prompt_lower, "Prompt must explicitly mention prior-period columns"
+    assert "comparative" in prompt_lower, "Prompt must explicitly mention comparative columns"
     assert "period_end" in _PASS3A_PROMPT or "{period_end}" in _PASS3A_PROMPT, (
         "Prompt must reference period_end for column selection"
     )
@@ -427,6 +426,7 @@ def test_pass3a_prompt_includes_period_end_for_column_selection():
              "currency": "AUD", "scale": "thousands"}
 
     mock_raw = {"revenue": 485630, "ebit": 31284, "np_attributable": None,
+                "period_col": "H1 2025",
                 "pass3_confidence": 0.9, "row_refs": {}}
 
     captured_prompts = []
@@ -435,11 +435,14 @@ def test_pass3a_prompt_includes_period_end_for_column_selection():
         return mock_raw
 
     with patch("app.services.multipass_extraction._llm_json_call", side_effect=capture_llm_call):
-        _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
 
     assert captured_prompts, "LLM must have been called"
     prompt = captured_prompts[0]
     assert "2025-06-30" in prompt, "period_end date must appear in the prompt for column selection"
     assert "prior" in prompt.lower() or "comparative" in prompt.lower(), (
         "Prompt must warn against prior-period column extraction"
+    )
+    assert "period_col" in results[0], (
+        "period_col decision record must be propagated through to the result dict"
     )
