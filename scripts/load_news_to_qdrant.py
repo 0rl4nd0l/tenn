@@ -176,7 +176,7 @@ def sync_news_to_qdrant(
     ollama_url = str(getattr(settings, "ollama_url", "http://localhost:11434"))
 
     # Determine vector dimension by embedding a probe text.
-    probe_vec = ollama_embed(["probe"], model=embed_model, base_url=ollama_url)[0]
+    probe_vec = ollama_embed(ollama_url, embed_model, ["probe"])[0]
     dim = len(probe_vec)
     ensure_collection(client, collection, dim)
 
@@ -189,7 +189,7 @@ def sync_news_to_qdrant(
         if not batch:
             return 0
         texts = [p["_text"] for p in batch]
-        vectors = ollama_embed(texts, model=embed_model, base_url=ollama_url)
+        vectors = ollama_embed(ollama_url, embed_model, texts)
         points = []
         for point, vec in zip(batch, vectors):
             points.append(
