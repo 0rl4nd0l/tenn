@@ -389,3 +389,57 @@ def test_upsert_financial_rows_smoke():
         assert all_notes[0].risk_summary == "Updated risk summary"
     finally:
         session.close()
+
+
+# ---------------------------------------------------------------------------
+# Pass 3a — Period column disambiguation (B2)
+# ---------------------------------------------------------------------------
+
+def test_pass3a_prompt_contains_column_selection_instruction():
+    """_PASS3A_PROMPT must instruct the LLM to select the period_end column."""
+    from app.services.multipass_extraction import _PASS3A_PROMPT
+    prompt_lower = _PASS3A_PROMPT.lower()
+    assert "prior" in prompt_lower or "comparative" in prompt_lower, (
+        "Prompt must warn against extracting from prior-period columns"
+    )
+    assert "period_end" in _PASS3A_PROMPT or "{period_end}" in _PASS3A_PROMPT, (
+        "Prompt must reference period_end for column selection"
+    )
+
+
+def test_pass3a_prompt_includes_period_end_for_column_selection():
+    """The assembled prompt sent to the LLM must contain the period_end date
+    and a column-selection instruction."""
+    from unittest.mock import patch
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=2, caption="Income Statement",
+        rows=[["", "H1 2025", "H1 2024"],
+              ["Revenue", "485,630", "390,200"],
+              ["EBIT", "31,284", "22,100"]],
+        headers=["", "H1 2025", "H1 2024"],
+    )
+    labelled = {"cashflow_statement": None, "income_statement": table,
+                "balance_sheet": None, "highlights": None, "unmatched": []}
+    pass1 = {"report_type": "H", "period_end": "2025-06-30",
+             "currency": "AUD", "scale": "thousands"}
+
+    mock_raw = {"revenue": 485630, "ebit": 31284, "np_attributable": None,
+                "pass3_confidence": 0.9, "row_refs": {}}
+
+    captured_prompts = []
+    def capture_llm_call(prompt, llm_client, max_tokens=512):
+        captured_prompts.append(prompt)
+        return mock_raw
+
+    with patch("app.services.multipass_extraction._llm_json_call", side_effect=capture_llm_call):
+        _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert captured_prompts, "LLM must have been called"
+    prompt = captured_prompts[0]
+    assert "2025-06-30" in prompt, "period_end date must appear in the prompt for column selection"
+    assert "prior" in prompt.lower() or "comparative" in prompt.lower(), (
+        "Prompt must warn against prior-period column extraction"
+    )

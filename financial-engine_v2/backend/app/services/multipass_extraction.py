@@ -276,7 +276,10 @@ Rules:
 - ebit: only output if a row is explicitly labeled "EBIT", "Earnings Before Interest and Tax", or equivalent — do NOT use PBT or Profit Before Tax as a proxy
 - capex: look for "Payments for property, plant and equipment" or "Capital expenditure" in investing activities — output null if not found
 - shares_outstanding: look for total ordinary shares on issue (count, not dollar amount) — typically labeled "Ordinary shares" or "Shares on issue"
-- period_col: which column header represents the current period
+- Column selection: if the table has multiple data columns (e.g. current half and prior half),
+  extract values ONLY from the column whose header best matches the reporting date {period_end}.
+  Never extract from prior-period or comparative columns.
+  Set period_col to the exact column header you chose.
 
 Schema:
 {{
