@@ -446,3 +446,28 @@ def test_pass3a_prompt_includes_period_end_for_column_selection():
     assert "period_col" in results[0], (
         "period_col decision record must be propagated through to the result dict"
     )
+
+
+# ---------------------------------------------------------------------------
+# Docling adaptive timeout (B3)
+# ---------------------------------------------------------------------------
+
+def test_compute_docling_timeout_floor():
+    """Short PDFs must never drop below the 120s floor."""
+    from app.services.docling_extract import _compute_docling_timeout
+    # 10 pages × 4 = 40s — below the floor, so we expect 120s
+    assert _compute_docling_timeout(10) == 120
+
+
+def test_compute_docling_timeout_scales():
+    """Mid-sized PDFs must scale proportionally when above the floor."""
+    from app.services.docling_extract import _compute_docling_timeout
+    # 50 pages × 4 = 200s — above floor, below cap
+    assert _compute_docling_timeout(50) == 200
+
+
+def test_compute_docling_timeout_cap():
+    """Very large PDFs must not exceed the 300s ceiling."""
+    from app.services.docling_extract import _compute_docling_timeout
+    # 100 pages × 4 = 400s — exceeds cap
+    assert _compute_docling_timeout(100) == 300

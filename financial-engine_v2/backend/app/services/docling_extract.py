@@ -22,6 +22,8 @@ import fitz  # PyMuPDF — fallback only
 logger = logging.getLogger(__name__)
 
 DOCLING_TIMEOUT_SECONDS = 120
+DOCLING_TIMEOUT_SECONDS_PER_PAGE = 4
+DOCLING_TIMEOUT_MAX = 300
 
 
 @dataclass
@@ -42,6 +44,24 @@ class StructuredDocument:
     page_count: int = 0
 
 
+def _get_page_count_fast(pdf_path: str) -> int:
+    """Return PDF page count using fitz metadata (no rendering — fast)."""
+    try:
+        with fitz.open(pdf_path) as doc:
+            return len(doc)
+    except Exception:
+        return 0
+
+
+def _compute_docling_timeout(page_count: int) -> int:
+    """
+    Adaptive timeout proportional to page count.
+    Returns seconds: max(DOCLING_TIMEOUT_SECONDS, page_count * per_page) capped at DOCLING_TIMEOUT_MAX.
+    """
+    adaptive = page_count * DOCLING_TIMEOUT_SECONDS_PER_PAGE
+    return min(DOCLING_TIMEOUT_MAX, max(DOCLING_TIMEOUT_SECONDS, adaptive))
+
+
 def extract_structured(pdf_path: str) -> StructuredDocument:
     """
     Main entry point. Returns StructuredDocument for the given PDF path.
@@ -57,8 +77,12 @@ def extract_structured(pdf_path: str) -> StructuredDocument:
         except Exception as e:
             logger.warning("docling cache corrupt, re-extracting: %s", e)
 
+    page_count = _get_page_count_fast(pdf_path)
+    timeout = _compute_docling_timeout(page_count)
+    if timeout != DOCLING_TIMEOUT_SECONDS:
+        logger.info("docling adaptive timeout: %ds for %d-page PDF", timeout, page_count)
     try:
-        result = _run_docling_with_timeout(pdf_path)
+        result = _run_docling_with_timeout(pdf_path, timeout=timeout)
         _save_cache(cache_path, result)
         return result
     except Exception as e:
@@ -66,13 +90,13 @@ def extract_structured(pdf_path: str) -> StructuredDocument:
         return _pymupdf_fallback(pdf_path)
 
 
-def _run_docling_with_timeout(pdf_path: str) -> StructuredDocument:
+def _run_docling_with_timeout(pdf_path: str, timeout: int = DOCLING_TIMEOUT_SECONDS) -> StructuredDocument:
     """Run docling with SIGALRM timeout. Raises on timeout or failure."""
     def _timeout_handler(signum, frame):
-        raise TimeoutError(f"docling exceeded {DOCLING_TIMEOUT_SECONDS}s on {pdf_path}")
+        raise TimeoutError(f"docling exceeded {timeout}s on {pdf_path}")
 
     signal.signal(signal.SIGALRM, _timeout_handler)
-    signal.alarm(DOCLING_TIMEOUT_SECONDS)
+    signal.alarm(timeout)
     try:
         return _run_docling(pdf_path)
     finally:
