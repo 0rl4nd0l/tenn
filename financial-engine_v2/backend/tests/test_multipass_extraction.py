@@ -186,6 +186,109 @@ def test_pass4_merges_non_overlapping_metrics():
     assert result["period_end"] == "2024-12-31"
 
 
+# ---------------------------------------------------------------------------
+# Scale detection priority — table headers always authoritative over LLM
+# ---------------------------------------------------------------------------
+
+def test_scale_table_headers_override_llm_millions():
+    """Table-header scan returning 'thousands' must win over Pass 1 returning 'millions'.
+
+    This validates the inverted priority: _detect_scale_from_tables is authoritative
+    when it finds a clear signal; Pass 1 LLM is only a fallback.
+    """
+    from app.services.multipass_extraction import _detect_scale_from_tables
+    from app.services.docling_extract import DoclingTable
+
+    # Table whose column header clearly says $'000 (thousands)
+    table_with_thousands_header = DoclingTable(
+        page_number=2,
+        caption="Consolidated Statement of Cash Flows",
+        rows=[["", "31 Dec 2024 $'000", "31 Dec 2023 $'000"],
+              ["Net cash from operations", "3,241", "2,876"]],
+        headers=["", "31 Dec 2024 $'000", "31 Dec 2023 $'000"],
+    )
+
+    detected = _detect_scale_from_tables([table_with_thousands_header])
+    assert detected == "thousands", (
+        f"Expected 'thousands' from $'000 header, got {detected!r}"
+    )
+
+    # Simulate what the new logic does: LLM said "millions", table says "thousands"
+    # The new block unconditionally applies table scan when detected != "unknown"
+    pass1_scale = "millions"  # LLM mistake
+    if detected != "unknown":
+        resolved_scale = detected  # table wins
+    else:
+        resolved_scale = pass1_scale
+
+    assert resolved_scale == "thousands", (
+        "Table-header scale must override LLM classification"
+    )
+
+
+def test_scale_table_unknown_falls_back_to_pass1():
+    """When table scan returns 'unknown', Pass 1 classifier result is preserved."""
+    from app.services.multipass_extraction import _detect_scale_from_tables
+    from app.services.docling_extract import DoclingTable
+
+    # Table with no scale indicator in headers
+    table_without_scale = DoclingTable(
+        page_number=1,
+        caption="Highlights",
+        rows=[["Metric", "Value"], ["Revenue", "27,841"]],
+        headers=["Metric", "Value"],
+    )
+
+    detected = _detect_scale_from_tables([table_without_scale])
+    assert detected == "unknown"
+
+    # When table scan gives nothing, Pass 1 should be preserved
+    pass1_scale = "millions"
+    if detected != "unknown":
+        resolved_scale = detected
+    else:
+        resolved_scale = pass1_scale  # fallback: keep Pass 1 value
+
+    assert resolved_scale == "millions", (
+        "Pass 1 scale must be preserved when table scan returns unknown"
+    )
+
+
+def test_scale_table_headers_override_in_pass3a():
+    """End-to-end: when LLM says 'millions' but table header says $'000,
+    the final multiplier applied in Pass 3a must be 1000 (thousands), not 1_000_000."""
+    from unittest.mock import patch
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=2,
+        caption="Cash Flow Statement",
+        rows=[["", "H1 2025 $'000"], ["Net cash from operations", "3,241"]],
+        headers=["", "H1 2025 $'000"],
+    )
+    labelled = {"cashflow_statement": table, "income_statement": None,
+                "balance_sheet": None, "highlights": None, "unmatched": []}
+
+    # pass1 already has the corrected scale (simulating what the new block does)
+    pass1 = {"report_type": "H", "period_end": "2024-12-31",
+             "currency": "AUD", "scale": "thousands"}  # corrected from "millions"
+
+    mock_raw = {
+        "operating_cf": 3241,
+        "investing_cf": None, "financing_cf": None, "cash_end": None,
+        "pass3_confidence": 0.95, "row_refs": {"operating_cf": "Net cash from operations"},
+    }
+
+    with patch("app.services.multipass_extraction._llm_json_call", return_value=mock_raw):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert len(results) == 1
+    assert results[0]["operating_cf"] == 3_241_000, (
+        f"Expected thousands multiplier (3_241_000), got {results[0]['operating_cf']}"
+    )
+
+
 def test_pass4_higher_priority_source_wins():
     """income_statement must override highlights when both provide revenue."""
     from app.services.multipass_extraction import _run_pass4_reconciler

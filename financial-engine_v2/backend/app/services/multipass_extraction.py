@@ -609,12 +609,19 @@ def run_multipass_extraction(
             error=f"classifier_low_confidence:{pass1.get('classifier_confidence')}",
         )
 
-    # Override scale if Pass 1 missed it — table headers are more reliable
-    if pass1.get("scale", "unknown") in ("unknown", None, ""):
-        detected = _detect_scale_from_tables(structured_doc.tables)
-        if detected != "unknown":
-            logger.info("scale overridden by table-header detector: %s", detected)
-            pass1["scale"] = detected
+    # Table-header scale detection is always authoritative — ASX filings print scale
+    # explicitly in column headers ($'000, A$M, etc.) which is more reliable than
+    # LLM text inference. Run unconditionally; fall back to Pass 1 if headers give nothing.
+    detected = _detect_scale_from_tables(structured_doc.tables)
+    if detected != "unknown":
+        if pass1.get("scale", "unknown") not in (detected, "unknown", None, ""):
+            logger.info(
+                "scale from table headers (%s) overrides Pass 1 (%s)",
+                detected, pass1.get("scale"),
+            )
+        pass1["scale"] = detected
+    elif pass1.get("scale", "unknown") in ("unknown", None, ""):
+        logger.warning("scale unknown from both table headers and Pass 1 classifier")
 
     # Pass 2: Locate tables
     labelled = _run_pass2_locator(structured_doc.tables)
