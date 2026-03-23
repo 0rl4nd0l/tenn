@@ -91,13 +91,7 @@ class CockpitApp(App):
     #chat-log {
         height: 1fr;
         min-height: 8;
-    }
-    #chat-assistant-log {
-        height: auto;
-        min-height: 0;
-        max-height: 20;
-        margin: 0 0 1 0;
-        border: round $accent;
+        border: round $surface;
         padding: 0 1;
     }
     #chat-live-response {
@@ -611,7 +605,14 @@ class CockpitApp(App):
 
         created = datetime.now(timezone.utc).isoformat()
         self.state_store.add_chat_message(self.thread_id, "user", message, created)
-        self._append_log(log, f"user: {message}")
+        try:
+            from rich.text import Text as _Text
+            _user_line = _Text()
+            _user_line.append("You: ", style="bold cyan")
+            _user_line.append(message)
+            log.write(_user_line, scroll_end=True)
+        except Exception:
+            self._append_log(log, f"You: {message}")
         self._set_chat_live_response("")
 
         if message.strip():
@@ -802,8 +803,7 @@ class CockpitApp(App):
 
         try:
             from rich.markdown import Markdown as _Markdown
-            assistant_log = chat.query_one("#chat-assistant-log", RichLog)
-            assistant_log.write(_Markdown(f"**{self.ASSISTANT_NAME}:** {assistant_text}"), scroll_end=True)
+            log.write(_Markdown(f"**{self.ASSISTANT_NAME}:** {assistant_text}"), scroll_end=True)
         except Exception:
             self._append_log(log, f"assistant: {assistant_text}")
         self.state_store.add_chat_message(self.thread_id, "assistant", assistant_text, datetime.now(timezone.utc).isoformat())

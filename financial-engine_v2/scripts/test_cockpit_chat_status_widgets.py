@@ -147,7 +147,7 @@ class CockpitChatStatusWidgetTests(unittest.IsolatedAsyncioTestCase):
                 status = screen.query_one("#chat-status", Static)
                 live = screen.query_one("#chat-live-response", Static)
 
-                self.assertIn("user: analyse bhp", _log_text(log))
+                self.assertIn("You: analyse bhp", _log_text(log))
                 self.assertIn("Tenn (thinking)", _widget_text(status))
                 self.assertIn("Tenn: First", _widget_text(live))
 
@@ -156,11 +156,10 @@ class CockpitChatStatusWidgetTests(unittest.IsolatedAsyncioTestCase):
 
                 self.assertEqual(_widget_text(status), "")
                 self.assertEqual(_widget_text(live), "")
-                # Final assistant response is routed to #chat-assistant-log with markdown rendering.
-                assistant_log = screen.query_one("#chat-assistant-log", RichLog)
-                assistant_log_text = _log_text(assistant_log)
-                self.assertIn("First draft", assistant_log_text)
-                self.assertIn("Second line", assistant_log_text)
+                # Final assistant response is now written to the unified #chat-log.
+                log_text = _log_text(log)
+                self.assertIn("First draft", log_text)
+                self.assertIn("Second line", log_text)
 
 
 if __name__ == "__main__":
