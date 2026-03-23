@@ -242,6 +242,7 @@ def query_rag(
         out: Dict[str, Any] = {
             "ok": True,
             "hits": [],
+            "retrieved": 0,
             "candidate_count": 0,
             "filtered_count": 0,
         }
@@ -357,6 +358,7 @@ def query_rag(
     result: Dict[str, Any] = {
         "ok": True,
         "hits": hits,
+        "retrieved": len(hits),
         "candidate_count": candidate_count,
         "filtered_count": filtered_count,
         "research_context": _build_research_context(q, hits),

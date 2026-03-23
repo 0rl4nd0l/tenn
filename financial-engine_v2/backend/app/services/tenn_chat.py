@@ -92,6 +92,7 @@ def _context_rows(chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
             {
                 "text": str(chunk.get("text") or "").strip(),
                 "source_name": str(chunk.get("source_name") or chunk.get("source_file") or "").strip(),
+                "url": str(chunk.get("url") or "").strip(),
                 "relevance_score": float(chunk.get("relevance_score") or 0.0),
                 "recency_decay": float(chunk.get("recency_decay") or 1.0),
                 "final_score": float(chunk.get("final_score") or 0.0),
@@ -231,6 +232,7 @@ def chat_with_tenn(query: str) -> dict[str, Any]:
     sources = [
         {
             "source_name": row["source_name"],
+            "url": row["url"],
             "relevance_score": row["relevance_score"],
             "recency_decay": row["recency_decay"],
             "final_score": row["final_score"],
