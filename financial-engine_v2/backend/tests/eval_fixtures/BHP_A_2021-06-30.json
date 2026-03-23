@@ -1,0 +1,36 @@
+{
+  "_source": "Hand-verified from BHP Group 2021 Preliminary Final Report (ASX: 2021-08-17). All values USD. Scale=millions confirmed from page 44 consolidated income statement header.",
+  "ticker": "BHP",
+  "pdf_path": "data/asx/docs/BHP/financial_performance/2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf",
+  "document_id": "bhp_fy2021_preliminary_final",
+  "period_type": "A",
+  "period_end": "2021-06-30",
+  "currency": "USD",
+  "scale": "millions",
+  "metrics": {
+    "revenue": 60817000000,
+    "ebit": 25906000000,
+    "np_attributable": 11304000000,
+    "operating_cf": null,
+    "investing_cf": null,
+    "financing_cf": null,
+    "cash_end": null,
+    "capex": null,
+    "net_debt": null,
+    "shares_outstanding": null
+  },
+  "expected_nulls": ["operating_cf", "investing_cf", "financing_cf", "cash_end", "capex", "net_debt", "shares_outstanding"],
+  "tolerances": {
+    "revenue": 0.005,
+    "ebit": 0.01,
+    "np_attributable": 0.01
+  },
+  "notes": {
+    "revenue": "Confirmed from page 44: 'Revenue 60,817' USD millions. Source: Consolidated statement of comprehensive income.",
+    "ebit": "Row label 'Profit from operations' = 25,906 USD millions (page 44). BHP uses this label for EBIT. Cross-check: PBT approx 26,600 less net finance costs ~700 ≈ 25,906.",
+    "np_attributable": "Row 'Profit attributable to BHP shareholders' = 11,304 USD millions (page 44 or nearby). Includes minority deduction.",
+    "operating_cf": "Not confirmed from audit. Cash flow statement page not directly read. Mark null until verified.",
+    "net_debt": "BHP FY2021 report contains IAS 12 restatement (goodwill +950M, deferred tax -1,021M on prior period). Restatement does not affect current period P&L but comparative figures may differ between original and restated filing.",
+    "shares_outstanding": "BHP has dual-listed structure (ASX + LSE). Total ordinary shares require combining both lines. Not confirmed from direct read — mark null."
+  }
+}

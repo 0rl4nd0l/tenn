@@ -17,7 +17,7 @@ from app.services.storage import write_bytes, sha256_file, ensure_dir
 from app.services.structured_chunking import chunk_prose_sections
 from app.services.docling_extract import StructuredDocument
 from app.services.embeddings import ensure_collection, upsert_points
-from app.services.multipass_extraction import run_multipass_extraction, parse_period_end, EXTRACTOR_VERSION
+from app.services.multipass_extraction import run_multipass_extraction, parse_period_end, EXTRACTOR_VERSION, PROMPT_HASH
 from app.services.llamacpp_runtime import resolve_embedding_runtime_config
 from app.services.llamacpp_embeddings import llamacpp_embed
 from qdrant_client import QdrantClient
@@ -138,7 +138,7 @@ def process_document(prev, document_id:str=None):
             points=[{"id":str(uuid.uuid4()),"vector":v,"payload":{"document_id":str(doc.document_id),"ticker":doc.ticker,"doc_class":doc.doc_class,"doc_subtype":doc.doc_subtype,"chunk_index":i,"title":doc.title}} for i,(v,chunk) in enumerate(zip(vecs,chunks))]
             upsert_points(q, QDRANT_COLLECTION, points)
 
-        run=ExtractionRun(document_id=doc.document_id, extractor_version=EXTRACTOR_VERSION, model_name=EXTRACT_MODEL, prompt_hash="v1",
+        run=ExtractionRun(document_id=doc.document_id, extractor_version=EXTRACTOR_VERSION, model_name=EXTRACT_MODEL, prompt_hash=PROMPT_HASH,
                           status=status, confidence_overall=conf, error=err, structured_json=structured)
         db.add(run)
         db.commit()

@@ -26,7 +26,7 @@ from app.services.asx import ASXProvider
 from app.services.embeddings import delete_points_for_document, ensure_collection, log_rejected_payload, upsert_points, validate_payload
 from app.services.announcement_importance import classify_documents_and_materialize
 from app.services.llm import embed_texts, generate_json, get_routing_decision
-from app.services.multipass_extraction import run_multipass_extraction, EXTRACTOR_VERSION, parse_period_end
+from app.services.multipass_extraction import run_multipass_extraction, EXTRACTOR_VERSION, PROMPT_HASH, parse_period_end
 from app.services.structured_chunking import chunk_prose_sections
 from app.services.docling_extract import StructuredDocument
 from app.services.storage import ensure_dir, sha256_file, write_bytes
@@ -1013,7 +1013,7 @@ def process_document(
             document_id=doc.document_id,
             extractor_version=EXTRACTOR_VERSION,
             model_name=extraction_model_name or settings.extract_model,
-            prompt_hash="v1",
+            prompt_hash=PROMPT_HASH,
             status=status,
             confidence_overall=confidence,
             error=error,

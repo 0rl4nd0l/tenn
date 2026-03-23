@@ -38,6 +38,30 @@ There is no robotics or actuator-control runtime in this repo.
 - Do not invent data lineage, extraction outputs, or evaluation results.
 - When docs conflict, surface the conflict; do not silently pick one.
 
+### Verification Before Done
+
+- Never mark a task complete without proving it works (test output, curl response, log line).
+- For non-trivial changes: `git diff main...HEAD` and ask "Would a staff engineer approve this?"
+- If something feels wrong, it probably is — investigate rather than ship.
+
+### Demand Elegance
+
+- For non-trivial changes, pause before presenting: "Is there a more elegant way?"
+- If a fix feels hacky, implement the clean solution — knowing it exists is enough reason.
+- Skip this for simple, obvious fixes. Do not over-engineer.
+
+### Autonomous Bug Fixing
+
+- When given a bug report: fix it. Point to logs, errors, and failing tests — then resolve them.
+- Zero context-switching required from the user; diagnose from evidence.
+- Do not ask for hand-holding on failures that are diagnosable from the codebase.
+
+### Self-Improvement Loop
+
+- After ANY correction from the user: append a lesson to `docs/claude/lessons.md` with the pattern and the rule that prevents it recurring.
+- Review `docs/claude/lessons.md` at the start of sessions touching that subsystem.
+- The pre-merge checklist item "Lessons logged (if bug fix)" enforces this — do not skip it.
+
 ---
 
 ## Canonical Entrypoint (ENFORCED)

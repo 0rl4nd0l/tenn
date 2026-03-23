@@ -12,6 +12,7 @@ Entry point: run_multipass_extraction(pdf_path, doc_metadata, llm_client)
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 from dataclasses import dataclass, field
@@ -440,6 +441,13 @@ Document text (first 4000 chars of prose):
 {prose_text}
 """
 
+# Stable fingerprint of all extraction prompt templates.
+# Changes when any prompt is edited — use this in ExtractionRun.prompt_hash
+# so stale cached extractions can be detected if prompts are updated.
+PROMPT_HASH: str = hashlib.sha256(
+    (_PASS1_PROMPT + _PASS3A_PROMPT + _PASS3B_PROMPT).encode()
+).hexdigest()[:16]
+
 
 def _run_pass3b_narrative_extractor(sections: list[dict], llm_client) -> dict:
     """
@@ -705,6 +713,7 @@ def _llm_json_call(prompt: str, llm_client, max_tokens: int = 512) -> dict:
             msg = llm_client.messages.create(
                 model=model,
                 max_tokens=max_tokens,
+                temperature=0,
                 messages=[{"role": "user", "content": prompt}],
                 system="You are a financial document extraction assistant. Always respond with valid JSON only, no markdown, no explanation.",
             )

@@ -29,6 +29,13 @@ def _pct_change(new: float | None, old: float | None) -> float | None:
     return (new - old) / abs(old)
 
 
+def _ratio(numerator: float | None, denominator: float | None) -> float | None:
+    """Return numerator / denominator, or None if either is absent or denominator is zero."""
+    if numerator is None or denominator is None or denominator == 0:
+        return None
+    return numerator / denominator
+
+
 def compute_period_metrics(row: dict[str, Any]) -> dict[str, Any]:
     """Compute derived metrics for a single period row."""
     revenue = _f(row.get("revenue"))
@@ -44,9 +51,9 @@ def compute_period_metrics(row: dict[str, Any]) -> dict[str, Any]:
     if ocf is not None and capex is not None:
         fcf = ocf - abs(capex)
 
-    ebit_margin = _pct_change(ebit, revenue) if revenue else None
-    np_margin = _pct_change(np_attr, revenue) if revenue else None
-    fcf_margin = _pct_change(fcf, revenue) if revenue else None
+    ebit_margin = _ratio(ebit, revenue)
+    np_margin = _ratio(np_attr, revenue)
+    fcf_margin = _ratio(fcf, revenue)
 
     # Cash conversion: how much of EBIT becomes operating cash
     cash_conversion: float | None = None
