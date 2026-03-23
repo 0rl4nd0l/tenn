@@ -57,7 +57,7 @@ def test_extract_structured_reextracts_when_cache_is_corrupt(tmp_path, monkeypat
     )
     calls: list[str] = []
 
-    def fake_run(path: str) -> StructuredDocument:
+    def fake_run(path: str, timeout: int = docling_extract.DOCLING_TIMEOUT_SECONDS) -> StructuredDocument:
         calls.append(path)
         return extracted_doc
 
