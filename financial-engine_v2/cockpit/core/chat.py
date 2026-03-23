@@ -869,6 +869,42 @@ class ChatController:
             local_payload["web_requested"] = True
         local_payload["response_mode"] = mode.value
 
+        # --- Empty context short-circuit ---
+        # When the ticker is known but there's no DB data at all, skip the LLM and
+        # give the user a direct actionable response with a backfill offer.
+        if (
+            ticker
+            and mode not in {ResponseMode.ACTION, ResponseMode.WEB}
+            and not local_payload.get("docs")
+            and not local_payload.get("financials")
+            and not local_payload.get("qual_context")
+            and not local_payload.get("db_error")  # don't mask DB errors
+        ):
+            _backfill_args: dict[str, Any] = {"ticker": ticker, "years": 3}
+            _action_preview: dict[str, Any] = {
+                "action_id": "single_ticker_announcement_backfill",
+                "args": _backfill_args,
+            }
+            if self.action_registry:
+                try:
+                    _bp = self.action_registry.preview("single_ticker_announcement_backfill", _backfill_args)
+                    _action_preview["command"] = _bp.command
+                    _action_preview["impact"] = _bp.estimated_impact
+                    _action_preview["timeout_seconds"] = _bp.timeout_seconds
+                except Exception:
+                    pass
+            return ChatResponse(
+                text=(
+                    f"No data found for **{ticker}** in the local database. "
+                    f"The ingestion pipeline hasn't been run for this ticker yet.\n\n"
+                    f"Run a backfill to fetch ASX announcements and extract financials (3 years). "
+                    f"Type **/confirm** to start, or click **Single Ticker Backfill** in the actions panel."
+                ),
+                evidence=evidence,
+                action_preview=_action_preview,
+                mode=ResponseMode.ACTION,
+            )
+
         system_instruction = self._build_system_instruction(
             mode=mode.value, ticker=ticker, local_payload=local_payload
         )
