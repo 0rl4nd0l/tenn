@@ -84,7 +84,7 @@ python scripts/validate_financial_coverage_gates.py \
 ## Current Branch Context
 
 Branch: `cloud/session-20260319`
-Last milestone commit: `e642de16` (docs: L005-L007 primary ticker alphabetical, news ticker filter, silent retrieval swallow)
+Last milestone commit: `1b8f457a` (milestone: atomicity, scale safety, page lineage, currency gate)
 
 Uncommitted (working tree):
 - `.claude/commands/save.md` — unrelated tooling change
@@ -92,7 +92,7 @@ Uncommitted (working tree):
 
 Untracked (not for staging): `.claude/monitors/`, `.claude/scheduled_tasks.lock`, `financial-engine_v2/everything-claude-code/`
 
-> This state snapshot reflects 2026-03-24. Re-verify with `git status` before acting.
+> This state snapshot reflects 2026-03-24 (updated post-Qdrant resync). Re-verify with `git status` before acting.
 
 ---
 
@@ -111,7 +111,7 @@ Confirmed working on `cloud/session-20260319`:
 | RSS as default provider | **Fixed** | `fetch_daily_news.py` enables RSS by default. Committed at d95ec433. |
 | Quality score filter | **Fixed** | `quality_score >= 0.3` in `_iter_chunks()` SQL; blocks paywall stubs. Committed at d95ec433. |
 | Entity linker stopwords | **Fixed** | CORE, GOLD, GOOD, EDU added to `STRICT_TICKER_STOPWORDS`. Committed at d95ec433. |
-| Qdrant news loader | **Last run** | 404 articles / 2725 chunks / 2725 upserted. Needs re-run after committing primary ticker fix. |
+| Qdrant news loader | **Re-synced** | 375 articles / 2696 chunks / 2696 upserted (2026-03-24). Re-run with `EMBED_MODEL=nomic-embed-text OLLAMA_URL=http://localhost:11434` env override (`.env.local` sets wrong 384-dim model). |
 
 article_relevance schema (Confirmed from `scripts/news_pipeline/db.py`):
 ```
