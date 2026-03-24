@@ -28,7 +28,10 @@ Usage:
   cockpit stop
   cockpit status
   cockpit logs
+  cockpit kill backend
+  cockpit restart backend
   cockpit doctor
+  cockpit bugagent       Start bug monitor web UI (http://localhost:8765)
 
 Config:
   Edit: scripts/start_config.env
@@ -236,6 +239,42 @@ case "${cmd}" in
     ;;
   doctor)
     "${REPO_ROOT}/scripts/cockpit_doctor.sh"
+    ;;
+  kill)
+    svc="${1:-}"
+    if [[ "${svc}" != "backend" ]]; then
+      echo "Usage: cockpit kill backend" >&2
+      exit 2
+    fi
+    pids="$(pgrep -f "uvicorn app.main:app" || true)"
+    if [[ -z "${pids}" ]]; then
+      echo "No backend process found." >&2
+      exit 0
+    fi
+    echo "Killing backend (PID ${pids})…"
+    if ! kill ${pids} 2>/dev/null; then
+      sudo kill ${pids}
+    fi
+    echo "Done."
+    ;;
+  restart)
+    svc="${1:-}"
+    if [[ "${svc}" != "backend" ]]; then
+      echo "Usage: cockpit restart backend" >&2
+      exit 2
+    fi
+    py="$(python_cmd)"
+    (cd "${ENGINE_ROOT}" && "${py}" -m cockpit.main restart backend)
+    ;;
+  bugagent)
+    py="$(python_cmd)"
+    ui_script="${REPO_ROOT}/.claude/monitors/bug_web_ui.py"
+    if [[ ! -f "${ui_script}" ]]; then
+      echo "ERROR: bug UI not found: ${ui_script}" >&2
+      exit 1
+    fi
+    echo "Bug Monitor UI → http://localhost:8765"
+    exec "${py}" "${ui_script}"
     ;;
   *)
     usage
