@@ -32,6 +32,7 @@ When in doubt, prefer the source file. When a conflict exists between a doc here
 | [lessons.md](lessons.md) | Bug regression lessons — pattern + rule that prevents recurrence |
 | [gap-analysis.md](gap-analysis.md) | Missing capabilities and recommended actions |
 | [introduction-plan.md](introduction-plan.md) | Staged plan to introduce missing pieces safely |
+| [extraction_quality_assessment.md](extraction_quality_assessment.md) | Evidence-based quality assessment of multipass extraction pipeline (2026-03-24) |
 
 ---
 
