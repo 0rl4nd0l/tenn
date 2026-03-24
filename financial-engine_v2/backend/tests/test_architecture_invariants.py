@@ -360,6 +360,49 @@ def test_ensure_collection_creates_collection_with_cosine_distance():
     assert vc.distance == qmodels.Distance.COSINE
 
 
+ALEMBIC_VERSION_NUM_MAX_LEN = 32  # Alembic hardcodes VARCHAR(32) for alembic_version.version_num
+
+
+def test_migration_revision_ids_fit_alembic_version_column():
+    """Guard: all migration revision strings must be <= 32 chars.
+
+    Alembic's alembic_version table uses VARCHAR(32) for version_num by
+    default. A revision ID that exceeds 32 characters causes
+    StringDataRightTruncation at migration time.
+    """
+    versions_dir = APP_ROOT / "alembic" / "versions"
+    violations: list[str] = []
+
+    for path in sorted(versions_dir.glob("*.py")):
+        if path.name.startswith("__"):
+            continue
+        source = path.read_text(encoding="utf-8")
+        try:
+            tree = ast.parse(source, filename=str(path))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Assign)
+                and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and node.targets[0].id == "revision"
+                and isinstance(node.value, ast.Constant)
+                and isinstance(node.value.value, str)
+            ):
+                rev = node.value.value
+                if len(rev) > ALEMBIC_VERSION_NUM_MAX_LEN:
+                    violations.append(
+                        f"{path.name}: revision={rev!r} is {len(rev)} chars "
+                        f"(max {ALEMBIC_VERSION_NUM_MAX_LEN})"
+                    )
+
+    assert not violations, (
+        "Migration revision IDs exceed VARCHAR(32) limit — "
+        "shorten them before deploying:\n" + "\n".join(violations)
+    )
+
+
 def test_no_fallback_embedding_backends_in_backend_code():
     """Guardrail: no 'fallback' embedding backends or policies in backend runtime code."""
     violations: list[str] = []
