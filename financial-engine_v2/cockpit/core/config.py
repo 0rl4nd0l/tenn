@@ -9,7 +9,7 @@ import yaml
 
 DEFAULT_BACKEND_URL = "http://localhost:8000"
 DEFAULT_OLLAMA_URL = "http://localhost:11434"
-DEFAULT_LLAMACPP_URL = "http://localhost:8080"
+DEFAULT_LLAMACPP_URL = "http://localhost:8001"
 DEFAULT_LLAMACPP_MODEL = "qwen2.5-coder-14b"
 
 

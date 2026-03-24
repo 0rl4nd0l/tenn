@@ -40,7 +40,7 @@ class _ServiceCheck:
 
 
 def _llamacpp_models_url(llamacpp_url: str) -> str:
-    base = (llamacpp_url or "").strip() or "http://localhost:8080"
+    base = (llamacpp_url or "").strip() or "http://localhost:8001"
     if "://" not in base:
         base = f"http://{base}"
     base = base.rstrip("/")
@@ -63,7 +63,7 @@ def _llamacpp_provider_label(llamacpp_url: str) -> str:
 def _build_service_checks(
     backend_url: str,
     ollama_url: str = "",  # noqa: ARG001
-    llamacpp_url: str = "http://localhost:8080",
+    llamacpp_url: str = "http://localhost:8001",
 ) -> list[_ServiceCheck]:
     backend_health = backend_url.rstrip("/") + "/api/health"
     return [
@@ -247,7 +247,7 @@ class PreBootScreen(Screen):
         self,
         backend_url: str = "http://localhost:8000",
         ollama_url: str = "http://localhost:11434",
-        llamacpp_url: str = "http://localhost:8080",
+        llamacpp_url: str = "http://localhost:8001",
         initial_flags: dict[str, Any] | None = None,
         on_launch: Callable[[dict[str, Any]], None] | None = None,
         on_cancel: Callable[[], None] | None = None,
@@ -539,7 +539,7 @@ class PreBootApp(App[dict[str, Any]]):
         self,
         backend_url: str = "http://localhost:8000",
         ollama_url: str = "http://localhost:11434",
-        llamacpp_url: str = "http://localhost:8080",
+        llamacpp_url: str = "http://localhost:8001",
         initial_flags: dict[str, Any] | None = None,
     ) -> None:
         super().__init__()
