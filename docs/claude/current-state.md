@@ -37,7 +37,7 @@ Special: local launcher forces `DATA_ROOT` to repo `data/` unless `DATA_ROOT` is
 
 ---
 
-## Validated Baseline (2026-03-19)
+## Validated Baseline (2026-03-24)
 
 The following command sequence is the current stable gate:
 
@@ -62,7 +62,7 @@ python scripts/validate_financial_coverage_gates.py \
   --out-json reports/financial_metrics.coverage_gates.json
 ```
 
-**Currently passing:** ruff, pytest (all three suites), canonical dataset eval, canonical regression baseline, financial metrics gates, financial coverage gates.
+**Currently passing:** ruff, pytest (backend: 200 passed, including 24-test news retrieval eval harness), canonical dataset eval, canonical regression baseline, financial metrics gates, financial coverage gates.
 
 **Environment notes:**
 - `SKIP due restricted environment` from health/smoke checks is non-fatal.
@@ -84,11 +84,44 @@ python scripts/validate_financial_coverage_gates.py \
 ## Current Branch Context
 
 Branch: `cloud/session-20260319`
-Modified files include: `docs/ops/README.md`, `financial-engine_v2/backend/app/alembic/env.py`, `scripts/claude-llama`, `scripts/claude_llamacpp_proxy.py`, `scripts/start_config.env`, `scripts/test_claude_llamacpp_proxy.py`.
+Last milestone commit: `e642de16` (docs: L005-L007 primary ticker alphabetical, news ticker filter, silent retrieval swallow)
 
-Untracked: `.codex/`, `scripts/sync_codex_skills.sh`, `tools/`.
+Uncommitted (working tree):
+- `.claude/commands/save.md` — unrelated tooling change
+- `scripts/save-chat.py` — unrelated tooling change
 
-> This state snapshot reflects 2026-03-20. Re-verify with `git status` before acting.
+Untracked (not for staging): `.claude/monitors/`, `.claude/scheduled_tasks.lock`, `financial-engine_v2/everything-claude-code/`
+
+> This state snapshot reflects 2026-03-24. Re-verify with `git status` before acting.
+
+---
+
+## News Pipeline (2026-03-24)
+
+Confirmed working on `cloud/session-20260319`:
+
+| Component | Status | Evidence |
+|-----------|--------|---------|
+| Primary ticker in Qdrant payload | **Fixed** | `_iter_chunks()` joins `article_relevance` (is_primary DESC, relevance_score DESC); `_build_chunk_payload()` uses `primary_ticker`. Committed at `d8ab0cfd`. |
+| `article_relevance` backfill | **Done** | `scripts/backfill_article_relevance.py` created; run against live DB: 353 articles → 1,665 relevance rows. |
+| Ticker filter for `news_chunks` | **Fixed** | `hybrid_retriever.py` `_TICKER_FILTER_COLLECTIONS` frozenset includes `news_chunks`. `tenn_chat.py`/`ChatRequest` accept `ticker`. Committed at `d8ab0cfd`. |
+| `_build_prompt()` temporal guidance | **Fixed** | Prompt includes `published_at`, conflict/contradict, staleness, sparse/overclaim, confidence 0.2 example. Committed at `d8ab0cfd`. |
+| Retrieval failure logging | **Fixed** | `commentary_retrieval_failed` and `news_retrieval_failed` warnings emitted on exception. Committed at `d8ab0cfd`. |
+| Evaluation harness | **Present** | `financial-engine_v2/backend/tests/test_news_retrieval_eval.py` — 24 tests, 4 failure classes (A–D). |
+| RSS as default provider | **Fixed** | `fetch_daily_news.py` enables RSS by default. Committed at d95ec433. |
+| Quality score filter | **Fixed** | `quality_score >= 0.3` in `_iter_chunks()` SQL; blocks paywall stubs. Committed at d95ec433. |
+| Entity linker stopwords | **Fixed** | CORE, GOLD, GOOD, EDU added to `STRICT_TICKER_STOPWORDS`. Committed at d95ec433. |
+| Qdrant news loader | **Last run** | 404 articles / 2725 chunks / 2725 upserted. Needs re-run after committing primary ticker fix. |
+
+article_relevance schema (Confirmed from `scripts/news_pipeline/db.py`):
+```
+article_relevance(article_id, ticker, lane, relevance_score, relation_type,
+                  is_primary, confidence, evidence_json)
+PRIMARY KEY(article_id, ticker, lane)
+```
+Primary ticker selection: `ORDER BY is_primary DESC, relevance_score DESC`, first result per article_id.
+
+Fallback when article_relevance has no rows: single-ticker articles use that ticker; multi-ticker articles use `""` (ambiguous, not filtered).
 
 ---
 
@@ -108,7 +141,9 @@ Config: `.mcp.json` (repo root). Full docs: [mcp-servers.md](mcp-servers.md).
 
 ## Operational Notes
 
-- `/chat` uses `commentary_chunks` collection; `commentary_chunks_v2` is optional fallback. `asx_docs` is NOT the commentary chat collection.
+- `/chat` now retrieves from both `commentary_chunks` and `news_chunks`. Ticker-scoped queries apply Qdrant payload filter to `news_chunks` when `ticker` param is provided.
+- `commentary_chunks_v2` is optional fallback for commentary. `asx_docs` is NOT the commentary chat collection.
 - Model router active weights: `latency=0.4`, `throughput=0.3`, `error=0.2`, `queue=0.1`, `gpu=0.1`.
 - Checked-in local profile uses `llama3.1:8b` for generation, `nomic-embed-text` for embeddings (Inferred from `docs/architecture/01_system_overview.md`).
 - OpenClaw config source of truth: `~/.openclaw/openclaw.json` (host-local, not in repo).
+- After committing `scripts/load_news_to_qdrant.py`, re-run the loader to refresh Qdrant with relevance-ordered primary tickers: `python scripts/load_news_to_qdrant.py`.
