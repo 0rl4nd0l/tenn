@@ -12,7 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 os.chdir(REPO_ROOT)
 sys.path.insert(0, str(REPO_ROOT))
 
-from cockpit.core.config import RuntimeFlags, apply_runtime_flags  # noqa: E402
+from cockpit.core.config import DEFAULT_LLAMACPP_URL, RuntimeFlags, apply_runtime_flags  # noqa: E402
 
 
 class CockpitLlmProviderConfigTests(unittest.TestCase):
@@ -21,7 +21,7 @@ class CockpitLlmProviderConfigTests(unittest.TestCase):
             "llm": {
                 "provider": "llamacpp",
                 "ollama_url": "",
-                "llamacpp_url": "http://localhost:8001",
+                "llamacpp_url": "http://localhost:8080",
                 "model": "qwen2.5-coder-14b",
                 "timeout_seconds": 300,
             },
@@ -52,6 +52,18 @@ class CockpitLlmProviderConfigTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {"COCKPIT_LLM_PROVIDER": "anthropic"}, clear=False):
             with self.assertRaises(ValueError):
                 apply_runtime_flags(self._base_config(), self._flags())
+
+    def test_llamacpp_url_uses_runtime_env_override(self) -> None:
+        with mock.patch.dict(os.environ, {"LLAMACPP_URL": "http://127.0.0.1:8080"}, clear=False):
+            cfg = apply_runtime_flags(self._base_config(), self._flags())
+        self.assertEqual(cfg["llm"]["llamacpp_url"], "http://127.0.0.1:8080")
+
+    def test_llamacpp_url_falls_back_to_single_default(self) -> None:
+        base = self._base_config()
+        base["llm"].pop("llamacpp_url")
+        with mock.patch.dict(os.environ, {}, clear=True):
+            cfg = apply_runtime_flags(base, self._flags())
+        self.assertEqual(cfg["llm"]["llamacpp_url"], DEFAULT_LLAMACPP_URL)
 
 
 if __name__ == "__main__":

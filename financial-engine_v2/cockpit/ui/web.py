@@ -15,7 +15,14 @@ from typing import Any
 from textual.app import App, ComposeResult
 from textual.widgets import Footer, Header
 
-from cockpit.core.config import RuntimeFlags, apply_runtime_flags, load_config
+from cockpit.core.config import (
+    DEFAULT_BACKEND_URL,
+    DEFAULT_LLAMACPP_URL,
+    DEFAULT_OLLAMA_URL,
+    RuntimeFlags,
+    apply_runtime_flags,
+    load_config,
+)
 from cockpit.ui.app import CockpitApp
 from cockpit.ui.preboot import PreBootScreen
 
@@ -31,8 +38,9 @@ class CockpitWebApp(CockpitApp):
         self,
         repo_root: Path,
         config_path: str,
-        backend_url: str = "http://localhost:8000",
-        ollama_url: str = "http://localhost:11434",
+        backend_url: str = DEFAULT_BACKEND_URL,
+        ollama_url: str = DEFAULT_OLLAMA_URL,
+        llamacpp_url: str = DEFAULT_LLAMACPP_URL,
     ) -> None:
         # Bypass CockpitApp.__init__ — _init_services() is called later, after
         # the pre-boot screen collects the user's flags.
@@ -41,6 +49,7 @@ class CockpitWebApp(CockpitApp):
         self._config_path = config_path
         self._backend_url = backend_url
         self._ollama_url = ollama_url
+        self._llamacpp_url = llamacpp_url
 
         # Sentinel: signals that _init_services() has not yet run.
         self._services_ready = False
@@ -80,6 +89,7 @@ class CockpitWebApp(CockpitApp):
             PreBootScreen(
                 backend_url=self._backend_url,
                 ollama_url=self._ollama_url,
+                llamacpp_url=str(llm_cfg.get("llamacpp_url") or self._llamacpp_url),
                 initial_flags={
                     "profile": "default",
                     "read_only": False,

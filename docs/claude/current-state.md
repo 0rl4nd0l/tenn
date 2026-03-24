@@ -25,6 +25,10 @@ Legacy root launcher scripts are archived under `scripts/archive/legacy_root_202
 | `LOCAL_BACKEND_PROFILE=isolated` (default) | Safe smoke mode. Embeddings/Qdrant/extraction disabled. `/chat` degrades gracefully instead of 500. |
 | `LOCAL_BACKEND_PROFILE=full` | Full local mode. SQLite in `/tmp`, local Qdrant on `127.0.0.1:6333`, local llama.cpp on `127.0.0.1:8001/v1`. `/chat` returns grounded answers when `commentary_chunks` has data. |
 
+Cockpit web defaults:
+- Browser UI now defaults to `127.0.0.1:8081` so it does not collide with direct llama.cpp on `8080`.
+- Pre-boot llama.cpp health checks now follow effective `COCKPIT_LLAMACPP_URL` / `LLAMACPP_URL` instead of probing a hardcoded port.
+
 ---
 
 ## Env Precedence (local launcher)

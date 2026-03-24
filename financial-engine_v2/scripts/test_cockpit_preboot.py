@@ -14,7 +14,12 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 os.chdir(REPO_ROOT)
 sys.path.insert(0, str(REPO_ROOT))
 
-from cockpit.ui.preboot import PreBootScreen  # noqa: E402
+from cockpit.ui.preboot import (  # noqa: E402
+    PreBootScreen,
+    _build_service_checks,
+    _llamacpp_models_url,
+    _llamacpp_provider_label,
+)
 from scripts.cockpit_tui import _build_preboot_initial_flags, _merge_preboot_flags  # noqa: E402
 
 
@@ -28,6 +33,23 @@ class _PreBootTestApp(App[None]):
 
 
 class PreBootScreenTests(unittest.IsolatedAsyncioTestCase):
+    def test_llamacpp_health_check_uses_effective_configured_url(self) -> None:
+        checks = _build_service_checks(
+            "http://localhost:8000",
+            "http://localhost:11434",
+            "http://127.0.0.1:8080",
+        )
+        llama = next(check for check in checks if check.name == "llama.cpp")
+        self.assertEqual(llama.url, "http://127.0.0.1:8080/v1/models")
+
+    def test_llamacpp_health_check_normalizes_v1_suffixes(self) -> None:
+        self.assertEqual(_llamacpp_models_url("http://localhost:8080"), "http://localhost:8080/v1/models")
+        self.assertEqual(_llamacpp_models_url("http://localhost:8080/v1"), "http://localhost:8080/v1/models")
+        self.assertEqual(_llamacpp_models_url("http://localhost:8080/v1/models"), "http://localhost:8080/v1/models")
+
+    def test_provider_label_reflects_configured_port(self) -> None:
+        self.assertEqual(_llamacpp_provider_label("http://127.0.0.1:8080"), "llama.cpp  (127.0.0.1:8080)")
+
     async def test_explicit_initial_flags_survive_profile_initialization(self) -> None:
         initial_flags = {
             "profile": "testing",

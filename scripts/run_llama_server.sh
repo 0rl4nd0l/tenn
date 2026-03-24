@@ -34,7 +34,7 @@ MODEL_ALIAS="${LLAMA_SERVER_ALIAS:-qwen2.5-coder-14b}"
 API_KEY="${LLAMA_SERVER_API_KEY:-${LLM_API_KEY:-local-openai-key}}"
 PROFILE="${LLAMA_SERVER_PROFILE:-balanced}"
 HOST="${LLAMA_SERVER_HOST:-127.0.0.1}"
-PORT="${LLAMA_SERVER_PORT:-8001}"
+PORT="${LLAMA_SERVER_PORT:-8080}"
 
 if [[ ! -x "${BIN_PATH}" ]]; then
   echo "llama-server binary not found at ${BIN_PATH}" >&2

@@ -7,14 +7,19 @@ from typing import Any
 
 import yaml
 
+DEFAULT_BACKEND_URL = "http://localhost:8000"
+DEFAULT_OLLAMA_URL = "http://localhost:11434"
+DEFAULT_LLAMACPP_URL = "http://localhost:8080"
+DEFAULT_LLAMACPP_MODEL = "qwen2.5-coder-14b"
+
 
 DEFAULT_CONFIG = {
     "llm": {
         "provider": "llamacpp",
         "ollama_url": "",
-        "llamacpp_url": "http://localhost:8001",
+        "llamacpp_url": DEFAULT_LLAMACPP_URL,
         "llamacpp_api_key": "local-openai-key",
-        "model": "qwen2.5-coder-14b",
+        "model": DEFAULT_LLAMACPP_MODEL,
         "timeout_seconds": 120,
     },
     "paths": {
@@ -94,15 +99,15 @@ def apply_runtime_flags(config: dict[str, Any], flags: RuntimeFlags) -> dict[str
     cfg["llm"]["provider"] = provider
     cfg["llm"]["ollama_url"] = os.getenv(
         "COCKPIT_OLLAMA_URL",
-        os.getenv("OLLAMA_URL", cfg["llm"].get("ollama_url", "")),
+        os.getenv("OLLAMA_URL", cfg["llm"].get("ollama_url", DEFAULT_OLLAMA_URL)),
     )
     cfg["llm"]["llamacpp_url"] = os.getenv(
         "COCKPIT_LLAMACPP_URL",
-        os.getenv("LLAMACPP_URL", cfg["llm"].get("llamacpp_url", "http://localhost:8001")),
+        os.getenv("LLAMACPP_URL", cfg["llm"].get("llamacpp_url", DEFAULT_LLAMACPP_URL)),
     )
     cfg["llm"]["model"] = os.getenv(
         "COCKPIT_LLM_MODEL",
-        os.getenv("EXTRACT_MODEL", cfg["llm"].get("model", "qwen2.5-coder-14b")),
+        os.getenv("EXTRACT_MODEL", cfg["llm"].get("model", DEFAULT_LLAMACPP_MODEL)),
     )
     cfg["llm"]["llamacpp_api_key"] = os.getenv("LLAMACPP_API_KEY") or os.getenv("LLM_API_KEY") or cfg["llm"].get("llamacpp_api_key", "")
     cfg.setdefault("db", {})

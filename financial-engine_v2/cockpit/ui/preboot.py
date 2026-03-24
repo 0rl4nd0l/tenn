@@ -5,6 +5,7 @@ import json
 import socket
 import urllib.error
 import urllib.request
+from urllib.parse import urlsplit
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
@@ -38,11 +39,36 @@ class _ServiceCheck:
     models: list[str] = field(default_factory=list)
 
 
-def _build_service_checks(backend_url: str, ollama_url: str = "") -> list[_ServiceCheck]:  # noqa: ARG001
+def _llamacpp_models_url(llamacpp_url: str) -> str:
+    base = (llamacpp_url or "").strip() or "http://localhost:8080"
+    if "://" not in base:
+        base = f"http://{base}"
+    base = base.rstrip("/")
+    if base.lower().endswith("/v1/models"):
+        return base
+    if base.lower().endswith("/v1"):
+        return f"{base}/models"
+    return f"{base}/v1/models"
+
+
+def _llamacpp_provider_label(llamacpp_url: str) -> str:
+    parsed = urlsplit(_llamacpp_models_url(llamacpp_url))
+    host = parsed.hostname or "localhost"
+    port = parsed.port
+    if port is None:
+        port = 443 if parsed.scheme == "https" else 80
+    return f"llama.cpp  ({host}:{port})"
+
+
+def _build_service_checks(
+    backend_url: str,
+    ollama_url: str = "",  # noqa: ARG001
+    llamacpp_url: str = "http://localhost:8080",
+) -> list[_ServiceCheck]:
     backend_health = backend_url.rstrip("/") + "/api/health"
     return [
         _ServiceCheck("Backend API",  backend_health),
-        _ServiceCheck("llama.cpp",     "http://localhost:8001/v1/models"),
+        _ServiceCheck("llama.cpp",     _llamacpp_models_url(llamacpp_url)),
         _ServiceCheck("Qdrant",        "http://localhost:6333/readyz"),
         _ServiceCheck("Redis",         "tcp://localhost:6379"),
     ]
@@ -117,8 +143,6 @@ PROFILE_FLAGS: dict[str, dict[str, Any]] = {
     },
 }
 
-LLM_PROVIDERS: list[tuple[str, str]] = [("llama.cpp  (localhost:8001)", "llamacpp")]
-
 _FALLBACK_MODELS: list[tuple[str, str]] = [("llama3:latest", "llama3:latest")]
 
 
@@ -129,9 +153,8 @@ def _resolve_initial_option_state(initial_flags: dict[str, Any] | None) -> dict[
     if profile not in valid_profiles:
         profile = LAUNCH_PROFILES[0][1]
     defaults = PROFILE_FLAGS.get(profile, {})
-    valid_providers = {value for _, value in LLM_PROVIDERS}
     llm_provider = raw.get("llm_provider", "llamacpp")
-    if llm_provider not in valid_providers:
+    if llm_provider != "llamacpp":
         llm_provider = "llamacpp"
     return {
         "profile": profile,
@@ -224,6 +247,7 @@ class PreBootScreen(Screen):
         self,
         backend_url: str = "http://localhost:8000",
         ollama_url: str = "http://localhost:11434",
+        llamacpp_url: str = "http://localhost:8080",
         initial_flags: dict[str, Any] | None = None,
         on_launch: Callable[[dict[str, Any]], None] | None = None,
         on_cancel: Callable[[], None] | None = None,
@@ -231,8 +255,10 @@ class PreBootScreen(Screen):
         super().__init__()
         self._backend_url = backend_url
         self._ollama_url = ollama_url
+        self._llamacpp_url = llamacpp_url
         self._initial = _resolve_initial_option_state(initial_flags)
-        self._checks = _build_service_checks(backend_url, ollama_url)
+        self._checks = _build_service_checks(backend_url, ollama_url, llamacpp_url)
+        self._provider_options = [(_llamacpp_provider_label(llamacpp_url), "llamacpp")]
         self._on_launch = on_launch
         self._on_cancel = on_cancel
         # Guard: Select fires Changed on mount; block on_select_changed until
@@ -261,7 +287,7 @@ class PreBootScreen(Screen):
                 yield Label("LLM Backend", id="llm-label")
                 with Horizontal(id="provider-row"):
                     yield Label("Provider:", id="provider-label")
-                    yield Select(LLM_PROVIDERS, value=self._initial.get("llm_provider", "ollama"), id="opt-provider")
+                    yield Select(self._provider_options, value=self._initial.get("llm_provider", "llamacpp"), id="opt-provider")
                     yield Static("", id="provider-status")
                 with Horizontal(id="model-row"):
                     yield Label("Model:", id="model-label")
@@ -513,11 +539,13 @@ class PreBootApp(App[dict[str, Any]]):
         self,
         backend_url: str = "http://localhost:8000",
         ollama_url: str = "http://localhost:11434",
+        llamacpp_url: str = "http://localhost:8080",
         initial_flags: dict[str, Any] | None = None,
     ) -> None:
         super().__init__()
         self._backend_url = backend_url
         self._ollama_url = ollama_url
+        self._llamacpp_url = llamacpp_url
         self._initial = initial_flags or {}
 
     def on_mount(self) -> None:
@@ -525,6 +553,7 @@ class PreBootApp(App[dict[str, Any]]):
             PreBootScreen(
                 backend_url=self._backend_url,
                 ollama_url=self._ollama_url,
+                llamacpp_url=self._llamacpp_url,
                 initial_flags=self._initial,
                 on_launch=lambda flags: self.exit(flags),
                 on_cancel=lambda: self.exit({"cancelled": True}),

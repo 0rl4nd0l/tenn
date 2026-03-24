@@ -139,6 +139,17 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 
 ---
 
+## L014 — Cockpit web hardcoded llama.cpp port drift caused false connection-refused errors
+
+**Date:** 2026-03-24
+**Subsystem:** `financial-engine_v2/cockpit`
+**Symptom:** Cockpit pre-boot reported llama.cpp as down with connection-refused errors even when the runtime was healthy on the configured port. Separately, Cockpit web defaulted to `8080`, colliding with the documented direct llama.cpp port.
+**Root cause:** Pre-boot health probes and provider labels hardcoded `localhost:8001` instead of using the effective `COCKPIT_LLAMACPP_URL` / `LLAMACPP_URL`. The `scripts/cockpit` web launcher reused `8080` for the browser UI.
+**Fix:** Derived pre-boot llama.cpp health probes from the effective runtime URL, updated the provider label to reflect the resolved host/port, and moved Cockpit web's default port to `8081`.
+**Rule:** UI health checks must consume the same endpoint config path as the runtime client. Never assign a browser UI default to a reserved service port.
+
+---
+
 ## L013 — Page number lost between Pass 2 table selection and Pass 4 provenance
 
 **Date:** 2026-03-24

@@ -22,6 +22,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from cockpit.core.config import DEFAULT_BACKEND_URL, DEFAULT_LLAMACPP_URL, DEFAULT_OLLAMA_URL
 from cockpit.ui.web import CockpitWebApp
 
 
@@ -34,11 +35,15 @@ def _parse() -> argparse.Namespace:
     )
     p.add_argument(
         "--backend-url",
-        default=os.environ.get("COCKPIT_BACKEND_URL", "http://localhost:8000"),
+        default=os.environ.get("COCKPIT_BACKEND_URL", DEFAULT_BACKEND_URL),
     )
     p.add_argument(
         "--ollama-url",
-        default=os.environ.get("OLLAMA_URL", "http://localhost:11434"),
+        default=os.environ.get("OLLAMA_URL", DEFAULT_OLLAMA_URL),
+    )
+    p.add_argument(
+        "--llamacpp-url",
+        default=os.environ.get("COCKPIT_LLAMACPP_URL", os.environ.get("LLAMACPP_URL", DEFAULT_LLAMACPP_URL)),
     )
     args, _ = p.parse_known_args()
     return args
@@ -61,6 +66,7 @@ app = CockpitWebApp(
     config_path=_config_path,
     backend_url=_args.backend_url,
     ollama_url=_args.ollama_url,
+    llamacpp_url=_args.llamacpp_url,
 )
 
 if __name__ == "__main__":

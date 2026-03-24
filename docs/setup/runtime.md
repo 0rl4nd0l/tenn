@@ -7,6 +7,7 @@
 | `8000` | backend | API and orchestration |
 | `8001` | primary LLM | OpenAI-compatible endpoint used by routed LLM calls |
 | `8080` | llama.cpp | Direct llama.cpp runtime |
+| `8081` | Cockpit web UI | Browser-served Textual UI |
 | `6333` | qdrant | Vector store |
 | `6379` | redis | Celery broker/result backend |
 | `11434` | ollama | Legacy compatibility runtime when explicitly enabled |
