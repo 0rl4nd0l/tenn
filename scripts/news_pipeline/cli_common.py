@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Sequence
 
-from .providers import EodhdProvider, GdeltProvider, RssProvider, ProviderClient, WorldMonitorProvider
+from .providers import EodhdProvider, GdeltProvider, Newspaper4kProvider, RssProvider, ProviderClient, WorldMonitorProvider
 from .utils import load_ticker_universe
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -188,6 +188,8 @@ def build_provider(
         return provider
     if name == "rss":
         return RssProvider()
+    if name == "newspaper4k":
+        return Newspaper4kProvider()
     raise RuntimeError(f"Unsupported provider: {provider_name}")
 
 

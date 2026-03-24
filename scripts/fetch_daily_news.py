@@ -34,8 +34,8 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Fetch daily ASX news from one or more providers.")
     ap.add_argument(
         "--providers",
-        default="rss",
-        help="Comma-separated provider list (rss,eodhd,gdelt,worldmonitor)",
+        default="newspaper4k",
+        help="Comma-separated provider list (newspaper4k,rss,eodhd,gdelt,worldmonitor)",
     )
     ap.add_argument("--since-hours", type=int, default=36, help="Lookback window in hours")
     ap.add_argument("--lane", default="high_precision", choices=["high_precision", "high_recall"], help="Article lane label")
