@@ -753,9 +753,14 @@ class Handler(BaseHTTPRequestHandler):
             self.send_html(HTML)
         elif self.path == "/api/data":
             open_issues = get_open_issues()
+            with _DEBATES_LOCK:
+                cached_debates = _load_json_safe(DEBATES_DB) or {}
             result = []
             for item in open_issues:
                 fix_id, fix = match_known_fix(item)
+                if fix is None and item.get("id") in cached_debates:
+                    fix_id = item["id"]
+                    fix = cached_debates[item["id"]]
                 result.append({**item, "fix_id": fix_id, "known_fix": fix})
             self.send_json(result)
         elif self.path.startswith("/api/job/"):
