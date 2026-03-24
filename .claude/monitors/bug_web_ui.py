@@ -574,6 +574,70 @@ setInterval(loadData, 30000);
 </html>
 """
 
+_FIX_ID_SLUG_RE = re.compile(r'^[a-z0-9][a-z0-9\-]{0,79}$')
+_FIX_ID_SHA1_RE = re.compile(r'^[a-f0-9]{40}$')
+
+
+def _build_task_string(fix_id: str, fix: dict | None, debates: dict) -> str:
+    """Construct the -p task string for the claude subprocess."""
+    if fix is not None:
+        winning = fix.get("winning_agent")
+        if winning is None:
+            return (
+                f"Investigate and fix the following issue in {fix['file']}:\n\n"
+                f"Issue: {fix['title']}\n"
+                f"Description: {fix['explanation']}\n\n"
+                f"Two approaches have been proposed:\n"
+                f"- Agent A: {fix['agent_a']['approach']}\n"
+                f"- Agent B: {fix['agent_b']['approach']}\n\n"
+                "Steps:\n"
+                f"1. Read {fix['file']} and all relevant files it imports\n"
+                "2. Determine which approach is correct given the current code state\n"
+                "3. Apply the better fix\n"
+                "4. Run ruff check and pytest for the affected module\n"
+                "5. Create a git commit: fix(<subsystem>): <brief title>"
+            )
+        agent = fix["agent_b"] if winning == "b" else fix["agent_a"]
+        return (
+            f"Fix the following confirmed bug in {fix['file']}:\n\n"
+            f"Issue: {fix['title']}\n"
+            f"Winning approach: {agent['name']} — {agent['approach']}\n\n"
+            f"Proposed diff for reference:\n{agent['diff']}\n\n"
+            "Steps:\n"
+            f"1. Read {fix['file']} to confirm the exact current code\n"
+            "2. Apply the fix described above\n"
+            f"3. Run: ruff check {fix['file']}\n"
+            "4. If ruff passes, create a git commit: fix(<subsystem>): <brief title>"
+        )
+    # Dynamic debate
+    debate = debates.get(fix_id, {})
+    issue_type = debate.get("_issue_type", "unknown issue")
+    location = debate.get("_location", "unknown location")
+    detail = debate.get("_detail", "see debate")
+    location_file = location.split(":")[0]
+    winning = debate.get("winning_agent")
+    if winning is None:
+        a_approach = debate.get("agent_a", {}).get("approach", "see debate")
+        b_approach = debate.get("agent_b", {}).get("approach", "see debate")
+        return (
+            "Fix the following detected code issue (approach undecided — investigate and choose):\n\n"
+            f"Location: {location}\nIssue type: {issue_type}\nDetail: {detail}\n\n"
+            f"Two approaches proposed:\n- Agent A: {a_approach}\n- Agent B: {b_approach}\n\n"
+            f"Steps:\n1. Read {location_file} to confirm the exact current code\n"
+            "2. Choose and apply the better fix\n3. Run ruff/pytest as appropriate\n"
+            "4. Create a git commit: fix(<subsystem>): <brief description>"
+        )
+    winner = debate.get("agent_b") if winning == "b" else debate.get("agent_a", {})
+    return (
+        f"Fix the following detected code issue:\n\n"
+        f"Location: {location}\nIssue type: {issue_type}\nDetail: {detail}\n"
+        f"Winning approach: {winner.get('name', 'Agent A')} — {winner.get('approach', 'see debate')}\n\n"
+        f"Steps:\n1. Read {location_file} to confirm the exact current code\n"
+        "2. Apply the fix described above\n3. Run ruff/pytest as appropriate\n"
+        "4. Create a git commit: fix(<subsystem>): <brief description>"
+    )
+
+
 def _run_agent_job(fix_id: str, cmd: list) -> None:
     """Worker thread: run claude subprocess and stream output into JOBS[fix_id]."""
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
@@ -640,108 +704,36 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def do_POST(self):
-        if self.path.startswith("/api/deploy/"):
+        if self.path.startswith("/api/debate/"):
+            pass  # handled in Task 5 — placeholder
+        elif self.path.startswith("/api/deploy/"):
             fix_id = self.path.split("/api/deploy/")[1]
-            fix = KNOWN_FIXES.get(fix_id)
-            if not fix:
-                self.send_json({"ok": False, "message": f"Unknown fix id: {fix_id}"}, 404)
+            if not (_FIX_ID_SLUG_RE.match(fix_id) or _FIX_ID_SHA1_RE.match(fix_id)):
+                self.send_json({"ok": False, "message": "Invalid fix_id"}, 400)
                 return
-            msg = self._run_deploy(fix_id, fix)
-            self.send_json(msg)
+            fix = KNOWN_FIXES.get(fix_id)
+            if fix is None:
+                with _DEBATES_LOCK:
+                    debates = _load_json_safe(DEBATES_DB) or {}
+                if fix_id not in debates:
+                    self.send_json({"ok": False, "message": f"Unknown fix_id: {fix_id}"}, 404)
+                    return
+            self.send_json(self._run_deploy(fix_id, fix))
         else:
             self.send_response(404)
             self.end_headers()
 
-    def _run_deploy(self, fix_id, fix):
-        """Spawn a fix agent as a subprocess and stream output."""
-        scripts = {
-            "uuid-serialization-crash": self._fix_uuid_serialization,
-            "extraction-failed-count-undercount": self._fix_extraction_count,
-            "github-action-unpinned": self._fix_github_pin,
-            "ingestion-metrics-always-empty": lambda: {
-                "ok": False,
-                "message": "This fix requires investigation. Run:\n  python .claude/monitors/monitor_agents.py --once\nto get a detailed analysis, then apply manually."
-            },
-        }
-        handler = scripts.get(fix_id)
-        if handler:
-            return handler()
-        return {"ok": False, "message": "No automated fix available for this issue yet."}
-
-    def _fix_uuid_serialization(self):
-        f = REPO_ROOT / "financial-engine_v2/backend/app/services/pipeline_service.py"
-        src = f.read_text()
-        original = src
-
-        # Apply the three str() wraps
-        replacements = [
-            ('errors.append({"document_id": document_id, "stage": "download"',
-             'errors.append({"document_id": str(document_id), "stage": "download"'),
-            ('"document_id": document_id,\n                            "stage": "process_document",\n                            "error": "extraction_failed"',
-             '"document_id": str(document_id),\n                            "stage": "process_document",\n                            "error": "extraction_failed"'),
-            ('errors.append({"document_id": document_id, "stage": "process_document", "error": str(exc)})',
-             'errors.append({"document_id": str(document_id), "stage": "process_document", "error": str(exc)})'),
-        ]
-        for old, new in replacements:
-            src = src.replace(old, new)
-
-        if src == original:
-            return {"ok": False, "message": "Pattern not found — may already be fixed or code has changed. Please verify manually."}
-
-        f.write_text(src)
-        result = subprocess.run(
-            [str(REPO_ROOT / "financial-engine_v2/.venv/bin/python"), "-m", "ruff", "check", str(f)],
-            capture_output=True, text=True, cwd=str(REPO_ROOT)
-        )
-        return {
-            "ok": True,
-            "message": f"UUID serialization fix applied.\n\nRuff: {result.stdout or 'clean'}\n\nReview the diff:\n  git diff {f.relative_to(REPO_ROOT)}"
-        }
-
-    def _fix_extraction_count(self):
-        f = REPO_ROOT / "financial-engine_v2/backend/app/services/pipeline_service.py"
-        src = f.read_text()
-        original = src
-
-        old = '                except Exception as exc:\n                    errors.append({"document_id"'
-        new = '                except Exception as exc:\n                    extraction_failed_count += 1\n                    errors.append({"document_id"'
-        src = src.replace(old, new, 1)
-
-        if src == original:
-            return {"ok": False, "message": "Pattern not found — may already be fixed or code has changed. Please verify manually."}
-
-        f.write_text(src)
-        result = subprocess.run(
-            [str(REPO_ROOT / "financial-engine_v2/.venv/bin/python"), "-m", "ruff", "check", str(f)],
-            capture_output=True, text=True, cwd=str(REPO_ROOT)
-        )
-        return {
-            "ok": True,
-            "message": f"extraction_failed_count fix applied.\n\nRuff: {result.stdout or 'clean'}\n\nReview:\n  git diff {f.relative_to(REPO_ROOT)}"
-        }
-
-    def _fix_github_pin(self):
-        try:
-            r = subprocess.run(
-                ["gh", "api", "repos/anthropics/claude-code-action/git/ref/heads/beta",
-                 "--jq", ".object.sha"],
-                capture_output=True, text=True
-            )
-            sha = r.stdout.strip()[:40] if r.returncode == 0 else None
-        except Exception:
-            sha = None
-
-        f = REPO_ROOT / ".github/workflows/claude.yml"
-        src = f.read_text()
-        if sha:
-            new_src = src.replace(
-                "uses: anthropics/claude-code-action@beta",
-                f"uses: anthropics/claude-code-action@{sha}  # beta"
-            )
-            f.write_text(new_src)
-            return {"ok": True, "message": f"Pinned to SHA {sha}.\n\nReview:\n  git diff .github/workflows/claude.yml"}
-        else:
-            return {"ok": False, "message": "Could not resolve SHA via gh CLI. Set GITHUB_TOKEN and retry, or pin manually."}
+    def _run_deploy(self, fix_id: str, fix: dict | None) -> dict:
+        if shutil.which("claude") is None:
+            return {"ok": False, "message": "claude CLI not found — ensure it is on PATH"}
+        with _DEBATES_LOCK:
+            debates = _load_json_safe(DEBATES_DB) or {}
+        task = _build_task_string(fix_id, fix, debates)
+        cmd = ["claude", "--allowedTools", "Edit,Read,Bash,Glob,Grep", "--print", "-p", task]
+        with _JOBS_LOCK:
+            JOBS[fix_id] = {"status": "running", "output": [], "exit_code": None}
+        threading.Thread(target=_run_agent_job, args=(fix_id, cmd), daemon=True).start()
+        return {"ok": True, "status": "running"}
 
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):

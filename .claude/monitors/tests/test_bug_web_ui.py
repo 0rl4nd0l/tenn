@@ -98,3 +98,44 @@ def test_run_agent_job_nonzero_exit(monkeypatch):
 
     assert ui.JOBS["fail-job"]["status"] == "error"
     assert ui.JOBS["fail-job"]["exit_code"] == 1
+
+
+import re as _re
+
+_SLUG_RE = _re.compile(r'^[a-z0-9][a-z0-9\-]{0,79}$')
+_SHA1_RE = _re.compile(r'^[a-f0-9]{40}$')
+
+
+def test_fix_id_slug_valid():
+    assert _SLUG_RE.match("uuid-serialization-crash")
+    assert _SLUG_RE.match("ingestion-metrics-always-empty")
+
+
+def test_fix_id_slug_invalid():
+    assert not _SLUG_RE.match("../etc/passwd")
+    assert not _SLUG_RE.match("")
+    assert not _SLUG_RE.match("UPPER-CASE")
+
+
+def test_fix_id_sha1_valid():
+    assert _SHA1_RE.match("a" * 40)
+
+
+def test_fix_id_sha1_invalid():
+    assert not _SHA1_RE.match("a" * 39)
+    assert not _SHA1_RE.match("g" * 40)
+
+
+def test_build_task_known_fix_with_winner():
+    fix = ui.KNOWN_FIXES["uuid-serialization-crash"]
+    task = ui._build_task_string("uuid-serialization-crash", fix, debates={})
+    assert fix["file"] in task
+    assert fix["agent_a"]["approach"] in task  # winning_agent == "a"
+
+
+def test_build_task_known_fix_no_winner():
+    fix = ui.KNOWN_FIXES["ingestion-metrics-always-empty"]
+    assert fix["winning_agent"] is None
+    task = ui._build_task_string("ingestion-metrics-always-empty", fix, debates={})
+    assert fix["agent_a"]["approach"] in task
+    assert fix["agent_b"]["approach"] in task
