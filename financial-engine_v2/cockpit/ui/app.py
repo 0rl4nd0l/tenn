@@ -16,6 +16,7 @@ from textual.binding import Binding
 from textual.widgets import Footer, Header, RichLog, Static
 
 from cockpit.core.actions import ActionRegistry
+from cockpit.core.backend_restart import restart_backend
 from cockpit.core.chat import ChatController
 from cockpit.core.job_runner import JobRunner
 from cockpit.core.plotly_html import build_candlestick_dashboard_html, build_snapshot_dashboard_html
@@ -596,7 +597,7 @@ class CockpitApp(App):
 
         if (
             self.chat_inflight
-            and message.strip() not in {"/cancel", "/confirm"}
+            and message.strip() not in {"/cancel", "/confirm", "/restart backend"}
             and not message.startswith("/run ")
             and not message.startswith("/read ")
         ):
@@ -687,6 +688,15 @@ class CockpitApp(App):
                     self._append_log(log, "assistant: Current preferences:\n" + "\n".join(f"  {k} = {v}" for k, v in prefs.items()))
                 else:
                     self._append_log(log, "assistant: No preferences set. Use /prefer key=value to set one.")
+            return
+
+        if message.strip() == "/restart backend":
+            self._append_log(log, "Restarting backend…")
+            try:
+                await asyncio.to_thread(restart_backend, self.repo_root)
+                self._append_log(log, "Backend restarted successfully.")
+            except Exception as exc:
+                self._append_log(log, f"Restart failed: {exc}")
             return
 
         spinner_frames = ["|", "/", "-", "\\"]
