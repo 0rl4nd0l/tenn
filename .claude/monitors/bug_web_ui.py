@@ -574,6 +574,73 @@ setInterval(loadData, 30000);
 </html>
 """
 
+_ISSUE_ID_RE = re.compile(r'^[a-f0-9]{40}$')
+
+_DEBATE_SYSTEM_PROMPT = (
+    "You are a code-fix debate moderator. You will be given a detected code issue.\n"
+    "Propose TWO competing fixes: Agent A (minimal \u2014 smallest safe change) and Agent B\n"
+    "(comprehensive \u2014 cleaner abstraction). Then give a verdict on which is better.\n\n"
+    "Respond with ONLY a valid JSON object matching this exact schema:\n"
+    '{\n'
+    '  "agent_a": {"name": "Agent A \u2014 Minimal Fix", "approach": "<one sentence>", "diff": "<unified diff or explanation>"},\n'
+    '  "agent_b": {"name": "Agent B \u2014 Comprehensive Fix", "approach": "<one sentence>", "diff": "<unified diff or explanation>"},\n'
+    '  "verdict": "<explanation of which is better and why>",\n'
+    '  "winning_agent": "a" | "b" | "both" | null\n'
+    "}\n"
+    "No markdown fences. No preamble. JSON only."
+)
+
+
+def _call_debate_api(agent: str, severity: str, issue_type: str,
+                     location: str, detail: str) -> dict:
+    """Call Anthropic API; return parsed debate dict. Raises on error."""
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise ValueError("ANTHROPIC_API_KEY not set")
+    try:
+        import anthropic
+    except ImportError:
+        raise RuntimeError("anthropic package not installed")
+    client = anthropic.Anthropic(api_key=api_key)
+    user_msg = (
+        f"Agent: {agent}\nSeverity: {severity}\nIssue type: {issue_type}\n"
+        f"Location: {location}\nDetail: {detail}\n\nPropose two fixes and give a verdict."
+    )
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=2048,
+        system=_DEBATE_SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": user_msg}],
+    )
+    raw = message.content[0].text.strip()
+    if "```" in raw:
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    return json.loads(raw)
+
+
+def _generate_debate(issue_id: str, agent: str, severity: str,
+                     issue_type: str, location: str, detail: str) -> dict:
+    """Return debate for issue_id, using cache if available."""
+    with _DEBATES_LOCK:
+        cached = _load_json_safe(DEBATES_DB) or {}
+        if issue_id in cached:
+            return cached[issue_id]
+
+    result = _call_debate_api(agent, severity, issue_type, location, detail)
+    result["_issue_type"] = issue_type
+    result["_location"] = location
+    result["_detail"] = detail
+
+    with _DEBATES_LOCK:
+        existing = _load_json_safe(DEBATES_DB) or {}
+        existing[issue_id] = result
+        DEBATES_DB.write_text(json.dumps(existing, indent=2), encoding="utf-8")
+
+    return result
+
+
 _FIX_ID_SLUG_RE = re.compile(r'^[a-z0-9][a-z0-9\-]{0,79}$')
 _FIX_ID_SHA1_RE = re.compile(r'^[a-f0-9]{40}$')
 
@@ -705,7 +772,33 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         if self.path.startswith("/api/debate/"):
-            pass  # handled in Task 5 — placeholder
+            issue_id = self.path.split("/api/debate/")[1]
+            if not _ISSUE_ID_RE.match(issue_id):
+                self.send_json({"ok": False, "message": "Invalid issue_id"}, 400)
+                return
+            try:
+                cl = self.headers.get("Content-Length")
+                content_length = int(cl) if cl and cl.strip().isdigit() else 0
+                body_bytes = self.rfile.read(min(content_length, 8192))
+                body = json.loads(body_bytes.decode("utf-8"))
+                issues_list = body.get("issues", [{}])
+                issue = issues_list[0] if issues_list else {}
+                debate = _generate_debate(
+                    issue_id,
+                    agent=body.get("agent", ""),
+                    severity=body.get("severity", ""),
+                    issue_type=issue.get("type", ""),
+                    location=issue.get("location", ""),
+                    detail=issue.get("detail", ""),
+                )
+                self.send_json(debate)
+            except ValueError as e:
+                self.send_json({"ok": False, "message": str(e)}, 400)
+            except json.JSONDecodeError as e:
+                self.send_json({"ok": False, "message": f"Model response was not valid JSON: {e}"}, 500)
+            except Exception as e:
+                self.send_json({"ok": False, "message": str(e)}, 500)
+            return
         elif self.path.startswith("/api/deploy/"):
             fix_id = self.path.split("/api/deploy/")[1]
             if not (_FIX_ID_SLUG_RE.match(fix_id) or _FIX_ID_SHA1_RE.match(fix_id)):

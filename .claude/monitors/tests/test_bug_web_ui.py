@@ -139,3 +139,25 @@ def test_build_task_known_fix_no_winner():
     task = ui._build_task_string("ingestion-metrics-always-empty", fix, debates={})
     assert fix["agent_a"]["approach"] in task
     assert fix["agent_b"]["approach"] in task
+
+
+def test_debate_cache_hit(tmp_path, monkeypatch):
+    """Cache hit returns stored result without calling API."""
+    import json
+    issue_id = "a" * 40
+    cached = {
+        "agent_a": {"name": "A", "approach": "minimal", "diff": ""},
+        "agent_b": {"name": "B", "approach": "comprehensive", "diff": ""},
+        "verdict": "A wins",
+        "winning_agent": "a",
+    }
+    db = tmp_path / "debates.json"
+    db.write_text(json.dumps({issue_id: cached}))
+    monkeypatch.setattr(ui, "DEBATES_DB", db)
+
+    api_called = []
+    monkeypatch.setattr(ui, "_call_debate_api", lambda *a, **kw: api_called.append(1) or {})
+
+    result = ui._generate_debate(issue_id, "BUGS", "critical", "NullDeref", "f.py:1", "is None")
+    assert result == cached
+    assert api_called == []
