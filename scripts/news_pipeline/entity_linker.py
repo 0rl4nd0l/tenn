@@ -43,7 +43,11 @@ GENERIC_ALIAS_TOKENS = {
 STRICT_TICKER_STOPWORDS = {
     "BANK",
     "BANKS",
+    "CORE",
+    "EDU",
     "ENERGY",
+    "GOLD",
+    "GOOD",
     "NAMED",
     "OPTION",
     "OPTIONS",

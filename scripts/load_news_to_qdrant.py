@@ -34,7 +34,10 @@ def _iter_chunks(
     since_hours: Optional[int],
 ) -> List[Dict[str, Any]]:
     """Read articles + entity_links from the news articles DB."""
-    where_clauses = ["(a.language IN ('en', '') OR a.language IS NULL)"]
+    where_clauses = [
+        "(a.language IN ('en', '') OR a.language IS NULL)",
+        "a.quality_score >= 0.3",
+    ]
     params: List[Any] = []
 
     if since_hours is not None and int(since_hours) > 0:
