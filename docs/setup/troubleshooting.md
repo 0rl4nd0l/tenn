@@ -14,8 +14,7 @@
 
 ## Port conflicts
 
-- `8001` is reserved for the primary LLM endpoint.
-- `8080` is reserved for direct llama.cpp.
+- `8001` is reserved for llama.cpp (canonical LLM endpoint).
 - `6333` is reserved for Qdrant.
 - `6379` is reserved for Redis.
 - `11434` is reserved for Ollama.

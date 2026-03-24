@@ -49,8 +49,7 @@ Host: Tesla M40 (24GB VRAM) + GT1030, Ubuntu.
 | Port | Service |
 |------|---------|
 | 8000 | FastAPI backend (API) |
-| 8001 | Primary LLM (OpenAI-compatible) |
-| 8080 | llama.cpp direct endpoint |
+| 8001 | llama.cpp / LLM endpoint (OpenAI-compatible) |
 | 6333 | Qdrant vector store |
 | 6379 | Redis (Celery broker/result) |
 | 11434 | Ollama inference (legacy compatibility only) |
@@ -63,8 +62,7 @@ Host: Tesla M40 (24GB VRAM) + GT1030, Ubuntu.
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `DATA_ROOT` | `./data` | Root for runtime data, reports |
-| `LLM_URL` | `http://127.0.0.1:8001` | Primary OpenAI-compatible endpoint |
-| `LLAMACPP_URL` | `http://127.0.0.1:8080` | Direct llama.cpp |
+| `LLAMACPP_URL` | `http://127.0.0.1:8001` | llama.cpp OpenAI-compatible endpoint |
 | `OLLAMA_URL` | `http://127.0.0.1:11434` | Ollama API |
 | `QDRANT_URL` | `http://127.0.0.1:6333` | Vector store |
 | `REDIS_URL` | `redis://127.0.0.1:6379/0` | Celery broker |

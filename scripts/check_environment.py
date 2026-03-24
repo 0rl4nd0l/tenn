@@ -170,7 +170,7 @@ def main() -> int:
         _print_error("Environment check failed.")
         print("Suggested fixes:")
         print("- Copy financial-engine_v2/.env.example to financial-engine_v2/.env and adjust only the values you need.")
-        print("- Start the missing services on ports 8001, 8080, 6333, 6379, and 11434 as needed.")
+        print("- Start the missing services on ports 8001, 6333, 6379, and 11434 as needed.")
         print("- Re-run with: python scripts/check_environment.py")
         return 1
 

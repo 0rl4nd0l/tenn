@@ -68,6 +68,7 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 
 | Commit | Workstream | Summary |
 |--------|------------|---------|
+| 1429dcaa | cockpit | Fix llama.cpp port 8080→8001 in all cockpit defaults; align docs/scripts to canonical port 8001 (L015) |
 | (this session) | extraction-quality | Evidence-based quality assessment: 25 fixture values confirmed, live eval gap documented, MIN Pass 2 misclassification found |
 | a4564e47 | news-pipeline | Fix embedding routing + rebuild asx_docs 768-dim |
 | 58ff4e85 | bug-ui | Claude agent deploy + on-demand debate UI complete |

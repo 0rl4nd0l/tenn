@@ -31,7 +31,7 @@ curl -sS http://127.0.0.1:8000/api/health
 bash scripts/cockpit_doctor.sh
 
 # Service ports
-ss -tlnp | grep -E '8000|8001|8080|6333|6379|11434|5432'
+ss -tlnp | grep -E '8000|8001|8081|6333|6379|11434|5432'
 ```
 
 ---
@@ -53,7 +53,7 @@ ss -tlnp | grep -E '8000|8001|8080|6333|6379|11434|5432'
 3. Confirm collection exists: `commentary_chunks` (not `asx_docs`)
 4. Check `commentary_chunks_v2` if primary has no data
 
-### LLM / Inference (llama.cpp :8001/:8080, Ollama :11434)
+### LLM / Inference (llama.cpp :8001, Ollama :11434)
 
 1. Check llama.cpp: `curl http://127.0.0.1:8001/v1/models`
 2. Check Ollama: `curl http://127.0.0.1:11434/api/tags`

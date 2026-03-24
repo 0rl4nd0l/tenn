@@ -215,7 +215,7 @@ launch_cockpit_web() {
   export COCKPIT_CONFIG="${cfg}"
   export COCKPIT_BACKEND_URL="${backend_url}"
   export OLLAMA_URL="${ollama_url}"
-  export COCKPIT_LLAMACPP_URL="${COCKPIT_LLAMACPP_URL:-${LLAMACPP_URL:-http://localhost:8080}}"
+  export COCKPIT_LLAMACPP_URL="${COCKPIT_LLAMACPP_URL:-${LLAMACPP_URL:-http://localhost:8001}}"
 
   echo "Starting Cockpit web UI on http://localhost:${port}"
   echo "Open that URL in your browser."

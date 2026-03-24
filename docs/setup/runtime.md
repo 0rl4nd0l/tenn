@@ -5,8 +5,7 @@
 | Port | Service | Purpose |
 | --- | --- | --- |
 | `8000` | backend | API and orchestration |
-| `8001` | primary LLM | OpenAI-compatible endpoint used by routed LLM calls |
-| `8080` | llama.cpp | Direct llama.cpp runtime |
+| `8001` | llama.cpp | OpenAI-compatible endpoint (canonical LLM port) |
 | `8081` | Cockpit web UI | Browser-served Textual UI |
 | `6333` | qdrant | Vector store |
 | `6379` | redis | Celery broker/result backend |
@@ -16,10 +15,9 @@
 
 1. Start Qdrant on `6333`.
 2. Start Redis on `6379` if you run Celery mode.
-3. Start the direct llama.cpp server on `8080`.
-4. Start the primary LLM endpoint on `8001` if you use a proxy/router in front of llama.cpp.
-5. Start Ollama on `11434` only if you still run an explicit compatibility path that has not been migrated.
-6. Start the backend on `8000`.
+3. Start llama-server on `8001` (set `LLAMA_SERVER_PORT=8001`).
+4. Start Ollama on `11434` only if you still run an explicit compatibility path that has not been migrated.
+5. Start the backend on `8000`.
 
 ## Start commands
 
@@ -39,7 +37,7 @@ cd financial-engine_v2
 Direct llama.cpp launcher from this repo:
 
 ```bash
-LLAMA_SERVER_PORT=8080 bash scripts/run_llama_server.sh
+bash scripts/run_llama_server.sh
 ```
 
 Environment validation:

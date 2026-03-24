@@ -9,8 +9,7 @@ The active runtime is `financial-engine_v2`. The canonical env file lives at `fi
 | `DATA_ROOT` | `./data` | Root for runtime data, reports, and derived paths. |
 | `QDRANT_URL` | `http://127.0.0.1:6333` | Qdrant vector store endpoint. |
 | `OLLAMA_URL` | `http://127.0.0.1:11434` | Ollama API base URL. |
-| `LLM_URL` | `http://127.0.0.1:8001` | Primary OpenAI-compatible LLM endpoint. |
-| `LLAMACPP_URL` | `http://127.0.0.1:8080` | Direct llama.cpp endpoint. |
+| `LLAMACPP_URL` | `http://127.0.0.1:8001` | llama.cpp OpenAI-compatible endpoint. |
 | `LLM_API_KEY` | `local-openai-key` | Used for local OpenAI-compatible auth. |
 | `EMBEDDING_BATCH_SIZE` | `32` | Default embedding batch size. |
 | `ROUTER_FEEDBACK_ENABLED` | `true` | Enables analyzer feedback in routing. |
@@ -33,11 +32,10 @@ Use a different data root:
 DATA_ROOT=/srv/tenn-data
 ```
 
-Point the primary LLM proxy somewhere else while keeping direct llama.cpp local:
+Point the LLM endpoint to a different host:
 
 ```dotenv
-LLM_URL=http://127.0.0.1:8001
-LLAMACPP_URL=http://127.0.0.1:8080
+LLAMACPP_URL=http://192.168.1.50:8001
 ```
 
 Switch Redis/Qdrant to Docker service names:
