@@ -8,6 +8,7 @@ that `textual serve` or direct `app.run()` can consume).
 """
 from __future__ import annotations
 
+import asyncio
 import os
 from pathlib import Path
 from typing import Any
@@ -106,8 +107,14 @@ class CockpitWebApp(CockpitApp):
     # Pre-boot callback: wires services then transitions to cockpit UI.
     # ------------------------------------------------------------------
 
-    def _on_preboot_launch(self, flags: dict[str, Any]) -> None:
-        """Called when the user clicks Launch on the pre-boot screen."""
+    async def _on_preboot_launch(self, flags: dict[str, Any]) -> None:
+        """Called when the user clicks Launch on the pre-boot screen.
+
+        Runs as a coroutine so that _init_services (blocking I/O: DB, file
+        indexer, qual-context network calls) executes in a thread pool rather
+        than on the Textual event loop.  Without this the browser UI stalls
+        until service initialisation completes.
+        """
         # Apply any env vars chosen by the user (e.g. verbose logging).
         for key, value in flags.get("env", {}).items():
             os.environ[key] = value
@@ -140,8 +147,11 @@ class CockpitWebApp(CockpitApp):
             cfg["rag"].setdefault(ctx_key, {})
             cfg["rag"][ctx_key]["enabled"] = rag_enabled
 
-        # Initialise all cockpit services now that we have the final config.
-        self._init_services(self._repo_root, cfg, flags.get("read_only", False))
+        # Initialise all cockpit services off the event loop so the UI stays
+        # responsive during DB init, file indexing, and qual-context setup.
+        await asyncio.to_thread(
+            self._init_services, self._repo_root, cfg, flags.get("read_only", False)
+        )
         self._services_ready = True
 
         # Pop the pre-boot screen if there is a screen beneath it.

@@ -485,7 +485,9 @@ class PreBootScreen(Screen):
             asyncio.create_task(self._restart_and_launch(flags))
             return
         if self._on_launch:
-            self._on_launch(flags)
+            result = self._on_launch(flags)
+            if asyncio.iscoroutine(result):
+                asyncio.create_task(result)
 
     async def _restart_and_launch(self, flags: dict[str, Any]) -> None:
         """Restart llama-server with the selected model, then launch the cockpit."""
@@ -519,7 +521,9 @@ class PreBootScreen(Screen):
 
         btn.disabled = False
         if self._on_launch:
-            self._on_launch(flags)
+            result = self._on_launch(flags)
+            if asyncio.iscoroutine(result):
+                await result
 
     def action_cancel_boot(self) -> None:
         if self._on_cancel:
