@@ -273,6 +273,13 @@ case "${cmd}" in
       echo "ERROR: bug UI not found: ${ui_script}" >&2
       exit 1
     fi
+    # Kill any existing instance on port 8765
+    old_pid="$(lsof -ti tcp:8765 2>/dev/null || true)"
+    if [[ -n "${old_pid}" ]]; then
+      echo "Stopping existing bug UI (PID ${old_pid})…"
+      kill "${old_pid}" 2>/dev/null || true
+      sleep 0.5
+    fi
     echo "Bug Monitor UI → http://localhost:8765"
     exec "${py}" "${ui_script}"
     ;;
