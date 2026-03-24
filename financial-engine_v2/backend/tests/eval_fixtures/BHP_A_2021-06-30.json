@@ -1,5 +1,5 @@
 {
-  "_source": "Hand-verified from BHP Group 2021 Preliminary Final Report (ASX: 2021-08-17) via docling cache (98 tables, 82 pages). All values USD millions. Scale=millions confirmed from page 44 consolidated income statement header. CF/BS/shares verified from docling tables 43, 45, 46, 57. Fixture values are what the multipass extraction system should produce (post-scale-multiplication for monetary values, raw for share counts).",
+  "_source": "Hand-verified from BHP Group 2021 Preliminary Final Report (ASX: 2021-08-17) via docling cache (98 tables, 82 pages). All values USD millions. Scale=millions confirmed from page 44 consolidated income statement header. CF/BS/shares verified from docling tables 43, 45, 46, 57. Fixture values are post-scale-multiplication for monetary values. shares_outstanding is absolute count (5,057,000,000 = 5,057 million as stated in source table).",
   "ticker": "BHP",
   "pdf_path": "data/asx/docs/BHP/financial_performance/2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf",
   "document_id": "bhp_fy2021_preliminary_final",
@@ -16,7 +16,7 @@
     "financing_cf": -17922000000,
     "cash_end": 15246000000,
     "capex": -6606000000,
-    "shares_outstanding": 5057
+    "shares_outstanding": 5057000000
   },
   "expected_nulls": ["net_debt"],
   "tolerances": {
@@ -40,6 +40,6 @@
     "cash_end": "Table 46 (page 46): 'Cash and cash equivalents, net of overdrafts, at the end of the financial year' = 15,246 USD millions. Cross-check: Table 45 balance sheet confirms 15,246.",
     "capex": "Table 46 (page 46): 'Purchases of property, plant and equipment' = (6,606) USD millions. Negative per CF outflow convention (consistent with RMS fixture). Note: BHP's 'Capital and exploration expenditure' (7,120) includes exploration (514) but the prompt extracts PP&E purchases only.",
     "net_debt": "MOVED TO expected_nulls. BHP's official net_debt (4,121) uses a custom calculation: interest bearing liabilities - index-linked freight - cash - net swaps - cash mgmt instruments (Table 75/84). The balance sheet (Table 45) does not break out lease liabilities from borrowings, so the system cannot derive this figure. The extraction would either yield null or an incorrect derivation (~5,737M).",
-    "shares_outstanding": "Table 57 (page 52): 'Weighted average number of shares (Million) Basic = 5,057'. System outputs 5,057 as raw value because shares_outstanding is a _COUNT_METRICS field (no scale multiplication). The '(Million)' is in the row label, not the column scale. BHP actual count is ~5.057 billion but the system cannot distinguish share-specific scale from document monetary scale."
+    "shares_outstanding": "Table 57 (page 52): 'Weighted average number of shares (Million) Basic = 5,057'. LLM interprets '(Million)' in the row label and outputs 5,057,000,000 (5,057 * 1M). System stores this as-is because shares_outstanding is a _COUNT_METRICS field (no scale multiplication) and the table headers lack monetary scale markers."
   }
 }

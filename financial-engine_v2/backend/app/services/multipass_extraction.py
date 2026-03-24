@@ -179,9 +179,11 @@ _TABLE_KEYWORDS: dict[str, list[str]] = {
         "profit after tax", "income statement", "statement of profit",
         "profit before taxation",    # formal income statement row (not in summaries)
         "income tax expense",        # formal income statement row
-        "income tax",                # "Income tax (expense)/benefit" — IS row
-        # NOTE: "from operations", "finance costs", "depreciation", "other comprehensive"
-        # removed — they appear in cash flow statements too, causing cross-contamination.
+        "income tax",                # "Income tax (expense)/benefit" — handles parenthetical variants
+        "other comprehensive",       # OCI section — only in full IS, never in CF statements
+        # NOTE: "from operations", "finance costs", "depreciation" deliberately excluded —
+        # they appear in cash flow statements and cause cross-contamination in single-table
+        # scoring. In multi-table documents the real IS wins on keyword count regardless.
     ],
     "balance_sheet": [
         "total assets", "current assets", "shareholders equity", "net assets",
@@ -417,7 +419,7 @@ Extract ONLY these metrics relevant to {table_type}:
 Rules:
 - Values in parentheses like (412) mean NEGATIVE: output -412 (raw, not pre-multiplied)
 - Output null if the metric is NOT explicitly labeled in this table — do NOT estimate or derive it
-- ebit: only output if a row is explicitly labeled "EBIT", "Earnings Before Interest and Tax", or equivalent — do NOT use PBT or Profit Before Tax as a proxy
+- ebit: only output if a row is explicitly labeled "EBIT", "Earnings Before Interest and Tax", "Profit from operations", or equivalent — do NOT use PBT or Profit Before Tax as a proxy
 - capex: look for "Payments for property, plant and equipment" or "Capital expenditure" in investing activities — output null if not found
 - shares_outstanding: look for total ordinary shares on issue (count, not dollar amount) — typically labeled "Ordinary shares" or "Shares on issue".
   IMPORTANT: if the table expresses share counts in a scaled unit (e.g. "Million", "'000"), convert to the absolute count.
@@ -535,27 +537,17 @@ def _run_pass3a_metric_extractor(
                 logger.error("Pass 3a retry also failed for %s: %s", table_type, e2)
                 continue
 
-        # Apply scale multiplier to monetary values.
-        # Count metrics (shares_outstanding) need special handling:
-        #   - If the table presents counts in a scaled column (e.g. "'000", "millions"),
-        #     the LLM returns the raw scaled number and we MUST apply the multiplier.
-        #   - Only skip scaling when the table clearly shows absolute counts.
-        # Detect whether the table's headers indicate a count scale by checking for
-        # thousands/millions markers in the header text.
+        # Apply scale multiplier to monetary values only.
+        # shares_outstanding is always an absolute count — the prompt instructs the LLM
+        # to output the absolute number (e.g. 5057000000 not 5057 when the table says
+        # "5,057 (Million)"). No post-hoc scale multiplication needed.
         _COUNT_METRICS = {"shares_outstanding"}
-        _table_headers_text = " ".join(getattr(table, "headers", []) or []).lower()
-        _table_has_count_scale = bool(
-            _re.search(r"'?000|thousands|millions|\$[AMam]", _table_headers_text)
-        )
         out = {"_source": table_type, "_page_number": getattr(table, "page_number", None)}
         for m in metrics:
             val = raw.get(m)
             if val is not None:
                 try:
-                    if m in _COUNT_METRICS and not _table_has_count_scale:
-                        effective_multiplier = 1
-                    else:
-                        effective_multiplier = multiplier
+                    effective_multiplier = 1 if m in _COUNT_METRICS else multiplier
                     out[m] = float(val) * effective_multiplier
                 except (TypeError, ValueError):
                     out[m] = None
