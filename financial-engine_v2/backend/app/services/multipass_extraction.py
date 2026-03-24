@@ -16,7 +16,7 @@ import hashlib
 import json
 import logging
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 from typing import Any, Optional
 
 from dateutil import parser as dtparser
@@ -32,6 +32,23 @@ def parse_period_end(s: str | None) -> date | None:
         return dtparser.parse(s).date()
     except Exception:
         return None
+
+
+def _derive_period_start(period_end: date | None, period_type: str | None) -> date | None:
+    """
+    Derive period_start deterministically from period_end and period_type.
+
+    Annual  (A): period_end − 12 months + 1 day  (e.g. 2024-06-30 → 2023-07-01)
+    Half-year (H): period_end − 6 months + 1 day  (e.g. 2024-12-31 → 2024-07-01)
+    Quarterly (Q): period_end − 3 months + 1 day  (e.g. 2024-09-30 → 2024-07-01)
+
+    Returns None when either input is absent or period_type is unrecognised.
+    """
+    from dateutil.relativedelta import relativedelta
+    if period_end is None or period_type not in ("A", "H", "Q"):
+        return None
+    months = {"A": 12, "H": 6, "Q": 3}[period_type]
+    return period_end - relativedelta(months=months) + timedelta(days=1)
 
 EXTRACTOR_VERSION = "docling_multipass_v1"
 
@@ -617,7 +634,7 @@ def run_multipass_extraction(
 
     null_payload = {m: None for m in METRIC_FIELDS}
     null_payload.update({
-        "period_type": None, "period_end": None, "confidence_metrics": 0.0,
+        "period_type": None, "period_end": None, "period_start": None, "confidence_metrics": 0.0,
         "risk_summary": None, "risk_bullets": None, "guidance_summary": None,
         "material_changes": None, "confidence_narrative": 0.0, "provenance": {},
     })
@@ -663,6 +680,13 @@ def run_multipass_extraction(
     elif pass1.get("scale", "unknown") in ("unknown", None, ""):
         logger.warning("scale unknown from both table headers and Pass 1 classifier")
 
+    _currency = pass1.get("currency", "AUD") or "AUD"
+    if _currency.upper() != "AUD":
+        logger.warning(
+            "non-AUD currency detected: %s — values stored as-is (no FX conversion applied)",
+            _currency,
+        )
+
     # Pass 2: Locate tables
     labelled = _run_pass2_locator(structured_doc.tables)
 
@@ -674,6 +698,10 @@ def run_multipass_extraction(
 
     # Pass 4: Reconcile
     payload = _run_pass4_reconciler(pass3a_results, pass3b_result, pass1)
+
+    # Derive period_start deterministically — schema column exists but was not populated.
+    _pe = parse_period_end(payload.get("period_end"))
+    payload["period_start"] = _derive_period_start(_pe, payload.get("period_type"))
 
     # Flatten metrics into payload for _upsert_financial_rows compat
     for m in METRIC_FIELDS:

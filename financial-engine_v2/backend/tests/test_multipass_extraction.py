@@ -562,3 +562,102 @@ def test_compute_docling_timeout_cap():
     from app.services.docling_extract import _compute_docling_timeout
     # 100 pages × 4 = 400s — exceeds cap
     assert _compute_docling_timeout(100) == 300
+
+
+# ---------------------------------------------------------------------------
+# Pass 2 — footnote table scoring guard (B5)
+# ---------------------------------------------------------------------------
+
+def test_pass2_header_bonus_beats_footnote_keyword_count():
+    """
+    An explicitly-labeled income statement must beat a footnote table that has
+    more raw keyword matches, because the header bonus (+10) outweighs higher
+    incidental keyword density in notes sections.
+
+    Scenario: "Notes to the Financial Statements" table has 4 keyword matches
+    (revenue, profit, ebit, net profit) from discussion of accounting policies.
+    "Statement of Profit or Loss" table has only 2 raw matches but earns +10
+    header bonus → total 12 vs 4. Statement wins.
+    """
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    footnote_table = DoclingTable(
+        page_number=10,
+        caption="Notes to the Financial Statements",
+        rows=[
+            ["Note 3 — Revenue Recognition", ""],
+            ["revenue is recognised on transfer of control", ""],
+            ["profit attributable to ordinary shareholders", ""],
+            ["ebit excludes lease finance costs", ""],
+            ["net profit after tax allocated to members", ""],
+        ],
+        headers=["Description", ""],
+    )
+    statement_table = DoclingTable(
+        page_number=4,
+        caption="Statement of Profit or Loss",
+        rows=[
+            ["Revenue", "485,630"],
+            ["Operating expenses", "(454,346)"],
+        ],
+        headers=["", "H1 FY26 $'000"],
+    )
+
+    result = _run_pass2_locator([footnote_table, statement_table])
+
+    assert result["income_statement"] is statement_table, (
+        "Explicitly-labeled income statement must win over footnote table "
+        "even when footnote has higher raw keyword count. "
+        f"Got: {result['income_statement'].caption!r}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# period_start derivation (B6)
+# ---------------------------------------------------------------------------
+
+def test_derive_period_start_annual():
+    """Annual period: period_start = period_end − 12 months + 1 day."""
+    from datetime import date
+    from app.services.multipass_extraction import _derive_period_start
+
+    result = _derive_period_start(date(2024, 6, 30), "A")
+    assert result == date(2023, 7, 1), f"Expected 2023-07-01, got {result}"
+
+
+def test_derive_period_start_half_year():
+    """Half-year period: period_start = period_end − 6 months + 1 day."""
+    from datetime import date
+    from app.services.multipass_extraction import _derive_period_start
+
+    result = _derive_period_start(date(2025, 12, 31), "H")
+    assert result == date(2025, 7, 1), f"Expected 2025-07-01, got {result}"
+
+
+def test_derive_period_start_quarterly():
+    """Quarterly period: period_start = period_end − 3 months + 1 day."""
+    from datetime import date
+    from app.services.multipass_extraction import _derive_period_start
+
+    result = _derive_period_start(date(2024, 9, 30), "Q")
+    assert result == date(2024, 7, 1), f"Expected 2024-07-01, got {result}"
+
+
+def test_derive_period_start_september_annual():
+    """Annual period ending Sept 30 (e.g. NAB): period_start = Oct 1 prior year."""
+    from datetime import date
+    from app.services.multipass_extraction import _derive_period_start
+
+    result = _derive_period_start(date(2024, 9, 30), "A")
+    assert result == date(2023, 10, 1), f"Expected 2023-10-01, got {result}"
+
+
+def test_derive_period_start_returns_none_for_missing_inputs():
+    """None period_end or unrecognised period_type must return None — never guess."""
+    from datetime import date
+    from app.services.multipass_extraction import _derive_period_start
+
+    assert _derive_period_start(None, "A") is None
+    assert _derive_period_start(date(2024, 12, 31), None) is None
+    assert _derive_period_start(date(2024, 12, 31), "X") is None
