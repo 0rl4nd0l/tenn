@@ -12,7 +12,7 @@ deep_reasoning_provider: llamacpp
 deep_reasoning_base_url: http://127.0.0.1:11435
 embedding_model: nomic-embed-text
 embedding_provider: local
-embedding_base_url: http://127.0.0.1:11435
+embedding_base_url: http://127.0.0.1:11434
 adaptive_routing: true
 router_strategy: adaptive
 latency_weight: 0.4

@@ -105,6 +105,7 @@ class TestModelMarkerGuard(unittest.TestCase):
     def test_model_mismatch_with_populated_collection_raises(self):
         """Stored marker='nomic-embed-text', configured='all-MiniLM-L6-v2', 2725 points → RuntimeError."""
         import load_news_to_qdrant as mod
+        import app.core.config as config_mod
 
         client_mock = _make_qdrant_client_mock(
             collection_exists=True, existing_dim=768, points_count=2725
@@ -132,7 +133,7 @@ class TestModelMarkerGuard(unittest.TestCase):
             with (
                 patch("load_news_to_qdrant._iter_chunks", return_value=articles_stub),
                 patch("qdrant_client.QdrantClient", return_value=client_mock),
-                patch("load_news_to_qdrant.settings", settings_mock, create=True),
+                patch.object(config_mod, "settings", settings_mock),
             ):
                 with self.assertRaises(RuntimeError) as ctx:
                     mod.sync_news_to_qdrant(
