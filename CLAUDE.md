@@ -61,6 +61,7 @@ There is no robotics or actuator-control runtime in this repo.
 - After ANY correction from the user: append a lesson to `docs/claude/lessons.md` with the pattern and the rule that prevents it recurring.
 - Review `docs/claude/lessons.md` at the start of sessions touching that subsystem.
 - The pre-merge checklist item "Lessons logged (if bug fix)" enforces this — do not skip it.
+- At the end of every session: update `docs/claude/STATE.md` to reflect which workstreams moved, what new items are open, and add the milestone commit to "Recently Shipped". This file is the fastest way for a future session to understand what is in flight.
 
 ---
 
@@ -242,6 +243,7 @@ If a proposed change would touch more than ~300 lines or more than 5 files simul
 | Active hooks | [docs/claude/hooks.md](docs/claude/hooks.md) |
 | MCP servers | [docs/claude/mcp-servers.md](docs/claude/mcp-servers.md) |
 | Slash commands | [docs/claude/commands.md](docs/claude/commands.md) |
+| Active workstream tracker | [docs/claude/STATE.md](docs/claude/STATE.md) |
 | Claude-normalized guide | [docs/claude/README.md](docs/claude/README.md) |
 
 ---

@@ -12,6 +12,7 @@ When in doubt, prefer the source file. When a conflict exists between a doc here
 | Doc | Purpose |
 |-----|---------|
 | [project-overview.md](project-overview.md) | What this repo is, what it does, and who uses it |
+| [STATE.md](STATE.md) | Active workstream tracker — what is planned, in-flight, verified, and shipped |
 | [current-state.md](current-state.md) | Active runtime profile, local backend status, operational notes |
 | [safety.md](safety.md) | Safety constraints, secret handling, and prohibited actions |
 | [runbook.md](runbook.md) | Consolidated operational runbook with incident routing |
