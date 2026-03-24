@@ -87,6 +87,11 @@ launch_cockpit_tui() {
   local profile="${COCKPIT_PROFILE:-default}"
   local no_boot_flag="--no-boot"
 
+  # Isolate cockpit to its own OpenViking workspace (operator override via OPENVIKING_CONFIG_FILE)
+  if [[ -z "${OPENVIKING_CONFIG_FILE:-}" ]]; then
+    export OPENVIKING_CONFIG_FILE="${HOME}/.openviking/cockpit.ov.conf"
+  fi
+
   local launcher="${ENGINE_ROOT}/scripts/cockpit_tui.py"
   if [[ ! -f "${launcher}" ]]; then
     echo "ERROR: cockpit launcher not found: ${launcher}" >&2
@@ -200,6 +205,11 @@ launch_cockpit_web() {
   if [[ ! -f "${launcher}" ]]; then
     echo "ERROR: cockpit web launcher not found: ${launcher}" >&2
     exit 1
+  fi
+
+  # Isolate cockpit to its own OpenViking workspace (operator override via OPENVIKING_CONFIG_FILE)
+  if [[ -z "${OPENVIKING_CONFIG_FILE:-}" ]]; then
+    export OPENVIKING_CONFIG_FILE="${HOME}/.openviking/cockpit.ov.conf"
   fi
 
   export COCKPIT_CONFIG="${cfg}"

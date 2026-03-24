@@ -302,4 +302,9 @@ echo "[startup] LLAMACPP_URL=${LLAMACPP_URL}"
 echo "[startup] OLLAMA_URL=${OLLAMA_URL}"
 echo "[run_local_backend] embeddings=${ENABLE_EMBEDDINGS} qdrant=${ENABLE_QDRANT} extraction=${ENABLE_EXTRACTION}"
 
+# Isolate backend to its own OpenViking workspace (operator override via OPENVIKING_CONFIG_FILE)
+if [[ -z "${OPENVIKING_CONFIG_FILE:-}" ]]; then
+  export OPENVIKING_CONFIG_FILE="${HOME}/.openviking/backend.ov.conf"
+fi
+
 exec python -m uvicorn app.main:app --host 0.0.0.0 --port "${PORT:-8000}"

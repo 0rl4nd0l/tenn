@@ -17,15 +17,16 @@ _status_logged: bool = False
 _MAX_CONTENT_CHARS = 400
 
 _OPERATOR_ACTION = (
-    "To enable: set OPENVIKING_CONFIG_FILE=/path/to/ov.conf, "
-    "or create ~/.openviking/ov.conf, "
-    "or create /etc/openviking/ov.conf"
+    "To enable: copy config/openviking/backend.ov.conf.example to "
+    "~/.openviking/backend.ov.conf, fill in local LLM endpoints, then restart. "
+    "Or set OPENVIKING_CONFIG_FILE=/path/to/your.ov.conf"
 )
 
 
 def _ov_config_present() -> bool:
-    if os.environ.get("OPENVIKING_CONFIG_FILE"):
-        return True
+    env_path = os.environ.get("OPENVIKING_CONFIG_FILE")
+    if env_path:
+        return Path(env_path).expanduser().exists()
     if Path("~/.openviking/ov.conf").expanduser().exists():
         return True
     return Path("/etc/openviking/ov.conf").exists()
@@ -56,7 +57,8 @@ def _log_startup_status() -> None:
     _status_logged = True
     ov = _get_ov()
     if ov is not None:
-        logger.info("session_memory: OpenViking session memory enabled")
+        config_path = os.environ.get("OPENVIKING_CONFIG_FILE") or "~/.openviking/ov.conf"
+        logger.info("session_memory: OpenViking enabled (config: %s)", config_path)
     elif _ov_config_present():
         logger.warning(
             "session_memory: OpenViking init failed — running stateless. "
