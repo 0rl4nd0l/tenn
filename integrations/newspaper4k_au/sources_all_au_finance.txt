@@ -1,0 +1,23 @@
+# All AU finance sources — broadest coverage, no subscription required
+# AFR sections (partial paywall — newspaper4k extracts what it can)
+auto:https://www.afr.com/markets
+auto:https://www.afr.com/companies
+auto:https://www.afr.com/policy/economy
+
+# Major AU news — business sections
+rss:https://www.abc.net.au/news/feed/51120/rss.xml
+auto:https://www.smh.com.au/business
+rss:https://www.theguardian.com/au/business/rss
+auto:https://www.theaustralian.com.au/business
+auto:https://www.skynews.com.au/business
+
+# ASX-focused publishers
+auto:https://www.marketindex.com.au/news
+auto:https://stockhead.com.au
+auto:https://www.livewiremarkets.com
+auto:https://www.kalkinemedia.com
+auto:https://www.capitalbrief.com
+
+# International with AU coverage
+auto:https://www.benzinga.com
+auto:https://finance.yahoo.com

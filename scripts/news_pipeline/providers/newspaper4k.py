@@ -11,7 +11,7 @@ from ..utils import canonicalize_url, normalize_space, parse_datetime_utc, sha1_
 from .base import ParseResult, ProviderClient
 
 INTEGRATION_DIR = Path(__file__).resolve().parents[3] / "integrations" / "newspaper4k_au"
-DEFAULT_SOURCES_FILE = INTEGRATION_DIR / "sources_au_finance.txt"
+DEFAULT_SOURCES_FILE = INTEGRATION_DIR / "sources_all_au_finance.txt"
 
 # Lazy-import to avoid hard dependency when other providers are used.
 _collector = None
