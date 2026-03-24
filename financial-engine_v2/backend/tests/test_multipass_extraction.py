@@ -953,3 +953,191 @@ def test_pass2_merges_fragmented_5b_cf_tables():
     assert "investing activities" in all_text
     assert "financing activities" in all_text
     assert "702" in all_text  # cash_end from section 4
+
+
+# ---------------------------------------------------------------------------
+# Pass 3a — shares_outstanding scaling (body text + doc-level fallback)
+# ---------------------------------------------------------------------------
+
+def test_pass3a_shares_scaling_from_body_text():
+    """shares_outstanding sanity check must also scan body rows for '000 indicators.
+
+    SEG share capital table has "No. '000s" in a row label, not in column headers.
+    The scaling logic must detect this and multiply by 1,000.
+    """
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=24, caption="Note 6 — Issued Capital",
+        rows=[
+            ["", "No. '000s", "$'000s"],
+            ["Balance at beginning of period", "280,875", "42,110"],
+            ["Share issue", "—", "—"],
+            ["Balance at end of period", "280,875", "42,110"],
+        ],
+        headers=["", "Dec 2025", "Dec 2025"],  # headers DON'T have '000s
+    )
+    labelled = {
+        "cashflow_statement": None, "income_statement": None,
+        "balance_sheet": None, "share_capital": table,
+        "highlights": None, "unmatched": [],
+    }
+    pass1 = {"report_type": "H", "period_end": "2025-12-31",
+             "currency": "AUD", "scale": "thousands"}
+
+    # LLM returns raw table value without conversion
+    mock_raw = {
+        "shares_outstanding": 280875,  # raw from table, not absolute
+        "pass3_confidence": 0.9, "row_refs": {"shares_outstanding": "Balance at end of period"},
+    }
+
+    with patch("app.services.multipass_extraction._llm_json_call", return_value=mock_raw):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert len(results) == 1
+    assert results[0]["shares_outstanding"] == 280_875_000, (
+        f"Expected 280,875,000 (×1000 from body row '000s indicator), "
+        f"got {results[0]['shares_outstanding']}"
+    )
+
+
+def test_pass3a_shares_scaling_doc_level_fallback():
+    """When table headers AND body text lack scale indicators, but the document-level
+    scale is 'thousands', the fallback must apply the document multiplier.
+
+    This covers tables that inherit the filing-level scale without restating it.
+    """
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=24, caption="Share Capital",
+        rows=[
+            ["", "No.", "Amount"],
+            ["Ordinary shares at end of period", "280,875", "42,110"],
+        ],
+        headers=["", "No.", "Amount"],  # no scale indicator
+    )
+    labelled = {
+        "cashflow_statement": None, "income_statement": None,
+        "balance_sheet": None, "share_capital": table,
+        "highlights": None, "unmatched": [],
+    }
+    pass1 = {"report_type": "H", "period_end": "2025-12-31",
+             "currency": "AUD", "scale": "thousands"}
+
+    mock_raw = {
+        "shares_outstanding": 280875,
+        "pass3_confidence": 0.9, "row_refs": {},
+    }
+
+    with patch("app.services.multipass_extraction._llm_json_call", return_value=mock_raw):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert len(results) == 1
+    assert results[0]["shares_outstanding"] == 280_875_000, (
+        f"Expected 280,875,000 (×1000 from doc-level scale fallback), "
+        f"got {results[0]['shares_outstanding']}"
+    )
+
+
+def test_pass3a_shares_no_scaling_when_absolute():
+    """When the LLM returns an absolute count (>= 1M), no scaling must be applied
+    regardless of document-level scale — the value is already correct.
+    """
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=32, caption="Share Capital Note",
+        rows=[
+            ["", "Number", "$M"],
+            ["Balance at end of period", "196,478,902", "5,057"],
+        ],
+        headers=["", "Number", "$M"],
+    )
+    labelled = {
+        "cashflow_statement": None, "income_statement": None,
+        "balance_sheet": None, "share_capital": table,
+        "highlights": None, "unmatched": [],
+    }
+    pass1 = {"report_type": "H", "period_end": "2025-12-31",
+             "currency": "AUD", "scale": "millions"}
+
+    mock_raw = {
+        "shares_outstanding": 196478902,  # absolute count, already correct
+        "pass3_confidence": 0.95, "row_refs": {},
+    }
+
+    with patch("app.services.multipass_extraction._llm_json_call", return_value=mock_raw):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert len(results) == 1
+    assert results[0]["shares_outstanding"] == 196_478_902, (
+        f"Absolute count must not be scaled; got {results[0]['shares_outstanding']}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Pass 2 — CF table disqualification for IS/BS slots
+# ---------------------------------------------------------------------------
+
+def test_pass2_cf_disqualification_blocks_5b_from_income_statement():
+    """A cash-flow table (Appendix 5B) with 'income tax' keyword must NOT
+    claim the income_statement slot due to CF disqualification phrases in
+    its body rows."""
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    cf_table = DoclingTable(
+        page_number=11,
+        caption="",
+        headers=["Consolidated statement of cash flows",
+                 "Consolidated statement of cash flows",
+                 "Current quarter $A'000", "Year to date $A'000"],
+        rows=[
+            ["Consolidated statement of cash flows",
+             "Consolidated statement of cash flows",
+             "Current quarter $A'000", "Year to date $A'000"],
+            ["1.1", "Receipts from customers", "21,836", "44,295"],
+            ["1.7", "Income tax paid", "(400)", "(800)"],
+        ],
+    )
+
+    labelled = _run_pass2_locator([cf_table])
+    assert labelled["income_statement"] is None, (
+        "Appendix 5B cash-flow table must NOT claim the income_statement slot "
+        "despite having 'income tax' keyword match"
+    )
+    assert labelled["cashflow_statement"] is not None, (
+        "The table must still be labelled as cashflow_statement"
+    )
+
+
+def test_pass2_cf_disqualification_blocks_5b_from_balance_sheet():
+    """A cash-flow table with 'non-current assets' keyword must NOT
+    claim the balance_sheet slot."""
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    cf_table = DoclingTable(
+        page_number=12,
+        caption="",
+        headers=["Consolidated statement of cash flows",
+                 "Consolidated statement of cash flows",
+                 "Current quarter $A'000", "Year to date $A'000"],
+        rows=[
+            ["Consolidated statement of cash flows",
+             "Consolidated statement of cash flows",
+             "Current quarter $A'000", "Year to date $A'000"],
+            ["2.", "Cash flows from investing activities", "", ""],
+            ["2.1(d)", "Exploration — non-current assets", "(100)", "(200)"],
+        ],
+    )
+
+    labelled = _run_pass2_locator([cf_table])
+    assert labelled["balance_sheet"] is None, (
+        "Appendix 5B cash-flow table must NOT claim the balance_sheet slot "
+        "despite having 'non-current assets' keyword match"
+    )

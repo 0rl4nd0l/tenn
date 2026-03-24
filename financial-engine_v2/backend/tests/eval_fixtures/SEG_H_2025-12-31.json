@@ -14,11 +14,10 @@
     "investing_cf": 7527000,
     "financing_cf": -7369000,
     "cash_end": 26716000,
-    "shares_outstanding": 280874770
+    "shares_outstanding": 280874770,
+    "net_debt": -13476000
   },
-  "expected_nulls": [
-    "net_debt"
-  ],
+  "expected_nulls": [],
   "config": {
     "min_accuracy_overall": 0.80
   },
@@ -29,7 +28,8 @@
     "investing_cf": 0.01,
     "financing_cf": 0.01,
     "cash_end": 0.001,
-    "shares_outstanding": 0.001
+    "shares_outstanding": 0.001,
+    "net_debt": 0.05
   },
   "notes": {
     "_fixture_purpose": "Non-mining sector fixture (sports/media entertainment). SEG uses Appendix 4D + full IFRS interim financial report format — distinct from ASX Appendix 5B used by mining explorers. Only fixture with both income statement and cash flow metrics verified. Adds sector and document-layout diversity.",

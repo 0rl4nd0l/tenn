@@ -12,15 +12,17 @@
     "operating_cf": 880000000.0,
     "investing_cf": -527000000.0,
     "financing_cf": -126000000.0,
-    "shares_outstanding": 196478902.0
+    "shares_outstanding": 196478902.0,
+    "net_debt": 4878000000.0
   },
-  "expected_nulls": ["net_debt"],
+  "expected_nulls": [],
   "tolerances": {
     "revenue": 0.05,
     "operating_cf": 0.05,
     "investing_cf": 0.05,
     "financing_cf": 0.05,
-    "shares_outstanding": 0.01
+    "shares_outstanding": 0.01,
+    "net_debt": 0.05
   },
   "config": {
     "min_accuracy_overall": 0.80

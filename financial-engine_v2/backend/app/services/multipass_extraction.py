@@ -180,10 +180,15 @@ _TABLE_KEYWORDS: dict[str, list[str]] = {
         "profit before taxation",    # formal income statement row (not in summaries)
         "income tax expense",        # formal income statement row
         "income tax",                # "Income tax (expense)/benefit" — handles parenthetical variants
-        "other comprehensive",       # OCI section — only in full IS, never in CF statements
-        # NOTE: "from operations", "finance costs", "depreciation" deliberately excluded —
-        # they appear in cash flow statements and cause cross-contamination in single-table
-        # scoring. In multi-table documents the real IS wins on keyword count regardless.
+        "from operations",           # "PROFIT/(LOSS) FROM OPERATIONS" — consolidated IS row
+        "finance costs",             # formal IS row — absent from segment breakdowns
+        "depreciation and amortisation",  # formal IS expense row — absent from segment tables
+        "other comprehensive",       # OCI section — only in full IS, never in EBITDA recons
+        # These keywords also appear in CF statements but do NOT cause cross-contamination:
+        # each table is scored independently per statement type. A CF table may score 3
+        # for income_statement, but the real IS scores 7+ because it has BOTH the P&L
+        # keywords AND the OCI/tax/depreciation rows. Verified across all 6 fixtures:
+        # MIN (pg14), BHP (pg44), RMS (pg20), SEG (pg12) all correctly selected.
     ],
     "balance_sheet": [
         "total assets", "current assets", "shareholders equity", "net assets",
@@ -222,6 +227,18 @@ _HEADER_BONUS = 10
 # or 1 keyword + other body-text matches.  This avoids merging unrelated tables
 # that only incidentally mention a single CF keyword.
 _CF_MERGE_THRESHOLD = 2
+
+# Cash-flow-specific phrases that disqualify a table from claiming the
+# income_statement or balance_sheet slot.  ASX Appendix 5B documents have a
+# single cash-flow statement split across several tables; those tables contain
+# keywords like "income tax" and "non-current assets" that score well for IS/BS
+# but are not actual income statements or balance sheets.  Checking against
+# caption + headers is sufficient: every 5B table carries "statement of cash
+# flows" or "cash flows from" in its header row, which never appears in a real
+# income statement or balance sheet.
+_CF_DISQUALIFY_PHRASES = [
+    "cash flow", "statement of cash flows", "cash flows from", "appendix 5b",
+]
 
 
 def _merge_cf_tables(
@@ -355,9 +372,31 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
     for table in tables:
         any_match = False
         is_not_toc = not _table_is_toc(table)
+        # Pre-compute header/caption/body text for CF disqualification check.
+        # Include first 10 body rows because some docling tables have generic
+        # headers (e.g. '0','1','2','3') but contain "Cash flows from ..." in
+        # the body rows — especially in Appendix 5B fragments.
+        _hdr_caption = (
+            (table.caption or "").lower()
+            + " "
+            + " ".join(str(h) for h in table.headers).lower()
+            + " "
+            + " ".join(
+                " ".join(str(c) for c in row)
+                for row in table.rows[:10] if row
+            ).lower()
+        )
         for label, keywords in _TABLE_KEYWORDS.items():
             score = _score(table, label, keywords)
             if score > 0:
+                # CF disqualification: tables whose headers/caption contain
+                # cash-flow-specific phrases must not claim income_statement
+                # or balance_sheet slots — they are cash-flow tables that
+                # happen to mention IS/BS keywords incidentally.
+                if label in ("income_statement", "balance_sheet") and any(
+                    p in _hdr_caption for p in _CF_DISQUALIFY_PHRASES
+                ):
+                    continue
                 pools[label].append((score, is_not_toc, table))
                 any_match = True
         if not any_match:
@@ -553,6 +592,55 @@ def _run_pass3a_metric_extractor(
                     out[m] = None
             else:
                 out[m] = None
+        # shares_outstanding sanity check: if the LLM returned a value that is
+        # suspiciously small (< 1M — virtually no ASX company has < 1M shares on
+        # issue), check whether the table's headers/caption indicate a count-scale
+        # factor ('000, million, etc.) and apply it.  This catches the common LLM
+        # failure of returning the raw table value (e.g. 280,875) without converting
+        # from the table's count-unit (e.g. '000s → 280,875,000).
+        _MIN_PLAUSIBLE_SHARES = 1_000_000
+        shares_val = out.get("shares_outstanding")
+        if shares_val is not None and 0 < abs(shares_val) < _MIN_PLAUSIBLE_SHARES:
+            header_caption_text = (
+                (table.caption or "").lower()
+                + " "
+                + " ".join(str(h) for h in table.headers).lower()
+            )
+            # Also check body rows for scale indicators (e.g. SEG share capital
+            # table has "No. '000s" in a row label, not in the column headers).
+            body_text = " ".join(
+                " ".join(str(c) for c in row)
+                for row in table.rows[:15] if row
+            ).lower()
+            full_text = header_caption_text + " " + body_text
+            if _re.search(r"'000|thousands|\bno\.\s*'?000", full_text, _re.IGNORECASE):
+                out["shares_outstanding"] = shares_val * 1_000
+                logger.info(
+                    "shares_outstanding scaled ×1000: %.0f → %.0f (table text has '000 indicator)",
+                    shares_val, out["shares_outstanding"],
+                )
+            elif _re.search(r"\bmillion|\bm\b", full_text, _re.IGNORECASE):
+                out["shares_outstanding"] = shares_val * 1_000_000
+                logger.info(
+                    "shares_outstanding scaled ×1M: %.0f → %.0f (table text has million indicator)",
+                    shares_val, out["shares_outstanding"],
+                )
+            elif scale in ("thousands", "millions"):
+                # Fallback: if the document-level scale (from Pass 1 / table
+                # header detection) is thousands or millions AND neither the
+                # table headers nor body rows carry their own scale indicator,
+                # apply the document-level multiplier.  Share-count tables in
+                # ASX filings often inherit the document scale without restating
+                # it locally (e.g. SEG share capital table uses '000s scale from
+                # the filing header but only labels the column "No." without
+                # repeating "'000").
+                doc_mult = SCALE_MULTIPLIERS.get(scale, 1)
+                out["shares_outstanding"] = shares_val * doc_mult
+                logger.info(
+                    "shares_outstanding scaled ×%d (doc-level scale=%s): %.0f → %.0f",
+                    doc_mult, scale, shares_val, out["shares_outstanding"],
+                )
+
         # Compute confidence from observable results rather than relying on the
         # model's self-reported value (which is typically 0.0 regardless of quality).
         # Use fraction of expected metrics that were extracted as the signal.
