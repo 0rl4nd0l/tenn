@@ -13,11 +13,11 @@
     "operating_cf": 11619000,
     "investing_cf": 7527000,
     "financing_cf": -7369000,
-    "cash_end": 26716000
+    "cash_end": 26716000,
+    "shares_outstanding": 280874770
   },
   "expected_nulls": [
-    "net_debt",
-    "shares_outstanding"
+    "net_debt"
   ],
   "config": {
     "min_accuracy_overall": 0.80
@@ -28,7 +28,8 @@
     "operating_cf": 0.01,
     "investing_cf": 0.01,
     "financing_cf": 0.01,
-    "cash_end": 0.001
+    "cash_end": 0.001,
+    "shares_outstanding": 0.001
   },
   "notes": {
     "_fixture_purpose": "Non-mining sector fixture (sports/media entertainment). SEG uses Appendix 4D + full IFRS interim financial report format — distinct from ASX Appendix 5B used by mining explorers. Only fixture with both income statement and cash flow metrics verified. Adds sector and document-layout diversity.",
@@ -40,7 +41,7 @@
     "investing_cf": "Cash flow statement (page 17): 'Net cash from investing activities' = 7,527 ($'000s). Main items: PPE (867); RSN Radio Assets acquisition (1,188); software (211); Perth Wildcats sale proceeds 6,500; SEN NZ Teams 92; dividends 162; investment shares sold 3,039.",
     "financing_cf": "Cash flow statement (page 17): 'Net cash used in financing activities' = (7,369) ($'000s). Components: share issue costs (2); borrowings repaid (2,605); lease liabilities (1,953); dividends paid (2,809).",
     "cash_end": "Cash flow statement (page 17): 'Cash and cash equivalents at the end of the half year' = 26,716 ($'000s). Cross-check: 14,954 (start) + 11,619 (ops) + 7,527 (investing) - 7,369 (financing) - 15 (FX) = 26,716. Consistent with Directors' Report 'Cash on hand of $26.7m'.",
-    "net_debt": "Balance sheet not verified. Borrowings repaid during period = 2,605 but opening balance unknown. Pipeline B4 derivation requires total_debt from balance sheet. Expected null.",
-    "shares_outstanding": "Not extracted from cash flow statement or income statement. Equity statement shows share capital movements but not share count. Expected null."
+    "net_debt": "Balance sheet verified (page 14): Current Borrowings = 482, Non-current Borrowings = 12,758, total financial debt = 13,240 ($'000s). net_debt = 13,240 - 26,716 = -13,476 ($'000s) = net cash position. Expected null because: (a) pipeline B4 derivation fires nondeterministically depending on whether the LLM extracts total_debt from the balance sheet table, and (b) the LLM sometimes includes lease liabilities in total_debt (producing ~13,210 vs correct 13,240). Assert null until pipeline stabilises on balance sheet extraction.",
+    "shares_outstanding": "Note 6 Issued Capital (page 24): 'Number of shares on issue = 280,874,770' (actual count, No. column). Share movements table also shows 'Balance at the end of the period = 280,875' in No. '000s column. We assert the exact count (280,874,770). Known issue: _COUNT_METRICS scaling bypass means LLM extraction from the '000s table (280,875) will not be multiplied, producing a 1000x mismatch until the pipeline handles share-count scale separately."
   }
 }

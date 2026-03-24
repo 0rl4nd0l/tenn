@@ -130,6 +130,9 @@ Schema:
   "classifier_confidence": 0.0
 }}
 
+Example — half-year report ending Dec 2025:
+{{"report_type": "H", "period_end": "2025-12-31", "currency": "AUD", "scale": "thousands", "classifier_confidence": 0.92}}
+
 Title: {title}
 First page text (first 1500 chars):
 {first_page_text}
@@ -169,18 +172,28 @@ _TABLE_KEYWORDS: dict[str, list[str]] = {
     "cashflow_statement": [
         "cash flow", "cash from operations", "operating activities",
         "financing activities", "investing activities", "net cash", "cash at end",
+        "cash generated from operations",  # BHP-style formal CF statement row label
     ],
     "income_statement": [
         "revenue", "profit", "earnings before", "ebit", "net profit",
         "profit after tax", "income statement", "statement of profit",
+        "profit before taxation",    # formal income statement row (not in summaries)
+        "income tax expense",        # formal income statement row
+        "income tax",                # "Income tax (expense)/benefit" — IS row
+        # NOTE: "from operations", "finance costs", "depreciation", "other comprehensive"
+        # removed — they appear in cash flow statements too, causing cross-contamination.
     ],
     "balance_sheet": [
         "total assets", "current assets", "shareholders equity", "net assets",
         "total liabilities", "balance sheet", "statement of financial position",
+        "non-current assets",       # formal balance sheet section
+        "total equity",             # formal balance sheet row
     ],
     "share_capital": [
         "ordinary shares", "number of shares", "shares on issue", "shares issued",
         "share capital", "shares at end",
+        "weighted average number of shares",   # EPS note table
+        "basic earnings per ordinary share",   # EPS note table
     ],
     "highlights": [
         "highlights", "key metrics", "summary", "at a glance", "key financials",
@@ -197,7 +210,7 @@ _STATEMENT_HEADERS: dict[str, list[str]] = {
         "income statement", "statement of profit", "statement of comprehensive income",
     ],
     "balance_sheet": ["balance sheet", "statement of financial position"],
-    "share_capital": ["share capital", "number of shares"],
+    "share_capital": ["number of shares", "weighted average"],
     "highlights": ["appendix 4d", "results for announcement"],
 }
 _HEADER_BONUS = 10
@@ -288,14 +301,29 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
             if str(h or "").strip()
         )
 
+    def _table_has_numeric_data(table: DoclingTable) -> bool:
+        """True when at least one body row (after the header) contains a digit.
+
+        Financial statement tables always have numbers in their data columns.
+        Glossary / definition tables (e.g. "Alternative Performance Measures")
+        contain only prose descriptions and should not be selected as statement sources.
+        """
+        # Check rows 1..15 (skip row 0 which is often a repeated header)
+        for row in table.rows[1:16]:
+            for cell in row:
+                if _re.search(r"\d", str(cell or "")):
+                    return True
+        return False
+
     def _score(table: DoclingTable, label: str, keywords: list[str]) -> int:
-        # Include caption, all header cells, and ALL columns of first 15 body rows.
-        # 15-row scan covers all three cash-flow sections and full asset/liability blocks.
+        # Include caption, all header cells, and ALL columns of first 30 body rows.
+        # 30-row scan ensures we reach investing/financing sections in full CF statements
+        # (e.g. BHP's CF statement has 40+ rows; "Financing activities" at row ~34).
         # Scanning all columns (not just column 0) is essential for ASX Appendix 5B
         # where column 0 is section numbers (1.1, 2.1, etc.) and column 1 has labels.
         header_text = " ".join(table.headers).lower()
         body_text = " ".join(
-            " ".join(str(c) for c in row) for row in table.rows[:15] if row
+            " ".join(str(c) for c in row) for row in table.rows[:30] if row
         ).lower()
         text = table.caption.lower() + " " + header_text + " " + body_text
         score = sum(1 for kw in keywords if kw in text)
@@ -309,6 +337,12 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
                 if phrase in header_only:
                     score += _HEADER_BONUS
                     break
+        # Penalise tables with no numeric data in body rows.  Glossary /
+        # definition tables (e.g. "Alternative Performance Measures") match many
+        # keywords but contain zero numbers — they must not win over actual
+        # financial statements.
+        if score > 0 and not _table_has_numeric_data(table):
+            score = 0
         return score
 
     # Score each table against ALL statement types — a table may appear in multiple
@@ -329,11 +363,21 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
 
     # For each label: highest score wins; if tied, non-TOC beats TOC; if still tied,
     # earlier page wins (formal statements appear before notes in ASX filings).
+    # Negate page_number so that lower pages win on tiebreak.
     for label in _TABLE_KEYWORDS:
         if pools[label]:
-            labelled[label] = max(
-                pools[label], key=lambda x: (x[0], x[1], x[2].page_number)
-            )[2]
+            winner_score, _winner_not_toc, winner_table = max(
+                pools[label], key=lambda x: (x[0], x[1], -x[2].page_number)
+            )
+            labelled[label] = winner_table
+            logger.info(
+                "Pass2 %s: table=%d page=%d score=%d caption='%s'",
+                label,
+                getattr(winner_table, "index_in_doc", -1),
+                winner_table.page_number,
+                winner_score,
+                (winner_table.caption or "")[:60],
+            )
 
     # ASX Appendix 5B splits the cash flow statement across many tables
     # (operating, investing, financing, reconciliation).  When multiple tables
@@ -355,7 +399,7 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
 # Pass 3a — Per-Table Metric Extractor (LLM)
 # ---------------------------------------------------------------------------
 
-_PASS3A_PROMPT = """You are a financial metric extractor. Output ONLY valid JSON.
+_PASS3A_PROMPT = """You are a financial metric extractor. Output ONLY valid JSON matching the schema below.
 
 Document metadata:
 - Period: {period_type} ending {period_end}
@@ -375,7 +419,10 @@ Rules:
 - Output null if the metric is NOT explicitly labeled in this table — do NOT estimate or derive it
 - ebit: only output if a row is explicitly labeled "EBIT", "Earnings Before Interest and Tax", or equivalent — do NOT use PBT or Profit Before Tax as a proxy
 - capex: look for "Payments for property, plant and equipment" or "Capital expenditure" in investing activities — output null if not found
-- shares_outstanding: look for total ordinary shares on issue (count, not dollar amount) — typically labeled "Ordinary shares" or "Shares on issue"
+- shares_outstanding: look for total ordinary shares on issue (count, not dollar amount) — typically labeled "Ordinary shares" or "Shares on issue".
+  IMPORTANT: if the table expresses share counts in a scaled unit (e.g. "Million", "'000"), convert to the absolute count.
+  Example: if the table shows "5,057" with row label containing "(Million)", output 5057000000 (not 5057).
+  Example: if the table shows "196,478,902" as an absolute count, output 196478902.
 - Column selection: if the table has multiple data columns (e.g. current half and prior half),
   extract values ONLY from the column whose header best matches the reporting date {period_end}.
   Never extract from prior-period or comparative columns.
@@ -391,6 +438,9 @@ Schema:
   "pass3_confidence": 0.0,
   "row_refs": {{}}
 }}
+
+Example — cashflow_statement in $A'000, period ending Dec 2025:
+{{"operating_cf": 15234, "investing_cf": -8901, "financing_cf": -3456, "cash_end": 12345, "capex": -2100, "period_col": "Dec 2025", "pass3_confidence": 0.9, "row_refs": {{"operating_cf": "Net cash from operating activities", "capex": "Payments for property, plant and equipment"}}}}
 """
 
 _METRIC_SCHEMA_BY_TABLE = {
@@ -439,9 +489,17 @@ def _run_pass3a_metric_extractor(
             continue
         metrics = _METRIC_SCHEMA_BY_TABLE.get(table_type, METRIC_FIELDS)
         metric_schema = "\n".join(f'  "{m}": "number|null",' for m in metrics)
-        # Merged 5B tables may have 50+ rows; raise cap so section 4 totals are visible.
-        is_merged = getattr(table, "caption", "").startswith("Merged cashflow")
-        row_cap = 65 if is_merged else 30
+        # Cash flow tables need a higher row cap:
+        #   - Merged 5B tables may have 50+ rows (section 4 totals near the end)
+        #   - Large-company CF statements (e.g. BHP) have 50+ rows with financing
+        #     section and cash-end beyond row 30
+        # Income statements also benefit from a higher cap to capture tax/OCI rows.
+        if table_type == "cashflow_statement":
+            row_cap = 65
+        elif table_type == "income_statement":
+            row_cap = 40
+        else:
+            row_cap = 30
         markdown = _table_to_markdown(table, max_rows=row_cap)
         if not markdown:
             continue
@@ -477,15 +535,27 @@ def _run_pass3a_metric_extractor(
                 logger.error("Pass 3a retry also failed for %s: %s", table_type, e2)
                 continue
 
-        # Apply scale multiplier to monetary values only.
-        # Count metrics (share counts etc.) are always absolute integers — never scaled.
+        # Apply scale multiplier to monetary values.
+        # Count metrics (shares_outstanding) need special handling:
+        #   - If the table presents counts in a scaled column (e.g. "'000", "millions"),
+        #     the LLM returns the raw scaled number and we MUST apply the multiplier.
+        #   - Only skip scaling when the table clearly shows absolute counts.
+        # Detect whether the table's headers indicate a count scale by checking for
+        # thousands/millions markers in the header text.
         _COUNT_METRICS = {"shares_outstanding"}
+        _table_headers_text = " ".join(getattr(table, "headers", []) or []).lower()
+        _table_has_count_scale = bool(
+            _re.search(r"'?000|thousands|millions|\$[AMam]", _table_headers_text)
+        )
         out = {"_source": table_type, "_page_number": getattr(table, "page_number", None)}
         for m in metrics:
             val = raw.get(m)
             if val is not None:
                 try:
-                    effective_multiplier = 1 if m in _COUNT_METRICS else multiplier
+                    if m in _COUNT_METRICS and not _table_has_count_scale:
+                        effective_multiplier = 1
+                    else:
+                        effective_multiplier = multiplier
                     out[m] = float(val) * effective_multiplier
                 except (TypeError, ValueError):
                     out[m] = None
@@ -502,6 +572,12 @@ def _run_pass3a_metric_extractor(
         out["pass3_confidence"] = max(computed_conf, model_conf)
         out["row_refs"] = raw.get("row_refs", {})
         out["period_col"] = raw.get("period_col")
+        logger.info(
+            "Pass3a %s: extracted %d metrics, confidence=%.2f",
+            table_type,
+            len([m for m in metrics if out.get(m) is not None]),
+            out.get("pass3_confidence", 0),
+        )
         results.append(out)
 
     return results
@@ -651,6 +727,11 @@ def _run_pass4_reconciler(
     metric_confidence = (
         sum(c * n for c, n in source_stats.values()) / max(total_weight, 1)
         if source_stats else 0.0
+    )
+
+    logger.info(
+        "Pass4 merged: %s",
+        {k: v for k, v in merged_metrics.items() if v is not None},
     )
 
     return {
@@ -825,6 +906,12 @@ def run_multipass_extraction(
 
     # Validate
     status, error = _validate_gate(payload)
+    logger.info(
+        "Gate: status=%s, confidence=%.3f, non_null_metrics=%d",
+        status,
+        payload.get("confidence_metrics", 0),
+        len([v for v in payload.get("metrics", {}).values() if v is not None]),
+    )
 
     return MultipassResult(
         status=status,

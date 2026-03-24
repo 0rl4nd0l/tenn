@@ -26,7 +26,7 @@ Branch: cloud/session-20260319
 | **extraction-hardening** | `[ in-progress ]` | (1) FX conversion logic not yet built — policy defined, ok_low_confidence stands; (2) provenance query UX: inspect script exists, schema access still awkward. (3) Live eval never run — critical gap documented. Quarterly CF values hand-verified (b78b2964). |
 | **news-pipeline** | `[ verified ]` | Embedding routing fixed, asx_docs rebuilt at 768-dim (a4564e47) |
 | **eval-fixtures** | `[ verified ]` | Quarterly GRE fixture + SEG non-mining fixture promoted (b78b2964). MIN values confirmed via docling cache. Quality assessment doc written. |
-| **extraction-quality** | `[ in-progress ]` | 3 eval runs complete. Mistral 7B canonical: 45% overall (Run 3, all fixes applied). Blockers: (1) BHP fixture expected_nulls flaw — invalidates BHP signal; (2) wrong model (Mistral 7B not Qwen 2.5 14B); (3) LLM_API_KEY required for eval. Report at docs/claude/extraction_quality_assessment.md |
+| **extraction-quality** | `[ in-progress ]` | 13 fixes applied this session. Model swapped to Qwen 14B Instruct. Claude calibration run confirms model is not the bottleneck. BHP fixture under investigation. Overall accuracy: 75.9% (Claude), 74.1% (Qwen) — target 85%. Key principle: accuracy must reproduce across thousands of diverse documents, not just pass 6 fixtures. Report at docs/claude/extraction_quality_assessment.md |
 
 ---
 

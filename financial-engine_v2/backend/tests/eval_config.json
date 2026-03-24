@@ -1,5 +1,6 @@
 {
   "_comment": "Accuracy thresholds for live_eval regression gate. Apply to pytest -m live_eval runs only.",
+  "_design_note": "These thresholds apply to the 6-fixture regression gate only. Production accuracy must be validated against a broader document set spanning diverse companies, sectors, and report formats. Fixture expected values must be source-verified from PDFs — never adjusted to match model output. Model consensus (multiple models agreeing) does not prove correctness; ground truth is the source document.",
   "min_accuracy_overall": 0.85,
   "min_accuracy_per_metric": {
     "operating_cf": 0.90,

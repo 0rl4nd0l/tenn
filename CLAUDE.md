@@ -108,6 +108,7 @@ Before writing any code:
 - Have you read the files you are about to modify?
 - Does the change touch a safety-sensitive area? (secrets, validation paths, financial gate scripts, vector baseline)
 - Does the change affect embeddings or RAG? → Vector baseline and RAG stability must be verified post-change.
+- Does the change affect extraction prompts or metric logic? → Extraction changes must generalize across diverse ASX filings (4D, 4E, 5B, full IFRS). Do not overfit to test fixtures — the 6 fixtures are a regression gate, not a quality certificate. Validate against documents from different companies, sectors, and report formats before declaring success.
 - Does the diff exceed ~300 lines? → Scope may be too large; confirm with user.
 
 ---

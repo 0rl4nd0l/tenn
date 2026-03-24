@@ -7,6 +7,17 @@
 
 ---
 
+## Production Accuracy Standard
+
+The extraction system must achieve high accuracy **reproducibly across thousands of documents** from different companies and sectors. This is a core design principle, not a stretch goal.
+
+- **Generalization over memorization:** Prompt constraints must handle diverse formats (Appendix 4D, 4E, 5B, full IFRS annual reports). Do not encode company-specific patterns that break on unseen documents.
+- **Source-verified fixtures only:** Fixture expected values must be verified from source PDFs. Never adjust fixture values to match model output — if the model disagrees with the fixture, the model is wrong or the extraction logic needs fixing.
+- **Regression gate vs. production validation:** The 6-fixture eval is a regression gate that catches prompt/code regressions. It is not a quality certificate. Production accuracy must be validated against a broader, continuously expanding document set.
+- **Model consensus is not correctness:** Agreement between two models (e.g., Claude and Qwen both returning the same value) does not prove the value is correct. Both can be systematically wrong if the prompt steers them the same way. Ground truth comes from the source PDF, not from model agreement.
+
+---
+
 ## Executive Verdict
 
 **The pipeline design is sound. First live eval run (2026-03-24) produced 58.3% overall accuracy — well below the 85% threshold. Three root causes identified and one fixed.**

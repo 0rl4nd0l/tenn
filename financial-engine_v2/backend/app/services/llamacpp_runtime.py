@@ -306,11 +306,21 @@ def generate_json_llamacpp(
             ) from exc
 
         chat_url = f"{normalized_base_url}/v1/chat/completions"
+        # Extract the opening role sentence from the user prompt (e.g.
+        # "You are a financial metric extractor.") and use it as the system
+        # message, so the model's persona is set correctly.  Remove the
+        # duplicate sentence from the user turn to avoid wasting tokens.
+        system_msg = "Output ONLY valid JSON."
+        user_content = prompt
+        _first_period = prompt.find(".")
+        if _first_period > 0 and prompt[:_first_period].startswith("You are"):
+            system_msg = prompt[: _first_period + 1].strip()
+            user_content = prompt[_first_period + 1 :].strip()
         payload = {
             "model": resolved_model,
             "messages": [
-                {"role": "system", "content": "Extract structured JSON only."},
-                {"role": "user", "content": prompt},
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": user_content},
             ],
             "temperature": 0,
             "max_tokens": 2048,
