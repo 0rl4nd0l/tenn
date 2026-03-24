@@ -274,7 +274,6 @@ def parse_alerts():
                     alerts.append(current)
                 ts, agent, sev_full, severity, sha = m.group(1), m.group(2), m.group(3), m.group(4), m.group(5)
                 current = {
-                    "id": str(uuid.uuid4()),
                     "timestamp": ts,
                     "agent": agent,
                     "severity": severity or "ok",
@@ -285,11 +284,16 @@ def parse_alerts():
             elif line.startswith("  ⚠") and current:
                 issue_m = re.match(r'\s+⚠\s+(.+?) @ (.+?): (.+)', line)
                 if issue_m:
-                    current["issues"].append({
+                    issue_dict = {
                         "type": issue_m.group(1),
                         "location": issue_m.group(2),
                         "detail": issue_m.group(3),
-                    })
+                    }
+                    current["issues"].append(issue_dict)
+                    if len(current["issues"]) == 1:  # stable id, set once on first issue
+                        current["id"] = hashlib.sha1(
+                            f"{current['agent']}:{issue_dict['type']}:{issue_dict['location']}:{issue_dict['detail']}".encode()
+                        ).hexdigest()
     if current:
         alerts.append(current)
     return alerts
