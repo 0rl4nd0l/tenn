@@ -39,10 +39,10 @@ class Newspaper4kProvider(ProviderClient):
         max_articles_per_source: int = 30,
         max_total_articles: int = 300,
         min_text_chars: int = 200,
-        min_keyword_hits: int = 1,
+        min_keyword_hits: int = 0,
         request_timeout_seconds: int = 20,
         sleep_seconds: float = 0.5,
-        finance_url_gate: bool = True,
+        finance_url_gate: bool = False,
         raw_html_dir: Path | None = None,
         http_cookie: str = "",
     ) -> None:
