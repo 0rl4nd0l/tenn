@@ -19,12 +19,12 @@ Ingest modules remain **source-specific**. Do not merge into one monster script.
 
 | Source | Entrypoint / location | Output |
 |--------|----------------------|--------|
+| **newspaper4k** (default) | `fetch_daily_news.py` (provider `newspaper4k`) | Writes to `news_articles.sqlite` |
 | EODHD API | `fetch_daily_news.py` (provider `eodhd`) | Writes to `news_articles.sqlite` |
 | GDELT API | `fetch_daily_news.py` (provider `gdelt`) | Writes to `news_articles.sqlite` |
 | WorldMonitor | `fetch_daily_news.py` (provider `worldmonitor`) | Writes to `news_articles.sqlite` |
-| URL archive snapshots (local/rendered) | `archive_news_urls.py` | Archived/disabled (implementation parked under `scripts/archive/legacy_cleanup_20260309/`) |
-| RSS / Atom | `ingest_asx_rss_headlines.py` | JSONL (fed to Layer 3) |
-| newspaper4k (Kalkine, AFR, etc.) | `integrations/newspaper4k_au/collect_au_finance_news.py` | JSONL (fed to Layer 3) |
+| RSS / Atom | `fetch_daily_news.py` (provider `rss`) | Writes to `news_articles.sqlite` |
+| newspaper4k standalone | `integrations/newspaper4k_au/collect_au_finance_news.py` | JSONL (fed to Layer 3) |
 | GDELT DOC JSONL | `fetch_gdelt_doc_api.py` | JSONL (fed to Layer 3) |
 | Hugging Face dataset | `build_news_context_db.py --dataset-id ...` | Direct to Layer 3 (optional) |
 
@@ -97,6 +97,36 @@ Never use a different output path for production news (e.g. no `news_newspaper4k
 - **Rules:** `--tolerance-pct 25` (default): flag drift if any baseline corpus drops by more than 25%. `--fail-on-new-corpus`: treat new corpora as drift. Missing baseline corpus is drift by default; use `--no-fail-on-missing-corpus` to allow.
 - **Output:** JSON report with `drift_detected`, `reasons`, `actual`, `baseline`, `deltas`. Exit 1 if drift detected.
 - Use in CI or as a post-pipeline check to catch regressions or unexpected changes.
+
+## Scraping stack
+
+The news pipeline uses a layered scraping strategy to handle the range of AU finance sites (static HTML, JS-rendered SPAs, Cloudflare-protected):
+
+| Layer | Library | Role | When used |
+|-------|---------|------|-----------|
+| Primary | newspaper4k | Article text extraction (title, body, date, authors) | All sources — first attempt |
+| Fallback 1 | Scrapling StealthyFetcher (Camoufox) | Anti-bot bypass + JS rendering | When newspaper4k body < `min_text_chars` and domain is in `playwright_domains` |
+| Fallback 2 | Playwright (Chromium) | JS rendering without anti-bot | When Scrapling is unavailable or returns insufficient HTML |
+
+**Module:** `integrations/newspaper4k_au/playwright_fallback.py`
+
+### Future: Crawl4AI migration
+
+[Crawl4AI](https://github.com/unclecode/crawl4ai) (62k+ stars, Apache-2.0) is the intended long-term replacement for the newspaper4k + Scrapling + Playwright stack. It provides:
+- Unified fetch + extract in one library (outputs clean Markdown from any page, JS or not)
+- Async browser pool with session reuse and caching
+- LLM-driven structured extraction (CSS, XPath, or LLM-based field extraction)
+- Shadow DOM flattening for modern SPA sites
+- Direct Markdown output maps naturally onto the RAG chunking pipeline
+
+**Migration path:**
+1. Install: `pip install -U crawl4ai && crawl4ai-setup`
+2. Create `scripts/news_pipeline/providers/crawl4ai.py` wrapping `AsyncWebCrawler`
+3. For each source, Crawl4AI returns Markdown — parse title/date/body from structured output
+4. Deprecate newspaper4k provider once Crawl4AI coverage matches or exceeds it
+5. Remove Scrapling/Playwright fallback once Crawl4AI handles all JS-rendered sources natively
+
+**Prerequisites:** Validate Crawl4AI against the full AU finance source list (15 sources) before migration. Confirm it handles AFR partial-paywall, Stockhead JS rendering, and Capital Brief Cloudflare at parity with current stack.
 
 ## Invariants (lock down)
 
