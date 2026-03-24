@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from app.services.strategy_controller import apply_change, confirm_change, propose_change
@@ -16,6 +16,7 @@ class ChatRequest(BaseModel):
     message: str
     mode: Literal["analysis", "strategy"]
     ticker: str | None = None
+    session_id: str | None = None
 
 
 def _extract_proposal_id(message: str, prefix: str) -> str:
@@ -41,10 +42,20 @@ def _strategy_response(message: str) -> dict[str, Any]:
 
 
 @router.post("/chat")
-def chat(payload: ChatRequest) -> dict[str, Any]:
+def chat(payload: ChatRequest, request: Request) -> dict[str, Any]:
     try:
         if payload.mode == "analysis":
-            return {"type": "analysis", "content": chat_with_tenn(payload.message, ticker=payload.ticker)}
+            session_id = str(payload.session_id or "").strip() or (
+                str(request.headers.get("X-Session-ID") or "").strip() or None
+            )
+            return {
+                "type": "analysis",
+                "content": chat_with_tenn(
+                    payload.message,
+                    ticker=payload.ticker,
+                    session_id=session_id,
+                ),
+            }
         return _strategy_response(payload.message)
     except HTTPException:
         raise

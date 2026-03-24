@@ -114,6 +114,14 @@ def _log_runtime_feature_warnings() -> None:
         logger.warning("WARNING: extraction disabled - ingestion outputs will be limited")
 
 
+def _log_session_memory_startup_status() -> None:
+    if not bool(getattr(settings, "enable_session_memory", True)):
+        logger.info("session_memory: session memory disabled (ENABLE_SESSION_MEMORY=false)")
+        return
+    from app.services.session_memory import _log_startup_status
+    _log_startup_status()
+
+
 def _log_runtime_config() -> None:
     logger.info(
         "Runtime config -> TASK_MODE=%s, ENABLE_EMBEDDINGS=%s, QDRANT_URL=%s, CELERY_BROKER_URL=%s",
@@ -481,6 +489,7 @@ def startup():
         Base.metadata.create_all(bind=engine)
     _log_runtime_config()
     _log_runtime_feature_warnings()
+    _log_session_memory_startup_status()
     _log_redis_startup_status()
     _validate_qdrant_on_startup()
     _log_architecture_runtime_assertion()

@@ -4,6 +4,7 @@ import json
 import os
 import re
 import threading
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 try:
@@ -15,6 +16,13 @@ except ImportError:  # Python < 3.11
         pass
 from pathlib import Path
 from typing import Any
+
+from cockpit.core.session_memory import (
+    _log_startup_status as _ov_log_startup_status,
+    build_turn_payload,
+    get_relevant_session_context,
+    record_turn,
+)
 
 
 class ResponseMode(StrEnum):
@@ -111,6 +119,8 @@ class ChatController:
         self.last_ticker: str | None = None
         self._state_store = state_store
         self._thread_id = thread_id
+        self._ov_session_id: str = uuid.uuid4().hex
+        _ov_log_startup_status()
         # Prevents concurrent context-gather calls from stacking up.
         self._context_gather_lock = threading.Lock()
 
@@ -921,6 +931,22 @@ class ChatController:
         elif mode == ResponseMode.WEB:
             system_instruction += "The user supplied a URL. Incorporate any fetched web evidence if it is available.\n"
 
+        # OpenViking: fetch semantically relevant prior turns for this query
+        ov_context_block = ""
+        prior_ov_turns = get_relevant_session_context(self._ov_session_id, message, limit=3)
+        if prior_ov_turns:
+            lines = ["Relevant prior session context:"]
+            for t in prior_ov_turns:
+                q = str(t.get("query") or "")[:150]
+                a = str(t.get("answer") or "")[:250]
+                tkr = str(t.get("ticker") or "").strip()
+                note = f" [{tkr}]" if tkr else ""
+                if q:
+                    lines.append(f"  Q{note}: {q}")
+                if a:
+                    lines.append(f"  A: {a}")
+            ov_context_block = "\n".join(lines) + "\n\n"
+
         # Inject recent conversation history for context continuity
         history_block = ""
         if self._state_store is not None:
@@ -988,6 +1014,7 @@ class ChatController:
             prompt = (
                 system_instruction
                 + "\n\n"
+                + ov_context_block
                 + history_block
                 + "\n\nUser question: "
                 + message
@@ -995,7 +1022,7 @@ class ChatController:
                 + evidence_section
             )
         else:
-            prompt = system_instruction + f"User question: {message}\n\n" + evidence_section
+            prompt = system_instruction + ov_context_block + f"User question: {message}\n\n" + evidence_section
 
         if on_chunk is not None:
             try:
@@ -1018,6 +1045,18 @@ class ChatController:
                 message=message,
                 local_payload=local_payload,
             )
+
+        # OpenViking: record this turn for future session context retrieval
+        record_turn(
+            self._ov_session_id,
+            build_turn_payload(
+                session_id=self._ov_session_id,
+                thread_id=self._thread_id,
+                query=message,
+                answer=answer.strip(),
+                ticker=ticker,
+            ),
+        )
 
         # Extract and store ticker observations from this response
         if self._state_store is not None and ticker:

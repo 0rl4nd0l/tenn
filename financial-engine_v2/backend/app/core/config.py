@@ -267,6 +267,7 @@ class Settings(BaseSettings):
     openbb_sidecar_base_url: str = "http://127.0.0.1:8081"
     openbb_sidecar_timeout_seconds: float = 15.0
     openbb_sidecar_enable_staging_writes: bool = False
+    enable_session_memory: bool = True
 
 
 def _validate_runtime_configuration(current_settings: Settings, env_files: tuple[Path, ...]) -> None:

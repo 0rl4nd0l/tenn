@@ -8,6 +8,7 @@ from app.core.config import settings
 from app.services.hybrid_retriever import HybridRetriever
 from app.services.llm import generate_json
 from app.services.rag import query_rag
+from app.services.session_memory import _build_turn_payload, get_relevant_session_context, record_turn
 from app.services.source_weighting import apply_weighting_to_chunk
 from app.services.strategy_controller import get_active_strategy_state
 
@@ -104,8 +105,36 @@ def _context_rows(chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return rows
 
 
-def _build_prompt(query: str, context_rows: list[dict[str, Any]]) -> str:
+def _format_session_context_block(prior_turns: list[dict[str, Any]]) -> str:
+    lines: list[str] = ["Relevant prior session context (use as background only):"]
+    for turn in prior_turns:
+        q = str(turn.get("query") or "").strip()
+        a = str(turn.get("answer") or "").strip()
+        ticker = str(turn.get("ticker") or "").strip()
+        conf = turn.get("confidence")
+        parts: list[str] = []
+        if ticker:
+            parts.append(f"ticker={ticker}")
+        if conf is not None:
+            parts.append(f"confidence={conf:.2f}")
+        meta = f" ({', '.join(parts)})" if parts else ""
+        if q:
+            lines.append(f"  Q: {q[:200]}{meta}")
+        if a:
+            lines.append(f"  A: {a[:300]}")
+    return "\n".join(lines)
+
+
+def _build_prompt(
+    query: str,
+    context_rows: list[dict[str, Any]],
+    *,
+    prior_turns: list[dict[str, Any]] | None = None,
+) -> str:
     context_json = json.dumps(context_rows, ensure_ascii=False, indent=2)
+    session_block = ""
+    if prior_turns:
+        session_block = _format_session_context_block(prior_turns) + "\n\n"
     return (
         "You are Tenn, a financial research assistant.\n\n"
         "Use ONLY the provided context. Do not rely on prior knowledge or assumptions.\n\n"
@@ -116,6 +145,7 @@ def _build_prompt(query: str, context_rows: list[dict[str, Any]]) -> str:
         "- Do not extrapolate from incomplete or partial evidence. State what is unknown.\n"
         "- Uncertainty is correct. Set `confidence` to reflect actual evidence quality, not to appear helpful.\n"
         "  A confidence of 0.2 is a valid, honest answer when evidence is sparse or stale.\n\n"
+        f"{session_block}"
         "Answer the question based on the context.\n"
         "Then provide:\n"
         "- Key insights (each must be directly supported by a specific context item)\n"
@@ -143,11 +173,22 @@ def _degraded_chat_payload(message: str, *, error: str | None = None) -> dict[st
     return payload
 
 
-def chat_with_tenn(query: str, *, ticker: str | None = None) -> dict[str, Any]:
+def chat_with_tenn(
+    query: str,
+    *,
+    ticker: str | None = None,
+    session_id: str | None = None,
+) -> dict[str, Any]:
     normalized_query = str(query or "").strip()
     if not normalized_query:
         raise ValueError("query is required")
     normalized_ticker = str(ticker or "").strip().upper() or None
+    normalized_session_id = str(session_id or "").strip() or None
+
+    session_memory_enabled = (
+        bool(getattr(settings, "enable_session_memory", True))
+        and normalized_session_id is not None
+    )
 
     if not bool(getattr(settings, "enable_embeddings", True)) or not bool(
         getattr(settings, "enable_qdrant", True)
@@ -157,6 +198,14 @@ def chat_with_tenn(query: str, *, ticker: str | None = None) -> dict[str, Any]:
                 "Chat analysis requires embeddings and Qdrant to be enabled. "
                 "Set ENABLE_EMBEDDINGS=true and ENABLE_QDRANT=true and restart the backend."
             )
+        )
+
+    prior_turns: list[dict[str, Any]] = []
+    if session_memory_enabled:
+        prior_turns = get_relevant_session_context(
+            normalized_session_id,  # type: ignore[arg-type]
+            normalized_query,
+            limit=3,
         )
 
     try:
@@ -235,7 +284,7 @@ def chat_with_tenn(query: str, *, ticker: str | None = None) -> dict[str, Any]:
             return _degraded_chat_payload("I do not have enough retrieved context to answer safely.")
 
         llm_payload = generate_json(
-            _build_prompt(normalized_query, context_rows),
+            _build_prompt(normalized_query, context_rows, prior_turns=prior_turns or None),
             metadata={
                 "task_type": "reasoning",
                 "component": "tenn_chat",
@@ -270,6 +319,25 @@ def chat_with_tenn(query: str, *, ticker: str | None = None) -> dict[str, Any]:
         }
         for row in context_rows
     ]
+
+    if session_memory_enabled:
+        retrieved_chunk_ids = [
+            str(row.get("chunk_id") or "")
+            for row in context_rows
+            if str(row.get("chunk_id") or "").strip()
+        ]
+        record_turn(
+            normalized_session_id,  # type: ignore[arg-type]
+            _build_turn_payload(
+                session_id=normalized_session_id,  # type: ignore[arg-type]
+                query=normalized_query,
+                answer=answer,
+                ticker=normalized_ticker,
+                confidence=confidence,
+                sources=sources,
+                retrieved_chunk_ids=retrieved_chunk_ids or None,
+            ),
+        )
 
     return {
         "answer": answer,
