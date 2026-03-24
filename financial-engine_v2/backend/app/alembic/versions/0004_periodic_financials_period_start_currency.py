@@ -13,7 +13,7 @@ have no source data to backfill from.
 from alembic import op
 import sqlalchemy as sa
 
-revision = "0004_periodic_financials_period_start_currency"
+revision = "0004_financials_period_currency"
 down_revision = "0003_openbb_staging_snapshots"
 branch_labels = None
 depends_on = None
