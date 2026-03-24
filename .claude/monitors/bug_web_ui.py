@@ -574,6 +574,27 @@ setInterval(loadData, 30000);
 </html>
 """
 
+def _run_agent_job(fix_id: str, cmd: list) -> None:
+    """Worker thread: run claude subprocess and stream output into JOBS[fix_id]."""
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    deadline = time.time() + 300
+    for line in proc.stdout:
+        with _JOBS_LOCK:
+            JOBS[fix_id]["output"].append(line.rstrip())
+        if time.time() > deadline:
+            proc.kill()
+            proc.wait()
+            with _JOBS_LOCK:
+                JOBS[fix_id]["status"] = "error"
+                JOBS[fix_id]["output"].append("[timeout after 300s]")
+                JOBS[fix_id]["exit_code"] = -1
+            return
+    proc.wait()
+    with _JOBS_LOCK:
+        JOBS[fix_id]["status"] = "done" if proc.returncode == 0 else "error"
+        JOBS[fix_id]["exit_code"] = proc.returncode
+
+
 # ── HTTP handler ──────────────────────────────────────────────────────────────
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
@@ -606,6 +627,14 @@ class Handler(BaseHTTPRequestHandler):
                 fix_id, fix = match_known_fix(item)
                 result.append({**item, "fix_id": fix_id, "known_fix": fix})
             self.send_json(result)
+        elif self.path.startswith("/api/job/"):
+            fix_id = self.path.removeprefix("/api/job/")
+            with _JOBS_LOCK:
+                job = JOBS.get(fix_id)
+            if job is None:
+                self.send_json({"status": "not_found", "output": [], "exit_code": None}, 404)
+            else:
+                self.send_json(dict(job))
         else:
             self.send_response(404)
             self.end_headers()

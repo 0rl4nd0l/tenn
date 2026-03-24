@@ -61,3 +61,40 @@ def test_parse_alerts_no_issues_filtered(tmp_path):
     ui.LOG_FILE = original
     open_items = [a for a in alerts if a.get("issues")]
     assert open_items == []
+
+
+def test_run_agent_job_success(monkeypatch):
+    import subprocess as sp
+
+    class FakeProc:
+        returncode = 0
+        stdout = iter(["line one\n", "line two\n"])
+        def wait(self): pass
+
+    monkeypatch.setattr(sp, "Popen", lambda *a, **kw: FakeProc())
+    monkeypatch.setattr(ui, "time", type("T", (), {"time": staticmethod(lambda: 0)})())
+
+    ui.JOBS["test-job"] = {"status": "running", "output": [], "exit_code": None}
+    ui._run_agent_job("test-job", ["claude", "--print", "-p", "fix it"])
+
+    assert ui.JOBS["test-job"]["status"] == "done"
+    assert ui.JOBS["test-job"]["output"] == ["line one", "line two"]
+    assert ui.JOBS["test-job"]["exit_code"] == 0
+
+
+def test_run_agent_job_nonzero_exit(monkeypatch):
+    import subprocess as sp
+
+    class FakeProc:
+        returncode = 1
+        stdout = iter(["error output\n"])
+        def wait(self): pass
+
+    monkeypatch.setattr(sp, "Popen", lambda *a, **kw: FakeProc())
+    monkeypatch.setattr(ui, "time", type("T", (), {"time": staticmethod(lambda: 0)})())
+
+    ui.JOBS["fail-job"] = {"status": "running", "output": [], "exit_code": None}
+    ui._run_agent_job("fail-job", ["claude", "--print", "-p", "fix it"])
+
+    assert ui.JOBS["fail-job"]["status"] == "error"
+    assert ui.JOBS["fail-job"]["exit_code"] == 1
