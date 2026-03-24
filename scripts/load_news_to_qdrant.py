@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import hashlib
+import logging
 import sqlite3
 import sys
 from pathlib import Path
@@ -18,6 +19,12 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 BACKEND_ROOT = REPO_ROOT / "financial-engine_v2" / "backend"
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
+
+# Marker file records the model used to build the news_chunks collection.
+# Must match on every subsequent sync to prevent dimension corruption.
+NEWS_CHUNKS_MODEL_FILE = REPO_ROOT / "financial-engine_v2" / "reports" / "news_chunks_embedding_model.txt"
+
+logger = logging.getLogger(__name__)
 
 from news_pipeline.cli_common import DEFAULT_NEWS_ARTICLES_DB  # noqa: E402
 
@@ -205,9 +212,66 @@ def sync_news_to_qdrant(
     embed_model = str(getattr(settings, "embed_model", "nomic-embed-text"))
     ollama_url = str(getattr(settings, "ollama_url", "http://localhost:11434"))
 
+    # --- Preflight: log resolved configuration before any writes ---
+    logger.info(
+        "news_chunks_sync preflight: collection=%s qdrant_url=%s embed_model=%s ollama_url=%s",
+        collection, qdrant_url, embed_model, ollama_url,
+    )
+
+    # Check stored model marker — refuse to write if it conflicts with a populated collection.
+    stored_model: Optional[str] = None
+    if NEWS_CHUNKS_MODEL_FILE.exists():
+        try:
+            stored_model = NEWS_CHUNKS_MODEL_FILE.read_text(encoding="utf-8").strip() or None
+        except OSError as exc:
+            logger.warning("news_chunks_sync: unable to read model marker %s: %s", NEWS_CHUNKS_MODEL_FILE, exc)
+    if stored_model and stored_model != embed_model:
+        # Only block if the collection already has vectors.
+        from app.services.embeddings import get_qdrant_collection_vector_config
+        try:
+            existing_cols = [c.name for c in client.get_collections().collections]
+            if collection in existing_cols:
+                cfg = get_qdrant_collection_vector_config(client, collection)
+                existing_points = int(cfg.get("points_count") or 0)
+                if existing_points > 0:
+                    raise RuntimeError(
+                        f"news_chunks_sync: embedding model mismatch — stored marker is '{stored_model}', "
+                        f"configured model is '{embed_model}', collection '{collection}' has {existing_points} vectors. "
+                        "Rebuild the collection with the correct model or update the marker file."
+                    )
+        except RuntimeError:
+            raise
+        except Exception as exc:
+            logger.warning("news_chunks_sync: preflight model-marker check failed: %s", exc)
+
     # Determine vector dimension by embedding a probe text.
     probe_vec = ollama_embed(ollama_url, embed_model, ["probe"])[0]
     dim = len(probe_vec)
+    logger.info("news_chunks_sync: probe_dim=%d embed_model=%s", dim, embed_model)
+
+    # Check existing collection dimension before writing.
+    try:
+        existing_cols = [c.name for c in client.get_collections().collections]
+        if collection in existing_cols:
+            from app.services.embeddings import get_qdrant_collection_vector_config
+            cfg = get_qdrant_collection_vector_config(client, collection)
+            existing_dim = cfg.get("actual_dim")
+            existing_points = int(cfg.get("points_count") or 0)
+            if existing_dim is not None and existing_dim != dim:
+                raise RuntimeError(
+                    f"news_chunks_sync: dimension mismatch — probe_dim={dim} (model='{embed_model}'), "
+                    f"collection '{collection}' has dim={existing_dim} with {existing_points} existing vectors. "
+                    "Rebuild the collection with the correct model before syncing."
+                )
+            logger.info(
+                "news_chunks_sync: collection '%s' exists dim=%s points=%d — probe_dim=%d match=%s",
+                collection, existing_dim, existing_points, dim, existing_dim == dim,
+            )
+    except RuntimeError:
+        raise
+    except Exception as exc:
+        logger.warning("news_chunks_sync: preflight collection-dimension check failed: %s", exc)
+
     ensure_collection(client, collection, dim)
 
     total_chunks = 0
@@ -246,10 +310,25 @@ def sync_news_to_qdrant(
                 total_upserted += flush_batch()
 
     total_upserted += flush_batch()
-    return {"articles": len(articles), "chunks": total_chunks, "upserted": total_upserted}
+
+    # Write model marker after successful sync so future runs can verify consistency.
+    try:
+        NEWS_CHUNKS_MODEL_FILE.parent.mkdir(parents=True, exist_ok=True)
+        NEWS_CHUNKS_MODEL_FILE.write_text(embed_model, encoding="utf-8")
+        logger.info("news_chunks_sync: wrote model marker %s → '%s'", NEWS_CHUNKS_MODEL_FILE, embed_model)
+    except OSError as exc:
+        logger.warning("news_chunks_sync: unable to write model marker: %s", exc)
+
+    stats = {"articles": len(articles), "chunks": total_chunks, "upserted": total_upserted}
+    logger.info("news_chunks_sync complete: %s", stats)
+    return stats
 
 
 def main() -> int:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
     ap = argparse.ArgumentParser(description="Sync news chunks from SQLite to Qdrant.")
     ap.add_argument("--db-path", default=str(DEFAULT_NEWS_ARTICLES_DB), help="news_articles SQLite path")
     ap.add_argument("--qdrant-url", default="http://localhost:6333", help="Qdrant service URL")
