@@ -3,6 +3,7 @@ data/
 *.png
 TUI EVIDENCE/
 financial-engine_v2/backend/reports/
+financial-engine_v2/backend/tests/eval_results/
 __pycache__/
 *.log
 .DS_Store

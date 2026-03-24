@@ -11,8 +11,10 @@ TWO MODES:
       Run manually before merging any extraction changes.
       Requires: llamacpp running on port 8001, eval_fixtures/*.json present.
 """
+import datetime
 import json
 import math
+import warnings
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -46,6 +48,38 @@ def metric_matches(extracted: float | None, expected: float | None,
     if expected == 0:
         return abs(extracted) < 1  # near-zero
     return abs((extracted - expected) / expected) <= tolerance
+
+
+def _write_eval_log(
+    config: dict,
+    overall_acc: float,
+    per_fixture_data: dict,
+    per_metric_results: dict,
+) -> None:
+    """Write a machine-readable eval result JSON to tests/eval_results/.
+
+    Written before assertions so the log is available even when the test fails.
+    """
+    results_dir = Path(__file__).parent / "eval_results"
+    results_dir.mkdir(exist_ok=True)
+    ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
+    log = {
+        "timestamp": ts,
+        "overall_accuracy": round(overall_acc, 4),
+        "per_fixture": per_fixture_data,
+        "per_metric": {
+            m: round(sum(v) / len(v), 4)
+            for m, v in per_metric_results.items()
+            if v
+        },
+        "thresholds": {
+            "min_accuracy_overall": config["min_accuracy_overall"],
+            "warn_threshold": config.get("warn_threshold"),
+            "min_accuracy_per_metric": config.get("min_accuracy_per_metric", {}),
+        },
+    }
+    path = results_dir / f"eval_{ts}.json"
+    path.write_text(json.dumps(log, indent=2), encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -119,6 +153,7 @@ def test_live_eval_accuracy_against_fixtures():
     tolerances = config["tolerances"]
     per_metric_results: dict[str, list[bool]] = {}
     overall_results: list[bool] = []
+    per_fixture_data: dict[str, dict] = {}
 
     import os
     anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
@@ -176,11 +211,34 @@ def test_live_eval_accuracy_against_fixtures():
 
         # Per-fixture accuracy gate
         fixture_acc = sum(fixture_results) / len(fixture_results) if fixture_results else 0
+        label = fixture.get("ticker", fixture.get("document_id", "?"))
+        per_fixture_data[label] = {
+            "accuracy": round(fixture_acc, 4),
+            "metric_count": len(fixture_results),
+        }
         if fixture_acc < fixture_min_acc:
-            label = fixture.get("ticker", fixture.get("document_id", "?"))
             fixture_failures.append(
                 f"{label}: {fixture_acc:.1%} < {fixture_min_acc:.1%}"
             )
+
+    # Emit warnings for metrics approaching the failure threshold.
+    # warn_threshold is a soft floor — fires before the hard gate to give early notice.
+    warn_threshold = config.get("warn_threshold", 0.0)
+    if warn_threshold > 0:
+        for metric, results in sorted(per_metric_results.items()):
+            metric_acc = sum(results) / len(results) if results else 0.0
+            if metric_acc < warn_threshold:
+                warnings.warn(
+                    f"eval warn: '{metric}' accuracy {metric_acc:.1%} below "
+                    f"warn_threshold {warn_threshold:.1%}",
+                    UserWarning,
+                    stacklevel=2,
+                )
+
+    overall_acc = sum(overall_results) / len(overall_results) if overall_results else 0
+
+    # Structured eval log written before assertions so it exists even on failure.
+    _write_eval_log(config, overall_acc, per_fixture_data, per_metric_results)
 
     # Per-fixture failures reported first (most actionable)
     assert not fixture_failures, (
@@ -188,7 +246,6 @@ def test_live_eval_accuracy_against_fixtures():
     )
 
     # Overall accuracy across all fixtures
-    overall_acc = sum(overall_results) / len(overall_results) if overall_results else 0
     assert overall_acc >= config["min_accuracy_overall"], (
         f"Overall accuracy {overall_acc:.1%} below threshold {config['min_accuracy_overall']:.1%}"
     )
