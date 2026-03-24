@@ -22,6 +22,9 @@ COMMENTARY_COLLECTION_NAME = "commentary_chunks"
 COMMENTARY_COLLECTION_V2_NAME = "commentary_chunks_v2"
 SCROLL_BATCH_SIZE = 256
 ASX_DOCS_COLLECTION_NAME = "asx_docs"
+NEWS_CHUNKS_COLLECTION_NAME = "news_chunks"
+# Collections that support ticker-based payload filtering
+_TICKER_FILTER_COLLECTIONS = frozenset({ASX_DOCS_COLLECTION_NAME, NEWS_CHUNKS_COLLECTION_NAME})
 FINANCIAL_TITLE_MARKERS = ("appendix", "results", "financial")
 logger = logging.getLogger(__name__)
 
@@ -148,7 +151,7 @@ def _build_family_filter(framework_families: list[str] | None) -> qmodels.Filter
 
 def _build_ticker_filter(collection_name: str, ticker: str | None) -> qmodels.Filter | None:
     normalized_ticker = str(ticker or "").strip().upper()
-    if not normalized_ticker or str(collection_name or "").strip() != ASX_DOCS_COLLECTION_NAME:
+    if not normalized_ticker or str(collection_name or "").strip() not in _TICKER_FILTER_COLLECTIONS:
         return None
     return qmodels.Filter(
         must=[

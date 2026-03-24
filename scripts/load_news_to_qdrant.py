@@ -82,6 +82,23 @@ def _iter_chunks(
         aid = str(lr["article_id"])
         tickers_by_article.setdefault(aid, []).append(str(lr["ticker"]))
 
+    # Resolve primary ticker from article_relevance (is_primary=1, then highest relevance_score).
+    # Falls back to empty string when article_relevance has no rows for an article.
+    primary_ticker_by_article: Dict[str, str] = {}
+    rel_rows = conn.execute(
+        f"""
+        SELECT article_id, ticker
+          FROM article_relevance
+         WHERE article_id IN ({marks})
+         ORDER BY article_id ASC, is_primary DESC, relevance_score DESC
+        """,
+        tuple(article_ids),
+    ).fetchall()
+    for rr in rel_rows:
+        aid = str(rr["article_id"])
+        if aid not in primary_ticker_by_article:
+            primary_ticker_by_article[aid] = str(rr["ticker"])
+
     out = []
     for r in rows:
         article_id = str(r["article_id"])
@@ -102,6 +119,7 @@ def _iter_chunks(
                 "language": str(r["language"] or "en"),
                 "published_at": str(r["published_at_utc"] or ""),
                 "tickers": linked,
+                "primary_ticker": primary_ticker_by_article.get(article_id, ""),
                 "text": text,
             }
         )
@@ -109,14 +127,21 @@ def _iter_chunks(
 
 
 def _build_chunk_payload(art: Dict[str, Any], idx: int, chunk_text: str = "") -> Dict[str, Any]:
-    """Build the Qdrant point payload for one chunk of a news article."""
-    ticker = art["tickers"][0] if art["tickers"] else ""
+    """Build the Qdrant point payload for one chunk of a news article.
+
+    Uses `primary_ticker` (from article_relevance) when available.
+    Falls back to the single linked ticker when there is exactly one, otherwise empty.
+    """
+    primary_ticker = str(art.get("primary_ticker") or "").strip()
+    if not primary_ticker:
+        tickers = art.get("tickers") or []
+        primary_ticker = tickers[0] if len(tickers) == 1 else ""
     return {
         "corpus": "news",
         "article_id": art["article_id"],
         "chunk_id": f"news:{art['article_id']}:{idx}",
         "provider": art["provider"],
-        "ticker": ticker,
+        "ticker": primary_ticker,
         "published_at": art["published_at"],
         "language": art["language"],
         "title": art["title"],

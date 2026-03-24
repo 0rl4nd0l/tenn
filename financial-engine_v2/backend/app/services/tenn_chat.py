@@ -108,13 +108,20 @@ def _build_prompt(query: str, context_rows: list[dict[str, Any]]) -> str:
     context_json = json.dumps(context_rows, ensure_ascii=False, indent=2)
     return (
         "You are Tenn, a financial research assistant.\n\n"
-        "Use ONLY the provided context.\n"
-        "Answer the question clearly.\n\n"
+        "Use ONLY the provided context. Do not rely on prior knowledge or assumptions.\n\n"
+        "Temporal and uncertainty rules — follow strictly:\n"
+        "- Prefer evidence from more recent sources. Use `published_at` to judge recency.\n"
+        "- If sources conflict or contradict, acknowledge the conflict explicitly in your answer.\n"
+        "- If the most relevant article is more than 7 days old, note the staleness and reduce confidence.\n"
+        "- Do not extrapolate from incomplete or partial evidence. State what is unknown.\n"
+        "- Uncertainty is correct. Set `confidence` to reflect actual evidence quality, not to appear helpful.\n"
+        "  A confidence of 0.2 is a valid, honest answer when evidence is sparse or stale.\n\n"
+        "Answer the question based on the context.\n"
         "Then provide:\n"
-        "- Key insights\n"
-        "- Supporting evidence\n"
-        "- Confidence level (0-1)\n\n"
-        "Return only valid JSON with this schema:\n"
+        "- Key insights (each must be directly supported by a specific context item)\n"
+        "- Supporting evidence (cite `source_name` and `published_at` for each item)\n"
+        "- Confidence (0-1): reflect evidence quality, recency, and completeness\n\n"
+        "Return ONLY valid JSON — no prose before or after:\n"
         '{"answer":"","insights":[],"supporting_evidence":[],"confidence":0.0}\n\n'
         f"Question:\n{query.strip()}\n\n"
         f"Context:\n{context_json}\n"
@@ -136,10 +143,11 @@ def _degraded_chat_payload(message: str, *, error: str | None = None) -> dict[st
     return payload
 
 
-def chat_with_tenn(query: str) -> dict[str, Any]:
+def chat_with_tenn(query: str, *, ticker: str | None = None) -> dict[str, Any]:
     normalized_query = str(query or "").strip()
     if not normalized_query:
         raise ValueError("query is required")
+    normalized_ticker = str(ticker or "").strip().upper() or None
 
     if not bool(getattr(settings, "enable_embeddings", True)) or not bool(
         getattr(settings, "enable_qdrant", True)
@@ -165,7 +173,17 @@ def chat_with_tenn(query: str) -> dict[str, Any]:
                 top_k_keyword=10,
             )
             commentary_chunks = list(retrieval.get("chunks") or [])
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "commentary_retrieval_failed",
+                extra={
+                    "component": "tenn_chat",
+                    "collection": "commentary_chunks",
+                    "operation": "retrieve",
+                    "error": type(exc).__name__,
+                    "detail": str(exc)[:200],
+                },
+            )
             commentary_chunks = []
 
         news_retriever = HybridRetriever(collection_name="news_chunks")
@@ -173,6 +191,7 @@ def chat_with_tenn(query: str) -> dict[str, Any]:
             news_retrieval = news_retriever.retrieve(
                 query=normalized_query,
                 framework_families=None,
+                ticker=normalized_ticker,
                 top_k_vector=10,
                 top_k_keyword=10,
             )
@@ -180,7 +199,17 @@ def chat_with_tenn(query: str) -> dict[str, Any]:
                 _normalize_news_chunk(c)
                 for c in list(news_retrieval.get("chunks") or [])
             ]
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "news_retrieval_failed",
+                extra={
+                    "component": "tenn_chat",
+                    "collection": "news_chunks",
+                    "operation": "retrieve",
+                    "error": type(exc).__name__,
+                    "detail": str(exc)[:200],
+                },
+            )
             news_chunks = []
 
         ranked_chunks = _apply_chat_strategy(commentary_chunks + news_chunks)

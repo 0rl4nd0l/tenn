@@ -35,13 +35,26 @@ class NewsQdrantCorpusPayloadTests(unittest.TestCase):
         payload = _build_chunk_payload(_SAMPLE_ART, idx=2)
         self.assertEqual(payload["chunk_id"], "news:art-001:2")
 
-    def test_payload_first_ticker_used_when_multi_ticker(self):
-        art = dict(_SAMPLE_ART, tickers=["BHP", "RIO"])
+    def test_payload_primary_ticker_used_when_relevance_resolved(self):
+        """primary_ticker from article_relevance takes precedence over tickers list order."""
+        art = dict(_SAMPLE_ART, tickers=["ABC", "BHP", "RIO"], primary_ticker="RIO")
+        payload = _build_chunk_payload(art, idx=0)
+        self.assertEqual(payload["ticker"], "RIO", "primary_ticker must win over alphabetical first")
+
+    def test_payload_single_ticker_used_as_fallback(self):
+        """When primary_ticker is absent but only one ticker is linked, use it."""
+        art = dict(_SAMPLE_ART, tickers=["BHP"], primary_ticker="")
         payload = _build_chunk_payload(art, idx=0)
         self.assertEqual(payload["ticker"], "BHP")
 
+    def test_payload_ticker_empty_when_multi_ticker_and_no_primary(self):
+        """When multiple tickers are linked but no primary is resolved, ticker is empty (ambiguous)."""
+        art = dict(_SAMPLE_ART, tickers=["BHP", "RIO"], primary_ticker="")
+        payload = _build_chunk_payload(art, idx=0)
+        self.assertEqual(payload["ticker"], "")
+
     def test_payload_ticker_is_empty_string_when_no_tickers(self):
-        art = dict(_SAMPLE_ART, tickers=[])
+        art = dict(_SAMPLE_ART, tickers=[], primary_ticker="")
         payload = _build_chunk_payload(art, idx=0)
         self.assertEqual(payload["ticker"], "")
 

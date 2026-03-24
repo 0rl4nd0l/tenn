@@ -15,6 +15,7 @@ router = APIRouter()
 class ChatRequest(BaseModel):
     message: str
     mode: Literal["analysis", "strategy"]
+    ticker: str | None = None
 
 
 def _extract_proposal_id(message: str, prefix: str) -> str:
@@ -43,7 +44,7 @@ def _strategy_response(message: str) -> dict[str, Any]:
 def chat(payload: ChatRequest) -> dict[str, Any]:
     try:
         if payload.mode == "analysis":
-            return {"type": "analysis", "content": chat_with_tenn(payload.message)}
+            return {"type": "analysis", "content": chat_with_tenn(payload.message, ticker=payload.ticker)}
         return _strategy_response(payload.message)
     except HTTPException:
         raise
