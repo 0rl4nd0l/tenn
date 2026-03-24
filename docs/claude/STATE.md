@@ -4,7 +4,7 @@
 > Update this file at the end of every session alongside the milestone commit.
 > For detailed context on any item, follow the linked doc or run `git log --oneline`.
 
-Last updated: 2026-03-24 (session 3)
+Last updated: 2026-03-24 (session 4 — live eval)
 Branch: cloud/session-20260319
 
 ## Legend
@@ -26,7 +26,7 @@ Branch: cloud/session-20260319
 | **extraction-hardening** | `[ in-progress ]` | (1) FX conversion logic not yet built — policy defined, ok_low_confidence stands; (2) provenance query UX: inspect script exists, schema access still awkward. (3) Live eval never run — critical gap documented. Quarterly CF values hand-verified (b78b2964). |
 | **news-pipeline** | `[ verified ]` | Embedding routing fixed, asx_docs rebuilt at 768-dim (a4564e47) |
 | **eval-fixtures** | `[ verified ]` | Quarterly GRE fixture + SEG non-mining fixture promoted (b78b2964). MIN values confirmed via docling cache. Quality assessment doc written. |
-| **extraction-quality** | `[ verified ]` | Evidence-based quality assessment complete. Findings: 25 fixture assertions confirmed from source; 0 live eval runs; MIN Pass 2 misclassification documented; full report at docs/claude/extraction_quality_assessment.md |
+| **extraction-quality** | `[ in-progress ]` | Live eval run 1 complete: 58.3% overall (Mistral 7B, 3 confounders). JSON parentheses bug fixed. Open: (1) Docling cache build for BHP/EQR in progress; (2) re-run with Qwen 2.5 14B after cache ready. Report at docs/claude/extraction_quality_assessment.md |
 
 ---
 
@@ -68,8 +68,9 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 
 | Commit | Workstream | Summary |
 |--------|------------|---------|
+| (this session) | extraction-quality | Live eval run 1: 58.3% overall (Mistral 7B, 3 confounders). JSON parentheses bug fixed + 3 tests. Docling cache build for BHP/EQR initiated. |
 | 1429dcaa | cockpit | Fix llama.cpp port 8080→8001 in all cockpit defaults; align docs/scripts to canonical port 8001 (L015) |
-| (this session) | extraction-quality | Evidence-based quality assessment: 25 fixture values confirmed, live eval gap documented, MIN Pass 2 misclassification found |
+| (prev session) | extraction-quality | Evidence-based quality assessment: 25 fixture values confirmed, live eval gap documented, MIN Pass 2 misclassification found |
 | a4564e47 | news-pipeline | Fix embedding routing + rebuild asx_docs 768-dim |
 | 58ff4e85 | bug-ui | Claude agent deploy + on-demand debate UI complete |
 | b78b2964 | eval | Promote quarterly fixtures + add SEG non-mining fixture |

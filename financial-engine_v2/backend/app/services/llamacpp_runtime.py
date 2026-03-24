@@ -237,7 +237,11 @@ def _parse_json_text(text: str) -> Any:
     # The regex strips commas that sit between digits without touching JSON's
     # structural commas (which are always followed by whitespace or a quote).
     cleaned = _re.sub(r'(?<=\d),(?=\d)', '', stripped)
-    candidates = [raw, stripped, _extract_first_json_value(stripped), cleaned, _extract_first_json_value(cleaned)]
+    # Also try with accounting parentheses converted to negatives: (5,590) → -5,590.
+    # Then apply thousands-separator removal to get valid JSON numbers.
+    acc = _re.sub(r'\((\d[\d,]*)\)', lambda m: '-' + m.group(1), stripped)
+    acc_cleaned = _re.sub(r'(?<=\d),(?=\d)', '', acc)
+    candidates = [raw, stripped, _extract_first_json_value(stripped), cleaned, _extract_first_json_value(cleaned), acc, acc_cleaned, _extract_first_json_value(acc_cleaned)]
     seen = set()
     for candidate in candidates:
         value = str(candidate or "").strip()

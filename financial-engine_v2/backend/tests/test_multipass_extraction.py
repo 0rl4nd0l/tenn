@@ -788,3 +788,38 @@ def test_pass4_provenance_includes_page_number():
     assert "page_5" in prov, (
         f"Provenance must include 'page_5' for a table on page 5; got: {prov!r}"
     )
+
+
+# ---------------------------------------------------------------------------
+# JSON parse — accounting parentheses
+# ---------------------------------------------------------------------------
+
+def test_parse_json_accounting_parentheses():
+    """
+    Accounting notation: LLM outputs (5,590) meaning -5590.
+    _parse_json_text must convert these to negative numbers so the
+    response can be parsed as valid JSON.
+    """
+    from app.services.llamacpp_runtime import _parse_json_text
+
+    raw = '{"total_debt": (5,590), "cash_end": 1234}'
+    result = _parse_json_text(raw)
+    assert result == {"total_debt": -5590, "cash_end": 1234}
+
+
+def test_parse_json_accounting_parentheses_no_commas():
+    """Parenthesised integers without thousands separator also work."""
+    from app.services.llamacpp_runtime import _parse_json_text
+
+    raw = '{"investing_cf": (527)}'
+    result = _parse_json_text(raw)
+    assert result == {"investing_cf": -527}
+
+
+def test_parse_json_normal_negatives_unchanged():
+    """Normal negative numbers must not be transformed."""
+    from app.services.llamacpp_runtime import _parse_json_text
+
+    raw = '{"investing_cf": -527, "revenue": 3052}'
+    result = _parse_json_text(raw)
+    assert result == {"investing_cf": -527, "revenue": 3052}
