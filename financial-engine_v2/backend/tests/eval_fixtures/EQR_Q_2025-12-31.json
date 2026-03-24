@@ -1,0 +1,36 @@
+{
+  "_source": "Structural coverage fixture. Equus Mining (EQR) Q4 FY2026 Appendix 5B cash-flow report. Period: quarter ended 31 December 2025, filed 21 January 2026. ASX Appendix 5B format. Metrics are not hand-verified — this fixture exists to add a second quarterly ticker to the eval fixture set and to assert that income-statement metrics are correctly identified as absent in an Appendix 5B document. Cash-flow values are left unasserted; add verified values after running live_eval.",
+  "ticker": "EQR",
+  "pdf_path": "data/asx/docs/EQR/financial_performance/2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf",
+  "document_id": "eqr_q4_fy2026_appendix5b",
+  "period_type": "Q",
+  "period_end": "2025-12-31",
+  "currency": "AUD",
+  "scale": "thousands",
+  "metrics": {},
+  "expected_nulls": [
+    "revenue",
+    "ebit",
+    "np_attributable",
+    "net_debt",
+    "shares_outstanding"
+  ],
+  "config": {
+    "min_accuracy_overall": 0.80
+  },
+  "tolerances": {},
+  "notes": {
+    "_fixture_purpose": "Second quarterly ticker fixture. ASX Appendix 5B reports for exploration-stage companies contain quarterly cash-flow data but no income statement. The expected_nulls list asserts that the extraction pipeline correctly identifies these as absent rather than fabricating values.",
+    "_currency_note": "Defaulted to AUD — verify against filing. EQR has EUR-denominated debt facilities but files quarterly reports as an ASX-listed company in AUD. Verify from filing header before adding cash-flow assertions.",
+    "revenue": "Not present in Appendix 5B format. Expected null.",
+    "ebit": "Not present in Appendix 5B format. Expected null.",
+    "np_attributable": "Not present in Appendix 5B format. Expected null.",
+    "net_debt": "Not reported in standard quarterly 5B. Expected null.",
+    "shares_outstanding": "May appear in 5B section 8.1 but not reliably extractable as a single figure. Expected null until verified.",
+    "operating_cf": "Present in 5B but value not hand-verified. Not asserted — add verified value after live_eval run.",
+    "investing_cf": "Present in 5B but value not hand-verified. Not asserted.",
+    "financing_cf": "Present in 5B but value not hand-verified. Not asserted.",
+    "cash_end": "Present in 5B section 8.6 but value not hand-verified. Not asserted.",
+    "capex": "May appear in 5B as 'payments for property, plant and equipment'. Not asserted."
+  }
+}

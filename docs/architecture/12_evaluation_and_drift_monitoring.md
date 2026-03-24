@@ -87,3 +87,68 @@ Planned but not yet implemented: a **gold dataset** of (query, ticker?, expected
 - **Correctness** of answers when used with a reader/LLM, if we choose to evaluate that.
 
 This would complement the stability harness (consistency) with an explicit correctness signal. Placeholder only—no paths, schema, or CI contract defined yet.
+
+---
+
+## Multipass extraction accuracy eval
+
+A separate eval harness tests the accuracy of the financial metric extraction pipeline. This is distinct from RAG stability; it measures whether the LLM extracts the correct numeric values from real PDFs.
+
+### Harness location
+
+- Test file: `backend/tests/test_extraction_eval.py`
+- Config: `backend/tests/eval_config.json`
+- Fixtures: `backend/tests/eval_fixtures/*.json`
+- Output (gitignored): `backend/tests/eval_results/`
+
+### Two modes
+
+| Mode | How to run | What it tests |
+|------|-----------|---------------|
+| Unit mode (default) | `pytest backend/tests/test_extraction_eval.py` | Harness structure: fixture loading, metric_matches tolerance, expected_nulls counting logic |
+| Live eval | `pytest -m live_eval backend/tests/test_extraction_eval.py` | Full pipeline against real LLM — asserts accuracy >= thresholds |
+
+### Fixture inventory
+
+| Fixture | Ticker | Period type | Asserted metrics | Notes |
+|---------|--------|-------------|-----------------|-------|
+| `BHP_A_2021-06-30.json` | BHP | Annual (A) | 3 (revenue, ebit, np_attributable) | USD. 7 expected_nulls for unverified CF/BS metrics |
+| `RMS_H_2025-12-31.json` | RMS | Half-year (H) | 10 | AUD. Fully verified from Appendix 4D |
+| `MIN_H_2025-12-31.json` | MIN | Half-year (H) | 5 (loose 5% tol) | AUD millions. Requires hand-verification; model-extracted |
+| `GRE_Q_2024-12-31.json` | GRE | Quarterly (Q) | 0 (structural) | Appendix 5B. Tests income-statement metrics correctly absent |
+| `EQR_Q_2025-12-31.json` | EQR | Quarterly (Q) | 0 (structural) | Appendix 5B. Second quarterly ticker; adds layout diversity |
+
+**Structural fixtures** (GRE, EQR): `metrics: {}` with only `expected_nulls`. They assert that income statement metrics (`revenue`, `ebit`, `np_attributable`, `net_debt`, `shares_outstanding`) are correctly identified as absent in Appendix 5B documents. Cash-flow values (`operating_cf`, `investing_cf`, `financing_cf`, `cash_end`) are present in 5B but not yet hand-verified; add assertions after a live eval run.
+
+### Accuracy thresholds
+
+Defined in `eval_config.json`:
+
+| Threshold | Value |
+|-----------|-------|
+| `min_accuracy_overall` | 0.85 |
+| `warn_threshold` (soft floor, emits UserWarning) | 0.80 |
+| `min_accuracy_per_metric.operating_cf` | 0.90 |
+| `min_accuracy_per_metric.revenue` | 0.90 |
+| `min_accuracy_per_metric.period_end` | 1.00 |
+
+### PDF availability
+
+All fixture PDFs live at `financial-engine_v2/data/asx/docs/` and are present in the working environment. This path is gitignored; PDFs are not tracked in the repository.
+
+### Adding cash-flow values to structural fixtures
+
+After a live eval run, read the actual values from the PDF and add them to the fixture:
+
+```json
+“metrics”: {
+  “operating_cf”: <verified_value_in_native_units>,
+  “cash_end”: <verified_value_in_native_units>
+},
+“tolerances”: {
+  “operating_cf”: 0.01,
+  “cash_end”: 0.001
+}
+```
+
+Remove the metric from `expected_nulls` when adding it to `metrics`.

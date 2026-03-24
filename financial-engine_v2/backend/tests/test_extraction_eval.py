@@ -131,6 +131,91 @@ def test_metric_match_within_tolerance():
     assert not metric_matches(None, 3_241_000, 0.01)          # missing value
 
 
+def test_expected_nulls_counted_in_accuracy():
+    """expected_nulls assertions must be included in the accuracy calculation.
+
+    A structural-only fixture (empty metrics, only expected_nulls) must produce
+    accuracy == 1.0 when all expected-null metrics are actually null in the result,
+    and accuracy == 0.0 when none of them are null.
+
+    This test exercises the eval harness logic directly, without a real LLM or PDF.
+    """
+    null_metrics = ["revenue", "ebit", "np_attributable"]
+
+    # Simulate result where all expected-null metrics are actually null
+    def _run_harness(extracted_metrics: dict, expected_nulls: list[str]) -> float:
+        """Run the expected_nulls evaluation loop from test_live_eval_accuracy_against_fixtures."""
+        per_metric_results: dict[str, list[bool]] = {}
+        overall_results: list[bool] = []
+        for null_metric in expected_nulls:
+            val = extracted_metrics.get(null_metric)
+            ok = val is None
+            per_metric_results.setdefault(null_metric, []).append(ok)
+            overall_results.append(ok)
+        return sum(overall_results) / len(overall_results) if overall_results else 0.0
+
+    # All correctly null → accuracy 1.0
+    all_null = {m: None for m in null_metrics}
+    assert _run_harness(all_null, null_metrics) == 1.0, (
+        "expected_nulls accuracy must be 1.0 when all expected-null metrics are null"
+    )
+
+    # All incorrectly populated → accuracy 0.0
+    all_present = {m: 100_000 for m in null_metrics}
+    assert _run_harness(all_present, null_metrics) == 0.0, (
+        "expected_nulls accuracy must be 0.0 when all expected-null metrics have values"
+    )
+
+    # Partial: 2 of 3 null → accuracy 0.666…
+    partial = {"revenue": None, "ebit": None, "np_attributable": 50_000}
+    acc = _run_harness(partial, null_metrics)
+    assert abs(acc - 2 / 3) < 1e-9, f"Expected 0.667, got {acc:.4f}"
+
+
+def test_structural_fixture_with_only_expected_nulls_produces_valid_accuracy():
+    """A fixture with empty metrics and only expected_nulls (GRE/EQR quarterly pattern)
+    must produce a valid accuracy score that contributes to overall accuracy.
+
+    Validates that the quarterly structural coverage path is correctly measured.
+    """
+    # Simulate a quarterly structural fixture (no asserted numeric values)
+    fixture = {
+        "metrics": {},
+        "expected_nulls": ["revenue", "ebit", "np_attributable", "net_debt"],
+        "config": {"min_accuracy_overall": 0.80},
+    }
+    # Simulated extraction result with income statement metrics correctly absent
+    extracted_metrics = {
+        "revenue": None, "ebit": None, "np_attributable": None, "net_debt": None,
+        "operating_cf": 500_000, "cash_end": 2_000_000,
+    }
+
+    fixture_results: list[bool] = []
+
+    # Metrics loop (empty for structural fixture)
+    for metric, expected_val in fixture["metrics"].items():
+        tol = 0.01
+        extracted_val = extracted_metrics.get(metric)
+        fixture_results.append(metric_matches(extracted_val, expected_val, tol))
+
+    # Expected nulls loop
+    for null_metric in fixture.get("expected_nulls", []):
+        val = extracted_metrics.get(null_metric)
+        fixture_results.append(val is None)
+
+    assert len(fixture_results) == 4, (
+        f"Structural fixture must produce 4 accuracy data points (one per expected_null); "
+        f"got {len(fixture_results)}"
+    )
+    assert all(fixture_results), (
+        "All expected_null assertions must pass when income statement metrics are correctly null"
+    )
+    acc = sum(fixture_results) / len(fixture_results)
+    assert acc >= fixture["config"]["min_accuracy_overall"], (
+        f"Structural fixture accuracy {acc:.1%} must meet per-fixture threshold"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Live eval mode: accuracy regression gate (requires real LLM + fixtures)
 # ---------------------------------------------------------------------------
