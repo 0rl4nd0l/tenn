@@ -104,7 +104,11 @@ class GdeltProvider(ProviderClient):
         if isinstance(exc, urllib.error.HTTPError) and int(getattr(exc, "code", 0) or 0) in (400, 414):
             return True
         msg = str(exc or "").strip().lower()
-        return ("too short or too long" in msg) or ("query" in msg and "too long" in msg)
+        return (
+            "too short or too long" in msg
+            or ("query" in msg and "too long" in msg)
+            or "phrase is too short" in msg
+        )
 
     @staticmethod
     def _ticker_clause(symbol: str) -> str:
@@ -118,7 +122,7 @@ class GdeltProvider(ProviderClient):
         clauses = [self._ticker_clause(sym) for sym in clean_symbols]
         joined = " OR ".join(clauses)
         if include_query_base:
-            return f"({self.query_base}) AND ({joined})"
+            return f"{self.query_base} AND ({joined})"
         return f"({joined})"
 
     def _build_query_plan(self, tickers: Sequence[str]) -> List[Dict[str, Any]]:

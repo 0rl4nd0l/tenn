@@ -183,6 +183,44 @@ class ProviderTests(unittest.TestCase):
         self.assertGreaterEqual(int(provider.last_fetch_diagnostics.get("queries_succeeded", 0)), 1)
         self.assertGreaterEqual(int(provider.last_fetch_diagnostics.get("ticker_query_errors", 0)), 1)
 
+    def test_gdelt_phrase_too_short_triggers_base_fallback(self):
+        """GDELT's newer 'The specified phrase is too short.' error must trigger the
+        base-query fallback, not silently swallow the failure."""
+        class FakeProvider(GDELT.GdeltProvider):
+            def __init__(self):
+                super().__init__(max_records=50, max_ticker_batches=0, ticker_query_batch_size=0)
+                self.queries = []
+
+            def _request_json(self, url: str):
+                query = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query).get("query", [""])[0]
+                self.queries.append(query)
+                # Simulate the newer GDELT API error variant (observed March 2026).
+                if ".AX" in query or "Australian shares" in query:
+                    raise RuntimeError(
+                        "GDELT returned non-JSON payload: Expecting value: line 1 column 1 (char 0) "
+                        "| preview='The specified phrase is too short.'"
+                    )
+                return {"articles": [{"title": "ASX news", "url": "https://example.com/asx", "seendate": "20260309143000"}]}
+
+        provider = FakeProvider()
+        rows = provider.fetch_window(
+            window_start_utc="2026-03-09T00:00:00Z",
+            window_end_utc="2026-03-09T23:59:59Z",
+            tickers=[],
+        )
+        self.assertEqual(len(rows), 1, "base-query fallback must recover one article")
+        self.assertGreaterEqual(len(provider.queries), 2, "must have attempted fallback query")
+        self.assertGreaterEqual(int(provider.last_fetch_diagnostics.get("fallback_base_simple", 0)), 1)
+
+    def test_gdelt_ticker_query_no_double_paren_on_base(self):
+        """Combined ticker query must not double-wrap query_base — GDELT rejects ((base)) AND (...)."""
+        provider = GDELT.GdeltProvider()
+        query = provider._build_ticker_query(["BHP", "CBA"], include_query_base=True)
+        # query_base already starts with '(' — wrapping again produces '((' which GDELT rejects.
+        self.assertFalse(query.startswith("(("), f"double-paren detected: {query[:60]}")
+        # The base expression must still appear at the start.
+        self.assertTrue(query.startswith('("Australian'), f"base expression missing: {query[:60]}")
+
     def test_eodhd_fetch_from_capture_and_parse(self):
         with tempfile.TemporaryDirectory() as td:
             tmp = Path(td)
