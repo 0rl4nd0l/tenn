@@ -1,0 +1,2 @@
+# Benzinga focused source list
+auto:https://www.benzinga.com

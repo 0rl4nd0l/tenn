@@ -88,7 +88,7 @@ import re as _re
 _SCALE_PATTERNS: list[tuple[str, str]] = [
     (r"\$'?000[,s]?\b|\bthousands?\b", "thousands"),
     # Millions: spelled-out, $'000,000, compact $M / A$M notation (common in AU mining)
-    (r"\$'?000,000|\bmillions?\b|A?\$M\b|\$m\b", "millions"),
+    (r"\$'?000,000|\bmillions?\b|A?\$[Mm]\b|\$m\b", "millions"),
     (r"\bbillions?\b", "billions"),
 ]
 
@@ -184,6 +184,7 @@ _TABLE_KEYWORDS: dict[str, list[str]] = {
     "highlights": [
         "highlights", "key metrics", "summary", "at a glance", "key financials",
         "key information",  # Appendix 4D "Key Information" table (has EBIT, EBITDA labeled)
+        "results for announcement",  # Appendix 4D summary tables — header bonus from _STATEMENT_HEADERS can fire
     ],
 }
 
@@ -263,7 +264,7 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
     for label in _TABLE_KEYWORDS:
         if pools[label]:
             labelled[label] = max(
-                pools[label], key=lambda x: (x[0], x[1], -x[2].page_number)
+                pools[label], key=lambda x: (x[0], x[1], x[2].page_number)
             )[2]
 
     return labelled
@@ -369,7 +370,7 @@ def _run_pass3a_metric_extractor(
         )
 
         try:
-            raw = _llm_json_call(prompt, llm_client, max_tokens=512)
+            raw = _llm_json_call(prompt, llm_client, max_tokens=1024)
         except Exception as e:
             logger.warning("Pass 3a failed for %s: %s — retrying with truncated table", table_type, e)
             try:
@@ -383,7 +384,7 @@ def _run_pass3a_metric_extractor(
                     metric_list=", ".join(metrics),
                     metric_schema=metric_schema,
                 )
-                raw = _llm_json_call(truncated_prompt, llm_client, max_tokens=512)
+                raw = _llm_json_call(truncated_prompt, llm_client, max_tokens=1024)
             except Exception as e2:
                 logger.error("Pass 3a retry also failed for %s: %s", table_type, e2)
                 continue
@@ -603,17 +604,6 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
     if payload.get("scale") == "unknown":
         return "failed", "validation_gate:scale_unknown"
 
-    # Non-AUD currency: values are stored as-is with no FX conversion.
-    # Flag as ok_low_confidence so consumers know to treat values with caution.
-    # A warning was already emitted at ingestion time in run_multipass_extraction.
-    _currency = (payload.get("currency") or "AUD").upper()
-    if _currency != "AUD":
-        logger.warning(
-            "validation_gate:non_aud_currency:%s — downgrading to ok_low_confidence (no FX policy)",
-            _currency,
-        )
-        return "ok_low_confidence", None
-
     metrics = payload.get("metrics", {})
     non_null = [v for v in metrics.values() if v is not None]
     if len(non_null) < 3:
@@ -626,6 +616,18 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
     confidence = payload.get("confidence_metrics", 0.0)
     if confidence < 0.60:
         return "failed", f"validation_gate:low_confidence:{confidence}"
+
+    # Non-AUD currency: values are stored as-is with no FX conversion.
+    # Flag as ok_low_confidence so consumers know to treat values with caution,
+    # but only after all quality gates pass — non-AUD must not bypass them.
+    # A warning was already emitted at ingestion time in run_multipass_extraction.
+    _currency = (payload.get("currency") or "AUD").upper()
+    if _currency != "AUD":
+        logger.warning(
+            "validation_gate:non_aud_currency:%s — downgrading to ok_low_confidence (no FX policy)",
+            _currency,
+        )
+        return "ok_low_confidence", None
 
     # Soft warning
     if confidence < 0.70:

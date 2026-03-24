@@ -1,0 +1,2 @@
+# Stockhead focused source list
+auto:https://stockhead.com.au

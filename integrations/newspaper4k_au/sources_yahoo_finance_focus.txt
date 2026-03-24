@@ -1,0 +1,2 @@
+# Yahoo Finance focused source list
+auto:https://finance.yahoo.com

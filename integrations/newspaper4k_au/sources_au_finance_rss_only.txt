@@ -1,34 +1,3 @@
-# ASX RSS feed list (tiered). One URL per line.
-# Lines starting with # are ignored.
-
-# Tier 1 — Core AU business media (backbone)
-https://www.abc.net.au/news/feed/51120/rss.xml
-https://www.afr.com/rss
-https://www.smh.com.au/rss/feed.xml
-https://www.theage.com.au/rss/feed.xml
-https://www.theaustralian.com.au/business/rss
-
-# Tier 2 — Market-focused AU sites (high ASX relevance)
-https://www.marketindex.com.au/news/rss
-https://au.finance.yahoo.com/rss/
-https://stockhead.com.au/feed/
-https://www.livewiremarkets.com/rss
-https://smallcaps.com.au/feed/
-
-# Tier 3 — Mining / energy / resources
-https://www.mining.com/feed/
-https://www.australianmining.com.au/feed/
-https://www.proactiveinvestors.com.au/rss
-
-# Tier 5 — Global market wires covering ASX majors
-https://www.reuters.com/markets/rss
-https://www.reuters.com/business/rss
-
-# Optional regulator/macro feeds (can increase signal for banks/insurers)
-# https://www.rba.gov.au/rss/rss-cb.xml
-# https://www.apra.gov.au/rss
-# https://asic.gov.au/about-asic/news-centre/rss-feed/
-
-# Optional additional sources
-# https://www.cnbc.com/id/20409666/device/rss/rss.html
-# https://www.mining.com/tag/lithium/feed/
+# Deterministic RSS-only source list for stable runs.
+rss:https://www.abc.net.au/news/feed/51120/rss.xml
+rss:https://www.theguardian.com/au/business/rss

@@ -1,0 +1,2 @@
+# The Australian focused source list (login/subscription usually required)
+auto:https://www.theaustralian.com.au/business

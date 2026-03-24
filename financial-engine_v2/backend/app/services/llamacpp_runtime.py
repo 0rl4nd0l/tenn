@@ -239,7 +239,7 @@ def _parse_json_text(text: str) -> Any:
     cleaned = _re.sub(r'(?<=\d),(?=\d)', '', stripped)
     # Also try with accounting parentheses converted to negatives: (5,590) → -5,590.
     # Then apply thousands-separator removal to get valid JSON numbers.
-    acc = _re.sub(r'\((\d[\d,]*)\)', lambda m: '-' + m.group(1), stripped)
+    acc = _re.sub(r'\((\d[\d,.]*)\)', lambda m: '-' + m.group(1), stripped)
     acc_cleaned = _re.sub(r'(?<=\d),(?=\d)', '', acc)
     candidates = [raw, stripped, _extract_first_json_value(stripped), cleaned, _extract_first_json_value(cleaned), acc, acc_cleaned, _extract_first_json_value(acc_cleaned)]
     seen = set()

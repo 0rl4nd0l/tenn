@@ -1,0 +1,3 @@
+# Non-paywalled AU-friendly finance feeds (no subscription required)
+rss:https://abc.net.au/news/feed/51120/rss.xml
+rss:https://theguardian.com/au/business/rss

@@ -198,8 +198,10 @@ def test_structural_fixture_with_only_expected_nulls_produces_valid_accuracy():
         extracted_val = extracted_metrics.get(metric)
         fixture_results.append(metric_matches(extracted_val, expected_val, tol))
 
-    # Expected nulls loop
+    # Expected nulls loop (skip keys already counted in metrics loop)
     for null_metric in fixture.get("expected_nulls", []):
+        if null_metric in fixture.get("metrics", {}):
+            continue  # already counted in metrics loop
         val = extracted_metrics.get(null_metric)
         fixture_results.append(val is None)
 
@@ -286,13 +288,23 @@ def test_live_eval_accuracy_against_fixtures():
             overall_results.append(match)
             fixture_results.append(match)
 
-        # Check expected nulls
+        # Check expected nulls (skip keys already counted in metrics loop)
         for null_metric in fixture.get("expected_nulls", []):
+            if null_metric in fixture.get("metrics", {}):
+                continue  # already counted in metrics loop
             val = result.payload.get("metrics", {}).get(null_metric)
             ok = val is None
             per_metric_results.setdefault(null_metric, []).append(ok)
             overall_results.append(ok)
             fixture_results.append(ok)
+
+        # Check period_end if fixture specifies it
+        if "period_end" in fixture:
+            expected_pe = fixture["period_end"]
+            extracted_pe = str(result.payload.get("period_end", ""))
+            pe_match = expected_pe == extracted_pe
+            fixture_results.append(pe_match)
+            overall_results.append(pe_match)
 
         # Per-fixture accuracy gate
         fixture_acc = sum(fixture_results) / len(fixture_results) if fixture_results else 0

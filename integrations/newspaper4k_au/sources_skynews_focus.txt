@@ -1,0 +1,2 @@
+# Sky News Business focused source list
+auto:https://www.skynews.com.au/business
