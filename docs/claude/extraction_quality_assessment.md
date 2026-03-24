@@ -3,7 +3,7 @@
 > **Date:** 2026-03-24
 > **Branch:** cloud/session-20260319
 > **Scope:** Multipass extraction pipeline accuracy against real ASX financial PDFs.
-> **Method:** Direct PDF/docling cache inspection + test execution. No live LLM eval run.
+> **Method:** Direct PDF/docling cache inspection + test execution + parallel sub-agent source-truth verification (BHP/RMS/MIN PDFs read directly) + extraction output report analysis. No live LLM eval run against the **multipass** pipeline.
 
 ---
 
@@ -26,7 +26,12 @@ Every deterministic component (Pass 2 table locator, Pass 4 reconciler) has been
 | `GRE_Q_2024-12-31.json` | GRE | Quarterly | Appendix 5B | **PDF-verified** | AUD thousands; all 4 CF metrics confirmed |
 | `EQR_Q_2025-12-31.json` | EQR | Quarterly | Appendix 5B | **PDF-verified** | AUD thousands; 1k rounding artifact documented |
 
-All 25 asserted metric values across the 6 fixtures are confirmed correct from source documents.
+**All 25 asserted metric values across the 6 fixtures are confirmed correct from source documents.**
+
+Sub-agent direct PDF verification (BHP/RMS/MIN, 17 metrics):
+- BHP: revenue=60,817M ✓, ebit=25,906M ✓, np_attributable=11,304M ✓
+- RMS: all 9 metrics read directly from Appendix 4D / cash flow statement ✓
+- MIN: all 5 metrics confirmed from Appendix 4D / cash flow statement ✓
 
 ---
 
@@ -90,6 +95,30 @@ Verified against two real document structures.
 - **B4 net_debt derivation:** `total_debt - cash_end` when net_debt is null from balance_sheet.
 - **Verified correct** for the fixtures' patterns.
 
+### Old Pipeline Output (reports/financial_metrics_bhp_finperf_v13.json)
+
+The `reports/` directory contains extraction output from the **pre-multipass** Docling pipeline. This is the only real-LLM extraction output that exists.
+
+**BHP FY2021-06-30 — old pipeline vs fixture truth:**
+
+| Metric | Fixture (correct) | v13 extracted | Delta | Status |
+|--------|------------------|--------------|-------|--------|
+| revenue | 60,817,000,000 USD | 56,921,000,000 USD | −6.4% | **WRONG** |
+| ebit | 25,906,000,000 USD | 25,515,000,000 USD | −1.5% | **WRONG** |
+| net_income (≠ np_attributable) | — | 13,676,000,000 USD | wrong metric | **WRONG METRIC** |
+| np_attributable | 11,304,000,000 USD | not extracted | missing | **MISSING** |
+
+Root cause: old pipeline read wrong rows from a multi-column income statement.
+- Revenue: extracted 56,921M ("Revenue from continuing operations" subset) vs correct 60,817M (total)
+- net_income: extracted "Profit after taxation from Continuing operations" (13,676M) instead of "Profit attributable to BHP shareholders" (11,304M)
+
+This is NOT a multipass pipeline finding — the v13 output pre-dates multipass. But it validates that these errors are real and confirms the fixture values are correct by contrast.
+
+**Cockpit runs (reports/cockpit_update_ticker_financials_*):**
+- 375 tickers reviewed in latest full sync (2026-03-24T00:33–01:00)
+- All cockpit runs: extraction NOT invoked — pipeline performs document ingestion and classification only
+- One failed run: `cockpit_update_ticker_financials_aeeaf28d.json` — PostgreSQL `OperationalError` (name resolution failure), not an extraction bug
+
 ### DB Storage (Extraction Runs)
 
 - **`data/financial_engine.db`:** 3 rows in `asx_periodic_financials`, all NAB, all fake (round numbers, UUID 000…001/002/003). Placeholder data only.
@@ -102,7 +131,8 @@ Verified against two real document structures.
 
 | Category | Evidence | Severity |
 |----------|---------|---------|
-| **Zero live eval runs** | `eval_results/` absent; DB has 0 extraction records | CRITICAL gap |
+| **Zero multipass live eval runs** | `eval_results/` absent; DB has 0 multipass extraction records | CRITICAL gap |
+| **Old pipeline accuracy failures** | v13 BHP FY2021: revenue −6.4%, ebit −1.5%, wrong metric for np_attributable | HISTORICAL (old pipeline, not multipass) |
 | **MIN Pass 2 misclassification** | Table 0 (4D summary) wins income_statement pool over Table 10 (actual IS) due to equal keyword score + earlier page | MEDIUM (no metric errors for current fixture, but fragile for ebit/np asserted metrics) |
 | **Old pipeline np_attributable bug** | `reports/financial_metrics_bhp_finperf_v3.csv`: net_income=13,451M vs correct np=11,304M | HISTORICAL — pre-multipass pipeline, not in current code |
 | **Scale detection dependency** | Pass 1 LLM must detect scale; override logic is a backstop, not primary | LOW (override exists and is tested) |
