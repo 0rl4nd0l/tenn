@@ -50,50 +50,66 @@ $ .venv/bin/python -m pytest backend/tests/ -x -q --ignore=...test_extraction_ev
 212 passed in 2.81s       ← +3 new tests for JSON parentheses bug fix
 ```
 
-### Live Eval Run 1 — 2026-03-24T07:15:44Z
+### Live Eval — Three Runs Summary
 
-```
-$ .venv/bin/python -m pytest -m live_eval backend/tests/test_extraction_eval.py
-Duration: 19m 42s
-Model: model.gguf (Mistral 7B Instruct v0.2) — NOT the intended Qwen 2.5 14B
-Result: FAILED (overall accuracy 0.5833 < threshold 0.85)
-```
+All three runs used `model.gguf` (Mistral 7B Instruct v0.2, not the intended Qwen 2.5 14B).
 
-**Per-fixture results:**
+| Run | Timestamp | Duration | Overall | BHP | EQR | GRE | MIN | RMS | SEG | Notes |
+|-----|-----------|----------|---------|-----|-----|-----|-----|-----|-----|-------|
+| 1 | 071544Z | 19m 42s | 58.3% | 70.6% | 55.6% | 55.6% | 66.7% | 54.5% | 37.5% | No Docling cache, JSON bug, no api-key req |
+| 2 | 073606Z | ~18s | 48.3% | 82.4% | 55.6% | 55.6% | 16.7% | 18.2% | 25.0% | Docling cache, JSON fix, BUT 401 (no client key) |
+| 3 | 074305Z | 5m 48s | 45.0% | 23.5% | 55.6% | 55.6% | 66.7% | 54.5% | 37.5% | Docling cache, JSON fix, api-key correct — **canonical Mistral 7B run** |
 
-| Fixture | Accuracy | Points | Status |
-|---------|----------|--------|--------|
-| BHP | 0.7059 | 12/17 | FAIL — Docling timeout (300s), PyMuPDF fallback |
-| EQR | 0.5556 | 5/9 | FAIL — Docling timeout (120s), PyMuPDF fallback + JSON parse error |
-| GRE | 0.5556 | 5/9 | FAIL |
-| MIN | 0.6667 | 4/6 | FAIL |
-| RMS | 0.5455 | 6/11 | FAIL |
-| SEG | 0.375 | 3/8 | FAIL |
+**Key findings from cross-run comparison:**
 
-**Per-metric accuracy:**
+1. **EQR, GRE constant at 55.6% across all runs** — Docling cache and JSON fix had no effect on these quarterly fixtures. The extraction result is determined by the LLM, not by document parsing quality for these simple cash-flow-only documents.
 
-| Metric | Accuracy |
-|--------|----------|
-| operating_cf | 0.7143 |
-| cash_end | 0.6667 |
-| capex | 0.6667 |
-| net_debt | 0.625 |
-| investing_cf | 0.5714 |
-| financing_cf | 0.5714 |
-| shares_outstanding | 0.5714 |
-| revenue | 0.5 |
-| ebit | 0.5 |
-| np_attributable | 0.4 |
+2. **MIN, RMS, SEG constant at 66.7/54.5/37.5% between Run 1 and Run 3** — These already had Docling caches in Run 1 (no impact from cache build). Dropping to 16.7/18.2/25.0 in Run 2 confirms that was caused by 401 errors, not Docling.
 
-**Key log warnings from the run:**
+3. **~~BHP fixture design issue — CRITICAL~~** (RESOLVED): BHP `expected_nulls` included 7 unverified metrics. These have now been hand-verified from the docling cache and added to `metrics` with correct values. `expected_nulls` cleared. Future runs will correctly reward extraction of CF/BS values instead of penalizing it.
+
+4. **JSON fix impact on EQR**: The JSON parentheses fix should have helped EQR's balance_sheet extraction in Run 3. EQR stayed at 55.6% across all runs — suggesting either the balance_sheet data was never driving the score, or the EQR document structure produces the same result regardless.
+
+**Run 3 per-fixture details:**
+
+| Fixture | Accuracy | Status |
+|---------|----------|--------|
+| BHP | 23.5% | FAIL — fixture design issue (see above) |
+| EQR | 55.6% | FAIL |
+| GRE | 55.6% | FAIL |
+| MIN | 66.7% | FAIL |
+| RMS | 54.5% | FAIL |
+| SEG | 37.5% | FAIL |
+
+**Run 3 per-metric accuracy:**
+
+| Metric | Accuracy | Notes |
+|--------|----------|-------|
+| revenue | 0.667 | 3 fixtures — improved from 0.5 in Run 1 |
+| capex | 0.667 | |
+| ebit | 0.5 | |
+| np_attributable | 0.6 | improved from 0.4 |
+| shares_outstanding | 0.571 | |
+| operating_cf | 0.429 | degraded from 0.714 — likely BHP's null penalization |
+| investing_cf | 0.286 | degraded from 0.571 |
+| financing_cf | 0.286 | degraded from 0.571 |
+| cash_end | 0.333 | degraded from 0.667 |
+| net_debt | 0.375 | degraded from 0.625 |
+
+The CF metric degradation from Run 1 → Run 3 is almost entirely explained by BHP: Run 1 used PyMuPDF (null for CF), Run 3 uses Docling (extracts CF values) → BHP expected_null checks fail for all CF metrics.
+
+**Run 1 key log warnings:**
 ```
 WARNING docling exceeded 300s on .../BHP/... (falling back to PyMuPDF)
 WARNING docling exceeded 120s on .../EQR/... (falling back to PyMuPDF)
-WARNING non-AUD currency detected: USD  (BHP: expected; EQR: incorrect — caused by PyMuPDF flat text)
+WARNING non-AUD currency detected: USD  (BHP: expected; EQR: incorrect — PyMuPDF flat text)
 ERROR   Pass 3a retry also failed for balance_sheet: No valid JSON found in llama.cpp response: {"total_debt": (5,590), ...}
 ```
 
-**Output:** `backend/tests/eval_results/eval_2026-03-24T071544Z.json` (gitignored)
+**Output files (gitignored):**
+- `backend/tests/eval_results/eval_2026-03-24T071544Z.json` (Run 1)
+- `backend/tests/eval_results/eval_2026-03-24T073606Z.json` (Run 2, 401 errors)
+- `backend/tests/eval_results/eval_2026-03-24T074305Z.json` (Run 3, canonical)
 
 ---
 
@@ -178,9 +194,10 @@ This is NOT a multipass pipeline finding — the v13 output pre-dates multipass.
 
 | Category | Evidence | Severity | Status |
 |----------|---------|---------|--------|
-| **Docling timeout — BHP** | BHP is 82 pages; adaptive timeout = 328s → capped at 300s. Always falls back to PyMuPDF flat text. Cache missing. | CRITICAL — affects every eval run until cache is built | Open: cache build in progress |
-| **Docling timeout — EQR** | EQR is 17 pages; base 120s timeout exceeded. PyMuPDF fallback causes `ok_low_confidence` (USD detected from flat text). Cache missing. | HIGH — JSON parse error also occurs | Open: cache build in progress |
-| **JSON parentheses parse failure** | LLM outputs `(5,590)` (accounting notation) → `ValueError: No valid JSON`. EQR balance_sheet fails on both attempt and retry. | HIGH — hard failure for negative values in accounting notation | **FIXED** — `_parse_json_text` in `llamacpp_runtime.py` now converts `(N)` → `-N` before JSON parse |
+| **Docling timeout — BHP** | BHP is 82 pages; adaptive timeout = 328s → capped at 300s. Always falls back to PyMuPDF flat text. Cache missing on Run 1. | CRITICAL — but **RESOLVED**: cache built offline in 155s (98 tables, 82 pages). All future runs use cache. | Fixed |
+| **Docling timeout — EQR** | EQR is 17 pages; base 120s timeout exceeded (likely cold model load). PyMuPDF fallback causes `ok_low_confidence` (USD detected from flat text). Cache missing on Run 1. | HIGH — **RESOLVED**: cache built offline in 18s (12 tables, 17 pages). EQR now runs with proper table structure. | Fixed |
+| **JSON parentheses parse failure** | LLM outputs `(5,590)` (accounting notation) → `ValueError: No valid JSON`. EQR balance_sheet fails on both attempt and retry. | HIGH — hard failure for negative values in accounting notation | **FIXED** (d9241dee) — `_parse_json_text` in `llamacpp_runtime.py` now converts `(N)` → `-N` before JSON parse; 3 tests added |
+| **BHP fixture expected_nulls design flaw** | BHP `expected_nulls` marked CF/BS metrics as "expected null" because they were unverified — not because they're absent. Docling surfaces 98 real tables; pipeline correctly extracts CF metrics; eval penalized correct extraction. | HIGH — inflated BHP accuracy when pipeline returned all-null (82.4%) vs correct extraction (23.5%) | **FIXED** — all 10 metrics now hand-verified from docling cache (tables 4, 8, 12, 45, 46, 57, 76); `expected_nulls` cleared |
 | **Wrong model loaded** | `model.gguf` is Mistral 7B Instruct v0.2 (4.1GB), not `qwen2.5-14b-instruct-q4_k_m.gguf` (8.4GB) as intended | HIGH — all accuracy numbers are for wrong model | Open: requires server restart |
 | **Old pipeline accuracy failures** | v13 BHP FY2021: revenue −6.4%, ebit −1.5%, wrong metric for np_attributable | HISTORICAL (old pipeline, not multipass) | Historical |
 | **MIN Pass 2 misclassification** | Table 0 (4D summary) wins income_statement pool over Table 10 (actual IS) due to equal keyword score + earlier page | MEDIUM (no metric errors for current fixture, but fragile for ebit/np asserted metrics) | Open |
@@ -196,40 +213,39 @@ This is NOT a multipass pipeline finding — the v13 output pre-dates multipass.
 | revenue | BHP, RMS, MIN, SEG | All confirmed |
 | ebit | BHP, RMS | Both confirmed; RMS path via highlights ✓ |
 | np_attributable | BHP, RMS, SEG | All confirmed |
-| operating_cf | RMS, MIN, SEG, GRE, EQR | All confirmed |
-| investing_cf | RMS, MIN, SEG, GRE, EQR | All confirmed |
-| financing_cf | RMS, MIN, SEG, GRE, EQR | All confirmed |
-| cash_end | RMS, SEG, GRE, EQR | All confirmed |
-| capex | RMS | Confirmed (PP&E payments only) |
-| shares_outstanding | RMS, MIN | Both confirmed |
-| expected_nulls | All 6 fixtures | Structurally tested |
+| operating_cf | BHP, RMS, MIN, SEG, GRE, EQR | All confirmed |
+| investing_cf | BHP, RMS, MIN, SEG, GRE, EQR | All confirmed |
+| financing_cf | BHP, RMS, MIN, SEG, GRE, EQR | All confirmed |
+| cash_end | BHP, RMS, SEG, GRE, EQR | All confirmed |
+| capex | BHP, RMS | Both confirmed (BHP: PP&E + exploration; RMS: PP&E only) |
+| net_debt | BHP | Confirmed from highlights + net debt bridge |
+| shares_outstanding | BHP, RMS, MIN | All confirmed (BHP: weighted basic average, dual-listed) |
+| expected_nulls | 5 fixtures (GRE, EQR, SEG, RMS, MIN) | Structurally tested; BHP cleared |
 
-**All 25 fixture assertions are backed by source-document evidence. None are model-estimated.**
+**All 32 fixture assertions are backed by source-document evidence. None are model-estimated.** (Was 25 before BHP redesign.)
 
 ---
 
 ## Remaining Gaps
 
-### CRITICAL: Docling Cache Missing for BHP and EQR
+### ~~CRITICAL: Docling Cache Missing for BHP and EQR~~ — RESOLVED
 
-BHP (82 pages) exceeds the 300s DOCLING_TIMEOUT_MAX on every cold run. EQR (17 pages) also exceeded the 120s base timeout. Both need a one-time offline cache build:
-
-```bash
-# Run once without timeout cap — cache is written alongside the PDF
-python3 -c "
-import sys; sys.path.insert(0, 'backend')
-import app.services.docling_extract as de
-de.DOCLING_TIMEOUT_MAX = 900
-de.extract_structured('data/asx/docs/BHP/financial_performance/2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf')
-de.extract_structured('data/asx/docs/EQR/financial_performance/2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf')
-"
-```
-
-Once the `.docling.json` cache files exist alongside the PDFs, all future eval runs use the cache instantly.
+BHP: cache built offline in 155s (98 tables). EQR: cache built offline in 18s (12 tables). Both caches written at `data/asx/docs/{BHP,EQR}/financial_performance/*.pdf.docling.json`, version=2.75.0. All future eval runs hit cache instantly.
 
 ### HIGH: Wrong Model in llamacpp
 
-The server is running `model.gguf` (Mistral 7B Instruct v0.2, 4.1 GB). The intended model is `qwen2.5-14b-instruct-q4_k_m.gguf` (8.4 GB). Accuracy numbers from Run 1 are for Mistral 7B with two additional handicaps. A re-run with the correct model + Docling caches + JSON bug fix will give the first meaningful accuracy numbers for the intended pipeline.
+The server is running `model.gguf` (Mistral 7B Instruct v0.2, 4.1 GB). The intended model is `qwen2.5-14b-instruct-q4_k_m.gguf` (8.4 GB). Run 3 (45.0% overall) is the canonical Mistral 7B baseline — Docling caches built, JSON fix applied, correct API key. Runs with the correct Qwen 2.5 14B model will give the first meaningful accuracy for the intended pipeline.
+
+Also: **llamacpp now requires `Authorization: Bearer local-openai-key`** (started with `--api-key local-openai-key`). Run `pytest -m live_eval` with `LLM_API_KEY=local-openai-key` prefixed, or add that export to the shell environment.
+
+### ~~HIGH: BHP Fixture Expected_Nulls Design Flaw~~ — RESOLVED
+
+All 7 previously-unverified metrics (operating_cf, investing_cf, financing_cf, cash_end, capex, net_debt, shares_outstanding) have been hand-verified from the BHP docling cache (98 tables). Values sourced from:
+- Cash flow statement (Table 46): operating_cf=27,234M, investing_cf=(7,845M), financing_cf=(17,922M), cash_end=15,246M
+- Highlights (Table 4): capex=7,120M, net_debt=4,121M — cross-checked against net debt bridge (Table 8) and balance sheet (Table 45)
+- EPS notes (Table 12/57): shares_outstanding=5,057M (weighted basic average, dual-listed)
+
+`expected_nulls` cleared to empty list. BHP now asserts all 10 metrics with 1% tolerance. BHP fixture metric count: 10 asserted values + 1 period_end = 11 data points (was 3 + 7 null-checks + 1 period_end = 11).
 
 ### MEDIUM: MIN Pass 2 Income Statement Misclassification
 
@@ -253,11 +269,12 @@ MIN values confirmed from docling cache and fixture `_source` field updated (com
 
 Arithmetic cross-check confirmed: 412 (start) + 880 (ops) − 527 (investing) − 126 (financing) − 1 (FX) = 638 (cash_end). ✓
 
-## Next Required Action
+## Next Required Actions
 
 To get the first meaningful accuracy measurement for the **intended pipeline configuration**:
-1. Wait for docling cache build to complete for BHP + EQR (background process)
-2. Restart llamacpp with `qwen2.5-14b-instruct-q4_k_m.gguf`
-3. Run `pytest -m live_eval backend/tests/test_extraction_eval.py`
 
-The JSON parentheses fix (committed this session) will apply automatically.
+1. ~~**[Required]** Hand-verify BHP CF/BS metrics and fix the `expected_nulls` design flaw~~ — **DONE**. All 10 BHP metrics now hand-verified from docling cache.
+2. **[Required]** Restart llamacpp with `qwen2.5-14b-instruct-q4_k_m.gguf` — currently serving Mistral 7B.
+3. **[Required]** Run eval with correct env: `LLM_API_KEY=local-openai-key pytest -m live_eval backend/tests/test_extraction_eval.py`
+
+The JSON parentheses fix, Docling caches, and BHP fixture redesign are all in place.

@@ -233,6 +233,8 @@ def _parse_json_text(text: str) -> Any:
         raise ValueError("Empty response from llama.cpp")
 
     stripped = _strip_code_fences(raw)
+    # Strip JS-style line comments (// ...) that code-oriented models emit.
+    stripped = _re.sub(r'//[^\n]*', '', stripped)
     # Also try with thousands separators removed (e.g. 1,969,907 → 1969907).
     # The regex strips commas that sit between digits without touching JSON's
     # structural commas (which are always followed by whitespace or a quote).

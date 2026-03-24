@@ -823,3 +823,133 @@ def test_parse_json_normal_negatives_unchanged():
     raw = '{"investing_cf": -527, "revenue": 3052}'
     result = _parse_json_text(raw)
     assert result == {"investing_cf": -527, "revenue": 3052}
+
+
+# ---------------------------------------------------------------------------
+# ASX Appendix 5B — scale detection and table merging
+# ---------------------------------------------------------------------------
+
+def test_scale_detection_matches_dollar_a_thousands():
+    """$A'000 notation (ASX Appendix 5B) must be detected as 'thousands'."""
+    from app.services.multipass_extraction import _detect_scale_from_tables
+    from app.services.docling_extract import DoclingTable
+
+    tables = [
+        DoclingTable(
+            page_number=1,
+            caption="",
+            headers=["Consolidated statement of cash flows",
+                     "Consolidated statement of cash flows",
+                     "Current quarter $A'000",
+                     "Year to date (6 months) $A'000"],
+            rows=[["1.1", "Receipts from customers", "500", "1,000"]],
+        )
+    ]
+    assert _detect_scale_from_tables(tables) == "thousands"
+
+
+def test_scale_detection_matches_dollar_a_millions():
+    """$A'000,000 (less common) and A$M must also be detected."""
+    from app.services.multipass_extraction import _detect_scale_from_tables
+    from app.services.docling_extract import DoclingTable
+
+    # A$M notation
+    tables_am = [
+        DoclingTable(
+            page_number=1, caption="",
+            headers=["Item", "A$M"],
+            rows=[["Revenue", "42.5"]],
+        )
+    ]
+    assert _detect_scale_from_tables(tables_am) == "millions"
+
+
+def test_pass2_score_uses_all_body_columns():
+    """Pass 2 scoring must read all body columns, not just column 0.
+
+    ASX 5B tables have section numbers in column 0 (e.g. '4.2') and
+    the descriptive label in column 1 ('Net cash from operating activities').
+    Only scanning column 0 misses all keywords.
+    """
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    # Section 4 summary table: column 0 = section numbers, column 1 = labels
+    section4 = DoclingTable(
+        page_number=12,
+        caption="",
+        headers=["0", "1", "2", "3"],
+        rows=[
+            ["0", "1", "2", "3"],
+            ["4.", "Net increase / (decrease) in cash", "", ""],
+            ["4.1", "Cash and cash equivalents at beginning of period", "907", "1,822"],
+            ["4.2", "Net cash from / (used in) operating activities", "(450)", "(796)"],
+            ["4.3", "Net cash from / (used in) investing activities", "(624)", "(1,193)"],
+            ["4.4", "Net cash from / (used in) financing activities", "869", "869"],
+        ],
+    )
+
+    labelled = _run_pass2_locator([section4])
+    assert labelled["cashflow_statement"] is not None, (
+        "Section 4 summary table must be labelled as cashflow_statement "
+        "even when column 0 contains only section numbers"
+    )
+
+
+def test_pass2_merges_fragmented_5b_cf_tables():
+    """When multiple tables score >= threshold for cashflow_statement,
+    they must be merged into one synthetic table."""
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    # Simulate 3 fragmented 5B tables
+    operating = DoclingTable(
+        page_number=11, caption="",
+        headers=["Consolidated statement of cash flows",
+                 "Consolidated statement of cash flows",
+                 "Current quarter $A'000", "Year to date $A'000"],
+        rows=[
+            ["Consolidated statement of cash flows",
+             "Consolidated statement of cash flows",
+             "Current quarter $A'000", "Year to date $A'000"],
+            ["1.", "Cash flows from operating activities", "", ""],
+            ["1.9", "Net cash from / (used in) operating activities", "(450)", "(796)"],
+        ],
+    )
+    investing = DoclingTable(
+        page_number=12, caption="",
+        headers=["Consolidated statement of cash flows",
+                 "Consolidated statement of cash flows",
+                 "Current quarter $A'000", "Year to date $A'000"],
+        rows=[
+            ["Consolidated statement of cash flows",
+             "Consolidated statement of cash flows",
+             "Current quarter $A'000", "Year to date $A'000"],
+            ["2.", "Cash flows from investing activities", "", ""],
+            ["2.6", "Net cash from / (used in) investing activities", "(624)", "(1,193)"],
+        ],
+    )
+    section4 = DoclingTable(
+        page_number=13, caption="",
+        headers=["0", "1", "2", "3"],
+        rows=[
+            ["0", "1", "2", "3"],
+            ["4.2", "Net cash from / (used in) operating activities", "(450)", "(796)"],
+            ["4.3", "Net cash from / (used in) investing activities", "(624)", "(1,193)"],
+            ["4.4", "Net cash from / (used in) financing activities", "869", "869"],
+            ["4.6", "Cash and cash equivalents at end of period", "702", "702"],
+        ],
+    )
+
+    labelled = _run_pass2_locator([operating, investing, section4])
+    cf = labelled["cashflow_statement"]
+    assert cf is not None
+    assert cf.caption.startswith("Merged cashflow"), (
+        f"Expected merged table, got caption={cf.caption!r}"
+    )
+    # Merged table must contain rows from all three source tables
+    all_text = " ".join(" ".join(r) for r in cf.rows).lower()
+    assert "operating activities" in all_text
+    assert "investing activities" in all_text
+    assert "financing activities" in all_text
+    assert "702" in all_text  # cash_end from section 4

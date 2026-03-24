@@ -86,9 +86,10 @@ class MultipassResult:
 import re as _re
 
 _SCALE_PATTERNS: list[tuple[str, str]] = [
-    (r"\$'?000[,s]?\b|\bthousands?\b", "thousands"),
+    # Thousands: $'000, $A'000, $000 (ASX Appendix 5B uses "$A'000" notation)
+    (r"\$A?'?000[,s]?\b|\bthousands?\b", "thousands"),
     # Millions: spelled-out, $'000,000, compact $M / A$M notation (common in AU mining)
-    (r"\$'?000,000|\bmillions?\b|A?\$[Mm]\b|\$m\b", "millions"),
+    (r"\$A?'?000,000|\bmillions?\b|A?\$[Mm]\b|\$m\b", "millions"),
     (r"\bbillions?\b", "billions"),
 ]
 
@@ -201,6 +202,69 @@ _STATEMENT_HEADERS: dict[str, list[str]] = {
 }
 _HEADER_BONUS = 10
 
+# Minimum score for a table to be included in cashflow_statement merge.
+# Score of 2 means at least 2 keyword matches (e.g. "operating activities" + "net cash")
+# or 1 keyword + other body-text matches.  This avoids merging unrelated tables
+# that only incidentally mention a single CF keyword.
+_CF_MERGE_THRESHOLD = 2
+
+
+def _merge_cf_tables(
+    candidates: list[tuple[int, Any]],
+) -> Any:
+    """
+    Merge multiple cashflow_statement candidate tables into one synthetic table.
+
+    ASX Appendix 5B documents split the cash flow statement across several tables
+    (sections 1–3 detail, section 4 reconciliation, section 5 bank balance).
+    Docling parses each section as a separate table.  This function concatenates
+    their rows (sorted by page number, then original order) so the LLM sees
+    all cash-flow line items in one Pass 3a prompt.
+
+    Duplicate header rows (e.g. repeated "Consolidated statement of cash flows")
+    are deduplicated to keep the prompt concise.
+    """
+    from app.services.docling_extract import DoclingTable
+
+    # Sort by page, preserving original order for same-page tables
+    ordered = sorted(candidates, key=lambda x: x[1].page_number)
+
+    # Use the headers from the highest-scoring table (most informative column headers)
+    best_headers = max(candidates, key=lambda x: x[0])[1].headers
+    best_page = ordered[0][1].page_number
+
+    merged_rows = [best_headers]  # start with header row
+    seen_rows: set[str] = {" ".join(best_headers).strip().lower()}
+
+    for _score, table in ordered:
+        for row in table.rows:
+            # Skip duplicate header/empty rows
+            key = " ".join(str(c) for c in row).strip().lower()
+            if key in seen_rows or not key:
+                continue
+            seen_rows.add(key)
+            # Pad or trim row to match header width
+            target_width = len(best_headers)
+            if len(row) < target_width:
+                row = row + [""] * (target_width - len(row))
+            elif len(row) > target_width:
+                row = row[:target_width]
+            merged_rows.append(row)
+
+    logger.info(
+        "merged %d cashflow tables into synthetic table (%d rows, pages %s)",
+        len(candidates),
+        len(merged_rows),
+        sorted(set(t.page_number for _, t in candidates)),
+    )
+
+    return DoclingTable(
+        page_number=best_page,
+        caption="Merged cashflow statement (Appendix 5B)",
+        rows=merged_rows,
+        headers=best_headers,
+    )
+
 
 def _run_pass2_locator(tables) -> dict[str, Any]:
     """
@@ -225,10 +289,14 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
         )
 
     def _score(table: DoclingTable, label: str, keywords: list[str]) -> int:
-        # Include caption, all header cells, and first-column of first 15 rows.
+        # Include caption, all header cells, and ALL columns of first 15 body rows.
         # 15-row scan covers all three cash-flow sections and full asset/liability blocks.
+        # Scanning all columns (not just column 0) is essential for ASX Appendix 5B
+        # where column 0 is section numbers (1.1, 2.1, etc.) and column 1 has labels.
         header_text = " ".join(table.headers).lower()
-        body_text = " ".join(row[0] for row in table.rows[:15] if row).lower()
+        body_text = " ".join(
+            " ".join(str(c) for c in row) for row in table.rows[:15] if row
+        ).lower()
         text = table.caption.lower() + " " + header_text + " " + body_text
         score = sum(1 for kw in keywords if kw in text)
         # Bonus only when the explicit statement name appears in the column HEADERS
@@ -266,6 +334,19 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
             labelled[label] = max(
                 pools[label], key=lambda x: (x[0], x[1], x[2].page_number)
             )[2]
+
+    # ASX Appendix 5B splits the cash flow statement across many tables
+    # (operating, investing, financing, reconciliation).  When multiple tables
+    # score ≥ _CF_MERGE_THRESHOLD for cashflow_statement, merge them into one
+    # synthetic table so Pass 3a sees all cash-flow data in a single prompt.
+    if pools["cashflow_statement"]:
+        cf_candidates = [
+            (score, tbl)
+            for score, _not_toc, tbl in pools["cashflow_statement"]
+            if score >= _CF_MERGE_THRESHOLD
+        ]
+        if len(cf_candidates) > 1:
+            labelled["cashflow_statement"] = _merge_cf_tables(cf_candidates)
 
     return labelled
 
@@ -323,12 +404,16 @@ _METRIC_SCHEMA_BY_TABLE = {
 }
 
 
-def _table_to_markdown(table) -> str:
-    """Convert DoclingTable rows to markdown string."""
+def _table_to_markdown(table, max_rows: int = 30) -> str:
+    """Convert DoclingTable rows to markdown string.
+
+    max_rows caps body rows sent to the LLM (default 30 for single tables;
+    callers may raise this for merged tables like Appendix 5B).
+    """
     if not table or not table.rows:
         return ""
     lines = []
-    for i, row in enumerate(table.rows[:30]):  # cap at 30 rows
+    for i, row in enumerate(table.rows[:max_rows]):
         line = " | ".join(str(c) for c in row)
         lines.append(line)
         if i == 0:
@@ -354,7 +439,10 @@ def _run_pass3a_metric_extractor(
             continue
         metrics = _METRIC_SCHEMA_BY_TABLE.get(table_type, METRIC_FIELDS)
         metric_schema = "\n".join(f'  "{m}": "number|null",' for m in metrics)
-        markdown = _table_to_markdown(table)
+        # Merged 5B tables may have 50+ rows; raise cap so section 4 totals are visible.
+        is_merged = getattr(table, "caption", "").startswith("Merged cashflow")
+        row_cap = 65 if is_merged else 30
+        markdown = _table_to_markdown(table, max_rows=row_cap)
         if not markdown:
             continue
 
@@ -621,7 +709,11 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
     # Flag as ok_low_confidence so consumers know to treat values with caution,
     # but only after all quality gates pass — non-AUD must not bypass them.
     # A warning was already emitted at ingestion time in run_multipass_extraction.
-    _currency = (payload.get("currency") or "AUD").upper()
+    _raw_currency = payload.get("currency")
+    # LLMs sometimes return the literal string "null" instead of JSON null.
+    if not _raw_currency or str(_raw_currency).strip().lower() == "null":
+        _raw_currency = "AUD"
+    _currency = str(_raw_currency).upper()
     if _currency != "AUD":
         logger.warning(
             "validation_gate:non_aud_currency:%s — downgrading to ok_low_confidence (no FX policy)",
