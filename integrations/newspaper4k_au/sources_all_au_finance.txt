@@ -11,13 +11,13 @@ rss:https://www.theguardian.com/au/business/rss
 auto:https://www.theaustralian.com.au/business
 auto:https://www.skynews.com.au/business
 
-# ASX-focused publishers
+# ASX-focused publishers (RSS where available for reliable discovery)
+rss:https://stockhead.com.au/feed
 auto:https://www.marketindex.com.au/news
-auto:https://stockhead.com.au
 auto:https://www.livewiremarkets.com
 auto:https://www.kalkinemedia.com
 auto:https://www.capitalbrief.com
 
 # International with AU coverage
-auto:https://www.benzinga.com
-auto:https://finance.yahoo.com
+rss:https://www.benzinga.com/feed
+rss:https://finance.yahoo.com/news/rssindex

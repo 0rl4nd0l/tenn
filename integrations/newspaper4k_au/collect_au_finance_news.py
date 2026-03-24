@@ -210,6 +210,13 @@ BODY_SOURCE_RANK = {
     "meta_description_html": 2,
     "meta_description": 1,
 }
+DEFAULT_PLAYWRIGHT_DOMAINS = (
+    "stockhead.com.au",
+    "skynews.com.au",
+    "capitalbrief.com",
+    "finance.yahoo.com",
+    "benzinga.com",
+)
 
 
 @dataclass(frozen=True)
@@ -1086,6 +1093,7 @@ def extract_from_source(
     recent_cutoff: dt.datetime,
     raw_html_dir: Path | None,
     http_cookie: str,
+    playwright_domains: Sequence[str] | None = None,
 ) -> tuple[list[ExtractedArticle], dict[str, int]]:
     newspaper = _import_newspaper()
     cfg = _newspaper_config(
@@ -1109,6 +1117,8 @@ def extract_from_source(
         "url_filtered_non_finance_path": 0,
         "url_filtered_non_article_path": 0,
         "raw_html_saved": 0,
+        "playwright_attempted": 0,
+        "playwright_rescued": 0,
     }
     out: list[ExtractedArticle] = []
 
@@ -1233,6 +1243,55 @@ def extract_from_source(
             recent_cutoff=recent_cutoff,
             newspaper_module=newspaper,
         )
+
+        # --- Playwright fallback for JS-rendered sites ---
+        if article is None and reason in ("short_body", "missing_text") and playwright_domains is not None:
+            try:
+                from playwright_fallback import domain_needs_playwright, fetch_article_html_playwright
+            except ImportError:
+                domain_needs_playwright = None  # type: ignore[assignment]
+                fetch_article_html_playwright = None  # type: ignore[assignment]
+            if domain_needs_playwright is not None and fetch_article_html_playwright is not None:
+                if domain_needs_playwright(item_url, playwright_domains):
+                    stats["playwright_attempted"] += 1
+                    pw_html = fetch_article_html_playwright(item_url, timeout_ms=int(max(5000, request_timeout_seconds * 1000)))
+                    if pw_html:
+                        # Re-parse the rendered HTML through newspaper4k's fulltext extractor
+                        fulltext_fn = getattr(newspaper, "fulltext", None)
+                        pw_text = ""
+                        if callable(fulltext_fn):
+                            try:
+                                pw_text = clean_article_text(fulltext_fn(pw_html))
+                            except Exception:
+                                pw_text = ""
+                        if not pw_text:
+                            # BeautifulSoup fallback for body text extraction
+                            try:
+                                from bs4 import BeautifulSoup
+                                soup = BeautifulSoup(pw_html, "html.parser")
+                                # Remove script/style tags
+                                for tag in soup(["script", "style", "nav", "footer", "header"]):
+                                    tag.decompose()
+                                pw_text = clean_article_text(soup.get_text(separator=" "))
+                            except Exception:
+                                pw_text = ""
+                        if pw_text and len(pw_text) >= int(max(1, min_text_chars)):
+                            # Rebuild article_obj html attribute for re-parse
+                            article_obj.html = pw_html  # type: ignore[attr-defined]
+                            article_obj.text = pw_text  # type: ignore[attr-defined]
+                            article, reason = _parse_article_object(
+                                item=article_obj,
+                                item_url=item_url,
+                                min_text_chars=min_text_chars,
+                                min_keyword_hits=min_keyword_hits,
+                                keywords=keywords,
+                                recent_cutoff=recent_cutoff,
+                                newspaper_module=newspaper,
+                            )
+                            if article is not None:
+                                stats["playwright_rescued"] += 1
+                                article = replace(article, body_source=f"playwright+{article.body_source}")
+
         if article is None:
             stats[reason] += 1
             continue
@@ -1307,6 +1366,19 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Comma-separated domains exempt from article URL-shape gate (example: capitalbrief.com).",
     )
     ap.add_argument("--disable-finance-url-gate", action="store_true", help="Disable finance URL-path gate.")
+    ap.add_argument(
+        "--playwright-domains",
+        default=",".join(DEFAULT_PLAYWRIGHT_DOMAINS),
+        help=(
+            "Comma-separated domains that need Playwright JS rendering as fallback. "
+            "Default: %(default)s"
+        ),
+    )
+    ap.add_argument(
+        "--no-playwright",
+        action="store_true",
+        help="Disable Playwright fallback entirely (pipeline runs without browser).",
+    )
     ap.add_argument("--dry-run", action="store_true", help="Skip JSONL writes and print only manifest")
     ap.add_argument(
         "--allow-empty-overwrite",
@@ -1367,6 +1439,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     finance_url_gate_exempt_domains = parse_domain_list(args.finance_url_gate_exempt_domains)
     article_url_gate_exempt_domains = parse_domain_list(args.article_url_gate_exempt_domains)
     finance_url_gate = not bool(args.disable_finance_url_gate)
+    playwright_domains: list[str] | None = None
+    if not bool(args.no_playwright):
+        pw_raw = parse_domain_list(getattr(args, "playwright_domains", ""))
+        if pw_raw:
+            playwright_domains = pw_raw
     fetched_at = iso_utc(now_utc())
     cutoff = now_utc() - dt.timedelta(hours=int(max(1, args.lookback_hours)))
 
@@ -1388,6 +1465,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "url_filtered_non_finance_path": 0,
         "url_filtered_non_article_path": 0,
         "raw_html_saved": 0,
+        "playwright_attempted": 0,
+        "playwright_rescued": 0,
         "blocked_domain": 0,
         "duplicate_url": 0,
     }
@@ -1409,6 +1488,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 recent_cutoff=cutoff,
                 raw_html_dir=raw_html_dir,
                 http_cookie=http_cookie,
+                playwright_domains=playwright_domains,
             )
         except Exception as exc:
             source_breakdown.append(
@@ -1502,6 +1582,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         manifest_json.write_text(json.dumps(manifest, indent=2, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
 
     print(json.dumps(manifest, indent=2, ensure_ascii=False, sort_keys=True))
+
+    # Shut down shared Playwright browser if it was used.
+    if playwright_domains is not None:
+        try:
+            from playwright_fallback import shutdown_playwright
+            shutdown_playwright()
+        except Exception:
+            pass
+
     return 0
 
 

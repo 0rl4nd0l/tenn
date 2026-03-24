@@ -13,6 +13,23 @@ from .base import ParseResult, ProviderClient
 INTEGRATION_DIR = Path(__file__).resolve().parents[3] / "integrations" / "newspaper4k_au"
 DEFAULT_SOURCES_FILE = INTEGRATION_DIR / "sources_all_au_finance.txt"
 
+# Domains whose URL shapes don't match the generic article-URL heuristics
+# (e.g. 2-segment paths like /news/slug) but are known article publishers.
+# Exempted from the looks_like_article_url() gate in collect_au_finance_news.
+ARTICLE_GATE_EXEMPT_DOMAINS = [
+    "stockhead.com.au",
+    "stockhead.com",
+    "capitalbrief.com",
+    "finance.yahoo.com",
+    "au.finance.yahoo.com",
+    "kalkinemedia.com",
+    "kalkinemedia.com.au",
+    "benzinga.com",
+    "livewiremarkets.com",
+    "marketindex.com.au",
+    "skynews.com.au",
+]
+
 # Lazy-import to avoid hard dependency when other providers are used.
 _collector = None
 
@@ -45,6 +62,8 @@ class Newspaper4kProvider(ProviderClient):
         finance_url_gate: bool = False,
         raw_html_dir: Path | None = None,
         http_cookie: str = "",
+        playwright_domains: Sequence[str] | None = None,
+        no_playwright: bool = False,
     ) -> None:
         self.sources_file = Path(sources_file or DEFAULT_SOURCES_FILE).expanduser().resolve()
         self.max_articles_per_source = int(max(1, max_articles_per_source))
@@ -56,6 +75,11 @@ class Newspaper4kProvider(ProviderClient):
         self.finance_url_gate = bool(finance_url_gate)
         self.raw_html_dir = Path(raw_html_dir).expanduser().resolve() if raw_html_dir else None
         self.http_cookie = str(http_cookie or "")
+        self.no_playwright = bool(no_playwright)
+        if no_playwright:
+            self.playwright_domains: list[str] | None = None
+        else:
+            self.playwright_domains = list(playwright_domains) if playwright_domains else None
 
     def fetch_window(
         self,
@@ -96,11 +120,12 @@ class Newspaper4kProvider(ProviderClient):
                     finance_url_include_tokens=finance_include,
                     finance_url_exclude_tokens=finance_exclude,
                     finance_url_gate_exempt_domains=[],
-                    article_url_gate_exempt_domains=[],
+                    article_url_gate_exempt_domains=ARTICLE_GATE_EXEMPT_DOMAINS,
                     keywords=keywords,
                     recent_cutoff=recent_cutoff,
                     raw_html_dir=self.raw_html_dir,
                     http_cookie=self.http_cookie,
+                    playwright_domains=self.playwright_domains,
                 )
             except Exception as exc:
                 print(f"[newspaper4k] source {spec.url} error: {exc}", flush=True)
