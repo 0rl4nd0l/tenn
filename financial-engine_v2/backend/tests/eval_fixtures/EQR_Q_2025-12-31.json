@@ -1,5 +1,5 @@
 {
-  "_source": "Structural coverage fixture. Equus Mining (EQR) Q4 FY2026 Appendix 5B cash-flow report. Period: quarter ended 31 December 2025, filed 21 January 2026. ASX Appendix 5B format. Metrics are not hand-verified — this fixture exists to add a second quarterly ticker to the eval fixture set and to assert that income-statement metrics are correctly identified as absent in an Appendix 5B document. Cash-flow values are left unasserted; add verified values after running live_eval.",
+  "_source": "Hand-verified from ASX Appendix 5B (EQ Resources, quarter ended 31 December 2025, filed 21 January 2026). All values AUD, scale=thousands confirmed from column header '$A\\'000'. Filing header confirms 'All financial numbers are quoted in Australian dollars unless otherwise stated'. Cash-flow values verified by direct PDF read; arithmetic cross-check: 11,474 + 1,154 + (-2,656) + 12,012 + (-5) = 21,979 (rounding: section 4.6 shows 21,978; section 5.5 bank balance shows 21,979; 1k is a filing rounding artifact). No income statement in 5B format.",
   "ticker": "EQR",
   "pdf_path": "data/asx/docs/EQR/financial_performance/2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf",
   "document_id": "eqr_q4_fy2026_appendix5b",
@@ -7,7 +7,12 @@
   "period_end": "2025-12-31",
   "currency": "AUD",
   "scale": "thousands",
-  "metrics": {},
+  "metrics": {
+    "operating_cf": 1154000,
+    "investing_cf": -2656000,
+    "financing_cf": 12011000,
+    "cash_end": 21979000
+  },
   "expected_nulls": [
     "revenue",
     "ebit",
@@ -18,19 +23,24 @@
   "config": {
     "min_accuracy_overall": 0.80
   },
-  "tolerances": {},
+  "tolerances": {
+    "operating_cf": 0.01,
+    "investing_cf": 0.01,
+    "financing_cf": 0.01,
+    "cash_end": 0.001
+  },
   "notes": {
-    "_fixture_purpose": "Second quarterly ticker fixture. ASX Appendix 5B reports for exploration-stage companies contain quarterly cash-flow data but no income statement. The expected_nulls list asserts that the extraction pipeline correctly identifies these as absent rather than fabricating values.",
-    "_currency_note": "Defaulted to AUD — verify against filing. EQR has EUR-denominated debt facilities but files quarterly reports as an ASX-listed company in AUD. Verify from filing header before adding cash-flow assertions.",
-    "revenue": "Not present in Appendix 5B format. Expected null.",
+    "_fixture_purpose": "Second quarterly ticker fixture. EQR is an operating mining company (tungsten, Mt Carbine + Barruecopardo), contrasting with GRE (explorer-only). Both are AUD 5B format. Cash-flow values hand-verified.",
+    "_currency_confirmed": "AUD confirmed from filing header. EQR has EUR-denominated Spanish loan facilities; 5B reporting is in AUD. FX movement of -5k ($A'000) reflects EUR translation.",
+    "operating_cf": "5B section 1.9: +1,154 ($A'000). Group generates positive operating cash. Barruecopardo: +14.2M; Mt Carbine: -10.9M; corporate: -1.9M; interest -2,467; diesel credits +301; etc.",
+    "investing_cf": "5B section 2.6: -2,656 ($A'000). Main items: PP&E/TOMRA sorter -2,331; exploration -23; ERC deposits -255; tenement proceeds +6; other +(-47 net).",
+    "financing_cf": "5B section 3.10: +12,011 ($A'000). Equity raising +33,500; options exercised +683; transaction costs -2,326; debt repayment -18,183; lease repayments -1,663; royalty financing not applicable in quarter. Note: section 4.4 shows 12,012 due to 1k rounding vs section 3.10.",
+    "cash_end": "5B section 5.5 bank balance: 21,979 ($A'000). Section 4.6 shows 21,978 (1k rounding artifact). Tolerance 0.001 covers both values. Cross-check: 11,474 + 1,154 - 2,656 + 12,012 - 5 = 21,979.",
+    "capex": "PP&E payments (2.1(c)) = 2,331 (mainly TOMRA ore sorter). Exploration (2.1(d)) = 23. Not asserted in metrics — capex convention (PP&E only vs exploration included) unresolved in pipeline.",
+    "revenue": "Not present in Appendix 5B format (accrual basis). Cash receipts from customers 21,836 is NOT accrual revenue. Expected null.",
     "ebit": "Not present in Appendix 5B format. Expected null.",
     "np_attributable": "Not present in Appendix 5B format. Expected null.",
-    "net_debt": "Not reported in standard quarterly 5B. Expected null.",
-    "shares_outstanding": "May appear in 5B section 8.1 but not reliably extractable as a single figure. Expected null until verified.",
-    "operating_cf": "Present in 5B but value not hand-verified. Not asserted — add verified value after live_eval run.",
-    "investing_cf": "Present in 5B but value not hand-verified. Not asserted.",
-    "financing_cf": "Present in 5B but value not hand-verified. Not asserted.",
-    "cash_end": "Present in 5B section 8.6 but value not hand-verified. Not asserted.",
-    "capex": "May appear in 5B as 'payments for property, plant and equipment'. Not asserted."
+    "net_debt": "Total drawn debt (section 7): ~39,103 AUD'000. Balance sheet not in 5B. Pipeline B4 derivation (total_debt - cash_end) cannot fire without a balance sheet total_debt row. Expected null.",
+    "shares_outstanding": "Not in standard 5B cash-flow sections. Expected null."
   }
 }

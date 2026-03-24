@@ -1,5 +1,5 @@
 {
-  "_source": "Structural coverage fixture. GreenTech Metals (GRE) Q4 FY2025 Appendix 5B cash-flow report. Period: quarter ended 31 December 2024, filed 31 January 2025. AUD thousands. Metrics are not hand-verified — this fixture exists to cover the period_type='Q' eval path and to assert that income-statement metrics are correctly identified as absent in an Appendix 5B document. Cash-flow values (operating_cf etc.) are left unasserted; add verified values after running live_eval.",
+  "_source": "Hand-verified from ASX Appendix 5B (GreenTech Metals, quarter ended 31 December 2024, filed 31 January 2025). All values AUD, scale=thousands confirmed from column header '$A\\'000'. Cash-flow values verified by direct PDF read; arithmetic cross-check: 907 + (-450) + (-624) + 869 = 702 (cash_end). No income statement in 5B format.",
   "ticker": "GRE",
   "pdf_path": "data/asx/docs/GRE/financial_performance/2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf",
   "document_id": "gre_q4_fy2025_appendix5b",
@@ -7,7 +7,12 @@
   "period_end": "2024-12-31",
   "currency": "AUD",
   "scale": "thousands",
-  "metrics": {},
+  "metrics": {
+    "operating_cf": -450000,
+    "investing_cf": -624000,
+    "financing_cf": 869000,
+    "cash_end": 702000
+  },
   "expected_nulls": [
     "revenue",
     "ebit",
@@ -18,18 +23,23 @@
   "config": {
     "min_accuracy_overall": 0.80
   },
-  "tolerances": {},
+  "tolerances": {
+    "operating_cf": 0.01,
+    "investing_cf": 0.01,
+    "financing_cf": 0.01,
+    "cash_end": 0.001
+  },
   "notes": {
-    "_fixture_purpose": "Quarterly period_type coverage only. ASX Appendix 5B reports for exploration-stage companies contain quarterly cash-flow data but no income statement (revenue, EBIT, net profit). The expected_nulls list asserts that the extraction pipeline correctly identifies these as absent rather than fabricating values.",
+    "_fixture_purpose": "Quarterly period_type coverage. ASX Appendix 5B reports for exploration-stage companies contain quarterly cash-flow data but no income statement (revenue, EBIT, net profit). Cash-flow values are hand-verified; income-statement metrics asserted absent.",
+    "operating_cf": "5B section 1.9: -450 ($A'000). Main items: admin/corporate costs (452) - interest received (2) = 450 net outflow.",
+    "investing_cf": "5B section 2.6: -624 ($A'000). Entirely exploration & evaluation payments (2.1(d)). PP&E (2.1(c)) = 0.",
+    "financing_cf": "5B section 3.10: +869 ($A'000). Proceeds from capital raise (800) + advance on share issue (109) - transaction costs (40) = 869.",
+    "cash_end": "5B section 4.6: 702 ($A'000). Cross-check: 907 (start) - 450 (ops) - 624 (investing) + 869 (financing) = 702.",
+    "capex": "PP&E payments (2.1(c)) = 0. Exploration spend (2.1(d)) = 624 is all investing activity but classified as exploration, not capex. Not asserted — leave null until pipeline convention confirmed.",
     "revenue": "Not present in Appendix 5B format. Expected null.",
     "ebit": "Not present in Appendix 5B format. Expected null.",
     "np_attributable": "Not present in Appendix 5B format. Expected null.",
     "net_debt": "Not reported in standard quarterly 5B. Expected null.",
-    "shares_outstanding": "May appear in 5B section 8.1 but not reliably extractable as a single figure for dual-class/option-heavy cap tables. Expected null until verified.",
-    "operating_cf": "Present in 5B but value not hand-verified. Not asserted in this fixture — add verified value after live_eval run.",
-    "investing_cf": "Present in 5B but value not hand-verified. Not asserted.",
-    "financing_cf": "Present in 5B but value not hand-verified. Not asserted.",
-    "cash_end": "Present in 5B section 8.6 but value not hand-verified. Not asserted.",
-    "capex": "May appear in 5B as 'payments for property, plant and equipment'. Not asserted."
+    "shares_outstanding": "Not reliably extractable from 5B. Expected null."
   }
 }

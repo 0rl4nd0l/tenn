@@ -1,0 +1,46 @@
+{
+  "_source": "Hand-verified from ASX Appendix 4D + Interim Financial Report (Sports Entertainment Group Limited, half year ended 31 December 2025, filed 18 February 2026). All values AUD, scale=thousands confirmed from column header '$\\'000s'. Revenue and np_attributable verified from Appendix 4D (page 3) and income statement (page 12). Cash-flow values verified from statement of cash flows (page 17). Arithmetic cross-check: 14,954 + 11,619 + 7,527 + (-7,369) + (-15 FX) = 26,716 (cash_end). No income statement metrics absent — SEG is an operating company with full P&L.",
+  "ticker": "SEG",
+  "pdf_path": "data/asx/docs/SEG/financial_performance/2026-02-18_half-year-fy26-financial-report_5fcfe1d9-6c17-416e-b978-89f109b41145.pdf",
+  "document_id": "seg_h_fy2026_appendix4d",
+  "period_type": "H",
+  "period_end": "2025-12-31",
+  "currency": "AUD",
+  "scale": "thousands",
+  "metrics": {
+    "revenue": 73671000,
+    "np_attributable": 3243000,
+    "operating_cf": 11619000,
+    "investing_cf": 7527000,
+    "financing_cf": -7369000,
+    "cash_end": 26716000
+  },
+  "expected_nulls": [
+    "net_debt",
+    "shares_outstanding"
+  ],
+  "config": {
+    "min_accuracy_overall": 0.80
+  },
+  "tolerances": {
+    "revenue": 0.01,
+    "np_attributable": 0.01,
+    "operating_cf": 0.01,
+    "investing_cf": 0.01,
+    "financing_cf": 0.01,
+    "cash_end": 0.001
+  },
+  "notes": {
+    "_fixture_purpose": "Non-mining sector fixture (sports/media entertainment). SEG uses Appendix 4D + full IFRS interim financial report format — distinct from ASX Appendix 5B used by mining explorers. Only fixture with both income statement and cash flow metrics verified. Adds sector and document-layout diversity.",
+    "_currency_confirmed": "AUD confirmed from filing header and '$'000s' column label throughout. SEG is a domestic Australian business (no material foreign currency operations affecting reporting).",
+    "revenue": "Income statement (page 12): 'Revenue from continuing operations' = 73,671 ($'000s). Confirmed by Appendix 4D page 3: 'Revenues from ordinary activities (Continuing Operations)' = 73,671. Excludes 'Other Revenue' (49) which is interest income.",
+    "np_attributable": "Income statement (page 12): 'Profit / (loss) after income tax from continuing operations' = 3,243 ($'000s). This matches Appendix 4D page 3: 3,243. Note: total profit including discontinued operations = 3,324 (includes 81k from discontinued Perth Wildcats). We assert continuing operations figure only.",
+    "ebit": "Not asserted — not a directly reported line item. PBT from continuing operations = 5,936. Finance costs = 1,311 (thus EBIT implied ~7,247). Excluded from metrics because it requires derivation; LLM interpretation may vary (PBT vs PBT+interest).",
+    "operating_cf": "Cash flow statement (page 17): 'Net operating cash flows provided by operating activities' = 11,619 ($'000s). Components: receipts 87,815; payments (73,630); interest received 49; finance paid (687); interest on lease (631); tax paid (1,297).",
+    "investing_cf": "Cash flow statement (page 17): 'Net cash from investing activities' = 7,527 ($'000s). Main items: PPE (867); RSN Radio Assets acquisition (1,188); software (211); Perth Wildcats sale proceeds 6,500; SEN NZ Teams 92; dividends 162; investment shares sold 3,039.",
+    "financing_cf": "Cash flow statement (page 17): 'Net cash used in financing activities' = (7,369) ($'000s). Components: share issue costs (2); borrowings repaid (2,605); lease liabilities (1,953); dividends paid (2,809).",
+    "cash_end": "Cash flow statement (page 17): 'Cash and cash equivalents at the end of the half year' = 26,716 ($'000s). Cross-check: 14,954 (start) + 11,619 (ops) + 7,527 (investing) - 7,369 (financing) - 15 (FX) = 26,716. Consistent with Directors' Report 'Cash on hand of $26.7m'.",
+    "net_debt": "Balance sheet not verified. Borrowings repaid during period = 2,605 but opening balance unknown. Pipeline B4 derivation requires total_debt from balance sheet. Expected null.",
+    "shares_outstanding": "Not extracted from cash flow statement or income statement. Equity statement shows share capital movements but not share count. Expected null."
+  }
+}

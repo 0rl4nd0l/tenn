@@ -115,10 +115,11 @@ A separate eval harness tests the accuracy of the financial metric extraction pi
 | `BHP_A_2021-06-30.json` | BHP | Annual (A) | 3 (revenue, ebit, np_attributable) | USD. 7 expected_nulls for unverified CF/BS metrics |
 | `RMS_H_2025-12-31.json` | RMS | Half-year (H) | 10 | AUD. Fully verified from Appendix 4D |
 | `MIN_H_2025-12-31.json` | MIN | Half-year (H) | 5 (loose 5% tol) | AUD millions. Requires hand-verification; model-extracted |
-| `GRE_Q_2024-12-31.json` | GRE | Quarterly (Q) | 0 (structural) | Appendix 5B. Tests income-statement metrics correctly absent |
-| `EQR_Q_2025-12-31.json` | EQR | Quarterly (Q) | 0 (structural) | Appendix 5B. Second quarterly ticker; adds layout diversity |
+| `SEG_H_2025-12-31.json` | SEG | Half-year (H) | 6 (revenue, np_attributable, 4×CF) | AUD. Non-mining (sports/media). Appendix 4D + full IFRS interim. Hand-verified. |
+| `GRE_Q_2024-12-31.json` | GRE | Quarterly (Q) | 4 (operating_cf, investing_cf, financing_cf, cash_end) | Appendix 5B. Explorer. 5 expected_nulls for absent income-statement metrics. Hand-verified. |
+| `EQR_Q_2025-12-31.json` | EQR | Quarterly (Q) | 4 (operating_cf, investing_cf, financing_cf, cash_end) | Appendix 5B. Operating miner (tungsten). 5 expected_nulls. Hand-verified. 1k rounding artifact documented. |
 
-**Structural fixtures** (GRE, EQR): `metrics: {}` with only `expected_nulls`. They assert that income statement metrics (`revenue`, `ebit`, `np_attributable`, `net_debt`, `shares_outstanding`) are correctly identified as absent in Appendix 5B documents. Cash-flow values (`operating_cf`, `investing_cf`, `financing_cf`, `cash_end`) are present in 5B but not yet hand-verified; add assertions after a live eval run.
+**Quarterly fixtures** (GRE, EQR): Both are value-asserted with hand-verified cash-flow values from PDF. `expected_nulls` asserts that income statement metrics (`revenue`, `ebit`, `np_attributable`, `net_debt`, `shares_outstanding`) are correctly identified as absent in Appendix 5B documents. Cash-flow tolerances: 1% for flow metrics, 0.1% for `cash_end`.
 
 ### Accuracy thresholds
 
@@ -136,19 +137,12 @@ Defined in `eval_config.json`:
 
 All fixture PDFs live at `financial-engine_v2/data/asx/docs/` and are present in the working environment. This path is gitignored; PDFs are not tracked in the repository.
 
-### Adding cash-flow values to structural fixtures
+### Adding new fixtures
 
-After a live eval run, read the actual values from the PDF and add them to the fixture:
+When promoting a fixture from structural-only to value-asserted, or adding a new ticker:
 
-```json
-“metrics”: {
-  “operating_cf”: <verified_value_in_native_units>,
-  “cash_end”: <verified_value_in_native_units>
-},
-“tolerances”: {
-  “operating_cf”: 0.01,
-  “cash_end”: 0.001
-}
-```
-
-Remove the metric from `expected_nulls` when adding it to `metrics`.
+1. Read the source PDF directly (use PyMuPDF/`fitz`) — do not infer values.
+2. Perform an arithmetic cross-check (`cash_start + operating_cf + investing_cf + financing_cf + fx = cash_end`).
+3. Store values in absolute native units (e.g. multiply `$A'000` values by 1000).
+4. Remove a metric from `expected_nulls` when adding it to `metrics`.
+5. Update the fixture inventory table in this doc.
