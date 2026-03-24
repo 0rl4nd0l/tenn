@@ -8,28 +8,80 @@ Usage: python3 save-chat.py [output_dir] [session_jsonl_path]
 
 import json
 import os
+import pwd
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-TOOL_RESULT_PREVIEW = 999999  # max chars of tool output to show inline (effectively unlimited)
-TOOL_INPUT_PREVIEW  = 999999  # max chars of long tool inputs (effectively unlimited)
+TOOL_RESULT_PREVIEW = 300   # max chars of tool output to show inline
+TOOL_INPUT_PREVIEW  = 200   # max chars of long tool inputs
+CLAUDE_MD_MAX_LINES = 40    # first N lines of CLAUDE.md (already in context for the agent)
+CONVERSATION_TURNS  = 25    # only include the last N turns (keeps export focused on recent work)
+TEXT_ITEM_MAX_LINES = 30    # cap long text items (task notifications, agent reports) to this many lines
+COCKPIT_EXPORT_PATH = Path("reports") / "cockpit" / "exports" / "claude_context.json"
 
 
 # ---------------------------------------------------------------------------
 # Session / project helpers
 # ---------------------------------------------------------------------------
 
+def _candidate_claude_homes(cwd: str) -> list[Path]:
+    candidates: list[Path] = []
+
+    env_home = str(os.environ.get("CLAUDE_HOME") or "").strip()
+    if env_home:
+        candidates.append(Path(env_home).expanduser())
+
+    real_home = pwd.getpwuid(os.getuid()).pw_dir
+    if real_home:
+        candidates.append(Path(real_home) / ".claude")
+
+    candidates.append(Path.home() / ".claude")
+
+    cwd_path = Path(cwd).resolve()
+    for parent in [cwd_path, *cwd_path.parents]:
+        maybe_home = parent / ".claude"
+        candidates.append(maybe_home)
+
+    unique: list[Path] = []
+    seen: set[str] = set()
+    for path in candidates:
+        key = str(path)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(path)
+    return unique
+
+
+def _resolve_claude_projects_root(cwd: str) -> Path:
+    for base in _candidate_claude_homes(cwd):
+        projects = base / "projects"
+        if projects.exists():
+            return projects
+    return _candidate_claude_homes(cwd)[0] / "projects"
+
+
 def get_project_dir(cwd: str) -> Path:
     slug = cwd.replace("/", "-").replace(".", "-").replace("_", "-")
     if slug.startswith("-"):
         slug = slug[1:]
-    return Path.home() / ".claude" / "projects" / f"-{slug}"
+    return _resolve_claude_projects_root(cwd) / f"-{slug}"
 
 
 def find_session_file(project_dir: Path) -> Path | None:
-    jsonls = list(project_dir.glob("*.jsonl"))
+    env_session = str(os.environ.get("CLAUDE_SESSION_FILE") or "").strip()
+    if env_session:
+        path = Path(env_session).expanduser()
+        if path.exists():
+            return path
+
+    try:
+        jsonls = [p for p in project_dir.rglob("*.jsonl") if p.is_file()]
+    except PermissionError:
+        raise
+
     if not jsonls:
         return None
     return max(jsonls, key=lambda p: p.stat().st_mtime)
@@ -219,16 +271,26 @@ def gather_git_context(repo_root: str) -> str:
 
 def gather_claude_md(repo_root: str) -> str:
     path = Path(repo_root) / "CLAUDE.md"
-    return path.read_text(encoding="utf-8") if path.exists() else ""
+    if not path.exists():
+        return ""
+    lines = path.read_text(encoding="utf-8").splitlines()
+    truncated = lines[:CLAUDE_MD_MAX_LINES]
+    if len(lines) > CLAUDE_MD_MAX_LINES:
+        truncated.append(f"\n... [{len(lines) - CLAUDE_MD_MAX_LINES} more lines — see CLAUDE.md]")
+    return "\n".join(truncated)
 
 
 def gather_memory_files(project_dir: Path) -> str:
-    global_memory = Path.home() / ".claude" / "projects" / "memory"
+    global_memory = project_dir.parent / "memory"
     blocks = []
     for mdir in [global_memory, project_dir / "memory"]:
         if not mdir.exists():
             continue
-        for mfile in sorted(mdir.glob("*.md")):
+        try:
+            files = sorted(mdir.glob("*.md"))
+        except Exception:
+            continue
+        for mfile in files:
             if mfile.name == "MEMORY.md":
                 continue
             try:
@@ -238,6 +300,17 @@ def gather_memory_files(project_dir: Path) -> str:
             except Exception:
                 pass
     return "\n\n".join(blocks)
+
+
+def gather_cockpit_export(repo_root: str) -> str:
+    path = (Path(repo_root) / COCKPIT_EXPORT_PATH).resolve()
+    if not path.exists() or not path.is_file():
+        return ""
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        return f"Failed to parse {path}: {exc}"
+    return json.dumps(payload, indent=2, default=str)
 
 
 # ---------------------------------------------------------------------------
@@ -251,19 +324,21 @@ def section(title: str, body: str) -> str:
 
 def format_export(
     turns: list[dict],
-    session_path: Path,
+    session_path: Path | None,
     git_ctx: str,
     claude_md: str,
     memory: str,
+    cockpit_export: str,
     cwd: str,
 ) -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    session_label = session_path.stem if session_path is not None else "cockpit_export_only"
 
     parts = []
     parts.append(
         f"CLAUDE CODE SESSION EXPORT\n"
         f"Generated : {now}\n"
-        f"Session   : {session_path.stem}\n"
+        f"Session   : {session_label}\n"
         f"Project   : {cwd}\n"
     )
 
@@ -273,40 +348,51 @@ def format_export(
         parts.append(section("AGENT MEMORY", memory))
     if claude_md:
         parts.append(section("CLAUDE.md (PROJECT INSTRUCTIONS)", claude_md))
+    if cockpit_export:
+        parts.append(section("COCKPIT EXPORT", cockpit_export))
 
-    # Conversation with tool calls inlined
     conv_lines = []
-    for turn in turns:
-        role_label = "USER" if turn["role"] == "user" else "CLAUDE"
-        ts = ""
-        if turn.get("timestamp"):
-            try:
-                dt = datetime.fromisoformat(turn["timestamp"].replace("Z", "+00:00"))
-                ts = f"  [{dt.strftime('%H:%M')}]"
-            except Exception:
-                pass
+    if turns:
+        visible_turns = turns[-CONVERSATION_TURNS:] if len(turns) > CONVERSATION_TURNS else turns
+        if len(visible_turns) < len(turns):
+            conv_lines.insert(0, f"[... {len(turns) - len(visible_turns)} earlier turns omitted — use full session file for complete history]\n")
 
-        conv_lines.append(f"--- {role_label}{ts} ---")
+        for turn in visible_turns:
+            role_label = "USER" if turn["role"] == "user" else "CLAUDE"
+            ts = ""
+            if turn.get("timestamp"):
+                try:
+                    dt = datetime.fromisoformat(turn["timestamp"].replace("Z", "+00:00"))
+                    ts = f"  [{dt.strftime('%H:%M')}]"
+                except Exception:
+                    pass
 
-        for item in turn["items"]:
-            if item["type"] == "text":
-                conv_lines.append(item["text"])
+            conv_lines.append(f"--- {role_label}{ts} ---")
 
-            elif item["type"] == "tool_call":
-                conv_lines.append(f"\n  > {item['call']}")
-                result = item.get("result")
-                if result is not None:
-                    is_err = result.get("is_error", False)
-                    out = _fmt_tool_result(result.get("content", ""))
-                    prefix = "  ERR" if is_err else "  <"
-                    if out:
-                        # Indent each line of the result
-                        indented = "\n".join(f"    {l}" for l in out.splitlines())
-                        conv_lines.append(f"{prefix}\n{indented}")
-                    else:
-                        conv_lines.append(f"{prefix} (no output)")
+            for item in turn["items"]:
+                if item["type"] == "text":
+                    text = item["text"]
+                    lines = text.splitlines()
+                    if len(lines) > TEXT_ITEM_MAX_LINES:
+                        text = "\n".join(lines[:TEXT_ITEM_MAX_LINES]) + f"\n  ... [{len(lines) - TEXT_ITEM_MAX_LINES} more lines]"
+                    conv_lines.append(text)
 
-        conv_lines.append("")
+                elif item["type"] == "tool_call":
+                    conv_lines.append(f"\n  > {item['call']}")
+                    result = item.get("result")
+                    if result is not None:
+                        is_err = result.get("is_error", False)
+                        out = _fmt_tool_result(result.get("content", ""))
+                        prefix = "  ERR" if is_err else "  <"
+                        if out:
+                            indented = "\n".join(f"    {l}" for l in out.splitlines())
+                            conv_lines.append(f"{prefix}\n{indented}")
+                        else:
+                            conv_lines.append(f"{prefix} (no output)")
+
+            conv_lines.append("")
+    else:
+        conv_lines.append("No Claude session transcript was readable. Cockpit export data is included above when available.")
 
     parts.append(section("CONVERSATION", "\n".join(conv_lines)))
     return "\n".join(parts)
@@ -318,6 +404,7 @@ def format_export(
 
 def main():
     cwd = os.environ.get("PWD", os.getcwd())
+    session_file: Path | None = None
 
     if len(sys.argv) > 1 and not Path(sys.argv[1]).is_dir():
         session_file = Path(sys.argv[1])
@@ -327,22 +414,38 @@ def main():
         if not project_dir.exists():
             print(f"No Claude project directory found at {project_dir}", file=sys.stderr)
             sys.exit(1)
-        session_file = find_session_file(project_dir)
-        if not session_file:
-            print("No session files found.", file=sys.stderr)
-            sys.exit(1)
+        try:
+            session_file = find_session_file(project_dir)
+        except PermissionError:
+            print(
+                "Claude project directory exists but is not readable. "
+                "Set CLAUDE_SESSION_FILE to the active session JSONL path and rerun.",
+                file=sys.stderr,
+            )
+            session_file = None
 
-    turns = parse_session(session_file)
-    if not turns:
+    repo_root = run("git rev-parse --show-toplevel", cwd) or cwd
+    cockpit_export = gather_cockpit_export(repo_root)
+
+    turns: list[dict] = []
+    if session_file is not None:
+        turns = parse_session(session_file)
+    if session_file is None and not cockpit_export:
+        print(
+            "No session files found. If Claude stores sessions outside the default project root, "
+            "set CLAUDE_SESSION_FILE to the active session JSONL path and rerun.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    if session_file is not None and not turns and not cockpit_export:
         print("No readable conversation turns found.", file=sys.stderr)
         sys.exit(1)
 
-    repo_root = run("git rev-parse --show-toplevel", cwd) or cwd
     git_ctx   = gather_git_context(repo_root)
     claude_md = gather_claude_md(repo_root)
     memory    = gather_memory_files(project_dir)
 
-    export_text = format_export(turns, session_file, git_ctx, claude_md, memory, cwd)
+    export_text = format_export(turns, session_file, git_ctx, claude_md, memory, cockpit_export, cwd)
 
     print(export_text)
 

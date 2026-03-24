@@ -1109,6 +1109,7 @@ class CockpitApp(App):
         raw_screen_name = getattr(screen_obj, "name", None) or type(screen_obj).__name__
         screen_name = str(raw_screen_name)
         screen_key = screen_name.lower()
+        log_target = self._export_log_target(screen_key)
 
         payload: dict[str, Any] = {
             "exported_at": datetime.now(timezone.utc).isoformat(),
@@ -1127,7 +1128,8 @@ class CockpitApp(App):
                 payload["latest_analysis_export_meta"] = latest
                 try:
                     json_path = Path(str(latest.get("json_path", ""))).expanduser()
-                    payload["latest_analysis_export"] = json.loads(json_path.read_text(encoding="utf-8"))
+                    if json_path.exists() and json_path.is_file():
+                        payload["latest_analysis_export"] = json.loads(json_path.read_text(encoding="utf-8"))
                 except (OSError, json.JSONDecodeError) as exc:
                     payload["latest_analysis_export_error"] = str(exc)
         elif "ops" in screen_key or "operation" in screen_key:
@@ -1162,8 +1164,21 @@ class CockpitApp(App):
             txt_path = out_dir / f"copy_bundle_{ts}.txt"
             txt_path.write_text(text_blob, encoding="utf-8")
             notice = f"Saved for Claude: {claude_path}  (clipboard unavailable)"
-        self._write_log("chat-log", notice)
+        if log_target:
+            self._write_log(log_target, notice)
         self.notify(notice)
+
+    @staticmethod
+    def _export_log_target(screen_key: str) -> str | None:
+        if "chat" in screen_key:
+            return "chat-log"
+        if "ops" in screen_key or "operation" in screen_key:
+            return "ops-log"
+        if "updater" in screen_key:
+            return "upd-log"
+        if "verification" in screen_key:
+            return "ver-log"
+        return None
 
     def _copy_to_clipboard(self, text: str) -> bool:
         # OSC 52 — works over SSH; the terminal emulator on the far end sets the

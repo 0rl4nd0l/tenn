@@ -29,6 +29,7 @@ Most commands now have matching repo-local Codex skill ports under `.codex/skill
 | RAG Stability | `/rag-stability` | Runs `evaluate_rag_stability.py`, interprets drift metrics, outputs STABLE/MINOR DRIFT/MAJOR DRIFT report. |
 | Repo Audit | `/repo-audit` | Full repository audit: preflight, branch inventory, docs completeness, CONFIRMED/INFERRED/UNVERIFIED claims. |
 | Ingest Ticker | `/ingest-ticker <TICKER>` | Runs `full_history_ticker_sync.py` for one or more ASX tickers. Validates args, activates venv, reports per-ticker result. |
+| Save | `/save` | Exports the current Claude session as a copyable text block; falls back to Cockpit's latest `reports/cockpit/exports/claude_context.json` when the live transcript is unavailable. |
 
 ### Skills (`.claude/skills/`)
 
