@@ -479,10 +479,9 @@ function makeBugCard(item) {
       </div>
       <div class="tab-content active" id="${id}-explanation">
         <div class="explanation">${esc(issue.detail)}</div>
-        <button class="deploy-btn investigating" onclick="deployFix('${item.id}', this)" id="deploy-${item.id}">
-          🔍 Investigate & Fix
+        <button class="deploy-btn investigating" onclick="loadDebate('${item.id}', allData.find(function(d){return d.id==='${item.id}'}))" id="debate-${item.id}">
+          \uD83D\uDD0D Get AI Analysis
         </button>
-        <div class="deploy-output" id="output-${item.id}"></div>
       </div>`;
   }
 
@@ -515,22 +514,97 @@ function toggleCard(id) {
 
 async function deployFix(fixId, btn) {
   btn.disabled = true;
-  btn.textContent = '⏳ Deploying…';
-  const out = document.getElementById(`output-${fixId}`);
+  btn.textContent = '\u23F3 Deploying\u2026';
+  const out = document.getElementById('output-' + fixId);
   out.style.display = 'block';
-  out.textContent = 'Spawning fix agent…\n';
+  out.textContent = 'Spawning fix agent\u2026\n';
 
   try {
-    const resp = await fetch(`/api/deploy/${encodeURIComponent(fixId)}`, {method:'POST'});
+    const resp = await fetch('/api/deploy/' + encodeURIComponent(fixId), {method: 'POST'});
     const data = await resp.json();
-    out.textContent = data.message || JSON.stringify(data, null, 2);
-    btn.textContent = data.ok ? '✓ Fix Applied' : '⚠ See Output';
-    if (data.ok) btn.style.background = 'var(--ok)';
-    else { btn.disabled = false; btn.textContent = '↺ Retry'; }
+    if (!data.ok) {
+      out.textContent = data.message || JSON.stringify(data, null, 2);
+      btn.disabled = false;
+      btn.textContent = '\u21BA Retry';
+      return;
+    }
+    let lastLen = 0;
+    function poll() {
+      fetch('/api/job/' + encodeURIComponent(fixId))
+        .then(function(r){ return r.json(); })
+        .then(function(job) {
+          if (job.output && job.output.length > lastLen) {
+            out.textContent += job.output.slice(lastLen).join('\n') + '\n';
+            lastLen = job.output.length;
+            out.scrollTop = out.scrollHeight;
+          }
+          if (job.status === 'running') {
+            setTimeout(poll, 1500);
+          } else if (job.status === 'done') {
+            btn.textContent = '\u2713 Fix Applied';
+            btn.style.background = 'var(--ok)';
+          } else {
+            btn.disabled = false;
+            btn.textContent = '\u21BA Retry';
+          }
+        })
+        .catch(function(e) {
+          out.textContent += '\nPoll error: ' + e.message;
+          btn.disabled = false;
+          btn.textContent = '\u21BA Retry';
+        });
+    }
+    setTimeout(poll, 1500);
   } catch(e) {
-    out.textContent = `Error: ${e.message}`;
+    out.textContent = 'Error: ' + e.message;
     btn.disabled = false;
-    btn.textContent = '↺ Retry';
+    btn.textContent = '\u21BA Retry';
+  }
+}
+
+async function loadDebate(issueId, itemData) {
+  if (!itemData) return;
+  const cardId = 'card-' + itemData.id;
+  const card = document.getElementById(cardId);
+  const body = card && card.querySelector('.bug-body');
+  if (!body) return;
+  const spinner = document.createElement('div');
+  spinner.style.cssText = 'padding:20px;color:var(--muted)';
+  spinner.textContent = '\u23F3 Generating agent debate\u2026';
+  body.textContent = '';
+  body.appendChild(spinner);
+
+  try {
+    const resp = await fetch('/api/debate/' + issueId, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({agent: itemData.agent, severity: itemData.severity, issues: itemData.issues}),
+    });
+    const debate = await resp.json();
+    if (!resp.ok || debate.ok === false) {
+      const err = document.createElement('div');
+      err.style.cssText = 'padding:20px;color:var(--critical)';
+      err.textContent = 'Debate failed: ' + (debate.message || 'unknown error');
+      body.textContent = '';
+      body.appendChild(err);
+      return;
+    }
+    const item = allData.find(function(d){ return d.id === issueId; });
+    if (item) {
+      item.known_fix = debate;
+      item.fix_id = issueId;
+      const tmp = document.createElement('div');
+      tmp.innerHTML = makeBugCard(item);
+      card.replaceWith(tmp.firstChild);
+      const updated = document.getElementById(cardId);
+      if (updated) updated.classList.add('open');
+    }
+  } catch(e) {
+    const err = document.createElement('div');
+    err.style.cssText = 'padding:20px;color:var(--critical)';
+    err.textContent = 'Error: ' + e.message;
+    body.textContent = '';
+    body.appendChild(err);
   }
 }
 
