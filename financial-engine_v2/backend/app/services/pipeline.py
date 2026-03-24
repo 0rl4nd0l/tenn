@@ -844,7 +844,8 @@ def _upsert_financial_rows(db, doc, structured):
     risk_note.guidance_summary = _coerce_text(structured.get("guidance_summary"))
     risk_note.material_changes = _coerce_text(structured.get("material_changes"), join_lists=True)
     risk_note.confidence_narrative = _coerce_float(structured.get("confidence_narrative"))
-    db.commit()
+    # NOTE: caller is responsible for db.commit() — do not commit here so that
+    # ExtractionRun and financial rows are written in a single atomic transaction.
 
 
 def process_document(
@@ -1022,10 +1023,9 @@ def process_document(
             structured_json=structured,
         )
         db.add(run)
-        db.commit()
-
         if status in {"ok", "ok_low_confidence"}:
             _upsert_financial_rows(db, doc, structured)
+        db.commit()  # single atomic commit: ExtractionRun + financial rows together
 
         return {
             "ok": True,

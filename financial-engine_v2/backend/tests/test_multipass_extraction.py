@@ -353,7 +353,10 @@ def test_upsert_financial_rows_smoke():
     session = Session()
     try:
         # --- First call: rows must be created ---
+        # Caller (process_document) is responsible for commit; flush here to make
+        # rows visible within this session for assertions.
         _upsert_financial_rows(session, doc, payload)
+        session.flush()
 
         fin = session.query(ASXPeriodicFinancial).filter_by(ticker="TST").first()
         assert fin is not None, "ASXPeriodicFinancial row must be created"
@@ -379,6 +382,7 @@ def test_upsert_financial_rows_smoke():
         payload["metrics"]["revenue"] = 2_000_000.0
         payload["risk_summary"] = "Updated risk summary"
         _upsert_financial_rows(session, doc, payload)
+        session.flush()
 
         all_fin = session.query(ASXPeriodicFinancial).all()
         assert len(all_fin) == 1, "Upsert must not create a duplicate row"
@@ -661,3 +665,126 @@ def test_derive_period_start_returns_none_for_missing_inputs():
     assert _derive_period_start(None, "A") is None
     assert _derive_period_start(date(2024, 12, 31), None) is None
     assert _derive_period_start(date(2024, 12, 31), "X") is None
+
+
+# ---------------------------------------------------------------------------
+# Validation gate — new guards (B7: scale, B8: currency, B9: quarterly)
+# ---------------------------------------------------------------------------
+
+def _good_payload(period_type="H", scale="thousands", currency="AUD", confidence=0.85):
+    """Minimal well-formed payload for _validate_gate tests."""
+    return {
+        "period_end": "2024-12-31",
+        "period_type": period_type,
+        "scale": scale,
+        "currency": currency,
+        "metrics": {
+            "revenue": 500_000_000,
+            "ebit": 80_000_000,
+            "np_attributable": 55_000_000,
+            "operating_cf": 90_000_000,
+            "investing_cf": None, "financing_cf": None,
+            "capex": None, "cash_end": None, "net_debt": None, "shares_outstanding": None,
+        },
+        "confidence_metrics": confidence,
+    }
+
+
+def test_validate_gate_quarterly_period_passes():
+    """period_type='Q' must be accepted by the gate — quarterly is a valid period type."""
+    from app.services.multipass_extraction import _validate_gate
+
+    status, error = _validate_gate(_good_payload(period_type="Q"))
+    assert status in ("ok", "ok_low_confidence"), (
+        f"Quarterly period must pass gate; got status={status!r}, error={error!r}"
+    )
+    assert error is None
+
+
+def test_validate_gate_scale_unknown_hard_blocked():
+    """scale='unknown' must be a hard block — values would be wrong by up to 1000×."""
+    from app.services.multipass_extraction import _validate_gate
+
+    status, error = _validate_gate(_good_payload(scale="unknown"))
+    assert status == "failed", f"Expected 'failed', got {status!r}"
+    assert error == "validation_gate:scale_unknown", f"Unexpected error key: {error!r}"
+
+
+def test_validate_gate_non_aud_returns_ok_low_confidence():
+    """Non-AUD currency (e.g. USD, GBP) must downgrade to ok_low_confidence.
+
+    There is no FX conversion policy — values are stored as-is, so downstream
+    consumers must not compare them directly with AUD-denominated peers.
+    """
+    from app.services.multipass_extraction import _validate_gate
+
+    for currency in ("USD", "GBP", "EUR"):
+        status, error = _validate_gate(_good_payload(currency=currency))
+        assert status == "ok_low_confidence", (
+            f"currency={currency} must yield ok_low_confidence; got status={status!r}"
+        )
+        assert error is None, f"error must be None for currency downgrade; got {error!r}"
+
+
+# ---------------------------------------------------------------------------
+# Pass 3a — page_number in output (B10)
+# ---------------------------------------------------------------------------
+
+def test_pass3a_page_number_in_output():
+    """Pass 3a output dict must include _page_number from the source DoclingTable."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=7, caption="Statement of Cash Flows",
+        rows=[["", "Q1 2025"], ["Net cash from operations", "1,200"]],
+        headers=["", "Q1 2025"],
+    )
+    labelled = {"cashflow_statement": table, "income_statement": None,
+                "balance_sheet": None, "highlights": None, "unmatched": []}
+    pass1 = {"report_type": "Q", "period_end": "2025-03-31", "currency": "AUD", "scale": "thousands"}
+
+    mock_raw = {
+        "operating_cf": 1200, "investing_cf": None, "financing_cf": None, "cash_end": None,
+        "pass3_confidence": 0.88, "row_refs": {"operating_cf": "Net cash from operations"},
+    }
+
+    with patch("app.services.multipass_extraction._llm_json_call", return_value=mock_raw):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert len(results) == 1
+    assert results[0]["_page_number"] == 7, (
+        f"_page_number must be 7 (from DoclingTable.page_number), got {results[0].get('_page_number')!r}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Pass 4 — page_number in provenance strings (B11)
+# ---------------------------------------------------------------------------
+
+def test_pass4_provenance_includes_page_number():
+    """Provenance strings must embed the source page number: '{source}:page_{n}:{row_ref}'."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "cashflow_statement",
+            "_page_number": 5,
+            "operating_cf": 3_000_000, "investing_cf": None, "financing_cf": None,
+            "cash_end": None, "capex": None,
+            "pass3_confidence": 0.9,
+            "row_refs": {"operating_cf": "Net cash from operations"},
+        },
+    ]
+    pass3b = {
+        "risk_summary": None, "risk_bullets": None,
+        "guidance_summary": None, "material_changes": None, "confidence_narrative": 0.0,
+    }
+    pass1 = {"report_type": "Q", "period_end": "2025-03-31"}
+
+    result = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    prov = result["provenance"].get("operating_cf", "")
+    assert "page_5" in prov, (
+        f"Provenance must include 'page_5' for a table on page 5; got: {prov!r}"
+    )

@@ -150,6 +150,7 @@ class TestNoPlaceholderSourceDocumentId:
 
         try:
             _upsert_financial_rows(session, doc, self._minimal_payload())
+            session.flush()
             row = session.query(ASXPeriodicFinancial).filter_by(ticker="NAB").first()
             assert row is not None
             assert row.source_document_id == real_doc_id, (
@@ -166,6 +167,7 @@ class TestNoPlaceholderSourceDocumentId:
 
         try:
             _upsert_financial_rows(session, doc, self._minimal_payload())
+            session.flush()
             row = session.query(ASXPeriodicFinancial).filter_by(ticker="NAB").first()
             assert row is not None
             stored_id = str(row.source_document_id)
@@ -185,9 +187,11 @@ class TestNoPlaceholderSourceDocumentId:
 
         try:
             _upsert_financial_rows(session, doc, payload)
+            session.flush()
             # Second upsert with updated revenue
             payload["metrics"]["revenue"] = 23_000_000_000.0
             _upsert_financial_rows(session, doc, payload)
+            session.flush()
 
             rows = session.query(ASXPeriodicFinancial).filter_by(ticker="NAB").all()
             assert len(rows) == 1, "Upsert must not create duplicates"

@@ -391,7 +391,7 @@ def _run_pass3a_metric_extractor(
         # Apply scale multiplier to monetary values only.
         # Count metrics (share counts etc.) are always absolute integers — never scaled.
         _COUNT_METRICS = {"shares_outstanding"}
-        out = {"_source": table_type}
+        out = {"_source": table_type, "_page_number": getattr(table, "page_number", None)}
         for m in metrics:
             val = raw.get(m)
             if val is not None:
@@ -526,10 +526,13 @@ def _run_pass4_reconciler(
         source = extraction.get("_source", "unknown")
         conf = extraction.get("pass3_confidence", 0.5)
         contributed = 0
+        page = extraction.get("_page_number")
+        page_tag = f"page_{page}" if page is not None else "page_?"
         for m in METRIC_FIELDS:
             if m in extraction and extraction[m] is not None:
                 merged_metrics[m] = extraction[m]
-                provenance[m] = f"{source}:{extraction.get('row_refs', {}).get(m, 'unknown')}"
+                row_ref = extraction.get("row_refs", {}).get(m, "unknown")
+                provenance[m] = f"{source}:{page_tag}:{row_ref}"
                 contributed += 1
         source_stats[source] = (conf, contributed)
 
@@ -596,6 +599,20 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
 
     if payload.get("period_type") not in ("A", "H", "Q"):
         return "failed", f"validation_gate:invalid_period_type:{payload.get('period_type')}"
+
+    if payload.get("scale") == "unknown":
+        return "failed", "validation_gate:scale_unknown"
+
+    # Non-AUD currency: values are stored as-is with no FX conversion.
+    # Flag as ok_low_confidence so consumers know to treat values with caution.
+    # A warning was already emitted at ingestion time in run_multipass_extraction.
+    _currency = (payload.get("currency") or "AUD").upper()
+    if _currency != "AUD":
+        logger.warning(
+            "validation_gate:non_aud_currency:%s — downgrading to ok_low_confidence (no FX policy)",
+            _currency,
+        )
+        return "ok_low_confidence", None
 
     metrics = payload.get("metrics", {})
     non_null = [v for v in metrics.values() if v is not None]
@@ -706,6 +723,11 @@ def run_multipass_extraction(
     # Flatten metrics into payload for _upsert_financial_rows compat
     for m in METRIC_FIELDS:
         payload[m] = payload["metrics"].get(m)
+
+    # Propagate scale and currency from Pass 1 into payload so _validate_gate
+    # can inspect them and so _upsert_financial_rows stores the correct currency.
+    payload["scale"] = pass1.get("scale", "unknown") or "unknown"
+    payload["currency"] = pass1.get("currency", "AUD") or "AUD"
 
     # Validate
     status, error = _validate_gate(payload)
