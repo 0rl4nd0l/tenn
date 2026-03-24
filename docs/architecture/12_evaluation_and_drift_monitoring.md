@@ -114,7 +114,7 @@ A separate eval harness tests the accuracy of the financial metric extraction pi
 |---------|--------|-------------|-----------------|-------|
 | `BHP_A_2021-06-30.json` | BHP | Annual (A) | 3 (revenue, ebit, np_attributable) | USD. 7 expected_nulls for unverified CF/BS metrics |
 | `RMS_H_2025-12-31.json` | RMS | Half-year (H) | 10 | AUD. Fully verified from Appendix 4D |
-| `MIN_H_2025-12-31.json` | MIN | Half-year (H) | 5 (loose 5% tol) | AUD millions. Requires hand-verification; model-extracted |
+| `MIN_H_2025-12-31.json` | MIN | Half-year (H) | 5 (loose 5% tol) | AUD millions. Hand-verified from Appendix 4D + H1 FY26 financial report (filed 2026-02-20). |
 | `SEG_H_2025-12-31.json` | SEG | Half-year (H) | 6 (revenue, np_attributable, 4×CF) | AUD. Non-mining (sports/media). Appendix 4D + full IFRS interim. Hand-verified. |
 | `GRE_Q_2024-12-31.json` | GRE | Quarterly (Q) | 4 (operating_cf, investing_cf, financing_cf, cash_end) | Appendix 5B. Explorer. 5 expected_nulls for absent income-statement metrics. Hand-verified. |
 | `EQR_Q_2025-12-31.json` | EQR | Quarterly (Q) | 4 (operating_cf, investing_cf, financing_cf, cash_end) | Appendix 5B. Operating miner (tungsten). 5 expected_nulls. Hand-verified. 1k rounding artifact documented. |

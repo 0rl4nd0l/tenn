@@ -1,5 +1,5 @@
 {
-  "_source": "Model-extracted from ASX Appendix 4D (Mineral Resources Limited, Dec 2025 half-year). Values in AUD. Scale detected as millions ($M notation in column headers). Shares outstanding extracted as absolute count (no scale applied). Note: requires hand-verification against actual filing.",
+  "_source": "Hand-verified from ASX Appendix 4D + Half-year Financial Report (Mineral Resources Limited, half year ended 31 December 2025, filed 20 February 2026). All values AUD, scale=millions confirmed from '$M' column headers. Revenue verified from Appendix 4D page 1 ('Revenues from ordinary activities = 3,052') and income statement page 14 ('REVENUE = 3,052'). Cash-flow values verified from statement of cash flows page 17. Shares outstanding verified from share capital note page 32 ('Balance at 31 December 2025 = 196,478,902' net of treasury shares). Arithmetic cross-check: 412 (start) + 880 (ops) - 527 (investing) - 126 (financing) - 1 (FX) = 638 (cash_end).",
   "ticker": "MIN",
   "pdf_path": "data/asx/docs/MIN/financial_performance/2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb.pdf",
   "document_id": "min_2025h1_appendix4d",
