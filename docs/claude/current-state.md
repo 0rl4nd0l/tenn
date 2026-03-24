@@ -85,18 +85,28 @@ python scripts/validate_financial_coverage_gates.py \
 
 ---
 
+## Session Memory (OpenViking) — 2026-03-24
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Backend `/api/chat` session memory | **Shipped** | `backend/app/services/session_memory.py` + `tenn_chat.py` + `routes/chat.py`. `session_id` from body or `X-Session-ID` header. Prior turns injected into LLM prompt. |
+| Cockpit chat session memory | **Shipped** | `cockpit/core/session_memory.py` + `chat.py`. Per-`ChatController` UUID session. Prior turns injected before history block. |
+| Domain isolation | **Shipped** | Separate workspaces: `~/.openviking/workspaces/{backend,cockpit,claude-code}`. Launchers inject domain-specific `OPENVIKING_CONFIG_FILE` when not pre-set. |
+| Local-only provider config | **Shipped** | `config/openviking/*.ov.conf.example` — llama.cpp VLM (`provider=openai`, port 8001) + Ollama embeddings (`provider=ollama`, nomic-embed-text, 768-dim, port 11434). No hosted APIs. |
+| Claude Code dev-session memory | **Scaffolded** | Config example + `scripts/openviking/export-claude-code-memory-env.sh`. Source before `claude`. Automated turn recording: DATA_MISSING (no PostTurnUse hook in Claude Code). |
+| Feature flag | `ENABLE_SESSION_MEMORY=true` | Default on. Disable per domain: set `ENABLE_SESSION_MEMORY=false` in `.env`. |
+| Fail-open | **Yes** | Missing/unreachable OV emits one WARNING on startup; all chat paths continue stateless. |
+
+Setup: see `docs/setup/environment.md` → Session memory setup section.
+
+---
+
 ## Current Branch Context
 
 Branch: `cloud/session-20260319`
-Last milestone commit: `1b8f457a` (milestone: atomicity, scale safety, page lineage, currency gate)
+Last milestone commits: `19495865` (session_memory domain isolation), `aed254f0` (OpenViking Phase 1-3)
 
-Uncommitted (working tree):
-- `.claude/commands/save.md` — unrelated tooling change
-- `scripts/save-chat.py` — unrelated tooling change
-
-Untracked (not for staging): `.claude/monitors/`, `.claude/scheduled_tasks.lock`, `financial-engine_v2/everything-claude-code/`
-
-> This state snapshot reflects 2026-03-24 (updated post-Qdrant resync). Re-verify with `git status` before acting.
+> This state snapshot reflects 2026-03-24. Re-verify with `git status` before acting.
 
 ---
 

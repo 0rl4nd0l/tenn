@@ -46,6 +46,7 @@ As of 2026-03-20 audit. Source: deep inventory of `/home/l4nd0/tenn`.
 | Domain skill: OpenClaw/llama.cpp ops | **Deferred** | OpenClaw no longer primary workflow; not prioritized | Defer indefinitely unless OpenClaw re-enters active use | Low |
 | System analyzer loop (Claude-readable) | **Partial** | `docs/ops/system_analyzer_loop.md` exists | Link from runbook; consider extracting key checks | Low |
 | Explicit agent contract in CLAUDE.md | **Present** | `agent_contract.json` + CLAUDE.md reference it | — | — |
+| Session memory (conversational context) | **Present** | `backend/app/services/session_memory.py` + `cockpit/core/session_memory.py`. OpenViking embedded, fail-open, domain-isolated workspaces. Activated by copying `config/openviking/*.ov.conf.example` to `~/.openviking/`. | Claude Code automated turn recording remains DATA_MISSING (no PostTurnUse hook). | Low |
 
 ---
 
