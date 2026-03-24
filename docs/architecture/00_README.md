@@ -22,5 +22,6 @@ Overview of the architecture docs in this folder and what each covers.
 | [13_security_and_secrets.md](13_security_and_secrets.md) | Security and secrets management |
 | [14_roadmap_and_modules.md](14_roadmap_and_modules.md) | Roadmap, module boundaries, and future capability: Autonomous Dev Optimization Loop (deferred) |
 | [15_news_substrate.md](15_news_substrate.md) | Canonical news substrate: one RAG DB, layers, orchestrator, verification |
+| [16_currency_and_fx_policy.md](16_currency_and_fx_policy.md) | Currency and FX handling: current ok_low_confidence gate, what changes downstream, roadmap for FX conversion |
 
 Numbering is historical: both `11_engineering_discipline.md` and `11_rebuild_and_recovery.md` are active.

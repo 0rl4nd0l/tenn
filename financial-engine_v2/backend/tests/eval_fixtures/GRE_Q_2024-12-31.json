@@ -1,0 +1,35 @@
+{
+  "_source": "Structural coverage fixture. GreenTech Metals (GRE) Q4 FY2025 Appendix 5B cash-flow report. Period: quarter ended 31 December 2024, filed 31 January 2025. AUD thousands. Metrics are not hand-verified — this fixture exists to cover the period_type='Q' eval path and to assert that income-statement metrics are correctly identified as absent in an Appendix 5B document. Cash-flow values (operating_cf etc.) are left unasserted; add verified values after running live_eval.",
+  "ticker": "GRE",
+  "pdf_path": "data/asx/docs/GRE/financial_performance/2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf",
+  "document_id": "gre_q4_fy2025_appendix5b",
+  "period_type": "Q",
+  "period_end": "2024-12-31",
+  "currency": "AUD",
+  "scale": "thousands",
+  "metrics": {},
+  "expected_nulls": [
+    "revenue",
+    "ebit",
+    "np_attributable",
+    "net_debt",
+    "shares_outstanding"
+  ],
+  "config": {
+    "min_accuracy_overall": 0.80
+  },
+  "tolerances": {},
+  "notes": {
+    "_fixture_purpose": "Quarterly period_type coverage only. ASX Appendix 5B reports for exploration-stage companies contain quarterly cash-flow data but no income statement (revenue, EBIT, net profit). The expected_nulls list asserts that the extraction pipeline correctly identifies these as absent rather than fabricating values.",
+    "revenue": "Not present in Appendix 5B format. Expected null.",
+    "ebit": "Not present in Appendix 5B format. Expected null.",
+    "np_attributable": "Not present in Appendix 5B format. Expected null.",
+    "net_debt": "Not reported in standard quarterly 5B. Expected null.",
+    "shares_outstanding": "May appear in 5B section 8.1 but not reliably extractable as a single figure for dual-class/option-heavy cap tables. Expected null until verified.",
+    "operating_cf": "Present in 5B but value not hand-verified. Not asserted in this fixture — add verified value after live_eval run.",
+    "investing_cf": "Present in 5B but value not hand-verified. Not asserted.",
+    "financing_cf": "Present in 5B but value not hand-verified. Not asserted.",
+    "cash_end": "Present in 5B section 8.6 but value not hand-verified. Not asserted.",
+    "capex": "May appear in 5B as 'payments for property, plant and equipment'. Not asserted."
+  }
+}
