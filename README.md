@@ -65,6 +65,14 @@ Operational notes:
   - `reports/eval_queries.json`
 - Full runbook is in `docs/validation_baseline.md`.
 
+## System Contract
+
+**[docs/architecture/SYSTEM_CONTRACT.md](docs/architecture/SYSTEM_CONTRACT.md)** is the authoritative specification for this system's data integrity, pipeline behavior, retrieval logic, model usage, and agent behavior.
+
+All contributors and agents (Claude, Codex, or any other) MUST comply with this contract. Changes that violate it will be rejected. If in doubt, read the contract first.
+
+---
+
 ## Scope
 `financial-engine_v2/` is the primary live runtime.
 Root `scripts/` still contains auxiliary pipelines, tests, and tooling, but it is not the main launcher surface for the active engine.

@@ -2,8 +2,11 @@
 
 Overview of the architecture docs in this folder and what each covers.
 
+> **SYSTEM_CONTRACT.md is the authoritative system specification.** All architecture docs describe *how* the system works; the contract defines *what must not be violated*. When any doc conflicts with the contract, the contract wins. Read [SYSTEM_CONTRACT.md](SYSTEM_CONTRACT.md) before making changes to any subsystem described below.
+
 | Document | Purpose |
 |----------|---------|
+| **[SYSTEM_CONTRACT.md](SYSTEM_CONTRACT.md)** | **Non-negotiable system invariants — data integrity, pipeline rules, agent behavior** |
 | [00_README.md](00_README.md) | Index and purpose of each architecture doc |
 | [01_system_overview.md](01_system_overview.md) | High-level system overview and components |
 | [02_runtime_topology.md](02_runtime_topology.md) | Runtime topology and deployment layout |

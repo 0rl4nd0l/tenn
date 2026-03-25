@@ -5,6 +5,39 @@ Read this first. Then read the repo-native docs it references before acting.
 
 ---
 
+## SYSTEM CONTRACT (MANDATORY — READ BEFORE ANY ACTION)
+
+**[docs/architecture/SYSTEM_CONTRACT.md](docs/architecture/SYSTEM_CONTRACT.md) is the authoritative system specification.**
+
+All agents (Claude, Codex, or any other) MUST comply with this contract. It governs data integrity, pipeline behavior, retrieval logic, model usage, and agent behavior.
+
+### Contract Enforcement Rules
+
+1. **All actions MUST comply with SYSTEM_CONTRACT.md.** No exceptions.
+2. **If any instruction conflicts with the contract: STOP immediately.** Surface the violation and request clarification.
+3. **Do NOT introduce:** fallbacks, substitutions, parallel implementations, or approximations that violate contract invariants.
+4. **Do NOT bypass:** the canonical pipeline, single-source-of-truth rules, or fail-fast extraction behavior.
+
+### Pre-Flight Check (REQUIRED before implementation)
+
+Before implementing any change, the agent MUST state:
+
+1. **Target system layer** — which of the 5 pipeline layers (§2) does this change touch?
+2. **Relevant contract rules** — which specific contract sections govern this change?
+3. **What must NOT change** — which invariants (§3) must be preserved?
+4. **Why this change is safe** — how does it comply with the contract?
+
+If you cannot answer all four, STOP and request clarification.
+
+### Contract Enforcer (built-in subagent behavior)
+
+When planning any change that touches backend, extraction, RAG, embeddings, or worker tasks:
+- Read SYSTEM_CONTRACT.md (§1–§11)
+- Validate that the planned change does not violate any invariant
+- If a violation is detected: STOP execution, surface the violation, and do not proceed
+
+---
+
 ## Identity and Scope
 
 This repo contains:
@@ -94,11 +127,12 @@ curl -sS http://127.0.0.1:8000/api/health
 ## Pre-Task Checks
 
 Before starting any task:
-1. Read [docs/entrypoints.md](docs/entrypoints.md) — confirm correct execution path.
-2. Read [docs/architecture/13_security_and_secrets.md](docs/architecture/13_security_and_secrets.md) — confirm no secret exposure.
-3. Identify the subsystem being changed (see [docs/claude/architecture/system-map.md](docs/claude/architecture/system-map.md)).
-4. Read the relevant architecture doc(s) for that subsystem.
-5. Confirm the task scope is narrow (one subsystem per change).
+1. Read [docs/architecture/SYSTEM_CONTRACT.md](docs/architecture/SYSTEM_CONTRACT.md) — confirm the change complies with all invariants.
+2. Read [docs/entrypoints.md](docs/entrypoints.md) — confirm correct execution path.
+3. Read [docs/architecture/13_security_and_secrets.md](docs/architecture/13_security_and_secrets.md) — confirm no secret exposure.
+4. Identify the subsystem being changed (see [docs/claude/architecture/system-map.md](docs/claude/architecture/system-map.md)).
+5. Read the relevant architecture doc(s) for that subsystem.
+6. Confirm the task scope is narrow (one subsystem per change).
 
 ---
 
@@ -190,6 +224,7 @@ A `Stop` hook warns when infrastructure files change without doc updates. **Do n
 
 ## Pre-Merge Checklist (from engineering discipline)
 
+- [ ] SYSTEM_CONTRACT.md reviewed — no violations
 - [ ] Plan written before implementation
 - [ ] Invariants reviewed
 - [ ] Tests executed and passing
@@ -232,6 +267,7 @@ If a proposed change would touch more than ~300 lines or more than 5 files simul
 
 | Topic | Doc |
 |-------|-----|
+| **SYSTEM CONTRACT (authoritative)** | **[docs/architecture/SYSTEM_CONTRACT.md](docs/architecture/SYSTEM_CONTRACT.md)** |
 | Entrypoints and boot sequence | [docs/entrypoints.md](docs/entrypoints.md) |
 | Validation baseline (10-step) | [docs/validation_baseline.md](docs/validation_baseline.md) |
 | Architecture index | [docs/architecture/00_README.md](docs/architecture/00_README.md) |

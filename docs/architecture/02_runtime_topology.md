@@ -21,6 +21,9 @@ When OpenBB sidecar is used: **8081** (OpenBB sidecar HTTP API).
 ## Native services (host)
 
 - **llama.cpp** — OpenAI-compatible LLM server, not in Docker. Default port **8001**. Backend and worker call it over the host network through `llamacpp_bridge`.
+  - **Router mode** (default since 2026-03-25): launched with `--models-dir` + `--models-max 1` for zero-downtime model switching via `POST /models/load` API. Per-model config (pooling, embeddings) via `--models-preset` INI file at `~/.config/tenn/llamacpp-presets.ini`. Models are auto-evicted (LRU) when a new model is loaded, keeping VRAM usage bounded.
+  - **Single-model mode** (legacy): launched with `-m <model.gguf>`. Model switching requires killing and restarting the server process.
+  - Mode controlled by `LLAMA_SERVER_ROUTER_MODE=1` in `~/.config/tenn/llama-server.env`.
 - **Sentence Transformers** — local CPU embedding runtime loaded in-process by the backend/worker; no separate container.
 
 ---

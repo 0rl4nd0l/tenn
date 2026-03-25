@@ -19,16 +19,48 @@ Current local llama.cpp source of truth:
 
 - Service unit: `systemd/llama-cpp-qwen25.service`
 - Launcher: `scripts/run_llama_server.sh`
-- Checked-in launcher default: `http://127.0.0.1:8000/v1`
-- Current host override: `~/.config/tenn/llama-server.env` pins `LLAMA_SERVER_HOST=127.0.0.1` and `LLAMA_SERVER_PORT=8001`
+- Canonical port: **8001** (env override and launcher default aligned)
+- Host override file: `~/.config/tenn/llama-server.env`
 - Current OpenClaw provider base URL: `http://127.0.0.1:8001/v1` in `~/.openclaw/openclaw.json`
-- Default model path: `models/model.gguf`
-- Optional host override file: `~/.config/tenn/llama-server.env`
+- Default models directory: `models/` (contains `.gguf` files)
 - Startup profile keeps `mmap` enabled and does not use `--mlock`; this build has no separate `--prefetch` CLI flag.
 - Launcher profiles: `interactive` (default `8192/512/256`), `balanced` (`16384/1024/512`), `throughput` (`32768/2048/512`)
 - `LLAMA_SERVER_PROFILE` is the clean switch when you want to trade startup/latency against long-prompt throughput without hard-coding raw sizes.
 
-Use `8001` for direct host smoke checks on this machine unless you have removed the override file. If the override is cleared, the launcher falls back to `8000`.
+### Router mode (default)
+
+Since 2026-03-25, the launcher starts in **router mode** by default (`LLAMA_SERVER_ROUTER_MODE=1` in env file). This enables:
+
+- **Zero-downtime model switching** via `POST /models/load {"model": "<name>"}` — the HTTP server stays alive while models are loaded/unloaded as child processes.
+- **`--models-max 1`** enforced (Tesla M40 24GB single GPU) — loading a new model auto-evicts the old one via LRU.
+- **Per-model config** via preset INI file (`~/.config/tenn/llamacpp-presets.ini`) — applies `--pooling mean --embeddings` to all models.
+- **Model discovery** from three sources: local `.gguf` files in `--models-dir`, Ollama blob stores, and HuggingFace cached models.
+
+Key env vars for router mode:
+
+| Variable | Default | Notes |
+|----------|---------|-------|
+| `LLAMA_SERVER_ROUTER_MODE` | `1` | Set to `0` for single-model mode |
+| `LLAMA_SERVER_MODELS_DIR` | `$ROOT/models` | Directory scanned for `.gguf` files |
+| `LLAMA_SERVER_PRESET` | `~/.config/tenn/llamacpp-presets.ini` | Per-model config |
+
+Router management API (requires `Authorization: Bearer <api-key>`):
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/v1/models` | GET | List all models with load status (`loaded`/`unloaded`/`loading`) |
+| `/models/load` | POST | Load a model: `{"model": "model-name"}` |
+| `/models/unload` | POST | Unload a model: `{"model": "model-name"}` |
+
+To switch models manually:
+```bash
+curl -X POST http://127.0.0.1:8001/models/load \
+  -H "Authorization: Bearer local-openai-key" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "qwen2.5-14b-instruct-q4_k_m"}'
+```
+
+Use `8001` for direct host smoke checks on this machine.
 
 If mmap-based startup stalls in disk sleep on this host, pin `LLAMA_SERVER_MMAP=0` in the override file and restart the service. That direct-read path is currently the working host configuration for Qwen2.5-Coder-14B.
 

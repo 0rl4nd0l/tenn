@@ -3,6 +3,8 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 > Parent operating instructions (safety rules, entrypoints, pre-task/pre-write checks, secret handling) live in `../CLAUDE.md`. Read that first.
+>
+> **SYSTEM CONTRACT:** [docs/architecture/SYSTEM_CONTRACT.md](../docs/architecture/SYSTEM_CONTRACT.md) is the authoritative system specification. All changes to backend, extraction, RAG, embeddings, or worker tasks MUST comply with it. If in doubt, read the contract before acting.
 
 ---
 

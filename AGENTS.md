@@ -50,6 +50,16 @@ A skill is a set of local instructions to follow that is stored in a `SKILL.md` 
 
 **Shared operating rules:** Read [CLAUDE.md](CLAUDE.md) first — all rules there apply to Codex equally.
 
+## SYSTEM CONTRACT ENFORCEMENT (MANDATORY)
+
+**[docs/architecture/SYSTEM_CONTRACT.md](docs/architecture/SYSTEM_CONTRACT.md) is the authoritative system specification.**
+
+Before any change, Codex agents MUST:
+1. Read and comply with SYSTEM_CONTRACT.md
+2. State the target system layer, relevant contract rules, what must NOT change, and why the change is safe
+3. STOP immediately if any planned action conflicts with contract invariants
+4. NOT introduce fallbacks, substitutions, parallel implementations, or approximations that violate the contract
+
 ## Parallel Agent Architecture
 
 This repo uses two agent systems in parallel:

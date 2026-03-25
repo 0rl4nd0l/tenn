@@ -7,10 +7,18 @@ When in doubt, prefer the source file. When a conflict exists between a doc here
 
 ---
 
+## System Contract
+
+**[docs/architecture/SYSTEM_CONTRACT.md](../architecture/SYSTEM_CONTRACT.md) is the authoritative system specification.** All agent actions must comply. Read it before modifying any backend, extraction, RAG, embeddings, or worker subsystem.
+
+---
+
 ## Index
 
 | Doc | Purpose |
 |-----|---------|
+| **[SYSTEM_CONTRACT.md](../architecture/SYSTEM_CONTRACT.md)** | **Non-negotiable system invariants — authoritative spec** |
+| [CODEX_MASTER_PROMPT.md](../prompts/CODEX_MASTER_PROMPT.md) | Canonical prompt template for all agent work |
 | [project-overview.md](project-overview.md) | What this repo is, what it does, and who uses it |
 | [STATE.md](STATE.md) | Active workstream tracker — what is planned, in-flight, verified, and shipped |
 | [current-state.md](current-state.md) | Active runtime profile, local backend status, operational notes |
