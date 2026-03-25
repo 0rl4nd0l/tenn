@@ -460,8 +460,16 @@ Extract ONLY these metrics relevant to {table_type}:
 Rules:
 - Values in parentheses like (412) mean NEGATIVE: output -412 (raw, not pre-multiplied)
 - Output null if the metric is NOT explicitly labeled in this table — do NOT estimate or derive it
-- ebit: only output if a row is explicitly labeled "EBIT", "Earnings Before Interest and Tax", "Profit from operations", or equivalent — do NOT use PBT or Profit Before Tax as a proxy
-- capex: look for "Payments for property, plant and equipment" or "Capital expenditure" in investing activities — output null if not found
+- ebit: only output if a row is explicitly labeled "EBIT", "Earnings Before Interest and Tax",
+  "Profit from operations", "Profit / (loss) from operating activities", "Operating profit",
+  "Statutory EBIT", or "Operating income" — do NOT use PBT, Profit Before Tax, or Net Profit as a proxy.
+  For banks: "Operating income" or "Cash profit before tax" may serve as the EBIT equivalent.
+- capex: Capital Expenditure must be a SPECIFIC LINE ITEM, NOT a total or subtotal.
+  Correct labels: "Payments for property, plant and equipment", "Purchase of PPE",
+  "Additions to fixed assets", "Capital expenditure", "Payments for capital expenditure".
+  DO NOT use: "Net cash from investing activities", "Investing cash flow", or any
+  total/subtotal line. If only a total investing cash flow is present and no specific
+  capex line exists, return null.
 - shares_outstanding: look for total ordinary shares on issue (count, not dollar amount) — typically labeled "Ordinary shares" or "Shares on issue".
   IMPORTANT: if the table expresses share counts in a scaled unit (e.g. "Million", "'000"), convert to the absolute count.
   Example: if the table shows "5,057" with row label containing "(Million)", output 5057000000 (not 5057).
