@@ -174,8 +174,14 @@ NON_ARTICLE_PATH_SEGMENTS = {
     "account",
     "subscribe",
     "membership",
+    # Livewire non-article sections
     "listed-series",
     "meet-the-investor",
+    # Sky News video/stream/podcast pages (not articles)
+    "stream",
+    "listen",
+    "video",
+    "documentaries",
 }
 HTTP_USER_AGENT = (
     "Mozilla/5.0 (X11; Linux x86_64) "
