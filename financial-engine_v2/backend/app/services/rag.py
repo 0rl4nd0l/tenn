@@ -201,23 +201,26 @@ def query_news_chunks(
     date_to: Optional[str] = None,
     top_k: int = 10,
 ) -> Dict[str, Any]:
-    """Vector search over news chunks stored in Qdrant."""
+    """Vector search over news chunks stored in Qdrant.
+
+    Uses the same embedding pipeline (embed_texts via model router) as query_rag()
+    to ensure cross-source consistency.
+    """
     q = (query or "").strip()
     if not q:
         raise ValueError("query is required")
     if not settings.enable_qdrant:
         raise RuntimeError("RAG backend is disabled (qdrant disabled)")
 
-    from app.services.embeddings import embed_texts_batched
-
-    embed_model = str(getattr(settings, "embed_model", "nomic-embed-text"))
-    embedding_url = str(
-        getattr(settings, "llamacpp_url", "")
-        or getattr(settings, "ollama_url", "")
-        or "http://localhost:8001"
-    )
-
-    vec = embed_texts_batched([q], llm_url=embedding_url, model=embed_model)[0]
+    embed_metadata = {
+        "task_type": "embedding",
+        "component": "rag.query_news_chunks",
+        "operation": "rag_query",
+    }
+    vectors = embed_texts([q], metadata=embed_metadata)
+    if not vectors:
+        return {"results": []}
+    vec = vectors[0]
 
     must_filters: list[qmodels.FieldCondition] = []
     if language:
