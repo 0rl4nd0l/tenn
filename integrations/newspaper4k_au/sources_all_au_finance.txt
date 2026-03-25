@@ -14,6 +14,14 @@ auto:https://www.skynews.com.au/business
 # ASX-focused publishers (RSS where available for reliable discovery)
 rss:https://stockhead.com.au/feed
 auto:https://www.marketindex.com.au/news
+auto:https://www.marketindex.com.au/news/category/market-wraps
+auto:https://www.marketindex.com.au/news/category/technical-analysis
+auto:https://www.marketindex.com.au/news/category/broker-watch
+auto:https://www.marketindex.com.au/news/category/gold
+auto:https://www.marketindex.com.au/news/category/markets
+auto:https://www.marketindex.com.au/news/category/data-insights
+auto:https://www.marketindex.com.au/news/category/fund-manager
+auto:https://www.marketindex.com.au/news/category/insights-and-opinion
 auto:https://www.livewiremarkets.com
 auto:https://www.kalkinemedia.com
 auto:https://www.capitalbrief.com

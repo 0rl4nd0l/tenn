@@ -1,2 +1,10 @@
-# Market Index focused source list
+# Market Index focused source list — main page + category pages
 auto:https://www.marketindex.com.au/news
+auto:https://www.marketindex.com.au/news/category/market-wraps
+auto:https://www.marketindex.com.au/news/category/technical-analysis
+auto:https://www.marketindex.com.au/news/category/broker-watch
+auto:https://www.marketindex.com.au/news/category/gold
+auto:https://www.marketindex.com.au/news/category/markets
+auto:https://www.marketindex.com.au/news/category/data-insights
+auto:https://www.marketindex.com.au/news/category/fund-manager
+auto:https://www.marketindex.com.au/news/category/insights-and-opinion
