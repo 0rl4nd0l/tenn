@@ -1,0 +1,487 @@
+"""Tool definitions for the agentic chat loop.
+
+Defines all tools the LLM can invoke, split into read-only (immediate execution)
+and mutating (requires user confirmation). Each tool has a JSON-schema-compatible
+definition suitable for system prompt injection or native tool calling.
+
+Exports:
+    TOOL_DEFINITIONS: list[dict]          — all tool schemas
+    TOOL_DEFINITIONS_PROMPT: str          — formatted for system prompt injection
+    MUTATING_TOOL_NAMES: frozenset[str]   — safety gate for confirmation checks
+"""
+
+from __future__ import annotations
+
+import json
+from typing import Any
+
+# ---------------------------------------------------------------------------
+# Read-only tools — safe to execute without confirmation
+# ---------------------------------------------------------------------------
+
+_READ_ONLY_TOOLS: list[dict[str, Any]] = [
+    {
+        "name": "query_ticker_data",
+        "description": (
+            "Query the local database for documents, financial metrics, and "
+            "announcements for an ASX ticker. Use this when the user asks about "
+            "a company and you need data to answer."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {
+                    "type": "string",
+                    "description": "ASX ticker symbol, e.g. 'CSL', 'BHP', '29M'",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of documents to return",
+                    "default": 10,
+                },
+                "deep": {
+                    "type": "boolean",
+                    "description": "If true, return expanded context (more docs, financials, snippets)",
+                    "default": False,
+                },
+            },
+            "required": ["ticker"],
+        },
+        "mutating": False,
+    },
+    {
+        "name": "get_price",
+        "description": (
+            "Get current and recent price data for an ASX ticker, including "
+            "price history, technical indicators (SMA, RSI), and trend regime."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {
+                    "type": "string",
+                    "description": "ASX ticker symbol",
+                },
+                "range": {
+                    "type": "string",
+                    "description": "Price history range, e.g. '1mo', '3mo', '1y', '5y'",
+                    "default": "1y",
+                },
+                "interval": {
+                    "type": "string",
+                    "description": "Data interval, e.g. '1d', '1wk'",
+                    "default": "1d",
+                },
+            },
+            "required": ["ticker"],
+        },
+        "mutating": False,
+    },
+    {
+        "name": "get_price_on_date",
+        "description": (
+            "Get the historical closing price for a ticker on a specific date. "
+            "Use this for questions like 'What was BHP's price on 2024-01-15?'"
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {
+                    "type": "string",
+                    "description": "ASX ticker symbol",
+                },
+                "date": {
+                    "type": "string",
+                    "description": "Date in YYYY-MM-DD format",
+                },
+            },
+            "required": ["ticker", "date"],
+        },
+        "mutating": False,
+    },
+    {
+        "name": "get_price_range",
+        "description": (
+            "Get price history between two dates. Use this for questions about "
+            "price performance over a specific period."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {
+                    "type": "string",
+                    "description": "ASX ticker symbol",
+                },
+                "start_date": {
+                    "type": "string",
+                    "description": "Start date in YYYY-MM-DD format",
+                },
+                "end_date": {
+                    "type": "string",
+                    "description": "End date in YYYY-MM-DD format",
+                },
+            },
+            "required": ["ticker", "start_date", "end_date"],
+        },
+        "mutating": False,
+    },
+    {
+        "name": "get_financials",
+        "description": (
+            "Get extracted financial metrics (revenue, EBIT, cash flow, net debt) "
+            "for a ticker. Returns the most recent extraction runs."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {
+                    "type": "string",
+                    "description": "ASX ticker symbol",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of financial periods to return",
+                    "default": 6,
+                },
+            },
+            "required": ["ticker"],
+        },
+        "mutating": False,
+    },
+    {
+        "name": "search_news",
+        "description": (
+            "Search news articles for a ticker or topic. Returns relevant articles "
+            "from the news corpus with relevance scores."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Search query (company name, topic, keywords)",
+                },
+                "ticker": {
+                    "type": "string",
+                    "description": "Optional ASX ticker to filter results",
+                    "default": "",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of articles to return",
+                    "default": 5,
+                },
+            },
+            "required": ["query"],
+        },
+        "mutating": False,
+    },
+    {
+        "name": "search_announcements",
+        "description": (
+            "Search ASX announcements and documents in the local database. "
+            "Returns document metadata and announcement context."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {
+                    "type": "string",
+                    "description": "ASX ticker symbol to filter announcements",
+                    "default": "",
+                },
+                "query": {
+                    "type": "string",
+                    "description": "Optional search query to filter by content",
+                    "default": "",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of announcements to return",
+                    "default": 10,
+                },
+            },
+            "required": [],
+        },
+        "mutating": False,
+    },
+    {
+        "name": "search_files",
+        "description": (
+            "Search local report files and artifacts by text pattern. "
+            "Use this to find generated reports, logs, or exported data."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "pattern": {
+                    "type": "string",
+                    "description": "Text pattern to search for in file names and content",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of matching files to return",
+                    "default": 20,
+                },
+            },
+            "required": ["pattern"],
+        },
+        "mutating": False,
+    },
+    {
+        "name": "list_recent_reports",
+        "description": (
+            "List recently generated reports and output files, ordered by "
+            "recency. Use this to find what reports are available."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of reports to list",
+                    "default": 10,
+                },
+            },
+            "required": [],
+        },
+        "mutating": False,
+    },
+    {
+        "name": "get_data_quality",
+        "description": (
+            "Check extraction quality and data completeness for a ticker. "
+            "Returns extraction failures, low-confidence metrics, and quality signals."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {
+                    "type": "string",
+                    "description": "ASX ticker symbol",
+                },
+            },
+            "required": ["ticker"],
+        },
+        "mutating": False,
+    },
+    {
+        "name": "fetch_url",
+        "description": (
+            "Fetch and return the text content of a web URL. Use this when "
+            "the user provides a link or you need to read a web page."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "The URL to fetch",
+                },
+                "max_chars": {
+                    "type": "integer",
+                    "description": "Maximum characters to return from the page",
+                    "default": 8000,
+                },
+            },
+            "required": ["url"],
+        },
+        "mutating": False,
+    },
+]
+
+# ---------------------------------------------------------------------------
+# Mutating tools — require user confirmation before execution
+# ---------------------------------------------------------------------------
+
+_MUTATING_TOOLS: list[dict[str, Any]] = [
+    {
+        "name": "run_backfill",
+        "description": (
+            "Backfill ASX announcements for a ticker. Downloads historical "
+            "announcements and processes documents. Use when no data exists "
+            "for a ticker or data is stale."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {
+                    "type": "string",
+                    "description": "ASX ticker symbol to backfill",
+                },
+                "years": {
+                    "type": "integer",
+                    "description": "Number of years of history to fetch",
+                    "default": 3,
+                },
+            },
+            "required": ["ticker"],
+        },
+        "mutating": True,
+    },
+    {
+        "name": "run_metric_extraction",
+        "description": (
+            "Extract financial metrics from existing documents for a ticker. "
+            "Runs LLM-based extraction on downloaded PDFs to populate financials."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {
+                    "type": "string",
+                    "description": "ASX ticker symbol",
+                },
+            },
+            "required": ["ticker"],
+        },
+        "mutating": True,
+    },
+    {
+        "name": "run_news_ingest",
+        "description": (
+            "Run daily news ingestion. Fetches recent news articles from "
+            "configured providers and indexes them."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "since_hours": {
+                    "type": "integer",
+                    "description": "Fetch articles from the last N hours",
+                    "default": 24,
+                },
+            },
+            "required": [],
+        },
+        "mutating": True,
+    },
+    {
+        "name": "run_announcement_ingest",
+        "description": (
+            "Run daily ASX announcement ingestion. Fetches today's (or a "
+            "specified date's) announcements from the ASX."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string",
+                    "description": "Date to ingest in YYYY-MM-DD format, or 'today'",
+                    "default": "today",
+                },
+            },
+            "required": [],
+        },
+        "mutating": True,
+    },
+    {
+        "name": "update_financials",
+        "description": (
+            "Re-process financial data for a ticker. Downloads new announcements "
+            "and re-extracts metrics. Use when financials may be outdated."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {
+                    "type": "string",
+                    "description": "ASX ticker symbol",
+                },
+                "years": {
+                    "type": "integer",
+                    "description": "Number of years to re-process",
+                    "default": 1,
+                },
+            },
+            "required": ["ticker"],
+        },
+        "mutating": True,
+    },
+    {
+        "name": "rebuild_financials",
+        "description": (
+            "Rebuild financials from existing documents for a ticker. "
+            "Re-runs extraction on already-downloaded PDFs without fetching new ones."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {
+                    "type": "string",
+                    "description": "ASX ticker symbol",
+                },
+            },
+            "required": ["ticker"],
+        },
+        "mutating": True,
+    },
+    {
+        "name": "audit_financials",
+        "description": (
+            "Run a quality audit on extracted financials for a ticker. "
+            "Checks for extraction errors, low-confidence values, and inconsistencies."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {
+                    "type": "string",
+                    "description": "ASX ticker symbol",
+                },
+            },
+            "required": ["ticker"],
+        },
+        "mutating": True,
+    },
+    {
+        "name": "generate_chart",
+        "description": (
+            "Generate a candlestick / price chart for a ticker. "
+            "Creates an interactive HTML chart with OHLCV data."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {
+                    "type": "string",
+                    "description": "ASX ticker symbol",
+                },
+                "range": {
+                    "type": "string",
+                    "description": "Price history range for the chart",
+                    "default": "1y",
+                },
+            },
+            "required": ["ticker"],
+        },
+        "mutating": True,
+    },
+]
+
+# ---------------------------------------------------------------------------
+# Exports
+# ---------------------------------------------------------------------------
+
+TOOL_DEFINITIONS: list[dict[str, Any]] = _READ_ONLY_TOOLS + _MUTATING_TOOLS
+
+MUTATING_TOOL_NAMES: frozenset[str] = frozenset(
+    t["name"] for t in TOOL_DEFINITIONS if t.get("mutating")
+)
+
+
+def _build_prompt() -> str:
+    """Format tool definitions as a text block for system prompt injection."""
+    lines = ["TOOLS:"]
+    for tool in TOOL_DEFINITIONS:
+        # Compact JSON without the mutating flag (LLM doesn't need it)
+        schema = {
+            "name": tool["name"],
+            "description": tool["description"],
+            "parameters": tool["parameters"],
+        }
+        lines.append(json.dumps(schema, separators=(",", ":")))
+    return "\n".join(lines)
+
+
+TOOL_DEFINITIONS_PROMPT: str = _build_prompt()

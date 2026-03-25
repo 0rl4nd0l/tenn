@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import threading
@@ -15,6 +16,8 @@ except ImportError:  # Python < 3.11
     class StrEnum(str, Enum):  # type: ignore[no-redef]
         pass
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 from typing import Any
 
 from cockpit.core.session_memory import (
@@ -124,6 +127,23 @@ class ChatController:
         # Prevents concurrent context-gather calls from stacking up.
         self._context_gather_lock = threading.Lock()
 
+        # Agent loop (Phase 1 agentic chat — opt-in via COCKPIT_AGENT_MODE=structured)
+        self._agent_loop = None
+        if os.environ.get("COCKPIT_AGENT_MODE") == "structured":
+            try:
+                from cockpit.core.agent_loop import AgentLoop
+                from cockpit.core.tool_executor import ToolExecutor
+
+                self._agent_loop = AgentLoop(
+                    llm_client=ollama_client,
+                    tool_executor=ToolExecutor(tool_router, action_registry),
+                    system_instruction_builder=lambda mode, ticker: self._build_system_instruction(mode, ticker, {}),
+                    llm_timeout_seconds=self.llm_timeout_seconds,
+                )
+                logger.info("Agent loop initialised (COCKPIT_AGENT_MODE=structured)")
+            except ImportError:
+                logger.warning("Agent loop modules not available, falling back to keyword mode")
+
     TICKER_STOPWORDS = {
         "A",
         "AN",
@@ -188,6 +208,75 @@ class ChatController:
         # Common English words that happen to be 2-5 chars.
         "RUN",
         "SOME",
+        "SURE",
+        "OKAY",
+        "JUST",
+        "WELL",
+        "FINE",
+        "HERE",
+        "THERE",
+        "WHEN",
+        "WHERE",
+        "WERE",
+        "BEEN",
+        "MORE",
+        "ALSO",
+        "VERY",
+        "MUCH",
+        "LIKE",
+        "ONLY",
+        "THAN",
+        "THEN",
+        "TAKE",
+        "WANT",
+        "NEED",
+        "KNOW",
+        "LOOK",
+        "FIND",
+        "KEEP",
+        "MAKE",
+        "BACK",
+        "OVER",
+        "INTO",
+        "AFTER",
+        "BEFORE",
+        "COULD",
+        "WOULD",
+        "SHOULD",
+        "WILL",
+        "CAN",
+        "MAY",
+        "MIGHT",
+        "BUT",
+        "NOT",
+        "YES",
+        "NO",
+        "OK",
+        "YEP",
+        "YEA",
+        "YEAH",
+        "NAH",
+        "ABLE",
+        "HELP",
+        "THING",
+        "THINK",
+        "GOOD",
+        "BAD",
+        "WORK",
+        "LAST",
+        "NEXT",
+        "LONG",
+        "BIG",
+        "OLD",
+        "NEW",
+        "OWN",
+        "OUR",
+        # Pronouns used in follow-up questions — not tickers.
+        "ITS",
+        "THEY",
+        "THEM",
+        "THEIR",
+        "SAME",
     }
 
     # ------------------------------------------------------------------ #
@@ -265,31 +354,6 @@ class ChatController:
         # Cap at 3 observations per turn to avoid noise
         return observations[:3]
 
-    @staticmethod
-    def _sanitize_prompt_local_payload(payload: Any, *, deep_mode: bool = False) -> dict[str, Any]:
-        """
-        Trim doc lists and snippet excerpts to safe sizes before building the prompt.
-
-        - docs: 10 items (operational) or 20 items (deep)
-        - doc_snippets: excerpt clipped to 1200 chars each
-        - Non-dict payload: returns {}
-        """
-        if not isinstance(payload, dict):
-            return {}
-        out = dict(payload)
-        max_docs = 20 if deep_mode else 10
-        if isinstance(out.get("docs"), list):
-            out["docs"] = out["docs"][:max_docs]
-        if isinstance(out.get("doc_snippets"), list):
-            snippets = []
-            for s in out["doc_snippets"]:
-                if isinstance(s, dict) and len(str(s.get("excerpt", ""))) > 1200:
-                    s = dict(s)
-                    s["excerpt"] = str(s["excerpt"])[:1200]
-                snippets.append(s)
-            out["doc_snippets"] = snippets
-        return out
-
     # ------------------------------------------------------------------ #
     # Context gather with timeout                                          #
     # ------------------------------------------------------------------ #
@@ -344,14 +408,18 @@ class ChatController:
 
     @staticmethod
     def _extract_alpha_tokens(message: str) -> list[tuple[str, str]]:
-        # Match ASX-style tickers: letter-started, 2-5 alphanumeric chars (e.g. MP1, A200).
-        return [(m.group(0), m.group(0).upper()) for m in re.finditer(r"\b([A-Za-z][A-Za-z0-9]{1,4})\b", message)]
+        # Match ASX-style tickers: letter-started 2-5 alphanumeric chars (e.g. MP1, A200)
+        # OR digit-started tickers that contain at least one letter (e.g. 29M, 4DS, 5GN).
+        return [
+            (m.group(0), m.group(0).upper())
+            for m in re.finditer(r"\b(?:[A-Za-z][A-Za-z0-9]{1,4}|[0-9]+[A-Za-z][A-Za-z0-9]{0,3})\b", message)
+        ]
 
     def _detect_ticker(self, message: str, prior_ticker: str | None = None) -> str | None:
-        # Prefer explicit ticker-like mentions first, e.g. "$BHP" or "ASX:BHP".
-        explicit = re.search(r"(?:\bASX:|\$)([A-Za-z]{2,5})\b", message)
+        # Prefer explicit ticker-like mentions first, e.g. "$BHP", "ASX:BHP", or "BHP.AX" / "29M.AX".
+        explicit = re.search(r"(?:\bASX:|\$)([A-Za-z]{2,5})\b|([A-Za-z0-9]{2,5})\.AX\b", message, re.IGNORECASE)
         if explicit:
-            token = explicit.group(1).upper()
+            token = (explicit.group(1) or explicit.group(2)).upper()
             if token not in self.TICKER_STOPWORDS:
                 return token
 
@@ -384,6 +452,29 @@ class ChatController:
 
     # Chart intent keywords — checked before general action detection.
     # NOTE: "price history" is a price-query pattern, not a chart request.
+    _GREETING_RE = re.compile(
+        r"^\s*(?:hi|hello|hey|g'?day|yo|sup|howdy|good\s+(?:morning|afternoon|evening)|what'?s?\s+up)\s*[!?.]*\s*$",
+        re.IGNORECASE,
+    )
+
+    # Detects follow-up messages that implicitly reference the prior ticker.
+    # Matches pronouns, company references, and common conversational
+    # continuations that imply the user is still talking about the same entity.
+    _FOLLOW_UP_RE = re.compile(
+        r"\b(?:"
+        r"it|its|they|their|them|"
+        r"the company|the stock|this company|this stock|same ticker|"
+        r"what about|how about|and what|and how|"
+        r"tell me more|more detail|elaborate|go on|continue|expand on|"
+        r"go ahead|yes|sure|okay|ok|yep|yeah|right|"
+        r"also|additionally|furthermore|"
+        r"financials?|revenue|earnings|cashflow|cash flow|dividends?|"
+        r"health|performance|outlook|guidance|"
+        r"compared to|versus|vs"
+        r")\b",
+        re.IGNORECASE,
+    )
+
     _CHART_KEYWORDS = re.compile(
         r"\b(?:candlestick|candle|chart|plot)\b"
         r"|show\s+\S+\s*chart",
@@ -635,32 +726,29 @@ class ChatController:
         """Build the ASX-domain-specific system prompt for the LLM."""
         date_str = datetime.now().strftime("%Y-%m-%d")
         instruction = (
-            "You are Tenn, an advanced ASX equity research analyst and financial intelligence agent.\n"
+            "You are Tenn, an ASX equity research assistant. You are conversational and helpful.\n"
             "\n"
-            "Your primary function: deliver rigorous, evidence-grounded analysis of ASX-listed companies."
-            " You have access to real-time price data, multi-period financial statements, regulatory"
-            " announcements, and qualitative context from company filings.\n"
+            "Communication style:\n"
+            "- Be natural and conversational. Respond like a knowledgeable colleague, not a report generator.\n"
+            "- Answer the user's actual question directly before expanding with analysis.\n"
+            "- Use plain language. Mention metrics only when they answer or support the question.\n"
+            "- If the user asks a simple question, give a concise answer. Don't dump every metric you have.\n"
+            "- If the user asks for deep analysis, then provide structured detail with evidence.\n"
             "\n"
             "Domain context:\n"
             "- Exchange: Australian Securities Exchange (ASX), Sydney AEST/AEDT timezone\n"
             "- Reporting: Semi-annual (interim + full-year), calendar year-end typical for resources,"
             " June 30 FY for most corporates\n"
-            "- Key metrics: Revenue, EBIT, NPAT, operating CF, FCF (OCF - capex), net debt, shares on issue\n"
-            "- Valuation lenses: P/E, EV/EBIT, FCF yield, net debt/EBIT leverage. Use these when multiples"
-            " data is available in the payload.\n"
-            "- Price signals: trend regime (bull/bear/neutral via SMA), momentum (1d/20d/63d returns),"
-            " annualised vol, drawdown from 63d high\n"
-            "- Announcement types: results > guidance > capital raising > dividend > administrative."
-            " Weight by type when synthesising.\n"
+            "- Key metrics you may reference: Revenue, EBIT, NPAT, operating CF, FCF, net debt\n"
+            "- You have access to price data, financial statements, announcements, and news when provided\n"
             "\n"
             "Analyst standards:\n"
             "- Lead with the most material facts. Flag data limitations explicitly.\n"
             "- Distinguish between confirmed financial data and qualitative inference.\n"
             "- When financials_narrative is provided, use it as your starting point for trend commentary.\n"
             "- When valuation_multiples are provided, anchor your valuation assessment to them.\n"
-            "- When post-announcement price reactions are provided, include market interpretation.\n"
             "- Never fabricate metrics not present in the evidence payload.\n"
-            "- If data is absent, state \"data not available\" rather than estimating.\n"
+            "- If data is absent, say so plainly rather than speculating.\n"
             "\n"
             f"Current mode: {mode}\n"
             f"Current date (AEST): {date_str}\n"
@@ -695,6 +783,82 @@ class ChatController:
 
         return instruction
 
+    # ------------------------------------------------------------------ #
+    # Agent loop dispatch (Phase 1 — structured mode)                      #
+    # ------------------------------------------------------------------ #
+
+    def _run_agent_loop(
+        self,
+        message: str,
+        enable_web: bool,
+        prior_ticker: str | None,
+        on_chunk,
+        analysis_mode: str | None,
+    ) -> ChatResponse:
+        """Run the agentic tool-calling loop and convert the result to a ChatResponse."""
+        # Reuse existing ticker detection logic
+        prior = prior_ticker or self.last_ticker
+        new_ticker = self._detect_ticker(message, prior_ticker=None)
+        ticker = new_ticker or prior or None
+        if ticker:
+            self.last_ticker = ticker
+
+        # Gather conversation history from state store
+        conversation_history: list[dict] = []
+        if self._state_store is not None:
+            try:
+                history_msgs = self._state_store.get_chat_messages(self._thread_id, limit=12)
+                prior_turns = history_msgs[:-1] if history_msgs else []
+                conversation_history = [
+                    {"role": m.get("role", "user"), "content": str(m.get("content", ""))[:400]}
+                    for m in prior_turns[-6:]
+                ]
+            except Exception:
+                pass  # history is best-effort
+
+        # Run the agent loop
+        from cockpit.core.agent_loop import AgentResult  # guaranteed available if _agent_loop is set
+
+        result: AgentResult = self._agent_loop.run(
+            message=message,
+            ticker=ticker,
+            conversation_history=conversation_history,
+            on_chunk=on_chunk,
+        )
+
+        # Record the turn in session memory (same as keyword path)
+        record_turn(
+            self._ov_session_id,
+            build_turn_payload(
+                session_id=self._ov_session_id,
+                thread_id=self._thread_id,
+                query=message,
+                answer=result.text.strip(),
+                ticker=ticker,
+            ),
+        )
+
+        # Extract and store ticker observations (same as keyword path)
+        if self._state_store is not None and ticker:
+            try:
+                obs_list = ChatController._extract_ticker_observations(ticker, result.text)
+                for obs in obs_list:
+                    self._state_store.add_entity_observation(
+                        ticker=ticker,
+                        observation_type=obs["type"],
+                        content=obs["content"],
+                        source="chat",
+                    )
+            except Exception:
+                pass  # observations are best-effort
+
+        return ChatResponse(
+            text=result.text.strip(),
+            evidence=result.evidence,
+            action_preview=result.action_preview,
+            mode=result.mode,
+        )
+
     def build_chat_response(
         self,
         message: str,
@@ -704,8 +868,39 @@ class ChatController:
         analysis_mode: str | None = None,
         context_profile: str | None = None,
     ) -> ChatResponse:
-        ticker = self._detect_ticker(message, prior_ticker=prior_ticker or self.last_ticker)
-        self.last_ticker = ticker or self.last_ticker
+        # --- Greeting short-circuit: don't invoke the full analyst pipeline ---
+        if self._GREETING_RE.match(message):
+            greeting = (
+                "Hey! I'm Tenn — your ASX research assistant. "
+                "Ask me about a company (e.g. \"tell me about CSL\") or run an action from the panel."
+            )
+            return ChatResponse(text=greeting, evidence=[], mode=ResponseMode.FAST)
+
+        # --- Agent mode dispatch (Phase 1 agentic chat) ---
+        agent_mode = os.environ.get("COCKPIT_AGENT_MODE", "keyword")
+        if agent_mode == "structured" and self._agent_loop is not None:
+            return self._run_agent_loop(message, enable_web, prior_ticker, on_chunk, analysis_mode)
+
+        # --- Existing keyword router (unchanged below) ---
+
+        # Ticker inheritance: first try to detect a NEW ticker in the message.
+        # If none found, carry forward the prior ticker — the user is still
+        # talking about the same entity.  The prior only resets when a new
+        # valid ticker is explicitly mentioned.
+        prior = prior_ticker or self.last_ticker
+        new_ticker = self._detect_ticker(message, prior_ticker=None)
+        if new_ticker:
+            # Explicit new ticker in the message — use it.
+            ticker = new_ticker
+        elif prior:
+            # No new ticker detected.  Inherit the prior — the user is
+            # continuing a conversation about the same entity (follow-up
+            # phrasing, financial terms, or simply no ticker-like words).
+            ticker = prior
+        else:
+            ticker = None
+        if ticker:
+            self.last_ticker = ticker
 
         msg_lower = message.lower()
         effective_profile = context_profile or os.environ.get("COCKPIT_CONTEXT_PROFILE", "balanced")
@@ -752,7 +947,12 @@ class ChatController:
         if self.detect_chart_intent(message):
             from cockpit.core.chart_args import prepare_chart_action_args
 
-            chart_ticker = ticker or "BHP"
+            if not ticker:
+                return ChatResponse(
+                    text="Which ticker do you want to chart? e.g. \"chart CSL\" or \"candlestick BHP\"",
+                    evidence=[], mode=ResponseMode.FAST,
+                )
+            chart_ticker = ticker
             out_dir = Path("reports") / "candles"
 
             def _default_parse_kv(raw: str) -> dict:
@@ -829,8 +1029,18 @@ class ChatController:
             {"type": "local_context", "details": local_context.payload},
         ]
 
+        _MARKET_WIDE_ACTIONS = {
+            "daily_news_ingest", "historical_news_ingest",
+            "daily_announcement_ingest", "load_news_to_qdrant",
+            "universe_announcement_enrichment_backfill",
+        }
         if action_id:
-            args = {"ticker": ticker or "BHP"}
+            if not ticker and action_id not in _MARKET_WIDE_ACTIONS:
+                return ChatResponse(
+                    text=f"Action **{action_id}** needs a ticker. e.g. \"{action_id} CSL\"",
+                    evidence=[], mode=ResponseMode.FAST,
+                )
+            args = {"ticker": ticker or ""}
             preview = self.action_registry.preview(action_id, args)
             return ChatResponse(
                 text=(
@@ -879,15 +1089,19 @@ class ChatController:
             local_payload["web_requested"] = True
         local_payload["response_mode"] = mode.value
 
-        # --- Empty context short-circuit ---
+        # --- Empty / thin context short-circuits ---
         # When the ticker is known but there's no DB data at all, skip the LLM and
         # give the user a direct actionable response with a backfill offer.
+        has_docs = bool(local_payload.get("docs"))
+        has_financials = bool(local_payload.get("financials"))
+        has_qual = bool(local_payload.get("qual_context"))
+
         if (
             ticker
             and mode not in {ResponseMode.ACTION, ResponseMode.WEB}
-            and not local_payload.get("docs")
-            and not local_payload.get("financials")
-            and not local_payload.get("qual_context")
+            and not has_docs
+            and not has_financials
+            and not has_qual
             and not local_payload.get("db_error")  # don't mask DB errors
         ):
             _backfill_args: dict[str, Any] = {"ticker": ticker, "years": 3}
@@ -913,6 +1127,16 @@ class ChatController:
                 evidence=evidence,
                 action_preview=_action_preview,
                 mode=ResponseMode.ACTION,
+            )
+
+        # Docs exist but no extracted financials — warn the user before hitting the LLM,
+        # so the response is grounded rather than speculative.
+        if ticker and has_docs and not has_financials and mode not in {ResponseMode.ACTION, ResponseMode.WEB}:
+            n_docs = len(local_payload["docs"])
+            local_payload["_missing_financials_warning"] = (
+                f"Note: {n_docs} document(s) found for {ticker} but no extracted financial metrics. "
+                f"Analysis will be limited to announcements and qualitative context. "
+                f"Run **Metric Extraction** to process financials from existing documents."
             )
 
         system_instruction = self._build_system_instruction(
@@ -995,44 +1219,146 @@ class ChatController:
                 f"  (Run on {pe.get('date', 'unknown')})"
             )
 
-        runtime_settings = {
-            "context_profile": effective_profile,
-            "response_mode": mode.value,
-        }
-        evidence_section = (
-            "Local evidence JSON:\n"
-            + f"{json.dumps(local_payload)[:7000]}\n"
-            + "\nRuntime settings JSON:\n"
-            + f"{json.dumps(runtime_settings)}\n"
-            + "Change context depth: /context-profile balanced|max-depth\n"
-        )
+        # Build a human-readable evidence section instead of dumping raw JSON.
+        # The LLM produces better conversational output when context is readable text,
+        # not a 7KB JSON blob with internal fields like pdf_path and document_id.
+        evidence_parts: list[str] = []
 
         if context_sections:
-            evidence_section += "\n\n" + "\n\n".join(context_sections)
+            evidence_parts.extend(context_sections)
 
+        # Summarise docs as readable text
+        docs = local_payload.get("docs")
+        if isinstance(docs, list) and docs:
+            doc_lines = [f"Recent documents for {ticker or 'query'}:"]
+            for d in docs[:8]:
+                title = str(d.get("title") or "").strip()
+                pub = str(d.get("published_at") or "").strip()[:10]
+                doc_class = str(d.get("doc_class") or "").strip()
+                if title:
+                    doc_lines.append(f"  - {title} ({doc_class}, {pub})" if pub else f"  - {title} ({doc_class})")
+            evidence_parts.append("\n".join(doc_lines))
+
+        # Summarise doc snippets as readable excerpts
+        snippets = local_payload.get("doc_snippets")
+        if isinstance(snippets, list) and snippets:
+            snippet_lines = ["Document excerpts:"]
+            for s in snippets[:5]:
+                title = str(s.get("title") or "").strip()
+                excerpt = str(s.get("excerpt") or s.get("text") or "").strip()[:800]
+                if excerpt:
+                    snippet_lines.append(f"  [{title}]: {excerpt}")
+            evidence_parts.append("\n".join(snippet_lines))
+
+        # Render financial metric rows so the LLM can cite specific numbers
+        financials = local_payload.get("financials")
+        if isinstance(financials, list) and financials:
+            fin_lines = [f"Financial metrics for {ticker or 'query'}:"]
+            for row in financials[:6]:
+                period = str(row.get("period_end") or row.get("period") or row.get("year") or "").strip()
+                period_type = str(row.get("period_type") or "").strip()
+                label = f"{period} ({period_type})" if period_type else period
+                metrics_found = []
+                for metric in ("revenue", "ebit", "npat", "operating_cash_flow", "free_cash_flow",
+                               "net_debt", "total_assets", "total_equity", "shares_on_issue"):
+                    val = row.get(metric)
+                    if val is not None:
+                        metrics_found.append(f"    {metric}: {val}")
+                if metrics_found:
+                    fin_lines.append(f"  {label}:")
+                    fin_lines.extend(metrics_found)
+            if len(fin_lines) > 1:
+                evidence_parts.append("\n".join(fin_lines))
+
+        # Include price context as readable text
+        price = local_payload.get("price")
+        if isinstance(price, dict) and price.get("symbol"):
+            price_lines = [f"Price data for {price.get('symbol')}:"]
+            for key in ("last_close", "previous_close", "change_pct", "volume"):
+                val = price.get(key)
+                if val is not None:
+                    price_lines.append(f"  {key}: {val}")
+            evidence_parts.append("\n".join(price_lines))
+
+        price_state = local_payload.get("price_state")
+        if isinstance(price_state, dict) and price_state:
+            state_lines = ["Price state:"]
+            for key in ("trend_regime", "momentum_1d", "momentum_20d", "annualised_vol", "drawdown_from_high"):
+                val = price_state.get(key)
+                if val is not None:
+                    state_lines.append(f"  {key}: {val}")
+            if len(state_lines) > 1:
+                evidence_parts.append("\n".join(state_lines))
+
+        # Include news/qual context if present
+        qual = local_payload.get("qual_context")
+        if isinstance(qual, list) and qual:
+            qual_lines = ["Qualitative context:"]
+            for q in qual[:5]:
+                text = str(q.get("text") or q.get("content") or "").strip()[:400]
+                source = str(q.get("source_name") or q.get("source") or "").strip()
+                if text:
+                    qual_lines.append(f"  [{source}]: {text}")
+            evidence_parts.append("\n".join(qual_lines))
+
+        # Data quality issues worth surfacing
+        dq = local_payload.get("data_quality")
+        if isinstance(dq, dict):
+            issues = []
+            if dq.get("extraction_failures"):
+                issues.append(f"{len(dq['extraction_failures'])} extraction failure(s)")
+            if dq.get("low_confidence_rows"):
+                issues.append(f"{len(dq['low_confidence_rows'])} low-confidence metric(s)")
+            if issues:
+                evidence_parts.append("Data quality notes: " + "; ".join(issues))
+
+        # Surface missing-financials warning so the LLM knows the gap
+        missing_warn = local_payload.get("_missing_financials_warning")
+        if missing_warn:
+            evidence_parts.insert(0, str(missing_warn))
+
+        evidence_section = "\n\n".join(evidence_parts) if evidence_parts else ""
+
+        # Build the user message separately from the system instruction so the
+        # LLM can distinguish its role from the user's question.
+        user_parts = []
+        if ov_context_block:
+            user_parts.append(ov_context_block.strip())
         if history_block:
-            prompt = (
-                system_instruction
-                + "\n\n"
-                + ov_context_block
-                + history_block
-                + "\n\nUser question: "
-                + message
-                + "\n\n"
-                + evidence_section
-            )
-        else:
-            prompt = system_instruction + ov_context_block + f"User question: {message}\n\n" + evidence_section
+            user_parts.append(history_block.strip())
+        user_parts.append(message)
+        if evidence_section.strip():
+            user_parts.append(evidence_section.strip())
+        user_message = "\n\n".join(user_parts)
+
+        prior_messages = [{"role": "system", "content": system_instruction}]
+
+        # Try with proper system/user message separation first.
+        # Fall back to concatenated prompt for clients that don't support prior_messages.
+        prompt_fallback = system_instruction + "\n\n" + user_message
 
         if on_chunk is not None:
             try:
-                answer = self.ollama_client.chat(prompt, timeout=self.llm_timeout_seconds, on_chunk=on_chunk)
+                answer = self.ollama_client.chat(
+                    user_message, timeout=self.llm_timeout_seconds,
+                    on_chunk=on_chunk, prior_messages=prior_messages,
+                )
             except TypeError as exc:
-                if "on_chunk" not in str(exc):
+                if "on_chunk" not in str(exc) and "prior_messages" not in str(exc):
                     raise
-                answer = self.ollama_client.chat(prompt, timeout=self.llm_timeout_seconds)
+                logger.info("ollama_client.chat fallback (unsupported kwarg): %s", exc)
+                answer = self.ollama_client.chat(prompt_fallback, timeout=self.llm_timeout_seconds)
         else:
-            answer = self.ollama_client.chat(prompt, timeout=self.llm_timeout_seconds)
+            try:
+                answer = self.ollama_client.chat(
+                    user_message, timeout=self.llm_timeout_seconds,
+                    prior_messages=prior_messages,
+                )
+            except TypeError as exc:
+                if "prior_messages" not in str(exc):
+                    raise
+                logger.info("ollama_client.chat fallback (no prior_messages support): %s", exc)
+                answer = self.ollama_client.chat(prompt_fallback, timeout=self.llm_timeout_seconds)
 
         if analysis_mode == "deep" and (
             self._looks_like_framework_only_analysis(
@@ -1072,7 +1398,7 @@ class ChatController:
             except Exception:
                 pass  # observations are best-effort, never block the response
 
-        return ChatResponse(text=answer.strip(), evidence=evidence, mode=mode, prompt=prompt)
+        return ChatResponse(text=answer.strip(), evidence=evidence, mode=mode, prompt=prompt_fallback)
 
     @staticmethod
     def now_iso() -> str:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -495,10 +496,11 @@ class CockpitApp(App):
         else:
             loaded = model
 
+        agent_mode = os.environ.get("COCKPIT_AGENT_MODE", "keyword")
         lines = [
             f"Provider: {provider_label}  |  Model Runtime: {loaded}",
             f"Endpoint: {endpoint}",
-            f"Last mode: {self.last_response_mode or 'none'}",
+            f"Last mode: {self.last_response_mode or 'none'}  |  Agent: {agent_mode}",
         ]
 
         if health.get("ok"):
@@ -629,6 +631,16 @@ class CockpitApp(App):
             return
 
         if message.strip() == "/confirm":
+            # Race-condition guard: if the user types /confirm while the
+            # previous chat response is still being processed, pending_action
+            # may not have been stored yet.  Wait for the inflight task to
+            # populate it (pending_action is now set inside the try block,
+            # before chat_inflight is cleared, so this loop exits quickly).
+            if not self.pending_action and self.chat_inflight:
+                for _ in range(100):  # up to ~10 s
+                    await asyncio.sleep(0.1)
+                    if self.pending_action or not self.chat_inflight:
+                        break
             if not self.pending_action:
                 self._append_log(log, "assistant: No pending action.")
                 return
@@ -770,6 +782,13 @@ class CockpitApp(App):
                     )
 
             response = await asyncio.to_thread(_build_response)
+            # Store pending_action immediately so /confirm can find it even
+            # if it arrives before the finally block clears chat_inflight.
+            if response.action_preview:
+                self.pending_action = {
+                    "action_id": response.action_preview["action_id"],
+                    "args": response.action_preview["args"],
+                }
         except Exception as exc:
             self.chat_inflight = False
             status.update("")
@@ -820,16 +839,16 @@ class CockpitApp(App):
         self.state_store.add_chat_message(self.thread_id, "assistant", assistant_text, datetime.now(timezone.utc).isoformat())
 
         if response.action_preview:
-            self.pending_action = {
-                "action_id": response.action_preview["action_id"],
-                "args": response.action_preview["args"],
-            }
-            pending.update(
-                "Pending: "
-                f"{response.action_preview['action_id']} "
-                f"args={response.action_preview['args']} "
-                "(/confirm or /cancel)"
-            )
+            # pending_action was already set in the try block above (before
+            # chat_inflight was cleared) so that a fast /confirm can find it
+            # immediately.  If /confirm already consumed it, don't re-set.
+            if self.pending_action is not None:
+                pending.update(
+                    "Pending: "
+                    f"{response.action_preview['action_id']} "
+                    f"args={response.action_preview['args']} "
+                    "(/confirm or /cancel)"
+                )
 
             # Candlestick chart — generate HTML dashboard immediately.
             if response.action_preview.get("action_id") == "show_candlestick":
@@ -896,7 +915,12 @@ class CockpitApp(App):
             self._write_log(log_target, "read-only mode: mutating action blocked")
             return
 
-        preview = self.action_registry.preview(action_id, args)
+        try:
+            preview = self.action_registry.preview(action_id, args)
+        except ValueError as exc:
+            self._write_log(log_target, f"⚠ {exc}")
+            return
+
         if spec.requires_confirmation and not skip_confirm:
             confirmed = await self._confirm_action(
                 {
@@ -1135,7 +1159,6 @@ class CockpitApp(App):
         elif "ops" in screen_key or "operation" in screen_key:
             payload["recent_jobs"] = self.state_store.list_jobs(limit=20)
         elif "updater" in screen_key:
-            payload["latest_financials_bhp"] = self.db_reader.get_financials("BHP", limit=5)
             payload["recent_jobs"] = self.state_store.list_jobs(limit=20)
         elif "verification" in screen_key:
             payload["last_verification"] = self.last_verification_payload
