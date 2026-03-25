@@ -31,10 +31,12 @@ class ToolExecutor:
         action_registry: ActionRegistry,
         *,
         max_result_chars: int = DEFAULT_MAX_RESULT_CHARS,
+        extraction_controller=None,
     ) -> None:
         self._router = tool_router
         self._actions = action_registry
         self._max_result_chars = max_result_chars
+        self._extraction_ctrl = extraction_controller
 
     # ------------------------------------------------------------------
     # Public API
@@ -304,6 +306,21 @@ class ToolExecutor:
 
     def _propose_action(self, tool_name: str, args: dict[str, Any]) -> dict[str, Any]:
         """Build an action proposal for a mutating tool (does NOT execute)."""
+        # Validate extraction inputs before building the proposal.  This runs
+        # at proposal time (pre-confirmation) so the user sees the error early
+        # rather than at execution time.
+        if tool_name == "run_metric_extraction" and self._extraction_ctrl is not None:
+            ticker = str(args.get("ticker", "")).strip().upper()
+            doc_id = str(args.get("document_id", ticker)).strip()
+            try:
+                self._extraction_ctrl.validate(doc_id, ticker)
+            except ValueError as exc:
+                return {
+                    "tool": tool_name,
+                    "ok": False,
+                    "error": f"Validation failed: {exc}",
+                }
+
         action_id = self._ACTION_ID_MAP.get(tool_name)
         if action_id is None:
             return {

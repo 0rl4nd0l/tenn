@@ -1,0 +1,201 @@
+"""Tests for ToolExecutor integration with ExtractionController.
+
+Covers the validation gate introduced in _propose_action() for
+run_metric_extraction: valid inputs pass through, invalid inputs return an
+error dict before the action proposal is built.
+"""
+from __future__ import annotations
+
+from unittest.mock import MagicMock
+
+import pytest
+
+from cockpit.core.agent.extraction_controller import ExtractionController
+from cockpit.core.tool_executor import ToolExecutor
+from cockpit.core.types import ActionSpec
+
+
+# ---------------------------------------------------------------------------
+# Helpers / fixtures
+# ---------------------------------------------------------------------------
+
+def _make_action_spec(action_id: str = "metric_extraction") -> ActionSpec:
+    return ActionSpec(
+        id=action_id,
+        label="Run metric extraction",
+        command_template=["python", "extract.py"],
+        arg_schema={"ticker": str},
+        is_mutating=True,
+        requires_confirmation=True,
+        expected_outputs=[],
+        timeout_seconds=3600,
+    )
+
+
+def _make_executor(extraction_controller=None) -> ToolExecutor:
+    """Build a ToolExecutor with lightweight mocks for router and action registry."""
+    mock_router = MagicMock()
+
+    mock_registry = MagicMock()
+    mock_registry.get.return_value = _make_action_spec()
+
+    return ToolExecutor(
+        tool_router=mock_router,
+        action_registry=mock_registry,
+        extraction_controller=extraction_controller,
+    )
+
+
+def _make_controller() -> ExtractionController:
+    """Return a controller whose pipeline_fn is a no-op (never called in validate())."""
+    return ExtractionController(pipeline_fn=lambda doc_id, ticker: "job-test")
+
+
+# ---------------------------------------------------------------------------
+# No controller wired — baseline behaviour unchanged
+# ---------------------------------------------------------------------------
+
+class TestNoExtractionController:
+    def test_valid_args_produce_proposal_without_controller(self):
+        executor = _make_executor(extraction_controller=None)
+        result = executor.execute("run_metric_extraction", {"ticker": "BHP"})
+        assert result["ok"] is True
+        assert result["type"] == "action_proposal"
+        assert result["action_id"] == "metric_extraction"
+
+    def test_invalid_ticker_still_produces_proposal_without_controller(self):
+        """Without a controller, ToolExecutor cannot validate — proposal is built."""
+        executor = _make_executor(extraction_controller=None)
+        result = executor.execute("run_metric_extraction", {"ticker": ""})
+        # No validation: proposal is built regardless of ticker value.
+        assert result["ok"] is True
+        assert result["type"] == "action_proposal"
+
+
+# ---------------------------------------------------------------------------
+# Controller wired — validation gate active
+# ---------------------------------------------------------------------------
+
+class TestWithExtractionController:
+    def test_valid_ticker_and_doc_id_produce_proposal(self):
+        executor = _make_executor(extraction_controller=_make_controller())
+        result = executor.execute(
+            "run_metric_extraction",
+            {"ticker": "BHP", "document_id": "doc-abc123"},
+        )
+        assert result["ok"] is True
+        assert result["type"] == "action_proposal"
+        assert result["action_id"] == "metric_extraction"
+
+    def test_ticker_only_uses_ticker_as_doc_id_fallback(self):
+        """When document_id is absent, ticker is used as doc_id placeholder."""
+        executor = _make_executor(extraction_controller=_make_controller())
+        result = executor.execute("run_metric_extraction", {"ticker": "CSL"})
+        assert result["ok"] is True
+        assert result["type"] == "action_proposal"
+
+    def test_empty_ticker_is_rejected(self):
+        # When ticker is empty, doc_id fallback is also empty, so the first
+        # format check that fires is document_id (empty string fails the regex).
+        # Either way the proposal must be rejected.
+        executor = _make_executor(extraction_controller=_make_controller())
+        result = executor.execute("run_metric_extraction", {"ticker": ""})
+        assert result["ok"] is False
+        assert "Validation failed" in result["error"]
+
+    def test_lowercase_ticker_is_normalised_to_uppercase_before_validation(self):
+        # _propose_action calls .strip().upper() on the ticker before validating,
+        # so a lowercase ticker from the LLM is accepted (not rejected).
+        executor = _make_executor(extraction_controller=_make_controller())
+        result = executor.execute("run_metric_extraction", {"ticker": "bhp"})
+        assert result["ok"] is True
+        assert result["type"] == "action_proposal"
+
+    def test_ticker_with_spaces_is_rejected(self):
+        executor = _make_executor(extraction_controller=_make_controller())
+        result = executor.execute("run_metric_extraction", {"ticker": "BH P"})
+        assert result["ok"] is False
+        assert "Validation failed" in result["error"]
+
+    def test_free_text_document_id_is_rejected(self):
+        executor = _make_executor(extraction_controller=_make_controller())
+        result = executor.execute(
+            "run_metric_extraction",
+            {"ticker": "BHP", "document_id": "Please extract revenue from BHP..."},
+        )
+        assert result["ok"] is False
+        assert "Validation failed" in result["error"]
+        assert "document_id" in result["error"]
+
+    def test_valid_ticker_is_uppercased_before_validation(self):
+        """Args arrive as lowercase from LLM; executor uppercases before validating."""
+        executor = _make_executor(extraction_controller=_make_controller())
+        # Lowercase ticker should be uppercased internally and pass.
+        # The _propose_action code does .strip().upper() on ticker.
+        result = executor.execute(
+            "run_metric_extraction",
+            {"ticker": "bhp", "document_id": "doc-abc"},
+        )
+        # After uppercasing "bhp" -> "BHP", validation passes.
+        assert result["ok"] is True
+        assert result["type"] == "action_proposal"
+
+    def test_validation_error_does_not_reach_action_registry(self):
+        """Registry.get() must NOT be called when validation fails."""
+        mock_registry = MagicMock()
+        mock_registry.get.return_value = _make_action_spec()
+        mock_router = MagicMock()
+
+        executor = ToolExecutor(
+            tool_router=mock_router,
+            action_registry=mock_registry,
+            extraction_controller=_make_controller(),
+        )
+        executor.execute("run_metric_extraction", {"ticker": ""})
+        mock_registry.get.assert_not_called()
+
+    def test_other_mutating_tools_bypass_validation(self):
+        """The extraction gate must not interfere with other mutating tools."""
+        executor = _make_executor(extraction_controller=_make_controller())
+        result = executor.execute("run_backfill", {"ticker": "BHP", "years": 3})
+        assert result["ok"] is True
+        assert result["action_id"] == "single_ticker_announcement_backfill"
+
+
+# ---------------------------------------------------------------------------
+# ExtractionController.validate() unit tests
+# ---------------------------------------------------------------------------
+
+class TestExtractionControllerValidate:
+    def test_valid_inputs_do_not_raise(self):
+        ctrl = _make_controller()
+        ctrl.validate("doc-abc", "BHP")  # must not raise
+
+    def test_invalid_document_id_raises_value_error(self):
+        ctrl = _make_controller()
+        with pytest.raises(ValueError, match="document_id"):
+            ctrl.validate("Please extract...", "BHP")
+
+    def test_invalid_ticker_raises_value_error(self):
+        ctrl = _make_controller()
+        with pytest.raises(ValueError, match="ticker"):
+            ctrl.validate("doc-abc", "")
+
+    def test_validate_does_not_call_pipeline(self):
+        called = []
+        ctrl = ExtractionController(pipeline_fn=lambda *a: called.append(a) or "job")
+        ctrl.validate("doc-abc", "BHP")
+        assert called == [], "pipeline_fn must not be invoked by validate()"
+
+    def test_validate_does_not_check_concurrency_limit(self):
+        """validate() should NOT raise RuntimeError when at capacity."""
+        ctrl = ExtractionController(pipeline_fn=lambda *a: "job", max_concurrent=1)
+        ctrl._active_jobs.add("existing-job")  # already at limit
+        # validate() should NOT check the concurrency limit
+        ctrl.validate("doc-abc", "BHP")  # must not raise
+
+    def test_validate_does_not_deduplicate(self):
+        """Repeated validate() calls on the same pair must not raise."""
+        ctrl = _make_controller()
+        ctrl.validate("doc-abc", "BHP")
+        ctrl.validate("doc-abc", "BHP")  # must not raise

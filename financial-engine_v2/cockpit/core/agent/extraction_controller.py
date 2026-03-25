@@ -68,6 +68,20 @@ class ExtractionController:
         self._active_jobs.add(job_id)
         return job_id
 
+    def validate(self, document_id: str, ticker: str) -> None:
+        """Validate document_id and ticker without submitting a job.
+
+        This is the lightweight gate used by ToolExecutor during the
+        action-proposal phase (before user confirmation).  It enforces the
+        same format constraints as submit() but does NOT check concurrency
+        limits or duplicate hashes — those only apply at submission time.
+
+        Raises:
+            ValueError: If document_id or ticker fails validation.
+        """
+        self._validate_document_id(document_id)
+        self._validate_ticker(ticker)
+
     def complete(self, job_id: str) -> None:
         """Mark a job as finished, freeing a concurrency slot."""
         self._active_jobs.discard(job_id)
