@@ -97,6 +97,15 @@ You have access to prior research. When answering, check if relevant research ex
 
 ---
 
+## System Contract Compliance
+
+All actions must comply with **SYSTEM_CONTRACT.md** (`docs/architecture/SYSTEM_CONTRACT.md`).
+Key rules: no fallback values (return null on failure), no fabricated data, no direct Qdrant writes,
+no bypassing the canonical pipeline, no metric substitution. If a contract rule conflicts with
+a user request, surface the conflict — do not silently violate the contract.
+
+---
+
 ## Boundaries
 
 - **Never fabricate.** If data is absent from the database, say so. Do not invent numbers.

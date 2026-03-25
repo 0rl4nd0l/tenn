@@ -34,6 +34,20 @@ _STREAMLINED_ACTION_IDS: tuple[str, ...] = (
     "metric_extraction",
 )
 
+# Actions that operate on a specific ticker and MUST have one provided.
+# Market-wide actions (daily_news_ingest, etc.) are intentionally excluded.
+TICKER_REQUIRED_ACTION_IDS: frozenset[str] = frozenset({
+    "full_history",
+    "update_ticker_financials",
+    "rebuild_ticker_financials",
+    "audit_ticker_financials",
+    "single_ticker_announcement_backfill",
+    "metric_extraction",
+    "show_candlestick",
+    "resume_pending",
+    "recover_headed",
+})
+
 
 @dataclass
 class ActionPreview:
@@ -970,7 +984,12 @@ class ActionRegistry:
         ts = uuid.uuid4().hex[:8]
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-        out.setdefault("ticker", "BHP")
+        if not out.get("ticker") and spec.id in TICKER_REQUIRED_ACTION_IDS:
+            raise ValueError(
+                f"Action '{spec.id}' requires a ticker. "
+                f"Provide one via the input field (e.g. ticker=CSL) or specify it in your message."
+            )
+        out.setdefault("ticker", "")
         out.setdefault("years", 5)
         out.setdefault("max_backfill_retries", 3)
         out.setdefault("resume_max_retries", 5)
@@ -1017,7 +1036,7 @@ class ActionRegistry:
 
         out.setdefault("report_path", f"reports/cockpit_{spec.id}_{ts}.json")
         if spec.id == "update_ticker_financials":
-            out.setdefault("report_path", f"reports/financial_update_{out.get('ticker', 'BHP')}_{ts}.json")
+            out.setdefault("report_path", f"reports/financial_update_{out.get('ticker', 'UNKNOWN')}_{ts}.json")
         if spec.id == "sort_asx_docs" and "ticker" not in args:
             out["ticker"] = ""
         if spec.id == "sort_asx_docs" and "limit" not in args:
@@ -1032,7 +1051,7 @@ class ActionRegistry:
         out.setdefault("daily_announcement_report", f"reports/asx/daily_asx_all_announcements_report_{ts}.json")
         out.setdefault("single_ticker_backfill_report", f"reports/ticker_full_history_report_{ts}.json")
         out.setdefault("universe_backfill_rollup_report", f"reports/asx/asx_enrichment_chunked_rollup_{ts}.json")
-        out.setdefault("metric_extraction_report", f"reports/rebuild_ticker_financials_from_docs_{out.get('ticker', 'BHP')}_{ts}.json")
+        out.setdefault("metric_extraction_report", f"reports/rebuild_ticker_financials_from_docs_{out.get('ticker', 'UNKNOWN')}_{ts}.json")
         out.setdefault("db_path", str(self.repo_root.parent / "reports" / "qual_context" / "news_articles.sqlite"))
         out.setdefault("qdrant_url", "http://localhost:6333")
         out.setdefault("collection", "news_chunks")
@@ -1051,7 +1070,7 @@ class ActionRegistry:
         out.setdefault("tickers", "")
         out.setdefault("no_resume", False)
         out.setdefault("importance_report", f"reports/importance/announcement_importance_report_{ts}.json")
-        out.setdefault("rebuild_report", f"reports/rebuild_ticker_financials_from_docs_{out.get('ticker', 'BHP')}_{ts}.json")
-        out.setdefault("audit_report", f"reports/audit_ticker_financials_{out.get('ticker', 'BHP')}_{ts}.json")
+        out.setdefault("rebuild_report", f"reports/rebuild_ticker_financials_from_docs_{out.get('ticker', 'UNKNOWN')}_{ts}.json")
+        out.setdefault("audit_report", f"reports/audit_ticker_financials_{out.get('ticker', 'UNKNOWN')}_{ts}.json")
 
         return out

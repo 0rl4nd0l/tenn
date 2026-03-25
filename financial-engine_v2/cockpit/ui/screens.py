@@ -12,6 +12,49 @@ from textual.widgets import Button, DataTable, Input, Label, RichLog, Select, St
 from cockpit.core.plotly_html import build_verification_dashboard_html
 
 
+class TickerInputScreen(ModalScreen[str]):
+    """Modal that prompts the user for a ticker before running a ticker-specific action."""
+
+    BINDINGS = [
+        ("escape", "cancel", "Cancel"),
+    ]
+
+    def __init__(self, action_label: str) -> None:
+        super().__init__()
+        self.action_label = action_label
+
+    def compose(self) -> ComposeResult:
+        yield Vertical(
+            Label(f"Enter ticker for: {self.action_label}"),
+            Input(placeholder="e.g. CSL, BHP, RIO", id="ticker-input"),
+            Horizontal(
+                Button("Cancel", id="ticker-cancel", variant="warning"),
+                Button("Go", id="ticker-go", variant="success"),
+            ),
+            id="ticker-modal",
+        )
+
+    def on_mount(self) -> None:
+        self.query_one("#ticker-input", Input).focus()
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        """Handle Enter key from the Input widget directly."""
+        if event.input.id == "ticker-input":
+            ticker = event.input.value.strip().upper()
+            self.dismiss(ticker)
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        event.stop()
+        if event.button.id == "ticker-go":
+            ticker = self.query_one("#ticker-input", Input).value.strip().upper()
+            self.dismiss(ticker)
+        else:
+            self.dismiss("")
+
+    def action_cancel(self) -> None:
+        self.dismiss("")
+
+
 class ConfirmActionScreen(ModalScreen[bool]):
     BINDINGS = [
         ("enter", "confirm", "Run"),
@@ -105,6 +148,17 @@ class ChatScreen(Screen):
             return
         self.app.launch_chat_message(message)
 
+    async def _run_ticker_action(self, action_id: str, label: str) -> None:
+        """Prompt user for a ticker via modal, then execute the action."""
+        def _on_dismiss(ticker: str) -> None:
+            if not ticker:
+                return
+            args = self.app.action_registry.parse_kv_args(f"ticker={ticker}")
+            self.app.call_later(
+                self.app.execute_action, action_id, args, log_target="chat-log"
+            )
+        self.app.push_screen(TickerInputScreen(label), callback=_on_dismiss)
+
     def action_clear_log(self) -> None:
         self.query_one("#chat-log", RichLog).clear()
 
@@ -150,16 +204,14 @@ class ChatScreen(Screen):
             await self.app.execute_action("historical_news_ingest", args, log_target="chat-log")
             return
         if event.button.id == "chat-run-single-ticker-backfill":
-            args = self.app.action_registry.parse_kv_args("")
-            await self.app.execute_action("single_ticker_announcement_backfill", args, log_target="chat-log")
+            await self._run_ticker_action("single_ticker_announcement_backfill", "Single Ticker Backfill")
             return
         if event.button.id == "chat-run-universe-backfill":
             args = self.app.action_registry.parse_kv_args("")
             await self.app.execute_action("universe_announcement_enrichment_backfill", args, log_target="chat-log")
             return
         if event.button.id == "chat-run-metric-extraction":
-            args = self.app.action_registry.parse_kv_args("")
-            await self.app.execute_action("metric_extraction", args, log_target="chat-log")
+            await self._run_ticker_action("metric_extraction", "Metric Extraction")
             return
         if event.button.id == "chat-kill-action":
             await self.app.cancel_active_action(log_target="chat-log")
@@ -176,7 +228,7 @@ class OperationsScreen(Screen):
         yield Button("Back to Chat", id="ops-back", variant="warning")
         actions = [(spec.label, spec.id) for spec in self.app.action_registry.list_actions()]
         yield Select(actions, value="daily_news_ingest", id="ops-action")
-        yield Input(value="ticker=BHP years=5", id="ops-args", placeholder="key=value pairs")
+        yield Input(value="", id="ops-args", placeholder="ticker=CSL years=5 (required for ticker actions)")
         yield Button("Daily News Ingest", id="ops-run-daily-news", variant="success")
         yield Button("Daily Announcement Ingest", id="ops-run-daily-announcements", variant="primary")
         yield Button("Historical News Ingest", id="ops-run-historical-news", variant="warning")
@@ -245,7 +297,7 @@ class UpdaterScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Label("Financial Data Updater")
         yield Horizontal(
-            Input(value="BHP", id="upd-ticker", placeholder="Ticker"),
+            Input(value="", id="upd-ticker", placeholder="Ticker (e.g. CSL, BHP)"),
             Input(value="5", id="upd-years", placeholder="Years"),
             Input(value="true", id="upd-process", placeholder="process_documents true/false"),
         )
@@ -263,7 +315,10 @@ class UpdaterScreen(Screen):
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         log = self.query_one("#upd-log", RichLog)
-        ticker = self.query_one("#upd-ticker", Input).value.strip().upper() or "BHP"
+        ticker = self.query_one("#upd-ticker", Input).value.strip().upper()
+        if not ticker:
+            log.write("⚠ Enter a ticker before running an action.")
+            return
         if event.button.id == "upd-latest":
             row = self.app.db_reader.get_latest_financial_snapshot(ticker)
             log.write(json.dumps(row or {"ticker": ticker, "message": "no data"}, default=str, indent=2))
@@ -295,7 +350,7 @@ class UpdaterScreen(Screen):
 class VerificationScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Label("Data Verification")
-        yield Input(value="BHP", id="ver-ticker", placeholder="Ticker (blank for broad checks where available)")
+        yield Input(value="", id="ver-ticker", placeholder="Ticker (e.g. CSL — blank for broad checks)")
         yield Horizontal(
             Button("Run Verification", id="ver-run", variant="primary"),
             Button("Export Verification", id="ver-export"),

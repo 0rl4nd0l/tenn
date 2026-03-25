@@ -13,8 +13,8 @@ from pathlib import Path
 def find_llama_server_process() -> dict | None:
     """
     Locate the running llama-server process via /proc.
-    Returns dict with: pid, binary, model_path, model_alias, raw_args
-    or None if not found.
+    Returns dict with: pid, binary, model_path, model_alias, raw_args,
+    router_mode (bool), models_dir (str).
     """
     try:
         for entry in Path("/proc").iterdir():
@@ -31,12 +31,16 @@ def find_llama_server_process() -> dict | None:
                 args = parts[1:]
                 model_path = _extract_arg(args, ("-m", "--model"))
                 model_alias = _extract_arg(args, ("-a", "--alias"))
+                models_dir = _extract_arg(args, ("--models-dir",))
+                router_mode = bool(models_dir and not model_path)
                 return {
                     "pid": int(entry.name),
                     "binary": binary,
                     "model_path": model_path,
                     "model_alias": model_alias,
                     "raw_args": args,
+                    "router_mode": router_mode,
+                    "models_dir": models_dir,
                 }
             except (PermissionError, ValueError, FileNotFoundError):
                 continue
@@ -131,7 +135,12 @@ def discover_ollama_models() -> list[dict]:
 
 
 def models_dir_from_process(proc_info: dict) -> str:
-    """Derive the models directory from the running process's -m path."""
+    """Derive the models directory from the running process."""
+    # Router mode: --models-dir is explicit.
+    models_dir = proc_info.get("models_dir", "")
+    if models_dir:
+        return models_dir
+    # Single-model mode: derive from the -m path's parent.
     model_path = proc_info.get("model_path", "")
     if model_path:
         parent = str(Path(model_path).parent)
@@ -174,6 +183,30 @@ def _stop_systemd_service(on_status: object) -> str | None:
 def has_no_mmap(raw_args: list[str]) -> bool:
     """Return True if --no-mmap is present in the process arg list."""
     return "--no-mmap" in raw_args
+
+
+def _warm_page_cache(model_path: str, on_status: object = None) -> None:
+    """Read the model file sequentially to populate the OS page cache.
+
+    With mmap (the default), llama-server memory-maps the GGUF file. If the
+    pages are already in the page cache from a prior read, the mmap is
+    satisfied from RAM instead of hitting NVMe — cutting load time for a
+    previously-used model from seconds to near-instant.
+
+    This is a no-op for models already cached (the kernel skips re-reading).
+    """
+    p = Path(model_path)
+    if not p.is_file():
+        return
+    size_gb = p.stat().st_size / (1024 ** 3)
+    if callable(on_status):
+        on_status(f"Warming page cache for {p.name} ({size_gb:.1f} GB)...")
+    try:
+        with open(model_path, "rb") as f:
+            while f.read(8 * 1024 * 1024):  # 8 MB chunks
+                pass
+    except OSError:
+        pass  # Non-fatal — server will just read from disk at mmap time.
 
 
 def restart_with_model(
@@ -246,17 +279,21 @@ def restart_with_model(
     except ProcessLookupError:
         pass  # already gone
 
+    # Warm the OS page cache so mmap doesn't block on disk I/O during startup.
+    # Reading the file populates the cache; subsequent mmap access hits RAM instead of NVMe.
+    _warm_page_cache(new_model_path, _status)
+
     # Use alias (human-readable) if the path is an Ollama blob (no .gguf suffix).
     model_label = new_model_alias if Path(new_model_path).suffix != ".gguf" else Path(new_model_path).name
-    _status(f"Loading {model_label} — large models may take several minutes...")
-    subprocess.Popen(
+    _status(f"Starting server with {model_label}...")
+    proc = subprocess.Popen(
         [binary] + new_args,
         start_new_session=True,
         stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
     )
 
-    # Poll until the new server is ready.
+    # Poll until the new server is ready, aborting early if the process dies.
     host = _extract_arg(raw_args, ("--host",)) or "127.0.0.1"
     port = _extract_arg(raw_args, ("--port",)) or "8001"
     ready_url = f"http://{host}:{port}/v1/models"
@@ -265,6 +302,24 @@ def restart_with_model(
     while time.monotonic() < deadline:
         time.sleep(5)
         elapsed += 5
+
+        # Check if llama-server died before becoming ready.
+        if proc.poll() is not None:
+            stderr_tail = ""
+            if proc.stderr:
+                try:
+                    raw = proc.stderr.read(4096)
+                    stderr_tail = raw.decode("utf-8", errors="replace").strip()
+                except Exception:
+                    pass
+            reason = f"exit code {proc.returncode}"
+            if stderr_tail:
+                # Show last meaningful line for context.
+                last_lines = [l for l in stderr_tail.splitlines() if l.strip()]
+                reason += f": {last_lines[-1]}" if last_lines else ""
+            _status(f"Server crashed during startup ({reason})")
+            return False
+
         remaining = int(deadline - time.monotonic())
         _status(f"Loading model... {elapsed}s elapsed  ({remaining}s timeout)")
         try:
@@ -281,3 +336,353 @@ def _extract_arg(args: list[str], flags: tuple[str, ...]) -> str:
         if a in flags and i + 1 < len(args):
             return args[i + 1]
     return ""
+
+
+# ---------------------------------------------------------------------------
+# Router mode API — zero-downtime model switching via /models/load|unload
+# ---------------------------------------------------------------------------
+
+def _api_request(
+    url: str,
+    api_key: str = "",
+    method: str = "GET",
+    body: dict | None = None,
+    timeout: float = 10.0,
+) -> dict | list | None:
+    """Make an authenticated HTTP request to the llama-server API."""
+    data = json.dumps(body).encode() if body else None
+    req = urllib.request.Request(
+        url,
+        data=data,
+        method=method,
+        headers={"Content-Type": "application/json"},
+    )
+    if api_key:
+        req.add_header("Authorization", f"Bearer {api_key}")
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode())
+    except Exception:
+        return None
+
+
+def is_router_mode(host: str, port: str, api_key: str = "") -> bool:
+    """Detect if the server is running in router mode.
+
+    In router mode, the /v1/models response includes a 'status' object
+    per model (with 'value' field). In single-model mode, models have no
+    'status' field. This is the most reliable detection method.
+    """
+    result = _api_request(f"http://{host}:{port}/v1/models", api_key=api_key)
+    if not result:
+        return False
+    for entry in (result.get("data") or []):
+        if isinstance(entry.get("status"), dict):
+            return True
+    return False
+
+
+def list_models_api(
+    host: str, port: str, api_key: str = "",
+) -> list[dict]:
+    """List all models known to the router with their load status.
+
+    Returns list of dicts with at minimum: name, state (loaded/unloaded/loading).
+    Falls back to /v1/models for single-model mode.
+    """
+    result = _api_request(
+        f"http://{host}:{port}/v1/models",
+        api_key=api_key,
+    )
+    if not result:
+        return []
+
+    models = []
+    # Router mode returns {"data": [...]} with status.value fields.
+    # Single-model mode returns {"data": [...]} with no status field.
+    for entry in (result.get("data") or result.get("models") or []):
+        name = entry.get("id") or entry.get("model") or entry.get("name") or ""
+        status = entry.get("status")
+        if isinstance(status, dict):
+            state = status.get("value", "loaded")
+        elif isinstance(status, str):
+            state = status
+        else:
+            state = "loaded"  # single-model mode has no status field
+        models.append({"name": name, "state": state})
+    return models
+
+
+def load_model_api(
+    host: str,
+    port: str,
+    model_name: str,
+    api_key: str = "",
+    timeout: float = 600.0,
+    on_status: object = None,
+) -> bool:
+    """Load a model via the router API. With --models-max 1, the currently
+    loaded model is auto-evicted before loading the new one.
+
+    Sends POST /models/load, then polls GET /v1/models until the target
+    model state is 'loaded' or timeout expires.
+
+    Returns True on success.
+    """
+    def _status(msg: str) -> None:
+        if callable(on_status):
+            on_status(msg)
+
+    _status(f"Requesting load of {model_name}...")
+    url = f"http://{host}:{port}/models/load"
+    req = urllib.request.Request(
+        url,
+        data=json.dumps({"model": model_name}).encode(),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    if api_key:
+        req.add_header("Authorization", f"Bearer {api_key}")
+    try:
+        urllib.request.urlopen(req, timeout=30)
+    except urllib.error.HTTPError as e:
+        body = ""
+        try:
+            body = e.read().decode("utf-8", errors="replace")
+        except Exception:
+            pass
+        _status(f"Load request failed: HTTP {e.code} — {body[:200]}")
+        return False
+    except Exception as exc:
+        _status(f"Load request failed: {exc}")
+        return False
+
+    # Poll until loaded.
+    deadline = time.monotonic() + timeout
+    elapsed = 0
+    while time.monotonic() < deadline:
+        time.sleep(1)
+        elapsed += 1
+        models = list_models_api(host, port, api_key)
+        for m in models:
+            if m["name"] == model_name and m["state"] == "loaded":
+                _status(f"{model_name} loaded successfully ({elapsed}s)")
+                return True
+        # Show which state we're in.
+        target = next((m for m in models if m["name"] == model_name), None)
+        state = target["state"] if target else "not found"
+        remaining = int(deadline - time.monotonic())
+        _status(f"Loading {model_name}... {state} ({elapsed}s elapsed, {remaining}s timeout)")
+
+    _status(f"Timed out waiting for {model_name} to load ({timeout:.0f}s)")
+    return False
+
+
+def unload_model_api(
+    host: str, port: str, model_name: str, api_key: str = "",
+) -> bool:
+    """Unload a model via the router API."""
+    result = _api_request(
+        f"http://{host}:{port}/models/unload",
+        api_key=api_key,
+        method="POST",
+        body={"model": model_name},
+    )
+    return result is not None
+
+
+def generate_preset_ini(
+    models_dir: str,
+    output_path: str | None = None,
+    global_opts: dict[str, str] | None = None,
+) -> Path:
+    """Generate a preset INI file for router mode.
+
+    The INI uses llama.cpp's native format: section names are model names
+    (filename without .gguf), keys are CLI flag names without leading dashes.
+    A [*] section applies to all models.
+
+    Returns the path to the generated file.
+    """
+    if output_path is None:
+        output_path = str(Path.home() / ".config" / "tenn" / "llamacpp-presets.ini")
+
+    out = Path(output_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+
+    defaults = {
+        "pooling": "mean",
+        "embeddings": "true",
+    }
+    if global_opts:
+        defaults.update(global_opts)
+
+    lines = ["# Auto-generated by cockpit — per-model presets for router mode", ""]
+
+    # Global section applies to all models.
+    lines.append("[*]")
+    for key, val in sorted(defaults.items()):
+        lines.append(f"{key} = {val}")
+    lines.append("")
+
+    out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return out
+
+
+def switch_model(
+    proc_info: dict,
+    new_model_name: str,
+    new_model_path: str,
+    api_key: str = "",
+    host: str = "127.0.0.1",
+    port: str = "8001",
+    startup_timeout: float = 600.0,
+    on_status: object = None,
+    mmap_disabled: bool | None = None,
+) -> bool:
+    """High-level model switch: uses router API if available, falls back to restart.
+
+    Returns True on success.
+    """
+    def _status(msg: str) -> None:
+        if callable(on_status):
+            on_status(msg)
+
+    # Detect mode.
+    router = proc_info.get("router_mode", False)
+    if not router:
+        # Double-check via HTTP in case process detection missed it.
+        router = is_router_mode(host, port, api_key)
+
+    if router:
+        _status("Router mode detected — switching via API (zero downtime)")
+        # Warm page cache for the new model before asking the server to load it.
+        _warm_page_cache(new_model_path, _status)
+        return load_model_api(
+            host, port, new_model_name, api_key, startup_timeout, on_status,
+        )
+
+    # Fallback: single-model mode — kill and restart.
+    _status("Single-model mode — restarting server")
+    return restart_with_model(
+        proc_info, new_model_path, new_model_name,
+        startup_timeout, on_status, mmap_disabled,
+    )
+
+
+def build_router_args(proc_info: dict, models_dir: str, preset_path: str) -> list[str]:
+    """Convert single-model launch args to router-mode args.
+
+    Strips -m/--model, -a/--alias, --pooling, --embeddings.
+    Adds --models-dir, --models-max 1, --models-preset.
+    """
+    raw = proc_info["raw_args"]
+    skip_next = False
+    new_args: list[str] = []
+
+    # Flags that take a value and should be removed for router mode.
+    strip_value_flags = {"-m", "--model", "-a", "--alias", "--pooling"}
+    # Flags that are standalone booleans and should be removed.
+    strip_bool_flags = {"--embeddings"}
+
+    for i, arg in enumerate(raw):
+        if skip_next:
+            skip_next = False
+            continue
+        if arg in strip_value_flags and i + 1 < len(raw):
+            skip_next = True
+            continue
+        if arg in strip_bool_flags:
+            continue
+        new_args.append(arg)
+
+    new_args += [
+        "--models-dir", models_dir,
+        "--models-max", "1",
+        "--models-preset", preset_path,
+    ]
+    return new_args
+
+
+def restart_into_router_mode(
+    proc_info: dict,
+    models_dir: str,
+    startup_timeout: float = 600.0,
+    on_status: object = None,
+) -> bool:
+    """Kill the current single-model server and relaunch in router mode.
+
+    Generates a preset INI, rebuilds args, and starts the server.
+    Returns True when the router server is ready.
+    """
+    def _status(msg: str) -> None:
+        if callable(on_status):
+            on_status(msg)
+
+    # Generate preset INI for per-model config.
+    preset_path = str(generate_preset_ini(models_dir))
+    _status(f"Generated preset file: {preset_path}")
+
+    # Stop systemd service if managed.
+    _stop_systemd_service(_status)
+
+    # Kill current process.
+    pid = proc_info["pid"]
+    binary = proc_info["binary"]
+    _status("Stopping single-model server...")
+    try:
+        os.kill(pid, signal.SIGTERM)
+        for _ in range(10):
+            time.sleep(0.5)
+            try:
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                break
+        else:
+            os.kill(pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+
+    # Build router-mode args and launch.
+    new_args = build_router_args(proc_info, models_dir, preset_path)
+    _status(f"Starting router server (models-dir: {models_dir})...")
+    proc = subprocess.Popen(
+        [binary] + new_args,
+        start_new_session=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+    )
+
+    # Poll until ready.
+    host = _extract_arg(proc_info["raw_args"], ("--host",)) or "127.0.0.1"
+    port = _extract_arg(proc_info["raw_args"], ("--port",)) or "8001"
+    ready_url = f"http://{host}:{port}/v1/models"
+    deadline = time.monotonic() + startup_timeout
+    elapsed = 0
+    while time.monotonic() < deadline:
+        time.sleep(1)
+        elapsed += 1
+        if proc.poll() is not None:
+            stderr_tail = ""
+            if proc.stderr:
+                try:
+                    raw = proc.stderr.read(4096)
+                    stderr_tail = raw.decode("utf-8", errors="replace").strip()
+                except Exception:
+                    pass
+            reason = f"exit code {proc.returncode}"
+            if stderr_tail:
+                last_lines = [l for l in stderr_tail.splitlines() if l.strip()]
+                reason += f": {last_lines[-1]}" if last_lines else ""
+            _status(f"Router server crashed during startup ({reason})")
+            return False
+        remaining = int(deadline - time.monotonic())
+        _status(f"Starting router... {elapsed}s elapsed ({remaining}s timeout)")
+        try:
+            urllib.request.urlopen(ready_url, timeout=3)
+            _status("Router server ready")
+            return True
+        except Exception:
+            continue
+    _status("Router server startup timed out")
+    return False

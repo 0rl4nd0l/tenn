@@ -108,8 +108,9 @@ class ASXProvider:
                 page = _ScraplingFetcher.get(
                     ASX_ANNOUNCEMENTS_URL, params=params, timeout=self.timeout
                 )
+                # CSS [href*=...] is case-sensitive; ASX uses displayAnnouncement.do (capital A).
                 links = page.css(
-                    'a[href*=".pdf"], a[href*="displayannouncement.do"]',
+                    'a[href*=".pdf"], a[href*="displayAnnouncement.do"], a[href*="displayannouncement.do"]',
                     auto_save=True,
                 )
                 for link in links:
@@ -167,7 +168,9 @@ class ASXProvider:
                             period_end=_try_period_end(title),
                         )
                     )
-                return docs
+                if docs:
+                    return docs
+                # Scrapling succeeded (HTTP 200) but found no links — fall through to BS4.
             except Exception:
                 pass
 

@@ -16,6 +16,10 @@ class LlamaCppClient:
         self._api_key = api_key.strip()
         self._client = httpx.Client()
 
+    def switch_model(self, new_model: str) -> None:
+        """Update the active model name for subsequent requests."""
+        self.model = new_model
+
     def health(self, timeout: float = 5.0) -> dict:
         url = f"{self.base_url}/v1/models"
         headers = self._build_headers()
