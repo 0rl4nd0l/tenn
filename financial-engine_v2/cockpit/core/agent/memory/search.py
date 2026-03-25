@@ -9,7 +9,16 @@ Usage::
     search = MemorySearch(db_path=Path("~/.tenn/memory/memory.db"))
     search.index("BHP revenue: $55B", source="research/BHP")
     results = search.query("BHP revenue", top_k=3)
-    # [{"source": "research/BHP", "text": "BHP revenue: $55B", "distance": 0.0}]
+    # [{"source": "research/BHP", "content": "BHP revenue: $55B", "score": 0.95}]
+
+Implementation note — sqlite-vec vec0 DELETE limitation:
+    sqlite-vec's ``vec0`` virtual table (v0.1.x) does **not** honour
+    ``DELETE ... WHERE <non-rowid column>`` or even ``DELETE ... WHERE rowid = ?``
+    when the rowid is read back from the virtual table itself.  The only
+    reliable way to delete a specific row is to track the internal rowid at
+    insert time in a separate metadata table, then issue
+    ``DELETE FROM memory_chunks WHERE rowid = <tracked_rowid>``.
+    A companion table ``memory_chunks_meta`` stores this mapping.
 """
 from __future__ import annotations
 
@@ -90,9 +99,20 @@ class MemorySearch:
             conn.execute(
                 f"""
                 CREATE VIRTUAL TABLE IF NOT EXISTS memory_chunks USING vec0(
-                    source TEXT,
-                    text TEXT,
                     embedding FLOAT[{self.dims}]
+                )
+                """
+            )
+            # Companion metadata table: maps source + text to the vec0 internal rowid.
+            # Required because vec0 DELETE only works when targeting the exact internal
+            # rowid obtained at INSERT time (see module docstring).
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS memory_chunks_meta (
+                    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+                    rowid   INTEGER NOT NULL,
+                    source  TEXT NOT NULL,
+                    text    TEXT NOT NULL
                 )
                 """
             )
@@ -124,6 +144,8 @@ class MemorySearch:
         """Embed *text* and insert a chunk into the vector index.
 
         If a row with the same *source* already exists, it is replaced.
+        Uses the companion ``memory_chunks_meta`` table to reliably track
+        the vec0 internal rowid for deletion (see module-level docstring).
         """
         if not self._available:
             return
@@ -131,11 +153,27 @@ class MemorySearch:
         blob = _float_list_to_bytes(embedding)
         conn = self._connect()
         self._load_vec(conn)
-        # Delete any existing row for this source before inserting
-        conn.execute("DELETE FROM memory_chunks WHERE source = ?", (source,))
+
+        # Delete any existing rows for this source via tracked rowids.
+        existing = conn.execute(
+            "SELECT rowid FROM memory_chunks_meta WHERE source = ?", (source,)
+        ).fetchall()
+        for meta_row in existing:
+            vec_rowid = meta_row["rowid"]
+            conn.execute("DELETE FROM memory_chunks WHERE rowid = ?", (vec_rowid,))
         conn.execute(
-            "INSERT INTO memory_chunks(source, text, embedding) VALUES (?, ?, ?)",
-            (source, text, blob),
+            "DELETE FROM memory_chunks_meta WHERE source = ?", (source,)
+        )
+
+        # Insert new vector row and record its internal rowid.
+        cur = conn.execute(
+            "INSERT INTO memory_chunks(embedding) VALUES (?)",
+            (blob,),
+        )
+        vec_rowid = cur.lastrowid
+        conn.execute(
+            "INSERT INTO memory_chunks_meta(rowid, source, text) VALUES (?, ?, ?)",
+            (vec_rowid, source, text),
         )
         conn.commit()
         conn.close()
@@ -150,7 +188,7 @@ class MemorySearch:
         """Return the *top_k* most similar chunks to *text*.
 
         Returns an empty list if sqlite-vec is unavailable or the index is empty.
-        Each result is a dict with keys ``source``, ``text``, and ``distance``.
+        Each result is a dict with keys ``source``, ``content``, and ``score``.
         """
         if not self._available:
             return []
@@ -161,15 +199,23 @@ class MemorySearch:
             self._load_vec(conn)
             rows = conn.execute(
                 """
-                SELECT source, text, distance
-                FROM memory_chunks
-                WHERE embedding MATCH ?
+                SELECT m.source, m.text, v.distance
+                FROM memory_chunks v
+                JOIN memory_chunks_meta m ON m.rowid = v.rowid
+                WHERE v.embedding MATCH ?
                   AND k = ?
-                ORDER BY distance
+                ORDER BY v.distance
                 """,
                 (blob, top_k),
             ).fetchall()
             conn.close()
-            return [{"source": row["source"], "content": row["text"], "score": 1.0 - float(row["distance"])} for row in rows]
+            return [
+                {
+                    "source": row["source"],
+                    "content": row["text"],
+                    "score": 1.0 - float(row["distance"]),
+                }
+                for row in rows
+            ]
         except Exception:  # noqa: BLE001
             return []
