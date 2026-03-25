@@ -776,6 +776,29 @@ def extract_description_from_jsonld(html_text: str) -> str:
     return max(descriptions, key=len)
 
 
+def extract_published_date_from_html(html_text: str) -> dt.datetime | None:
+    """Extract published date from JSON-LD datePublished or meta article:published_time."""
+    text = str(html_text or "")
+    if not text:
+        return None
+    # JSON-LD datePublished
+    match = re.search(r'"datePublished"\s*:\s*"([^"]+)"', text, flags=re.IGNORECASE)
+    if match:
+        parsed = coerce_datetime(match.group(1))
+        if parsed is not None:
+            return parsed
+    # meta article:published_time
+    match = re.search(
+        r'<meta[^>]*property=["\']article:published_time["\'][^>]*content=["\']([^"\']+)["\']',
+        text, flags=re.IGNORECASE,
+    )
+    if match:
+        parsed = coerce_datetime(match.group(1))
+        if parsed is not None:
+            return parsed
+    return None
+
+
 def extract_meta_description_from_html(html_text: str) -> str:
     text = str(html_text or "")
     if not text:
@@ -1354,7 +1377,7 @@ def extract_from_source(
                                     _m = _re.search(r"<title[^>]*>([^<]+)</title>", rendered_html, _re.IGNORECASE)
                                     title = normalize_space(_m.group(1)) if _m else ""
                                 if not is_cloudflare_challenge(title, body):
-                                    published = coerce_datetime(None)
+                                    published = extract_published_date_from_html(rendered_html)
                                     article = ExtractedArticle(
                                         source_url=source.url,
                                         source_name=domain_of(item_url),
