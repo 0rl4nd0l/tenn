@@ -17,12 +17,16 @@ from textual.screen import Screen
 from textual.widgets import Button, Checkbox, Label, RichLog, Select, Static
 
 from cockpit.integrations.llamacpp_manager import (
+    _extract_arg,
     discover_models,
     discover_ollama_models,
     find_llama_server_process,
     has_no_mmap,
+    list_models_api,
     models_dir_from_process,
+    restart_into_router_mode,
     restart_with_model,
+    switch_model,
 )
 
 
@@ -164,6 +168,7 @@ def _resolve_initial_option_state(initial_flags: dict[str, Any] | None) -> dict[
         "enable_rag": bool(raw["enable_rag"]) if "enable_rag" in raw else True,
         "llm_provider": llm_provider,
         "llm_model": raw.get("llm_model", "qwen2.5-coder-14b"),
+        "extraction_model": raw.get("extraction_model", "qwen2.5-14b-instruct"),
     }
 
 
@@ -234,6 +239,9 @@ class PreBootScreen(Screen):
     #model-row { height: 3; margin-top: 1; width: 1fr; }
     #model-label { width: 10; padding-top: 1; }
     #opt-model { width: 1fr; }
+    #extraction-row { height: 3; margin-top: 1; width: 1fr; }
+    #extraction-label { width: 10; padding-top: 1; }
+    #opt-extraction-model { width: 1fr; }
     #mmap-row { height: 3; margin-top: 1; width: 1fr; }
     #btn-row { height: 3; margin-top: 1; margin-bottom: 1; width: 1fr; }
     #btn-spacer { width: 1fr; }
@@ -290,8 +298,11 @@ class PreBootScreen(Screen):
                     yield Select(self._provider_options, value=self._initial.get("llm_provider", "llamacpp"), id="opt-provider")
                     yield Static("", id="provider-status")
                 with Horizontal(id="model-row"):
-                    yield Label("Model:", id="model-label")
+                    yield Label("Chat:", id="model-label")
                     yield Select(_FALLBACK_MODELS, value="llama3:latest", id="opt-model", allow_blank=False)
+                with Horizontal(id="extraction-row"):
+                    yield Label("Extract:", id="extraction-label")
+                    yield Select(_FALLBACK_MODELS, value="llama3:latest", id="opt-extraction-model", allow_blank=False)
                 with Horizontal(id="mmap-row"):
                     yield Checkbox("Load model into RAM  (disable mmap — faster prefill, slower startup)", id="opt-mmap-off", value=True)
             with Horizontal(id="btn-row"):
@@ -323,7 +334,36 @@ class PreBootScreen(Screen):
 
         if self._llama_proc:
             models_dir = models_dir_from_process(self._llama_proc)
-            self._llama_fs_models = await asyncio.to_thread(discover_models, models_dir)
+            # Discover local .gguf files and Ollama models in parallel.
+            fs_task = asyncio.to_thread(discover_models, models_dir)
+            ollama_task = asyncio.to_thread(discover_ollama_models)
+            fs_models, ollama_models = await asyncio.gather(fs_task, ollama_task)
+
+            # Merge: filesystem models first, then Ollama models not already listed.
+            seen_paths = {m["path"] for m in fs_models}
+            merged = list(fs_models)
+            for m in ollama_models:
+                if m["path"] not in seen_paths:
+                    merged.append(m)
+                    seen_paths.add(m["path"])
+
+            # In router mode, also include models known to the router API
+            # that aren't on the local filesystem (e.g. HuggingFace cached).
+            if self._llama_proc.get("router_mode"):
+                host = _extract_arg(self._llama_proc.get("raw_args", []), ("--host",)) or "127.0.0.1"
+                port = _extract_arg(self._llama_proc.get("raw_args", []), ("--port",)) or "8001"
+                api_key = _extract_arg(self._llama_proc.get("raw_args", []), ("--api-key",))
+                api_models = await asyncio.to_thread(list_models_api, host, port, api_key)
+                seen_stems = {m["stem"] for m in merged}
+                for am in api_models:
+                    if am["name"] not in seen_stems:
+                        merged.append({
+                            "path": am["name"],  # router mode uses name, not path
+                            "name": am["name"],
+                            "stem": am["name"],
+                        })
+
+            self._llama_fs_models = merged
 
         self._render_health()
 
@@ -331,7 +371,10 @@ class PreBootScreen(Screen):
         log = self.query_one("#health-log", RichLog)
         log.clear()
         for svc in self._checks:
-            log.write(f"  {_STATUS_ICON[svc.status]}  {svc.name:<16} {svc.detail}")
+            mode_tag = ""
+            if svc.name == "llama.cpp" and self._llama_proc:
+                mode_tag = "  (router)" if self._llama_proc.get("router_mode") else "  (single-model)"
+            log.write(f"  {_STATUS_ICON[svc.status]}  {svc.name:<16} {svc.detail}{mode_tag}")
         self._refresh_llm_widgets()
 
     def _refresh_llm_widgets(self) -> None:
@@ -351,44 +394,67 @@ class PreBootScreen(Screen):
             self.query_one("#opt-mmap-off", Checkbox).value = current_no_mmap
 
     def _set_model_options(self, provider: str, svc_map: dict) -> None:
-        """Repopulate the model Select for the llama.cpp runtime."""
-        model_select = self.query_one("#opt-model", Select)
+        """Repopulate chat and extraction model Selects for the llama.cpp runtime."""
         options = self._llamacpp_model_options()
-
-        model_select.set_options(options)
         available_values = [v for _, v in options]
-        if not available_values:
-            return
-        # Prefer the currently active model path, then fall back to first.
-        active_path = (self._llama_proc or {}).get("model_path", "")
-        if active_path in available_values:
-            model_select.value = active_path
-        else:
-            model_select.value = available_values[0]
+
+        # --- Chat model dropdown ---
+        model_select = self.query_one("#opt-model", Select)
+        model_select.set_options(options)
+        if available_values:
+            active_path = (self._llama_proc or {}).get("model_path", "")
+            if active_path in available_values:
+                model_select.value = active_path
+            else:
+                model_select.value = available_values[0]
+
+        # --- Extraction model dropdown ---
+        extraction_select = self.query_one("#opt-extraction-model", Select)
+        extraction_select.set_options(options)
+        if available_values:
+            # Auto-select the first instruct model for extraction.
+            instruct_match = next(
+                (v for v in available_values if "instruct" in str(v).lower()),
+                None,
+            )
+            extraction_select.value = instruct_match or available_values[0]
 
     def _llamacpp_model_options(self) -> list[tuple[str, str]]:
         """
         Build model options for llama.cpp from filesystem-discovered .gguf files.
         Each option value is the full path; the label shows the alias + filename.
-        The currently loaded model is marked with (active).
+        In router mode, shows load state from the API. In single-model mode,
+        marks the currently loaded model with (active).
         """
         if not self._llama_fs_models:
-            # Fallback: if we have the running process, show its model.
             if self._llama_proc and self._llama_proc.get("model_path"):
                 alias = self._llama_proc.get("model_alias") or Path(self._llama_proc["model_path"]).stem
                 label = f"{alias}  (active)"
                 return [(label, self._llama_proc["model_path"])]
             return _FALLBACK_MODELS
 
+        # In router mode, query the API for per-model load status.
+        router_states: dict[str, str] = {}
+        if self._llama_proc and self._llama_proc.get("router_mode"):
+            host = _extract_arg(self._llama_proc.get("raw_args", []), ("--host",)) or "127.0.0.1"
+            port = _extract_arg(self._llama_proc.get("raw_args", []), ("--port",)) or "8001"
+            api_key = _extract_arg(self._llama_proc.get("raw_args", []), ("--api-key",))
+            for m in list_models_api(host, port, api_key):
+                router_states[m["name"]] = m["state"]
+
         active_path = (self._llama_proc or {}).get("model_path", "")
         active_alias = (self._llama_proc or {}).get("model_alias", "")
         options: list[tuple[str, str]] = []
         for m in self._llama_fs_models:
-            if m["path"] == active_path:
-                alias = active_alias or m["stem"]
+            stem = m["stem"]
+            if router_states:
+                state = router_states.get(stem, "available")
+                label = f"{stem}  [{m['name']}]  ({state})"
+            elif m["path"] == active_path:
+                alias = active_alias or stem
                 label = f"{alias}  [{m['name']}]  (active)"
             else:
-                label = f"{m['stem']}  [{m['name']}]"
+                label = f"{stem}  [{m['name']}]"
             options.append((label, m["path"]))
         return options
 
@@ -429,30 +495,42 @@ class PreBootScreen(Screen):
             env.setdefault("COCKPIT_VERBOSE_LOGGING", "1")
             env.setdefault("COCKPIT_LOG_TO_STDERR", "1")
 
-        # For llamacpp, raw_model_value is a full absolute path (local .gguf).
-        # Non-path values (e.g. "llama3:latest" fallback) are treated as no selection.
-        # Selecting the currently active model is also treated as "no change" — return
-        # model_path="" so _needs_restart() skips an unnecessary restart.
+        # Resolve the selected model into a path and a name (stem/alias).
+        # In router mode, the "name" (stem) is what the API uses for routing.
+        # In single-model mode, the full path is needed for -m flag replacement.
         if llm_provider == "llamacpp":
-            active_path = (self._llama_proc or {}).get("model_path", "")
-            is_real_path = raw_model_value.startswith("/")
-            if is_real_path and raw_model_value != active_path:
-                # User explicitly selected a different model path.
+            is_router = (self._llama_proc or {}).get("router_mode", False)
+            model_info = next((m for m in self._llama_fs_models if m["path"] == raw_model_value), None)
+
+            if model_info:
+                model_path = model_info["path"]
+                model_alias = model_info["stem"]
+            elif raw_model_value.startswith("/"):
                 model_path = raw_model_value
-                model_info = next((m for m in self._llama_fs_models if m["path"] == model_path), None)
-                if model_info:
-                    model_alias = model_info["stem"]
-                elif self._llama_proc and self._llama_proc.get("model_path") == model_path:
-                    model_alias = self._llama_proc.get("model_alias") or Path(model_path).stem
-                else:
-                    model_alias = Path(model_path).stem
+                model_alias = Path(raw_model_value).stem
+            elif raw_model_value:
+                # Router-mode API model (name, not path).
+                model_path = raw_model_value
+                model_alias = raw_model_value
             else:
-                # No real path selected (fallback value or same as running model).
                 model_path = ""
                 model_alias = self._initial.get("llm_model", "local")
         else:
             model_path = ""
             model_alias = raw_model_value or "llama3:latest"
+
+        # Resolve extraction model — same logic but from the extraction Select.
+        raw_extraction_value = str(self.query_one("#opt-extraction-model", Select).value or "")
+        if llm_provider == "llamacpp":
+            ext_info = next((m for m in self._llama_fs_models if m["path"] == raw_extraction_value), None)
+            extraction_model = ext_info["stem"] if ext_info else (Path(raw_extraction_value).stem if raw_extraction_value.startswith("/") else raw_extraction_value)
+        else:
+            extraction_model = raw_extraction_value or model_alias
+
+        # Inject EXTRACT_MODEL into launch env so the backend picks it up
+        # automatically — no manual .env editing required.
+        if extraction_model:
+            env["EXTRACT_MODEL"] = extraction_model
 
         return {
             "read_only": read_only,
@@ -463,61 +541,89 @@ class PreBootScreen(Screen):
             "llm_provider": llm_provider,
             "llm_model": model_alias,
             "llm_model_path": model_path,
+            "extraction_model": extraction_model,
             "env": env,
             "cancelled": False,
         }
 
-    def _needs_restart(self, flags: dict[str, Any]) -> bool:
+    def _needs_model_switch(self, flags: dict[str, Any]) -> bool:
+        """Check if the selected model differs from the currently active one."""
         if flags["llm_provider"] != "llamacpp" or not self._llama_proc:
             return False
-        model_changed = (
-            flags.get("llm_model_path")
-            and self._llama_proc.get("model_path") != flags["llm_model_path"]
-        )
-        current_no_mmap = has_no_mmap(self._llama_proc.get("raw_args", []))
-        mmap_disabled = self.query_one("#opt-mmap-off", Checkbox).value
-        mmap_changed = mmap_disabled != current_no_mmap
-        return bool(model_changed or mmap_changed)
+
+        is_router = self._llama_proc.get("router_mode", False)
+
+        if is_router:
+            # In router mode: compare model stem name against loaded models.
+            new_name = flags.get("llm_model", "")
+            host = _extract_arg(self._llama_proc.get("raw_args", []), ("--host",)) or "127.0.0.1"
+            port = _extract_arg(self._llama_proc.get("raw_args", []), ("--port",)) or "8001"
+            api_key = _extract_arg(self._llama_proc.get("raw_args", []), ("--api-key",))
+            loaded = [m["name"] for m in list_models_api(host, port, api_key) if m["state"] == "loaded"]
+            return new_name not in loaded
+        else:
+            # Single-model mode: compare paths.
+            model_changed = (
+                flags.get("llm_model_path")
+                and self._llama_proc.get("model_path") != flags["llm_model_path"]
+            )
+            current_no_mmap = has_no_mmap(self._llama_proc.get("raw_args", []))
+            mmap_disabled = self.query_one("#opt-mmap-off", Checkbox).value
+            mmap_changed = mmap_disabled != current_no_mmap
+            return bool(model_changed or mmap_changed)
 
     def action_launch(self) -> None:
         flags = self._collect_flags()
-        if self._needs_restart(flags):
-            asyncio.create_task(self._restart_and_launch(flags))
+        if self._needs_model_switch(flags):
+            asyncio.create_task(self._switch_and_launch(flags))
             return
         if self._on_launch:
             result = self._on_launch(flags)
             if asyncio.iscoroutine(result):
                 asyncio.create_task(result)
 
-    async def _restart_and_launch(self, flags: dict[str, Any]) -> None:
-        """Restart llama-server with the selected model, then launch the cockpit."""
+    async def _switch_and_launch(self, flags: dict[str, Any]) -> None:
+        """Switch the model (via router API or restart), then launch the cockpit."""
         log = self.query_one("#health-log", RichLog)
         btn = self.query_one("#btn-launch", Button)
         btn.disabled = True
 
         model_path = flags["llm_model_path"]
-        model_alias = flags["llm_model"]
+        model_name = flags["llm_model"]
 
-        log.write(f"\n  Switching model → {model_alias}")
-        log.write("  (this may take several minutes for large models)")
+        is_router = (self._llama_proc or {}).get("router_mode", False)
+        if is_router:
+            log.write(f"\n  Hot-switching model → {model_name}  (zero downtime)")
+        else:
+            log.write(f"\n  Switching model → {model_name}")
+            log.write("  (this may take several minutes for large models)")
+
+        host = _extract_arg((self._llama_proc or {}).get("raw_args", []), ("--host",)) or "127.0.0.1"
+        port = _extract_arg((self._llama_proc or {}).get("raw_args", []), ("--port",)) or "8001"
+        api_key = _extract_arg((self._llama_proc or {}).get("raw_args", []), ("--api-key",))
 
         def _status(msg: str) -> None:
             self.call_from_thread(log.write, f"  {msg}")
 
         success = await asyncio.to_thread(
-            restart_with_model,
+            switch_model,
             self._llama_proc,
+            model_name,
             model_path,
-            model_alias,
+            api_key,
+            host,
+            port,
             600.0,
             _status,
             self.query_one("#opt-mmap-off", Checkbox).value,
         )
 
         if success:
-            log.write(f"  Ready — {model_alias} loaded. Launching cockpit...")
+            log.write(f"  Ready — {model_name} loaded. Launching cockpit...")
         else:
-            log.write("  Timed out waiting for server — launching anyway (model may still be loading)")
+            log.write("  Failed to switch model. Re-enable Launch to retry or pick a different model.")
+            btn.disabled = False
+            return
 
         btn.disabled = False
         if self._on_launch:
