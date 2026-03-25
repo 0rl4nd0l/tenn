@@ -2,12 +2,11 @@
 from __future__ import annotations
 
 import json
-import pytest
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock
 
-from cockpit.core.agent_loop import AgentLoop, AgentResult, _MAX_CONTEXT_TOKENS, _CHARS_PER_TOKEN
+from cockpit.core.agent_loop import AgentLoop
 from cockpit.core.tool_executor import ToolExecutor, DEFAULT_MAX_RESULT_CHARS
-from cockpit.core.response_parser import parse_llm_response, ParsedResponse
+from cockpit.core.response_parser import parse_llm_response
 from cockpit.core.tool_definitions import TOOL_DEFINITIONS, MUTATING_TOOL_NAMES
 
 
@@ -135,55 +134,49 @@ class TestContextWindowSummarization:
         """_maybe_summarize_old_results compresses older tool results above the token budget.
 
         Budget = _MAX_CONTEXT_TOKENS * _CHARS_PER_TOKEN = 12000 * 4 = 48000 chars.
-        We use MAX_ITERATIONS=6 tool calls with ~9000 chars each → ~54000 chars total,
-        which exceeds the 48000 threshold after the 5th tool result is appended.
+
+        Note: format_tool_result() hard-caps individual messages at 2000 chars, so the
+        end-to-end loop path cannot exceed the context budget in 6 iterations.  This
+        test calls _maybe_summarize_old_results directly with a crafted messages list
+        that already exceeds the threshold, confirming the compression logic is correct.
         """
-        # ~9000 chars per tool result — 6 results = ~54000 chars, safely over threshold
-        big_payload = "X" * 8800
+        from cockpit.core.agent_loop import _MAX_CONTEXT_TOKENS, _CHARS_PER_TOKEN
 
-        # MAX_ITERATIONS tool calls followed by a final response
-        tool_call_responses = [
-            json.dumps({
-                "type": "tool_call",
-                "tool": "query_ticker_data",
-                "arguments": {"ticker": f"T{i}"},
-                "reasoning": f"fetching data for T{i}",
+        # Each tool result: ~12100 chars. 5 results = ~60500 chars = ~15125 tokens.
+        big_body = "D" * 10000
+        tool_result_content = "[Tool: query_ticker_data]\n" + json.dumps({"ok": True, "data": big_body})
+
+        # Build messages bypassing format_tool_result 2000-char cap
+        messages = [
+            {"role": "system", "content": "You are Tenn."},
+            {"role": "user", "content": "Analyse all the tickers"},
+        ]
+        for i in range(5):
+            messages.append({
+                "role": "assistant",
+                "content": json.dumps({"type": "tool_call", "tool": "query_ticker_data", "arguments": {"ticker": f"T{i}"}}),
             })
-            for i in range(AgentLoop.MAX_ITERATIONS)
-        ]
-        final_response = json.dumps({
-            "type": "response",
-            "content": "Analysis complete after gathering all data.",
-        })
-        responses = tool_call_responses + [final_response]
+            messages.append({"role": "user", "content": tool_result_content})
 
-        llm = _make_llm(responses)
-        executor = _tool_result({"ok": True, "data": big_payload})
-
-        loop = AgentLoop(llm_client=llm, tool_executor=executor)
-        result = loop.run("Analyse all the tickers")
-
-        # Loop hit MAX_ITERATIONS (all tool calls consumed) — exhaustion path
-        assert result.iterations_used == AgentLoop.MAX_ITERATIONS
-
-        # Verify that at least one LLM call received summarized prior messages
-        all_prior_messages = []
-        for call_args in llm.chat.call_args_list:
-            prior = call_args.kwargs.get("prior_messages") or []
-            all_prior_messages.extend(prior)
-
-        # Find any message that was compressed (contains '[summarized')
-        summarized = [
-            m for m in all_prior_messages
-            if "[summarized" in m.get("content", "")
-        ]
-        # With 6 × ~9000 char results, summarization must have fired
-        assert len(summarized) > 0, (
-            "Expected at least one tool result to be summarized when context limit is exceeded. "
-            f"Total prior messages inspected: {len(all_prior_messages)}, "
-            f"Payload size per result: {len(big_payload)} chars"
+        total_chars = sum(len(m["content"]) for m in messages)
+        approx_tokens = total_chars // _CHARS_PER_TOKEN
+        assert approx_tokens > _MAX_CONTEXT_TOKENS, (
+            f"Test setup: {approx_tokens} tokens must exceed threshold {_MAX_CONTEXT_TOKENS}"
         )
 
+        llm = _make_llm('{"type": "response", "content": "done"}')
+        loop = AgentLoop(llm_client=llm, tool_executor=None)
+        loop._maybe_summarize_old_results(messages)
+
+        tool_msgs = [m for m in messages if m["content"].startswith("[Tool:")]
+        summarized = [m for m in tool_msgs if "[summarized" in m["content"]]
+        assert len(summarized) > 0, (
+            "Expected older tool results to be compressed. "
+            f"Tool messages: {[m['content'][:80] for m in tool_msgs]}"
+        )
+        assert messages[0]["content"] == "You are Tenn.", "System message must not be modified"
+        for msg in tool_msgs[-2:]:
+            assert "[summarized" not in msg["content"], "Last 2 tool results must not be summarized"
     def test_summarization_preserves_last_two_results(self):
         """The two most recent tool results must NOT be summarized even when over budget."""
         # Force context overflow by using a large system prompt + big tool results
@@ -200,7 +193,7 @@ class TestContextWindowSummarization:
         executor = _tool_result({"ok": True, "data": big_payload})
 
         loop = AgentLoop(llm_client=llm, tool_executor=executor)
-        result = loop.run("Analyse A, B, C, D")
+        loop.run("Analyse A, B, C, D")
 
         # On the last LLM call, inspect prior_messages
         last_call = llm.chat.call_args_list[-1]
