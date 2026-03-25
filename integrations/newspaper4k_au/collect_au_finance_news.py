@@ -1170,6 +1170,34 @@ def extract_from_source(
                 raise
             stats["discovery_errors"] += 1
 
+    # JS-rendering discovery: if static discovery found nothing and domain is
+    # in the playwright_domains list, render the page with Scrapling/Playwright
+    # and extract article URLs from the rendered HTML.
+    if source.mode in {"web", "auto"} and not candidates and playwright_domains:
+        source_domain = domain_of(source.url)
+        _pw_domains = [str(d).lower().strip().removeprefix("www.") for d in (playwright_domains or [])]
+        if source_domain in _pw_domains or any(source_domain.endswith("." + d) for d in _pw_domains):
+            try:
+                from playwright_fallback import fetch_article_html_playwright
+                rendered_html = fetch_article_html_playwright(source.url, timeout_ms=30000)
+                if rendered_html and len(rendered_html) > 1000:
+                    js_candidates, js_feed_urls = extract_candidate_urls_from_html(
+                        base_url=source.url,
+                        html_text=rendered_html,
+                        max_candidates=int(max(5, max_articles * 5)),
+                    )
+                    stats["html_links_seen"] += len(js_candidates)
+                    for url in js_candidates:
+                        _add_candidate(url, None)
+                    for feed_url in js_feed_urls:
+                        if feed_url not in discovered_feed_urls:
+                            discovered_feed_urls.append(feed_url)
+                    if js_candidates:
+                        print(f"[newspaper4k] JS discovery for {source.url}: {len(js_candidates)} URLs from rendered HTML", flush=True)
+            except Exception as exc:
+                stats["discovery_errors"] += 1
+                print(f"[newspaper4k] JS discovery failed for {source.url}: {exc}", flush=True)
+
     feed_urls: list[str] = []
     if source.mode == "rss":
         feed_urls = [source.url]
@@ -1231,8 +1259,49 @@ def extract_from_source(
             article_obj.download()
             article_obj.parse()
         except Exception:
-            stats["download_errors"] += 1
-            continue
+            # If download fails and domain needs JS rendering, try Scrapling
+            _pw_rescue = False
+            if playwright_domains is not None:
+                try:
+                    from playwright_fallback import domain_needs_playwright, fetch_article_html_playwright
+                    if domain_needs_playwright(item_url, playwright_domains):
+                        rendered_html = fetch_article_html_playwright(item_url, timeout_ms=30000)
+                        if rendered_html and len(rendered_html) > 500:
+                            body, body_source, body_lengths = choose_best_article_body(
+                                newspaper_module=newspaper,
+                                title="",
+                                meta_description=extract_meta_description_from_html(rendered_html),
+                                item_text="",
+                                item_html=rendered_html,
+                            )
+                            if body and len(body) >= int(max(1, min_text_chars)):
+                                title = normalize_space(extract_description_from_jsonld(rendered_html)) or ""
+                                if not title:
+                                    # Try <title> tag
+                                    import re as _re
+                                    _m = _re.search(r"<title[^>]*>([^<]+)</title>", rendered_html, _re.IGNORECASE)
+                                    title = normalize_space(_m.group(1)) if _m else ""
+                                published = coerce_datetime(None)
+                                article = ExtractedArticle(
+                                    source_url=source.url,
+                                    source_name=domain_of(item_url),
+                                    article_url=item_url,
+                                    title=title,
+                                    body=body,
+                                    language="en",
+                                    authors=[],
+                                    published_at=published,
+                                    keyword_hits=keyword_hits(f"{title}\n{body}", keywords),
+                                    body_source=f"playwright+{body_source}",
+                                    body_lengths=body_lengths,
+                                )
+                                out.append(article)
+                                _pw_rescue = True
+                except Exception:
+                    pass
+            if not _pw_rescue:
+                stats["download_errors"] += 1
+                continue
 
         article, reason = _parse_article_object(
             item=article_obj,

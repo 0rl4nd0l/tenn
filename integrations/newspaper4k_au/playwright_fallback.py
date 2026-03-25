@@ -132,51 +132,70 @@ def domain_needs_playwright(url: str, playwright_domains: tuple[str, ...] | list
 
 
 def _fetch_with_scrapling(url: str, timeout: int) -> str:
-    """Fetch rendered HTML using Scrapling's StealthyFetcher (Camoufox)."""
-    from scrapling import StealthyFetcher
+    """Fetch rendered HTML using Scrapling's StealthyFetcher (Camoufox).
 
-    fetcher = StealthyFetcher()
-    response = fetcher.fetch(
-        url,
-        headless=True,
-        network_idle=True,
-        timeout=timeout * 1000,  # scrapling uses ms
-    )
-    body = getattr(response, "body", None) or ""
-    if isinstance(body, bytes):
-        body = body.decode("utf-8", errors="replace")
-    return str(body)
+    Runs in a separate thread to avoid 'Playwright Sync API inside asyncio
+    loop' errors when newspaper4k or other imports create an event loop.
+
+    """
+    import concurrent.futures
+
+    def _do_fetch() -> str:
+        from scrapling import StealthyFetcher
+        fetcher = StealthyFetcher()
+        response = fetcher.fetch(
+            url,
+            headless=True,
+            network_idle=True,
+            timeout=timeout * 1000,
+        )
+        body = getattr(response, "body", None) or ""
+        if isinstance(body, bytes):
+            body = body.decode("utf-8", errors="replace")
+        return str(body)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(_do_fetch).result(timeout=timeout + 30)
 
 
 def _fetch_with_playwright(url: str, timeout_ms: int, js_settle_ms: int) -> str:
-    """Fetch rendered HTML using Playwright headless Chromium."""
-    browser = _ensure_playwright_browser()
-    if browser is None:
-        return ""
-    context = None
-    try:
-        context = browser.new_context(
-            user_agent=(
-                "Mozilla/5.0 (X11; Linux x86_64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/124.0.0.0 Safari/537.36"
-            ),
-            java_script_enabled=True,
-        )
-        page = context.new_page()
-        page.goto(url, timeout=timeout_ms, wait_until="domcontentloaded")
-        if js_settle_ms > 0:
-            page.wait_for_timeout(js_settle_ms)
-        return page.content()
-    except Exception as exc:
-        logger.warning("Playwright fetch failed for %s: %s", url, exc)
-        return ""
-    finally:
-        if context is not None:
-            try:
-                context.close()
-            except Exception:
-                pass
+    """Fetch rendered HTML using Playwright headless Chromium.
+
+    Runs in a separate thread to avoid asyncio loop conflicts.
+    """
+    import concurrent.futures
+
+    def _do_fetch() -> str:
+        browser = _ensure_playwright_browser()
+        if browser is None:
+            return ""
+        context = None
+        try:
+            context = browser.new_context(
+                user_agent=(
+                    "Mozilla/5.0 (X11; Linux x86_64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/124.0.0.0 Safari/537.36"
+                ),
+                java_script_enabled=True,
+            )
+            page = context.new_page()
+            page.goto(url, timeout=timeout_ms, wait_until="domcontentloaded")
+            if js_settle_ms > 0:
+                page.wait_for_timeout(js_settle_ms)
+            return page.content()
+        except Exception as exc:
+            logger.warning("Playwright fetch failed for %s: %s", url, exc)
+            return ""
+        finally:
+            if context is not None:
+                try:
+                    context.close()
+                except Exception:
+                    pass
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(_do_fetch).result(timeout=(timeout_ms // 1000) + js_settle_ms // 1000 + 30)
 
 
 def fetch_article_html_playwright(

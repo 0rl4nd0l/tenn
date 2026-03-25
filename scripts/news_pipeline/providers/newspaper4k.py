@@ -30,6 +30,17 @@ ARTICLE_GATE_EXEMPT_DOMAINS = [
     "skynews.com.au",
 ]
 
+# Domains that require JS rendering for article discovery and/or extraction.
+DEFAULT_PLAYWRIGHT_DOMAINS = [
+    "stockhead.com.au",
+    "skynews.com.au",
+    "capitalbrief.com",
+    "finance.yahoo.com",
+    "benzinga.com",
+    "marketindex.com.au",
+    "livewiremarkets.com",
+]
+
 # Lazy-import to avoid hard dependency when other providers are used.
 _collector = None
 
@@ -62,7 +73,7 @@ class Newspaper4kProvider(ProviderClient):
         finance_url_gate: bool = False,
         raw_html_dir: Path | None = None,
         http_cookie: str = "",
-        playwright_domains: Sequence[str] | None = None,
+        playwright_domains: Sequence[str] | None = DEFAULT_PLAYWRIGHT_DOMAINS,
         no_playwright: bool = False,
     ) -> None:
         self.sources_file = Path(sources_file or DEFAULT_SOURCES_FILE).expanduser().resolve()
