@@ -29,3 +29,4 @@ docling>=2.75.0,<3.0.0
 sentence-transformers==3.4.1
 ruff==0.15.6
 anthropic>=0.40.0
+sqlite-vec>=0.1.7
