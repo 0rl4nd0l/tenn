@@ -14,7 +14,7 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
-from textual.widgets import Button, Checkbox, Label, RichLog, Select, Static
+from textual.widgets import Button, Checkbox, Collapsible, Label, RichLog, Select, Static
 
 from cockpit.integrations.llamacpp_manager import (
     _extract_arg,
@@ -243,6 +243,16 @@ class PreBootScreen(Screen):
     #extraction-label { width: 10; padding-top: 1; }
     #opt-extraction-model { width: 1fr; }
     #mmap-row { height: 3; margin-top: 1; width: 1fr; }
+    #advanced-routing { margin-top: 1; }
+    #orchestrator-row { height: 3; width: 1fr; }
+    #orchestrator-label { width: 14; padding-top: 1; }
+    #opt-orchestrator-model { width: 1fr; }
+    #subagent-row { height: 3; width: 1fr; }
+    #subagent-label { width: 14; padding-top: 1; }
+    #opt-subagent-model { width: 1fr; }
+    #policy-row { height: 3; width: 1fr; }
+    #policy-label { width: 14; padding-top: 1; }
+    #opt-router-policy { width: 1fr; }
     #btn-row { height: 3; margin-top: 1; margin-bottom: 1; width: 1fr; }
     #btn-spacer { width: 1fr; }
     #btn-cancel { margin-right: 1; width: auto; }
@@ -305,6 +315,25 @@ class PreBootScreen(Screen):
                     yield Select(_FALLBACK_MODELS, value="llama3:latest", id="opt-extraction-model", allow_blank=False)
                 with Horizontal(id="mmap-row"):
                     yield Checkbox("Load model into RAM  (disable mmap — faster prefill, slower startup)", id="opt-mmap-off", value=True)
+                with Collapsible(title="Advanced: Model Routing", id="advanced-routing", collapsed=True):
+                    with Horizontal(id="orchestrator-row"):
+                        yield Label("Orchestrator:", id="orchestrator-label")
+                        yield Select(_FALLBACK_MODELS, value="", id="opt-orchestrator-model", allow_blank=True)
+                    with Horizontal(id="subagent-row"):
+                        yield Label("Sub-agent:", id="subagent-label")
+                        yield Select(_FALLBACK_MODELS, value="", id="opt-subagent-model", allow_blank=True)
+                    with Horizontal(id="policy-row"):
+                        yield Label("Router policy:", id="policy-label")
+                        yield Select(
+                            [
+                                ("Local only (default)", "local_only"),
+                                ("Local + API fallback", "local_preferred"),
+                                ("API preferred", "api_preferred"),
+                            ],
+                            value="local_only",
+                            id="opt-router-policy",
+                            allow_blank=False,
+                        )
             with Horizontal(id="btn-row"):
                 yield Static("", id="btn-spacer")
                 yield Button("Cancel", id="btn-cancel", variant="warning")
@@ -419,6 +448,30 @@ class PreBootScreen(Screen):
             )
             extraction_select.value = instruct_match or available_values[0]
 
+        # --- Orchestrator model dropdown ---
+        try:
+            orch_select = self.query_one("#opt-orchestrator-model", Select)
+            orch_select.set_options(options)
+            # Auto-select first model with "27b", "32b", or "70b" in name for orchestrator.
+            for label, value in options:
+                if any(hint in value.lower() for hint in ("27b", "32b", "70b")):
+                    orch_select.value = value
+                    break
+        except Exception:
+            pass
+
+        # --- Sub-agent model dropdown ---
+        try:
+            sub_select = self.query_one("#opt-subagent-model", Select)
+            sub_select.set_options(options)
+            # Auto-select first model with "14b" or "8b" for subagent.
+            for label, value in options:
+                if any(hint in value.lower() for hint in ("14b", "8b")):
+                    sub_select.value = value
+                    break
+        except Exception:
+            pass
+
     def _llamacpp_model_options(self) -> list[tuple[str, str]]:
         """
         Build model options for llama.cpp from filesystem-discovered .gguf files.
@@ -532,6 +585,11 @@ class PreBootScreen(Screen):
         if extraction_model:
             env["EXTRACT_MODEL"] = extraction_model
 
+        # Advanced model routing fields.
+        orchestrator_model = str(self.query_one("#opt-orchestrator-model", Select).value or "")
+        subagent_model = str(self.query_one("#opt-subagent-model", Select).value or "")
+        router_policy = str(self.query_one("#opt-router-policy", Select).value or "local_only")
+
         return {
             "read_only": read_only,
             "no_web": not web_enabled,
@@ -542,6 +600,9 @@ class PreBootScreen(Screen):
             "llm_model": model_alias,
             "llm_model_path": model_path,
             "extraction_model": extraction_model,
+            "orchestrator_model": orchestrator_model,
+            "subagent_model": subagent_model,
+            "router_policy": router_policy,
             "env": env,
             "cancelled": False,
         }
