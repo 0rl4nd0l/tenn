@@ -157,6 +157,8 @@ NON_ARTICLE_PATH_SEGMENTS = {
     "authors",
     "category",
     "categories",
+    "contributor",
+    "contributors",
     "topic",
     "topics",
     "tag",
@@ -172,6 +174,8 @@ NON_ARTICLE_PATH_SEGMENTS = {
     "account",
     "subscribe",
     "membership",
+    "listed-series",
+    "meet-the-investor",
 }
 HTTP_USER_AGENT = (
     "Mozilla/5.0 (X11; Linux x86_64) "

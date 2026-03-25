@@ -28,6 +28,7 @@ ARTICLE_GATE_EXEMPT_DOMAINS = [
     "livewiremarkets.com",
     "marketindex.com.au",
     "skynews.com.au",
+    "theaustralian.com.au",
 ]
 
 # Domains that require JS rendering for article discovery and/or extraction.

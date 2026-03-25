@@ -4,15 +4,34 @@ auto:https://www.afr.com/markets
 auto:https://www.afr.com/companies
 auto:https://www.afr.com/policy/economy
 
+# ABC News — dedicated business RSS (not general "Just In" feed)
+rss:https://www.abc.net.au/news/feed/104217374/rss.xml
+
 # Major AU news — business sections
-rss:https://www.abc.net.au/news/feed/51120/rss.xml
 auto:https://www.smh.com.au/business
 rss:https://www.theguardian.com/au/business/rss
 auto:https://www.theaustralian.com.au/business
-auto:https://www.skynews.com.au/business
+auto:https://www.theaustralian.com.au/business/markets
+auto:https://www.theaustralian.com.au/business/economics
+auto:https://www.theaustralian.com.au/business/property
 
-# ASX-focused publishers (RSS where available for reliable discovery)
+# Sky News — business section pages (JS-rendered, needs Playwright)
+auto:https://www.skynews.com.au/business
+auto:https://www.skynews.com.au/business/finance
+auto:https://www.skynews.com.au/business/markets
+auto:https://www.skynews.com.au/business/energy
+
+# Stockhead — category RSS feeds (50 articles each)
 rss:https://stockhead.com.au/feed
+rss:https://stockhead.com.au/category/asx-small-caps/feed/
+rss:https://stockhead.com.au/category/resources/feed/
+rss:https://stockhead.com.au/category/tech/feed/
+rss:https://stockhead.com.au/category/energy/feed/
+rss:https://stockhead.com.au/category/health/feed/
+rss:https://stockhead.com.au/category/cryptocurrency/feed/
+rss:https://stockhead.com.au/category/expert-tips/feed/
+
+# MarketIndex — main page + category pages (JS-rendered)
 auto:https://www.marketindex.com.au/news
 auto:https://www.marketindex.com.au/news/category/market-wraps
 auto:https://www.marketindex.com.au/news/category/technical-analysis
@@ -22,7 +41,13 @@ auto:https://www.marketindex.com.au/news/category/markets
 auto:https://www.marketindex.com.au/news/category/data-insights
 auto:https://www.marketindex.com.au/news/category/fund-manager
 auto:https://www.marketindex.com.au/news/category/insights-and-opinion
+
+# Livewire Markets (JS-rendered, needs Playwright)
 auto:https://www.livewiremarkets.com
+auto:https://www.livewiremarkets.com/property
+auto:https://www.livewiremarkets.com/reporting-season
+
+# Other ASX-focused publishers
 auto:https://www.kalkinemedia.com
 auto:https://www.capitalbrief.com
 
