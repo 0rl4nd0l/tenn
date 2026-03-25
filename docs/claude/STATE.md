@@ -28,7 +28,7 @@ Branch: cloud/session-20260319
 | **eval-fixtures** | `[ in-progress ]` | 9 fixtures: 6 hand-verified + 3 Claude API verified (ANZ bank, AZJ transport, CSL healthcare USD). MIN fixture completed to 10 metrics. Live eval needed to validate new fixtures against extraction pipeline. |
 | **extraction-quality** | `[ in-progress ]` | 98.3% accuracy on 6 fixtures (483ce6d2). Broadened to 9 fixtures (5 sectors). Extraction LLM separated from chat (EXTRACTION_LLAMACPP_URL). Pipeline optimized: parallel Pass 3a, skip redundant tables, optional narrative skip. Live eval with expanded 9-fixture set pending. |
 | **extraction-perf** | `[ verified ]` | Pass 1 first-page-only (e25dcd43). Parallel 3a + skip redundant + skip narrative (6c8c53bf). Pre-filter table rows: researched, not yet implemented. 301 tests passing. |
-| **cockpit-agent** | `[ in-progress ]` | Scaffold complete: HybridRouter, MemoryStore (SQLite-vec), SubAgentSpawner, ExtractionController, ModelRouter, system prompt, preboot per-function routing UI, chat.py integration. 53 cockpit tests passing. Open: (1) wire ExtractionController into ToolExecutor; (2) preboot live smoke test; (3) end-to-end test with real LLM; (4) API executor in HybridRouter (requires Anthropic key). |
+| **cockpit-agent** | `[ verified ]` | Full agent scaffold: HybridRouter (local + Anthropic API), MemoryStore (SQLite-vec), SubAgentSpawner, ExtractionController (wired into ToolExecutor), ModelRouter, system prompt, preboot per-function UI. 93 tests. E2E verified against both local llama.cpp and Anthropic API. |
 
 ---
 
