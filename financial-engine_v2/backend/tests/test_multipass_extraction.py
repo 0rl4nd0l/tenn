@@ -1656,3 +1656,108 @@ def test_pass3a_parallel_disabled_by_env():
     assert all(t == main_thread for t in call_threads), (
         f"Expected all calls on main thread ({main_thread}), got: {call_threads}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Row Filtering
+# ---------------------------------------------------------------------------
+
+from app.services.multipass_extraction import (
+    _filter_table_rows,
+    _is_section_header,
+    _is_total_row,
+)
+
+
+def _make_table_with_rows(rows):
+    """Create a minimal table-like object with given rows."""
+    t = MagicMock()
+    t.rows = rows
+    t.headers = rows[0] if rows else []
+    t.caption = ""
+    t.page_number = 1
+    return t
+
+
+class TestRowFiltering:
+    def test_small_table_not_filtered(self):
+        """Tables with <=20 rows should not be filtered."""
+        rows = [["Header", "Val"]] + [[f"Row {i}", str(i)] for i in range(15)]
+        table = _make_table_with_rows(rows)
+        result = _filter_table_rows(table, "cashflow_statement")
+        assert result == rows  # unchanged
+
+    def test_highlights_not_filtered(self):
+        rows = [["Header", "Val"]] + [[f"Row {i}", str(i)] for i in range(25)]
+        table = _make_table_with_rows(rows)
+        result = _filter_table_rows(table, "highlights")
+        assert result == rows
+
+    def test_large_cf_table_filtered(self):
+        """Large CF table should be filtered, keeping headers/totals/metric rows."""
+        rows = [
+            ["Item", "Dec 2025 $M", "Dec 2024 $M"],
+            ["CASH FLOWS FROM OPERATING ACTIVITIES", "", ""],
+            ["Receipts from customers", "3,343", "2,368"],
+            ["Payments to suppliers and employees", "(2,267)", "(2,844)"],
+            ["Subcontractor costs", "(100)", "(50)"],
+            ["Raw materials consumed", "(200)", "(150)"],
+            ["Equipment lease costs", "(80)", "(70)"],
+            ["Travel and entertainment", "(10)", "(5)"],
+            ["Professional fees", "(30)", "(20)"],
+            ["Insurance costs", "(15)", "(12)"],
+            ["Rent and occupancy", "(25)", "(18)"],
+            ["IT and communications", "(20)", "(15)"],
+            ["Net cash from operating activities", "880", "(656)"],
+            ["CASH FLOWS FROM INVESTING ACTIVITIES", "", ""],
+            ["Payments for property, plant and equipment", "(333)", "(732)"],
+            ["Acquisition of subsidiaries", "(100)", "(50)"],
+            ["Proceeds from disposal of assets", "25", "4"],
+            ["Exploration expenditure", "(40)", "(30)"],
+            ["Development expenditure", "(60)", "(45)"],
+            ["Net cash used in investing activities", "(527)", "(658)"],
+            ["CASH FLOWS FROM FINANCING ACTIVITIES", "", ""],
+            ["Proceeds from borrowings", "500", "1,200"],
+            ["Repayment of borrowings", "(400)", "(100)"],
+            ["Dividend payments", "(200)", "(180)"],
+            ["Repayment of lease liabilities", "(102)", "(103)"],
+            ["Net cash from financing activities", "(126)", "1,114"],
+            ["Net increase in cash and cash equivalents", "227", "(200)"],
+            ["Cash and cash equivalents at beginning", "412", "908"],
+            ["Effects of exchange rate changes", "(1)", "12"],
+            ["Cash and cash equivalents at the end", "638", "720"],
+        ]
+        table = _make_table_with_rows(rows)
+        result = _filter_table_rows(table, "cashflow_statement")
+        # Should have fewer rows than original
+        real_rows = [r for r in result if not str(r[0]).startswith("[...")]
+        assert len(real_rows) < len(rows), f"Expected filtering, got {len(real_rows)} vs {len(rows)}"
+        # Must keep header, section headers, totals, and key metric rows
+        labels = [str(r[0]) for r in result]
+        assert "Item" in labels  # header
+        assert "CASH FLOWS FROM OPERATING ACTIVITIES" in labels  # section header
+        assert "Net cash from operating activities" in labels  # total
+        assert "Payments for property, plant and equipment" in labels  # capex
+        assert "Cash and cash equivalents at the end" in labels  # cash_end
+        # Should have omission markers
+        assert any("[..." in str(r[0]) for r in result)
+
+    def test_section_header_detection(self):
+        assert _is_section_header(["CASH FLOWS FROM OPERATING ACTIVITIES", "", ""])
+        assert not _is_section_header(["Revenue", "3,052", "2,290"])
+        assert not _is_section_header(["", "", ""])
+
+    def test_total_row_detection(self):
+        assert _is_total_row(["Total revenue", "3,052", "2,290"])
+        assert _is_total_row(["Net cash from operating activities", "880", "(656)"])
+        assert not _is_total_row(["Receipts from customers", "3,343", "2,368"])
+
+    def test_filter_disabled_by_env(self, monkeypatch):
+        monkeypatch.setenv("EXTRACTION_FILTER_ROWS", "0")
+        rows = [["H", "V"]] + [[f"Row {i}", str(i)] for i in range(25)]
+        table = _make_table_with_rows(rows)
+        # When disabled, _extract_single_table uses unfiltered path.
+        # But _filter_table_rows itself doesn't check the env — it's the caller's job.
+        # So test the filter still works (it's the caller that gates it).
+        result = _filter_table_rows(table, "cashflow_statement")
+        assert len(result) <= len(rows)

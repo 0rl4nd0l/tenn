@@ -497,16 +497,140 @@ _METRIC_SCHEMA_BY_TABLE = {
 }
 
 
-def _table_to_markdown(table, max_rows: int = 30) -> str:
+# ---------------------------------------------------------------------------
+# Row filtering — reduce token count by keeping only metric-relevant rows.
+# Applied to large tables (>20 rows) in CF, IS, BS only.
+# ---------------------------------------------------------------------------
+
+_ROW_KEYWORDS_BY_TABLE: dict[str, list[str]] = {
+    "cashflow_statement": [
+        "receipt", "payment", "net cash", "operating", "investing", "financing",
+        "property plant", "capital expenditure", "cash and cash equivalent",
+        "cash at end", "cash at the end", "net increase", "net decrease",
+        "beginning", "end of", "exchange rate",
+    ],
+    "income_statement": [
+        "revenue", "sales", "income", "profit", "loss", "ebit", "earnings before",
+        "operations", "operating", "income tax", "attributable", "equity holder",
+        "owners of", "non-controlling", "comprehensive", "net profit", "net loss",
+    ],
+    "balance_sheet": [
+        "cash and cash equivalent", "borrowing", "interest bearing",
+        "loan", "notes payable", "bond", "financial debt", "lease liab",
+        "net asset", "total equity", "share capital", "issued capital",
+        "ordinary share", "shares on issue", "total asset", "total liab",
+        "net debt", "current", "non-current",
+    ],
+}
+
+# Tables where filtering should NOT be applied.
+_NO_FILTER_TABLES = {"highlights", "share_capital"}
+
+# Minimum row count to trigger filtering — small tables are sent in full.
+_FILTER_MIN_ROWS = 20
+
+
+def _is_section_header(row: list[str]) -> bool:
+    """A row is a section header if only the first cell has text (values are empty)."""
+    if not row or len(row) < 2:
+        return False
+    first = str(row[0]).strip()
+    if not first:
+        return False
+    return all(not str(c).strip() or str(c).strip() == "-" for c in row[1:])
+
+
+def _is_total_row(row: list[str]) -> bool:
+    """Check if a row is a total/subtotal line."""
+    label = str(row[0]).strip().lower() if row else ""
+    return any(kw in label for kw in ("total", "net cash", "net operating", "net increase", "net decrease"))
+
+
+def _row_matches_keywords(row: list[str], keywords: list[str]) -> bool:
+    """Check if a row label matches any metric-relevant keyword."""
+    label = str(row[0]).strip().lower() if row else ""
+    return any(kw in label for kw in keywords)
+
+
+def _filter_table_rows(table, table_type: str) -> list[list[str]]:
+    """Filter table rows to metric-relevant ones for reduced token usage.
+
+    Strategy (from research agent assessment):
+    - Always keep: row 0 (header), section headers, total/subtotal rows
+    - Keep rows matching metric keywords for the table type
+    - Keep rows adjacent to totals (metric values often sit above subtotals)
+    - Insert '[... N rows omitted ...]' markers where rows are removed
+    - Only filter tables with >20 rows in CF/IS/BS
+
+    Returns filtered row list, or original rows if filtering not applicable.
+    """
+    if not table or not table.rows:
+        return []
+
+    rows = table.rows
+    if table_type in _NO_FILTER_TABLES or len(rows) <= _FILTER_MIN_ROWS:
+        return rows
+
+    keywords = _ROW_KEYWORDS_BY_TABLE.get(table_type)
+    if not keywords:
+        return rows
+
+    # Determine which row indices to keep.
+    keep = set()
+    keep.add(0)  # header row always kept
+
+    for i, row in enumerate(rows):
+        if _is_section_header(row):
+            keep.add(i)
+        elif _is_total_row(row):
+            keep.add(i)
+            if i > 0:
+                keep.add(i - 1)  # row above total often has the metric
+        elif _row_matches_keywords(row, keywords):
+            keep.add(i)
+
+    # Build filtered output with omission markers.
+    filtered: list[list[str]] = []
+    omitted_count = 0
+    for i, row in enumerate(rows):
+        if i in keep:
+            if omitted_count > 0:
+                ncols = len(row)
+                marker = [f"[... {omitted_count} rows omitted ...]"] + [""] * (ncols - 1)
+                filtered.append(marker)
+                omitted_count = 0
+            filtered.append(row)
+        else:
+            omitted_count += 1
+
+    if omitted_count > 0:
+        ncols = len(rows[-1]) if rows else 1
+        filtered.append([f"[... {omitted_count} rows omitted ...]"] + [""] * (ncols - 1))
+
+    original_count = len(rows)
+    filtered_count = len([r for r in filtered if not str(r[0]).startswith("[...")])
+    if filtered_count < original_count:
+        logger.info(
+            "Filtered %s: %d → %d rows (%.0f%% reduction)",
+            table_type, original_count, filtered_count,
+            (1 - filtered_count / original_count) * 100,
+        )
+
+    return filtered
+
+
+def _table_to_markdown(table, max_rows: int = 30, *, rows_override: list[list[str]] | None = None) -> str:
     """Convert DoclingTable rows to markdown string.
 
     max_rows caps body rows sent to the LLM (default 30 for single tables;
     callers may raise this for merged tables like Appendix 5B).
+    rows_override: if provided, use these rows instead of table.rows (for pre-filtered rows).
     """
-    if not table or not table.rows:
+    rows = rows_override if rows_override is not None else (table.rows if table else [])
+    if not rows:
         return ""
     lines = []
-    for i, row in enumerate(table.rows[:max_rows]):
+    for i, row in enumerate(rows[:max_rows]):
         line = " | ".join(str(c) for c in row)
         lines.append(line)
         if i == 0:
@@ -541,7 +665,14 @@ def _extract_single_table(
         row_cap = 40
     else:
         row_cap = 30
-    markdown = _table_to_markdown(table, max_rows=row_cap)
+    # Pre-filter rows to reduce token count on large tables.
+    # Controlled by EXTRACTION_FILTER_ROWS env var (default: enabled).
+    filter_enabled = os.environ.get("EXTRACTION_FILTER_ROWS", "1") != "0"
+    if filter_enabled:
+        filtered_rows = _filter_table_rows(table, table_type)
+        markdown = _table_to_markdown(table, max_rows=row_cap, rows_override=filtered_rows)
+    else:
+        markdown = _table_to_markdown(table, max_rows=row_cap)
     if not markdown:
         return None
 
