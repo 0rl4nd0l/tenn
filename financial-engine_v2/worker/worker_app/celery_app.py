@@ -8,7 +8,9 @@ celery = Celery(
     "financial_engine",
     broker=os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0"),
     backend=os.environ.get("CELERY_RESULT_BACKEND", "redis://redis:6379/1"),
-    include=["worker_app.tasks", "worker_app.news_tasks"],
+    # "worker_app.tasks" removed — module never existed (was worker/app/tasks.py,
+    # now deprecated). Beat only needs news_tasks for scheduling.
+    include=["worker_app.news_tasks"],
 )
 celery.conf.update(
     task_serializer="json",

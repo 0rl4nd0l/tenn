@@ -408,6 +408,10 @@ def process_unextracted_for_ticker(ticker: str, limit: int = Query(default=50, l
         db.close()
 
 
+# DEPRECATED: This endpoint queries news_chunks directly with inline Qdrant client.
+# Active callers: cockpit BackendApiClient, tools.py, qual_context.py, weekly_intelligence_pack.
+# Canonical ASX document RAG: POST /rag/query (main.py).
+# TODO: Migrate callers to a unified RAG service, then remove this endpoint.
 @router.get("/rag/query", dependencies=[Depends(require_api_key)])
 def rag_query(
     q: str = Query(..., description="Search query text"),

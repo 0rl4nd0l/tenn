@@ -1,3 +1,17 @@
+# ──────────────────────────────────────────────────────────────────────
+# DEPRECATED — DO NOT USE
+#
+# Violates SYSTEM_CONTRACT (non-deterministic vector IDs via uuid4()).
+# Isolated pending removal. All document processing tasks are handled by
+# backend/app/worker_tasks.py → backend/app/services/pipeline.py which
+# uses deterministic "{document_id}:{chunk_index}" vector IDs.
+#
+# Task names prefixed with "deprecated_" to eliminate collisions with
+# the authoritative backend worker tasks.
+#
+# See: docs/architecture/SYSTEM_CONTRACT.md
+# ──────────────────────────────────────────────────────────────────────
+
 import os, uuid
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -40,7 +54,7 @@ def _doc_path(ticker:str, doc_id:str)->str:
     ensure_dir(str(d))
     return str(d/f"{doc_id}.pdf")
 
-@celery.task(name='backfill_ticker')
+@celery.task(name='deprecated_backfill_ticker')
 def backfill_ticker(ticker:str, years:int=5):
     ticker=ticker.upper()
     provider=ASXProvider()
@@ -68,7 +82,7 @@ def backfill_ticker(ticker:str, years:int=5):
     finally:
         db.close()
 
-@celery.task(name='download_pdf')
+@celery.task(name='deprecated_download_pdf')
 def download_pdf(document_id:str):
     db=Session()
     try:
@@ -83,7 +97,7 @@ def download_pdf(document_id:str):
     finally:
         db.close()
 
-@celery.task(name='process_document')
+@celery.task(name='deprecated_process_document')
 def process_document(prev, document_id:str=None):
     if isinstance(prev, dict) and document_id is None:
         document_id=prev.get("document_id")
