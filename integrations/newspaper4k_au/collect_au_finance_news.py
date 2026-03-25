@@ -36,6 +36,7 @@ TRACKING_PARAMS = {
     "utm_content",
 }
 DEFAULT_KEYWORDS = (
+    # Core ASX / corporate finance
     "asx",
     "earnings",
     "guidance",
@@ -48,9 +49,6 @@ DEFAULT_KEYWORDS = (
     "buyback",
     "acquisition",
     "merger",
-    "inflation",
-    "interest rate",
-    "rba",
     "profit",
     "revenue",
     "share price",
@@ -60,6 +58,55 @@ DEFAULT_KEYWORDS = (
     "fiscal",
     "budget",
     "gdp",
+    # Commodities
+    "gold",
+    "mining",
+    "iron ore",
+    "lithium",
+    "copper",
+    # Energy
+    "energy",
+    "oil",
+    "gas",
+    "coal",
+    # Financial services
+    "bank",
+    "banking",
+    "superannuation",
+    "super fund",
+    # Property
+    "property",
+    "real estate",
+    "reit",
+    # Funds
+    "etf",
+    "index fund",
+    # Digital assets
+    "crypto",
+    "bitcoin",
+    # Market events
+    "ipo",
+    "listing",
+    # Macro
+    "inflation",
+    "interest rate",
+    "rba",
+    "recession",
+    "employment",
+    "unemployment",
+    "tariff",
+    "trade war",
+    # Market commentary
+    "market",
+    "rally",
+    "sell-off",
+    "bear market",
+    "bull market",
+    # Broker activity
+    "analyst",
+    "broker",
+    "upgrade",
+    "downgrade",
 )
 DEFAULT_FINANCE_URL_INCLUDE_TOKENS = (
     "/business",
@@ -108,6 +155,8 @@ SECTION_PATH_TAILS = {
 NON_ARTICLE_PATH_SEGMENTS = {
     "author",
     "authors",
+    "category",
+    "categories",
     "topic",
     "topics",
     "tag",
@@ -363,6 +412,26 @@ def domain_of(value: str) -> str:
     return (urlsplit(canonical).hostname or "").lower()
 
 
+CLOUDFLARE_CHALLENGE_TITLES = {
+    "just a moment...",
+    "attention required!",
+    "please wait...",
+    "checking your browser",
+    "one more step",
+}
+
+
+def is_cloudflare_challenge(title: str, body: str) -> bool:
+    """Detect Cloudflare/WAF challenge pages that leaked through JS rendering."""
+    t = normalize_space(title).lower()
+    if t in CLOUDFLARE_CHALLENGE_TITLES:
+        return True
+    b = normalize_space(body).lower()
+    if len(b) < 400 and ("enable javascript" in b or "checking your browser" in b or "ray id" in b):
+        return True
+    return False
+
+
 def parse_source_spec(raw: str) -> SourceSpec:
     text = normalize_space(raw)
     if not text:
@@ -494,6 +563,9 @@ def is_domain_specific_non_article_path(url: str) -> bool:
     if domain == "theaustralian.com.au":
         # Section landing pages are typically depth-1/2; article pages are deeper.
         return len(segments) < 3
+    if domain in ("marketindex.com.au",) and segments and segments[0] == "asx":
+        # /asx/<TICKER> pages are stock quote pages, not articles.
+        return True
     return False
 
 
@@ -1178,8 +1250,9 @@ def extract_from_source(
         _pw_domains = [str(d).lower().strip().removeprefix("www.") for d in (playwright_domains or [])]
         if source_domain in _pw_domains or any(source_domain.endswith("." + d) for d in _pw_domains):
             try:
-                from playwright_fallback import fetch_article_html_playwright
-                rendered_html = fetch_article_html_playwright(source.url, timeout_ms=30000)
+                from playwright_fallback import fetch_article_html_playwright, shutdown_playwright
+                shutdown_playwright()  # ensure clean browser state for discovery
+                rendered_html = fetch_article_html_playwright(source.url, timeout_ms=60000)
                 if rendered_html and len(rendered_html) > 1000:
                     js_candidates, js_feed_urls = extract_candidate_urls_from_html(
                         base_url=source.url,
@@ -1277,26 +1350,26 @@ def extract_from_source(
                             if body and len(body) >= int(max(1, min_text_chars)):
                                 title = normalize_space(extract_description_from_jsonld(rendered_html)) or ""
                                 if not title:
-                                    # Try <title> tag
                                     import re as _re
                                     _m = _re.search(r"<title[^>]*>([^<]+)</title>", rendered_html, _re.IGNORECASE)
                                     title = normalize_space(_m.group(1)) if _m else ""
-                                published = coerce_datetime(None)
-                                article = ExtractedArticle(
-                                    source_url=source.url,
-                                    source_name=domain_of(item_url),
-                                    article_url=item_url,
-                                    title=title,
-                                    body=body,
-                                    language="en",
-                                    authors=[],
-                                    published_at=published,
-                                    keyword_hits=keyword_hits(f"{title}\n{body}", keywords),
-                                    body_source=f"playwright+{body_source}",
-                                    body_lengths=body_lengths,
-                                )
-                                out.append(article)
-                                _pw_rescue = True
+                                if not is_cloudflare_challenge(title, body):
+                                    published = coerce_datetime(None)
+                                    article = ExtractedArticle(
+                                        source_url=source.url,
+                                        source_name=domain_of(item_url),
+                                        article_url=item_url,
+                                        title=title,
+                                        body=body,
+                                        language="en",
+                                        authors=[],
+                                        published_at=published,
+                                        keyword_hits=keyword_hits(f"{title}\n{body}", keywords),
+                                        body_source=f"playwright+{body_source}",
+                                        body_lengths=body_lengths,
+                                    )
+                                    out.append(article)
+                                    _pw_rescue = True
                 except Exception:
                     pass
             if _pw_rescue:
