@@ -10,16 +10,14 @@ rss:https://www.abc.net.au/news/feed/104217374/rss.xml
 # Major AU news — business sections
 auto:https://www.smh.com.au/business
 rss:https://www.theguardian.com/au/business/rss
+# The Australian — sub-sections share the same article pool as /business;
+# newspaper4k discovers all articles from the main section page.
 auto:https://www.theaustralian.com.au/business
-auto:https://www.theaustralian.com.au/business/markets
-auto:https://www.theaustralian.com.au/business/economics
-auto:https://www.theaustralian.com.au/business/property
 
-# Sky News — business section pages (JS-rendered, needs Playwright)
+# Sky News — business section (JS-rendered, needs Playwright)
+# Note: sub-sections (/finance, /markets, /energy) share same articles
+# as main /business page — one source is sufficient.
 auto:https://www.skynews.com.au/business
-auto:https://www.skynews.com.au/business/finance
-auto:https://www.skynews.com.au/business/markets
-auto:https://www.skynews.com.au/business/energy
 
 # Stockhead — category RSS feeds (50 articles each)
 rss:https://stockhead.com.au/feed
