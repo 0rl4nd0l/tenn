@@ -16,6 +16,7 @@ from app.models.extractions import ExtractionRun
 from app.providers.universe import ASX20
 from app.providers.market_price_provider import MarketPriceProvider, MarketPriceProviderError
 from app.providers.openbb_sidecar_provider import OpenBBSidecarProvider, OpenBBSidecarProviderError
+from app.services.analysis.risk_module import run_risk_analysis
 from app.services.commentary_ingest import ingest_transcript
 from app.services.openbb_staging import persist_fundamental_snapshot, persist_price_snapshot
 from app.services.pipeline_service import PipelineJobSpec, run_pipeline_sync
@@ -411,3 +412,31 @@ def process_unextracted_for_ticker(ticker: str, limit: int = Query(default=50, l
 # GET /api/rag/query REMOVED — migrated to POST /rag/query with source="news".
 # All callers (cockpit BackendApiClient, tools.py, qual_context.py) now use
 # the unified POST /rag/query endpoint. Logic moved to app.services.rag.query_news_chunks().
+
+
+@router.get("/analysis/risk", dependencies=[Depends(require_api_key)])
+def analysis_risk(
+    ticker: str,
+    include_news: bool = Query(default=True),
+    rag_top_k: int = Query(default=6, ge=1, le=20),
+    news_top_k: int = Query(default=5, ge=1, le=20),
+    db: Session = Depends(get_db),
+):
+    """Structured risk report for a ticker.
+
+    Aggregates extracted risk notes from Postgres, supporting evidence from
+    RAG (asx_docs), and optionally recent news context. Deterministic —
+    no LLM calls. Read-only.
+    """
+    try:
+        return run_risk_analysis(
+            ticker,
+            db,
+            include_news=include_news,
+            rag_top_k=rag_top_k,
+            news_top_k=news_top_k,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
