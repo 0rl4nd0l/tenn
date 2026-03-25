@@ -168,11 +168,11 @@ class MemoryStore:
     # Daily tier: compacted daily summaries
     # ------------------------------------------------------------------
 
-    def write_daily(self, content: str, date: str | None = None) -> None:
+    def write_daily(self, summary: str, date: str | None = None) -> None:
         """Write a daily summary for *date* (defaults to today UTC)."""
         if date is None:
             date = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
-        self._write(f"{_DAILY_DIR}/{date}.md", content)
+        self._write(f"{_DAILY_DIR}/{date}.md", summary)
 
     def read_daily(self, date: str | None = None) -> str:
         """Return the daily summary for *date* (defaults to today UTC)."""

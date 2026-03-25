@@ -170,6 +170,6 @@ class MemorySearch:
                 (blob, top_k),
             ).fetchall()
             conn.close()
-            return [{"source": row["source"], "text": row["text"], "distance": row["distance"]} for row in rows]
+            return [{"source": row["source"], "content": row["text"], "score": 1.0 - float(row["distance"])} for row in rows]
         except Exception:  # noqa: BLE001
             return []
