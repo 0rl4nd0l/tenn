@@ -147,11 +147,15 @@ class CockpitApp(App):
         llm_provider = llm_cfg.get("provider", "llamacpp")
         llm_model = llm_cfg.get("model", "llama3:latest")
         if llm_provider == "llamacpp":
-            self.ollama_client = LlamaCppClient(
-                llm_cfg.get("llamacpp_url", DEFAULT_LLAMACPP_URL),
-                llm_model,
-                api_key=llm_cfg.get("llamacpp_api_key", ""),
-            )
+            llm_url = llm_cfg.get("llamacpp_url", DEFAULT_LLAMACPP_URL)
+        else:
+            # Ollama also exposes an OpenAI-compatible /v1 API.
+            llm_url = llm_cfg.get("llamacpp_url") or llm_cfg.get("ollama_url", DEFAULT_OLLAMA_URL)
+        self.ollama_client = LlamaCppClient(
+            llm_url,
+            llm_model,
+            api_key=llm_cfg.get("llamacpp_api_key", ""),
+        )
         self.action_registry = ActionRegistry(repo_root=repo_root, confirm_required=config["actions"].get("confirm_required", True))
         self.job_runner = JobRunner(repo_root=repo_root, logs_dir=self.artifacts.logs_dir)
 

@@ -388,13 +388,13 @@ def upsert_points(client: QdrantClient, collection: str, points: list[dict]) -> 
     is_local_mode = "qdrant_client.local." in type(getattr(client, "_client", None)).__module__
 
     def _coerce_id(raw_id: Any) -> Any:
-        if not (is_local_mode and isinstance(raw_id, str)):
+        if not isinstance(raw_id, str):
             return raw_id
         try:
             uuid.UUID(raw_id)
             return raw_id
         except ValueError:
-            return str(uuid.uuid5(uuid.NAMESPACE_URL, f"qdrant-local:{raw_id}"))
+            return str(uuid.uuid5(uuid.NAMESPACE_URL, raw_id))
 
     valid_points: list[qmodels.PointStruct] = []
     skipped_count = 0

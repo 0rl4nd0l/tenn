@@ -3,7 +3,7 @@ import json
 import logging
 import time
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 import re
 from typing import Any, Mapping, Optional
@@ -1012,6 +1012,16 @@ def process_document(
             },
         )
 
+        def _json_safe(obj: Any) -> Any:
+            """Recursively convert date/datetime to ISO strings for JSON storage."""
+            if isinstance(obj, dict):
+                return {k: _json_safe(v) for k, v in obj.items()}
+            if isinstance(obj, list):
+                return [_json_safe(v) for v in obj]
+            if isinstance(obj, (datetime, date)):
+                return obj.isoformat()
+            return obj
+
         run = ExtractionRun(
             document_id=doc.document_id,
             extractor_version=EXTRACTOR_VERSION,
@@ -1020,7 +1030,7 @@ def process_document(
             status=status,
             confidence_overall=confidence,
             error=error,
-            structured_json=structured,
+            structured_json=_json_safe(structured),
         )
         db.add(run)
         if status in {"ok", "ok_low_confidence"}:

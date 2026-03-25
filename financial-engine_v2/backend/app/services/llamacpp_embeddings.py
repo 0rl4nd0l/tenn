@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import logging
+import time
 from typing import Optional
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 from app.services.llamacpp_runtime import (
     build_embedding_headers,
@@ -47,7 +51,7 @@ def _raise_if_embeddings_unavailable(response: object) -> None:
 def probe_llamacpp_embeddings(
     base_url: str,
     model: str,
-    timeout: float = 30.0,
+    timeout: float = 120.0,
     client: Optional[httpx.Client] = None,
 ) -> dict[str, object]:
     resolved_base_url, resolved_model = resolve_embedding_runtime_config(
@@ -69,24 +73,48 @@ def probe_llamacpp_embeddings(
             client=http_client,
         )
 
-        response = http_client.post(
-            f"{resolved_base_url}/v1/embeddings",
-            json=payload,
-            headers=headers,
-            timeout=timeout,
-        )
-        _raise_if_embeddings_unavailable(response)
-        response.raise_for_status()
-        embeddings = _parse_embeddings_payload(response.json(), expected_count=1)
-        vector = embeddings[0]
-        if not vector:
-            raise RuntimeError("Embedding probe returned an empty vector.")
-        return {
-            "base_url": resolved_base_url,
-            "model": resolved_model,
-            "ok": True,
-            "dimension": len(vector),
-        }
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = http_client.post(
+                    f"{resolved_base_url}/v1/embeddings",
+                    json=payload,
+                    headers=headers,
+                    timeout=timeout,
+                )
+            except httpx.ReadTimeout:
+                if attempt < max_retries - 1:
+                    wait = 10 * (attempt + 1)
+                    logger.warning(
+                        "Embedding probe timeout (attempt %d/%d, retrying in %ds)",
+                        attempt + 1, max_retries, wait,
+                    )
+                    time.sleep(wait)
+                    continue
+                raise
+
+            _raise_if_embeddings_unavailable(response)
+            if response.status_code == 400 and attempt < max_retries - 1:
+                wait = 10 * (attempt + 1)
+                logger.warning(
+                    "Embedding probe 400 (attempt %d/%d, retrying in %ds): %s",
+                    attempt + 1, max_retries, wait,
+                    response.text[:200],
+                )
+                time.sleep(wait)
+                continue
+            response.raise_for_status()
+            embeddings = _parse_embeddings_payload(response.json(), expected_count=1)
+            vector = embeddings[0]
+            if not vector:
+                raise RuntimeError("Embedding probe returned an empty vector.")
+            return {
+                "base_url": resolved_base_url,
+                "model": resolved_model,
+                "ok": True,
+                "dimension": len(vector),
+            }
+        raise RuntimeError("Embedding probe failed after retries")
 
     if own_client:
         with httpx.Client(timeout=timeout) as http_client:
@@ -126,15 +154,32 @@ def llamacpp_embed(
                 client=http_client,
             )
 
-        response = http_client.post(
-            f"{resolved_base_url}/v1/embeddings",
-            json=payload,
-            headers=headers,
-            timeout=timeout,
-        )
-        _raise_if_embeddings_unavailable(response)
+        max_retries = 3
+        for attempt in range(max_retries):
+            response = http_client.post(
+                f"{resolved_base_url}/v1/embeddings",
+                json=payload,
+                headers=headers,
+                timeout=timeout,
+            )
+            _raise_if_embeddings_unavailable(response)
+            if response.status_code == 400 and attempt < max_retries - 1:
+                body = ""
+                try:
+                    body = response.text[:200]
+                except Exception:
+                    pass
+                wait = 5 * (attempt + 1)
+                logger.warning(
+                    "Embedding 400 (attempt %d/%d, retrying in %ds): %s",
+                    attempt + 1, max_retries, wait, body,
+                )
+                time.sleep(wait)
+                continue
+            response.raise_for_status()
+            return _parse_embeddings_payload(response.json(), expected_count=len(texts))
         response.raise_for_status()
-        return _parse_embeddings_payload(response.json(), expected_count=len(texts))
+        return []
 
     if own_client:
         with httpx.Client(timeout=timeout) as http_client:

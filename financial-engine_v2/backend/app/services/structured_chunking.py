@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from app.services.docling_extract import StructuredDocument
 
-MAX_CHARS = 4500
-OVERLAP_CHARS = 200
+MAX_CHARS = 2000  # nomic-embed-text context is 2048 tokens; ~2000 chars fits safely
+OVERLAP_CHARS = 150
 
 
 def chunk_prose_sections(doc: StructuredDocument, max_chars: int = MAX_CHARS) -> list[str]:

@@ -277,6 +277,8 @@ case "${PROFILE}" in
     export ENABLE_QDRANT="${ENABLE_QDRANT:-true}"
     export ENABLE_EXTRACTION="${ENABLE_EXTRACTION:-true}"
     export ENABLE_MARKETINDEX_FALLBACK="${ENABLE_MARKETINDEX_FALLBACK:-true}"
+    # Embeddings route to Ollama (nomic-embed-text) — separate from llama.cpp instruct models
+    export EMBEDDING_URL="${EMBEDDING_URL:-${OLLAMA_URL}}"
     ;;
   *)
     echo "Unsupported LOCAL_BACKEND_PROFILE='${PROFILE}'" >&2
@@ -298,13 +300,27 @@ echo "[run_local_backend] profile=${PROFILE}"
 echo "[run_local_backend] data_root=${DATA_ROOT}"
 echo "[run_local_backend] database=${DATABASE_URL}"
 echo "[run_local_backend] docs_root=${DOCS_ROOT}"
-echo "[startup] LLAMACPP_URL=${LLAMACPP_URL}"
-echo "[startup] OLLAMA_URL=${OLLAMA_URL}"
+echo "[run_local_backend] task_mode=${TASK_MODE}"
 echo "[run_local_backend] embeddings=${ENABLE_EMBEDDINGS} qdrant=${ENABLE_QDRANT} extraction=${ENABLE_EXTRACTION}"
+echo "[startup] LLAMACPP_URL=${LLAMACPP_URL}"
+echo "[startup] EXTRACTION_LLAMACPP_URL=${EXTRACTION_LLAMACPP_URL:-<unset, falls back to LLAMACPP_URL>}"
+echo "[startup] OLLAMA_URL=${OLLAMA_URL}"
+echo "[startup] EMBEDDING_URL=${EMBEDDING_URL:-<unset, falls back to OLLAMA_URL>}"
+echo "[startup] OLLAMA_NUM_GPU=${OLLAMA_NUM_GPU:-<unset>}"
+
+# Warn if port is already occupied (e.g. Docker backend running)
+BACKEND_PORT="${PORT:-8000}"
+if ss -tlnp 2>/dev/null | grep -q ":${BACKEND_PORT} " 2>/dev/null; then
+  echo ""
+  echo "⚠  WARNING: port ${BACKEND_PORT} is already in use."
+  echo "   A Docker backend may be running. Stop it first:"
+  echo "   docker compose stop backend"
+  echo ""
+fi
 
 # Isolate backend to its own OpenViking workspace (operator override via OPENVIKING_CONFIG_FILE)
 if [[ -z "${OPENVIKING_CONFIG_FILE:-}" ]]; then
   export OPENVIKING_CONFIG_FILE="${HOME}/.openviking/backend.ov.conf"
 fi
 
-exec python -m uvicorn app.main:app --host 0.0.0.0 --port "${PORT:-8000}"
+exec python -m uvicorn app.main:app --host 0.0.0.0 --port "${BACKEND_PORT}"
