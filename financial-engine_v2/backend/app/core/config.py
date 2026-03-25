@@ -234,11 +234,12 @@ class Settings(BaseSettings):
     docs_root: str = DEFAULT_DOCS_ROOT
     ollama_url: str = ""
     llamacpp_url: str = "http://127.0.0.1:8001"
+    extraction_llamacpp_url: str = ""
     llamacpp_timeout_seconds: float = 120.0
     model_routing_config: str = str(_model_routing_config_path_from_module_path(Path(__file__)))
     embed_model: str = "nomic-embed-text"
     embedding_batch_size: int = 32
-    extract_model: str = "qwen2.5-coder-14b"
+    extract_model: str = "qwen2.5-14b-instruct"
     gpu_utilization_threshold: int = 95
     gpu_utilization_command: str = "nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits"
     routing_short_prompt_chars: int = 400
@@ -330,6 +331,11 @@ settings.ollama_url = _normalize_base_url(settings.ollama_url, default="", strip
 settings.llamacpp_url = _normalize_base_url(
     settings.llamacpp_url,
     default="http://127.0.0.1:8001",
+    strip_v1=True,
+)
+settings.extraction_llamacpp_url = _normalize_base_url(
+    settings.extraction_llamacpp_url,
+    default="",
     strip_v1=True,
 )
 validate_llm_endpoints(

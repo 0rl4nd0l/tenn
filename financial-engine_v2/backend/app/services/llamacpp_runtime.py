@@ -58,6 +58,48 @@ def resolve_llm_runtime_config(
     return resolved_base_url, resolved_model
 
 
+def resolve_extraction_runtime_config(
+    *,
+    base_url: str | None = None,
+    model: str | None = None,
+) -> tuple[str, str]:
+    """Resolve LLM config for extraction workloads.
+
+    Extraction (PDF metric extraction) can run on a dedicated llama.cpp
+    instance so it doesn't compete with chat/coding for GPU.
+
+    URL priority:
+      1. Explicit base_url argument
+      2. EXTRACTION_LLAMACPP_URL env var / settings
+      3. Falls through to resolve_llm_runtime_config (LLAMACPP_URL)
+
+    Model priority:
+      1. Explicit model argument
+      2. EXTRACT_MODEL env var / settings.extract_model
+      3. Default instruct model
+    """
+    extraction_url = (
+        _normalize_url(str(base_url or ""))
+        or _normalize_url(os.getenv("EXTRACTION_LLAMACPP_URL", ""))
+        or _normalize_url(getattr(settings, "extraction_llamacpp_url", ""))
+    )
+    if extraction_url:
+        resolved_model = ""
+        for candidate in (
+            model,
+            os.getenv("EXTRACT_MODEL"),
+            getattr(settings, "extract_model", ""),
+            "qwen2.5-14b-instruct",
+        ):
+            text = str(candidate or "").strip()
+            if text:
+                resolved_model = text
+                break
+        return extraction_url, resolved_model
+    # No dedicated extraction URL — fall back to general LLM config.
+    return resolve_llm_runtime_config(base_url=base_url, model=model)
+
+
 def resolve_embedding_runtime_config(
     *,
     base_url: str | None = None,

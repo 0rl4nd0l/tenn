@@ -9,8 +9,12 @@ The active runtime is `financial-engine_v2`. The canonical env file lives at `fi
 | `DATA_ROOT` | `./data` | Root for runtime data, reports, and derived paths. |
 | `QDRANT_URL` | `http://127.0.0.1:6333` | Qdrant vector store endpoint. |
 | `OLLAMA_URL` | `http://127.0.0.1:11434` | Ollama API base URL. |
-| `LLAMACPP_URL` | `http://127.0.0.1:8001` | llama.cpp OpenAI-compatible endpoint. |
+| `LLAMACPP_URL` | `http://127.0.0.1:8001` | llama.cpp endpoint for chat, coding, and routing. |
+| `EXTRACTION_LLAMACPP_URL` | _(falls back to `LLAMACPP_URL`)_ | Dedicated llama.cpp endpoint for PDF extraction. When set, multipass extraction and commentary extraction use this instead of `LLAMACPP_URL`. Allows running an instruct model for extraction on a separate GPU/instance from the chat/coding server. |
+| `EXTRACT_MODEL` | `qwen2.5-14b-instruct` | Model name for extraction workloads. Should be an instruct-tuned model (not a coder model) for reliable structured JSON output from financial documents. |
 | `LLM_API_KEY` | `local-openai-key` | Used for local OpenAI-compatible auth. |
+| `LLAMA_SERVER_ROUTER_MODE` | `1` | Enable router mode for zero-downtime model switching (`~/.config/tenn/llama-server.env`). Set to `0` for single-model legacy mode. |
+| `LLAMA_SERVER_MODELS_DIR` | `$ROOT/models` | Directory of `.gguf` files for router mode model discovery (`~/.config/tenn/llama-server.env`). |
 | `EMBEDDING_BATCH_SIZE` | `32` | Default embedding batch size. |
 | `ROUTER_FEEDBACK_ENABLED` | `true` | Enables analyzer feedback in routing. |
 | `ANALYZER_MAX_AGE_SECONDS` | `600` | Analyzer report freshness window. |
@@ -39,6 +43,19 @@ Point the LLM endpoint to a different host:
 ```dotenv
 LLAMACPP_URL=http://192.168.1.50:8001
 ```
+
+Separate extraction from chat (recommended for production):
+
+```dotenv
+# Chat/coding server — loads qwen2.5-coder-14b or similar
+LLAMACPP_URL=http://127.0.0.1:8001
+
+# Extraction server — loads qwen2.5-14b-instruct for PDF metric extraction
+EXTRACTION_LLAMACPP_URL=http://127.0.0.1:8002
+EXTRACT_MODEL=qwen2.5-14b-instruct
+```
+
+When `EXTRACTION_LLAMACPP_URL` is not set, extraction uses `LLAMACPP_URL` (single-server mode).
 
 Switch Redis/Qdrant to Docker service names:
 

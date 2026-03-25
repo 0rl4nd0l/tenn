@@ -11,6 +11,7 @@ from app.core.config import settings
 from app.services.embeddings import embed_texts_batched
 from app.services.llamacpp_runtime import (
     generate_json_llamacpp,
+    resolve_extraction_runtime_config,
     resolve_llm_runtime_config,
 )
 from app.services import router_metrics, router_state
@@ -78,6 +79,18 @@ def _resolve_runtime_from_metadata(
     metadata: dict[str, Any] | None,
 ) -> tuple[str, str]:
     payload = dict(metadata or {})
+
+    # Extraction workloads route to a dedicated llama.cpp instance when
+    # EXTRACTION_LLAMACPP_URL is configured.  This keeps PDF extraction
+    # off the chat/coding GPU and allows a different model (instruct vs
+    # coder).  Falls back to the general LLAMACPP_URL when unset.
+    component = str(payload.get("component") or "").strip().lower()
+    if component in ("multipass_extraction", "commentary_memo_extractor"):
+        return resolve_extraction_runtime_config(
+            base_url=payload.get("requested_base_url") or payload.get("llm_url"),
+            model=payload.get("requested_model") or payload.get("llm_model"),
+        )
+
     provider = str(decision.provider or "").strip().lower()
     if provider not in {"llamacpp", "ollama"}:
         raise ValueError(f"Unknown backend: {decision.provider}")

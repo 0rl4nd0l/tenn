@@ -62,16 +62,19 @@ Pipeline tasks can run in two modes set by `TASK_MODE`:
 - `sync` — direct call in the API request (used in local mode)
 - `celery` — dispatched to a Celery worker via Redis broker (production)
 
-### Dual LLM Backend
+### LLM Backend Endpoints
 
-Two **separate** endpoints are required and enforced at startup (`core/config.py`):
+Three endpoints, two required and one optional (`core/config.py`):
 
 | Endpoint | Purpose | Default |
 |----------|---------|---------|
-| `LLAMACPP_URL` | Chat, routing, extraction | `http://127.0.0.1:8001/v1` |
+| `LLAMACPP_URL` | Chat, routing, coding | `http://127.0.0.1:8001` |
+| `EXTRACTION_LLAMACPP_URL` | PDF extraction (multipass, commentary) | Falls back to `LLAMACPP_URL` |
 | `OLLAMA_URL` | Embeddings (`nomic-embed-text`) | `http://127.0.0.1:11434` |
 
-The app **fails to start** if both URLs resolve to the same host:port. This prevents silent backend aliasing.
+When `EXTRACTION_LLAMACPP_URL` is set, extraction calls route to a dedicated llama.cpp instance. This allows running an instruct model (e.g. `qwen2.5-14b-instruct`) for extraction while keeping a coder model on the chat server. When unset, all LLM calls share `LLAMACPP_URL` (single-server mode).
+
+The app **fails to start** if `LLAMACPP_URL` and `OLLAMA_URL` resolve to the same host:port. This prevents silent backend aliasing.
 
 ### Model Routing (`backend/app/services/router.py`)
 

@@ -1,0 +1,141 @@
+"""Tests for extraction LLM / chat LLM separation.
+
+Verifies that:
+- EXTRACTION_LLAMACPP_URL routes extraction calls to a dedicated endpoint
+- When unset, extraction falls back to LLAMACPP_URL (backward compatible)
+- extract_model defaults to the instruct model, not coder
+- Non-extraction calls are unaffected by the new env var
+"""
+
+import os
+
+import pytest
+
+from app.core.config import settings
+from app.services.llamacpp_runtime import (
+    resolve_extraction_runtime_config,
+    resolve_llm_runtime_config,
+)
+
+
+class TestExtractModelDefault:
+    """extract_model code default should be an instruct model.
+
+    Note: .env may override the code default at runtime.  These tests
+    verify the code-level default by inspecting the Settings field directly.
+    """
+
+    def test_code_default_is_instruct(self):
+        field_default = settings.__class__.model_fields["extract_model"].default
+        assert "instruct" in field_default.lower(), (
+            f"extract_model code default should be instruct, got: {field_default}"
+        )
+
+    def test_code_default_is_not_coder(self):
+        field_default = settings.__class__.model_fields["extract_model"].default
+        assert "coder" not in field_default.lower(), (
+            f"extract_model code default should not be coder: {field_default}"
+        )
+
+
+class TestResolveExtractionRuntimeConfig:
+    """resolve_extraction_runtime_config uses dedicated URL when available."""
+
+    def test_with_extraction_url_env_var(self, monkeypatch):
+        monkeypatch.setenv("EXTRACTION_LLAMACPP_URL", "http://127.0.0.1:8002")
+        monkeypatch.setenv("EXTRACT_MODEL", "qwen2.5-14b-instruct")
+        url, model = resolve_extraction_runtime_config()
+        assert url == "http://127.0.0.1:8002"
+        assert model == "qwen2.5-14b-instruct"
+
+    def test_with_extraction_url_strips_v1(self, monkeypatch):
+        monkeypatch.setenv("EXTRACTION_LLAMACPP_URL", "http://127.0.0.1:8002/v1")
+        url, _ = resolve_extraction_runtime_config()
+        assert url == "http://127.0.0.1:8002"
+
+    def test_fallback_to_llamacpp_url_when_unset(self, monkeypatch):
+        monkeypatch.delenv("EXTRACTION_LLAMACPP_URL", raising=False)
+        # Clear settings value too
+        monkeypatch.setattr(settings, "extraction_llamacpp_url", "")
+        monkeypatch.setenv("LLAMACPP_URL", "http://127.0.0.1:8001")
+        url, _ = resolve_extraction_runtime_config()
+        assert url == "http://127.0.0.1:8001"
+
+    def test_explicit_base_url_takes_priority(self, monkeypatch):
+        monkeypatch.setenv("EXTRACTION_LLAMACPP_URL", "http://127.0.0.1:8002")
+        url, _ = resolve_extraction_runtime_config(base_url="http://127.0.0.1:9999")
+        assert url == "http://127.0.0.1:9999"
+
+    def test_explicit_model_takes_priority(self, monkeypatch):
+        monkeypatch.setenv("EXTRACTION_LLAMACPP_URL", "http://127.0.0.1:8002")
+        monkeypatch.setenv("EXTRACT_MODEL", "qwen2.5-14b-instruct")
+        _, model = resolve_extraction_runtime_config(model="custom-model")
+        assert model == "custom-model"
+
+    def test_does_not_affect_general_resolve(self, monkeypatch):
+        """Setting EXTRACTION_LLAMACPP_URL should not change resolve_llm_runtime_config."""
+        monkeypatch.setenv("EXTRACTION_LLAMACPP_URL", "http://127.0.0.1:8002")
+        monkeypatch.setenv("LLAMACPP_URL", "http://127.0.0.1:8001")
+        url, _ = resolve_llm_runtime_config()
+        assert url == "http://127.0.0.1:8001"
+
+
+class TestLlmRoutingWithExtractionComponent:
+    """_resolve_runtime_from_metadata routes extraction to dedicated endpoint."""
+
+    def test_extraction_component_routes_to_extraction_url(self, monkeypatch):
+        monkeypatch.setenv("EXTRACTION_LLAMACPP_URL", "http://127.0.0.1:8002")
+        monkeypatch.setenv("EXTRACT_MODEL", "qwen2.5-14b-instruct")
+
+        from app.services.llm import _resolve_runtime_from_metadata
+        from app.services.router import RoutingDecision
+
+        decision = RoutingDecision(
+            model_name="qwen2.5-coder-14b",
+            execution_queue="llm_gpu",
+            task_type="reasoning",
+            financial_task_type="",
+            provider="llamacpp",
+            base_url="http://127.0.0.1:8001",
+        )
+        metadata = {"component": "multipass_extraction", "task_type": "reasoning"}
+        url, model = _resolve_runtime_from_metadata(decision, metadata)
+        assert url == "http://127.0.0.1:8002"
+        assert model == "qwen2.5-14b-instruct"
+
+    def test_commentary_extractor_also_routes_to_extraction(self, monkeypatch):
+        monkeypatch.setenv("EXTRACTION_LLAMACPP_URL", "http://127.0.0.1:8002")
+
+        from app.services.llm import _resolve_runtime_from_metadata
+        from app.services.router import RoutingDecision
+
+        decision = RoutingDecision(
+            model_name="qwen2.5-coder-14b",
+            execution_queue="llm_gpu",
+            task_type="reasoning",
+            financial_task_type="",
+            provider="llamacpp",
+            base_url="http://127.0.0.1:8001",
+        )
+        metadata = {"component": "commentary_memo_extractor"}
+        url, _ = _resolve_runtime_from_metadata(decision, metadata)
+        assert url == "http://127.0.0.1:8002"
+
+    def test_non_extraction_component_uses_general_url(self, monkeypatch):
+        monkeypatch.setenv("EXTRACTION_LLAMACPP_URL", "http://127.0.0.1:8002")
+        monkeypatch.setenv("LLAMACPP_URL", "http://127.0.0.1:8001")
+
+        from app.services.llm import _resolve_runtime_from_metadata
+        from app.services.router import RoutingDecision
+
+        decision = RoutingDecision(
+            model_name="qwen2.5-coder-14b",
+            execution_queue="llm_gpu",
+            task_type="coding",
+            financial_task_type="",
+            provider="llamacpp",
+            base_url="http://127.0.0.1:8001",
+        )
+        metadata = {"component": "chat", "task_type": "coding"}
+        url, _ = _resolve_runtime_from_metadata(decision, metadata)
+        assert url == "http://127.0.0.1:8001"
