@@ -15,6 +15,8 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Any, Optional
@@ -512,6 +514,145 @@ def _table_to_markdown(table, max_rows: int = 30) -> str:
     return "\n".join(lines)
 
 
+def _extract_single_table(
+    table_type: str,
+    table,
+    pass1_result: dict,
+    scale: str,
+    multiplier: float,
+    llm_client,
+) -> dict | None:
+    """Extract metrics from a single labelled table via one LLM call.
+
+    Returns a tagged extraction dict, or None if extraction fails entirely.
+    This function is safe to call from multiple threads — it uses only
+    thread-local variables and thread-safe LLM/routing infrastructure.
+    """
+    metrics = _METRIC_SCHEMA_BY_TABLE.get(table_type, METRIC_FIELDS)
+    metric_schema = "\n".join(f'  "{m}": "number|null",' for m in metrics)
+    # Cash flow tables need a higher row cap:
+    #   - Merged 5B tables may have 50+ rows (section 4 totals near the end)
+    #   - Large-company CF statements (e.g. BHP) have 50+ rows with financing
+    #     section and cash-end beyond row 30
+    # Income statements also benefit from a higher cap to capture tax/OCI rows.
+    if table_type == "cashflow_statement":
+        row_cap = 65
+    elif table_type == "income_statement":
+        row_cap = 40
+    else:
+        row_cap = 30
+    markdown = _table_to_markdown(table, max_rows=row_cap)
+    if not markdown:
+        return None
+
+    prompt = _PASS3A_PROMPT.format(
+        period_type=pass1_result.get("report_type", "?"),
+        period_end=pass1_result.get("period_end", "?"),
+        currency=pass1_result.get("currency", "AUD"),
+        scale=scale,
+        table_type=table_type,
+        table_markdown=markdown,
+        metric_list=", ".join(metrics),
+        metric_schema=metric_schema,
+    )
+
+    try:
+        raw = _llm_json_call(prompt, llm_client, max_tokens=1024)
+    except Exception as e:
+        logger.warning("Pass 3a failed for %s: %s — retrying with truncated table", table_type, e)
+        try:
+            truncated_prompt = _PASS3A_PROMPT.format(
+                period_type=pass1_result.get("report_type", "?"),
+                period_end=pass1_result.get("period_end", "?"),
+                currency=pass1_result.get("currency", "AUD"),
+                scale=scale,
+                table_type=table_type,
+                table_markdown=_table_to_markdown_truncated(table, max_rows=20),
+                metric_list=", ".join(metrics),
+                metric_schema=metric_schema,
+            )
+            raw = _llm_json_call(truncated_prompt, llm_client, max_tokens=1024)
+        except Exception as e2:
+            logger.error("Pass 3a retry also failed for %s: %s", table_type, e2)
+            return None
+
+    # Apply scale multiplier to monetary values only.
+    # shares_outstanding is always an absolute count — the prompt instructs the LLM
+    # to output the absolute number (e.g. 5057000000 not 5057 when the table says
+    # "5,057 (Million)"). No post-hoc scale multiplication needed.
+    _COUNT_METRICS = {"shares_outstanding"}
+    out = {"_source": table_type, "_page_number": getattr(table, "page_number", None)}
+    for m in metrics:
+        val = raw.get(m)
+        if val is not None:
+            try:
+                effective_multiplier = 1 if m in _COUNT_METRICS else multiplier
+                out[m] = float(val) * effective_multiplier
+            except (TypeError, ValueError):
+                out[m] = None
+        else:
+            out[m] = None
+    # shares_outstanding sanity check: if the LLM returned a value that is
+    # suspiciously small (< 1M — virtually no ASX company has < 1M shares on
+    # issue), check whether the table's headers/caption indicate a count-scale
+    # factor ('000, million, etc.) and apply it.  This catches the common LLM
+    # failure of returning the raw table value (e.g. 280,875) without converting
+    # from the table's count-unit (e.g. '000s → 280,875,000).
+    _MIN_PLAUSIBLE_SHARES = 1_000_000
+    shares_val = out.get("shares_outstanding")
+    if shares_val is not None and 0 < abs(shares_val) < _MIN_PLAUSIBLE_SHARES:
+        header_caption_text = (
+            (table.caption or "").lower()
+            + " "
+            + " ".join(str(h) for h in table.headers).lower()
+        )
+        # Also check body rows for scale indicators (e.g. SEG share capital
+        # table has "No. '000s" in a row label, not in the column headers).
+        body_text = " ".join(
+            " ".join(str(c) for c in row)
+            for row in table.rows[:15] if row
+        ).lower()
+        full_text = header_caption_text + " " + body_text
+        if _re.search(r"'000|thousands|\bno\.\s*'?000", full_text, _re.IGNORECASE):
+            out["shares_outstanding"] = shares_val * 1_000
+            logger.info(
+                "shares_outstanding scaled ×1000: %.0f → %.0f (table text has '000 indicator)",
+                shares_val, out["shares_outstanding"],
+            )
+        elif _re.search(r"\bmillion|\bm\b", full_text, _re.IGNORECASE):
+            out["shares_outstanding"] = shares_val * 1_000_000
+            logger.info(
+                "shares_outstanding scaled ×1M: %.0f → %.0f (table text has million indicator)",
+                shares_val, out["shares_outstanding"],
+            )
+        elif scale in ("thousands", "millions"):
+            doc_mult = SCALE_MULTIPLIERS.get(scale, 1)
+            out["shares_outstanding"] = shares_val * doc_mult
+            logger.info(
+                "shares_outstanding scaled ×%d (doc-level scale=%s): %.0f → %.0f",
+                doc_mult, scale, shares_val, out["shares_outstanding"],
+            )
+
+    # Compute confidence from observable results rather than relying on the
+    # model's self-reported value (which is typically 0.0 regardless of quality).
+    # Use fraction of expected metrics that were extracted as the signal.
+    n_extracted = sum(1 for m in metrics if out.get(m) is not None)
+    computed_conf = n_extracted / max(len(metrics), 1)
+    model_conf = float(raw.get("pass3_confidence", 0.0))
+    # Take max so a model that correctly reports high confidence is rewarded,
+    # but a model that reports 0 doesn't drag down an otherwise complete extraction.
+    out["pass3_confidence"] = max(computed_conf, model_conf)
+    out["row_refs"] = raw.get("row_refs", {})
+    out["period_col"] = raw.get("period_col")
+    logger.info(
+        "Pass3a %s: extracted %d metrics, confidence=%.2f",
+        table_type,
+        len([m for m in metrics if out.get(m) is not None]),
+        out.get("pass3_confidence", 0),
+    )
+    return out
+
+
 def _run_pass3a_metric_extractor(
     labelled_tables: dict[str, Any],
     pass1_result: dict,
@@ -520,145 +661,71 @@ def _run_pass3a_metric_extractor(
     """
     Pass 3a: one LLM call per labelled table. Returns list of extraction dicts,
     each tagged with its source table type.
+
+    By default, table extractions run in parallel (I/O-bound HTTP calls).
+    Set EXTRACTION_PARALLEL=0 to disable parallelism and run sequentially.
     """
-    results = []
     scale = pass1_result.get("scale", "unknown")
     multiplier = SCALE_MULTIPLIERS.get(scale, 1)
 
-    for table_type, table in labelled_tables.items():
-        if table_type == "unmatched" or table is None:
+    # Skip redundant table extractions when higher-priority sources are present.
+    # Controlled by EXTRACTION_SKIP_REDUNDANT env var (default: enabled).
+    skip_redundant = os.environ.get("EXTRACTION_SKIP_REDUNDANT", "1") != "0"
+    skipped_tables: dict[str, str] = {}
+    if skip_redundant:
+        has_bs = labelled_tables.get("balance_sheet") is not None
+        has_is = labelled_tables.get("income_statement") is not None
+        has_cf = labelled_tables.get("cashflow_statement") is not None
+        if has_bs and "share_capital" in labelled_tables:
+            skipped_tables["share_capital"] = "balance_sheet"
+        if has_is and has_cf and "highlights" in labelled_tables:
+            skipped_tables["highlights"] = "income_statement + cashflow_statement"
+
+    # Filter to extractable tables (preserving iteration order for deterministic output).
+    eligible = []
+    for tt, tbl in labelled_tables.items():
+        if tt == "unmatched" or tbl is None:
             continue
-        metrics = _METRIC_SCHEMA_BY_TABLE.get(table_type, METRIC_FIELDS)
-        metric_schema = "\n".join(f'  "{m}": "number|null",' for m in metrics)
-        # Cash flow tables need a higher row cap:
-        #   - Merged 5B tables may have 50+ rows (section 4 totals near the end)
-        #   - Large-company CF statements (e.g. BHP) have 50+ rows with financing
-        #     section and cash-end beyond row 30
-        # Income statements also benefit from a higher cap to capture tax/OCI rows.
-        if table_type == "cashflow_statement":
-            row_cap = 65
-        elif table_type == "income_statement":
-            row_cap = 40
-        else:
-            row_cap = 30
-        markdown = _table_to_markdown(table, max_rows=row_cap)
-        if not markdown:
+        if tt in skipped_tables:
+            logger.info("Skipping %s — covered by %s", tt, skipped_tables[tt])
             continue
+        eligible.append((tt, tbl))
 
-        prompt = _PASS3A_PROMPT.format(
-            period_type=pass1_result.get("report_type", "?"),
-            period_end=pass1_result.get("period_end", "?"),
-            currency=pass1_result.get("currency", "AUD"),
-            scale=scale,
-            table_type=table_type,
-            table_markdown=markdown,
-            metric_list=", ".join(metrics),
-            metric_schema=metric_schema,
-        )
+    parallel_enabled = os.environ.get("EXTRACTION_PARALLEL", "1") != "0"
 
-        try:
-            raw = _llm_json_call(prompt, llm_client, max_tokens=1024)
-        except Exception as e:
-            logger.warning("Pass 3a failed for %s: %s — retrying with truncated table", table_type, e)
-            try:
-                truncated_prompt = _PASS3A_PROMPT.format(
-                    period_type=pass1_result.get("report_type", "?"),
-                    period_end=pass1_result.get("period_end", "?"),
-                    currency=pass1_result.get("currency", "AUD"),
-                    scale=scale,
-                    table_type=table_type,
-                    table_markdown=_table_to_markdown_truncated(table, max_rows=20),
-                    metric_list=", ".join(metrics),
-                    metric_schema=metric_schema,
-                )
-                raw = _llm_json_call(truncated_prompt, llm_client, max_tokens=1024)
-            except Exception as e2:
-                logger.error("Pass 3a retry also failed for %s: %s", table_type, e2)
-                continue
-
-        # Apply scale multiplier to monetary values only.
-        # shares_outstanding is always an absolute count — the prompt instructs the LLM
-        # to output the absolute number (e.g. 5057000000 not 5057 when the table says
-        # "5,057 (Million)"). No post-hoc scale multiplication needed.
-        _COUNT_METRICS = {"shares_outstanding"}
-        out = {"_source": table_type, "_page_number": getattr(table, "page_number", None)}
-        for m in metrics:
-            val = raw.get(m)
-            if val is not None:
+    if parallel_enabled and len(eligible) > 1:
+        logger.info("Pass 3a: extracting %d tables in parallel", len(eligible))
+        # Use one thread per table; cap at 5 to avoid excessive concurrency.
+        with ThreadPoolExecutor(max_workers=min(len(eligible), 5)) as pool:
+            future_to_table_type = {
+                pool.submit(
+                    _extract_single_table,
+                    table_type, table, pass1_result, scale, multiplier, llm_client,
+                ): table_type
+                for table_type, table in eligible
+            }
+            # Collect results keyed by table_type so we can restore original order.
+            results_by_type: dict[str, dict] = {}
+            for future in as_completed(future_to_table_type):
+                tt = future_to_table_type[future]
                 try:
-                    effective_multiplier = 1 if m in _COUNT_METRICS else multiplier
-                    out[m] = float(val) * effective_multiplier
-                except (TypeError, ValueError):
-                    out[m] = None
-            else:
-                out[m] = None
-        # shares_outstanding sanity check: if the LLM returned a value that is
-        # suspiciously small (< 1M — virtually no ASX company has < 1M shares on
-        # issue), check whether the table's headers/caption indicate a count-scale
-        # factor ('000, million, etc.) and apply it.  This catches the common LLM
-        # failure of returning the raw table value (e.g. 280,875) without converting
-        # from the table's count-unit (e.g. '000s → 280,875,000).
-        _MIN_PLAUSIBLE_SHARES = 1_000_000
-        shares_val = out.get("shares_outstanding")
-        if shares_val is not None and 0 < abs(shares_val) < _MIN_PLAUSIBLE_SHARES:
-            header_caption_text = (
-                (table.caption or "").lower()
-                + " "
-                + " ".join(str(h) for h in table.headers).lower()
+                    result = future.result()
+                    if result is not None:
+                        results_by_type[tt] = result
+                except Exception:
+                    logger.exception("Pass 3a thread failed for %s", tt)
+        # Preserve original table order from labelled_tables.
+        results = [results_by_type[tt] for tt, _ in eligible if tt in results_by_type]
+    else:
+        if len(eligible) > 1:
+            logger.info("Pass 3a: extracting %d tables sequentially (EXTRACTION_PARALLEL=0)", len(eligible))
+        results = []
+        for table_type, table in eligible:
+            out = _extract_single_table(
+                table_type, table, pass1_result, scale, multiplier, llm_client,
             )
-            # Also check body rows for scale indicators (e.g. SEG share capital
-            # table has "No. '000s" in a row label, not in the column headers).
-            body_text = " ".join(
-                " ".join(str(c) for c in row)
-                for row in table.rows[:15] if row
-            ).lower()
-            full_text = header_caption_text + " " + body_text
-            if _re.search(r"'000|thousands|\bno\.\s*'?000", full_text, _re.IGNORECASE):
-                out["shares_outstanding"] = shares_val * 1_000
-                logger.info(
-                    "shares_outstanding scaled ×1000: %.0f → %.0f (table text has '000 indicator)",
-                    shares_val, out["shares_outstanding"],
-                )
-            elif _re.search(r"\bmillion|\bm\b", full_text, _re.IGNORECASE):
-                out["shares_outstanding"] = shares_val * 1_000_000
-                logger.info(
-                    "shares_outstanding scaled ×1M: %.0f → %.0f (table text has million indicator)",
-                    shares_val, out["shares_outstanding"],
-                )
-            elif scale in ("thousands", "millions"):
-                # Fallback: if the document-level scale (from Pass 1 / table
-                # header detection) is thousands or millions AND neither the
-                # table headers nor body rows carry their own scale indicator,
-                # apply the document-level multiplier.  Share-count tables in
-                # ASX filings often inherit the document scale without restating
-                # it locally (e.g. SEG share capital table uses '000s scale from
-                # the filing header but only labels the column "No." without
-                # repeating "'000").
-                doc_mult = SCALE_MULTIPLIERS.get(scale, 1)
-                out["shares_outstanding"] = shares_val * doc_mult
-                logger.info(
-                    "shares_outstanding scaled ×%d (doc-level scale=%s): %.0f → %.0f",
-                    doc_mult, scale, shares_val, out["shares_outstanding"],
-                )
-
-        # Compute confidence from observable results rather than relying on the
-        # model's self-reported value (which is typically 0.0 regardless of quality).
-        # Use fraction of expected metrics that were extracted as the signal.
-        n_extracted = sum(1 for m in metrics if out.get(m) is not None)
-        computed_conf = n_extracted / max(len(metrics), 1)
-        model_conf = float(raw.get("pass3_confidence", 0.0))
-        # Take max so a model that correctly reports high confidence is rewarded,
-        # but a model that reports 0 doesn't drag down an otherwise complete extraction.
-        out["pass3_confidence"] = max(computed_conf, model_conf)
-        out["row_refs"] = raw.get("row_refs", {})
-        out["period_col"] = raw.get("period_col")
-        logger.info(
-            "Pass3a %s: extracted %d metrics, confidence=%.2f",
-            table_type,
-            len([m for m in metrics if out.get(m) is not None]),
-            out.get("pass3_confidence", 0),
-        )
-        results.append(out)
+            if out is not None:
+                results.append(out)
 
     return results
 
@@ -897,10 +964,16 @@ def run_multipass_extraction(
     pdf_path: str,
     doc_metadata: dict,
     llm_client,
+    *,
+    skip_narrative: bool = False,
 ) -> MultipassResult:
     """
     Orchestrate all 4 passes and return a MultipassResult.
     doc_metadata: {"document_id": str, "ticker": str, "title": str}
+
+    skip_narrative: when True, skip the Pass 3b LLM call and use null
+    narrative fields.  Also respects env var EXTRACTION_SKIP_NARRATIVE=1.
+    Useful for backfill runs and eval harness where only metrics matter.
     """
     from app.services.docling_extract import extract_structured
 
@@ -969,8 +1042,18 @@ def run_multipass_extraction(
     # Pass 3a: Extract metrics
     pass3a_results = _run_pass3a_metric_extractor(labelled, pass1, llm_client)
 
-    # Pass 3b: Extract narrative
-    pass3b_result = _run_pass3b_narrative_extractor(structured_doc.sections, llm_client)
+    # Pass 3b: Extract narrative (skippable for metrics-only runs)
+    _skip = skip_narrative or os.environ.get("EXTRACTION_SKIP_NARRATIVE", "") == "1"
+    if _skip:
+        logger.info("Pass 3b skipped (skip_narrative=%s, env=%s)",
+                     skip_narrative, os.environ.get("EXTRACTION_SKIP_NARRATIVE", ""))
+        pass3b_result = {
+            "risk_summary": None, "risk_bullets": None,
+            "guidance_summary": None, "material_changes": None,
+            "confidence_narrative": 0.0,
+        }
+    else:
+        pass3b_result = _run_pass3b_narrative_extractor(structured_doc.sections, llm_client)
 
     # Pass 4: Reconcile
     payload = _run_pass4_reconciler(pass3a_results, pass3b_result, pass1)

@@ -1141,3 +1141,518 @@ def test_pass2_cf_disqualification_blocks_5b_from_balance_sheet():
         "Appendix 5B cash-flow table must NOT claim the balance_sheet slot "
         "despite having 'non-current assets' keyword match"
     )
+
+
+# ---------------------------------------------------------------------------
+# Redundant table skipping
+# ---------------------------------------------------------------------------
+
+def _make_dummy_table(caption="Dummy"):
+    from app.services.docling_extract import DoclingTable
+    return DoclingTable(
+        page_number=1, caption=caption,
+        rows=[["", "H1"], ["Item", "100"]],
+        headers=["", "H1"],
+    )
+
+
+def test_skip_share_capital_when_balance_sheet_present():
+    """share_capital LLM call must be skipped when balance_sheet is present."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+
+    labelled = {
+        "balance_sheet": _make_dummy_table("Balance Sheet"),
+        "share_capital": _make_dummy_table("Share Capital"),
+        "income_statement": None,
+        "cashflow_statement": None,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {"report_type": "H", "period_end": "2024-12-31",
+             "currency": "AUD", "scale": "thousands"}
+
+    mock_raw = {"net_debt": 500, "total_debt": None, "shares_outstanding": 1_000_000,
+                "pass3_confidence": 0.9, "row_refs": {}}
+
+    call_count = {"n": 0}
+    original_tables = []
+
+    def _tracking_llm_call(prompt, *args, **kwargs):
+        call_count["n"] += 1
+        # Record which table_type the prompt was built for
+        if "share_capital" in prompt:
+            original_tables.append("share_capital")
+        elif "balance_sheet" in prompt:
+            original_tables.append("balance_sheet")
+        return mock_raw
+
+    with patch("app.services.multipass_extraction._llm_json_call", side_effect=_tracking_llm_call):
+        with patch.dict("os.environ", {"EXTRACTION_SKIP_REDUNDANT": "1"}):
+            results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    # Only balance_sheet should have been called — share_capital skipped
+    assert "share_capital" not in original_tables
+    assert "balance_sheet" in original_tables
+    sources = [r["_source"] for r in results]
+    assert "share_capital" not in sources
+
+
+def test_share_capital_not_skipped_when_balance_sheet_absent():
+    """share_capital must NOT be skipped when balance_sheet is absent."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+
+    labelled = {
+        "balance_sheet": None,
+        "share_capital": _make_dummy_table("Share Capital"),
+        "income_statement": None,
+        "cashflow_statement": None,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {"report_type": "H", "period_end": "2024-12-31",
+             "currency": "AUD", "scale": "thousands"}
+
+    mock_raw = {"shares_outstanding": 1_000_000,
+                "pass3_confidence": 0.9, "row_refs": {}}
+
+    with patch("app.services.multipass_extraction._llm_json_call", return_value=mock_raw):
+        with patch.dict("os.environ", {"EXTRACTION_SKIP_REDUNDANT": "1"}):
+            results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    sources = [r["_source"] for r in results]
+    assert "share_capital" in sources
+
+
+def test_skip_highlights_when_is_and_cf_present():
+    """highlights LLM call must be skipped when IS + CF are both present."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+
+    labelled = {
+        "income_statement": _make_dummy_table("Income Statement"),
+        "cashflow_statement": _make_dummy_table("Cash Flow"),
+        "balance_sheet": None,
+        "share_capital": None,
+        "highlights": _make_dummy_table("Highlights"),
+        "unmatched": [],
+    }
+    pass1 = {"report_type": "H", "period_end": "2024-12-31",
+             "currency": "AUD", "scale": "thousands"}
+
+    mock_raw = {"revenue": 1000, "ebit": 200, "np_attributable": 150,
+                "operating_cf": 500, "investing_cf": -100, "financing_cf": -50,
+                "capex": None, "cash_end": None,
+                "pass3_confidence": 0.9, "row_refs": {}}
+
+    called_tables = []
+
+    def _tracking_llm_call(prompt, *args, **kwargs):
+        if "highlights" in prompt:
+            called_tables.append("highlights")
+        elif "income_statement" in prompt:
+            called_tables.append("income_statement")
+        elif "cashflow_statement" in prompt:
+            called_tables.append("cashflow_statement")
+        return mock_raw
+
+    with patch("app.services.multipass_extraction._llm_json_call", side_effect=_tracking_llm_call):
+        with patch.dict("os.environ", {"EXTRACTION_SKIP_REDUNDANT": "1"}):
+            results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert "highlights" not in called_tables
+    sources = [r["_source"] for r in results]
+    assert "highlights" not in sources
+
+
+def test_highlights_not_skipped_when_cf_absent():
+    """highlights must NOT be skipped when cashflow_statement is absent."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+
+    labelled = {
+        "income_statement": _make_dummy_table("Income Statement"),
+        "cashflow_statement": None,
+        "balance_sheet": None,
+        "share_capital": None,
+        "highlights": _make_dummy_table("Highlights"),
+        "unmatched": [],
+    }
+    pass1 = {"report_type": "H", "period_end": "2024-12-31",
+             "currency": "AUD", "scale": "thousands"}
+
+    mock_raw = {"revenue": 1000, "ebit": 200, "np_attributable": 150,
+                "operating_cf": None, "investing_cf": None, "financing_cf": None,
+                "capex": None, "cash_end": None, "net_debt": None,
+                "shares_outstanding": None,
+                "pass3_confidence": 0.9, "row_refs": {}}
+
+    with patch("app.services.multipass_extraction._llm_json_call", return_value=mock_raw):
+        with patch.dict("os.environ", {"EXTRACTION_SKIP_REDUNDANT": "1"}):
+            results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    sources = [r["_source"] for r in results]
+    assert "highlights" in sources
+
+
+def test_skip_redundant_disabled_by_env_var():
+    """When EXTRACTION_SKIP_REDUNDANT=0, no tables should be skipped."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+
+    labelled = {
+        "income_statement": _make_dummy_table("Income Statement"),
+        "cashflow_statement": _make_dummy_table("Cash Flow"),
+        "balance_sheet": _make_dummy_table("Balance Sheet"),
+        "share_capital": _make_dummy_table("Share Capital"),
+        "highlights": _make_dummy_table("Highlights"),
+        "unmatched": [],
+    }
+    pass1 = {"report_type": "H", "period_end": "2024-12-31",
+             "currency": "AUD", "scale": "thousands"}
+
+    mock_raw = {"revenue": 1000, "ebit": 200, "np_attributable": 150,
+                "operating_cf": 500, "investing_cf": -100, "financing_cf": -50,
+                "capex": None, "cash_end": 800, "net_debt": 300,
+                "total_debt": None, "shares_outstanding": 1_000_000,
+                "pass3_confidence": 0.9, "row_refs": {}}
+
+    with patch("app.services.multipass_extraction._llm_json_call", return_value=mock_raw):
+        with patch.dict("os.environ", {"EXTRACTION_SKIP_REDUNDANT": "0"}):
+            results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    sources = [r["_source"] for r in results]
+    assert "share_capital" in sources
+    assert "highlights" in sources
+
+
+# ---------------------------------------------------------------------------
+# skip_narrative — optional Pass 3b skipping
+# ---------------------------------------------------------------------------
+
+def _mock_structured_doc():
+    """Build a minimal StructuredDocument for run_multipass_extraction tests."""
+    from app.services.docling_extract import DoclingTable
+
+    class _FakeDoc:
+        sections = [{"text": "Some prose about risk.", "page": 1}]
+        tables = [
+            DoclingTable(
+                page_number=1, caption="Income Statement",
+                headers=["", "H1 2025 $'000"],
+                rows=[["", "H1 2025 $'000"],
+                      ["Revenue", "500,000"],
+                      ["EBIT", "80,000"],
+                      ["Net profit", "55,000"]],
+            ),
+        ]
+
+    return _FakeDoc()
+
+
+def _pass1_response():
+    return {
+        "report_type": "H", "period_end": "2025-06-30",
+        "currency": "AUD", "scale": "thousands",
+        "classifier_confidence": 0.95,
+    }
+
+
+def _pass3a_response():
+    return {
+        "revenue": 500_000, "ebit": 80_000, "np_attributable": 55_000,
+        "operating_cf": None, "investing_cf": None, "financing_cf": None,
+        "capex": None, "cash_end": None, "net_debt": None,
+        "shares_outstanding": None, "total_debt": None,
+        "pass3_confidence": 0.88, "row_refs": {},
+    }
+
+
+def _pass3b_response():
+    return {
+        "risk_summary": "Commodity price risk exposure",
+        "risk_bullets": "Iron ore volatility",
+        "guidance_summary": "Revenue growth 10%",
+        "material_changes": None,
+        "confidence_narrative": 0.75,
+    }
+
+
+def test_skip_narrative_param_skips_pass3b_llm_call():
+    """With skip_narrative=True, no LLM call should be made for pass3b."""
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    call_log = []
+
+    def mock_llm(prompt, llm_client, max_tokens=512):
+        call_log.append(prompt)
+        # Return pass1 on first call, pass3a on subsequent
+        if "classifier" in prompt.lower() or "report_type" in prompt.lower():
+            return _pass1_response()
+        return _pass3a_response()
+
+    with patch("app.services.docling_extract.extract_structured",
+               return_value=_mock_structured_doc()):
+        with patch("app.services.multipass_extraction._llm_json_call",
+                   side_effect=mock_llm):
+            result = run_multipass_extraction(
+                "/fake/path.pdf",
+                {"document_id": "d1", "ticker": "TST", "title": "Test Report"},
+                llm_client=None,
+                skip_narrative=True,
+            )
+
+    # No call should contain the pass3b narrative prompt keywords
+    for prompt in call_log:
+        assert "narrative extractor" not in prompt.lower(), (
+            "Pass 3b LLM call must not be made when skip_narrative=True"
+        )
+
+    # Narrative fields must be null
+    assert result.payload.get("risk_summary") is None
+    assert result.payload.get("guidance_summary") is None
+    assert result.payload.get("confidence_narrative") == 0.0
+
+
+def test_skip_narrative_env_var_skips_pass3b():
+    """EXTRACTION_SKIP_NARRATIVE=1 env var must skip pass3b even when param is False."""
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    call_log = []
+
+    def mock_llm(prompt, llm_client, max_tokens=512):
+        call_log.append(prompt)
+        if "classifier" in prompt.lower() or "report_type" in prompt.lower():
+            return _pass1_response()
+        return _pass3a_response()
+
+    with patch("app.services.docling_extract.extract_structured",
+               return_value=_mock_structured_doc()):
+        with patch("app.services.multipass_extraction._llm_json_call",
+                   side_effect=mock_llm):
+            with patch.dict("os.environ", {"EXTRACTION_SKIP_NARRATIVE": "1"}):
+                result = run_multipass_extraction(
+                    "/fake/path.pdf",
+                    {"document_id": "d2", "ticker": "TST", "title": "Test"},
+                    llm_client=None,
+                )
+
+    for prompt in call_log:
+        assert "narrative extractor" not in prompt.lower(), (
+            "Pass 3b LLM call must not be made when EXTRACTION_SKIP_NARRATIVE=1"
+        )
+    assert result.payload.get("risk_summary") is None
+
+
+def test_skip_narrative_produces_valid_pipeline_output():
+    """Pipeline with skip_narrative must still produce a structurally valid result
+    that passes the validation gate (all narrative fields null is acceptable)."""
+    from app.services.multipass_extraction import run_multipass_extraction, METRIC_FIELDS
+
+    def mock_llm(prompt, llm_client, max_tokens=512):
+        if "classifier" in prompt.lower() or "report_type" in prompt.lower():
+            return _pass1_response()
+        return _pass3a_response()
+
+    with patch("app.services.docling_extract.extract_structured",
+               return_value=_mock_structured_doc()):
+        with patch("app.services.multipass_extraction._llm_json_call",
+                   side_effect=mock_llm):
+            result = run_multipass_extraction(
+                "/fake/path.pdf",
+                {"document_id": "d3", "ticker": "TST", "title": "Test"},
+                llm_client=None,
+                skip_narrative=True,
+            )
+
+    # Must not fail due to missing narrative
+    assert result.status in ("ok", "ok_low_confidence"), (
+        f"Pipeline must not fail with skip_narrative; got status={result.status!r}, error={result.error!r}"
+    )
+
+    # Payload structure must include all expected keys
+    assert "metrics" in result.payload
+    for m in METRIC_FIELDS:
+        assert m in result.payload, f"Metric field {m!r} missing from payload"
+    assert "risk_summary" in result.payload
+    assert "guidance_summary" in result.payload
+    assert "confidence_narrative" in result.payload
+    assert "provenance" in result.payload
+
+
+def test_skip_narrative_false_still_calls_pass3b():
+    """Default behaviour (skip_narrative=False) must still call pass3b."""
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    call_log = []
+
+    def mock_llm(prompt, llm_client, max_tokens=512):
+        call_log.append(prompt)
+        if "classifier" in prompt.lower() or "report_type" in prompt.lower():
+            return _pass1_response()
+        if "narrative" in prompt.lower() or "risk" in prompt.lower():
+            return _pass3b_response()
+        return _pass3a_response()
+
+    with patch("app.services.docling_extract.extract_structured",
+               return_value=_mock_structured_doc()):
+        with patch("app.services.multipass_extraction._llm_json_call",
+                   side_effect=mock_llm):
+            with patch.dict("os.environ", {"EXTRACTION_SKIP_NARRATIVE": ""},
+                            clear=False):
+                result = run_multipass_extraction(
+                    "/fake/path.pdf",
+                    {"document_id": "d4", "ticker": "TST", "title": "Test"},
+                    llm_client=None,
+                    skip_narrative=False,
+                )
+
+    # At least one call must be for narrative extraction
+    narrative_calls = [p for p in call_log
+                       if "narrative" in p.lower() or "risk" in p.lower()]
+    assert len(narrative_calls) >= 1, (
+        "Pass 3b LLM call must be made when skip_narrative=False"
+    )
+    assert result.payload.get("risk_summary") == "Commodity price risk exposure"
+
+
+def test_validation_gate_accepts_null_narrative_fields():
+    """The validation gate must not reject a payload just because narrative fields are null."""
+    from app.services.multipass_extraction import _validate_gate
+
+    payload = _good_payload()
+    payload["risk_summary"] = None
+    payload["risk_bullets"] = None
+    payload["guidance_summary"] = None
+    payload["material_changes"] = None
+    payload["confidence_narrative"] = 0.0
+
+    status, error = _validate_gate(payload)
+    assert status in ("ok", "ok_low_confidence"), (
+        f"Gate must accept all-null narrative fields; got status={status!r}, error={error!r}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Parallel Pass 3a — verify parallel produces same results as sequential
+# ---------------------------------------------------------------------------
+
+def test_pass3a_parallel_matches_sequential():
+    """Parallel and sequential Pass 3a must produce identical results."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+    import threading
+
+    # Build multiple tables so parallelism actually kicks in (>1 eligible table).
+    cf_table = DoclingTable(
+        page_number=2, caption="Cash Flow Statement",
+        rows=[["", "H1 2025"], ["Net cash from operations", "3,241"]],
+        headers=["", "H1 2025"],
+    )
+    is_table = DoclingTable(
+        page_number=3, caption="Income Statement",
+        rows=[["", "H1 2025"], ["Revenue", "10,000"]],
+        headers=["", "H1 2025"],
+    )
+    bs_table = DoclingTable(
+        page_number=4, caption="Balance Sheet",
+        rows=[["", "H1 2025"], ["Net debt", "5,000"]],
+        headers=["", "H1 2025"],
+    )
+    labelled = {
+        "cashflow_statement": cf_table,
+        "income_statement": is_table,
+        "balance_sheet": bs_table,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {"report_type": "H", "period_end": "2024-12-31",
+             "currency": "AUD", "scale": "thousands"}
+
+    # Per-table mock responses keyed by table_type embedded in the prompt.
+    mock_responses = {
+        "cashflow_statement": {
+            "operating_cf": 3241, "investing_cf": -100, "financing_cf": -50,
+            "cash_end": 500, "capex": None,
+            "pass3_confidence": 0.9, "row_refs": {},
+        },
+        "income_statement": {
+            "revenue": 10000, "ebit": 5000, "np_attributable": 3000,
+            "pass3_confidence": 0.85, "row_refs": {},
+        },
+        "balance_sheet": {
+            "net_debt": 5000, "total_debt": 6000, "shares_outstanding": 2_000_000,
+            "pass3_confidence": 0.92, "row_refs": {},
+        },
+    }
+    call_threads = []
+
+    def _mock_llm(prompt, *args, **kwargs):
+        call_threads.append(threading.current_thread().name)
+        for tt, resp in mock_responses.items():
+            if tt in prompt:
+                return resp
+        return {}
+
+    # Run sequentially (EXTRACTION_PARALLEL=0)
+    with patch("app.services.multipass_extraction._llm_json_call", side_effect=_mock_llm):
+        with patch.dict("os.environ", {"EXTRACTION_PARALLEL": "0"}):
+            seq_results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    call_threads.clear()
+
+    # Run in parallel (EXTRACTION_PARALLEL=1, the default)
+    with patch("app.services.multipass_extraction._llm_json_call", side_effect=_mock_llm):
+        with patch.dict("os.environ", {"EXTRACTION_PARALLEL": "1"}):
+            par_results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    # Same number of results
+    assert len(par_results) == len(seq_results), (
+        f"Parallel returned {len(par_results)} results, sequential returned {len(seq_results)}"
+    )
+
+    # Same source order (must match labelled_tables iteration order)
+    seq_sources = [r["_source"] for r in seq_results]
+    par_sources = [r["_source"] for r in par_results]
+    assert par_sources == seq_sources, (
+        f"Order mismatch: parallel={par_sources}, sequential={seq_sources}"
+    )
+
+    # Same metric values
+    for seq_r, par_r in zip(seq_results, par_results):
+        for key in seq_r:
+            assert par_r.get(key) == seq_r[key], (
+                f"Mismatch for {seq_r['_source']}.{key}: "
+                f"sequential={seq_r[key]}, parallel={par_r.get(key)}"
+            )
+
+
+def test_pass3a_parallel_disabled_by_env():
+    """When EXTRACTION_PARALLEL=0, all LLM calls must run on the main thread."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+    import threading
+
+    tables = {}
+    for tt in ("cashflow_statement", "income_statement"):
+        tables[tt] = DoclingTable(
+            page_number=1, caption=tt,
+            rows=[["", "H1"], ["Item", "100"]],
+            headers=["", "H1"],
+        )
+    labelled = {**tables, "balance_sheet": None, "highlights": None, "unmatched": []}
+    pass1 = {"report_type": "H", "period_end": "2024-12-31",
+             "currency": "AUD", "scale": "units"}
+
+    mock_raw = {"revenue": 100, "pass3_confidence": 0.5, "row_refs": {}}
+    call_threads = []
+
+    def _mock_llm(prompt, *args, **kwargs):
+        call_threads.append(threading.current_thread().name)
+        return mock_raw
+
+    main_thread = threading.current_thread().name
+    with patch("app.services.multipass_extraction._llm_json_call", side_effect=_mock_llm):
+        with patch.dict("os.environ", {"EXTRACTION_PARALLEL": "0"}):
+            _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    # All calls must have happened on the main thread
+    assert all(t == main_thread for t in call_threads), (
+        f"Expected all calls on main thread ({main_thread}), got: {call_threads}"
+    )
