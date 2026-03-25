@@ -7,6 +7,8 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import httpx
+from typing import Literal, Optional
+
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import func
@@ -31,7 +33,7 @@ from app.services.embeddings import (
     verify_qdrant,
 )
 from app.services.llm import embed_texts
-from app.services.rag import query_rag
+from app.services.rag import query_news_chunks, query_rag
 
 
 app = FastAPI(title="Financial Engine v2")
@@ -42,20 +44,50 @@ app.include_router(chat_router, prefix="/api")
 
 class RagQueryRequest(BaseModel):
     query: str
-    ticker: str | None = None
+    source: Literal["asx_docs", "news", "commentary", "hybrid"] = "asx_docs"
+    ticker: Optional[str] = None
     top_k: int = 8
     debug: bool = False
+    provider: Optional[str] = None
+    language: Optional[str] = None
+    date_from: Optional[str] = None
+    date_to: Optional[str] = None
 
 
 @app.post("/rag/query", dependencies=[Depends(require_api_key)])
 def rag_query(body: RagQueryRequest):
     try:
-        return query_rag(
-            query=body.query,
-            ticker=body.ticker,
-            top_k=body.top_k,
-            debug=body.debug,
-        )
+        if body.source == "asx_docs":
+            return query_rag(
+                query=body.query,
+                ticker=body.ticker,
+                top_k=body.top_k,
+                debug=body.debug,
+            )
+        elif body.source == "news":
+            return query_news_chunks(
+                query=body.query,
+                ticker=body.ticker,
+                provider=body.provider,
+                language=body.language or "en",
+                date_from=body.date_from,
+                date_to=body.date_to,
+                top_k=body.top_k,
+            )
+        elif body.source == "commentary":
+            raise HTTPException(
+                status_code=501,
+                detail="commentary source not yet implemented via /rag/query — use /chat",
+            )
+        elif body.source == "hybrid":
+            raise HTTPException(
+                status_code=501,
+                detail="hybrid source not yet implemented via /rag/query — use /chat",
+            )
+        else:
+            raise HTTPException(status_code=400, detail=f"unknown source: {body.source}")
+    except HTTPException:
+        raise
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:

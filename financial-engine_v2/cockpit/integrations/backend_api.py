@@ -70,22 +70,29 @@ class BackendApiClient:
         date_from: str | None = None,
         date_to: str | None = None,
         timeout: float = 15.0,
+        source: str = "news",
     ) -> dict[str, Any]:
-        url = f"{self.base_url}/api/rag/query"
-        params: dict[str, Any] = {"q": q, "top_k": top_k, "language": language}
+        url = f"{self.base_url}/rag/query"
+        body: dict[str, Any] = {
+            "query": q,
+            "source": source,
+            "top_k": top_k,
+        }
         if ticker is not None:
-            params["ticker"] = ticker
+            body["ticker"] = ticker
         if provider is not None:
-            params["provider"] = provider
+            body["provider"] = provider
+        if language:
+            body["language"] = language
         if date_from is not None:
-            params["date_from"] = date_from
+            body["date_from"] = date_from
         if date_to is not None:
-            params["date_to"] = date_to
+            body["date_to"] = date_to
         headers: dict[str, str] = {}
         if self.api_key:
             headers["X-API-Key"] = self.api_key
         with httpx.Client(timeout=timeout, follow_redirects=True) as client:
-            response = client.get(url, params=params, headers=headers)
+            response = client.post(url, json=body, headers=headers)
             response.raise_for_status()
             return response.json() if response.content else {"results": []}
 

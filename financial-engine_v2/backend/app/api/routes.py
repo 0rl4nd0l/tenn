@@ -408,63 +408,6 @@ def process_unextracted_for_ticker(ticker: str, limit: int = Query(default=50, l
         db.close()
 
 
-# DEPRECATED: This endpoint queries news_chunks directly with inline Qdrant client.
-# Active callers: cockpit BackendApiClient, tools.py, qual_context.py, weekly_intelligence_pack.
-# Canonical ASX document RAG: POST /rag/query (main.py).
-# TODO: Migrate callers to a unified RAG service, then remove this endpoint.
-@router.get("/rag/query", dependencies=[Depends(require_api_key)])
-def rag_query(
-    q: str = Query(..., description="Search query text"),
-    top_k: int = Query(10, description="Number of results to return"),
-    provider: Optional[str] = Query(None, description="Filter by provider"),
-    ticker: Optional[str] = Query(None, description="Filter by ticker"),
-    language: Optional[str] = Query("en", description="Filter by language"),
-    date_from: Optional[str] = Query(None, description="ISO date lower bound (inclusive)"),
-    date_to: Optional[str] = Query(None, description="ISO date upper bound (inclusive)"),
-):
-    from qdrant_client import QdrantClient
-    from qdrant_client.http import models as qmodels
-    from app.services.embeddings import embed_texts_batched
-
-    qdrant_url = str(getattr(settings, "qdrant_url", "http://localhost:6333"))
-    embed_model = str(getattr(settings, "embed_model", "nomic-embed-text"))
-    embedding_url = str(
-        getattr(settings, "llamacpp_url", "")
-        or getattr(settings, "ollama_url", "")
-        or "http://localhost:8001"
-    )
-    collection = "news_chunks"
-
-    try:
-        vec = embed_texts_batched([q], llm_url=embedding_url, model=embed_model)[0]
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Embedding failed: {exc}") from exc
-
-    must_filters = []
-    if language:
-        must_filters.append(qmodels.FieldCondition(key="language", match=qmodels.MatchValue(value=language)))
-    if provider:
-        must_filters.append(qmodels.FieldCondition(key="provider", match=qmodels.MatchValue(value=provider)))
-    if ticker:
-        must_filters.append(qmodels.FieldCondition(key="ticker", match=qmodels.MatchValue(value=ticker)))
-    if date_from:
-        must_filters.append(qmodels.FieldCondition(key="published_at", range=qmodels.Range(gte=date_from)))
-    if date_to:
-        must_filters.append(qmodels.FieldCondition(key="published_at", range=qmodels.Range(lte=date_to)))
-
-    query_filter = qmodels.Filter(must=must_filters) if must_filters else None
-
-    try:
-        client = QdrantClient(url=qdrant_url)
-        hits = client.search(
-            collection_name=collection,
-            query_vector=vec,
-            limit=int(top_k),
-            query_filter=query_filter,
-            with_payload=True,
-        )
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Qdrant search failed: {exc}") from exc
-
-    results = [{"score": float(h.score), "payload": h.payload} for h in hits]
-    return {"results": results}
+# GET /api/rag/query REMOVED — migrated to POST /rag/query with source="news".
+# All callers (cockpit BackendApiClient, tools.py, qual_context.py) now use
+# the unified POST /rag/query endpoint. Logic moved to app.services.rag.query_news_chunks().

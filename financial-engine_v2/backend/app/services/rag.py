@@ -191,6 +191,61 @@ def _build_research_context(
     )
 
 
+def query_news_chunks(
+    *,
+    query: str,
+    ticker: Optional[str] = None,
+    provider: Optional[str] = None,
+    language: Optional[str] = "en",
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    top_k: int = 10,
+) -> Dict[str, Any]:
+    """Vector search over news chunks stored in Qdrant."""
+    q = (query or "").strip()
+    if not q:
+        raise ValueError("query is required")
+    if not settings.enable_qdrant:
+        raise RuntimeError("RAG backend is disabled (qdrant disabled)")
+
+    from app.services.embeddings import embed_texts_batched
+
+    embed_model = str(getattr(settings, "embed_model", "nomic-embed-text"))
+    embedding_url = str(
+        getattr(settings, "llamacpp_url", "")
+        or getattr(settings, "ollama_url", "")
+        or "http://localhost:8001"
+    )
+
+    vec = embed_texts_batched([q], llm_url=embedding_url, model=embed_model)[0]
+
+    must_filters: list[qmodels.FieldCondition] = []
+    if language:
+        must_filters.append(qmodels.FieldCondition(key="language", match=qmodels.MatchValue(value=language)))
+    if provider:
+        must_filters.append(qmodels.FieldCondition(key="provider", match=qmodels.MatchValue(value=provider)))
+    if ticker:
+        must_filters.append(qmodels.FieldCondition(key="ticker", match=qmodels.MatchValue(value=ticker.strip().upper())))
+    if date_from:
+        must_filters.append(qmodels.FieldCondition(key="published_at", range=qmodels.Range(gte=date_from)))
+    if date_to:
+        must_filters.append(qmodels.FieldCondition(key="published_at", range=qmodels.Range(lte=date_to)))
+
+    query_filter = qmodels.Filter(must=must_filters) if must_filters else None
+
+    client = _build_qdrant_client()
+    hits = client.search(
+        collection_name="news_chunks",
+        query_vector=vec,
+        limit=int(max(1, top_k)),
+        query_filter=query_filter,
+        with_payload=True,
+    )
+
+    results = [{"score": float(h.score), "payload": h.payload} for h in hits]
+    return {"results": results}
+
+
 def query_rag(
     *,
     query: str,

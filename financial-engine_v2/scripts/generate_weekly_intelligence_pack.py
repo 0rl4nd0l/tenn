@@ -142,7 +142,7 @@ def run_rag_summary(api_base_url: str, query: str, top_k: int = 12) -> dict[str,
     from cockpit.integrations.backend_api import BackendApiClient
 
     client = BackendApiClient(api_base_url)
-    result = client.query_rag(query=query, top_k=top_k, timeout=30.0)
+    result = client.rag_query(q=query, top_k=top_k, timeout=30.0)
     if result.get("ok"):
         return {"ok": True, "query": query, "rag_response": result.get("payload")}
     return {
