@@ -4,7 +4,7 @@
 > Update this file at the end of every session alongside the milestone commit.
 > For detailed context on any item, follow the linked doc or run `git log --oneline`.
 
-Last updated: 2026-03-25 (session — eval fixture broadening + MIN fixture completion)
+Last updated: 2026-03-25 (session — fixture broadening, LLM separation, extraction optimizations)
 Branch: cloud/session-20260319
 
 ## Legend
@@ -26,7 +26,8 @@ Branch: cloud/session-20260319
 | **extraction-hardening** | `[ in-progress ]` | (1) FX conversion logic not yet built — policy defined, ok_low_confidence stands; (2) provenance query UX: inspect script exists, schema access still awkward. (3) Live eval never run — critical gap documented. Quarterly CF values hand-verified (b78b2964). |
 | **news-pipeline** | `[ verified ]` | Embedding routing fixed, asx_docs rebuilt at 768-dim (a4564e47) |
 | **eval-fixtures** | `[ in-progress ]` | 9 fixtures: 6 hand-verified + 3 Claude API verified (ANZ bank, AZJ transport, CSL healthcare USD). MIN fixture completed to 10 metrics. Live eval needed to validate new fixtures against extraction pipeline. |
-| **extraction-quality** | `[ in-progress ]` | 98.3% accuracy on 6 fixtures (commit 483ce6d2). Broadened to 9 fixtures covering banking (ANZ), transport (AZJ), healthcare/USD (CSL). Live eval with expanded set pending. Key principle: accuracy must reproduce across thousands of diverse documents, not just fixtures. |
+| **extraction-quality** | `[ in-progress ]` | 98.3% accuracy on 6 fixtures (483ce6d2). Broadened to 9 fixtures (5 sectors). Extraction LLM separated from chat (EXTRACTION_LLAMACPP_URL). Pipeline optimized: parallel Pass 3a, skip redundant tables, optional narrative skip. Live eval with expanded 9-fixture set pending. |
+| **extraction-perf** | `[ verified ]` | Pass 1 first-page-only (e25dcd43). Parallel 3a + skip redundant + skip narrative (6c8c53bf). Pre-filter table rows: researched, not yet implemented. 301 tests passing. |
 
 ---
 
@@ -68,7 +69,8 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 
 | Commit | Workstream | Summary |
 |--------|------------|---------|
-| (this session) | eval-fixtures | Broadened to 9 fixtures: +ANZ (bank, AUD), +AZJ (transport, AUD), +CSL (healthcare, USD). MIN fixture completed to all 10 metrics. Claude API verification script built. 263 tests passing. |
+| (this session) | cockpit/llm | Router mode for llama-server: zero-downtime model switching via API, preset INI for per-model config, 12-model dropdown (filesystem + Ollama + HF cached), crash detection on model switch |
+| (prev session) | eval-fixtures | Broadened to 9 fixtures: +ANZ (bank, AUD), +AZJ (transport, AUD), +CSL (healthcare, USD). MIN fixture completed to all 10 metrics. Claude API verification script built. 263 tests passing. |
 | 483ce6d2 | extraction-quality | 98.3% accuracy — all eval gates green. 16 key fixes from 45% baseline. |
 | 1429dcaa | cockpit | Fix llama.cpp port 8080→8001 in all cockpit defaults; align docs/scripts to canonical port 8001 (L015) |
 | (prev session) | extraction-quality | Evidence-based quality assessment: 25 fixture values confirmed, live eval gap documented, MIN Pass 2 misclassification found |
