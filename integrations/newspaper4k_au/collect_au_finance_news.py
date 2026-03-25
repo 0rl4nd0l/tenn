@@ -1299,9 +1299,13 @@ def extract_from_source(
                                 _pw_rescue = True
                 except Exception:
                     pass
-            if not _pw_rescue:
-                stats["download_errors"] += 1
+            if _pw_rescue:
+                # Article already appended by the rescue block above;
+                # skip the normal parse path (which would re-fetch via
+                # the second Playwright rescue and create a duplicate).
                 continue
+            stats["download_errors"] += 1
+            continue
 
         article, reason = _parse_article_object(
             item=article_obj,

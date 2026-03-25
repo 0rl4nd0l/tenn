@@ -137,13 +137,15 @@ def _fetch_with_scrapling(url: str, timeout: int) -> str:
     Runs in a separate thread to avoid 'Playwright Sync API inside asyncio
     loop' errors when newspaper4k or other imports create an event loop.
 
+    Uses the v0.2.99+ class-method API (``StealthyFetcher.fetch()``) instead
+    of the deprecated ``StealthyFetcher()`` constructor, which silently
+    degrades anti-bot bypass on Cloudflare-protected sites.
     """
     import concurrent.futures
 
     def _do_fetch() -> str:
         from scrapling import StealthyFetcher
-        fetcher = StealthyFetcher()
-        response = fetcher.fetch(
+        response = StealthyFetcher.fetch(
             url,
             headless=True,
             network_idle=True,
