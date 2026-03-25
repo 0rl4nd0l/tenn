@@ -78,13 +78,17 @@ def _probe_playwright() -> bool:
 _pw_lock = threading.Lock()
 _pw_browser = None
 _pw_ctx = None
+_pw_fetch_count = 0
+_PW_MAX_FETCHES_BEFORE_RESET = 20  # recycle browser to avoid stale-thread errors
 
 
 def _ensure_playwright_browser():
-    global _pw_browser, _pw_ctx
-    if _pw_browser is not None:
-        return _pw_browser
+    global _pw_browser, _pw_ctx, _pw_fetch_count
     with _pw_lock:
+        # Recycle browser after N fetches to prevent stale-thread errors
+        if _pw_browser is not None and _pw_fetch_count >= _PW_MAX_FETCHES_BEFORE_RESET:
+            logger.info("Recycling Playwright browser after %d fetches", _pw_fetch_count)
+            _force_close_browser()
         if _pw_browser is not None:
             return _pw_browser
         if not _probe_playwright():
@@ -93,11 +97,30 @@ def _ensure_playwright_browser():
             from playwright.sync_api import sync_playwright
             _pw_ctx = sync_playwright().start()
             _pw_browser = _pw_ctx.chromium.launch(headless=True)
+            _pw_fetch_count = 0
             logger.info("Playwright browser launched (headless Chromium)")
         except Exception as exc:
             logger.warning("Failed to launch Playwright Chromium: %s", exc)
             _pw_browser = None
     return _pw_browser
+
+
+def _force_close_browser():
+    """Close browser and context without the lock (caller must hold it)."""
+    global _pw_browser, _pw_ctx, _pw_fetch_count
+    if _pw_browser is not None:
+        try:
+            _pw_browser.close()
+        except Exception:
+            pass
+        _pw_browser = None
+    if _pw_ctx is not None:
+        try:
+            _pw_ctx.stop()
+        except Exception:
+            pass
+        _pw_ctx = None
+    _pw_fetch_count = 0
 
 
 # ---------------------------------------------------------------------------
@@ -164,10 +187,13 @@ def _fetch_with_playwright(url: str, timeout_ms: int, js_settle_ms: int) -> str:
     """Fetch rendered HTML using Playwright headless Chromium.
 
     Runs in a separate thread to avoid asyncio loop conflicts.
+    Auto-retries once with a fresh browser if the first attempt hits a
+    stale-thread error ("cannot switch to a different thread").
     """
     import concurrent.futures
 
-    def _do_fetch() -> str:
+    def _do_single_fetch() -> str:
+        global _pw_fetch_count
         browser = _ensure_playwright_browser()
         if browser is None:
             return ""
@@ -185,16 +211,31 @@ def _fetch_with_playwright(url: str, timeout_ms: int, js_settle_ms: int) -> str:
             page.goto(url, timeout=timeout_ms, wait_until="domcontentloaded")
             if js_settle_ms > 0:
                 page.wait_for_timeout(js_settle_ms)
+            _pw_fetch_count += 1
             return page.content()
-        except Exception as exc:
-            logger.warning("Playwright fetch failed for %s: %s", url, exc)
-            return ""
         finally:
             if context is not None:
                 try:
                     context.close()
                 except Exception:
                     pass
+
+    def _do_fetch() -> str:
+        try:
+            return _do_single_fetch()
+        except Exception as exc:
+            err_msg = str(exc).lower()
+            if "different thread" in err_msg or "has exited" in err_msg:
+                # Stale browser — force recycle and retry once
+                logger.info("Stale Playwright thread for %s, recycling browser", url)
+                shutdown_playwright()
+                try:
+                    return _do_single_fetch()
+                except Exception as exc2:
+                    logger.warning("Playwright retry also failed for %s: %s", url, exc2)
+                    return ""
+            logger.warning("Playwright fetch failed for %s: %s", url, exc)
+            return ""
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
         return pool.submit(_do_fetch).result(timeout=(timeout_ms // 1000) + js_settle_ms // 1000 + 30)
@@ -237,20 +278,8 @@ def fetch_article_html_playwright(
 
 def shutdown_playwright() -> None:
     """Tear down browser resources. Safe to call multiple times."""
-    global _pw_browser, _pw_ctx
     with _pw_lock:
-        if _pw_browser is not None:
-            try:
-                _pw_browser.close()
-            except Exception:
-                pass
-            _pw_browser = None
-        if _pw_ctx is not None:
-            try:
-                _pw_ctx.stop()
-            except Exception:
-                pass
-            _pw_ctx = None
+        _force_close_browser()
 
 
 # Alias for backward compatibility
