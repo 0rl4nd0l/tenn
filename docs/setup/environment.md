@@ -24,6 +24,7 @@ The active runtime is `financial-engine_v2`. The canonical env file lives at `fi
 | `ENABLE_SESSION_MEMORY` | `true` | Enable OpenViking session memory for `/api/chat`. Set to `false` to disable. |
 | `HYBRID_ROUTER_POLICY` | `local_only` | Cockpit HybridRouter routing policy. Options: `local_only` (default), `local_preferred`, `api_preferred`, `api_only`. The router never calls a cloud API unless an `api_client` is explicitly configured **and** the policy is `api_preferred` or `api_only`. |
 | `OPENVIKING_CONFIG_FILE` | _(injected by launcher)_ | Absolute path to domain-specific `ov.conf`. Backend defaults to `~/.openviking/backend.ov.conf`; cockpit defaults to `~/.openviking/cockpit.ov.conf`. Override to point at a different workspace. |
+| `ANTHROPIC_API_KEY` | _(unset)_ | Anthropic API key for the cockpit `AnthropicClient`. Required only when `HYBRID_ROUTER_POLICY` is `api_preferred` or `api_only`. The router never calls the Anthropic API unless this is set **and** the policy allows it. |
 
 ## Copy the template
 

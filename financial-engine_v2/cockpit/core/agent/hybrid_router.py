@@ -236,14 +236,17 @@ class HybridRouter:
     # ------------------------------------------------------------------
 
     def _call_api(self, messages: list[dict]) -> dict:
-        """Call the cloud API backend, normalise to an internal dict."""
+        """Call the cloud API backend, normalise to an internal dict.
+
+        Prefers the richer ``complete()`` interface (returns cost and
+        tool-call data) when the client exposes it.  Falls back to the
+        minimal ``chat()`` interface for backward compatibility.
+        """
         if self._api is None:
             raise RuntimeError(
                 "No API client configured. "
                 "Pass api_client= to HybridRouter, or set policy='local_only'."
             )
-
-        model_name: str = getattr(self._api, "model", "api")
 
         if len(messages) >= 2:
             prior = messages[:-1]
@@ -252,6 +255,16 @@ class HybridRouter:
             prior = None
             prompt = messages[-1]["content"] if messages else ""
 
+        # Prefer complete() for rich responses (cost, tool_calls, usage).
+        if hasattr(self._api, "complete"):
+            return self._api.complete(
+                prompt=prompt,
+                timeout=self._timeout,
+                prior_messages=prior,
+            )
+
+        # Fallback: basic chat() interface (e.g. LlamaCppClient).
+        model_name: str = getattr(self._api, "model", "api")
         text = self._api.chat(
             prompt=prompt,
             timeout=self._timeout,
