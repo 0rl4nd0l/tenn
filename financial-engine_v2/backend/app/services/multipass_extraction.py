@@ -460,17 +460,30 @@ Extract ONLY these metrics relevant to {table_type}:
 Rules:
 - Values in parentheses like (412) mean NEGATIVE: output -412 (raw, not pre-multiplied)
 - Output null if the metric is NOT explicitly labeled in this table — do NOT estimate or derive it
+- revenue: extract the TOP-LINE revenue row — typically labeled "Revenue", "Sales revenue",
+  "Total revenue", "Revenue from ordinary activities", "Operating revenue", or "Net revenue".
+  DO NOT use: "Other income", "Interest income", "Total income" (which may include non-operating items),
+  or "Net profit" as a proxy for revenue.
+  For banks: "Net interest income" or "Total operating income" is the revenue equivalent.
 - ebit: only output if a row is explicitly labeled "EBIT", "Earnings Before Interest and Tax",
   "Profit from operations", "Profit / (loss) from operating activities", "Operating profit",
   "Statutory EBIT", or "Operating income" — do NOT use PBT, Profit Before Tax, or Net Profit as a proxy.
   For banks: "Operating income" or "Cash profit before tax" may serve as the EBIT equivalent.
 - capex: Capital Expenditure must be a SPECIFIC LINE ITEM, NOT a total or subtotal.
-  Correct labels: "Payments for property, plant and equipment", "Purchase of PPE",
-  "Additions to fixed assets", "Capital expenditure", "Payments for capital expenditure".
+  Correct labels: "Payments for property, plant and equipment", "Purchases of property, plant and equipment",
+  "Purchase of PPE", "Additions to fixed assets", "Capital expenditure",
+  "Payments for capital expenditure", "Expenditure on mining development",
+  "Expenditure on mining production and development".
   DO NOT use: "Net cash from investing activities", "Investing cash flow", or any
   total/subtotal line. If only a total investing cash flow is present and no specific
   capex line exists, return null.
-- shares_outstanding: look for total ordinary shares on issue (count, not dollar amount) — typically labeled "Ordinary shares" or "Shares on issue".
+  Appendix 5B: if multiple capex sub-items exist (e.g. "property", "equipment",
+  "development"), SUM them and output the total as capex.
+- shares_outstanding: extract the PERIOD-END total ordinary shares on issue (count, not dollar amount).
+  Correct labels: "Ordinary shares", "Shares on issue", "Number of shares on issue",
+  "Fully paid ordinary shares", "Total ordinary shares".
+  DO NOT use: "Weighted average number of shares", "Diluted shares", or "Basic earnings per share" denominators.
+  If both period-end and weighted-average rows are in the same table, use only the period-end row.
   IMPORTANT: if the table expresses share counts in a scaled unit (e.g. "Million", "'000"), convert to the absolute count.
   Example: if the table shows "5,057" with row label containing "(Million)", output 5057000000 (not 5057).
   Example: if the table shows "196,478,902" as an absolute count, output 196478902.

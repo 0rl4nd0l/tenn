@@ -1,0 +1,41 @@
+{
+  "locked_at": "2026-03-25T16:00:21Z",
+  "overall_accuracy": 0.8842,
+  "fixture_count": 9,
+  "metric_count": 10,
+  "model": "qwen2.5-14b-instruct-q4_k_m",
+  "server": "llama.cpp:8002",
+  "per_fixture": {
+    "ANZ": {"accuracy": 0.7273, "metric_count": 11, "status": "WARN"},
+    "AZJ": {"accuracy": 0.8182, "metric_count": 11, "status": "OK"},
+    "BHP": {"accuracy": 0.8182, "metric_count": 11, "status": "WARN"},
+    "CSL": {"accuracy": 0.8182, "metric_count": 11, "status": "OK"},
+    "EQR": {"accuracy": 1.0, "metric_count": 10, "status": "OK"},
+    "GRE": {"accuracy": 1.0, "metric_count": 10, "status": "OK"},
+    "MIN": {"accuracy": 1.0, "metric_count": 11, "status": "OK"},
+    "RMS": {"accuracy": 0.8182, "metric_count": 11, "status": "WARN"},
+    "SEG": {"accuracy": 1.0, "metric_count": 9, "status": "OK"}
+  },
+  "per_metric": {
+    "revenue": 0.7778,
+    "ebit": 0.875,
+    "np_attributable": 0.8889,
+    "operating_cf": 1.0,
+    "investing_cf": 1.0,
+    "financing_cf": 1.0,
+    "capex": 0.5,
+    "cash_end": 1.0,
+    "shares_outstanding": 0.7778,
+    "net_debt": 0.7778
+  },
+  "known_gaps": {
+    "capex": "50% — Appendix 5B multi-line capex and non-standard labels not parsed correctly by model",
+    "revenue": "77.8% — ANZ/BHP banking revenue format (net interest income) not extracted",
+    "shares_outstanding": "77.8% — weighted average vs period-end ambiguity in some tables",
+    "net_debt": "77.8% — derivation from total_debt-cash_end fails when total_debt not extracted"
+  },
+  "contract_violations_noted": {
+    "net_debt_derivation": "§3.5 — net_debt derived from total_debt-cash_end instead of extracted directly",
+    "currency_default_aud": "§3.4 — missing currency defaults to AUD silently"
+  }
+}
