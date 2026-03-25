@@ -318,10 +318,10 @@ class PreBootScreen(Screen):
                 with Collapsible(title="Advanced: Model Routing", id="advanced-routing", collapsed=True):
                     with Horizontal(id="orchestrator-row"):
                         yield Label("Orchestrator:", id="orchestrator-label")
-                        yield Select(_FALLBACK_MODELS, value="", id="opt-orchestrator-model", allow_blank=True)
+                        yield Select(_FALLBACK_MODELS, value=Select.BLANK, id="opt-orchestrator-model", allow_blank=True)
                     with Horizontal(id="subagent-row"):
                         yield Label("Sub-agent:", id="subagent-label")
-                        yield Select(_FALLBACK_MODELS, value="", id="opt-subagent-model", allow_blank=True)
+                        yield Select(_FALLBACK_MODELS, value=Select.BLANK, id="opt-subagent-model", allow_blank=True)
                     with Horizontal(id="policy-row"):
                         yield Label("Router policy:", id="policy-label")
                         yield Select(
