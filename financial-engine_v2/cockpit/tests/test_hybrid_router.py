@@ -9,6 +9,7 @@ from cockpit.core.agent.hybrid_router import HybridRouter, RouterResponse
 def mock_llm_client():
     client = MagicMock()
     client.chat.return_value = '{"type": "response", "content": "hello"}'
+    client.model = "test-model"
     return client
 
 
