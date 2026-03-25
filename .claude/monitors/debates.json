@@ -1,0 +1,36 @@
+{
+  "2aa6e8b06b42be89f093db51579a6c5f20da2436": {
+    "agent_a": {
+      "name": "Agent A \u2014 Minimal Fix",
+      "approach": "Replace the stale `#chat-assistant-log` query with the surviving `#chat-log` widget that already exists in `ChatScreen.compose()`.",
+      "diff": "--- a/financial-engine_v2/scripts/test_cockpit_chat_status_widgets.py\n+++ b/financial-engine_v2/scripts/test_cockpit_chat_status_widgets.py\n@@ -157,8 +157,7 @@\n                self.assertEqual(_widget_text(status), \"\")\n                self.assertEqual(_widget_text(live), \"\")\n                # Final assistant response is now written to the unified #chat-log.\n-               assistant_log = screen.query_one(\"#chat-assistant-log\", RichLog)\n-               log_text = _log_text(assistant_log)\n+               log_text = _log_text(log)\n                self.assertIn(\"First draft\", log_text)\n                self.assertIn(\"Second line\", log_text)"
+    },
+    "agent_b": {
+      "name": "Agent B \u2014 Comprehensive Fix",
+      "approach": "Remove the redundant second query entirely by reusing the `log` variable already bound to `#chat-log` at line 146, and add a widget-existence guard so future renames raise a clear error message instead of a cryptic `NoMatches`.",
+      "diff": "--- a/financial-engine_v2/scripts/test_cockpit_chat_status_widgets.py\n+++ b/financial-engine_v2/scripts/test_cockpit_chat_status_widgets.py\n@@ -144,6 +144,8 @@\n                await asyncio.sleep(0.05)\n                await pilot.pause()\n \n+               # Verify expected widgets are present before asserting their content.\n+               self.assertTrue(screen.query(\"#chat-log\"), \"#chat-log widget missing from ChatScreen \u2014 screens.py compose() may have changed\")\n                log = screen.query_one(\"#chat-log\", RichLog)\n                status = screen.query_one(\"#chat-status\", Static)\n                live = screen.query_one(\"#chat-live-response\", Static)\n@@ -157,9 +159,7 @@\n                self.assertEqual(_widget_text(status), \"\")\n                self.assertEqual(_widget_text(live), \"\")\n                # Final assistant response is now written to the unified #chat-log.\n-               assistant_log = screen.query_one(\"#chat-assistant-log\", RichLog)\n-               log_text = _log_text(assistant_log)\n+               log_text = _log_text(log)\n                self.assertIn(\"First draft\", log_text)\n                self.assertIn(\"Second line\", log_text)"
+    },
+    "verdict": "Agent A wins. This is a critical regression with a single root cause: one stale widget ID. The `log` variable is already bound to `#chat-log` four lines earlier, so the fix is literally a two-line deletion \u2014 no new logic needed. Agent B's guard assertion is well-intentioned but adds test complexity that buys little: if `#chat-log` vanishes, `query_one` on line 146 will already raise `NoMatches` with a clear traceback pointing at the right line. The extra `self.assertTrue(screen.query(...))` is redundant noise. For a critical test-breakage fix, minimal and proven wins over defensive scaffolding.",
+    "winning_agent": "a",
+    "_issue_type": "test-breakage",
+    "_location": "scripts/test_cockpit_chat_status_widgets.py:160",
+    "_detail": "screen.query_one(\"#chat-assistant-log\", RichLog) will raise NoMatches \u2014 widget removed from ChatScreen.compose() in screens.py working-tree but test not updated"
+  },
+  "229e360968c86209394a6efc23fb6e7dc7c2fe3a": {
+    "agent_a": {
+      "name": "Agent A \u2014 Minimal Fix",
+      "approach": "Add a single ~Document.pdf_sha256.like('blocked_%') filter clause directly alongside the existing != '' check.",
+      "diff": "- .filter(Document.pdf_sha256 != \"\")\n+ .filter(\n+     Document.pdf_sha256 != \"\",\n+     ~Document.pdf_sha256.like(\"blocked_%\")\n+ )"
+    },
+    "agent_b": {
+      "name": "Agent B \u2014 Comprehensive Fix",
+      "approach": "Replace the ad-hoc string checks with a reusable SQLAlchemy hybrid property or module-level filter expression that encodes all 'document is downloadable' invariants in one place.",
+      "diff": "# In models.py \u2014 add a reusable filter expression\nDOWNLOADED_FILTER = and_(\n    Document.pdf_sha256 != \"\",\n    ~Document.pdf_sha256.like(\"blocked_%\")\n)\n\n# In routes.py \u2014 replace the inline filter\n- .filter(Document.pdf_sha256 != \"\")\n+ .filter(DOWNLOADED_FILTER)"
+    },
+    "verdict": "Agent A wins for this issue. The 'blocked_%' sentinel is a narrow, well-understood edge case introduced by a specific download-blocker path. Adding one extra clause keeps the diff minimal, reviewable, and directly traceable to the bug report. Agent B's abstraction (DOWNLOADED_FILTER or a hybrid property) is architecturally cleaner and worth doing if there are multiple call sites that filter on pdf_sha256, but introducing a new models.py constant for a single-site fix is premature \u2014 it adds indirection without current payoff. If a second call site emerges, promote Agent A's inline fix to Agent B's pattern at that point.",
+    "winning_agent": "a",
+    "_issue_type": "blocked-docs-filter",
+    "_location": "routes.py:process_unextracted_for_ticker",
+    "_detail": "Document.pdf_sha256 != \"\" passes \"blocked_xxx\" values; extraction attempted on undownloaded docs fails at file-not-found stage; add ~Document.pdf_sha256.like(\"blocked_%\") exclusion"
+  }
+}

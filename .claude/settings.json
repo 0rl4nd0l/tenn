@@ -7,6 +7,11 @@
             "type": "command",
             "command": "echo \"Branch: $(git rev-parse --abbrev-ref HEAD 2>/dev/null)\" && git status --short 2>/dev/null | head -20 || true",
             "statusMessage": "Loading repo state..."
+          },
+          {
+            "type": "command",
+            "command": "python3 /home/l4nd0/tenn/.claude/hooks/start_memory_check.py 2>/dev/null || true",
+            "statusMessage": "Loading session memories..."
           }
         ]
       }
@@ -62,6 +67,11 @@
             "type": "command",
             "command": "python3 -c \"\nimport subprocess, os\nos.chdir('/home/l4nd0/tenn')\ndiff = subprocess.run(['git', 'diff', '--name-only', 'HEAD'], capture_output=True, text=True).stdout\nuntracked = subprocess.run(['git', 'ls-files', '--others', '--exclude-standard'], capture_output=True, text=True).stdout\nall_changed = set((diff + untracked).strip().splitlines())\ninfra_patterns = ['.mcp.json', 'settings.json', 'settings.local.json', 'scripts/mcp/', 'scripts/', '.claude/commands/', '.claude/skills/', '.claude/agents/', '.claude/hooks', 'docker-compose', '.env.example']\ndoc_paths = [f for f in all_changed if 'docs/claude/' in f or f == 'CLAUDE.md']\ninfra_changed = [f for f in all_changed if any(p in f for p in infra_patterns) and 'docs/' not in f]\nif infra_changed and not doc_paths:\n    print('WARNING: Infrastructure/config files changed but no docs/claude/ files updated.')\n    print('Changed infra files: ' + ', '.join(sorted(infra_changed)[:5]))\n    print('Review docs/claude/mcp-servers.md, current-state.md, hooks.md, commands.md, gap-analysis.md')\n\" 2>/dev/null || true",
             "statusMessage": "Checking doc coverage..."
+          },
+          {
+            "type": "command",
+            "command": "python3 /home/l4nd0/tenn/.claude/hooks/stop_memory_reminder.py 2>/dev/null || true",
+            "statusMessage": "Checking session memories..."
           }
         ]
       }

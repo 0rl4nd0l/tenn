@@ -1,0 +1,221 @@
+{
+  "e822ccfa93f520d036cb688da0957934e16c43ed": {
+    "id": "e822ccfa93f520d036cb688da0957934e16c43ed",
+    "agent": "RULES",
+    "issue_type": "docs-drift",
+    "location": "financial-engine_v2/.env.example",
+    "detail": "OPENVIKING_CONFIG_FILE + ENABLE_SESSION_MEMORY added but docs/setup/environment.md not updated (CLAUDE.md: env vars \u2192 environment.md)",
+    "severity": "warning",
+    "first_seen": "2026-03-24T06:14:35Z",
+    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "status": "open",
+    "fix": null
+  },
+  "06884924edbc36145d3197e91fd4fb166586ecdf": {
+    "id": "06884924edbc36145d3197e91fd4fb166586ecdf",
+    "agent": "RULES",
+    "issue_type": "milestone-format",
+    "location": "998dc3a3,8c952dae",
+    "detail": "commits use docs()/test() format; CLAUDE.md requires milestone(<subsystem>) for confirmed-working changes",
+    "severity": "warning",
+    "first_seen": "2026-03-23T23:38:07 Z",
+    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "status": "open",
+    "fix": null
+  },
+  "e202171ed008ac4178623f5e9b775778c91dfaeb": {
+    "id": "e202171ed008ac4178623f5e9b775778c91dfaeb",
+    "agent": "RULES",
+    "issue_type": "milestone-format",
+    "location": "262cfd0c,8c952dae",
+    "detail": "commits use fix()/test() format; CLAUDE.md requires milestone(<subsystem>) for confirmed-working changes",
+    "severity": "warning",
+    "first_seen": "2026-03-23T23:29:07 Z",
+    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "status": "open",
+    "fix": null
+  },
+  "06b95265156b3c35a70c03eb73fa6037b3a0699f": {
+    "id": "06b95265156b3c35a70c03eb73fa6037b3a0699f",
+    "agent": "RULES",
+    "issue_type": "milestone-format",
+    "location": "60ca8e33",
+    "detail": "commit uses fix() format; CLAUDE.md requires milestone(<subsystem>) for confirmed-working changes",
+    "severity": "warning",
+    "first_seen": "2026-03-23T23:24:12 Z",
+    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "status": "open",
+    "fix": null
+  },
+  "05d54d4c8f5cb1206d99dd125860678e47e65b32": {
+    "id": "05d54d4c8f5cb1206d99dd125860678e47e65b32",
+    "agent": "RULES",
+    "issue_type": "milestone-format",
+    "location": "6b9a3055",
+    "detail": "commit uses feat() format; CLAUDE.md requires milestone(<subsystem>) for confirmed-working changes",
+    "severity": "warning",
+    "first_seen": "2026-03-23T23:13:07 Z",
+    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "status": "open",
+    "fix": null
+  },
+  "229e360968c86209394a6efc23fb6e7dc7c2fe3a": {
+    "id": "229e360968c86209394a6efc23fb6e7dc7c2fe3a",
+    "agent": "BUGS",
+    "issue_type": "blocked-docs-filter",
+    "location": "routes.py:process_unextracted_for_ticker",
+    "detail": "Document.pdf_sha256 != \"\" passes \"blocked_xxx\" values; extraction attempted on undownloaded docs fails at file-not-found stage; add ~Document.pdf_sha256.like(\"blocked_%\") exclusion",
+    "severity": "warning",
+    "first_seen": "2026-03-23T22:33:23 Z",
+    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "status": "fixed",
+    "fix": {
+      "timestamp": "2026-03-25T05:32:36.507044+00:00",
+      "commit_sha": "eeb4390b612073ce684785fd890f46ce6fa8b9ef",
+      "source": "scan_fixes",
+      "note": "Auto-detected from commit eeb4390b"
+    }
+  },
+  "bf9bda7ee258d17b2b9a246f228f62725beaf062": {
+    "id": "bf9bda7ee258d17b2b9a246f228f62725beaf062",
+    "agent": "RULES",
+    "issue_type": "milestone-format",
+    "location": "e627e580,ae48fe76,18766be3,d97a674e",
+    "detail": "4 commits use fix()/feat() format; CLAUDE.md requires milestone(<subsystem>) for confirmed-working changes",
+    "severity": "warning",
+    "first_seen": "2026-03-23T22:31:33 Z",
+    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "status": "open",
+    "fix": null
+  },
+  "d4d73f7d2d0e54c7c36badd94affddd1652ba4d7": {
+    "id": "d4d73f7d2d0e54c7c36badd94affddd1652ba4d7",
+    "agent": "RULES",
+    "issue_type": "milestone-format",
+    "location": ".git/COMMIT_EDITMSG",
+    "detail": "3 commits use fix() format; CLAUDE.md requires milestone(<subsystem>) for confirmed-working changes (c4e6b2c6, dbb51534, fd4574ac)",
+    "severity": "warning",
+    "first_seen": "2026-03-23T22:17:07 Z",
+    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "status": "open",
+    "fix": null
+  },
+  "da52e0cec60e43684b1c0eb8b6e728e5168112f9": {
+    "id": "da52e0cec60e43684b1c0eb8b6e728e5168112f9",
+    "agent": "DELETIONS",
+    "issue_type": "widget-removed",
+    "location": "cockpit/ui/screens.py",
+    "detail": "#chat-assistant-log RichLog removed from ChatScreen without updating test_cockpit_chat_status_widgets.py:160 which queries for it",
+    "severity": "warning",
+    "first_seen": "2026-03-23T03:05:06Z",
+    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "status": "fixed",
+    "fix": {
+      "timestamp": "2026-03-25T06:09:57.476488+00:00",
+      "commit_sha": "67bd45518de338e497fa436689a32bc70fd512e7",
+      "source": "scan_fixes",
+      "note": "Auto-detected from commit 67bd4551"
+    }
+  },
+  "2aa6e8b06b42be89f093db51579a6c5f20da2436": {
+    "id": "2aa6e8b06b42be89f093db51579a6c5f20da2436",
+    "agent": "REGRESSION",
+    "issue_type": "test-breakage",
+    "location": "scripts/test_cockpit_chat_status_widgets.py:160",
+    "detail": "screen.query_one(\"#chat-assistant-log\", RichLog) will raise NoMatches \u2014 widget removed from ChatScreen.compose() in screens.py working-tree but test not updated",
+    "severity": "critical",
+    "first_seen": "2026-03-23T03:05:06Z",
+    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "status": "open",
+    "fix": null
+  },
+  "837812f724334f12959f62575ec25a5979286abe": {
+    "id": "837812f724334f12959f62575ec25a5979286abe",
+    "agent": "RULES",
+    "issue_type": "uncommitted-production-change",
+    "location": "backend/app/services/multipass_extraction.py",
+    "detail": "scale detection logic changed but not committed \u2014 CLAUDE.md mandates milestone commits for confirmed-working state; change makes table-header scale unconditionally authoritative over Pass 1 LLM inference",
+    "severity": "warning",
+    "first_seen": "2026-03-23T02:47:06Z",
+    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "status": "fixed",
+    "fix": {
+      "timestamp": "2026-03-25T04:38:00.465893+00:00",
+      "commit_sha": "bbd0f1a07514f7dcaa89aad4eda7db8f7edef9f7",
+      "source": "scan_fixes",
+      "note": "Auto-detected from commit bbd0f1a0"
+    }
+  },
+  "469391ef44f4114ac2b65ef4eb689af0ba2722b8": {
+    "id": "469391ef44f4114ac2b65ef4eb689af0ba2722b8",
+    "agent": "RULES",
+    "issue_type": "milestone-format",
+    "location": "610b7378",
+    "detail": "feat(github) has Working:/Tested: milestone body lines but wrong prefix \u2014 CLAUDE.md mandates `milestone(<subsystem>): <what works>`; use `milestone(github): ...` to be findable via git log grep",
+    "severity": "warning",
+    "first_seen": "2026-03-22T08:12:54+00:00",
+    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "status": "open",
+    "fix": null
+  },
+  "e4bdde7129856bcb3c9f36bd885ac1e9bd26ae9c": {
+    "id": "e4bdde7129856bcb3c9f36bd885ac1e9bd26ae9c",
+    "agent": "SECURITY",
+    "issue_type": "unpinned-action",
+    "location": ".github/workflows/claude.yml:23,35",
+    "detail": "uses: anthropics/claude-code-action@beta pins to a mutable tag not a commit SHA \u2014 if the beta tag is force-pushed, arbitrary code runs with ANTHROPIC_API_KEY and write permissions; pin to a specific SHA (e.g. @abc1234) to prevent supply-chain substitution",
+    "severity": "warning",
+    "first_seen": "2026-03-22T08:11:40+00:00",
+    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "status": "open",
+    "fix": null
+  },
+  "7c7f4bade75eb195a08043d5577f0e0b0a03f77a": {
+    "id": "7c7f4bade75eb195a08043d5577f0e0b0a03f77a",
+    "agent": "BUGS",
+    "issue_type": "json-serialization-crash",
+    "location": "financial-engine_v2/backend/app/services/pipeline_service.py:89,98,104",
+    "detail": "errors dict stores raw UUID objects (`\"document_id\": document_id`) \u2014 Celery uses task_serializer=\"json\" (celery_app.py:53) and worker_tasks.py:24 returns this dict directly; json.dumps will raise TypeError in production/Celery mode; resume_pending_downloads.py correctly uses str(row.document_id) \u2014 pipeline_service.py must match",
+    "severity": "critical",
+    "first_seen": "2026-03-22T08:10:36+00:00",
+    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "status": "open",
+    "fix": null
+  },
+  "3869f8c17c19e42c89731287d04cff6440707cae": {
+    "id": "3869f8c17c19e42c89731287d04cff6440707cae",
+    "agent": "RULES",
+    "issue_type": "milestone-format",
+    "location": "bd16a632",
+    "detail": "fix(misc) bundles 4 files across 3 subsystems (cockpit/actions, scripts/log_change_impact, scripts/resume_pending_downloads, scripts/update_ticker_financials) in one commit \u2014 CLAUDE.md requires one subsystem per change and no unrelated refactors bundled together",
+    "severity": "warning",
+    "first_seen": "2026-03-22T08:07:10+00:00",
+    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "status": "open",
+    "fix": null
+  },
+  "b9b557e331698f92ae28f6c9fbe515726a67d821": {
+    "id": "b9b557e331698f92ae28f6c9fbe515726a67d821",
+    "agent": "REGRESSION",
+    "issue_type": "silent-zero-metrics",
+    "location": "financial-engine_v2/backend/app/services/pipeline_service.py:138-141",
+    "detail": "PipelineResult fields chunks_created/chunks_skipped/invalid_payloads/written_points always 0 \u2014 ingestion_metrics dict is initialised but never populated in the replacement loop; callers receive silently wrong ingestion telemetry",
+    "severity": "critical",
+    "first_seen": "2026-03-22T08:01:01+00:00",
+    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "status": "open",
+    "fix": null
+  },
+  "80f029869bd292ba304e2edc9a3d95b57b62e89d": {
+    "id": "80f029869bd292ba304e2edc9a3d95b57b62e89d",
+    "agent": "DELETIONS",
+    "issue_type": "metric-counter-dropped",
+    "location": "financial-engine_v2/backend/app/services/pipeline_service.py:89",
+    "detail": "`skipped_download` counter initialised to 0 but never incremented in the replacement loop \u2014 any downstream reporting of skipped-download counts will silently report 0",
+    "severity": "warning",
+    "first_seen": "2026-03-22T08:00:08+00:00",
+    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "status": "open",
+    "fix": null
+  }
+}
