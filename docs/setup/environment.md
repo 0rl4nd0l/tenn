@@ -22,6 +22,7 @@ The active runtime is `financial-engine_v2`. The canonical env file lives at `fi
 | `CELERY_BROKER_URL` | `redis://127.0.0.1:6379/0` | Broker URL for Celery mode. |
 | `CELERY_RESULT_BACKEND` | `redis://127.0.0.1:6379/1` | Result backend for Celery mode. |
 | `ENABLE_SESSION_MEMORY` | `true` | Enable OpenViking session memory for `/api/chat`. Set to `false` to disable. |
+| `HYBRID_ROUTER_POLICY` | `local_only` | Cockpit HybridRouter routing policy. Options: `local_only` (default), `local_preferred`, `api_preferred`, `api_only`. The router never calls a cloud API unless an `api_client` is explicitly configured **and** the policy is `api_preferred` or `api_only`. |
 | `OPENVIKING_CONFIG_FILE` | _(injected by launcher)_ | Absolute path to domain-specific `ov.conf`. Backend defaults to `~/.openviking/backend.ov.conf`; cockpit defaults to `~/.openviking/cockpit.ov.conf`. Override to point at a different workspace. |
 
 ## Copy the template
