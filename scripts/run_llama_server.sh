@@ -3,16 +3,16 @@ set -euo pipefail
 
 LOCKFILE="${LOCKFILE:-/tmp/llama-server.lock}"
 if [[ -f "${LOCKFILE}" ]]; then
-  if ! pgrep -f llama-server > /dev/null; then
-    echo "Removing stale lock ${LOCKFILE}"
-    rm -f "${LOCKFILE}"
-  else
-    echo "ERROR: llama-server already running (lock exists at ${LOCKFILE})" >&2
+  LOCK_PID="$(cat "${LOCKFILE}" 2>/dev/null || true)"
+  if [[ -n "${LOCK_PID}" ]] && kill -0 "${LOCK_PID}" 2>/dev/null; then
+    echo "ERROR: llama-server already running (PID ${LOCK_PID}, lock at ${LOCKFILE})" >&2
     exit 1
   fi
+  echo "Removing stale lock ${LOCKFILE}"
+  rm -f "${LOCKFILE}"
 fi
 trap 'rm -f "${LOCKFILE}"' EXIT
-touch "${LOCKFILE}"
+echo $$ > "${LOCKFILE}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BIN_PATH="${LLAMA_SERVER_BIN:-${ROOT_DIR}/tools/llama.cpp/build-cuda/bin/llama-server}"
@@ -23,9 +23,11 @@ if [[ ! -x "${BIN_PATH}" ]]; then
   fi
 fi
 
-if pgrep -f llama-server > /dev/null; then
-  echo "Killing existing llama-server processes"
-  pkill -f llama-server
+# Only kill llama-server processes bound to OUR port (not the extraction server).
+PORT="${LLAMA_SERVER_PORT:-8001}"
+if pgrep -af "llama-server.*--port ${PORT}\\b" > /dev/null 2>&1; then
+  echo "Killing existing llama-server on port ${PORT}"
+  pkill -f "llama-server.*--port ${PORT}" || true
   sleep 2
 fi
 MODEL_PATH="${LLAMA_SERVER_MODEL:-${ROOT_DIR}/models/model.gguf}"
@@ -84,24 +86,46 @@ cmd=(
   --threads "${LLAMA_SERVER_THREADS:-4}"
   --host "${HOST}"
   --port "${PORT}"
-  --pooling mean
-  --embeddings
 )
 
-if [[ -n "${HF_MODEL}" ]]; then
-  cmd+=(--hf "${HF_MODEL}")
-else
-  cmd+=(-m "${MODEL_PATH}")
+# Router mode: --models-dir replaces -m for zero-downtime model switching.
+# Set LLAMA_SERVER_ROUTER_MODE=1 to enable.
+ROUTER_MODE="${LLAMA_SERVER_ROUTER_MODE:-0}"
+MODELS_DIR="${LLAMA_SERVER_MODELS_DIR:-${ROOT_DIR}/models}"
+PRESET_PATH="${LLAMA_SERVER_PRESET:-${HOME}/.config/tenn/llamacpp-presets.ini}"
+
+if [[ "${ROUTER_MODE}" == "1" ]]; then
+  # Verify the binary supports --models-dir.
+  if "${BIN_PATH}" --help 2>&1 | grep -q 'models-dir'; then
+    cmd+=(--models-dir "${MODELS_DIR}" --models-max 1)
+    if [[ -f "${PRESET_PATH}" ]]; then
+      cmd+=(--models-preset "${PRESET_PATH}")
+    fi
+    echo "[llama-server] ROUTER_MODE=enabled (models-dir=${MODELS_DIR})"
+  else
+    echo "[llama-server] WARNING: binary does not support --models-dir, falling back to single-model mode" >&2
+    ROUTER_MODE=0
+  fi
+fi
+
+if [[ "${ROUTER_MODE}" != "1" ]]; then
+  # Single-model mode (original behavior).
+  if [[ -n "${HF_MODEL}" ]]; then
+    cmd+=(--hf "${HF_MODEL}")
+  else
+    cmd+=(-m "${MODEL_PATH}")
+  fi
+  cmd+=(--pooling mean --embeddings)
+  if [[ -n "${MODEL_ALIAS}" ]]; then
+    cmd+=(-a "${MODEL_ALIAS}")
+  fi
+  echo "[llama-server] ROUTER_MODE=disabled (single-model)"
 fi
 
 # mmap is enabled by default in this llama.cpp build. That keeps the model
 # on the kernel page-cache path, which uses prefetch/readahead during startup.
 if [[ "${LLAMA_SERVER_MMAP:-1}" == "0" ]]; then
   cmd+=(--no-mmap)
-fi
-
-if [[ -n "${MODEL_ALIAS}" ]]; then
-  cmd+=(-a "${MODEL_ALIAS}")
 fi
 
 if [[ -n "${API_KEY}" ]]; then
@@ -114,7 +138,6 @@ echo "[llama-server] MODEL_SOURCE=${HF_MODEL:+hf_repo|${HF_MODEL}, }${LLAMA_SERV
 echo "[llama-server] PROFILE=${PROFILE}"
 echo "[llama-server] HOST=${HOST}"
 echo "[llama-server] PORT=${PORT}"
-echo "[llama-server] EMBEDDINGS=enabled"
 cmd+=(--parallel 1)
 
 exec "${cmd[@]}"

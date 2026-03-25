@@ -508,6 +508,9 @@ _ROW_KEYWORDS_BY_TABLE: dict[str, list[str]] = {
         "property plant", "capital expenditure", "cash and cash equivalent",
         "cash at end", "cash at the end", "net increase", "net decrease",
         "beginning", "end of", "exchange rate",
+        # Appendix 5B section totals and key items
+        "subtotal", "exploration", "development", "staff cost",
+        "production", "related body corporate",
     ],
     "income_statement": [
         "revenue", "sales", "income", "profit", "loss", "ebit", "earnings before",
@@ -610,10 +613,19 @@ def _filter_table_rows(table, table_type: str) -> list[list[str]]:
     original_count = len(rows)
     filtered_count = len([r for r in filtered if not str(r[0]).startswith("[...")])
     if filtered_count < original_count:
+        reduction = 1 - filtered_count / original_count
+        # Safety valve: if filtering removed >90% of rows, the keyword list
+        # doesn't match this table's format (e.g. Appendix 5B numbered items).
+        # Fall back to the full table rather than sending near-empty data.
+        if reduction > 0.90:
+            logger.warning(
+                "Filter too aggressive for %s: %d → %d rows (%.0f%% reduction) — using full table",
+                table_type, original_count, filtered_count, reduction * 100,
+            )
+            return rows
         logger.info(
             "Filtered %s: %d → %d rows (%.0f%% reduction)",
-            table_type, original_count, filtered_count,
-            (1 - filtered_count / original_count) * 100,
+            table_type, original_count, filtered_count, reduction * 100,
         )
 
     return filtered
@@ -688,7 +700,7 @@ def _extract_single_table(
     )
 
     try:
-        raw = _llm_json_call(prompt, llm_client, max_tokens=1024)
+        raw = _llm_json_call(prompt, llm_client, max_tokens=2048)
     except Exception as e:
         logger.warning("Pass 3a failed for %s: %s — retrying with truncated table", table_type, e)
         try:
@@ -807,8 +819,9 @@ def _run_pass3a_metric_extractor(
         has_bs = labelled_tables.get("balance_sheet") is not None
         has_is = labelled_tables.get("income_statement") is not None
         has_cf = labelled_tables.get("cashflow_statement") is not None
-        if has_bs and "share_capital" in labelled_tables:
-            skipped_tables["share_capital"] = "balance_sheet"
+        # share_capital is NOT skipped even when balance_sheet is present.
+        # Balance sheets are dense and unreliable for share counts; the dedicated
+        # share_capital table is the most reliable source for shares_outstanding.
         if has_is and has_cf and "highlights" in labelled_tables:
             skipped_tables["highlights"] = "income_statement + cashflow_statement"
 
