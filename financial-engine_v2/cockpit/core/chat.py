@@ -20,6 +20,11 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 from typing import Any
 
+try:
+    from cockpit.core.agent.memory.store import MemoryStore
+except ImportError:
+    MemoryStore = None  # type: ignore[misc,assignment]
+
 from cockpit.core.session_memory import (
     _log_startup_status as _ov_log_startup_status,
     build_turn_payload,
@@ -114,6 +119,7 @@ class ChatController:
         llm_timeout_seconds: float = 300.0,
         state_store=None,
         thread_id: str = "global-main",
+        memory_store=None,
     ) -> None:
         self.ollama_client = ollama_client
         self.tool_router = tool_router
@@ -122,6 +128,7 @@ class ChatController:
         self.last_ticker: str | None = None
         self._state_store = state_store
         self._thread_id = thread_id
+        self._memory = memory_store
         self._ov_session_id: str = uuid.uuid4().hex
         _ov_log_startup_status()
         # Prevents concurrent context-gather calls from stacking up.
@@ -816,11 +823,22 @@ class ChatController:
             except Exception:
                 pass  # history is best-effort
 
+        # Inject research memory context into message if available
+        augmented_message = message
+        if self._memory and ticker:
+            try:
+                research = self._memory.read_research(ticker)
+                if research:
+                    extra_context = f"\n\n## Prior Research for {ticker}\n{research[:4000]}"
+                    augmented_message = message + extra_context
+            except Exception:
+                pass  # memory injection is best-effort
+
         # Run the agent loop
         from cockpit.core.agent_loop import AgentResult  # guaranteed available if _agent_loop is set
 
         result: AgentResult = self._agent_loop.run(
-            message=message,
+            message=augmented_message,
             ticker=ticker,
             conversation_history=conversation_history,
             on_chunk=on_chunk,
@@ -837,6 +855,14 @@ class ChatController:
                 ticker=ticker,
             ),
         )
+
+        # Persist turns to tiered MemoryStore (best-effort)
+        if self._memory:
+            try:
+                self._memory.append_session_turn("user", message)
+                self._memory.append_session_turn("assistant", result.text.strip())
+            except Exception:
+                pass
 
         # Extract and store ticker observations (same as keyword path)
         if self._state_store is not None and ticker:
