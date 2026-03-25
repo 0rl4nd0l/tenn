@@ -134,7 +134,7 @@ Example — half-year report ending Dec 2025:
 {{"report_type": "H", "period_end": "2025-12-31", "currency": "AUD", "scale": "thousands", "classifier_confidence": 0.92}}
 
 Title: {title}
-First page text (first 1500 chars):
+First page text:
 {first_page_text}
 """
 
@@ -150,7 +150,7 @@ def _run_pass1_classifier(
     """
     prompt = _PASS1_PROMPT.format(
         title=(title or "")[:200],
-        first_page_text=(first_page_text or "")[:1500],
+        first_page_text=(first_page_text or "")[:2000],  # first page, capped for safety
     )
     result = _llm_json_call(prompt, llm_client, max_tokens=256)
     # Normalise
@@ -918,10 +918,14 @@ def run_multipass_extraction(
         logger.error("docling_extract failed for %s: %s", pdf_path, e)
         return MultipassResult(status="failed", payload=null_payload, sections=[], error=str(e))
 
-    # Pass 1: Classify
-    first_page_text = " ".join(
-        s["text"] for s in structured_doc.sections[:5]
-    )[:1500]
+    # Pass 1: Classify — use title + first page only (not arbitrary 1500 chars).
+    # ASX filings have all classification info (period, type, currency, scale)
+    # on page 1.  Sending less text = fewer input tokens = faster LLM inference.
+    first_page_sections = [s for s in structured_doc.sections if s.get("page", 0) <= 1]
+    if not first_page_sections:
+        # Fallback: some PDFs have page=0 for all sections (e.g. pymupdf fallback).
+        first_page_sections = structured_doc.sections[:3]
+    first_page_text = " ".join(s["text"] for s in first_page_sections)
     title = doc_metadata.get("title", "")
 
     try:
