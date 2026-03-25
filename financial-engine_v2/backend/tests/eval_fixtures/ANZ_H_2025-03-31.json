@@ -1,0 +1,39 @@
+{
+  "_source": "Claude API verified from 2025-05-08_anzbgl-consolidated-half-year-financial-report_f9c99ca8-db17-4032-afcf-71a22bc3e329.pdf (ANZ, H, 2025-03-31). Currency=AUD, scale=millions. revenue: page 12, Condensed Consolidated Income Statement, 'Operating income'; ebit: page 12, Condensed Consolidated Income Statement, 'Profit before income tax'; np_attributable: page 12, Condensed Consolidated Income Statement, 'Profit attributable to shareholders of the Company'; operating_cf: page 15, Condensed Consolidated Cash Flow Statement, 'Net cash provided by/(used in) operating activities'; investing_cf: page 15, Condensed Consolidated Cash Flow Statement, 'Net cash provided by/(used in) investing activities'; financing_cf: page 15, Condensed Consolidated Cash Flow Statement, 'Net cash provided by/(used in) financing activities'; capex: page 15, Condensed Consolidated Cash Flow Statement, 'Net investments in other assets'; cash_end: page 14, Condensed Consolidated Balance Sheet, 'Cash and cash equivalents'; shares_outstanding: page 44, Note 13, 'The Company share capital comprises 3,003,366,782 fully paid shares'",
+  "_verification": "claude-api-sonnet",
+  "ticker": "ANZ",
+  "pdf_path": "data/asx/docs/ANZ/financial_performance/2025-05-08_anzbgl-consolidated-half-year-financial-report_f9c99ca8-db17-4032-afcf-71a22bc3e329.pdf",
+  "document_id": "anz_20250331_h",
+  "period_type": "H",
+  "period_end": "2025-03-31",
+  "currency": "AUD",
+  "scale": "millions",
+  "metrics": {
+    "revenue": 11153000000.0,
+    "ebit": 5222000000.0,
+    "np_attributable": 3663000000.0,
+    "operating_cf": 47507000000.0,
+    "investing_cf": -10262000000.0,
+    "financing_cf": 2824000000.0,
+    "capex": -242000000.0,
+    "cash_end": 195788000000.0,
+    "shares_outstanding": 3003366782.0
+  },
+  "expected_nulls": [
+    "net_debt"
+  ],
+  "tolerances": {
+    "revenue": 0.005,
+    "ebit": 0.02,
+    "np_attributable": 0.02,
+    "operating_cf": 0.01,
+    "investing_cf": 0.01,
+    "financing_cf": 0.01,
+    "capex": 0.02,
+    "cash_end": 0.001,
+    "shares_outstanding": 0.01
+  },
+  "config": {
+    "min_accuracy_overall": 0.8
+  }
+}
