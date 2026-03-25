@@ -169,3 +169,25 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** `DoclingTable.page_number` was available at the end of Pass 2 (used in table scoring at line 266) but was never captured into the Pass 3a output dict. Pass 4 built provenance from `_source` and `row_refs` only.
 **Fix:** Added `"_page_number": getattr(table, "page_number", None)` to Pass 3a's `out` dict. In Pass 4, extracted `page_tag = f"page_{page}"` from `_page_number` and built provenance as `f"{source}:{page_tag}:{row_ref}"`.
 **Rule:** Any metadata available on `DoclingTable` at table-selection time must be threaded through to provenance if it aids traceability. Use `_`-prefixed keys (e.g., `_page_number`, `_source`) in inter-pass dicts to distinguish metadata from extracted metrics. Regression guard: `test_pass3a_page_number_in_output`, `test_pass4_provenance_includes_page_number`.
+
+---
+
+## L016 — Model switching in cockpit stalled silently because llama-server crashes were undetected
+
+**Date:** 2026-03-25
+**Subsystem:** `cockpit/integrations/llamacpp_manager.py`, `cockpit/ui/preboot.py`
+**Symptom:** Selecting a different model in the cockpit pre-boot screen caused the UI to freeze for up to 10 minutes with no feedback, then either launch with a dead backend or time out.
+**Root cause:** Two bugs: (1) `subprocess.Popen` launched the new llama-server with `stderr=DEVNULL` — if the server crashed on startup (OOM, bad args, missing file), there was no error output to report. (2) The polling loop never called `proc.poll()` to check if the process was still alive — it blindly sent HTTP requests to a dead port for 600 seconds.
+**Fix:** (1) Changed `stderr=DEVNULL` to `stderr=PIPE` and read the last line on crash for diagnostics. (2) Added `proc.poll()` check each polling iteration — if the process died, report the exit code and stderr immediately instead of waiting for timeout.
+**Follow-up:** Discovered that llama.cpp build 8233 supports **router mode** (`--models-dir` + `--models-max 1`) which eliminates the kill/restart cycle entirely. Implemented router mode as the default — model switching now uses `POST /models/load` API with zero server downtime. Warm-cache switches complete in 1-3 seconds.
+**Rule:** Never launch a subprocess with both stdout and stderr suppressed (`DEVNULL`) when you need to detect failures. Always store the `Popen` handle and check `.poll()` in any polling loop — a dead process should be detected within one poll interval, not at timeout. For long-running services, prefer API-based control (load/unload) over process lifecycle management (kill/restart) when the runtime supports it.
+
+## L017 — Textual Select widget: use Select.BLANK not "" for blank-allowed initial value
+
+**Date:** 2026-03-25
+**Subsystem:** `cockpit/ui/preboot.py`
+**Symptom:** `textual serve` reported "Application failed to start" for CockpitWebApp. No traceback visible at serve level. Running the app directly in a terminal worked fine.
+**Root cause:** The Orchestrator and Sub-agent `Select` widgets in `PreBootScreen` were initialised with `value=""`. Textual's `Select._validate_value()` raises `InvalidSelectValueError` for any value not in the options list, including empty string — even when `allow_blank=True`. The blank-selection sentinel is `Select.BLANK` (a special object), not `""`.
+**Fix:** Replace `value=""` with `value=Select.BLANK` for any `Select` with `allow_blank=True`.
+**Secondary finding:** `textual_dev` CLI (cli.py:285) hardcodes `python` in the shell command it passes to `textual_serve`. On systems where only `python3` is in PATH this causes `/bin/sh: python: not found` at WebSocket connect time, which is also reported as "Application failed to start". Workaround: use `textual serve --command ".venv/bin/python script.py"` to provide the full interpreter path.
+**Rule:** When using Textual `Select` with `allow_blank=True`, always pass `value=Select.BLANK` (not `""` or `None`) as the initial value when no option should be pre-selected. When using `textual serve` on systems without a bare `python` in PATH, always use the `--command` flag with the full venv interpreter path.
