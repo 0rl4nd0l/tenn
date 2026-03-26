@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
-"""Batch extract all unprocessed BHP documents. Run in tmux."""
-import logging, time, sys
+"""Batch extract all unprocessed documents for a ticker. Run in tmux."""
+import argparse
+import logging
+import time
+
 logging.basicConfig(
     level=logging.WARNING,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
@@ -10,21 +13,29 @@ logging.basicConfig(
 from sqlalchemy import create_engine, text
 from app.services.pipeline import process_document
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--ticker", default="BHP", help="Ticker to process (default: BHP)")
+args = parser.parse_args()
+TICKER = args.ticker.strip().upper()
+
 DB_URL = "sqlite:////home/l4nd0/tenn/financial-engine_v2/data/fe_local.db"
 engine = create_engine(DB_URL)
 
 with engine.connect() as c:
-    rows = c.execute(text("""
-        SELECT d.document_id, d.doc_class, d.doc_subtype, d.title
-        FROM documents d
-        WHERE d.ticker = 'BHP' AND d.pdf_sha256 IS NOT NULL
-          AND d.document_id NOT IN (SELECT document_id FROM extraction_runs)
-        ORDER BY d.published_at DESC
-    """)).fetchall()
+    rows = c.execute(
+        text("""
+            SELECT d.document_id, d.doc_class, d.doc_subtype, d.title
+            FROM documents d
+            WHERE d.ticker = :ticker AND d.pdf_sha256 IS NOT NULL
+              AND d.document_id NOT IN (SELECT document_id FROM extraction_runs)
+            ORDER BY d.published_at DESC
+        """),
+        {"ticker": TICKER},
+    ).fetchall()
 
 total = len(rows)
 print(f"\n{'='*60}", flush=True)
-print(f"Batch extract: {total} unprocessed BHP documents", flush=True)
+print(f"Batch extract: {total} unprocessed {TICKER} documents", flush=True)
 print(f"{'='*60}\n", flush=True)
 
 ok = fail = skip = 0

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Re-embed all extracted BHP documents into Qdrant.
+"""Re-embed all documents for a ticker into Qdrant.
 
 Reads documents from SQLite, re-chunks from PDF via extract_structured(),
 embeds via Ollama, and upserts to Qdrant. Skips documents whose PDFs are
@@ -7,6 +7,7 @@ missing. Does NOT re-run extraction — only chunking + embedding.
 
 Run in tmux with .env.local sourced.
 """
+import argparse
 import logging
 import os
 import time
@@ -41,11 +42,16 @@ from app.services.structured_chunking import chunk_prose_sections
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ticker", default="BHP", help="Ticker to embed (default: BHP)")
+    args = parser.parse_args()
+    ticker = args.ticker.strip().upper()
+
     db = SessionLocal()
     try:
         docs = (
             db.query(Document)
-            .filter(Document.ticker == "BHP")
+            .filter(Document.ticker == ticker)
             .filter(Document.pdf_sha256.isnot(None))
             .order_by(Document.published_at.desc())
             .all()
@@ -55,7 +61,7 @@ def main() -> None:
 
     total = len(docs)
     print(f"\n{'='*60}", flush=True)
-    print(f"Re-embed: {total} BHP documents", flush=True)
+    print(f"Re-embed: {total} {ticker} documents", flush=True)
     print(f"Qdrant: {settings.qdrant_url} collection={settings.qdrant_collection}", flush=True)
     print(f"Embedding: {settings.embed_model} via {os.getenv('EMBEDDING_URL', settings.ollama_url)}", flush=True)
     print(f"Batch size: {settings.embedding_batch_size}", flush=True)
