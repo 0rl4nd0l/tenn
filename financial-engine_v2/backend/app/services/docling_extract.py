@@ -226,9 +226,9 @@ def extract_structured(pdf_path: str, *, backend: str = "") -> StructuredDocumen
     backend selection (env EXTRACTION_BACKEND or kwarg):
       - "pymupdf" (default) — fast PyMuPDF find_tables(), no ML models
       - "docling" — IBM docling with TableFormer (slow, heavy, better on complex layouts)
-      - "" — auto: uses pymupdf unless EXTRACTION_BACKEND=docling
+      - "" — auto: uses docling unless EXTRACTION_BACKEND=pymupdf
     """
-    chosen = backend or os.environ.get("EXTRACTION_BACKEND", "pymupdf")
+    chosen = backend or os.environ.get("EXTRACTION_BACKEND", "docling")
 
     # Cache check (works for both backends)
     cache_suffix = ".docling.json" if chosen == "docling" else ".pymupdf.json"
