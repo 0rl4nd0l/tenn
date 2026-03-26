@@ -8,6 +8,7 @@ import pytest
 
 from openclaw.tenn_mcp_server import (
     CommandResult,
+    HttpResult,
     SERVER_PROTOCOL_VERSION,
     TennMCPServer,
     read_message,
@@ -92,13 +93,27 @@ def repo_root(tmp_path: Path) -> Path:
     return tmp_path
 
 
-def _server(repo_root: Path, calls: list[tuple[list[str], Path, int]] | None = None) -> TennMCPServer:
+def _default_http_stub(
+    url: str, timeout_seconds: float = 3, headers: dict[str, str] | None = None,
+) -> HttpResult:
+    return HttpResult(status=0, body="connection refused")
+
+
+def _server(
+    repo_root: Path,
+    calls: list[tuple[list[str], Path, int]] | None = None,
+    http_requester=None,
+) -> TennMCPServer:
     def runner(argv: list[str], cwd: Path, timeout_seconds: int) -> CommandResult:
         if calls is not None:
             calls.append((argv, cwd, timeout_seconds))
         return CommandResult(exit_code=0, stdout="ok\n", stderr="")
 
-    return TennMCPServer(repo_root=repo_root, command_runner=runner)
+    return TennMCPServer(
+        repo_root=repo_root,
+        command_runner=runner,
+        http_requester=http_requester or _default_http_stub,
+    )
 
 
 def test_initialize_advertises_tenn_tools(repo_root: Path) -> None:
@@ -517,3 +532,232 @@ def test_message_roundtrip_uses_content_length_frames() -> None:
     stream.seek(0)
 
     assert read_message(stream) == payload
+
+
+# ------------------------------------------------------------------
+# Orchestrator introspection tools
+# ------------------------------------------------------------------
+
+
+def _make_http_responder(responses: dict[str, tuple[int, str]]):
+    """Build an http_requester stub that returns pre-configured responses by URL substring."""
+
+    def requester(url: str, timeout_seconds: float = 3, headers: dict[str, str] | None = None) -> HttpResult:
+        for pattern, (status, body) in responses.items():
+            if pattern in url:
+                return HttpResult(status=status, body=body)
+        return HttpResult(status=0, body="no stub matched")
+
+    return requester
+
+
+def test_tenn_health_all_services_up(repo_root: Path) -> None:
+    http = _make_http_responder({
+        "/api/health": (200, '{"status":"ok"}'),
+        "/api/system/status": (200, '{"redis_connected":true,"qdrant_connected":true,"collections_present":["asx_docs"]}'),
+        "/api/tags": (200, '{"models":[]}'),
+        "/health": (200, '{"status":"ok"}'),
+    })
+    server = _server(repo_root, http_requester=http)
+    result = server.call_tool("tenn_health", {})
+
+    assert result["isError"] is False
+    sc = result["structuredContent"]
+    assert sc["status"] == "healthy"
+    assert sc["timestamp_utc"]
+    assert sc["services"]["backend_api"] == "ok"
+    assert sc["services"]["redis"] == "ok"
+    assert sc["services"]["qdrant"] == "ok"
+    assert sc["services"]["ollama"] == "ok"
+    assert sc["services"]["llamacpp"] == "ok"
+
+
+def test_tenn_health_all_services_down(repo_root: Path) -> None:
+    server = _server(repo_root)  # default stub returns status=0 (unreachable)
+    result = server.call_tool("tenn_health", {})
+
+    assert result["isError"] is False
+    sc = result["structuredContent"]
+    assert sc["status"] == "unhealthy"
+    for svc in ("backend_api", "redis", "qdrant", "ollama", "llamacpp"):
+        assert sc["services"][svc] == "unreachable"
+
+
+def test_tenn_health_degraded(repo_root: Path) -> None:
+    http = _make_http_responder({
+        "/api/health": (200, '{"status":"ok"}'),
+        "/api/system/status": (200, '{"redis_connected":true,"qdrant_connected":false}'),
+    })
+    server = _server(repo_root, http_requester=http)
+    result = server.call_tool("tenn_health", {})
+
+    sc = result["structuredContent"]
+    assert sc["status"] == "degraded"
+    assert sc["services"]["backend_api"] == "ok"
+    assert sc["services"]["redis"] == "ok"
+    assert sc["services"]["qdrant"] == "unreachable"
+
+
+def test_tenn_eval_baseline_returns_latest(repo_root: Path) -> None:
+    eval_dir = repo_root / "financial-engine_v2" / "backend" / "tests" / "eval_results"
+    eval_dir.mkdir(parents=True)
+    older = {
+        "timestamp": "2026-03-25T100000Z",
+        "overall_accuracy": 0.85,
+        "per_fixture": {"BHP": {"accuracy": 1.0, "metric_count": 10}},
+        "per_metric": {"revenue": 1.0},
+        "thresholds": {"min_accuracy_overall": 0.85},
+    }
+    latest = {
+        "timestamp": "2026-03-26T120000Z",
+        "overall_accuracy": 0.9828,
+        "per_fixture": {
+            "BHP": {"accuracy": 1.0, "metric_count": 11},
+            "MIN": {"accuracy": 0.8571, "metric_count": 7},
+        },
+        "per_metric": {"revenue": 1.0, "net_debt": 0.8333},
+        "thresholds": {"min_accuracy_overall": 0.85},
+    }
+    _write(eval_dir / "eval_2026-03-25T100000Z.json", json.dumps(older))
+    _write(eval_dir / "eval_2026-03-26T120000Z.json", json.dumps(latest))
+
+    server = _server(repo_root)
+    result = server.call_tool("tenn_eval_baseline", {})
+
+    assert result["isError"] is False
+    sc = result["structuredContent"]
+    assert sc["status"] == "ok"
+    assert sc["latest_run"]["score_pct"] == 98.28
+    assert sc["latest_run"]["meets_baseline"] is True
+    assert sc["latest_run"]["fixtures_passed"] == 2  # BHP=1.0 and MIN=0.8571 both >= 0.85
+    assert sc["latest_run"]["fixtures_total"] == 2
+    assert sc["eval_file"] == "eval_2026-03-26T120000Z.json"
+
+
+def test_tenn_eval_baseline_no_results(repo_root: Path) -> None:
+    server = _server(repo_root)
+    result = server.call_tool("tenn_eval_baseline", {})
+
+    sc = result["structuredContent"]
+    assert sc["status"] == "no_results"
+
+
+def test_tenn_eval_baseline_stale_detection(repo_root: Path) -> None:
+    eval_dir = repo_root / "financial-engine_v2" / "backend" / "tests" / "eval_results"
+    eval_dir.mkdir(parents=True)
+    old_data = {
+        "timestamp": "2020-01-01T000000Z",
+        "overall_accuracy": 0.95,
+        "per_fixture": {},
+        "per_metric": {},
+        "thresholds": {"min_accuracy_overall": 0.85},
+    }
+    _write(eval_dir / "eval_2020-01-01T000000Z.json", json.dumps(old_data))
+
+    server = _server(repo_root)
+    result = server.call_tool("tenn_eval_baseline", {})
+
+    sc = result["structuredContent"]
+    assert sc["stale"] is True
+    assert sc["age_seconds"] > 86400
+
+
+def test_tenn_queue_status_returns_queues(repo_root: Path) -> None:
+    http = _make_http_responder({
+        "/api/queue/status": (200, json.dumps({
+            "redis_connected": True,
+            "queues": {"ingest": 3, "embed": 0, "score": 0, "llm_gpu": 1, "llm_cpu": 0},
+            "total_queued": 4,
+        })),
+    })
+    server = _server(repo_root, http_requester=http)
+    result = server.call_tool("tenn_queue_status", {})
+
+    assert result["isError"] is False
+    sc = result["structuredContent"]
+    assert sc["status"] == "ok"
+    assert sc["total_queued"] == 4
+    assert sc["queues"]["ingest"] == 3
+
+
+def test_tenn_queue_status_unreachable(repo_root: Path) -> None:
+    server = _server(repo_root)  # default stub = unreachable
+    result = server.call_tool("tenn_queue_status", {})
+
+    sc = result["structuredContent"]
+    assert sc["status"] == "unreachable"
+
+
+def test_tenn_collections_returns_collection_list(repo_root: Path) -> None:
+    http = _make_http_responder({
+        "/api/system/status": (200, json.dumps({
+            "redis_connected": True,
+            "qdrant_connected": True,
+            "collections_present": ["asx_docs", "commentary_chunks"],
+            "document_count_estimate": 150,
+            "last_ingestion_activity": "2026-03-26T12:00:00",
+        })),
+    })
+    server = _server(repo_root, http_requester=http)
+    result = server.call_tool("tenn_collections", {})
+
+    assert result["isError"] is False
+    sc = result["structuredContent"]
+    assert sc["status"] == "ok"
+    assert sc["collections"] == ["asx_docs", "commentary_chunks"]
+    assert sc["document_count_estimate"] == 150
+
+
+def test_tenn_collections_qdrant_down(repo_root: Path) -> None:
+    http = _make_http_responder({
+        "/api/system/status": (200, '{"redis_connected":true,"qdrant_connected":false,"collections_present":[]}'),
+    })
+    server = _server(repo_root, http_requester=http)
+    result = server.call_tool("tenn_collections", {})
+
+    sc = result["structuredContent"]
+    assert sc["status"] == "unreachable"
+    assert sc["collections"] == []
+
+
+def test_tenn_pipeline_status_returns_last_ingestion(repo_root: Path) -> None:
+    http = _make_http_responder({
+        "/api/system/status": (200, json.dumps({
+            "redis_connected": True,
+            "qdrant_connected": True,
+            "collections_present": ["asx_docs"],
+            "document_count_estimate": 42,
+            "last_ingestion_activity": "2026-03-26T10:30:00",
+        })),
+    })
+    server = _server(repo_root, http_requester=http)
+    result = server.call_tool("tenn_pipeline_status", {})
+
+    assert result["isError"] is False
+    sc = result["structuredContent"]
+    assert sc["status"] == "ok"
+    assert sc["last_ingestion_at"] == "2026-03-26T10:30:00"
+    assert sc["document_count"] == 42
+
+
+def test_tenn_pipeline_status_unreachable(repo_root: Path) -> None:
+    server = _server(repo_root)
+    result = server.call_tool("tenn_pipeline_status", {})
+
+    sc = result["structuredContent"]
+    assert sc["status"] == "unreachable"
+
+
+def test_orchestrator_tools_listed(repo_root: Path) -> None:
+    server = _server(repo_root)
+    tools = server.list_tools()
+    names = {t["name"] for t in tools}
+    for expected in ("tenn_health", "tenn_eval_baseline", "tenn_queue_status", "tenn_collections", "tenn_pipeline_status"):
+        assert expected in names, f"{expected} not in tool list"
+    # Network-calling tools should have openWorldHint: True
+    for tool in tools:
+        if tool["name"] in ("tenn_health", "tenn_queue_status", "tenn_collections", "tenn_pipeline_status"):
+            assert tool["annotations"]["openWorldHint"] is True
+    # File-reading eval tool should have openWorldHint: False
+    eval_tool = next(t for t in tools if t["name"] == "tenn_eval_baseline")
+    assert eval_tool["annotations"]["openWorldHint"] is False

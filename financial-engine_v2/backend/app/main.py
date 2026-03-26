@@ -544,6 +544,44 @@ def system_status():
     return _system_status_snapshot()
 
 
+@app.get("/api/queue/status", dependencies=[Depends(require_api_key)])
+def queue_status():
+    """Return Celery queue depths via Redis LLEN.
+
+    Returns per-queue message counts and aggregate totals.
+    Does not require live Celery workers — reads broker state directly.
+    """
+    from app.celery_app import _SPECIALIZED_QUEUES
+
+    queues: dict[str, int] = {}
+    total_queued = 0
+    redis_ok = False
+
+    if _redis_connected():
+        redis_ok = True
+        try:
+            import redis as redis_lib
+
+            host, port = _redis_socket_target()
+            parsed = urlparse(str(settings.celery_broker_url or ""))
+            db = int(parsed.path.lstrip("/") or "0")
+            client = redis_lib.Redis(host=host, port=port, db=db, socket_timeout=2)
+            for queue_name in _SPECIALIZED_QUEUES:
+                depth = client.llen(queue_name) or 0
+                queues[queue_name] = depth
+                total_queued += depth
+            client.close()
+        except Exception as exc:
+            logger.warning("Queue depth probe failed: %s", exc)
+            redis_ok = False
+
+    return {
+        "redis_connected": redis_ok,
+        "queues": queues,
+        "total_queued": total_queued,
+    }
+
+
 @app.on_event("startup")
 def startup():
     Path(settings.docs_root).mkdir(parents=True, exist_ok=True)

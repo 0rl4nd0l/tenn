@@ -6,7 +6,9 @@ import os
 import shutil
 import subprocess
 import sys
+import urllib.request
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from fnmatch import fnmatch
 from pathlib import Path
 from typing import Any, BinaryIO, Callable
@@ -41,11 +43,42 @@ BLOCKED_ROOT_NAMES = {
 BLOCKED_DIR_NAMES = {"__pycache__", "data", "reports"}
 
 
+ORCHESTRATOR_HTTP_TIMEOUT = 3
+EVAL_STALE_THRESHOLD_SECONDS = 86400
+
+
 @dataclass(frozen=True)
 class CommandResult:
     exit_code: int
     stdout: str
     stderr: str
+
+
+@dataclass(frozen=True)
+class HttpResult:
+    status: int
+    body: str
+
+
+_NO_PROXY_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
+def default_http_requester(
+    url: str,
+    timeout_seconds: float = ORCHESTRATOR_HTTP_TIMEOUT,
+    headers: dict[str, str] | None = None,
+) -> HttpResult:
+    """Perform an HTTP GET using stdlib only.  No proxy, bounded timeout."""
+    req = urllib.request.Request(url, headers=headers or {})
+    try:
+        with _NO_PROXY_OPENER.open(req, timeout=timeout_seconds) as resp:
+            body = resp.read().decode("utf-8", errors="replace")
+            return HttpResult(status=resp.status, body=body)
+    except urllib.error.HTTPError as exc:
+        body = (exc.read() or b"").decode("utf-8", errors="replace")
+        return HttpResult(status=exc.code, body=body)
+    except Exception as exc:
+        return HttpResult(status=0, body=str(exc))
 
 
 def default_command_runner(argv: list[str], cwd: Path, timeout_seconds: int) -> CommandResult:
@@ -100,9 +133,11 @@ class TennMCPServer:
         self,
         repo_root: Path,
         command_runner: Callable[[list[str], Path, int], CommandResult] | None = None,
+        http_requester: Callable[..., HttpResult] | None = None,
     ) -> None:
         self.repo_root = repo_root.resolve()
         self.command_runner = command_runner or default_command_runner
+        self.http_requester = http_requester or default_http_requester
         self.memory_store = CodexMemoryStore(self.repo_root)
         self._initialized = False
         self._tools = {
@@ -123,6 +158,11 @@ class TennMCPServer:
             "codex_memory_write_session": self._tool_codex_memory_write_session,
             "openclaw_analyze": self._tool_openclaw_analyze,
             "openclaw_verify": self._tool_openclaw_verify,
+            "tenn_health": self._tool_tenn_health,
+            "tenn_eval_baseline": self._tool_tenn_eval_baseline,
+            "tenn_queue_status": self._tool_tenn_queue_status,
+            "tenn_collections": self._tool_tenn_collections,
+            "tenn_pipeline_status": self._tool_tenn_pipeline_status,
         }
 
     def handle_message(self, message: dict[str, Any]) -> dict[str, Any] | None:
@@ -477,6 +517,57 @@ class TennMCPServer:
                     "openWorldHint": False,
                 },
             },
+            # ----- Orchestrator introspection tools -----
+            {
+                "name": "tenn_health",
+                "description": "Aggregate health check — backend API, Qdrant, Redis, Ollama, llama.cpp.",
+                "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+                "annotations": {
+                    "readOnlyHint": True,
+                    "idempotentHint": True,
+                    "openWorldHint": True,
+                },
+            },
+            {
+                "name": "tenn_eval_baseline",
+                "description": "Return the most recent extraction eval result from disk.",
+                "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+                "annotations": {
+                    "readOnlyHint": True,
+                    "idempotentHint": True,
+                    "openWorldHint": False,
+                },
+            },
+            {
+                "name": "tenn_queue_status",
+                "description": "Return Celery task queue depths via the backend API.",
+                "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+                "annotations": {
+                    "readOnlyHint": True,
+                    "idempotentHint": True,
+                    "openWorldHint": True,
+                },
+            },
+            {
+                "name": "tenn_collections",
+                "description": "Return Qdrant collection state via the backend API.",
+                "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+                "annotations": {
+                    "readOnlyHint": True,
+                    "idempotentHint": True,
+                    "openWorldHint": True,
+                },
+            },
+            {
+                "name": "tenn_pipeline_status",
+                "description": "Return pipeline state — last ingestion timestamp, document count.",
+                "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+                "annotations": {
+                    "readOnlyHint": True,
+                    "idempotentHint": True,
+                    "openWorldHint": True,
+                },
+            },
         ]
 
     def _initialize_result(self, protocol_version: str) -> dict[str, Any]:
@@ -486,7 +577,9 @@ class TennMCPServer:
             "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION},
             "instructions": (
                 "Tenn MCP exposes repo search/fetch, Codex cross-session memory bootstrap/recall/search/write, "
-                "OpenClaw run inspection, model-routing inspection, and allowlisted analyze/verify commands."
+                "OpenClaw run inspection, model-routing inspection, allowlisted analyze/verify commands, "
+                "and orchestrator introspection (tenn_health, tenn_eval_baseline, tenn_queue_status, "
+                "tenn_collections, tenn_pipeline_status)."
             ),
         }
 
@@ -724,6 +817,231 @@ class TennMCPServer:
         request = self._required_text(arguments, "request")
         result = self._run_openclaw(["verify", request], timeout_seconds=300)
         return self._command_result_tool_payload(result, "verify", request)
+
+    # ------------------------------------------------------------------
+    # Orchestrator introspection tools (read-only, network-calling)
+    # ------------------------------------------------------------------
+
+    def _utc_now(self) -> str:
+        return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    def _backend_api_key(self) -> str:
+        return os.environ.get("TENN_BACKEND_API_KEY", "").strip()
+
+    def _backend_headers(self) -> dict[str, str]:
+        key = self._backend_api_key()
+        if key:
+            return {"X-API-Key": key}
+        return {}
+
+    def _backend_url(self, path: str) -> str:
+        base = os.environ.get("TENN_BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
+        return f"{base}{path}"
+
+    def _http_get_json(self, url: str, headers: dict[str, str] | None = None) -> tuple[dict[str, Any] | None, str]:
+        """GET url, parse JSON.  Returns (parsed_dict, error_string).
+
+        On success error_string is empty.  On failure parsed_dict is None.
+        """
+        result = self.http_requester(url, timeout_seconds=ORCHESTRATOR_HTTP_TIMEOUT, headers=headers)
+        if result.status == 0:
+            return None, result.body
+        if result.status >= 400:
+            return None, f"HTTP {result.status}: {result.body[:200]}"
+        try:
+            data = json.loads(result.body)
+            if isinstance(data, dict):
+                return data, ""
+            return None, f"Expected JSON object, got {type(data).__name__}"
+        except json.JSONDecodeError as exc:
+            return None, f"JSON decode error: {exc}"
+
+    def _tool_tenn_health(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._reject_extra_arguments(arguments)
+        ts = self._utc_now()
+        services: dict[str, str] = {}
+
+        # Backend API — /api/health (no auth)
+        health_data, err = self._http_get_json(self._backend_url("/api/health"))
+        services["backend_api"] = "ok" if health_data and health_data.get("status") == "ok" else "unreachable"
+
+        # System status — /api/system/status (auth) for Redis + Qdrant
+        sys_data, err = self._http_get_json(self._backend_url("/api/system/status"), self._backend_headers())
+        if sys_data:
+            services["redis"] = "ok" if sys_data.get("redis_connected") else "unreachable"
+            services["qdrant"] = "ok" if sys_data.get("qdrant_connected") else "unreachable"
+        else:
+            services["redis"] = "unreachable"
+            services["qdrant"] = "unreachable"
+
+        # Ollama — GET /api/tags
+        ollama_url = os.environ.get("TENN_OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
+        ollama_data, _ = self._http_get_json(f"{ollama_url}/api/tags")
+        services["ollama"] = "ok" if ollama_data is not None else "unreachable"
+
+        # llama.cpp — GET /health
+        llamacpp_url = os.environ.get("TENN_LLAMACPP_URL", "http://127.0.0.1:8001").rstrip("/")
+        llamacpp_result = self.http_requester(f"{llamacpp_url}/health", timeout_seconds=ORCHESTRATOR_HTTP_TIMEOUT)
+        services["llamacpp"] = "ok" if llamacpp_result.status == 200 else "unreachable"
+
+        ok_count = sum(1 for v in services.values() if v == "ok")
+        total = len(services)
+        if ok_count == total:
+            status = "healthy"
+        elif ok_count == 0:
+            status = "unhealthy"
+        else:
+            status = "degraded"
+
+        text = f"status={status} | " + ", ".join(f"{k}={v}" for k, v in services.items())
+        return self._tool_success(text, {
+            "status": status,
+            "timestamp_utc": ts,
+            "services": services,
+        })
+
+    def _tool_tenn_eval_baseline(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._reject_extra_arguments(arguments)
+        ts = self._utc_now()
+        eval_dir = self.repo_root / "financial-engine_v2" / "backend" / "tests" / "eval_results"
+        if not eval_dir.is_dir():
+            return self._tool_success(
+                "No eval results directory found.",
+                {"status": "no_results", "timestamp_utc": ts},
+            )
+        eval_files = sorted(eval_dir.glob("eval_*.json"))
+        if not eval_files:
+            return self._tool_success(
+                "No eval result files found.",
+                {"status": "no_results", "timestamp_utc": ts},
+            )
+        latest = eval_files[-1]
+        try:
+            data = json.loads(latest.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as exc:
+            return self._tool_success(
+                f"Could not read eval file: {exc}",
+                {"status": "error", "timestamp_utc": ts, "error": str(exc)},
+            )
+
+        eval_timestamp = str(data.get("timestamp", ""))
+        overall = data.get("overall_accuracy")
+        if not isinstance(overall, (int, float)) or not (0.0 <= overall <= 1.0):
+            return self._tool_success(
+                f"Invalid overall_accuracy in {latest.name}",
+                {"status": "error", "timestamp_utc": ts, "error": "invalid overall_accuracy"},
+            )
+
+        per_fixture = data.get("per_fixture", {})
+        fixtures_passed = sum(
+            1 for f in per_fixture.values()
+            if isinstance(f, dict) and isinstance(f.get("accuracy"), (int, float)) and f["accuracy"] >= 0.85
+        )
+        fixtures_total = len(per_fixture)
+        thresholds = data.get("thresholds", {})
+        min_overall = thresholds.get("min_accuracy_overall", 0.85)
+        meets_baseline = overall >= min_overall
+
+        # Staleness — parse timestamp from filename (eval_YYYY-MM-DDTHHMMSSZ.json)
+        age_seconds: int | None = None
+        stale = False
+        try:
+            name_ts = latest.stem.replace("eval_", "")
+            eval_dt = datetime.strptime(name_ts, "%Y-%m-%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+            age_seconds = int((datetime.now(timezone.utc) - eval_dt).total_seconds())
+            stale = age_seconds > EVAL_STALE_THRESHOLD_SECONDS
+        except (ValueError, TypeError):
+            pass
+
+        score_pct = round(overall * 100, 2)
+        text = f"score={score_pct}% fixtures={fixtures_passed}/{fixtures_total} meets_baseline={meets_baseline}"
+        if stale:
+            text += " [STALE]"
+        return self._tool_success(text, {
+            "status": "ok",
+            "timestamp_utc": ts,
+            "latest_run": {
+                "score_pct": score_pct,
+                "fixtures_passed": fixtures_passed,
+                "fixtures_total": fixtures_total,
+                "run_at": eval_timestamp,
+                "meets_baseline": meets_baseline,
+            },
+            "eval_file": latest.name,
+            "age_seconds": age_seconds,
+            "stale": stale,
+        })
+
+    def _tool_tenn_queue_status(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._reject_extra_arguments(arguments)
+        ts = self._utc_now()
+        data, err = self._http_get_json(
+            self._backend_url("/api/queue/status"),
+            self._backend_headers(),
+        )
+        if data is None:
+            return self._tool_success(
+                f"Queue status unreachable: {err}",
+                {"status": "unreachable", "service": "backend_api", "timestamp_utc": ts, "error": err},
+            )
+        queues = data.get("queues", {})
+        total_queued = data.get("total_queued", 0)
+        redis_ok = data.get("redis_connected", False)
+        text = f"redis={'ok' if redis_ok else 'unreachable'} total_queued={total_queued}"
+        for name, depth in queues.items():
+            text += f" {name}={depth}"
+        return self._tool_success(text, {
+            "status": "ok" if redis_ok else "degraded",
+            "timestamp_utc": ts,
+            "redis_connected": redis_ok,
+            "queues": queues,
+            "total_queued": total_queued,
+        })
+
+    def _tool_tenn_collections(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._reject_extra_arguments(arguments)
+        ts = self._utc_now()
+        data, err = self._http_get_json(
+            self._backend_url("/api/system/status"),
+            self._backend_headers(),
+        )
+        if data is None:
+            return self._tool_success(
+                f"Collections unreachable: {err}",
+                {"status": "unreachable", "service": "backend_api", "timestamp_utc": ts, "error": err},
+            )
+        qdrant_ok = data.get("qdrant_connected", False)
+        collections = data.get("collections_present", [])
+        text = f"qdrant={'ok' if qdrant_ok else 'unreachable'} collections={collections}"
+        return self._tool_success(text, {
+            "status": "ok" if qdrant_ok else "unreachable",
+            "timestamp_utc": ts,
+            "qdrant_connected": qdrant_ok,
+            "collections": collections,
+            "document_count_estimate": data.get("document_count_estimate", 0),
+        })
+
+    def _tool_tenn_pipeline_status(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._reject_extra_arguments(arguments)
+        ts = self._utc_now()
+        data, err = self._http_get_json(
+            self._backend_url("/api/system/status"),
+            self._backend_headers(),
+        )
+        if data is None:
+            return self._tool_success(
+                f"Pipeline status unreachable: {err}",
+                {"status": "unreachable", "service": "backend_api", "timestamp_utc": ts, "error": err},
+            )
+        last_ingestion = data.get("last_ingestion_activity")
+        doc_count = data.get("document_count_estimate", 0)
+        text = f"last_ingestion={last_ingestion or 'none'} documents={doc_count}"
+        return self._tool_success(text, {
+            "status": "ok",
+            "timestamp_utc": ts,
+            "last_ingestion_at": last_ingestion,
+            "document_count": doc_count,
+        })
 
     def _command_result_tool_payload(self, result: CommandResult, command: str, request: str) -> dict[str, Any]:
         text = result.stdout.strip() or result.stderr.strip() or f"openclaw {command} finished with exit {result.exit_code}"
