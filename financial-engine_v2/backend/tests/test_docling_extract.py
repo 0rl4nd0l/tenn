@@ -37,7 +37,7 @@ def test_extract_structured_reads_fresh_cache(tmp_path, monkeypatch):
         lambda path: (_ for _ in ()).throw(AssertionError("docling should not run when cache is fresh")),
     )
 
-    loaded = docling_extract.extract_structured(str(pdf_path))
+    loaded = docling_extract.extract_structured(str(pdf_path), backend="docling")
 
     assert loaded == cached_doc
 
@@ -142,6 +142,77 @@ def test_pymupdf_fallback_extracts_sections_and_tables(monkeypatch):
     assert len(loaded.tables) == 2
     assert loaded.tables[0].headers == ["Metric", "Value"]
     assert loaded.tables[0].rows == rows
+
+
+def test_garbling_detected_falls_back_to_pymupdf(tmp_path, monkeypatch, caplog):
+    import logging
+
+    pdf_path = tmp_path / "report.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4 test")
+
+    # Garbled docling result — font-encoded +3 ASCII shift pattern
+    garbled_doc = StructuredDocument(
+        tables=[
+            DoclingTable(
+                page_number=1,
+                caption="",
+                rows=[["", ""], [")LQDO GLYLGHQG", "100"], ["5HYHQXH", "200"]],
+                headers=["", ""],
+            ),
+            DoclingTable(
+                page_number=2,
+                caption="",
+                rows=[["", ""], ["&DVK", "300"], ["2WKHU", "400"]],
+                headers=["", ""],
+            ),
+            DoclingTable(
+                page_number=3,
+                caption="",
+                rows=[["", ""], ["3URSHUW\\", "500"]],
+                headers=["", ""],
+            ),
+        ],
+        sections=[],
+        extraction_method="docling",
+        page_count=3,
+        docling_version=docling_extract.DOCLING_VERSION,
+    )
+
+    pymupdf_doc = StructuredDocument(
+        tables=[
+            DoclingTable(
+                page_number=1,
+                caption="",
+                rows=[["Metric", "Value"], ["Revenue", "200"]],
+                headers=["Metric", "Value"],
+            ),
+        ],
+        sections=[],
+        extraction_method="pymupdf",
+        page_count=3,
+    )
+
+    pymupdf_calls: list[str] = []
+
+    def fake_pymupdf(path: str) -> StructuredDocument:
+        pymupdf_calls.append(path)
+        return pymupdf_doc
+
+    monkeypatch.setattr(
+        docling_extract, "_run_docling_with_timeout",
+        lambda path, timeout=120: garbled_doc,
+    )
+    monkeypatch.setattr(docling_extract, "_extract_pymupdf", fake_pymupdf)
+    monkeypatch.setattr(docling_extract, "_get_page_count_fast", lambda path: 3)
+
+    with caplog.at_level(logging.WARNING, logger="app.services.docling_extract"):
+        result = docling_extract.extract_structured(str(pdf_path), backend="docling")
+
+    assert pymupdf_calls == [str(pdf_path)], "_extract_pymupdf should be called once"
+    assert result is pymupdf_doc, "Should return PyMuPDF result, not garbled Docling"
+    assert any("font-garbled" in msg for msg in caplog.messages), (
+        "Should log WARNING containing 'font-garbled'"
+    )
 
 
 def test_extract_caption_prefers_captions_list():

@@ -53,6 +53,54 @@ class StructuredDocument:
     docling_version: str = ""  # populated at extraction time; used for cache invalidation
 
 
+def _is_garbled(text: str) -> bool:
+    """Detect font-encoding garbling (e.g. +3 ASCII shift from PDF font subsetting).
+
+    Pattern: leading non-alpha char in ASCII 33-57 followed by 3+ uppercase letters
+    with no intervening space.  This is the hallmark of a PDF whose font subset
+    maps glyph codepoints with a fixed offset, producing strings like
+    ")LQDO GLYLGHQG" instead of "FINAL DIVIDEND".
+    """
+    s = text.strip()
+    if len(s) < 4:
+        return False
+    first = s[0]
+    if not (33 <= ord(first) <= 57 and not first.isalpha()):
+        return False
+    following = s[1:5]
+    alpha_upper = [c for c in following if c.isalpha()]
+    return len(alpha_upper) >= 3 and all(c.isupper() for c in alpha_upper)
+
+
+def _has_garbled_tables(doc: StructuredDocument, pdf_path: str) -> bool:
+    """Sample table cells from a docling result; return True if garbling detected."""
+    sample_cells: list[str] = []
+    for table in doc.tables[:3]:
+        for row in table.rows[:5]:
+            for cell in row:
+                if isinstance(cell, str) and len(cell.strip()) >= 4:
+                    sample_cells.append(cell.strip())
+                    if len(sample_cells) >= 15:
+                        break
+            if len(sample_cells) >= 15:
+                break
+
+    if not sample_cells:
+        return False
+
+    garbled_count = sum(1 for c in sample_cells if _is_garbled(c))
+    if garbled_count >= 2:
+        logger.warning(
+            "Docling output appears font-garbled for %s (%d/%d sampled cells) "
+            "— falling back to PyMuPDF",
+            pdf_path,
+            garbled_count,
+            len(sample_cells),
+        )
+        return True
+    return False
+
+
 def _get_page_count_fast(pdf_path: str) -> int:
     """Return PDF page count using fitz metadata (no rendering — fast)."""
     try:
@@ -192,6 +240,10 @@ def extract_structured(pdf_path: str, *, backend: str = "") -> StructuredDocumen
             cached = _load_cache(cache_path)
             # For docling cache, validate version; pymupdf cache is always valid
             if chosen != "docling" or cached.docling_version == DOCLING_VERSION:
+                if chosen == "docling" and _has_garbled_tables(cached, pdf_path):
+                    result = _extract_pymupdf(pdf_path)
+                    _save_cache(Path(pdf_path + ".pymupdf.json"), result)
+                    return result
                 logger.info("Using cached %s extraction for %s", cached.extraction_method, pdf_path)
                 return cached
         except Exception as e:
@@ -205,6 +257,10 @@ def extract_structured(pdf_path: str, *, backend: str = "") -> StructuredDocumen
         try:
             result = _run_docling_with_timeout(pdf_path, timeout=timeout)
             _save_cache(cache_path, result)
+            if _has_garbled_tables(result, pdf_path):
+                result = _extract_pymupdf(pdf_path)
+                _save_cache(Path(pdf_path + ".pymupdf.json"), result)
+                return result
             return result
         except Exception as e:
             logger.warning("docling failed (%s), falling back to PyMuPDF: %s", type(e).__name__, e)
