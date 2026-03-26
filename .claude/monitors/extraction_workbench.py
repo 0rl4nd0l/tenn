@@ -93,10 +93,10 @@ def list_available_pdfs(ticker: str = "") -> list[dict]:
 
 
 def list_tickers() -> list[str]:
-    """List all tickers that have PDFs."""
+    """List all ticker directories under docs root."""
     if not DOCS_ROOT.exists():
         return []
-    return sorted([d.name for d in DOCS_ROOT.iterdir() if d.is_dir() and any(d.rglob("*.pdf"))])
+    return sorted(d.name for d in DOCS_ROOT.iterdir() if d.is_dir())
 
 
 # ── History storage ───────────────────────────────────────────────────────────
@@ -748,76 +748,196 @@ def _build_chat_context(job_data: dict) -> str:
 
     raw_tables = diagnostics.get("raw_tables", {})
     if raw_tables:
-        parts.append("## Source Tables (truncated)")
+        parts.append("## Source Tables (first 500 chars each — ask me to show more if needed)")
         for label, tbl in raw_tables.items():
             parts.append(f"### {label} (page {tbl.get('page', '?')}, {tbl.get('rows', '?')} rows)")
-            parts.append((tbl.get("markdown", ""))[:2000])
+            parts.append((tbl.get("markdown", ""))[:500])
             parts.append("")
 
     return "\n".join(parts)
 
 
 def start_chat(job_id: str) -> dict:
-    """Start a chat session linked to an extraction job."""
+    """Start an interactive Claude Code session in tmux, seeded with extraction context."""
+    import shutil
     with _JOBS_LOCK:
         job = _JOBS.get(job_id)
     if not job:
         return {"ok": False, "error": "Job not found"}
+    if not shutil.which("tmux"):
+        return {"ok": False, "error": "tmux not installed — run: sudo apt install tmux"}
 
     chat_id = f"chat_{int(time.time())}_{job_id[:20]}"
+    tmux_session = f"ext-chat-{chat_id[-8:]}"
     context = _build_chat_context(job)
+
+    # Write context to a file Claude can read
+    log_dir = REPO_ROOT / ".claude" / "monitors" / "chat_logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    context_file = log_dir / f"{chat_id}.context.md"
+    context_file.write_text(context)
+    output_log = log_dir / f"{chat_id}.log"
+    output_log.write_text("")
+
+    # Start interactive claude in tmux
+    subprocess.run(
+        ["tmux", "new-session", "-d", "-s", tmux_session, "-x", "200", "-y", "50",
+         "bash", "-c", f'script -q -f {output_log} -c "claude --model sonnet"; sleep 5'],
+        cwd=str(REPO_ROOT),
+    )
 
     with _CHATS_LOCK:
         _CHATS[chat_id] = {
             "job_id": job_id,
-            "context": context,
             "messages": [],
-            "status": "ready",
+            "status": "thinking",
+            "_tmux": tmux_session,
+            "_log": str(output_log),
+            "_log_pos": 0,
+            "_context_file": str(context_file),
         }
+
+    # Wait for claude to boot, then send context
+    def _seed():
+        time.sleep(4)
+        initial = (
+            f"Read {context_file} — it has the full extraction results I want to discuss. "
+            f"Summarise the key findings (accuracy, misses, gaps) then wait for my questions."
+        )
+        _chat_tmux_send(tmux_session, initial)
+        _chat_wait_response(chat_id, "Load extraction context")
+
+    threading.Thread(target=_seed, daemon=True).start()
     return {"ok": True, "chat_id": chat_id}
 
 
-def send_chat_message(chat_id: str, user_message: str) -> dict:
-    """Send a message and get a response via claude CLI."""
+def _chat_tmux_send(session: str, message: str) -> None:
+    """Send a message to a tmux claude session."""
+    if "\n" in message and len(message) > 200:
+        tmp = REPO_ROOT / ".claude" / "monitors" / "chat_logs" / "_tmux_buf.txt"
+        tmp.write_text(message)
+        subprocess.run(["tmux", "load-buffer", str(tmp)], timeout=5)
+        subprocess.run(["tmux", "paste-buffer", "-t", session], timeout=5)
+    else:
+        for line in message.split("\n"):
+            subprocess.run(["tmux", "send-keys", "-t", session, "-l", line], timeout=5)
+            subprocess.run(["tmux", "send-keys", "-t", session, "Enter"], timeout=5)
+            time.sleep(0.1)
+    subprocess.run(["tmux", "send-keys", "-t", session, "Enter"], timeout=5)
+
+
+def _chat_wait_response(chat_id: str, user_msg: str) -> None:
+    """Tail the script log until Claude finishes responding."""
+    import re
     with _CHATS_LOCK:
         chat = _CHATS.get(chat_id)
-    if not chat:
-        return {"ok": False, "error": "Chat not found"}
+        if not chat:
+            return
+        chat["messages"].append({"role": "user", "text": user_msg})
+        log_path = Path(chat["_log"])
+        start_pos = chat["_log_pos"]
 
-    prompt_parts = [chat["context"], "---", "## Conversation"]
-    for msg in chat["messages"]:
-        role = "User" if msg["role"] == "user" else "Assistant"
-        prompt_parts.append(f"{role}: {msg['text']}")
-    prompt_parts.append(f"User: {user_message}")
-    prompt_parts.append("Assistant:")
-    full_prompt = "\n".join(prompt_parts)
+    start_time = time.time()
+    stable_count = 0
+    last_size = start_pos
+    collected = []
 
-    with _CHATS_LOCK:
-        chat["messages"].append({"role": "user", "text": user_message})
-        chat["status"] = "thinking"
+    while time.time() - start_time < 180:
+        time.sleep(2)
+        try:
+            current_size = log_path.stat().st_size
+        except Exception:
+            continue
+        if current_size > last_size:
+            with open(log_path, "r", errors="replace") as f:
+                f.seek(last_size)
+                collected.append(f.read())
+            last_size = current_size
+            stable_count = 0
+        else:
+            stable_count += 1
+            if stable_count >= 3 and collected:
+                break
 
-    try:
-        result = subprocess.run(
-            ["claude", "-p", "--model", "sonnet", "--output-format", "text"],
-            input=full_prompt,
-            capture_output=True,
-            text=True,
-            timeout=120,
-            cwd=str(REPO_ROOT),
-        )
-        response = result.stdout.strip() if result.returncode == 0 else f"Error: {result.stderr[:500]}"
-    except subprocess.TimeoutExpired:
-        response = "Response timed out (120s)"
-    except Exception as e:
-        response = f"Error: {e}"
+    raw = "".join(collected)
+    # Strip all ANSI/VT100 escape sequences
+    clean = re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', raw)
+    clean = re.sub(r'\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)', '', clean)
+    clean = re.sub(r'\x1b\[\?[0-9;]*[a-zA-Z]', '', clean)
+    clean = re.sub(r'\x1b[>=<][^\n]*', '', clean)
+    clean = re.sub(r'\x1b\([AB0-9]', '', clean)
+    # Strip carriage returns, box drawing, spinner chars
+    clean = re.sub(r'\r', '', clean)
+    clean = re.sub(r'[╭╮╰╯│─┌┐└┘├┤┬┴┼▐▛▜▝▘█▌▍▎▏⎿✶✻✽✢●◐]', '', clean)
+    clean = re.sub(r'[⏵⏵]', '', clean)
+    # Filter lines
+    lines = []
+    skip_patterns = [
+        'Claude Code v', 'Sonnet 4', 'Claude Max', '~/tenn',
+        'bypass permissions', 'shift+tab', 'ctrl+', 'esc to interrupt',
+        'Gusting', 'Crunching', 'Reading', 'Stop says:', 'Stop hook',
+        'SessionStart:', 'MILESTONE NOT', 'MEMORY CHECK', 'FEEDBACK:',
+        'SESSION MEMORY', 'hook error', 'ACTIVE FEEDBACK', 'RELEVANT MEMORIES',
+        'Recent activity', 'Welcome back', '/resume for more', "What's new",
+        'Added `', 'release-notes', 'Organization', 'Ran ', 'Permission denied',
+    ]
+    for l in clean.split("\n"):
+        stripped = l.strip()
+        if not stripped or len(stripped) < 2:
+            continue
+        if any(p in stripped for p in skip_patterns):
+            continue
+        lines.append(stripped)
+    response = "\n".join(lines).strip()
+    if not response:
+        tmux_name = "?"
+        with _CHATS_LOCK:
+            c = _CHATS.get(chat_id)
+            if c:
+                tmux_name = c.get("_tmux", "?")
+        response = f"(response in terminal — run: tmux attach -t {tmux_name})"
 
     with _CHATS_LOCK:
         chat["messages"].append({"role": "assistant", "text": response})
         chat["status"] = "ready"
+        chat["_log_pos"] = last_size
 
-    return {"ok": True, "response": response}
+
+def send_chat_message(chat_id: str, user_message: str) -> dict:
+    """Send a follow-up to the tmux claude session."""
+    with _CHATS_LOCK:
+        chat = _CHATS.get(chat_id)
+    if not chat:
+        return {"ok": False, "error": "Chat not found"}
+    if chat["status"] == "thinking":
+        return {"ok": False, "error": "Already processing a message"}
+
+    tmux_session = chat.get("_tmux")
+    if not tmux_session:
+        return {"ok": False, "error": "No tmux session"}
+
+    check = subprocess.run(["tmux", "has-session", "-t", tmux_session], capture_output=True, timeout=5)
+    if check.returncode != 0:
+        return {"ok": False, "error": "tmux session ended — start a new chat"}
+
+    with _CHATS_LOCK:
+        chat["status"] = "thinking"
+        try:
+            chat["_log_pos"] = Path(chat["_log"]).stat().st_size
+        except Exception:
+            pass
+
+    def _run():
+        _chat_tmux_send(tmux_session, user_message)
+        _chat_wait_response(chat_id, user_message)
+
+    threading.Thread(target=_run, daemon=True).start()
+    return {"ok": True}
 
 
 def get_chat(chat_id: str) -> dict | None:
     with _CHATS_LOCK:
-        return _CHATS.get(chat_id)
+        chat = _CHATS.get(chat_id)
+        if not chat:
+            return None
+        return {k: v for k, v in chat.items() if not k.startswith("_")}

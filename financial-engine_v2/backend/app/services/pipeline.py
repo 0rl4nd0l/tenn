@@ -1064,6 +1064,7 @@ def _download_and_process_one(
     try:
         download_pdf_for_document(db, document_id, http_client=http_client)
         extraction_status = None
+        result = None
         if process_documents:
             result = process_document(
                 document_id,
@@ -1214,14 +1215,14 @@ def _download_and_process_document_ids(
                     extraction_failed_count += 1
                     errors.append(
                         {
-                            "document_id": document_id,
+                            "document_id": str(document_id),
                             "stage": "process_document",
                             "error": "extraction_failed",
                             "extraction_status": out.get("extraction_status"),
                         }
                     )
                 elif out["error"] is not None:
-                    errors.append({"document_id": document_id, "error": out["error"]})
+                    errors.append({"document_id": str(document_id), "error": out["error"]})
         else:
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
                 futures = {
@@ -1249,16 +1250,16 @@ def _download_and_process_document_ids(
                             extraction_failed_count += 1
                             errors.append(
                                 {
-                                    "document_id": document_id,
+                                    "document_id": str(document_id),
                                     "stage": "process_document",
                                     "error": "extraction_failed",
                                     "extraction_status": out.get("extraction_status"),
                                 }
                             )
                         elif out["error"] is not None:
-                            errors.append({"document_id": document_id, "error": out["error"]})
+                            errors.append({"document_id": str(document_id), "error": out["error"]})
                     except Exception as exc:
-                        errors.append({"document_id": document_id, "error": str(exc)})
+                        errors.append({"document_id": str(document_id), "error": str(exc)})
     finally:
         if own_http:
             http_client.close()

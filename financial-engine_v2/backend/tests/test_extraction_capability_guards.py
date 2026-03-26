@@ -138,7 +138,7 @@ def test_backend_does_not_depend_on_camelot():
 
 
 # ---------------------------------------------------------------------------
-# Guard E — Incomplete migration: cashflow_layout_adapter not yet merged
+# Guard E — Cashflow layout modules must be present in scripts/
 # ---------------------------------------------------------------------------
 
 def test_cashflow_layout_modules_present():

@@ -111,7 +111,6 @@ class ASXProvider:
                 # CSS [href*=...] is case-sensitive; ASX uses displayAnnouncement.do (capital A).
                 links = page.css(
                     'a[href*=".pdf"], a[href*="displayAnnouncement.do"], a[href*="displayannouncement.do"]',
-                    auto_save=True,
                 )
                 for link in links:
                     href = link.css("::attr(href)").get()

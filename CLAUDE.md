@@ -48,6 +48,16 @@ There is no robotics or actuator-control runtime in this repo.
 
 ---
 
+## Project Overrides (vs. global ~/.claude/rules/)
+
+This project overrides the following global rules:
+
+- **Commit format:** This project uses `milestone(<subsystem>): ...` with `Working:` / `Tested:` fields (see §Milestone Commit Protocol below), overriding the generic `<type>: <description>` format in `rules/common/git-workflow.md`.
+- **Formatter:** This project uses `ruff` exclusively (via PostToolUse hook). `black` and `isort` are not used, overriding `rules/python/coding-style.md`.
+- **LLM inference:** llama.cpp via OpenClaw only. Ollama is for the financial-engine backend embeddings, not for coding or cockpit agent workflows.
+
+---
+
 ## Core Behavioral Rules
 
 ### Safety and Correctness First

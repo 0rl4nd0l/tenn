@@ -536,6 +536,10 @@ def score_model(
     if total_weight <= 0:
         total_weight = 1.0
 
+    # error_weight is applied twice: once to error_rate_score and once to
+    # timeout_rate_score (two independent failure dimensions). The denominator
+    # adds error_weight to total_weight to compensate, so weights summing to
+    # 1.1 in config are correct (effective denominator = 1.1 + 0.2 = 1.3).
     weighted_sum = (
         (latency_weight * latency_score)
         + (throughput_weight * throughput_score)

@@ -51,6 +51,235 @@ _JOBS_LOCK    = threading.Lock()
 _DEBATES_LOCK = threading.Lock()
 _REGISTRY_LOCK = threading.Lock()
 
+# ── Monitor scan state ───────────────────────────────────────────────────────
+_SCAN_STATE = {"running": False, "status": "idle", "done": True}
+_SCAN_LOCK = threading.Lock()
+
+MONITOR_SCRIPT = Path(__file__).parent / "monitor_agents.py"
+
+
+def _run_monitor_scan():
+    """Run monitor_agents.py --once in a subprocess."""
+    with _SCAN_LOCK:
+        _SCAN_STATE["running"] = True
+        _SCAN_STATE["done"] = False
+        _SCAN_STATE["status"] = "Starting scan..."
+
+    try:
+        venv_python = str(REPO_ROOT / "financial-engine_v2" / ".venv" / "bin" / "python")
+        proc = subprocess.Popen(
+            [venv_python, str(MONITOR_SCRIPT), "--once"],
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, cwd=str(REPO_ROOT),
+        )
+        lines = []
+        for line in proc.stdout:
+            line = line.rstrip()
+            lines.append(line)
+            # Update status with last meaningful line
+            if line.strip():
+                with _SCAN_LOCK:
+                    _SCAN_STATE["status"] = line[-120:]
+
+        proc.wait(timeout=300)
+
+        with _SCAN_LOCK:
+            if proc.returncode == 0:
+                _SCAN_STATE["status"] = f"Scan complete — {len(lines)} log lines"
+            else:
+                _SCAN_STATE["status"] = f"Scan failed (rc={proc.returncode})"
+
+    except Exception as e:
+        with _SCAN_LOCK:
+            _SCAN_STATE["status"] = f"Error: {e}"
+    finally:
+        with _SCAN_LOCK:
+            _SCAN_STATE["running"] = False
+            _SCAN_STATE["done"] = True
+
+# ── Global drawer chat sessions ──────────────────────────────────────────────
+_DRAWER_CHATS: dict[str, dict] = {}
+_DRAWER_LOCK = threading.Lock()
+
+
+def _clean_claude_output(raw: str) -> str:
+    """Strip ANSI codes, TUI chrome, and Claude CLI artifacts from script log output."""
+    import re
+    clean = re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', raw)
+    clean = re.sub(r'\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)', '', clean)
+    clean = re.sub(r'\x1b\[\?[0-9;]*[a-zA-Z]', '', clean)
+    clean = re.sub(r'\x1b[>=<][^\n]*', '', clean)
+    clean = re.sub(r'\x1b\([AB0-9]', '', clean)
+    clean = re.sub(r'\r', '', clean)
+    # Box drawing and spinner characters
+    clean = re.sub(r'[╭╮╰╯│─┌┐└┘├┤┬┴┼▐▛▜▝▘█▌▍▎▏⎿✶✻✽✢●◐⏵]', '', clean)
+
+    skip_patterns = [
+        'Claude Code v', 'Sonnet 4', 'Claude Max', '~/tenn',
+        'bypass permissions', 'shift+tab', 'ctrl+', 'esc to interrupt',
+        'Gusting', 'Crunching', 'Reading ', 'Stop says:', 'Stop hook',
+        'SessionStart:', 'MILESTONE NOT', 'MEMORY CHECK', 'FEEDBACK:',
+        'SESSION MEMORY', 'hook error', 'ACTIVE FEEDBACK', 'RELEVANT MEMORIES',
+        'Recent activity', 'Welcome back', '/resume for more', "What's new",
+        'Added `', 'release-notes', 'Organization', 'Ran ', 'Permission denied',
+        'medium  /effort', 'ctrl+g to', 'ctrl+o to',
+    ]
+    lines = []
+    for l in clean.split("\n"):
+        stripped = l.strip()
+        if not stripped or len(stripped) < 2:
+            continue
+        if any(p in stripped for p in skip_patterns):
+            continue
+        lines.append(stripped)
+    return "\n".join(lines).strip()
+
+
+def _start_drawer_chat(page_context: str, message: str, screenshot_path: str | None) -> dict:
+    """Start an interactive claude session in tmux, bridged to the web UI."""
+    import shutil
+    chat_id = f"drawer_{int(time.time())}"
+    tmux_session = f"chat-{chat_id[-8:]}"
+
+    log_dir = REPO_ROOT / ".claude" / "monitors" / "chat_logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    output_log = log_dir / f"{chat_id}.log"
+    output_log.write_text("")
+
+    if not shutil.which("tmux"):
+        return {"ok": False, "error": "tmux not installed — run: sudo apt install tmux"}
+
+    # Start interactive claude in tmux with script logging
+    subprocess.run(
+        ["tmux", "new-session", "-d", "-s", tmux_session, "-x", "200", "-y", "50",
+         "bash", "-c", f'script -q -f {output_log} -c "claude --model sonnet"; sleep 5'],
+        cwd=str(REPO_ROOT),
+    )
+
+    with _DRAWER_LOCK:
+        _DRAWER_CHATS[chat_id] = {
+            "page_context": page_context,
+            "messages": [],
+            "status": "thinking",
+            "_tmux": tmux_session,
+            "_log": str(output_log),
+            "_log_pos": 0,
+        }
+
+    # Wait for claude to start, then send initial message
+    def _init():
+        time.sleep(4)  # let claude boot
+        full_msg = page_context or ""
+        if screenshot_path:
+            full_msg += f"\n\nScreenshot of what I see: {screenshot_path}"
+        full_msg += f"\n\n{message}"
+        _tmux_send(tmux_session, full_msg)
+        _wait_for_response(chat_id, message)
+
+    threading.Thread(target=_init, daemon=True).start()
+    return {"ok": True, "chat_id": chat_id, "tmux_session": tmux_session}
+
+
+def _tmux_send(session: str, message: str) -> None:
+    """Send a message to a tmux session via send-keys."""
+    # For multi-line, write to a temp file and use load-buffer + paste
+    if "\n" in message and len(message) > 200:
+        tmp = REPO_ROOT / ".claude" / "monitors" / "chat_logs" / "_tmux_buf.txt"
+        tmp.write_text(message)
+        subprocess.run(["tmux", "load-buffer", str(tmp)], timeout=5)
+        subprocess.run(["tmux", "paste-buffer", "-t", session], timeout=5)
+    else:
+        # Single line — escape special chars and send
+        for line in message.split("\n"):
+            subprocess.run(
+                ["tmux", "send-keys", "-t", session, "-l", line],
+                timeout=5,
+            )
+            subprocess.run(["tmux", "send-keys", "-t", session, "Enter"], timeout=5)
+            time.sleep(0.1)
+    # Final Enter to submit
+    subprocess.run(["tmux", "send-keys", "-t", session, "Enter"], timeout=5)
+
+
+def _wait_for_response(chat_id: str, user_msg: str) -> None:
+    """Tail the script log until Claude finishes responding."""
+    import re
+    with _DRAWER_LOCK:
+        chat = _DRAWER_CHATS.get(chat_id)
+        if not chat:
+            return
+        chat["messages"].append({"role": "user", "text": user_msg})
+        log_path = Path(chat["_log"])
+        start_pos = chat["_log_pos"]
+
+    start_time = time.time()
+    stable_count = 0
+    last_size = start_pos
+    collected = []
+
+    while time.time() - start_time < 180:
+        time.sleep(2)
+        try:
+            current_size = log_path.stat().st_size
+        except Exception:
+            continue
+
+        if current_size > last_size:
+            with open(log_path, "r", errors="replace") as f:
+                f.seek(last_size)
+                new_text = f.read()
+            last_size = current_size
+            collected.append(new_text)
+            stable_count = 0
+        else:
+            stable_count += 1
+            # 3 polls (6s) of no new output after some content = done
+            if stable_count >= 3 and collected:
+                break
+
+    raw = "".join(collected)
+    response = _clean_claude_output(raw)
+    if not response:
+        response = "(response in terminal — run: tmux attach -t " + chat.get("_tmux", "?") + ")"
+
+    with _DRAWER_LOCK:
+        chat = _DRAWER_CHATS.get(chat_id)
+        if chat:
+            chat["messages"].append({"role": "assistant", "text": response})
+            chat["status"] = "ready"
+            chat["_log_pos"] = last_size
+
+
+def _send_drawer_chat(chat_id: str, message: str) -> dict:
+    """Send a follow-up message to the tmux claude session."""
+    with _DRAWER_LOCK:
+        chat = _DRAWER_CHATS.get(chat_id)
+    if not chat:
+        return {"ok": False, "error": "Chat not found"}
+    if chat["status"] == "thinking":
+        return {"ok": False, "error": "Already processing"}
+
+    tmux_session = chat.get("_tmux")
+    if not tmux_session:
+        return {"ok": False, "error": "No tmux session"}
+
+    # Check tmux session is still alive
+    check = subprocess.run(["tmux", "has-session", "-t", tmux_session],
+                           capture_output=True, timeout=5)
+    if check.returncode != 0:
+        return {"ok": False, "error": "tmux session ended — start a new chat"}
+
+    with _DRAWER_LOCK:
+        chat["status"] = "thinking"
+        chat["_log_pos"] = Path(chat["_log"]).stat().st_size  # mark current position
+
+    def _run():
+        _tmux_send(tmux_session, message)
+        _wait_for_response(chat_id, message)
+
+    threading.Thread(target=_run, daemon=True).start()
+    return {"ok": True}
+
 # ── Service health probes ─────────────────────────────────────────────────────
 import urllib.request, urllib.error
 
@@ -994,7 +1223,37 @@ main { max-width: 1200px; margin: 0 auto; padding: 32px; }
 .metric-miss { color: var(--critical); }
 .metric-null { color: var(--muted); }
 @media (max-width: 900px) { .ext-split { grid-template-columns: 1fr; } }
+
+/* Floating chat button */
+.chat-fab { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 50%;
+  background: var(--accent); color: #fff; border: none; font-size: 24px; cursor: pointer; z-index: 1000;
+  box-shadow: 0 4px 16px rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center;
+  transition: transform .2s, box-shadow .2s; }
+.chat-fab:hover { transform: scale(1.1); box-shadow: 0 6px 24px rgba(0,0,0,.5); }
+.chat-fab.has-session { background: var(--ok); }
+
+/* Chat drawer */
+.chat-drawer { position: fixed; bottom: 90px; right: 24px; width: 380px; max-height: 480px; z-index: 999;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  display: none; flex-direction: column; overflow: hidden; }
+.chat-drawer.open { display: flex; }
+.chat-drawer-header { padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
+.chat-drawer-header select { flex: 1; min-width: 0; background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px;
+  color: var(--text); padding: 5px 6px; font-size: 11px; overflow: hidden; text-overflow: ellipsis; }
+.chat-drawer-header .badge { font-size: 10px; flex-shrink: 0; }
+.chat-drawer-messages { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; min-height: 150px; }
+.chat-drawer-input { display: flex; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--border); align-items: center; }
+.chat-drawer-input input { flex: 1; min-width: 0; background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px;
+  padding: 8px 10px; color: var(--text); font-size: 13px; }
+.chat-drawer-input input:focus { outline: none; border-color: var(--accent); }
+.chat-drawer-input button { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 8px 12px;
+  cursor: pointer; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.chat-drawer-input button:disabled { opacity: .5; cursor: default; }
+.chat-screenshot-btn { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px;
+  cursor: pointer; color: var(--muted); font-size: 13px; flex-shrink: 0; line-height: 1; }
+.chat-screenshot-btn:hover { border-color: var(--accent); color: var(--accent); }
 </style>
+<script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
 <header>
@@ -1010,6 +1269,12 @@ main { max-width: 1200px; margin: 0 auto; padding: 32px; }
 
 <!-- ── Bugs page ── -->
 <main class="page active" id="page-bugs">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+    <button class="deploy-btn" id="scan-btn" onclick="runMonitorScan()" style="font-size:13px;padding:8px 16px">
+      &#x1f50d; Scan for new bugs
+    </button>
+    <span id="scan-status" style="font-size:12px;color:var(--muted)"></span>
+  </div>
   <div class="summary" id="summary"></div>
   <div id="tasks-section" style="display:none">
     <div class="section-title">Agent Tasks</div>
@@ -2619,8 +2884,10 @@ function initChat(jobId) {
   _lastJobId = jobId;
   document.getElementById('ext-chat-panel').style.display = 'block';
   document.getElementById('ext-chat-messages').textContent = '';
-  document.getElementById('ext-chat-status').textContent = 'starting...';
+  document.getElementById('ext-chat-status').textContent = 'starting session...';
   document.getElementById('ext-chat-status').className = 'badge running';
+  document.getElementById('ext-chat-send').disabled = true;
+  _addChatMsg('assistant thinking', 'Starting Claude session and loading extraction context...');
 
   fetch('/api/extraction/chat/start', {
     method: 'POST',
@@ -2629,14 +2896,31 @@ function initChat(jobId) {
   }).then(function(r) { return r.json(); }).then(function(data) {
     if (data.ok) {
       _chatId = data.chat_id;
-      document.getElementById('ext-chat-status').textContent = 'ready';
-      document.getElementById('ext-chat-status').className = 'badge ok';
-      _addChatMsg('assistant', 'Chat initialized with extraction context. Ask me anything about the results — why a metric is wrong, what the source table shows, how to fix a gap, etc.');
-      document.getElementById('ext-chat-input').focus();
+      // Poll for Claude's initial response (context acknowledgment)
+      var initPoll = setInterval(function() {
+        fetch('/api/extraction/chat/poll/' + encodeURIComponent(_chatId))
+          .then(function(r) { return r.json(); })
+          .then(function(poll) {
+            if (poll.status === 'ready') {
+              clearInterval(initPoll);
+              // Clear the "loading" message and show Claude's summary
+              document.getElementById('ext-chat-messages').textContent = '';
+              var msgs = poll.messages || [];
+              msgs.forEach(function(m) {
+                if (m.role === 'assistant') _addChatMsg('assistant', m.text);
+              });
+              document.getElementById('ext-chat-status').textContent = 'ready';
+              document.getElementById('ext-chat-status').className = 'badge ok';
+              document.getElementById('ext-chat-send').disabled = false;
+              document.getElementById('ext-chat-input').focus();
+            }
+          });
+      }, 2000);
     } else {
+      document.getElementById('ext-chat-messages').textContent = '';
       document.getElementById('ext-chat-status').textContent = 'error';
       document.getElementById('ext-chat-status').className = 'badge critical';
-      _addChatMsg('assistant', 'Failed to start chat: ' + (data.error || 'unknown'));
+      _addChatMsg('assistant', 'Failed to start: ' + (data.error || 'unknown'));
     }
   });
 }
@@ -2669,16 +2953,33 @@ function sendChatMessage() {
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({chat_id: _chatId, message: msg}),
   }).then(function(r) { return r.json(); }).then(function(data) {
-    thinking.remove();
-    if (data.ok) {
-      _addChatMsg('assistant', data.response);
-    } else {
+    if (!data.ok) {
+      thinking.remove();
       _addChatMsg('assistant', 'Error: ' + (data.error || 'unknown'));
+      document.getElementById('ext-chat-send').disabled = false;
+      return;
     }
-    document.getElementById('ext-chat-status').textContent = 'ready';
-    document.getElementById('ext-chat-status').className = 'badge ok';
-    document.getElementById('ext-chat-send').disabled = false;
-    document.getElementById('ext-chat-input').focus();
+    // Poll for response
+    var _chatPoll = setInterval(function() {
+      fetch('/api/extraction/chat/poll/' + encodeURIComponent(_chatId))
+        .then(function(r) { return r.json(); })
+        .then(function(poll) {
+          if (poll.status === 'ready') {
+            clearInterval(_chatPoll);
+            thinking.remove();
+            // Show the last assistant message
+            var msgs = poll.messages || [];
+            var last = msgs[msgs.length - 1];
+            if (last && last.role === 'assistant') {
+              _addChatMsg('assistant', last.text);
+            }
+            document.getElementById('ext-chat-status').textContent = 'ready';
+            document.getElementById('ext-chat-status').className = 'badge ok';
+            document.getElementById('ext-chat-send').disabled = false;
+            document.getElementById('ext-chat-input').focus();
+          }
+        });
+    }, 1500);
   }).catch(function(e) {
     thinking.remove();
     _addChatMsg('assistant', 'Error: ' + String(e));
@@ -2694,6 +2995,45 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
+// ── Monitor scan ─────────────────────────────────────────────────────────────
+var _scanPolling = null;
+
+function runMonitorScan() {
+  var btn = document.getElementById('scan-btn');
+  var status = document.getElementById('scan-status');
+  btn.disabled = true;
+  btn.textContent = '\u23f3 Scanning...';
+  status.textContent = 'Running 5 agents on new commits...';
+
+  fetch('/api/monitors/scan', {method: 'POST'})
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) {
+        // Poll for completion
+        _scanPolling = setInterval(function() {
+          fetch('/api/monitors/status')
+            .then(function(r) { return r.json(); })
+            .then(function(s) {
+              status.textContent = s.status || 'running...';
+              if (s.done) {
+                clearInterval(_scanPolling);
+                _scanPolling = null;
+                btn.disabled = false;
+                btn.textContent = '\ud83d\udd0d Scan for new bugs';
+                status.textContent = s.status || 'Scan complete';
+                // Reload bugs
+                loadData();
+              }
+            });
+        }, 3000);
+      } else {
+        btn.disabled = false;
+        btn.textContent = '\ud83d\udd0d Scan for new bugs';
+        status.textContent = 'Error: ' + (data.error || 'unknown');
+      }
+    });
+}
+
 function refreshAll() {
   loadData();
   if (document.getElementById('page-system').classList.contains('active')) loadSystem();
@@ -2702,6 +3042,181 @@ function refreshAll() {
 loadData().then(loadJobs);
 setInterval(loadData, 30000);
 setInterval(function() { if (document.getElementById('page-system').classList.contains('active')) loadSystem(); }, 15000);
+// Enter key for drawer chat
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && document.activeElement && document.activeElement.id === 'drawer-chat-input') {
+    e.preventDefault();
+    drawerSend();
+  }
+});
+</script>
+
+<!-- Floating chat button + drawer -->
+<button class="chat-fab" id="chat-fab" onclick="toggleDrawer()" title="Chat with Claude">&#x1f4ac;</button>
+<div class="chat-drawer" id="chat-drawer">
+  <div class="chat-drawer-header">
+    <span style="font-size:12px;font-weight:600;color:var(--text);flex-shrink:0">Claude</span>
+    <span class="badge" id="drawer-status">idle</span>
+  </div>
+  <div class="chat-drawer-messages" id="drawer-messages"></div>
+  <div class="chat-drawer-input">
+    <button class="chat-screenshot-btn" onclick="drawerScreenshot()" title="Attach screenshot">&#x1f4f7;</button>
+    <input type="text" id="drawer-chat-input" placeholder="Ask about this page..." autocomplete="off">
+    <button id="drawer-send-btn" onclick="drawerSend()">Send</button>
+  </div>
+</div>
+
+<script>
+var _drawerOpen = false;
+var _drawerChatId = null;
+var _drawerScreenshot = null; // base64 PNG
+
+function toggleDrawer() {
+  _drawerOpen = !_drawerOpen;
+  document.getElementById('chat-drawer').classList.toggle('open', _drawerOpen);
+  if (_drawerOpen) {
+    refreshDrawerSessions();
+    document.getElementById('drawer-chat-input').focus();
+  }
+}
+
+function refreshDrawerSessions() {
+  fetch('/api/system').then(function(r) { return r.json(); }).then(function(data) {
+    var agents = data.agents || {};
+    var running = agents.running_agents || [];
+    var sel = document.getElementById('drawer-session-select');
+    // Keep "new" option, clear the rest
+    while (sel.options.length > 1) sel.remove(1);
+    running.forEach(function(a) {
+      var s = a.session || {};
+      var label = 'PID ' + a.pid;
+      if (s.cwd) label += ' \u2014 ' + s.cwd.split('/').pop();
+      var lastAct = (s.activity || []).slice(-1)[0];
+      if (lastAct && lastAct.text) label += ' (' + lastAct.text.substring(0, 40) + ')';
+      var opt = document.createElement('option');
+      opt.value = a.pid;
+      opt.textContent = label;
+      sel.appendChild(opt);
+    });
+  });
+}
+
+function _drawerAddMsg(role, text) {
+  var c = document.getElementById('drawer-messages');
+  var div = document.createElement('div');
+  div.className = 'ext-chat-msg ' + role;
+  div.textContent = text;
+  c.appendChild(div);
+  c.scrollTop = c.scrollHeight;
+  return div;
+}
+
+function drawerScreenshot() {
+  var btn = document.querySelector('.chat-screenshot-btn');
+  btn.textContent = '\u23f3';
+  html2canvas(document.querySelector('.page.active') || document.body, {
+    backgroundColor: '#0d1117', scale: 1, logging: false,
+  }).then(function(canvas) {
+    _drawerScreenshot = canvas.toDataURL('image/png');
+    btn.textContent = '\u2705';
+    _drawerAddMsg('user', '[Screenshot attached]');
+    setTimeout(function() { btn.textContent = '\ud83d\udcf7'; }, 2000);
+  }).catch(function() {
+    btn.textContent = '\u274c';
+    setTimeout(function() { btn.textContent = '\ud83d\udcf7'; }, 2000);
+  });
+}
+
+function drawerSend() {
+  var input = document.getElementById('drawer-chat-input');
+  var msg = input.value.trim();
+  if (!msg && !_drawerScreenshot) return;
+  input.value = '';
+
+  var fullMsg = msg;
+  var screenshotData = _drawerScreenshot;
+  _drawerScreenshot = null;
+
+  // Start session if needed
+  if (!_drawerChatId) {
+    _drawerAddMsg('user', msg || '(screenshot)');
+    var thinking = _drawerAddMsg('assistant thinking', 'Starting session...');
+    document.getElementById('drawer-status').textContent = 'starting';
+    document.getElementById('drawer-status').className = 'badge running';
+    document.getElementById('drawer-send-btn').disabled = true;
+
+    // Build context about current page
+    var activePage = document.querySelector('.page.active');
+    var pageId = activePage ? activePage.id.replace('page-', '') : 'unknown';
+    var pageContext = 'The user is on the "' + pageId + '" page of the Tenn Bug Monitor dashboard (http://localhost:8765).';
+
+    var body = {page_context: pageContext, message: fullMsg};
+    if (screenshotData) body.screenshot = screenshotData;
+
+    fetch('/api/chat/start', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body),
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      if (data.ok) {
+        _drawerChatId = data.chat_id;
+        document.getElementById('chat-fab').classList.add('has-session');
+        _pollDrawerChat(thinking);
+      } else {
+        thinking.remove();
+        _drawerAddMsg('assistant', 'Error: ' + (data.error || 'unknown'));
+        document.getElementById('drawer-send-btn').disabled = false;
+      }
+    });
+    return;
+  }
+
+  // Existing session — send message
+  _drawerAddMsg('user', msg || '(screenshot)');
+  var thinking = _drawerAddMsg('assistant thinking', 'Thinking...');
+  document.getElementById('drawer-status').textContent = 'thinking';
+  document.getElementById('drawer-status').className = 'badge running';
+  document.getElementById('drawer-send-btn').disabled = true;
+
+  var body = {chat_id: _drawerChatId, message: fullMsg};
+  if (screenshotData) body.screenshot = screenshotData;
+
+  fetch('/api/chat/send', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body),
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.ok) {
+      _pollDrawerChat(thinking);
+    } else {
+      thinking.remove();
+      _drawerAddMsg('assistant', 'Error: ' + (data.error || 'unknown'));
+      document.getElementById('drawer-send-btn').disabled = false;
+    }
+  });
+}
+
+function _pollDrawerChat(thinkingEl) {
+  var poll = setInterval(function() {
+    fetch('/api/chat/poll/' + encodeURIComponent(_drawerChatId))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.status === 'ready') {
+          clearInterval(poll);
+          thinkingEl.remove();
+          var msgs = data.messages || [];
+          var last = msgs[msgs.length - 1];
+          if (last && last.role === 'assistant') {
+            _drawerAddMsg('assistant', last.text);
+          }
+          document.getElementById('drawer-status').textContent = 'ready';
+          document.getElementById('drawer-status').className = 'badge ok';
+          document.getElementById('drawer-send-btn').disabled = false;
+          document.getElementById('drawer-chat-input').focus();
+        }
+      });
+  }, 1500);
+}
 </script>
 </body>
 </html>
@@ -2887,12 +3402,15 @@ class Handler(BaseHTTPRequestHandler):
 
     def send_json(self, data, status=200):
         body = json.dumps(data).encode()
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", len(body))
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", len(body))
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(body)
+        except BrokenPipeError:
+            pass
 
     def send_html(self, html):
         body = html.encode()
@@ -2990,6 +3508,29 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path.startswith("/api/extraction/history/"):
             name = self.path.split("/api/extraction/history/")[1]
             self.send_json(wb_get_history(name))
+        elif self.path.startswith("/api/extraction/chat/poll/"):
+            cid = self.path.split("/api/extraction/chat/poll/")[1]
+            chat = wb_get_chat(cid)
+            if chat:
+                self.send_json({"ok": True, "status": chat["status"], "messages": chat["messages"]})
+            else:
+                self.send_json({"ok": False, "error": "Chat not found"}, 404)
+        elif self.path == "/api/monitors/status":
+            with _SCAN_LOCK:
+                self.send_json({
+                    "running": _SCAN_STATE["running"],
+                    "done": _SCAN_STATE["done"],
+                    "status": _SCAN_STATE["status"],
+                })
+        elif self.path.startswith("/api/chat/poll/"):
+            cid = self.path.split("/api/chat/poll/")[1]
+            with _DRAWER_LOCK:
+                chat = _DRAWER_CHATS.get(cid)
+            if chat:
+                self.send_json({"ok": True, "status": chat["status"],
+                                "messages": [m for m in chat["messages"] if m["role"] != "system"]})
+            else:
+                self.send_json({"ok": False, "error": "Chat not found"}, 404)
         elif self.path.startswith("/api/pdf/"):
             # Serve PDF files for the viewer
             rel_path = self.path[len("/api/pdf/"):]
@@ -3209,6 +3750,51 @@ class Handler(BaseHTTPRequestHandler):
             content_length = int(cl) if cl and cl.strip().isdigit() else 0
             body = json.loads(self.rfile.read(min(content_length, 8192)).decode("utf-8"))
             self.send_json(wb_send_chat(body.get("chat_id", ""), body.get("message", "")))
+        elif self.path == "/api/chat/start":
+            cl = self.headers.get("Content-Length")
+            content_length = int(cl) if cl and cl.strip().isdigit() else 0
+            body = json.loads(self.rfile.read(min(content_length, 5_000_000)).decode("utf-8"))
+            # Save screenshot if provided
+            screenshot_path = None
+            if body.get("screenshot"):
+                import base64
+                ss_dir = REPO_ROOT / ".claude" / "monitors" / "chat_screenshots"
+                ss_dir.mkdir(parents=True, exist_ok=True)
+                ss_path = ss_dir / f"ss_{int(time.time())}.png"
+                img_data = body["screenshot"].split(",", 1)[-1]  # strip data:image/png;base64,
+                ss_path.write_bytes(base64.b64decode(img_data))
+                screenshot_path = str(ss_path)
+            result = _start_drawer_chat(
+                body.get("page_context", ""),
+                body.get("message", ""),
+                screenshot_path,
+            )
+            self.send_json(result)
+        elif self.path == "/api/chat/send":
+            cl = self.headers.get("Content-Length")
+            content_length = int(cl) if cl and cl.strip().isdigit() else 0
+            body = json.loads(self.rfile.read(min(content_length, 5_000_000)).decode("utf-8"))
+            screenshot_path = None
+            if body.get("screenshot"):
+                import base64
+                ss_dir = REPO_ROOT / ".claude" / "monitors" / "chat_screenshots"
+                ss_dir.mkdir(parents=True, exist_ok=True)
+                ss_path = ss_dir / f"ss_{int(time.time())}.png"
+                img_data = body["screenshot"].split(",", 1)[-1]
+                ss_path.write_bytes(base64.b64decode(img_data))
+                screenshot_path = str(ss_path)
+            msg = body.get("message", "")
+            if screenshot_path:
+                msg = f"[Screenshot saved at {screenshot_path}]\n\n{msg}"
+            result = _send_drawer_chat(body.get("chat_id", ""), msg)
+            self.send_json(result)
+        elif self.path == "/api/monitors/scan":
+            with _SCAN_LOCK:
+                if _SCAN_STATE["running"]:
+                    self.send_json({"ok": False, "error": "Scan already running"})
+                    return
+            threading.Thread(target=_run_monitor_scan, daemon=True).start()
+            self.send_json({"ok": True})
         else:
             self.send_response(404)
             self.end_headers()

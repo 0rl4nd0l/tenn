@@ -86,7 +86,10 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
             try:
                 pipeline_core.download_pdf_for_document(db, document_id)
             except Exception as exc:
-                errors.append({"document_id": str(document_id), "stage": "download", "error": str(exc)})
+                err_str = str(exc)
+                if "marketindex_headed_required" in err_str or "document_quarantined" in err_str:
+                    skipped_download += 1
+                errors.append({"document_id": str(document_id), "stage": "download", "error": err_str})
                 continue
             processed += 1
             if bool(spec.process_documents):

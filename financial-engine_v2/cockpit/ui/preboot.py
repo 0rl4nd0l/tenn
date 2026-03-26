@@ -432,6 +432,12 @@ class PreBootScreen(Screen):
         model_select.set_options(options)
         if available_values:
             active_path = (self._llama_proc or {}).get("model_path", "")
+            # In router mode, model_path is empty — find the loaded model
+            # from the health check probe instead.
+            if not active_path and (self._llama_proc or {}).get("router_mode"):
+                loaded = self._find_router_loaded_model()
+                if loaded and loaded in available_values:
+                    active_path = loaded
             if active_path in available_values:
                 model_select.value = active_path
             else:
@@ -471,6 +477,20 @@ class PreBootScreen(Screen):
                     break
         except Exception:
             pass
+
+    def _find_router_loaded_model(self) -> str:
+        """Return the path/name of the currently loaded model in router mode."""
+        host = _extract_arg((self._llama_proc or {}).get("raw_args", []), ("--host",)) or "127.0.0.1"
+        port = _extract_arg((self._llama_proc or {}).get("raw_args", []), ("--port",)) or "8001"
+        api_key = _extract_arg((self._llama_proc or {}).get("raw_args", []), ("--api-key",))
+        for m in list_models_api(host, port, api_key):
+            if m["state"] == "loaded":
+                # Match against fs_models by stem name → return the path
+                for fm in self._llama_fs_models:
+                    if fm["stem"] == m["name"]:
+                        return fm["path"]
+                return m["name"]
+        return ""
 
     def _llamacpp_model_options(self) -> list[tuple[str, str]]:
         """

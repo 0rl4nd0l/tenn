@@ -198,15 +198,32 @@ def _warm_page_cache(model_path: str, on_status: object = None) -> None:
     p = Path(model_path)
     if not p.is_file():
         return
-    size_gb = p.stat().st_size / (1024 ** 3)
+    total_bytes = p.stat().st_size
+    size_gb = total_bytes / (1024 ** 3)
     if callable(on_status):
         on_status(f"Warming page cache for {p.name} ({size_gb:.1f} GB)...")
+    chunk_size = 8 * 1024 * 1024  # 8 MB
+    read_bytes = 0
+    last_pct = -1
     try:
         with open(model_path, "rb") as f:
-            while f.read(8 * 1024 * 1024):  # 8 MB chunks
-                pass
+            while True:
+                data = f.read(chunk_size)
+                if not data:
+                    break
+                read_bytes += len(data)
+                pct = int(read_bytes * 100 / total_bytes)
+                # Report progress every 10%.
+                if callable(on_status) and pct >= last_pct + 10:
+                    last_pct = pct
+                    on_status(
+                        f"Warming page cache: {pct}%  "
+                        f"({read_bytes / (1024**3):.1f} / {size_gb:.1f} GB)"
+                    )
     except OSError:
         pass  # Non-fatal — server will just read from disk at mmap time.
+    if callable(on_status):
+        on_status(f"Page cache warm complete ({size_gb:.1f} GB)")
 
 
 def restart_with_model(
@@ -366,6 +383,50 @@ def _api_request(
         return None
 
 
+def _is_loading_stalled(
+    host: str, port: str, model_name: str, api_key: str = "",
+) -> bool:
+    """Detect if a model stuck in 'loading' state actually has a dead child.
+
+    The llama.cpp router has a known issue where a crashed child process may
+    not be detected, leaving the model in 'loading' state indefinitely with
+    failed=false.  We check the raw /v1/models response for the child's
+    assigned port, then probe it.  If the port is unreachable, the child is
+    dead and the load has stalled.
+    """
+    import socket as _socket
+
+    result = _api_request(f"http://{host}:{port}/v1/models", api_key=api_key)
+    if not result:
+        return False
+
+    for entry in (result.get("data") or []):
+        entry_name = entry.get("id") or entry.get("model") or ""
+        if entry_name != model_name:
+            continue
+        status = entry.get("status")
+        if not isinstance(status, dict):
+            continue
+        if status.get("value") != "loading":
+            continue
+        # Extract the child port from the args list in the status object.
+        child_args = status.get("args") or []
+        child_port = _extract_arg(child_args, ("--port",))
+        if not child_port:
+            continue
+        # Probe the child port — if unreachable, child is dead.
+        try:
+            s = _socket.create_connection(
+                (host or "127.0.0.1", int(child_port)), timeout=2,
+            )
+            s.close()
+            return False  # child port is reachable — still loading normally
+        except (OSError, ValueError):
+            return True  # port unreachable — child is dead
+
+    return False
+
+
 def is_router_mode(host: str, port: str, api_key: str = "") -> bool:
     """Detect if the server is running in router mode.
 
@@ -405,6 +466,10 @@ def list_models_api(
         status = entry.get("status")
         if isinstance(status, dict):
             state = status.get("value", "loaded")
+            # Router reports failed=true when child process crashed but may
+            # still show state as "loading" — surface the real state.
+            if status.get("failed"):
+                state = "failed"
         elif isinstance(status, str):
             state = status
         else:
@@ -457,20 +522,47 @@ def load_model_api(
         _status(f"Load request failed: {exc}")
         return False
 
-    # Poll until loaded.
+    # Poll until loaded, bailing early on terminal failure states.
+    # The router has a known issue where a crashed child process may be
+    # reported as "loading" (failed=false) indefinitely. We detect this by
+    # checking the raw /v1/models response for the failed flag and child
+    # process args, then probing the child port directly.
+    _TERMINAL_STATES = {"failed", "error"}
+    _LOADING_STALL_SECONDS = 60  # if "loading" for this long, probe child
     deadline = time.monotonic() + timeout
     elapsed = 0
+    loading_since: float | None = None
+
     while time.monotonic() < deadline:
         time.sleep(1)
         elapsed += 1
         models = list_models_api(host, port, api_key)
-        for m in models:
-            if m["name"] == model_name and m["state"] == "loaded":
+        target = next((m for m in models if m["name"] == model_name), None)
+        if target is None:
+            state = "not found"
+            loading_since = None
+        else:
+            state = target["state"]
+            if state == "loaded":
                 _status(f"{model_name} loaded successfully ({elapsed}s)")
                 return True
-        # Show which state we're in.
-        target = next((m for m in models if m["name"] == model_name), None)
-        state = target["state"] if target else "not found"
+            if state in _TERMINAL_STATES:
+                _status(f"{model_name} failed to load (state: {state} after {elapsed}s)")
+                return False
+            if state == "loading":
+                if loading_since is None:
+                    loading_since = time.monotonic()
+                elif time.monotonic() - loading_since > _LOADING_STALL_SECONDS:
+                    # Stall detected — probe child health via raw API.
+                    if _is_loading_stalled(host, port, model_name, api_key):
+                        _status(
+                            f"{model_name} child process appears dead "
+                            f"(stuck in 'loading' for {int(time.monotonic() - loading_since)}s)"
+                        )
+                        return False
+            else:
+                loading_since = None
+
         remaining = int(deadline - time.monotonic())
         _status(f"Loading {model_name}... {state} ({elapsed}s elapsed, {remaining}s timeout)")
 
@@ -510,20 +602,21 @@ def generate_preset_ini(
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
 
-    defaults = {
-        "pooling": "mean",
-        "embeddings": "true",
-    }
+    defaults: dict[str, str] = {}
     if global_opts:
         defaults.update(global_opts)
 
     lines = ["# Auto-generated by cockpit — per-model presets for router mode", ""]
 
-    # Global section applies to all models.
-    lines.append("[*]")
-    for key, val in sorted(defaults.items()):
-        lines.append(f"{key} = {val}")
-    lines.append("")
+    # Global section — keep it minimal.  Do NOT add embeddings/pooling here:
+    # those flags change the CUDA memory layout and stall model loading on
+    # older GPUs (e.g. Tesla M40, compute 5.2).  They belong only on models
+    # that actually serve embeddings (e.g. nomic-embed-text).
+    if defaults:
+        lines.append("[*]")
+        for key, val in sorted(defaults.items()):
+            lines.append(f"{key} = {val}")
+        lines.append("")
 
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return out

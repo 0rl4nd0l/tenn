@@ -65,12 +65,13 @@ Do not write synthetic or interpolated values to Postgres financial tables. Extr
 
 ## PDF Extraction
 
-- **Primary:** PyMuPDF (`pymupdf`) — fast, text-layer extraction
-- **Complex PDFs:** Docling — GPU-accelerated; see `docs/ops/docling_gpu_tesla_m40.md`
-- **OCR fallback:** Tesseract — for scanned documents
+- **Default:** PyMuPDF `find_tables()` — fast (~1-25s), no ML models, preserves 2D table structure. Set via `EXTRACTION_BACKEND=pymupdf` (default).
+- **Opt-in:** Docling (`EXTRACTION_BACKEND=docling`) — IBM layout model + TableFormer. Much slower (120s+), often times out on ASX filings. Only useful for complex/scanned PDFs.
+- Both backends produce the same `StructuredDocument` (tables + sections) consumed by the multipass extraction pipeline.
+- Cache: `{pdf}.pymupdf.json` / `{pdf}.docling.json` — second runs are instant.
 - Known issues: see `docs/ops/pdf_parsing_assessment_report.md`
 
-Before changing extraction logic, read `05_pdf_extraction_and_chunking.md` and the assessment report.
+Before changing extraction logic, read `05_pdf_extraction_and_chunking.md` and `backend/app/services/docling_extract.py`.
 
 ---
 

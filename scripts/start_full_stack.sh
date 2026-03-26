@@ -39,16 +39,32 @@ check_port_free() {
     fi
   fi
   if command -v lsof >/dev/null 2>&1; then
-    if lsof -i ":${port}" >/dev/null 2>&1; then
-      echo "ERROR: ${label} port ${port} already in use" >&2
-      lsof -i ":${port}" || true
+    # Check only LISTEN state — client connections to the port don't count as conflicts
+    if lsof -i ":${port}" -sTCP:LISTEN >/dev/null 2>&1; then
+      local proc_name
+      proc_name="$(lsof -ti ":${port}" -sTCP:LISTEN 2>/dev/null | head -1 | xargs -r ps -o comm= -p 2>/dev/null || true)"
+      local label_lower="${label,,}"
+      if [[ "${proc_name,,}" == *"${label_lower}"* ]] || [[ "${label_lower}" == "postgres" && "${proc_name,,}" == *"postgres"* ]]; then
+        echo "✅  ${label} port ${port} already running (host-native ${proc_name})"
+        return 0
+      fi
+      echo "ERROR: ${label} port ${port} already in use by ${proc_name:-unknown}" >&2
+      lsof -i ":${port}" -sTCP:LISTEN || true
       exit 1
     fi
     return 0
   fi
   if command -v ss >/dev/null 2>&1; then
     if ss -ltn 2>/dev/null | awk '{print $4}' | grep -q ":${port}$"; then
-      echo "ERROR: ${label} port ${port} already in use" >&2
+      # Check if it's the expected service
+      local ss_proc
+      ss_proc="$(ss -ltnp 2>/dev/null | grep ":${port} " | grep -oP 'users:\(\("\K[^"]+' || true)"
+      local label_lower="${label,,}"
+      if [[ "${ss_proc,,}" == *"${label_lower}"* ]] || [[ "${label_lower}" == "postgres" && "${ss_proc,,}" == *"postgres"* ]]; then
+        echo "✅  ${label} port ${port} already running (host-native ${ss_proc})"
+        return 0
+      fi
+      echo "ERROR: ${label} port ${port} already in use by ${ss_proc:-unknown}" >&2
       ss -ltnp 2>/dev/null | grep ":${port} " || true
       exit 1
     fi
@@ -139,6 +155,10 @@ if [[ -n "${ENABLE_QDRANT_ON_STARTUP:-}" ]]; then
   echo "🔧 Setting ${COMPOSE_ENV_PATH}: ENABLE_QDRANT=${ENABLE_QDRANT_ON_STARTUP}"
   set_env_key "ENABLE_QDRANT" "${ENABLE_QDRANT_ON_STARTUP}" "${COMPOSE_ENV_PATH}"
 fi
+if [[ -n "${ENABLE_EXTRACTION_ON_STARTUP:-}" ]]; then
+  echo "🔧 Setting ${COMPOSE_ENV_PATH}: ENABLE_EXTRACTION=${ENABLE_EXTRACTION_ON_STARTUP}"
+  set_env_key "ENABLE_EXTRACTION" "${ENABLE_EXTRACTION_ON_STARTUP}" "${COMPOSE_ENV_PATH}"
+fi
 
 # Explicit runtime mapping: propagate startup config flags into the docker compose
 # environment as well (in case compose relies on shell env rather than env_file).
@@ -147,6 +167,9 @@ if [[ -n "${ENABLE_EMBEDDINGS_ON_STARTUP:-}" ]]; then
 fi
 if [[ -n "${ENABLE_QDRANT_ON_STARTUP:-}" ]]; then
   export ENABLE_QDRANT="${ENABLE_QDRANT_ON_STARTUP}"
+fi
+if [[ -n "${ENABLE_EXTRACTION_ON_STARTUP:-}" ]]; then
+  export ENABLE_EXTRACTION="${ENABLE_EXTRACTION_ON_STARTUP}"
 fi
 
 # Preflight probe: verify llama.cpp models endpoint is reachable from Docker network.
@@ -227,7 +250,11 @@ if [[ "${compose_includes_backend}" == "true" && -n "${LLAMACPP_URL_CONTAINER:-}
   echo "🔍 Preflight (compose net, just-before-backend): GET ${models_url}"
   embeddings_url="${LLAMACPP_URL_CONTAINER%/}/embeddings"
 
-  # Readiness gate: llama.cpp can be transiently unavailable; require a few consecutive successes.
+  # Readiness gate: llama.cpp can report /v1/models successfully while still
+  # loading model weights, then briefly reject requests once the load completes
+  # and the server re-binds. Requiring 3 consecutive successes (not just 1)
+  # guards against this flapping window — a single OK during the transient
+  # ready phase would let the backend start and immediately hit 503s.
   gate_deadline=$(( $(date +%s) + 60 ))
   ok_models=0
   ok_embeddings=0

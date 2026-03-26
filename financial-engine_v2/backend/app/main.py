@@ -33,6 +33,11 @@ from app.services.embeddings import (
     verify_qdrant,
 )
 from app.services.llm import embed_texts
+from app.services.llamacpp_runtime import (
+    resolve_embedding_runtime_config,
+    resolve_extraction_runtime_config,
+    resolve_llm_runtime_config,
+)
 from app.services.rag import query_news_chunks, query_rag
 
 
@@ -152,6 +157,31 @@ def _log_session_memory_startup_status() -> None:
         return
     from app.services.session_memory import _log_startup_status
     _log_startup_status()
+
+
+def _log_resolved_models() -> None:
+    try:
+        llm_url, llm_model = resolve_llm_runtime_config()
+        logger.info("Resolved LLM (chat/routing): model=%s url=%s", llm_model, llm_url)
+    except Exception as exc:
+        logger.error("STARTUP: failed to resolve LLM runtime config: %s", exc)
+
+    try:
+        ext_url, ext_model = resolve_extraction_runtime_config()
+        logger.info("Resolved extraction: model=%s url=%s", ext_model, ext_url)
+    except Exception as exc:
+        logger.error("STARTUP: failed to resolve extraction runtime config: %s", exc)
+
+    try:
+        emb_url, emb_model = resolve_embedding_runtime_config()
+        logger.info("Resolved embedding: model=%s url=%s", emb_model, emb_url)
+    except Exception as exc:
+        logger.error("STARTUP: failed to resolve embedding runtime config: %s", exc)
+
+    # Log Ollama URL separately since embeddings may route through it
+    ollama_url = str(settings.ollama_url or "").strip()
+    if ollama_url:
+        logger.info("Ollama endpoint (embeddings backend): %s", ollama_url)
 
 
 def _log_runtime_config() -> None:
@@ -520,6 +550,7 @@ def startup():
     if settings.auto_create_tables:
         Base.metadata.create_all(bind=engine)
     _log_runtime_config()
+    _log_resolved_models()
     _log_runtime_feature_warnings()
     _log_session_memory_startup_status()
     _log_redis_startup_status()

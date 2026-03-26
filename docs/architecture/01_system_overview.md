@@ -26,8 +26,8 @@ The source-of-truth application runtime is the financial engine. OpenClaw usage 
 1. Discover announcement metadata from ASX and optional fallback providers.
 2. Persist deduplicated document rows in Postgres.
 3. Download PDFs to `docs_root`.
-4. Extract text and chunk per document.
-5. Route embedding and generation requests through the backend self-optimizing model router.
+4. Extract PDF structure (tables + sections) via PyMuPDF `find_tables()` (default) or docling (opt-in via `EXTRACTION_BACKEND=docling`).
+5. Chunk text sections per document. Route embedding and generation requests through the backend self-optimizing model router.
 6. Embed chunks via the routed embedding role and upsert deterministic vector IDs into Qdrant.
 7. Optionally extract structured financial and risk rows back into Postgres through the routed reasoning or deep-reasoning role.
 8. Serve retrieval through `POST /rag/query` and operational APIs under `/api/*`.

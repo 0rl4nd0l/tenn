@@ -12,7 +12,7 @@ This repo uses Claude Code and Codex in parallel. Before acting on any non-trivi
 
 ## Current Sprint (as of 2026-03-21)
 
-**Active:** Extraction pipeline redesign — replace PyMuPDF flat-text + single-pass LLM with docling multi-pass.
+**Active:** Extraction pipeline — 4-pass LLM extraction with PyMuPDF `find_tables()` as default PDF backend (docling available via `EXTRACTION_BACKEND=docling`).
 
 | Item | Status | Location |
 |------|--------|----------|

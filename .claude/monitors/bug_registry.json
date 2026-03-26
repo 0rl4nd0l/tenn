@@ -7,7 +7,7 @@
     "detail": "OPENVIKING_CONFIG_FILE + ENABLE_SESSION_MEMORY added but docs/setup/environment.md not updated (CLAUDE.md: env vars \u2192 environment.md)",
     "severity": "warning",
     "first_seen": "2026-03-24T06:14:35Z",
-    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "last_seen": "2026-03-25T10:16:05.015172+00:00",
     "status": "open",
     "fix": null
   },
@@ -19,7 +19,7 @@
     "detail": "commits use docs()/test() format; CLAUDE.md requires milestone(<subsystem>) for confirmed-working changes",
     "severity": "warning",
     "first_seen": "2026-03-23T23:38:07 Z",
-    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "last_seen": "2026-03-25T10:16:05.015172+00:00",
     "status": "open",
     "fix": null
   },
@@ -31,7 +31,7 @@
     "detail": "commits use fix()/test() format; CLAUDE.md requires milestone(<subsystem>) for confirmed-working changes",
     "severity": "warning",
     "first_seen": "2026-03-23T23:29:07 Z",
-    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "last_seen": "2026-03-25T10:16:05.015172+00:00",
     "status": "open",
     "fix": null
   },
@@ -43,7 +43,7 @@
     "detail": "commit uses fix() format; CLAUDE.md requires milestone(<subsystem>) for confirmed-working changes",
     "severity": "warning",
     "first_seen": "2026-03-23T23:24:12 Z",
-    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "last_seen": "2026-03-25T10:16:05.015172+00:00",
     "status": "open",
     "fix": null
   },
@@ -55,7 +55,7 @@
     "detail": "commit uses feat() format; CLAUDE.md requires milestone(<subsystem>) for confirmed-working changes",
     "severity": "warning",
     "first_seen": "2026-03-23T23:13:07 Z",
-    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "last_seen": "2026-03-25T10:16:05.015172+00:00",
     "status": "open",
     "fix": null
   },
@@ -67,7 +67,7 @@
     "detail": "Document.pdf_sha256 != \"\" passes \"blocked_xxx\" values; extraction attempted on undownloaded docs fails at file-not-found stage; add ~Document.pdf_sha256.like(\"blocked_%\") exclusion",
     "severity": "warning",
     "first_seen": "2026-03-23T22:33:23 Z",
-    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "last_seen": "2026-03-25T10:16:05.015172+00:00",
     "status": "fixed",
     "fix": {
       "timestamp": "2026-03-25T05:32:36.507044+00:00",
@@ -84,7 +84,7 @@
     "detail": "4 commits use fix()/feat() format; CLAUDE.md requires milestone(<subsystem>) for confirmed-working changes",
     "severity": "warning",
     "first_seen": "2026-03-23T22:31:33 Z",
-    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "last_seen": "2026-03-25T10:16:05.015172+00:00",
     "status": "open",
     "fix": null
   },
@@ -96,7 +96,7 @@
     "detail": "3 commits use fix() format; CLAUDE.md requires milestone(<subsystem>) for confirmed-working changes (c4e6b2c6, dbb51534, fd4574ac)",
     "severity": "warning",
     "first_seen": "2026-03-23T22:17:07 Z",
-    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "last_seen": "2026-03-25T10:16:05.015172+00:00",
     "status": "open",
     "fix": null
   },
@@ -108,7 +108,7 @@
     "detail": "#chat-assistant-log RichLog removed from ChatScreen without updating test_cockpit_chat_status_widgets.py:160 which queries for it",
     "severity": "warning",
     "first_seen": "2026-03-23T03:05:06Z",
-    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "last_seen": "2026-03-25T10:16:05.015172+00:00",
     "status": "fixed",
     "fix": {
       "timestamp": "2026-03-25T06:09:57.476488+00:00",
@@ -125,7 +125,7 @@
     "detail": "screen.query_one(\"#chat-assistant-log\", RichLog) will raise NoMatches \u2014 widget removed from ChatScreen.compose() in screens.py working-tree but test not updated",
     "severity": "critical",
     "first_seen": "2026-03-23T03:05:06Z",
-    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "last_seen": "2026-03-25T10:16:05.015172+00:00",
     "status": "open",
     "fix": null
   },
@@ -137,7 +137,7 @@
     "detail": "scale detection logic changed but not committed \u2014 CLAUDE.md mandates milestone commits for confirmed-working state; change makes table-header scale unconditionally authoritative over Pass 1 LLM inference",
     "severity": "warning",
     "first_seen": "2026-03-23T02:47:06Z",
-    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "last_seen": "2026-03-25T10:16:05.015172+00:00",
     "status": "fixed",
     "fix": {
       "timestamp": "2026-03-25T04:38:00.465893+00:00",
@@ -154,7 +154,7 @@
     "detail": "feat(github) has Working:/Tested: milestone body lines but wrong prefix \u2014 CLAUDE.md mandates `milestone(<subsystem>): <what works>`; use `milestone(github): ...` to be findable via git log grep",
     "severity": "warning",
     "first_seen": "2026-03-22T08:12:54+00:00",
-    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "last_seen": "2026-03-25T10:16:05.015172+00:00",
     "status": "open",
     "fix": null
   },
@@ -166,7 +166,7 @@
     "detail": "uses: anthropics/claude-code-action@beta pins to a mutable tag not a commit SHA \u2014 if the beta tag is force-pushed, arbitrary code runs with ANTHROPIC_API_KEY and write permissions; pin to a specific SHA (e.g. @abc1234) to prevent supply-chain substitution",
     "severity": "warning",
     "first_seen": "2026-03-22T08:11:40+00:00",
-    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "last_seen": "2026-03-25T10:16:05.015172+00:00",
     "status": "open",
     "fix": null
   },
@@ -178,7 +178,7 @@
     "detail": "errors dict stores raw UUID objects (`\"document_id\": document_id`) \u2014 Celery uses task_serializer=\"json\" (celery_app.py:53) and worker_tasks.py:24 returns this dict directly; json.dumps will raise TypeError in production/Celery mode; resume_pending_downloads.py correctly uses str(row.document_id) \u2014 pipeline_service.py must match",
     "severity": "critical",
     "first_seen": "2026-03-22T08:10:36+00:00",
-    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "last_seen": "2026-03-25T10:16:05.015172+00:00",
     "status": "open",
     "fix": null
   },
@@ -190,7 +190,7 @@
     "detail": "fix(misc) bundles 4 files across 3 subsystems (cockpit/actions, scripts/log_change_impact, scripts/resume_pending_downloads, scripts/update_ticker_financials) in one commit \u2014 CLAUDE.md requires one subsystem per change and no unrelated refactors bundled together",
     "severity": "warning",
     "first_seen": "2026-03-22T08:07:10+00:00",
-    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "last_seen": "2026-03-25T10:16:05.015172+00:00",
     "status": "open",
     "fix": null
   },
@@ -202,7 +202,7 @@
     "detail": "PipelineResult fields chunks_created/chunks_skipped/invalid_payloads/written_points always 0 \u2014 ingestion_metrics dict is initialised but never populated in the replacement loop; callers receive silently wrong ingestion telemetry",
     "severity": "critical",
     "first_seen": "2026-03-22T08:01:01+00:00",
-    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "last_seen": "2026-03-25T10:16:05.015172+00:00",
     "status": "open",
     "fix": null
   },
@@ -214,7 +214,7 @@
     "detail": "`skipped_download` counter initialised to 0 but never incremented in the replacement loop \u2014 any downstream reporting of skipped-download counts will silently report 0",
     "severity": "warning",
     "first_seen": "2026-03-22T08:00:08+00:00",
-    "last_seen": "2026-03-25T06:11:15.956916+00:00",
+    "last_seen": "2026-03-25T10:16:05.015172+00:00",
     "status": "open",
     "fix": null
   }

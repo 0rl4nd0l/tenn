@@ -56,9 +56,14 @@ CODEX_PROFILE=audit make codex-prompt-refresh
 
 ```
 ASX/MarketIndex provider → PDF download + SHA256
-  → text_extract (PyMuPDF) → chunking → embeddings (Qdrant upsert)
-  → LLM extraction (Ollama JSON) → Postgres (documents, extraction_runs, asx_periodic_financials)
+  → PDF structure extraction (PyMuPDF find_tables — tables + sections)
+  → chunking → embeddings (Qdrant upsert)
+  → Multipass LLM extraction (llama.cpp JSON) → Postgres (documents, extraction_runs, asx_periodic_financials)
 ```
+
+**PDF extraction backend:** PyMuPDF `find_tables()` is the default (`EXTRACTION_BACKEND=pymupdf`).
+Docling is available as opt-in via `EXTRACTION_BACKEND=docling` but is much slower (120s+ vs ~1-25s)
+and typically times out on ASX filings. Both backends produce the same `StructuredDocument` interface.
 
 Pipeline tasks can run in two modes set by `TASK_MODE`:
 - `sync` — direct call in the API request (used in local mode)
@@ -97,6 +102,8 @@ Requests are classified by heuristic pattern matching into task types (`coding`,
 | `backend/app/main.py` | FastAPI app, startup validation (Qdrant dimension check, embedding model mismatch guard) |
 | `backend/app/core/config.py` | `Settings` (pydantic-settings), URL normalization for sqlite/redis/qdrant, LLM endpoint conflict check |
 | `backend/app/services/pipeline.py` | Core ingestion: download → extract → embed → persist |
+| `backend/app/services/docling_extract.py` | PDF → `StructuredDocument` (tables + sections). Default: PyMuPDF `find_tables()`. Opt-in: docling via `EXTRACTION_BACKEND=docling` |
+| `backend/app/services/multipass_extraction.py` | 4-pass LLM extraction: classify → locate tables → extract metrics → reconcile |
 | `backend/app/services/embeddings.py` | Qdrant upsert, collection management, dimension validation |
 | `backend/app/services/llm.py` | `embed_texts`, `generate_json`, `get_routing_decision` — all LLM calls go through here |
 | `backend/app/services/extraction.py` | `build_prompt` for financial JSON extraction; clips to first 18,000 chars |

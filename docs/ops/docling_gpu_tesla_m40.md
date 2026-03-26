@@ -1,5 +1,12 @@
 # Docling on Tesla M40 (sm_52) — GPU default
 
+> **⚠ SUPERSEDED (2026-03-25):** Docling is no longer the default PDF extraction backend.
+> PyMuPDF `find_tables()` is now the default (`EXTRACTION_BACKEND=pymupdf`) — it produces
+> equivalent structured output in ~1-25s vs docling's 120s+ (which typically timed out on
+> ASX filings). Docling is still available via `EXTRACTION_BACKEND=docling` but is not
+> recommended for routine use. The GPU setup below is only relevant if you explicitly opt
+> into docling for complex/scanned PDFs.
+
 The Tesla M40 has **CUDA compute capability 5.2** (Maxwell). Current **PyTorch 2.10** wheels are built for **sm_70 and above** only, so you get:
 
 ```text

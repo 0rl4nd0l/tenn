@@ -138,6 +138,15 @@ The metrics layer stores rolling per-model summaries and rolling per `(model, fi
 
 Periodic summary snapshots are also written to `financial-engine_v2/reports/router_metrics_snapshot.json`. Older snapshots without finance-task fields still load safely and fall back to global per-model summaries.
 
+## Routing feedback loop
+
+Two env vars control whether the system analyzer's output feeds back into routing decisions:
+
+- **`ROUTER_FEEDBACK_ENABLED`** (default `true`) — master switch for the analyzer feedback loop. When `true`, `get_analyzer_feedback()` in `router_state.py` reads the latest analyzer report and may apply a scoring penalty to the current model candidate (modes: `degrade_model`, `prefer_fallback`). When `false`, the feedback path returns `no_op` with zero penalty, and routing relies solely on live runtime metrics and static config.
+- **`ANALYZER_MAX_AGE_SECONDS`** (default `600`) — staleness window in seconds. If the analyzer report's `generated_at` timestamp is older than this threshold, the report is discarded (treated as absent). This prevents stale metrics from penalizing a model that has since recovered.
+
+Together these vars act as a gate: feedback must be both enabled and fresh to influence adaptive routing weights. Disabling feedback or lowering the max age is useful when the analyzer is not running or producing unreliable reports.
+
 ## Adaptive weights
 
 `model_routing.yaml` now exposes the active policy weights:

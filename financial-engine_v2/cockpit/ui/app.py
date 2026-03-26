@@ -22,7 +22,7 @@ from cockpit.core.chat import ChatController
 from cockpit.core.job_runner import JobRunner
 from cockpit.core.plotly_html import build_candlestick_dashboard_html, build_snapshot_dashboard_html
 from cockpit.core.snapshot import build_snapshot_payload
-from cockpit.core.config import DEFAULT_LLAMACPP_URL
+from cockpit.core.config import DEFAULT_LLAMACPP_URL, DEFAULT_OLLAMA_URL
 from cockpit.core.types import JobRun
 from cockpit.core.verification import run_verification
 from cockpit.integrations.backend_api import BackendApiClient

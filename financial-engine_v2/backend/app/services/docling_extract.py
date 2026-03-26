@@ -71,40 +71,149 @@ def _compute_docling_timeout(page_count: int) -> int:
     return min(DOCLING_TIMEOUT_MAX, max(DOCLING_TIMEOUT_SECONDS, adaptive))
 
 
-def extract_structured(pdf_path: str) -> StructuredDocument:
+def _extract_pymupdf(pdf_path: str) -> StructuredDocument:
+    """Primary extractor using PyMuPDF find_tables() — fast, no ML models.
+
+    Produces the same StructuredDocument as docling but in ~15-25s vs 120s+.
+    Works well on native-text ASX filings.
+    """
+    tables: list[DoclingTable] = []
+    sections: list[dict] = []
+
+    with fitz.open(pdf_path) as doc:
+        page_count = len(doc)
+
+        for page_num_0, page in enumerate(doc):
+            page_num = page_num_0 + 1
+
+            # ── Sections: extract text blocks with heading detection ──
+            blocks = page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE)["blocks"]
+            page_headings: list[tuple[float, str]] = []  # (y_pos, text)
+
+            for block in blocks:
+                if block["type"] != 0:  # text block
+                    continue
+                for line in block.get("lines", []):
+                    spans = line.get("spans", [])
+                    if not spans:
+                        continue
+                    text = "".join(s["text"] for s in spans).strip()
+                    if not text:
+                        continue
+                    # Detect heading by font size (>= 11pt) or bold
+                    max_size = max(s["size"] for s in spans)
+                    is_bold = any("bold" in s.get("font", "").lower() for s in spans)
+                    is_heading = max_size >= 11.0 or (is_bold and max_size >= 9.5)
+                    y_pos = line["bbox"][1]
+
+                    if is_heading:
+                        page_headings.append((y_pos, text))
+
+                    sections.append({
+                        "heading": is_heading,
+                        "text": text,
+                        "page": page_num,
+                    })
+
+            # ── Tables: extract with find_tables() ──
+            try:
+                tab_finder = page.find_tables()
+                for tab in tab_finder.tables:
+                    raw_rows = tab.extract()
+                    if not raw_rows:
+                        continue
+                    rows_str = [[str(c or "") for c in row] for row in raw_rows]
+                    headers = rows_str[0] if rows_str else []
+
+                    # Caption: find nearest heading above the table's top edge
+                    table_top_y = tab.bbox[1] if tab.bbox else 0
+                    caption = ""
+                    if page_headings:
+                        above = [(y, t) for y, t in page_headings if y < table_top_y]
+                        if above:
+                            caption = above[-1][1]  # closest heading above
+
+                    tables.append(DoclingTable(
+                        page_number=page_num,
+                        caption=caption,
+                        rows=rows_str,
+                        headers=headers,
+                    ))
+            except Exception as e:
+                logger.debug("find_tables failed on page %d: %s", page_num, e)
+
+    # ── Merge split tables across page breaks ──
+    # If a table on page N+1 has no caption and its headers match
+    # the previous table's headers, it's likely a continuation.
+    merged_tables: list[DoclingTable] = []
+    for table in tables:
+        if (merged_tables
+                and not table.caption
+                and table.page_number == merged_tables[-1].page_number + 1
+                and table.headers == merged_tables[-1].headers):
+            # Continuation — append data rows (skip header row)
+            merged_tables[-1].rows.extend(table.rows[1:])
+            logger.debug(
+                "Merged continuation table from page %d into page %d table",
+                table.page_number, merged_tables[-1].page_number,
+            )
+        else:
+            merged_tables.append(table)
+
+    return StructuredDocument(
+        tables=merged_tables,
+        sections=sections,
+        extraction_method="pymupdf",
+        page_count=page_count,
+        docling_version="",
+    )
+
+
+def extract_structured(pdf_path: str, *, backend: str = "") -> StructuredDocument:
     """
     Main entry point. Returns StructuredDocument for the given PDF path.
-    Reads from cache if fresh; runs docling otherwise.
-    Falls back to PyMuPDF if docling fails or times out.
+
+    backend selection (env EXTRACTION_BACKEND or kwarg):
+      - "pymupdf" (default) — fast PyMuPDF find_tables(), no ML models
+      - "docling" — IBM docling with TableFormer (slow, heavy, better on complex layouts)
+      - "" — auto: uses pymupdf unless EXTRACTION_BACKEND=docling
     """
-    cache_path = Path(pdf_path + ".docling.json")
+    chosen = backend or os.environ.get("EXTRACTION_BACKEND", "pymupdf")
+
+    # Cache check (works for both backends)
+    cache_suffix = ".docling.json" if chosen == "docling" else ".pymupdf.json"
+    cache_path = Path(pdf_path + cache_suffix)
     pdf_mtime = os.path.getmtime(pdf_path)
 
     if cache_path.exists() and cache_path.stat().st_mtime > pdf_mtime:
         try:
             cached = _load_cache(cache_path)
-            if cached.docling_version == DOCLING_VERSION:
+            # For docling cache, validate version; pymupdf cache is always valid
+            if chosen != "docling" or cached.docling_version == DOCLING_VERSION:
+                logger.info("Using cached %s extraction for %s", cached.extraction_method, pdf_path)
                 return cached
-            logger.info(
-                "docling version changed (%s → %s), re-extracting: %s",
-                cached.docling_version,
-                DOCLING_VERSION,
-                cache_path,
-            )
         except Exception as e:
-            logger.warning("docling cache corrupt, re-extracting: %s", e)
+            logger.warning("Cache corrupt, re-extracting: %s", e)
 
-    page_count = _get_page_count_fast(pdf_path)
-    timeout = _compute_docling_timeout(page_count)
-    if timeout != DOCLING_TIMEOUT_SECONDS:
-        logger.info("docling adaptive timeout: %ds for %d-page PDF", timeout, page_count)
-    try:
-        result = _run_docling_with_timeout(pdf_path, timeout=timeout)
+    if chosen == "docling":
+        page_count = _get_page_count_fast(pdf_path)
+        timeout = _compute_docling_timeout(page_count)
+        if timeout != DOCLING_TIMEOUT_SECONDS:
+            logger.info("docling adaptive timeout: %ds for %d-page PDF", timeout, page_count)
+        try:
+            result = _run_docling_with_timeout(pdf_path, timeout=timeout)
+            _save_cache(cache_path, result)
+            return result
+        except Exception as e:
+            logger.warning("docling failed (%s), falling back to PyMuPDF: %s", type(e).__name__, e)
+            result = _extract_pymupdf(pdf_path)
+            _save_cache(Path(pdf_path + ".pymupdf.json"), result)
+            return result
+    else:
+        logger.info("PyMuPDF extraction: %s", pdf_path)
+        result = _extract_pymupdf(pdf_path)
         _save_cache(cache_path, result)
         return result
-    except Exception as e:
-        logger.warning("docling failed (%s), falling back to PyMuPDF: %s", type(e).__name__, e)
-        return _pymupdf_fallback(pdf_path)
 
 
 def _run_docling_with_timeout(pdf_path: str, timeout: int = DOCLING_TIMEOUT_SECONDS) -> StructuredDocument:

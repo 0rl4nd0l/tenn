@@ -27,7 +27,7 @@ Branch: cloud/session-20260319
 | **news-pipeline** | `[ verified ]` | Embedding routing fixed, asx_docs rebuilt at 768-dim (a4564e47) |
 | **eval-fixtures** | `[ in-progress ]` | 9 fixtures: 6 hand-verified + 3 Claude API verified (ANZ bank, AZJ transport, CSL healthcare USD). MIN fixture completed to 10 metrics. Live eval needed to validate new fixtures against extraction pipeline. |
 | **extraction-quality** | `[ in-progress ]` | 98.3% accuracy on 6 fixtures (483ce6d2). Broadened to 9 fixtures (5 sectors). Extraction LLM separated from chat (EXTRACTION_LLAMACPP_URL). Pipeline optimized: parallel Pass 3a, skip redundant tables, optional narrative skip. Live eval with expanded 9-fixture set pending. |
-| **extraction-perf** | `[ verified ]` | Pass 1 first-page-only (e25dcd43). Parallel 3a + skip redundant + skip narrative (6c8c53bf). Pre-filter table rows: researched, not yet implemented. 301 tests passing. |
+| **extraction-perf** | `[ verified ]` | Pass 1 first-page-only (e25dcd43). Parallel 3a + skip redundant + skip narrative (6c8c53bf). Pre-filter table rows: researched, not yet implemented. **PDF backend switched from docling to PyMuPDF find_tables() — 1-25s vs 120s+ timeout.** EXTRACTION_BACKEND env var controls. 301 tests passing. |
 | **cockpit-agent** | `[ verified ]` | Full agent scaffold: HybridRouter (local + Anthropic API), MemoryStore (SQLite-vec), SubAgentSpawner, ExtractionController (wired into ToolExecutor), ModelRouter, system prompt, preboot per-function UI. 93 tests. E2E verified against both local llama.cpp and Anthropic API. |
 
 ---
