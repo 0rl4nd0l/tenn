@@ -1092,7 +1092,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 32px; }
 .svc-dot.up { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
 .svc-dot.down { background: var(--critical); box-shadow: 0 0 6px var(--critical); }
 .svc-latency { color: var(--muted); font-size: 11px; margin-top: 4px; }
-.svc-detail { color: var(--muted); font-size: 11px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.svc-detail { color: var(--muted); font-size: 11px; margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 
 .git-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px;
   display: flex; gap: 24px; align-items: center; margin-bottom: 32px; flex-wrap: wrap; }
@@ -1300,7 +1300,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 32px; }
       <th data-sort="pid">PID</th>
       <th data-sort="name">Name</th>
       <th data-sort="mem_pct">MEM %</th>
-      <th data-sort="mem_mb">MEM MB</th>
+      <th data-sort="mem_mb">MEM</th>
       <th data-sort="cpu_pct">CPU %</th>
       <th>Command</th>
     </tr></thead>
@@ -1986,27 +1986,79 @@ function renderProcs(procs) {
   _sortAndRenderProcs();
 }
 
+function shortenCmd(cmd) {
+  if (!cmd) return '';
+  // Extract key args: model files (-m/--model), ports (--port), aliases (--alias)
+  var keyArgs = [];
+  var mMatch = cmd.match(/(?:-m|--model)\s+(\S+)/);
+  if (mMatch) keyArgs.push(mMatch[1].replace(/^.*\//, ''));
+  var pMatch = cmd.match(/--port\s+(\d+)/);
+  if (pMatch) keyArgs.push(':' + pMatch[1]);
+  var aMatch = cmd.match(/--alias\s+(\S+)/);
+  if (aMatch) keyArgs.push(aMatch[1]);
+  // Get binary basename
+  var parts = cmd.split(/\s+/);
+  var bin = parts[0].replace(/^.*\//, '');
+  if (keyArgs.length > 0) return bin + ' ' + keyArgs.join(' ');
+  // For node/claude: show just a short summary
+  if (cmd.length > 80) return bin + ' ...' + cmd.slice(-40);
+  return cmd;
+}
+
 function _sortAndRenderProcs() {
-  const sorted = [..._procData].sort(function(a, b) {
-    const va = a[_procSort.col], vb = b[_procSort.col];
+  var sorted = _procData.slice().sort(function(a, b) {
+    var va = a[_procSort.col], vb = b[_procSort.col];
     if (typeof va === 'number') return _procSort.asc ? va - vb : vb - va;
     return _procSort.asc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
   });
-  const body = document.getElementById('proc-body');
+  var body = document.getElementById('proc-body');
   body.textContent = '';
   sorted.forEach(function(p) {
-    const tr = document.createElement('tr');
-    const memBar = '<span class="proc-bar ' + barClass(p.mem_pct * 2) + '" style="width:' + Math.max(p.mem_pct * 2, 2) + 'px;background:var(--' + barClass(p.mem_pct * 2) + ')"></span>';
-    const cpuBar = '<span class="proc-bar ' + barClass(p.cpu_pct) + '" style="width:' + Math.max(p.cpu_pct, 2) + 'px;background:var(--' + barClass(p.cpu_pct) + ')"></span>';
-    tr.innerHTML = '<td>' + esc(String(p.pid)) + '</td>'
-      + '<td>' + esc(p.name) + '</td>'
-      + '<td>' + memBar + esc(String(p.mem_pct)) + '</td>'
-      + '<td>' + esc(String(p.mem_mb)) + '</td>'
-      + '<td>' + cpuBar + esc(String(p.cpu_pct)) + '</td>'
-      + '<td class="proc-cmd" title="Click to expand">' + esc(p.cmd) + '</td>';
-    tr.querySelector('.proc-cmd').addEventListener('click', function(e) {
-      e.currentTarget.classList.toggle('expanded');
+    var tr = document.createElement('tr');
+    // PID
+    var tdPid = document.createElement('td');
+    tdPid.textContent = p.pid;
+    // Name
+    var tdName = document.createElement('td');
+    tdName.textContent = p.name;
+    // MEM %
+    var tdMemPct = document.createElement('td');
+    var memBarSpan = document.createElement('span');
+    memBarSpan.className = 'proc-bar ' + barClass(p.mem_pct * 2);
+    memBarSpan.style.cssText = 'width:' + Math.max(p.mem_pct * 2, 2) + 'px;background:var(--' + barClass(p.mem_pct * 2) + ')';
+    tdMemPct.appendChild(memBarSpan);
+    tdMemPct.appendChild(document.createTextNode(p.mem_pct));
+    // MEM MB
+    var tdMemMb = document.createElement('td');
+    tdMemMb.textContent = p.mem_mb >= 1024 ? (p.mem_mb / 1024).toFixed(1) + ' GB' : p.mem_mb + ' MB';
+    // CPU %
+    var tdCpuPct = document.createElement('td');
+    var cpuBarSpan = document.createElement('span');
+    cpuBarSpan.className = 'proc-bar ' + barClass(p.cpu_pct);
+    cpuBarSpan.style.cssText = 'width:' + Math.max(p.cpu_pct, 2) + 'px;background:var(--' + barClass(p.cpu_pct) + ')';
+    tdCpuPct.appendChild(cpuBarSpan);
+    tdCpuPct.appendChild(document.createTextNode(p.cpu_pct));
+    // Command (shortened, click to expand full)
+    var tdCmd = document.createElement('td');
+    tdCmd.className = 'proc-cmd';
+    tdCmd.title = 'Click to show full command';
+    tdCmd.textContent = shortenCmd(p.cmd);
+    tdCmd.addEventListener('click', function() {
+      if (tdCmd.classList.contains('expanded')) {
+        tdCmd.classList.remove('expanded');
+        tdCmd.textContent = shortenCmd(p.cmd);
+      } else {
+        tdCmd.classList.add('expanded');
+        tdCmd.textContent = p.cmd;
+      }
     });
+
+    tr.appendChild(tdPid);
+    tr.appendChild(tdName);
+    tr.appendChild(tdMemPct);
+    tr.appendChild(tdMemMb);
+    tr.appendChild(tdCpuPct);
+    tr.appendChild(tdCmd);
     body.appendChild(tr);
   });
 }
@@ -2021,20 +2073,60 @@ document.getElementById('proc-table').addEventListener('click', function(e) {
   _sortAndRenderProcs();
 });
 
+function formatServiceDetail(detail) {
+  if (!detail) return '';
+  try {
+    var obj = JSON.parse(detail);
+    if (obj.title && obj.version) return obj.title + ' v' + obj.version;
+    if (obj.status) return obj.status;
+    if (obj.models) {
+      if (obj.models.length === 0) return 'no models loaded';
+      return obj.models.map(function(m) { return m.name || m.model; }).join(', ');
+    }
+    return detail.length > 60 ? detail.substring(0, 57) + '...' : detail;
+  } catch(e) {
+    return detail.length > 60 ? detail.substring(0, 57) + '...' : detail;
+  }
+}
+
 function renderServices(services) {
-  const grid = document.getElementById('svc-grid');
+  var grid = document.getElementById('svc-grid');
   grid.textContent = '';
-  services.forEach(s => {
-    const card = document.createElement('div');
+  services.forEach(function(s) {
+    var card = document.createElement('div');
     card.className = 'svc-card ' + s.status;
-    const latency = s.latency_ms != null ? '<div class="svc-latency">' + esc(s.latency_ms + 'ms') + '</div>' : '';
-    card.innerHTML = '<div class="svc-icon">' + esc(s.icon || '\u25cf') + '</div>'
-      + '<div class="svc-name">' + esc(s.name) + '</div>'
-      + '<div class="svc-status"><span class="svc-dot ' + s.status + '"></span>'
-      + (s.status === 'up' ? 'Healthy' : 'Down')
-      + '<span style="margin-left:auto;font-size:11px;color:var(--muted)">:' + esc(String(s.port)) + '</span></div>'
-      + latency
-      + '<div class="svc-detail">' + esc(s.detail || '') + '</div>';
+    var latMs = s.latency_ms != null ? ' \u00b7 ' + s.latency_ms + 'ms' : '';
+    var cleanDetail = formatServiceDetail(s.detail);
+
+    var icon = document.createElement('div');
+    icon.className = 'svc-icon';
+    icon.textContent = s.icon || '\u25cf';
+
+    var name = document.createElement('div');
+    name.className = 'svc-name';
+    name.textContent = s.name;
+
+    var status = document.createElement('div');
+    status.className = 'svc-status';
+    var dot = document.createElement('span');
+    dot.className = 'svc-dot ' + s.status;
+    status.appendChild(dot);
+    status.appendChild(document.createTextNode(s.status === 'up' ? 'Healthy' : 'Down'));
+    var portSpan = document.createElement('span');
+    portSpan.style.cssText = 'margin-left:auto;font-size:11px;color:var(--muted)';
+    portSpan.textContent = ':' + s.port + latMs;
+    status.appendChild(portSpan);
+
+    card.appendChild(icon);
+    card.appendChild(name);
+    card.appendChild(status);
+
+    if (cleanDetail) {
+      var det = document.createElement('div');
+      det.className = 'svc-detail';
+      det.textContent = cleanDetail;
+      card.appendChild(det);
+    }
     grid.appendChild(card);
   });
 }
