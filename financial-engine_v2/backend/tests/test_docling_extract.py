@@ -64,8 +64,9 @@ def test_extract_structured_reextracts_when_cache_is_corrupt(tmp_path, monkeypat
         return extracted_doc
 
     monkeypatch.setattr(docling_extract, "_run_docling_with_timeout", fake_run)
+    monkeypatch.setattr(docling_extract, "_get_page_count_fast", lambda path: 1)
 
-    loaded = docling_extract.extract_structured(str(pdf_path))
+    loaded = docling_extract.extract_structured(str(pdf_path), backend="docling")
 
     assert loaded == extracted_doc
     assert calls == [str(pdf_path)]
@@ -86,11 +87,12 @@ def test_extract_structured_uses_pymupdf_fallback_when_docling_fails(tmp_path, m
     monkeypatch.setattr(
         docling_extract,
         "_run_docling_with_timeout",
-        lambda path: (_ for _ in ()).throw(TimeoutError("docling timeout")),
+        lambda path, timeout=120: (_ for _ in ()).throw(TimeoutError("docling timeout")),
     )
-    monkeypatch.setattr(docling_extract, "_pymupdf_fallback", lambda path: fallback_doc)
+    monkeypatch.setattr(docling_extract, "_extract_pymupdf", lambda path: fallback_doc)
+    monkeypatch.setattr(docling_extract, "_get_page_count_fast", lambda path: 1)
 
-    loaded = docling_extract.extract_structured(str(pdf_path))
+    loaded = docling_extract.extract_structured(str(pdf_path), backend="docling")
 
     assert loaded == fallback_doc
 
