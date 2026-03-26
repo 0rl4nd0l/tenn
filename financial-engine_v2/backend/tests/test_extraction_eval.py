@@ -13,12 +13,15 @@ TWO MODES:
 """
 import datetime
 import json
+import logging
 import math
 import warnings
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 import pytest
+
+logger = logging.getLogger(__name__)
 
 FIXTURES_DIR = Path(__file__).parent / "eval_fixtures"
 CONFIG_PATH = Path(__file__).parent / "eval_config.json"
@@ -253,7 +256,9 @@ def test_live_eval_accuracy_against_fixtures():
         api_key = os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY") or ""
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
-        llm_client = httpx.Client(base_url="http://127.0.0.1:8001/v1", timeout=60.0, headers=headers)
+        extraction_url = os.getenv("EXTRACTION_LLAMACPP_URL") or os.getenv("LLAMACPP_URL") or "http://127.0.0.1:8001"
+        base_url = extraction_url.rstrip("/") + "/v1"
+        llm_client = httpx.Client(base_url=base_url, timeout=60.0, headers=headers)
 
     fixture_failures: list[str] = []
 
@@ -272,6 +277,36 @@ def test_live_eval_accuracy_against_fixtures():
             "title": fixture.get("pdf_filename", ""),
         }
         result = run_multipass_extraction(pdf_path, doc_metadata, llm_client)
+
+        # If extraction failed, mark all metrics as failures and skip comparison.
+        if result.status == "failed":
+            label = fixture.get("ticker", fixture.get("document_id", "?"))
+            logger.error(
+                "Extraction failed for %s: %s — marking all metrics as failures",
+                label,
+                result.error,
+            )
+            num_metrics = len(fixture["metrics"]) + len(
+                [m for m in fixture.get("expected_nulls", []) if m not in fixture["metrics"]]
+            ) + (1 if "period_end" in fixture else 0)
+            for metric in fixture["metrics"]:
+                per_metric_results.setdefault(metric, []).append(False)
+            for null_metric in fixture.get("expected_nulls", []):
+                if null_metric not in fixture["metrics"]:
+                    per_metric_results.setdefault(null_metric, []).append(False)
+            fixture_results_failed = [False] * num_metrics
+            overall_results.extend(fixture_results_failed)
+            fixture_min_acc = fixture.get("config", {}).get(
+                "min_accuracy_overall", config["min_accuracy_overall"]
+            )
+            per_fixture_data[label] = {
+                "accuracy": 0.0,
+                "metric_count": num_metrics,
+            }
+            fixture_failures.append(
+                f"{label}: FAILED (extraction error) < {fixture_min_acc:.1%}"
+            )
+            continue
 
         # Per-fixture tolerances override global; per-fixture min_accuracy if set.
         fixture_tolerances = {**tolerances, **fixture.get("tolerances", {})}

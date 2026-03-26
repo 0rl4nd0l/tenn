@@ -98,14 +98,25 @@ _SCALE_PATTERNS: list[tuple[str, str]] = [
 
 def _detect_scale_from_tables(tables) -> str:
     """
-    Scan table column headers for scale indicators ($'000, millions, etc.).
+    Scan table headers, captions, and first few body rows for scale indicators
+    ($'000, millions, etc.).
     Returns the first match, or 'unknown' if none found.
-    ASX reports consistently encode scale in column headings (e.g. "31 Dec 2025 $'000").
+    ASX reports encode scale in column headings (e.g. "31 Dec 2025 $'000"),
+    table captions, or sub-header rows just below the column headers.
     """
     for table in tables[:15]:
-        header_text = " ".join(table.headers)
+        # Build list of text surfaces to scan: headers, caption, first 3 body rows
+        surfaces: list[str] = []
+        if table.headers:
+            surfaces.append(" ".join(table.headers))
+        if getattr(table, "caption", None):
+            surfaces.append(table.caption)
+        for row in (table.rows or [])[:3]:
+            surfaces.append(" ".join(str(cell) for cell in row))
+
+        combined = " ".join(surfaces)
         for pattern, scale in _SCALE_PATTERNS:
-            if _re.search(pattern, header_text, _re.IGNORECASE):
+            if _re.search(pattern, combined, _re.IGNORECASE):
                 return scale
     return "unknown"
 
@@ -635,10 +646,10 @@ def _filter_table_rows(table, table_type: str) -> list[list[str]]:
     filtered_count = len([r for r in filtered if not str(r[0]).startswith("[...")])
     if filtered_count < original_count:
         reduction = 1 - filtered_count / original_count
-        # Safety valve: if filtering removed >90% of rows, the keyword list
+        # Safety valve: if filtering removed >80% of rows, the keyword list
         # doesn't match this table's format (e.g. Appendix 5B numbered items).
         # Fall back to the full table rather than sending near-empty data.
-        if reduction > 0.90:
+        if reduction > 0.80:
             logger.warning(
                 "Filter too aggressive for %s: %d → %d rows (%.0f%% reduction) — using full table",
                 table_type, original_count, filtered_count, reduction * 100,
