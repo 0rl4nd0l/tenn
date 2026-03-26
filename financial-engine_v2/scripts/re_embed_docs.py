@@ -111,6 +111,7 @@ def main() -> None:
                     "doc_subtype": doc.doc_subtype,
                     "chunk_index": idx,
                     "title": doc.title,
+                    "text": chunks[idx],
                 }
                 is_valid, reason = validate_payload(payload)
                 if not is_valid:

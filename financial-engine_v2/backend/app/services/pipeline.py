@@ -969,6 +969,7 @@ def process_document(
                             "doc_subtype": doc.doc_subtype,
                             "chunk_index": index,
                             "title": doc.title,
+                            "text": chunks[index],
                         }
                         is_valid, reason = validate_payload(payload)
                         if not is_valid:
