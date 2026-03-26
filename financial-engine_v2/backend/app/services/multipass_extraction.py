@@ -460,6 +460,7 @@ Document metadata:
 - Currency: {currency}
 - Scale: {scale} (for your information only — output RAW values as they appear in the table)
   - Do NOT pre-multiply. Output 3241 if the table shows "3,241". The system applies the scale.
+  - Example: table shows "Revenue: 485,630" with column header "$'000" → output 485630, NOT 485630000. The system multiplies by 1,000 automatically.
 
 Table type: {table_type}
 Table (markdown):
@@ -495,7 +496,7 @@ Rules:
   "Fully paid ordinary shares", "Total ordinary shares".
   DO NOT use: "Weighted average number of shares", "Diluted shares", or "Basic earnings per share" denominators.
   If both period-end and weighted-average rows are in the same table, use only the period-end row.
-  IMPORTANT: if the table expresses share counts in a scaled unit (e.g. "Million", "'000"), convert to the absolute count.
+  EXCEPTION for share counts only (not dollar amounts): if the table expresses share counts in a scaled unit (e.g. "Million", "'000"), convert to the absolute count.
   Example: if the table shows "5,057" with row label containing "(Million)", output 5057000000 (not 5057).
   Example: if the table shows "196,478,902" as an absolute count, output 196478902.
 - Column selection: if the table has multiple data columns (e.g. current half and prior half),
