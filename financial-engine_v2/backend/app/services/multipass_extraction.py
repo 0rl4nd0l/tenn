@@ -761,8 +761,16 @@ def _extract_single_table(
         val = raw.get(m)
         if val is not None:
             try:
+                raw_float = float(val)
                 effective_multiplier = 1 if m in _COUNT_METRICS else multiplier
-                out[m] = float(val) * effective_multiplier
+                scaled = raw_float * effective_multiplier
+                if effective_multiplier > 1 and abs(scaled) > SANITY_CAP and abs(raw_float) <= SANITY_CAP:
+                    logger.warning(
+                        "LLM pre-scaled %s for %s: raw=%s, scaled=%s exceeds cap — using raw value",
+                        m, table_type, raw_float, scaled,
+                    )
+                    scaled = raw_float
+                out[m] = scaled
             except (TypeError, ValueError):
                 out[m] = None
         else:
