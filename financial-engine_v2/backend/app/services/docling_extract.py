@@ -118,6 +118,8 @@ def _extract_pymupdf(pdf_path: str) -> StructuredDocument:
             # ── Tables: extract with find_tables() ──
             try:
                 tab_finder = page.find_tables()
+                if not tab_finder.tables:
+                    tab_finder = page.find_tables(strategy="text")
                 for tab in tab_finder.tables:
                     raw_rows = tab.extract()
                     if not raw_rows:
