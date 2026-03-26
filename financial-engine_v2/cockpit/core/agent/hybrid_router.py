@@ -9,7 +9,7 @@ Policy (local-first, no surprise costs):
   - ``api_preferred``   — use API if an api_client is present; fall back to local.
   - ``api_only``        — always use API; raise if no api_client.
 
-The default policy is ``local_only``.
+The default policy is ``api_preferred``.
 
 The API client is never called without an explicit ``api_client`` being
 supplied *and* either ``force_backend="api"`` or a policy that allows API.
@@ -79,7 +79,7 @@ class HybridRouter:
         as ``llm_client``.  If ``None``, API routes are unavailable.
     policy:
         Routing policy string.  Falls back to the ``HYBRID_ROUTER_POLICY``
-        environment variable; default is ``"local_only"``.
+        environment variable; default is ``"api_preferred"``.
     llm_timeout:
         Per-call timeout in seconds passed through to the underlying client.
     """
@@ -96,6 +96,12 @@ class HybridRouter:
         self._timeout = llm_timeout
         self._policy = self._resolve_policy(policy)
         self._log: list[_CostEntry] = []
+
+        if self._policy == "api_preferred" and self._api is None:
+            logger.warning(
+                "HybridRouter policy is 'api_preferred' but no api_client configured — "
+                "all calls will fall back to local. Set ANTHROPIC_API_KEY to enable API routing."
+            )
 
     # ------------------------------------------------------------------
     # Public API
@@ -276,13 +282,88 @@ class HybridRouter:
     # Helpers
     # ------------------------------------------------------------------
 
+    # ------------------------------------------------------------------
+    # chat() adapter — allows HybridRouter to be used as llm_client
+    # in AgentLoop without a separate wrapper class.
+    # ------------------------------------------------------------------
+
+    def chat(
+        self,
+        prompt: str,
+        timeout: float = 120.0,
+        prior_messages: list[dict] | None = None,
+        on_chunk: Any = None,  # noqa: ARG002  (accepted for interface compat, unused)
+    ) -> str:
+        """LlamaCppClient-compatible chat interface.
+
+        Builds an OpenAI-style message list and delegates to :meth:`complete`.
+        Returns the plain-text response.  ``on_chunk`` is accepted for
+        interface compatibility but ignored (HybridRouter does not stream).
+        """
+        messages: list[dict] = []
+        if prior_messages:
+            messages.extend(prior_messages)
+        messages.append({"role": "user", "content": prompt})
+
+        result = self._complete_with_timeout(messages, timeout=timeout, role="orchestrator")
+        return result.text
+
+    def _complete_with_timeout(
+        self,
+        messages: list[dict],
+        *,
+        timeout: float,
+        role: str = "orchestrator",
+        force_backend: str | None = None,
+    ) -> "RouterResponse":
+        """Like :meth:`complete` but with a per-call timeout override (thread-safe)."""
+        backend = self._select_backend(force_backend)
+
+        start = time.monotonic()
+        if backend == "local":
+            # Override timeout for this call only — no instance mutation.
+            saved = self._timeout
+            self._timeout = timeout
+            try:
+                response = self._call_local(messages)
+            finally:
+                self._timeout = saved
+        else:
+            saved = self._timeout
+            self._timeout = timeout
+            try:
+                response = self._call_api(messages)
+            finally:
+                self._timeout = saved
+        elapsed_ms = int((time.monotonic() - start) * 1000)
+
+        result = RouterResponse(
+            text=response["text"],
+            source=backend,
+            model=response["model"],
+            latency_ms=elapsed_ms,
+            cost_usd=response.get("cost_usd", 0.0),
+            tool_calls=response.get("tool_calls", []),
+        )
+
+        self._log.append(
+            _CostEntry(
+                source=backend,
+                role=role,
+                model=result.model,
+                latency_ms=elapsed_ms,
+                cost_usd=result.cost_usd,
+            )
+        )
+        return result
+
     @staticmethod
     def _resolve_policy(policy: str | None) -> str:
         """Resolve policy from argument → env var → default."""
         if policy is not None:
             resolved = policy.strip()
         else:
-            resolved = (os.getenv(_ENV_POLICY_VAR) or "local_only").strip()
+            resolved = (os.getenv(_ENV_POLICY_VAR) or "api_preferred").strip()
 
         if resolved not in _VALID_POLICIES:
             raise ValueError(

@@ -134,22 +134,48 @@ class ChatController:
         # Prevents concurrent context-gather calls from stacking up.
         self._context_gather_lock = threading.Lock()
 
-        # Agent loop (Phase 1 agentic chat — opt-in via COCKPIT_AGENT_MODE=structured)
+        # Agent loop — default mode since agent routing is the canonical path.
+        # COCKPIT_AGENT_MODE=keyword reverts to legacy Ollama-direct path.
         self._agent_loop = None
-        if os.environ.get("COCKPIT_AGENT_MODE") == "structured":
+        agent_mode = os.environ.get("COCKPIT_AGENT_MODE", "structured")
+        if agent_mode == "structured":
             try:
+                from cockpit.core.agent.hybrid_router import HybridRouter
                 from cockpit.core.agent_loop import AgentLoop
                 from cockpit.core.tool_executor import ToolExecutor
 
-                self._agent_loop = AgentLoop(
+                # Build HybridRouter with local llama.cpp client + optional API client.
+                api_client = None
+                if os.environ.get("ANTHROPIC_API_KEY"):
+                    try:
+                        from cockpit.core.agent.anthropic_client import AnthropicClient
+                        api_client = AnthropicClient()
+                    except Exception as exc:
+                        logger.warning("AnthropicClient init failed: %s", exc)
+
+                hybrid_router = HybridRouter(
                     llm_client=ollama_client,
+                    api_client=api_client,
+                    llm_timeout=self.llm_timeout_seconds,
+                )
+                # HybridRouter exposes chat() so it can serve as AgentLoop's llm_client.
+                self._agent_loop = AgentLoop(
+                    llm_client=hybrid_router,
                     tool_executor=ToolExecutor(tool_router, action_registry),
                     system_instruction_builder=lambda mode, ticker: self._build_system_instruction(mode, ticker, {}),
-                    llm_timeout_seconds=self.llm_timeout_seconds,
+                    llm_timeout=self.llm_timeout_seconds,
                 )
-                logger.info("Agent loop initialised (COCKPIT_AGENT_MODE=structured)")
+                logger.info(
+                    "Agent loop initialised (mode=structured, policy=%s, api=%s)",
+                    hybrid_router._policy,
+                    "available" if api_client else "none",
+                )
             except ImportError:
-                logger.warning("Agent loop modules not available, falling back to keyword mode")
+                logger.error(
+                    "Agent loop modules not importable — COCKPIT_AGENT_MODE=structured "
+                    "requires cockpit.core.agent_loop and cockpit.core.tool_executor. "
+                    "Falling back to keyword mode."
+                )
 
     TICKER_STOPWORDS = {
         "A",
@@ -902,26 +928,17 @@ class ChatController:
             )
             return ChatResponse(text=greeting, evidence=[], mode=ResponseMode.FAST)
 
-        # --- Agent mode dispatch (Phase 1 agentic chat) ---
-        agent_mode = os.environ.get("COCKPIT_AGENT_MODE", "keyword")
-        if agent_mode == "structured" and self._agent_loop is not None:
-            return self._run_agent_loop(message, enable_web, prior_ticker, on_chunk, analysis_mode)
+        # ------------------------------------------------------------------ #
+        # Deterministic fast-paths — fire BEFORE agent loop or keyword LLM.   #
+        # These are pure regex/keyword matches that don't need LLM inference. #
+        # ------------------------------------------------------------------ #
 
-        # --- Existing keyword router (unchanged below) ---
-
-        # Ticker inheritance: first try to detect a NEW ticker in the message.
-        # If none found, carry forward the prior ticker — the user is still
-        # talking about the same entity.  The prior only resets when a new
-        # valid ticker is explicitly mentioned.
+        # Ticker detection (shared by both agent and keyword paths).
         prior = prior_ticker or self.last_ticker
         new_ticker = self._detect_ticker(message, prior_ticker=None)
         if new_ticker:
-            # Explicit new ticker in the message — use it.
             ticker = new_ticker
         elif prior:
-            # No new ticker detected.  Inherit the prior — the user is
-            # continuing a conversation about the same entity (follow-up
-            # phrasing, financial terms, or simply no ticker-like words).
             ticker = prior
         else:
             ticker = None
@@ -929,7 +946,6 @@ class ChatController:
             self.last_ticker = ticker
 
         msg_lower = message.lower()
-        effective_profile = context_profile or os.environ.get("COCKPIT_CONTEXT_PROFILE", "balanced")
 
         # --- Conversational update shortcut: "update <ticker> announcements" ---
         explicit_ticker_in_message = self._detect_ticker(message, prior_ticker=None)
@@ -949,24 +965,6 @@ class ChatController:
                 evidence=[],
                 action_preview=action_preview,
                 mode=ResponseMode.ACTION,
-            )
-
-        # --- Access request: URL in message but web is disabled ---
-        if any(p in message for p in ("http://", "https://")) and not enable_web:
-            return ChatResponse(
-                text="Web access is required to fetch that URL. Enable web and try again.",
-                evidence=[],
-                action_preview={"action_id": "__access_request__", "args": {"scope": "web"}},
-                mode=ResponseMode.FAST,
-            )
-
-        # --- Access request: max-depth profile requires web enrichment ---
-        if effective_profile == "max-depth" and not enable_web:
-            return ChatResponse(
-                text="Max-depth analysis requires web enrichment. Enable web and try again.",
-                evidence=[],
-                action_preview={"action_id": "__access_request__", "args": {"scope": "web"}},
-                mode=ResponseMode.FAST,
             )
 
         # --- Chart intent short-circuit (before general action detection) ---
@@ -1031,11 +1029,53 @@ class ChatController:
         if price_history_result is not None:
             return price_history_result
 
+        # --- Action keyword detection (deterministic, no LLM) ---
         action_id = self.detect_action_intent(message)
+        if action_id:
+            # Action fast-paths need the keyword mode's ActionRegistry.preview()
+            # flow, which is handled below in the keyword router section.
+            # If we're in agent mode, the agent loop also handles actions via
+            # ToolExecutor, but explicit keyword matches are faster and more
+            # predictable — so we let them fall through to the keyword action
+            # handler below rather than routing through the LLM.
+            pass
+        else:
+            # ------------------------------------------------------------------ #
+            # Agent mode dispatch — routes general queries through HybridRouter.  #
+            # Only fires for non-action, non-shortcircuited queries.              #
+            # ------------------------------------------------------------------ #
+            agent_mode = os.environ.get("COCKPIT_AGENT_MODE", "structured")
+            if agent_mode == "structured" and self._agent_loop is not None:
+                return self._run_agent_loop(message, enable_web, prior_ticker, on_chunk, analysis_mode)
+
+        # ------------------------------------------------------------------ #
+        # Keyword router (legacy path — explicit opt-in or action fallthrough) #
+        # ------------------------------------------------------------------ #
+
         if action_id:
             mode = ResponseMode.ACTION
         else:
             mode = self.classify_request(message, enable_web=enable_web)
+
+        effective_profile = context_profile or os.environ.get("COCKPIT_CONTEXT_PROFILE", "balanced")
+
+        # --- Access request: URL in message but web is disabled ---
+        if any(p in message for p in ("http://", "https://")) and not enable_web:
+            return ChatResponse(
+                text="Web access is required to fetch that URL. Enable web and try again.",
+                evidence=[],
+                action_preview={"action_id": "__access_request__", "args": {"scope": "web"}},
+                mode=ResponseMode.FAST,
+            )
+
+        # --- Access request: max-depth profile requires web enrichment ---
+        if effective_profile == "max-depth" and not enable_web:
+            return ChatResponse(
+                text="Max-depth analysis requires web enrichment. Enable web and try again.",
+                evidence=[],
+                action_preview={"action_id": "__access_request__", "args": {"scope": "web"}},
+                mode=ResponseMode.FAST,
+            )
 
         # --- Access request: deep analysis requires RAG but it's disabled ---
         rag_available = bool(getattr(self.tool_router, "qual_context_reader", None))
