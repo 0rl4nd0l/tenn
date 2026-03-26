@@ -306,6 +306,26 @@ def validate_qdrant_collection(client: QdrantClient, collection: str, expected_d
         )
 
 
+def _ensure_payload_indexes(client: QdrantClient, collection: str) -> None:
+    """Create keyword payload indexes if they don't already exist. Idempotent."""
+    try:
+        info = client.get_collection(collection)
+        existing_fields = set((info.payload_schema or {}).keys())
+    except Exception:
+        existing_fields = set()
+    for field_name in ("ticker",):
+        if field_name not in existing_fields:
+            try:
+                client.create_payload_index(
+                    collection_name=collection,
+                    field_name=field_name,
+                    field_schema=qmodels.PayloadSchemaType.KEYWORD,
+                )
+                logger.info("Created payload index %s on %s", field_name, collection)
+            except Exception as exc:
+                logger.warning("Failed to create payload index %s on %s: %s", field_name, collection, exc)
+
+
 def ensure_collection(client: QdrantClient, collection: str, dim: int) -> str:
     collections = client.get_collections()
     existing = [entry.name for entry in collections.collections]
@@ -347,6 +367,7 @@ def ensure_collection(client: QdrantClient, collection: str, dim: int) -> str:
                     collection_name=fallback_collection,
                     vectors_config=qmodels.VectorParams(size=expected_dim, distance=expected_distance),
                 )
+            _ensure_payload_indexes(client, fallback_collection)
             return fallback_collection
 
         if actual_distance is not None and actual_distance != expected_distance:
@@ -354,12 +375,14 @@ def ensure_collection(client: QdrantClient, collection: str, dim: int) -> str:
                 f"Qdrant collection '{collection}' distance mismatch: expected {expected_distance}, got {actual_distance}. "
                 "Recreate the collection with the correct distance before continuing."
             )
+        _ensure_payload_indexes(client, collection)
         return collection
 
     client.create_collection(
         collection_name=collection,
         vectors_config=qmodels.VectorParams(size=expected_dim, distance=expected_distance),
     )
+    _ensure_payload_indexes(client, collection)
     return collection
 
 
