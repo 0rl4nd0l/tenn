@@ -664,6 +664,61 @@ class CockpitApp(App):
             self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
             return
 
+        # Handle /review commands for transcript approval gate
+        if stripped.startswith("/review"):
+            from cockpit.integrations.transcript_review import TranscriptReviewService
+            review_svc = TranscriptReviewService()
+            parts = stripped[len("/review"):].strip().split(maxsplit=1)
+            sub = parts[0].lower() if parts else "list"
+            arg = parts[1].strip() if len(parts) > 1 else ""
+            now_iso = datetime.now(timezone.utc).isoformat()
+            if sub == "list" or not sub:
+                pending_items = review_svc.list_pending()
+                if pending_items:
+                    lines = [f"Pending review ({len(pending_items)} items):"]
+                    for i, item in enumerate(pending_items, 1):
+                        sid = item.get("source_id", "?")
+                        stype = item.get("source_type", "?")
+                        title = item.get("title", "?")[:40]
+                        chunks = item.get("chunk_count", 0)
+                        staged = item.get("staged_at", "")[:10]
+                        lines.append(f"  [{i}] {sid} | {stype} | {title} | staged {staged} | {chunks} chunks")
+                    lines.append("Use: /review approve <source_id> or /review reject <source_id>")
+                    reply = "\n".join(lines)
+                else:
+                    reply = "No pending transcripts to review."
+            elif sub == "approve" and arg:
+                self._append_log(log, f"assistant: Indexing chunks for {arg}...")
+                result = review_svc.approve(arg)
+                if result.get("ok"):
+                    reply = f"Approved and indexed {result.get('chunks_indexed', 0)} chunks for {arg}."
+                else:
+                    reply = f"Approve failed: {result.get('error', 'unknown')}"
+            elif sub == "reject" and arg:
+                result = review_svc.reject(arg)
+                if result.get("ok"):
+                    reply = f"Rejected and purged staged chunks for {arg}."
+                else:
+                    reply = f"Reject failed: {result.get('error', 'unknown')}"
+            elif sub == "approve-all":
+                pending_items = review_svc.list_pending()
+                if not pending_items:
+                    reply = "No pending transcripts to approve."
+                else:
+                    total = 0
+                    for item in pending_items:
+                        result = review_svc.approve(item["source_id"])
+                        total += result.get("chunks_indexed", 0)
+                    reply = f"Approved {len(pending_items)} source(s), indexed {total} chunks."
+            elif sub == "expired":
+                purged = review_svc.purge_expired()
+                reply = f"Purged {len(purged)} expired staged source(s)." if purged else "No expired items."
+            else:
+                reply = "Usage: /review list|approve|reject|approve-all|expired [source_id]"
+            self._append_log(log, f"assistant: {reply}")
+            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            return
+
         if message.strip() == "/cancel":
             self.pending_action = None
             pending.update("No pending action")

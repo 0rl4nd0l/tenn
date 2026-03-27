@@ -145,15 +145,53 @@ Wired two existing-but-disconnected capabilities into the Cockpit message flow.
 - pytest cockpit/tests/: 224 passed, 1 skipped
 - TUI verification: NOT YET DONE (requires live backend + cockpit launch)
 
+### SESSION: transcript-approval-gate (2026-03-27)
+
+Added mandatory staging gate for hot source types before Qdrant indexing.
+
+**Change 1 — Staging gate in `commentary_ingest.py`:**
+- Hot sources (`youtube_transcript`, `podcast_transcript`, `market_commentary`) now staged to `~/.tenn/memory/staged_chunks/<source_id>.jsonl` instead of auto-indexed to Qdrant
+- Staging index at `~/.tenn/memory/staged_chunks/index.json` — keyed by source_id with metadata
+- Deduplication: skips re-staging if source_id already in index (WARNING logged)
+- Registry still gets `review_status="pending"` entry
+- Staging failure logs ERROR and skips (does not fall through to Qdrant)
+
+**Change 2 — TranscriptReviewService (`cockpit/integrations/transcript_review.py`):**
+- `list_pending()` — returns all staged items from index
+- `approve(source_id)` — reads staged JSONL, upserts to Qdrant via existing `upsert_points()`, updates registry to "approved", deletes staged file
+- `reject(source_id)` — deletes staged file, updates registry to "rejected"
+- `purge_expired(max_age_days=7)` — removes staged items older than threshold
+
+**Change 3 — `/review` slash command in `app.py`:**
+- `/review list` — shows pending items with source_id, type, title, staged date, chunk count
+- `/review approve <source_id>` — approve and index
+- `/review reject <source_id>` — reject and purge
+- `/review approve-all` — approve all pending
+- `/review expired` — purge old staged items
+- Natural language: "show pending transcripts" → `/review list`, "approve all transcripts" → `/review approve-all`
+
+**Change 4 — Conversational commands (`conversation_commands.py`):**
+- Added 2 rules: "show pending transcripts" and "approve all transcripts"
+
+**Total: +118 lines modified, +140 lines new service, +179 lines tests. 244 tests pass, 0 failures, 6 new.**
+
+**Pre-existing failure:** `test_skip_share_capital_when_balance_sheet_present` in `test_multipass_extraction.py` — confirmed failing before this session's changes.
+
+**Verification status:**
+- Ruff lint: PASS
+- pytest cockpit/tests/: 244 passed, 1 skipped (6 new)
+- pytest backend/tests/: 193 passed, 1 pre-existing failure
+- TUI verification: NOT YET DONE (requires live backend + cockpit launch)
+- Eval baseline: NOT RUN (requires live llama.cpp servers)
+
 ## Next steps
-1. **TUI verification** — start cockpit, test dossier injection in analysis and natural language watchlist commands
-2. **Phase 2A-2** — Transcript approval gate (Qdrant write-path, separate session)
-3. **Phase 2A-3** — 5B cash runway extraction (requires eval baseline confirmation)
-4. Live test: `deep_research("BHP")` via cockpit
-5. Unit tests for remaining research files
-6. Investigate ANZ 72.7% regression
+1. **TUI verification (stacked)** — covers cockpit-memory-wiring + transcript-approval-gate in one pass
+2. **Phase 2A-3** — 5B cash runway extraction (requires eval baseline confirmation: ≥88.64% excl. AZJ)
+3. **[SESSION: research-test-coverage]** — commit uncommitted research subsystem files
+4. Investigate ANZ 72.7% regression (separate session)
+5. Investigate pre-existing `test_skip_share_capital_when_balance_sheet_present` failure
 
 ## Resume command
 Read HANDOFF.md. Run `nvidia-smi` to confirm VRAM state.
-For memory wiring verification: start backend + cockpit, try "add BHP to watchlist" and "analyse BHP".
+For stacked TUI verification: start backend + cockpit, run Stack A (dossier + watchlist) + Stack B (review commands).
 multipass_extraction.py is READ ONLY unless explicitly tasked.

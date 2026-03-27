@@ -120,6 +120,16 @@ def _(m, _msg):
     return f"/watch add {m.group(2).upper()}"
 
 
+@_rule(r"\b(show|list)\s+(pending\s+)?transcripts?\b")
+def _(m, _msg):
+    return "/review list"
+
+
+@_rule(r"\bapprove\s+all\s+transcripts?\b")
+def _(m, _msg):
+    return "/review approve-all"
+
+
 def derive_conversational_command(message: str) -> str | None:
     """
     Map a natural-language message to a cockpit slash command.

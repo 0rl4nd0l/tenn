@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import hashlib
+import json
+import logging
 import re
 import uuid
 from pathlib import Path
@@ -32,6 +34,25 @@ HOT_SOURCE_TYPES = {
     "podcast_transcript",
     "market_commentary",
 }
+
+STAGED_CHUNKS_DIR = Path("~/.tenn/memory/staged_chunks").expanduser()
+STAGED_CHUNKS_INDEX = STAGED_CHUNKS_DIR / "index.json"
+
+_logger = logging.getLogger(__name__)
+
+
+def _load_staging_index() -> dict[str, Any]:
+    if not STAGED_CHUNKS_INDEX.exists():
+        return {}
+    try:
+        return json.loads(STAGED_CHUNKS_INDEX.read_text("utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def _save_staging_index(index: dict[str, Any]) -> None:
+    STAGED_CHUNKS_DIR.mkdir(parents=True, exist_ok=True)
+    STAGED_CHUNKS_INDEX.write_text(json.dumps(index, indent=2), "utf-8")
 
 
 def _default_embed_batch(texts: list[str], *, llm_url: str | None, model: str | None) -> list[list[float]]:
@@ -177,26 +198,37 @@ def ingest_transcript(
                 },
             }
         )
+    # --- Staging gate: hot sources are staged for review, not auto-indexed ---
+    staged = False
     if points:
-        try:
-            upsert_points(client, resolved_collection_name, points)
-        except Exception as exc:
-            if (
-                resolved_collection_name == "commentary_chunks"
-                and is_qdrant_vector_dimension_mismatch_error(exc)
-            ):
-                resolved_collection_name = ensure_collection(
-                    client,
-                    "commentary_chunks_v2",
-                    len(vectors[0]),
+        staging_index = _load_staging_index()
+        if resolved_source_id in staging_index:
+            _logger.warning("Staging skipped — source_id already staged: %s", resolved_source_id)
+        else:
+            try:
+                STAGED_CHUNKS_DIR.mkdir(parents=True, exist_ok=True)
+                staged_path = STAGED_CHUNKS_DIR / f"{resolved_source_id}.jsonl"
+                with staged_path.open("w", encoding="utf-8") as f:
+                    for pt in points:
+                        f.write(json.dumps(pt) + "\n")
+                staging_index[resolved_source_id] = {
+                    "path": str(staged_path),
+                    "source_type": normalized_type,
+                    "source_name": source_name,
+                    "title": source_name,
+                    "staged_at": utc_now_iso(),
+                    "chunk_count": len(points),
+                    "published_at": str(published_at or ""),
+                    "collection_name": resolved_collection_name,
+                }
+                _save_staging_index(staging_index)
+                staged = True
+                _logger.info(
+                    "Staged %d chunks for review: %s (%s)",
+                    len(points), resolved_source_id, normalized_type,
                 )
-                print(
-                    "[WARN] commentary_chunks upsert hit a vector dimension mismatch; "
-                    f"retrying with {resolved_collection_name}"
-                )
-                upsert_points(client, resolved_collection_name, points)
-            else:
-                raise
+            except Exception:
+                _logger.exception("Staging failed for %s — skipping (not indexed)", resolved_source_id)
 
     resolved_memos_path = Path(
         getattr(memo_extractor, "memos_path", None) or memos_path or DEFAULT_COMMENTARY_MEMOS_PATH
@@ -225,7 +257,9 @@ def ingest_transcript(
         "ok": True,
         "source_id": resolved_source_id,
         "collection": resolved_collection_name,
-        "chunks_indexed": len(points),
+        "chunks_staged": len(points) if staged else 0,
+        "chunks_indexed": 0 if staged else len(points),
+        "staged": staged,
         "registry_path": str(registry.path),
         "memos_path": str(resolved_memos_path),
         "registry_entry": registry_entry,
