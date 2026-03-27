@@ -216,15 +216,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 
 ---
 
-## L020 — Meta-tool pattern: bypass agent loop iteration limits for multi-step workflows
+## L020 — Cockpit→LLM calls violate service role invariant regardless of "separate context" intent
 
 **Date:** 2026-03-27
 **Subsystem:** `cockpit/core/research/deep_research.py`, `cockpit/core/tool_executor.py`
-**Symptom:** The agent loop (MAX_ITERATIONS=6, 12K token context) is insufficient for deep research workflows that need to query 5+ data sources and synthesize results. A single `deep_research("BHP")` call would exhaust the loop budget before completing.
-**Root cause:** The agent loop is designed for interactive tool calling where the LLM decides what to do next. Deep research is a deterministic pipeline — it always gathers the same source categories, then synthesizes.
-**Fix:** Created `DeepResearchRunner` as a "meta-tool" — registered as a single read-only tool in the agent loop, but internally runs its own gather→synthesize→persist pipeline with a **separate LLM context** (calls `HybridRouter.complete()` directly, not through the agent loop). The agent loop uses 1 iteration; the meta-tool does 6+ operations internally.
-**Pattern source:** TradingAgents (TauricResearch, Apache 2.0) uses a similar multi-agent pipeline, but on LangGraph. We adapted the analyst-team-parallel pattern into a simpler deterministic sequence — no LangGraph dependency, fits the existing ToolExecutor dispatch model.
-**Rule:** When a workflow needs more iterations or context than the agent loop allows, implement it as a meta-tool: a single tool schema in `tool_definitions.py` backed by a class that runs its own pipeline. The meta-tool must use a **fresh LLM context** (separate messages list) for any synthesis calls — never share the agent loop's context window. Register in `_READ_ONLY_DISPATCH` like any other tool. This pattern is reusable for any future deterministic multi-step workflow (e.g., portfolio analysis, sector comparison).
+**Symptom:** `DeepResearchRunner` called `HybridRouter.complete()` directly from the cockpit layer to run synthesis with a "separate LLM context." This bypassed the backend HTTP API, violating the service role invariant (SYSTEM_CONTRACT §3).
+**Root cause:** The meta-tool pattern was implemented by passing `HybridRouter` into the cockpit and calling it directly. The intent (separate context window) was valid, but the execution path (cockpit→LLM without going through the backend API) was not.
+**Fix:** Commit `c8b47f61` moved synthesis to `POST /research/synthesize` on the backend. `DeepResearchRunner` now calls `BackendAPIClient.synthesize_research()` instead of `HybridRouter.complete()` directly.
+**Rule:** Parallel LLM call paths inside the cockpit layer — including "separate context" runners calling HybridRouter directly — violate the service role invariant regardless of intent. All cockpit LLM calls must route through the backend HTTP API.
 
 ---
 
@@ -237,3 +236,25 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Fix:** Every external dependency has a fallback: `BraveSearchClient` falls back to `WebFetcher` (DuckDuckGo) when `BRAVE_SEARCH_API_KEY` is absent. `SituationMemory` falls back to simple keyword matching when `rank-bm25` is not installed. The cockpit works at full functionality when all dependencies are present, and at reduced functionality when they're absent — never crashes.
 **Pattern source:** TradingAgents `route_to_vendor()` — tries primary vendor, falls back on rate limit or error.
 **Rule:** Any new external integration (API client, ML library) must have a fallback that preserves core functionality. The fallback should be logged at INFO level on init so operators know which path is active. Never make the cockpit crash because an optional API key is missing.
+
+---
+
+## L022 — Rogue llama-server instances accumulate on GPU, causing VRAM contention and eval timeouts
+
+**Date:** 2026-03-27
+**Subsystem:** `scripts/`, `llamacpp_manager.py`, `SYSTEM_CONTRACT.md`
+**Symptom:** Extraction eval takes 15-22 min due to GPU contention; Bash tool 10-min cap kills it every run. Root cause: no invariant prevents ad-hoc llama-server processes from being spawned on arbitrary ports. Rogue instances linger after debug/autodev sessions, sharing VRAM with canonical servers.
+**Root cause:** No enforcement mechanism checks for existing healthy instances before spawning new ones. Debug sessions and agent runs spawn llama-server on ad-hoc ports (e.g., :38255) without cleanup hooks. Three instances on a 24GB M40 leaves ~3GB free, degrading inference 3-5×.
+**Fix:** Policy rule (this lesson). Systemic fix planned in `[SESSION: gpu-process-management-rails]`.
+**Rule:** Only ports 8001 (chat/router) and 8002 (extraction) are authorised llama-server instances. Any process on a third port must be treated as rogue. Before starting any llama-server process, check if the target port is already healthy — if yes, reuse it. Never spawn without a VRAM budget check. Regression guard: `gpu_process_guard.sh` (planned).
+
+---
+
+## L023 — Never commit wiring without the wired subsystem
+
+**Date:** 2026-03-27
+**Subsystem:** `cockpit/core/chat.py`, `cockpit/core/tool_executor.py`, `cockpit/core/tool_definitions.py`
+**Symptom:** Research system wiring (imports, constructor params, tool schemas) was committed into chat.py/tool_executor.py/tool_definitions.py while the actual implementation files (`cockpit/core/research/`, `cockpit/integrations/brave_search.py`, `cockpit/integrations/hn_search.py`) remained uncommitted and untested. This created a state where the committed code imported modules that didn't exist in the repo, making the commit non-functional in isolation.
+**Root cause:** Wiring code was treated as part of the "integration" step and committed alongside other changes, without verifying that the subsystem it depended on was also committed and passing its own tests.
+**Fix:** Policy rule (this lesson).
+**Rule:** Never commit wiring/integration code for a subsystem while the subsystem's implementation files remain uncommitted and untested. Either commit the full subsystem atomically (implementation + wiring + tests), or keep wiring out of the commit until implementation passes its own test suite. A commit must be self-consistent — every import it adds must resolve within the committed tree.
