@@ -353,6 +353,46 @@ On failure or ambiguity:
 
 ---
 
+## 9.4 GPU Process Topology
+
+The GPU (Tesla M40, 24GB) has a fixed process budget.
+
+**Authorised processes:**
+
+| Role | Port | VRAM Budget | Startup Owner |
+|------|------|-------------|---------------|
+| Chat/Router | `:8001` | 10 GB | `systemd --user llama-cpp-qwen25.service` via `scripts/run_llama_server.sh` |
+| Extraction | `:8002` | 10 GB | `scripts/run_extraction_server.sh` |
+
+**Total allocated:** 20 GB. **Headroom:** 4 GB (Ollama embeddings + OS + CUDA context).
+
+**Rogue definition:** Any `llama-server` process whose `--port` is not in `{8001, 8002}`.
+
+Invariants:
+* Agents and scripts MUST NOT spawn additional llama-server instances on non-canonical ports.
+* If a third instance is found running, it MUST be terminated before proceeding.
+* Verification: `scripts/gpu_process_guard.sh --check` (exit 0=clean, 1=rogues, 2=VRAM critical).
+
+---
+
+## 9.5 Agent Spawn Protocol
+
+Before spawning or restarting any llama-server instance, agents MUST:
+
+1. Query `GET /health` on the target port.
+2. If healthy and correct model loaded → **REUSE** — do not spawn.
+3. If healthy but wrong model → use router API (`POST /models/load`) or `restart_with_model`.
+4. If dead → check VRAM via `nvidia-smi`.
+5. If VRAM insufficient → run `gpu_process_guard.sh --kill-rogues`, then recheck.
+6. Only spawn after VRAM gate passes.
+
+Agents MUST NOT:
+* Spawn llama-server on any port other than 8001 or 8002.
+* Spawn without checking the health of the target port first.
+* Ignore VRAM constraints.
+
+---
+
 # 10. AGENT (CLAUDE / CODEX) RULES
 
 ## 10.1 Contract Authority

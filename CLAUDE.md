@@ -26,8 +26,9 @@ Before implementing any change, the agent MUST state:
 2. **Relevant contract rules** — which specific contract sections govern this change?
 3. **What must NOT change** — which invariants (§3) must be preserved?
 4. **Why this change is safe** — how does it comply with the contract?
+5. **GPU process check required** — does this task spawn, restart, or depend on llama-server? If yes: run `scripts/gpu_process_guard.sh --check` and report the result before proceeding. If exit code 1 (rogues) or 2 (VRAM critical), resolve before continuing. See SYSTEM_CONTRACT.md §9.4–§9.5.
 
-If you cannot answer all four, STOP and request clarification.
+If you cannot answer all five, STOP and request clarification.
 
 ### Contract Enforcer (built-in subagent behavior)
 

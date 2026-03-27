@@ -15,7 +15,22 @@ def find_llama_server_process() -> dict | None:
     Locate the running llama-server process via /proc.
     Returns dict with: pid, binary, model_path, model_alias, raw_args,
     router_mode (bool), models_dir (str).
+
+    NOTE: Returns only the FIRST match. For multi-server topologies,
+    use find_all_llama_server_processes() instead.
     """
+    procs = find_all_llama_server_processes()
+    return procs[0] if procs else None
+
+
+def find_all_llama_server_processes() -> list[dict]:
+    """
+    Locate ALL running llama-server processes via /proc.
+
+    Returns list of dicts, each with: pid, binary, model_path, model_alias,
+    raw_args, router_mode (bool), models_dir (str), port (str).
+    """
+    results: list[dict] = []
     try:
         for entry in Path("/proc").iterdir():
             if not entry.name.isdigit():
@@ -32,8 +47,9 @@ def find_llama_server_process() -> dict | None:
                 model_path = _extract_arg(args, ("-m", "--model"))
                 model_alias = _extract_arg(args, ("-a", "--alias"))
                 models_dir = _extract_arg(args, ("--models-dir",))
+                port = _extract_arg(args, ("--port",)) or "8001"
                 router_mode = bool(models_dir and not model_path)
-                return {
+                results.append({
                     "pid": int(entry.name),
                     "binary": binary,
                     "model_path": model_path,
@@ -41,12 +57,35 @@ def find_llama_server_process() -> dict | None:
                     "raw_args": args,
                     "router_mode": router_mode,
                     "models_dir": models_dir,
-                }
+                    "port": port,
+                })
             except (PermissionError, ValueError, FileNotFoundError):
                 continue
     except Exception:
         pass
-    return None
+    return results
+
+
+# Authorised llama-server ports (SYSTEM_CONTRACT.md §9.4).
+AUTHORISED_PORTS = frozenset({"8001", "8002"})
+
+
+def check_gpu_process_topology() -> dict:
+    """Check running llama-server processes against the authorised manifest.
+
+    Returns dict with:
+        authorised: list of process dicts on canonical ports
+        rogue: list of process dicts on non-canonical ports
+        clean: bool — True if no rogues detected
+    """
+    procs = find_all_llama_server_processes()
+    authorised = [p for p in procs if p["port"] in AUTHORISED_PORTS]
+    rogue = [p for p in procs if p["port"] not in AUTHORISED_PORTS]
+    return {
+        "authorised": authorised,
+        "rogue": rogue,
+        "clean": len(rogue) == 0,
+    }
 
 
 def discover_models(models_dir: str) -> list[dict]:
