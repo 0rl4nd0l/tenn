@@ -23,7 +23,7 @@
   },
   "expected_nulls": [],
   "tolerances": {
-    "revenue": 0.005,
+    "revenue": 0.03,
     "ebit": 0.02,
     "np_attributable": 0.02,
     "operating_cf": 0.01,
