@@ -27,6 +27,7 @@ from app.models.base import Base
 from app.models.documents import Document
 from app.models.extractions import ExtractionRun
 from app.routes.chat import router as chat_router
+from app.routes.research import router as research_router
 from app.services.embeddings import (
     get_qdrant_collection_vector_config,
     validate_qdrant_collection,
@@ -45,6 +46,7 @@ app = FastAPI(title="Financial Engine v2")
 app.include_router(router, prefix="/api")
 app.include_router(chat_router)
 app.include_router(chat_router, prefix="/api")
+app.include_router(research_router, prefix="/research", tags=["research"])
 
 
 class RagQueryRequest(BaseModel):

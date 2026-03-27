@@ -187,7 +187,7 @@ class ChatController:
                     from cockpit.core.research.deep_research import DeepResearchRunner
                     deep_runner = DeepResearchRunner(
                         tool_router=tool_router,
-                        hybrid_router=hybrid_router,
+                        backend_client=tool_router.backend_api_client,
                         dossier_service=dossier_svc,
                         brave_client=brave_client,
                         hn_client=hn_client,

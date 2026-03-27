@@ -1,8 +1,9 @@
 """Deep research meta-tool — multi-source research in a single call.
 
 Bypasses the 6-iteration agent loop limit by running a deterministic
-gather → synthesize → persist pipeline. Uses its own LLM context
-(separate from the agent loop) for synthesis.
+gather → synthesize → persist pipeline. Synthesis is performed by the
+backend via POST /research/synthesize (service role invariant — cockpit
+never calls LLM directly).
 """
 
 from __future__ import annotations
@@ -13,25 +14,6 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-_RESEARCH_SYSTEM_PROMPT = """\
-You are an ASX equity research analyst. You have been given data from multiple
-sources about a company. Synthesize this into a concise research brief.
-
-Output ONLY valid JSON with these fields:
-{
-  "summary": "2-3 sentence overview of the company's current situation",
-  "key_metrics": {"revenue": "...", "ebit": "...", "cash_flow": "...", "net_debt": "..."},
-  "recent_developments": ["development 1", "development 2"],
-  "sentiment": "bullish|neutral|bearish",
-  "confidence": 0.0-1.0,
-  "risks": ["risk 1", "risk 2"],
-  "catalysts": ["catalyst 1", "catalyst 2"],
-  "data_gaps": ["what data is missing or uncertain"]
-}
-
-Be concise. Cite specific numbers from the data. Flag low-confidence claims.
-"""
-
 
 class DeepResearchRunner:
     """Runs a complete multi-source research pipeline in one call."""
@@ -40,13 +22,13 @@ class DeepResearchRunner:
         self,
         *,
         tool_router: Any,
-        hybrid_router: Any,
+        backend_client: Any,
         dossier_service: Any | None = None,
         brave_client: Any | None = None,
         hn_client: Any | None = None,
     ) -> None:
         self._router = tool_router
-        self._llm = hybrid_router
+        self._backend = backend_client
         self._dossier = dossier_service
         self._brave = brave_client
         self._hn = hn_client
@@ -65,10 +47,10 @@ class DeepResearchRunner:
         # 1. Gather from all sources.
         gathered = self._gather(ticker, focus=focus)
 
-        # 2. Synthesize via LLM.
+        # 2. Synthesize via backend endpoint.
         synthesis = self._synthesize(ticker, gathered, focus=focus)
 
-        # 3. Persist to dossier.
+        # 3. Persist to dossier (auto-save to agent scratch memory).
         if self._dossier is not None and synthesis.get("summary"):
             self._dossier.save(
                 ticker,
@@ -163,7 +145,7 @@ class DeepResearchRunner:
         return data
 
     # ------------------------------------------------------------------
-    # Synthesize
+    # Synthesize (via backend HTTP endpoint)
     # ------------------------------------------------------------------
 
     def _synthesize(
@@ -173,7 +155,7 @@ class DeepResearchRunner:
         *,
         focus: str | None = None,
     ) -> dict[str, Any]:
-        """Call LLM to synthesize gathered data into a research brief."""
+        """Call backend POST /research/synthesize for LLM synthesis."""
         if not gathered:
             return {
                 "summary": f"No data available for {ticker}.",
@@ -186,26 +168,26 @@ class DeepResearchRunner:
                 "data_gaps": ["All sources returned empty"],
             }
 
-        # Build user message with gathered data.
-        focus_instruction = f"\nFocus your analysis on: {focus}" if focus else ""
-        data_text = json.dumps(gathered, default=str, ensure_ascii=False)
-        # Truncate data to avoid context overflow (~8K chars max).
-        if len(data_text) > 8000:
-            data_text = data_text[:8000] + "\n... (truncated)"
-
-        user_msg = f"Research {ticker} on the ASX.{focus_instruction}\n\nDATA:\n{data_text}"
-
-        messages = [
-            {"role": "system", "content": _RESEARCH_SYSTEM_PROMPT},
-            {"role": "user", "content": user_msg},
-        ]
+        if self._backend is None:
+            return {
+                "summary": f"Backend client not available for {ticker}.",
+                "key_metrics": {},
+                "recent_developments": [],
+                "sentiment": "neutral",
+                "confidence": 0.0,
+                "risks": ["Backend client not configured"],
+                "catalysts": [],
+                "data_gaps": ["Synthesis unavailable"],
+            }
 
         try:
-            response = self._llm.complete(messages, role="deep_research")
-            raw = response.text if hasattr(response, "text") else str(response)
-            return self._parse_synthesis(raw, ticker)
+            return self._backend.synthesize_research(
+                ticker=ticker,
+                gathered_sources=gathered,
+                focus=focus,
+            )
         except Exception as exc:
-            logger.warning("deep_research: LLM synthesis failed: %s", exc)
+            logger.warning("deep_research: backend synthesis failed: %s", exc)
             return {
                 "summary": f"LLM synthesis failed for {ticker}: {str(exc)[:200]}",
                 "key_metrics": {},
@@ -214,35 +196,5 @@ class DeepResearchRunner:
                 "confidence": 0.0,
                 "risks": ["Synthesis failed"],
                 "catalysts": [],
-                "data_gaps": ["LLM call failed"],
+                "data_gaps": ["Backend synthesis call failed"],
             }
-
-    def _parse_synthesis(self, raw: str, ticker: str) -> dict[str, Any]:
-        """Parse LLM JSON output with fallback to plain text."""
-        # Strip markdown fences if present.
-        text = raw.strip()
-        if text.startswith("```"):
-            lines = text.split("\n")
-            text = "\n".join(lines[1:])
-            if text.endswith("```"):
-                text = text[:-3]
-            text = text.strip()
-
-        try:
-            result = json.loads(text)
-            if isinstance(result, dict):
-                return result
-        except json.JSONDecodeError:
-            pass
-
-        # Fallback: treat raw text as summary.
-        return {
-            "summary": text[:500],
-            "key_metrics": {},
-            "recent_developments": [],
-            "sentiment": "neutral",
-            "confidence": 0.3,
-            "risks": [],
-            "catalysts": [],
-            "data_gaps": ["LLM returned non-JSON response"],
-        }

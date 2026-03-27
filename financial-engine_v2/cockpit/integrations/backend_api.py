@@ -96,6 +96,45 @@ class BackendApiClient:
             response.raise_for_status()
             return response.json() if response.content else {"results": []}
 
+    def synthesize_research(
+        self,
+        ticker: str,
+        gathered_sources: dict[str, Any],
+        *,
+        focus: str | None = None,
+        timeout: float = 120.0,
+    ) -> dict[str, Any]:
+        """Call POST /research/synthesize to synthesize gathered sources into a brief.
+
+        Uses a long timeout (120s default) because LLM synthesis can be slow.
+        """
+        url = f"{self.base_url}/research/synthesize"
+        body: dict[str, Any] = {
+            "ticker": str(ticker or "").strip().upper(),
+            "gathered_sources": gathered_sources,
+        }
+        if focus:
+            body["focus"] = str(focus).strip()
+        headers: dict[str, str] = {}
+        if self.api_key:
+            headers["X-API-Key"] = self.api_key
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            try:
+                response = client.post(url, json=body, headers=headers)
+                response.raise_for_status()
+                return response.json() if response.content else {}
+            except httpx.HTTPStatusError as exc:
+                detail = None
+                try:
+                    err_body = exc.response.json() if exc.response is not None else {}
+                    detail = err_body.get("detail")
+                except Exception:
+                    pass
+                code = exc.response.status_code if exc.response is not None else "unknown"
+                raise RuntimeError(f"Synthesis failed (HTTP {code}): {detail or exc}") from exc
+            except httpx.TimeoutException as exc:
+                raise RuntimeError(f"Synthesis timed out after {timeout}s: {exc}") from exc
+
     @staticmethod
     def _normalize_base_url(raw: str) -> str:
         value = (raw or "").strip()
