@@ -197,6 +197,9 @@ _TABLE_KEYWORDS: dict[str, list[str]] = {
         "finance costs",             # formal IS row — absent from segment breakdowns
         "depreciation and amortisation",  # formal IS expense row — absent from segment tables
         "other comprehensive",       # OCI section — only in full IS, never in EBITDA recons
+        "operating income",          # banking: ANZ uses "Operating income" not "Revenue"
+        "net interest income",       # banking: core revenue line in consolidated IS
+        "operating expenses",        # formal IS row — distinguishes full IS from segment recons
         # These keywords also appear in CF statements but do NOT cause cross-contamination:
         # each table is scored independently per statement type. A CF table may score 3
         # for income_statement, but the real IS scores 7+ because it has BOTH the P&L
@@ -251,6 +254,12 @@ _CF_MERGE_THRESHOLD = 2
 # income statement or balance sheet.
 _CF_DISQUALIFY_PHRASES = [
     "cash flow", "statement of cash flows", "cash flows from", "appendix 5b",
+]
+
+# Segment breakdown tables (e.g. "Operating segments" in notes) should not claim
+# the income_statement slot — they are divisional splits, not the consolidated IS.
+_SEGMENT_DISQUALIFY_PHRASES = [
+    "operating segments", "segment reporting", "reportable segments",
 ]
 
 
@@ -410,6 +419,15 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
                     p in _hdr_caption for p in _CF_DISQUALIFY_PHRASES
                 ):
                     continue
+                # Segment disqualification: divisional breakdown tables
+                # share many IS keywords but are not the consolidated IS.
+                # Detect by: (a) nearby section headings, or (b) 8+ columns
+                # (segment tables have one column per division).
+                if label == "income_statement" and (
+                    any(p in _hdr_caption for p in _SEGMENT_DISQUALIFY_PHRASES)
+                    or len(table.headers) >= 8
+                ):
+                    continue
                 pools[label].append((score, is_not_toc, table))
                 any_match = True
         if not any_match:
@@ -485,7 +503,8 @@ Rules:
   Correct labels: "Payments for property, plant and equipment", "Purchases of property, plant and equipment",
   "Purchase of PPE", "Additions to fixed assets", "Capital expenditure",
   "Payments for capital expenditure", "Expenditure on mining development",
-  "Expenditure on mining production and development".
+  "Expenditure on mining production and development",
+  "Net investments in other assets" (banking: ANZ-style capex equivalent).
   DO NOT use: "Net cash from investing activities", "Investing cash flow", or any
   total/subtotal line. If only a total investing cash flow is present and no specific
   capex line exists, return null.
@@ -495,6 +514,8 @@ Rules:
   Correct labels: "Ordinary shares", "Shares on issue", "Number of shares on issue",
   "Fully paid ordinary shares", "Total ordinary shares".
   DO NOT use: "Weighted average number of shares", "Diluted shares", or "Basic earnings per share" denominators.
+  DO NOT extract from columns labeled "$", "$m", "$M", or any dollar-denominated header — those are
+  dollar values of share capital, not share counts. If the only available data is dollar-denominated, return null.
   If both period-end and weighted-average rows are in the same table, use only the period-end row.
   EXCEPTION for share counts only (not dollar amounts): if the table expresses share counts in a scaled unit (e.g. "Million", "'000"), convert to the absolute count.
   Example: if the table shows "5,057" with row label containing "(Million)", output 5057000000 (not 5057).
