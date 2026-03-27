@@ -18,6 +18,10 @@ Mitigations have been applied since this report was written:
 
 Current blocker remains upstream connectivity in this environment (DNS/network resolution failures across EODHD, GDELT, and WorldMonitor), which still yields zero new inserts when the providers cannot be reached.
 
+### 2026-03-27 resolution
+
+**EODHD and GDELT suspended from the main pipeline.** Default provider switched to **newspaper4k** — scrapes 54 AU finance sources directly (AFR, Stockhead, MarketIndex, SMH, ABC News, The Australian, Yahoo Finance, Sky News, etc.) using Scrapling/Playwright for JS-rendered sites. This bypasses the upstream API connectivity issues entirely since newspaper4k fetches articles directly from publisher websites. See `integrations/newspaper4k_au/sources_all_au_finance.txt` for the full source list. Celery beat task `run_daily_news_pipeline` now defaults to `providers="newspaper4k"`.
+
 ---
 
 ## 1. Current state

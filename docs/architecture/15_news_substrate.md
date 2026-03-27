@@ -20,8 +20,8 @@ Ingest modules remain **source-specific**. Do not merge into one monster script.
 | Source | Entrypoint / location | Output |
 |--------|----------------------|--------|
 | **newspaper4k** (default) | `fetch_daily_news.py` (provider `newspaper4k`) | Writes to `news_articles.sqlite` |
-| EODHD API | `fetch_daily_news.py` (provider `eodhd`) | Writes to `news_articles.sqlite` |
-| GDELT API | `fetch_daily_news.py` (provider `gdelt`) | Writes to `news_articles.sqlite` |
+| ~~EODHD API~~ | ~~`fetch_daily_news.py` (provider `eodhd`)~~ | **SUSPENDED** — low-quality ASX coverage; do not use in main pipeline |
+| ~~GDELT API~~ | ~~`fetch_daily_news.py` (provider `gdelt`)~~ | **SUSPENDED** — low-quality ASX coverage; do not use in main pipeline |
 | WorldMonitor | `fetch_daily_news.py` (provider `worldmonitor`) | Writes to `news_articles.sqlite` |
 | RSS / Atom | `fetch_daily_news.py` (provider `rss`) | Writes to `news_articles.sqlite` |
 | newspaper4k standalone | `integrations/newspaper4k_au/collect_au_finance_news.py` | JSONL (fed to Layer 3) |
@@ -29,7 +29,8 @@ Ingest modules remain **source-specific**. Do not merge into one monster script.
 | Hugging Face dataset | `build_news_context_db.py --dataset-id ...` | Direct to Layer 3 (optional) |
 
 Notes:
-- EODHD live fallback is automatically enabled when local captures are missing and `EODHD_API_KEY` is present.
+- **newspaper4k + Scrapling is the canonical news provider** (2026-03-27). 54 AU finance sources including AFR, Stockhead, MarketIndex, SMH, ABC News, The Australian, Yahoo Finance, Sky News. Scrapling/Playwright fallback for JS-rendered sites.
+- **EODHD and GDELT are suspended** from the main pipeline (2026-03-27). Reason: poor coverage of ASX-specific news, low article quality, missing key AU finance sources. They remain available for manual one-off runs (`--providers eodhd,gdelt`) but are not recommended.
 - `fetch_daily_news.py` / `backfill_news.py` auto-finalize stale `provider_runs` rows stuck in `running` before new ingest starts.
 
 ## Layer 2 — Canonical article schema
