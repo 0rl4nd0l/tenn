@@ -191,3 +191,49 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Fix:** Replace `value=""` with `value=Select.BLANK` for any `Select` with `allow_blank=True`.
 **Secondary finding:** `textual_dev` CLI (cli.py:285) hardcodes `python` in the shell command it passes to `textual_serve`. On systems where only `python3` is in PATH this causes `/bin/sh: python: not found` at WebSocket connect time, which is also reported as "Application failed to start". Workaround: use `textual serve --command ".venv/bin/python script.py"` to provide the full interpreter path.
 **Rule:** When using Textual `Select` with `allow_blank=True`, always pass `value=Select.BLANK` (not `""` or `None`) as the initial value when no option should be pre-selected. When using `textual serve` on systems without a bare `python` in PATH, always use the `--command` flag with the full venv interpreter path.
+
+---
+
+## L018 — Never accept a regressed eval baseline without architectural justification
+
+**Date:** 2026-03-26
+**Subsystem:** `backend/tests/test_extraction_eval.py`, eval infrastructure
+**Symptom:** Commit `322f0d66` locked the extraction baseline at 88.42% — a 10-point drop from the 98.3% baseline at `483ce6d2`. The lowered score was partially explained by fixture set expansion (6→9), but no analysis confirmed whether the original 6 fixtures also regressed. Subsequent commits optimised against the 88.42% floor, potentially accepting structural regressions in the original fixture set as normal.
+**Root cause:** No policy required justification for moving the eval floor downward. The commit message documented the score but not the decision rationale or which regressions were considered acceptable.
+**Fix:** Policy rule (this lesson).
+**Rule:** Never commit a milestone that accepts a regressed eval score as a new baseline without explicit architectural justification. If the eval floor must move, the commit message must document: (1) why the regression is acceptable, (2) which specific fixtures/metrics regressed and why, (3) whether the original fixture set also regressed or only new fixtures lowered the average. Update `docs/claude/STATE.md` with the new floor and rationale. Do not silently lower the threshold.
+
+---
+
+## L019 — Eval baseline protection must cover all files that affect extraction output
+
+**Date:** 2026-03-27
+**Subsystem:** `backend/app/services/docling_extract.py`, eval infrastructure
+**Symptom:** Commit `877a8203` changed `EXTRACTION_BACKEND` default from `"pymupdf"` to `"docling"` in `docling_extract.py` (line 231). This changed which PDF parser runs for every document, but did not trigger the eval baseline protection rule because the rule only monitored `multipass_extraction.py`. The eval was not re-run before merging, and the overall score dropped from 88.42% to 77.89% (AZJ fixture at 0.0% due to garbled CID fonts).
+**Root cause:** The eval baseline protection file list was too narrow — it covered `multipass_extraction.py` but not `docling_extract.py`, even though changes to the PDF extraction backend directly affect what data reaches the LLM extraction passes.
+**Fix:** Policy rule (this lesson). The protected file list must include `docling_extract.py`, `extraction.py`, and any file that controls which PDF parser runs or how text/tables reach the extraction pipeline.
+**Rule:** Any change to extraction backend defaults, PDF parsing libraries, or `docling_extract.py` requires running the eval baseline before committing — not just changes to `multipass_extraction.py`. The protected file list in the eval baseline protection rule must include all files that affect what data reaches the LLM extraction passes.
+
+---
+
+## L020 — Meta-tool pattern: bypass agent loop iteration limits for multi-step workflows
+
+**Date:** 2026-03-27
+**Subsystem:** `cockpit/core/research/deep_research.py`, `cockpit/core/tool_executor.py`
+**Symptom:** The agent loop (MAX_ITERATIONS=6, 12K token context) is insufficient for deep research workflows that need to query 5+ data sources and synthesize results. A single `deep_research("BHP")` call would exhaust the loop budget before completing.
+**Root cause:** The agent loop is designed for interactive tool calling where the LLM decides what to do next. Deep research is a deterministic pipeline — it always gathers the same source categories, then synthesizes.
+**Fix:** Created `DeepResearchRunner` as a "meta-tool" — registered as a single read-only tool in the agent loop, but internally runs its own gather→synthesize→persist pipeline with a **separate LLM context** (calls `HybridRouter.complete()` directly, not through the agent loop). The agent loop uses 1 iteration; the meta-tool does 6+ operations internally.
+**Pattern source:** TradingAgents (TauricResearch, Apache 2.0) uses a similar multi-agent pipeline, but on LangGraph. We adapted the analyst-team-parallel pattern into a simpler deterministic sequence — no LangGraph dependency, fits the existing ToolExecutor dispatch model.
+**Rule:** When a workflow needs more iterations or context than the agent loop allows, implement it as a meta-tool: a single tool schema in `tool_definitions.py` backed by a class that runs its own pipeline. The meta-tool must use a **fresh LLM context** (separate messages list) for any synthesis calls — never share the agent loop's context window. Register in `_READ_ONLY_DISPATCH` like any other tool. This pattern is reusable for any future deterministic multi-step workflow (e.g., portfolio analysis, sector comparison).
+
+---
+
+## L021 — Vendor routing with fallback prevents hard dependencies on external APIs
+
+**Date:** 2026-03-27
+**Subsystem:** `cockpit/integrations/brave_search.py`, `cockpit/core/research/situation_memory.py`
+**Symptom:** External API dependencies (Brave Search, rank-bm25) would break the cockpit if unavailable.
+**Root cause:** N/A — designed correctly from the start.
+**Fix:** Every external dependency has a fallback: `BraveSearchClient` falls back to `WebFetcher` (DuckDuckGo) when `BRAVE_SEARCH_API_KEY` is absent. `SituationMemory` falls back to simple keyword matching when `rank-bm25` is not installed. The cockpit works at full functionality when all dependencies are present, and at reduced functionality when they're absent — never crashes.
+**Pattern source:** TradingAgents `route_to_vendor()` — tries primary vendor, falls back on rate limit or error.
+**Rule:** Any new external integration (API client, ML library) must have a fallback that preserves core functionality. The fallback should be logged at INFO level on init so operators know which path is active. Never make the cockpit crash because an optional API key is missing.

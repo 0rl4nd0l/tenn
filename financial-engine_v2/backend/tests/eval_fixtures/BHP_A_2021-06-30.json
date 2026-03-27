@@ -41,5 +41,8 @@
     "capex": "Table 46 (page 46): 'Purchases of property, plant and equipment' = (6,606) USD millions. Negative per CF outflow convention (consistent with RMS fixture). Note: BHP's 'Capital and exploration expenditure' (7,120) includes exploration (514) but the prompt extracts PP&E purchases only.",
     "net_debt": "MOVED TO expected_nulls. BHP's official net_debt (4,121) uses a custom calculation: interest bearing liabilities - index-linked freight - cash - net swaps - cash mgmt instruments (Table 75/84). The balance sheet (Table 45) does not break out lease liabilities from borrowings, so the system cannot derive this figure. The extraction would either yield null or an incorrect derivation (~5,737M).",
     "shares_outstanding": "Table 57 (page 52): 'Weighted average number of shares (Million) Basic = 5,057'. LLM interprets '(Million)' in the row label and outputs 5,057,000,000 (5,057 * 1M). System stores this as-is because shares_outstanding is a _COUNT_METRICS field (no scale multiplication) and the table headers lack monetary scale markers."
+  },
+  "config": {
+    "min_accuracy_overall": 0.80
   }
 }

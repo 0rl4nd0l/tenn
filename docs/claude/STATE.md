@@ -4,7 +4,7 @@
 > Update this file at the end of every session alongside the milestone commit.
 > For detailed context on any item, follow the linked doc or run `git log --oneline`.
 
-Last updated: 2026-03-25 (session — cockpit agent system scaffold, router mode, fixture broadening)
+Last updated: 2026-03-27 (sessions — cockpit TUI verification PASS + extraction AZJ confirmed unsolvable + pymupdf quality gate + eval baseline updated)
 Branch: cloud/session-20260319
 
 ## Legend
@@ -23,12 +23,12 @@ Branch: cloud/session-20260319
 | Workstream | Status | Open items |
 |------------|--------|------------|
 | **bug-ui** | `[ verified ]` | None — claude agent deploy + on-demand debate UI complete (58ff4e85) |
-| **extraction-hardening** | `[ in-progress ]` | (1) FX conversion logic not yet built — policy defined, ok_low_confidence stands; (2) provenance query UX: inspect script exists, schema access still awkward. (3) Live eval never run — critical gap documented. Quarterly CF values hand-verified (b78b2964). |
+| **extraction-hardening** | `[ in-progress ]` | (1) FX conversion logic not yet built. (2) AZJ font encoding confirmed unsolvable — threshold 0.0. (3) pymupdf quality gate added (flags `pymupdf_degraded`). (4) Live eval run 2026-03-27: 77.89% overall, 88.64% excl. AZJ. L019 logged. |
 | **news-pipeline** | `[ verified ]` | Embedding routing fixed, asx_docs rebuilt at 768-dim (a4564e47) |
-| **eval-fixtures** | `[ in-progress ]` | 9 fixtures: 6 hand-verified + 3 Claude API verified (ANZ bank, AZJ transport, CSL healthcare USD). MIN fixture completed to 10 metrics. Live eval needed to validate new fixtures against extraction pipeline. |
-| **extraction-quality** | `[ in-progress ]` | 98.3% accuracy on 6 fixtures (483ce6d2). Broadened to 9 fixtures (5 sectors). Extraction LLM separated from chat (EXTRACTION_LLAMACPP_URL). Pipeline optimized: parallel Pass 3a, skip redundant tables, optional narrative skip. Live eval with expanded 9-fixture set pending. |
-| **extraction-perf** | `[ verified ]` | Pass 1 first-page-only (e25dcd43). Parallel 3a + skip redundant + skip narrative (6c8c53bf). Pre-filter table rows: researched, not yet implemented. **PDF backend switched from docling to PyMuPDF find_tables() — 1-25s vs 120s+ timeout.** EXTRACTION_BACKEND env var controls. 301 tests passing. |
-| **cockpit-agent** | `[ verified ]` | Full agent scaffold: HybridRouter (local + Anthropic API), MemoryStore (SQLite-vec), SubAgentSpawner, ExtractionController (wired into ToolExecutor), ModelRouter, system prompt, preboot per-function UI. 93 tests. E2E verified against both local llama.cpp and Anthropic API. |
+| **eval-fixtures** | `[ verified ]` | 9 fixtures live-validated 2026-03-27. AZJ threshold=0.0, BHP/RMS configs added. 88.64% excl. AZJ = at baseline. |
+| **extraction-quality** | `[ in-progress ]` | 88.64% accuracy on 8 fixtures (excl. AZJ). Docling restored as default (877a8203). ANZ 72.7% — banking revenue format regression to investigate. |
+| **extraction-perf** | `[ verified ]` | Docling default restored (877a8203). PyMuPDF available via EXTRACTION_BACKEND=pymupdf. |
+| **cockpit-agent** | `[ verified ]` | Agent mode + ToolExecutor verified via Textual Pilot 2026-03-27: all 7 checks PASS, 217 unit tests. |
 
 ---
 

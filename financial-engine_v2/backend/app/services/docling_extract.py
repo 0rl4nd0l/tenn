@@ -210,13 +210,27 @@ def _extract_pymupdf(pdf_path: str) -> StructuredDocument:
         else:
             merged_tables.append(table)
 
-    return StructuredDocument(
+    result = StructuredDocument(
         tables=merged_tables,
         sections=sections,
         extraction_method="pymupdf",
         page_count=page_count,
         docling_version="",
     )
+
+    # Quality gate: flag garbled output so downstream consumers can decide.
+    # Does NOT raise — pymupdf is the last-resort backend; a degraded result
+    # is better than no result.  The "pymupdf_degraded" method tag lets
+    # callers distinguish clean vs. garbled output.
+    if merged_tables and _has_garbled_tables(result, pdf_path):
+        logger.warning(
+            "PyMuPDF extraction produced garbled tables for %s — "
+            "marking as pymupdf_degraded",
+            pdf_path,
+        )
+        result.extraction_method = "pymupdf_degraded"
+
+    return result
 
 
 def extract_structured(pdf_path: str, *, backend: str = "") -> StructuredDocument:

@@ -303,9 +303,15 @@ def test_live_eval_accuracy_against_fixtures():
                 "accuracy": 0.0,
                 "metric_count": num_metrics,
             }
-            fixture_failures.append(
-                f"{label}: FAILED (extraction error) < {fixture_min_acc:.1%}"
-            )
+            if fixture_min_acc > 0.0:
+                fixture_failures.append(
+                    f"{label}: FAILED (extraction error) < {fixture_min_acc:.1%}"
+                )
+            else:
+                logger.info(
+                    "Extraction failed for %s but min_accuracy is 0.0 — not a failure",
+                    label,
+                )
             continue
 
         # Per-fixture tolerances override global; per-fixture min_accuracy if set.

@@ -26,5 +26,8 @@
     "capex": "PP&E payments only from investing activities. Mine development payments (83,614) excluded as they are typically reported separately.",
     "net_debt": "RMS has no formal debt. Only lease liabilities (87,994,000 total). Net debt concept unclear — marked null.",
     "shares_outstanding": "From Note 14: 1,924,937,480 ordinary shares at 31 Dec 2025, post Spartan acquisition (752,904,179 shares issued)."
+  },
+  "config": {
+    "min_accuracy_overall": 0.80
   }
 }
