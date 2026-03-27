@@ -58,6 +58,8 @@ def _write_eval_log(
     overall_acc: float,
     per_fixture_data: dict,
     per_metric_results: dict,
+    model_label: str = "",
+    llm_api_key_present: bool = False,
 ) -> None:
     """Write a machine-readable eval result JSON to tests/eval_results/.
 
@@ -68,6 +70,8 @@ def _write_eval_log(
     ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
     log = {
         "timestamp": ts,
+        "model": model_label,
+        "llm_api_key_present": llm_api_key_present,
         "overall_accuracy": round(overall_acc, 4),
         "per_fixture": per_fixture_data,
         "per_metric": {
@@ -246,11 +250,15 @@ def test_live_eval_accuracy_against_fixtures():
     per_fixture_data: dict[str, dict] = {}
 
     import os
+    force_llamacpp = os.getenv("EVAL_FORCE_LLAMACPP", "").lower() in ("1", "true")
     anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
-    if anthropic_key:
+    llm_api_key_present = bool(os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY"))
+    if anthropic_key and not force_llamacpp:
         import anthropic
         llm_client = anthropic.Anthropic(api_key=anthropic_key)
-        llm_client._extraction_model = os.getenv("EVAL_CLAUDE_MODEL", "claude-opus-4-6")
+        eval_model = os.getenv("EVAL_CLAUDE_MODEL", "claude-opus-4-6")
+        llm_client._extraction_model = eval_model
+        model_label = f"anthropic:{eval_model}"
     else:
         headers = {}
         api_key = os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY") or ""
@@ -259,6 +267,7 @@ def test_live_eval_accuracy_against_fixtures():
         extraction_url = os.getenv("EXTRACTION_LLAMACPP_URL") or os.getenv("LLAMACPP_URL") or "http://127.0.0.1:8001"
         base_url = extraction_url.rstrip("/") + "/v1"
         llm_client = httpx.Client(base_url=base_url, timeout=60.0, headers=headers)
+        model_label = f"llamacpp:{extraction_url}"
 
     fixture_failures: list[str] = []
 
@@ -376,7 +385,8 @@ def test_live_eval_accuracy_against_fixtures():
     overall_acc = sum(overall_results) / len(overall_results) if overall_results else 0
 
     # Structured eval log written before assertions so it exists even on failure.
-    _write_eval_log(config, overall_acc, per_fixture_data, per_metric_results)
+    _write_eval_log(config, overall_acc, per_fixture_data, per_metric_results,
+                    model_label=model_label, llm_api_key_present=llm_api_key_present)
 
     # Per-fixture failures reported first (most actionable)
     assert not fixture_failures, (
