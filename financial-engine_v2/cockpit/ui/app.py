@@ -31,6 +31,7 @@ from cockpit.integrations.file_indexer import FileIndexer
 from cockpit.integrations.llamacpp_client import LlamaCppClient
 from cockpit.integrations.qual_context_bootstrap import build_qual_context_reader, context_enabled
 from cockpit.integrations.web_fetcher import WebFetcher
+from cockpit.core.conversation_commands import derive_conversational_command
 from cockpit.core.tools import ToolRouter
 from cockpit.storage.artifacts import ArtifactStore
 from cockpit.storage.state import StateStore
@@ -626,6 +627,42 @@ class CockpitApp(App):
         if message.strip():
             self._input_history.append(message.strip())
             self._history_idx = len(self._input_history)  # reset index to end
+
+        # Resolve natural language to slash commands (e.g. "add BHP to watchlist" → "/watch add BHP")
+        stripped = message.strip()
+        derived_cmd = derive_conversational_command(stripped) if stripped else None
+        if derived_cmd:
+            import logging as _logging
+            _logging.getLogger(__name__).debug("conversational command resolved: %s", derived_cmd)
+            stripped = derived_cmd
+
+        # Handle /watch commands (from slash input or resolved conversational command)
+        if stripped.startswith("/watch "):
+            parts = stripped[len("/watch "):].split(maxsplit=1)
+            sub = parts[0].lower() if parts else ""
+            arg = parts[1].strip().upper() if len(parts) > 1 else ""
+            now_iso = datetime.now(timezone.utc).isoformat()
+            if sub == "add" and arg:
+                added = self.state_store.add_watch_ticker(arg, now_iso)
+                reply = f"Added {arg} to watchlist." if added else f"{arg} is already on the watchlist."
+            elif sub == "remove" and arg:
+                removed = self.state_store.remove_watch_ticker(arg)
+                reply = f"Removed {arg} from watchlist." if removed else f"{arg} was not on the watchlist."
+            elif sub == "list":
+                tickers = self.state_store.list_watch_tickers()
+                if tickers:
+                    items = ", ".join(t["ticker"] for t in tickers)
+                    reply = f"Watchlist ({len(tickers)}): {items}"
+                else:
+                    reply = "Watchlist is empty."
+            elif sub == "clear":
+                count = self.state_store.clear_watch_tickers()
+                reply = f"Cleared {count} ticker(s) from watchlist."
+            else:
+                reply = "Usage: /watch add|remove|list|clear [TICKER]"
+            self._append_log(log, f"assistant: {reply}")
+            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            return
 
         if message.strip() == "/cancel":
             self.pending_action = None

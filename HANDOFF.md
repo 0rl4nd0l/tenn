@@ -99,17 +99,61 @@ Built a 4-layer autonomous research system for the cockpit, inspired by TradingA
 
 **Verification status:** All imports verified. Lint clean. Celery config validated (3 beat tasks). BM25 installed and operational.
 
+### SESSION: research-llm-route-fix (2026-03-27, c8b47f61)
+
+Fixed service role violation: DeepResearchRunner no longer calls HybridRouter.complete() directly.
+
+**What changed:**
+- New `POST /research/synthesize` backend endpoint (`backend/app/routes/research.py`)
+- New `research_synthesis.py` service — owns `_RESEARCH_SYSTEM_PROMPT` + `_parse_synthesis` (moved from cockpit)
+- `BackendApiClient.synthesize_research()` added with 120s timeout
+- `deep_research.py` refactored: `hybrid_router` param → `backend_client` param
+- `chat.py` wiring: passes `tool_router.backend_api_client` instead of `hybrid_router`
+- `rank-bm25==0.2.2` added to `backend/requirements.txt`
+- 16 tests: 9 backend + 7 cockpit (all pass)
+
+**What remains uncommitted (research session — pending test coverage):**
+- `cockpit/integrations/brave_search.py`, `hn_search.py` — search clients
+- `cockpit/core/research/dossier.py`, `situation_memory.py`, `alerts.py` — persistence
+- `cockpit/core/tool_definitions.py` — 7 new tool schemas
+- `cockpit/core/tool_executor.py` — 5 new dispatch handlers
+- `cockpit/core/tools.py` — brave/hn client params on ToolRouter
+- `worker/worker_app/research_tasks.py`, `celery_app.py`, `news_tasks.py` — watchlist scanner + newspaper4k default
+- `docs/` updates — STATE.md, environment.md, news substrate, testing guide
+
+### SESSION: cockpit-memory-wiring (2026-03-27)
+
+Wired two existing-but-disconnected capabilities into the Cockpit message flow.
+
+**Change 1 — Per-company dossier injection into analysis context:**
+- `tools.py`: Added `self.dossier_service = None` attribute to ToolRouter (+1 line)
+- `tools.py`: Added dossier recall block in `gather_local_context()` — fetches up to 5 most recent findings, injects as `payload["dossier_findings"]` with `finding`, `category`, `confidence`, `source`, `date` fields (+19 lines)
+- `chat.py`: Wires `CompanyDossierService` onto `tool_router.dossier_service` at init (+1 line)
+- Guards: only injects when `ticker` is present AND `dossier_service` is not None. try/except wraps entire block — never crashes analysis.
+- Does NOT touch extraction prompts or `PROMPT_HASH`.
+
+**Change 2 — Conversational command wiring + /watch handler:**
+- `app.py`: Import `derive_conversational_command` from `conversation_commands.py` (+1 line)
+- `app.py`: Call `derive_conversational_command()` before slash-command detection in `handle_chat_message()`. If it returns a command string, re-assign `stripped` to it (+6 lines)
+- `app.py`: `/watch` handler with `add`, `remove`, `list`, `clear` subcommands dispatching to existing `state_store` methods (+30 lines)
+- Natural language like "add BHP to watchlist" now routes through `/watch add BHP`.
+
+**Total: +58 lines across 3 files. 224 tests pass, 0 failures.**
+
+**Verification status:**
+- Ruff lint: PASS
+- pytest cockpit/tests/: 224 passed, 1 skipped
+- TUI verification: NOT YET DONE (requires live backend + cockpit launch)
+
 ## Next steps
-1. Commit all changes (extraction session + research session)
-2. Live test: run cockpit, invoke `deep_research("BHP")`, verify multi-source synthesis
-3. Set up Brave API key and watchlist for background scanning
-4. Investigate ANZ 72.7% regression (banking revenue format)
-5. Consider OCR fallback for garbled PDFs (deferred — needs `RapidOcrOptions` validation)
-6. MIN regression from 100% to 90.9% — investigate which metric regressed
-7. Unit tests for new research modules
+1. **TUI verification** — start cockpit, test dossier injection in analysis and natural language watchlist commands
+2. **Phase 2A-2** — Transcript approval gate (Qdrant write-path, separate session)
+3. **Phase 2A-3** — 5B cash runway extraction (requires eval baseline confirmation)
+4. Live test: `deep_research("BHP")` via cockpit
+5. Unit tests for remaining research files
+6. Investigate ANZ 72.7% regression
 
 ## Resume command
 Read HANDOFF.md. Run `nvidia-smi` to confirm VRAM state.
-For extraction eval: confirm :8002 serving Qwen, ANTHROPIC_API_KEY must be empty.
-For research testing: run cockpit with COCKPIT_AGENT_MODE=structured, try `deep_research("BHP")`.
+For memory wiring verification: start backend + cockpit, try "add BHP to watchlist" and "analyse BHP".
 multipass_extraction.py is READ ONLY unless explicitly tasked.

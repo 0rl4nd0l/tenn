@@ -55,6 +55,7 @@ class ToolRouter:
             )
             or bool(self.news_context_db_path)
         )
+        self.dossier_service = None
         self._ticker_cache_ttl_seconds = 120.0
         self._ticker_cache: dict[tuple[Any, ...], tuple[float, dict[str, Any]]] = {}
         self._price_cache_ttl_seconds = 20.0
@@ -1214,6 +1215,25 @@ class ToolRouter:
                     observations = self._state_store.get_entity_observations(ticker, limit=8)
                     if observations:
                         payload["agent_memory"] = observations
+                except Exception:
+                    pass
+            # Inject dossier findings: prior research conclusions about this ticker
+            if self.dossier_service is not None and ticker:
+                try:
+                    dossier_result = self.dossier_service.recall(ticker, limit=5)
+                    findings = dossier_result.get("findings", []) if dossier_result.get("ok") else []
+                    if findings:
+                        payload["dossier_findings"] = [
+                            {
+                                "finding": f.get("finding", ""),
+                                "category": f.get("category", ""),
+                                "confidence": f.get("confidence", 0.0),
+                                "source": f.get("source", ""),
+                                "date": (f.get("ts") or "")[:10],
+                            }
+                            for f in findings
+                        ]
+                        payload["has_dossier_context"] = True
                 except Exception:
                     pass
             # Inject most recent prior analysis export for this ticker (best-effort)

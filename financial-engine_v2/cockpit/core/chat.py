@@ -181,6 +181,7 @@ class ChatController:
                     from cockpit.core.research.dossier import CompanyDossierService
                     dossier_svc = CompanyDossierService()
                     self._dossier_service = dossier_svc
+                    tool_router.dossier_service = dossier_svc
                 except Exception as exc:
                     logger.warning("CompanyDossierService init failed: %s", exc)
                 try:
