@@ -285,7 +285,14 @@ def _parse_json_text(text: str) -> Any:
     # Then apply thousands-separator removal to get valid JSON numbers.
     acc = _re.sub(r'\((\d[\d,.]*)\)', lambda m: '-' + m.group(1), stripped)
     acc_cleaned = _re.sub(r'(?<=\d),(?=\d)', '', acc)
-    candidates = [raw, stripped, _extract_first_json_value(stripped), cleaned, _extract_first_json_value(cleaned), acc, acc_cleaned, _extract_first_json_value(acc_cleaned)]
+    # Fix garbled PDF artifacts in LLM output:
+    # 1. Strip control chars (0x00-0x1F except \t \n \r) that break JSON strings
+    # 2. Fix invalid JSON escape sequences (e.g. \P, \S from garbled font CMap)
+    def _sanitize(s: str) -> str:
+        s = _re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', s)
+        return _re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', s)
+    sanitized = _sanitize(acc_cleaned)
+    candidates = [raw, stripped, _extract_first_json_value(stripped), cleaned, _extract_first_json_value(cleaned), acc, acc_cleaned, _extract_first_json_value(acc_cleaned), sanitized, _extract_first_json_value(sanitized)]
     seen = set()
     for candidate in candidates:
         value = str(candidate or "").strip()
