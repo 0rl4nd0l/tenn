@@ -497,8 +497,11 @@ Rules:
   For banks: "Net interest income" or "Total operating income" is the revenue equivalent.
 - ebit: only output if a row is explicitly labeled "EBIT", "Earnings Before Interest and Tax",
   "Profit from operations", "Profit / (loss) from operating activities", "Operating profit",
-  "Statutory EBIT", or "Operating income" — do NOT use PBT, Profit Before Tax, or Net Profit as a proxy.
-  For banks: "Operating income" or "Cash profit before tax" may serve as the EBIT equivalent.
+  "Statutory EBIT", "Operating income", "Profit before income tax", or "Cash profit before tax".
+  Do NOT use Net Profit as a proxy.
+  CRITICAL: if the table has BOTH "Profit before credit impairment and income tax" AND
+  "Profit before income tax", you MUST use "Profit before income tax" (the row AFTER credit impairment).
+  "Profit before credit impairment and income tax" is NOT ebit.
 - capex: Capital Expenditure must be a SPECIFIC LINE ITEM, NOT a total or subtotal.
   Correct labels: "Payments for property, plant and equipment", "Purchases of property, plant and equipment",
   "Purchase of PPE", "Additions to fixed assets", "Capital expenditure",

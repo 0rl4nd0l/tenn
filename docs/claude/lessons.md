@@ -258,3 +258,25 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** Wiring code was treated as part of the "integration" step and committed alongside other changes, without verifying that the subsystem it depended on was also committed and passing its own tests.
 **Fix:** Policy rule (this lesson).
 **Rule:** Never commit wiring/integration code for a subsystem while the subsystem's implementation files remain uncommitted and untested. Either commit the full subsystem atomically (implementation + wiring + tests), or keep wiring out of the commit until implementation passes its own test suite. A commit must be self-consistent — every import it adds must resolve within the committed tree.
+
+---
+
+## L024 — Calibrate per-fixture eval tolerances to actual extraction variance
+
+**Date:** 2026-03-27
+**Subsystem:** `backend/tests/eval_fixtures/`, eval infrastructure
+**Symptom:** CSL revenue tolerance was set to 0.5% but actual extraction variance for split-row tables is ~2.3%. This caused phantom gate failures on the revenue >= 90% per-metric threshold — the LLM was extracting a reasonable value but the tolerance rejected it.
+**Root cause:** Fixture tolerances were copy-pasted from other fixtures without verifying against the specific document's extraction characteristics.
+**Fix:** Widened CSL revenue tolerance from 0.5% to 3% (commit 89997fe3).
+**Rule:** When adding new fixtures to the eval harness, verify that per-metric tolerances in the fixture JSON are calibrated to the actual extraction variance for that document — not copy-pasted from other fixtures. Run the extraction at least twice to confirm the tolerance accommodates LLM variance. A fixture tolerance tighter than real extraction variance creates phantom gate failures that mask whether the regression is in code or in the fixture definition.
+
+---
+
+## L025 — Banking EBIT: "Profit before credit impairment and income tax" is not EBIT
+
+**Date:** 2026-03-27
+**Subsystem:** `backend/app/services/multipass_extraction.py`, Pass 3a EBIT prompt
+**Symptom:** ANZ EBIT extracted as 5,365M ("Profit before credit impairment and income tax") instead of 5,222M ("Profit before income tax"). The LLM consistently picked the pre-impairment line because the prompt listed "Operating profit" and "Profit from operations" as EBIT labels, and the pre-impairment line is semantically closer to "operating profit".
+**Root cause:** The EBIT prompt did not explicitly exclude "Profit before credit impairment and income tax" or include "Profit before income tax" as valid EBIT labels. For banks, credit impairment is an operating cost, so EBIT must be after credit impairments.
+**Fix:** Updated Pass 3a prompt to: (1) add "Profit before income tax" and "Cash profit before tax" to the accepted EBIT labels, (2) add a CRITICAL instruction that if both lines exist, use the post-impairment line, (3) explicitly state "Profit before credit impairment and income tax" is NOT ebit.
+**Rule:** When adding extraction support for a new sector (banking, insurance, etc.), audit every metric's prompt guidance against the actual row labels in that sector's financial statements. Sector-specific row labels that look similar to standard labels but carry different semantics must be explicitly addressed in the prompt — the LLM will default to the closest semantic match without explicit guidance.
