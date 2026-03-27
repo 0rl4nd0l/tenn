@@ -28,11 +28,15 @@ class ToolRouter:
         news_context_db_path: str = "",
         news_context_corpus_filter: str = "news",
         state_store=None,
+        brave_search_client=None,
+        hn_search_client=None,
     ) -> None:
         self.db_reader = db_reader
         self.file_indexer = file_indexer
         self.web_fetcher = web_fetcher
         self.backend_api_client = backend_api_client
+        self.brave_search_client = brave_search_client
+        self.hn_search_client = hn_search_client
         self.qual_context_company_reader = (
             qual_context_company_reader if qual_context_company_reader is not None else qual_context_reader
         )

@@ -26,6 +26,7 @@ The active runtime is `financial-engine_v2`. The canonical env file lives at `fi
 | `HYBRID_ROUTER_POLICY` | `local_only` | Cockpit HybridRouter routing policy. Options: `local_only` (default), `local_preferred`, `api_preferred`, `api_only`. The router never calls a cloud API unless an `api_client` is explicitly configured **and** the policy is `api_preferred` or `api_only`. |
 | `OPENVIKING_CONFIG_FILE` | _(injected by launcher)_ | Absolute path to domain-specific `ov.conf`. Backend defaults to `~/.openviking/backend.ov.conf`; cockpit defaults to `~/.openviking/cockpit.ov.conf`. Override to point at a different workspace. |
 | `ANTHROPIC_API_KEY` | _(unset)_ | Anthropic API key for the cockpit `AnthropicClient`. Required only when `HYBRID_ROUTER_POLICY` is `api_preferred` or `api_only`. The router never calls the Anthropic API unless this is set **and** the policy allows it. |
+| `BRAVE_SEARCH_API_KEY` | _(unset)_ | Brave Search API key for the cockpit `search_web` tool. When set, the cockpit uses Brave for web search (higher quality, structured results). When absent, falls back to DuckDuckGo via `WebFetcher`. Free tier: 2,000 queries/month at [brave.com/search/api](https://brave.com/search/api/). |
 
 ## Copy the template
 

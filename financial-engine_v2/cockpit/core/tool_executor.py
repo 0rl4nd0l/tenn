@@ -32,11 +32,17 @@ class ToolExecutor:
         *,
         max_result_chars: int = DEFAULT_MAX_RESULT_CHARS,
         extraction_controller=None,
+        dossier_service=None,
+        deep_research_runner=None,
+        alert_reader=None,
     ) -> None:
         self._router = tool_router
         self._actions = action_registry
         self._max_result_chars = max_result_chars
         self._extraction_ctrl = extraction_controller
+        self._dossier_service = dossier_service
+        self._deep_research_runner = deep_research_runner
+        self._alert_reader = alert_reader
 
     # ------------------------------------------------------------------
     # Public API
@@ -263,6 +269,56 @@ class ToolExecutor:
         )
         return {"ok": result.ok, **result.payload}
 
+    # ------------------------------------------------------------------
+    # Research tools (search_web, search_social, recall_dossier, deep_research, alerts)
+    # ------------------------------------------------------------------
+
+    def _exec_search_web(self, args: dict[str, Any]) -> dict[str, Any]:
+        query = str(args.get("query", "")).strip()
+        if not query:
+            return {"ok": False, "error": "query is required"}
+        count = int(args.get("count", 5))
+        if self._router.brave_search_client is not None:
+            return self._router.brave_search_client.search(query, count=count)
+        # Fallback to WebFetcher if no Brave client wired.
+        result = self._router.web_fetcher.search_and_fetch(query, max_results=count)
+        return {"ok": result.get("ok", True), "results": result.get("pages", [])}
+
+    def _exec_search_social(self, args: dict[str, Any]) -> dict[str, Any]:
+        query = str(args.get("query", "")).strip()
+        if not query:
+            return {"ok": False, "error": "query is required"}
+        limit = int(args.get("limit", 10))
+        if self._router.hn_search_client is not None:
+            return self._router.hn_search_client.search(query, limit=limit)
+        return {"ok": False, "stories": [], "error": "HN search client not available"}
+
+    def _exec_recall_dossier(self, args: dict[str, Any]) -> dict[str, Any]:
+        ticker = str(args.get("ticker", "")).strip().upper()
+        if not ticker:
+            return {"ok": False, "error": "ticker is required"}
+        query = str(args.get("query", "")).strip() or None
+        limit = int(args.get("limit", 5))
+        if self._dossier_service is None:
+            return {"ok": False, "error": "dossier service not available"}
+        return self._dossier_service.recall(ticker, query=query, limit=limit)
+
+    def _exec_deep_research(self, args: dict[str, Any]) -> dict[str, Any]:
+        ticker = str(args.get("ticker", "")).strip().upper()
+        if not ticker:
+            return {"ok": False, "error": "ticker is required"}
+        focus = str(args.get("focus", "")).strip() or None
+        if self._deep_research_runner is None:
+            return {"ok": False, "error": "deep research runner not available"}
+        return self._deep_research_runner.run(ticker, focus=focus)
+
+    def _exec_get_watchlist_alerts(self, args: dict[str, Any]) -> dict[str, Any]:
+        since_hours = int(args.get("since_hours", 24))
+        ticker = str(args.get("ticker", "")).strip().upper() or None
+        if self._alert_reader is None:
+            return {"ok": True, "alerts": [], "message": "alert reader not available"}
+        return self._alert_reader.get(since_hours=since_hours, ticker=ticker)
+
     # Dispatch table: tool_name -> handler method
     _READ_ONLY_DISPATCH: dict[str, Any] = {
         "query_ticker_data": _exec_query_ticker_data,
@@ -276,6 +332,11 @@ class ToolExecutor:
         "list_recent_reports": _exec_list_recent_reports,
         "get_data_quality": _exec_get_data_quality,
         "fetch_url": _exec_fetch_url,
+        "search_web": _exec_search_web,
+        "search_social": _exec_search_social,
+        "recall_dossier": _exec_recall_dossier,
+        "deep_research": _exec_deep_research,
+        "get_watchlist_alerts": _exec_get_watchlist_alerts,
     }
 
     # ------------------------------------------------------------------
@@ -292,6 +353,7 @@ class ToolExecutor:
         "rebuild_financials": "rebuild_ticker_financials",
         "audit_financials": "audit_ticker_financials",
         "generate_chart": "show_candlestick",
+        "save_research_finding": "_dossier_direct",  # handled directly, not via ActionRegistry
     }
 
     # Maps agentic tool argument names to ActionRegistry argument names.
@@ -304,10 +366,15 @@ class ToolExecutor:
         "rebuild_financials": {"ticker": "ticker"},
         "audit_financials": {"ticker": "ticker"},
         "generate_chart": {"ticker": "ticker", "range": "timeframe"},
+        "save_research_finding": {"ticker": "ticker", "finding": "finding", "source": "source"},
     }
 
     def _propose_action(self, tool_name: str, args: dict[str, Any]) -> dict[str, Any]:
         """Build an action proposal for a mutating tool (does NOT execute)."""
+        # save_research_finding bypasses ActionRegistry — it's a direct dossier write.
+        if tool_name == "save_research_finding":
+            return self._propose_dossier_save(args)
+
         # Validate extraction inputs before building the proposal.  This runs
         # at proposal time (pre-confirmation) so the user sees the error early
         # rather than at execution time.
@@ -357,6 +424,34 @@ class ToolExecutor:
             "requires_confirmation": spec.requires_confirmation,
             "is_mutating": spec.is_mutating,
             "timeout_seconds": spec.timeout_seconds,
+        }
+
+    def _propose_dossier_save(self, args: dict[str, Any]) -> dict[str, Any]:
+        """Build a dossier-save proposal (requires confirmation, then executes directly)."""
+        ticker = str(args.get("ticker", "")).strip().upper()
+        finding = str(args.get("finding", "")).strip()
+        source = str(args.get("source", "")).strip()
+        if not ticker or not finding:
+            return {"tool": "save_research_finding", "ok": False, "error": "ticker and finding are required"}
+        if self._dossier_service is None:
+            return {"tool": "save_research_finding", "ok": False, "error": "dossier service not available"}
+
+        return {
+            "tool": "save_research_finding",
+            "ok": True,
+            "type": "action_proposal",
+            "action_id": "save_research_finding",
+            "action_label": f"Save research finding for {ticker}",
+            "arguments": {
+                "ticker": ticker,
+                "finding": finding,
+                "source": source,
+                "confidence": float(args.get("confidence", 0.5)),
+                "category": str(args.get("category", "general")).strip(),
+            },
+            "requires_confirmation": True,
+            "is_mutating": True,
+            "timeout_seconds": 5,
         }
 
     # ------------------------------------------------------------------

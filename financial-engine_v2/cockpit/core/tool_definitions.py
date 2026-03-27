@@ -288,6 +288,129 @@ _READ_ONLY_TOOLS: list[dict[str, Any]] = [
         },
         "mutating": False,
     },
+    {
+        "name": "search_web",
+        "description": (
+            "Search the web for current information about a company, sector, "
+            "or topic. Better than fetch_url for discovery — returns structured "
+            "results with titles, URLs, and snippets."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Search query (company name, topic, keywords)",
+                },
+                "count": {
+                    "type": "integer",
+                    "description": "Maximum number of results to return",
+                    "default": 5,
+                },
+            },
+            "required": ["query"],
+        },
+        "mutating": False,
+    },
+    {
+        "name": "search_social",
+        "description": (
+            "Search Hacker News for developer and tech community discussion "
+            "about a topic or company. Returns stories with points, comments, "
+            "and links. Useful for tech sentiment."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Search query",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of stories to return",
+                    "default": 10,
+                },
+            },
+            "required": ["query"],
+        },
+        "mutating": False,
+    },
+    {
+        "name": "recall_dossier",
+        "description": (
+            "Recall accumulated research findings about a company from past "
+            "research sessions. Returns findings stored in the company dossier."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {
+                    "type": "string",
+                    "description": "ASX ticker symbol",
+                },
+                "query": {
+                    "type": "string",
+                    "description": "Optional keyword filter for findings",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of findings to return",
+                    "default": 5,
+                },
+            },
+            "required": ["ticker"],
+        },
+        "mutating": False,
+    },
+    {
+        "name": "deep_research",
+        "description": (
+            "Conduct thorough multi-source research on a company. Queries "
+            "financials, prices, web news, social sentiment, and prior dossier "
+            "findings, then synthesizes a research brief. Use for in-depth "
+            "analysis when the user wants a comprehensive view."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {
+                    "type": "string",
+                    "description": "ASX ticker symbol",
+                },
+                "focus": {
+                    "type": "string",
+                    "description": "Optional focus area: earnings, risk, valuation, catalysts",
+                },
+            },
+            "required": ["ticker"],
+        },
+        "mutating": False,
+    },
+    {
+        "name": "get_watchlist_alerts",
+        "description": (
+            "Check for material changes detected by the background research "
+            "scanner on watchlist tickers. Returns alerts about price moves, "
+            "new announcements, and significant news."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "since_hours": {
+                    "type": "integer",
+                    "description": "Look back N hours for alerts",
+                    "default": 24,
+                },
+                "ticker": {
+                    "type": "string",
+                    "description": "Optional ticker to filter alerts",
+                },
+            },
+            "required": [],
+        },
+        "mutating": False,
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -431,6 +554,43 @@ _MUTATING_TOOLS: list[dict[str, Any]] = [
                 },
             },
             "required": ["ticker"],
+        },
+        "mutating": True,
+    },
+    {
+        "name": "save_research_finding",
+        "description": (
+            "Save a research finding to the company dossier for future "
+            "reference. Findings persist across sessions and can be recalled "
+            "later with recall_dossier."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {
+                    "type": "string",
+                    "description": "ASX ticker symbol",
+                },
+                "finding": {
+                    "type": "string",
+                    "description": "The research finding to save",
+                },
+                "source": {
+                    "type": "string",
+                    "description": "Where this finding came from (e.g. 'web_search', 'announcement', 'analysis')",
+                },
+                "confidence": {
+                    "type": "number",
+                    "description": "Confidence level 0.0-1.0",
+                    "default": 0.5,
+                },
+                "category": {
+                    "type": "string",
+                    "description": "Finding category: news, financial, sentiment, announcement",
+                    "default": "general",
+                },
+            },
+            "required": ["ticker", "finding", "source"],
         },
         "mutating": True,
     },

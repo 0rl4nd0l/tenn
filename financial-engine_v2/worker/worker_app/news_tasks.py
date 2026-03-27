@@ -17,8 +17,17 @@ from .celery_app import celery  # noqa: E402
 
 
 @celery.task(name="run_daily_news_pipeline")
-def run_daily_news_pipeline(since_hours: int = 36, providers: str = "eodhd,gdelt") -> dict:
-    """Run the daily news provider fetch pipeline."""
+def run_daily_news_pipeline(since_hours: int = 36, providers: str = "newspaper4k") -> dict:
+    """Run the daily news provider fetch pipeline.
+
+    Default provider changed from eodhd,gdelt → newspaper4k (2026-03-27).
+    Reason: eodhd and gdelt produce low-quality results for ASX news.
+    newspaper4k scrapes 54 AU finance sources (AFR, Stockhead, MarketIndex,
+    SMH, ABC, The Australian, etc.) with Scrapling/Playwright fallback.
+
+    To use legacy providers (not recommended):
+        run_daily_news_pipeline.delay(providers="eodhd,gdelt")
+    """
     import fetch_daily_news as pipeline  # noqa: F401
     result = pipeline.main(["--since-hours", str(since_hours), "--providers", providers])
     return {"exit_code": result}

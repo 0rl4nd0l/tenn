@@ -137,6 +137,7 @@ class ChatController:
         # Agent loop — default mode since agent routing is the canonical path.
         # COCKPIT_AGENT_MODE=keyword reverts to legacy Ollama-direct path.
         self._agent_loop = None
+        self._dossier_service = None
         agent_mode = os.environ.get("COCKPIT_AGENT_MODE", "structured")
         if agent_mode == "structured":
             try:
@@ -158,10 +159,59 @@ class ChatController:
                     api_client=api_client,
                     llm_timeout=self.llm_timeout_seconds,
                 )
+
+                # Research capabilities — Brave Search, HN, dossier.
+                brave_client = None
+                hn_client = None
+                dossier_svc = None
+                deep_runner = None
+                try:
+                    from cockpit.integrations.brave_search import BraveSearchClient
+                    brave_client = BraveSearchClient(web_fetcher=tool_router.web_fetcher)
+                    tool_router.brave_search_client = brave_client
+                except Exception as exc:
+                    logger.warning("BraveSearchClient init failed: %s", exc)
+                try:
+                    from cockpit.integrations.hn_search import HNSearchClient
+                    hn_client = HNSearchClient()
+                    tool_router.hn_search_client = hn_client
+                except Exception as exc:
+                    logger.warning("HNSearchClient init failed: %s", exc)
+                try:
+                    from cockpit.core.research.dossier import CompanyDossierService
+                    dossier_svc = CompanyDossierService()
+                    self._dossier_service = dossier_svc
+                except Exception as exc:
+                    logger.warning("CompanyDossierService init failed: %s", exc)
+                try:
+                    from cockpit.core.research.deep_research import DeepResearchRunner
+                    deep_runner = DeepResearchRunner(
+                        tool_router=tool_router,
+                        hybrid_router=hybrid_router,
+                        dossier_service=dossier_svc,
+                        brave_client=brave_client,
+                        hn_client=hn_client,
+                    )
+                except Exception as exc:
+                    logger.warning("DeepResearchRunner init failed: %s", exc)
+
+                alert_rdr = None
+                try:
+                    from cockpit.core.research.alerts import AlertReader
+                    alert_rdr = AlertReader()
+                except Exception as exc:
+                    logger.warning("AlertReader init failed: %s", exc)
+
                 # HybridRouter exposes chat() so it can serve as AgentLoop's llm_client.
                 self._agent_loop = AgentLoop(
                     llm_client=hybrid_router,
-                    tool_executor=ToolExecutor(tool_router, action_registry),
+                    tool_executor=ToolExecutor(
+                        tool_router,
+                        action_registry,
+                        dossier_service=dossier_svc,
+                        deep_research_runner=deep_runner,
+                        alert_reader=alert_rdr,
+                    ),
                     system_instruction_builder=lambda mode, ticker: self._build_system_instruction(mode, ticker, {}),
                     llm_timeout=self.llm_timeout_seconds,
                 )
