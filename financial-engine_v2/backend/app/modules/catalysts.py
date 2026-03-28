@@ -184,7 +184,7 @@ def _run_d2(
     try:
         result = generate_json_llamacpp(
             base_url=llm_base_url, model=llm_model,
-            prompt=prompt, timeout=60.0,
+            prompt=prompt, timeout=120.0,
         )
         if isinstance(result, dict):
             return result

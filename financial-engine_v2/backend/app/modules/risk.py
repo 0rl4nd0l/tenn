@@ -212,7 +212,7 @@ def _run_d2_synthesis(
     try:
         result = generate_json_llamacpp(
             base_url=llm_base_url, model=llm_model,
-            prompt=prompt, timeout=60.0,
+            prompt=prompt, timeout=120.0,
         )
     except Exception as exc:
         logger.warning("Risk D2 synthesis failed: %s", exc)

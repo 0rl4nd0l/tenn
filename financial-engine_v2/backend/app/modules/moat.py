@@ -193,7 +193,7 @@ def _run_d2_synthesis(
     )
     prompt_hash = Narrative.hash_prompt(prompt)
     raw = generate_json_llamacpp(
-        base_url=llm_base_url, model=llm_model, prompt=prompt, timeout=60.0,
+        base_url=llm_base_url, model=llm_model, prompt=prompt, timeout=120.0,
     )
     if not isinstance(raw, dict):
         raise ValueError(f"LLM returned non-dict for moat assessment: {type(raw)}")
