@@ -33,6 +33,8 @@ Branch: cloud/session-20260319
 | **cockpit-sourcing** | `[ verified ]` | Evidence sourcing (2e9c3ddb): SourcesFormatter, sources metadata in gather_local_context, /sources on\|off toggle. 6 tests. |
 | **cockpit-routing** | `[ verified ]` | Chat routing visibility + extraction guard (f037aa09): per-response footer [backend\|model\|latency\|cost], extraction pre-flight guard with auto-model-load via router API, `.env` loading fixed in cockpit entrypoint. L027+L028. |
 | **gpu-process-rails** | `[ verified ]` | Canonical port manifest (§9.4), agent spawn protocol (§9.5), `gpu_process_guard.sh`, `llamacpp_manager.py` topology check. L022 logged. |
+| **analysis-modules** | `[ verified ]` | Phase 3 complete (0e651e8d): 6 modules (balance_sheet, roic, valuation, risk, catalysts, moat), AnalysisModule Protocol, TickerContext, orchestrator, context_loader. 48 tests. D2 live testing pending. |
+| **model-eval** | `[ verified ]` | Qwen 3 14B evaluated (85.26%) vs Qwen 2.5 14B (89.47%) — current model stays. |
 
 ---
 
@@ -44,7 +46,7 @@ From [docs/architecture/14_roadmap_and_modules.md](../architecture/14_roadmap_an
 |-------|-------------|--------|-------|
 | 1. Data acquisition | Filings, news, prices, fundamentals | `[ in-progress ]` | Filings + news operational; prices and fundamentals coverage incomplete |
 | 2. Retrieval (RAG) | `POST /rag/query` — semantic search over ingested docs | `[ verified ]` | Operational; news_chunks resynced with relevance-ordered tickers |
-| 3. Analysis modules | Risk, valuation, moat, catalysts, ROIC, balance sheet | `[ planned ]` | Not yet built; module contracts defined in roadmap doc |
+| 3. Analysis modules | Risk, valuation, moat, catalysts, ROIC, balance sheet | `[ verified ]` | All 6 modules built (0e651e8d): AnalysisModule Protocol, TickerContext, orchestrator, context_loader. 48 tests passing. D1 (deterministic) verified; D2 (LLM synthesis) wired but untested against live llama-server. |
 | 4. Portfolio module | Exposure, correlation, position sizing | `[ planned ]` | Not yet built |
 | 5. Outputs | Artifacts written under `reports/` | `[ in-progress ]` | Directory structure exists; per-analysis-module artifacts not yet wired |
 
@@ -74,6 +76,7 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 
 | Commit | Workstream | Summary |
 |--------|------------|---------|
+| 0e651e8d | analysis-modules | Phase 3 complete: 6 analysis modules (balance_sheet, roic, valuation, risk, catalysts, moat), AnalysisModule Protocol, TickerContext, orchestrator, context_loader. 48 tests, 2350 lines. Qwen 3 14B evaluated and rejected (85.26% vs 89.47%). |
 | adfec5ca | analysis-artifact-v0 | Deterministic `financial_snapshot_v0.json` from `asx_periodic_financials` → `reports/analysis/{TICKER}/`; `periodic_snapshot_export` + `export_financial_snapshot.py`. |
 | 135440e1 | ops-commentary | Staging→Qdrant runbook (`docs/ops/commentary_staging_to_qdrant.md`), CLI `promote_staged_commentary.py`, CI `autodev/tests`, Pass3a bank-revenue prompt regression test. |
 | 3a168c71 | ci | GitHub Actions: ruff + pytest with root `pytest.ini` (`live_eval` deselected); Qdrant/transcript tests aligned to commentary staging gate; `commentary_ingest` unused imports removed. |
