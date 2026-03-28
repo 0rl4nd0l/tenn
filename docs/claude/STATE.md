@@ -33,7 +33,7 @@ Branch: cloud/session-20260319
 | **cockpit-sourcing** | `[ verified ]` | Evidence sourcing (2e9c3ddb): SourcesFormatter, sources metadata in gather_local_context, /sources on\|off toggle. 6 tests. |
 | **cockpit-routing** | `[ verified ]` | Chat routing visibility + extraction guard (f037aa09): per-response footer [backend\|model\|latency\|cost], extraction pre-flight guard with auto-model-load via router API, `.env` loading fixed in cockpit entrypoint. L027+L028. |
 | **gpu-process-rails** | `[ verified ]` | Canonical port manifest (§9.4), agent spawn protocol (§9.5), `gpu_process_guard.sh`, `llamacpp_manager.py` topology check. L022 logged. |
-| **analysis-modules** | `[ verified ]` | Phase 3 complete (0e651e8d): 6 modules (balance_sheet, roic, valuation, risk, catalysts, moat), AnalysisModule Protocol, TickerContext, orchestrator, context_loader. 48 tests. D2 live testing pending. |
+| **analysis-modules** | `[ verified ]` | 7 modules (+ sentiment), orchestrator, context_loader (Yahoo price fallback), watchlist scanner (7 alert rules), API endpoints, scale validation gate, extraction expansion (total_equity, interest_expense). 48 tests. D2 live-tested. Real-data validated (RIO, BHP). Architecture doc 1151 lines. |
 | **model-eval** | `[ verified ]` | Qwen 3 14B evaluated (85.26%) vs Qwen 2.5 14B (89.47%) — current model stays. |
 
 ---
