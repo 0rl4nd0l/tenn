@@ -115,6 +115,38 @@ def resolve_llama_server_topology(processes: list[dict] | None = None) -> LlamaS
     )
 
 
+def resolve_llama_server_port_topology(
+    port: str,
+    processes: list[dict] | None = None,
+) -> LlamaServerTopology:
+    discovered = list(processes if processes is not None else find_all_llama_server_processes())
+    target_port = str(port or "8001").strip() or "8001"
+    matches = [proc for proc in discovered if str(proc.get("port") or "") == target_port]
+
+    if len(matches) == 1:
+        return LlamaServerTopology(
+            selected_process=matches[0],
+            candidate_processes=matches,
+            ambiguous=False,
+            reason=f"runtime_selected_for_port_{target_port}",
+        )
+
+    if len(matches) > 1:
+        return LlamaServerTopology(
+            selected_process=None,
+            candidate_processes=matches,
+            ambiguous=True,
+            reason=f"multiple_runtime_candidates_on_port_{target_port}",
+        )
+
+    return LlamaServerTopology(
+        selected_process=None,
+        candidate_processes=[],
+        ambiguous=False,
+        reason=f"no_runtime_on_port_{target_port}",
+    )
+
+
 def _binary_supports_models_dir(binary: str) -> bool:
     try:
         result = subprocess.run(

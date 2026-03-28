@@ -113,19 +113,59 @@ def check_extraction_endpoint(
             f"Available: {all_names or '(none)'}. Load the model before running extraction."
         )
 
-    # Attempt auto-load via llama.cpp router API.
-    logger.info("Auto-loading extraction model '%s' (as '%s') on %s", expected_model, matching_name, extraction_url)
     try:
-        from cockpit.integrations.llamacpp_manager import load_model_api
         parsed = urlparse(extraction_url)
         host = parsed.hostname or "127.0.0.1"
         port = str(parsed.port or 8001)
+        from cockpit.integrations.llamacpp_manager import (
+            find_all_llama_server_processes,
+            load_model_api,
+            probe_router_capability,
+            resolve_llama_server_port_topology,
+        )
+
+        processes = find_all_llama_server_processes()
+        topology = resolve_llama_server_port_topology(port, processes)
+        if topology.ambiguous:
+            reason = str(topology.reason or "ambiguous_runtime_topology").replace("_", " ")
+            return False, (
+                f"Extraction model '{expected_model}' not loaded. "
+                f"Auto-load blocked: {reason} for {extraction_url}. "
+                "Resolve runtime selection before running extraction."
+            )
+
+        proc_info = topology.selected_process
+        if proc_info is None:
+            reason = str(topology.reason or "runtime_process_not_found").replace("_", " ")
+            return False, (
+                f"Extraction model '{expected_model}' not loaded. "
+                f"Auto-load unavailable: {reason} for {extraction_url}. "
+                "Start the configured extraction llama-server before running extraction."
+            )
+
         api_key = (
             os.getenv("LLM_API_KEY")
             or os.getenv("LLAMA_SERVER_API_KEY")
             or os.getenv("LLAMACPP_API_KEY")
             or "local-openai-key"
         )
+        capability = probe_router_capability(
+            proc_info,
+            host=host,
+            port=port,
+            api_key=api_key,
+            candidate_processes=topology.candidate_processes,
+        )
+        if capability.active_mode != "router_mode_active" or not capability.router_api_reachable:
+            reason = str(capability.reason or capability.active_mode or "router_unavailable").replace("_", " ")
+            return False, (
+                f"Extraction model '{expected_model}' not loaded. "
+                f"Auto-load unavailable on {extraction_url}: {reason}. "
+                "Use router mode on the extraction runtime or load the model manually."
+            )
+
+        # Attempt auto-load via llama.cpp router API on the selected extraction runtime.
+        logger.info("Auto-loading extraction model '%s' (as '%s') on %s", expected_model, matching_name, extraction_url)
         ok = load_model_api(host, port, matching_name, api_key=api_key, timeout=120.0)
         if ok:
             return True, f"Auto-loaded extraction model '{matching_name}' on {extraction_url}"
