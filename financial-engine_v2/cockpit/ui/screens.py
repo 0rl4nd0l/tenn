@@ -7,7 +7,7 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen, Screen
-from textual.widgets import Button, DataTable, Input, Label, RichLog, Select, Static
+from textual.widgets import Button, Collapsible, DataTable, Input, Label, RichLog, Select, Static, Switch
 
 from cockpit.core.plotly_html import build_verification_dashboard_html
 from cockpit.ui.help_modal import HelpScreen
@@ -229,23 +229,112 @@ class OperationsScreen(Screen):
     BINDINGS = [("d", "run_daily_news_ingest", "Daily News")]
 
     def compose(self) -> ComposeResult:
-        yield Label("Ingestion Control")
+        yield Label("Operations & Settings")
         yield Button("Back to Chat", id="ops-back", variant="warning")
-        actions = [(spec.label, spec.id) for spec in self.app.action_registry.list_actions()]
-        yield Select(actions, value="daily_news_ingest", id="ops-action")
-        yield Input(value="", id="ops-args", placeholder="ticker=CSL years=5 (required for ticker actions)")
-        yield Button("Daily News Ingest", id="ops-run-daily-news", variant="success")
-        yield Button("Daily Announcement Ingest", id="ops-run-daily-announcements", variant="primary")
-        yield Button("Historical News Ingest", id="ops-run-historical-news", variant="warning")
-        yield Button("Single Ticker Backfill", id="ops-run-single-ticker-backfill", variant="primary")
-        yield Button("Universe Announcement Backfill", id="ops-run-universe-backfill", variant="error")
-        yield Button("Metric Extraction", id="ops-run-metric-extraction", variant="warning")
-        yield Horizontal(
-            Button("Preview + Run", id="ops-run", variant="primary"),
-            Button("Kill Running Action", id="ops-kill-action", variant="error"),
-            Button("Tail Last Logs", id="ops-tail"),
-        )
+
+        # ── Permissions & Config ──
+        with Collapsible(title="Permissions & Config", collapsed=False):
+            with Horizontal(id="perm-toggles"):
+                with Vertical():
+                    yield Label("Feature Toggles")
+                    yield Horizontal(Switch(id="perm-web", value=False), Label("Web Search"))
+                    yield Horizontal(Switch(id="perm-rag", value=False), Label("RAG Context"))
+                    yield Horizontal(Switch(id="perm-dbdiag", value=False), Label("DB Diagnostics"))
+                with Vertical():
+                    yield Label("LLM Routing")
+                    yield Select(
+                        [
+                            ("Local only", "local_only"),
+                            ("Local + API fallback", "local_preferred"),
+                            ("API preferred", "api_preferred"),
+                            ("API only", "api_only"),
+                        ],
+                        id="perm-routing-policy",
+                        value="local_only",
+                        allow_blank=False,
+                    )
+            yield Static(id="perm-capabilities")
+
+        # ── Ingestion Control ──
+        with Collapsible(title="Ingestion Control", collapsed=False):
+            actions = [(spec.label, spec.id) for spec in self.app.action_registry.list_actions()]
+            yield Select(actions, value="daily_news_ingest", id="ops-action")
+            yield Input(value="", id="ops-args", placeholder="ticker=CSL years=5 (required for ticker actions)")
+            yield Button("Daily News Ingest", id="ops-run-daily-news", variant="success")
+            yield Button("Daily Announcement Ingest", id="ops-run-daily-announcements", variant="primary")
+            yield Button("Historical News Ingest", id="ops-run-historical-news", variant="warning")
+            yield Button("Single Ticker Backfill", id="ops-run-single-ticker-backfill", variant="primary")
+            yield Button("Universe Announcement Backfill", id="ops-run-universe-backfill", variant="error")
+            yield Button("Metric Extraction", id="ops-run-metric-extraction", variant="warning")
+            yield Horizontal(
+                Button("Preview + Run", id="ops-run", variant="primary"),
+                Button("Kill Running Action", id="ops-kill-action", variant="error"),
+                Button("Tail Last Logs", id="ops-tail"),
+            )
+
         yield RichLog(id="ops-log", wrap=True, markup=False)
+
+    def on_mount(self) -> None:
+        self._refresh_permissions()
+
+    def _refresh_permissions(self) -> None:
+        """Sync toggle states and capability display with current runtime."""
+        access = self.app._access_state()
+        try:
+            self.query_one("#perm-web", Switch).value = access.get("web_enabled", False)
+        except Exception:
+            pass
+        try:
+            self.query_one("#perm-rag", Switch).value = access.get("rag_enabled", False)
+        except Exception:
+            pass
+        try:
+            self.query_one("#perm-dbdiag", Switch).value = access.get("db_diagnostic_query_enabled", False)
+        except Exception:
+            pass
+
+        caps = self.app.get_capabilities()
+        try:
+            self.query_one("#perm-routing-policy", Select).value = caps.get("routing_policy", "local_only")
+        except Exception:
+            pass
+
+        ok = "+"
+        no = "-"
+        lines = []
+        lines.append(f"  {ok if caps.get('backend_api') else no}  Backend API   {caps.get('backend_url') or 'not configured'}")
+        lines.append(f"  {ok if caps.get('anthropic_api') else no}  Claude API    {'key loaded' if caps.get('anthropic_api') else 'no key'}")
+        lines.append(f"  {ok if caps.get('brave_search') else no}  Brave Search  {'active' if caps.get('brave_search') else 'no key'}")
+        lines.append(f"  {ok if caps.get('hn_search') else no}  HN Search     {'active' if caps.get('hn_search') else 'inactive'}")
+        lines.append(f"  {ok if caps.get('dossier') else no}  Dossier       {'active' if caps.get('dossier') else 'inactive'}")
+        lines.append(f"  {ok if caps.get('deep_research') else no}  Deep Research {'active' if caps.get('deep_research') else 'inactive'}")
+        lines.append(f"  +  Price Feeds   Yahoo Finance (no key needed)")
+        cost = caps.get("session_cost_usd", 0.0)
+        if cost > 0:
+            lines.append(f"  Session API cost: ${cost:.4f}")
+        try:
+            self.query_one("#perm-capabilities", Static).update("\n".join(lines))
+        except Exception:
+            pass
+
+    def on_switch_changed(self, event: Switch.Changed) -> None:
+        log = self.query_one("#ops-log", RichLog)
+        switch_id = event.switch.id
+        if switch_id == "perm-web":
+            msg = self.app._set_access_scope("web", event.value)
+            log.write(msg)
+        elif switch_id == "perm-rag":
+            msg = self.app._set_access_scope("rag", event.value)
+            log.write(msg)
+        elif switch_id == "perm-dbdiag":
+            msg = self.app._set_access_scope("dbdiag", event.value)
+            log.write(msg)
+
+    def on_select_changed(self, event: Select.Changed) -> None:
+        if event.select.id == "perm-routing-policy":
+            log = self.query_one("#ops-log", RichLog)
+            msg = self.app.set_routing_policy(str(event.value))
+            log.write(msg)
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         log = self.query_one("#ops-log", RichLog)

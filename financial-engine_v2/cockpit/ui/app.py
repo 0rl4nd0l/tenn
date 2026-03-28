@@ -32,6 +32,11 @@ from cockpit.integrations.llamacpp_client import LlamaCppClient
 from cockpit.integrations.qual_context_bootstrap import build_qual_context_reader, context_enabled
 from cockpit.integrations.web_fetcher import WebFetcher
 from cockpit.core.conversation_commands import derive_conversational_command
+from cockpit.core.access_resume import (
+    build_pending_action_payload,
+    resolve_confirm_resume_message,
+    resolve_pending_action_alias,
+)
 from cockpit.core.tools import ToolRouter
 from cockpit.storage.artifacts import ArtifactStore
 from cockpit.storage.state import StateStore
@@ -45,6 +50,7 @@ from cockpit.ui.screens import (
     UpdaterScreen,
     VerificationScreen,
 )
+from cockpit.ui.help_modal import HelpScreen
 
 
 class CockpitApp(App):
@@ -117,6 +123,7 @@ class CockpitApp(App):
         Binding("v", "show_verification", "Verify"),
         Binding("h", "show_history", "History"),
         Binding("s", "show_settings", "Settings"),
+        Binding("?", "show_help", "Help"),
         Binding("ctrl+n", "show_news_search", "News Search"),
         Binding("x", "export_copy_bundle", "Export"),
         Binding("q", "quit", "Quit"),
@@ -258,6 +265,158 @@ class CockpitApp(App):
 
         return value
 
+    def _access_state(self) -> dict[str, Any]:
+        rag_available = bool(
+            any(
+                reader is not None
+                for reader in (
+                    getattr(self.tool_router, "qual_context_company_reader", None),
+                    getattr(self.tool_router, "qual_context_news_reader", None),
+                )
+            )
+            or getattr(self.tool_router, "news_context_db_path", "")
+        )
+        rag_enabled = bool(getattr(self.tool_router, "qual_context_enabled", False)) and rag_available
+        return {
+            "web_enabled": bool(self.config.get("web", {}).get("enabled_default", False)),
+            "rag_enabled": rag_enabled,
+            "db_diagnostic_query_enabled": bool(
+                self.state_store.get_preference("db_diagnostic_query_enabled", "false") == "true"
+            ),
+        }
+
+    def get_capabilities(self) -> dict[str, Any]:
+        """Return current capability status for the settings UI."""
+        chat_ctrl = getattr(self, "chat_controller", None)
+        hybrid_router = getattr(chat_ctrl, "_hybrid_router", None) if chat_ctrl else None
+        return {
+            "backend_api": self._backend_client is not None,
+            "backend_url": self._backend_client.base_url if self._backend_client else None,
+            "brave_search": getattr(self.tool_router, "brave_search_client", None) is not None,
+            "hn_search": getattr(self.tool_router, "hn_search_client", None) is not None,
+            "dossier": getattr(self.tool_router, "dossier_service", None) is not None,
+            "deep_research": getattr(self.tool_router, "deep_research_runner", None) is not None,
+            "anthropic_api": hybrid_router is not None and hybrid_router._api is not None,
+            "routing_policy": hybrid_router._policy if hybrid_router else "not initialized",
+            "session_cost_usd": hybrid_router.total_cost_usd() if hybrid_router else 0.0,
+        }
+
+    def set_routing_policy(self, policy: str) -> str:
+        """Change HybridRouter policy at runtime."""
+        chat_ctrl = getattr(self, "chat_controller", None)
+        hybrid_router = getattr(chat_ctrl, "_hybrid_router", None) if chat_ctrl else None
+        if not hybrid_router:
+            return "HybridRouter not initialized"
+        valid = {"local_only", "local_preferred", "api_preferred", "api_only"}
+        if policy not in valid:
+            return f"Invalid policy: {policy}. Valid: {sorted(valid)}"
+        hybrid_router._policy = policy
+        os.environ["HYBRID_ROUTER_POLICY"] = policy
+        return f"Routing policy set to {policy}"
+
+    def _set_access_scope(self, scope: str, enable: bool) -> str:
+        normalized = str(scope or "").strip().lower()
+        enabled = bool(enable)
+        if normalized == "web":
+            self.config.setdefault("web", {})["enabled_default"] = enabled
+            self.tool_router.web_default_enabled = enabled
+            return f"Web search {'enabled' if enabled else 'disabled'}."
+        if normalized == "rag":
+            rag_available = bool(
+                any(
+                    reader is not None
+                    for reader in (
+                        getattr(self.tool_router, "qual_context_company_reader", None),
+                        getattr(self.tool_router, "qual_context_news_reader", None),
+                    )
+                )
+                or getattr(self.tool_router, "news_context_db_path", "")
+            )
+            self.config.setdefault("rag", {})["enabled"] = enabled
+            self.tool_router.qual_context_enabled = enabled and rag_available
+            if enabled and not rag_available:
+                return "RAG was requested, but no configured RAG readers are available in this session."
+            return f"RAG retrieval {'enabled' if enabled else 'disabled'}."
+        if normalized == "dbdiag":
+            self.state_store.set_preference(
+                "db_diagnostic_query_enabled",
+                "true" if enabled else "false",
+            )
+            return f"DB diagnostics {'enabled' if enabled else 'disabled'}."
+        raise ValueError(f"Unknown access scope: {scope}")
+
+    async def _start_extraction_runtime(self, log_target: str) -> bool:
+        command = ["bash", "scripts/run_llama_server.sh"]
+        self._write_log(log_target, f"Starting extraction runtime: {' '.join(command)}")
+        try:
+            subprocess.Popen(
+                command,
+                cwd=str(self.repo_root),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+        except Exception as exc:
+            self._write_log(log_target, f"Failed to launch extraction runtime: {exc}")
+            return False
+
+        extraction_url = (
+            os.getenv("EXTRACTION_LLAMACPP_URL", "").strip()
+            or os.getenv("LLAMACPP_URL", "").strip()
+            or DEFAULT_LLAMACPP_URL
+        )
+        probe_client = LlamaCppClient(
+            extraction_url,
+            str(os.getenv("EXTRACT_MODEL") or getattr(self.ollama_client, "model", "") or "unknown"),
+            api_key=str(os.getenv("LLM_API_KEY") or ""),
+        )
+        for _ in range(20):
+            await asyncio.sleep(1.0)
+            health = probe_client.health(timeout=2.0)
+            if health.get("ok"):
+                self._write_log(log_target, f"Extraction runtime is reachable at {health.get('url')}.")
+                return True
+        self._write_log(log_target, "Extraction runtime did not become ready in time.")
+        return False
+
+    async def _execute_internal_action(self, action: dict[str, Any], log_target: str) -> bool:
+        action_id = str(action.get("action_id") or "").strip()
+        args = dict(action.get("args") or {})
+
+        if action_id == "__access_request__":
+            scope = str(args.get("scope") or "").strip().lower()
+            enable = bool(args.get("enable", True))
+            try:
+                reply = self._set_access_scope(scope, enable)
+            except ValueError as exc:
+                self._write_log(log_target, str(exc))
+                return False
+            self._write_log(log_target, reply)
+            resume_message = resolve_confirm_resume_message(action, self._access_state())
+            if resume_message:
+                self._write_log(log_target, f"Resuming request after enabling {scope}.")
+                await self.handle_chat_message(resume_message)
+            return True
+
+        if action_id == "__runtime_remediation__":
+            scope = str(args.get("scope") or "").strip().lower()
+            if scope != "extraction_runtime":
+                self._write_log(log_target, f"Unsupported runtime remediation scope: {scope}")
+                return False
+            error = str(args.get("error") or "").strip()
+            if error:
+                self._write_log(log_target, f"Remediation requested: {error}")
+            if not await self._start_extraction_runtime(log_target):
+                return False
+            resume_action_id = str(args.get("resume_action_id") or "").strip()
+            resume_args = dict(args.get("resume_args") or {})
+            if resume_action_id:
+                self._write_log(log_target, f"Resuming action: {resume_action_id}")
+                await self.execute_action(resume_action_id, resume_args, log_target=log_target, skip_confirm=True)
+            return True
+
+        return False
+
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
         yield Footer()
@@ -373,6 +532,9 @@ class CockpitApp(App):
 
         self._schedule_model_status_refresh()
         self._model_status_timer = self.set_interval(15.0, self._schedule_model_status_refresh)
+
+    def action_show_help(self) -> None:
+        self.push_screen(HelpScreen(repo_root=self.repo_root))
 
     async def _run_startup_health_checks(self) -> None:
         """Offload blocking health checks so the event loop stays responsive at startup."""
@@ -612,6 +774,8 @@ class CockpitApp(App):
             self._append_log(log, f"{self.ASSISTANT_NAME}: still thinking about the previous message.")
             return
 
+        message = resolve_pending_action_alias(message, self.pending_action is not None)
+
         created = datetime.now(timezone.utc).isoformat()
         self.state_store.add_chat_message(self.thread_id, "user", message, created)
         try:
@@ -635,6 +799,22 @@ class CockpitApp(App):
             import logging as _logging
             _logging.getLogger(__name__).debug("conversational command resolved: %s", derived_cmd)
             stripped = derived_cmd
+
+        if stripped.startswith("/request-access"):
+            scope = stripped[len("/request-access"):].strip().lower()
+            now_iso = datetime.now(timezone.utc).isoformat()
+            if scope not in {"web", "rag", "dbdiag"}:
+                reply = "Usage: /request-access <web|rag|dbdiag>"
+                self._append_log(log, f"assistant: {reply}")
+                self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+                return
+            preview = {"action_id": "__access_request__", "args": {"scope": scope, "enable": True}}
+            self.pending_action = build_pending_action_payload(preview, message)
+            reply = f"Approve enabling {scope} access with /confirm or cancel with /cancel."
+            pending.update(f"Pending: __access_request__ args={self.pending_action['args']} (/confirm or /cancel)")
+            self._append_log(log, f"assistant: {reply}")
+            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            return
 
         # Handle /watch commands (from slash input or resolved conversational command)
         if stripped.startswith("/watch "):
@@ -817,13 +997,11 @@ class CockpitApp(App):
             sub = stripped[len("/rag"):].strip().lower()
             now_iso = datetime.now(timezone.utc).isoformat()
             if sub == "on":
-                self.config.setdefault("rag", {})["enabled"] = True
-                reply = "RAG retrieval enabled."
+                reply = self._set_access_scope("rag", True)
             elif sub == "off":
-                self.config.setdefault("rag", {})["enabled"] = False
-                reply = "RAG retrieval disabled."
+                reply = self._set_access_scope("rag", False)
             else:
-                enabled = (self.config.get("rag") or {}).get("enabled", True)
+                enabled = self._access_state().get("rag_enabled", False)
                 reply = f"RAG retrieval: {'ON' if enabled else 'OFF'}. Use /rag on|off to toggle."
             self._append_log(log, f"assistant: {reply}")
             self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
@@ -834,14 +1012,26 @@ class CockpitApp(App):
             sub = stripped[len("/web"):].strip().lower()
             now_iso = datetime.now(timezone.utc).isoformat()
             if sub == "on":
-                self.config["web"]["enabled_default"] = True
-                reply = "Web search enabled."
+                reply = self._set_access_scope("web", True)
             elif sub == "off":
-                self.config["web"]["enabled_default"] = False
-                reply = "Web search disabled."
+                reply = self._set_access_scope("web", False)
             else:
-                enabled = self.config["web"].get("enabled_default", False)
+                enabled = self._access_state().get("web_enabled", False)
                 reply = f"Web search: {'ON' if enabled else 'OFF'}. Use /web on|off to toggle."
+            self._append_log(log, f"assistant: {reply}")
+            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            return
+
+        if stripped.startswith("/dbdiag"):
+            sub = stripped[len("/dbdiag"):].strip().lower()
+            now_iso = datetime.now(timezone.utc).isoformat()
+            if sub == "on":
+                reply = self._set_access_scope("dbdiag", True)
+            elif sub == "off":
+                reply = self._set_access_scope("dbdiag", False)
+            else:
+                enabled = self._access_state().get("db_diagnostic_query_enabled", False)
+                reply = f"DB diagnostics: {'ON' if enabled else 'OFF'}. Use /dbdiag on|off to toggle."
             self._append_log(log, f"assistant: {reply}")
             self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
             return
@@ -868,6 +1058,12 @@ class CockpitApp(App):
             lines.append(f"  Backend API: {self._backend_client.base_url if self._backend_client else 'not configured'}")
             lines.append(f"  LLM: {self.ollama_client.base_url}")
             lines.append(f"  State DB: {self.state_store.db_path}")
+            access_state = self._access_state()
+            lines.append(f"  Web: {'enabled' if access_state['web_enabled'] else 'disabled'}")
+            lines.append(f"  RAG: {'enabled' if access_state['rag_enabled'] else 'disabled'}")
+            lines.append(
+                f"  DB diagnostics: {'enabled' if access_state['db_diagnostic_query_enabled'] else 'disabled'}"
+            )
             reply = "\n".join(lines)
             self._append_log(log, f"assistant: {reply}")
             self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
@@ -913,6 +1109,8 @@ class CockpitApp(App):
             action = self.pending_action
             self.pending_action = None
             pending.update("No pending action")
+            if await self._execute_internal_action(action, "chat-log"):
+                return
             await self.execute_action(action["action_id"], action["args"], log_target="chat-log", skip_confirm=True)
             return
 
@@ -1051,10 +1249,7 @@ class CockpitApp(App):
             # Store pending_action immediately so /confirm can find it even
             # if it arrives before the finally block clears chat_inflight.
             if response.action_preview:
-                self.pending_action = {
-                    "action_id": response.action_preview["action_id"],
-                    "args": response.action_preview["args"],
-                }
+                self.pending_action = build_pending_action_payload(response.action_preview, message)
         except Exception as exc:
             self.chat_inflight = False
             status.update("")
@@ -1136,10 +1331,13 @@ class CockpitApp(App):
             # chat_inflight was cleared) so that a fast /confirm can find it
             # immediately.  If /confirm already consumed it, don't re-set.
             if self.pending_action is not None:
+                ap = response.action_preview
+                aid = ap.get("action_id") if isinstance(ap, dict) else None
+                aargs = ap.get("args") if isinstance(ap, dict) else None
                 pending.update(
                     "Pending: "
-                    f"{response.action_preview['action_id']} "
-                    f"args={response.action_preview['args']} "
+                    f"{aid} "
+                    f"args={aargs} "
                     "(/confirm or /cancel)"
                 )
 
@@ -1212,6 +1410,17 @@ class CockpitApp(App):
         try:
             preview = self.action_registry.preview(action_id, args)
         except ValueError as exc:
+            from cockpit.core.action_runtime_guards import build_runtime_remediation_request
+
+            remediation = build_runtime_remediation_request(action_id, args, str(exc))
+            if remediation is not None:
+                self.pending_action = remediation
+                self._write_log(log_target, f"⚠ {exc}")
+                self._write_log(
+                    log_target,
+                    "Approve runtime remediation with /confirm to recover and resume the requested action.",
+                )
+                return
             self._write_log(log_target, f"⚠ {exc}")
             return
 
