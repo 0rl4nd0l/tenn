@@ -140,3 +140,38 @@ def test_router_mode_tag_uses_capability_state():
 
     screen._router_capability = {"active_mode": "router_mode_active"}
     assert screen._router_mode_tag() == "  (router active)"
+
+
+def test_collect_flags_carries_router_mode_opt_in():
+    screen = _make_screen()
+    screen._llama_proc = {"router_mode": False}
+    screen._llama_fs_models = [
+        {"path": "/models/qwen2.5-coder-14b.gguf", "stem": "qwen2.5-coder-14b"},
+        {"path": "/models/qwen2.5-14b-instruct.gguf", "stem": "qwen2.5-14b-instruct"},
+    ]
+
+    widgets = {
+        "#opt-readonly": SimpleNamespace(value=False),
+        "#opt-web": SimpleNamespace(value=True),
+        "#opt-rag": SimpleNamespace(value=True),
+        "#opt-verbose": SimpleNamespace(value=False),
+        "#opt-router-mode": SimpleNamespace(value=True),
+        "#opt-profile": SimpleNamespace(value="full"),
+        "#opt-provider": SimpleNamespace(value="llamacpp"),
+        "#opt-model": SimpleNamespace(value="/models/qwen2.5-coder-14b.gguf"),
+        "#opt-extraction-model": SimpleNamespace(value="/models/qwen2.5-14b-instruct.gguf"),
+        "#opt-orchestrator-model": SimpleNamespace(value=""),
+        "#opt-subagent-model": SimpleNamespace(value=""),
+        "#opt-router-policy": SimpleNamespace(value="local_only"),
+    }
+
+    def _query_one(self, selector, cls=None):
+        return widgets[selector]
+
+    screen.query_one = MethodType(_query_one, screen)
+
+    flags = screen._collect_flags()
+
+    assert flags["router_mode_opt_in"] is True
+    assert flags["env"]["COCKPIT_ROUTER_MODE"] == "1"
+    assert flags["env"]["LLAMA_SERVER_ROUTER_MODE"] == "1"

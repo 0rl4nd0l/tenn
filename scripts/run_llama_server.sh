@@ -47,7 +47,7 @@ if [[ -n "${HF_MODEL}" ]]; then
   echo "[llama-server] using Hugging Face model ref=${HF_MODEL}"
   echo "[llama-server] Set LLAMA_SERVER_HF_REPO or LLAMA_SERVER_HF_MODEL to use this mode." >&2
   :
-elif [[ ! -f "${MODEL_PATH}" ]]; then
+elif [[ "${LLAMA_SERVER_ROUTER_MODE:-0}" != "1" ]] && [[ ! -f "${MODEL_PATH}" ]]; then
   echo "Model not found at ${MODEL_PATH}" >&2
   echo "Set LLAMA_SERVER_MODEL to an existing GGUF file, or set LLAMA_SERVER_HF_REPO to pull a Hugging Face GGUF." >&2
   exit 1
@@ -94,6 +94,8 @@ ROUTER_MODE="${LLAMA_SERVER_ROUTER_MODE:-0}"
 MODELS_DIR="${LLAMA_SERVER_MODELS_DIR:-${ROOT_DIR}/models}"
 PRESET_PATH="${LLAMA_SERVER_PRESET:-${HOME}/.config/tenn/llamacpp-presets.ini}"
 
+echo "[llama-server] ROUTER_MODE_REQUESTED=${ROUTER_MODE}"
+
 if [[ "${ROUTER_MODE}" == "1" ]]; then
   # Verify the binary supports --models-dir.
   if "${BIN_PATH}" --help 2>&1 | grep -q 'models-dir'; then
@@ -104,6 +106,7 @@ if [[ "${ROUTER_MODE}" == "1" ]]; then
     echo "[llama-server] ROUTER_MODE=enabled (models-dir=${MODELS_DIR})"
   else
     echo "[llama-server] WARNING: binary does not support --models-dir, falling back to single-model mode" >&2
+    echo "[llama-server] ROUTER_MODE=disabled (unsupported binary)"
     ROUTER_MODE=0
   fi
 fi

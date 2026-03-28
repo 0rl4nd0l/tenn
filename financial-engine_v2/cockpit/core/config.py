@@ -20,6 +20,7 @@ DEFAULT_CONFIG = {
         "llamacpp_url": DEFAULT_LLAMACPP_URL,
         "llamacpp_api_key": "local-openai-key",
         "model": DEFAULT_LLAMACPP_MODEL,
+        "router_mode_opt_in": False,
         "timeout_seconds": 120,
     },
     "paths": {
@@ -32,6 +33,9 @@ DEFAULT_CONFIG = {
     },
     "actions": {
         "confirm_required": True,
+    },
+    "backend": {
+        "api_base_url": DEFAULT_BACKEND_URL,
     },
     "web": {
         "enabled_default": False,
@@ -110,6 +114,16 @@ def apply_runtime_flags(config: dict[str, Any], flags: RuntimeFlags) -> dict[str
         os.getenv("EXTRACT_MODEL", cfg["llm"].get("model", DEFAULT_LLAMACPP_MODEL)),
     )
     cfg["llm"]["llamacpp_api_key"] = os.getenv("LLAMACPP_API_KEY") or os.getenv("LLM_API_KEY") or cfg["llm"].get("llamacpp_api_key", "")
+    router_mode_value = os.getenv(
+        "COCKPIT_ROUTER_MODE",
+        str(cfg["llm"].get("router_mode_opt_in", False)),
+    )
+    cfg["llm"]["router_mode_opt_in"] = str(router_mode_value).strip().lower() in {"1", "true", "yes", "on"}
+    cfg.setdefault("backend", {})
+    cfg["backend"]["api_base_url"] = os.getenv(
+        "COCKPIT_BACKEND_URL",
+        cfg["backend"].get("api_base_url", DEFAULT_BACKEND_URL),
+    )
     cfg.setdefault("db", {})
     cfg["db"]["database_url"] = os.getenv("DATABASE_URL", "sqlite:///./data/fe_local.db")
     return cfg

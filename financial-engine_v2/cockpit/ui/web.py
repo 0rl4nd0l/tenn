@@ -97,6 +97,7 @@ class CockpitWebApp(CockpitApp):
                     "no_web": False,
                     "llm_provider": str(llm_cfg.get("provider") or "llamacpp"),
                     "llm_model": str(llm_cfg.get("model") or "qwen2.5-coder-14b"),
+                    "router_mode_opt_in": bool(llm_cfg.get("router_mode_opt_in", False)),
                 },
                 on_launch=self._on_preboot_launch,
                 on_cancel=lambda: self.exit({"cancelled": True}),

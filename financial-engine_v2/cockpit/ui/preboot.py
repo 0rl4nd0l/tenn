@@ -170,6 +170,7 @@ def _resolve_initial_option_state(initial_flags: dict[str, Any] | None) -> dict[
         "llm_provider": llm_provider,
         "llm_model": raw.get("llm_model", "qwen2.5-coder-14b"),
         "extraction_model": raw.get("extraction_model", "qwen2.5-14b-instruct"),
+        "router_mode_opt_in": bool(raw.get("router_mode_opt_in", False)),
     }
 
 
@@ -317,6 +318,12 @@ class PreBootScreen(Screen):
                     yield Select(_FALLBACK_MODELS, value="llama3:latest", id="opt-extraction-model", allow_blank=False)
                 with Horizontal(id="mmap-row"):
                     yield Checkbox("Load model into RAM  (disable mmap — faster prefill, slower startup)", id="opt-mmap-off", value=True)
+                with Horizontal(id="router-mode-row"):
+                    yield Checkbox(
+                        "Enable router mode when supported  (explicit opt-in)",
+                        id="opt-router-mode",
+                        value=bool(self._initial.get("router_mode_opt_in", False)),
+                    )
                 with Collapsible(title="Advanced: Model Routing", id="advanced-routing", collapsed=True):
                     with Horizontal(id="orchestrator-row"):
                         yield Label("Orchestrator:", id="orchestrator-label")
@@ -588,6 +595,7 @@ class PreBootScreen(Screen):
         web_enabled = self.query_one("#opt-web", Checkbox).value
         rag_enabled = self.query_one("#opt-rag", Checkbox).value
         verbose = self.query_one("#opt-verbose", Checkbox).value
+        router_mode_opt_in = self.query_one("#opt-router-mode", Checkbox).value
         profile = str(self.query_one("#opt-profile", Select).value or LAUNCH_PROFILES[0][1])
         llm_provider = str(self.query_one("#opt-provider", Select).value or "ollama")
         raw_model_value = str(self.query_one("#opt-model", Select).value or "")
@@ -596,6 +604,8 @@ class PreBootScreen(Screen):
             env.setdefault("COCKPIT_LOG_LEVEL", "DEBUG")
             env.setdefault("COCKPIT_VERBOSE_LOGGING", "1")
             env.setdefault("COCKPIT_LOG_TO_STDERR", "1")
+        env["COCKPIT_ROUTER_MODE"] = "1" if router_mode_opt_in else "0"
+        env["LLAMA_SERVER_ROUTER_MODE"] = "1" if router_mode_opt_in else "0"
 
         # Resolve the selected model into a path and a name (stem/alias).
         # In router mode, the "name" (stem) is what the API uses for routing.
@@ -649,6 +659,7 @@ class PreBootScreen(Screen):
             "llm_model": model_alias,
             "llm_model_path": model_path,
             "extraction_model": extraction_model,
+            "router_mode_opt_in": router_mode_opt_in,
             "orchestrator_model": orchestrator_model,
             "subagent_model": subagent_model,
             "router_policy": router_policy,
