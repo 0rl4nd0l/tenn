@@ -113,6 +113,38 @@ class StateStore:
             )
             """
         )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS global_strategy (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                criterion TEXT NOT NULL,
+                category TEXT NOT NULL DEFAULT 'general',
+                priority INTEGER NOT NULL DEFAULT 5,
+                notes TEXT,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS ticker_strategy (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticker TEXT NOT NULL,
+                criterion TEXT NOT NULL,
+                category TEXT NOT NULL DEFAULT 'general',
+                priority INTEGER NOT NULL DEFAULT 5,
+                decision TEXT,
+                decision_rationale TEXT,
+                notes TEXT,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_ticker_strategy_ticker ON ticker_strategy(ticker)"
+        )
         self.conn.commit()
 
     def add_chat_message(self, thread_id: str, role: str, content: str, created_at: str) -> None:

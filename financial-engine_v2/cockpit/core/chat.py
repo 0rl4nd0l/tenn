@@ -138,6 +138,13 @@ class ChatController:
         # COCKPIT_AGENT_MODE=keyword reverts to legacy Ollama-direct path.
         self._agent_loop = None
         self._dossier_service = None
+        self._strategy_service = None
+        if state_store is not None:
+            try:
+                from cockpit.core.strategy import StrategyService
+                self._strategy_service = StrategyService(state_store)
+            except Exception as exc:
+                logger.warning("StrategyService init failed: %s", exc)
         agent_mode = os.environ.get("COCKPIT_AGENT_MODE", "structured")
         if agent_mode == "structured":
             try:
@@ -900,8 +907,18 @@ class ChatController:
             except Exception:
                 pass  # history is best-effort
 
+        # Inject strategy criteria context into message if available
+        strategy_block = ""
+        if self._strategy_service and ticker:
+            try:
+                strategy_block = self._strategy_service.build_context_block(ticker)
+            except Exception:
+                pass  # strategy injection is best-effort
+
         # Inject research memory context into message if available
         augmented_message = message
+        if strategy_block:
+            augmented_message = augmented_message + "\n\n" + strategy_block
         if self._memory and ticker:
             try:
                 research = self._memory.read_research(ticker)
@@ -1305,8 +1322,15 @@ class ChatController:
             except Exception:
                 pass  # history is best-effort, never fail the main response
 
-        # Prepend pre-computed financial summaries for LLM clarity
+        # Prepend strategy criteria before financial context
         context_sections = []
+        if self._strategy_service and ticker:
+            try:
+                _strategy_block = self._strategy_service.build_context_block(ticker)
+                if _strategy_block:
+                    context_sections.append(_strategy_block)
+            except Exception:
+                pass  # strategy injection is best-effort
 
         if local_payload.get("financials_narrative"):
             context_sections.append("Financial Trend Summary:\n" + local_payload["financials_narrative"])

@@ -719,6 +719,81 @@ class CockpitApp(App):
             self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
             return
 
+        # Handle /strategy commands
+        if stripped.startswith("/strategy"):
+            from cockpit.core.strategy import StrategyService
+            strategy_svc = StrategyService(self.state_store)
+            parts = stripped[len("/strategy"):].strip().split(maxsplit=2)
+            sub = parts[0].lower() if parts else "list"
+            arg1 = parts[1] if len(parts) > 1 else ""
+            arg2 = parts[2] if len(parts) > 2 else ""
+            now_iso = datetime.now(timezone.utc).isoformat()
+
+            if sub == "list":
+                # /strategy list OR /strategy list <TICKER>
+                if arg1 and arg1.upper().isalpha() and 2 <= len(arg1) <= 5:
+                    tkr = arg1.upper()
+                    gcriteria = strategy_svc.get_global()
+                    tcriteria = strategy_svc.get_ticker(tkr)
+                    decision = strategy_svc.get_decision(tkr)
+                    lines = []
+                    if gcriteria:
+                        lines.append(f"Global criteria ({len(gcriteria)}):")
+                        for c in gcriteria:
+                            lines.append(f"  [{c['id']}] {c['criterion']} ({c['category']}, P{c['priority']})")
+                    if tcriteria:
+                        lines.append(f"\n{tkr}-specific criteria ({len(tcriteria)}):")
+                        for c in tcriteria:
+                            dec = f" [decision: {c['decision']}]" if c.get("decision") else ""
+                            lines.append(f"  [{c['id']}] {c['criterion']} ({c['category']}, P{c['priority']}){dec}")
+                    if decision and decision.get("decision_rationale"):
+                        lines.append(f"\nDecision: {decision['decision']} — {decision['decision_rationale']}")
+                    reply = "\n".join(lines) if lines else f"No strategy criteria defined for {tkr}."
+                else:
+                    gcriteria = strategy_svc.get_global()
+                    if gcriteria:
+                        lines = [f"Global criteria ({len(gcriteria)}):"]
+                        for c in gcriteria:
+                            lines.append(f"  [{c['id']}] {c['criterion']} ({c['category']}, P{c['priority']})")
+                        reply = "\n".join(lines)
+                    else:
+                        reply = "No global strategy criteria defined. Use /strategy add <criterion> to add one."
+            elif sub == "add":
+                # /strategy add <TICKER> <criterion> OR /strategy add <criterion>
+                if arg1 and arg1.upper().isalpha() and 2 <= len(arg1) <= 5 and arg2:
+                    result = strategy_svc.add_ticker(arg1.upper(), arg2)
+                    reply = f"Added {arg1.upper()} criterion [{result['id']}]: {arg2}"
+                elif arg1:
+                    full_criterion = (arg1 + " " + arg2).strip() if arg2 else arg1
+                    result = strategy_svc.add_global(full_criterion)
+                    reply = f"Added global criterion [{result['id']}]: {full_criterion}"
+                else:
+                    reply = "Usage: /strategy add [TICKER] <criterion>"
+            elif sub == "decide":
+                # /strategy decide <TICKER> <buy|watchlist|avoid> <rationale>
+                if arg1 and arg2:
+                    dec_parts = arg2.split(maxsplit=1)
+                    decision_val = dec_parts[0].lower() if dec_parts else ""
+                    rationale = dec_parts[1] if len(dec_parts) > 1 else ""
+                    if decision_val in ("buy", "watchlist", "avoid"):
+                        result = strategy_svc.record_decision(arg1.upper(), decision_val, rationale)
+                        reply = f"Recorded decision for {arg1.upper()}: {decision_val}" + (f" — {rationale}" if rationale else "")
+                    else:
+                        reply = "Decision must be one of: buy, watchlist, avoid"
+                else:
+                    reply = "Usage: /strategy decide <TICKER> <buy|watchlist|avoid> <rationale>"
+            elif sub == "delete":
+                if arg1 and arg1.isdigit():
+                    deleted = strategy_svc.delete(int(arg1))
+                    reply = f"Deleted criterion [{arg1}]." if deleted else f"Criterion [{arg1}] not found."
+                else:
+                    reply = "Usage: /strategy delete <id>"
+            else:
+                reply = "Usage: /strategy list|add|decide|delete [TICKER] [criterion]"
+            self._append_log(log, f"assistant: {reply}")
+            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            return
+
         if message.strip() == "/cancel":
             self.pending_action = None
             pending.update("No pending action")

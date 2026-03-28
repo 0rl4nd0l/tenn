@@ -130,6 +130,21 @@ def _(m, _msg):
     return "/review approve-all"
 
 
+@_rule(r"\bwhat\s+(?:is|are)\s+my\s+(?:strategy|criteria|investment\s+criteria)\b")
+def _(_m, _msg):
+    return "/strategy list"
+
+
+@_rule(r"\bwhat\s+(?:do\s+I\s+think|is\s+my\s+(?:decision|view|take))\s+(?:about|on)\s+([A-Za-z]{2,5})\b")
+def _(m, _msg):
+    return f"/strategy list {m.group(1).upper()}"
+
+
+@_rule(r"\bset\s+(?:my\s+)?decision\s+on\s+([A-Za-z]{2,5})\s+to\s+(\w+)")
+def _(m, _msg):
+    return f"/strategy decide {m.group(1).upper()} {m.group(2).lower()}"
+
+
 def derive_conversational_command(message: str) -> str | None:
     """
     Map a natural-language message to a cockpit slash command.
