@@ -6,33 +6,8 @@ import sys
 from pathlib import Path
 
 from cockpit.core.backend_restart import restart_backend
-from cockpit.core.config import RuntimeFlags, apply_runtime_flags, load_config
+from cockpit.core.config import RuntimeFlags, apply_runtime_flags, load_config, load_env
 from cockpit.ui.app import CockpitApp
-
-
-def _load_env() -> None:
-    """Load .env from the financial-engine_v2 root (same file the backend uses).
-
-    Shell env vars take precedence — dotenv only fills in missing keys.
-    """
-    repo_root = Path(__file__).resolve().parents[1]
-    env_path = repo_root / ".env"
-    if not env_path.is_file():
-        return
-    try:
-        from dotenv import load_dotenv
-        load_dotenv(env_path, override=False)
-    except ImportError:
-        # Fallback: parse KEY=VALUE lines manually (no interpolation).
-        for line in env_path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, _, value = line.partition("=")
-            key = key.strip()
-            value = value.strip()
-            if key and key not in os.environ:
-                os.environ[key] = value
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -54,7 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
-    _load_env()
+    load_env()
     args = build_parser().parse_args()
     repo_root = Path(__file__).resolve().parents[1]
 

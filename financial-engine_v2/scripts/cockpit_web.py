@@ -22,8 +22,11 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from cockpit.core.config import DEFAULT_BACKEND_URL, DEFAULT_LLAMACPP_URL, DEFAULT_OLLAMA_URL
+from cockpit.core.config import DEFAULT_BACKEND_URL, DEFAULT_LLAMACPP_URL, DEFAULT_OLLAMA_URL, load_env
 from cockpit.ui.web import CockpitWebApp
+
+# Load .env BEFORE arg parsing — arg defaults read from os.environ.
+load_env(REPO_ROOT)
 
 
 def _parse() -> argparse.Namespace:

@@ -20,8 +20,11 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from cockpit.core.config import RuntimeFlags, apply_runtime_flags, load_config
+from cockpit.core.config import RuntimeFlags, apply_runtime_flags, load_config, load_env
 from cockpit.ui.app import CockpitApp
+
+# Load .env BEFORE arg parsing — arg defaults read from os.environ.
+load_env(REPO_ROOT)
 
 
 def _parse() -> argparse.Namespace:
