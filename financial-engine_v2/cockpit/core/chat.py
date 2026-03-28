@@ -528,10 +528,49 @@ class ChatController:
             if original.isupper() and upper not in self.TICKER_STOPWORDS:
                 return upper
 
-        for _, upper in tokens:
-            if upper not in self.TICKER_STOPWORDS:
+        stripped = str(message or "").strip()
+        whole_message_token = re.fullmatch(
+            r"([A-Za-z0-9]{2,5})(?:\s+(?:1m|5m|15m|30m|1h|4h|1d|1w|1M))?",
+            stripped,
+            re.IGNORECASE,
+        )
+        if whole_message_token:
+            token = whole_message_token.group(1).upper()
+            if token not in self.TICKER_STOPWORDS:
+                return token
+
+        ticker_cue_patterns = (
+            r"\b(?:about|on|for|vs|versus|compare|chart|price|financials?|announcements?|news|"
+            r"analyse|analyze|analysis|ticker|stock|company|research|show|plot|candlestick|candle)\s+{token}\b",
+            r"\b{token}\s+(?:vs|versus|chart|price|financials?|announcements?|news)\b",
+        )
+        for original, upper in tokens:
+            if upper in self.TICKER_STOPWORDS:
+                continue
+            token_pattern = re.escape(original)
+            if any(re.search(pattern.format(token=token_pattern), message, re.IGNORECASE) for pattern in ticker_cue_patterns):
                 return upper
         return prior_ticker
+
+    def _resolve_ticker_context(
+        self,
+        message: str,
+        prior_ticker: str | None = None,
+    ) -> tuple[str | None, bool]:
+        """Resolve ticker context for a message.
+
+        Returns ``(ticker, explicit)`` where ``explicit`` is True only when the
+        ticker was directly stated in the current message. Prior ticker context
+        is reused only for follow-up style requests.
+        """
+        explicit_ticker = self._detect_ticker(message, prior_ticker=None)
+        if explicit_ticker:
+            return explicit_ticker, True
+
+        prior = prior_ticker or self.last_ticker
+        if prior and self._FOLLOW_UP_RE.search(message):
+            return prior, False
+        return None, False
 
     _GLOBAL_NEWS_RE = re.compile(r"\basx\s+news\b|\bmarket\s+news\b|\ball\s+news\b", re.IGNORECASE)
     _GLOBAL_ANNOUNCEMENT_RE = re.compile(
@@ -565,7 +604,7 @@ class ChatController:
         r"go ahead|yes|sure|okay|ok|yep|yeah|right|"
         r"also|additionally|furthermore|"
         r"financials?|revenue|earnings|cashflow|cash flow|dividends?|"
-        r"health|performance|outlook|guidance|"
+        r"health|performance|outlook|guidance|price|chart|candlestick|candle|plot|"
         r"compared to|versus|vs"
         r")\b",
         re.IGNORECASE,
@@ -893,9 +932,7 @@ class ChatController:
     ) -> ChatResponse:
         """Run the agentic tool-calling loop and convert the result to a ChatResponse."""
         # Reuse existing ticker detection logic
-        prior = prior_ticker or self.last_ticker
-        new_ticker = self._detect_ticker(message, prior_ticker=None)
-        ticker = new_ticker or prior or None
+        ticker, explicit_ticker = self._resolve_ticker_context(message, prior_ticker=prior_ticker)
         if ticker:
             self.last_ticker = ticker
 
