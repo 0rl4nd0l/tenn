@@ -1069,6 +1069,68 @@ class CockpitApp(App):
             self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
             return
 
+        # Handle /reconnect — re-probe all services and re-wire failed clients
+        if stripped == "/reconnect":
+            now_iso = datetime.now(timezone.utc).isoformat()
+            self._append_log(log, "assistant: Reconnecting services...")
+            results: list[str] = []
+
+            # 1. Re-probe llama.cpp
+            try:
+                llm_health = self.ollama_client.health(timeout=5.0)
+                if llm_health.get("ok"):
+                    results.append(f"  + llama.cpp: reachable at {llm_health.get('url')}")
+                else:
+                    results.append(f"  - llama.cpp: {llm_health.get('error')}")
+            except Exception as exc:
+                results.append(f"  - llama.cpp: {exc}")
+
+            # 2. Re-probe / re-create backend client
+            backend_cfg = self.config.get("backend") or {}
+            backend_url = str(backend_cfg.get("api_base_url") or "").strip()
+            if backend_url:
+                if self._backend_client is None:
+                    self._backend_client = BackendApiClient(
+                        backend_url,
+                        api_key=str(backend_cfg.get("api_key") or "").strip(),
+                    )
+                    self.tool_router.backend_api_client = self._backend_client
+                    results.append(f"  + Backend API: created client for {backend_url}")
+                try:
+                    bh = self._backend_client.health(timeout=5.0)
+                    if bh.get("ok"):
+                        results.append(f"  + Backend API: reachable at {self._backend_client.base_url}")
+                    else:
+                        results.append(f"  - Backend API: {bh.get('error')}")
+                except Exception as exc:
+                    results.append(f"  - Backend API: {exc}")
+            else:
+                results.append("  - Backend API: no api_base_url configured")
+
+            # 3. Re-attempt Anthropic client if missing
+            chat_ctrl = getattr(self, "chat_controller", None)
+            hybrid_router = getattr(chat_ctrl, "_hybrid_router", None) if chat_ctrl else None
+            if hybrid_router and hybrid_router._api is None:
+                import os as _os
+                if _os.environ.get("ANTHROPIC_API_KEY"):
+                    try:
+                        from cockpit.core.agent.anthropic_client import AnthropicClient
+                        hybrid_router._api = AnthropicClient()
+                        results.append("  + Claude API: connected (was missing, now initialized)")
+                    except Exception as exc:
+                        results.append(f"  - Claude API: init failed: {exc}")
+                else:
+                    results.append("  - Claude API: ANTHROPIC_API_KEY not set")
+            elif hybrid_router and hybrid_router._api is not None:
+                results.append("  + Claude API: already connected")
+            else:
+                results.append("  - Claude API: HybridRouter not initialized")
+
+            reply = "Reconnect results:\n" + "\n".join(results)
+            self._append_log(log, f"assistant: {reply}")
+            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            return
+
         # Handle /prompt — show the last assembled system instruction
         if stripped == "/prompt":
             now_iso = datetime.now(timezone.utc).isoformat()
