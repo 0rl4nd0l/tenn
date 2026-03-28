@@ -142,6 +142,26 @@ def test_router_mode_tag_uses_capability_state():
     assert screen._router_mode_tag() == "  (router active)"
 
 
+def test_router_mode_tag_blocks_on_ambiguous_topology():
+    screen = _make_screen()
+    screen._llama_topology = {
+        "ambiguous": True,
+        "reason": "multiple_chat_runtime_candidates",
+    }
+
+    assert screen._router_mode_tag() == "  (topology blocked: multiple chat runtime candidates)"
+
+
+def test_topology_blocks_router_mode_returns_true_for_ambiguous_state():
+    screen = _make_screen()
+    screen._llama_topology = {
+        "ambiguous": True,
+        "reason": "multiple_chat_runtime_candidates",
+    }
+
+    assert screen._topology_blocks_router_mode() is True
+
+
 def test_collect_flags_carries_router_mode_opt_in():
     screen = _make_screen()
     screen._llama_proc = {"router_mode": False}

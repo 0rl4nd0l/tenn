@@ -20,11 +20,12 @@ from cockpit.integrations.llamacpp_manager import (
     _extract_arg,
     discover_models,
     discover_ollama_models,
-    find_llama_server_process,
+    find_all_llama_server_processes,
     has_no_mmap,
     list_models_api,
     models_dir_from_process,
     probe_router_capability,
+    resolve_llama_server_topology,
     restart_into_router_mode,
     restart_with_model,
     switch_model,
@@ -288,6 +289,7 @@ class PreBootScreen(Screen):
         self._llama_proc: dict | None = None
         self._llama_fs_models: list[dict] = []
         self._router_capability: dict[str, Any] | None = None
+        self._llama_topology: dict[str, Any] | None = None
 
     def compose(self) -> ComposeResult:
         with Vertical(id="preboot-root"):
@@ -365,10 +367,13 @@ class PreBootScreen(Screen):
     async def _run_health_checks(self) -> None:
         # Run HTTP/TCP probes and llama-server process discovery in parallel.
         probe_tasks = [asyncio.to_thread(_probe, svc) for svc in self._checks]
-        proc_task = asyncio.to_thread(find_llama_server_process)
+        proc_task = asyncio.to_thread(find_all_llama_server_processes)
 
         results = await asyncio.gather(*probe_tasks, proc_task, return_exceptions=True)
-        self._llama_proc = results[-1] if isinstance(results[-1], dict) else None
+        processes = results[-1] if isinstance(results[-1], list) else []
+        topology = resolve_llama_server_topology(processes)
+        self._llama_topology = topology.as_dict()
+        self._llama_proc = dict(topology.selected_process) if topology.selected_process else None
 
         if self._llama_proc:
             models_dir = models_dir_from_process(self._llama_proc)
@@ -411,14 +416,22 @@ class PreBootScreen(Screen):
                 host=host,
                 port=port,
                 api_key=api_key,
+                candidate_processes=processes,
             ).as_dict()
         else:
-            self._router_capability = probe_router_capability(None).as_dict()
+            self._router_capability = probe_router_capability(
+                None,
+                candidate_processes=processes,
+            ).as_dict()
 
         self._render_health()
 
     def _router_mode_tag(self) -> str:
         capability = dict(self._router_capability or {})
+        topology = dict(self._llama_topology or {})
+        if bool(topology.get("ambiguous")):
+            reason = str(topology.get("reason") or "").strip().replace("_", " ")
+            return f"  (topology blocked: {reason})"
         active_mode = str(capability.get("active_mode") or "").strip()
         if active_mode == "router_mode_active":
             return "  (router active)"
@@ -431,6 +444,10 @@ class PreBootScreen(Screen):
         if self._llama_proc:
             return "  (single-model)"
         return ""
+
+    def _topology_blocks_router_mode(self) -> bool:
+        topology = dict(self._llama_topology or {})
+        return bool(topology.get("ambiguous"))
 
     def _render_health(self) -> None:
         log = self.query_one("#health-log", RichLog)
@@ -695,6 +712,12 @@ class PreBootScreen(Screen):
 
     def action_launch(self) -> None:
         flags = self._collect_flags()
+        if flags.get("router_mode_opt_in") and self._topology_blocks_router_mode():
+            log = self.query_one("#health-log", RichLog)
+            topology = dict(self._llama_topology or {})
+            reason = str(topology.get("reason") or "ambiguous topology").strip().replace("_", " ")
+            log.write(f"  Router mode blocked: {reason}. Resolve runtime selection before launch.")
+            return
         if self._needs_model_switch(flags):
             asyncio.create_task(self._switch_and_launch(flags))
             return
@@ -726,7 +749,7 @@ class PreBootScreen(Screen):
         def _status(msg: str) -> None:
             self.call_from_thread(log.write, f"  {msg}")
 
-        success = await asyncio.to_thread(
+        result = await asyncio.to_thread(
             switch_model,
             self._llama_proc,
             model_name,
@@ -739,10 +762,10 @@ class PreBootScreen(Screen):
             self.query_one("#opt-mmap-off", Checkbox).value,
         )
 
-        if success:
-            log.write(f"  Ready — {model_name} loaded. Launching cockpit...")
+        if result.ok:
+            log.write(f"  Ready — {result.message}. Launching cockpit...")
         else:
-            log.write("  Failed to switch model. Re-enable Launch to retry or pick a different model.")
+            log.write(f"  {result.message}. Re-enable Launch to retry or pick a different model.")
             btn.disabled = False
             return
 

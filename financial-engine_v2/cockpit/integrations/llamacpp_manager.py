@@ -26,6 +26,34 @@ class RouterCapabilityState:
         return asdict(self)
 
 
+@dataclass(frozen=True)
+class LlamaServerTopology:
+    selected_process: dict | None
+    candidate_processes: list[dict]
+    ambiguous: bool
+    reason: str = ""
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "selected_process": dict(self.selected_process or {}),
+            "candidate_processes": [dict(proc) for proc in self.candidate_processes],
+            "ambiguous": self.ambiguous,
+            "reason": self.reason,
+        }
+
+
+@dataclass(frozen=True)
+class ModelSwitchResult:
+    ok: bool
+    path: str
+    target_model: str
+    fallback_used: bool
+    message: str
+
+    def as_dict(self) -> dict[str, object]:
+        return asdict(self)
+
+
 def find_llama_server_process() -> dict | None:
     """
     Locate the running llama-server process via /proc.
@@ -37,6 +65,54 @@ def find_llama_server_process() -> dict | None:
     """
     procs = find_all_llama_server_processes()
     return procs[0] if procs else None
+
+
+def resolve_llama_server_topology(processes: list[dict] | None = None) -> LlamaServerTopology:
+    discovered = list(processes if processes is not None else find_all_llama_server_processes())
+    if not discovered:
+        return LlamaServerTopology(
+            selected_process=None,
+            candidate_processes=[],
+            ambiguous=False,
+            reason="no_llama_server_processes",
+        )
+
+    chat_candidates = [proc for proc in discovered if str(proc.get("port") or "") == "8001"]
+    extraction_candidates = [proc for proc in discovered if str(proc.get("port") or "") == "8002"]
+
+    if len(chat_candidates) == 1:
+        reason = ""
+        if extraction_candidates:
+            reason = "chat_runtime_selected_with_extraction_runtime_present"
+        return LlamaServerTopology(
+            selected_process=chat_candidates[0],
+            candidate_processes=discovered,
+            ambiguous=False,
+            reason=reason,
+        )
+
+    if len(chat_candidates) > 1:
+        return LlamaServerTopology(
+            selected_process=None,
+            candidate_processes=chat_candidates,
+            ambiguous=True,
+            reason="multiple_chat_runtime_candidates",
+        )
+
+    if len(discovered) == 1:
+        return LlamaServerTopology(
+            selected_process=None,
+            candidate_processes=discovered,
+            ambiguous=True,
+            reason="only_extraction_runtime_detected",
+        )
+
+    return LlamaServerTopology(
+        selected_process=None,
+        candidate_processes=discovered,
+        ambiguous=True,
+        reason="no_unique_chat_runtime",
+    )
 
 
 def _binary_supports_models_dir(binary: str) -> bool:
@@ -65,17 +141,18 @@ def probe_router_capability(
     router_configured = str(os.getenv("LLAMA_SERVER_ROUTER_MODE", "0")).strip() == "1"
     selected_port = str((proc_info or {}).get("port") or port or "8001")
     selected_pid = (proc_info or {}).get("pid")
+    topology = resolve_llama_server_topology(processes)
 
     if proc_info is None:
         return RouterCapabilityState(
-            active_mode="router_mode_unavailable",
+            active_mode="router_mode_unavailable" if topology.ambiguous else "router_mode_unavailable",
             router_supported=False,
             router_configured=router_configured,
             router_api_reachable=False,
             candidate_server_count=len(processes),
             selected_server_port=selected_port,
             selected_server_pid=None,
-            reason="llama_server_not_running",
+            reason=topology.reason or "llama_server_not_running",
         )
 
     binary = str(proc_info.get("binary") or "").strip()
@@ -756,10 +833,10 @@ def switch_model(
     startup_timeout: float = 600.0,
     on_status: object = None,
     mmap_disabled: bool | None = None,
-) -> bool:
+) -> ModelSwitchResult:
     """High-level model switch: uses router API if available, falls back to restart.
 
-    Returns True on success.
+    Returns a structured result describing the chosen switch path and outcome.
     """
     def _status(msg: str) -> None:
         if callable(on_status):
@@ -775,15 +852,39 @@ def switch_model(
         _status("Router mode detected — switching via API (zero downtime)")
         # Warm page cache for the new model before asking the server to load it.
         _warm_page_cache(new_model_path, _status)
-        return load_model_api(
+        ok = load_model_api(
             host, port, new_model_name, api_key, startup_timeout, on_status,
+        )
+        message = (
+            f"Router hot-switch loaded {new_model_name}"
+            if ok
+            else f"Router hot-switch failed for {new_model_name}"
+        )
+        return ModelSwitchResult(
+            ok=ok,
+            path="router_hot_switch",
+            target_model=new_model_name,
+            fallback_used=False,
+            message=message,
         )
 
     # Fallback: single-model mode — kill and restart.
     _status("Single-model mode — restarting server")
-    return restart_with_model(
+    ok = restart_with_model(
         proc_info, new_model_path, new_model_name,
         startup_timeout, on_status, mmap_disabled,
+    )
+    message = (
+        f"Restarted server with {new_model_name}"
+        if ok
+        else f"Restart path failed for {new_model_name}"
+    )
+    return ModelSwitchResult(
+        ok=ok,
+        path="restart",
+        target_model=new_model_name,
+        fallback_used=False,
+        message=message,
     )
 
 

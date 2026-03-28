@@ -155,7 +155,7 @@ def test_switch_model_uses_router_path_when_router_detected(monkeypatch):
         or True,
     )
 
-    ok = manager.switch_model(
+    result = manager.switch_model(
         {"router_mode": False},
         "qwen2.5-coder-14b",
         "/models/qwen2.5-coder-14b.gguf",
@@ -163,7 +163,9 @@ def test_switch_model_uses_router_path_when_router_detected(monkeypatch):
         port="8001",
     )
 
-    assert ok is True
+    assert result.ok is True
+    assert result.path == "router_hot_switch"
+    assert result.target_model == "qwen2.5-coder-14b"
     assert warm_calls == ["/models/qwen2.5-coder-14b.gguf"]
     assert load_calls == [("127.0.0.1", "8001", "qwen2.5-coder-14b")]
 
@@ -180,7 +182,7 @@ def test_switch_model_uses_restart_path_when_router_not_detected(monkeypatch):
         or True,
     )
 
-    ok = manager.switch_model(
+    result = manager.switch_model(
         {"router_mode": False},
         "qwen2.5-coder-14b",
         "/models/qwen2.5-coder-14b.gguf",
@@ -188,7 +190,9 @@ def test_switch_model_uses_restart_path_when_router_not_detected(monkeypatch):
         port="8001",
     )
 
-    assert ok is True
+    assert result.ok is True
+    assert result.path == "restart"
+    assert result.target_model == "qwen2.5-coder-14b"
     assert restart_calls == [("/models/qwen2.5-coder-14b.gguf", "qwen2.5-coder-14b")]
 
 
@@ -237,7 +241,45 @@ def test_probe_router_capability_reports_unavailable_without_process(monkeypatch
 
     assert state.active_mode == "router_mode_unavailable"
     assert state.router_configured is True
-    assert state.reason == "llama_server_not_running"
+    assert state.reason == "no_llama_server_processes"
+
+
+def test_resolve_llama_server_topology_prefers_chat_port_when_extraction_also_present():
+    topology = manager.resolve_llama_server_topology(
+        [
+            {"pid": 101, "port": "8002", "router_mode": False},
+            {"pid": 202, "port": "8001", "router_mode": True},
+        ]
+    )
+
+    assert topology.ambiguous is False
+    assert topology.selected_process == {"pid": 202, "port": "8001", "router_mode": True}
+    assert topology.reason == "chat_runtime_selected_with_extraction_runtime_present"
+
+
+def test_resolve_llama_server_topology_blocks_multiple_chat_candidates():
+    topology = manager.resolve_llama_server_topology(
+        [
+            {"pid": 101, "port": "8001", "router_mode": False},
+            {"pid": 202, "port": "8001", "router_mode": True},
+        ]
+    )
+
+    assert topology.ambiguous is True
+    assert topology.selected_process is None
+    assert topology.reason == "multiple_chat_runtime_candidates"
+
+
+def test_resolve_llama_server_topology_blocks_extraction_only_runtime():
+    topology = manager.resolve_llama_server_topology(
+        [
+            {"pid": 101, "port": "8002", "router_mode": False},
+        ]
+    )
+
+    assert topology.ambiguous is True
+    assert topology.selected_process is None
+    assert topology.reason == "only_extraction_runtime_detected"
 
 
 def test_load_model_api_surfaces_http_error_body(monkeypatch):
