@@ -213,6 +213,24 @@ def main() -> None:
     if args.max_backfill_retries <= 0:
         raise SystemExit("--max-backfill-retries must be > 0")
 
+    # Fail fast: check extraction endpoint is reachable before any DB work.
+    if args.process_documents:
+        extraction_url = (
+            os.getenv("EXTRACTION_LLAMACPP_URL", "").strip().rstrip("/")
+            or os.getenv("LLAMACPP_URL", "http://127.0.0.1:8001").strip().rstrip("/")
+        )
+        if extraction_url.endswith("/v1"):
+            extraction_url = extraction_url[:-3]
+        import urllib.error
+        import urllib.request
+        try:
+            urllib.request.urlopen(f"{extraction_url}/v1/models", timeout=5)
+        except (urllib.error.URLError, OSError) as exc:
+            raise SystemExit(
+                f"FATAL: Extraction endpoint unreachable at {extraction_url}: {exc}\n"
+                "Start llama-server before running extraction."
+            )
+
     database_url = os.getenv("DATABASE_URL", "sqlite:///./data/fe_local.db")
     if getattr(args, "dry_run", False):
         resume_report = Path(args.report).with_name(f"{Path(args.report).stem}_resume.json")

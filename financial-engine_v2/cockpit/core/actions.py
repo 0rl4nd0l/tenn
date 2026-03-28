@@ -56,6 +56,7 @@ class ActionPreview:
     summary: str
     estimated_impact: str
     timeout_seconds: int
+    guard_message: str | None = None
 
 
 class ActionRegistry:
@@ -790,6 +791,13 @@ class ActionRegistry:
     def preview(self, action_id: str, args: dict[str, Any]) -> ActionPreview:
         spec = self.get(action_id)
         command = self.build_command(action_id, args)
+
+        # Pre-flight: extraction endpoint guard.
+        from cockpit.core.action_runtime_guards import check_extraction_endpoint
+        ok, guard_msg = check_extraction_endpoint(action_id, args)
+        if not ok:
+            raise ValueError(guard_msg)
+
         impact = "mutates local data and reports" if spec.is_mutating else "read-only"
         return ActionPreview(
             action_id=action_id,
@@ -797,6 +805,7 @@ class ActionRegistry:
             summary=f"Run {spec.label}",
             estimated_impact=impact,
             timeout_seconds=spec.timeout_seconds,
+            guard_message=guard_msg if guard_msg else None,
         )
 
     @staticmethod

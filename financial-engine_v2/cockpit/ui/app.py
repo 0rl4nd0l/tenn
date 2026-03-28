@@ -812,6 +812,83 @@ class CockpitApp(App):
             self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
             return
 
+        # Handle /rag on|off
+        if stripped.startswith("/rag"):
+            sub = stripped[len("/rag"):].strip().lower()
+            now_iso = datetime.now(timezone.utc).isoformat()
+            if sub == "on":
+                self.config.setdefault("rag", {})["enabled"] = True
+                reply = "RAG retrieval enabled."
+            elif sub == "off":
+                self.config.setdefault("rag", {})["enabled"] = False
+                reply = "RAG retrieval disabled."
+            else:
+                enabled = (self.config.get("rag") or {}).get("enabled", True)
+                reply = f"RAG retrieval: {'ON' if enabled else 'OFF'}. Use /rag on|off to toggle."
+            self._append_log(log, f"assistant: {reply}")
+            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            return
+
+        # Handle /web on|off
+        if stripped.startswith("/web"):
+            sub = stripped[len("/web"):].strip().lower()
+            now_iso = datetime.now(timezone.utc).isoformat()
+            if sub == "on":
+                self.config["web"]["enabled_default"] = True
+                reply = "Web search enabled."
+            elif sub == "off":
+                self.config["web"]["enabled_default"] = False
+                reply = "Web search disabled."
+            else:
+                enabled = self.config["web"].get("enabled_default", False)
+                reply = f"Web search: {'ON' if enabled else 'OFF'}. Use /web on|off to toggle."
+            self._append_log(log, f"assistant: {reply}")
+            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            return
+
+        # Handle /health — check backend API health
+        if stripped == "/health":
+            now_iso = datetime.now(timezone.utc).isoformat()
+            if self._backend_client is None:
+                reply = "Backend API not configured (no api_base_url)."
+            else:
+                try:
+                    result = self._backend_client.health(timeout=5.0)
+                    reply = f"Backend health: {json.dumps(result, indent=2)}"
+                except Exception as exc:
+                    reply = f"Backend health check failed: {exc}"
+            self._append_log(log, f"assistant: {reply}")
+            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            return
+
+        # Handle /access — show current access/connection info
+        if stripped == "/access":
+            now_iso = datetime.now(timezone.utc).isoformat()
+            lines = ["Access configuration:"]
+            lines.append(f"  Backend API: {self._backend_client.base_url if self._backend_client else 'not configured'}")
+            lines.append(f"  LLM: {self.ollama_client.base_url}")
+            lines.append(f"  State DB: {self.state_store.db_path}")
+            reply = "\n".join(lines)
+            self._append_log(log, f"assistant: {reply}")
+            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            return
+
+        # Handle /prompt — show the last assembled system instruction
+        if stripped == "/prompt":
+            now_iso = datetime.now(timezone.utc).isoformat()
+            try:
+                prompt = self.chat_controller._build_system_instruction(
+                    mode=self.last_response_mode or "chat",
+                    ticker=self.last_detected_ticker,
+                    local_payload={},
+                )
+                reply = f"Current system prompt:\n{prompt}"
+            except Exception as exc:
+                reply = f"Could not build prompt: {exc}"
+            self._append_log(log, f"assistant: {reply}")
+            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            return
+
         if message.strip() == "/cancel":
             self.pending_action = None
             pending.update("No pending action")
@@ -1039,6 +1116,19 @@ class CockpitApp(App):
         except Exception:
             pass  # sources footer is best-effort
 
+        # Append routing metadata footer (which backend answered)
+        try:
+            if response.routing_metadata:
+                meta = response.routing_metadata
+                src = "Claude API" if meta["source"] == "api" else "llama.cpp"
+                cost_str = f"${meta['cost_usd']:.4f}" if meta["cost_usd"] else "free"
+                self._append_log(
+                    log,
+                    f"  [{src} | {meta['model']} | {meta['latency_ms']}ms | {cost_str}]",
+                )
+        except Exception:
+            pass  # routing footer is best-effort
+
         self.state_store.add_chat_message(self.thread_id, "assistant", assistant_text, datetime.now(timezone.utc).isoformat())
 
         if response.action_preview:
@@ -1092,6 +1182,7 @@ class CockpitApp(App):
             "evidence": response.evidence,
             "actions_taken": [response.action_preview] if response.action_preview else [],
             "sources": ["local_context"],
+            "routing": response.routing_metadata,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         md_path, json_path = self.artifacts.write_analysis(self.thread_id, message, assistant_text, export_payload)
@@ -1159,6 +1250,8 @@ class CockpitApp(App):
             }
         )
 
+        if preview.guard_message:
+            self._write_log(log_target, f"Guard: {preview.guard_message}")
         self._write_log(log_target, f"Executing: {' '.join(preview.command)}")
         self._write_log(log_target, f"Job queued: {job.job_id}")
         self.active_job_id = job.job_id

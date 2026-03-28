@@ -55,6 +55,7 @@ class AgentResult:
     mode: str = "agent"
     tool_calls_made: int = 0
     iterations_used: int = 0
+    routing_metadata: dict | None = None
 
 
 # ---------------------------------------------------------------------------

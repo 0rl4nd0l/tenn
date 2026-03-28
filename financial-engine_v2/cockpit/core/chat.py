@@ -48,6 +48,7 @@ class ChatResponse:
     action_preview: dict[str, Any] | None = None
     mode: str = ResponseMode.FAST
     prompt: str | None = None
+    routing_metadata: dict[str, Any] | None = None
 
 
 @dataclass
@@ -137,6 +138,7 @@ class ChatController:
         # Agent loop — default mode since agent routing is the canonical path.
         # COCKPIT_AGENT_MODE=keyword reverts to legacy Ollama-direct path.
         self._agent_loop = None
+        self._hybrid_router = None
         self._dossier_service = None
         self._strategy_service = None
         if state_store is not None:
@@ -166,6 +168,7 @@ class ChatController:
                     api_client=api_client,
                     llm_timeout=self.llm_timeout_seconds,
                 )
+                self._hybrid_router = hybrid_router
 
                 # Research capabilities — Brave Search, HN, dossier.
                 brave_client = None
@@ -199,6 +202,7 @@ class ChatController:
                         dossier_service=dossier_svc,
                         brave_client=brave_client,
                         hn_client=hn_client,
+                        strategy_service=self._strategy_service,
                     )
                 except Exception as exc:
                     logger.warning("DeepResearchRunner init failed: %s", exc)
@@ -219,6 +223,7 @@ class ChatController:
                         dossier_service=dossier_svc,
                         deep_research_runner=deep_runner,
                         alert_reader=alert_rdr,
+                        strategy_service=self._strategy_service,
                     ),
                     system_instruction_builder=lambda mode, ticker: self._build_system_instruction(mode, ticker, {}),
                     llm_timeout=self.llm_timeout_seconds,
@@ -938,6 +943,19 @@ class ChatController:
             on_chunk=on_chunk,
         )
 
+        # Capture routing metadata from HybridRouter's cost log.
+        if self._hybrid_router is not None:
+            cost_entries = self._hybrid_router.cost_log()
+            if cost_entries:
+                last = cost_entries[-1]
+                result.routing_metadata = {
+                    "source": last["source"],
+                    "model": last["model"],
+                    "latency_ms": last["latency_ms"],
+                    "cost_usd": last["cost_usd"],
+                    "total_session_cost_usd": self._hybrid_router.total_cost_usd(),
+                }
+
         # Record the turn in session memory (same as keyword path)
         record_turn(
             self._ov_session_id,
@@ -977,6 +995,7 @@ class ChatController:
             evidence=result.evidence,
             action_preview=result.action_preview,
             mode=result.mode,
+            routing_metadata=result.routing_metadata,
         )
 
     def build_chat_response(
