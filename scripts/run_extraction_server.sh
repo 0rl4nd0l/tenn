@@ -61,6 +61,11 @@ cmd=(
   --parallel 1
 )
 
+# Same knob as scripts/run_llama_server.sh: mmap can stall CUDA load on Maxwell (M40).
+if [[ "${LLAMA_SERVER_MMAP:-1}" == "0" ]]; then
+  cmd+=(--no-mmap)
+fi
+
 if [[ -n "${API_KEY}" ]]; then
   cmd+=(--api-key "${API_KEY}")
 fi
@@ -70,5 +75,6 @@ echo "[extraction-server] MODEL=${MODEL_PATH}"
 echo "[extraction-server] ALIAS=${MODEL_ALIAS}"
 echo "[extraction-server] HOST=${HOST}:${PORT}"
 echo "[extraction-server] CTX_SIZE=${CTX_SIZE}"
+echo "[extraction-server] LLAMA_SERVER_MMAP=${LLAMA_SERVER_MMAP:-1} (0=--no-mmap)"
 
 exec "${cmd[@]}"

@@ -60,7 +60,7 @@ bash scripts/run_llama_server.sh
 
 1. **Fix the server first** (Section 3) so the **intended** GGUF is actually resident (confirm with `nvidia-smi` + `/v1/models`).
 2. **Match the baseline model** (name and quant) to whatever `extraction_baseline.json` / the eval harness assumes. A run against a different model **invalidates** before/after accuracy comparisons.
-3. If chat uses **8001** and extraction expects **instruct** on **8002**, use `scripts/run_extraction_server.sh` or a second `run_llama_server.sh` with `LLAMA_SERVER_PORT=8002` and the instruct GGUF. If **8002** also stalls, start that instance with **`LLAMA_SERVER_MMAP=0`** by using `run_llama_server.sh` on 8002 (it honours `LLAMA_SERVER_MMAP`); `run_extraction_server.sh` does **not** wire mmap today—use the main launcher with port/model overrides, or add `--no-mmap` manually to an equivalent command line.
+3. If chat uses **8001** and extraction expects **instruct** on **8002**, use `scripts/run_extraction_server.sh` or a second `run_llama_server.sh` with `LLAMA_SERVER_PORT=8002` and the instruct GGUF. Both launchers honour **`LLAMA_SERVER_MMAP=0`** (passes **`--no-mmap`**) if **8002** stalls the same way as **8001**.
 
 ---
 

@@ -35,8 +35,13 @@ Output ONLY valid JSON with these fields:
   "confidence": 0.0-1.0,
   "risks": ["risk 1", "risk 2"],
   "catalysts": ["catalyst 1", "catalyst 2"],
-  "data_gaps": ["what data is missing or uncertain"]
+  "data_gaps": ["what data is missing or uncertain"],
+  "strategy_evaluation": [{"criterion": "...", "verdict": "met|not_met|insufficient_data", "evidence": "..."}]
 }
+
+If the DATA includes a "strategy_criteria" section with user-defined investment
+criteria, evaluate each criterion against the evidence and populate
+"strategy_evaluation". If no criteria are provided, omit or return an empty list.
 
 Be concise. Cite specific numbers from the data. Flag low-confidence claims.
 """

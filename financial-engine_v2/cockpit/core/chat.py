@@ -31,6 +31,7 @@ from cockpit.core.session_memory import (
     get_relevant_session_context,
     record_turn,
 )
+from cockpit.core.action_runtime_guards import build_runtime_remediation_request
 
 
 class ResponseMode(StrEnum):
@@ -1058,21 +1059,14 @@ class ChatController:
         # ------------------------------------------------------------------ #
 
         # Ticker detection (shared by both agent and keyword paths).
-        prior = prior_ticker or self.last_ticker
-        new_ticker = self._detect_ticker(message, prior_ticker=None)
-        if new_ticker:
-            ticker = new_ticker
-        elif prior:
-            ticker = prior
-        else:
-            ticker = None
+        ticker, explicit_ticker = self._resolve_ticker_context(message, prior_ticker=prior_ticker)
         if ticker:
             self.last_ticker = ticker
 
         msg_lower = message.lower()
 
         # --- Conversational update shortcut: "update <ticker> announcements" ---
-        explicit_ticker_in_message = self._detect_ticker(message, prior_ticker=None)
+        explicit_ticker_in_message = ticker if explicit_ticker else None
         if "update" in msg_lower and "announcement" in msg_lower and explicit_ticker_in_message:
             args: dict[str, Any] = {"ticker": explicit_ticker_in_message, "years": 1, "process_documents": True}
             action_preview: dict[str, Any] = {"action_id": "update_ticker_financials", "args": args}
@@ -1188,7 +1182,7 @@ class ChatController:
             return ChatResponse(
                 text="Web access is required to fetch that URL. Enable web and try again.",
                 evidence=[],
-                action_preview={"action_id": "__access_request__", "args": {"scope": "web"}},
+                action_preview={"action_id": "__access_request__", "args": {"scope": "web", "enable": True}},
                 mode=ResponseMode.FAST,
             )
 
@@ -1197,7 +1191,7 @@ class ChatController:
             return ChatResponse(
                 text="Max-depth analysis requires web enrichment. Enable web and try again.",
                 evidence=[],
-                action_preview={"action_id": "__access_request__", "args": {"scope": "web"}},
+                action_preview={"action_id": "__access_request__", "args": {"scope": "web", "enable": True}},
                 mode=ResponseMode.FAST,
             )
 
@@ -1208,7 +1202,7 @@ class ChatController:
             return ChatResponse(
                 text="Deep analysis requires RAG context. Enable RAG and try again.",
                 evidence=[],
-                action_preview={"action_id": "__access_request__", "args": {"scope": "rag"}},
+                action_preview={"action_id": "__access_request__", "args": {"scope": "rag", "enable": True}},
                 mode=ResponseMode.FAST,
             )
 
@@ -1231,7 +1225,21 @@ class ChatController:
                     evidence=[], mode=ResponseMode.FAST,
                 )
             args = {"ticker": ticker or ""}
-            preview = self.action_registry.preview(action_id, args)
+            try:
+                preview = self.action_registry.preview(action_id, args)
+            except ValueError as exc:
+                remediation = build_runtime_remediation_request(action_id, args, str(exc))
+                if remediation is not None:
+                    return ChatResponse(
+                        text=(
+                            "This action is blocked because the extraction runtime is unavailable. "
+                            "Approve remediation to start the runtime and then resume the action."
+                        ),
+                        evidence=evidence,
+                        action_preview=remediation,
+                        mode=ResponseMode.ACTION,
+                    )
+                raise
             return ChatResponse(
                 text=(
                     f"Action candidate detected: {action_id}. "

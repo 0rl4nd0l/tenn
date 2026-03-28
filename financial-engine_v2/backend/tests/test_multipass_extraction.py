@@ -1165,8 +1165,12 @@ def _make_dummy_table(caption="Dummy"):
     )
 
 
-def test_skip_share_capital_when_balance_sheet_present():
-    """share_capital LLM call must be skipped when balance_sheet is present."""
+def test_share_capital_not_skipped_when_balance_sheet_present():
+    """share_capital LLM call must NOT be skipped even when balance_sheet is present.
+
+    Balance sheets are dense and unreliable for share counts; the dedicated
+    share_capital table is the most reliable source for shares_outstanding.
+    """
     from app.services.multipass_extraction import _run_pass3a_metric_extractor
 
     labelled = {
@@ -1183,12 +1187,9 @@ def test_skip_share_capital_when_balance_sheet_present():
     mock_raw = {"net_debt": 500, "total_debt": None, "shares_outstanding": 1_000_000,
                 "pass3_confidence": 0.9, "row_refs": {}}
 
-    call_count = {"n": 0}
     original_tables = []
 
     def _tracking_llm_call(prompt, *args, **kwargs):
-        call_count["n"] += 1
-        # Record which table_type the prompt was built for
         if "share_capital" in prompt:
             original_tables.append("share_capital")
         elif "balance_sheet" in prompt:
@@ -1199,11 +1200,11 @@ def test_skip_share_capital_when_balance_sheet_present():
         with patch.dict("os.environ", {"EXTRACTION_SKIP_REDUNDANT": "1"}):
             results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
 
-    # Only balance_sheet should have been called — share_capital skipped
-    assert "share_capital" not in original_tables
+    # Both balance_sheet AND share_capital should have been called
+    assert "share_capital" in original_tables
     assert "balance_sheet" in original_tables
     sources = [r["_source"] for r in results]
-    assert "share_capital" not in sources
+    assert "share_capital" in sources
 
 
 def test_share_capital_not_skipped_when_balance_sheet_absent():

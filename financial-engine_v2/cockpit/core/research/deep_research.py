@@ -26,12 +26,14 @@ class DeepResearchRunner:
         dossier_service: Any | None = None,
         brave_client: Any | None = None,
         hn_client: Any | None = None,
+        strategy_service: Any | None = None,
     ) -> None:
         self._router = tool_router
         self._backend = backend_client
         self._dossier = dossier_service
         self._brave = brave_client
         self._hn = hn_client
+        self._strategy = strategy_service
 
     def run(self, ticker: str, *, focus: str | None = None) -> dict[str, Any]:
         """Execute deep research on a ticker.
@@ -99,7 +101,7 @@ class DeepResearchRunner:
             logger.warning("deep_research: price failed for %s: %s", ticker, exc)
 
         # Web search.
-        if self._brave is not None:
+        if self._brave is not None and bool(getattr(self._router, "web_default_enabled", False)):
             try:
                 focus_q = f" {focus}" if focus else ""
                 web = self._brave.search(f"{ticker} ASX{focus_q} news", count=5)
@@ -137,6 +139,15 @@ class DeepResearchRunner:
                     data["prior_dossier"] = prior["findings"]
             except Exception as exc:
                 logger.warning("deep_research: dossier recall failed: %s", exc)
+
+        # Strategy criteria (user-defined investment framework).
+        if self._strategy is not None:
+            try:
+                context_block = self._strategy.build_context_block(ticker)
+                if context_block:
+                    data["strategy_criteria"] = context_block
+            except Exception as exc:
+                logger.warning("deep_research: strategy context failed: %s", exc)
 
         logger.info(
             "deep_research: gathered %d sources for %s: %s",

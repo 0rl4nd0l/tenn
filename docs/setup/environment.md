@@ -16,6 +16,7 @@ The active runtime is `financial-engine_v2`. The canonical env file lives at `fi
 | `LLM_API_KEY` | `local-openai-key` | Used for local OpenAI-compatible auth. |
 | `LLAMA_SERVER_ROUTER_MODE` | `1` | Enable router mode for zero-downtime model switching (`~/.config/tenn/llama-server.env`). Set to `0` for single-model legacy mode. |
 | `LLAMA_SERVER_MODELS_DIR` | `$ROOT/models` | Directory of `.gguf` files for router mode model discovery (`~/.config/tenn/llama-server.env`). |
+| `LLAMA_SERVER_MMAP` | `1` | Set to `0` so `scripts/run_llama_server.sh` and `scripts/run_extraction_server.sh` pass `--no-mmap` when mmap-based load stalls on Tesla M40 (see `docs/ops/09_llama_server_m40_model_load_runbook.md`). |
 | `EMBEDDING_BATCH_SIZE` | `32` | Default embedding batch size. |
 | `ROUTER_FEEDBACK_ENABLED` | `true` | Enables analyzer feedback in routing. |
 | `ANALYZER_MAX_AGE_SECONDS` | `600` | Analyzer report freshness window. |

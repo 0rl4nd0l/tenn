@@ -174,6 +174,29 @@ def check_extraction_endpoint(
         return False, f"Auto-load failed: {exc}"
 
 
+def build_runtime_remediation_request(
+    action_id: str,
+    args: dict[str, Any],
+    error_message: str,
+) -> dict[str, Any] | None:
+    message = str(error_message or "").strip()
+    if action_id not in EXTRACTION_ACTION_IDS:
+        return None
+    lowered = message.lower()
+    if "extraction endpoint unreachable" not in lowered and "start llama-server" not in lowered:
+        return None
+    return {
+        "action_id": "__runtime_remediation__",
+        "args": {
+            "scope": "extraction_runtime",
+            "enable": True,
+            "resume_action_id": action_id,
+            "resume_args": dict(args or {}),
+            "error": message,
+        },
+    }
+
+
 # Actions that cannot safely run concurrently with each other.
 # Each group is a set of mutually-exclusive action IDs.
 _CONFLICT_GROUPS: list[set[str]] = [
