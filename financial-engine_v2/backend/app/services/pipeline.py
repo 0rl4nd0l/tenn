@@ -827,6 +827,8 @@ def _upsert_financial_rows(db, doc, structured):
             "cash_end",
             "net_debt",
             "shares_outstanding",
+            "total_equity",
+            "interest_expense",
         ]:
             setattr(row, field, _coerce_float(metrics.get(field, None)))
         row.source_document_id = doc.document_id

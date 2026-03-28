@@ -1652,6 +1652,9 @@ class CockpitApp(App):
             payload["chat_messages"] = self.state_store.get_chat_messages(self.thread_id, limit=200)
             payload["pending_action"] = self.pending_action
             payload["last_detected_ticker"] = self.last_detected_ticker
+            payload["last_chart_path"] = self.last_chart_path
+            payload["last_snapshot_payload"] = self.last_snapshot_payload
+            payload["last_verification_payload"] = self.last_verification_payload
             latest = self.state_store.get_latest_export(self.thread_id)
             if latest:
                 payload["latest_analysis_export_meta"] = latest
