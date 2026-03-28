@@ -2,21 +2,33 @@ from __future__ import annotations
 
 import json
 import re
+import threading
 from typing import Callable
 
 import httpx
+
+_DEFAULT_TIMEOUT = httpx.Timeout(connect=5.0, read=600.0, write=120.0, pool=5.0)
+_DEFAULT_LIMITS = httpx.Limits(max_connections=6, max_keepalive_connections=3)
 
 
 class OllamaClient:
     def __init__(self, base_url: str, model: str) -> None:
         self.base_url = self._normalize_base_url(base_url)
         self.model = model
-        self._client = httpx.Client()
+        self._thread_local = threading.local()
+
+    def _http_client(self) -> httpx.Client:
+        c = getattr(self._thread_local, "http_client", None)
+        if c is None:
+            c = httpx.Client(timeout=_DEFAULT_TIMEOUT, limits=_DEFAULT_LIMITS)
+            self._thread_local.http_client = c
+        return c
 
     def health(self, timeout: float = 5.0) -> dict:
         url = f"{self.base_url}/api/tags"
+        t = httpx.Timeout(connect=min(5.0, timeout), read=timeout, write=timeout, pool=2.0)
         try:
-            response = self._client.get(url, timeout=timeout)
+            response = self._http_client().get(url, timeout=t)
             response.raise_for_status()
             payload = response.json() if response.content else {}
             names = []
@@ -47,12 +59,13 @@ class OllamaClient:
         emitted_any = False
 
         # One retry for transient startup issues before any text has been emitted.
+        stream_timeout = httpx.Timeout(connect=5.0, read=timeout, write=min(120.0, timeout), pool=5.0)
         for attempt in (1, 2):
             try:
-                with self._client.stream(
+                with self._http_client().stream(
                     "POST",
                     url,
-                    timeout=timeout,
+                    timeout=stream_timeout,
                     json={
                         "model": self.model,
                         "prompt": prompt,

@@ -58,7 +58,11 @@ _extract_model() {
 }
 
 _gpu_memory_used_mb() {
-  nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits 2>/dev/null | head -1 || echo "0"
+  # nounits should return digits only; strip defensively for set -u + arithmetic.
+  local line
+  line=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits 2>/dev/null | head -1 || true)
+  line=$(echo "${line}" | tr -cd '0-9')
+  echo "${line:-0}"
 }
 
 _gpu_memory_free_mb() {

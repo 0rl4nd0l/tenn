@@ -280,3 +280,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The EBIT prompt did not explicitly exclude "Profit before credit impairment and income tax" or include "Profit before income tax" as valid EBIT labels. For banks, credit impairment is an operating cost, so EBIT must be after credit impairments.
 **Fix:** Updated Pass 3a prompt to: (1) add "Profit before income tax" and "Cash profit before tax" to the accepted EBIT labels, (2) add a CRITICAL instruction that if both lines exist, use the post-impairment line, (3) explicitly state "Profit before credit impairment and income tax" is NOT ebit.
 **Rule:** When adding extraction support for a new sector (banking, insurance, etc.), audit every metric's prompt guidance against the actual row labels in that sector's financial statements. Sector-specific row labels that look similar to standard labels but carry different semantics must be explicitly addressed in the prompt — the LLM will default to the closest semantic match without explicit guidance.
+
+---
+
+## L026 — Shared httpx.Client across threads wedges llama-server sockets; gpu guard must parse VRAM as digits
+
+**Date:** 2026-03-28
+**Subsystem:** `cockpit/integrations/llamacpp_client.py`, `cockpit/integrations/ollama_client.py`, `scripts/gpu_process_guard.sh`
+**Symptom:** `llama-server` accepted TCP on `:8001` but HTTP hung (0-byte responses); dozens of server-side `CLOSE_WAIT` sockets. Separately, `gpu_process_guard.sh` exited with `line 67: NVIDIA: unbound variable` under `set -u`.
+**Root cause:** (1) `httpx.Client` is not thread-safe. Cockpit called `LlamaCppClient.health()` from `asyncio.to_thread` every ~15s while `chat()` ran on the Textual thread — concurrent use of one client corrupts the connection pool and can leave the peer in bad TCP states. (2) `_gpu_memory_used_mb` fed arithmetic with non-numeric `nvidia-smi` output, triggering unbound-variable errors in bash arithmetic under `set -u`.
+**Fix:** One `httpx.Client` per OS thread via `threading.local()` in `LlamaCppClient` and `OllamaClient`; explicit `httpx.Timeout` and `httpx.Limits(max_connections=6, max_keepalive_connections=3)`. Strip `memory.used` to digits only before `VRAM_TOTAL_MB - used` in `gpu_process_guard.sh`.
+**Rule:** Do not share a single `httpx.Client` instance across threads (including `asyncio.to_thread` workers). Use thread-local clients, or a lock around all client use (avoid holding the lock across long streaming reads). When parsing `nvidia-smi` CSV in bash with `set -u`, normalize to digits before arithmetic.

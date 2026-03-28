@@ -2,9 +2,15 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 from typing import Callable
 
 import httpx
+
+# httpx.Client is not thread-safe. Cockpit calls health() via asyncio.to_thread while
+# chat() runs on the Textual thread — one pooled client per OS thread.
+_DEFAULT_TIMEOUT = httpx.Timeout(connect=5.0, read=600.0, write=120.0, pool=5.0)
+_DEFAULT_LIMITS = httpx.Limits(max_connections=6, max_keepalive_connections=3)
 
 
 class LlamaCppClient:
@@ -14,7 +20,14 @@ class LlamaCppClient:
         self.base_url = self._normalize_base_url(base_url)
         self.model = model
         self._api_key = api_key.strip()
-        self._client = httpx.Client()
+        self._thread_local = threading.local()
+
+    def _http_client(self) -> httpx.Client:
+        c = getattr(self._thread_local, "http_client", None)
+        if c is None:
+            c = httpx.Client(timeout=_DEFAULT_TIMEOUT, limits=_DEFAULT_LIMITS)
+            self._thread_local.http_client = c
+        return c
 
     def switch_model(self, new_model: str) -> None:
         """Update the active model name for subsequent requests."""
@@ -23,8 +36,9 @@ class LlamaCppClient:
     def health(self, timeout: float = 5.0) -> dict:
         url = f"{self.base_url}/v1/models"
         headers = self._build_headers()
+        t = httpx.Timeout(connect=min(5.0, timeout), read=timeout, write=timeout, pool=2.0)
         try:
-            response = self._client.get(url, headers=headers, timeout=timeout)
+            response = self._http_client().get(url, headers=headers, timeout=t)
             response.raise_for_status()
             payload = response.json() if response.content else {}
             names = [str(m.get("id", "")).strip() for m in payload.get("data", []) if m.get("id")]
@@ -82,12 +96,13 @@ class LlamaCppClient:
         else:
             messages = [{"role": "user", "content": prompt}]
 
+        stream_timeout = httpx.Timeout(connect=5.0, read=timeout, write=min(120.0, timeout), pool=5.0)
         try:
-            with self._client.stream(
+            with self._http_client().stream(
                 "POST",
                 url,
                 headers=headers,
-                timeout=timeout,
+                timeout=stream_timeout,
                 json={
                     "model": self.model,
                     "messages": messages,
