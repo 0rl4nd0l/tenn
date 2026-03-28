@@ -65,7 +65,7 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 | 3a | Markdown hygiene pre-push hook | `[ shipped ]` |
 | 3b | Ruff + pytest enforcement hooks | `[ shipped ]` |
 | 3c | Claude Code session hooks | `[ shipped ]` |
-| 3d | CI workflow (GitHub Actions) | `[ planned ]` — only when Actions is formally adopted |
+| 3d | CI workflow (GitHub Actions) | `[ shipped ]` — `.github/workflows/ci.yml` (ruff + pytest, `live_eval` excluded); see `docs/validation_baseline.md` |
 
 ---
 
@@ -73,6 +73,7 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 
 | Commit | Workstream | Summary |
 |--------|------------|---------|
+| 3a168c71 | ci | GitHub Actions: ruff + pytest with root `pytest.ini` (`live_eval` deselected); Qdrant/transcript tests aligned to commentary staging gate; `commentary_ingest` unused imports removed. |
 | (this session) | cockpit-llm-client | Thread-local httpx + timeouts/limits for LlamaCpp/Ollama clients; `gpu_process_guard.sh` VRAM parse hardening; L026 in lessons.md. Reduces CLOSE_WAIT risk when health runs via `to_thread` during chat. |
 | 2e9c3ddb | cockpit-sourcing | Evidence sourcing: SourcesFormatter footer (RAG hits, financial periods, dossier/strategy counts), /sources on\|off, show_sources preference. 6 tests. |
 | d173a8da | cockpit-strategy | Strategy workshopping schema: global_strategy + ticker_strategy tables, StrategyService, /strategy list\|add\|decide\|delete, natural language routing, context injection above dossier. 10 tests. |

@@ -19,9 +19,7 @@ from app.services.commentary_memo_extractor import (
 from app.services.embeddings import (
     embed_texts_batched,
     ensure_collection,
-    is_qdrant_vector_dimension_mismatch_error,
     resolve_llamacpp_embedding_config,
-    upsert_points,
     verify_qdrant,
 )
 from app.services.llamacpp_runtime import resolve_llm_runtime_config

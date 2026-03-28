@@ -1,0 +1,47 @@
+# CI: lint + backend/cockpit unit tests (see docs/validation_baseline.md for full local gate set).
+#
+# Install: root requirements.txt pulls financial-engine_v2/backend + worker requirements (incl. torch
+# via PyTorch cu118 extra index). If pip or runtime fails on GitHub-hosted runners due to CUDA wheels
+# or index mismatch, try: CPU-only torch from PyPI (omit or override --extra-index-url), or set
+# PIP_FIND_LINKS / constraints — prefer keeping this workflow on full install until a failure is confirmed.
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "cloud/**"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    env:
+      # cockpit imports require repo-root-relative package root; backend/tests/conftest.py also puts
+      # financial-engine_v2/backend on sys.path for `app`.
+      PYTHONPATH: financial-engine_v2
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            financial-engine_v2/backend/requirements.txt
+            financial-engine_v2/worker/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Ruff
+        run: python -m ruff check autodev financial-engine_v2/backend scripts
+
+      - name: Pytest
+        run: pytest -c pytest.ini financial-engine_v2/backend/tests financial-engine_v2/cockpit/tests -q

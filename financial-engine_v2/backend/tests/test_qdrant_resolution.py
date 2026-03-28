@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from types import SimpleNamespace
 import uuid
 from pathlib import Path
@@ -121,11 +122,21 @@ def test_normalize_redis_url_aligns_with_runtime(
     assert config._normalize_redis_url(url, default_db=default_db) == expected
 
 
-def test_ingest_transcript_verifies_qdrant_before_embedding_and_upsert(monkeypatch, tmp_path, capsys):
+def test_ingest_transcript_verifies_qdrant_embeds_and_stages_hot_source(monkeypatch, tmp_path, capsys):
+    """Hot commentary sources are staged to disk for review; Qdrant upsert is not performed inline."""
     call_order: list[str] = []
     fake_client = object()
     queued_payloads: list[dict[str, str]] = []
     memos_path = tmp_path / "commentary_memos.jsonl"
+    staged_dir = tmp_path / "staged_chunks"
+    staged_index = staged_dir / "index.json"
+    monkeypatch.setattr(commentary_ingest, "STAGED_CHUNKS_DIR", staged_dir)
+    monkeypatch.setattr(commentary_ingest, "STAGED_CHUNKS_INDEX", staged_index)
+    monkeypatch.setattr(
+        commentary_ingest,
+        "resolve_llm_runtime_config",
+        lambda **_: ("http://127.0.0.1:8001", "qwen2.5-14b-instruct"),
+    )
 
     def fake_verify_qdrant(*, qdrant_url: str | None = None):
         assert qdrant_url == "http://qdrant:6333"
@@ -143,17 +154,8 @@ def test_ingest_transcript_verifies_qdrant_before_embedding_and_upsert(monkeypat
         call_order.append("ensure_collection")
         return collection
 
-    def fake_upsert_points(client, collection: str, points: list[dict]) -> None:
-        assert client is fake_client
-        assert collection == "commentary_chunks"
-        assert len(points) == 1
-        assert points[0]["payload"]["chunk_id"].endswith(":0")
-        assert str(uuid.UUID(points[0]["id"])) == points[0]["id"]
-        call_order.append("upsert_points")
-
     monkeypatch.setattr(commentary_ingest, "verify_qdrant", fake_verify_qdrant)
     monkeypatch.setattr(commentary_ingest, "ensure_collection", fake_ensure_collection)
-    monkeypatch.setattr(commentary_ingest, "upsert_points", fake_upsert_points)
     monkeypatch.setattr(
         commentary_ingest,
         "extract_commentary_memo_task",
@@ -181,7 +183,7 @@ def test_ingest_transcript_verifies_qdrant_before_embedding_and_upsert(monkeypat
         memo_extractor=StubMemoExtractor(memos_path),
     )
 
-    assert call_order == ["verify_qdrant", "embed", "ensure_collection", "upsert_points", "queue_memo"]
+    assert call_order == ["verify_qdrant", "embed", "ensure_collection", "queue_memo"]
     assert queued_payloads == [
         {
             "source_id": result["source_id"],
@@ -190,25 +192,41 @@ def test_ingest_transcript_verifies_qdrant_before_embedding_and_upsert(monkeypat
             "source_type": "youtube_transcript",
             "published_at": "2026-03-12T00:00:00Z",
             "llm_url": "http://127.0.0.1:8001",
-            "llm_model": "qwen2.5-coder-14b",
+            "llm_model": "qwen2.5-14b-instruct",
             "memos_path": str(memos_path.resolve()),
         }
     ]
     assert result["ok"] is True
-    assert result["chunks_indexed"] == 1
+    assert result["staged"] is True
+    assert result["chunks_staged"] == 1
+    assert result["chunks_indexed"] == 0
     assert result["memo"] is None
     assert result["memos_path"] == str(memos_path.resolve())
     assert "[INFO] memo extraction queued" in capsys.readouterr().out
 
+    idx = json.loads(staged_index.read_text("utf-8"))
+    assert result["source_id"] in idx
+    assert idx[result["source_id"]]["collection_name"] == "commentary_chunks"
+    staged_path = Path(idx[result["source_id"]]["path"])
+    lines = staged_path.read_text("utf-8").strip().splitlines()
+    assert len(lines) == 1
+    row = json.loads(lines[0])
+    assert row["payload"]["chunk_id"].endswith(":0")
+    assert str(uuid.UUID(row["id"])) == row["id"]
 
-def test_ingest_transcript_retries_commentary_upsert_with_v2_on_dimension_mismatch(
+
+def test_ingest_transcript_staging_records_v2_collection_from_ensure_collection(
     monkeypatch,
     tmp_path,
     capsys,
 ):
+    """When ensure_collection routes to commentary_chunks_v2, staging metadata reflects it (no inline upsert)."""
     call_order: list[str] = []
-    collections_written: list[str] = []
     fake_client = object()
+    staged_dir = tmp_path / "staged_chunks"
+    staged_index = staged_dir / "index.json"
+    monkeypatch.setattr(commentary_ingest, "STAGED_CHUNKS_DIR", staged_dir)
+    monkeypatch.setattr(commentary_ingest, "STAGED_CHUNKS_INDEX", staged_index)
 
     def fake_verify_qdrant(*, qdrant_url: str | None = None):
         assert qdrant_url == "http://qdrant:6333"
@@ -223,21 +241,10 @@ def test_ingest_transcript_retries_commentary_upsert_with_v2_on_dimension_mismat
         assert client is fake_client
         assert dim == 3
         call_order.append(f"ensure_collection:{collection}")
-        return collection
-
-    def fake_upsert_points(client, collection: str, points: list[dict]) -> None:
-        assert client is fake_client
-        collections_written.append(collection)
-        call_order.append(f"upsert_points:{collection}")
-        if collection == "commentary_chunks":
-            raise RuntimeError(
-                "Unexpected Response: 400 (Bad Request) Raw response content: "
-                "Vector dimension error: expected dim: 768, got 4096"
-            )
+        return "commentary_chunks_v2"
 
     monkeypatch.setattr(commentary_ingest, "verify_qdrant", fake_verify_qdrant)
     monkeypatch.setattr(commentary_ingest, "ensure_collection", fake_ensure_collection)
-    monkeypatch.setattr(commentary_ingest, "upsert_points", fake_upsert_points)
     monkeypatch.setattr(
         commentary_ingest,
         "extract_commentary_memo_task",
@@ -261,13 +268,17 @@ def test_ingest_transcript_retries_commentary_upsert_with_v2_on_dimension_mismat
         "verify_qdrant",
         "embed",
         "ensure_collection:commentary_chunks",
-        "upsert_points:commentary_chunks",
-        "ensure_collection:commentary_chunks_v2",
-        "upsert_points:commentary_chunks_v2",
     ]
-    assert collections_written == ["commentary_chunks", "commentary_chunks_v2"]
     assert result["collection"] == "commentary_chunks_v2"
-    assert "retrying with commentary_chunks_v2" in capsys.readouterr().out
+    assert result["staged"] is True
+    assert result["chunks_staged"] == 1
+    assert result["chunks_indexed"] == 0
+    _out = capsys.readouterr().out
+    assert "[INFO] memo extraction queued" in _out or "[INFO] transcript stored" in _out
+
+    idx = json.loads(staged_index.read_text("utf-8"))
+    assert result["source_id"] in idx
+    assert idx[result["source_id"]]["collection_name"] == "commentary_chunks_v2"
 
 
 @pytest.mark.parametrize(
