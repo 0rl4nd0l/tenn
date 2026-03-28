@@ -1101,6 +1101,93 @@ def _run_pass4_reconciler(
 
 
 # ---------------------------------------------------------------------------
+# Scale Validation — detect obviously wrong multiplier application
+# ---------------------------------------------------------------------------
+
+# ASX-listed companies have minimum plausible values for key metrics.
+# Annual revenue < $1M is almost certainly a missing scale multiplier.
+# These thresholds are intentionally loose — they catch egregious errors
+# (e.g., 19.5 instead of 19,500,000,000) without flagging legitimate
+# small-cap companies.
+_SCALE_VALIDATION_THRESHOLDS: dict[str, dict[str, float]] = {
+    "A": {  # Annual reports
+        "revenue": 1_000_000,           # $1M — any ASX-listed company exceeds this
+        "ebit": 100_000,                # $100K
+        "np_attributable": 100_000,     # $100K
+        "operating_cf": 100_000,        # $100K
+    },
+    "H": {  # Half-year
+        "revenue": 500_000,             # $500K
+        "ebit": 50_000,                 # $50K
+        "np_attributable": 50_000,      # $50K
+        "operating_cf": 50_000,         # $50K
+    },
+    "Q": {  # Quarterly
+        "revenue": 100_000,             # $100K
+        "ebit": 10_000,                 # $10K
+    },
+}
+
+# Over-scale threshold: values above $500B are almost certainly over-multiplied
+_OVERSCALE_THRESHOLD = 500_000_000_000  # $500B
+
+
+def _validate_scale(payload: dict) -> str:
+    """
+    Post-Pass-4 scale validation: detect values that are orders of magnitude
+    too small (missing multiplier) or too large (double-multiplied).
+
+    Returns one of:
+      - "pass" — values are in a plausible range
+      - "suspect_underscaled" — multiple metrics are suspiciously small
+      - "suspect_overscaled" — at least one metric exceeds $500B
+
+    This function only inspects, it does NOT modify the payload.
+    """
+    metrics = payload.get("metrics", {})
+    period_type = payload.get("period_type", "A")
+    thresholds = _SCALE_VALIDATION_THRESHOLDS.get(period_type, _SCALE_VALIDATION_THRESHOLDS["A"])
+
+    # Check for over-scaled values
+    for m, v in metrics.items():
+        if v is not None and abs(v) > _OVERSCALE_THRESHOLD:
+            logger.warning(
+                "scale_validation: SUSPECT_OVERSCALED — %s=%s exceeds $500B cap "
+                "(period_type=%s, period_end=%s)",
+                m, v, period_type, payload.get("period_end"),
+            )
+            return "suspect_overscaled"
+
+    # Check for under-scaled values: count how many key metrics fall below thresholds
+    underscaled_count = 0
+    checked_count = 0
+    underscaled_details: list[str] = []
+    for m, min_val in thresholds.items():
+        val = metrics.get(m)
+        if val is not None:
+            checked_count += 1
+            if abs(val) < min_val:
+                underscaled_count += 1
+                underscaled_details.append(f"{m}={val}")
+
+    # Trigger if ALL checked metrics are below threshold (not just one — a single
+    # small metric could be legitimate, e.g. small EBIT for a breakeven company)
+    if checked_count > 0 and underscaled_count == checked_count:
+        logger.warning(
+            "scale_validation: SUSPECT_UNDERSCALED — all %d checked metrics below "
+            "minimum thresholds: [%s] (period_type=%s, period_end=%s, scale=%s)",
+            checked_count,
+            ", ".join(underscaled_details),
+            period_type,
+            payload.get("period_end"),
+            payload.get("scale", "unknown"),
+        )
+        return "suspect_underscaled"
+
+    return "pass"
+
+
+# ---------------------------------------------------------------------------
 # Validation Gate
 # ---------------------------------------------------------------------------
 
@@ -1115,6 +1202,10 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
     from dateutil import parser as dtparser
 
     # Hard blocks
+    scale_validation = payload.get("scale_validation", "pass")
+    if scale_validation != "pass":
+        return "failed", f"validation_gate:scale_validation:{scale_validation}"
+
     if not payload.get("period_end"):
         return "failed", "validation_gate:missing_period_end"
 
@@ -1279,6 +1370,19 @@ def run_multipass_extraction(
     # can inspect them and so _upsert_financial_rows stores the correct currency.
     payload["scale"] = pass1.get("scale", "unknown") or "unknown"
     payload["currency"] = pass1.get("currency", "AUD") or "AUD"
+
+    # Scale validation — detect obviously wrong multiplier application
+    scale_validation = _validate_scale(payload)
+    payload["scale_validation"] = scale_validation
+    if scale_validation != "pass":
+        logger.warning(
+            "scale_validation=%s for %s %s %s — marking as failed to prevent "
+            "bad data from entering the DB",
+            scale_validation,
+            doc_metadata.get("ticker", "?"),
+            payload.get("period_end", "?"),
+            payload.get("period_type", "?"),
+        )
 
     # Validate
     status, error = _validate_gate(payload)

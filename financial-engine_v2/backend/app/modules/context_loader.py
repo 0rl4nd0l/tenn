@@ -6,8 +6,10 @@ delegated to an optional callback.
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
-from datetime import date as date_type, datetime
+from datetime import date as date_type, datetime, timezone
 from typing import Any, Callable
 
 from sqlalchemy.orm import Session
@@ -174,10 +176,76 @@ class TickerContextLoader:
             for d in docs
         )
 
+    def _fetch_live_price(self, ticker: str) -> PriceSnapshot | None:
+        """Fetch latest close price from Yahoo Finance via yfinance.
+
+        For ASX tickers the Yahoo symbol is ``{ticker}.AX``.
+        Returns a PriceSnapshot with source="yahoo" on success, None on failure.
+        """
+        try:
+            import yfinance as yf  # noqa: PLC0415
+        except ImportError:
+            logger.warning("yfinance not installed; cannot fetch live price for %s", ticker)
+            return None
+
+        yahoo_symbol = f"{ticker}.AX"
+        try:
+            yticker = yf.Ticker(yahoo_symbol)
+            info = yticker.info or {}
+            # Prefer regularMarketPrice (real-time), fall back to previousClose
+            price_val = coerce(
+                info.get("regularMarketPrice")
+                or info.get("previousClose")
+                or info.get("open"),
+            )
+            if price_val is None:
+                logger.warning("yfinance returned no parseable price for %s", yahoo_symbol)
+                return None
+            currency = str(info.get("currency", "AUD"))
+            return PriceSnapshot(
+                last_close=price_val,
+                currency=currency,
+                captured_at=datetime.now(tz=timezone.utc),
+                source="yahoo",
+            )
+        except Exception:
+            logger.exception("yfinance fetch failed for %s", yahoo_symbol)
+            return None
+
+    @staticmethod
+    def _persist_yahoo_price(ticker: str, price: PriceSnapshot, db: Session) -> None:
+        """Cache a Yahoo-sourced price into openbb_price_snapshots for future reads."""
+        try:
+            payload = {
+                "close": price.last_close,
+                "currency": price.currency,
+            }
+            request_hash = hashlib.sha256(
+                json.dumps({"ticker": ticker, "source": "yahoo"}, sort_keys=True).encode()
+            ).hexdigest()
+            now = datetime.now(tz=timezone.utc)
+            row = OpenBBPriceSnapshot(
+                ticker=ticker,
+                exchange="ASX",
+                symbol=f"{ticker}.AX",
+                provider="yahoo",
+                dataset_type="price_historical",
+                request_hash=request_hash,
+                payload=payload,
+                captured_at=now,
+            )
+            db.add(row)
+            db.commit()
+            logger.info("Persisted Yahoo price for %s: %.4f %s", ticker, price.last_close, price.currency)
+        except Exception:
+            db.rollback()
+            logger.exception("Failed to persist Yahoo price for %s", ticker)
+
     def _price(self, ticker: str, req: ContextRequest, db: Session,
                w: list[str]) -> PriceSnapshot | None:
         if not req.needs_price:
             return None
+        # Step 1: try DB snapshot
         try:
             snap = (
                 db.query(OpenBBPriceSnapshot)
@@ -186,20 +254,27 @@ class TickerContextLoader:
             )
         except Exception:
             logger.exception("DB error querying price for %s", ticker)
-            w.append(f"Failed to query price for {ticker}.")
-            return None
-        if snap is None:
-            w.append(f"No price snapshot available for {ticker}.")
-            return None
-        payload = snap.payload or {}
-        price_val = coerce(payload.get("close") or payload.get("last_close"))
-        if price_val is None:
-            w.append(f"Price snapshot for {ticker} has no parseable close price.")
-            return None
-        return PriceSnapshot(
-            last_close=price_val, currency=payload.get("currency", "AUD"),
-            captured_at=snap.captured_at, source=snap.provider or "openbb",
-        )
+            snap = None
+        if snap is not None:
+            payload = snap.payload or {}
+            price_val = coerce(payload.get("close") or payload.get("last_close"))
+            if price_val is not None:
+                return PriceSnapshot(
+                    last_close=price_val, currency=payload.get("currency", "AUD"),
+                    captured_at=snap.captured_at, source=snap.provider or "openbb",
+                )
+            w.append(f"Price snapshot for {ticker} has no parseable close price; trying Yahoo.")
+
+        # Step 2: fallback to Yahoo Finance
+        logger.info("No DB price for %s; attempting Yahoo Finance fallback.", ticker)
+        live = self._fetch_live_price(ticker)
+        if live is not None:
+            self._persist_yahoo_price(ticker, live, db)
+            return live
+
+        # Step 3: give up
+        w.append(f"No price snapshot available for {ticker} (DB empty, Yahoo fallback failed).")
+        return None
 
     def _rag(self, ticker: str, req: ContextRequest,
              w: list[str]) -> tuple[RAGResult, ...]:
