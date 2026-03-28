@@ -219,6 +219,44 @@ def test_critical_drift_prefers_fallback(
     assert decision.execution_queue == "llm_cpu"
 
 
+def test_route_request_exposes_selected_role_and_policy(
+    routing_env: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(router, "get_analyzer_feedback", lambda: {"mode": "no_op", "penalty": 0.0})
+
+    decision = router.route_request(
+        "Summarize this filing in one paragraph.",
+        {
+            "task_type": "reasoning",
+            "financial_task_type": "filing_summary",
+        },
+    )
+
+    assert decision.task_type == "reasoning"
+    assert decision.selected_role == "reasoning"
+    assert decision.policy_name == "standard"
+
+
+def test_deep_reasoning_request_exposes_heavy_policy(
+    routing_env: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(router, "get_analyzer_feedback", lambda: {"mode": "no_op", "penalty": 0.0})
+
+    decision = router.route_request(
+        "Provide a multi-step valuation sensitivity and scenario analysis for this filing.",
+        {
+            "task_type": "deep_reasoning",
+            "financial_task_type": "valuation_analysis",
+        },
+    )
+
+    assert decision.task_type == "reasoning"
+    assert decision.selected_role == "deep_reasoning"
+    assert decision.policy_name == "heavy"
+
+
 def test_load_model_routing_config_uses_provider_specific_runtime_urls(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

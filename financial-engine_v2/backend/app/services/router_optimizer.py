@@ -97,6 +97,7 @@ _SNAPSHOT_BASELINE_TASK_SUMMARIES = _load_snapshot_task_baseline()
 
 @dataclass(frozen=True)
 class OptimalModelDecision:
+    role_name: str
     model_name: str
     provider: str
     base_url: str
@@ -745,6 +746,7 @@ def optimize(
 
     if task_type in {"embedding", "router"}:
         return OptimalModelDecision(
+            role_name=primary["role_name"],
             model_name=primary["model_name"],
             provider=primary["provider"],
             base_url=primary["base_url"],
@@ -755,6 +757,7 @@ def optimize(
 
     if task_type == "coding":
         return OptimalModelDecision(
+            role_name=primary["role_name"],
             model_name=primary["model_name"],
             provider=primary["provider"],
             base_url=primary["base_url"],
@@ -781,6 +784,7 @@ def optimize(
     ):
         fallback = _fallback_candidate(preferred_role, roles)
         return OptimalModelDecision(
+            role_name=fallback["role_name"],
             model_name=fallback["model_name"],
             provider=fallback["provider"],
             base_url=fallback["base_url"],
@@ -798,6 +802,7 @@ def optimize(
             roles=roles,
         )
         return OptimalModelDecision(
+            role_name=fallback["role_name"],
             model_name=fallback["model_name"],
             provider=fallback["provider"],
             base_url=fallback["base_url"],
@@ -815,6 +820,7 @@ def optimize(
         )
         if len(role_names) == 1 and feedback_fallback["role_name"] != preferred_role:
             return OptimalModelDecision(
+                role_name=feedback_fallback["role_name"],
                 model_name=feedback_fallback["model_name"],
                 provider=feedback_fallback["provider"],
                 base_url=feedback_fallback["base_url"],
@@ -825,6 +831,7 @@ def optimize(
 
     if len(role_names) == 1:
         return OptimalModelDecision(
+            role_name=primary["role_name"],
             model_name=primary["model_name"],
             provider=primary["provider"],
             base_url=primary["base_url"],
@@ -879,6 +886,7 @@ def optimize(
     confidence = min(max(0.5 + max(top_score - next_score, 0.0) / 1.5, 0.5), 0.99)
 
     return OptimalModelDecision(
+        role_name=top_candidate["role_name"],
         model_name=top_candidate["model_name"],
         provider=top_candidate["provider"],
         base_url=top_candidate["base_url"],

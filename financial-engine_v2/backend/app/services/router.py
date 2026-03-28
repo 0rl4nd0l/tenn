@@ -206,6 +206,8 @@ class ModelRoutingConfig:
 
 @dataclass(frozen=True)
 class RoutingDecision:
+    selected_role: str
+    policy_name: str
     model_name: str
     execution_queue: str
     task_type: str
@@ -216,6 +218,17 @@ class RoutingDecision:
     gpu_utilization_percent: int | None = None
     queue_depth_at_dispatch: int = 0
     confidence: float = 1.0
+
+
+def _policy_name_for_role(role_name: str) -> str:
+    normalized = str(role_name or "").strip().lower()
+    if normalized == "router":
+        return "light"
+    if normalized == "deep_reasoning":
+        return "heavy"
+    if normalized == "embedding":
+        return "embedding"
+    return "standard"
 
 
 def _strip_inline_comment(value: str) -> str:
@@ -714,6 +727,8 @@ def _static_decision(
     role = dict(roles[role_name])
     deferred = deferred or (task_type == "coding" and gpu_hot)
     return RoutingDecision(
+        selected_role=role_name,
+        policy_name=_policy_name_for_role(role_name),
         model_name=role["model_name"],
         execution_queue=role["queue"],
         task_type=task_type,
@@ -784,6 +799,8 @@ def route_request(prompt: str, metadata: dict[str, Any] | None = None) -> Routin
         feedback=feedback,
     )
     return RoutingDecision(
+        selected_role=decision.role_name,
+        policy_name=_policy_name_for_role(decision.role_name),
         model_name=decision.model_name,
         execution_queue=decision.queue,
         task_type=task_type,

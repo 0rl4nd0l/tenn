@@ -91,6 +91,8 @@ class TestLlmRoutingWithExtractionComponent:
         from app.services.router import RoutingDecision
 
         decision = RoutingDecision(
+            selected_role="reasoning",
+            policy_name="standard",
             model_name="qwen2.5-coder-14b",
             execution_queue="llm_gpu",
             task_type="reasoning",
@@ -110,6 +112,8 @@ class TestLlmRoutingWithExtractionComponent:
         from app.services.router import RoutingDecision
 
         decision = RoutingDecision(
+            selected_role="reasoning",
+            policy_name="standard",
             model_name="qwen2.5-coder-14b",
             execution_queue="llm_gpu",
             task_type="reasoning",
@@ -129,6 +133,8 @@ class TestLlmRoutingWithExtractionComponent:
         from app.services.router import RoutingDecision
 
         decision = RoutingDecision(
+            selected_role="coding",
+            policy_name="standard",
             model_name="qwen2.5-coder-14b",
             execution_queue="llm_gpu",
             task_type="coding",

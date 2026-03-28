@@ -23,9 +23,11 @@ logger = logging.getLogger(__name__)
 
 def _log_route(operation: str, decision: RoutingDecision, payload_size: int) -> None:
     logger.info(
-        "llm_route operation=%s task_type=%s queue=%s model=%s provider=%s base_url=%s deferred=%s confidence=%s payload_size=%s gpu_util=%s",
+        "llm_route operation=%s classified_task=%s selected_role=%s policy=%s queue=%s model=%s provider=%s base_url=%s deferred=%s confidence=%s payload_size=%s gpu_util=%s",
         operation,
         decision.task_type,
+        decision.selected_role,
+        decision.policy_name,
         decision.execution_queue,
         decision.model_name,
         decision.provider,
@@ -34,6 +36,37 @@ def _log_route(operation: str, decision: RoutingDecision, payload_size: int) -> 
         f"{decision.confidence:.3f}",
         payload_size,
         decision.gpu_utilization_percent,
+    )
+
+
+def _log_effective_runtime(
+    operation: str,
+    routed_decision: RoutingDecision,
+    effective_decision: RoutingDecision,
+    *,
+    metadata: dict[str, Any] | None,
+) -> None:
+    metadata_payload = dict(metadata or {})
+    runtime_override_applied = (
+        routed_decision.model_name != effective_decision.model_name
+        or routed_decision.base_url != effective_decision.base_url
+    )
+    logger.info(
+        "llm_runtime operation=%s classified_task=%s selected_role=%s policy=%s queue=%s "
+        "routed_model=%s routed_base_url=%s effective_model=%s effective_base_url=%s "
+        "provider=%s runtime_override=%s component=%s",
+        operation,
+        routed_decision.task_type,
+        routed_decision.selected_role,
+        routed_decision.policy_name,
+        routed_decision.execution_queue,
+        routed_decision.model_name,
+        routed_decision.base_url,
+        effective_decision.model_name,
+        effective_decision.base_url,
+        effective_decision.provider,
+        runtime_override_applied,
+        str(metadata_payload.get("component") or "").strip().lower(),
     )
 
 
@@ -129,6 +162,8 @@ def _effective_llamacpp_decision(
     model_name: str,
 ) -> RoutingDecision:
     return RoutingDecision(
+        selected_role=decision.selected_role,
+        policy_name=decision.policy_name,
         model_name=model_name,
         execution_queue=decision.execution_queue,
         task_type=decision.task_type,
@@ -185,6 +220,8 @@ def _fallback_decision_for_failure(
     if decision.task_type == "reasoning":
         if decision.model_name != config.router.model_name:
             return RoutingDecision(
+                selected_role="router",
+                policy_name="light",
                 model_name=config.router.model_name,
                 execution_queue="llm_cpu",
                 task_type=decision.task_type,
@@ -198,6 +235,8 @@ def _fallback_decision_for_failure(
             )
         resolved_base_url, resolved_model = _resolve_runtime_from_metadata(decision, metadata)
         return RoutingDecision(
+            selected_role="router",
+            policy_name="light",
             model_name=resolved_model,
             execution_queue="llm_cpu",
             task_type=decision.task_type,
@@ -211,6 +250,8 @@ def _fallback_decision_for_failure(
         )
     if decision.task_type == "coding":
         return RoutingDecision(
+            selected_role="coding",
+            policy_name="standard",
             model_name=config.coding.model_name,
             execution_queue="llm_gpu",
             task_type=decision.task_type,
@@ -246,6 +287,12 @@ def _execute_generate_json(
         model_name=resolved_model,
     )
     _log_route("generate_json", effective_decision, len(str(prompt or "")))
+    _log_effective_runtime(
+        "generate_json",
+        decision,
+        effective_decision,
+        metadata=metadata,
+    )
     resolved_model_name = resolved_model
     payload = generate_json_llamacpp(
         base_url=resolved_base_url,
