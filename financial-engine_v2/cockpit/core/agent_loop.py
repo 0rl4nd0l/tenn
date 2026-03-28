@@ -23,6 +23,7 @@ from cockpit.core.response_parser import (
     format_tool_result,
     parse_llm_response,
 )
+from cockpit.core.action_preview import normalize_action_preview
 
 # ---------------------------------------------------------------------------
 # Conditional imports for modules being created in parallel.  At runtime they
@@ -393,12 +394,12 @@ class AgentLoop:
     @staticmethod
     def _build_action_preview(parsed: ParsedResponse) -> dict:
         """Build an action_preview dict from an action_proposal response."""
-        return {
+        return normalize_action_preview({
             "tool": parsed.tool or "unknown",
             "arguments": parsed.arguments or {},
             "explanation": parsed.explanation or "",
             "requires_confirmation": True,
-        }
+        })
 
     # ------------------------------------------------------------------
     # Context window management

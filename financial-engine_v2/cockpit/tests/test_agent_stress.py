@@ -587,6 +587,8 @@ class TestMultipleToolCallSequences:
 
         assert result.action_preview is not None
         assert result.action_preview["tool"] == "run_backfill"
+        assert result.action_preview["action_id"] == "single_ticker_announcement_backfill"
+        assert result.action_preview["args"] == {"ticker": "MIN"}
         assert result.iterations_used == 1
 
     def test_llm_exception_returns_error_result(self):

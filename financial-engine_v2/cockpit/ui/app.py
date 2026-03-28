@@ -1401,7 +1401,11 @@ class CockpitApp(App):
             if self.pending_action is not None:
                 ap = response.action_preview
                 aid = ap.get("action_id") if isinstance(ap, dict) else None
-                aargs = ap.get("args") if isinstance(ap, dict) else None
+                aargs = None
+                if isinstance(ap, dict):
+                    aargs = ap.get("args")
+                    if aargs is None:
+                        aargs = ap.get("arguments")
                 pending.update(
                     "Pending: "
                     f"{aid} "
