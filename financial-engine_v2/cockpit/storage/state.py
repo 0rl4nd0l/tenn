@@ -171,6 +171,17 @@ class StateStore:
         ).fetchall()
         return list(reversed([dict(r) for r in rows]))
 
+    def count_chat_messages(self, thread_id: str) -> int:
+        row = self.conn.execute(
+            """
+            select count(*)
+            from chat_messages
+            where thread_id = ?
+            """,
+            (thread_id,),
+        ).fetchone()
+        return int(row[0]) if row else 0
+
     def add_job(self, payload: dict[str, Any]) -> None:
         with self._lock:
             self.conn.execute(

@@ -23,6 +23,7 @@ from cockpit.core.job_runner import JobRunner
 from cockpit.core.plotly_html import build_candlestick_dashboard_html, build_snapshot_dashboard_html
 from cockpit.core.snapshot import build_snapshot_payload
 from cockpit.core.config import DEFAULT_LLAMACPP_URL, DEFAULT_OLLAMA_URL
+from cockpit.core.export_utils import extract_ticker_from_payload
 from cockpit.core.types import JobRun
 from cockpit.core.verification import run_verification
 from cockpit.integrations.backend_api import BackendApiClient
@@ -1340,10 +1341,15 @@ class CockpitApp(App):
         self.last_response_mode = str(response.mode or provisional_mode)
 
         try:
-            local_details = (response.evidence or [{}])[0].get("details", {})
-            ticker = local_details.get("ticker")
-            if isinstance(ticker, str) and ticker.strip():
-                self.last_detected_ticker = ticker.strip().upper()
+            ticker = extract_ticker_from_payload(
+                {
+                    "evidence": response.evidence,
+                    "actions_taken": [response.action_preview] if response.action_preview else [],
+                    "action_preview": response.action_preview,
+                }
+            )
+            if ticker:
+                self.last_detected_ticker = ticker
         except Exception:
             pass
 
@@ -1711,21 +1717,35 @@ class CockpitApp(App):
 
         # Screen-specific snapshot for easier paste/share.
         if "chat" in screen_key:
-            payload["chat_messages"] = self.state_store.get_chat_messages(self.thread_id, limit=200)
+            latest = self.state_store.get_latest_export(self.thread_id)
+            latest_export_payload: dict[str, Any] | None = None
+            effective_ticker = self.last_detected_ticker
+            chat_export_limit = 80
+            chat_messages = self.state_store.get_chat_messages(self.thread_id, limit=chat_export_limit)
+            payload["chat_messages"] = chat_messages
+            payload["chat_messages_export_limit"] = chat_export_limit
+            try:
+                total_messages = self.state_store.count_chat_messages(self.thread_id)
+            except Exception:
+                total_messages = len(chat_messages)
+            payload["chat_messages_total_in_thread"] = total_messages
+            payload["chat_messages_truncated"] = total_messages > len(chat_messages)
             payload["pending_action"] = self.pending_action
-            payload["last_detected_ticker"] = self.last_detected_ticker
             payload["last_chart_path"] = self.last_chart_path
             payload["last_snapshot_payload"] = self.last_snapshot_payload
             payload["last_verification_payload"] = self.last_verification_payload
-            latest = self.state_store.get_latest_export(self.thread_id)
             if latest:
                 payload["latest_analysis_export_meta"] = latest
                 try:
                     json_path = Path(str(latest.get("json_path", ""))).expanduser()
                     if json_path.exists() and json_path.is_file():
-                        payload["latest_analysis_export"] = json.loads(json_path.read_text(encoding="utf-8"))
+                        latest_export_payload = json.loads(json_path.read_text(encoding="utf-8"))
+                        payload["latest_analysis_export"] = latest_export_payload
                 except (OSError, json.JSONDecodeError) as exc:
                     payload["latest_analysis_export_error"] = str(exc)
+            if not effective_ticker:
+                effective_ticker = extract_ticker_from_payload(latest_export_payload)
+            payload["last_detected_ticker"] = effective_ticker
         elif "ops" in screen_key or "operation" in screen_key:
             payload["recent_jobs"] = self.state_store.list_jobs(limit=20)
         elif "updater" in screen_key:
