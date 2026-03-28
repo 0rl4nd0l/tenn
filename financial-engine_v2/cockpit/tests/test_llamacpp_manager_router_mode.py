@@ -119,11 +119,14 @@ def test_load_model_api_detects_stalled_loading_child(monkeypatch):
         lambda host, port, api_key="": [{"name": "qwen2.5-coder-14b", "state": "loading"}],
     )
     monkeypatch.setattr(manager.time, "sleep", lambda _: None)
-    now = {"value": 100.0}
+
+    # Simulate time advancing 2s per call — enough for stall detection (>60s)
+    # but well within the 600s timeout.
+    call_count = {"n": 0}
 
     def _monotonic():
-        now["value"] += 61.0
-        return now["value"]
+        call_count["n"] += 1
+        return 100.0 + call_count["n"] * 2.0
 
     monkeypatch.setattr(manager.time, "monotonic", _monotonic)
     monkeypatch.setattr(manager, "_is_loading_stalled", lambda host, port, model_name, api_key="": True)
@@ -134,7 +137,7 @@ def test_load_model_api_detects_stalled_loading_child(monkeypatch):
         "8001",
         "qwen2.5-coder-14b",
         on_status=messages.append,
-        timeout=180.0,
+        timeout=600.0,
     )
 
     assert ok is False
@@ -232,6 +235,26 @@ def test_probe_router_capability_reports_router_degraded(monkeypatch):
 
     assert state.active_mode == "router_mode_degraded"
     assert state.reason == "router_process_detected_but_api_shape_missing"
+
+
+def test_probe_router_capability_trusts_live_router_even_if_binary_probe_fails(monkeypatch):
+    monkeypatch.setattr(manager, "_binary_supports_models_dir", lambda binary: False)
+    monkeypatch.setattr(manager, "is_router_mode", lambda host, port, api_key="": True)
+
+    state = manager.probe_router_capability(
+        {
+            "pid": 123,
+            "binary": "/usr/bin/llama-server",
+            "port": "8001",
+            "router_mode": True,
+        },
+        candidate_processes=[{"pid": 123, "port": "8001", "router_mode": True}],
+    )
+
+    assert state.active_mode == "router_mode_active"
+    assert state.router_supported is True
+    assert state.router_api_reachable is True
+    assert state.reason == ""
 
 
 def test_probe_router_capability_reports_unavailable_without_process(monkeypatch):

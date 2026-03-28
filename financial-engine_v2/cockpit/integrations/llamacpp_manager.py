@@ -188,8 +188,8 @@ def probe_router_capability(
         )
 
     binary = str(proc_info.get("binary") or "").strip()
-    router_supported = bool(binary) and _binary_supports_models_dir(binary)
-    router_api_reachable = is_router_mode(host, selected_port, api_key) if router_supported else False
+    router_api_reachable = is_router_mode(host, selected_port, api_key)
+    router_supported = bool(proc_info.get("router_mode")) or (bool(binary) and _binary_supports_models_dir(binary))
 
     if proc_info.get("router_mode"):
         if router_api_reachable:
