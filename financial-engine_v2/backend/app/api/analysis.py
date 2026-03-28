@@ -1,4 +1,4 @@
-"""analysis.py — API routes for the 6-module analysis system.
+"""analysis.py — API routes for the 7-module analysis system.
 
 POST /api/analysis/{ticker}  — run analysis modules, return results.
 GET  /api/analysis/{ticker}  — read latest artifacts from disk.
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["analysis"])
 
-ALL_MODULES = ("balance_sheet", "roic", "risk", "valuation", "catalysts", "moat")
+ALL_MODULES = ("balance_sheet", "roic", "risk", "valuation", "catalysts", "sentiment", "moat")
 
 
 # ---------------------------------------------------------------------------

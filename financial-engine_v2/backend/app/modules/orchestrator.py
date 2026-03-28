@@ -1,12 +1,12 @@
 """orchestrator.py — Run all analysis modules for a ticker.
 
-Instantiates the 6-module registry, executes them in dependency order,
+Instantiates the 7-module registry, executes them in dependency order,
 writes artifacts, and returns results. A failing module does not block
 others.
 
 Dependency order:
   1. balance_sheet (first — no upstream deps)
-  2. roic, risk, valuation, catalysts (independent of each other)
+  2. roic, risk, valuation, catalysts, sentiment (independent of each other)
   3. moat (last — benefits from upstream context)
 """
 from __future__ import annotations
@@ -23,6 +23,7 @@ from app.modules.catalysts import CatalystsModule
 from app.modules.moat import MoatModule
 from app.modules.risk import RiskModule
 from app.modules.roic import ROICModule
+from app.modules.sentiment import SentimentModule
 from app.modules.ticker_context import ContextRequest, TickerContext
 from app.modules.valuation import ValuationModule
 
@@ -31,7 +32,7 @@ logger = logging.getLogger(__name__)
 # Dependency tiers — executed in order; modules within a tier are independent.
 _TIERS: tuple[tuple[str, ...], ...] = (
     ("balance_sheet",),
-    ("roic", "risk", "valuation", "catalysts"),
+    ("roic", "risk", "valuation", "catalysts", "sentiment"),
     ("moat",),
 )
 
@@ -52,7 +53,7 @@ class AnalysisOrchestrator:
         self._registry = self._build_registry()
 
     def _build_registry(self) -> dict[str, AnalysisModule]:
-        """Instantiate all 6 modules. Hybrid modules receive LLM config."""
+        """Instantiate all 7 modules. Hybrid modules receive LLM config."""
         llm_kwargs: dict[str, Any] = {
             "llm_base_url": self._llm_base_url,
             "llm_model": self._llm_model,
@@ -63,6 +64,7 @@ class AnalysisOrchestrator:
             "valuation": ValuationModule(),
             "risk": RiskModule(**llm_kwargs),
             "catalysts": CatalystsModule(**llm_kwargs),
+            "sentiment": SentimentModule(),
             "moat": MoatModule(**llm_kwargs),
         }
 

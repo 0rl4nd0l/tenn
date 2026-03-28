@@ -99,8 +99,12 @@ class TickerContextLoader:
         try:
             rows = (
                 db.query(ASXPeriodicFinancial)
-                .filter(ASXPeriodicFinancial.ticker == ticker,
-                        ASXPeriodicFinancial.period_type == req.period_type)
+                .filter(
+                    ASXPeriodicFinancial.ticker == ticker,
+                    ASXPeriodicFinancial.period_type == req.period_type,
+                    # Skip low-confidence rows (bad scale, extraction failures)
+                    ASXPeriodicFinancial.confidence_metrics > 0.5,
+                )
                 .order_by(ASXPeriodicFinancial.period_end.desc())
                 .limit(req.max_periods).all()
             )
