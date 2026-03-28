@@ -410,6 +410,15 @@ def test_pass3a_prompt_contains_column_selection_instruction():
     )
 
 
+def test_pass3a_prompt_documents_bank_revenue_equivalent():
+    """Banking half-year reports (e.g. ANZ) use operating / net interest income, not 'Revenue'."""
+    from app.services.multipass_extraction import _PASS3A_PROMPT
+    pl = _PASS3A_PROMPT.lower()
+    assert "bank" in pl
+    assert "net interest income" in pl
+    assert "operating income" in pl
+
+
 def test_pass3a_prompt_includes_period_end_for_column_selection():
     """The assembled prompt sent to the LLM must contain the period_end date
     and a column-selection instruction."""

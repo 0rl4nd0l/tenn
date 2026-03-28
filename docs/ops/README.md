@@ -23,6 +23,10 @@ Scope note:
 5. `05_compose_phase1_host_gpu_blueprint.md`
 6. `06_production_hardening_acceptance_suite.md`
 
+## Commentary / RAG ops
+
+- `commentary_staging_to_qdrant.md` — staged hot-source transcripts: approve/reject, CLI promotion, definition of done for indexing.
+
 ## Incident Notes
 
 - `08_openclaw_llamacpp_no_reply_incident_2026-03-08.md` - OpenClaw local/TUI `NO_REPLY` suppression incident, fix, and upgrade risk notes.

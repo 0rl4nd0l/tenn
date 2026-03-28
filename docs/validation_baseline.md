@@ -2,7 +2,7 @@
 
 This runbook captures the validated command sequence for the current stable baseline.
 
-**CI:** GitHub Actions runs ruff + pytest (excluding `live_eval`) on pushes to `main` / `cloud/**` and on pull requests — see `.github/workflows/ci.yml`. Use `pytest -c pytest.ini ...` from the repo root so `pythonpath` and `addopts` match CI.
+**CI:** GitHub Actions runs ruff + pytest (excluding `live_eval`) on pushes to `main` / `cloud/**` and on pull requests — see `.github/workflows/ci.yml`. Use `pytest -c pytest.ini ...` from the repo root so `pythonpath` and `addopts` match CI. CI includes `autodev/tests` as a second pytest step.
 
 ## Command Sequence
 
