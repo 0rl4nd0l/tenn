@@ -987,9 +987,10 @@ def test_pass3a_shares_scaling_from_body_text():
              "currency": "AUD", "scale": "thousands"}
 
     # LLM returns raw table value without conversion
+    # share_capital schema now extracts shares_period_end (mapped to shares_outstanding post-hoc)
     mock_raw = {
-        "shares_outstanding": 280875,  # raw from table, not absolute
-        "pass3_confidence": 0.9, "row_refs": {"shares_outstanding": "Balance at end of period"},
+        "shares_period_end": 280875,  # raw from table, not absolute
+        "pass3_confidence": 0.9, "row_refs": {"shares_period_end": "Balance at end of period"},
     }
 
     with patch("app.services.multipass_extraction._llm_json_call", return_value=mock_raw):
@@ -1027,8 +1028,9 @@ def test_pass3a_shares_scaling_doc_level_fallback():
     pass1 = {"report_type": "H", "period_end": "2025-12-31",
              "currency": "AUD", "scale": "thousands"}
 
+    # share_capital schema now extracts shares_period_end (mapped to shares_outstanding post-hoc)
     mock_raw = {
-        "shares_outstanding": 280875,
+        "shares_period_end": 280875,
         "pass3_confidence": 0.9, "row_refs": {},
     }
 
@@ -1065,8 +1067,9 @@ def test_pass3a_shares_no_scaling_when_absolute():
     pass1 = {"report_type": "H", "period_end": "2025-12-31",
              "currency": "AUD", "scale": "millions"}
 
+    # share_capital schema now extracts shares_period_end (mapped to shares_outstanding post-hoc)
     mock_raw = {
-        "shares_outstanding": 196478902,  # absolute count, already correct
+        "shares_period_end": 196478902,  # absolute count, already correct
         "pass3_confidence": 0.95, "row_refs": {},
     }
 
@@ -1156,8 +1159,13 @@ def _make_dummy_table(caption="Dummy"):
     )
 
 
-def test_skip_share_capital_when_balance_sheet_present():
-    """share_capital LLM call must be skipped when balance_sheet is present."""
+def test_share_capital_not_skipped_when_balance_sheet_present():
+    """share_capital LLM call must NOT be skipped even when balance_sheet is present.
+
+    Balance sheets are dense and unreliable for share counts; the dedicated
+    share_capital table uses a two-field schema (shares_period_end vs shares_weighted_avg)
+    that is the most reliable source for shares_outstanding.
+    """
     from app.services.multipass_extraction import _run_pass3a_metric_extractor
 
     labelled = {
@@ -1171,30 +1179,31 @@ def test_skip_share_capital_when_balance_sheet_present():
     pass1 = {"report_type": "H", "period_end": "2024-12-31",
              "currency": "AUD", "scale": "thousands"}
 
-    mock_raw = {"net_debt": 500, "total_debt": None, "shares_outstanding": 1_000_000,
-                "pass3_confidence": 0.9, "row_refs": {}}
-
+    # balance_sheet returns shares_outstanding; share_capital returns shares_period_end
     call_count = {"n": 0}
     original_tables = []
 
     def _tracking_llm_call(prompt, *args, **kwargs):
         call_count["n"] += 1
-        # Record which table_type the prompt was built for
         if "share_capital" in prompt:
             original_tables.append("share_capital")
+            return {"shares_period_end": 1_000_000, "shares_weighted_avg": 950_000,
+                    "pass3_confidence": 0.9, "row_refs": {}}
         elif "balance_sheet" in prompt:
             original_tables.append("balance_sheet")
-        return mock_raw
+            return {"net_debt": 500, "total_debt": None, "shares_outstanding": 1_000_000,
+                    "pass3_confidence": 0.9, "row_refs": {}}
+        return {"pass3_confidence": 0.0, "row_refs": {}}
 
     with patch("app.services.multipass_extraction._llm_json_call", side_effect=_tracking_llm_call):
         with patch.dict("os.environ", {"EXTRACTION_SKIP_REDUNDANT": "1"}):
             results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
 
-    # Only balance_sheet should have been called — share_capital skipped
-    assert "share_capital" not in original_tables
+    # Both balance_sheet AND share_capital should have been called
+    assert "share_capital" in original_tables
     assert "balance_sheet" in original_tables
     sources = [r["_source"] for r in results]
-    assert "share_capital" not in sources
+    assert "share_capital" in sources
 
 
 def test_share_capital_not_skipped_when_balance_sheet_absent():

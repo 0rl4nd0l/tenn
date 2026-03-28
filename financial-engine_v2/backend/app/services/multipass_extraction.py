@@ -495,13 +495,18 @@ Rules:
   DO NOT use: "Other income", "Interest income", "Total income" (which may include non-operating items),
   or "Net profit" as a proxy for revenue.
   For banks: "Net interest income" or "Total operating income" is the revenue equivalent.
-- ebit: only output if a row is explicitly labeled "EBIT", "Earnings Before Interest and Tax",
-  "Profit from operations", "Profit / (loss) from operating activities", "Operating profit",
-  "Statutory EBIT", "Operating income", "Profit before income tax", or "Cash profit before tax".
+- ebit: extract using the PRIORITY ORDER below (use the first match found):
+  1. Row explicitly labeled "EBIT" or "Earnings Before Interest and Tax" or "Statutory EBIT"
+  2. "Profit from operations", "Profit / (loss) from operating activities", "Operating profit", or "Operating income" (mining/industrial companies)
+  3. "Profit before income tax" (but ONLY if no "Profit before credit impairment and income tax" row exists above it)
+  4. "Cash profit before tax" (banking)
+  If none of these labels exist in the table, return null for ebit.
   Do NOT use Net Profit as a proxy.
-  CRITICAL: if the table has BOTH "Profit before credit impairment and income tax" AND
-  "Profit before income tax", you MUST use "Profit before income tax" (the row AFTER credit impairment).
-  "Profit before credit impairment and income tax" is NOT ebit.
+  NEGATIVE EXAMPLES (these are NOT ebit — do NOT extract these):
+  - "Profit before credit impairment and income tax" — this is PRE-impairment, not EBIT
+  - "EBITDA" or "Earnings before interest, tax, depreciation and amortisation" — this includes D&A
+  - "Segment EBIT" or divisional EBIT — use only the CONSOLIDATED/GROUP total
+  - "Underlying EBIT" or "Adjusted EBIT" — use statutory/reported EBIT, not adjusted
 - capex: Capital Expenditure must be a SPECIFIC LINE ITEM, NOT a total or subtotal.
   Correct labels: "Payments for property, plant and equipment", "Purchases of property, plant and equipment",
   "Purchase of PPE", "Additions to fixed assets", "Capital expenditure",
@@ -523,13 +528,24 @@ Rules:
   EXCEPTION for share counts only (not dollar amounts): if the table expresses share counts in a scaled unit (e.g. "Million", "'000"), convert to the absolute count.
   Example: if the table shows "5,057" with row label containing "(Million)", output 5057000000 (not 5057).
   Example: if the table shows "196,478,902" as an absolute count, output 196478902.
+- shares_period_end: the PERIOD-END total ordinary shares on issue (count, not dollar amount).
+  Same rules as shares_outstanding above. This is the closing balance / shares at end of period.
+- shares_weighted_avg: the weighted average number of ordinary shares used for EPS calculation.
+  This is a SEPARATE metric from shares_period_end. Do NOT confuse them.
 - Column selection: if the table has multiple data columns (e.g. current half and prior half),
   extract values ONLY from the column whose header best matches the reporting date {period_end}.
   Never extract from prior-period or comparative columns.
   Set period_col to the exact column header you chose.
-- total_debt (balance_sheet only): sum of all financial debt — current + non-current borrowings,
-  bonds, notes payable. Exclude AASB 16 / IFRS 16 lease liabilities unless no other financial
-  debt exists. Output null if no financial debt is present (e.g. company is debt-free).
+- total_debt (balance_sheet only): total financial debt owed by the company.
+  EXTRACTION PRIORITY (use the first that applies):
+  1. Single row: "Total borrowings", "Total debt", "Total interest-bearing liabilities",
+     "Gross debt", "Total financial liabilities" — use this value directly.
+  2. Two-row sum: if only "Current borrowings" and "Non-current borrowings" exist
+     (or "Current interest-bearing liabilities" + "Non-current interest-bearing liabilities"),
+     SUM them and output the total.
+  3. If NEITHER a single total NOR a current+non-current pair exists, output null.
+  EXCLUDE: AASB 16 / IFRS 16 lease liabilities (unless labeled as part of borrowings).
+  EXCLUDE: Trade payables, provisions, employee benefits — these are NOT financial debt.
 
 Schema:
 {{
@@ -549,7 +565,7 @@ _METRIC_SCHEMA_BY_TABLE = {
     # total_debt is an internal capture metric: not in METRIC_FIELDS, not stored in DB.
     # Pass 4 uses it to derive net_debt = total_debt - cash_end when net_debt is null.
     "balance_sheet": ["net_debt", "total_debt", "shares_outstanding"],
-    "share_capital": ["shares_outstanding"],
+    "share_capital": ["shares_period_end", "shares_weighted_avg"],
     "highlights": METRIC_FIELDS,  # highlights may have any metric
 }
 
@@ -576,6 +592,7 @@ _ROW_KEYWORDS_BY_TABLE: dict[str, list[str]] = {
     ],
     "balance_sheet": [
         "cash and cash equivalent", "borrowing", "interest bearing",
+        "interest-bearing", "gross debt", "financial liabilities",
         "loan", "notes payable", "bond", "financial debt", "lease liab",
         "net asset", "total equity", "share capital", "issued capital",
         "ordinary share", "shares on issue", "total asset", "total liab",
@@ -777,10 +794,10 @@ def _extract_single_table(
             return None
 
     # Apply scale multiplier to monetary values only.
-    # shares_outstanding is always an absolute count — the prompt instructs the LLM
+    # Share count metrics are always absolute counts — the prompt instructs the LLM
     # to output the absolute number (e.g. 5057000000 not 5057 when the table says
     # "5,057 (Million)"). No post-hoc scale multiplication needed.
-    _COUNT_METRICS = {"shares_outstanding"}
+    _COUNT_METRICS = {"shares_outstanding", "shares_period_end", "shares_weighted_avg"}
     out = {"_source": table_type, "_page_number": getattr(table, "page_number", None)}
     for m in metrics:
         val = raw.get(m)
@@ -800,45 +817,66 @@ def _extract_single_table(
                 out[m] = None
         else:
             out[m] = None
-    # shares_outstanding sanity check: if the LLM returned a value that is
+    # Share count sanity check: if the LLM returned a value that is
     # suspiciously small (< 1M — virtually no ASX company has < 1M shares on
     # issue), check whether the table's headers/caption indicate a count-scale
     # factor ('000, million, etc.) and apply it.  This catches the common LLM
     # failure of returning the raw table value (e.g. 280,875) without converting
     # from the table's count-unit (e.g. '000s → 280,875,000).
     _MIN_PLAUSIBLE_SHARES = 1_000_000
-    shares_val = out.get("shares_outstanding")
-    if shares_val is not None and 0 < abs(shares_val) < _MIN_PLAUSIBLE_SHARES:
-        header_caption_text = (
-            (table.caption or "").lower()
-            + " "
-            + " ".join(str(h) for h in table.headers).lower()
-        )
-        # Also check body rows for scale indicators (e.g. SEG share capital
-        # table has "No. '000s" in a row label, not in the column headers).
-        body_text = " ".join(
-            " ".join(str(c) for c in row)
-            for row in table.rows[:15] if row
-        ).lower()
-        full_text = header_caption_text + " " + body_text
-        if _re.search(r"'000|thousands|\bno\.\s*'?000", full_text, _re.IGNORECASE):
-            out["shares_outstanding"] = shares_val * 1_000
-            logger.info(
-                "shares_outstanding scaled ×1000: %.0f → %.0f (table text has '000 indicator)",
-                shares_val, out["shares_outstanding"],
+    _SHARE_COUNT_FIELDS = ("shares_outstanding", "shares_period_end")
+    for _share_field in _SHARE_COUNT_FIELDS:
+        shares_val = out.get(_share_field)
+        if shares_val is not None and 0 < abs(shares_val) < _MIN_PLAUSIBLE_SHARES:
+            header_caption_text = (
+                (table.caption or "").lower()
+                + " "
+                + " ".join(str(h) for h in table.headers).lower()
             )
-        elif _re.search(r"\bmillion|\bm\b", full_text, _re.IGNORECASE):
-            out["shares_outstanding"] = shares_val * 1_000_000
+            # Also check body rows for scale indicators (e.g. SEG share capital
+            # table has "No. '000s" in a row label, not in the column headers).
+            body_text = " ".join(
+                " ".join(str(c) for c in row)
+                for row in table.rows[:15] if row
+            ).lower()
+            full_text = header_caption_text + " " + body_text
+            if _re.search(r"'000|thousands|\bno\.\s*'?000", full_text, _re.IGNORECASE):
+                out[_share_field] = shares_val * 1_000
+                logger.info(
+                    "%s scaled ×1000: %.0f → %.0f (table text has '000 indicator)",
+                    _share_field, shares_val, out[_share_field],
+                )
+            elif _re.search(r"\bmillion|\bm\b", full_text, _re.IGNORECASE):
+                out[_share_field] = shares_val * 1_000_000
+                logger.info(
+                    "%s scaled ×1M: %.0f → %.0f (table text has million indicator)",
+                    _share_field, shares_val, out[_share_field],
+                )
+            elif scale in ("thousands", "millions"):
+                doc_mult = SCALE_MULTIPLIERS.get(scale, 1)
+                out[_share_field] = shares_val * doc_mult
+                logger.info(
+                    "%s scaled ×%d (doc-level scale=%s): %.0f → %.0f",
+                    _share_field, doc_mult, scale, shares_val, out[_share_field],
+                )
+
+    # Resolution: map shares_period_end → shares_outstanding for share_capital tables.
+    # shares_period_end is the authoritative period-end count; shares_weighted_avg is
+    # intentionally NOT used as a fallback (it is a different metric).
+    if table_type == "share_capital":
+        period_end_val = out.pop("shares_period_end", None)
+        out.pop("shares_weighted_avg", None)
+        if period_end_val is not None:
+            out["shares_outstanding"] = period_end_val
             logger.info(
-                "shares_outstanding scaled ×1M: %.0f → %.0f (table text has million indicator)",
-                shares_val, out["shares_outstanding"],
+                "share_capital resolution: shares_period_end (%.0f) → shares_outstanding",
+                period_end_val,
             )
-        elif scale in ("thousands", "millions"):
-            doc_mult = SCALE_MULTIPLIERS.get(scale, 1)
-            out["shares_outstanding"] = shares_val * doc_mult
+        else:
+            out["shares_outstanding"] = None
             logger.info(
-                "shares_outstanding scaled ×%d (doc-level scale=%s): %.0f → %.0f",
-                doc_mult, scale, shares_val, out["shares_outstanding"],
+                "share_capital resolution: shares_period_end is null — shares_outstanding set to null "
+                "(weighted avg not used as fallback)",
             )
 
     # Compute confidence from observable results rather than relying on the
@@ -1076,6 +1114,11 @@ def _run_pass4_reconciler(
                 logger.info(
                     "net_debt derived from balance sheet: %.0f - %.0f = %.0f",
                     total_debt, cash_end, merged_metrics["net_debt"],
+                )
+            else:
+                logger.warning(
+                    "net_debt derivation failed: total_debt=%s, cash_end=%s",
+                    total_debt, cash_end,
                 )
 
     # Weighted average confidence — each source weighted by metrics contributed
