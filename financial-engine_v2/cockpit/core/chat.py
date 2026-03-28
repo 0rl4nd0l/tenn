@@ -1329,6 +1329,12 @@ class ChatController:
                 _strategy_block = self._strategy_service.build_context_block(ticker)
                 if _strategy_block:
                     context_sections.append(_strategy_block)
+                    # Update sources metadata with strategy criteria count
+                    _src = local_payload.get("sources")
+                    if isinstance(_src, dict):
+                        g_count = len(self._strategy_service.get_global(limit=10))
+                        t_count = len(self._strategy_service.get_ticker(ticker, limit=10))
+                        _src["strategy_criteria_count"] = g_count + t_count
             except Exception:
                 pass  # strategy injection is best-effort
 

@@ -794,6 +794,24 @@ class CockpitApp(App):
             self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
             return
 
+        # Handle /sources commands
+        if stripped.startswith("/sources"):
+            parts = stripped[len("/sources"):].strip().split(maxsplit=1)
+            sub = parts[0].lower() if parts else ""
+            now_iso = datetime.now(timezone.utc).isoformat()
+            if sub == "on":
+                self.state_store.set_preference("show_sources", "true")
+                reply = "Sources display enabled."
+            elif sub == "off":
+                self.state_store.set_preference("show_sources", "false")
+                reply = "Sources display disabled."
+            else:
+                current = self.state_store.get_preference("show_sources", "true")
+                reply = f"Sources display: {'ON' if current == 'true' else 'OFF'}. Use /sources on|off to toggle."
+            self._append_log(log, f"assistant: {reply}")
+            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            return
+
         if message.strip() == "/cancel":
             self.pending_action = None
             pending.update("No pending action")
@@ -1007,6 +1025,20 @@ class CockpitApp(App):
             log.write(_Markdown(f"**{self.ASSISTANT_NAME}:** {assistant_text}"), scroll_end=True)
         except Exception:
             self._append_log(log, f"assistant: {assistant_text}")
+
+        # Append sources footer for analysis responses
+        try:
+            local_details = (response.evidence or [{}])[0].get("details", {})
+            sources_data = local_details.get("sources", {})
+            if sources_data:
+                from cockpit.core.sources import SourcesFormatter
+                show = self.state_store.get_preference("show_sources", "true") == "true"
+                footer = SourcesFormatter.format_footer(sources_data, show_sources=show)
+                if footer:
+                    self._append_log(log, footer)
+        except Exception:
+            pass  # sources footer is best-effort
+
         self.state_store.add_chat_message(self.thread_id, "assistant", assistant_text, datetime.now(timezone.utc).isoformat())
 
         if response.action_preview:

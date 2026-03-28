@@ -1252,6 +1252,34 @@ class ToolRouter:
                                 break
                 except Exception:
                     pass
+        # Collect sources metadata for evidence footer
+        sources: dict[str, Any] = {}
+        qual = payload.get("qual_context") or {}
+        merged_hits = qual.get("hits") or []
+        if merged_hits:
+            sources["rag_hits"] = [
+                {
+                    "title": str(h.get("title") or h.get("source_name") or "untitled"),
+                    "score": float(h.get("final_score", h.get("semantic_score", 0.0))),
+                    "doc_type": str(h.get("source_corpus") or h.get("corpus") or ""),
+                }
+                for h in merged_hits[:3]
+            ]
+        fins = payload.get("financials") or []
+        if fins:
+            sources["financial_periods"] = [
+                (
+                    str(f.get("ticker") or ticker or ""),
+                    str(f.get("period_end") or f.get("period") or ""),
+                    str(f.get("period_type") or ""),
+                )
+                for f in fins[:3]
+            ]
+        dossier_findings = payload.get("dossier_findings") or []
+        sources["dossier_count"] = len(dossier_findings)
+        sources["strategy_criteria_count"] = 0  # set by caller if strategy injected
+        payload["sources"] = sources
+
         return ToolResult(ok=True, title="local_context", payload=payload)
 
     def fetch_web(self, url: str, enabled: bool, max_chars: int | None = 8000) -> ToolResult:
