@@ -266,6 +266,35 @@ _READ_ONLY_TOOLS: list[dict[str, Any]] = [
         "mutating": False,
     },
     {
+        "name": "run_analysis",
+        "description": (
+            "Run the Phase 3 analysis pipeline for a ticker. Executes up to 7 "
+            "analysis modules (balance_sheet, roic, risk, valuation, catalysts, "
+            "sentiment, moat) and returns a structured summary with key metrics, "
+            "narratives, and warnings. Use when the user asks to analyse a ticker, "
+            "run analysis, or wants a comprehensive fundamental assessment."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {
+                    "type": "string",
+                    "description": "ASX ticker symbol, e.g. 'CSL', 'BHP'",
+                },
+                "modules": {
+                    "type": "string",
+                    "description": (
+                        "Comma-separated module names to run. "
+                        "Valid: balance_sheet, roic, risk, valuation, catalysts, sentiment, moat. "
+                        "Omit to run all modules."
+                    ),
+                },
+            },
+            "required": ["ticker"],
+        },
+        "mutating": False,
+    },
+    {
         "name": "fetch_url",
         "description": (
             "Fetch and return the text content of a web URL. Use this when "
@@ -285,6 +314,25 @@ _READ_ONLY_TOOLS: list[dict[str, Any]] = [
                 },
             },
             "required": ["url"],
+        },
+        "mutating": False,
+    },
+    {
+        "name": "get_strategy",
+        "description": (
+            "Get the user's investment strategy criteria and any recorded "
+            "decisions. Returns global criteria (apply to all tickers) and "
+            "optionally ticker-specific criteria with the current decision."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {
+                    "type": "string",
+                    "description": "Optional ASX ticker to also get ticker-specific criteria and decision",
+                },
+            },
+            "required": [],
         },
         "mutating": False,
     },

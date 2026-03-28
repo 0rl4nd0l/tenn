@@ -35,6 +35,7 @@ class ToolExecutor:
         dossier_service=None,
         deep_research_runner=None,
         alert_reader=None,
+        strategy_service=None,
     ) -> None:
         self._router = tool_router
         self._actions = action_registry
@@ -43,6 +44,7 @@ class ToolExecutor:
         self._dossier_service = dossier_service
         self._deep_research_runner = deep_research_runner
         self._alert_reader = alert_reader
+        self._strategy_service = strategy_service
 
     # ------------------------------------------------------------------
     # Public API
@@ -273,10 +275,31 @@ class ToolExecutor:
     # Research tools (search_web, search_social, recall_dossier, deep_research, alerts)
     # ------------------------------------------------------------------
 
+    def _exec_get_strategy(self, args: dict[str, Any]) -> dict[str, Any]:
+        if self._strategy_service is None:
+            return {"ok": False, "error": "strategy service not available"}
+        ticker = str(args.get("ticker", "")).strip().upper() or None
+        global_criteria = self._strategy_service.get_global(limit=10)
+        ticker_criteria = self._strategy_service.get_ticker(ticker) if ticker else []
+        decision = self._strategy_service.get_decision(ticker) if ticker else None
+        context_block = self._strategy_service.build_context_block(ticker)
+        return {
+            "ok": True,
+            "global_criteria": global_criteria,
+            "ticker_criteria": ticker_criteria,
+            "decision": decision,
+            "context_block": context_block,
+        }
+
     def _exec_search_web(self, args: dict[str, Any]) -> dict[str, Any]:
         query = str(args.get("query", "")).strip()
         if not query:
             return {"ok": False, "error": "query is required"}
+        if not bool(getattr(self._router, "web_default_enabled", False)):
+            return {
+                "ok": False,
+                "error": "Web search is disabled. Request access first.",
+            }
         count = int(args.get("count", 5))
         if self._router.brave_search_client is not None:
             return self._router.brave_search_client.search(query, count=count)
@@ -319,6 +342,155 @@ class ToolExecutor:
             return {"ok": True, "alerts": [], "message": "alert reader not available"}
         return self._alert_reader.get(since_hours=since_hours, ticker=ticker)
 
+    # ------------------------------------------------------------------
+    # Analysis pipeline tool
+    # ------------------------------------------------------------------
+
+    def _exec_run_analysis(self, args: dict[str, Any]) -> dict[str, Any]:
+        """Run the Phase 3 analysis pipeline via the backend API."""
+        ticker = str(args.get("ticker", "")).strip().upper()
+        if not ticker:
+            return {"ok": False, "error": "ticker is required"}
+
+        modules_str = str(args.get("modules", "")).strip() or None
+
+        # Call the backend API endpoint POST /api/analysis/{ticker}
+        backend = self._router.backend_api_client
+        if backend is None:
+            return {"ok": False, "error": "backend API client not configured — cannot run analysis"}
+
+        import httpx
+
+        url = f"{backend.base_url}/api/analysis/{ticker}"
+        params: dict[str, str] = {}
+        if modules_str:
+            params["modules"] = modules_str
+        headers: dict[str, str] = {}
+        if backend.api_key:
+            headers["X-API-Key"] = backend.api_key
+
+        try:
+            with httpx.Client(timeout=180.0, follow_redirects=True) as client:
+                response = client.post(url, params=params, headers=headers)
+                response.raise_for_status()
+                data = response.json() if response.content else {}
+        except httpx.HTTPStatusError as exc:
+            detail = None
+            try:
+                err_body = exc.response.json() if exc.response is not None else {}
+                detail = err_body.get("detail")
+            except Exception:
+                pass
+            code = exc.response.status_code if exc.response is not None else "unknown"
+            return {"ok": False, "ticker": ticker, "error": f"Analysis API returned HTTP {code}: {detail or exc}"}
+        except httpx.TimeoutException:
+            return {"ok": False, "ticker": ticker, "error": "Analysis request timed out (180s)"}
+        except Exception as exc:
+            return {"ok": False, "ticker": ticker, "error": f"Analysis request failed: {exc}"}
+
+        # Format the results into a readable summary
+        return self._format_analysis_results(ticker, data)
+
+    @staticmethod
+    def _format_analysis_results(ticker: str, data: dict[str, Any]) -> dict[str, Any]:
+        """Format raw API analysis response into a structured summary for the LLM."""
+        results = data.get("results", [])
+        if not results:
+            return {
+                "ok": False,
+                "ticker": ticker,
+                "error": "Analysis returned no module results",
+            }
+
+        # Key metric extraction per module
+        _METRIC_EXTRACTORS: dict[str, list[tuple[str, str]]] = {
+            "balance_sheet": [
+                ("net_debt", "Net Debt"), ("cash_end", "Cash"),
+                ("debt_to_equity", "D/E Ratio"),
+            ],
+            "roic": [
+                ("roic", "ROIC"), ("roce", "ROCE"),
+                ("roe", "ROE"),
+            ],
+            "risk": [
+                ("risk_score", "Risk Score"), ("risk_grade", "Risk Grade"),
+            ],
+            "valuation": [
+                ("pe_ratio", "P/E"), ("ev_ebit", "EV/EBIT"),
+                ("price_to_book", "P/B"), ("fcf_yield", "FCF Yield"),
+            ],
+            "catalysts": [
+                ("catalyst_count", "Catalysts"), ("top_catalyst", "Top Catalyst"),
+            ],
+            "sentiment": [
+                ("sentiment_score", "Sentiment"), ("sentiment_label", "Label"),
+            ],
+            "moat": [
+                ("moat_classification", "Moat"), ("moat_score", "Moat Score"),
+            ],
+        }
+
+        summary_lines: list[str] = [f"Analysis Summary for {ticker}", "=" * 40]
+        module_summaries: list[dict[str, Any]] = []
+
+        for result in results:
+            module_name = result.get("module", "unknown")
+            completeness = result.get("completeness", "unknown")
+            structured = result.get("structured", {})
+            warnings = result.get("warnings", [])
+
+            # Extract headline metrics
+            extractors = _METRIC_EXTRACTORS.get(module_name, [])
+            headline_metrics: dict[str, Any] = {}
+            for key, label in extractors:
+                val = structured.get(key)
+                if val is not None:
+                    headline_metrics[label] = val
+
+            # Format the metric string
+            if headline_metrics:
+                metrics_str = ", ".join(f"{k}: {v}" for k, v in headline_metrics.items())
+            else:
+                metrics_str = "(no key metrics)"
+
+            status_icon = {
+                "complete": "OK",
+                "partial": "PARTIAL",
+                "failed": "FAILED",
+            }.get(completeness, completeness.upper())
+
+            summary_lines.append(
+                f"  {module_name:<15} | {status_icon:<8} | {metrics_str}"
+            )
+
+            module_entry: dict[str, Any] = {
+                "module": module_name,
+                "status": completeness,
+                "metrics": headline_metrics,
+            }
+
+            # Include narrative summary if present
+            narrative = structured.get("narrative", {})
+            if isinstance(narrative, dict) and narrative.get("summary"):
+                module_entry["narrative"] = narrative["summary"]
+            elif result.get("narrative") and isinstance(result["narrative"], dict):
+                module_entry["narrative"] = result["narrative"].get("summary", "")
+
+            if warnings:
+                module_entry["warnings"] = warnings
+
+            module_summaries.append(module_entry)
+
+        summary_text = "\n".join(summary_lines)
+
+        return {
+            "ok": True,
+            "ticker": ticker,
+            "modules_run": data.get("modules_run", len(results)),
+            "summary_text": summary_text,
+            "modules": module_summaries,
+        }
+
     # Dispatch table: tool_name -> handler method
     _READ_ONLY_DISPATCH: dict[str, Any] = {
         "query_ticker_data": _exec_query_ticker_data,
@@ -332,11 +504,13 @@ class ToolExecutor:
         "list_recent_reports": _exec_list_recent_reports,
         "get_data_quality": _exec_get_data_quality,
         "fetch_url": _exec_fetch_url,
+        "get_strategy": _exec_get_strategy,
         "search_web": _exec_search_web,
         "search_social": _exec_search_social,
         "recall_dossier": _exec_recall_dossier,
         "deep_research": _exec_deep_research,
         "get_watchlist_alerts": _exec_get_watchlist_alerts,
+        "run_analysis": _exec_run_analysis,
     }
 
     # ------------------------------------------------------------------
