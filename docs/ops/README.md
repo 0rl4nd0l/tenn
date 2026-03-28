@@ -30,6 +30,7 @@ Scope note:
 ## Incident Notes
 
 - `08_openclaw_llamacpp_no_reply_incident_2026-03-08.md` - OpenClaw local/TUI `NO_REPLY` suppression incident, fix, and upgrade risk notes.
+- `09_llama_server_m40_model_load_runbook.md` - M40 `llama-server` load stalls (mmap vs `--no-mmap`), router vs single-model checks, fair extraction eval prerequisites.
 - `openclaw_ops_loop.md` - Standard check/fix/verify loop for TENN tasks in OpenClaw.
 
 Artifacts:
