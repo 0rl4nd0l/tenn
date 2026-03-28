@@ -30,6 +30,7 @@ from cockpit.integrations.llamacpp_manager import (
     restart_with_model,
     switch_model,
 )
+from cockpit.ui.help_modal import HelpScreen
 
 
 # ---------------------------------------------------------------------------
@@ -190,6 +191,7 @@ class PreBootScreen(Screen):
 
     BINDINGS = [
         Binding("enter", "launch", "Launch"),
+        Binding("?", "show_help", "Help"),
         Binding("escape", "cancel_boot", "Cancel"),
     ]
 
@@ -347,6 +349,7 @@ class PreBootScreen(Screen):
                         )
             with Horizontal(id="btn-row"):
                 yield Static("", id="btn-spacer")
+                yield Button("Help", id="btn-help", variant="default")
                 yield Button("Cancel", id="btn-cancel", variant="warning")
                 yield Button("Launch  [Enter]", id="btn-launch", variant="success")
 
@@ -604,6 +607,8 @@ class PreBootScreen(Screen):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-launch":
             self.action_launch()
+        elif event.button.id == "btn-help":
+            self.action_show_help()
         elif event.button.id == "btn-cancel":
             self.action_cancel_boot()
 
@@ -778,6 +783,9 @@ class PreBootScreen(Screen):
     def action_cancel_boot(self) -> None:
         if self._on_cancel:
             self._on_cancel()
+
+    def action_show_help(self) -> None:
+        self.app.push_screen(HelpScreen(title="Cockpit Pre-Boot Help"))
 
 
 class PreBootApp(App[dict[str, Any]]):

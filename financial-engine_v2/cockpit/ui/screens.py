@@ -10,6 +10,7 @@ from textual.screen import ModalScreen, Screen
 from textual.widgets import Button, DataTable, Input, Label, RichLog, Select, Static
 
 from cockpit.core.plotly_html import build_verification_dashboard_html
+from cockpit.ui.help_modal import HelpScreen
 
 
 class TickerInputScreen(ModalScreen[str]):
@@ -118,6 +119,7 @@ class ChatScreen(Screen):
             Horizontal(
                 Button("Copy Chat/Output", id="chat-copy-output"),
                 Button("Open Operations", id="chat-open-ops"),
+                Button("Help", id="chat-open-help"),
             ),
             Horizontal(
                 Button("Daily News Ingest", id="chat-run-daily-news", variant="success"),
@@ -190,6 +192,9 @@ class ChatScreen(Screen):
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "chat-open-ops":
             self.app.action_show_ops()
+            return
+        if event.button.id == "chat-open-help":
+            self.app.push_screen(HelpScreen(repo_root=self.app.repo_root))
             return
         if event.button.id == "chat-run-daily-news":
             args = self.app.action_registry.parse_kv_args("")
@@ -407,6 +412,7 @@ class HistoryScreen(Screen):
 class SettingsScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Label("Cockpit Settings")
+        yield Button("Open Help", id="settings-open-help", variant="primary")
         yield Static(id="settings-json")
 
     def on_mount(self) -> None:
@@ -418,6 +424,10 @@ class SettingsScreen(Screen):
             "web": self.app.config.get("web", {}),
         }
         self.query_one("#settings-json", Static).update(json.dumps(payload, indent=2))
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "settings-open-help":
+            self.app.push_screen(HelpScreen(repo_root=self.app.repo_root))
 
 
 _LOOKBACK_OPTIONS: list[tuple[str, str]] = [
