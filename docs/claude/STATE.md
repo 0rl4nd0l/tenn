@@ -74,6 +74,7 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 
 | Commit | Workstream | Summary |
 |--------|------------|---------|
+| 7d4754f4 | analysis-artifact-v0 | Deterministic `financial_snapshot_v0.json` from `asx_periodic_financials` → `reports/analysis/{TICKER}/`; `periodic_snapshot_export` + `export_financial_snapshot.py`. |
 | 135440e1 | ops-commentary | Staging→Qdrant runbook (`docs/ops/commentary_staging_to_qdrant.md`), CLI `promote_staged_commentary.py`, CI `autodev/tests`, Pass3a bank-revenue prompt regression test. |
 | 3a168c71 | ci | GitHub Actions: ruff + pytest with root `pytest.ini` (`live_eval` deselected); Qdrant/transcript tests aligned to commentary staging gate; `commentary_ingest` unused imports removed. |
 | (this session) | cockpit-routing | Chat routing visibility: per-response `[Claude API | model | latency | cost]` footer; extraction pre-flight guard with auto-model-load; `.env` loading in cockpit entrypoint (L027+L028). Renamed `model.gguf` → `mistral-7b-instruct-v0.2-q4_k_m.gguf`. |

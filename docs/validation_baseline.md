@@ -4,6 +4,8 @@ This runbook captures the validated command sequence for the current stable base
 
 **CI:** GitHub Actions runs ruff + pytest (excluding `live_eval`) on pushes to `main` / `cloud/**` and on pull requests — see `.github/workflows/ci.yml`. Use `pytest -c pytest.ini ...` from the repo root so `pythonpath` and `addopts` match CI. CI includes `autodev/tests` as a second pytest step.
 
+**Deterministic analysis artifact (v0):** `python3 financial-engine_v2/scripts/export_financial_snapshot.py TICKER` writes `reports/analysis/{TICKER}/financial_snapshot_v0.json` from `asx_periodic_financials` (no LLM). Backend: `app.services.analysis.periodic_snapshot_export`.
+
 ## Command Sequence
 
 ```bash
