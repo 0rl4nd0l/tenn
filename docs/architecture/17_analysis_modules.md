@@ -18,7 +18,7 @@ Phase 3 ("Analysis modules") is the third stage of the five-phase Analyse Compan
 | 4. Portfolio module | Portfolio-level exposure, correlation, sizing |
 | 5. Outputs | Artifact tree under `reports/` |
 
-Phase 3 consumes structured financial data (from Phase 1 extraction), optional RAG evidence (from Phase 2), and optional market price data. It produces per-ticker analysis artifacts covering balance sheet health, return on capital, valuation, risk, catalysts, and competitive moat.
+Phase 3 consumes structured financial data (from Phase 1 extraction), optional RAG evidence (from Phase 2), and optional market price data. It produces per-ticker analysis artifacts covering balance sheet health, return on capital, valuation, risk, catalysts, competitive moat, and sentiment.
 
 ### What Problem It Solves
 
@@ -67,6 +67,7 @@ Every module has a **D1 (deterministic) layer** that always runs. Three hybrid m
 | balance_sheet | Yes | No |
 | roic | Yes | No |
 | valuation | Yes | No |
+| sentiment | Yes | No |
 | risk | Yes | Yes |
 | catalysts | Yes | Yes |
 | moat | Yes | Yes |
@@ -145,12 +146,12 @@ class ArtifactSet:
             │  balance_sheet   │  Tier 1 (no upstream deps)
             └────────┬────────┘
                      │
-     ┌───────┬───────┼───────┬───────┐
-     │       │       │       │       │
-  ┌──▼──┐ ┌─▼──┐ ┌──▼──┐ ┌─▼──────┐│
-  │ roic │ │risk│ │valu-│ │catalyst││
-  │      │ │    │ │ation│ │   s    ││
-  └──────┘ └────┘ └─────┘ └────────┘│  Tier 2 (independent)
+     ┌───────┬───────┼───────┬───────┬──────────┐
+     │       │       │       │       │          │
+  ┌──▼──┐ ┌─▼──┐ ┌──▼──┐ ┌─▼──────┐│ ┌────────▼─┐
+  │ roic │ │risk│ │valu-│ │catalyst││ │sentiment │
+  │      │ │    │ │ation│ │   s    ││ │          │
+  └──────┘ └────┘ └─────┘ └────────┘│ └──────────┘  Tier 2 (independent)
                                      │
             ┌────────────────┐       │
             │      moat      │◄──────┘  Tier 3 (benefits from upstream)
@@ -277,7 +278,7 @@ Period-over-period deltas are computed for `net_debt`, `fcf`, and `net_debt_to_e
 | `nopat_on_ic` | `nopat / invested_capital` | Post-tax ROIC |
 | `capital_turnover` | `revenue / invested_capital` | Asset efficiency |
 
-**Note on IC proxy:** Total equity is not currently in the extraction schema. Invested capital uses `(price * shares_outstanding) + net_debt` as a market-cap-based proxy. This is a known limitation (see section 8).
+**Note on IC proxy:** `total_equity` has been added to the extraction schema (migration 0005, see section 12). When available, invested capital uses `total_equity + net_debt` (book-value IC). When `total_equity` is not yet populated for a given period, the module falls back to `(price * shares_outstanding) + net_debt` as a market-cap-based proxy.
 
 #### Trend
 
@@ -494,6 +495,55 @@ Missing or malformed source entries are replaced with `{present: false, strength
 
 ---
 
+### 3.7 Sentiment Module
+
+**File:** `sentiment.py` (247 lines)
+**Type:** D1 only (no LLM)
+**Question answered:** "What is the overall sentiment across this company's filings, news coverage, and guidance? What are the most positive and most negative passages?"
+
+Typical latency: ~91ms per ticker. Zero GPU. Pure deterministic scoring.
+
+#### Inputs
+
+- `risk_notes` (required): `RiskNote` objects containing `risk_summary`, `risk_bullets`, `guidance_summary`, `material_changes`
+- `rag_results` (optional): RAG hits from any labeled query; categorized by label into filing / news / guidance
+
+#### Scoring Method
+
+VADER compound score with financial-domain keyword boosting:
+
+1. Compute VADER `compound` score for each passage (-1.0 to +1.0)
+2. Scan for positive financial keywords (e.g., `beat`, `upgrade`, `raised guidance`, `margin expansion`) — each adds a boost (0.05-0.25)
+3. Scan for negative financial keywords (e.g., `impairment`, `downgrade`, `covenant breach`, `going concern`) — each subtracts a boost
+4. Clamp result to [-1.0, +1.0]
+
+Keywords are matched via precompiled regex patterns with word-boundary anchors. The booster lists contain ~20 positive and ~25 negative terms tuned for ASX financial language.
+
+#### Metrics Computed
+
+| Metric | Formula | Purpose |
+|--------|---------|---------|
+| `overall_sentiment` | Mean of all scored passages | Aggregate sentiment signal |
+| `filing_sentiment` | Mean of filing-source passages | Filing-specific tone |
+| `news_sentiment` | Mean of news-source passages | Market/news tone |
+| `guidance_sentiment` | Mean of guidance-source passages | Forward-looking tone |
+| `passage_count` | Total scored passages | Data density indicator |
+| `category_counts` | Per-category counts | Coverage breakdown |
+| `most_positive` | Highest-scoring passage | Best-case excerpt with source |
+| `most_negative` | Lowest-scoring passage | Worst-case excerpt with source |
+
+RAG hit labels are categorized: labels containing "news" or "market" map to `news`; labels containing "guidance" or "outlook" map to `guidance`; all others map to `filing`.
+
+#### Completeness Conditions
+
+- **COMPLETE:** At least 3 passages were scored
+- **PARTIAL:** 1-2 passages were scored
+- **FAILED:** No scorable passages available (neither risk notes nor RAG hits contained text)
+
+Warnings are emitted for missing categories (`no_filing_passages`, `no_guidance_passages`).
+
+---
+
 ## 4. Orchestration
 
 ### 4.1 AnalysisOrchestrator
@@ -502,13 +552,14 @@ The `AnalysisOrchestrator` class (`orchestrator.py`, 209 lines) manages module i
 
 #### Module Registry
 
-The orchestrator builds a registry of all 6 modules at construction time. D1-only modules are instantiated with no arguments. Hybrid modules receive `llm_base_url` and `llm_model`:
+The orchestrator builds a registry of all 7 modules at construction time. D1-only modules are instantiated with no arguments. Hybrid modules receive `llm_base_url` and `llm_model`:
 
 ```python
 {
     "balance_sheet": BalanceSheetModule(),
     "roic": ROICModule(),
     "valuation": ValuationModule(),
+    "sentiment": SentimentModule(),
     "risk": RiskModule(llm_base_url=..., llm_model=...),
     "catalysts": CatalystsModule(llm_base_url=..., llm_model=...),
     "moat": MoatModule(llm_base_url=..., llm_model=...),
@@ -521,7 +572,7 @@ Modules are organized into three tiers executed in order:
 
 ```
 Tier 1:  balance_sheet
-Tier 2:  roic, risk, valuation, catalysts  (independent)
+Tier 2:  roic, risk, valuation, catalysts, sentiment  (independent)
 Tier 3:  moat
 ```
 
@@ -584,7 +635,13 @@ After each module run, the orchestrator calls `write_artifact()` which:
 │  │ np_attributable, │  │ risk_bullets│  │ payload.currency  │   │
 │  │ operating_cf,    │  │ guidance    │  │ provider          │   │
 │  │ capex, net_debt, │  │ material_   │  │ captured_at       │   │
-│  │ shares, cash_end │  │ changes     │  │                   │   │
+│  │ shares, cash_end,│  │ changes     │  │                   │   │
+│  │ total_equity,    │  │             │  │ ┌───────────────┐ │   │
+│  │ interest_expense │  │             │  │ │Yahoo Finance  │ │   │
+│  │                  │  │             │  │ │(yfinance)     │ │   │
+│  │                  │  │             │  │ │fallback when  │ │   │
+│  │                  │  │             │  │ │DB empty       │ │   │
+│  │                  │  │             │  │ └───────────────┘ │   │
 │  └────────┬─────────┘  └──────┬──────┘  └────────┬──────────┘   │
 │           │                   │                   │              │
 │  ┌────────┴───────────────────┴───────────────────┴──────────┐   │
@@ -643,6 +700,7 @@ After each module run, the orchestrator calls `write_artifact()` which:
      │  ├── balance_sheet.json                       │
      │  ├── roic.json                                │
      │  ├── valuation.json                           │
+     │  ├── sentiment.json                           │
      │  ├── risk.json                                │
      │  ├── catalysts.json                           │
      │  └── moat.json                                │
@@ -651,11 +709,12 @@ After each module run, the orchestrator calls `write_artifact()` which:
 
 ### 5.2 Data Sources Per Module
 
-| Module | asx_periodic_financials | asx_risk_notes | openbb_snapshots | documents | RAG |
-|--------|:----------------------:|:--------------:|:----------------:|:---------:|:---:|
+| Module | asx_periodic_financials | asx_risk_notes | openbb_snapshots / yfinance | documents | RAG |
+|--------|:----------------------:|:--------------:|:---------------------------:|:---------:|:---:|
 | balance_sheet | required | -- | -- | -- | -- |
 | roic | required (annual) | -- | optional | -- | -- |
 | valuation | required | -- | required | -- | -- |
+| sentiment | -- | required | -- | -- | optional |
 | risk | required | required | -- | -- | optional (D2) |
 | catalysts | required* | required* | -- | -- | optional (D2) |
 | moat | required | -- | -- | -- | optional (D2) |
@@ -670,7 +729,7 @@ After each module run, the orchestrator calls `write_artifact()` which:
 
 The D1 layer is fully deterministic and testable without any external dependencies. The test suite (`backend/tests/test_analysis_modules.py`) contains **43 tests** covering:
 
-- All 6 modules with happy-path and edge-case inputs
+- All 7 modules with happy-path and edge-case inputs
 - Null/missing field handling for every math function
 - Signal classification boundary conditions
 - Completeness state transitions (COMPLETE, PARTIAL, FAILED)
@@ -792,34 +851,254 @@ All artifacts land under `{reports_root}/analysis/{ticker}/{module_name}.json`.
 
 ---
 
-## 8. Data Gaps and Future Work
+## 8. Price Data Fallback Chain
 
-### 8.1 Missing Extraction Fields
+The `TickerContextLoader` resolves price data through a three-step fallback chain. This ensures analysis modules that depend on price (valuation, ROIC) can run even when the primary OpenBB price pipeline has not yet ingested a given ticker.
+
+### 8.1 Fallback Steps
+
+| Step | Source | Method | When Used |
+|------|--------|--------|-----------|
+| 1 | `openbb_price_snapshots` table | DB query, most recent `captured_at` | Always tried first |
+| 2 | Yahoo Finance via `yfinance` | `yf.Ticker("{ticker}.AX").info` | When step 1 returns no row or no parseable `close` |
+| 3 | `None` | Return None with warning | When both step 1 and step 2 fail |
+
+### 8.2 Yahoo Finance Details
+
+- **Symbol convention:** ASX tickers are queried as `{ticker}.AX` (e.g., `BHP.AX`)
+- **Price resolution order:** `regularMarketPrice` > `previousClose` > `open`
+- **Currency:** Read from `info.currency`, defaults to `AUD`
+- **Returned as:** `PriceSnapshot(source="yahoo")`
+
+### 8.3 Caching Behavior
+
+When Yahoo Finance returns a valid price, the loader persists it back to `openbb_price_snapshots` via `_persist_yahoo_price()`:
+- `provider` is set to `"yahoo"`
+- `dataset_type` is `"price_historical"`
+- `request_hash` is a SHA-256 of `{"ticker": ticker, "source": "yahoo"}`
+- Subsequent requests for the same ticker will hit step 1 (DB) and find the cached Yahoo price, avoiding redundant network calls
+
+Persistence failures are caught and logged; they do not block the analysis run.
+
+---
+
+## 9. Scale Validation Gate
+
+### 9.1 Purpose
+
+The scale validation gate (`_validate_scale` in `multipass_extraction.py`) runs after Pass 4 reconciliation to detect extraction results where metric values are orders of magnitude wrong due to missing or double-applied multipliers. This prevents bad data from entering `asx_periodic_financials` where it would corrupt analysis module outputs.
+
+### 9.2 Detection Logic
+
+The function inspects reconciled metric values and returns one of three verdicts:
+
+| Verdict | Meaning | Action |
+|---------|---------|--------|
+| `pass` | Values are in a plausible range | Proceed normally |
+| `suspect_underscaled` | All checked metrics fall below minimum thresholds | Mark extraction as failed |
+| `suspect_overscaled` | At least one metric exceeds $500B | Mark extraction as failed |
+
+### 9.3 Thresholds
+
+**Under-scale thresholds** (per period type):
+
+| Period Type | Revenue | EBIT | NP Attributable | Operating CF |
+|-------------|---------|------|-----------------|-------------|
+| Annual (A) | $1M | $100K | $100K | $100K |
+| Half-year (H) | $500K | $50K | $50K | $50K |
+| Quarterly (Q) | $100K | $10K | -- | -- |
+
+**Over-scale threshold:** Any single metric exceeding $500B triggers `suspect_overscaled`. This catches double-multiplication errors (e.g., millions multiplied by millions).
+
+### 9.4 Under-Scale Trigger Condition
+
+Under-scale triggers only when **all** checked metrics are below their thresholds -- not just one. A single small metric (e.g., low EBIT for a breakeven company) is legitimate. The gate requires unanimous failure across all non-None metrics to flag.
+
+### 9.5 Integration Point
+
+The scale validation result is stored in `payload["scale_validation"]`. When the verdict is not `"pass"`, the extraction is logged with a warning and the payload is prevented from entering the database, protecting downstream analysis from corrupted inputs.
+
+---
+
+## 10. Watchlist Scanner
+
+### 10.1 Purpose
+
+The `WatchlistScanner` (`watchlist_scanner.py`, 190 lines) reads on-disk analysis artifacts for a set of watchlist tickers and generates structured alerts. It has no database dependency -- it operates purely on JSON artifact files produced by the analysis modules.
+
+### 10.2 WatchlistAlert Dataclass
+
+```python
+@dataclass(frozen=True)
+class WatchlistAlert:
+    ticker: str
+    alert_type: str      # criteria_met | criteria_violated | new_risk | catalyst_approaching
+    severity: str        # info | warning | action_required
+    title: str
+    detail: str
+    source_module: str
+    evidence: dict[str, Any]
+```
+
+### 10.3 Alert Rules (7 rules)
+
+| Rule | Source Module | Trigger | Severity |
+|------|-------------|---------|----------|
+| Leverage risk | balance_sheet | `leverage_risk` is `high` or `critical` | warning / action_required |
+| FCF coverage | balance_sheet | `fcf_coverage_signal` is `none` or `weak` | warning |
+| Valuation entry | valuation | `composite_signal` is `cheap` or any individual signal is `cheap` | info |
+| Risk score | risk | `risk_score` > 70 | warning (<=85) / action_required (>85) |
+| Near-term catalyst | catalysts | Catalyst with `timeframe=near_term` and `impact_direction=positive` | info |
+| No moat (buy only) | moat | `moat_classification` is `none` on a buy-rated ticker | warning |
+| ROIC below hurdle (buy only) | roic | `roic_above_10pct` is `False` on a buy-rated ticker | warning |
+
+### 10.4 Strategy Decision Integration
+
+The scanner accepts an optional `decisions` dict mapping tickers to strategy decisions (e.g., `{"BHP": "buy", "NAB": "watchlist"}`). Two rules (moat, ROIC) only fire for tickers with a `"buy"` decision, implementing buy-specific quality gates:
+
+- **No moat on buy:** Warns when a buy-rated ticker has `moat_classification=none`, flagging potential quality concerns
+- **ROIC below 10% on buy:** Warns when a buy-rated ticker fails the 10% ROIC hurdle, indicating the company may not earn its cost of capital
+
+### 10.5 Scanner API
+
+```python
+class WatchlistScanner:
+    def scan(
+        self,
+        watchlist_tickers: list[str],
+        *,
+        reports_root: str | None = None,
+        decisions: dict[str, str] | None = None,
+    ) -> list[WatchlistAlert]: ...
+
+    def scan_ticker(
+        self,
+        ticker: str,
+        *,
+        reports_root: str | None = None,
+        decision: str = "",
+    ) -> list[WatchlistAlert]: ...
+```
+
+`scan()` iterates all tickers and returns a combined alert list. `scan_ticker()` reads artifacts for a single ticker from `{reports_root}/analysis/{ticker}/{module}.json` and applies all 7 rules.
+
+---
+
+## 11. API Endpoints
+
+### 11.1 Analysis API Router
+
+**File:** `backend/app/api/analysis.py` (172 lines)
+**Router prefix:** `/api`
+**Authentication:** All endpoints require `require_api_key` dependency.
+
+### 11.2 POST /api/analysis/{ticker}
+
+**Purpose:** Run analysis modules for a ticker and return per-module results.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `ticker` | path | required | ASX ticker code (case-insensitive, uppercased internally) |
+| `modules` | query | all | Comma-separated module names to run (e.g., `balance_sheet,roic`) |
+
+**Behavior:**
+1. Parses and validates requested module names against the known set
+2. Creates an `AnalysisOrchestrator` with LLM config from settings
+3. Merges `ContextRequest` from requested modules
+4. Loads `TickerContext` via `TickerContextLoader` (including Yahoo Finance price fallback)
+5. Runs requested modules (or all if none specified)
+6. Returns `AnalysisRunResponse` with per-module results
+
+**Response shape:**
+```json
+{
+  "ticker": "BHP",
+  "modules_run": 7,
+  "results": [
+    {
+      "module": "balance_sheet",
+      "completeness": "complete",
+      "structured": { ... },
+      "warnings": []
+    }
+  ]
+}
+```
+
+### 11.3 GET /api/analysis/{ticker}
+
+**Purpose:** Read the latest on-disk artifacts for a ticker without re-running modules.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `ticker` | path | required | ASX ticker code |
+
+**Behavior:** Reads `{module_name}.json` files from `reports/analysis/{ticker}/` for all known modules and returns those that exist.
+
+**Response shape:**
+```json
+{
+  "ticker": "BHP",
+  "modules_found": 7,
+  "artifacts": {
+    "balance_sheet": { ... },
+    "roic": { ... }
+  }
+}
+```
+
+---
+
+## 12. Extraction Expansion
+
+### 12.1 New Columns
+
+Two columns have been added to `asx_periodic_financials` (migration `0005_add_total_equity_interest_expense.py`):
+
+| Column | Type | Purpose |
+|--------|------|---------|
+| `total_equity` | `Numeric`, nullable | Book equity for ROIC invested capital (replaces market-cap proxy) |
+| `interest_expense` | `Numeric`, nullable | Interest expense for interest coverage ratio computation |
+
+### 12.2 What They Unlock
+
+- **Full ROIC calculation:** With `total_equity` available, the ROIC module can compute invested capital as `total_equity + net_debt` (book-value IC) instead of the market-cap proxy (`price * shares + net_debt`). This eliminates the dependency on price data for ROIC and produces a more traditional IC figure.
+- **Interest coverage ratio:** `interest_expense` enables computation of `ebit / interest_expense`, a key debt serviceability metric that complements the existing `net_debt_to_ebit` leverage ratio in the balance sheet module.
+
+### 12.3 Backward Compatibility
+
+Both columns are nullable. Existing rows without these values continue to work. The ROIC module falls back to the market-cap proxy when `total_equity` is not available (same behavior as before the migration). The extraction pipeline will populate these fields as they are encountered in ASX filings.
+
+---
+
+## 13. Data Gaps and Future Work
+
+### 13.1 Missing Extraction Fields
 
 | Field | Impact | Workaround |
 |-------|--------|------------|
-| `total_equity` | ROIC uses market-cap proxy instead of book IC | Awaiting extraction schema extension |
-| `interest_expense` | Cannot compute interest coverage ratio | Not extracted from ASX filings yet |
+| ~~`total_equity`~~ | ~~ROIC uses market-cap proxy instead of book IC~~ | **Added** in migration 0005 (see section 12) |
+| ~~`interest_expense`~~ | ~~Cannot compute interest coverage ratio~~ | **Added** in migration 0005 (see section 12) |
 | `depreciation_amortization` | Cannot compute EBITDA-based multiples | Not extracted from ASX filings yet |
 | `total_assets` | Cannot compute ROA | Not extracted from ASX filings yet |
 | `dividends_paid` | Cannot compute payout ratio or dividend yield | Not extracted from ASX filings yet |
 
-### 8.2 Deferred Capabilities
+### 13.2 Deferred Capabilities
 
 | Capability | Status | Dependency |
 |------------|--------|------------|
 | **Peer comparison** | Deferred | Requires sector classification and cross-ticker analysis. Modules are per-ticker only. |
 | **DCF valuation** | Deferred | Requires reliable multi-year projections or analyst consensus data. |
 | **WACC estimation** | Deferred | Requires risk-free rate, beta, market risk premium, cost of debt inputs. |
-| **Sentiment module** | Proposed in roadmap | Requires news substrate (Phase 1) and sentiment model. |
+| ~~**Sentiment module**~~ | ~~Proposed in roadmap~~ | **Implemented** as SentimentModule (see section 3.7). VADER + financial keyword boosting. |
 | **Quality score module** | Proposed in roadmap | Composite quality metric from existing module signals. |
 | **Autonomous dev optimization** | Deferred | Requires eval harness. See [14_roadmap_and_modules.md](14_roadmap_and_modules.md). |
 
-### 8.3 Portfolio Module Integration (Phase 4)
+### 13.3 Portfolio Module Integration (Phase 4)
 
 The analysis artifacts are designed to be consumed by a future portfolio module (Phase 4). The module will read `reports/analysis/{ticker}/*.json` artifacts and produce exposure, correlation, and position sizing reports under `reports/portfolio/`. The `ArtifactSet` schema, `Completeness` enum, and evidence chains are designed to support this consumption pattern.
 
-### 8.4 D2 Cache Layer
+### 13.4 D2 Cache Layer
 
 A prompt-hash-based cache layer for D2 LLM calls is not yet implemented. The infrastructure is in place (`Narrative.prompt_hash`, `Narrative.cached` flag) but no cache store exists. When implemented, it should:
 - Key on `(ticker, module_name, prompt_hash, model_id)`
@@ -828,26 +1107,36 @@ A prompt-hash-based cache layer for D2 LLM calls is not yet implemented. The inf
 
 ---
 
-## 9. File Reference Table
+## 14. File Reference Table
 
 | File | Role | Lines |
 |------|------|------:|
 | `__init__.py` | Package docstring | 5 |
 | `base.py` | Protocol contract, Completeness, EvidenceItem, Narrative, ArtifactSet, ModuleHelpers | 188 |
 | `ticker_context.py` | TickerContext and all input dataclasses (PeriodMetrics, TrendMetrics, FinancialSummary, RiskNote, DocumentRef, PriceSnapshot, RAGHit, RAGResult, ContextRequest) | 228 |
-| `context_loader.py` | TickerContextLoader: DB queries, metric computation, RAG execution, context assembly | 228 |
+| `context_loader.py` | TickerContextLoader: DB queries, Yahoo Finance fallback, metric computation, RAG execution, context assembly | 303 |
 | `math_utils.py` | Null-safe math: ratio, pct_change, safe_sub/add/mul, mean, stdev, linear_slope, classify_direction | 156 |
 | `artifacts.py` | Atomic artifact writing, serialization, git metadata, read_artifact | 149 |
 | `orchestrator.py` | AnalysisOrchestrator, tier execution, analyse_ticker() entry point, context request merging | 209 |
 | `balance_sheet.py` | D1 balance sheet: leverage, liquidity, FCF, trajectory, signals | 285 |
 | `roic.py` | D1 ROIC: pre-tax/post-tax ROIC, IC proxy, capital turnover, trend | 218 |
 | `valuation.py` | D1 valuation: 12 multiples, signal classification, composite signal | 211 |
+| `sentiment.py` | D1 sentiment: VADER + financial keyword boosting, passage scoring, category aggregation | 247 |
 | `risk.py` | Hybrid risk: stress signals, risk score, trajectory, D2 prioritization | 335 |
 | `catalysts.py` | Hybrid catalysts: guidance, momentum, D2 catalyst identification | 283 |
 | `moat.py` | Hybrid moat: 6 D1 signals, Morningstar 5-source D2, structural validation | 292 |
-| **Total** | | **2,787** |
+| `watchlist_scanner.py` | WatchlistScanner: 7 alert rules, artifact-based scanning, strategy decision gates | 190 |
+| **Total** | | **3,299** |
 
-All files are in `financial-engine_v2/backend/app/modules/`.
+Additional files outside `modules/`:
+
+| File | Role | Lines |
+|------|------|------:|
+| `backend/app/api/analysis.py` | API endpoints: POST (run modules) and GET (read artifacts) for `/api/analysis/{ticker}` | 172 |
+| `backend/app/models/asx_financials.py` | SQLAlchemy models: ASXPeriodicFinancial (incl. total_equity, interest_expense), ASXRiskNote | 38 |
+| `backend/app/alembic/versions/0005_add_total_equity_interest_expense.py` | Migration adding total_equity and interest_expense columns | -- |
+
+All module files are in `financial-engine_v2/backend/app/modules/`.
 
 Test file: `financial-engine_v2/backend/tests/test_analysis_modules.py` (43 tests).
 
