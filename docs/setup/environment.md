@@ -28,6 +28,12 @@ The active runtime is `financial-engine_v2`. The canonical env file lives at `fi
 | `ANTHROPIC_API_KEY` | _(unset)_ | Anthropic API key for the cockpit `AnthropicClient`. Required only when `HYBRID_ROUTER_POLICY` is `api_preferred` or `api_only`. The router never calls the Anthropic API unless this is set **and** the policy allows it. |
 | `BRAVE_SEARCH_API_KEY` | _(unset)_ | Brave Search API key for the cockpit `search_web` tool. When set, the cockpit uses Brave for web search (higher quality, structured results). When absent, falls back to DuckDuckGo via `WebFetcher`. Free tier: 2,000 queries/month at [brave.com/search/api](https://brave.com/search/api/). |
 
+## .env loading
+
+Both the **backend** (via pydantic-settings) and the **cockpit** (via `cockpit/main.py`) load `financial-engine_v2/.env` at startup. Shell environment variables take precedence — `.env` only fills in keys not already set.
+
+The cockpit loads `.env` from its own repo root (`financial-engine_v2/.env`) before any config or TUI initialization. This is the canonical place to set `ANTHROPIC_API_KEY`, `BRAVE_SEARCH_API_KEY`, `LLM_API_KEY`, and other secrets that both the backend and cockpit need.
+
 ## Copy the template
 
 ```bash

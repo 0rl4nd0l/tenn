@@ -283,6 +283,28 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 
 ---
 
+## L027 — Cockpit never loaded .env; all API keys silently missing
+
+**Date:** 2026-03-28
+**Subsystem:** `cockpit/main.py`, cockpit startup path
+**Symptom:** Cockpit chat routing always fell back to local llama.cpp despite `ANTHROPIC_API_KEY` being set in `.env`. Brave Search returned auth errors. LLM calls to `172.18.0.1:8001` (Docker bridge) failed with 401 because `LLM_API_KEY` was not in the environment. Extraction actions failed with "Connection refused" because `LLAMACPP_URL` defaulted to `localhost:8001` instead of the configured Docker bridge IP.
+**Root cause:** The cockpit entrypoint (`cockpit/main.py`) had no `load_dotenv()` or `.env` parsing. The `.env` file at `financial-engine_v2/.env` was only loaded by the backend (pydantic-settings) and Docker Compose. The cockpit process inherited only shell-exported env vars, which typically included none of the keys in `.env`.
+**Fix:** Added `_load_env()` to `cockpit/main.py` — loads `financial-engine_v2/.env` at startup using `python-dotenv` if available, with a stdlib fallback parser. Shell env vars take precedence (override=False).
+**Rule:** Any new entrypoint (CLI script, TUI, worker) that reads env vars must explicitly load `.env` at startup. Do not assume the parent shell has sourced it. Add a `load_dotenv()` or equivalent as the first action in `main()`.
+
+---
+
+## L028 — Chat routing metadata silently discarded; no per-response backend visibility
+
+**Date:** 2026-03-28
+**Subsystem:** `cockpit/core/agent_loop.py`, `cockpit/core/chat.py`, `cockpit/ui/app.py`
+**Symptom:** The user had no way to tell whether Claude API or local llama.cpp answered a cockpit chat message. The HybridRouter tracked source, model, latency, and cost, but `AgentLoop._call_llm()` returned only the text string — all routing metadata was discarded.
+**Root cause:** `HybridRouter.chat()` collapses `RouterResponse` to a plain `str` for interface compatibility with `AgentLoop`. The rich response data existed in `HybridRouter.cost_log()` but no code read it after agent loop completion.
+**Fix:** Added `routing_metadata` field to `AgentResult` and `ChatResponse`. After `AgentLoop.run()` completes, `ChatController` reads the last `cost_log()` entry from the stored `_hybrid_router` reference and attaches it. The UI displays a routing footer and includes the metadata in export payloads.
+**Rule:** When adding a new metadata source to the LLM call path, ensure it propagates all the way to the UI layer. Use post-hoc log reading (like `cost_log()`) rather than refactoring return types when the metadata producer is already accumulating the data.
+
+---
+
 ## L026 — Shared httpx.Client across threads wedges llama-server sockets; gpu guard must parse VRAM as digits
 
 **Date:** 2026-03-28

@@ -4,7 +4,7 @@
 > Update this file at the end of every session alongside the milestone commit.
 > For detailed context on any item, follow the linked doc or run `git log --oneline`.
 
-Last updated: 2026-03-28 (sessions — llama HTTP client thread safety + L026)
+Last updated: 2026-03-28 (sessions — cockpit routing visibility + extraction guard + .env fix)
 Branch: cloud/session-20260319
 
 ## Legend
@@ -31,6 +31,7 @@ Branch: cloud/session-20260319
 | **cockpit-agent** | `[ verified ]` | Agent mode + ToolExecutor verified via Textual Pilot 2026-03-27: all 7 checks PASS, 217 unit tests. |
 | **cockpit-strategy** | `[ verified ]` | Strategy schema (d173a8da): global + ticker criteria tables, StrategyService, /strategy commands, natural language rules, context injection. 10 tests. |
 | **cockpit-sourcing** | `[ verified ]` | Evidence sourcing (2e9c3ddb): SourcesFormatter, sources metadata in gather_local_context, /sources on\|off toggle. 6 tests. |
+| **cockpit-routing** | `[ verified ]` | Chat routing visibility + extraction guard (f037aa09): per-response footer [backend\|model\|latency\|cost], extraction pre-flight guard with auto-model-load via router API, `.env` loading fixed in cockpit entrypoint. L027+L028. |
 | **gpu-process-rails** | `[ verified ]` | Canonical port manifest (§9.4), agent spawn protocol (§9.5), `gpu_process_guard.sh`, `llamacpp_manager.py` topology check. L022 logged. |
 
 ---
@@ -74,6 +75,7 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 | Commit | Workstream | Summary |
 |--------|------------|---------|
 | 3a168c71 | ci | GitHub Actions: ruff + pytest with root `pytest.ini` (`live_eval` deselected); Qdrant/transcript tests aligned to commentary staging gate; `commentary_ingest` unused imports removed. |
+| (this session) | cockpit-routing | Chat routing visibility: per-response `[Claude API | model | latency | cost]` footer; extraction pre-flight guard with auto-model-load; `.env` loading in cockpit entrypoint (L027+L028). Renamed `model.gguf` → `mistral-7b-instruct-v0.2-q4_k_m.gguf`. |
 | (this session) | cockpit-llm-client | Thread-local httpx + timeouts/limits for LlamaCpp/Ollama clients; `gpu_process_guard.sh` VRAM parse hardening; L026 in lessons.md. Reduces CLOSE_WAIT risk when health runs via `to_thread` during chat. |
 | 2e9c3ddb | cockpit-sourcing | Evidence sourcing: SourcesFormatter footer (RAG hits, financial periods, dossier/strategy counts), /sources on\|off, show_sources preference. 6 tests. |
 | d173a8da | cockpit-strategy | Strategy workshopping schema: global_strategy + ticker_strategy tables, StrategyService, /strategy list\|add\|decide\|delete, natural language routing, context injection above dossier. 10 tests. |
