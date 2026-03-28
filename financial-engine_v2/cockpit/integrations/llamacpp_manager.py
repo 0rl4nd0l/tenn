@@ -7,7 +7,23 @@ import subprocess
 import time
 import urllib.error
 import urllib.request
+from dataclasses import asdict, dataclass
 from pathlib import Path
+
+
+@dataclass(frozen=True)
+class RouterCapabilityState:
+    active_mode: str
+    router_supported: bool
+    router_configured: bool
+    router_api_reachable: bool
+    candidate_server_count: int
+    selected_server_port: str
+    selected_server_pid: int | None
+    reason: str = ""
+
+    def as_dict(self) -> dict[str, object]:
+        return asdict(self)
 
 
 def find_llama_server_process() -> dict | None:
@@ -21,6 +37,75 @@ def find_llama_server_process() -> dict | None:
     """
     procs = find_all_llama_server_processes()
     return procs[0] if procs else None
+
+
+def _binary_supports_models_dir(binary: str) -> bool:
+    try:
+        result = subprocess.run(
+            [binary, "--help"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except Exception:
+        return False
+    return "models-dir" in f"{result.stdout}\n{result.stderr}"
+
+
+def probe_router_capability(
+    proc_info: dict | None,
+    *,
+    host: str = "127.0.0.1",
+    port: str = "8001",
+    api_key: str = "",
+    candidate_processes: list[dict] | None = None,
+) -> RouterCapabilityState:
+    processes = list(candidate_processes if candidate_processes is not None else find_all_llama_server_processes())
+    router_configured = str(os.getenv("LLAMA_SERVER_ROUTER_MODE", "0")).strip() == "1"
+    selected_port = str((proc_info or {}).get("port") or port or "8001")
+    selected_pid = (proc_info or {}).get("pid")
+
+    if proc_info is None:
+        return RouterCapabilityState(
+            active_mode="router_mode_unavailable",
+            router_supported=False,
+            router_configured=router_configured,
+            router_api_reachable=False,
+            candidate_server_count=len(processes),
+            selected_server_port=selected_port,
+            selected_server_pid=None,
+            reason="llama_server_not_running",
+        )
+
+    binary = str(proc_info.get("binary") or "").strip()
+    router_supported = bool(binary) and _binary_supports_models_dir(binary)
+    router_api_reachable = is_router_mode(host, selected_port, api_key) if router_supported else False
+
+    if proc_info.get("router_mode"):
+        if router_api_reachable:
+            active_mode = "router_mode_active"
+            reason = ""
+        else:
+            active_mode = "router_mode_degraded"
+            reason = "router_process_detected_but_api_shape_missing"
+    elif router_supported:
+        active_mode = "router_mode_available_not_active"
+        reason = "router_supported_but_single_model_running"
+    else:
+        active_mode = "single_model_active"
+        reason = "binary_missing_models_dir_support"
+
+    return RouterCapabilityState(
+        active_mode=active_mode,
+        router_supported=router_supported,
+        router_configured=router_configured,
+        router_api_reachable=router_api_reachable,
+        candidate_server_count=len(processes),
+        selected_server_port=selected_port,
+        selected_server_pid=int(selected_pid) if selected_pid is not None else None,
+        reason=reason,
+    )
 
 
 def find_all_llama_server_processes() -> list[dict]:

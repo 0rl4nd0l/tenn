@@ -24,6 +24,7 @@ from cockpit.integrations.llamacpp_manager import (
     has_no_mmap,
     list_models_api,
     models_dir_from_process,
+    probe_router_capability,
     restart_into_router_mode,
     restart_with_model,
     switch_model,
@@ -285,6 +286,7 @@ class PreBootScreen(Screen):
         # llama.cpp process info + discovered models (populated after health checks).
         self._llama_proc: dict | None = None
         self._llama_fs_models: list[dict] = []
+        self._router_capability: dict[str, Any] | None = None
 
     def compose(self) -> ComposeResult:
         with Vertical(id="preboot-root"):
@@ -394,15 +396,42 @@ class PreBootScreen(Screen):
 
             self._llama_fs_models = merged
 
+            host = _extract_arg(self._llama_proc.get("raw_args", []), ("--host",)) or "127.0.0.1"
+            port = _extract_arg(self._llama_proc.get("raw_args", []), ("--port",)) or "8001"
+            api_key = _extract_arg(self._llama_proc.get("raw_args", []), ("--api-key",))
+            self._router_capability = probe_router_capability(
+                self._llama_proc,
+                host=host,
+                port=port,
+                api_key=api_key,
+            ).as_dict()
+        else:
+            self._router_capability = probe_router_capability(None).as_dict()
+
         self._render_health()
+
+    def _router_mode_tag(self) -> str:
+        capability = dict(self._router_capability or {})
+        active_mode = str(capability.get("active_mode") or "").strip()
+        if active_mode == "router_mode_active":
+            return "  (router active)"
+        if active_mode == "router_mode_available_not_active":
+            return "  (router available)"
+        if active_mode == "router_mode_degraded":
+            return "  (router degraded)"
+        if active_mode == "router_mode_unavailable":
+            return "  (router unavailable)"
+        if self._llama_proc:
+            return "  (single-model)"
+        return ""
 
     def _render_health(self) -> None:
         log = self.query_one("#health-log", RichLog)
         log.clear()
         for svc in self._checks:
             mode_tag = ""
-            if svc.name == "llama.cpp" and self._llama_proc:
-                mode_tag = "  (router)" if self._llama_proc.get("router_mode") else "  (single-model)"
+            if svc.name == "llama.cpp":
+                mode_tag = self._router_mode_tag()
             log.write(f"  {_STATUS_ICON[svc.status]}  {svc.name:<16} {svc.detail}{mode_tag}")
         self._refresh_llm_widgets()
 
