@@ -1129,6 +1129,22 @@ main { max-width: 1200px; margin: 0 auto; padding: 32px; }
 .svc-dot.down { background: var(--critical); box-shadow: 0 0 6px var(--critical); }
 .svc-latency { color: var(--muted); font-size: 11px; margin-top: 4px; }
 .svc-detail { color: var(--muted); font-size: 11px; margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.cap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.cap-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+.cap-card.available { border-left: 3px solid var(--ok); }
+.cap-card.blocked { border-left: 3px solid var(--warning); }
+.cap-card.disabled { border-left: 3px solid var(--muted); }
+.cap-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; text-transform: capitalize; }
+.cap-status { font-size: 12px; display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.cap-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.cap-dot.available { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+.cap-dot.blocked { background: var(--warning); box-shadow: 0 0 6px var(--warning); }
+.cap-dot.disabled { background: var(--muted); }
+.cap-detail { color: var(--muted); font-size: 11px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+.proposal-list { display: grid; gap: 12px; margin-bottom: 24px; }
+.proposal-card { background: var(--surface); border: 1px solid rgba(210,153,34,.35); border-radius: 8px; padding: 14px 16px; }
+.proposal-title { font-weight: 600; margin-bottom: 6px; }
+.proposal-detail { color: var(--muted); font-size: 12px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
 
 .git-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px;
   display: flex; gap: 24px; align-items: center; margin-bottom: 32px; flex-wrap: wrap; }
@@ -1331,7 +1347,10 @@ main { max-width: 1200px; margin: 0 auto; padding: 32px; }
   <div class="svc-grid" id="svc-grid"></div>
 
   <div class="section-title">Backend Capabilities</div>
-  <div class="svc-grid" id="cap-grid"></div>
+  <div class="cap-grid" id="cap-grid"></div>
+
+  <div class="section-title">Backend Proposals</div>
+  <div class="proposal-list" id="proposal-list"></div>
 
   <div class="section-title">Top Processes by Memory</div>
   <table class="proc-table" id="proc-table">
@@ -1954,6 +1973,7 @@ async function loadSystem() {
   } catch (e) {
     document.getElementById('svc-grid').textContent = 'Failed to load system status';
     document.getElementById('cap-grid').textContent = '';
+    document.getElementById('proposal-list').textContent = '';
   }
 }
 
@@ -2174,7 +2194,9 @@ function renderServices(services) {
 
 function renderBackendCapabilities(snapshot) {
   var grid = document.getElementById('cap-grid');
+  var proposalList = document.getElementById('proposal-list');
   grid.textContent = '';
+  proposalList.textContent = '';
   if (!snapshot || !snapshot.ok) {
     grid.textContent = snapshot && snapshot.error ? snapshot.error : 'Backend capability snapshot unavailable';
     return;
@@ -2184,33 +2206,66 @@ function renderBackendCapabilities(snapshot) {
   Object.keys(features).forEach(function(name) {
     var item = features[name] || {};
     var card = document.createElement('div');
-    card.className = 'svc-card ' + (item.available ? 'up' : (item.configured ? 'down' : 'warn'));
-
-    var icon = document.createElement('div');
-    icon.className = 'svc-icon';
-    icon.textContent = item.available ? '✓' : (item.configured ? '!' : '·');
+    card.className = 'cap-card ' + (item.status || 'blocked');
 
     var title = document.createElement('div');
-    title.className = 'svc-name';
+    title.className = 'cap-name';
     title.textContent = name;
 
     var status = document.createElement('div');
-    status.className = 'svc-status';
+    status.className = 'cap-status';
     var dot = document.createElement('span');
-    dot.className = 'svc-dot ' + (item.available ? 'up' : 'down');
+    dot.className = 'cap-dot ' + (item.status || 'blocked');
     status.appendChild(dot);
     status.appendChild(document.createTextNode(item.status || 'unknown'));
+    if (item.configured === false) {
+      var cfg = document.createElement('span');
+      cfg.style.cssText = 'margin-left:auto;color:var(--muted)';
+      cfg.textContent = 'not configured';
+      status.appendChild(cfg);
+    }
 
     var detail = document.createElement('div');
-    detail.className = 'svc-detail';
+    detail.className = 'cap-detail';
     var blockers = item.blockers || [];
-    detail.textContent = blockers.length ? blockers.join(', ') : 'no blockers';
+    var detailLines = [];
+    if (blockers.length) detailLines.push('Blockers: ' + blockers.join(', '));
+    if (item.details && item.details.model) detailLines.push('Model: ' + item.details.model);
+    if (item.details && item.details.runtime_url) detailLines.push('Runtime: ' + item.details.runtime_url);
+    if (item.details && item.details.collection) detailLines.push('Collection: ' + item.details.collection);
+    if (!detailLines.length) detailLines.push('No blockers');
+    detail.textContent = detailLines.join('\n');
 
-    card.appendChild(icon);
     card.appendChild(title);
     card.appendChild(status);
     card.appendChild(detail);
     grid.appendChild(card);
+  });
+
+  var proposals = payload.proposals || [];
+  if (!proposals.length) {
+    proposalList.innerHTML = '<div class="no-data">No backend remediation proposals</div>';
+    return;
+  }
+  proposals.forEach(function(proposal) {
+    var card = document.createElement('div');
+    card.className = 'proposal-card';
+
+    var title = document.createElement('div');
+    title.className = 'proposal-title';
+    title.textContent = proposal.summary || proposal.id || 'Proposal';
+
+    var detail = document.createElement('div');
+    detail.className = 'proposal-detail';
+    var lines = [];
+    if (proposal.target) lines.push('Target: ' + proposal.target);
+    if (proposal.blocker) lines.push('Blocked by: ' + proposal.blocker);
+    if (proposal.requires_confirmation) lines.push('Requires confirmation: yes');
+    detail.textContent = lines.join('\n');
+
+    card.appendChild(title);
+    card.appendChild(detail);
+    proposalList.appendChild(card);
   });
 }
 
