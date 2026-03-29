@@ -123,10 +123,12 @@ class ChatController:
         state_store=None,
         thread_id: str = "global-main",
         memory_store=None,
+        cockpit_llm: dict[str, Any] | None = None,
     ) -> None:
         self.ollama_client = ollama_client
         self.tool_router = tool_router
         self.action_registry = action_registry
+        self._cockpit_llm: dict[str, Any] = dict(cockpit_llm or {})
         self.llm_timeout_seconds = float(llm_timeout_seconds)
         self.last_ticker: str | None = None
         self._state_store = state_store
@@ -161,7 +163,13 @@ class ChatController:
                 if os.environ.get("ANTHROPIC_API_KEY"):
                     try:
                         from cockpit.core.agent.anthropic_client import AnthropicClient
-                        api_client = AnthropicClient()
+
+                        defaults = self._cockpit_llm.get("defaults") if isinstance(self._cockpit_llm.get("defaults"), dict) else {}
+                        anthropic_model = (
+                            os.environ.get("ANTHROPIC_MODEL", "").strip()
+                            or str(defaults.get("anthropic_model") or "").strip()
+                        )
+                        api_client = AnthropicClient(model=anthropic_model) if anthropic_model else AnthropicClient()
                     except Exception as exc:
                         logger.warning("AnthropicClient init failed: %s", exc)
 
@@ -170,7 +178,10 @@ class ChatController:
                 hybrid_router = HybridRouter(
                     llm_client=ollama_client,
                     api_client=api_client,
-                    policy=resolve_hybrid_router_policy(api_available=api_client is not None),
+                    policy=resolve_hybrid_router_policy(
+                        api_available=api_client is not None,
+                        cockpit_llm=self._cockpit_llm,
+                    ),
                     llm_timeout=self.llm_timeout_seconds,
                 )
                 self._hybrid_router = hybrid_router
@@ -253,7 +264,7 @@ class ChatController:
                 logger.info(
                     "Agent loop initialised (mode=structured, policy=%s, profile=%s, api=%s)",
                     hybrid_router._policy,
-                    cockpit_llm_profile_label(),
+                    cockpit_llm_profile_label(self._cockpit_llm),
                     "available" if api_client else "none",
                 )
             except ImportError:

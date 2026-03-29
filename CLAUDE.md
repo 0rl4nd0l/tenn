@@ -293,6 +293,7 @@ If a proposed change would touch more than ~300 lines or more than 5 files simul
 | Slash commands | [docs/claude/commands.md](docs/claude/commands.md) |
 | Active workstream tracker | [docs/claude/STATE.md](docs/claude/STATE.md) |
 | Analysis modules (Phase 3) | [docs/architecture/17_analysis_modules.md](docs/architecture/17_analysis_modules.md) |
+| Cockpit memory system | [docs/architecture/18_cockpit_memory.md](docs/architecture/18_cockpit_memory.md) |
 | Claude-normalized guide | [docs/claude/README.md](docs/claude/README.md) |
 
 ---

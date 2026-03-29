@@ -27,5 +27,6 @@ Overview of the architecture docs in this folder and what each covers.
 | [15_news_substrate.md](15_news_substrate.md) | Canonical news substrate: one RAG DB, layers, orchestrator, verification |
 | [16_currency_and_fx_policy.md](16_currency_and_fx_policy.md) | Currency and FX handling: current ok_low_confidence gate, what changes downstream, roadmap for FX conversion |
 | [17_analysis_modules.md](17_analysis_modules.md) | Phase 3 analysis modules: 6-module architecture (balance_sheet, ROIC, valuation, risk, catalysts, moat), Protocol contract, D1/D2 layers, orchestration, data flow, quality assurance |
+| [18_cockpit_memory.md](18_cockpit_memory.md) | Cockpit memory system: 5 storage layers, context assembly flow, session lifecycle, ticker intelligence model, retention policy |
 
 Numbering is historical: both `11_engineering_discipline.md` and `11_rebuild_and_recovery.md` are active.

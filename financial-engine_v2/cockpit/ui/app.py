@@ -86,7 +86,7 @@ class CockpitApp(App):
         margin: 0 0 1 0;
     }
     #chat-model-status {
-        height: 5;
+        height: 8;
         border: round $primary;
         padding: 0 1;
         margin: 0 0 1 0;
@@ -230,6 +230,7 @@ class CockpitApp(App):
             llm_timeout_seconds=float(config.get("llm", {}).get("timeout_seconds", 300)),
             state_store=self.state_store,
             thread_id="global-main",
+            cockpit_llm=config.get("cockpit_llm"),
         )
 
         self.thread_id = "global-main"
@@ -246,6 +247,7 @@ class CockpitApp(App):
         self.active_job_id: str | None = None
         self.active_log_target: str = "chat-log"
         self._model_status_timer = None
+        self._last_chat_inference_line: str | None = None
         self._chat_tasks: set[asyncio.Task[None]] = set()
 
     def _normalize_database_url(self, database_url: str) -> str:
@@ -293,6 +295,8 @@ class CockpitApp(App):
         hybrid_router = getattr(chat_ctrl, "_hybrid_router", None) if chat_ctrl else None
         from cockpit.core.llm_profile import cockpit_llm_profile_label
 
+        cm = self.config.get("cockpit_llm") or {}
+        allow_env = bool(cm.get("allow_env_override", False))
         explicit = (os.environ.get("HYBRID_ROUTER_POLICY") or "").strip()
         return {
             "backend_api": self._backend_client is not None,
@@ -303,42 +307,28 @@ class CockpitApp(App):
             "deep_research": getattr(self.tool_router, "deep_research_runner", None) is not None,
             "anthropic_api": hybrid_router is not None and hybrid_router._api is not None,
             "routing_policy": hybrid_router._policy if hybrid_router else "not initialized",
-            "llm_profile": cockpit_llm_profile_label(),
-            "llm_profile_id": (os.environ.get("COCKPIT_LLM_PROFILE") or "ops").strip().lower(),
-            "explicit_policy_override": explicit or None,
+            "llm_profile": cockpit_llm_profile_label(cm),
+            "llm_profile_id": str(cm.get("llm_profile_label") or "ops").strip().lower(),
+            "explicit_policy_override": (explicit or None) if allow_env else None,
             "session_cost_usd": hybrid_router.total_cost_usd() if hybrid_router else 0.0,
+            "cockpit_llm_config_path": str(self.repo_root / "config" / "cockpit_llm.yaml"),
         }
 
     def set_llm_profile(self, profile: str) -> str:
-        """Set COCKPIT_LLM_PROFILE and re-apply resolved routing (clears explicit HYBRID_ROUTER_POLICY)."""
-        chat_ctrl = getattr(self, "chat_controller", None)
-        hybrid_router = getattr(chat_ctrl, "_hybrid_router", None) if chat_ctrl else None
-        if not hybrid_router:
-            return "HybridRouter not initialized"
-        from cockpit.core.llm_profile import cockpit_llm_profile_label, resolve_hybrid_router_policy
-
-        clean = (profile or "ops").strip().lower()
-        os.environ["COCKPIT_LLM_PROFILE"] = clean
-        os.environ.pop("HYBRID_ROUTER_POLICY", None)
-        api_ok = hybrid_router._api is not None
-        hybrid_router._policy = resolve_hybrid_router_policy(api_available=api_ok)
+        """LLM profile is fixed in config/cockpit_llm.yaml (no runtime override)."""
+        _ = profile
         return (
-            f"LLM profile → {cockpit_llm_profile_label()} "
-            f"(routing {hybrid_router._policy}; API client {'yes' if api_ok else 'no'})"
+            "LLM profile is configured in config/cockpit_llm.yaml (llm_profile_label). "
+            "Edit that file and restart Cockpit to apply."
         )
 
     def set_routing_policy(self, policy: str) -> str:
-        """Change HybridRouter policy at runtime."""
-        chat_ctrl = getattr(self, "chat_controller", None)
-        hybrid_router = getattr(chat_ctrl, "_hybrid_router", None) if chat_ctrl else None
-        if not hybrid_router:
-            return "HybridRouter not initialized"
-        valid = {"local_only", "local_preferred", "api_preferred", "api_only"}
-        if policy not in valid:
-            return f"Invalid policy: {policy}. Valid: {sorted(valid)}"
-        hybrid_router._policy = policy
-        os.environ["HYBRID_ROUTER_POLICY"] = policy
-        return f"Routing policy set to {policy}"
+        """HybridRouter policy is fixed in config/cockpit_llm.yaml (no runtime override)."""
+        _ = policy
+        return (
+            "Routing policy is configured in config/cockpit_llm.yaml (hybrid_router_policy). "
+            "Edit that file and restart Cockpit to apply."
+        )
 
     def _set_access_scope(self, scope: str, enable: bool) -> str:
         normalized = str(scope or "").strip().lower()
@@ -678,7 +668,7 @@ class CockpitApp(App):
         provider = str(llm_cfg.get("provider") or "ollama")
         model = str(llm_cfg.get("model") or getattr(self.ollama_client, "model", "") or "unknown")
         endpoint = str(getattr(self.ollama_client, "base_url", "") or llm_cfg.get("ollama_url", ""))
-        provider_label = "llama.cpp"
+        provider_label = "Local llama.cpp (chat client)" if provider == "llamacpp" else "Ollama (chat client)"
 
         health, sys_metrics = await asyncio.to_thread(self._collect_runtime_snapshot, endpoint)
 
@@ -690,8 +680,18 @@ class CockpitApp(App):
             loaded = model
 
         agent_mode = os.environ.get("COCKPIT_AGENT_MODE", "keyword")
+        inference = getattr(self, "_last_chat_inference_line", None)
+        if inference is None:
+            cm_llm = self.config.get("cockpit_llm") or {}
+            pol = str(cm_llm.get("hybrid_router_policy") or "")
+            api_ok = bool(os.environ.get("ANTHROPIC_API_KEY"))
+            inference = (
+                f"Last chat inference: (none yet) — policy {pol or '?'}; "
+                f"Anthropic API key {'present' if api_ok else 'absent'}"
+            )
         lines = [
-            f"Provider: {provider_label}  |  Model Runtime: {loaded}",
+            f"Chat client: {provider_label}  |  Model runtime: {loaded}",
+            inference,
             f"Endpoint: {endpoint}",
             f"Last mode: {self.last_response_mode or 'none'}  |  Agent: {agent_mode}",
         ]
@@ -1455,12 +1455,22 @@ class CockpitApp(App):
         try:
             if response.routing_metadata:
                 meta = response.routing_metadata
-                src = "Claude API" if meta["source"] == "api" else "llama.cpp"
-                cost_str = f"${meta['cost_usd']:.4f}" if meta["cost_usd"] else "free"
+                if meta.get("source") == "api":
+                    src = "Anthropic Claude (cloud API)"
+                    self._last_chat_inference_line = (
+                        f"Last chat inference: Anthropic Claude (cloud) — model {meta.get('model', '?')}"
+                    )
+                else:
+                    src = "Local llama.cpp"
+                    self._last_chat_inference_line = (
+                        f"Last chat inference: local llama.cpp — model {meta.get('model', '?')}"
+                    )
+                cost_str = f"${meta['cost_usd']:.4f}" if meta.get("cost_usd") else "free"
                 self._append_log(
                     log,
-                    f"  [{src} | {meta['model']} | {meta['latency_ms']}ms | {cost_str}]",
+                    f"  [Inference: {src} | {meta.get('model', '?')} | {meta.get('latency_ms', '?')}ms | {cost_str}]",
                 )
+                asyncio.create_task(self._refresh_model_status_widget())
         except Exception:
             pass  # routing footer is best-effort
 

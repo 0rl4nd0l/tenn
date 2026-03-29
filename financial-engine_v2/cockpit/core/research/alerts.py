@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import tempfile
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
@@ -87,7 +89,18 @@ class AlertReader:
             except json.JSONDecodeError:
                 new_lines.append(line)
 
-        self._path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+        fd, tmp = tempfile.mkstemp(dir=str(self._path.parent), suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write("\n".join(new_lines) + "\n")
+            os.replace(tmp, str(self._path))
+        except BaseException:
+            # Clean up temp file on failure; avoid leaving orphans.
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            raise
         return updated
 
     @staticmethod

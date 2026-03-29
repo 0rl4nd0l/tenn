@@ -114,6 +114,30 @@ class CompanyDossierService:
         # Most recent first, limited.
         findings = list(reversed(findings))[:limit]
 
+        # Prepend relative-age labels so the LLM can calibrate confidence.
+        now = datetime.now(timezone.utc)
+        for f in findings:
+            ts_str = f.get("ts", "")
+            if ts_str:
+                try:
+                    ts = datetime.fromisoformat(ts_str)
+                    if ts.tzinfo is None:
+                        ts = ts.replace(tzinfo=timezone.utc)
+                    days = (now - ts).days
+                    if days < 1:
+                        label = "[today]"
+                    elif days <= 7:
+                        label = f"[{days} days ago]"
+                    elif days <= 30:
+                        label = f"[{days} days ago]"
+                    elif days <= 90:
+                        label = f"[~{days // 30} months ago]"
+                    else:
+                        label = f"[{days // 30} months ago — possibly stale]"
+                    f["finding"] = f"{label} {f.get('finding', '')}"
+                except (ValueError, TypeError):
+                    pass
+
         return {"ok": True, "ticker": ticker, "findings": findings, "total": total}
 
     def list_tickers(self) -> list[str]:

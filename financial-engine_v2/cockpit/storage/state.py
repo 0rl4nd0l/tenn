@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 import threading
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 class StateStore:
@@ -13,6 +17,7 @@ class StateStore:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
         self.conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
+        self.conn.execute("PRAGMA journal_mode=WAL")
         self.conn.row_factory = sqlite3.Row
         self._init_schema()
 
@@ -28,6 +33,9 @@ class StateStore:
                 created_at text not null
             )
             """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_chat_thread ON chat_messages(thread_id)"
         )
         cur.execute(
             """
@@ -146,6 +154,38 @@ class StateStore:
             "CREATE INDEX IF NOT EXISTS idx_ticker_strategy_ticker ON ticker_strategy(ticker)"
         )
         self.conn.commit()
+
+    # ------------------------------------------------------------------ #
+    # Retention cleanup                                                    #
+    # ------------------------------------------------------------------ #
+
+    def cleanup(
+        self,
+        *,
+        chat_days: int = 90,
+        obs_days: int = 30,
+        events_days: int = 90,
+        jobs_days: int = 90,
+        summaries_days: int = 30,
+    ) -> None:
+        """Age out stale data. Safe to call at startup."""
+        table_specs = [
+            ("chat_messages", "created_at", chat_days),
+            ("entity_observations", "created_at", obs_days),
+            ("update_events", "created_at", events_days),
+            ("jobs", "started_at", jobs_days),
+            ("session_summaries", "created_at", summaries_days),
+        ]
+        with self._lock:
+            for table, col, days in table_specs:
+                cutoff = (datetime.now() - timedelta(days=days)).isoformat()
+                cur = self.conn.execute(
+                    f"DELETE FROM {table} WHERE {col} < ?",  # noqa: S608
+                    (cutoff,),
+                )
+                if cur.rowcount:
+                    logger.info("cleanup: deleted %d rows from %s (older than %d days)", cur.rowcount, table, days)
+            self.conn.commit()
 
     def add_chat_message(self, thread_id: str, role: str, content: str, created_at: str) -> None:
         with self._lock:
