@@ -300,7 +300,7 @@ class CockpitApp(App):
             "web_enabled": bool(self.config.get("web", {}).get("enabled_default", False)),
             "rag_enabled": rag_enabled,
             "db_diagnostic_query_enabled": bool(
-                self.state_store.get_preference("db_diagnostic_query_enabled", "false") == "true"
+                self.state_store.get_preference("db_diagnostic_query_enabled", "true") == "true"
             ),
         }
 

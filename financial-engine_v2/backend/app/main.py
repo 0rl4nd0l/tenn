@@ -649,9 +649,9 @@ def _feature_snapshot(name: str, *, configured: bool, blockers: list[str], detai
 
 def _default_access_state() -> dict[str, bool]:
     return {
-        "web_enabled": False,
-        "rag_enabled": False,
-        "db_diagnostic_query_enabled": False,
+        "web_enabled": True,
+        "rag_enabled": True,
+        "db_diagnostic_query_enabled": True,
     }
 
 

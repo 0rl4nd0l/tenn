@@ -145,6 +145,18 @@ def test_system_capabilities_snapshot_marks_disabled_features(monkeypatch):
     assert payload["proposals"] == []
 
 
+def test_system_capabilities_defaults_access_to_enabled(monkeypatch):
+    monkeypatch.setattr(main, "COCKPIT_ACCESS_STATE_FILE", Path("/tmp/nonexistent-cockpit-access-state.json"))
+
+    payload = main._load_access_state()
+
+    assert payload == {
+        "web_enabled": True,
+        "rag_enabled": True,
+        "db_diagnostic_query_enabled": True,
+    }
+
+
 def test_apply_capability_proposal_starts_extraction_runtime(monkeypatch):
     launched = []
     monkeypatch.setattr(main, "PROJECT_ROOT", Path("/tmp/financial-engine_v2"))
