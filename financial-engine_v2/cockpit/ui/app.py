@@ -290,6 +290,8 @@ class CockpitApp(App):
         """Return current capability status for the settings UI."""
         chat_ctrl = getattr(self, "chat_controller", None)
         hybrid_router = getattr(chat_ctrl, "_hybrid_router", None) if chat_ctrl else None
+        from cockpit.core.llm_profile import cockpit_llm_profile_label
+
         return {
             "backend_api": self._backend_client is not None,
             "backend_url": self._backend_client.base_url if self._backend_client else None,
@@ -299,6 +301,7 @@ class CockpitApp(App):
             "deep_research": getattr(self.tool_router, "deep_research_runner", None) is not None,
             "anthropic_api": hybrid_router is not None and hybrid_router._api is not None,
             "routing_policy": hybrid_router._policy if hybrid_router else "not initialized",
+            "llm_profile": cockpit_llm_profile_label(),
             "session_cost_usd": hybrid_router.total_cost_usd() if hybrid_router else 0.0,
         }
 

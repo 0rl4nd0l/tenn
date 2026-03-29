@@ -303,6 +303,8 @@ class OperationsScreen(Screen):
         no = "-"
         lines = []
         lines.append(f"  {ok if caps.get('backend_api') else no}  Backend API   {caps.get('backend_url') or 'not configured'}")
+        prof = caps.get("llm_profile") or caps.get("routing_policy")
+        lines.append(f"  +  LLM profile   {prof}")
         lines.append(f"  {ok if caps.get('anthropic_api') else no}  Claude API    {'key loaded' if caps.get('anthropic_api') else 'no key'}")
         lines.append(f"  {ok if caps.get('brave_search') else no}  Brave Search  {'active' if caps.get('brave_search') else 'no key'}")
         lines.append(f"  {ok if caps.get('hn_search') else no}  HN Search     {'active' if caps.get('hn_search') else 'inactive'}")

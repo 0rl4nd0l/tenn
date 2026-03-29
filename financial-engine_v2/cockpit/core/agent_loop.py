@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable
@@ -40,6 +41,26 @@ if TYPE_CHECKING:
     from cockpit.integrations.llamacpp_client import LlamaCppClient
 
 logger = logging.getLogger(__name__)
+
+# Optional prefix on the user message to force cloud vs local for this turn only
+# (HybridRouter). Example: "/advisor compare BHP and CSL" → Anthropic when configured.
+_BACKEND_PREFIX = re.compile(
+    r"^\s*/(advisor|cloud|local|ops)\b\s*",
+    re.IGNORECASE,
+)
+
+
+def parse_backend_prefix(message: str) -> tuple[str | None, str]:
+    """If *message* starts with /advisor, /cloud, /local, or /ops, return (force_backend, rest)."""
+    m = _BACKEND_PREFIX.match(message)
+    if not m:
+        return None, message
+    tag = m.group(1).lower()
+    rest = message[m.end() :]
+    if tag in ("advisor", "cloud"):
+        return "api", rest
+    return "local", rest
+
 
 # ---------------------------------------------------------------------------
 # Result dataclass
@@ -158,7 +179,24 @@ class AgentLoop:
 
         Returns an ``AgentResult`` with the final text, evidence collected
         from tool calls, and optional action preview.
+
+        Prefix ``/advisor`` or ``/cloud`` forces the cloud backend for this turn
+        (when HybridRouter + API client). ``/local`` or ``/ops`` forces local.
         """
+        force_backend, message = parse_backend_prefix(message)
+        self._turn_force_backend = force_backend
+        try:
+            return self._run_inner(message, ticker, conversation_history, on_chunk)
+        finally:
+            self._turn_force_backend = None
+
+    def _run_inner(
+        self,
+        message: str,
+        ticker: str | None,
+        conversation_history: list[dict] | None,
+        on_chunk: Callable[[str], None] | None,
+    ) -> AgentResult:
         system_prompt = self._build_system_prompt()
         messages: list[dict[str, str]] = [
             {"role": "system", "content": system_prompt},
@@ -334,20 +372,23 @@ class AgentLoop:
         The user-role message is the last element; everything before it is
         passed as ``prior_messages``.
         """
+        from cockpit.core.agent.hybrid_router import HybridRouter
+
+        fb = getattr(self, "_turn_force_backend", None)
+        kwargs: dict[str, Any] = {"timeout": self._llm_timeout}
+        if fb is not None and isinstance(self._llm, HybridRouter):
+            kwargs["force_backend"] = fb
+
         if len(messages) < 2:
             # Should not happen — but be safe.
-            return self._llm.chat(
-                prompt=messages[-1]["content"],
-                timeout=self._llm_timeout,
-            )
+            kwargs["prompt"] = messages[-1]["content"]
+            return self._llm.chat(**kwargs)
 
         prior = messages[:-1]
         last_content = messages[-1]["content"]
-        return self._llm.chat(
-            prompt=last_content,
-            timeout=self._llm_timeout,
-            prior_messages=prior,
-        )
+        kwargs["prompt"] = last_content
+        kwargs["prior_messages"] = prior
+        return self._llm.chat(**kwargs)
 
     # ------------------------------------------------------------------
     # Tool execution

@@ -164,9 +164,12 @@ class ChatController:
                     except Exception as exc:
                         logger.warning("AnthropicClient init failed: %s", exc)
 
+                from cockpit.core.llm_profile import resolve_hybrid_router_policy
+
                 hybrid_router = HybridRouter(
                     llm_client=ollama_client,
                     api_client=api_client,
+                    policy=resolve_hybrid_router_policy(api_available=api_client is not None),
                     llm_timeout=self.llm_timeout_seconds,
                 )
                 self._hybrid_router = hybrid_router
@@ -244,9 +247,12 @@ class ChatController:
                     system_instruction_builder=lambda mode, ticker: self._build_system_instruction(mode, ticker, {}),
                     llm_timeout=self.llm_timeout_seconds,
                 )
+                from cockpit.core.llm_profile import cockpit_llm_profile_label
+
                 logger.info(
-                    "Agent loop initialised (mode=structured, policy=%s, api=%s)",
+                    "Agent loop initialised (mode=structured, policy=%s, profile=%s, api=%s)",
                     hybrid_router._policy,
+                    cockpit_llm_profile_label(),
                     "available" if api_client else "none",
                 )
             except ImportError:

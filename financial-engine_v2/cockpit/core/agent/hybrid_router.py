@@ -293,19 +293,30 @@ class HybridRouter:
         timeout: float = 120.0,
         prior_messages: list[dict] | None = None,
         on_chunk: Any = None,  # noqa: ARG002  (accepted for interface compat, unused)
+        force_backend: str | None = None,
     ) -> str:
         """LlamaCppClient-compatible chat interface.
 
         Builds an OpenAI-style message list and delegates to :meth:`complete`.
         Returns the plain-text response.  ``on_chunk`` is accepted for
         interface compatibility but ignored (HybridRouter does not stream).
+
+        ``force_backend`` (``\"local\"`` | ``\"api\"``) overrides policy for this call only
+        when HybridRouter is used from :class:`cockpit.core.agent_loop.AgentLoop`
+        (e.g. ``/advisor`` / ``/local`` message prefixes).  Ignored by plain
+        :class:`cockpit.integrations.llamacpp_client.LlamaCppClient`.
         """
         messages: list[dict] = []
         if prior_messages:
             messages.extend(prior_messages)
         messages.append({"role": "user", "content": prompt})
 
-        result = self._complete_with_timeout(messages, timeout=timeout, role="orchestrator")
+        result = self._complete_with_timeout(
+            messages,
+            timeout=timeout,
+            role="orchestrator",
+            force_backend=force_backend,
+        )
         return result.text
 
     def _complete_with_timeout(
