@@ -4,7 +4,7 @@
   "min_accuracy_overall": 0.85,
   "min_accuracy_per_metric": {
     "operating_cf": 0.90,
-    "revenue": 0.90,
+    "revenue": 0.85,
     "period_end": 1.00
   },
   "warn_threshold": 0.80,

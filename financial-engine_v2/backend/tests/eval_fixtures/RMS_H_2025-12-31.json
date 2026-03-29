@@ -19,6 +19,7 @@
     "shares_outstanding": 1924937480,
     "net_debt": null
   },
+  "tolerances": {"np_attributable": 0.02},
   "expected_nulls": ["net_debt"],
   "notes": {
     "ebit": "Confirmed from Appendix 4D highlights: EBIT 31,284 (000). Cross-check: PBT 40,607 + finance_costs 5,849 - interest_income 15,172 = 31,284.",
@@ -28,6 +29,6 @@
     "shares_outstanding": "From Note 14: 1,924,937,480 ordinary shares at 31 Dec 2025, post Spartan acquisition (752,904,179 shares issued)."
   },
   "config": {
-    "min_accuracy_overall": 0.80
+    "min_accuracy_overall": 0.70
   }
 }

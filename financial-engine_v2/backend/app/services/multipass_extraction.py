@@ -508,7 +508,7 @@ Rules:
   "Payments for capital expenditure", "Expenditure on mining development",
   "Expenditure on mining production and development",
   "Net investments in other assets" (banking: ANZ-style capex equivalent).
-  DO NOT use: "Net cash from investing activities", "Investing cash flow", or any
+  DO NOT use: "Net cash from investing activities", "Investing cash flow", "Capital and exploration expenditure", or any
   total/subtotal line. If only a total investing cash flow is present and no specific
   capex line exists, return null.
   Appendix 5B: if multiple capex sub-items exist (e.g. "property", "equipment",
