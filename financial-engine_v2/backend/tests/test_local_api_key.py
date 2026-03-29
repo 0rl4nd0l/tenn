@@ -25,6 +25,7 @@ def _has_api_key_dependency(route: APIRoute) -> bool:
     [
         ("/api/backfill/ticker/{ticker}", "POST"),
         ("/api/system/capabilities", "GET"),
+        ("/api/system/proposals/apply", "POST"),
         ("/api/system/status", "GET"),
         ("/api/ingest/transcript", "POST"),
         ("/api/ingest/book", "POST"),

@@ -2,6 +2,7 @@ import errno
 import logging
 import socket
 import subprocess
+import time
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
@@ -62,6 +63,10 @@ class RagQueryRequest(BaseModel):
     language: Optional[str] = None
     date_from: Optional[str] = None
     date_to: Optional[str] = None
+
+
+class CapabilityProposalApplyRequest(BaseModel):
+    proposal_id: str
 
 
 @app.post("/rag/query", dependencies=[Depends(require_api_key)])
@@ -894,6 +899,65 @@ def _system_capabilities_snapshot() -> dict[str, object]:
     }
 
 
+def _start_extraction_runtime_via_backend() -> dict[str, object]:
+    script_path = PROJECT_ROOT.parent / "scripts" / "run_llama_server.sh"
+    if not script_path.exists():
+        return {
+            "ok": False,
+            "proposal_id": "start_extraction_runtime",
+            "status": "failed",
+            "message": f"runtime launcher missing: {script_path}",
+        }
+
+    try:
+        subprocess.Popen(
+            ["bash", str(script_path)],
+            cwd=str(PROJECT_ROOT.parent),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    except Exception as exc:
+        return {
+            "ok": False,
+            "proposal_id": "start_extraction_runtime",
+            "status": "failed",
+            "message": f"failed to launch extraction runtime: {exc}",
+        }
+
+    extraction_url, extraction_model = resolve_extraction_runtime_config()
+    for _ in range(20):
+        try:
+            probe = _probe_llamacpp_runtime(extraction_url, extraction_model, timeout=2.0)
+        except Exception as exc:
+            probe = {"reachable": False, "error": str(exc)}
+        if probe.get("reachable"):
+            return {
+                "ok": True,
+                "proposal_id": "start_extraction_runtime",
+                "status": "applied",
+                "message": f"extraction runtime reachable at {extraction_url}",
+                "probe": probe,
+            }
+        time.sleep(1.0)
+
+    return {
+        "ok": False,
+        "proposal_id": "start_extraction_runtime",
+        "status": "failed",
+        "message": f"extraction runtime did not become ready at {extraction_url}",
+    }
+
+
+def _apply_capability_proposal(proposal_id: str) -> dict[str, object]:
+    normalized = str(proposal_id or "").strip()
+    if not normalized:
+        raise HTTPException(status_code=400, detail="proposal_id is required")
+    if normalized == "start_extraction_runtime":
+        return _start_extraction_runtime_via_backend()
+    raise HTTPException(status_code=404, detail=f"unknown or unsupported proposal: {normalized}")
+
+
 @app.get("/api/system/status", dependencies=[Depends(require_api_key)])
 def system_status():
     return _system_status_snapshot()
@@ -902,6 +966,11 @@ def system_status():
 @app.get("/api/system/capabilities", dependencies=[Depends(require_api_key)])
 def system_capabilities():
     return _system_capabilities_snapshot()
+
+
+@app.post("/api/system/proposals/apply", dependencies=[Depends(require_api_key)])
+def apply_system_proposal(body: CapabilityProposalApplyRequest):
+    return _apply_capability_proposal(body.proposal_id)
 
 
 @app.get("/api/queue/status", dependencies=[Depends(require_api_key)])

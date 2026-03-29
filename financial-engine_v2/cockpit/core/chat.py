@@ -25,13 +25,14 @@ try:
 except ImportError:
     MemoryStore = None  # type: ignore[misc,assignment]
 
+from cockpit.core.config import load_env
 from cockpit.core.session_memory import (
     _log_startup_status as _ov_log_startup_status,
     build_turn_payload,
     get_relevant_session_context,
     record_turn,
 )
-from cockpit.core.action_runtime_guards import build_runtime_remediation_request
+from cockpit.core.backend_proposals import build_backend_runtime_remediation_request
 
 
 class ResponseMode(StrEnum):
@@ -125,6 +126,9 @@ class ChatController:
         memory_store=None,
         cockpit_llm: dict[str, Any] | None = None,
     ) -> None:
+        # Same .env as backend (financial-engine_v2/.env) — must run before ANTHROPIC_* checks.
+        load_env(Path(__file__).resolve().parents[2])
+
         self.ollama_client = ollama_client
         self.tool_router = tool_router
         self.action_registry = action_registry
@@ -244,6 +248,46 @@ class ChatController:
                 except Exception as exc:
                     logger.warning("WatchlistTrigger init failed: %s", exc)
 
+                # Signal engine + strategy services.
+                ticker_scorer = None
+                screen_runner = None
+                thesis_svc = None
+                risk_gate_svc = None
+                reflection_svc = None
+                try:
+                    from cockpit.core.research.signal_engine import ScreenRunner, TickerScorer
+                    ticker_scorer = TickerScorer(tool_router, state_store=state_store)
+                    screen_runner = ScreenRunner(ticker_scorer, state_store=state_store)
+                except Exception as exc:
+                    logger.warning("Signal engine init failed: %s", exc)
+                try:
+                    from cockpit.core.research.thesis import ThesisService
+                    thesis_svc = ThesisService()
+                except Exception as exc:
+                    logger.warning("ThesisService init failed: %s", exc)
+                try:
+                    from cockpit.core.research.risk_gate import RiskGate
+                    risk_gate_svc = RiskGate(
+                        hybrid_router=hybrid_router,
+                        dossier_service=dossier_svc,
+                    )
+                except Exception as exc:
+                    logger.warning("RiskGate init failed: %s", exc)
+                try:
+                    from cockpit.core.research.reflection import ReflectionService
+                    from cockpit.core.research.situation_memory import SituationMemory
+                    sit_mem = SituationMemory()
+                    if risk_gate_svc is not None:
+                        risk_gate_svc._situation_memory = sit_mem
+                    reflection_svc = ReflectionService(
+                        situation_memory=sit_mem,
+                        thesis_service=thesis_svc,
+                        scorer=ticker_scorer,
+                        tool_router=tool_router,
+                    )
+                except Exception as exc:
+                    logger.warning("ReflectionService init failed: %s", exc)
+
                 # HybridRouter exposes chat() so it can serve as AgentLoop's llm_client.
                 self._agent_loop = AgentLoop(
                     llm_client=hybrid_router,
@@ -255,6 +299,11 @@ class ChatController:
                         alert_reader=alert_rdr,
                         strategy_service=self._strategy_service,
                         watchlist_trigger=wl_trigger,
+                        ticker_scorer=ticker_scorer,
+                        screen_runner=screen_runner,
+                        thesis_service=thesis_svc,
+                        risk_gate=risk_gate_svc,
+                        reflection_service=reflection_svc,
                     ),
                     system_instruction_builder=lambda mode, ticker: self._build_system_instruction(mode, ticker, {}),
                     llm_timeout=self.llm_timeout_seconds,
@@ -1288,12 +1337,17 @@ class ChatController:
             try:
                 preview = self.action_registry.preview(action_id, args)
             except ValueError as exc:
-                remediation = build_runtime_remediation_request(action_id, args, str(exc))
+                remediation = build_backend_runtime_remediation_request(
+                    getattr(self.tool_router, "backend_api_client", None),
+                    action_id=action_id,
+                    args=args,
+                    error_message=str(exc),
+                )
                 if remediation is not None:
                     return ChatResponse(
                         text=(
-                            "This action is blocked because the extraction runtime is unavailable. "
-                            "Approve remediation to start the runtime and then resume the action."
+                            "This action is blocked because the backend reported that the extraction runtime is unavailable. "
+                            "Approve the backend remediation to recover and then resume the action."
                         ),
                         evidence=evidence,
                         action_preview=remediation,

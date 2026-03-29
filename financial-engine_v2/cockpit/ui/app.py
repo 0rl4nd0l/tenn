@@ -39,6 +39,7 @@ from cockpit.core.access_resume import (
     resolve_confirm_resume_message,
     resolve_pending_action_alias,
 )
+from cockpit.core.backend_proposals import build_backend_runtime_remediation_request
 from cockpit.core.tools import ToolRouter
 from cockpit.storage.artifacts import ArtifactStore
 from cockpit.storage.state import StateStore
@@ -424,6 +425,28 @@ class CockpitApp(App):
                 self._write_log(log_target, f"Remediation requested: {error}")
             if not await self._start_extraction_runtime(log_target):
                 return False
+            resume_action_id = str(args.get("resume_action_id") or "").strip()
+            resume_args = dict(args.get("resume_args") or {})
+            if resume_action_id:
+                self._write_log(log_target, f"Resuming action: {resume_action_id}")
+                await self.execute_action(resume_action_id, resume_args, log_target=log_target, skip_confirm=True)
+            return True
+
+        if action_id == "__backend_proposal__":
+            proposal_id = str(args.get("proposal_id") or "").strip()
+            if not proposal_id:
+                self._write_log(log_target, "Backend proposal is missing proposal_id.")
+                return False
+            if self._backend_client is None:
+                self._write_log(log_target, "Backend proposal requested but backend client is not configured.")
+                return False
+            self._write_log(log_target, f"Applying backend proposal: {proposal_id}")
+            result = self._backend_client.apply_proposal(proposal_id, timeout=45.0)
+            if not result.get("ok"):
+                self._write_log(log_target, f"Backend proposal failed: {result.get('error', 'unknown error')}")
+                return False
+            payload = result.get("payload") or {}
+            self._write_log(log_target, str(payload.get("message") or f"Backend proposal applied: {proposal_id}"))
             resume_action_id = str(args.get("resume_action_id") or "").strip()
             resume_args = dict(args.get("resume_args") or {})
             if resume_action_id:
@@ -1581,15 +1604,18 @@ class CockpitApp(App):
         try:
             preview = self.action_registry.preview(action_id, args)
         except ValueError as exc:
-            from cockpit.core.action_runtime_guards import build_runtime_remediation_request
-
-            remediation = build_runtime_remediation_request(action_id, args, str(exc))
+            remediation = build_backend_runtime_remediation_request(
+                self._backend_client,
+                action_id=action_id,
+                args=args,
+                error_message=str(exc),
+            )
             if remediation is not None:
                 self.pending_action = remediation
                 self._write_log(log_target, f"⚠ {exc}")
                 self._write_log(
                     log_target,
-                    "Approve runtime remediation with /confirm to recover and resume the requested action.",
+                    "Approve backend remediation with /confirm to recover and resume the requested action.",
                 )
                 return
             self._write_log(log_target, f"⚠ {exc}")

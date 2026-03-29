@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
+
 import app.main as main
 
 
@@ -81,6 +85,7 @@ def test_system_capabilities_snapshot_reports_feature_blockers(monkeypatch):
     assert "extraction_runtime_unreachable" in features["extraction"]["blockers"]
     assert features["embeddings"]["status"] == "available"
     assert features["rag"]["status"] == "available"
+    assert any(p["id"] == "start_extraction_runtime" for p in payload["proposals"])
 
 
 def test_system_capabilities_snapshot_marks_disabled_features(monkeypatch):
@@ -137,3 +142,38 @@ def test_system_capabilities_snapshot_marks_disabled_features(monkeypatch):
     assert features["extraction"]["status"] == "disabled"
     assert features["embeddings"]["status"] == "disabled"
     assert features["rag"]["status"] == "disabled"
+    assert payload["proposals"] == []
+
+
+def test_apply_capability_proposal_starts_extraction_runtime(monkeypatch):
+    launched = []
+    monkeypatch.setattr(main, "PROJECT_ROOT", Path("/tmp/financial-engine_v2"))
+    monkeypatch.setattr(Path, "exists", lambda self: True)
+    monkeypatch.setattr(
+        main.subprocess,
+        "Popen",
+        lambda *args, **kwargs: launched.append((args, kwargs)),
+    )
+    monkeypatch.setattr(
+        main,
+        "resolve_extraction_runtime_config",
+        lambda: ("http://127.0.0.1:8002", "extract-model"),
+    )
+
+    probes = iter([
+        {"reachable": False, "error": "not ready"},
+        {"reachable": True, "loaded_models": ["extract-model"], "model_available": True},
+    ])
+    monkeypatch.setattr(main, "_probe_llamacpp_runtime", lambda *args, **kwargs: next(probes))
+    monkeypatch.setattr(main.time, "sleep", lambda seconds: None)
+
+    payload = main.apply_system_proposal(main.CapabilityProposalApplyRequest(proposal_id="start_extraction_runtime"))
+
+    assert payload["ok"] is True
+    assert payload["status"] == "applied"
+    assert launched
+
+
+def test_apply_capability_proposal_rejects_unknown():
+    with pytest.raises(main.HTTPException, match="unknown or unsupported proposal"):
+        main.apply_system_proposal(main.CapabilityProposalApplyRequest(proposal_id="unknown"))
