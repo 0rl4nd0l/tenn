@@ -109,6 +109,16 @@ def _(_m, _msg):
     return "/watch sync"
 
 
+@_rule(r"\bscan\s+(my\s+)?watchlist\b")
+def _(_m, _msg):
+    return "/watch scan"
+
+
+@_rule(r"\brun\s+watchlist\s+scan\b")
+def _(_m, _msg):
+    return "/watch scan"
+
+
 @_rule(r"\bshow\s+(my\s+)?watchlist\b")
 def _(_m, _msg):
     return "/watch list"

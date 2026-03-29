@@ -36,6 +36,7 @@ class ToolExecutor:
         deep_research_runner=None,
         alert_reader=None,
         strategy_service=None,
+        watchlist_trigger=None,
     ) -> None:
         self._router = tool_router
         self._actions = action_registry
@@ -45,6 +46,7 @@ class ToolExecutor:
         self._deep_research_runner = deep_research_runner
         self._alert_reader = alert_reader
         self._strategy_service = strategy_service
+        self._watchlist_trigger = watchlist_trigger
 
     # ------------------------------------------------------------------
     # Public API
@@ -342,6 +344,34 @@ class ToolExecutor:
             return {"ok": True, "alerts": [], "message": "alert reader not available"}
         return self._alert_reader.get(since_hours=since_hours, ticker=ticker)
 
+    def _exec_scan_watchlist(self, args: dict[str, Any]) -> dict[str, Any]:
+        """Run the full watchlist trigger: analyse → scan → alerts."""
+        if self._watchlist_trigger is None:
+            return {"ok": False, "error": "watchlist trigger not configured"}
+        tickers_raw = str(args.get("tickers", "")).strip()
+        ticker_list: list[str] | None = None
+        if tickers_raw:
+            ticker_list = [t.strip().upper() for t in tickers_raw.split(",") if t.strip()]
+        summary = self._watchlist_trigger.run(tickers=ticker_list)
+        return {
+            "ok": True,
+            "tickers_scanned": summary.tickers_scanned,
+            "total_alerts": summary.total_alerts,
+            "total_errors": summary.total_errors,
+            "started_at": summary.started_at,
+            "finished_at": summary.finished_at,
+            "results": [
+                {
+                    "ticker": r.ticker,
+                    "analysis_ok": r.analysis_ok,
+                    "modules_run": r.modules_run,
+                    "alerts_generated": r.alerts_generated,
+                    "errors": list(r.errors),
+                }
+                for r in summary.results
+            ],
+        }
+
     # ------------------------------------------------------------------
     # Analysis pipeline tool
     # ------------------------------------------------------------------
@@ -510,6 +540,7 @@ class ToolExecutor:
         "recall_dossier": _exec_recall_dossier,
         "deep_research": _exec_deep_research,
         "get_watchlist_alerts": _exec_get_watchlist_alerts,
+        "scan_watchlist": _exec_scan_watchlist,
         "run_analysis": _exec_run_analysis,
     }
 

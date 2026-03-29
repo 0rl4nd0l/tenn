@@ -839,8 +839,39 @@ class CockpitApp(App):
             elif sub == "clear":
                 count = self.state_store.clear_watch_tickers()
                 reply = f"Cleared {count} ticker(s) from watchlist."
+            elif sub == "scan":
+                try:
+                    from cockpit.core.watchlist_trigger import WatchlistTrigger
+                    from cockpit.core.research.alerts import AlertReader
+                    from cockpit.core.strategy import StrategyService
+
+                    strategy_svc = StrategyService(self.state_store)
+                    if self._backend_client is None:
+                        reply = "Backend API not configured — cannot run watchlist scan."
+                    else:
+                        trigger = WatchlistTrigger(
+                            state_store=self.state_store,
+                            strategy_service=strategy_svc,
+                            backend_api_client=self._backend_client,
+                            alert_reader=AlertReader(),
+                            dossier_service=getattr(self.chat_controller, "_dossier_service", None),
+                        )
+                        ticker_list: list[str] | None = None
+                        if arg:
+                            ticker_list = [t.strip() for t in arg.split(",") if t.strip()]
+                        summary = trigger.run(tickers=ticker_list)
+                        lines = [f"Watchlist scan complete: {summary.tickers_scanned} ticker(s), "
+                                 f"{summary.total_alerts} alert(s), {summary.total_errors} error(s)."]
+                        for r in summary.results:
+                            status = "ok" if r.analysis_ok else "no analysis"
+                            alerts_str = f"{r.alerts_generated} alert(s)" if r.alerts_generated else "clean"
+                            err_str = f" [{', '.join(r.errors)}]" if r.errors else ""
+                            lines.append(f"  {r.ticker}: {status}, {alerts_str}{err_str}")
+                        reply = "\n".join(lines)
+                except Exception as exc:
+                    reply = f"Watchlist scan failed: {exc}"
             else:
-                reply = "Usage: /watch add|remove|list|clear [TICKER]"
+                reply = "Usage: /watch add|remove|list|clear|scan [TICKER]"
             self._append_log(log, f"assistant: {reply}")
             self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
             return

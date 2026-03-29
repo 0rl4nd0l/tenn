@@ -215,6 +215,20 @@ class ChatController:
                 except Exception as exc:
                     logger.warning("AlertReader init failed: %s", exc)
 
+                wl_trigger = None
+                try:
+                    from cockpit.core.watchlist_trigger import WatchlistTrigger
+                    if state_store is not None and tool_router.backend_api_client is not None:
+                        wl_trigger = WatchlistTrigger(
+                            state_store=state_store,
+                            strategy_service=self._strategy_service,
+                            backend_api_client=tool_router.backend_api_client,
+                            alert_reader=alert_rdr or AlertReader(),
+                            dossier_service=dossier_svc,
+                        )
+                except Exception as exc:
+                    logger.warning("WatchlistTrigger init failed: %s", exc)
+
                 # HybridRouter exposes chat() so it can serve as AgentLoop's llm_client.
                 self._agent_loop = AgentLoop(
                     llm_client=hybrid_router,
@@ -225,6 +239,7 @@ class ChatController:
                         deep_research_runner=deep_runner,
                         alert_reader=alert_rdr,
                         strategy_service=self._strategy_service,
+                        watchlist_trigger=wl_trigger,
                     ),
                     system_instruction_builder=lambda mode, ticker: self._build_system_instruction(mode, ticker, {}),
                     llm_timeout=self.llm_timeout_seconds,

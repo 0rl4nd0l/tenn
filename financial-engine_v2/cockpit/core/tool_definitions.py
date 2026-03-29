@@ -459,6 +459,26 @@ _READ_ONLY_TOOLS: list[dict[str, Any]] = [
         },
         "mutating": False,
     },
+    {
+        "name": "scan_watchlist",
+        "description": (
+            "Run the full watchlist trigger: analyse each watchlist ticker, "
+            "scan artifacts against strategy criteria, and generate alerts. "
+            "Returns a summary of tickers scanned, alerts generated, and errors."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "tickers": {
+                    "type": "string",
+                    "description": "Optional comma-separated tickers to scan (default: all watchlist tickers)",
+                    "default": "",
+                },
+            },
+            "required": [],
+        },
+        "mutating": False,
+    },
 ]
 
 # ---------------------------------------------------------------------------
