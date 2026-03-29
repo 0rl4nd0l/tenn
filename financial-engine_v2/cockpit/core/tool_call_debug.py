@@ -125,6 +125,40 @@ def format_failure_block(traces: list[dict[str, Any]], *, include_success: bool)
     return header + "\n" + "\n".join(lines)
 
 
+# Pre-boot / Ops: internal id -> value written to ``COCKPIT_TOOL_DEBUG``.
+TOOL_DEBUG_ENV_BY_CHOICE: dict[str, str] = {
+    "failures": "failures",
+    "full": "1",
+    "off": "off",
+}
+
+# Labels for Textual Select (value is the internal id above).
+TOOL_DEBUG_UI_OPTIONS: list[tuple[str, str]] = [
+    (
+        "Failures only — [Tool failures] in chat when a tool errors (default)",
+        "failures",
+    ),
+    (
+        "Full trace — [Tool trace] for every tool call (timings + args summary)",
+        "full",
+    ),
+    (
+        "Off — no extra tool lines in chat (warnings still in logs)",
+        "off",
+    ),
+]
+
+
+def initial_tool_debug_choice_from_env() -> str:
+    """Map current ``COCKPIT_TOOL_DEBUG`` to a pre-boot select value: failures | full | off."""
+    raw = (os.environ.get("COCKPIT_TOOL_DEBUG") or "").strip().lower()
+    if raw in {"0", "false", "no", "off", "none"}:
+        return "off"
+    if raw in {"1", "true", "yes", "all", "full"}:
+        return "full"
+    return "failures"
+
+
 def cockpit_tool_chat_debug_mode() -> tuple[bool, bool]:
     """Return (show_failures_in_chat, show_full_trace_in_chat).
 

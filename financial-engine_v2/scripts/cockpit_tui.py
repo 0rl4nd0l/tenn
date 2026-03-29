@@ -349,11 +349,9 @@ def _build_preboot_initial_flags(
             profile=str(initial_flags["profile"]),
             read_only=bool(initial_flags["read_only"]),
             no_web=bool(initial_flags["no_web"]),
+            repo_root=repo_root,
         ),
     )
-    llm_cfg = cfg.get("llm", {})
-    initial_flags["llm_provider"] = str(llm_cfg.get("provider") or "llamacpp")
-    initial_flags["llm_model"] = str(llm_cfg.get("model") or "qwen2.5-coder-14b")
     return initial_flags
 
 
@@ -389,10 +387,6 @@ def _merge_preboot_flags(cockpit_argv: list[str], flags: dict[str, Any]) -> list
     os.environ["COCKPIT_PREBOOT_PROFILE"] = str(flags.get("profile") or "default")
     os.environ["COCKPIT_PREBOOT_READ_ONLY"] = "1" if flags.get("read_only") else "0"
     os.environ["COCKPIT_PREBOOT_NO_WEB"] = "1" if flags.get("no_web") else "0"
-    if flags.get("llm_provider"):
-        os.environ["COCKPIT_LLM_PROVIDER"] = str(flags["llm_provider"])
-    if flags.get("llm_model"):
-        os.environ["COCKPIT_LLM_MODEL"] = str(flags["llm_model"])
 
     return argv
 

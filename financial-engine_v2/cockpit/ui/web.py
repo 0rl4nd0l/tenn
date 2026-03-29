@@ -20,9 +20,7 @@ from cockpit.core.config import (
     DEFAULT_BACKEND_URL,
     DEFAULT_LLAMACPP_URL,
     DEFAULT_OLLAMA_URL,
-    RuntimeFlags,
-    apply_runtime_flags,
-    load_config,
+    compute_effective_cockpit_config,
 )
 from cockpit.ui.app import CockpitApp
 from cockpit.ui.preboot import PreBootScreen
@@ -75,15 +73,13 @@ class CockpitWebApp(CockpitApp):
     # ------------------------------------------------------------------
 
     def on_mount(self) -> None:
-        cfg = load_config(self._config_path)
-        cfg = apply_runtime_flags(
-            cfg,
-            RuntimeFlags(
-                config_path=self._config_path,
-                profile="default",
-                read_only=False,
-                no_web=False,
-            ),
+        # Same effective-config path as PreBootScreen / Launch (single pipeline).
+        cfg = compute_effective_cockpit_config(
+            self._repo_root,
+            self._config_path,
+            profile="full",
+            read_only=False,
+            no_web=False,
         )
         llm_cfg = cfg.get("llm", {})
         self.push_screen(
@@ -91,13 +87,12 @@ class CockpitWebApp(CockpitApp):
                 backend_url=self._backend_url,
                 ollama_url=self._ollama_url,
                 llamacpp_url=str(llm_cfg.get("llamacpp_url") or self._llamacpp_url),
+                repo_root=self._repo_root,
+                config_path=self._config_path,
                 initial_flags={
-                    "profile": "default",
+                    "profile": "full",
                     "read_only": False,
                     "no_web": False,
-                    "llm_provider": str(llm_cfg.get("provider") or "llamacpp"),
-                    "llm_model": str(llm_cfg.get("model") or "qwen2.5-coder-14b"),
-                    "router_mode_opt_in": bool(llm_cfg.get("router_mode_opt_in", False)),
                 },
                 on_launch=self._on_preboot_launch,
                 on_cancel=lambda: self.exit({"cancelled": True}),
@@ -120,25 +115,14 @@ class CockpitWebApp(CockpitApp):
         for key, value in flags.get("env", {}).items():
             os.environ[key] = value
 
-        # Load and apply config + runtime flags.
-        cfg = load_config(self._config_path)
-        cfg = apply_runtime_flags(
-            cfg,
-            RuntimeFlags(
-                config_path=self._config_path,
-                profile=flags.get("profile", "full"),
-                read_only=flags.get("read_only", False),
-                no_web=flags.get("no_web", False),
-            ),
+        # Same effective-config pipeline as PreBootScreen (no drift from displayed values).
+        cfg = compute_effective_cockpit_config(
+            self._repo_root,
+            self._config_path,
+            profile=flags.get("profile", "full"),
+            read_only=flags.get("read_only", False),
+            no_web=flags.get("no_web", False),
         )
-
-        # Apply LLM backend choice from the pre-boot screen.
-        llm_provider = flags.get("llm_provider", "ollama")
-        llm_model = flags.get("llm_model", "")
-        cfg.setdefault("llm", {})
-        cfg["llm"]["provider"] = llm_provider
-        if llm_model:
-            cfg["llm"]["model"] = llm_model
 
         # Apply RAG/embedding toggle from the pre-boot checkbox.
         # The checkbox is the authoritative control; it overrides any YAML value.

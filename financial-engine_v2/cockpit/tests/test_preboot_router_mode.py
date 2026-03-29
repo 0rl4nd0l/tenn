@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from types import MethodType, SimpleNamespace
 
-from textual.widgets import Select
-
 from cockpit.ui.preboot import PreBootScreen
 
 
@@ -53,85 +51,6 @@ def test_find_router_loaded_model_returns_router_name_when_not_on_filesystem(mon
     assert loaded == "hf/qwen-special"
 
 
-def test_needs_model_switch_uses_router_loaded_names(monkeypatch):
-    screen = _make_screen()
-    screen._llama_proc = {
-        "router_mode": True,
-        "raw_args": ["--host", "127.0.0.1", "--port", "8001", "--api-key", "secret"],
-    }
-    monkeypatch.setattr(
-        "cockpit.ui.preboot.list_models_api",
-        lambda host, port, api_key="": [{"name": "qwen2.5-coder-14b", "state": "loaded"}],
-    )
-
-    assert screen._needs_model_switch({"llm_provider": "llamacpp", "llm_model": "qwen2.5-coder-14b"}) is False
-    assert screen._needs_model_switch({"llm_provider": "llamacpp", "llm_model": "deepseek-r1"}) is True
-
-
-def test_needs_model_switch_uses_path_and_mmap_for_single_model(monkeypatch):
-    screen = _make_screen()
-    screen._llama_proc = {
-        "router_mode": False,
-        "model_path": "/models/current.gguf",
-        "raw_args": ["-m", "/models/current.gguf"],
-    }
-
-    checkbox = SimpleNamespace(value=False)
-
-    def _query_one(self, selector, cls=None):
-        assert selector == "#opt-mmap-off"
-        return checkbox
-
-    screen.query_one = MethodType(_query_one, screen)
-    monkeypatch.setattr("cockpit.ui.preboot.has_no_mmap", lambda raw_args: False)
-
-    assert (
-        screen._needs_model_switch(
-            {
-                "llm_provider": "llamacpp",
-                "llm_model_path": "/models/current.gguf",
-            }
-        )
-        is False
-    )
-    assert (
-        screen._needs_model_switch(
-            {
-                "llm_provider": "llamacpp",
-                "llm_model_path": "/models/next.gguf",
-            }
-        )
-        is True
-    )
-
-    checkbox.value = True
-    assert (
-        screen._needs_model_switch(
-            {
-                "llm_provider": "llamacpp",
-                "llm_model_path": "/models/current.gguf",
-            }
-        )
-        is True
-    )
-
-
-def test_needs_model_switch_returns_false_without_llama_process():
-    screen = _make_screen()
-
-    assert screen._needs_model_switch({"llm_provider": "llamacpp", "llm_model": "anything"}) is False
-
-
-def test_needs_model_switch_returns_false_for_non_llamacpp_provider():
-    screen = _make_screen()
-    screen._llama_proc = {
-        "router_mode": True,
-        "raw_args": ["--host", "127.0.0.1", "--port", "8001"],
-    }
-
-    assert screen._needs_model_switch({"llm_provider": "ollama", "llm_model": "llama3:latest"}) is False
-
-
 def test_router_mode_tag_uses_capability_state():
     screen = _make_screen()
     screen._router_capability = {"active_mode": "router_mode_available_not_active"}
@@ -164,27 +83,14 @@ def test_topology_blocks_router_mode_returns_true_for_ambiguous_state():
     assert screen._topology_blocks_router_mode() is True
 
 
-def test_collect_flags_carries_router_mode_opt_in():
+def test_collect_flags_minimal_env_only():
     screen = _make_screen()
-    screen._llama_proc = {"router_mode": False}
-    screen._llama_fs_models = [
-        {"path": "/models/qwen2.5-coder-14b.gguf", "stem": "qwen2.5-coder-14b"},
-        {"path": "/models/qwen2.5-14b-instruct.gguf", "stem": "qwen2.5-14b-instruct"},
-    ]
-
     widgets = {
         "#opt-readonly": SimpleNamespace(value=False),
         "#opt-web": SimpleNamespace(value=True),
         "#opt-rag": SimpleNamespace(value=True),
         "#opt-verbose": SimpleNamespace(value=False),
-        "#opt-router-mode": SimpleNamespace(value=True),
         "#opt-profile": SimpleNamespace(value="full"),
-        "#opt-provider": SimpleNamespace(value="llamacpp"),
-        "#opt-model": SimpleNamespace(value="/models/qwen2.5-coder-14b.gguf"),
-        "#opt-extraction-model": SimpleNamespace(value="/models/qwen2.5-14b-instruct.gguf"),
-        "#opt-llm-profile": SimpleNamespace(value="ops"),
-        "#opt-policy-override": SimpleNamespace(value=Select.BLANK),
-        "#opt-tool-debug": SimpleNamespace(value="failures"),
     }
 
     def _query_one(self, selector, cls=None):
@@ -194,9 +100,6 @@ def test_collect_flags_carries_router_mode_opt_in():
 
     flags = screen._collect_flags()
 
-    assert flags["router_mode_opt_in"] is True
-    assert flags["env"]["COCKPIT_ROUTER_MODE"] == "1"
-    assert flags["env"]["LLAMA_SERVER_ROUTER_MODE"] == "1"
-    assert flags["llm_profile"] == "ops"
-    assert flags["router_policy_override"] is None
-    assert flags["env"]["COCKPIT_TOOL_DEBUG"] == "failures"
+    assert flags["read_only"] is False
+    assert flags["no_web"] is False
+    assert "COCKPIT_ROUTER_MODE" not in flags.get("env", {})

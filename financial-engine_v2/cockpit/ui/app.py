@@ -1465,7 +1465,8 @@ class CockpitApp(App):
                     self._last_chat_inference_line = (
                         f"Last chat inference: local llama.cpp — model {meta.get('model', '?')}"
                     )
-                cost_str = f"${meta['cost_usd']:.4f}" if meta.get("cost_usd") else "free"
+                cost_raw = meta.get("cost_usd")
+                cost_str = f"${float(cost_raw):.4f}" if cost_raw is not None else "free"
                 self._append_log(
                     log,
                     f"  [Inference: {src} | {meta.get('model', '?')} | {meta.get('latency_ms', '?')}ms | {cost_str}]",

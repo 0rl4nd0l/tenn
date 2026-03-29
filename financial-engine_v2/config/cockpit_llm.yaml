@@ -1,0 +1,32 @@
+# Authoritative Cockpit LLM defaults (chat / HybridRouter / agent loop).
+# Pre-boot and Ops UI do not change these — edit this file and restart.
+# Set allow_env_override: true only if you need COCKPIT_* / HYBRID_ROUTER_POLICY env vars.
+
+allow_env_override: false
+
+# HybridRouter policy: local_only | local_preferred | api_preferred | api_only
+# local_preferred = ops behaviour: local llama.cpp first, Anthropic when routing allows / fallback.
+hybrid_router_policy: local_preferred
+
+# Display / profile id (ops = local-first + cloud fallback; aligns with COCKPIT_LLM_PROFILE default).
+llm_profile_label: ops
+
+# In-chat tool trace lines: failures | full | off  (maps to COCKPIT_TOOL_DEBUG)
+tool_debug: failures
+
+# Stack-wide model defaults (this process + backend workers when env matches).
+# Startup calls setdefault on EXTRACT_MODEL, EMBED_MODEL, EMBEDDING_MODEL, ANTHROPIC_MODEL.
+defaults:
+  extraction_model: qwen2.5-14b-instruct
+  embedding_model: nomic-embed-text
+  anthropic_model: claude-sonnet-4-20250514
+
+# Passed into cfg["llm"] (llamacpp client for cockpit chat).
+llm:
+  provider: llamacpp
+  model: qwen2.5-coder-14b
+  llamacpp_url: http://127.0.0.1:8001
+  ollama_url: http://127.0.0.1:11434
+  llamacpp_api_key: local-openai-key
+  timeout_seconds: 300
+  router_mode_opt_in: false

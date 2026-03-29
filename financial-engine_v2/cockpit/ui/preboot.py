@@ -22,29 +22,21 @@ from cockpit.integrations.llamacpp_manager import (
     discover_models,
     discover_ollama_models,
     find_all_llama_server_processes,
-    has_no_mmap,
     list_models_api,
     models_dir_from_process,
     probe_router_capability,
     resolve_llama_server_topology,
-    restart_into_router_mode,
-    restart_with_model,
-    switch_model,
 )
 from cockpit.ui.help_modal import HelpScreen
 
-from cockpit.core.config import load_env
-from cockpit.core.llm_profile import (
-    LLM_PROFILE_IDS,
-    LLM_PROFILE_TITLES,
-    describe_llm_profile,
-    format_all_profile_descriptions,
-    preview_effective_policy,
-)
-from cockpit.core.tool_call_debug import (
-    TOOL_DEBUG_ENV_BY_CHOICE,
-    TOOL_DEBUG_UI_OPTIONS,
-    initial_tool_debug_choice_from_env,
+from cockpit.core.config import (
+    compute_effective_cockpit_config,
+    format_llm_backend_tasks_from_cfg,
+    llm_task_summary_lines_from_cfg,
+    load_env,
+    preboot_service_probe_legend,
+    verify_chat_model_matches_llamacpp_runtime,
+    verify_effective_config_for_preboot,
 )
 
 
@@ -173,16 +165,6 @@ PROFILE_FLAGS: dict[str, dict[str, Any]] = {
     },
 }
 
-_FALLBACK_MODELS: list[tuple[str, str]] = [("llama3:latest", "llama3:latest")]
-
-
-_VALID_POLICY_VALUES = frozenset({"local_only", "local_preferred", "api_preferred", "api_only"})
-
-LLM_PROFILE_OPTIONS: list[tuple[str, str]] = [
-    (LLM_PROFILE_TITLES[k], k) for k in LLM_PROFILE_IDS
-]
-
-
 def _resolve_initial_option_state(initial_flags: dict[str, Any] | None) -> dict[str, Any]:
     raw = dict(initial_flags or {})
     valid_profiles = {value for _, value in LAUNCH_PROFILES}
@@ -190,42 +172,12 @@ def _resolve_initial_option_state(initial_flags: dict[str, Any] | None) -> dict[
     if profile not in valid_profiles:
         profile = LAUNCH_PROFILES[0][1]
     defaults = PROFILE_FLAGS.get(profile, {})
-    llm_provider = raw.get("llm_provider", "llamacpp")
-    if llm_provider != "llamacpp":
-        llm_provider = "llamacpp"
-
-    explicit_env = (os.environ.get("HYBRID_ROUTER_POLICY") or "").strip()
-    if "router_policy_override" in raw:
-        policy_override: str | None = raw["router_policy_override"]
-    elif explicit_env in _VALID_POLICY_VALUES:
-        policy_override = explicit_env
-    else:
-        policy_override = None
-
-    llm_prof = (raw.get("llm_profile") or os.environ.get("COCKPIT_LLM_PROFILE") or "ops").strip().lower()
-    if llm_prof not in LLM_PROFILE_IDS:
-        llm_prof = "ops"
-
-    if "tool_debug" in raw:
-        tool_debug = str(raw["tool_debug"]).strip().lower()
-    else:
-        tool_debug = initial_tool_debug_choice_from_env()
-    if tool_debug not in {"failures", "full", "off"}:
-        tool_debug = "failures"
-
     return {
         "profile": profile,
         "read_only": bool(raw["read_only"]) if "read_only" in raw else bool(defaults.get("read_only", False)),
         "no_web": bool(raw["no_web"]) if "no_web" in raw else bool(defaults.get("no_web", False)),
         "verbose": bool(raw["verbose"]) if "verbose" in raw else bool(defaults.get("verbose", False)),
         "enable_rag": bool(raw["enable_rag"]) if "enable_rag" in raw else True,
-        "llm_provider": llm_provider,
-        "llm_model": raw.get("llm_model", "qwen2.5-coder-14b"),
-        "extraction_model": raw.get("extraction_model", "qwen2.5-14b-instruct"),
-        "router_mode_opt_in": bool(raw.get("router_mode_opt_in", False)),
-        "llm_profile": llm_prof,
-        "router_policy_override": policy_override,
-        "tool_debug": tool_debug,
     }
 
 
@@ -270,7 +222,12 @@ class PreBootScreen(Screen):
         width: 1fr;
     }
     #health-label { text-style: bold; }
-    #health-log { height: 5; }
+    #health-legend {
+        height: auto;
+        color: $text-muted;
+        margin-bottom: 1;
+    }
+    #health-log { height: 6; }
     #options-section {
         border: round $panel;
         padding: 0 1;
@@ -279,31 +236,21 @@ class PreBootScreen(Screen):
         width: 1fr;
     }
     #options-label { text-style: bold; }
-    #tool-debug-row { height: auto; margin-top: 1; width: 1fr; }
-    #tool-debug-label { width: 22; padding-top: 1; }
-    #opt-tool-debug { width: 1fr; }
     #profile-row { height: 3; margin-top: 1; width: 1fr; }
     #profile-label { width: 10; padding-top: 1; }
     #opt-profile { width: 1fr; }
-    #llm-section {
+    #llm-backend-section {
         border: round $panel;
         padding: 0 1;
         height: auto;
         margin-bottom: 1;
         width: 1fr;
     }
-    #llm-label { text-style: bold; }
-    #provider-row { height: 3; margin-top: 1; width: 1fr; }
-    #provider-label { width: 10; padding-top: 1; }
-    #opt-provider { width: 1fr; }
-    #provider-status { width: 22; padding-top: 1; color: $text-muted; text-align: right; }
-    #model-row { height: 3; margin-top: 1; width: 1fr; }
-    #model-label { width: 10; padding-top: 1; }
-    #opt-model { width: 1fr; }
-    #extraction-row { height: 3; margin-top: 1; width: 1fr; }
-    #extraction-label { width: 10; padding-top: 1; }
-    #opt-extraction-model { width: 1fr; }
-    #mmap-row { height: 3; margin-top: 1; width: 1fr; }
+    #llm-backend-label { text-style: bold; }
+    #llm-backend-body { margin-top: 1; height: auto; color: $text; max-height: 22; }
+    #llm-runtime-row { height: 3; margin-top: 1; width: 1fr; }
+    #llm-runtime-label { width: 28; padding-top: 1; }
+    #provider-status { width: 1fr; padding-top: 1; color: $text-muted; }
     #capability-section {
         border: round $success;
         padding: 0 1;
@@ -312,26 +259,12 @@ class PreBootScreen(Screen):
         width: 1fr;
     }
     #capability-label { text-style: bold; }
-    #capability-log { height: 10; }
-    #session-routing-section {
-        border: round $accent;
-        padding: 0 1;
+    #capability-legend {
         height: auto;
+        color: $text-muted;
         margin-bottom: 1;
-        width: 1fr;
     }
-    #session-routing-label { text-style: bold; }
-    #llm-profile-row { height: 3; margin-top: 1; width: 1fr; }
-    #llm-profile-label { width: 16; padding-top: 1; }
-    #opt-llm-profile { width: 1fr; }
-    #policy-override-row { height: 3; margin-top: 1; width: 1fr; }
-    #policy-override-label { width: 16; padding-top: 1; }
-    #opt-policy-override { width: 1fr; }
-    #routing-preview { margin-top: 1; color: $text-muted; height: auto; }
-    #llm-profile-selected-label { margin-top: 1; text-style: bold; }
-    #llm-profile-current-desc { margin-top: 0; color: $text; height: auto; }
-    #profile-help-collapsible { margin-top: 1; }
-    #profile-help-text { color: $text-muted; height: auto; }
+    #capability-log { height: 14; }
     #btn-row { height: 3; margin-top: 1; margin-bottom: 1; width: 1fr; }
     #btn-spacer { width: 1fr; }
     #btn-cancel { margin-right: 1; width: auto; }
@@ -348,21 +281,30 @@ class PreBootScreen(Screen):
         initial_flags: dict[str, Any] | None = None,
         on_launch: Callable[[dict[str, Any]], None] | None = None,
         on_cancel: Callable[[], None] | None = None,
+        repo_root: Path | None = None,
+        config_path: str | None = None,
     ) -> None:
         # Load financial-engine_v2/.env before reading COCKPIT_* / ANTHROPIC_* for defaults.
         load_env(Path(__file__).resolve().parents[2])
         super().__init__()
+        self._repo_root = repo_root or Path(__file__).resolve().parents[2]
+        rp = Path(config_path) if config_path else (self._repo_root / "config" / "cockpit.yaml")
+        self._config_path = str(rp.resolve())
         self._backend_url = backend_url
         self._ollama_url = ollama_url
         self._llamacpp_url = llamacpp_url
         self._initial = _resolve_initial_option_state(initial_flags)
         self._checks = _build_service_checks(backend_url, ollama_url, llamacpp_url)
-        self._provider_options = [(_llamacpp_provider_label(llamacpp_url), "llamacpp")]
         self._on_launch = on_launch
         self._on_cancel = on_cancel
         # Guard: Select fires Changed on mount; block on_select_changed until
         # initial widget values are set and the first refresh has passed.
         self._selects_active = False
+        # Same dict pipeline as Launch: load_config(cockpit.yaml) → apply_runtime_flags
+        self._effective_cfg: dict[str, Any] | None = None
+        self._preboot_config_errors: list[str] = []
+        self._runtime_model_mismatch: str | None = None
+        self._health_started = False
         # llama.cpp process info + discovered models (populated after health checks).
         self._llama_proc: dict | None = None
         self._llama_fs_models: list[dict] = []
@@ -374,75 +316,34 @@ class PreBootScreen(Screen):
             yield Label("Cockpit  —  Pre-Boot Setup", id="preboot-title")
             with Vertical(id="health-section"):
                 yield Label("Service Health", id="health-label")
-                yield RichLog(id="health-log", wrap=False, markup=False, max_lines=10)
+                yield Static(preboot_service_probe_legend(), id="health-legend")
+                yield RichLog(id="health-log", wrap=False, markup=False, max_lines=12)
             with Vertical(id="capability-section"):
                 yield Label("Capabilities & routing preview", id="capability-label")
-                yield RichLog(id="capability-log", wrap=False, markup=False, max_lines=16)
+                yield Static(
+                    "Same probe icons as above. Keys: “set” means the variable is present in this process "
+                    "(not a guarantee of quota or that the service will succeed).",
+                    id="capability-legend",
+                )
+                yield RichLog(id="capability-log", wrap=False, markup=False, max_lines=20)
             with Vertical(id="options-section"):
                 yield Label("Launch Options", id="options-label")
                 yield Checkbox("Read-only mode  (block mutating actions)", id="opt-readonly")
                 yield Checkbox("Enable web fetch", id="opt-web")
                 yield Checkbox("Enable embedding + RAG  (qualitative_context, news_context)", id="opt-rag")
                 yield Checkbox("Verbose logging  (DEBUG level + stderr)", id="opt-verbose")
-                with Horizontal(id="tool-debug-row"):
-                    yield Label("Agent tool traces:", id="tool-debug-label")
-                    yield Select(
-                        TOOL_DEBUG_UI_OPTIONS,
-                        value=self._initial.get("tool_debug", "failures"),
-                        id="opt-tool-debug",
-                        allow_blank=False,
-                    )
                 with Horizontal(id="profile-row"):
                     yield Label("Profile:", id="profile-label")
                     yield Select(LAUNCH_PROFILES, value=self._initial.get("profile", LAUNCH_PROFILES[0][1]), id="opt-profile")
-            with Vertical(id="session-routing-section"):
-                yield Label("LLM session mode (local-first default; API only when you choose Advisor or an override)", id="session-routing-label")
-                with Horizontal(id="llm-profile-row"):
-                    yield Label("Profile:", id="llm-profile-label")
-                    yield Select(
-                        LLM_PROFILE_OPTIONS,
-                        value=self._initial.get("llm_profile", "ops"),
-                        id="opt-llm-profile",
-                    )
-                with Horizontal(id="policy-override-row"):
-                    yield Label("Policy override:", id="policy-override-label")
-                    yield Select(
-                        [
-                            ("(use profile — no HYBRID_ROUTER_POLICY)", Select.BLANK),
-                            ("local_only", "local_only"),
-                            ("local_preferred", "local_preferred"),
-                            ("api_preferred", "api_preferred"),
-                            ("api_only", "api_only"),
-                        ],
-                        value=Select.BLANK,
-                        id="opt-policy-override",
-                        allow_blank=True,
-                    )
-                yield Static("", id="routing-preview")
-                yield Label("Selected profile", id="llm-profile-selected-label")
-                yield Static("", id="llm-profile-current-desc")
-                with Collapsible(title="All LLM profiles explained", id="profile-help-collapsible", collapsed=False):
-                    yield Static(format_all_profile_descriptions(), id="profile-help-text")
-            with Vertical(id="llm-section"):
-                yield Label("LLM Backend", id="llm-label")
-                with Horizontal(id="provider-row"):
-                    yield Label("Provider:", id="provider-label")
-                    yield Select(self._provider_options, value=self._initial.get("llm_provider", "llamacpp"), id="opt-provider")
+            with Vertical(id="llm-backend-section"):
+                yield Label(
+                    "LLM & routing (read-only) — from config/cockpit_llm.yaml + this host",
+                    id="llm-backend-label",
+                )
+                yield Static("Resolving configuration (load_config → apply_runtime_flags)…", id="llm-backend-body")
+                with Horizontal(id="llm-runtime-row"):
+                    yield Label("llama.cpp endpoint (probe):", id="llm-runtime-label")
                     yield Static("", id="provider-status")
-                with Horizontal(id="model-row"):
-                    yield Label("Chat:", id="model-label")
-                    yield Select(_FALLBACK_MODELS, value="llama3:latest", id="opt-model", allow_blank=False)
-                with Horizontal(id="extraction-row"):
-                    yield Label("Extract:", id="extraction-label")
-                    yield Select(_FALLBACK_MODELS, value="llama3:latest", id="opt-extraction-model", allow_blank=False)
-                with Horizontal(id="mmap-row"):
-                    yield Checkbox("Load model into RAM  (disable mmap — faster prefill, slower startup)", id="opt-mmap-off", value=True)
-                with Horizontal(id="router-mode-row"):
-                    yield Checkbox(
-                        "Enable router mode when supported  (explicit opt-in)",
-                        id="opt-router-mode",
-                        value=bool(self._initial.get("router_mode_opt_in", False)),
-                    )
             with Horizontal(id="btn-row"):
                 yield Static("", id="btn-spacer")
                 yield Button("Help", id="btn-help", variant="default")
@@ -454,21 +355,66 @@ class PreBootScreen(Screen):
         self.query_one("#opt-web", Checkbox).value = not self._initial["no_web"]
         self.query_one("#opt-rag", Checkbox).value = self._initial["enable_rag"]
         self.query_one("#opt-verbose", Checkbox).value = self._initial["verbose"]
+        self._sync_effective_config_from_ui()
         log = self.query_one("#health-log", RichLog)
         for svc in self._checks:
             log.write(f"  {_STATUS_ICON['checking']}  {svc.name}")
-        po = self._initial.get("router_policy_override")
-        p_sel = self.query_one("#opt-policy-override", Select)
-        if po in _VALID_POLICY_VALUES:
-            p_sel.value = po
-        else:
-            p_sel.value = Select.BLANK
+        self._health_started = True
         asyncio.create_task(self._run_health_checks())
         self.call_after_refresh(self._activate_selects)
 
     def _activate_selects(self) -> None:
         self._selects_active = True
-        self._refresh_routing_preview()
+
+    def _sync_effective_config_from_ui(self) -> None:
+        """Recompute the same cfg Launch will use; refresh probes and LLM panel."""
+        old_llama, old_ollama = self._llamacpp_url, self._ollama_url
+        self._preboot_config_errors = []
+        self._effective_cfg = None
+        try:
+            profile = str(self.query_one("#opt-profile", Select).value or LAUNCH_PROFILES[0][1])
+            read_only = self.query_one("#opt-readonly", Checkbox).value
+            no_web = not self.query_one("#opt-web", Checkbox).value
+            cfg = compute_effective_cockpit_config(
+                self._repo_root,
+                self._config_path,
+                profile=profile,
+                read_only=read_only,
+                no_web=no_web,
+            )
+            self._effective_cfg = cfg
+            self._preboot_config_errors = verify_effective_config_for_preboot(cfg)
+        except FileNotFoundError as exc:
+            self._preboot_config_errors = [f"Config file missing: {exc}"]
+        except ValueError as exc:
+            self._preboot_config_errors = [str(exc)]
+
+        if self._effective_cfg:
+            llm = self._effective_cfg.get("llm") or {}
+            self._llamacpp_url = str(llm.get("llamacpp_url") or self._llamacpp_url)
+            self._ollama_url = str(llm.get("ollama_url") or self._ollama_url)
+        self._checks = _build_service_checks(self._backend_url, self._ollama_url, self._llamacpp_url)
+
+        self._update_launch_button()
+        try:
+            self.query_one("#llm-backend-body", Static).update(self._format_llm_backend_body())
+        except Exception:
+            pass
+
+        urls_changed = (old_llama, old_ollama) != (self._llamacpp_url, self._ollama_url)
+        if urls_changed and self._health_started:
+            asyncio.create_task(self._run_health_checks())
+        try:
+            self._render_capabilities()
+        except Exception:
+            pass
+
+    def _update_launch_button(self) -> None:
+        blocked = bool(self._preboot_config_errors) or bool(self._runtime_model_mismatch)
+        try:
+            self.query_one("#btn-launch", Button).disabled = blocked
+        except Exception:
+            pass
 
     def _render_capabilities(self) -> None:
         """Fill capability log: keys, service checks, routing preview."""
@@ -477,9 +423,14 @@ class PreBootScreen(Screen):
         api_ok = bool(os.environ.get("ANTHROPIC_API_KEY", "").strip())
         brave_ok = bool(os.environ.get("BRAVE_SEARCH_API_KEY", "").strip())
         lines: list[str] = [
+            "  How to read this block",
+            "    Rows below match Service Health probes (Backend, llama.cpp, Ollama, Qdrant, Redis).",
+            "    Anthropic: used when hybrid_router_policy allows API and the agent stack is configured.",
+            "    Brave: optional web search; unrelated to local llama.cpp chat.",
+            "",
             "  Keys & agents",
-            f"    Anthropic:  {'set' if api_ok else 'not set'}  (cloud synthesis for Advisor / API modes)",
-            f"    Brave:      {'set' if brave_ok else 'not set'}  (optional; other fallbacks may apply)",
+            f"    Anthropic:  {'set' if api_ok else 'not set'}  (API key present — enables cloud leg when policy allows)",
+            f"    Brave:      {'set' if brave_ok else 'not set'}  (optional web search key)",
             "",
             "  Infrastructure",
         ]
@@ -496,52 +447,18 @@ class PreBootScreen(Screen):
                 continue
             ic = _STATUS_ICON.get(s.status, "[?]")
             lines.append(f"    {ic}  {label}: {s.detail}")
-        lines.extend(self._llm_model_routing_status_lines())
+        if self._effective_cfg:
+            lines.extend(llm_task_summary_lines_from_cfg(self._effective_cfg))
+        else:
+            lines.extend(["", "  LLM tasks:  (config not loaded — fix errors below)"])
+        if self._preboot_config_errors:
+            lines.extend(["", "  Config verification (errors block Launch)"])
+            for e in self._preboot_config_errors:
+                lines.append(f"    [!!]  {e}")
+        if self._runtime_model_mismatch:
+            lines.extend(["", "  Runtime verification"])
+            lines.append(f"    [!!]  {self._runtime_model_mismatch}")
         log.write("\n".join(lines))
-        self._refresh_routing_preview()
-
-    def _llm_model_routing_status_lines(self) -> list[str]:
-        """Status for agent vs extraction models; clarifies removed orchestrator/sub-agent UI."""
-        out = [
-            "",
-            "  LLM model routing (status)",
-            "    Orchestrator / sub-agent GGUFs:  not used — Cockpit has a single agent loop",
-            "                                      (one llama.cpp chat client; no extra slots).",
-        ]
-        try:
-            chat_v = str(self.query_one("#opt-model", Select).value or "")
-            ext_v = str(self.query_one("#opt-extraction-model", Select).value or "")
-            chat_disp = Path(chat_v).stem if chat_v.startswith("/") else (chat_v or "(not set)")
-            ext_disp = Path(ext_v).stem if ext_v.startswith("/") else (ext_v or "(not set)")
-            out.append(f"    Chat model (agent):            {chat_disp}")
-            out.append(f"    Extract model (backend hint):  {ext_disp}  → EXTRACT_MODEL at launch")
-        except Exception:
-            out.append("    Chat / Extract:                  set under LLM Backend after probe completes")
-        return out
-
-    def _refresh_routing_preview(self) -> None:
-        if not getattr(self, "_selects_active", False):
-            return
-        try:
-            prof = str(self.query_one("#opt-llm-profile", Select).value or "ops")
-            ov = self.query_one("#opt-policy-override", Select).value
-            override = (
-                None
-                if ov in (None, Select.BLANK, "")
-                else str(ov).strip()
-            )
-        except Exception:
-            prof, override = "ops", None
-        api_ok = bool(os.environ.get("ANTHROPIC_API_KEY", "").strip())
-        eff = preview_effective_policy(profile=prof, explicit_override=override, api_available=api_ok)
-        ov_note = f"override={override}" if override else "profile only"
-        self.query_one("#routing-preview", Static).update(
-            f"Effective routing for this launch: [{eff}]  ({ov_note}; Anthropic={'yes' if api_ok else 'no'})"
-        )
-        try:
-            self.query_one("#llm-profile-current-desc", Static).update(describe_llm_profile(prof))
-        except Exception:
-            pass
 
     async def _run_health_checks(self) -> None:
         # Run HTTP/TCP probes and llama-server process discovery in parallel.
@@ -639,53 +556,76 @@ class PreBootScreen(Screen):
             log.write(f"  {_STATUS_ICON[svc.status]}  {svc.name:<16} {svc.detail}{mode_tag}")
         self._refresh_llm_widgets()
 
+    def _probe_runtime_model_note(self) -> str:
+        """Append host probe: loaded model when discoverable."""
+        if not self._llama_proc:
+            return "\n\n--- This host ---\n  llama.cpp process: (none detected)"
+        loaded = ""
+        if self._llama_proc.get("router_mode") and self._llama_fs_models:
+            loaded = self._find_router_loaded_model()
+        elif self._llama_proc.get("model_path"):
+            loaded = str(self._llama_proc.get("model_path") or "")
+        if loaded:
+            return f"\n\n--- This host ---\n  Loaded / active on llama.cpp:  {loaded}"
+        return "\n\n--- This host ---\n  (loaded model not resolved from probe)"
+
+    def _format_llm_backend_body(self) -> str:
+        if not self._effective_cfg:
+            err = "\n".join(self._preboot_config_errors) if self._preboot_config_errors else "Configuration not loaded."
+            return f"[!!]  {err}"
+        base = format_llm_backend_tasks_from_cfg(
+            self._effective_cfg,
+            self._repo_root,
+            cockpit_config_path=self._config_path,
+        )
+        extra: list[str] = []
+        if self._preboot_config_errors:
+            extra.append("")
+            extra.append("CONFIG VERIFICATION — Launch disabled until fixed:")
+            for e in self._preboot_config_errors:
+                extra.append(f"  • {e}")
+        if self._runtime_model_mismatch:
+            extra.append("")
+            extra.append("RUNTIME VERIFICATION — Launch disabled:")
+            extra.append(f"  • {self._runtime_model_mismatch}")
+        return base + ("\n".join(extra) if extra else "") + self._probe_runtime_model_note()
+
     def _refresh_llm_widgets(self) -> None:
-        """Update provider status badge and model dropdown from health check results."""
+        """Refresh read-only LLM task text + llama.cpp probe line; verify loaded model vs cfg."""
         svc_map = {s.name: s for s in self._checks}
         llamacpp = svc_map.get("llama.cpp")
+        label = _llamacpp_provider_label(self._llamacpp_url)
         if llamacpp:
             icon = "[OK]" if llamacpp.status == "ok" else "[!!]"
-            self.query_one("#provider-status", Static).update(f"llama.cpp {icon}")
+            detail = f"{label}  {llamacpp.detail}  {icon}"
         else:
-            self.query_one("#provider-status", Static).update("llama.cpp [??]")
-        self._set_model_options("llamacpp", svc_map)
+            detail = f"{label}  [??]"
+        self.query_one("#provider-status", Static).update(detail)
 
-        # Reflect current mmap state from running process.
-        if self._llama_proc:
-            current_no_mmap = has_no_mmap(self._llama_proc.get("raw_args", []))
-            self.query_one("#opt-mmap-off", Checkbox).value = current_no_mmap
-
-    def _set_model_options(self, provider: str, svc_map: dict) -> None:
-        """Repopulate chat and extraction model Selects for the llama.cpp runtime."""
-        options = self._llamacpp_model_options()
-        available_values = [v for _, v in options]
-
-        # --- Chat model dropdown ---
-        model_select = self.query_one("#opt-model", Select)
-        model_select.set_options(options)
-        if available_values:
-            active_path = (self._llama_proc or {}).get("model_path", "")
-            # In router mode, model_path is empty — find the loaded model
-            # from the health check probe instead.
-            if not active_path and (self._llama_proc or {}).get("router_mode"):
+        self._runtime_model_mismatch = None
+        if (
+            self._effective_cfg
+            and llamacpp
+            and llamacpp.status == "ok"
+            and not self._preboot_config_errors
+        ):
+            loaded = ""
+            if self._llama_proc and self._llama_proc.get("router_mode") and self._llama_fs_models:
                 loaded = self._find_router_loaded_model()
-                if loaded and loaded in available_values:
-                    active_path = loaded
-            if active_path in available_values:
-                model_select.value = active_path
-            else:
-                model_select.value = available_values[0]
+            elif self._llama_proc and self._llama_proc.get("model_path"):
+                loaded = str(self._llama_proc.get("model_path") or "")
+            if loaded:
+                self._runtime_model_mismatch = verify_chat_model_matches_llamacpp_runtime(
+                    self._effective_cfg,
+                    loaded,
+                )
+            # else: probe OK but could not resolve loaded id — do not block (ambiguous topology)
+        self._update_launch_button()
 
-        # --- Extraction model dropdown ---
-        extraction_select = self.query_one("#opt-extraction-model", Select)
-        extraction_select.set_options(options)
-        if available_values:
-            # Auto-select the first instruct model for extraction.
-            instruct_match = next(
-                (v for v in available_values if "instruct" in str(v).lower()),
-                None,
-            )
-            extraction_select.value = instruct_match or available_values[0]
+        try:
+            self.query_one("#llm-backend-body", Static).update(self._format_llm_backend_body())
+        except Exception:
+            pass
 
     def _find_router_loaded_model(self) -> str:
         """Return the path/name of the currently loaded model in router mode."""
@@ -701,45 +641,6 @@ class PreBootScreen(Screen):
                 return m["name"]
         return ""
 
-    def _llamacpp_model_options(self) -> list[tuple[str, str]]:
-        """
-        Build model options for llama.cpp from filesystem-discovered .gguf files.
-        Each option value is the full path; the label shows the alias + filename.
-        In router mode, shows load state from the API. In single-model mode,
-        marks the currently loaded model with (active).
-        """
-        if not self._llama_fs_models:
-            if self._llama_proc and self._llama_proc.get("model_path"):
-                alias = self._llama_proc.get("model_alias") or Path(self._llama_proc["model_path"]).stem
-                label = f"{alias}  (active)"
-                return [(label, self._llama_proc["model_path"])]
-            return _FALLBACK_MODELS
-
-        # In router mode, query the API for per-model load status.
-        router_states: dict[str, str] = {}
-        if self._llama_proc and self._llama_proc.get("router_mode"):
-            host = _extract_arg(self._llama_proc.get("raw_args", []), ("--host",)) or "127.0.0.1"
-            port = _extract_arg(self._llama_proc.get("raw_args", []), ("--port",)) or "8001"
-            api_key = _extract_arg(self._llama_proc.get("raw_args", []), ("--api-key",))
-            for m in list_models_api(host, port, api_key):
-                router_states[m["name"]] = m["state"]
-
-        active_path = (self._llama_proc or {}).get("model_path", "")
-        active_alias = (self._llama_proc or {}).get("model_alias", "")
-        options: list[tuple[str, str]] = []
-        for m in self._llama_fs_models:
-            stem = m["stem"]
-            if router_states:
-                state = router_states.get(stem, "available")
-                label = f"{stem}  [{m['name']}]  ({state})"
-            elif m["path"] == active_path:
-                alias = active_alias or stem
-                label = f"{alias}  [{m['name']}]  (active)"
-            else:
-                label = f"{stem}  [{m['name']}]"
-            options.append((label, m["path"]))
-        return options
-
     def on_select_changed(self, event: Select.Changed) -> None:
         if not self._selects_active:
             return
@@ -753,13 +654,11 @@ class PreBootScreen(Screen):
                 self.query_one("#opt-rag", Checkbox).value = flags["enable_rag"]
             if "verbose" in flags:
                 self.query_one("#opt-verbose", Checkbox).value = flags["verbose"]
-        elif event.select.id == "opt-provider":
-            svc_map = {s.name: s for s in self._checks}
-            self._set_model_options(str(event.value or "ollama"), svc_map)
-        elif event.select.id in ("opt-llm-profile", "opt-policy-override"):
-            self._refresh_routing_preview()
-        elif event.select.id in ("opt-model", "opt-extraction-model"):
-            self._render_capabilities()
+        self._sync_effective_config_from_ui()
+
+    def on_checkbox_changed(self, event: Checkbox.Changed) -> None:
+        if event.checkbox.id in ("opt-readonly", "opt-web"):
+            self._sync_effective_config_from_ui()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-launch":
@@ -774,65 +673,12 @@ class PreBootScreen(Screen):
         web_enabled = self.query_one("#opt-web", Checkbox).value
         rag_enabled = self.query_one("#opt-rag", Checkbox).value
         verbose = self.query_one("#opt-verbose", Checkbox).value
-        router_mode_opt_in = self.query_one("#opt-router-mode", Checkbox).value
         profile = str(self.query_one("#opt-profile", Select).value or LAUNCH_PROFILES[0][1])
-        llm_provider = str(self.query_one("#opt-provider", Select).value or "ollama")
-        raw_model_value = str(self.query_one("#opt-model", Select).value or "")
         env = dict(PROFILE_FLAGS.get(profile, {}).get("env", {}))
         if verbose:
             env.setdefault("COCKPIT_LOG_LEVEL", "DEBUG")
             env.setdefault("COCKPIT_VERBOSE_LOGGING", "1")
             env.setdefault("COCKPIT_LOG_TO_STDERR", "1")
-        env["COCKPIT_ROUTER_MODE"] = "1" if router_mode_opt_in else "0"
-        env["LLAMA_SERVER_ROUTER_MODE"] = "1" if router_mode_opt_in else "0"
-
-        tool_debug = str(self.query_one("#opt-tool-debug", Select).value or "failures")
-        env["COCKPIT_TOOL_DEBUG"] = TOOL_DEBUG_ENV_BY_CHOICE.get(tool_debug, "failures")
-
-        # Resolve the selected model into a path and a name (stem/alias).
-        # In router mode, the "name" (stem) is what the API uses for routing.
-        # In single-model mode, the full path is needed for -m flag replacement.
-        if llm_provider == "llamacpp":
-            is_router = (self._llama_proc or {}).get("router_mode", False)
-            model_info = next((m for m in self._llama_fs_models if m["path"] == raw_model_value), None)
-
-            if model_info:
-                model_path = model_info["path"]
-                model_alias = model_info["stem"]
-            elif raw_model_value.startswith("/"):
-                model_path = raw_model_value
-                model_alias = Path(raw_model_value).stem
-            elif raw_model_value:
-                # Router-mode API model (name, not path).
-                model_path = raw_model_value
-                model_alias = raw_model_value
-            else:
-                model_path = ""
-                model_alias = self._initial.get("llm_model", "local")
-        else:
-            model_path = ""
-            model_alias = raw_model_value or "llama3:latest"
-
-        # Resolve extraction model — same logic but from the extraction Select.
-        raw_extraction_value = str(self.query_one("#opt-extraction-model", Select).value or "")
-        if llm_provider == "llamacpp":
-            ext_info = next((m for m in self._llama_fs_models if m["path"] == raw_extraction_value), None)
-            extraction_model = ext_info["stem"] if ext_info else (Path(raw_extraction_value).stem if raw_extraction_value.startswith("/") else raw_extraction_value)
-        else:
-            extraction_model = raw_extraction_value or model_alias
-
-        # Inject EXTRACT_MODEL into launch env so the backend picks it up
-        # automatically — no manual .env editing required.
-        if extraction_model:
-            env["EXTRACT_MODEL"] = extraction_model
-
-        llm_profile = str(self.query_one("#opt-llm-profile", Select).value or "ops")
-        ov_raw = self.query_one("#opt-policy-override", Select).value
-        router_policy_override: str | None = (
-            None
-            if ov_raw in (None, Select.BLANK, "")
-            else str(ov_raw).strip()
-        )
 
         return {
             "read_only": read_only,
@@ -840,107 +686,19 @@ class PreBootScreen(Screen):
             "enable_rag": rag_enabled,
             "verbose": verbose,
             "profile": profile,
-            "llm_provider": llm_provider,
-            "llm_model": model_alias,
-            "llm_model_path": model_path,
-            "extraction_model": extraction_model,
-            "router_mode_opt_in": router_mode_opt_in,
-            "llm_profile": llm_profile,
-            "router_policy_override": router_policy_override,
             "env": env,
             "cancelled": False,
         }
 
-    def _needs_model_switch(self, flags: dict[str, Any]) -> bool:
-        """Check if the selected model differs from the currently active one."""
-        if flags["llm_provider"] != "llamacpp" or not self._llama_proc:
-            return False
-
-        is_router = self._llama_proc.get("router_mode", False)
-
-        if is_router:
-            # In router mode: compare model stem name against loaded models.
-            new_name = flags.get("llm_model", "")
-            host = _extract_arg(self._llama_proc.get("raw_args", []), ("--host",)) or "127.0.0.1"
-            port = _extract_arg(self._llama_proc.get("raw_args", []), ("--port",)) or "8001"
-            api_key = _extract_arg(self._llama_proc.get("raw_args", []), ("--api-key",))
-            loaded = [m["name"] for m in list_models_api(host, port, api_key) if m["state"] == "loaded"]
-            return new_name not in loaded
-        else:
-            # Single-model mode: compare paths.
-            model_changed = (
-                flags.get("llm_model_path")
-                and self._llama_proc.get("model_path") != flags["llm_model_path"]
-            )
-            current_no_mmap = has_no_mmap(self._llama_proc.get("raw_args", []))
-            mmap_disabled = self.query_one("#opt-mmap-off", Checkbox).value
-            mmap_changed = mmap_disabled != current_no_mmap
-            return bool(model_changed or mmap_changed)
-
     def action_launch(self) -> None:
+        self._sync_effective_config_from_ui()
+        if self._preboot_config_errors or self._runtime_model_mismatch:
+            return
         flags = self._collect_flags()
-        if flags.get("router_mode_opt_in") and self._topology_blocks_router_mode():
-            log = self.query_one("#health-log", RichLog)
-            topology = dict(self._llama_topology or {})
-            reason = str(topology.get("reason") or "ambiguous topology").strip().replace("_", " ")
-            log.write(f"  Router mode blocked: {reason}. Resolve runtime selection before launch.")
-            return
-        if self._needs_model_switch(flags):
-            asyncio.create_task(self._switch_and_launch(flags))
-            return
         if self._on_launch:
             result = self._on_launch(flags)
             if asyncio.iscoroutine(result):
                 asyncio.create_task(result)
-
-    async def _switch_and_launch(self, flags: dict[str, Any]) -> None:
-        """Switch the model (via router API or restart), then launch the cockpit."""
-        log = self.query_one("#health-log", RichLog)
-        btn = self.query_one("#btn-launch", Button)
-        btn.disabled = True
-
-        model_path = flags["llm_model_path"]
-        model_name = flags["llm_model"]
-
-        is_router = (self._llama_proc or {}).get("router_mode", False)
-        if is_router:
-            log.write(f"\n  Hot-switching model → {model_name}  (zero downtime)")
-        else:
-            log.write(f"\n  Switching model → {model_name}")
-            log.write("  (this may take several minutes for large models)")
-
-        host = _extract_arg((self._llama_proc or {}).get("raw_args", []), ("--host",)) or "127.0.0.1"
-        port = _extract_arg((self._llama_proc or {}).get("raw_args", []), ("--port",)) or "8001"
-        api_key = _extract_arg((self._llama_proc or {}).get("raw_args", []), ("--api-key",))
-
-        def _status(msg: str) -> None:
-            self.call_from_thread(log.write, f"  {msg}")
-
-        result = await asyncio.to_thread(
-            switch_model,
-            self._llama_proc,
-            model_name,
-            model_path,
-            api_key,
-            host,
-            port,
-            600.0,
-            _status,
-            self.query_one("#opt-mmap-off", Checkbox).value,
-        )
-
-        if result.ok:
-            log.write(f"  Ready — {result.message}. Launching cockpit...")
-        else:
-            log.write(f"  {result.message}. Re-enable Launch to retry or pick a different model.")
-            btn.disabled = False
-            return
-
-        btn.disabled = False
-        if self._on_launch:
-            result = self._on_launch(flags)
-            if asyncio.iscoroutine(result):
-                await result
 
     def action_cancel_boot(self) -> None:
         if self._on_cancel:
@@ -973,11 +731,14 @@ class PreBootApp(App[dict[str, Any]]):
         self._initial = initial_flags or {}
 
     def on_mount(self) -> None:
+        rr = Path(__file__).resolve().parents[2]
         self.push_screen(
             PreBootScreen(
                 backend_url=self._backend_url,
                 ollama_url=self._ollama_url,
                 llamacpp_url=self._llamacpp_url,
+                repo_root=rr,
+                config_path=str((rr / "config" / "cockpit.yaml").resolve()),
                 initial_flags=self._initial,
                 on_launch=lambda flags: self.exit(flags),
                 on_cancel=lambda: self.exit({"cancelled": True}),

@@ -46,6 +46,7 @@ _cfg = apply_runtime_flags(
         profile=_args.profile,
         read_only=_args.read_only,
         no_web=_args.no_web,
+        repo_root=REPO_ROOT,
     ),
 )
 

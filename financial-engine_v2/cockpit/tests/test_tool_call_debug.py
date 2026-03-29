@@ -9,6 +9,7 @@ from cockpit.core.tool_call_debug import (
     cockpit_tool_chat_debug_mode,
     extract_error_message,
     format_failure_block,
+    initial_tool_debug_choice_from_env,
     summarize_arguments_for_log,
     tool_result_succeeded,
 )
@@ -92,6 +93,27 @@ def test_cockpit_tool_chat_debug_mode(
     a, b = cockpit_tool_chat_debug_mode()
     assert a is expect_fail
     assert b is expect_full
+
+
+@pytest.mark.parametrize(
+    ("env", "choice"),
+    [
+        ("", "failures"),
+        ("failures", "failures"),
+        ("1", "full"),
+        ("off", "off"),
+        ("full", "full"),
+    ],
+)
+def test_initial_tool_debug_choice_from_env(
+    monkeypatch: pytest.MonkeyPatch,
+    env: str,
+    choice: str,
+) -> None:
+    monkeypatch.delenv("COCKPIT_TOOL_DEBUG", raising=False)
+    if env:
+        monkeypatch.setenv("COCKPIT_TOOL_DEBUG", env)
+    assert initial_tool_debug_choice_from_env() == choice
 
 
 def test_extract_error_message() -> None:

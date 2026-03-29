@@ -9,6 +9,7 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen, Screen
 from textual.widgets import Button, Collapsible, DataTable, Input, Label, RichLog, Select, Static, Switch
 
+from cockpit.core.config import format_cockpit_llm_readonly
 from cockpit.core.plotly_html import build_verification_dashboard_html
 from cockpit.ui.help_modal import HelpScreen
 
@@ -241,17 +242,10 @@ class OperationsScreen(Screen):
                     yield Horizontal(Switch(id="perm-rag", value=False), Label("RAG Context"))
                     yield Horizontal(Switch(id="perm-dbdiag", value=False), Label("DB Diagnostics"))
                 with Vertical():
-                    yield Label("LLM Routing")
-                    yield Select(
-                        [
-                            ("Local only", "local_only"),
-                            ("Local + API fallback", "local_preferred"),
-                            ("API preferred", "api_preferred"),
-                            ("API only", "api_only"),
-                        ],
-                        id="perm-routing-policy",
-                        value="local_only",
-                        allow_blank=False,
+                    yield Label("Cockpit LLM (read-only — edit config/cockpit_llm.yaml)")
+                    yield Static(
+                        format_cockpit_llm_readonly(self.app.repo_root),
+                        id="perm-llm-readonly",
                     )
             yield Static(id="perm-capabilities")
 
@@ -295,7 +289,9 @@ class OperationsScreen(Screen):
 
         caps = self.app.get_capabilities()
         try:
-            self.query_one("#perm-routing-policy", Select).value = caps.get("routing_policy", "local_only")
+            self.query_one("#perm-llm-readonly", Static).update(
+                format_cockpit_llm_readonly(self.app.repo_root)
+            )
         except Exception:
             pass
 
@@ -303,8 +299,12 @@ class OperationsScreen(Screen):
         no = "-"
         lines = []
         lines.append(f"  {ok if caps.get('backend_api') else no}  Backend API   {caps.get('backend_url') or 'not configured'}")
-        prof = caps.get("llm_profile") or caps.get("routing_policy")
-        lines.append(f"  +  LLM profile   {prof}")
+        lines.append(f"  +  Effective routing  {caps.get('routing_policy')}")
+        lines.append(f"  +  Profile label  {caps.get('llm_profile')}")
+        lines.append(f"  +  Config  {caps.get('cockpit_llm_config_path')}")
+        exo = caps.get("explicit_policy_override")
+        if exo:
+            lines.append(f"  !  HYBRID_ROUTER_POLICY (env override)  {exo}")
         lines.append(f"  {ok if caps.get('anthropic_api') else no}  Claude API    {'key loaded' if caps.get('anthropic_api') else 'no key'}")
         lines.append(f"  {ok if caps.get('brave_search') else no}  Brave Search  {'active' if caps.get('brave_search') else 'no key'}")
         lines.append(f"  {ok if caps.get('hn_search') else no}  HN Search     {'active' if caps.get('hn_search') else 'inactive'}")
@@ -330,12 +330,6 @@ class OperationsScreen(Screen):
             log.write(msg)
         elif switch_id == "perm-dbdiag":
             msg = self.app._set_access_scope("dbdiag", event.value)
-            log.write(msg)
-
-    def on_select_changed(self, event: Select.Changed) -> None:
-        if event.select.id == "perm-routing-policy":
-            log = self.query_one("#ops-log", RichLog)
-            msg = self.app.set_routing_policy(str(event.value))
             log.write(msg)
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:

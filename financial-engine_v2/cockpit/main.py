@@ -59,6 +59,7 @@ def main() -> None:
             profile=args.profile,
             read_only=args.read_only,
             no_web=args.no_web,
+            repo_root=repo_root,
         ),
     )
 
