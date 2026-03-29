@@ -430,6 +430,12 @@ class ToolExecutor:
                 "ok": False,
                 "ticker": ticker,
                 "error": "Analysis returned no module results",
+                "data_insufficient": True,
+                "suggestion": (
+                    f"No data exists for {ticker}. Use the run_backfill tool "
+                    f"to populate financial data first: "
+                    f'{{"tool": "run_backfill", "ticker": "{ticker}", "years": 2}}'
+                ),
             }
 
         # Key metric extraction per module
@@ -513,13 +519,32 @@ class ToolExecutor:
 
         summary_text = "\n".join(summary_lines)
 
-        return {
+        # Detect insufficient data — if most modules FAILED, suggest backfill
+        failed_count = sum(
+            1 for m in module_summaries if m.get("status") == "failed"
+        )
+        total = len(module_summaries)
+        suggestion = None
+        if failed_count > total // 2:
+            suggestion = (
+                f"Most analysis modules failed for {ticker} due to "
+                f"insufficient data ({failed_count}/{total} failed). "
+                f"To populate financial data, use the run_backfill tool: "
+                f'{{"tool": "run_backfill", "ticker": "{ticker}", "years": 2}}. '
+                f"After backfill completes, re-run the analysis."
+            )
+
+        result: dict[str, Any] = {
             "ok": True,
             "ticker": ticker,
-            "modules_run": data.get("modules_run", len(results)),
+            "modules_run": data.get("modules_run", total),
             "summary_text": summary_text,
             "modules": module_summaries,
         }
+        if suggestion:
+            result["data_insufficient"] = True
+            result["suggestion"] = suggestion
+        return result
 
     # Dispatch table: tool_name -> handler method
     _READ_ONLY_DISPATCH: dict[str, Any] = {
