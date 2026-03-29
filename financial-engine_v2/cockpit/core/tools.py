@@ -1236,22 +1236,6 @@ class ToolRouter:
                         payload["has_dossier_context"] = True
                 except Exception:
                     pass
-            # Inject most recent prior analysis export for this ticker (best-effort)
-            if self._state_store is not None and ticker:
-                try:
-                    if hasattr(self._state_store, "list_exports"):
-                        recent_exports = self._state_store.list_exports(limit=20)
-                        ticker_upper = ticker.upper()
-                        for exp in recent_exports:
-                            question = str(exp.get("question") or "")
-                            if ticker_upper in question.upper():
-                                payload["prior_export"] = {
-                                    "question": question[:200],
-                                    "date": str(exp.get("created_at") or "")[:10],
-                                }
-                                break
-                except Exception:
-                    pass
         # Collect sources metadata for evidence footer
         sources: dict[str, Any] = {}
         qual = payload.get("qual_context") or {}

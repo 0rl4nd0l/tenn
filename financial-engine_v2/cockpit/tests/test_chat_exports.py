@@ -4,9 +4,15 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 from cockpit.core.export_utils import extract_ticker_from_payload
 from cockpit.storage.artifacts import ArtifactStore
+
+try:
+    from cockpit.ui.app import CockpitApp
+except ModuleNotFoundError:
+    CockpitApp = None
 
 
 class ChatExportTests(unittest.TestCase):
@@ -45,6 +51,57 @@ class ChatExportTests(unittest.TestCase):
             effective_ticker = extract_ticker_from_payload(latest_export_payload)
         payload["last_detected_ticker"] = effective_ticker
         return payload
+
+    @unittest.skipIf(CockpitApp is None, "textual/cockpit UI deps unavailable in this environment")
+    def test_export_copy_bundle_redacts_settings_secrets(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_root = Path(tmp)
+            notifications: list[str] = []
+
+            class _FakeApp:
+                def __init__(self):
+                    self.thread_id = "thread-a"
+                    self.config = {
+                        "runtime": {"mode": "test"},
+                        "llm": {
+                            "llamacpp_api_key": "super-secret",
+                            "llamacpp_url": "http://user:pass@localhost:8001/v1",
+                        },
+                    }
+                    self.screen = SimpleNamespace(name="settings")
+                    self.state_store = SimpleNamespace()
+                    self.pending_action = None
+                    self.last_chart_path = None
+                    self.last_snapshot_payload = None
+                    self.last_verification_payload = None
+                    self.last_detected_ticker = None
+                    self.repo_root = repo_root
+
+                def timestamp(self):
+                    return "20260329_000001"
+
+                def _copy_to_clipboard(self, text: str) -> bool:
+                    return False
+
+                def _write_log(self, log_target: str, notice: str) -> None:
+                    return None
+
+                def notify(self, notice: str) -> None:
+                    notifications.append(notice)
+
+                _sanitize_export_payload = classmethod(CockpitApp._sanitize_export_payload.__func__)
+                _export_log_target = staticmethod(CockpitApp._export_log_target)
+
+            app = _FakeApp()
+
+            CockpitApp.action_export_copy_bundle(app)
+
+            bundle_path = repo_root / "reports" / "cockpit" / "exports" / "claude_context.json"
+            payload = json.loads(bundle_path.read_text(encoding="utf-8"))
+
+            self.assertEqual(payload["settings"]["llm"]["llamacpp_api_key"], CockpitApp._REDACTED_EXPORT_VALUE)
+            self.assertEqual(payload["settings"]["llm"]["llamacpp_url"], "http://localhost:8001/v1")
+            self.assertTrue(notifications)
 
     def test_write_analysis_uses_unique_paths_for_fast_successive_exports(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

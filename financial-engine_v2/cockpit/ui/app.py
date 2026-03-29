@@ -11,6 +11,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -58,6 +59,19 @@ from cockpit.ui.help_modal import HelpScreen
 
 class CockpitApp(App):
     ASSISTANT_NAME = "Tenn"
+    _REDACTED_EXPORT_VALUE = "***REDACTED***"
+    _SENSITIVE_EXPORT_KEY_PARTS = (
+        "api_key",
+        "apikey",
+        "auth",
+        "authorization",
+        "bearer",
+        "cookie",
+        "password",
+        "secret",
+        "token",
+        "private_key",
+    )
 
     CSS = """
     #confirm-modal {
@@ -1917,7 +1931,8 @@ class CockpitApp(App):
         else:
             payload["recent_jobs"] = self.state_store.list_jobs(limit=20)
 
-        text_blob = json.dumps(payload, indent=2, default=str)
+        sanitized_payload = self._sanitize_export_payload(payload)
+        text_blob = json.dumps(sanitized_payload, indent=2, default=str)
 
         # Always write a fixed-path file so Claude can read it without hunting for
         # a timestamped filename.  Overwritten on every export — always fresh.
@@ -1937,6 +1952,51 @@ class CockpitApp(App):
         if log_target:
             self._write_log(log_target, notice)
         self.notify(notice)
+
+    @classmethod
+    def _is_sensitive_export_key(cls, key: str) -> bool:
+        normalized = str(key or "").strip().lower().replace("-", "_")
+        if not normalized:
+            return False
+        return any(part in normalized for part in cls._SENSITIVE_EXPORT_KEY_PARTS)
+
+    @classmethod
+    def _sanitize_export_string(cls, value: str) -> str:
+        text = str(value or "")
+        if not text:
+            return text
+
+        try:
+            parsed = urlsplit(text)
+        except Exception:
+            parsed = None
+        if parsed and parsed.scheme and (parsed.username is not None or parsed.password is not None):
+            host = parsed.hostname or ""
+            if parsed.port is not None:
+                host = f"{host}:{parsed.port}"
+            return urlunsplit((parsed.scheme, host, parsed.path, parsed.query, parsed.fragment))
+
+        if text.lower().startswith("bearer ") and len(text) > 7:
+            return "Bearer " + cls._REDACTED_EXPORT_VALUE
+        return text
+
+    @classmethod
+    def _sanitize_export_payload(cls, value: Any, *, key: str = "") -> Any:
+        if cls._is_sensitive_export_key(key):
+            return cls._REDACTED_EXPORT_VALUE
+
+        if isinstance(value, dict):
+            return {
+                str(child_key): cls._sanitize_export_payload(child_value, key=str(child_key))
+                for child_key, child_value in value.items()
+            }
+        if isinstance(value, list):
+            return [cls._sanitize_export_payload(item, key=key) for item in value]
+        if isinstance(value, tuple):
+            return [cls._sanitize_export_payload(item, key=key) for item in value]
+        if isinstance(value, str):
+            return cls._sanitize_export_string(value)
+        return value
 
     @staticmethod
     def _export_log_target(screen_key: str) -> str | None:
