@@ -313,3 +313,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** (1) `httpx.Client` is not thread-safe. Cockpit called `LlamaCppClient.health()` from `asyncio.to_thread` every ~15s while `chat()` ran on the Textual thread — concurrent use of one client corrupts the connection pool and can leave the peer in bad TCP states. (2) `_gpu_memory_used_mb` fed arithmetic with non-numeric `nvidia-smi` output, triggering unbound-variable errors in bash arithmetic under `set -u`.
 **Fix:** One `httpx.Client` per OS thread via `threading.local()` in `LlamaCppClient` and `OllamaClient`; explicit `httpx.Timeout` and `httpx.Limits(max_connections=6, max_keepalive_connections=3)`. Strip `memory.used` to digits only before `VRAM_TOTAL_MB - used` in `gpu_process_guard.sh`.
 **Rule:** Do not share a single `httpx.Client` instance across threads (including `asyncio.to_thread` workers). Use thread-local clients, or a lock around all client use (avoid holding the lock across long streaming reads). When parsing `nvidia-smi` CSV in bash with `set -u`, normalize to digits before arithmetic.
+
+---
+
+## L029 — Ticker fast-path false positives: stopwords incomplete and _FOLLOW_UP_RE too broad
+
+**Date:** 2026-03-29
+**Subsystem:** `cockpit/core/chat.py`
+**Symptom:** Conversational messages like "sure", "okay", "why did ingestion fail", "hi how are you" triggered ticker lookups (SURE, OKAY, WHY, ARE), returning "No data found" errors. The user saw every free-text message misrouted as a stock query.
+**Root cause:** Two independent issues: (1) `TICKER_STOPWORDS` was missing common English words (WHY, ARE, FAIL, RIGHT, WAS, HAS, GOT, GET, etc.) so `_detect_ticker` treated them as valid ASX tickers. (2) `_FOLLOW_UP_RE` matched discourse markers ("sure", "okay", "yes", "go ahead", "also", "continue", "right") in addition to financial terms, causing prior-ticker reattachment for any message containing conversational fillers.
+**Fix:** Expanded `TICKER_STOPWORDS` with ~20 missing common English words. Rewrote `_FOLLOW_UP_RE` to match only topic-referential phrases (financial terms like "financials", "earnings", "revenue"; entity pronouns like "their", "its"; explicit continuation like "tell me more") — removed all discourse markers. Added 9 regression tests covering stopwords, follow-up matching, compound messages, and cued tickers.
+**Rule:** When adding a fast-path that fires before intent classification, the deny-list must be exhaustive for false positives. Conversational fillers (discourse markers) are never entity-referential — do not treat them as follow-up signals for ticker context.

@@ -73,6 +73,93 @@ class ChatTickerDetectionTests(unittest.TestCase):
         self.assertEqual(response.mode, ResponseMode.FAST)
         self.assertIn("Which ticker do you want to chart?", response.text)
 
+    # ------------------------------------------------------------------
+    # Stopword expansion — common English words must not be detected as tickers
+    # ------------------------------------------------------------------
+
+    def test_stopwords_block_common_english_words(self) -> None:
+        """Words like WHY, ARE, FAIL must not be treated as tickers."""
+        for word in ("why", "are", "fail", "was", "has", "got", "get", "try", "end", "who"):
+            with self.subTest(word=word):
+                self.assertIsNone(
+                    self.controller._detect_ticker(word, prior_ticker=None),
+                    f"'{word}' should not be detected as a ticker",
+                )
+
+    def test_stopwords_block_uppercase_common_words(self) -> None:
+        """Even when typed in all-caps, common words must not be tickers."""
+        for word in ("WHY", "ARE", "FAIL", "SURE", "OKAY"):
+            with self.subTest(word=word):
+                self.assertIsNone(
+                    self.controller._detect_ticker(word, prior_ticker=None),
+                    f"'{word}' (all-caps) should not be detected as a ticker",
+                )
+
+    # ------------------------------------------------------------------
+    # _FOLLOW_UP_RE — narrowed to topic-referential terms only
+    # ------------------------------------------------------------------
+
+    def test_follow_up_does_not_match_discourse_markers(self) -> None:
+        """Conversational fillers must NOT reattach prior ticker."""
+        for msg in ("sure", "okay", "yes", "go ahead", "right", "also", "continue"):
+            with self.subTest(msg=msg):
+                ticker, explicit = self.controller._resolve_ticker_context(msg, prior_ticker="BHP")
+                self.assertIsNone(
+                    ticker,
+                    f"'{msg}' should not reattach prior ticker BHP",
+                )
+
+    def test_follow_up_matches_financial_terms(self) -> None:
+        """Financial/entity-referential terms SHOULD reattach prior ticker."""
+        for msg in ("what about their financials", "tell me more", "earnings", "revenue", "outlook"):
+            with self.subTest(msg=msg):
+                ticker, explicit = self.controller._resolve_ticker_context(msg, prior_ticker="BHP")
+                self.assertEqual(
+                    ticker, "BHP",
+                    f"'{msg}' should reattach prior ticker BHP",
+                )
+                self.assertFalse(explicit)
+
+    # ------------------------------------------------------------------
+    # Compound messages: conversational preamble + real ticker
+    # ------------------------------------------------------------------
+
+    def test_compound_message_extracts_real_ticker(self) -> None:
+        """'sure, but what about BHP' must still detect BHP."""
+        ticker = self.controller._detect_ticker("sure, but what about BHP", prior_ticker=None)
+        self.assertEqual(ticker, "BHP")
+
+    def test_real_tickers_still_detected(self) -> None:
+        """Core regression: single-word tickers must still be detected."""
+        for msg, expected in (("BHP", "BHP"), ("CSL", "CSL"), ("bhp", "BHP")):
+            with self.subTest(msg=msg):
+                ticker = self.controller._detect_ticker(msg, prior_ticker=None)
+                self.assertEqual(ticker, expected)
+
+    def test_cued_ticker_in_sentence(self) -> None:
+        """Tickers with a cue word (about, price, news) must still be detected."""
+        for msg, expected in (
+            ("arr price", "ARR"),
+            ("csl news", "CSL"),
+            ("tell me about bhp", "BHP"),
+        ):
+            with self.subTest(msg=msg):
+                ticker = self.controller._detect_ticker(msg, prior_ticker=None)
+                self.assertEqual(ticker, expected, f"'{msg}' should detect {expected}")
+
+    def test_conversational_sentence_no_ticker(self) -> None:
+        """Full conversational sentences must not produce a ticker."""
+        for msg in (
+            "why did ingestion fail",
+            "hi how are you",
+            "can you help me debug this",
+        ):
+            with self.subTest(msg=msg):
+                self.assertIsNone(
+                    self.controller._detect_ticker(msg, prior_ticker=None),
+                    f"'{msg}' should not produce a ticker",
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

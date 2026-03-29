@@ -374,6 +374,31 @@ class ChatController:
         "THEM",
         "THEIR",
         "SAME",
+        "RIGHT",
+        # Verbs and question words commonly seen in conversational messages.
+        "WHY",
+        "ARE",
+        "WAS",
+        "HAS",
+        "HAD",
+        "GOT",
+        "GET",
+        "LET",
+        "SAY",
+        "TRY",
+        "WAY",
+        "END",
+        "WHO",
+        "FAIL",
+        "DONE",
+        "WENT",
+        "GOES",
+        "GOING",
+        "BEING",
+        "STILL",
+        "EACH",
+        "EVEN",
+        "EVERY",
     }
 
     # ------------------------------------------------------------------ #
@@ -594,17 +619,18 @@ class ChatController:
     )
 
     # Detects follow-up messages that implicitly reference the prior ticker.
-    # Matches pronouns, company references, and common conversational
-    # continuations that imply the user is still talking about the same entity.
+    # Only matches topic-referential phrases (financial terms, entity pronouns,
+    # explicit continuation requests).  Discourse markers like "sure", "okay",
+    # "yes", "go ahead" are intentionally excluded — they are conversational
+    # fillers, not entity references, and caused false prior-ticker reattachment.
     _FOLLOW_UP_RE = re.compile(
         r"\b(?:"
         r"it|its|they|their|them|"
-        r"the company|the stock|this company|this stock|same ticker|"
+        r"the company|the stock|this company|this stock|same ticker|same company|"
         r"what about|how about|and what|and how|"
-        r"tell me more|more detail|elaborate|go on|continue|expand on|"
-        r"go ahead|yes|sure|okay|ok|yep|yeah|right|"
-        r"also|additionally|furthermore|"
+        r"tell me more|more detail|elaborate|expand on|drill down|"
         r"financials?|revenue|earnings|cashflow|cash flow|dividends?|"
+        r"balance sheet|results?|"
         r"health|performance|outlook|guidance|price|chart|candlestick|candle|plot|"
         r"compared to|versus|vs"
         r")\b",
