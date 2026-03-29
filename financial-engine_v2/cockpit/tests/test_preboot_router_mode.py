@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from types import MethodType, SimpleNamespace
 
+from textual.widgets import Select
+
 from cockpit.ui.preboot import PreBootScreen
 
 
@@ -180,9 +182,9 @@ def test_collect_flags_carries_router_mode_opt_in():
         "#opt-provider": SimpleNamespace(value="llamacpp"),
         "#opt-model": SimpleNamespace(value="/models/qwen2.5-coder-14b.gguf"),
         "#opt-extraction-model": SimpleNamespace(value="/models/qwen2.5-14b-instruct.gguf"),
-        "#opt-orchestrator-model": SimpleNamespace(value=""),
-        "#opt-subagent-model": SimpleNamespace(value=""),
-        "#opt-router-policy": SimpleNamespace(value="local_only"),
+        "#opt-llm-profile": SimpleNamespace(value="ops"),
+        "#opt-policy-override": SimpleNamespace(value=Select.BLANK),
+        "#opt-tool-debug": SimpleNamespace(value="failures"),
     }
 
     def _query_one(self, selector, cls=None):
@@ -195,3 +197,6 @@ def test_collect_flags_carries_router_mode_opt_in():
     assert flags["router_mode_opt_in"] is True
     assert flags["env"]["COCKPIT_ROUTER_MODE"] == "1"
     assert flags["env"]["LLAMA_SERVER_ROUTER_MODE"] == "1"
+    assert flags["llm_profile"] == "ops"
+    assert flags["router_policy_override"] is None
+    assert flags["env"]["COCKPIT_TOOL_DEBUG"] == "failures"

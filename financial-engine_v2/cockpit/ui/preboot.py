@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import socket
 import urllib.error
 import urllib.request
@@ -31,6 +32,20 @@ from cockpit.integrations.llamacpp_manager import (
     switch_model,
 )
 from cockpit.ui.help_modal import HelpScreen
+
+from cockpit.core.config import load_env
+from cockpit.core.llm_profile import (
+    LLM_PROFILE_IDS,
+    LLM_PROFILE_TITLES,
+    describe_llm_profile,
+    format_all_profile_descriptions,
+    preview_effective_policy,
+)
+from cockpit.core.tool_call_debug import (
+    TOOL_DEBUG_ENV_BY_CHOICE,
+    TOOL_DEBUG_UI_OPTIONS,
+    initial_tool_debug_choice_from_env,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -67,17 +82,25 @@ def _llamacpp_provider_label(llamacpp_url: str) -> str:
     return f"llama.cpp  ({host}:{port})"
 
 
+def _ollama_tags_url(ollama_url: str) -> str:
+    base = (ollama_url or "").strip() or "http://localhost:11434"
+    if "://" not in base:
+        base = f"http://{base}"
+    return base.rstrip("/") + "/api/tags"
+
+
 def _build_service_checks(
     backend_url: str,
-    ollama_url: str = "",  # noqa: ARG001
+    ollama_url: str = "",
     llamacpp_url: str = "http://localhost:8001",
 ) -> list[_ServiceCheck]:
     backend_health = backend_url.rstrip("/") + "/api/health"
     return [
-        _ServiceCheck("Backend API",  backend_health),
-        _ServiceCheck("llama.cpp",     _llamacpp_models_url(llamacpp_url)),
-        _ServiceCheck("Qdrant",        "http://localhost:6333/readyz"),
-        _ServiceCheck("Redis",         "tcp://localhost:6379"),
+        _ServiceCheck("Backend API", backend_health),
+        _ServiceCheck("llama.cpp", _llamacpp_models_url(llamacpp_url)),
+        _ServiceCheck("Ollama", _ollama_tags_url(ollama_url)),
+        _ServiceCheck("Qdrant", "http://localhost:6333/readyz"),
+        _ServiceCheck("Redis", "tcp://localhost:6379"),
     ]
 
 
@@ -153,6 +176,13 @@ PROFILE_FLAGS: dict[str, dict[str, Any]] = {
 _FALLBACK_MODELS: list[tuple[str, str]] = [("llama3:latest", "llama3:latest")]
 
 
+_VALID_POLICY_VALUES = frozenset({"local_only", "local_preferred", "api_preferred", "api_only"})
+
+LLM_PROFILE_OPTIONS: list[tuple[str, str]] = [
+    (LLM_PROFILE_TITLES[k], k) for k in LLM_PROFILE_IDS
+]
+
+
 def _resolve_initial_option_state(initial_flags: dict[str, Any] | None) -> dict[str, Any]:
     raw = dict(initial_flags or {})
     valid_profiles = {value for _, value in LAUNCH_PROFILES}
@@ -163,6 +193,26 @@ def _resolve_initial_option_state(initial_flags: dict[str, Any] | None) -> dict[
     llm_provider = raw.get("llm_provider", "llamacpp")
     if llm_provider != "llamacpp":
         llm_provider = "llamacpp"
+
+    explicit_env = (os.environ.get("HYBRID_ROUTER_POLICY") or "").strip()
+    if "router_policy_override" in raw:
+        policy_override: str | None = raw["router_policy_override"]
+    elif explicit_env in _VALID_POLICY_VALUES:
+        policy_override = explicit_env
+    else:
+        policy_override = None
+
+    llm_prof = (raw.get("llm_profile") or os.environ.get("COCKPIT_LLM_PROFILE") or "ops").strip().lower()
+    if llm_prof not in LLM_PROFILE_IDS:
+        llm_prof = "ops"
+
+    if "tool_debug" in raw:
+        tool_debug = str(raw["tool_debug"]).strip().lower()
+    else:
+        tool_debug = initial_tool_debug_choice_from_env()
+    if tool_debug not in {"failures", "full", "off"}:
+        tool_debug = "failures"
+
     return {
         "profile": profile,
         "read_only": bool(raw["read_only"]) if "read_only" in raw else bool(defaults.get("read_only", False)),
@@ -173,6 +223,9 @@ def _resolve_initial_option_state(initial_flags: dict[str, Any] | None) -> dict[
         "llm_model": raw.get("llm_model", "qwen2.5-coder-14b"),
         "extraction_model": raw.get("extraction_model", "qwen2.5-14b-instruct"),
         "router_mode_opt_in": bool(raw.get("router_mode_opt_in", False)),
+        "llm_profile": llm_prof,
+        "router_policy_override": policy_override,
+        "tool_debug": tool_debug,
     }
 
 
@@ -226,6 +279,9 @@ class PreBootScreen(Screen):
         width: 1fr;
     }
     #options-label { text-style: bold; }
+    #tool-debug-row { height: auto; margin-top: 1; width: 1fr; }
+    #tool-debug-label { width: 22; padding-top: 1; }
+    #opt-tool-debug { width: 1fr; }
     #profile-row { height: 3; margin-top: 1; width: 1fr; }
     #profile-label { width: 10; padding-top: 1; }
     #opt-profile { width: 1fr; }
@@ -248,16 +304,34 @@ class PreBootScreen(Screen):
     #extraction-label { width: 10; padding-top: 1; }
     #opt-extraction-model { width: 1fr; }
     #mmap-row { height: 3; margin-top: 1; width: 1fr; }
-    #advanced-routing { margin-top: 1; }
-    #orchestrator-row { height: 3; width: 1fr; }
-    #orchestrator-label { width: 14; padding-top: 1; }
-    #opt-orchestrator-model { width: 1fr; }
-    #subagent-row { height: 3; width: 1fr; }
-    #subagent-label { width: 14; padding-top: 1; }
-    #opt-subagent-model { width: 1fr; }
-    #policy-row { height: 3; width: 1fr; }
-    #policy-label { width: 14; padding-top: 1; }
-    #opt-router-policy { width: 1fr; }
+    #capability-section {
+        border: round $success;
+        padding: 0 1;
+        height: auto;
+        margin-bottom: 1;
+        width: 1fr;
+    }
+    #capability-label { text-style: bold; }
+    #capability-log { height: 10; }
+    #session-routing-section {
+        border: round $accent;
+        padding: 0 1;
+        height: auto;
+        margin-bottom: 1;
+        width: 1fr;
+    }
+    #session-routing-label { text-style: bold; }
+    #llm-profile-row { height: 3; margin-top: 1; width: 1fr; }
+    #llm-profile-label { width: 16; padding-top: 1; }
+    #opt-llm-profile { width: 1fr; }
+    #policy-override-row { height: 3; margin-top: 1; width: 1fr; }
+    #policy-override-label { width: 16; padding-top: 1; }
+    #opt-policy-override { width: 1fr; }
+    #routing-preview { margin-top: 1; color: $text-muted; height: auto; }
+    #llm-profile-selected-label { margin-top: 1; text-style: bold; }
+    #llm-profile-current-desc { margin-top: 0; color: $text; height: auto; }
+    #profile-help-collapsible { margin-top: 1; }
+    #profile-help-text { color: $text-muted; height: auto; }
     #btn-row { height: 3; margin-top: 1; margin-bottom: 1; width: 1fr; }
     #btn-spacer { width: 1fr; }
     #btn-cancel { margin-right: 1; width: auto; }
@@ -275,6 +349,8 @@ class PreBootScreen(Screen):
         on_launch: Callable[[dict[str, Any]], None] | None = None,
         on_cancel: Callable[[], None] | None = None,
     ) -> None:
+        # Load financial-engine_v2/.env before reading COCKPIT_* / ANTHROPIC_* for defaults.
+        load_env(Path(__file__).resolve().parents[2])
         super().__init__()
         self._backend_url = backend_url
         self._ollama_url = ollama_url
@@ -299,15 +375,54 @@ class PreBootScreen(Screen):
             with Vertical(id="health-section"):
                 yield Label("Service Health", id="health-label")
                 yield RichLog(id="health-log", wrap=False, markup=False, max_lines=10)
+            with Vertical(id="capability-section"):
+                yield Label("Capabilities & routing preview", id="capability-label")
+                yield RichLog(id="capability-log", wrap=False, markup=False, max_lines=16)
             with Vertical(id="options-section"):
                 yield Label("Launch Options", id="options-label")
                 yield Checkbox("Read-only mode  (block mutating actions)", id="opt-readonly")
                 yield Checkbox("Enable web fetch", id="opt-web")
                 yield Checkbox("Enable embedding + RAG  (qualitative_context, news_context)", id="opt-rag")
                 yield Checkbox("Verbose logging  (DEBUG level + stderr)", id="opt-verbose")
+                with Horizontal(id="tool-debug-row"):
+                    yield Label("Agent tool traces:", id="tool-debug-label")
+                    yield Select(
+                        TOOL_DEBUG_UI_OPTIONS,
+                        value=self._initial.get("tool_debug", "failures"),
+                        id="opt-tool-debug",
+                        allow_blank=False,
+                    )
                 with Horizontal(id="profile-row"):
                     yield Label("Profile:", id="profile-label")
                     yield Select(LAUNCH_PROFILES, value=self._initial.get("profile", LAUNCH_PROFILES[0][1]), id="opt-profile")
+            with Vertical(id="session-routing-section"):
+                yield Label("LLM session mode (local-first default; API only when you choose Advisor or an override)", id="session-routing-label")
+                with Horizontal(id="llm-profile-row"):
+                    yield Label("Profile:", id="llm-profile-label")
+                    yield Select(
+                        LLM_PROFILE_OPTIONS,
+                        value=self._initial.get("llm_profile", "ops"),
+                        id="opt-llm-profile",
+                    )
+                with Horizontal(id="policy-override-row"):
+                    yield Label("Policy override:", id="policy-override-label")
+                    yield Select(
+                        [
+                            ("(use profile — no HYBRID_ROUTER_POLICY)", Select.BLANK),
+                            ("local_only", "local_only"),
+                            ("local_preferred", "local_preferred"),
+                            ("api_preferred", "api_preferred"),
+                            ("api_only", "api_only"),
+                        ],
+                        value=Select.BLANK,
+                        id="opt-policy-override",
+                        allow_blank=True,
+                    )
+                yield Static("", id="routing-preview")
+                yield Label("Selected profile", id="llm-profile-selected-label")
+                yield Static("", id="llm-profile-current-desc")
+                with Collapsible(title="All LLM profiles explained", id="profile-help-collapsible", collapsed=False):
+                    yield Static(format_all_profile_descriptions(), id="profile-help-text")
             with Vertical(id="llm-section"):
                 yield Label("LLM Backend", id="llm-label")
                 with Horizontal(id="provider-row"):
@@ -328,25 +443,6 @@ class PreBootScreen(Screen):
                         id="opt-router-mode",
                         value=bool(self._initial.get("router_mode_opt_in", False)),
                     )
-                with Collapsible(title="Advanced: Model Routing", id="advanced-routing", collapsed=True):
-                    with Horizontal(id="orchestrator-row"):
-                        yield Label("Orchestrator:", id="orchestrator-label")
-                        yield Select(_FALLBACK_MODELS, value=Select.BLANK, id="opt-orchestrator-model", allow_blank=True)
-                    with Horizontal(id="subagent-row"):
-                        yield Label("Sub-agent:", id="subagent-label")
-                        yield Select(_FALLBACK_MODELS, value=Select.BLANK, id="opt-subagent-model", allow_blank=True)
-                    with Horizontal(id="policy-row"):
-                        yield Label("Router policy:", id="policy-label")
-                        yield Select(
-                            [
-                                ("Local only (default)", "local_only"),
-                                ("Local + API fallback", "local_preferred"),
-                                ("API preferred", "api_preferred"),
-                            ],
-                            value="local_only",
-                            id="opt-router-policy",
-                            allow_blank=False,
-                        )
             with Horizontal(id="btn-row"):
                 yield Static("", id="btn-spacer")
                 yield Button("Help", id="btn-help", variant="default")
@@ -361,11 +457,91 @@ class PreBootScreen(Screen):
         log = self.query_one("#health-log", RichLog)
         for svc in self._checks:
             log.write(f"  {_STATUS_ICON['checking']}  {svc.name}")
+        po = self._initial.get("router_policy_override")
+        p_sel = self.query_one("#opt-policy-override", Select)
+        if po in _VALID_POLICY_VALUES:
+            p_sel.value = po
+        else:
+            p_sel.value = Select.BLANK
         asyncio.create_task(self._run_health_checks())
         self.call_after_refresh(self._activate_selects)
 
     def _activate_selects(self) -> None:
         self._selects_active = True
+        self._refresh_routing_preview()
+
+    def _render_capabilities(self) -> None:
+        """Fill capability log: keys, service checks, routing preview."""
+        log = self.query_one("#capability-log", RichLog)
+        log.clear()
+        api_ok = bool(os.environ.get("ANTHROPIC_API_KEY", "").strip())
+        brave_ok = bool(os.environ.get("BRAVE_SEARCH_API_KEY", "").strip())
+        lines: list[str] = [
+            "  Keys & agents",
+            f"    Anthropic:  {'set' if api_ok else 'not set'}  (cloud synthesis for Advisor / API modes)",
+            f"    Brave:      {'set' if brave_ok else 'not set'}  (optional; other fallbacks may apply)",
+            "",
+            "  Infrastructure",
+        ]
+        svc_map = {s.name: s for s in self._checks}
+        for name, label in [
+            ("Backend API", "Backend API (FastAPI tools / analysis)"),
+            ("llama.cpp", "llama.cpp (chat)"),
+            ("Ollama", "Ollama (embeddings)"),
+            ("Qdrant", "Qdrant"),
+            ("Redis", "Redis"),
+        ]:
+            s = svc_map.get(name)
+            if not s:
+                continue
+            ic = _STATUS_ICON.get(s.status, "[?]")
+            lines.append(f"    {ic}  {label}: {s.detail}")
+        lines.extend(self._llm_model_routing_status_lines())
+        log.write("\n".join(lines))
+        self._refresh_routing_preview()
+
+    def _llm_model_routing_status_lines(self) -> list[str]:
+        """Status for agent vs extraction models; clarifies removed orchestrator/sub-agent UI."""
+        out = [
+            "",
+            "  LLM model routing (status)",
+            "    Orchestrator / sub-agent GGUFs:  not used — Cockpit has a single agent loop",
+            "                                      (one llama.cpp chat client; no extra slots).",
+        ]
+        try:
+            chat_v = str(self.query_one("#opt-model", Select).value or "")
+            ext_v = str(self.query_one("#opt-extraction-model", Select).value or "")
+            chat_disp = Path(chat_v).stem if chat_v.startswith("/") else (chat_v or "(not set)")
+            ext_disp = Path(ext_v).stem if ext_v.startswith("/") else (ext_v or "(not set)")
+            out.append(f"    Chat model (agent):            {chat_disp}")
+            out.append(f"    Extract model (backend hint):  {ext_disp}  → EXTRACT_MODEL at launch")
+        except Exception:
+            out.append("    Chat / Extract:                  set under LLM Backend after probe completes")
+        return out
+
+    def _refresh_routing_preview(self) -> None:
+        if not getattr(self, "_selects_active", False):
+            return
+        try:
+            prof = str(self.query_one("#opt-llm-profile", Select).value or "ops")
+            ov = self.query_one("#opt-policy-override", Select).value
+            override = (
+                None
+                if ov in (None, Select.BLANK, "")
+                else str(ov).strip()
+            )
+        except Exception:
+            prof, override = "ops", None
+        api_ok = bool(os.environ.get("ANTHROPIC_API_KEY", "").strip())
+        eff = preview_effective_policy(profile=prof, explicit_override=override, api_available=api_ok)
+        ov_note = f"override={override}" if override else "profile only"
+        self.query_one("#routing-preview", Static).update(
+            f"Effective routing for this launch: [{eff}]  ({ov_note}; Anthropic={'yes' if api_ok else 'no'})"
+        )
+        try:
+            self.query_one("#llm-profile-current-desc", Static).update(describe_llm_profile(prof))
+        except Exception:
+            pass
 
     async def _run_health_checks(self) -> None:
         # Run HTTP/TCP probes and llama-server process discovery in parallel.
@@ -428,6 +604,7 @@ class PreBootScreen(Screen):
             ).as_dict()
 
         self._render_health()
+        self._render_capabilities()
 
     def _router_mode_tag(self) -> str:
         capability = dict(self._router_capability or {})
@@ -510,30 +687,6 @@ class PreBootScreen(Screen):
             )
             extraction_select.value = instruct_match or available_values[0]
 
-        # --- Orchestrator model dropdown ---
-        try:
-            orch_select = self.query_one("#opt-orchestrator-model", Select)
-            orch_select.set_options(options)
-            # Auto-select first model with "27b", "32b", or "70b" in name for orchestrator.
-            for label, value in options:
-                if any(hint in value.lower() for hint in ("27b", "32b", "70b")):
-                    orch_select.value = value
-                    break
-        except Exception:
-            pass
-
-        # --- Sub-agent model dropdown ---
-        try:
-            sub_select = self.query_one("#opt-subagent-model", Select)
-            sub_select.set_options(options)
-            # Auto-select first model with "14b" or "8b" for subagent.
-            for label, value in options:
-                if any(hint in value.lower() for hint in ("14b", "8b")):
-                    sub_select.value = value
-                    break
-        except Exception:
-            pass
-
     def _find_router_loaded_model(self) -> str:
         """Return the path/name of the currently loaded model in router mode."""
         host = _extract_arg((self._llama_proc or {}).get("raw_args", []), ("--host",)) or "127.0.0.1"
@@ -603,6 +756,10 @@ class PreBootScreen(Screen):
         elif event.select.id == "opt-provider":
             svc_map = {s.name: s for s in self._checks}
             self._set_model_options(str(event.value or "ollama"), svc_map)
+        elif event.select.id in ("opt-llm-profile", "opt-policy-override"):
+            self._refresh_routing_preview()
+        elif event.select.id in ("opt-model", "opt-extraction-model"):
+            self._render_capabilities()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-launch":
@@ -628,6 +785,9 @@ class PreBootScreen(Screen):
             env.setdefault("COCKPIT_LOG_TO_STDERR", "1")
         env["COCKPIT_ROUTER_MODE"] = "1" if router_mode_opt_in else "0"
         env["LLAMA_SERVER_ROUTER_MODE"] = "1" if router_mode_opt_in else "0"
+
+        tool_debug = str(self.query_one("#opt-tool-debug", Select).value or "failures")
+        env["COCKPIT_TOOL_DEBUG"] = TOOL_DEBUG_ENV_BY_CHOICE.get(tool_debug, "failures")
 
         # Resolve the selected model into a path and a name (stem/alias).
         # In router mode, the "name" (stem) is what the API uses for routing.
@@ -666,10 +826,13 @@ class PreBootScreen(Screen):
         if extraction_model:
             env["EXTRACT_MODEL"] = extraction_model
 
-        # Advanced model routing fields.
-        orchestrator_model = str(self.query_one("#opt-orchestrator-model", Select).value or "")
-        subagent_model = str(self.query_one("#opt-subagent-model", Select).value or "")
-        router_policy = str(self.query_one("#opt-router-policy", Select).value or "local_only")
+        llm_profile = str(self.query_one("#opt-llm-profile", Select).value or "ops")
+        ov_raw = self.query_one("#opt-policy-override", Select).value
+        router_policy_override: str | None = (
+            None
+            if ov_raw in (None, Select.BLANK, "")
+            else str(ov_raw).strip()
+        )
 
         return {
             "read_only": read_only,
@@ -682,9 +845,8 @@ class PreBootScreen(Screen):
             "llm_model_path": model_path,
             "extraction_model": extraction_model,
             "router_mode_opt_in": router_mode_opt_in,
-            "orchestrator_model": orchestrator_model,
-            "subagent_model": subagent_model,
-            "router_policy": router_policy,
+            "llm_profile": llm_profile,
+            "router_policy_override": router_policy_override,
             "env": env,
             "cancelled": False,
         }
