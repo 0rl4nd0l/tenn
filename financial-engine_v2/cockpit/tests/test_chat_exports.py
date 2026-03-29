@@ -10,6 +10,42 @@ from cockpit.storage.artifacts import ArtifactStore
 
 
 class ChatExportTests(unittest.TestCase):
+    @staticmethod
+    def _build_chat_export_payload(
+        latest_meta: dict[str, str] | None,
+        *,
+        last_detected_ticker: str | None = None,
+    ) -> dict:
+        payload: dict = {
+            "exported_at": "now",
+            "screen": "chat",
+            "thread_id": "thread-a",
+            "runtime": {},
+            "chat_messages": [{"role": "user", "content": f"message {idx}"} for idx in range(5)],
+            "chat_messages_export_limit": 80,
+            "chat_messages_total_in_thread": 5,
+            "chat_messages_truncated": False,
+            "pending_action": None,
+            "last_chart_path": None,
+            "last_snapshot_payload": None,
+            "last_verification_payload": None,
+        }
+        latest_export_payload: dict | None = None
+        effective_ticker = last_detected_ticker
+        if latest_meta:
+            payload["latest_analysis_export_meta"] = latest_meta
+            try:
+                json_path = Path(str(latest_meta.get("json_path", ""))).expanduser()
+                if json_path.exists() and json_path.is_file():
+                    latest_export_payload = json.loads(json_path.read_text(encoding="utf-8"))
+                    payload["latest_analysis_export"] = latest_export_payload
+            except (OSError, json.JSONDecodeError) as exc:
+                payload["latest_analysis_export_error"] = str(exc)
+        if not effective_ticker:
+            effective_ticker = extract_ticker_from_payload(latest_export_payload)
+        payload["last_detected_ticker"] = effective_ticker
+        return payload
+
     def test_write_analysis_uses_unique_paths_for_fast_successive_exports(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             repo_root = Path(tmp)
@@ -117,6 +153,103 @@ class ChatExportTests(unittest.TestCase):
         }
 
         self.assertEqual(extract_ticker_from_payload(payload), "ARR")
+
+    def test_export_copy_bundle_records_corrupt_latest_export_json_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_root = Path(tmp)
+            export_dir = repo_root / "reports" / "analysis" / "thread-a"
+            export_dir.mkdir(parents=True, exist_ok=True)
+            broken_json = export_dir / "latest.json"
+            broken_json.write_text("{not valid json", encoding="utf-8")
+
+            payload = self._build_chat_export_payload(
+                {
+                    "json_path": str(broken_json),
+                    "markdown_path": str(export_dir / "latest.md"),
+                    "thread_id": "thread-a",
+                },
+            )
+
+            self.assertIn("latest_analysis_export_meta", payload)
+            self.assertIn("latest_analysis_export_error", payload)
+            self.assertNotIn("latest_analysis_export", payload)
+
+    def test_export_copy_bundle_extracts_ticker_from_latest_export_action_preview(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_root = Path(tmp)
+            export_dir = repo_root / "reports" / "analysis" / "thread-a"
+            export_dir.mkdir(parents=True, exist_ok=True)
+            latest_json = export_dir / "latest.json"
+            latest_json.write_text(
+                json.dumps(
+                    {
+                        "question": "update financials",
+                        "answer": "ready",
+                        "action_preview": {
+                            "action_id": "update_ticker_financials",
+                            "args": {"ticker": "csl"},
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            payload = self._build_chat_export_payload(
+                {
+                    "json_path": str(latest_json),
+                    "markdown_path": str(export_dir / "latest.md"),
+                    "thread_id": "thread-a",
+                },
+            )
+
+            self.assertEqual(payload["last_detected_ticker"], "CSL")
+            self.assertEqual(payload["latest_analysis_export"]["action_preview"]["args"]["ticker"], "csl")
+
+    def test_write_analysis_renders_price_state_markdown_section(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_root = Path(tmp)
+            store = ArtifactStore(
+                repo_root=repo_root,
+                exports_dir="reports/analysis",
+                reports_dir="reports",
+            )
+
+            md_path, _json_path = store.write_analysis(
+                "thread-a",
+                "What is the setup?",
+                "Here is the answer.",
+                {
+                    "evidence": [
+                        {
+                            "details": {
+                                "price_state": {
+                                    "ok": True,
+                                    "ticker": "BHP",
+                                    "currency": "AUD",
+                                    "last_close": 45.12,
+                                    "ret_1d": 1.25,
+                                    "ret_20d": -2.5,
+                                    "trend_regime": "uptrend",
+                                    "vol_20d_ann": 22.4,
+                                    "drawdown_from_63d_high": 5.1,
+                                    "market_time_utc": "2026-03-29T00:00:00Z",
+                                    "data_age_hours": 2.0,
+                                    "stale_data": False,
+                                    "history_points": 252,
+                                }
+                            }
+                        }
+                    ]
+                },
+            )
+
+            markdown = Path(md_path).read_text(encoding="utf-8")
+
+            self.assertIn("## Price State", markdown)
+            self.assertIn("ticker `BHP`", markdown)
+            self.assertIn("Last close: 45.12 AUD", markdown)
+            self.assertIn("Returns: 1D +1.25%, 20D -2.50%", markdown)
+            self.assertIn("Freshness: fresh, market_time=2026-03-29T00:00:00Z, age=2.0h, history_points=252", markdown)
 
 
 if __name__ == "__main__":
