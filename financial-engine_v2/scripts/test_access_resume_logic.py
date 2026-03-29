@@ -10,20 +10,18 @@ os.chdir(REPO_ROOT)
 sys.path.insert(0, str(REPO_ROOT))
 
 from cockpit.core.access_resume import (  # noqa: E402
-    access_scope_is_enabled,
     build_pending_action_payload,
-    resolve_confirm_resume_message,
     resolve_pending_action_alias,
 )
 
 
 class AccessResumeLogicTests(unittest.TestCase):
-    def test_build_pending_action_payload_keeps_resume_message_for_access_request(self):
-        preview = {"action_id": "__access_request__", "args": {"scope": "web", "enable": True}}
+    def test_build_pending_action_payload_keeps_resume_message_for_backend_access_proposal(self):
+        preview = {"action_id": "__backend_proposal__", "args": {"proposal_id": "enable_web_access"}}
         payload = build_pending_action_payload(preview, "deep analysis analyse MGR")
-        self.assertEqual(payload["action_id"], "__access_request__")
-        self.assertEqual(payload["args"]["scope"], "web")
-        self.assertEqual(payload.get("resume_message"), "deep analysis analyse MGR")
+        self.assertEqual(payload["action_id"], "__backend_proposal__")
+        self.assertEqual(payload["args"]["proposal_id"], "enable_web_access")
+        self.assertEqual(payload["args"].get("resume_message"), "deep analysis analyse MGR")
 
     def test_build_pending_action_payload_does_not_add_resume_for_non_access_actions(self):
         preview = {"action_id": "update_ticker_financials", "args": {"ticker": "MGR"}}
@@ -31,43 +29,13 @@ class AccessResumeLogicTests(unittest.TestCase):
         self.assertEqual(payload["action_id"], "update_ticker_financials")
         self.assertNotIn("resume_message", payload)
 
-    def test_access_scope_is_enabled(self):
-        state = {
-            "web_enabled": True,
-            "rag_enabled": False,
-            "db_diagnostic_query_enabled": True,
+    def test_build_pending_action_payload_preserves_existing_backend_resume_message(self):
+        preview = {
+            "action_id": "__backend_proposal__",
+            "args": {"proposal_id": "enable_rag_access", "resume_message": "keep me"},
         }
-        self.assertTrue(access_scope_is_enabled("web", state))
-        self.assertFalse(access_scope_is_enabled("rag", state))
-        self.assertTrue(access_scope_is_enabled("dbdiag", state))
-
-    def test_resolve_confirm_resume_message_requires_scope_enabled(self):
-        action = {
-            "action_id": "__access_request__",
-            "args": {"scope": "web", "enable": True},
-            "resume_message": "deep analysis analyse MGR",
-        }
-        self.assertIsNone(resolve_confirm_resume_message(action, {"web_enabled": False}))
-        self.assertEqual(
-            resolve_confirm_resume_message(action, {"web_enabled": True}),
-            "deep analysis analyse MGR",
-        )
-
-    def test_resolve_confirm_resume_message_ignores_disable_actions(self):
-        action = {
-            "action_id": "__access_request__",
-            "args": {"scope": "web", "enable": False},
-            "resume_message": "deep analysis analyse MGR",
-        }
-        self.assertIsNone(resolve_confirm_resume_message(action, {"web_enabled": False}))
-
-    def test_resolve_confirm_resume_message_ignores_non_access_actions(self):
-        action = {
-            "action_id": "update_ticker_financials",
-            "args": {"ticker": "MGR"},
-            "resume_message": "deep analysis analyse MGR",
-        }
-        self.assertIsNone(resolve_confirm_resume_message(action, {"web_enabled": True}))
+        payload = build_pending_action_payload(preview, "new text")
+        self.assertEqual(payload["args"].get("resume_message"), "keep me")
 
     def test_resolve_pending_action_alias_for_confirm_and_cancel(self):
         self.assertEqual(resolve_pending_action_alias("yes", True), "/confirm")

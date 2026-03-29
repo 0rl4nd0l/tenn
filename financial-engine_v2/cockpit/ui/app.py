@@ -36,7 +36,6 @@ from cockpit.core.conversation_commands import derive_conversational_command
 from cockpit.core.tool_call_debug import cockpit_tool_chat_debug_mode, format_failure_block
 from cockpit.core.access_resume import (
     build_pending_action_payload,
-    resolve_confirm_resume_message,
     resolve_pending_action_alias,
 )
 from cockpit.core.backend_proposals import build_backend_runtime_remediation_request
@@ -432,21 +431,6 @@ class CockpitApp(App):
     async def _execute_internal_action(self, action: dict[str, Any], log_target: str) -> bool:
         action_id = str(action.get("action_id") or "").strip()
         args = dict(action.get("args") or {})
-
-        if action_id == "__access_request__":
-            scope = str(args.get("scope") or "").strip().lower()
-            enable = bool(args.get("enable", True))
-            try:
-                reply = self._set_access_scope(scope, enable)
-            except ValueError as exc:
-                self._write_log(log_target, str(exc))
-                return False
-            self._write_log(log_target, reply)
-            resume_message = resolve_confirm_resume_message(action, self._access_state())
-            if resume_message:
-                self._write_log(log_target, f"Resuming request after enabling {scope}.")
-                await self.handle_chat_message(resume_message)
-            return True
 
         if action_id == "__runtime_remediation__":
             scope = str(args.get("scope") or "").strip().lower()

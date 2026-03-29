@@ -11,35 +11,14 @@ _CANCEL_ALIASES = {"n", "no", "cancel"}
 
 def build_pending_action_payload(preview: dict[str, Any], original_message: str) -> dict[str, Any]:
     payload = normalize_action_preview(preview)
-    if payload["action_id"] == "__access_request__":
+    if payload["action_id"] == "__backend_proposal__":
+        args = dict(payload.get("args") or {})
+        proposal_id = str(args.get("proposal_id") or "").strip()
         resume_message = str(original_message or "").strip()
-        if resume_message:
-            payload["resume_message"] = resume_message
+        if proposal_id.startswith("enable_") and resume_message and "resume_message" not in args:
+            args["resume_message"] = resume_message
+            payload["args"] = args
     return payload
-
-
-def access_scope_is_enabled(scope: str, state: dict[str, Any]) -> bool:
-    normalized = str(scope or "").strip().lower()
-    if normalized == "web":
-        return bool(state.get("web_enabled", False))
-    if normalized == "rag":
-        return bool(state.get("rag_enabled", False))
-    if normalized == "dbdiag":
-        return bool(state.get("db_diagnostic_query_enabled", False))
-    return False
-
-
-def resolve_confirm_resume_message(action: dict[str, Any], state: dict[str, Any]) -> str | None:
-    if action.get("action_id") != "__access_request__":
-        return None
-    args = dict(action.get("args") or {})
-    if not bool(args.get("enable", True)):
-        return None
-    scope = str(args.get("scope") or "").strip().lower()
-    if not scope or not access_scope_is_enabled(scope, state):
-        return None
-    resume_message = str(action.get("resume_message") or "").strip()
-    return resume_message or None
 
 
 def resolve_pending_action_alias(message: str, has_pending_action: bool) -> str:
