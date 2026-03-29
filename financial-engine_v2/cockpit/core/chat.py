@@ -50,6 +50,7 @@ class ChatResponse:
     mode: str = ResponseMode.FAST
     prompt: str | None = None
     routing_metadata: dict[str, Any] | None = None
+    tool_traces: list[dict[str, Any]] | None = None
 
 
 @dataclass
@@ -1081,6 +1082,7 @@ class ChatController:
             action_preview=result.action_preview,
             mode=result.mode,
             routing_metadata=result.routing_metadata,
+            tool_traces=getattr(result, "tool_traces", None) or [],
         )
 
     def build_chat_response(

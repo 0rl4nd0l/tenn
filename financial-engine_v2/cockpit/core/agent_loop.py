@@ -25,6 +25,7 @@ from cockpit.core.response_parser import (
     parse_llm_response,
 )
 from cockpit.core.action_preview import normalize_action_preview
+from cockpit.core.tool_call_debug import build_tool_trace_entry
 
 # ---------------------------------------------------------------------------
 # Conditional imports for modules being created in parallel.  At runtime they
@@ -78,6 +79,7 @@ class AgentResult:
     tool_calls_made: int = 0
     iterations_used: int = 0
     routing_metadata: dict | None = None
+    tool_traces: list[dict[str, Any]] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -213,6 +215,7 @@ class AgentLoop:
         messages.append({"role": "user", "content": user_content})
 
         evidence: list[dict] = []
+        tool_traces: list[dict[str, Any]] = []
         total_tool_calls = 0
 
         for iteration in range(self.MAX_ITERATIONS):
@@ -229,6 +232,7 @@ class AgentLoop:
                     evidence=evidence,
                     tool_calls_made=total_tool_calls,
                     iterations_used=iteration + 1,
+                    tool_traces=tool_traces,
                 )
 
             # --- Parse ---
@@ -244,6 +248,7 @@ class AgentLoop:
                     evidence=evidence,
                     tool_calls_made=total_tool_calls,
                     iterations_used=iteration + 1,
+                    tool_traces=tool_traces,
                 )
 
             # --- Action proposal (needs user confirmation) ---
@@ -258,6 +263,7 @@ class AgentLoop:
                     action_preview=preview,
                     tool_calls_made=total_tool_calls,
                     iterations_used=iteration + 1,
+                    tool_traces=tool_traces,
                 )
 
             # --- Tool calls ---
@@ -278,7 +284,32 @@ class AgentLoop:
                 for call in calls:
                     tool_name = call.get("tool", "unknown")
                     arguments = call.get("arguments") or {}
+                    t0 = time.perf_counter()
                     result = self._execute_tool(tool_name, arguments)
+                    elapsed_ms = (time.perf_counter() - t0) * 1000.0
+                    trace = build_tool_trace_entry(
+                        iteration=iteration + 1,
+                        tool_name=tool_name,
+                        arguments=arguments,
+                        result=result if isinstance(result, dict) else {"result": result},
+                        duration_ms=elapsed_ms,
+                    )
+                    tool_traces.append(trace)
+                    if not trace["ok"]:
+                        logger.warning(
+                            "agent tool failed: %s | %s | %s",
+                            tool_name,
+                            trace.get("error"),
+                            trace.get("hint"),
+                        )
+                    else:
+                        logger.debug(
+                            "agent tool ok: %s (%s) in %.1fms",
+                            tool_name,
+                            trace.get("arguments_summary"),
+                            elapsed_ms,
+                        )
+
                     evidence.append(
                         {"tool": tool_name, "arguments": arguments, "result": result}
                     )
@@ -303,6 +334,7 @@ class AgentLoop:
                 evidence=evidence,
                 tool_calls_made=total_tool_calls,
                 iterations_used=iteration + 1,
+                tool_traces=tool_traces,
             )
 
         # --- Max iterations exhausted ---
@@ -322,6 +354,7 @@ class AgentLoop:
             evidence=evidence,
             tool_calls_made=total_tool_calls,
             iterations_used=self.MAX_ITERATIONS,
+            tool_traces=tool_traces,
         )
 
     # ------------------------------------------------------------------

@@ -33,6 +33,7 @@ from cockpit.integrations.llamacpp_client import LlamaCppClient
 from cockpit.integrations.qual_context_bootstrap import build_qual_context_reader, context_enabled
 from cockpit.integrations.web_fetcher import WebFetcher
 from cockpit.core.conversation_commands import derive_conversational_command
+from cockpit.core.tool_call_debug import cockpit_tool_chat_debug_mode, format_failure_block
 from cockpit.core.access_resume import (
     build_pending_action_payload,
     resolve_confirm_resume_message,
@@ -292,6 +293,7 @@ class CockpitApp(App):
         hybrid_router = getattr(chat_ctrl, "_hybrid_router", None) if chat_ctrl else None
         from cockpit.core.llm_profile import cockpit_llm_profile_label
 
+        explicit = (os.environ.get("HYBRID_ROUTER_POLICY") or "").strip()
         return {
             "backend_api": self._backend_client is not None,
             "backend_url": self._backend_client.base_url if self._backend_client else None,
@@ -302,8 +304,28 @@ class CockpitApp(App):
             "anthropic_api": hybrid_router is not None and hybrid_router._api is not None,
             "routing_policy": hybrid_router._policy if hybrid_router else "not initialized",
             "llm_profile": cockpit_llm_profile_label(),
+            "llm_profile_id": (os.environ.get("COCKPIT_LLM_PROFILE") or "ops").strip().lower(),
+            "explicit_policy_override": explicit or None,
             "session_cost_usd": hybrid_router.total_cost_usd() if hybrid_router else 0.0,
         }
+
+    def set_llm_profile(self, profile: str) -> str:
+        """Set COCKPIT_LLM_PROFILE and re-apply resolved routing (clears explicit HYBRID_ROUTER_POLICY)."""
+        chat_ctrl = getattr(self, "chat_controller", None)
+        hybrid_router = getattr(chat_ctrl, "_hybrid_router", None) if chat_ctrl else None
+        if not hybrid_router:
+            return "HybridRouter not initialized"
+        from cockpit.core.llm_profile import cockpit_llm_profile_label, resolve_hybrid_router_policy
+
+        clean = (profile or "ops").strip().lower()
+        os.environ["COCKPIT_LLM_PROFILE"] = clean
+        os.environ.pop("HYBRID_ROUTER_POLICY", None)
+        api_ok = hybrid_router._api is not None
+        hybrid_router._policy = resolve_hybrid_router_policy(api_available=api_ok)
+        return (
+            f"LLM profile → {cockpit_llm_profile_label()} "
+            f"(routing {hybrid_router._policy}; API client {'yes' if api_ok else 'no'})"
+        )
 
     def set_routing_policy(self, policy: str) -> str:
         """Change HybridRouter policy at runtime."""
@@ -1441,6 +1463,22 @@ class CockpitApp(App):
                 )
         except Exception:
             pass  # routing footer is best-effort
+
+        # Agent tool call trace (failures by default; full trace with COCKPIT_TOOL_DEBUG=1)
+        try:
+            traces = getattr(response, "tool_traces", None) or []
+            if traces:
+                show_failures, show_full = cockpit_tool_chat_debug_mode()
+                if show_full:
+                    block = format_failure_block(traces, include_success=True)
+                elif show_failures and any(not t.get("ok") for t in traces):
+                    block = format_failure_block(traces, include_success=False)
+                else:
+                    block = ""
+                if block:
+                    self._append_log(log, block)
+        except Exception:
+            pass
 
         self.state_store.add_chat_message(self.thread_id, "assistant", assistant_text, datetime.now(timezone.utc).isoformat())
 
