@@ -36,6 +36,7 @@ from app.services.embeddings import (
 )
 from app.services.llm import embed_texts
 from app.services.llamacpp_runtime import (
+    build_embedding_headers,
     resolve_embedding_runtime_config,
     resolve_extraction_runtime_config,
     resolve_llm_runtime_config,
@@ -543,9 +544,364 @@ def _system_status_snapshot() -> dict[str, object]:
     }
 
 
+def _probe_llamacpp_runtime(base_url: str, expected_model: str, *, timeout: float = 5.0) -> dict[str, object]:
+    normalized_url = str(base_url or "").strip().rstrip("/")
+    expected = str(expected_model or "").strip()
+    result: dict[str, object] = {
+        "base_url": normalized_url,
+        "expected_model": expected,
+        "reachable": False,
+        "loaded_models": [],
+    }
+    if not normalized_url:
+        result["error"] = "base_url_not_configured"
+        return result
+    try:
+        response = httpx.get(f"{normalized_url}/v1/models", timeout=timeout)
+        response.raise_for_status()
+        payload = response.json()
+        rows = payload.get("data") if isinstance(payload, dict) else []
+        loaded_models: list[str] = []
+        if isinstance(rows, list):
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                model_id = str(row.get("id") or "").strip()
+                if model_id:
+                    loaded_models.append(model_id)
+        result["reachable"] = True
+        result["loaded_models"] = loaded_models
+        result["model_available"] = bool(
+            expected and any(expected.lower() in model.lower() for model in loaded_models)
+        )
+        return result
+    except Exception as exc:
+        result["error"] = str(exc)
+        return result
+
+
+def _probe_embedding_runtime(base_url: str, expected_model: str, *, timeout: float = 5.0) -> dict[str, object]:
+    normalized_url = str(base_url or "").strip().rstrip("/")
+    expected = str(expected_model or "").strip()
+    result: dict[str, object] = {
+        "base_url": normalized_url,
+        "expected_model": expected,
+        "reachable": False,
+    }
+    if not normalized_url:
+        result["error"] = "base_url_not_configured"
+        return result
+    try:
+        response = httpx.post(
+            f"{normalized_url}/v1/embeddings",
+            json={"model": expected, "input": ["healthcheck"]},
+            headers={"Content-Type": "application/json", **build_embedding_headers()},
+            timeout=timeout,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        rows = payload.get("data") if isinstance(payload, dict) else []
+        dimension = 0
+        if isinstance(rows, list) and rows and isinstance(rows[0], dict):
+            vector = rows[0].get("embedding") or []
+            if isinstance(vector, list):
+                dimension = len(vector)
+        result["reachable"] = True
+        result["dimension"] = dimension
+        return result
+    except Exception as exc:
+        result["error"] = str(exc)
+        return result
+
+
+def _database_state_snapshot() -> dict[str, object]:
+    result: dict[str, object] = {"reachable": False, "document_count": 0, "extraction_count": 0}
+    try:
+        document_count, extraction_count = _count_db_embedding_rows()
+        result["reachable"] = True
+        result["document_count"] = document_count
+        result["extraction_count"] = extraction_count
+    except Exception as exc:
+        result["error"] = str(exc)
+    return result
+
+
+def _feature_snapshot(name: str, *, configured: bool, blockers: list[str], details: dict[str, object]) -> dict[str, object]:
+    status = "available" if configured and not blockers else "blocked"
+    if not configured:
+        status = "disabled"
+    return {
+        "name": name,
+        "configured": configured,
+        "status": status,
+        "available": configured and not blockers,
+        "blockers": blockers,
+        "details": details,
+    }
+
+
+def _proposal_snapshot(
+    proposal_id: str,
+    *,
+    target: str,
+    summary: str,
+    blocker: str,
+    details: dict[str, object] | None = None,
+) -> dict[str, object]:
+    payload = {
+        "id": proposal_id,
+        "target": target,
+        "summary": summary,
+        "blocker": blocker,
+        "requires_confirmation": True,
+        "source": "backend",
+    }
+    if details:
+        payload["details"] = details
+    return payload
+
+
+def _system_capabilities_snapshot() -> dict[str, object]:
+    system_status = _system_status_snapshot()
+    db_state = _database_state_snapshot()
+
+    llm_url, llm_model = resolve_llm_runtime_config()
+    extraction_url, extraction_model = resolve_extraction_runtime_config()
+    embedding_url, embedding_model = resolve_embedding_runtime_config()
+
+    chat_runtime = _probe_llamacpp_runtime(llm_url, llm_model)
+    extraction_runtime = _probe_llamacpp_runtime(extraction_url, extraction_model)
+    embedding_runtime = _probe_embedding_runtime(embedding_url, embedding_model)
+
+    qdrant_state: dict[str, object] = {
+        "enabled": bool(settings.enable_qdrant),
+        "reachable": bool(system_status.get("qdrant_connected")),
+        "collections_present": list(system_status.get("collections_present") or []),
+        "collection": str(settings.qdrant_collection),
+    }
+    redis_state: dict[str, object] = {
+        "reachable": bool(system_status.get("redis_connected")),
+        "task_mode": str(settings.task_mode),
+        "broker_url": str(settings.celery_broker_url),
+    }
+
+    embedding_snapshot = _get_embedding_state_snapshot()
+    embedding_consistent = (
+        not embedding_snapshot.get("stored_model")
+        or embedding_snapshot.get("stored_model") == embedding_snapshot.get("configured_model")
+        or int(embedding_snapshot.get("qdrant_points_count") or 0) == 0
+    )
+
+    ingestion_blockers: list[str] = []
+    if str(settings.task_mode).strip().lower() == "celery" and not redis_state["reachable"]:
+        ingestion_blockers.append("celery_broker_unreachable")
+    extraction_blockers: list[str] = []
+    if bool(settings.enable_extraction) and not extraction_runtime.get("reachable"):
+        extraction_blockers.append("extraction_runtime_unreachable")
+    embeddings_blockers: list[str] = []
+    if bool(settings.enable_embeddings):
+        if not embedding_runtime.get("reachable"):
+            embeddings_blockers.append("embedding_runtime_unreachable")
+        if not qdrant_state["reachable"]:
+            embeddings_blockers.append("qdrant_unreachable")
+        if not embedding_consistent:
+            embeddings_blockers.append("embedding_model_mismatch")
+    rag_blockers: list[str] = []
+    if bool(settings.enable_embeddings and settings.enable_qdrant):
+        rag_blockers.extend(embeddings_blockers)
+        if int(embedding_snapshot.get("qdrant_points_count") or 0) <= 0:
+            rag_blockers.append("qdrant_has_no_vectors")
+
+    proposals: list[dict[str, object]] = []
+    if "celery_broker_unreachable" in ingestion_blockers:
+        proposals.append(
+            _proposal_snapshot(
+                "restore_redis_broker",
+                target="ingestion",
+                summary="Restore Redis connectivity for queued ingestion",
+                blocker="celery_broker_unreachable",
+                details=redis_state,
+            )
+        )
+    if "extraction_runtime_unreachable" in extraction_blockers:
+        proposals.append(
+            _proposal_snapshot(
+                "start_extraction_runtime",
+                target="extraction",
+                summary="Start or repair the extraction llama.cpp runtime",
+                blocker="extraction_runtime_unreachable",
+                details={
+                    "runtime_url": extraction_url,
+                    "model": extraction_model,
+                    "runtime_probe": extraction_runtime,
+                },
+            )
+        )
+    if "embedding_runtime_unreachable" in embeddings_blockers:
+        proposals.append(
+            _proposal_snapshot(
+                "restore_embedding_runtime",
+                target="embeddings",
+                summary="Restore the embedding runtime endpoint",
+                blocker="embedding_runtime_unreachable",
+                details={
+                    "runtime_url": embedding_url,
+                    "model": embedding_model,
+                    "runtime_probe": embedding_runtime,
+                },
+            )
+        )
+    if "qdrant_unreachable" in embeddings_blockers:
+        proposals.append(
+            _proposal_snapshot(
+                "restore_qdrant",
+                target="embeddings",
+                summary="Restore Qdrant connectivity before running embeddings or RAG",
+                blocker="qdrant_unreachable",
+                details=qdrant_state,
+            )
+        )
+    if "embedding_model_mismatch" in embeddings_blockers:
+        proposals.append(
+            _proposal_snapshot(
+                "rebuild_embeddings",
+                target="embeddings",
+                summary="Rebuild embeddings to reconcile stored and configured embedding models",
+                blocker="embedding_model_mismatch",
+                details={
+                    "configured_model": embedding_snapshot.get("configured_model"),
+                    "stored_model": embedding_snapshot.get("stored_model"),
+                    "qdrant_points_count": embedding_snapshot.get("qdrant_points_count"),
+                },
+            )
+        )
+    if "qdrant_has_no_vectors" in rag_blockers:
+        proposals.append(
+            _proposal_snapshot(
+                "reingest_documents",
+                target="rag",
+                summary="Run ingestion to populate vectors before using RAG",
+                blocker="qdrant_has_no_vectors",
+                details={
+                    "collection": str(settings.qdrant_collection),
+                    "document_count": db_state.get("document_count"),
+                    "last_activity": system_status.get("last_ingestion_activity"),
+                },
+            )
+        )
+
+    overall_status = "ready"
+    if any(feature["status"] == "blocked" for feature in {
+        "ingestion": _feature_snapshot(
+            "ingestion",
+            configured=True,
+            blockers=ingestion_blockers,
+            details={
+                "task_mode": str(settings.task_mode),
+                "last_activity": system_status.get("last_ingestion_activity"),
+            },
+        ),
+        "extraction": _feature_snapshot(
+            "extraction",
+            configured=bool(settings.enable_extraction),
+            blockers=extraction_blockers,
+            details={
+                "runtime_url": extraction_url,
+                "model": extraction_model,
+            },
+        ),
+        "embeddings": _feature_snapshot(
+            "embeddings",
+            configured=bool(settings.enable_embeddings),
+            blockers=embeddings_blockers,
+            details={
+                "runtime_url": embedding_url,
+                "model": embedding_model,
+                "stored_model": embedding_snapshot.get("stored_model"),
+                "qdrant_points_count": embedding_snapshot.get("qdrant_points_count"),
+            },
+        ),
+        "rag": _feature_snapshot(
+            "rag",
+            configured=bool(settings.enable_embeddings and settings.enable_qdrant),
+            blockers=rag_blockers,
+            details={
+                "collection": str(settings.qdrant_collection),
+                "document_count": db_state.get("document_count"),
+                "last_activity": system_status.get("last_ingestion_activity"),
+            },
+        ),
+    }.values()):
+        overall_status = "degraded"
+
+    features = {
+        "ingestion": _feature_snapshot(
+            "ingestion",
+            configured=True,
+            blockers=ingestion_blockers,
+            details={
+                "task_mode": str(settings.task_mode),
+                "last_activity": system_status.get("last_ingestion_activity"),
+            },
+        ),
+        "extraction": _feature_snapshot(
+            "extraction",
+            configured=bool(settings.enable_extraction),
+            blockers=extraction_blockers,
+            details={
+                "runtime_url": extraction_url,
+                "model": extraction_model,
+            },
+        ),
+        "embeddings": _feature_snapshot(
+            "embeddings",
+            configured=bool(settings.enable_embeddings),
+            blockers=embeddings_blockers,
+            details={
+                "runtime_url": embedding_url,
+                "model": embedding_model,
+                "stored_model": embedding_snapshot.get("stored_model"),
+                "qdrant_points_count": embedding_snapshot.get("qdrant_points_count"),
+            },
+        ),
+        "rag": _feature_snapshot(
+            "rag",
+            configured=bool(settings.enable_embeddings and settings.enable_qdrant),
+            blockers=rag_blockers,
+            details={
+                "collection": str(settings.qdrant_collection),
+                "document_count": db_state.get("document_count"),
+                "last_activity": system_status.get("last_ingestion_activity"),
+            },
+        ),
+    }
+
+    return {
+        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "authority": "backend",
+        "status": overall_status,
+        "api_health": {"status": "ok"},
+        "dependencies": {
+            "database": db_state,
+            "redis": redis_state,
+            "qdrant": qdrant_state,
+            "chat_runtime": chat_runtime,
+            "extraction_runtime": extraction_runtime,
+            "embedding_runtime": embedding_runtime,
+        },
+        "features": features,
+        "proposals": proposals,
+    }
+
+
 @app.get("/api/system/status", dependencies=[Depends(require_api_key)])
 def system_status():
     return _system_status_snapshot()
+
+
+@app.get("/api/system/capabilities", dependencies=[Depends(require_api_key)])
+def system_capabilities():
+    return _system_capabilities_snapshot()
 
 
 @app.get("/api/queue/status", dependencies=[Depends(require_api_key)])

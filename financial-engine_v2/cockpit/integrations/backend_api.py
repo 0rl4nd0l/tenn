@@ -21,6 +21,34 @@ class BackendApiClient:
             except Exception as exc:
                 return {"ok": False, "url": self.base_url, "error": str(exc)}
 
+    def capabilities(self, timeout: float = 5.0) -> dict[str, Any]:
+        url = f"{self.base_url}/api/system/capabilities"
+        headers: dict[str, str] = {}
+        if self.api_key:
+            headers["X-API-Key"] = self.api_key
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            try:
+                response = client.get(url, headers=headers)
+                response.raise_for_status()
+                payload = response.json() if response.content else {}
+                return {"ok": True, "url": self.base_url, "payload": payload}
+            except httpx.HTTPStatusError as exc:
+                detail = None
+                try:
+                    body = exc.response.json() if exc.response is not None else {}
+                    detail = body.get("detail")
+                except Exception:
+                    detail = None
+                code = exc.response.status_code if exc.response is not None else "unknown"
+                return {
+                    "ok": False,
+                    "url": self.base_url,
+                    "status_code": code,
+                    "error": str(detail or f"HTTP {code}"),
+                }
+            except Exception as exc:
+                return {"ok": False, "url": self.base_url, "error": str(exc)}
+
     def get_price(
         self,
         ticker: str,

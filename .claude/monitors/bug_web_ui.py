@@ -43,6 +43,7 @@ REPO_ROOT  = Path(__file__).resolve().parents[2]
 LOG_FILE   = Path(__file__).parent / "alerts.log"
 DEBATES_DB = Path(__file__).parent / "debates.json"
 PORT       = 8765
+BACKEND_BASE_URL = os.environ.get("BACKEND_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
 
 REGISTRY_DB = Path(__file__).parent / "bug_registry.json"
 
@@ -293,6 +294,26 @@ SERVICE_CHECKS = [
 ]
 
 
+def _backend_headers() -> dict:
+    api_key = (os.environ.get("LOCAL_API_KEY", "") or "").strip()
+    if not api_key:
+        return {}
+    return {"X-API-Key": api_key}
+
+
+def _fetch_backend_capabilities() -> dict:
+    url = f"{BACKEND_BASE_URL}/api/system/capabilities"
+    try:
+        req = urllib.request.Request(url, headers=_backend_headers(), method="GET")
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+        if not isinstance(payload, dict):
+            return {"ok": False, "error": "unexpected backend capability payload", "url": url}
+        return {"ok": True, "url": url, "payload": payload}
+    except Exception as exc:
+        return {"ok": False, "url": url, "error": str(exc)}
+
+
 def _probe_service(svc: dict) -> dict:
     """Probe a single service; return dict with name, status, latency_ms, detail."""
     import socket, time as _t
@@ -331,6 +352,21 @@ def _probe_all_services() -> list[dict]:
             results.append(f.result())
     results.sort(key=lambda r: r["port"])
     return results
+
+
+def _fetch_backend_capabilities() -> dict:
+    url = "http://127.0.0.1:8000/api/system/capabilities"
+    headers = {}
+    local_api_key = str(os.environ.get("LOCAL_API_KEY") or "").strip()
+    if local_api_key:
+        headers["X-API-Key"] = local_api_key
+    req = urllib.request.Request(url, headers=headers, method="GET")
+    try:
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+        return {"ok": True, "payload": payload}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
 
 
 def _get_git_status() -> dict:
@@ -1294,6 +1330,9 @@ main { max-width: 1200px; margin: 0 auto; padding: 32px; }
   <div class="section-title">Services</div>
   <div class="svc-grid" id="svc-grid"></div>
 
+  <div class="section-title">Backend Capabilities</div>
+  <div class="svc-grid" id="cap-grid"></div>
+
   <div class="section-title">Top Processes by Memory</div>
   <table class="proc-table" id="proc-table">
     <thead><tr>
@@ -1908,11 +1947,13 @@ async function loadSystem() {
     const data = await resp.json();
     renderResources(data.resources);
     renderServices(data.services);
+    renderBackendCapabilities(data.backend_capabilities);
     renderGit(data.git);
     renderAgents(data.agents);
     renderProcs(data.resources.top_procs);
   } catch (e) {
     document.getElementById('svc-grid').textContent = 'Failed to load system status';
+    document.getElementById('cap-grid').textContent = '';
   }
 }
 
@@ -2127,6 +2168,48 @@ function renderServices(services) {
       det.textContent = cleanDetail;
       card.appendChild(det);
     }
+    grid.appendChild(card);
+  });
+}
+
+function renderBackendCapabilities(snapshot) {
+  var grid = document.getElementById('cap-grid');
+  grid.textContent = '';
+  if (!snapshot || !snapshot.ok) {
+    grid.textContent = snapshot && snapshot.error ? snapshot.error : 'Backend capability snapshot unavailable';
+    return;
+  }
+  var payload = snapshot.payload || {};
+  var features = payload.features || {};
+  Object.keys(features).forEach(function(name) {
+    var item = features[name] || {};
+    var card = document.createElement('div');
+    card.className = 'svc-card ' + (item.available ? 'up' : (item.configured ? 'down' : 'warn'));
+
+    var icon = document.createElement('div');
+    icon.className = 'svc-icon';
+    icon.textContent = item.available ? '✓' : (item.configured ? '!' : '·');
+
+    var title = document.createElement('div');
+    title.className = 'svc-name';
+    title.textContent = name;
+
+    var status = document.createElement('div');
+    status.className = 'svc-status';
+    var dot = document.createElement('span');
+    dot.className = 'svc-dot ' + (item.available ? 'up' : 'down');
+    status.appendChild(dot);
+    status.appendChild(document.createTextNode(item.status || 'unknown'));
+
+    var detail = document.createElement('div');
+    detail.className = 'svc-detail';
+    var blockers = item.blockers || [];
+    detail.textContent = blockers.length ? blockers.join(', ') : 'no blockers';
+
+    card.appendChild(icon);
+    card.appendChild(title);
+    card.appendChild(status);
+    card.appendChild(detail);
     grid.appendChild(card);
   });
 }
@@ -3552,10 +3635,17 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(result)
         elif self.path == "/api/system":
             services = _probe_all_services()
+            backend_capabilities = _fetch_backend_capabilities()
             git = _get_git_status()
             agents = _get_agent_activity()
             resources = _get_system_resources()
-            self.send_json({"services": services, "git": git, "agents": agents, "resources": resources})
+            self.send_json({
+                "services": services,
+                "backend_capabilities": backend_capabilities,
+                "git": git,
+                "agents": agents,
+                "resources": resources,
+            })
         elif self.path == "/api/registry":
             self.send_json(_load_registry())
         elif self.path == "/api/jobs":

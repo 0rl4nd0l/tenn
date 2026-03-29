@@ -1075,8 +1075,10 @@ class CockpitApp(App):
                 reply = "Backend API not configured (no api_base_url)."
             else:
                 try:
-                    result = self._backend_client.health(timeout=5.0)
-                    reply = f"Backend health: {json.dumps(result, indent=2)}"
+                    health = self._backend_client.health(timeout=5.0)
+                    capabilities = self._backend_client.capabilities(timeout=5.0)
+                    payload = {"health": health, "capabilities": capabilities}
+                    reply = f"Backend health: {json.dumps(payload, indent=2)}"
                 except Exception as exc:
                     reply = f"Backend health check failed: {exc}"
             self._append_log(log, f"assistant: {reply}")
@@ -1096,6 +1098,20 @@ class CockpitApp(App):
             lines.append(
                 f"  DB diagnostics: {'enabled' if access_state['db_diagnostic_query_enabled'] else 'disabled'}"
             )
+            if self._backend_client is not None:
+                capabilities = self._backend_client.capabilities(timeout=5.0)
+                if capabilities.get("ok"):
+                    payload = capabilities.get("payload") or {}
+                    features = payload.get("features") or {}
+                    lines.append("  Backend capabilities:")
+                    for key in ("ingestion", "extraction", "embeddings", "rag"):
+                        item = features.get(key) or {}
+                        status = str(item.get("status") or "unknown")
+                        blockers = ", ".join(item.get("blockers") or [])
+                        suffix = f" ({blockers})" if blockers else ""
+                        lines.append(f"    {key}: {status}{suffix}")
+                else:
+                    lines.append(f"  Backend capabilities: unavailable ({capabilities.get('error', 'unknown error')})")
             reply = "\n".join(lines)
             self._append_log(log, f"assistant: {reply}")
             self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
