@@ -1,0 +1,8 @@
+{
+  "portfolio_id": "example_asx",
+  "name": "Example ASX Portfolio",
+  "holdings": [
+    {"ticker": "BHP", "shares": 500, "sector": "Materials", "geography": "Australia"},
+    {"ticker": "RIO", "shares": 300, "sector": "Materials", "geography": "Australia"}
+  ]
+}
