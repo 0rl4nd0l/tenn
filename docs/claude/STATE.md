@@ -4,7 +4,7 @@
 > Update this file at the end of every session alongside the milestone commit.
 > For detailed context on any item, follow the linked doc or run `git log --oneline`.
 
-Last updated: 2026-03-28 (sessions — cockpit routing visibility + extraction guard + .env fix)
+Last updated: 2026-03-29 (session — Phase 3+4 analysis modules, Qwen 3 eval, cockpit analyse command)
 Branch: cloud/session-20260319
 
 ## Legend
@@ -46,9 +46,9 @@ From [docs/architecture/14_roadmap_and_modules.md](../architecture/14_roadmap_an
 |-------|-------------|--------|-------|
 | 1. Data acquisition | Filings, news, prices, fundamentals | `[ in-progress ]` | Filings + news operational; prices and fundamentals coverage incomplete |
 | 2. Retrieval (RAG) | `POST /rag/query` — semantic search over ingested docs | `[ verified ]` | Operational; news_chunks resynced with relevance-ordered tickers |
-| 3. Analysis modules | Risk, valuation, moat, catalysts, ROIC, balance sheet | `[ verified ]` | All 6 modules built (0e651e8d): AnalysisModule Protocol, TickerContext, orchestrator, context_loader. 48 tests passing. D1 (deterministic) verified; D2 (LLM synthesis) wired but untested against live llama-server. |
-| 4. Portfolio module | Exposure, correlation, position sizing | `[ planned ]` | Not yet built |
-| 5. Outputs | Artifacts written under `reports/` | `[ in-progress ]` | Directory structure exists; per-analysis-module artifacts not yet wired |
+| 3. Analysis modules | Risk, valuation, moat, catalysts, ROIC, balance sheet, sentiment | `[ verified ]` | 7 modules, D2 live-tested, 48 tests, API endpoints, cockpit "analyse" command, watchlist scanner. Architecture doc 1151 lines. |
+| 4. Portfolio module | Exposure, correlation, position sizing | `[ verified ]` | 6 sub-modules built (4c991798): valuation_summary, moat_quality, catalyst_calendar, risk_aggregation, position_sizing, weights. PortfolioAnalyser orchestrator. |
+| 5. Outputs | Artifacts written under `reports/` | `[ in-progress ]` | Analysis artifacts writing to reports/analysis/{ticker}/. Portfolio artifacts to reports/portfolio/. Ticker backfill in progress (14 docs registered, extraction running). |
 
 ---
 
