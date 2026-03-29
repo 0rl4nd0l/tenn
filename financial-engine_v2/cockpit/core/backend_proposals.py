@@ -3,6 +3,31 @@ from __future__ import annotations
 from typing import Any
 
 
+def build_backend_access_proposal_request(
+    scope: str,
+    *,
+    enable: bool,
+    resume_message: str = "",
+) -> dict[str, Any]:
+    normalized = str(scope or "").strip().lower()
+    proposal_ids = {
+        ("web", True): "enable_web_access",
+        ("web", False): "disable_web_access",
+        ("rag", True): "enable_rag_access",
+        ("rag", False): "disable_rag_access",
+        ("dbdiag", True): "enable_dbdiag_access",
+        ("dbdiag", False): "disable_dbdiag_access",
+    }
+    proposal_id = proposal_ids.get((normalized, bool(enable)))
+    if proposal_id is None:
+        raise ValueError(f"Unsupported backend access scope: {scope}")
+    args: dict[str, Any] = {"proposal_id": proposal_id}
+    text = str(resume_message or "").strip()
+    if text and enable:
+        args["resume_message"] = text
+    return {"action_id": "__backend_proposal__", "args": args}
+
+
 def build_backend_runtime_remediation_request(
     backend_api_client: Any,
     *,

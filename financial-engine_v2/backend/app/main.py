@@ -1,4 +1,5 @@
 import errno
+import json
 import logging
 import socket
 import subprocess
@@ -122,6 +123,7 @@ def ingest_book_alias(body: BookIngestRequest):
 
 
 RUNTIME_EMBEDDING_MODEL_FILE = PROJECT_ROOT / "reports" / "runtime_embedding_model.txt"
+COCKPIT_ACCESS_STATE_FILE = PROJECT_ROOT / "reports" / "cockpit_access_state.json"
 logger = logging.getLogger(__name__)
 VECTOR_ID_FORMAT = "document_id:chunk_index"
 DISTANCE = "COSINE"
@@ -645,6 +647,50 @@ def _feature_snapshot(name: str, *, configured: bool, blockers: list[str], detai
     }
 
 
+def _default_access_state() -> dict[str, bool]:
+    return {
+        "web_enabled": False,
+        "rag_enabled": False,
+        "db_diagnostic_query_enabled": False,
+    }
+
+
+def _load_access_state() -> dict[str, bool]:
+    defaults = _default_access_state()
+    if not COCKPIT_ACCESS_STATE_FILE.exists():
+        return defaults
+    try:
+        payload = json.loads(COCKPIT_ACCESS_STATE_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return defaults
+    if not isinstance(payload, dict):
+        return defaults
+    return {
+        "web_enabled": bool(payload.get("web_enabled", defaults["web_enabled"])),
+        "rag_enabled": bool(payload.get("rag_enabled", defaults["rag_enabled"])),
+        "db_diagnostic_query_enabled": bool(
+            payload.get(
+                "db_diagnostic_query_enabled",
+                defaults["db_diagnostic_query_enabled"],
+            )
+        ),
+    }
+
+
+def _write_access_state(state: dict[str, bool]) -> dict[str, bool]:
+    normalized = {
+        "web_enabled": bool(state.get("web_enabled", False)),
+        "rag_enabled": bool(state.get("rag_enabled", False)),
+        "db_diagnostic_query_enabled": bool(state.get("db_diagnostic_query_enabled", False)),
+    }
+    COCKPIT_ACCESS_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    COCKPIT_ACCESS_STATE_FILE.write_text(
+        json.dumps(normalized, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    return normalized
+
+
 def _proposal_snapshot(
     proposal_id: str,
     *,
@@ -885,6 +931,7 @@ def _system_capabilities_snapshot() -> dict[str, object]:
         "generated_at": datetime.utcnow().isoformat() + "Z",
         "authority": "backend",
         "status": overall_status,
+        "access": _load_access_state(),
         "api_health": {"status": "ok"},
         "dependencies": {
             "database": db_state,
@@ -955,6 +1002,33 @@ def _apply_capability_proposal(proposal_id: str) -> dict[str, object]:
         raise HTTPException(status_code=400, detail="proposal_id is required")
     if normalized == "start_extraction_runtime":
         return _start_extraction_runtime_via_backend()
+    if normalized in {
+        "enable_web_access",
+        "disable_web_access",
+        "enable_rag_access",
+        "disable_rag_access",
+        "enable_dbdiag_access",
+        "disable_dbdiag_access",
+    }:
+        state = _load_access_state()
+        mapping = {
+            "enable_web_access": ("web_enabled", True, "Web access enabled."),
+            "disable_web_access": ("web_enabled", False, "Web access disabled."),
+            "enable_rag_access": ("rag_enabled", True, "RAG access enabled."),
+            "disable_rag_access": ("rag_enabled", False, "RAG access disabled."),
+            "enable_dbdiag_access": ("db_diagnostic_query_enabled", True, "DB diagnostics enabled."),
+            "disable_dbdiag_access": ("db_diagnostic_query_enabled", False, "DB diagnostics disabled."),
+        }
+        key, enabled, message = mapping[normalized]
+        state[key] = enabled
+        written = _write_access_state(state)
+        return {
+            "ok": True,
+            "proposal_id": normalized,
+            "status": "applied",
+            "message": message,
+            "access": written,
+        }
     raise HTTPException(status_code=404, detail=f"unknown or unsupported proposal: {normalized}")
 
 

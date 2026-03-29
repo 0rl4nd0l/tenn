@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from cockpit.core.backend_proposals import build_backend_runtime_remediation_request
+from cockpit.core.backend_proposals import (
+    build_backend_access_proposal_request,
+    build_backend_runtime_remediation_request,
+)
 
 
 class _BackendClient:
@@ -42,3 +45,15 @@ def test_build_backend_runtime_remediation_request_returns_none_without_matching
     )
 
     assert request is None
+
+
+def test_build_backend_access_proposal_request_uses_backend_proposal_shape():
+    request = build_backend_access_proposal_request(
+        "web",
+        enable=True,
+        resume_message="fetch https://example.com",
+    )
+
+    assert request["action_id"] == "__backend_proposal__"
+    assert request["args"]["proposal_id"] == "enable_web_access"
+    assert request["args"]["resume_message"] == "fetch https://example.com"

@@ -40,6 +40,7 @@ from cockpit.core.access_resume import (
     resolve_pending_action_alias,
 )
 from cockpit.core.backend_proposals import build_backend_runtime_remediation_request
+from cockpit.core.backend_proposals import build_backend_access_proposal_request
 from cockpit.core.tools import ToolRouter
 from cockpit.storage.artifacts import ArtifactStore
 from cockpit.storage.state import StateStore
@@ -362,6 +363,38 @@ class CockpitApp(App):
             return f"DB diagnostics {'enabled' if enabled else 'disabled'}."
         raise ValueError(f"Unknown access scope: {scope}")
 
+    def _apply_access_state(self, access: dict[str, Any] | None) -> None:
+        if not isinstance(access, dict):
+            return
+        self._set_access_scope("web", bool(access.get("web_enabled", False)))
+        self._set_access_scope("rag", bool(access.get("rag_enabled", False)))
+        self._set_access_scope(
+            "dbdiag",
+            bool(access.get("db_diagnostic_query_enabled", False)),
+        )
+
+    async def _sync_access_state_from_backend(self) -> None:
+        if self._backend_client is None:
+            return
+        try:
+            capabilities = await asyncio.to_thread(self._backend_client.capabilities, 5.0)
+        except Exception:
+            return
+        if not capabilities.get("ok"):
+            return
+        payload = capabilities.get("payload") or {}
+        self._apply_access_state(payload.get("access"))
+
+    def _apply_backend_access_proposal(self, proposal_id: str) -> str:
+        if self._backend_client is None:
+            return "Backend API not configured."
+        result = self._backend_client.apply_proposal(proposal_id, timeout=15.0)
+        if not result.get("ok"):
+            return f"Failed to apply backend access proposal: {result.get('error', 'unknown error')}"
+        payload = result.get("payload") or {}
+        self._apply_access_state(payload.get("access"))
+        return str(payload.get("message") or f"Applied backend access proposal: {proposal_id}")
+
     async def _start_extraction_runtime(self, log_target: str) -> bool:
         command = ["bash", "scripts/run_llama_server.sh"]
         self._write_log(log_target, f"Starting extraction runtime: {' '.join(command)}")
@@ -446,7 +479,13 @@ class CockpitApp(App):
                 self._write_log(log_target, f"Backend proposal failed: {result.get('error', 'unknown error')}")
                 return False
             payload = result.get("payload") or {}
+            self._apply_access_state(payload.get("access"))
             self._write_log(log_target, str(payload.get("message") or f"Backend proposal applied: {proposal_id}"))
+            resume_message = str(args.get("resume_message") or "").strip()
+            if resume_message:
+                self._write_log(log_target, "Resuming request after backend approval.")
+                await self.handle_chat_message(resume_message)
+                return True
             resume_action_id = str(args.get("resume_action_id") or "").strip()
             resume_args = dict(args.get("resume_args") or {})
             if resume_action_id:
@@ -568,6 +607,7 @@ class CockpitApp(App):
 
         # Health checks are blocking HTTP — run off the event loop.
         asyncio.create_task(self._run_startup_health_checks())
+        asyncio.create_task(self._sync_access_state_from_backend())
 
         self._schedule_model_status_refresh()
         self._model_status_timer = self.set_interval(15.0, self._schedule_model_status_refresh)
@@ -857,10 +897,14 @@ class CockpitApp(App):
                 self._append_log(log, f"assistant: {reply}")
                 self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
                 return
-            preview = {"action_id": "__access_request__", "args": {"scope": scope, "enable": True}}
+            preview = build_backend_access_proposal_request(
+                scope,
+                enable=True,
+                resume_message=message,
+            )
             self.pending_action = build_pending_action_payload(preview, message)
             reply = f"Approve enabling {scope} access with /confirm or cancel with /cancel."
-            pending.update(f"Pending: __access_request__ args={self.pending_action['args']} (/confirm or /cancel)")
+            pending.update(f"Pending: __backend_proposal__ args={self.pending_action['args']} (/confirm or /cancel)")
             self._append_log(log, f"assistant: {reply}")
             self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
             return
@@ -1077,9 +1121,9 @@ class CockpitApp(App):
             sub = stripped[len("/rag"):].strip().lower()
             now_iso = datetime.now(timezone.utc).isoformat()
             if sub == "on":
-                reply = self._set_access_scope("rag", True)
+                reply = self._apply_backend_access_proposal("enable_rag_access")
             elif sub == "off":
-                reply = self._set_access_scope("rag", False)
+                reply = self._apply_backend_access_proposal("disable_rag_access")
             else:
                 enabled = self._access_state().get("rag_enabled", False)
                 reply = f"RAG retrieval: {'ON' if enabled else 'OFF'}. Use /rag on|off to toggle."
@@ -1092,9 +1136,9 @@ class CockpitApp(App):
             sub = stripped[len("/web"):].strip().lower()
             now_iso = datetime.now(timezone.utc).isoformat()
             if sub == "on":
-                reply = self._set_access_scope("web", True)
+                reply = self._apply_backend_access_proposal("enable_web_access")
             elif sub == "off":
-                reply = self._set_access_scope("web", False)
+                reply = self._apply_backend_access_proposal("disable_web_access")
             else:
                 enabled = self._access_state().get("web_enabled", False)
                 reply = f"Web search: {'ON' if enabled else 'OFF'}. Use /web on|off to toggle."
@@ -1106,9 +1150,9 @@ class CockpitApp(App):
             sub = stripped[len("/dbdiag"):].strip().lower()
             now_iso = datetime.now(timezone.utc).isoformat()
             if sub == "on":
-                reply = self._set_access_scope("dbdiag", True)
+                reply = self._apply_backend_access_proposal("enable_dbdiag_access")
             elif sub == "off":
-                reply = self._set_access_scope("dbdiag", False)
+                reply = self._apply_backend_access_proposal("disable_dbdiag_access")
             else:
                 enabled = self._access_state().get("db_diagnostic_query_enabled", False)
                 reply = f"DB diagnostics: {'ON' if enabled else 'OFF'}. Use /dbdiag on|off to toggle."

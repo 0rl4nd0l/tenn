@@ -32,7 +32,10 @@ from cockpit.core.session_memory import (
     get_relevant_session_context,
     record_turn,
 )
-from cockpit.core.backend_proposals import build_backend_runtime_remediation_request
+from cockpit.core.backend_proposals import (
+    build_backend_access_proposal_request,
+    build_backend_runtime_remediation_request,
+)
 
 
 class ResponseMode(StrEnum):
@@ -1291,7 +1294,11 @@ class ChatController:
             return ChatResponse(
                 text="Web access is required to fetch that URL. Enable web and try again.",
                 evidence=[],
-                action_preview={"action_id": "__access_request__", "args": {"scope": "web", "enable": True}},
+                action_preview=build_backend_access_proposal_request(
+                    "web",
+                    enable=True,
+                    resume_message=message,
+                ),
                 mode=ResponseMode.FAST,
             )
 
@@ -1300,7 +1307,11 @@ class ChatController:
             return ChatResponse(
                 text="Max-depth analysis requires web enrichment. Enable web and try again.",
                 evidence=[],
-                action_preview={"action_id": "__access_request__", "args": {"scope": "web", "enable": True}},
+                action_preview=build_backend_access_proposal_request(
+                    "web",
+                    enable=True,
+                    resume_message=message,
+                ),
                 mode=ResponseMode.FAST,
             )
 
@@ -1311,7 +1322,11 @@ class ChatController:
             return ChatResponse(
                 text="Deep analysis requires RAG context. Enable RAG and try again.",
                 evidence=[],
-                action_preview={"action_id": "__access_request__", "args": {"scope": "rag", "enable": True}},
+                action_preview=build_backend_access_proposal_request(
+                    "rag",
+                    enable=True,
+                    resume_message=message,
+                ),
                 mode=ResponseMode.FAST,
             )
 

@@ -73,8 +73,8 @@ class CockpitAccessRequestTriggerTests(unittest.TestCase):
             analysis_mode="deep",
         )
         self.assertIsNotNone(response.action_preview)
-        self.assertEqual(response.action_preview.get("action_id"), "__access_request__")
-        self.assertEqual((response.action_preview.get("args") or {}).get("scope"), "web")
+        self.assertEqual(response.action_preview.get("action_id"), "__backend_proposal__")
+        self.assertEqual((response.action_preview.get("args") or {}).get("proposal_id"), "enable_web_access")
 
     def test_rag_access_request_preview_when_deep_analysis_and_rag_disabled(self):
         controller = ChatController(
@@ -89,8 +89,8 @@ class CockpitAccessRequestTriggerTests(unittest.TestCase):
             analysis_mode="deep",
         )
         self.assertIsNotNone(response.action_preview)
-        self.assertEqual(response.action_preview.get("action_id"), "__access_request__")
-        self.assertEqual((response.action_preview.get("args") or {}).get("scope"), "rag")
+        self.assertEqual(response.action_preview.get("action_id"), "__backend_proposal__")
+        self.assertEqual((response.action_preview.get("args") or {}).get("proposal_id"), "enable_rag_access")
 
     def test_deep_mode_auto_web_enrichment_when_enabled(self):
         router = _DummyToolRouter(rag_available=False, rag_enabled=False)
@@ -123,8 +123,8 @@ class CockpitAccessRequestTriggerTests(unittest.TestCase):
             context_profile="max-depth",
         )
         self.assertIsNotNone(response.action_preview)
-        self.assertEqual(response.action_preview.get("action_id"), "__access_request__")
-        self.assertEqual((response.action_preview.get("args") or {}).get("scope"), "web")
+        self.assertEqual(response.action_preview.get("action_id"), "__backend_proposal__")
+        self.assertEqual((response.action_preview.get("args") or {}).get("proposal_id"), "enable_web_access")
 
     def test_max_depth_profile_auto_web_enrichment_when_enabled(self):
         router = _DummyToolRouter(rag_available=False, rag_enabled=False)

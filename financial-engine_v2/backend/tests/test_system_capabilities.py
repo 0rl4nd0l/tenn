@@ -177,3 +177,17 @@ def test_apply_capability_proposal_starts_extraction_runtime(monkeypatch):
 def test_apply_capability_proposal_rejects_unknown():
     with pytest.raises(main.HTTPException, match="unknown or unsupported proposal"):
         main.apply_system_proposal(main.CapabilityProposalApplyRequest(proposal_id="unknown"))
+
+
+def test_apply_capability_proposal_updates_access_state(monkeypatch):
+    stored = {}
+
+    monkeypatch.setattr(main, "_load_access_state", lambda: {"web_enabled": False, "rag_enabled": False, "db_diagnostic_query_enabled": False})
+    monkeypatch.setattr(main, "_write_access_state", lambda state: stored.setdefault("value", dict(state)))
+
+    payload = main.apply_system_proposal(main.CapabilityProposalApplyRequest(proposal_id="enable_web_access"))
+
+    assert payload["ok"] is True
+    assert payload["status"] == "applied"
+    assert payload["access"]["web_enabled"] is True
+    assert stored["value"]["web_enabled"] is True
