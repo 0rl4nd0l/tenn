@@ -5,17 +5,20 @@ Current active runtime is `financial-engine_v2`.
 ## Run in 3 steps
 1. Create/activate your main venv at repo root.
 2. Install deps:
-   - `pip install -r requirements.txt`
+   - `pip install -r financial-engine_v2/backend/requirements.txt`
+   - `pip install -r financial-engine_v2/worker/requirements.txt`
    - `python -m playwright install chromium`
 3. Run:
-   - `python run.py`
+   - `bash financial-engine_v2/scripts/run_local_backend.sh`
 
-That single command delegates to `financial-engine_v2/run.py`, where defaults are hardcoded.
+For agents and deterministic local backend startup, `financial-engine_v2/scripts/run_local_backend.sh` is the canonical entrypoint.
+`python run.py` remains a supported batch/orchestration path, but it is not the canonical "system is up" signal.
 
 Canonical environment and runtime docs:
 - `docs/setup/environment.md`
 - `docs/setup/runtime.md`
 - `docs/setup/troubleshooting.md`
+- `docs/entrypoints.md`
 
 ## Local Backend Status
 Current verified local backend entrypoint is:
@@ -34,6 +37,12 @@ Known current behavior:
 - `/chat` retrieves from `commentary_chunks` and optional `commentary_chunks_v2`, not `asx_docs`
 - local launcher now keeps `DATA_ROOT` on the repo `data/` directory unless explicitly overridden
 - explicit shell env overrides `.env` and `.env.local` for local runs
+
+Batch/orchestration path:
+- `python run.py`
+  - delegates to `financial-engine_v2/run.py`
+  - useful for workflow runs
+  - not the canonical backend bootstrap path for agents
 
 ## Validated Baseline (2026-03-19)
 Validated command sequence:

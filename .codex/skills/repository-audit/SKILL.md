@@ -28,6 +28,8 @@ Use this skill for full-repository audit requests in this workspace.
 - Do not claim functional validation results unless preflight is `READY`.
 - Do not modify functional code while auditing unless the user explicitly asks for audit artifacts to be updated.
 - Follow the required markdown sections and JSON schema from `.cursor/agents/repository_audit.md`.
+- In this repo, do not assume root `requirements.txt` or `pyproject.toml` exist. Verify the actual manifest layout first.
+- Prefer `financial-engine_v2/backend/requirements.txt` and `financial-engine_v2/worker/requirements.txt` when checking Python dependencies if root manifests are absent.
 
 ## Output
 

@@ -21,18 +21,19 @@
 
 ## Start commands
 
-Backend:
+Canonical backend start:
 
 ```bash
-python financial-engine_v2/run.py
+bash financial-engine_v2/scripts/run_local_backend.sh
 ```
 
-Local isolated backend:
+Batch/orchestration path:
 
 ```bash
-cd financial-engine_v2
-./scripts/run_local_backend.sh
+python run.py
 ```
+
+Use `python run.py` for batch workflows and orchestrated runs. Do not use it as the canonical "backend is running" bootstrap path for agents.
 
 Direct llama.cpp launcher from this repo:
 
