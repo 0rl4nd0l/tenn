@@ -9,10 +9,8 @@ logger = logging.getLogger(__name__)
 BLOCKED_PREFIX = "blocked_"
 
 
-def _fetch_verification_from_backend(backend_api_client, ticker: str | None) -> tuple[list, list, list] | None:
-    """Try loading verification data from backend API. Returns (docs, failures, low_conf) or None."""
-    if not backend_api_client:
-        return None
+def _fetch_verification_from_backend(backend_api_client, ticker: str | None) -> tuple[list, list, list]:
+    """Load verification data from backend API (authoritative)."""
     try:
         docs = []
         if ticker:
@@ -25,16 +23,15 @@ def _fetch_verification_from_backend(backend_api_client, ticker: str | None) -> 
         )
         return docs, verif.get("extraction_failures", []), verif.get("low_confidence_financials", [])
     except Exception as exc:
-        logger.warning("Backend verification fetch failed, falling back to DbReader: %s", exc)
-        return None
+        logger.warning("Backend verification fetch failed: %s", exc)
+        return [], [], []
 
 
 def run_verification(db_reader, ticker: str | None = None, *, backend_api_client=None) -> dict[str, Any]:
     tick = ticker.upper() if ticker else None
 
-    backend_data = _fetch_verification_from_backend(backend_api_client, tick)
-    if backend_data is not None:
-        docs, extraction_failures, low_confidence = backend_data
+    if backend_api_client:
+        docs, extraction_failures, low_confidence = _fetch_verification_from_backend(backend_api_client, tick)
     else:
         docs = db_reader.get_docs(tick, limit=500) if tick else []
         extraction_failures = db_reader.get_extraction_failures(limit=100)

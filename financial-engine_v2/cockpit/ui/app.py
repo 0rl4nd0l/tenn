@@ -1820,18 +1820,14 @@ class CockpitApp(App):
             return False
 
     def _get_snapshot_data(self, ticker: str) -> tuple[dict | None, list]:
-        """Get latest financial snapshot + docs, preferring backend API."""
+        """Get latest financial snapshot + docs. Backend when configured, DbReader otherwise."""
         if self._backend_client:
             try:
                 ctx = self._backend_client.get_ticker_context(ticker, docs_limit=20, financials_limit=1)
-                snapshot = ctx.get("latest_financial_snapshot")
-                docs = ctx.get("docs", [])
-                return snapshot, docs
+                return ctx.get("latest_financial_snapshot"), ctx.get("docs", [])
             except Exception:
-                pass
-        snapshot = self.db_reader.get_latest_financial_snapshot(ticker)
-        docs = self.db_reader.get_docs(ticker=ticker, limit=20)
-        return snapshot, docs
+                return None, []
+        return self.db_reader.get_latest_financial_snapshot(ticker), self.db_reader.get_docs(ticker=ticker, limit=20)
 
     async def run_updater_snapshot(self, ticker: str, years: int, process_documents: bool, log_target: str) -> None:
         before, _ = self._get_snapshot_data(ticker)

@@ -204,7 +204,8 @@ class ToolExecutor:
         if not ticker:
             return {"ok": False, "error": "ticker is required"}
         limit = int(args.get("limit", 6))
-        financials = self._get_financials_via_backend(ticker, limit) or self._router.db_reader.get_financials(ticker, limit=limit)
+        backend_fin = self._get_financials_via_backend(ticker, limit)
+        financials = backend_fin if backend_fin is not None else self._router.db_reader.get_financials(ticker, limit=limit)
         narrative = self._router._build_financials_narrative(financials) if financials else ""
         return {
             "ok": bool(financials),
@@ -214,14 +215,16 @@ class ToolExecutor:
         }
 
     def _get_financials_via_backend(self, ticker: str, limit: int) -> list[dict[str, Any]] | None:
+        """Returns list when backend configured, None when no backend."""
         client = self._router.backend_api_client
         if not client:
             return None
         try:
             resp = client.get_ticker_context(ticker, financials_limit=limit)
             return resp.get("financials", [])
-        except Exception:
-            return None
+        except Exception as exc:
+            logger.warning("Backend financials failed for %s: %s", ticker, exc)
+            return []
 
     def _exec_search_news(self, args: dict[str, Any]) -> dict[str, Any]:
         query = str(args.get("query", "")).strip()
@@ -255,16 +258,19 @@ class ToolExecutor:
         }
 
     def _get_announcements_via_backend(self, ticker: str, limit: int) -> tuple[list, list] | None:
+        """Returns tuple when backend configured, None when no backend."""
         client = self._router.backend_api_client
         if not client:
             return None
         try:
             resp = client.get_ticker_context(ticker, docs_limit=limit, announcements_limit=limit)
             return resp.get("docs", []), resp.get("announcement_context", [])
-        except Exception:
-            return None
+        except Exception as exc:
+            logger.warning("Backend announcements failed for %s: %s", ticker, exc)
+            return [], []
 
     def _get_data_quality_via_backend(self, ticker: str) -> tuple[list, list] | None:
+        """Returns tuple when backend configured, None when no backend."""
         client = self._router.backend_api_client
         if not client:
             return None
@@ -276,8 +282,9 @@ class ToolExecutor:
                 low_confidence_limit=8,
             )
             return resp.get("extraction_failures", []), resp.get("low_confidence_financials", [])
-        except Exception:
-            return None
+        except Exception as exc:
+            logger.warning("Backend data quality failed for %s: %s", ticker, exc)
+            return [], []
 
     def _exec_search_files(self, args: dict[str, Any]) -> dict[str, Any]:
         pattern = str(args.get("pattern", "")).strip()

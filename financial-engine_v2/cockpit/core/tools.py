@@ -126,16 +126,17 @@ class ToolRouter:
         if cached and now - cached[0] <= self._ticker_cache_ttl_seconds:
             return cached[1]
 
-        payload = self._load_ticker_context_from_backend(
-            ticker_key,
-            docs_limit=docs_limit,
-            announcements_limit=context_limit,
-            financials_limit=financials_limit,
-            failures_limit=extraction_failures_limit,
-            low_confidence_limit=low_confidence_limit,
-            low_confidence_threshold=low_confidence_threshold,
-        )
-        if payload is None:
+        if self.backend_api_client:
+            payload = self._load_ticker_context_from_backend(
+                ticker_key,
+                docs_limit=docs_limit,
+                announcements_limit=context_limit,
+                financials_limit=financials_limit,
+                failures_limit=extraction_failures_limit,
+                low_confidence_limit=low_confidence_limit,
+                low_confidence_threshold=low_confidence_threshold,
+            )
+        else:
             payload = self._load_ticker_context_from_db(
                 ticker_key,
                 docs_limit=docs_limit,
@@ -158,10 +159,8 @@ class ToolRouter:
         failures_limit: int = 8,
         low_confidence_limit: int = 8,
         low_confidence_threshold: float = 0.4,
-    ) -> dict[str, Any] | None:
-        """Try loading ticker context from the backend API. Returns None on failure."""
-        if not self.backend_api_client:
-            return None
+    ) -> dict[str, Any]:
+        """Load ticker context from the backend API (authoritative)."""
         try:
             resp = self.backend_api_client.get_ticker_context(
                 ticker,
@@ -183,8 +182,16 @@ class ToolRouter:
                 "db_error": errors[0] if errors else None,
             }
         except Exception as exc:
-            logger.warning("Backend ticker context failed for %s, falling back to DbReader: %s", ticker, exc)
-            return None
+            logger.warning("Backend ticker context failed for %s: %s", ticker, exc)
+            return {
+                "docs": [],
+                "context_rows": [],
+                "financials": [],
+                "extraction_failures": [],
+                "low_confidence_financials": [],
+                "low_confidence_threshold": float(low_confidence_threshold),
+                "db_error": f"backend unavailable: {exc}",
+            }
 
     def _load_ticker_context_from_db(
         self,
@@ -643,8 +650,11 @@ class ToolRouter:
         if not selected_docs and ticker:
             ticker_key = str(ticker or "").strip().upper()
             if ticker_key:
-                ctx = self._load_ticker_context_from_backend(ticker_key, docs_limit=30)
-                selected_docs = ctx["docs"] if ctx else self.db_reader.get_docs(ticker_key, limit=30)
+                if self.backend_api_client:
+                    ctx = self._load_ticker_context_from_backend(ticker_key, docs_limit=30)
+                    selected_docs = ctx.get("docs", [])
+                else:
+                    selected_docs = self.db_reader.get_docs(ticker_key, limit=30)
 
         out: list[str] = ["asx.com.au"]
         seen = {"asx.com.au"}

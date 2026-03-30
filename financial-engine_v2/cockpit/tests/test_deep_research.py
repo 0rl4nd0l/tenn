@@ -12,6 +12,7 @@ from cockpit.core.research.deep_research import DeepResearchRunner
 def _make_runner(*, backend_result=None, backend_error=None):
     """Build a DeepResearchRunner with mocked dependencies."""
     mock_router = MagicMock()
+    mock_router.backend_api_client = None  # Force DbReader fallback path
     mock_router.db_reader.get_financials.return_value = [{"revenue": 50000}]
     mock_router.db_reader.get_docs.return_value = []
     mock_router.db_reader.get_announcement_context.return_value = []
@@ -71,6 +72,7 @@ class TestDeepResearchRunner:
     def test_backend_none_returns_fallback(self):
         """DeepResearchRunner with no backend client degrades gracefully."""
         mock_router = MagicMock()
+        mock_router.backend_api_client = None  # Force DbReader fallback path
         mock_router.db_reader.get_financials.return_value = [{"revenue": 100}]
         mock_router.db_reader.get_docs.return_value = []
         mock_router.db_reader.get_announcement_context.return_value = []

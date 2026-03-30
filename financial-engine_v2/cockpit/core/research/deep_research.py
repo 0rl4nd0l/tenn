@@ -82,16 +82,16 @@ class DeepResearchRunner:
         """Collect data from all available sources."""
         data: dict[str, Any] = {}
 
-        # Financials — prefer backend API, fall back to local DB.
+        # Financials — backend API when configured, DbReader otherwise.
         try:
-            financials = None
             if self._router.backend_api_client:
                 try:
                     ctx = self._router.backend_api_client.get_ticker_context(ticker, financials_limit=6)
                     financials = ctx.get("financials", [])
-                except Exception:
-                    pass
-            if financials is None:
+                except Exception as exc:
+                    logger.warning("deep_research: backend financials failed for %s: %s", ticker, exc)
+                    financials = []
+            else:
                 financials = self._router.db_reader.get_financials(ticker, limit=6)
             if financials:
                 data["financials"] = financials[:3]  # Trim for context
@@ -127,18 +127,17 @@ class DeepResearchRunner:
             except Exception as exc:
                 logger.warning("deep_research: HN search failed: %s", exc)
 
-        # Announcements — prefer backend API, fall back to local DB.
+        # Announcements — backend API when configured, DbReader otherwise.
         try:
-            docs = None
-            context = None
             if self._router.backend_api_client:
                 try:
                     ctx = self._router.backend_api_client.get_ticker_context(ticker, docs_limit=5, announcements_limit=5)
                     docs = ctx.get("docs", [])
                     context = ctx.get("announcement_context", [])
-                except Exception:
-                    pass
-            if docs is None:
+                except Exception as exc:
+                    logger.warning("deep_research: backend announcements failed for %s: %s", ticker, exc)
+                    docs, context = [], []
+            else:
                 docs = self._router.db_reader.get_docs(ticker, limit=5)
                 context = self._router.db_reader.get_announcement_context(ticker, limit=5)
             if docs or context:
