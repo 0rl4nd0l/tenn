@@ -287,6 +287,25 @@ Notes:
 
 3. Ask for current or URL-backed information.
 
+### 3b. Backend-Gated Access And Runtime Repair
+
+Access toggles are backend-owned. Cockpit proposes a backend action first, then applies it after confirmation.
+
+Typical flow:
+
+```text
+/request-access rag
+/confirm
+/access
+```
+
+What happens:
+- Cockpit builds a `__backend_proposal__` action preview for `enable_*` or `disable_*` access scopes.
+- `/confirm` applies that proposal through the backend control-plane endpoints.
+- `/access` reflects the backend-written access state for `web`, `rag`, and `dbdiag`.
+
+The same control-plane also exposes runtime remediation proposals. If extraction is unreachable, backend capabilities can surface `start_extraction_runtime`, and Cockpit can confirm that proposal instead of guessing a local recovery path.
+
 ### 4. Transcript Review
 
 1. Check staged items:
@@ -339,6 +358,20 @@ Check:
 If preboot shows a router warning:
 - refresh/reopen preboot
 - verify there is a single chat controller runtime on port `8001`
+
+### Access Toggle Does Not Stick
+
+Check:
+
+```text
+/access
+/health
+```
+
+If the backend is reachable but the toggle still looks wrong:
+- confirm the session has backend API access configured
+- remember `/request-access ...` only stages the proposal; the access state changes after `/confirm`
+- backend capabilities and proposal apply are served from `/api/system/capabilities` and `/api/system/proposals/apply`
 
 ### No Sources Showing
 

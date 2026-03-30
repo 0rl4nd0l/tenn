@@ -1,6 +1,6 @@
 # 14 — Roadmap and modules
 
-This document defines the target **“Analyse Company”** pipeline as a set of modular phases, a proposed directory structure for future modules, and the invariant that all modules remain **deterministic** and **artifact-producing**.
+This document defines the **“Analyse Company”** pipeline as a set of modular phases, marks which phases are implemented today versus still planned, and preserves the invariant that all modules remain **deterministic** and **artifact-producing**.
 
 ---
 
@@ -13,7 +13,7 @@ The pipeline is composed of phases that run in sequence. Each phase consumes inp
 | **1. Data acquisition** | Ingest and normalize all inputs required for analysis: price data, fundamentals, regulatory filings, and news. | Canonical datasets, document store, staging tables/snapshots. |
 | **2. Retrieval (RAG)** | Single entrypoint for semantic search over ingested documents. Query with optional ticker filter; return ranked hits. | RAG query results (hits), optional debug payloads. |
 | **3. Analysis modules** | Domain-specific analysis run over acquired data and RAG context. Each module is independent and produces one or more artifacts. | Risk, valuation, moat, catalysts, ROIC, balance sheet, and other module-specific artifacts. |
-| **4. Portfolio module** | Portfolio-level view: exposure, correlation, position sizing. Consumes analysis artifacts and optional portfolio definition. | Exposure/correlation/sizing reports. |
+| **4. Portfolio module** | Portfolio-level aggregation over analysis artifacts and an optional portfolio definition. | Portfolio summary, valuation/moat/risk/catalyst rollups, position sizing suggestions. |
 | **5. Outputs** | All artifacts are written under a single reports tree. Timestamped or versioned where appropriate. | Artifacts under `reports/` (see below). |
 
 ---
@@ -59,12 +59,14 @@ Additional modules (sentiment, quality score, etc.) follow the same contract: de
 
 ### 4. Portfolio module
 
-- **Inputs:** Portfolio definition (positions or watchlist), analysis artifacts, correlation/exposure inputs.
-- **Outputs:** Exposure by sector/region, correlation matrix or summary, position sizing suggestions. All written as artifacts under `reports/portfolio/` or similar.
+- **Implemented today:** `financial-engine_v2/backend/app/modules/portfolio/`
+- **Inputs:** Portfolio definition, current or supplied weights/prices, and per-ticker analysis artifacts.
+- **Current outputs:** Portfolio valuation summary, moat-quality rollup, catalyst calendar, risk aggregation, position sizing suggestions, and computed portfolio weights.
+- **Still deferred:** Dedicated exposure and correlation modules remain roadmap items rather than shipped backend surfaces.
 
 ### 5. Outputs (artifacts in `reports/`)
 
-All pipeline outputs are written under a single tree. Existing and proposed locations:
+All pipeline outputs are written under a single tree. Current and planned locations:
 
 | Area | Path pattern | Contents |
 |------|--------------|----------|
@@ -80,9 +82,9 @@ Artifacts should be timestamped or versioned where reruns overwrite or need comp
 
 ---
 
-## Proposed directory structure for future modules
+## Module layout status
 
-The following layout is **proposed** for where new analysis and pipeline code should live. This is a target structure; it is not fully implemented today.
+The analysis and portfolio module tree now exists under `financial-engine_v2/backend/app/modules/`. The sketch below is therefore partly implemented and partly roadmap.
 
 ```
 financial-engine_v2/
@@ -94,7 +96,7 @@ financial-engine_v2/
 │   │   ├── services/      # RAG, pipeline, embeddings (existing)
 │   │   ├── providers/     # Data providers (existing)
 │   │   │
-│   │   └── modules/       # [PROPOSED] Analysis and portfolio modules
+│   │   └── modules/       # Analysis and portfolio modules
 │   │       ├── __init__.py
 │   │       ├── base.py    # Contract: run(ticker, context) -> ArtifactSet
 │   │       ├── risk/
@@ -106,10 +108,13 @@ financial-engine_v2/
 │   │       ├── roic/
 │   │       ├── balance_sheet/
 │   │       └── portfolio/
-│   │           ├── __init__.py
-│   │           ├── exposure.py
-│   │           ├── correlation.py
-│   │           └── sizing.py
+│   │           ├── analyser.py
+│   │           ├── valuation_summary.py
+│   │           ├── moat_quality.py
+│   │           ├── catalyst_calendar.py
+│   │           ├── risk_aggregation.py
+│   │           ├── position_sizing.py
+│   │           └── weights.py
 │   └── ...
 ├── reports/               # All artifacts (existing convention)
 │   ├── analysis/
@@ -121,11 +126,11 @@ financial-engine_v2/
 └── ...
 ```
 
-- **`modules/base.py`** would define the contract: e.g. `run(ticker, context) -> ArtifactSet`, where `ArtifactSet` lists paths under `reports/` and optional in-memory payloads.
+- **`modules/base.py`** defines the contract: e.g. `run(ticker, context) -> ArtifactSet`, where `ArtifactSet` lists paths under `reports/` and optional in-memory payloads.
 - Each **module** (risk, valuation, moat, etc.) lives in its own package under `modules/`, implements the contract, and writes only under `reports/`.
-- **Portfolio** is a separate top-level module under `modules/portfolio/` with sub-components (exposure, correlation, sizing) that produce artifacts under `reports/portfolio/`.
+- **Portfolio** is a separate top-level module under `modules/portfolio/`. Today it ships `analyser.py`, `valuation_summary.py`, `moat_quality.py`, `catalyst_calendar.py`, `risk_aggregation.py`, `position_sizing.py`, and `weights.py`. Exposure/correlation submodules are still future work.
 
-No implementation of this structure is implied here; it is a roadmap for where to place new code as modules are added.
+New module placement should continue to follow this layout so the implemented tree and roadmap stay aligned.
 
 ---
 

@@ -41,6 +41,13 @@ This note lists Cockpit flags, config settings, and environment variables that c
 | `backend.auto_start` | `true` | If set `false` and backend is down, cockpit will not attempt to self-recover by launching backend. | `financial-engine_v2/config/cockpit.yaml`, `financial-engine_v2/cockpit/ui/app.py` |
 | `backend.startup_timeout_seconds` | `25` | Low values produce false negative "health check timed out" startup states for slow hosts. | `financial-engine_v2/config/cockpit.yaml`, `financial-engine_v2/cockpit/ui/app.py` |
 
+## Backend-controlled access state limitations
+
+- Slash commands `/web on|off`, `/rag on|off`, and `/dbdiag on|off` apply backend proposals through `/api/system/proposals/apply`, then sync the local session from backend access state.
+- `/request-access ...` stages a backend proposal first; the state change lands only after `/confirm`.
+- The Settings screen switches currently call `CockpitApp._set_access_scope()` directly and can mutate local session state without writing the backend authority file. A later backend sync can therefore overwrite what the screen shows.
+- Backend capability snapshots may advertise remediation proposals that are informational only. Today the apply endpoint executes `start_extraction_runtime` plus access toggles, not the full proposal list exposed by `/api/system/capabilities`.
+
 ## Current local override posture
 
 Observed in `financial-engine_v2/config/cockpit.local.yaml`:

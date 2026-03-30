@@ -1096,7 +1096,14 @@ Both columns are nullable. Existing rows without these values continue to work. 
 
 ### 13.3 Portfolio Module Integration (Phase 4)
 
-The analysis artifacts are designed to be consumed by a future portfolio module (Phase 4). The module will read `reports/analysis/{ticker}/*.json` artifacts and produce exposure, correlation, and position sizing reports under `reports/portfolio/`. The `ArtifactSet` schema, `Completeness` enum, and evidence chains are designed to support this consumption pattern.
+The portfolio module is now implemented under `financial-engine_v2/backend/app/modules/portfolio/`. `PortfolioAnalyser` reads `reports/analysis/{ticker}/*.json` artifacts and produces a portfolio summary under `reports/portfolio/{portfolio_id}_summary.json`, with current sub-modules for valuation summary, moat quality, catalyst calendar, risk aggregation, computed weights, and position sizing.
+
+The `ArtifactSet` schema, `Completeness` enum, and evidence chains were designed to support this consumption pattern and are now actively used by the shipped portfolio layer.
+
+Still deferred within Phase 4:
+- dedicated exposure modules
+- correlation analytics
+- richer portfolio definition and optimization inputs beyond the current holdings/weights model
 
 ### 13.4 D2 Cache Layer
 

@@ -110,16 +110,25 @@ A separate eval harness tests the accuracy of the financial metric extraction pi
 
 ### Fixture inventory
 
-| Fixture | Ticker | Period type | Asserted metrics | Notes |
-|---------|--------|-------------|-----------------|-------|
-| `BHP_A_2021-06-30.json` | BHP | Annual (A) | 3 (revenue, ebit, np_attributable) | USD. 7 expected_nulls for unverified CF/BS metrics |
-| `RMS_H_2025-12-31.json` | RMS | Half-year (H) | 10 | AUD. Fully verified from Appendix 4D |
-| `MIN_H_2025-12-31.json` | MIN | Half-year (H) | 5 (loose 5% tol) | AUD millions. Hand-verified from Appendix 4D + H1 FY26 financial report (filed 2026-02-20). |
-| `SEG_H_2025-12-31.json` | SEG | Half-year (H) | 6 (revenue, np_attributable, 4×CF) | AUD. Non-mining (sports/media). Appendix 4D + full IFRS interim. Hand-verified. |
-| `GRE_Q_2024-12-31.json` | GRE | Quarterly (Q) | 4 (operating_cf, investing_cf, financing_cf, cash_end) | Appendix 5B. Explorer. 5 expected_nulls for absent income-statement metrics. Hand-verified. |
-| `EQR_Q_2025-12-31.json` | EQR | Quarterly (Q) | 4 (operating_cf, investing_cf, financing_cf, cash_end) | Appendix 5B. Operating miner (tungsten). 5 expected_nulls. Hand-verified. 1k rounding artifact documented. |
+Current repo fixture pool: 13 JSON fixtures under `backend/tests/eval_fixtures/`.
 
-**Quarterly fixtures** (GRE, EQR): Both are value-asserted with hand-verified cash-flow values from PDF. `expected_nulls` asserts that income statement metrics (`revenue`, `ebit`, `np_attributable`, `net_debt`, `shares_outstanding`) are correctly identified as absent in Appendix 5B documents. Cash-flow tolerances: 1% for flow metrics, 0.1% for `cash_end`.
+| Fixture | Ticker | Period type | Asserted metrics | Per-fixture min accuracy | Notes |
+|---------|--------|-------------|-----------------|--------------------------|-------|
+| `ANZ_H_2025-03-31.json` | ANZ | Half-year (H) | 9 | 0.80 | Bank/interim fixture. 1 expected-null assertion. |
+| `AZJ_H_2025-12-31.json` | AZJ | Half-year (H) | 10 | 0.00 | Known unsolved Identity-H CID font encoding issue; threshold intentionally disabled. |
+| `BHP_A_2021-06-30.json` | BHP | Annual (A) | 9 | 0.80 | Annual USD fixture. 1 expected-null assertion remains. |
+| `CSL_H_2025-12-31.json` | CSL | Half-year (H) | 10 | 0.80 | USD healthcare fixture. |
+| `EQR_Q_2025-12-31.json` | EQR | Quarterly (Q) | 4 | 0.80 | Appendix 5B quarterly. 5 expected-null assertions for absent income-statement metrics. |
+| `FMG_H_2025-12-31.json` | FMG | Half-year (H) | 10 | 0.60 | Threshold reduced for current extraction variance on this filing. |
+| `GRE_Q_2024-12-31.json` | GRE | Quarterly (Q) | 4 | 0.80 | Appendix 5B quarterly. 5 expected-null assertions. |
+| `MIN_H_2025-12-31.json` | MIN | Half-year (H) | 10 | 0.80 | Appendix 4D + interim report. |
+| `RMS_H_2025-12-31.json` | RMS | Half-year (H) | 10 | 0.70 | Appendix 4D fixture with one expected-null assertion. |
+| `SEG_H_2025-12-31.json` | SEG | Half-year (H) | 8 | 0.80 | Non-mining half-year fixture. |
+| `TCL_H_2025-12-31.json` | TCL | Half-year (H) | 9 | 0.80 | Infrastructure/toll-road half-year fixture. 1 expected-null assertion. |
+| `TLS_H_2025-12-31.json` | TLS | Half-year (H) | 10 | 0.80 | Telecom half-year fixture. |
+| `WOW_H_2026-01-04.json` | WOW | Half-year (H) | 10 | 0.80 | Retail half-year fixture with non-calendar period end. |
+
+**Quarterly fixtures** (GRE, EQR): Both are value-asserted with hand-verified cash-flow values from PDF. `expected_nulls` asserts that income statement metrics (`revenue`, `ebit`, `np_attributable`, `net_debt`, `shares_outstanding`) are correctly identified as absent in Appendix 5B documents. Cash-flow tolerances remain 1% for flow metrics and 0.1% for `cash_end`.
 
 ### Accuracy thresholds
 
@@ -130,7 +139,7 @@ Defined in `eval_config.json`:
 | `min_accuracy_overall` | 0.85 |
 | `warn_threshold` (soft floor, emits UserWarning) | 0.80 |
 | `min_accuracy_per_metric.operating_cf` | 0.90 |
-| `min_accuracy_per_metric.revenue` | 0.90 |
+| `min_accuracy_per_metric.revenue` | 0.85 |
 | `min_accuracy_per_metric.period_end` | 1.00 |
 
 ### PDF availability

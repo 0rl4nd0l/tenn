@@ -56,6 +56,31 @@ The FastAPI app mounts routes in these groups:
   - `analysis` mode delegates to `chat_with_tenn()`
   - `strategy` mode routes to proposal/confirm/apply helpers
 
+### System control-plane and capability state
+
+- `GET /api/system/status`
+  - point-in-time backend system status snapshot
+- `GET /api/system/capabilities`
+  - backend authority for Cockpit capability state and remediation proposals
+  - returns:
+    - `access` state for `web_enabled`, `rag_enabled`, and `db_diagnostic_query_enabled`
+    - dependency health for database, Redis, Qdrant, chat runtime, extraction runtime, and embedding runtime
+    - feature status for ingestion, extraction, embeddings, and RAG
+    - proposal inventory such as `start_extraction_runtime`, `restore_qdrant`, `restore_embedding_runtime`, `rebuild_embeddings`, and access toggles
+  - important limitation:
+    - the capability snapshot may advertise informational proposals that are not yet executable through `POST /api/system/proposals/apply`
+- `POST /api/system/proposals/apply`
+  - applies one backend-owned proposal by `proposal_id`
+  - current supported access proposals:
+    - `enable_web_access`
+    - `disable_web_access`
+    - `enable_rag_access`
+    - `disable_rag_access`
+    - `enable_dbdiag_access`
+    - `disable_dbdiag_access`
+  - current supported runtime proposal:
+    - `start_extraction_runtime`
+
 ### Commentary and framework ingestion
 
 - `POST /api/ingest/transcript`
@@ -107,6 +132,8 @@ The FastAPI app mounts routes in these groups:
 - The canonical retrieval route is `POST /rag/query`, not `POST /api/rag/query`.
 - The chat endpoint is intentionally exposed at both `/chat` and `/api/chat`.
 - Ingest routes are intentionally exposed both under `/api/ingest/*` and top-level `/ingest/*`.
+- Cockpit access state is backend-owned through `/api/system/capabilities` and `/api/system/proposals/apply`; Cockpit should treat those routes as the authority rather than maintaining a parallel access toggle state.
+- Today there is still a partial mismatch between advertised proposals and executable proposals. Document operator flows against the apply endpoint, not the full capability proposal list.
 
 ## Source files
 
