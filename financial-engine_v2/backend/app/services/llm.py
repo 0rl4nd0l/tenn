@@ -10,6 +10,7 @@ import httpx
 from app.core.config import settings
 from app.services.embeddings import embed_texts_batched
 from app.services.llamacpp_runtime import (
+    LlamaCppServerUnavailable,
     generate_json_llamacpp,
     resolve_extraction_runtime_config,
     resolve_llm_runtime_config,
@@ -187,6 +188,8 @@ def _resolved_model_name_for_metrics(
 
 
 def _failure_reason(exc: Exception) -> str:
+    if isinstance(exc, LlamaCppServerUnavailable):
+        return "server_unavailable"
     if isinstance(exc, (TimeoutError, httpx.TimeoutException)):
         return "timeout"
     if isinstance(exc, httpx.HTTPStatusError) and exc.response is not None:
@@ -205,6 +208,8 @@ def _should_retry_with_fallback(
         return False
     if decision.task_type not in {"reasoning", "coding"}:
         return False
+    if isinstance(exc, LlamaCppServerUnavailable):
+        return True
     if isinstance(exc, (TimeoutError, httpx.TimeoutException)):
         return True
     if isinstance(exc, httpx.HTTPStatusError) and exc.response is not None:

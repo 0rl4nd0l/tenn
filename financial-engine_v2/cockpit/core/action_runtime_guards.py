@@ -4,6 +4,7 @@ import datetime
 import logging
 import os
 import re
+import subprocess
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -19,6 +20,7 @@ EXTRACTION_ACTION_IDS: frozenset[str] = frozenset({
     "resume_pending",
     "asx_enrichment_sweep",
     "asx_enrichment_chunked",
+    "universe_announcement_enrichment_backfill",
 })
 
 # Actions where extraction only runs when process_documents=True (not default).
@@ -27,7 +29,63 @@ _CONDITIONAL_EXTRACTION_IDS: frozenset[str] = frozenset({
     "resume_pending",
     "asx_enrichment_sweep",
     "asx_enrichment_chunked",
+    "universe_announcement_enrichment_backfill",
 })
+
+
+def _check_vram_headroom() -> tuple[bool, str]:
+    """Check GPU VRAM headroom via gpu_process_guard.sh.
+
+    Returns ``(ok, message)``.  If *ok* is False the caller should block the action.
+    Exit codes from the script:
+        0 — all clear
+        1 — rogue GPU processes detected (warn but allow)
+        2 — VRAM critically low (block)
+    If the script is missing or fails to execute, we warn and allow.
+    """
+    repo_root = Path(__file__).resolve().parents[3]  # financial-engine_v2/cockpit/core → repo root
+    guard_script = repo_root / "scripts" / "gpu_process_guard.sh"
+
+    if not guard_script.is_file():
+        logger.debug("gpu_process_guard.sh not found at %s — skipping VRAM check", guard_script)
+        return True, ""
+
+    try:
+        result = subprocess.run(
+            [str(guard_script), "--check"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        logger.warning("VRAM headroom check failed to run: %s — allowing action", exc)
+        return True, ""
+
+    if result.returncode == 0:
+        return True, ""
+
+    stderr_snippet = (result.stderr or result.stdout or "").strip()[:300]
+
+    if result.returncode == 2:
+        return False, (
+            f"VRAM critically low — gpu_process_guard.sh exit 2. "
+            f"Free GPU memory before running extraction actions. Detail: {stderr_snippet}"
+        )
+
+    if result.returncode == 1:
+        logger.warning(
+            "Rogue GPU processes detected (gpu_process_guard.sh exit 1): %s — allowing action",
+            stderr_snippet,
+        )
+        return True, ""
+
+    # Unexpected exit code — warn and allow.
+    logger.warning(
+        "gpu_process_guard.sh returned unexpected exit code %d: %s — allowing action",
+        result.returncode,
+        stderr_snippet,
+    )
+    return True, ""
 
 
 def check_extraction_endpoint(
@@ -52,6 +110,11 @@ def check_extraction_endpoint(
     # update_ticker_financials defaults process_documents=True; skip only if explicitly False.
     if action_id == "update_ticker_financials" and args.get("process_documents") is False:
         return True, ""
+
+    # VRAM headroom check — block on critical, warn on rogues.
+    vram_ok, vram_msg = _check_vram_headroom()
+    if not vram_ok:
+        return False, vram_msg
 
     # Resolve extraction URL (lazy import to avoid circular deps).
     extraction_url = (

@@ -391,9 +391,19 @@ def main() -> None:
         "status": "success",
     }
 
+    _INFRA_FAILURE_PATTERNS = (
+        "connection refused",
+        "Connection refused",
+        "llama.cpp server unavailable",
+        "ConnectError",
+        "ConnectionRefusedError",
+    )
+
     provider = ASXProvider()
     db = SessionLocal()
     consecutive_empty_days = 0
+    consecutive_infra_failures = 0
+    circuit_breaker_tripped = False
     stop_reason = ""
 
     try:
@@ -512,8 +522,11 @@ def main() -> None:
 
             if not args.skip_download:
                 for document_id in process_document_ids:
+                    if circuit_breaker_tripped:
+                        break
                     try:
                         download_pdf_for_document(db, document_id)
+                        consecutive_infra_failures = 0
                         day_report["downloaded"] = int(day_report["downloaded"]) + 1
                         summary["totals"]["downloaded"] = int(summary["totals"]["downloaded"]) + 1
                         day_report["processed"] = int(day_report["processed"]) + 1
@@ -529,26 +542,66 @@ def main() -> None:
                                     )
                                     summary["totals"]["errors"] = int(summary["totals"]["errors"]) + 1
                             except Exception as proc_exc:
+                                err_str = str(proc_exc)
                                 day_report["process_errors"] = int(day_report["process_errors"]) + 1
                                 summary["totals"]["process_errors"] = int(summary["totals"]["process_errors"]) + 1
                                 day_report["errors"].append({"document_id": document_id, "error": f"process_document_error: {proc_exc}"})
                                 summary["totals"]["errors"] = int(summary["totals"]["errors"]) + 1
+                                if any(pat in err_str for pat in _INFRA_FAILURE_PATTERNS):
+                                    consecutive_infra_failures += 1
+                                    if consecutive_infra_failures >= 3:
+                                        print(
+                                            f"[asx_sweep] CRITICAL: Circuit breaker tripped: {consecutive_infra_failures} "
+                                            "consecutive infrastructure failures — aborting sweep (server appears down)",
+                                            flush=True,
+                                        )
+                                        circuit_breaker_tripped = True
+                                        break
+                                else:
+                                    consecutive_infra_failures = 0
                     except RuntimeError as exc:
                         if "marketindex_headed_required" in str(exc):
                             day_report["skipped_download"] = int(day_report["skipped_download"]) + 1
                             summary["totals"]["skipped_download"] = int(summary["totals"]["skipped_download"]) + 1
                             continue
+                        err_str = str(exc)
                         db.rollback()
-                        day_report["errors"].append({"document_id": document_id, "error": str(exc)})
+                        day_report["errors"].append({"document_id": document_id, "error": err_str})
                         summary["totals"]["errors"] = int(summary["totals"]["errors"]) + 1
+                        if any(pat in err_str for pat in _INFRA_FAILURE_PATTERNS):
+                            consecutive_infra_failures += 1
+                            if consecutive_infra_failures >= 3:
+                                print(
+                                    f"[asx_sweep] CRITICAL: Circuit breaker tripped: {consecutive_infra_failures} "
+                                    "consecutive infrastructure failures — aborting sweep (server appears down)",
+                                    flush=True,
+                                )
+                                circuit_breaker_tripped = True
+                                break
+                        else:
+                            consecutive_infra_failures = 0
                     except httpx.HTTPStatusError as exc:
                         db.rollback()
                         day_report["errors"].append({"document_id": document_id, "error": str(exc)})
                         summary["totals"]["errors"] = int(summary["totals"]["errors"]) + 1
+                        consecutive_infra_failures = 0
                     except Exception as exc:
+                        err_str = str(exc)
                         db.rollback()
-                        day_report["errors"].append({"document_id": document_id, "error": str(exc)})
+                        day_report["errors"].append({"document_id": document_id, "error": err_str})
                         summary["totals"]["errors"] = int(summary["totals"]["errors"]) + 1
+                        if any(pat in err_str for pat in _INFRA_FAILURE_PATTERNS):
+                            consecutive_infra_failures += 1
+                            if consecutive_infra_failures >= 3:
+                                print(
+                                    f"[asx_sweep] CRITICAL: Circuit breaker tripped: {consecutive_infra_failures} "
+                                    "consecutive infrastructure failures — aborting sweep (server appears down)",
+                                    flush=True,
+                                )
+                                circuit_breaker_tripped = True
+                                break
+                        else:
+                            consecutive_infra_failures = 0
 
             classification_ids = list(dict.fromkeys(process_document_ids))
             if settings.enable_importance_classification and classification_ids:
@@ -580,6 +633,10 @@ def main() -> None:
                 flush=True,
             )
 
+            if circuit_breaker_tripped:
+                stop_reason = f"circuit_breaker_tripped:{consecutive_infra_failures}_consecutive_infra_failures"
+                summary["status"] = "infra_failure"
+                break
             if args.max_new_docs > 0 and int(summary["totals"]["inserted"]) >= args.max_new_docs:
                 stop_reason = f"max_new_docs_reached:{args.max_new_docs}"
                 break

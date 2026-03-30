@@ -13,6 +13,12 @@ DEFAULT_LLM_URL = "http://127.0.0.1:8001"
 DEFAULT_LLM_MODEL = "qwen2.5-coder-14b"
 
 
+class LlamaCppServerUnavailable(RuntimeError):
+    """Raised when llama.cpp server is unreachable (connection refused, timeout on connect)."""
+
+    pass
+
+
 def _normalize_url(base_url: str) -> str:
     normalized = str(base_url or "").strip().rstrip("/")
     if normalized.endswith("/v1"):
@@ -350,7 +356,7 @@ def generate_json_llamacpp(
             )
             resolved_model = _resolve_model_id(models_payload, requested_model)
         except Exception as exc:
-            raise RuntimeError(
+            raise LlamaCppServerUnavailable(
                 f"llama.cpp server unavailable at {normalized_base_url}/v1/models: {exc}"
             ) from exc
 
@@ -384,6 +390,10 @@ def generate_json_llamacpp(
             )
             response.raise_for_status()
             data = response.json()
+        except httpx.ConnectError as exc:
+            raise LlamaCppServerUnavailable(
+                f"llama.cpp server unreachable at {chat_url}: {exc}"
+            ) from exc
         except Exception as exc:
             raise RuntimeError(f"llama.cpp JSON generation failed at {chat_url}: {exc}") from exc
         choices = data.get("choices")

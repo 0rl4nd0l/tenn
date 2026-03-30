@@ -33,7 +33,7 @@ rag:
     db_path: reports/qual_context/company.sqlite
     embed_backend: sentence-transformers
     embed_model: bge-large-en-v1.5
-    st_device: auto
+    st_device: cpu          # Force CPU to free GPU VRAM for chat + extraction models
     dependency_policy: error
     corpus_filter: company
     top_k: 8

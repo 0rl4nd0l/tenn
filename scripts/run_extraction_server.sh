@@ -34,7 +34,9 @@ PORT="${EXTRACTION_SERVER_PORT:-8002}"
 MODEL_PATH="${EXTRACTION_SERVER_MODEL:-${ROOT_DIR}/models/qwen2.5-14b-instruct-q4_k_m.gguf}"
 MODEL_ALIAS="${EXTRACTION_SERVER_ALIAS:-qwen2.5-14b-instruct}"
 API_KEY="${LLAMA_SERVER_API_KEY:-${LLM_API_KEY:-local-openai-key}}"
-CTX_SIZE="${EXTRACTION_SERVER_CTX_SIZE:-16384}"
+# 8K context is sufficient — extraction prompts are clipped to ~18,000 chars (~4.5K tokens).
+# Halved from 16K to reduce VRAM pressure when running dual 14B models on 24 GB M40.
+CTX_SIZE="${EXTRACTION_SERVER_CTX_SIZE:-8192}"
 
 if [[ ! -f "${MODEL_PATH}" ]]; then
   echo "Extraction model not found at ${MODEL_PATH}" >&2

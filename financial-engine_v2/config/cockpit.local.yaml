@@ -44,7 +44,7 @@ rag:
     db_path: reports/qual_context/company.sqlite
     embed_backend: hash
     embed_model: hash
-    st_device: auto
+    st_device: cpu          # Force CPU to free GPU VRAM for chat + extraction models
     dependency_policy: fallback_hash
     corpus_filter: company
     top_k: 8

@@ -1458,7 +1458,17 @@ class CockpitApp(App):
                 self._append_log(log, f"assistant: {partial}")
                 self.state_store.add_chat_message(self.thread_id, "assistant", partial, datetime.now(timezone.utc).isoformat())
             self._set_chat_live_response("")
-            err = f"assistant: chat error: {exc}"
+            err_str = str(exc)
+            # Provide user-friendly messages for common infrastructure errors
+            # rather than showing raw exception text.
+            if "ConnectError" in err_str or "connection refused" in err_str.lower():
+                err = f"assistant: LLM server unreachable — connection refused. Check that llama-server is running."
+            elif "unavailable" in err_str.lower() and "llama" in err_str.lower():
+                err = f"assistant: LLM server unavailable. {err_str}"
+            elif "TimeoutException" in err_str or "timed out" in err_str.lower():
+                err = f"assistant: LLM request timed out. The model may be overloaded or unresponsive."
+            else:
+                err = f"assistant: chat error: {exc}"
             self._append_log(log, err)
             self.state_store.add_chat_message(self.thread_id, "assistant", err, datetime.now(timezone.utc).isoformat())
             return
@@ -1706,12 +1716,18 @@ class CockpitApp(App):
         self.active_log_target = log_target
         last_ticker: str | None = None
         last_day: str | None = None
+        last_critical_line: str | None = None
 
         def _emit(line: str) -> None:
             # _emit is always called from within the asyncio event loop (via _pump in
             # job_runner), so direct calls to _write_log are safe — no thread-hopping needed.
-            nonlocal last_ticker, last_day
+            nonlocal last_ticker, last_day, last_critical_line
             self._write_log(log_target, line)
+
+            # Capture CRITICAL lines (e.g. circuit breaker) so the completion
+            # summary can surface the failure reason without the user scrolling.
+            if "CRITICAL" in line:
+                last_critical_line = line
 
             ticker_match = re.search(r"\[(?:backfill|probe)\]\s+([A-Z0-9.]+)\s+attempt\s+\d+", line)
             if ticker_match:
@@ -1752,6 +1768,23 @@ class CockpitApp(App):
                     }
                 )
                 self._write_log(log_target, f"Completed with status={run_result.status} exit={run_result.exit_code}")
+                if run_result.status == "failed":
+                    # Surface the most important failure context so the user
+                    # doesn't have to scroll through the full log.
+                    if last_critical_line:
+                        # Strip the [out]/[err] prefix that _pump adds.
+                        clean = re.sub(r"^\[(out|err)\]\s*", "", last_critical_line)
+                        self._write_log(log_target, f"⚠ {clean}")
+                    elif run_result.stderr_path:
+                        # Show last meaningful stderr lines as failure context.
+                        try:
+                            tail_lines = Path(run_result.stderr_path).read_text().strip().splitlines()[-5:]
+                            if tail_lines:
+                                self._write_log(log_target, "⚠ Last stderr output:")
+                                for tl in tail_lines:
+                                    self._write_log(log_target, f"  {tl}")
+                        except Exception:
+                            pass
             except Exception as exc:
                 self._write_log(log_target, f"Action runner error: {exc}")
             finally:
