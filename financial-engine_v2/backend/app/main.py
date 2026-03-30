@@ -29,6 +29,8 @@ from app.models.base import Base
 from app.models.documents import Document
 from app.models.extractions import ExtractionRun
 from app.api.analysis import router as analysis_router
+from app.api.context import router as context_router
+from app.api.commentary import router as commentary_router
 from app.routes.chat import router as chat_router
 from app.routes.research import router as research_router
 from app.services.embeddings import (
@@ -52,6 +54,8 @@ app.include_router(chat_router)
 app.include_router(chat_router, prefix="/api")
 app.include_router(analysis_router, prefix="/api", tags=["analysis"])
 app.include_router(research_router, prefix="/research", tags=["research"])
+app.include_router(context_router, prefix="/api/context", tags=["context"])
+app.include_router(commentary_router, prefix="/api/commentary", tags=["commentary"])
 
 
 class RagQueryRequest(BaseModel):

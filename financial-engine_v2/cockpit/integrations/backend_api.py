@@ -191,6 +191,121 @@ class BackendApiClient:
             except httpx.TimeoutException as exc:
                 raise RuntimeError(f"Synthesis timed out after {timeout}s: {exc}") from exc
 
+    # ------------------------------------------------------------------
+    # Context endpoints (Stage A — backend-authority migration)
+    # ------------------------------------------------------------------
+
+    def get_ticker_context(
+        self,
+        ticker: str,
+        *,
+        docs_limit: int | None = None,
+        financials_limit: int | None = None,
+        announcements_limit: int | None = None,
+        failures_limit: int | None = None,
+        low_confidence_threshold: float | None = None,
+        low_confidence_limit: int | None = None,
+        timeout: float = 15.0,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}/api/context/ticker"
+        params: dict[str, Any] = {"ticker": str(ticker or "").strip().upper()}
+        if docs_limit is not None:
+            params["docs_limit"] = docs_limit
+        if financials_limit is not None:
+            params["financials_limit"] = financials_limit
+        if announcements_limit is not None:
+            params["announcements_limit"] = announcements_limit
+        if failures_limit is not None:
+            params["failures_limit"] = failures_limit
+        if low_confidence_threshold is not None:
+            params["low_confidence_threshold"] = low_confidence_threshold
+        if low_confidence_limit is not None:
+            params["low_confidence_limit"] = low_confidence_limit
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.get(url, params=params)
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
+    def get_verification_context(
+        self,
+        ticker: str | None = None,
+        *,
+        failures_limit: int | None = None,
+        low_confidence_threshold: float | None = None,
+        low_confidence_limit: int | None = None,
+        timeout: float = 15.0,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}/api/context/verification"
+        params: dict[str, Any] = {}
+        if ticker is not None:
+            params["ticker"] = str(ticker).strip().upper()
+        if failures_limit is not None:
+            params["failures_limit"] = failures_limit
+        if low_confidence_threshold is not None:
+            params["low_confidence_threshold"] = low_confidence_threshold
+        if low_confidence_limit is not None:
+            params["low_confidence_limit"] = low_confidence_limit
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.get(url, params=params)
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
+    # ------------------------------------------------------------------
+    # Commentary endpoints (Stage A — backend-authority migration)
+    # ------------------------------------------------------------------
+
+    def approve_transcript(
+        self,
+        source_id: str,
+        *,
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}/api/commentary/transcripts/{source_id}/approve"
+        headers: dict[str, str] = {}
+        if self.api_key:
+            headers["X-API-Key"] = self.api_key
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.post(url, headers=headers)
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
+    def get_pending_transcripts(self, *, timeout: float = 10.0) -> dict[str, Any]:
+        url = f"{self.base_url}/api/commentary/transcripts/pending"
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.get(url)
+            response.raise_for_status()
+            return response.json() if response.content else {"pending": [], "count": 0}
+
+    def reject_transcript(
+        self,
+        source_id: str,
+        *,
+        timeout: float = 10.0,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}/api/commentary/transcripts/{source_id}/reject"
+        headers: dict[str, str] = {}
+        if self.api_key:
+            headers["X-API-Key"] = self.api_key
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.post(url, headers=headers)
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
+    def purge_expired_transcripts(
+        self,
+        *,
+        max_age_days: int = 7,
+        timeout: float = 10.0,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}/api/commentary/transcripts/purge-expired"
+        headers: dict[str, str] = {}
+        if self.api_key:
+            headers["X-API-Key"] = self.api_key
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.post(url, params={"max_age_days": max_age_days}, headers=headers)
+            response.raise_for_status()
+            return response.json() if response.content else {"purged": [], "count": 0}
+
     @staticmethod
     def _normalize_base_url(raw: str) -> str:
         value = (raw or "").strip()
