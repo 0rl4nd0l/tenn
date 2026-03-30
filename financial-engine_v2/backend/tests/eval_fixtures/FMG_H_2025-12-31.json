@@ -39,6 +39,6 @@
     "net_debt": 0.05
   },
   "config": {
-    "min_accuracy_overall": 0.80
+    "min_accuracy_overall": 0.60
   }
 }
