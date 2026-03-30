@@ -23,6 +23,7 @@ def _has_api_key_dependency(route: APIRoute) -> bool:
 @pytest.mark.parametrize(
     ("path", "method"),
     [
+        ("/api/backfill/asx20", "POST"),
         ("/api/backfill/ticker/{ticker}", "POST"),
         ("/api/system/capabilities", "GET"),
         ("/api/system/proposals/apply", "POST"),

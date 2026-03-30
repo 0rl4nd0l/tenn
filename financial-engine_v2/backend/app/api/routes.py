@@ -305,7 +305,7 @@ def fundamentals_statements(
     except OpenBBSidecarProviderError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
-@router.post("/backfill/asx20")
+@router.post("/backfill/asx20", dependencies=[Depends(require_api_key)])
 def backfill_asx20(years:int=1, process_documents:bool=False):
     if settings.task_mode.lower()=="sync":
         results=[
