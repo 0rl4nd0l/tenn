@@ -1819,8 +1819,22 @@ class CockpitApp(App):
         except asyncio.TimeoutError:
             return False
 
+    def _get_snapshot_data(self, ticker: str) -> tuple[dict | None, list]:
+        """Get latest financial snapshot + docs, preferring backend API."""
+        if self._backend_client:
+            try:
+                ctx = self._backend_client.get_ticker_context(ticker, docs_limit=20, financials_limit=1)
+                snapshot = ctx.get("latest_financial_snapshot")
+                docs = ctx.get("docs", [])
+                return snapshot, docs
+            except Exception:
+                pass
+        snapshot = self.db_reader.get_latest_financial_snapshot(ticker)
+        docs = self.db_reader.get_docs(ticker=ticker, limit=20)
+        return snapshot, docs
+
     async def run_updater_snapshot(self, ticker: str, years: int, process_documents: bool, log_target: str) -> None:
-        before = self.db_reader.get_latest_financial_snapshot(ticker)
+        before, _ = self._get_snapshot_data(ticker)
 
         args = {
             "ticker": ticker,
@@ -1830,8 +1844,7 @@ class CockpitApp(App):
         }
         await self.execute_action("update_ticker_financials", args, log_target=log_target)
 
-        after = self.db_reader.get_latest_financial_snapshot(ticker)
-        docs = self.db_reader.get_docs(ticker=ticker, limit=20)
+        after, docs = self._get_snapshot_data(ticker)
         verification = self.run_verification(ticker=ticker)
 
         payload = build_snapshot_payload(
@@ -1853,7 +1866,7 @@ class CockpitApp(App):
         self._write_log(log_target, json.dumps(payload, default=str, indent=2)[:6000])
 
     def run_verification(self, ticker: str | None = None) -> dict[str, Any]:
-        return run_verification(self.db_reader, ticker=ticker)
+        return run_verification(self.db_reader, ticker=ticker, backend_api_client=self._backend_client)
 
     def _write_log(self, log_target: str, text: str) -> None:
         try:

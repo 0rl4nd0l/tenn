@@ -82,9 +82,17 @@ class DeepResearchRunner:
         """Collect data from all available sources."""
         data: dict[str, Any] = {}
 
-        # Financials from local DB.
+        # Financials — prefer backend API, fall back to local DB.
         try:
-            financials = self._router.db_reader.get_financials(ticker, limit=6)
+            financials = None
+            if self._router.backend_api_client:
+                try:
+                    ctx = self._router.backend_api_client.get_ticker_context(ticker, financials_limit=6)
+                    financials = ctx.get("financials", [])
+                except Exception:
+                    pass
+            if financials is None:
+                financials = self._router.db_reader.get_financials(ticker, limit=6)
             if financials:
                 data["financials"] = financials[:3]  # Trim for context
         except Exception as exc:
@@ -119,10 +127,20 @@ class DeepResearchRunner:
             except Exception as exc:
                 logger.warning("deep_research: HN search failed: %s", exc)
 
-        # Announcements.
+        # Announcements — prefer backend API, fall back to local DB.
         try:
-            docs = self._router.db_reader.get_docs(ticker, limit=5)
-            context = self._router.db_reader.get_announcement_context(ticker, limit=5)
+            docs = None
+            context = None
+            if self._router.backend_api_client:
+                try:
+                    ctx = self._router.backend_api_client.get_ticker_context(ticker, docs_limit=5, announcements_limit=5)
+                    docs = ctx.get("docs", [])
+                    context = ctx.get("announcement_context", [])
+                except Exception:
+                    pass
+            if docs is None:
+                docs = self._router.db_reader.get_docs(ticker, limit=5)
+                context = self._router.db_reader.get_announcement_context(ticker, limit=5)
             if docs or context:
                 data["announcements"] = {
                     "documents": docs[:3] if docs else [],

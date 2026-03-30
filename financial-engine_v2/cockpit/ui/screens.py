@@ -410,7 +410,15 @@ class UpdaterScreen(Screen):
             log.write("⚠ Enter a ticker before running an action.")
             return
         if event.button.id == "upd-latest":
-            row = self.app.db_reader.get_latest_financial_snapshot(ticker)
+            row = None
+            if self.app._backend_client:
+                try:
+                    ctx = self.app._backend_client.get_ticker_context(ticker, financials_limit=1)
+                    row = ctx.get("latest_financial_snapshot")
+                except Exception:
+                    pass
+            if row is None:
+                row = self.app.db_reader.get_latest_financial_snapshot(ticker)
             log.write(json.dumps(row or {"ticker": ticker, "message": "no data"}, default=str, indent=2))
             return
         if event.button.id == "upd-rebuild":

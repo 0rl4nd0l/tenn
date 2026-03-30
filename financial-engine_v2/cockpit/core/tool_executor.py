@@ -194,7 +194,7 @@ class ToolExecutor:
         if not ticker:
             return {"ok": False, "error": "ticker is required"}
         limit = int(args.get("limit", 6))
-        financials = self._router.db_reader.get_financials(ticker, limit=limit)
+        financials = self._get_financials_via_backend(ticker, limit) or self._router.db_reader.get_financials(ticker, limit=limit)
         narrative = self._router._build_financials_narrative(financials) if financials else ""
         return {
             "ok": bool(financials),
@@ -202,6 +202,16 @@ class ToolExecutor:
             "financials": financials,
             "narrative": narrative,
         }
+
+    def _get_financials_via_backend(self, ticker: str, limit: int) -> list[dict[str, Any]] | None:
+        client = self._router.backend_api_client
+        if not client:
+            return None
+        try:
+            resp = client.get_ticker_context(ticker, financials_limit=limit)
+            return resp.get("financials", [])
+        except Exception:
+            return None
 
     def _exec_search_news(self, args: dict[str, Any]) -> dict[str, Any]:
         query = str(args.get("query", "")).strip()
@@ -221,14 +231,43 @@ class ToolExecutor:
         limit = int(args.get("limit", 10))
         if not ticker:
             return {"ok": False, "error": "ticker is required for announcement search"}
-        docs = self._router.db_reader.get_docs(ticker, limit=limit)
-        context = self._router.db_reader.get_announcement_context(ticker, limit=limit)
+        backend_ctx = self._get_announcements_via_backend(ticker, limit)
+        if backend_ctx is not None:
+            docs, context = backend_ctx
+        else:
+            docs = self._router.db_reader.get_docs(ticker, limit=limit)
+            context = self._router.db_reader.get_announcement_context(ticker, limit=limit)
         return {
             "ok": bool(docs or context),
             "ticker": ticker,
             "documents": docs,
             "context": context,
         }
+
+    def _get_announcements_via_backend(self, ticker: str, limit: int) -> tuple[list, list] | None:
+        client = self._router.backend_api_client
+        if not client:
+            return None
+        try:
+            resp = client.get_ticker_context(ticker, docs_limit=limit, announcements_limit=limit)
+            return resp.get("docs", []), resp.get("announcement_context", [])
+        except Exception:
+            return None
+
+    def _get_data_quality_via_backend(self, ticker: str) -> tuple[list, list] | None:
+        client = self._router.backend_api_client
+        if not client:
+            return None
+        try:
+            resp = client.get_verification_context(
+                ticker=ticker,
+                failures_limit=8,
+                low_confidence_threshold=0.4,
+                low_confidence_limit=8,
+            )
+            return resp.get("extraction_failures", []), resp.get("low_confidence_financials", [])
+        except Exception:
+            return None
 
     def _exec_search_files(self, args: dict[str, Any]) -> dict[str, Any]:
         pattern = str(args.get("pattern", "")).strip()
@@ -247,12 +286,16 @@ class ToolExecutor:
         ticker = str(args.get("ticker", "")).strip().upper()
         if not ticker:
             return {"ok": False, "error": "ticker is required"}
-        extraction_failures = self._router.db_reader.get_extraction_failures(
-            limit=8, ticker=ticker,
-        )
-        low_conf = self._router.db_reader.get_low_confidence_financials(
-            threshold=0.4, limit=8, ticker=ticker,
-        )
+        backend_dq = self._get_data_quality_via_backend(ticker)
+        if backend_dq is not None:
+            extraction_failures, low_conf = backend_dq
+        else:
+            extraction_failures = self._router.db_reader.get_extraction_failures(
+                limit=8, ticker=ticker,
+            )
+            low_conf = self._router.db_reader.get_low_confidence_financials(
+                threshold=0.4, limit=8, ticker=ticker,
+            )
         quality = self._router._build_data_quality_payload(
             extraction_failures=extraction_failures if isinstance(extraction_failures, list) else [],
             low_conf_rows=low_conf if isinstance(low_conf, list) else [],

@@ -1,78 +1,58 @@
-# Session Handoff — cockpit-contract-enforcement-stage-a (2026-03-30)
+# Session Handoff — cockpit-contract-enforcement-stage-b (2026-03-30)
 
 **Branch:** `cloud/session-20260319`
 **Worktree:** `/home/l4nd0/tenn` (main working tree)
 
 ---
 
-## Completed This Session: Stage A
+## Completed This Session: Stage A + Stage B
 
-### New Backend Endpoints
+### Stage A (commit fcbb8712)
+New backend endpoints: `GET /api/context/ticker`, `GET /api/context/verification`, and 4 commentary transcript endpoints. BackendApiClient extended with 6 new client methods. 37 new tests.
 
-| Endpoint | File | Purpose |
-|----------|------|---------|
-| `GET /api/context/ticker` | `backend/app/api/context.py` | Aggregate context bundle — docs, financials, snapshot, announcements, failures, low-confidence |
-| `GET /api/context/verification` | `backend/app/api/context.py` | Extraction failures + low-confidence financials (optional ticker filter) |
-| `POST /api/commentary/transcripts/{source_id}/approve` | `backend/app/api/commentary.py` | Approve staged transcript → Qdrant upsert |
-| `GET /api/commentary/transcripts/pending` | `backend/app/api/commentary.py` | List pending staged transcripts |
-| `POST /api/commentary/transcripts/{source_id}/reject` | `backend/app/api/commentary.py` | Reject staged transcript |
-| `POST /api/commentary/transcripts/purge-expired` | `backend/app/api/commentary.py` | Purge expired staged transcripts |
+### Stage B (this commit)
+All Cockpit authoritative reads now prefer backend API, falling back to DbReader when backend_api_client is None or HTTP call fails.
 
-### BackendApiClient Extended
+**Files changed:**
 
-New methods in `cockpit/integrations/backend_api.py`:
-- `get_ticker_context(ticker, **kwargs)`
-- `get_verification_context(ticker=None, **kwargs)`
-- `approve_transcript(source_id)`
-- `get_pending_transcripts()`
-- `reject_transcript(source_id)`
-- `purge_expired_transcripts(max_age_days=7)`
+| File | Change |
+|------|--------|
+| `cockpit/core/tools.py` | `_load_ticker_context()` split into `_from_backend` + `_from_db` methods; `get_preferred_web_domains()` uses backend |
+| `cockpit/core/tool_executor.py` | `_exec_get_financials`, `_exec_search_announcements`, `_exec_get_data_quality` → backend with db_reader fallback |
+| `cockpit/core/research/deep_research.py` | `_gather()` financials + announcements → backend with db_reader fallback |
+| `cockpit/core/verification.py` | `run_verification()` accepts optional `backend_api_client` kwarg |
+| `cockpit/ui/app.py` | `run_updater_snapshot()` + `run_verification()` → backend with db_reader fallback |
+| `cockpit/ui/screens.py` | "Show Latest Financial Row" button → backend with db_reader fallback |
 
-**No Cockpit call sites switched.** All existing consumers still use DbReader/TranscriptReviewService directly.
+**Fallback pattern:** Every switched call site tries `backend_api_client` first. If client is `None` or call fails, falls back to `db_reader`. No behavior change when backend is unavailable.
+
+**Key field mapping:** Backend returns `announcement_context`, Cockpit consumers expect `context_rows` — mapped in `_load_ticker_context_from_backend()`.
 
 ### Tests
-
-- `test_context_endpoints.py` — 16 tests
-- `test_commentary_endpoints.py` — 16 tests
-- `test_backend_api_client_context.py` — 5 tests
-
-All 37 tests passing. 364 total backend tests passing (excluding pre-existing `test_cockpit_chat_changes.py` failures). Ruff clean.
-
-### Design Decisions
-
-1. **Threshold default is 0.4** (matching DbReader), not 0.7
-2. **`pdf_sha256` included** in docs sub-response (matching DbReader)
-3. **Commentary endpoints replicate TranscriptReviewService logic** server-side (no cross-package import)
-4. **`source_id` only** in request — no `staged_path` or `collection` in body
-5. **Commentary write endpoints require API key**
-6. **All context SQL matches DbReader exactly** — field names identical
+- 364 backend tests passing
+- 303 cockpit tests passing (4 pre-existing failures in dossier/chat_exports unrelated to changes)
+- Ruff clean on all changed files
 
 ---
 
 ## What Remains
 
-### Stage B — Cockpit Wiring
-Switch Cockpit consumers from DbReader to BackendApiClient context endpoints.
-
 ### Stage C — DbReader Removal
-Remove `DbReader` and its direct DB connection after Stage B confirms all consumers switched.
+Remove DbReader as general data-access layer. Only retain for diagnostics if needed.
+- Grep audit: `rg "db_reader\.|DbReader\(" financial-engine_v2/cockpit`
+- Remove DbReader injection from ToolRouter
+- Remove fallback branches in all switched call sites
 
 ### Stage D — Transcript Review
-Switch `cockpit/integrations/transcript_review.py` consumers to commentary endpoints.
+Switch cockpit TranscriptReviewService consumers to backend commentary endpoints.
+- `cockpit/integrations/transcript_review.py` → call backend HTTP instead of importing `verify_qdrant`/`upsert_points`
+- Verify: `rg "verify_qdrant|upsert_points" financial-engine_v2/cockpit` returns no Qdrant-write sites
 
 ### Stage E — Contract Documentation
-Update SYSTEM_CONTRACT.md to document new backend-authority endpoints.
+Update SYSTEM_CONTRACT.md with scratch-memory carve-out and new endpoint contracts.
 
 ---
 
 ## Resume Command
 
-Start next session by reading `HANDOFF.md`. Stage B wires Cockpit tool consumers to the new backend context endpoints — begin with `plan.md` Stage B section.
-
-Backend service needs restart to pick up new routes (new files in `backend/app/api/`).
-
----
-
-## Previous Session Context
-
-The extraction eval accuracy work (91.67% at 841dcb9b) from the prior session is preserved and unmodified.
+Start next session by reading `HANDOFF.md`. Stage C removes DbReader fallback branches and narrows DbReader to diagnostics-only. Begin with `rg "db_reader\.\|DbReader" financial-engine_v2/cockpit` to inventory remaining direct-DB uses.

@@ -1,17 +1,44 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any
 
+logger = logging.getLogger(__name__)
 
 BLOCKED_PREFIX = "blocked_"
 
 
-def run_verification(db_reader, ticker: str | None = None) -> dict[str, Any]:
+def _fetch_verification_from_backend(backend_api_client, ticker: str | None) -> tuple[list, list, list] | None:
+    """Try loading verification data from backend API. Returns (docs, failures, low_conf) or None."""
+    if not backend_api_client:
+        return None
+    try:
+        docs = []
+        if ticker:
+            ctx = backend_api_client.get_ticker_context(ticker, docs_limit=500)
+            docs = ctx.get("docs", [])
+        verif = backend_api_client.get_verification_context(
+            ticker=ticker,
+            failures_limit=100,
+            low_confidence_limit=100,
+        )
+        return docs, verif.get("extraction_failures", []), verif.get("low_confidence_financials", [])
+    except Exception as exc:
+        logger.warning("Backend verification fetch failed, falling back to DbReader: %s", exc)
+        return None
+
+
+def run_verification(db_reader, ticker: str | None = None, *, backend_api_client=None) -> dict[str, Any]:
     tick = ticker.upper() if ticker else None
-    docs = db_reader.get_docs(tick, limit=500) if tick else []
-    extraction_failures = db_reader.get_extraction_failures(limit=100)
-    low_confidence = db_reader.get_low_confidence_financials(limit=100)
+
+    backend_data = _fetch_verification_from_backend(backend_api_client, tick)
+    if backend_data is not None:
+        docs, extraction_failures, low_confidence = backend_data
+    else:
+        docs = db_reader.get_docs(tick, limit=500) if tick else []
+        extraction_failures = db_reader.get_extraction_failures(limit=100)
+        low_confidence = db_reader.get_low_confidence_financials(limit=100)
 
     missing_files: list[dict[str, Any]] = []
     blocked: list[dict[str, Any]] = []
