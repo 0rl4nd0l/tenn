@@ -35,7 +35,7 @@ Branch: cloud/session-20260319
 | **gpu-process-rails** | `[ verified ]` | Canonical port manifest (§9.4), agent spawn protocol (§9.5), `gpu_process_guard.sh`, `llamacpp_manager.py` topology check. L022 logged. |
 | **analysis-modules** | `[ verified ]` | 7 modules (+ sentiment), orchestrator, context_loader (Yahoo price fallback), watchlist scanner (7 alert rules), API endpoints, scale validation gate, extraction expansion (total_equity, interest_expense). 48 tests. D2 live-tested. Real-data validated (RIO, BHP). Architecture doc 1151 lines. |
 | **model-eval** | `[ verified ]` | Qwen 3 14B evaluated (85.26%) vs Qwen 2.5 14B (89.47%) — current model stays. |
-| **docs-governance** | `[ in-progress ]` | Root startup docs are being aligned to the canonical backend entrypoint. Repository-audit instructions updated to use actual repo manifests instead of assuming root `requirements.txt`/`pyproject.toml`. Durable docs still lag portfolio/control-plane/eval-fixture March 2026 changes. |
+| **docs-governance** | `[ in-progress ]` | Root startup docs aligned to the canonical backend entrypoint. Repository-audit instructions updated to use actual repo manifests. Backend API surface, extraction, embeddings, routing, and scripts index docs refreshed. Durable docs still lag portfolio/control-plane/eval-fixture March 2026 changes and the Cockpit contract/code mismatch. |
 
 ---
 

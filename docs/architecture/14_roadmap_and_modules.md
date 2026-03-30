@@ -171,7 +171,7 @@ Revisit this decision when ALL of the following are true:
 |-----------|-----------------|----------------|
 | Model routing thresholds | Latency P95 + accuracy on labeled queries | `model_routing.yaml` score weights |
 | Retrieval parameters | NDCG on canonical RAG eval set | `top_k`, score cutoff in RAG config |
-| Extraction quality | Precision/recall on labeled financial extraction set | Prompt templates in `services/extraction.py` |
+| Extraction quality | Precision/recall on labeled financial extraction set | Multipass extraction prompts and reconciliation logic in `services/multipass_extraction.py` |
 | Latency/cost tradeoffs | Wall-clock time + token cost per pipeline run | Routing config + model selection |
 
 ### Safety boundaries (non-negotiable)

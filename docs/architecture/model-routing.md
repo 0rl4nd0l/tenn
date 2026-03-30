@@ -1,6 +1,6 @@
 # Model routing
 
-This document defines the backend model-routing layer for `financial-engine_v2`.
+Current backend model-routing layer for `financial-engine_v2`.
 
 ## Source of truth
 
@@ -25,18 +25,26 @@ The backend uses five logical roles:
 
 The checked-in local routing config currently sets:
 
-- `router_model: llama3.1:8b`
-- `coding_model: llama3.1:8b`
-- `reasoning_model: llama3.1:8b`
-- `deep_reasoning_model: llama3.1:8b`
+- `router_model: qwen2.5-coder-14b`
+- `coding_model: qwen2.5-coder-14b`
+- `reasoning_model: qwen2.5-coder-14b`
+- `deep_reasoning_model: qwen2.5-coder-14b`
 - `embedding_model: nomic-embed-text`
 
-The checked-in local profile points every role at `http://127.0.0.1:11434`. The router still has internal fallback defaults in code, but operational changes should be made in `model_routing.yaml`.
+Current checked-in base URLs:
+
+- `router/coding/reasoning/deep_reasoning`: `http://127.0.0.1:8001`
+- `embedding`: `http://127.0.0.1:11434`
+
+Operational changes should be made in `model_routing.yaml`, not by editing doc examples.
 
 ## Provider split
 
-- `coding_model`, `router_model`, `reasoning_model`, and `deep_reasoning_model` use the configured OpenAI-compatible HTTP runtime from `model_routing.yaml`
-- `embedding_model` is resolved independently by the embedding facade; the checked-in local profile uses `nomic-embed-text` and an HTTP embedding runtime at `http://127.0.0.1:11434`
+- `coding_model`, `router_model`, `reasoning_model`, and `deep_reasoning_model`
+  use the configured OpenAI-compatible llama.cpp HTTP runtime from
+  `model_routing.yaml`
+- `embedding_model` is resolved independently by the embedding facade and currently
+  points at the configured local embedding runtime on `http://127.0.0.1:11434`
 
 ## Queue topology
 

@@ -1,36 +1,67 @@
 # Embeddings and vector store
 
-This document defines the **hard invariants** for the RAG embedding and vector store stack. These are not configurable alternatives; they are fixed choices. Violations must fail fast—no silent fallbacks.
+Current embedding/runtime contract for backend retrieval surfaces.
 
-## Hard invariants
+## Live embedding runtime
 
-### Embeddings
+The active embedding path is HTTP-based and resolves through the backend runtime
+configuration, not a local CPU-only sentence-transformers stack.
 
-- **Embeddings: local CPU Sentence Transformers only.** All text embedding for RAG is produced via a local `sentence-transformers` runtime on CPU.
-- **Model: configured `EMBED_MODEL` only.** Index and query embeddings must come from the same configured Sentence Transformers model.
+Current implementation:
 
-### Vector store
+- `financial-engine_v2/backend/app/services/embeddings.py`
+- `financial-engine_v2/backend/app/services/llamacpp_embeddings.py`
+- `financial-engine_v2/backend/app/services/llamacpp_runtime.py`
+- `financial-engine_v2/backend/app/services/llm.py`
+- `financial-engine_v2/backend/app/config/model_routing.yaml`
 
-- **Vector DB: Qdrant only.** All vector storage and similarity search for RAG is done in Qdrant. No other vector store (e.g. Pinecone, Weaviate, pgvector) is used.
-- **Distance: COSINE only.** Collection vectors use `Distance.COSINE`. No other distance (e.g. Euclidean, dot product) is allowed.
+Current checked-in routing config:
 
-### Dimension and schema
+- `embedding_model: nomic-embed-text`
+- `embedding_provider: local`
+- `embedding_base_url: http://127.0.0.1:11434`
 
-- **Dimension must match collection schema.** The embedding dimension produced by the model must equal the collection’s vector size. Any mismatch causes a **hard failure** at startup or at collection validation; the application does not start or proceed with a wrong dimension.
+At runtime, embedding config is resolved through `resolve_embedding_runtime_config()`
+and then executed through an OpenAI-compatible `/v1/embeddings` API path.
 
-### Guards
+## Vector store invariants
 
-- **Model guard: `runtime_embedding_model.txt`.** The backend writes the current routed embedding model to `reports/runtime_embedding_model.txt` (under the project root). On startup, if this file exists, its value is compared to the active embedding role from `backend/app/config/model_routing.yaml`. If they differ, the application raises and exits. This blocks accidental model switches without an explicit RAG rebuild.
-- **Cutover warning:** Validate the Sentence Transformers vector dimension against the existing Qdrant collection before startup. The backend probes the active embedding model during boot and fails fast on dimension mismatch.
-- **Vector baseline guard: `vector_baseline.json` and verify script.** After a full RAG index rebuild, `rebuild_rag_qdrant_index` writes `reports/vector_baseline.json` with `vector_count` and metadata. The script `financial-engine_v2/scripts/verify_vector_baseline.py` compares the current Qdrant collection count to this baseline; if the difference exceeds the allowed tolerance (e.g. 5%), the script exits with code 1. Use this in CI or ops to detect unexpected index drift or partial wipes.
+- vector store: Qdrant only
+- collection distance: cosine
+- vector dimension must match the active collection schema
+- payload validation remains strict for `asx_docs`
+- vector IDs remain deterministic under the broader system contract
 
-## Why no fallbacks
+## Runtime guards
 
-We do **not** provide fallbacks (e.g. alternate embedding APIs, alternate vector DBs, or alternate distance metrics) for these reasons:
+The backend uses these guard surfaces:
 
-1. **Reproducibility.** One embedding provider, one model, one vector store, one distance metric give deterministic, comparable behavior across environments and over time. Fallbacks would make behavior environment-dependent and harder to reason about.
-2. **Index consistency.** Vectors are only meaningful with the same model and distance. Mixing providers or models would corrupt retrieval quality; “fallback” would imply running with an incompatible index, which we treat as invalid.
-3. **Explicit failure over silent drift.** If the embedding runtime or Qdrant is down, or the model or dimension is wrong, we fail fast so operators fix the real dependency instead of silently degrading into an undefined state.
-4. **Operational clarity.** A single path simplifies configuration, debugging, and runbooks. No branching on “which embedding backend is in use” or “which vector store we wrote to.”
+- runtime embedding model artifact:
+  - `reports/runtime_embedding_model.txt`
+- vector baseline artifact:
+  - `reports/vector_baseline.json`
+- Qdrant collection validation:
+  - collection vector size
+  - collection distance
+  - payload shape
 
-To change any of these choices (e.g. new model or new distance), you must explicitly change the code/config, rebuild the RAG index, update the baseline and model guard file, and treat it as a controlled migration—not a runtime fallback.
+Operational helper:
+
+- `financial-engine_v2/scripts/verify_vector_baseline.py`
+
+## Failure policy
+
+Embedding/runtime failures are fail-fast:
+
+- missing embedding endpoint
+- embedding probe failure
+- vector dimension mismatch
+- unreachable Qdrant
+
+The backend does not silently continue with a mismatched collection or undefined
+embedding model.
+
+## Historical note
+
+Older docs may still describe embeddings as CPU sentence-transformers only.
+That is no longer the primary runtime path in this repo.

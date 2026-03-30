@@ -13,7 +13,7 @@ The source-of-truth application runtime is the financial engine. OpenClaw usage 
 |-----------|------|----------|
 | FastAPI backend | API surface, sync pipeline execution, RAG query endpoint, startup validation | `financial-engine_v2/backend/app/main.py`, `financial-engine_v2/backend/app/api/routes.py` |
 | Celery worker | Async task entrypoints delegating to backend pipeline and routed LLM code; current source-of-truth Celery surface lives in the backend app | `financial-engine_v2/backend/app/celery_app.py`, `financial-engine_v2/backend/app/worker_tasks.py`, `docs/architecture/09_worker_and_celery_contract.md` |
-| Model router | Metadata-aware, finance-aware request classification plus self-optimizing routing across configured router/coding/reasoning/deep_reasoning roles from `model_routing.yaml`; the checked-in local profile currently uses `llama3.1:8b` for generation and `nomic-embed-text` for embeddings | `financial-engine_v2/backend/app/services/router.py`, `docs/architecture/model-routing.md` |
+| Model router | Metadata-aware, finance-aware request classification plus self-optimizing routing across configured router/coding/reasoning/deep_reasoning roles from `model_routing.yaml`; the checked-in local profile currently uses `qwen2.5-coder-14b` for generation roles and `nomic-embed-text` for embeddings | `financial-engine_v2/backend/app/services/router.py`, `docs/architecture/model-routing.md` |
 | Postgres | Structured persistence for documents, extractions, financial rows, snapshots | `financial-engine_v2/backend/app/models/`, `financial-engine_v2/docker-compose.yml` |
 | Qdrant | Runtime vector store for backend RAG | `financial-engine_v2/backend/app/services/rag.py`, `docs/architecture/06_embeddings_and_vector_store.md` |
 | Ollama | Legacy embedding/generation backend kept for compatibility with older pipelines | `financial-engine_v2/backend/app/core/config.py`, `docs/architecture/06_embeddings_and_vector_store.md` |
@@ -26,7 +26,7 @@ The source-of-truth application runtime is the financial engine. OpenClaw usage 
 1. Discover announcement metadata from ASX and optional fallback providers.
 2. Persist deduplicated document rows in Postgres.
 3. Download PDFs to `docs_root`.
-4. Extract PDF structure (tables + sections) via PyMuPDF `find_tables()` (default) or docling (opt-in via `EXTRACTION_BACKEND=docling`).
+4. Extract PDF structure (tables + sections) via docling by default, with PyMuPDF available as fallback or explicit override via `EXTRACTION_BACKEND=pymupdf`.
 5. Chunk text sections per document. Route embedding and generation requests through the backend self-optimizing model router.
 6. Embed chunks via the routed embedding role and upsert deterministic vector IDs into Qdrant.
 7. Optionally extract structured financial and risk rows back into Postgres through the routed reasoning or deep-reasoning role.

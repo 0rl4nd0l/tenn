@@ -3,7 +3,7 @@ Generated: 2026-03-18 18:35:00
 
 ## Objective
 Local-first ingestion + retrieval + extraction pipeline for ASX periodic documents (quarterly/half-year/annual).
-Cold PDFs on disk, hot metrics in Postgres, embeddings in Qdrant, jobs via Celery/Redis, extraction/embeddings via Ollama.
+Cold PDFs on disk, hot metrics in Postgres, embeddings in Qdrant, jobs via Celery/Redis, structured extraction via docling/PyMuPDF, and generation/embedding runtimes resolved from the backend routing config.
 
 Target: start with ASX20 backfill (5 years) and scale to ASX300+.
 
@@ -19,27 +19,36 @@ If this README conflicts with those setup docs, the `docs/setup/*` files are the
 - PDF download to filesystem + SHA256
   - Filenames use `YYYY-MM-DD_<announcement-title>_<document_id>.pdf`
   - Path is normalized at download time, so even previously inserted rows write to readable filenames on first successful download
-- PDF text extraction (PyMuPDF)
-- Chunking
-- Real embeddings via Ollama `/api/embeddings` (configurable model; default `nomic-embed-text`)
+- Structured PDF extraction via docling with PyMuPDF fallback
+- Multipass metric extraction plus prose chunking
+- Real embeddings via the configured embedding runtime (`nomic-embed-text` in the checked-in config)
 - Qdrant upsert with real vectors
-- LLM JSON extraction via Ollama `/api/generate` (configurable model; missing values remain NULL)
+- LLM JSON extraction via routed OpenAI-compatible generation runtime
 - Postgres tables: `documents`, `extraction_runs`, `asx_periodic_financials`, `asx_risk_notes`
 - API endpoints:
   - GET `/api/health`
   - GET `/api/docs?ticker=BHP`
   - GET `/api/financials?ticker=BHP`
   - GET `/api/risk?document_id=...`
+  - POST `/api/ingest/transcript`
+  - POST `/api/ingest/book`
   - POST `/api/backfill/asx20`
   - POST `/api/backfill/ticker/{ticker}`
-  - POST `/api/rag/query`
-  - Compatibility route: POST `/rag/query`
+  - POST `/api/process/document/{document_id}`
+  - POST `/api/process/ticker/{ticker}`
+  - POST `/rag/query`
   - GET `/api/price`
   - GET `/api/fundamentals/profile`
   - GET `/api/fundamentals/summary`
   - GET `/api/fundamentals/statements`
+  - POST `/api/analysis/{ticker}`
+  - GET `/api/analysis/{ticker}`
+  - POST `/research/synthesize`
   - POST `/api/chat`
   - Compatibility route: POST `/chat`
+
+Detailed API inventory:
+- `../docs/architecture/19_backend_api_surface.md`
 
 ## Current Verified Local State (2026-03-18)
 - `LOCAL_BACKEND_PROFILE=isolated ./scripts/run_local_backend.sh` starts a safe local API with embeddings/Qdrant/extraction disabled and `/chat` returning a degraded-but-stable response instead of a `500`.
@@ -101,7 +110,7 @@ Operational notes:
 5. `docker compose exec backend alembic upgrade head`
 6. Pull models on host:
    - `ollama pull nomic-embed-text`
-   - `ollama pull llama3.1:8b` (or any extract model you prefer)
+   - `ollama pull qwen2.5-14b-instruct` (or another extraction-capable model you have routed/configured)
 7. Start backfill:
    - `curl -X POST http://localhost:8000/api/backfill/asx20`
 
@@ -348,21 +357,23 @@ The application will fail to start if:
 
 This prevents silent backend aliasing.
 
-## Current model prompting + iteration setup
-- Prompting is schema-first and centralized in `backend/app/services/extraction.py` (`build_prompt`).
-  - Full PDF text is clipped to the first 18,000 characters before model input.
-  - The prompt asks for strict JSON containing period fields, metrics, risk/guidance summaries, and confidence values.
-- Extraction is a single-pass `/api/generate` call to Ollama (`backend/app/services/ollama.py`).
-  - No temperature/top-p/etc overrides are currently passed; runtime uses Ollama model defaults.
-  - The response parser extracts the first JSON object with regex and loads it.
-- Versioning is lightweight but explicit:
-  - `EXTRACTOR_VERSION="ollama_json_v1"`
-  - `prompt_hash="v1"` stored on `extraction_runs`
-- Iterations/retries today are operational retries around discovery/download, not multi-pass prompt refinement:
-  - `scripts/full_history_ticker_sync.py` retries backfill connect errors and runs a resume phase.
-  - `scripts/resume_pending_downloads.py` retries retryable network failures with linear backoff.
-  - `scripts/marketindex_download_pdfs.py` includes a secondary pass for unresolved announcement links.
-- Local isolated mode defaults extraction/embeddings OFF (`ENABLE_EXTRACTION=false`, `ENABLE_EMBEDDINGS=false`) for safe smoke testing; production workflows can enable processing via flags/env.
+## Current extraction and iteration setup
+- Structured extraction starts in `backend/app/services/docling_extract.py`.
+  - default backend is `docling`
+  - `EXTRACTION_BACKEND=pymupdf` forces the faster PyMuPDF path
+  - docling cache files are written beside the PDF
+- Metric extraction runs through `backend/app/services/multipass_extraction.py`.
+  - current extractor version: `docling_multipass_v1`
+  - flow: classifier -> table locator -> metric/narrative extraction -> reconciler
+- Prose chunking runs through `backend/app/services/structured_chunking.py`.
+  - structured prose sections are chunked separately from tables
+  - `simple_chunk()` remains mainly for backward compatibility and commentary flows
+- Embeddings and generation runtimes are resolved from backend runtime config rather than one hard-coded Ollama-only path.
+- Operational retries still exist around discovery/download and resume workflows:
+  - `scripts/full_history_ticker_sync.py`
+  - `scripts/resume_pending_downloads.py`
+  - `scripts/marketindex_download_pdfs.py`
+- Local isolated mode still defaults extraction/embeddings OFF (`ENABLE_EXTRACTION=false`, `ENABLE_EMBEDDINGS=false`) for safe smoke testing.
 
 
 ## Resource folder workflow (custom-GPT style)
