@@ -1,61 +1,40 @@
-# Session Handoff — cockpit-contract-enforcement-stages-a-b-c (2026-03-30)
+# Session Handoff — cockpit-contract-enforcement-stages-a-d (2026-03-30)
 
 **Branch:** `cloud/session-20260319`
-**Worktree:** `/home/l4nd0/tenn` (main working tree)
 
 ---
 
-## Completed This Session: Stages A + B + C
+## Completed This Session: Stages A + B + C + D
 
-### Stage A (commit fcbb8712)
-New backend endpoints: `GET /api/context/ticker`, `GET /api/context/verification`, and 4 commentary transcript endpoints. BackendApiClient extended with 6 new client methods. 37 new tests.
+### Stage A (fcbb8712) — Backend endpoints
+New: `/api/context/ticker`, `/api/context/verification`, 4 commentary endpoints. BackendApiClient extended.
 
-### Stage B (commit 6c3b269b)
-All Cockpit authoritative reads wired to backend API with DbReader fallback on failure.
+### Stage B (6c3b269b) — Cockpit wiring
+All reads wired to backend with DbReader fallback.
 
-### Stage C (this commit)
-**Backend is now the sole authority when configured.** When `backend_api_client` is set:
-- Backend failure returns empty data + error signal (no silent db_reader fallback)
-- DbReader is only used when no `backend_api_client` is configured at all
+### Stage C (90310607) — Backend sole authority
+Backend failure no longer falls back to DbReader. DbReader narrowed to diagnostics.
 
-**DbReader narrowed to diagnostics-only:**
-- General data methods retained as legacy stubs for backward compat when no backend
-- `run_diagnostic_query()` is the primary remaining use case
-- All new code paths go through BackendApiClient
+### Stage D (this commit) — Transcript review wiring
+`/review` commands in cockpit now route through BackendApiClient commentary endpoints when backend is configured. Direct Qdrant writes from cockpit only occur in the legacy `TranscriptReviewService.approve()` fallback (no-backend environments).
 
-**Files changed in Stage C:**
-
-| File | Change |
-|------|--------|
-| `cockpit/core/tools.py` | Backend/DbReader paths now exclusive (if/else, not try/fallback) |
-| `cockpit/core/tool_executor.py` | Backend helpers return `[]` on failure when configured (not `None`) |
-| `cockpit/core/research/deep_research.py` | Same exclusive-path pattern |
-| `cockpit/core/verification.py` | Same exclusive-path pattern |
-| `cockpit/ui/app.py` | `_get_snapshot_data` exclusive paths |
-| `cockpit/ui/screens.py` | Latest-row button exclusive paths |
-| `cockpit/integrations/db_reader.py` | Narrowed: methods retained as stubs, docstring updated, `run_diagnostic_query()` is primary |
-| `cockpit/tests/test_deep_research.py` | Set `mock_router.backend_api_client = None` for db_reader tests |
-| `cockpit/tests/test_strategy_tools.py` | Same mock fix |
+**Qdrant write isolation verified:** `verify_qdrant`/`upsert_points` imports in cockpit production code exist only in `transcript_review.py`, which is only invoked when `_backend_client is None`.
 
 ### Tests
-- 364 backend tests passing
-- 306 cockpit tests passing (5 pre-existing failures in dossier/chat_exports/preboot unrelated to changes)
-- Ruff clean on all changed files
+- 671 passed (364 backend + 307 cockpit), 5 pre-existing failures
 
 ---
 
 ## What Remains
 
-### Stage D — Transcript Review
-Switch cockpit TranscriptReviewService consumers to backend commentary endpoints.
-- `cockpit/integrations/transcript_review.py` → call backend HTTP instead of direct Qdrant writes
-- Verify: `rg "verify_qdrant|upsert_points" financial-engine_v2/cockpit` returns no Qdrant-write sites
-
 ### Stage E — Contract Documentation
-Update SYSTEM_CONTRACT.md with new endpoint contracts and mark direct-access violation resolved.
+- Update SYSTEM_CONTRACT.md to document new backend-authority endpoints
+- Mark the direct-access violation as resolved
+- Document the DbReader diagnostics-only scope
+- Document the commentary endpoint contract (approve/reject/purge)
 
 ---
 
 ## Resume Command
 
-Start next session by reading `HANDOFF.md`. Stage D switches cockpit TranscriptReviewService to use backend commentary endpoints.
+Start next session by reading `HANDOFF.md`. Stage E updates SYSTEM_CONTRACT.md to reflect the new backend-authority architecture.

@@ -968,55 +968,11 @@ class CockpitApp(App):
 
         # Handle /review commands for transcript approval gate
         if stripped.startswith("/review"):
-            from cockpit.integrations.transcript_review import TranscriptReviewService
-            review_svc = TranscriptReviewService()
             parts = stripped[len("/review"):].strip().split(maxsplit=1)
             sub = parts[0].lower() if parts else "list"
             arg = parts[1].strip() if len(parts) > 1 else ""
             now_iso = datetime.now(timezone.utc).isoformat()
-            if sub == "list" or not sub:
-                pending_items = review_svc.list_pending()
-                if pending_items:
-                    lines = [f"Pending review ({len(pending_items)} items):"]
-                    for i, item in enumerate(pending_items, 1):
-                        sid = item.get("source_id", "?")
-                        stype = item.get("source_type", "?")
-                        title = item.get("title", "?")[:40]
-                        chunks = item.get("chunk_count", 0)
-                        staged = item.get("staged_at", "")[:10]
-                        lines.append(f"  [{i}] {sid} | {stype} | {title} | staged {staged} | {chunks} chunks")
-                    lines.append("Use: /review approve <source_id> or /review reject <source_id>")
-                    reply = "\n".join(lines)
-                else:
-                    reply = "No pending transcripts to review."
-            elif sub == "approve" and arg:
-                self._append_log(log, f"assistant: Indexing chunks for {arg}...")
-                result = review_svc.approve(arg)
-                if result.get("ok"):
-                    reply = f"Approved and indexed {result.get('chunks_indexed', 0)} chunks for {arg}."
-                else:
-                    reply = f"Approve failed: {result.get('error', 'unknown')}"
-            elif sub == "reject" and arg:
-                result = review_svc.reject(arg)
-                if result.get("ok"):
-                    reply = f"Rejected and purged staged chunks for {arg}."
-                else:
-                    reply = f"Reject failed: {result.get('error', 'unknown')}"
-            elif sub == "approve-all":
-                pending_items = review_svc.list_pending()
-                if not pending_items:
-                    reply = "No pending transcripts to approve."
-                else:
-                    total = 0
-                    for item in pending_items:
-                        result = review_svc.approve(item["source_id"])
-                        total += result.get("chunks_indexed", 0)
-                    reply = f"Approved {len(pending_items)} source(s), indexed {total} chunks."
-            elif sub == "expired":
-                purged = review_svc.purge_expired()
-                reply = f"Purged {len(purged)} expired staged source(s)." if purged else "No expired items."
-            else:
-                reply = "Usage: /review list|approve|reject|approve-all|expired [source_id]"
+            reply = self._handle_review_command(sub, arg, log)
             self._append_log(log, f"assistant: {reply}")
             self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
             return
@@ -1818,6 +1774,116 @@ class CockpitApp(App):
             return await asyncio.wait_for(future, timeout=3600)
         except asyncio.TimeoutError:
             return False
+
+    def _handle_review_command(self, sub: str, arg: str, log) -> str:
+        """Handle /review subcommands — backend API when configured, local service otherwise."""
+        if self._backend_client:
+            return self._handle_review_via_backend(sub, arg, log)
+        return self._handle_review_via_local(sub, arg, log)
+
+    def _handle_review_via_backend(self, sub: str, arg: str, log) -> str:
+        """Route /review commands through backend commentary API."""
+        client = self._backend_client
+        if sub == "list" or not sub:
+            try:
+                resp = client.get_pending_transcripts()
+                pending_items = resp.get("pending", [])
+            except Exception as exc:
+                return f"Failed to list pending transcripts: {exc}"
+            if pending_items:
+                lines = [f"Pending review ({len(pending_items)} items):"]
+                for i, item in enumerate(pending_items, 1):
+                    sid = item.get("source_id", "?")
+                    stype = item.get("source_type", "?")
+                    title = item.get("title", "?")[:40]
+                    chunks = item.get("chunk_count", 0)
+                    staged = item.get("staged_at", "")[:10]
+                    lines.append(f"  [{i}] {sid} | {stype} | {title} | staged {staged} | {chunks} chunks")
+                lines.append("Use: /review approve <source_id> or /review reject <source_id>")
+                return "\n".join(lines)
+            return "No pending transcripts to review."
+        if sub == "approve" and arg:
+            self._append_log(log, f"assistant: Indexing chunks for {arg}...")
+            try:
+                result = client.approve_transcript(arg)
+                n = result.get("points_upserted", 0)
+                return f"Approved and indexed {n} chunks for {arg}."
+            except Exception as exc:
+                return f"Approve failed: {exc}"
+        if sub == "reject" and arg:
+            try:
+                client.reject_transcript(arg)
+                return f"Rejected and purged staged chunks for {arg}."
+            except Exception as exc:
+                return f"Reject failed: {exc}"
+        if sub == "approve-all":
+            try:
+                resp = client.get_pending_transcripts()
+                pending_items = resp.get("pending", [])
+            except Exception as exc:
+                return f"Failed to list pending transcripts: {exc}"
+            if not pending_items:
+                return "No pending transcripts to approve."
+            total = 0
+            for item in pending_items:
+                try:
+                    result = client.approve_transcript(item["source_id"])
+                    total += result.get("points_upserted", 0)
+                except Exception:
+                    pass
+            return f"Approved {len(pending_items)} source(s), indexed {total} chunks."
+        if sub == "expired":
+            try:
+                result = client.purge_expired_transcripts()
+                purged = result.get("purged", [])
+                return f"Purged {len(purged)} expired staged source(s)." if purged else "No expired items."
+            except Exception as exc:
+                return f"Purge failed: {exc}"
+        return "Usage: /review list|approve|reject|approve-all|expired [source_id]"
+
+    def _handle_review_via_local(self, sub: str, arg: str, log) -> str:
+        """Route /review commands through local TranscriptReviewService (no backend)."""
+        from cockpit.integrations.transcript_review import TranscriptReviewService
+
+        review_svc = TranscriptReviewService()
+        if sub == "list" or not sub:
+            pending_items = review_svc.list_pending()
+            if pending_items:
+                lines = [f"Pending review ({len(pending_items)} items):"]
+                for i, item in enumerate(pending_items, 1):
+                    sid = item.get("source_id", "?")
+                    stype = item.get("source_type", "?")
+                    title = item.get("title", "?")[:40]
+                    chunks = item.get("chunk_count", 0)
+                    staged = item.get("staged_at", "")[:10]
+                    lines.append(f"  [{i}] {sid} | {stype} | {title} | staged {staged} | {chunks} chunks")
+                lines.append("Use: /review approve <source_id> or /review reject <source_id>")
+                return "\n".join(lines)
+            return "No pending transcripts to review."
+        if sub == "approve" and arg:
+            self._append_log(log, f"assistant: Indexing chunks for {arg}...")
+            result = review_svc.approve(arg)
+            if result.get("ok"):
+                return f"Approved and indexed {result.get('chunks_indexed', 0)} chunks for {arg}."
+            return f"Approve failed: {result.get('error', 'unknown')}"
+        if sub == "reject" and arg:
+            result = review_svc.reject(arg)
+            if result.get("ok"):
+                return f"Rejected and purged staged chunks for {arg}."
+            return f"Reject failed: {result.get('error', 'unknown')}"
+        if sub == "approve-all":
+            pending_items = review_svc.list_pending()
+            if not pending_items:
+                return "No pending transcripts to approve."
+            total = 0
+            for item in pending_items:
+                result = review_svc.approve(item["source_id"])
+                total += result.get("chunks_indexed", 0)
+            return f"Approved {len(pending_items)} source(s), indexed {total} chunks."
+        if sub == "expired":
+            purged = review_svc.purge_expired()
+            return f"Purged {len(purged)} expired staged source(s)." if purged else "No expired items."
+        return "Usage: /review list|approve|reject|approve-all|expired [source_id]"
 
     def _get_snapshot_data(self, ticker: str) -> tuple[dict | None, list]:
         """Get latest financial snapshot + docs. Backend when configured, DbReader otherwise."""

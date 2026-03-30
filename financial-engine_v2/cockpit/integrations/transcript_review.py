@@ -39,6 +39,14 @@ class TranscriptReviewService:
         ]
 
     def approve(self, source_id: str, *, qdrant_url: str | None = None) -> dict[str, Any]:
+        """Approve staged transcript and upsert chunks to Qdrant.
+
+        Uses direct Qdrant client (legacy path for environments without the
+        backend API). When the backend is running, callers should use
+        BackendApiClient.approve_transcript() instead — the backend's
+        /api/commentary/transcripts/{source_id}/approve endpoint performs
+        the same logic server-side without cockpit importing Qdrant modules.
+        """
         index = _load_index()
         entry = index.get(source_id)
         if not entry:
@@ -63,7 +71,7 @@ class TranscriptReviewService:
             staged_path.unlink(missing_ok=True)
             return {"ok": False, "error": "staged file is empty"}
 
-        # Upsert to Qdrant
+        # Upsert to Qdrant (legacy direct path)
         from app.services.embeddings import upsert_points, verify_qdrant
 
         client = verify_qdrant(qdrant_url=qdrant_url)
