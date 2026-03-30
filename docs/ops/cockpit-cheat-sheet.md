@@ -91,6 +91,8 @@ approve all transcripts
 
 These are the main controls shown before launching Cockpit.
 
+The LLM panel is read-only. By default it reflects the merged effective config from `financial-engine_v2/config/cockpit_llm.yaml`; `COCKPIT_*` LLM env vars only win when that file sets `allow_env_override: true`. Pre-boot no longer exports direct provider/model env vars on launch.
+
 ### Read-only Mode
 
 Blocks mutating actions.

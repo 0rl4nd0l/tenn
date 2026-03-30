@@ -74,9 +74,6 @@ class PreBootScreenTests(unittest.IsolatedAsyncioTestCase):
                     "enable_rag": True,
                     "verbose": False,
                     "profile": "testing",
-                    "llm_provider": "llamacpp",
-                    "llm_model": "qwen2.5-coder-14b",
-                    "llm_model_path": "",
                     "env": {
                         "COCKPIT_LOG_LEVEL": "DEBUG",
                         "COCKPIT_VERBOSE_LOGGING": "1",
@@ -87,25 +84,70 @@ class PreBootScreenTests(unittest.IsolatedAsyncioTestCase):
                 },
             )
 
-    def test_build_preboot_initial_flags_seeds_llm_from_effective_config(self) -> None:
-        initial = _build_preboot_initial_flags(REPO_ROOT, ["--config", "config/cockpit.local.yaml"], "config/cockpit.yaml")
-        self.assertEqual(initial["llm_provider"], "ollama")
-        self.assertEqual(initial["llm_model"], "qwen2.5:32b")
+    def test_build_preboot_initial_flags_only_seeds_ui_editable_flags(self) -> None:
+        initial = _build_preboot_initial_flags(
+            REPO_ROOT,
+            ["--config", "config/cockpit.local.yaml", "--profile", "testing", "--read-only", "--no-web"],
+            "config/cockpit.yaml",
+        )
+        self.assertEqual(
+            initial,
+            {
+                "read_only": True,
+                "no_web": True,
+                "profile": "testing",
+            },
+        )
 
-    def test_merge_preboot_flags_exports_llm_choice(self) -> None:
+    def test_merge_preboot_flags_exports_preboot_state_and_profile_env(self) -> None:
         with mock.patch.dict(os.environ, {}, clear=True):
             argv = _merge_preboot_flags(
-                [],
+                ["--read-only"],
                 {
-                    "profile": "default",
+                    "profile": "testing",
                     "read_only": False,
-                    "no_web": False,
-                    "llm_provider": "ollama",
-                    "llm_model": "qwen2.5:32b",
-                    "env": {},
+                    "no_web": True,
+                    "env": {
+                        "COCKPIT_LOG_LEVEL": "DEBUG",
+                    },
                 },
             )
-        self.assertEqual(argv, ["--profile", "default"])
+        self.assertEqual(argv, ["--read-only", "--no-web", "--profile", "testing"])
+        self.assertEqual(os.environ["COCKPIT_LOG_LEVEL"], "DEBUG")
+        self.assertEqual(os.environ["COCKPIT_PREBOOT_PROFILE"], "testing")
+        self.assertEqual(os.environ["COCKPIT_PREBOOT_READ_ONLY"], "0")
+        self.assertEqual(os.environ["COCKPIT_PREBOOT_NO_WEB"], "1")
+        self.assertNotIn("COCKPIT_LLM_PROVIDER", os.environ)
+        self.assertNotIn("COCKPIT_LLM_MODEL", os.environ)
+
+    def test_merge_preboot_flags_preserves_explicit_argv_and_existing_env(self) -> None:
+        with mock.patch.dict(
+            os.environ,
+            {
+                "COCKPIT_LOG_LEVEL": "INFO",
+                "COCKPIT_LLM_PROVIDER": "ollama",
+                "COCKPIT_LLM_MODEL": "qwen2.5:32b",
+            },
+            clear=True,
+        ):
+            argv = _merge_preboot_flags(
+                ["--profile", "full", "--no-web"],
+                {
+                    "profile": "testing",
+                    "read_only": True,
+                    "no_web": False,
+                    "env": {
+                        "COCKPIT_LOG_LEVEL": "DEBUG",
+                        "COCKPIT_VERBOSE_LOGGING": "1",
+                    },
+                },
+            )
+        self.assertEqual(argv, ["--profile", "full", "--no-web", "--read-only"])
+        self.assertEqual(os.environ["COCKPIT_LOG_LEVEL"], "INFO")
+        self.assertEqual(os.environ["COCKPIT_VERBOSE_LOGGING"], "1")
+        self.assertEqual(os.environ["COCKPIT_PREBOOT_PROFILE"], "testing")
+        self.assertEqual(os.environ["COCKPIT_PREBOOT_READ_ONLY"], "1")
+        self.assertEqual(os.environ["COCKPIT_PREBOOT_NO_WEB"], "0")
         self.assertEqual(os.environ["COCKPIT_LLM_PROVIDER"], "ollama")
         self.assertEqual(os.environ["COCKPIT_LLM_MODEL"], "qwen2.5:32b")
 

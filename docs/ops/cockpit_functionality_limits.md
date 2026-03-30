@@ -11,11 +11,14 @@ This note lists Cockpit flags, config settings, and environment variables that c
 
 ## Cockpit env vars that can break or constrain functionality
 
+`financial-engine_v2/config/cockpit_llm.yaml` is the authoritative Cockpit LLM source by default. `COCKPIT_LLM_PROVIDER`, `COCKPIT_LLM_MODEL`, `COCKPIT_LLAMACPP_URL`, `COCKPIT_OLLAMA_URL`, and related `COCKPIT_*` LLM env vars only override the merged Cockpit LLM config when `allow_env_override: true` is set in that YAML file.
+
 | Variable | Effect | Risk profile | Source |
 |---|---|---|---|
 | `COCKPIT_BACKEND_API_URL` | Overrides backend API base URL used by Cockpit. | Wrong URL removes backend-assisted features (price calls, backend RAG readers, model status checks). | `financial-engine_v2/cockpit/core/config.py`, `financial-engine_v2/cockpit/ui/app.py` |
-| `COCKPIT_OLLAMA_URL` / `OLLAMA_URL` | Overrides LLM endpoint for cockpit chat/model checks. | Bad endpoint causes slow/failing chat and failed model health checks. | `financial-engine_v2/cockpit/core/config.py`, `financial-engine_v2/cockpit/core/actions.py` |
-| `COCKPIT_LLM_MODEL` | Overrides cockpit chat model. | Missing/unavailable model causes runtime failures or poor quality. | `financial-engine_v2/cockpit/core/config.py`, `financial-engine_v2/cockpit/core/actions.py` |
+| `COCKPIT_OLLAMA_URL` / `OLLAMA_URL` | Overrides the Cockpit/Ollama URL only when `allow_env_override: true`; otherwise the value from `config/cockpit_llm.yaml` remains authoritative for Cockpit LLM config. | Bad endpoint causes slow/failing chat and failed model health checks when env overrides are enabled. | `financial-engine_v2/cockpit/core/config.py`, `financial-engine_v2/cockpit/core/actions.py` |
+| `COCKPIT_LLM_MODEL` | Overrides the cockpit chat model only when `allow_env_override: true`; otherwise `config/cockpit_llm.yaml` remains authoritative. | Missing/unavailable model causes runtime failures or poor quality when env overrides are enabled. | `financial-engine_v2/cockpit/core/config.py`, `financial-engine_v2/cockpit/core/actions.py` |
+| `COCKPIT_LLM_PROVIDER` | Overrides the cockpit chat provider only when `allow_env_override: true`; otherwise `config/cockpit_llm.yaml` remains authoritative. | Unsupported or mismatched provider can fail startup/config load when env overrides are enabled. | `financial-engine_v2/cockpit/core/config.py` |
 | `EXTRACT_MODEL`, `EMBED_MODEL` | Included in Cockpit doctor preflight required model checks. | Doctor reports missing model(s) and preflight fails if model not installed in Ollama. | `financial-engine_v2/cockpit/core/actions.py` |
 | `DATABASE_URL` | Overrides cockpit DB target. | Wrong DB path/schema yields missing-table errors in context gathering and doctor checks. | `financial-engine_v2/cockpit/core/config.py`, `financial-engine_v2/cockpit/core/actions.py` |
 | `COCKPIT_NEWS_TICKER_MATCH_MODE` | Overrides news ticker matching mode. | Any value other than `soft` or `strict` raises `ValueError` and can fail startup/config load. | `financial-engine_v2/cockpit/core/config.py` |
@@ -45,12 +48,19 @@ Observed in `financial-engine_v2/config/cockpit.local.yaml`:
 - `llm.timeout_seconds` lowered to `90` (faster fail, but more timeout risk on slow model runs).
 - `rag.news_context.enabled` set to `true` locally (good for news retrieval).
 - `rag.qualitative_context.enabled` still `false` in local override (company qual context remains off).
+- Cockpit chat provider/model still come from `financial-engine_v2/config/cockpit_llm.yaml` unless that file opts into env overrides.
+
+## Pre-boot routing behavior
+
+- Pre-boot recomputes and displays the effective Cockpit LLM config from `config/cockpit_llm.yaml` plus host env/defaults.
+- Pre-boot no longer exports direct `COCKPIT_LLM_PROVIDER` or `COCKPIT_LLM_MODEL` selections at launch time.
+- Pre-boot still exports profile/runtime flags such as `COCKPIT_PREBOOT_PROFILE`, `COCKPIT_PREBOOT_READ_ONLY`, and `COCKPIT_PREBOOT_NO_WEB`.
 
 ## Recommended safe baseline
 
 - Keep `--read-only` off for normal operations; use action confirmation as guardrails.
 - Keep `--no-web` off unless intentionally air-gapped.
 - Set `COCKPIT_BACKEND_API_URL` to a verified healthy backend endpoint.
-- Set `COCKPIT_OLLAMA_URL` explicitly on host runs (avoid Docker-only hostname leakage).
+- Prefer editing `financial-engine_v2/config/cockpit_llm.yaml` for Cockpit LLM changes; only rely on `COCKPIT_*` LLM env vars when `allow_env_override: true` is intentional.
 - Keep `COCKPIT_CONTEXT_GATHER_TIMEOUT_SECONDS` high enough for your DB size and IO latency.
 - Ensure `COCKPIT_NEWS_TICKER_MATCH_MODE` is only `soft` or `strict`.
