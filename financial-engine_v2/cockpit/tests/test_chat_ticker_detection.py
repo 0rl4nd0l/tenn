@@ -160,6 +160,17 @@ class ChatTickerDetectionTests(unittest.TestCase):
                     f"'{msg}' should not produce a ticker",
                 )
 
+    def test_structured_mode_instantiation_smoke(self) -> None:
+        """Verify ChatController can instantiate in structured mode (ToolExecutor init)."""
+        with unittest.mock.patch.dict(os.environ, {"COCKPIT_AGENT_MODE": "structured"}):
+            # Should not raise TypeError during ToolExecutor(...) call
+            controller = ChatController(
+                ollama_client=MagicMock(),
+                tool_router=MagicMock(),
+                action_registry=MagicMock(),
+            )
+            self.assertIsNotNone(controller)
+
 
 if __name__ == "__main__":
     unittest.main()

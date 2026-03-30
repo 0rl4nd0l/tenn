@@ -37,6 +37,11 @@ class ToolExecutor:
         alert_reader=None,
         strategy_service=None,
         watchlist_trigger=None,
+        ticker_scorer=None,
+        screen_runner=None,
+        thesis_service=None,
+        risk_gate=None,
+        reflection_service=None,
     ) -> None:
         self._router = tool_router
         self._actions = action_registry
@@ -47,6 +52,11 @@ class ToolExecutor:
         self._alert_reader = alert_reader
         self._strategy_service = strategy_service
         self._watchlist_trigger = watchlist_trigger
+        self._ticker_scorer = ticker_scorer
+        self._screen_runner = screen_runner
+        self._thesis_service = thesis_service
+        self._risk_gate = risk_gate
+        self._reflection_service = reflection_service
 
     # ------------------------------------------------------------------
     # Public API
