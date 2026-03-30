@@ -1,0 +1,44 @@
+{
+  "_source": "FMG H1 FY26 Half-Year Financial Report + Appendix 4D. All values USD millions applied.",
+  "_verification": "claude-opus",
+  "_verification_confidence": "high — extracted directly from audited consolidated financial statements (p21-30).",
+  "_notes": {
+    "revenue": "p21 income stmt: 'Operating sales revenue' = 8,439. Confirmed by 4D 'Revenue from ordinary activities' = 8,439.",
+    "ebit": "p21 income stmt: 'Operating profit' = 2,908. This is revenue - cost of sales - other expenses + other income = EBIT equivalent.",
+    "np_attributable": "p21: 'Equity holders of the Company' = 1,914. Confirmed by 4D.",
+    "operating_cf": "p23: 'Net cash inflow from operating activities' = 3,203.",
+    "investing_cf": "p23: 'Net cash outflow from investing activities' = (1,659).",
+    "financing_cf": "p23: 'Net cash outflow from financing activities' = (1,160).",
+    "capex": "p23: 'Payments for property, plant and equipment - Fortescue' = (1,417) + 'joint operations' = (58) = (1,475). PP&E only, excludes exploration/deposits/financial assets.",
+    "cash_end": "p23: 'Cash and cash equivalents at the end of the period' = 4,743.",
+    "net_debt": "p16 Debt & Liquidity table: 'Net debt' = 1,013. Derived: Total debt 5,756 - Cash 4,743 = 1,013.",
+    "shares_outstanding": "p30 Note 5(a): 'At 31 December 2025' issued shares = 3,078,964,918. Using issued (not net-of-treasury) as period-end count."
+  },
+  "ticker": "FMG",
+  "pdf_path": "data/asx/docs/FMG/financial_performance/2026-02-25_fy26-half-year-financial-report-and-appendix-4d_910e9da0-debb-4aa4-b524-cad5a69d9aa3.pdf",
+  "document_id": "fmg_20251231_h",
+  "period_type": "H",
+  "period_end": "2025-12-31",
+  "currency": "USD",
+  "scale": "millions",
+  "metrics": {
+    "revenue": 8439000000,
+    "ebit": 2908000000,
+    "np_attributable": 1914000000,
+    "operating_cf": 3203000000,
+    "investing_cf": -1659000000,
+    "financing_cf": -1160000000,
+    "capex": -1475000000,
+    "cash_end": 4743000000,
+    "net_debt": 1013000000,
+    "shares_outstanding": 3078964918
+  },
+  "expected_nulls": [],
+  "tolerances": {
+    "capex": 0.05,
+    "net_debt": 0.05
+  },
+  "config": {
+    "min_accuracy_overall": 0.80
+  }
+}

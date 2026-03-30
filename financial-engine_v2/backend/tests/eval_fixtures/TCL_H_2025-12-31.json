@@ -1,0 +1,43 @@
+{
+  "_source": "TCL Transurban Appendix 4D + Half-Year Interim Report. All values AUD millions applied.",
+  "_verification": "claude-opus",
+  "_verification_confidence": "medium — TCL is a stapled group (THL/THT/TIL); attribution is complex. Revenue and cash flows are clear.",
+  "_notes": {
+    "revenue": "p13 income stmt: 'Revenue' = 1,983.",
+    "ebit": "No explicit EBIT row. Income stmt goes Revenue → Expenses → D&A → 'Profit/(loss) before income tax' = 352. No 'Operating profit' or 'EBIT' label exists. Set to null.",
+    "np_attributable": "p13: 'Profit/(loss) attributable to ordinary security holders of the stapled group' = 298.",
+    "operating_cf": "p16: 'Net cash inflow from operating activities' = 853.",
+    "investing_cf": "p16: 'Net cash outflow from investing activities' = (248).",
+    "financing_cf": "p16: 'Net cash outflow from financing activities' = (1,098).",
+    "capex": "p16: 'Payments for property, plant and equipment' = (69). PP&E only, excludes intangible/financial asset payments.",
+    "cash_end": "p16: 'Cash and cash equivalents at the end of the half-year' = 1,229.",
+    "net_debt": "Complex stapled structure with proportional debt. Current borrowings 632 + Non-current borrowings 19,824 = 20,456 - Cash 1,229 = 19,227. But proportional net debt differs. Using statutory balance sheet derivation.",
+    "shares_outstanding": "p9 Financial position: 'Securities on issue' = 3,115M = 3,115,000,000. These are stapled securities, not ordinary shares."
+  },
+  "ticker": "TCL",
+  "pdf_path": "data/asx/docs/TCL/financial_performance/2026-02-19_transurban-appendix-4d-and-1h26-interim-report_bdcd91dd-98de-46ab-a14d-9468462b8de6.pdf",
+  "document_id": "tcl_20251231_h",
+  "period_type": "H",
+  "period_end": "2025-12-31",
+  "currency": "AUD",
+  "scale": "millions",
+  "metrics": {
+    "revenue": 1983000000,
+    "np_attributable": 298000000,
+    "operating_cf": 853000000,
+    "investing_cf": -248000000,
+    "financing_cf": -1098000000,
+    "capex": -69000000,
+    "cash_end": 1229000000,
+    "net_debt": 19227000000,
+    "shares_outstanding": 3115000000
+  },
+  "expected_nulls": ["ebit"],
+  "tolerances": {
+    "net_debt": 0.05,
+    "shares_outstanding": 0.01
+  },
+  "config": {
+    "min_accuracy_overall": 0.80
+  }
+}

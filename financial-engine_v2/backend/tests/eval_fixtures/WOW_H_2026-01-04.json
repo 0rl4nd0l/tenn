@@ -1,0 +1,45 @@
+{
+  "_source": "WOW Appendix 4D + Half-Year Financial Report 2026. All values AUD millions applied.",
+  "_verification": "claude-opus",
+  "_verification_confidence": "high — extracted directly from audited consolidated financial statements (p4-8 of HY report).",
+  "_notes": {
+    "revenue": "p4 P&L: 'Revenue' = 37,135. Note: Appendix 4D Key Information also confirms 37,135.",
+    "ebit": "p12 segment note 5.1: 'EBIT' = 962 (consolidated). Also derivable from P&L: 'Earnings before interest and tax' = 962.",
+    "np_attributable": "p4 P&L: 'Equity holders of the parent entity' = 374.",
+    "operating_cf": "p8 Cash Flows: 'Net cash provided by operating activities' = 2,301.",
+    "investing_cf": "p8: 'Net cash used in investing activities' = (1,186).",
+    "financing_cf": "p8: 'Net cash used in financing activities' = (1,096).",
+    "capex": "p8: 'Payments for property, plant and equipment and intangible assets' = (1,304). Note: includes intangibles, but this is the PP&E+intangibles line.",
+    "cash_end": "p8: 'Cash and cash equivalents at end of period' = 1,289.",
+    "net_debt": "Balance sheet p6: Current borrowings 422 + Non-current borrowings 5,264 = 5,686 - Cash 1,289 = 4,397. Excludes lease liabilities (current 1,724 + non-current 9,788).",
+    "shares_outstanding": "Note 8 footnote p16: 'fully paid ordinary shares were 1,221,599,192' at 4 January 2026."
+  },
+  "ticker": "WOW",
+  "pdf_path": "data/asx/docs/WOW/financial_performance/2026-02-25_appendix-4d-and-half-year-financial-report_b84a6cde-1fa0-4d11-a86a-0ad1c1fea6b7.pdf",
+  "document_id": "wow_20260104_h",
+  "period_type": "H",
+  "period_end": "2026-01-04",
+  "currency": "AUD",
+  "scale": "millions",
+  "metrics": {
+    "revenue": 37135000000,
+    "ebit": 962000000,
+    "np_attributable": 374000000,
+    "operating_cf": 2301000000,
+    "investing_cf": -1186000000,
+    "financing_cf": -1096000000,
+    "capex": -1304000000,
+    "cash_end": 1289000000,
+    "net_debt": 4397000000,
+    "shares_outstanding": 1221599192
+  },
+  "expected_nulls": [],
+  "tolerances": {
+    "capex": 0.05,
+    "net_debt": 0.05,
+    "ebit": 0.02
+  },
+  "config": {
+    "min_accuracy_overall": 0.80
+  }
+}

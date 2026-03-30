@@ -1,0 +1,45 @@
+{
+  "_source": "TLS Appendix 4D + Half-Year Financial Report + Half-Year Results and Operations Review. All values AUD millions applied.",
+  "_verification": "claude-opus",
+  "_verification_confidence": "high — extracted from audited financial statements and Appendix 4D.",
+  "_notes": {
+    "revenue": "4D p1: 'Revenue (excluding finance income) from ordinary activities' = 11,641. Ops review p2: 'Revenue (excluding finance income)' = 11,641.",
+    "ebit": "Ops review p2: 'EBIT' = 2,016. Explicitly labeled.",
+    "np_attributable": "4D p1: 'Profit for the period attributable to equity holders of Telstra Entity' = 1,124. Ops review p2 confirms.",
+    "operating_cf": "Ops review p12: 'Net cash provided by operating activities' = 3,637.",
+    "investing_cf": "Ops review p12: 'Net cash used in investing activities' = (1,735).",
+    "financing_cf": "Ops review p12: 'Net cash used in financing activities' = (1,457).",
+    "capex": "Ops review p12: 'Capital expenditure (before investments)' = (1,914). This is the PP&E+intangibles capex line.",
+    "cash_end": "Ops review p12: 'Cash and cash equivalents at the end of the period' = 1,436.",
+    "net_debt": "Ops review p13: 'Net debt increased by 2.2% or $355 to $16,800'. Gross debt = $18,236 million. Net debt = 16,800.",
+    "shares_outstanding": "4D p1 section 3: '11,254,937,273 shares' on issue at 31 December 2025."
+  },
+  "ticker": "TLS",
+  "pdf_path": "data/asx/docs/TLS/financial_performance/2026-02-19_financial-results-for-half-year-ended-31-december-2025_33285108-f16d-4754-9299-596400c156b1.pdf",
+  "document_id": "tls_20251231_h",
+  "period_type": "H",
+  "period_end": "2025-12-31",
+  "currency": "AUD",
+  "scale": "millions",
+  "metrics": {
+    "revenue": 11641000000,
+    "ebit": 2016000000,
+    "np_attributable": 1124000000,
+    "operating_cf": 3637000000,
+    "investing_cf": -1735000000,
+    "financing_cf": -1457000000,
+    "capex": -1914000000,
+    "cash_end": 1436000000,
+    "net_debt": 16800000000,
+    "shares_outstanding": 11254937273
+  },
+  "expected_nulls": [],
+  "tolerances": {
+    "capex": 0.05,
+    "net_debt": 0.05,
+    "revenue": 0.01
+  },
+  "config": {
+    "min_accuracy_overall": 0.80
+  }
+}
