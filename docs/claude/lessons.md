@@ -368,3 +368,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** Tool descriptions alone don't convey when to use one tool vs another. The LLM needs explicit routing guidance for overlapping tools.
 **Fix:** Added `## Tool Selection Guide` to the system prompt with 5 categories (quick lookups, analysis, strategy, monitoring, research) and dependency hints ("score before creating thesis", "screen_tickers uses watchlist if empty").
 **Rule:** When the cockpit has >25 tools, the system prompt MUST include a tool routing guide. Update the guide whenever tools are added or renamed. The guide is not documentation — it's an active part of the LLM's decision-making context.
+
+---
+
+## L034 — GPU topology guards must account for router-owned child workers
+
+**Date:** 2026-03-31
+**Subsystem:** `scripts/gpu_process_guard.sh`, `cockpit/integrations/llamacpp_manager.py`
+**Symptom:** `scripts/cockpit` refused to start with `ERROR: GPU process guard failed` even though only the canonical router on `:8001` was running. The guard reported the router's per-model child worker on an ephemeral localhost port as a rogue `llama-server`.
+**Root cause:** The guard logic classified every `llama-server` process by its own `--port` only. In router mode, llama.cpp loads models as child worker processes on dynamic localhost ports behind the authorised router, so port-only classification contradicted the actual runtime shape.
+**Fix:** Topology checks now walk the process ancestry and treat ephemeral `llama-server` workers as authorised when they descend from an authorised router-mode parent (`--models-dir` on `:8001`/`:8002`). Updated the contract wording to distinguish independent rogue instances from router-owned child workers.
+**Rule:** Do not enforce the canonical-port rule with port-only process inspection when router mode is enabled. Classify `llama-server` processes by ownership: independently spawned instances on non-canonical ports are rogue; router-owned child workers are part of the canonical runtime.

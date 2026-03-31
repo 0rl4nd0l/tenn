@@ -4,7 +4,7 @@
 > Update this file at the end of every session alongside the milestone commit.
 > For detailed context on any item, follow the linked doc or run `git log --oneline`.
 
-Last updated: 2026-03-31 (session — strategy system improvements: sector comparison, thesis auto-invalidation, tool routing guide, configurable weights, commentary in deep_research)
+Last updated: 2026-03-31 (session — GPU topology guard fixed for router-owned child workers)
 Branch: cloud/session-20260319
 
 ## Legend
@@ -32,7 +32,7 @@ Branch: cloud/session-20260319
 | **cockpit-strategy** | `[ verified ]` | Strategy schema (d173a8da) + improvements (2026-03-31): signal engine (TickerScorer 0-100 composite + sector-relative via sector_comparison.py), thesis tracking (ThesisService JSONL, auto-invalidation on evidence ratio, 90-day expiry), risk gate (bull/bear/judge debate), reflection loop (decision snapshots, auto-reflect in watchlist scanner). Tool routing guide in system prompt. Configurable signal weights via adjust_signal_weights tool. 38 tools total. |
 | **cockpit-sourcing** | `[ verified ]` | Evidence sourcing (2e9c3ddb): SourcesFormatter, sources metadata in gather_local_context, /sources on\|off toggle. 6 tests. |
 | **cockpit-routing** | `[ verified ]` | Chat routing visibility + extraction guard (f037aa09): per-response footer [backend\|model\|latency\|cost], extraction pre-flight guard with auto-model-load via router API, `.env` loading fixed in cockpit entrypoint. Ticker fast-path false positives fixed (2cfb991e): stopwords expanded, _FOLLOW_UP_RE narrowed to topic-referential only. L027+L028+L029. |
-| **gpu-process-rails** | `[ verified ]` | Canonical port manifest (§9.4), agent spawn protocol (§9.5), `gpu_process_guard.sh`, `llamacpp_manager.py` topology check. L022 logged. |
+| **gpu-process-rails** | `[ verified ]` | Canonical port manifest (§9.4), agent spawn protocol (§9.5), `gpu_process_guard.sh`, `llamacpp_manager.py` topology check. Router-mode child workers on ephemeral localhost ports are now treated as authorised descendants of the canonical router instead of rogue instances. L022 + L034 logged. |
 | **analysis-modules** | `[ verified ]` | 7 modules (+ sentiment), orchestrator, context_loader (Yahoo price fallback), watchlist scanner (7 alert rules), API endpoints, scale validation gate, extraction expansion (total_equity, interest_expense). 48 tests. D2 live-tested. Real-data validated (RIO, BHP). Architecture doc 1151 lines. |
 | **model-eval** | `[ verified ]` | Qwen 3 14B evaluated (85.26%) vs Qwen 2.5 14B (89.47%) — current model stays. |
 | **narrative-extraction** | `[ verified ]` | Phase 1-3 complete (849c664f→7defd245). Ungated narrative extraction, announcement_type persisted, classifier expanded, news memo extractor + Celery task, multi-pass transcript extraction, timestamp preservation, investor-specific extractor, section-aware chunking, speaker-turn detection. 414 tests. |
@@ -78,6 +78,7 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 
 | Commit | Workstream | Summary |
 |--------|------------|---------|
+| (2026-03-31) | gpu-process-rails | GPU topology guard now recognises router-owned llama.cpp child workers, so `scripts/cockpit` no longer blocks startup on the router's ephemeral model port. Contract wording aligned with router mode. |
 | (2026-03-31) | cockpit-strategy | Strategy system improvements: sector_comparison.py (10 GICS sectors, 150+ tickers, 24hr cached stats), thesis auto-invalidation (evidence ratio + 90-day expiry), tool routing guide in system prompt, configurable signal weights, commentary retrieval in deep_research, auto-reflection in watchlist scanner. 38 tools (was 28). |
 | 7defd245 | narrative-extraction | Phase 3: Section-aware chunking (section_heading in Qdrant payload), speaker-turn detection (primary_speaker in commentary payloads), news memo Celery task. 414 tests. |
 | dee24890 | narrative-extraction | Phase 2: Classifier expansion (~25K reclassified), news memo extractor, multi-pass transcript extraction, timestamp preservation, investor presentation type-specific extractor. 396 tests. |

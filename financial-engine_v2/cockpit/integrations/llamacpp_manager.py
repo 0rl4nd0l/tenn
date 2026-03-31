@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import signal
 import subprocess
 import time
@@ -264,17 +265,57 @@ def find_all_llama_server_processes() -> list[dict]:
 AUTHORISED_PORTS = frozenset({"8001", "8002"})
 
 
+def _read_proc_cmdline(pid: int) -> str:
+    try:
+        return Path(f"/proc/{pid}/cmdline").read_bytes().replace(b"\x00", b" ").decode()
+    except Exception:
+        return ""
+
+
+def _read_parent_pid(pid: int) -> int | None:
+    try:
+        for line in Path(f"/proc/{pid}/status").read_text(encoding="utf-8").splitlines():
+            if line.startswith("PPid:"):
+                return int(line.split(":", 1)[1].strip())
+    except Exception:
+        return None
+    return None
+
+
+def _is_router_owned_child_process(pid: int) -> bool:
+    """Return True when *pid* descends from the canonical router on 8001/8002.
+
+    In router mode, llama.cpp keeps the public HTTP server on an authorised port
+    and may spawn per-model child workers on ephemeral localhost ports. Those
+    children belong to the canonical runtime and must not be treated as rogue.
+    """
+    current = pid
+    for _ in range(6):
+        parent = _read_parent_pid(current)
+        if not parent:
+            return False
+        cmdline = _read_proc_cmdline(parent)
+        if "llama-server" not in cmdline:
+            return False
+        args = shlex.split(cmdline)
+        port = _extract_arg(args[1:], ("--port",)) or "8001"
+        if port in AUTHORISED_PORTS and "--models-dir" in args[1:]:
+            return True
+        current = parent
+    return False
+
+
 def check_gpu_process_topology() -> dict:
     """Check running llama-server processes against the authorised manifest.
 
     Returns dict with:
-        authorised: list of process dicts on canonical ports
-        rogue: list of process dicts on non-canonical ports
+        authorised: list of process dicts on canonical ports or router-owned child ports
+        rogue: list of independent process dicts on non-canonical ports
         clean: bool — True if no rogues detected
     """
     procs = find_all_llama_server_processes()
-    authorised = [p for p in procs if p["port"] in AUTHORISED_PORTS]
-    rogue = [p for p in procs if p["port"] not in AUTHORISED_PORTS]
+    authorised = [p for p in procs if p["port"] in AUTHORISED_PORTS or _is_router_owned_child_process(p["pid"])]
+    rogue = [p for p in procs if p not in authorised]
     return {
         "authorised": authorised,
         "rogue": rogue,

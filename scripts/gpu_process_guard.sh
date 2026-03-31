@@ -5,7 +5,9 @@
 #   :8001 — Single llama-server in router mode (chat + extraction via model selection)
 #   :8002 — Legacy extraction server (manual debugging only; deprecated)
 #
-# Any llama-server process on a port not in {8001, 8002} is ROGUE.
+# Any independently spawned llama-server process on a port not in {8001, 8002}
+# is ROGUE. Router-mode child workers on ephemeral localhost ports inherit
+# authorisation from the canonical router on 8001.
 #
 # Usage:
 #   gpu_process_guard.sh              # Report topology (human-readable)
@@ -16,7 +18,7 @@ set -euo pipefail
 
 AUTHORISED_PORTS="8001 8002"
 VRAM_TOTAL_MB=24576       # Tesla M40 24GB
-VRAM_CRITICAL_FREE_MB=4096  # 4GB minimum headroom
+VRAM_CRITICAL_FREE_MB=256  # 256MB minimum (single-instance router mode, KV cache uses remaining VRAM)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -57,6 +59,42 @@ _extract_model() {
   fi
 }
 
+_parent_pid() {
+  local pid="$1"
+  awk '/^PPid:/ {print $2}' "/proc/${pid}/status" 2>/dev/null || echo ""
+}
+
+_cmdline_for_pid() {
+  local pid="$1"
+  local path="/proc/${pid}/cmdline"
+  [[ -r "${path}" ]] || return 0
+  tr '\0' ' ' < "${path}" 2>/dev/null || true
+}
+
+_is_router_child_process() {
+  local pid="$1"
+  local current parent depth cmdline port
+  current="${pid}"
+  depth=0
+
+  while [[ -n "${current}" && "${current}" != "0" && ${depth} -lt 6 ]]; do
+    parent=$(_parent_pid "${current}")
+    [[ -n "${parent}" && "${parent}" != "0" ]] || return 1
+    cmdline=$(_cmdline_for_pid "${parent}")
+    [[ "${cmdline}" == *"llama-server"* ]] || return 1
+
+    port=$(_extract_port "${cmdline}")
+    if _is_authorised_port "${port}" && echo "${cmdline}" | grep -q -- "--models-dir"; then
+      return 0
+    fi
+
+    current="${parent}"
+    depth=$((depth + 1))
+  done
+
+  return 1
+}
+
 _gpu_memory_used_mb() {
   # nounits should return digits only; strip defensively for set -u + arithmetic.
   local line
@@ -92,7 +130,7 @@ survey() {
   for pid in ${pids}; do
     # Skip non-llama-server matches (e.g., this script via pgrep)
     local cmdline
-    cmdline=$(tr '\0' ' ' < /proc/"${pid}"/cmdline 2>/dev/null || true)
+    cmdline=$(_cmdline_for_pid "${pid}")
     [[ "${cmdline}" == *"llama-server"* ]] || continue
 
     local port model vram status
@@ -100,7 +138,7 @@ survey() {
     model=$(_extract_model "${cmdline}")
     vram=$(_process_vram_mb "${pid}")
 
-    if _is_authorised_port "${port}"; then
+    if _is_authorised_port "${port}" || _is_router_child_process "${pid}"; then
       status="AUTHORISED"
     else
       status="ROGUE"

@@ -335,3 +335,49 @@ def test_load_model_api_surfaces_http_error_body(monkeypatch):
 
     assert ok is False
     assert any("HTTP 503" in message for message in messages)
+
+
+def test_check_gpu_process_topology_treats_router_child_worker_as_authorised(monkeypatch):
+    router_proc = {
+        "pid": 100,
+        "binary": "/usr/bin/llama-server",
+        "port": "8001",
+        "router_mode": True,
+    }
+    child_proc = {
+        "pid": 200,
+        "binary": "/usr/bin/llama-server",
+        "port": "48039",
+        "router_mode": False,
+    }
+    monkeypatch.setattr(manager, "find_all_llama_server_processes", lambda: [router_proc, child_proc])
+    monkeypatch.setattr(manager, "_is_router_owned_child_process", lambda pid: pid == 200)
+
+    topology = manager.check_gpu_process_topology()
+
+    assert topology["clean"] is True
+    assert topology["rogue"] == []
+    assert topology["authorised"] == [router_proc, child_proc]
+
+
+def test_check_gpu_process_topology_keeps_unrelated_ephemeral_server_as_rogue(monkeypatch):
+    router_proc = {
+        "pid": 100,
+        "binary": "/usr/bin/llama-server",
+        "port": "8001",
+        "router_mode": True,
+    }
+    rogue_proc = {
+        "pid": 300,
+        "binary": "/usr/bin/llama-server",
+        "port": "48039",
+        "router_mode": False,
+    }
+    monkeypatch.setattr(manager, "find_all_llama_server_processes", lambda: [router_proc, rogue_proc])
+    monkeypatch.setattr(manager, "_is_router_owned_child_process", lambda pid: False)
+
+    topology = manager.check_gpu_process_topology()
+
+    assert topology["clean"] is False
+    assert topology["authorised"] == [router_proc]
+    assert topology["rogue"] == [rogue_proc]

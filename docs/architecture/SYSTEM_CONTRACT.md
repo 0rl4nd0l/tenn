@@ -426,11 +426,13 @@ The GPU (Tesla M40, 24GB) has a fixed process budget.
 
 **Total allocated:** 20 GB. **Headroom:** 4 GB (Ollama embeddings + OS + CUDA context).
 
-**Rogue definition:** Any `llama-server` process whose `--port` is not in `{8001, 8002}`.
+**Rogue definition:** Any top-level or independently spawned `llama-server` process whose `--port` is not in `{8001, 8002}`.
+
+**Router-mode exception:** In router mode, the canonical service on `:8001` may spawn per-model child worker processes on ephemeral localhost ports. Those children are part of the authorised router runtime, not independent instances, and must not be classified as rogue solely by child port.
 
 Invariants:
 * Agents and scripts MUST NOT spawn additional llama-server instances on non-canonical ports.
-* If a third instance is found running, it MUST be terminated before proceeding.
+* If an independent third instance is found running, it MUST be terminated before proceeding.
 * Verification: `scripts/gpu_process_guard.sh --check` (exit 0=clean, 1=rogues, 2=VRAM critical).
 
 ---
