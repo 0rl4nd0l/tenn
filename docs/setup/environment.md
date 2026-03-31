@@ -12,10 +12,10 @@ The active runtime is `financial-engine_v2`. The canonical env file lives at `fi
 | `LLAMACPP_URL` | `http://127.0.0.1:8001` | llama.cpp endpoint for chat, coding, and routing. |
 | `EXTRACTION_BACKEND` | `pymupdf` | PDF structure extraction backend. `pymupdf` (default): fast PyMuPDF `find_tables()`, ~1-25s, no ML models. `docling`: IBM docling with TableFormer, 120s+, for complex/scanned PDFs. |
 | `EXTRACTION_LLAMACPP_URL` | _(falls back to `LLAMACPP_URL`)_ | Dedicated llama.cpp endpoint for PDF extraction. When set, multipass extraction and commentary extraction use this instead of `LLAMACPP_URL`. Allows running an instruct model for extraction on a separate GPU/instance from the chat/coding server. |
-| `EXTRACT_MODEL` | `qwen2.5-14b-instruct` | Model name for extraction workloads. Should be an instruct-tuned model (not a coder model) for reliable structured JSON output from financial documents. |
+| `EXTRACT_MODEL` | `qwen2.5-14b-instruct` | Model name for extraction workloads. In router mode, extraction requests this model by name and the server loads it on demand. Should be an instruct-tuned model for reliable structured JSON output from financial documents. |
 | `LLM_API_KEY` | `local-openai-key` | Used for local OpenAI-compatible auth. |
 | `LLAMA_SERVER_ROUTER_MODE` | `1` | Enable router mode for zero-downtime model switching (`~/.config/tenn/llama-server.env`). Set to `0` for single-model legacy mode. |
-| `LLAMA_SERVER_MODELS_DIR` | `$ROOT/models` | Directory of `.gguf` files for router mode model discovery (`~/.config/tenn/llama-server.env`). |
+| `LLAMA_SERVER_MODELS_DIR` | `/mnt/nvme/tenn/models` | Directory of `.gguf` files for router mode model discovery (`~/.config/tenn/llama-server.env`). The launcher now fails instead of silently falling back to a repo-local models directory. |
 | `LLAMA_SERVER_MMAP` | `1` | Set to `0` so `scripts/run_llama_server.sh` and `scripts/run_extraction_server.sh` pass `--no-mmap` when mmap-based load stalls on Tesla M40 (see `docs/ops/09_llama_server_m40_model_load_runbook.md`). |
 | `EMBEDDING_BATCH_SIZE` | `32` | Default embedding batch size. |
 | `ROUTER_FEEDBACK_ENABLED` | `true` | Enables analyzer feedback in routing. |
@@ -57,18 +57,26 @@ Point the LLM endpoint to a different host:
 LLAMACPP_URL=http://192.168.1.50:8001
 ```
 
-Separate extraction from chat (recommended for production):
+Single-instance router mode (default — recommended):
 
 ```dotenv
-# Chat/coding server — loads qwen2.5-coder-14b or similar
+# Single llama-server in router mode on 8001.
+# All models served from NVMe; clients select per-request via "model" field.
+# Chat default: qwen3-30b-a3b-instruct (llmfit score 94.0)
+# Extraction: qwen2.5-14b-instruct (requested by model name, loaded on demand)
 LLAMACPP_URL=http://127.0.0.1:8001
+EXTRACT_MODEL=qwen2.5-14b-instruct
+```
 
-# Extraction server — loads qwen2.5-14b-instruct for PDF metric extraction
+Legacy dual-server mode (set `EXTRACTION_LLAMACPP_URL` to enable):
+
+```dotenv
+LLAMACPP_URL=http://127.0.0.1:8001
 EXTRACTION_LLAMACPP_URL=http://127.0.0.1:8002
 EXTRACT_MODEL=qwen2.5-14b-instruct
 ```
 
-When `EXTRACTION_LLAMACPP_URL` is not set, extraction uses `LLAMACPP_URL` (single-server mode).
+When `EXTRACTION_LLAMACPP_URL` is not set, extraction uses `LLAMACPP_URL` (single-server router mode).
 
 Switch Redis/Qdrant to Docker service names:
 

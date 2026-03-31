@@ -259,7 +259,11 @@ class ChatController:
                 reflection_svc = None
                 try:
                     from cockpit.core.research.signal_engine import ScreenRunner, TickerScorer
-                    ticker_scorer = TickerScorer(tool_router, state_store=state_store)
+                    ticker_scorer = TickerScorer(
+                        tool_router,
+                        state_store=state_store,
+                        strategy_service=self._strategy_service,
+                    )
                     screen_runner = ScreenRunner(ticker_scorer, state_store=state_store)
                 except Exception as exc:
                     logger.warning("Signal engine init failed: %s", exc)
@@ -271,7 +275,7 @@ class ChatController:
                 try:
                     from cockpit.core.research.risk_gate import RiskGate
                     risk_gate_svc = RiskGate(
-                        hybrid_router=hybrid_router,
+                        backend_client=tool_router.backend_api_client,
                         dossier_service=dossier_svc,
                     )
                 except Exception as exc:
@@ -1027,6 +1031,45 @@ class ChatController:
                     instruction += "\nPrior session context:\n" + "\n".join(session_lines) + "\n"
             except Exception:
                 pass
+
+        # Tool selection guide — helps the LLM pick the right tool on first attempt.
+        instruction += (
+            "\n## Tool Selection Guide\n"
+            "\n"
+            "**For quick lookups:**\n"
+            "- `get_price` — current price + technicals (RSI, SMA, trend)\n"
+            "- `get_financials` — extracted financial metrics\n"
+            "- `query_ticker_data` — documents, announcements, context\n"
+            "\n"
+            "**For analysis:**\n"
+            "- `score_ticker` — composite 0-100 score with breakdown (use for single ticker assessment)\n"
+            "- `screen_tickers` — rank multiple tickers (use instead of looping score_ticker)\n"
+            "- `get_valuation` — PE, FCF yield, EV/EBIT multiples\n"
+            "- `run_analysis` — full 7-module analysis pipeline (balance sheet, ROIC, risk, valuation, catalysts, sentiment, moat)\n"
+            "- `deep_research` — multi-source research synthesis (web + social + news + dossier)\n"
+            "\n"
+            "**For strategy:**\n"
+            "- `get_thesis` — active investment theses with evidence\n"
+            "- `create_thesis` — record a new thesis with signal (BUY→SELL) + risk gate debate\n"
+            "- `score_ticker` first, then `create_thesis` — always score before creating a thesis\n"
+            "\n"
+            "**For monitoring:**\n"
+            "- `get_watchlist_alerts` — recent material changes from background scanner\n"
+            "- `scan_watchlist` — trigger full watchlist analysis now\n"
+            "- `review_open_decisions` — decisions needing reflection\n"
+            "\n"
+            "**For research:**\n"
+            "- `search_news` — Australian financial news (RAG, last 30 days)\n"
+            "- `search_announcements` — ASX filings (all time)\n"
+            "- `search_web` — broader web (external sources)\n"
+            "- `search_social` — Hacker News developer sentiment\n"
+            "- `recall_dossier` — accumulated research memory for a ticker\n"
+            "\n"
+            "**Tool dependencies:**\n"
+            "- `get_valuation` needs financials — call `get_financials` first if data is stale\n"
+            "- `create_thesis` benefits from `score_ticker` context — score first\n"
+            "- `screen_tickers([])` with empty list uses the watchlist automatically\n"
+        )
 
         return instruction
 

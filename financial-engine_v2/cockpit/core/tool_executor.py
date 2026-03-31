@@ -204,8 +204,9 @@ class ToolExecutor:
         if not ticker:
             return {"ok": False, "error": "ticker is required"}
         limit = int(args.get("limit", 6))
-        backend_fin = self._get_financials_via_backend(ticker, limit)
-        financials = backend_fin if backend_fin is not None else self._router.db_reader.get_financials(ticker, limit=limit)
+        financials = self._get_financials_via_backend(ticker, limit)
+        if financials is None:
+            return {"ok": False, "ticker": ticker, "error": "backend API client not configured or request failed"}
         narrative = self._router._build_financials_narrative(financials) if financials else ""
         return {
             "ok": bool(financials),
@@ -245,11 +246,9 @@ class ToolExecutor:
         if not ticker:
             return {"ok": False, "error": "ticker is required for announcement search"}
         backend_ctx = self._get_announcements_via_backend(ticker, limit)
-        if backend_ctx is not None:
-            docs, context = backend_ctx
-        else:
-            docs = self._router.db_reader.get_docs(ticker, limit=limit)
-            context = self._router.db_reader.get_announcement_context(ticker, limit=limit)
+        if backend_ctx is None:
+            return {"ok": False, "ticker": ticker, "error": "backend API client not configured or request failed"}
+        docs, context = backend_ctx
         return {
             "ok": bool(docs or context),
             "ticker": ticker,
@@ -304,15 +303,9 @@ class ToolExecutor:
         if not ticker:
             return {"ok": False, "error": "ticker is required"}
         backend_dq = self._get_data_quality_via_backend(ticker)
-        if backend_dq is not None:
-            extraction_failures, low_conf = backend_dq
-        else:
-            extraction_failures = self._router.db_reader.get_extraction_failures(
-                limit=8, ticker=ticker,
-            )
-            low_conf = self._router.db_reader.get_low_confidence_financials(
-                threshold=0.4, limit=8, ticker=ticker,
-            )
+        if backend_dq is None:
+            return {"ok": False, "ticker": ticker, "error": "backend API client not configured or request failed"}
+        extraction_failures, low_conf = backend_dq
         quality = self._router._build_data_quality_payload(
             extraction_failures=extraction_failures if isinstance(extraction_failures, list) else [],
             low_conf_rows=low_conf if isinstance(low_conf, list) else [],
@@ -606,6 +599,78 @@ class ToolExecutor:
             result["suggestion"] = suggestion
         return result
 
+    # ------------------------------------------------------------------
+    # Strategy tools (score, screen, valuation, thesis, reflection)
+    # ------------------------------------------------------------------
+
+    def _exec_score_ticker(self, args: dict[str, Any]) -> dict[str, Any]:
+        ticker = str(args.get("ticker", "")).strip().upper()
+        if not ticker:
+            return {"ok": False, "error": "ticker is required"}
+        if self._ticker_scorer is None:
+            return {"ok": False, "error": "ticker scorer not available"}
+        return self._ticker_scorer.score(ticker)
+
+    def _exec_screen_tickers(self, args: dict[str, Any]) -> dict[str, Any]:
+        raw_tickers = args.get("tickers") or []
+        tickers = [str(t).strip().upper() for t in raw_tickers if t]
+        filters: dict[str, Any] = {}
+        for key in ("min_health_score", "trend_regime", "min_fcf_yield", "max_pe"):
+            val = args.get(key)
+            if val is not None:
+                filters[key] = val
+        if self._screen_runner is None:
+            return {"ok": False, "error": "screen runner not available"}
+        return self._screen_runner.run(tickers or None, filters=filters)
+
+    def _exec_get_valuation(self, args: dict[str, Any]) -> dict[str, Any]:
+        ticker = str(args.get("ticker", "")).strip().upper()
+        if not ticker:
+            return {"ok": False, "error": "ticker is required"}
+        try:
+            from backend.app.services.analysis.financial_metrics import (  # type: ignore[import-untyped]
+                compute_valuation_multiples,
+            )
+            from cockpit.core.research.signal_engine import _row_to_dict
+
+            rows = []
+            if self._router.backend_api_client:
+                ctx = self._router.backend_api_client.get_ticker_context(ticker, financials_limit=1)
+                rows = ctx.get("financials", [])
+            if not rows:
+                return {"ok": False, "error": f"No financials found for {ticker}"}
+            price_ctx = self._router.get_price_context_for_window(
+                ticker=ticker, range_="1mo", interval="1d", max_history_rows=5,
+            )
+            last_close = (price_ctx or {}).get("price_state", {}).get("last_close")
+            if not last_close:
+                return {"ok": False, "error": f"No price data for {ticker}"}
+            multiples = compute_valuation_multiples(float(last_close), _row_to_dict(rows[0]))
+            return {"ok": True, "ticker": ticker, "price": last_close, **multiples}
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)[:300]}
+
+    def _exec_get_thesis(self, args: dict[str, Any]) -> dict[str, Any]:
+        ticker = str(args.get("ticker", "")).strip().upper()
+        if not ticker:
+            return {"ok": False, "error": "ticker is required"}
+        if self._thesis_service is None:
+            return {"ok": True, "ticker": ticker, "theses": [], "message": "thesis service not available"}
+        return {"ok": True, "ticker": ticker, "theses": self._thesis_service.get_active(ticker)}
+
+    def _exec_check_decision_outcome(self, args: dict[str, Any]) -> dict[str, Any]:
+        ticker = str(args.get("ticker", "")).strip().upper()
+        if not ticker:
+            return {"ok": False, "error": "ticker is required"}
+        if self._reflection_service is None:
+            return {"ok": False, "error": "reflection service not available"}
+        return self._reflection_service.check_outcome(ticker)
+
+    def _exec_review_open_decisions(self, args: dict[str, Any]) -> dict[str, Any]:  # noqa: ARG002
+        if self._reflection_service is None:
+            return {"ok": True, "decisions": [], "message": "reflection service not available"}
+        return {"ok": True, "decisions": self._reflection_service.review_open_decisions()}
+
     # Dispatch table: tool_name -> handler method
     _READ_ONLY_DISPATCH: dict[str, Any] = {
         "query_ticker_data": _exec_query_ticker_data,
@@ -627,6 +692,12 @@ class ToolExecutor:
         "get_watchlist_alerts": _exec_get_watchlist_alerts,
         "scan_watchlist": _exec_scan_watchlist,
         "run_analysis": _exec_run_analysis,
+        "score_ticker": _exec_score_ticker,
+        "screen_tickers": _exec_screen_tickers,
+        "get_valuation": _exec_get_valuation,
+        "get_thesis": _exec_get_thesis,
+        "check_decision_outcome": _exec_check_decision_outcome,
+        "review_open_decisions": _exec_review_open_decisions,
     }
 
     # ------------------------------------------------------------------
@@ -644,6 +715,10 @@ class ToolExecutor:
         "audit_financials": "audit_ticker_financials",
         "generate_chart": "show_candlestick",
         "save_research_finding": "_dossier_direct",  # handled directly, not via ActionRegistry
+        "create_thesis": "_strategy_direct",
+        "add_thesis_evidence": "_strategy_direct",
+        "reflect_on_decision": "_strategy_direct",
+        "adjust_signal_weights": "_strategy_direct",
     }
 
     # Maps agentic tool argument names to ActionRegistry argument names.
@@ -664,6 +739,10 @@ class ToolExecutor:
         # save_research_finding bypasses ActionRegistry — it's a direct dossier write.
         if tool_name == "save_research_finding":
             return self._propose_dossier_save(args)
+        if tool_name in ("create_thesis", "add_thesis_evidence", "reflect_on_decision"):
+            return self._propose_strategy_action(tool_name, args)
+        if tool_name == "adjust_signal_weights":
+            return self._propose_adjust_signal_weights(args)
 
         # Validate extraction inputs before building the proposal.  This runs
         # at proposal time (pre-confirmation) so the user sees the error early
@@ -739,6 +818,118 @@ class ToolExecutor:
                 "confidence": float(args.get("confidence", 0.5)),
                 "category": str(args.get("category", "general")).strip(),
             },
+            "requires_confirmation": True,
+            "is_mutating": True,
+            "timeout_seconds": 5,
+        }
+
+    def _propose_strategy_action(self, tool_name: str, args: dict[str, Any]) -> dict[str, Any]:
+        """Build an action proposal for strategy mutating tools."""
+        ticker = str(args.get("ticker", "")).strip().upper()
+
+        if tool_name == "create_thesis":
+            thesis_text = str(args.get("thesis", "")).strip()
+            signal = str(args.get("signal", "HOLD")).strip().upper()
+            if not ticker or not thesis_text:
+                return {"tool": tool_name, "ok": False, "error": "ticker and thesis are required"}
+            if self._thesis_service is None:
+                return {"tool": tool_name, "ok": False, "error": "thesis service not available"}
+            return {
+                "tool": tool_name,
+                "ok": True,
+                "type": "action_proposal",
+                "action_id": "create_thesis",
+                "action_label": f"Create {signal} thesis for {ticker}",
+                "arguments": {
+                    "ticker": ticker, "thesis": thesis_text, "signal": signal,
+                    "run_risk_gate": bool(args.get("run_risk_gate", True)),
+                },
+                "requires_confirmation": True,
+                "is_mutating": True,
+                "timeout_seconds": 60,
+            }
+
+        if tool_name == "add_thesis_evidence":
+            finding = str(args.get("finding", "")).strip()
+            if not ticker or not finding:
+                return {"tool": tool_name, "ok": False, "error": "ticker and finding are required"}
+            if self._thesis_service is None:
+                return {"tool": tool_name, "ok": False, "error": "thesis service not available"}
+            is_supporting = bool(args.get("is_supporting", True))
+            label = "supporting" if is_supporting else "disconfirming"
+            return {
+                "tool": tool_name,
+                "ok": True,
+                "type": "action_proposal",
+                "action_id": "add_thesis_evidence",
+                "action_label": f"Add {label} evidence for {ticker} thesis",
+                "arguments": {"ticker": ticker, "finding": finding, "is_supporting": is_supporting},
+                "requires_confirmation": True,
+                "is_mutating": True,
+                "timeout_seconds": 5,
+            }
+
+        if tool_name == "reflect_on_decision":
+            if not ticker:
+                return {"tool": tool_name, "ok": False, "error": "ticker is required"}
+            if self._reflection_service is None:
+                return {"tool": tool_name, "ok": False, "error": "reflection service not available"}
+            return {
+                "tool": tool_name,
+                "ok": True,
+                "type": "action_proposal",
+                "action_id": "reflect_on_decision",
+                "action_label": f"Reflect on {ticker} decision and record lesson",
+                "arguments": {"ticker": ticker},
+                "requires_confirmation": True,
+                "is_mutating": True,
+                "timeout_seconds": 30,
+            }
+
+        return {"tool": tool_name, "ok": False, "error": f"Unknown strategy tool: {tool_name}"}
+
+    def _propose_adjust_signal_weights(self, args: dict[str, Any]) -> dict[str, Any]:
+        """Build a proposal to adjust composite signal weights."""
+        if self._strategy_service is None:
+            return {"tool": "adjust_signal_weights", "ok": False, "error": "strategy service not available"}
+
+        weights = {
+            "health": args.get("health"),
+            "momentum": args.get("momentum"),
+            "valuation": args.get("valuation"),
+            "technical": args.get("technical"),
+        }
+        # Early validation so the user sees errors before confirmation.
+        try:
+            from cockpit.core.strategy import StrategyService
+            # Validate without storing — just check the values.
+            required_keys = set(StrategyService._DEFAULT_SIGNAL_WEIGHTS)
+            for k in required_keys:
+                v = weights.get(k)
+                if v is None or not isinstance(v, (int, float)) or v < 0:
+                    return {
+                        "tool": "adjust_signal_weights",
+                        "ok": False,
+                        "error": f"Weight '{k}' must be a non-negative number, got {v!r}",
+                    }
+            total = sum(float(weights[k]) for k in required_keys)
+            if abs(total - 1.0) > 0.05:
+                return {
+                    "tool": "adjust_signal_weights",
+                    "ok": False,
+                    "error": f"Weights must sum to ~1.0 (tolerance 0.05). Got {total:.4f}",
+                }
+        except Exception as exc:
+            return {"tool": "adjust_signal_weights", "ok": False, "error": str(exc)}
+
+        label_parts = [f"{k}={v:.2f}" for k, v in weights.items() if v is not None]
+        return {
+            "tool": "adjust_signal_weights",
+            "ok": True,
+            "type": "action_proposal",
+            "action_id": "adjust_signal_weights",
+            "action_label": f"Set signal weights: {', '.join(label_parts)}",
+            "arguments": weights,
             "requires_confirmation": True,
             "is_mutating": True,
             "timeout_seconds": 5,

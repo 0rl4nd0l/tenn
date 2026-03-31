@@ -324,3 +324,47 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** Two independent issues: (1) `TICKER_STOPWORDS` was missing common English words (WHY, ARE, FAIL, RIGHT, WAS, HAS, GOT, GET, etc.) so `_detect_ticker` treated them as valid ASX tickers. (2) `_FOLLOW_UP_RE` matched discourse markers ("sure", "okay", "yes", "go ahead", "also", "continue", "right") in addition to financial terms, causing prior-ticker reattachment for any message containing conversational fillers.
 **Fix:** Expanded `TICKER_STOPWORDS` with ~20 missing common English words. Rewrote `_FOLLOW_UP_RE` to match only topic-referential phrases (financial terms like "financials", "earnings", "revenue"; entity pronouns like "their", "its"; explicit continuation like "tell me more") — removed all discourse markers. Added 9 regression tests covering stopwords, follow-up matching, compound messages, and cued tickers.
 **Rule:** When adding a fast-path that fires before intent classification, the deny-list must be exhaustive for false positives. Conversational fillers (discourse markers) are never entity-referential — do not treat them as follow-up signals for ticker context.
+
+---
+
+## L030 — Extraction prompts must include sector-specific guidance for non-industrial companies
+
+**Date:** 2026-03-31
+**Subsystem:** `backend/app/services/multipass_extraction.py`, Pass 3a prompt
+**Symptom:** ANZ extraction accuracy at 81.82% (target 88%+). EBIT failing (72.73%) because LLM inconsistently chose "Profit before credit impairment" over "Profit before income tax". Shares outstanding failing (50%) because count is in narrative Note 13, not a structured table. Net debt being extracted when it should be null (banks don't have traditional debt). Capex at 77.78% because "Net investments in other assets" wasn't reinforced as the banking capex label.
+**Root cause:** The extraction prompt was designed for mining/industrial companies. Banking financial statements use fundamentally different concepts: credit impairment is an operating cost (not exceptional), revenue is "Operating income" (not "Revenue"), balance sheets have deposits (not debt), and share counts appear in notes rather than formal tables. The prior L025 fix added the CRITICAL EBIT instruction but lacked a holistic banking context that helps the LLM understand *why* these distinctions matter.
+**Fix:** Added a consolidated "BANKING / FINANCIAL INSTITUTION GUIDANCE" section to the Pass 3a prompt covering all 5 affected metrics. Added banking-specific keywords to row filters (credit impairment, net interest, deposits, net investments) so critical bank rows survive the >20-row filter. Added narrative fallback instruction for shares_outstanding. Added bank-specific total_debt/net_debt null rules.
+**Rule:** When adding extraction support for a new sector, audit ALL metrics against that sector's actual financial statement structure — not just the one that failed. Sector differences are systemic, not isolated. A single-metric fix (L025) will leave adjacent metrics broken because they share the same structural assumptions.
+
+---
+
+## L031 — Sector-relative scoring transforms absolute metrics into actionable signals
+
+**Date:** 2026-03-31
+**Subsystem:** `backend/app/services/analysis/sector_comparison.py`, `cockpit/core/research/signal_engine.py`
+**Symptom:** `score_ticker("BHP")` returned a composite score of 72/100 but this was meaningless without context — is 72 good or bad for a Materials company? PE of 12 looks cheap in absolute terms but might be expensive for mining.
+**Root cause:** All scoring used absolute thresholds (PE < 15 = "cheap") rather than sector-relative percentiles.
+**Fix:** Created `sector_comparison.py` with 10 GICS sector mappings and 150+ ASX tickers. `compare_to_sector()` computes percentile rank for PE, FCF yield, revenue growth, EBIT margin against sector medians. `signal_engine.py` now blends 40% absolute + 60% sector-relative for valuation scoring. Sector stats cached for 24 hours.
+**Rule:** Any financial metric used for scoring or screening MUST be evaluated relative to sector peers, not just against absolute thresholds. Absolute thresholds are only valid as a baseline when sector data is unavailable. The `sector_comparison` module is the canonical source for peer-relative metrics.
+
+---
+
+## L032 — Thesis auto-invalidation prevents stale bullish views from persisting after negative evidence
+
+**Date:** 2026-03-31
+**Subsystem:** `cockpit/core/research/thesis.py`
+**Symptom:** A BUY thesis could accumulate 5 pieces of disconfirming evidence with 0 supporting, yet remain "active" indefinitely because invalidation was manual.
+**Root cause:** The thesis lifecycle had no automatic feedback loop from evidence to status.
+**Fix:** `add_evidence()` now calls `auto_evaluate()` after adding disconfirming evidence. Auto-invalidation triggers when disconfirming >= 2x supporting OR disconfirming >= 3 with 0 supporting. `expire_stale(90d)` runs in the watchlist scanner to catch forgotten theses.
+**Rule:** Any persistent decision (thesis, signal, allocation) must have an automatic invalidation mechanism that triggers when evidence changes. Manual review alone is insufficient — the system must protect against stale views.
+
+---
+
+## L033 — Tool routing guidance in the system prompt dramatically improves tool selection accuracy
+
+**Date:** 2026-03-31
+**Subsystem:** `cockpit/core/chat.py`
+**Symptom:** With 38 tools, the LLM sometimes chose `search_news` when `deep_research` was more appropriate, or looped `score_ticker` instead of using `screen_tickers`.
+**Root cause:** Tool descriptions alone don't convey when to use one tool vs another. The LLM needs explicit routing guidance for overlapping tools.
+**Fix:** Added `## Tool Selection Guide` to the system prompt with 5 categories (quick lookups, analysis, strategy, monitoring, research) and dependency hints ("score before creating thesis", "screen_tickers uses watchlist if empty").
+**Rule:** When the cockpit has >25 tools, the system prompt MUST include a tool routing guide. Update the guide whenever tools are added or renamed. The guide is not documentation — it's an active part of the LLM's decision-making context.

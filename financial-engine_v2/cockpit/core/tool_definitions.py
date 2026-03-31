@@ -479,6 +479,105 @@ _READ_ONLY_TOOLS: list[dict[str, Any]] = [
         },
         "mutating": False,
     },
+    # --- Strategy tools (Phase 1-3) ---
+    {
+        "name": "score_ticker",
+        "description": (
+            "Compute a composite investment score (0-100) for an ASX ticker. "
+            "Combines financial health, valuation multiples, momentum, and "
+            "technical indicators into a single ranked score with breakdown."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {"type": "string", "description": "ASX ticker symbol"},
+            },
+            "required": ["ticker"],
+        },
+        "mutating": False,
+    },
+    {
+        "name": "screen_tickers",
+        "description": (
+            "Screen and rank multiple tickers by composite score. If no tickers "
+            "provided, screens the watchlist. Supports filters for minimum scores, "
+            "trend regimes, and valuation thresholds."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "tickers": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "ASX tickers to screen. Empty = use watchlist.",
+                },
+                "min_health_score": {"type": "number", "description": "Minimum financial health score (0-100)"},
+                "trend_regime": {"type": "string", "description": "Filter by trend: bull, bear, neutral"},
+                "min_fcf_yield": {"type": "number", "description": "Minimum FCF yield percentage"},
+                "max_pe": {"type": "number", "description": "Maximum P/E ratio"},
+            },
+            "required": [],
+        },
+        "mutating": False,
+    },
+    {
+        "name": "get_valuation",
+        "description": (
+            "Get valuation multiples for an ASX ticker: market cap, P/E ratio, "
+            "FCF yield, EV/EBIT. Combines current price with latest financials."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {"type": "string", "description": "ASX ticker symbol"},
+            },
+            "required": ["ticker"],
+        },
+        "mutating": False,
+    },
+    {
+        "name": "get_thesis",
+        "description": (
+            "Get active investment theses for a ticker, including evidence "
+            "balance, risk assessment, and signal."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {"type": "string", "description": "ASX ticker symbol"},
+            },
+            "required": ["ticker"],
+        },
+        "mutating": False,
+    },
+    {
+        "name": "check_decision_outcome",
+        "description": (
+            "Check what happened since a strategy decision was made. Returns "
+            "price change, score change, and outcome quality assessment."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {"type": "string", "description": "ASX ticker to check"},
+            },
+            "required": ["ticker"],
+        },
+        "mutating": False,
+    },
+    {
+        "name": "review_open_decisions",
+        "description": (
+            "List all strategy decisions that haven't been reviewed yet. "
+            "Shows which decisions need reflection based on time elapsed."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+        "mutating": False,
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -682,6 +781,75 @@ _MUTATING_TOOLS: list[dict[str, Any]] = [
                 },
             },
             "required": ["ticker"],
+        },
+        "mutating": True,
+    },
+    # --- Strategy mutating tools ---
+    {
+        "name": "create_thesis",
+        "description": (
+            "Create a structured investment thesis for a ticker with a specific "
+            "signal (BUY/OVERWEIGHT/HOLD/UNDERWEIGHT/SELL). Runs a bull/bear "
+            "risk gate debate to validate the thesis."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {"type": "string", "description": "ASX ticker symbol"},
+                "thesis": {"type": "string", "description": "The investment thesis statement"},
+                "signal": {"type": "string", "description": "Signal: BUY, OVERWEIGHT, HOLD, UNDERWEIGHT, SELL"},
+                "run_risk_gate": {"type": "boolean", "description": "Run bull/bear debate", "default": True},
+            },
+            "required": ["ticker", "thesis", "signal"],
+        },
+        "mutating": True,
+    },
+    {
+        "name": "add_thesis_evidence",
+        "description": (
+            "Add supporting or disconfirming evidence to the active thesis for a ticker."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {"type": "string", "description": "ASX ticker symbol"},
+                "finding": {"type": "string", "description": "The evidence finding text"},
+                "is_supporting": {"type": "boolean", "description": "True=supporting, False=disconfirming", "default": True},
+            },
+            "required": ["ticker", "finding"],
+        },
+        "mutating": True,
+    },
+    {
+        "name": "reflect_on_decision",
+        "description": (
+            "Review the outcome of a past strategy decision and record the "
+            "lesson to situation memory for future learning."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {"type": "string", "description": "ASX ticker to reflect on"},
+            },
+            "required": ["ticker"],
+        },
+        "mutating": True,
+    },
+    {
+        "name": "adjust_signal_weights",
+        "description": (
+            "Adjust the composite scoring weights. Weights must sum to approximately 1.0. "
+            "Default: health=0.40, momentum=0.25, valuation=0.20, technical=0.15"
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "health": {"type": "number", "description": "Weight for financial health sub-score"},
+                "momentum": {"type": "number", "description": "Weight for momentum sub-score"},
+                "valuation": {"type": "number", "description": "Weight for valuation sub-score"},
+                "technical": {"type": "number", "description": "Weight for technical sub-score"},
+            },
+            "required": ["health", "momentum", "valuation", "technical"],
         },
         "mutating": True,
     },

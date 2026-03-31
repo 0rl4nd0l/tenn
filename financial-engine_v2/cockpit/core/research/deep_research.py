@@ -82,17 +82,17 @@ class DeepResearchRunner:
         """Collect data from all available sources."""
         data: dict[str, Any] = {}
 
-        # Financials — backend API when configured, DbReader otherwise.
+        # Financials — backend API (authoritative).
         try:
+            financials = []
             if self._router.backend_api_client:
                 try:
                     ctx = self._router.backend_api_client.get_ticker_context(ticker, financials_limit=6)
                     financials = ctx.get("financials", [])
                 except Exception as exc:
                     logger.warning("deep_research: backend financials failed for %s: %s", ticker, exc)
-                    financials = []
             else:
-                financials = self._router.db_reader.get_financials(ticker, limit=6)
+                logger.warning("deep_research: backend API client not configured")
             if financials:
                 data["financials"] = financials[:3]  # Trim for context
         except Exception as exc:
@@ -127,8 +127,9 @@ class DeepResearchRunner:
             except Exception as exc:
                 logger.warning("deep_research: HN search failed: %s", exc)
 
-        # Announcements — backend API when configured, DbReader otherwise.
+        # Announcements — backend API (authoritative).
         try:
+            docs, context = [], []
             if self._router.backend_api_client:
                 try:
                     ctx = self._router.backend_api_client.get_ticker_context(ticker, docs_limit=5, announcements_limit=5)
@@ -136,10 +137,9 @@ class DeepResearchRunner:
                     context = ctx.get("announcement_context", [])
                 except Exception as exc:
                     logger.warning("deep_research: backend announcements failed for %s: %s", ticker, exc)
-                    docs, context = [], []
             else:
-                docs = self._router.db_reader.get_docs(ticker, limit=5)
-                context = self._router.db_reader.get_announcement_context(ticker, limit=5)
+                logger.warning("deep_research: backend API client not configured")
+
             if docs or context:
                 data["announcements"] = {
                     "documents": docs[:3] if docs else [],
@@ -156,6 +156,25 @@ class DeepResearchRunner:
                     data["prior_dossier"] = prior["findings"]
             except Exception as exc:
                 logger.warning("deep_research: dossier recall failed: %s", exc)
+
+        # Commentary / qualitative context (investor letters, transcripts).
+        if self._backend is not None:
+            try:
+                commentary = self._backend.rag_query(
+                    q=f"{ticker} outlook guidance strategy",
+                    top_k=3,
+                    ticker=ticker,
+                    source="company",
+                )
+                hits = commentary.get("results", []) if isinstance(commentary, dict) else []
+                if hits:
+                    data["commentary"] = [
+                        {"text": h.get("text", "")[:400], "source": h.get("source", "")}
+                        for h in hits[:3]
+                        if h.get("text")
+                    ]
+            except Exception as exc:
+                logger.debug("deep_research: commentary retrieval failed: %s", exc)
 
         # Strategy criteria (user-defined investment framework).
         if self._strategy is not None:

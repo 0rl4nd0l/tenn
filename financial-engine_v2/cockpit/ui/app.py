@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import re
 import shutil
@@ -55,6 +56,8 @@ from cockpit.ui.screens import (
     VerificationScreen,
 )
 from cockpit.ui.help_modal import HelpScreen
+
+logger = logging.getLogger(__name__)
 
 
 class CockpitApp(App):
@@ -461,6 +464,19 @@ class CockpitApp(App):
             if resume_action_id:
                 self._write_log(log_target, f"Resuming action: {resume_action_id}")
                 await self.execute_action(resume_action_id, resume_args, log_target=log_target, skip_confirm=True)
+            return True
+
+        if action_id == "adjust_signal_weights":
+            try:
+                from cockpit.core.strategy import StrategyService
+                svc = StrategyService(self.state_store)
+                result = svc.set_signal_weights(args)
+                self._write_log(
+                    log_target,
+                    f"Signal weights updated: {', '.join(f'{k}={v:.2f}' for k, v in result.items())}",
+                )
+            except (ValueError, Exception) as exc:
+                self._write_log(log_target, f"Failed to update signal weights: {exc}")
             return True
 
         if action_id == "__backend_proposal__":
@@ -1886,14 +1902,16 @@ class CockpitApp(App):
         return "Usage: /review list|approve|reject|approve-all|expired [source_id]"
 
     def _get_snapshot_data(self, ticker: str) -> tuple[dict | None, list]:
-        """Get latest financial snapshot + docs. Backend when configured, DbReader otherwise."""
-        if self._backend_client:
-            try:
-                ctx = self._backend_client.get_ticker_context(ticker, docs_limit=20, financials_limit=1)
-                return ctx.get("latest_financial_snapshot"), ctx.get("docs", [])
-            except Exception:
-                return None, []
-        return self.db_reader.get_latest_financial_snapshot(ticker), self.db_reader.get_docs(ticker=ticker, limit=20)
+        """Get latest financial snapshot + docs via backend API."""
+        if not self._backend_client:
+            logger.warning("Snapshot data requested but backend API client not configured")
+            return None, []
+        try:
+            ctx = self._backend_client.get_ticker_context(ticker, docs_limit=20, financials_limit=1)
+            return ctx.get("latest_financial_snapshot"), ctx.get("docs", [])
+        except Exception as exc:
+            logger.warning("Snapshot data fetch failed for %s: %s", ticker, exc)
+            return None, []
 
     async def run_updater_snapshot(self, ticker: str, years: int, process_documents: bool, log_target: str) -> None:
         before, _ = self._get_snapshot_data(ticker)

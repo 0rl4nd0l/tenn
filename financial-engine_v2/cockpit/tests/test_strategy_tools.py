@@ -135,10 +135,13 @@ class TestDeepResearchStrategyInjection:
         from cockpit.core.research.deep_research import DeepResearchRunner
 
         router = MagicMock()
-        router.backend_api_client = None  # Force DbReader fallback path
-        router.db_reader.get_financials.return_value = []
-        router.db_reader.get_docs.return_value = []
-        router.db_reader.get_announcement_context.return_value = []
+        mock_backend_api = MagicMock()
+        mock_backend_api.get_ticker_context.return_value = {
+            "financials": [],
+            "docs": [],
+            "announcement_context": [],
+        }
+        router.backend_api_client = mock_backend_api
 
         runner = DeepResearchRunner(
             tool_router=router,
@@ -154,10 +157,13 @@ class TestDeepResearchStrategyInjection:
         from cockpit.core.research.deep_research import DeepResearchRunner
 
         router = MagicMock()
-        router.backend_api_client = None  # Force DbReader fallback path
-        router.db_reader.get_financials.return_value = []
-        router.db_reader.get_docs.return_value = []
-        router.db_reader.get_announcement_context.return_value = []
+        mock_backend_api = MagicMock()
+        mock_backend_api.get_ticker_context.return_value = {
+            "financials": [],
+            "docs": [],
+            "announcement_context": [],
+        }
+        router.backend_api_client = mock_backend_api
 
         runner = DeepResearchRunner(
             tool_router=router,
@@ -170,10 +176,13 @@ class TestDeepResearchStrategyInjection:
         from cockpit.core.research.deep_research import DeepResearchRunner
 
         router = MagicMock()
-        router.backend_api_client = None  # Force DbReader fallback path
-        router.db_reader.get_financials.return_value = []
-        router.db_reader.get_docs.return_value = []
-        router.db_reader.get_announcement_context.return_value = []
+        mock_backend_api = MagicMock()
+        mock_backend_api.get_ticker_context.return_value = {
+            "financials": [],
+            "docs": [],
+            "announcement_context": [],
+        }
+        router.backend_api_client = mock_backend_api
 
         runner = DeepResearchRunner(
             tool_router=router,

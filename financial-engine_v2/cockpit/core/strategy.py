@@ -6,6 +6,7 @@ Builds a formatted context block for LLM injection during analysis.
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime, timezone
 from typing import Any
@@ -152,6 +153,66 @@ class StrategyService:
             cur = conn.execute("DELETE FROM ticker_strategy WHERE id = ?", (row_id,))
             conn.commit()
             return cur.rowcount > 0
+
+    # ------------------------------------------------------------------ #
+    # Signal weights                                                       #
+    # ------------------------------------------------------------------ #
+
+    # Default composite score weights (must sum to 1.0).
+    _DEFAULT_SIGNAL_WEIGHTS: dict[str, float] = {
+        "health": 0.40,
+        "momentum": 0.25,
+        "valuation": 0.20,
+        "technical": 0.15,
+    }
+
+    def get_signal_weights(self) -> dict[str, float]:
+        """Read signal weights from user_preferences. Returns defaults if not set."""
+        raw = self._store.get_preference("signal_weights", "")
+        if raw:
+            try:
+                weights = json.loads(raw)
+                if isinstance(weights, dict) and all(
+                    k in weights for k in self._DEFAULT_SIGNAL_WEIGHTS
+                ):
+                    return {k: float(weights[k]) for k in self._DEFAULT_SIGNAL_WEIGHTS}
+            except (json.JSONDecodeError, TypeError, ValueError):
+                pass
+        return dict(self._DEFAULT_SIGNAL_WEIGHTS)
+
+    def set_signal_weights(self, weights: dict[str, float]) -> dict[str, float]:
+        """Validate and store signal weights. Weights must sum to ~1.0 (within 0.05 tolerance).
+
+        Returns the stored weights dict.
+        Raises ValueError if validation fails.
+        """
+        required_keys = set(self._DEFAULT_SIGNAL_WEIGHTS)
+        provided_keys = set(weights)
+        if provided_keys != required_keys:
+            missing = required_keys - provided_keys
+            extra = provided_keys - required_keys
+            parts = []
+            if missing:
+                parts.append(f"missing: {', '.join(sorted(missing))}")
+            if extra:
+                parts.append(f"unexpected: {', '.join(sorted(extra))}")
+            raise ValueError(f"Invalid weight keys ({'; '.join(parts)}). Required: {', '.join(sorted(required_keys))}")
+
+        clean: dict[str, float] = {}
+        for k in required_keys:
+            v = weights[k]
+            if not isinstance(v, (int, float)) or v < 0:
+                raise ValueError(f"Weight '{k}' must be a non-negative number, got {v!r}")
+            clean[k] = round(float(v), 4)
+
+        total = sum(clean.values())
+        if abs(total - 1.0) > 0.05:
+            raise ValueError(
+                f"Weights must sum to approximately 1.0 (tolerance 0.05). Got {total:.4f}"
+            )
+
+        self._store.set_preference("signal_weights", json.dumps(clean))
+        return clean
 
     # ------------------------------------------------------------------ #
     # Context block builder                                                #

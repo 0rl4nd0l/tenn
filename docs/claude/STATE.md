@@ -4,7 +4,7 @@
 > Update this file at the end of every session alongside the milestone commit.
 > For detailed context on any item, follow the linked doc or run `git log --oneline`.
 
-Last updated: 2026-03-30 (session — cockpit docs alignment, startup docs correction, architecture/eval doc refresh)
+Last updated: 2026-03-31 (session — strategy system improvements: sector comparison, thesis auto-invalidation, tool routing guide, configurable weights, commentary in deep_research)
 Branch: cloud/session-20260319
 
 ## Legend
@@ -29,7 +29,7 @@ Branch: cloud/session-20260319
 | **extraction-quality** | `[ in-progress ]` | 88.64% accuracy on 8 fixtures (excl. AZJ). Docling restored as default (877a8203). ANZ 72.7% — banking revenue format regression to investigate. |
 | **extraction-perf** | `[ verified ]` | Docling default restored (877a8203). PyMuPDF available via EXTRACTION_BACKEND=pymupdf. |
 | **cockpit-agent** | `[ verified ]` | Agent mode + ToolExecutor verified via Textual Pilot 2026-03-27: all 7 checks PASS, 217 unit tests. |
-| **cockpit-strategy** | `[ verified ]` | Strategy schema (d173a8da): global + ticker criteria tables, StrategyService, /strategy commands, natural language rules, context injection. 10 tests. |
+| **cockpit-strategy** | `[ verified ]` | Strategy schema (d173a8da) + improvements (2026-03-31): signal engine (TickerScorer 0-100 composite + sector-relative via sector_comparison.py), thesis tracking (ThesisService JSONL, auto-invalidation on evidence ratio, 90-day expiry), risk gate (bull/bear/judge debate), reflection loop (decision snapshots, auto-reflect in watchlist scanner). Tool routing guide in system prompt. Configurable signal weights via adjust_signal_weights tool. 38 tools total. |
 | **cockpit-sourcing** | `[ verified ]` | Evidence sourcing (2e9c3ddb): SourcesFormatter, sources metadata in gather_local_context, /sources on\|off toggle. 6 tests. |
 | **cockpit-routing** | `[ verified ]` | Chat routing visibility + extraction guard (f037aa09): per-response footer [backend\|model\|latency\|cost], extraction pre-flight guard with auto-model-load via router API, `.env` loading fixed in cockpit entrypoint. Ticker fast-path false positives fixed (2cfb991e): stopwords expanded, _FOLLOW_UP_RE narrowed to topic-referential only. L027+L028+L029. |
 | **gpu-process-rails** | `[ verified ]` | Canonical port manifest (§9.4), agent spawn protocol (§9.5), `gpu_process_guard.sh`, `llamacpp_manager.py` topology check. L022 logged. |
@@ -78,6 +78,7 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 
 | Commit | Workstream | Summary |
 |--------|------------|---------|
+| (2026-03-31) | cockpit-strategy | Strategy system improvements: sector_comparison.py (10 GICS sectors, 150+ tickers, 24hr cached stats), thesis auto-invalidation (evidence ratio + 90-day expiry), tool routing guide in system prompt, configurable signal weights, commentary retrieval in deep_research, auto-reflection in watchlist scanner. 38 tools (was 28). |
 | 7defd245 | narrative-extraction | Phase 3: Section-aware chunking (section_heading in Qdrant payload), speaker-turn detection (primary_speaker in commentary payloads), news memo Celery task. 414 tests. |
 | dee24890 | narrative-extraction | Phase 2: Classifier expansion (~25K reclassified), news memo extractor, multi-pass transcript extraction, timestamp preservation, investor presentation type-specific extractor. 396 tests. |
 | 849c664f | narrative-extraction | Phase 1: Ungate Pass 3b from financial classifier, persist announcement_type (Document + Qdrant), context 4K→8K, commentary chunk overlap, analysis modules consume guidance_summary + material_changes. 365 tests passing. |

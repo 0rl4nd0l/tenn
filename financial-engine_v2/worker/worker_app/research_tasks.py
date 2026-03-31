@@ -63,6 +63,9 @@ def watchlist_research_scan() -> dict[str, Any]:
 
     Called on a schedule (3x daily) or manually via:
         celery call watchlist_research_scan
+
+    Also runs thesis expiration (90-day stale check) and auto-reflection
+    for decisions older than 30 days that haven't been reflected on.
     """
     tickers = _load_watchlist()
     if not tickers:
@@ -82,11 +85,60 @@ def watchlist_research_scan() -> dict[str, Any]:
 
     _save_scan_state(scan_state)
 
+    # Thesis expiration — mark stale active theses as expired.
+    expired_count = 0
+    try:
+        from cockpit.core.research.thesis import ThesisService
+
+        thesis_service = ThesisService()
+        expire_result = thesis_service.expire_stale(days=90)
+        expired_count = expire_result.get("expired_count", 0)
+        if expired_count:
+            logger.info(
+                "watchlist_research_scan: expired %d stale theses", expired_count,
+            )
+    except Exception as exc:
+        logger.warning("watchlist_research_scan: thesis expiration failed: %s", exc)
+
+    # Auto-reflection — reflect on decisions older than 30 days.
+    reflections = 0
+    try:
+        from cockpit.core.research.reflection import ReflectionService
+        from cockpit.core.research.situation_memory import SituationMemory
+
+        memory = SituationMemory()
+        reflection_service = ReflectionService(situation_memory=memory)
+        open_decisions = reflection_service.review_open_decisions()
+
+        for decision in open_decisions:
+            decision_ticker = decision.get("ticker", "")
+            try:
+                result = reflection_service.reflect_and_learn(decision_ticker)
+                if result.get("ok"):
+                    reflections += 1
+            except Exception as exc:
+                logger.warning(
+                    "watchlist_research_scan: reflection failed for %s: %s",
+                    decision_ticker, exc,
+                )
+        if reflections:
+            logger.info(
+                "watchlist_research_scan: reflected on %d decisions", reflections,
+            )
+    except Exception as exc:
+        logger.warning("watchlist_research_scan: auto-reflection failed: %s", exc)
+
     logger.info(
-        "watchlist_research_scan: scanned %d tickers, %d alerts",
-        scanned, alerts_created,
+        "watchlist_research_scan: scanned %d tickers, %d alerts, %d expired, %d reflections",
+        scanned, alerts_created, expired_count, reflections,
     )
-    return {"ok": True, "scanned": scanned, "alerts": alerts_created}
+    return {
+        "ok": True,
+        "scanned": scanned,
+        "alerts": alerts_created,
+        "expired_theses": expired_count,
+        "reflections": reflections,
+    }
 
 
 def _scan_ticker(ticker: str, scan_state: dict[str, Any]) -> dict[str, Any]:
