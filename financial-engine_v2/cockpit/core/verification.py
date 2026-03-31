@@ -27,15 +27,15 @@ def _fetch_verification_from_backend(backend_api_client, ticker: str | None) -> 
         return [], [], []
 
 
-def run_verification(db_reader, ticker: str | None = None, *, backend_api_client=None) -> dict[str, Any]:
+def run_verification(ticker: str | None = None, *, backend_api_client=None) -> dict[str, Any]:
+    """Run verification checks using the backend API as authority."""
     tick = ticker.upper() if ticker else None
 
     if backend_api_client:
         docs, extraction_failures, low_confidence = _fetch_verification_from_backend(backend_api_client, tick)
     else:
-        docs = db_reader.get_docs(tick, limit=500) if tick else []
-        extraction_failures = db_reader.get_extraction_failures(limit=100)
-        low_confidence = db_reader.get_low_confidence_financials(limit=100)
+        logger.warning("run_verification: backend API client not configured")
+        docs, extraction_failures, low_confidence = [], [], []
 
     missing_files: list[dict[str, Any]] = []
     blocked: list[dict[str, Any]] = []

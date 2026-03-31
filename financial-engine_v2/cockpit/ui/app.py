@@ -1928,7 +1928,7 @@ class CockpitApp(App):
         self._write_log(log_target, json.dumps(payload, default=str, indent=2)[:6000])
 
     def run_verification(self, ticker: str | None = None) -> dict[str, Any]:
-        return run_verification(self.db_reader, ticker=ticker, backend_api_client=self._backend_client)
+        return run_verification(ticker=ticker, backend_api_client=self._backend_client)
 
     def _write_log(self, log_target: str, text: str) -> None:
         try:
