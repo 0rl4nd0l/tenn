@@ -7,11 +7,15 @@ import { cn } from '@/lib/utils'
 interface TerminalInputProps {
   onSend: (message: string) => void
   disabled?: boolean
-  value: string
-  onValueChange: (value: string) => void
+  value?: string
+  onValueChange?: (value: string) => void
 }
 
-export function TerminalInput({ onSend, disabled, value, onValueChange }: TerminalInputProps) {
+export function TerminalInput({ onSend, disabled, value: controlledValue, onValueChange }: TerminalInputProps) {
+  const [internalValue, setInternalValue] = useState('')
+  const value = controlledValue ?? internalValue
+  const setValue = onValueChange ?? setInternalValue
+
   const [showCommands, setShowCommands] = useState(false)
   const [selectedCommandIndex, setSelectedCommandIndex] = useState(0)
   const [inputHistory, setInputHistory] = useState<string[]>([])
@@ -19,7 +23,7 @@ export function TerminalInput({ onSend, disabled, value, onValueChange }: Termin
   const inputRef = useRef<HTMLInputElement>(null)
 
   const filteredCommands = value.startsWith('/')
-    ? SLASH_COMMANDS.filter(cmd => 
+    ? SLASH_COMMANDS.filter(cmd =>
         cmd.command.toLowerCase().includes(value.toLowerCase())
       )
     : []
@@ -39,10 +43,10 @@ export function TerminalInput({ onSend, disabled, value, onValueChange }: Termin
     
     onSend(value.trim())
     setInputHistory(prev => [value.trim(), ...prev].slice(0, 50))
-    onValueChange('')
+    setValue('')
     setHistoryIndex(-1)
     setShowCommands(false)
-  }, [value, disabled, onSend, onValueChange])
+  }, [value, disabled, onSend, setValue])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Command selection
@@ -61,7 +65,7 @@ export function TerminalInput({ onSend, disabled, value, onValueChange }: Termin
         e.preventDefault()
         const cmd = filteredCommands[selectedCommandIndex]
         if (cmd) {
-          onValueChange(cmd.command + ' ')
+          setValue(cmd.command + ' ')
           setShowCommands(false)
         }
         return
@@ -84,7 +88,7 @@ export function TerminalInput({ onSend, disabled, value, onValueChange }: Termin
       e.preventDefault()
       const newIndex = Math.min(historyIndex + 1, inputHistory.length - 1)
       setHistoryIndex(newIndex)
-      onValueChange(inputHistory[newIndex])
+      setValue(inputHistory[newIndex])
       return
     }
     if (e.key === 'ArrowDown' && !showCommands) {
@@ -92,17 +96,17 @@ export function TerminalInput({ onSend, disabled, value, onValueChange }: Termin
       if (historyIndex > 0) {
         const newIndex = historyIndex - 1
         setHistoryIndex(newIndex)
-        onValueChange(inputHistory[newIndex])
+        setValue(inputHistory[newIndex])
       } else {
         setHistoryIndex(-1)
-        onValueChange('')
+        setValue('')
       }
     }
 
     // Ctrl+C to clear
     if (e.key === 'c' && e.ctrlKey) {
       e.preventDefault()
-      onValueChange('')
+      setValue('')
       setHistoryIndex(-1)
     }
 
@@ -112,7 +116,7 @@ export function TerminalInput({ onSend, disabled, value, onValueChange }: Termin
   const selectCommand = (index: number) => {
       const cmd = filteredCommands[index]
       if (cmd) {
-      onValueChange(cmd.command + ' ')
+      setValue(cmd.command + ' ')
       setShowCommands(false)
       inputRef.current?.focus()
     }
@@ -156,7 +160,7 @@ export function TerminalInput({ onSend, disabled, value, onValueChange }: Termin
           ref={inputRef}
           type="text"
           value={value}
-          onChange={(e) => onValueChange(e.target.value)}
+          onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={disabled ? 'Processing...' : 'Enter command or query...'}
           disabled={disabled}
