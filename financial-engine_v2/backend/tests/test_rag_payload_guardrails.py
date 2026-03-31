@@ -258,6 +258,7 @@ def test_process_document_deletes_existing_points_before_upsert(monkeypatch):
         title = "Valid doc"
         pdf_path = "/tmp/valid.pdf"
         source_url = "https://example.com/doc.pdf"
+        announcement_type = None
 
     class DummyQuery:
         def filter(self, *args, **kwargs):
@@ -323,6 +324,7 @@ def test_process_document_skips_invalid_chunk_payloads(monkeypatch):
         title = "Invalid ticker doc"
         pdf_path = "/tmp/invalid.pdf"
         source_url = "https://example.com/doc.pdf"
+        announcement_type = None
 
     class DummyQuery:
         def filter(self, *args, **kwargs):
@@ -381,6 +383,7 @@ def test_process_document_upserts_financial_rows_for_ok_low_confidence(monkeypat
         title = "Low confidence periodic"
         pdf_path = "/tmp/low_confidence.pdf"
         source_url = "https://example.com/low_confidence.pdf"
+        announcement_type = None
 
     class DummyQuery:
         def filter(self, *args, **kwargs):

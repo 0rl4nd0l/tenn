@@ -152,7 +152,10 @@ def _estimate_severity(text: str) -> str:
 def _extract_risk_items(risk_note: dict[str, Any]) -> list[dict[str, str]]:
     """Extract individual risk items from a risk note row.
 
-    Returns list of {"text": ..., "source_type": "risk_bullet"|"risk_summary"}.
+    Returns list of {"text": ..., "source_type": "risk_bullet"|"risk_summary"|...}.
+    Now also extracts guidance_summary and material_changes as risk-relevant
+    context — guidance often contains forward-looking risk language, and
+    material_changes flag business shifts that represent emerging risks.
     """
     items: list[dict[str, str]] = []
     bullets = risk_note.get("risk_bullets")
@@ -164,6 +167,12 @@ def _extract_risk_items(risk_note: dict[str, Any]) -> list[dict[str, str]]:
     summary = risk_note.get("risk_summary")
     if isinstance(summary, str) and summary.strip():
         items.append({"text": summary.strip(), "source_type": "risk_summary"})
+    guidance = risk_note.get("guidance_summary")
+    if isinstance(guidance, str) and guidance.strip():
+        items.append({"text": guidance.strip(), "source_type": "guidance_summary"})
+    changes = risk_note.get("material_changes")
+    if isinstance(changes, str) and changes.strip():
+        items.append({"text": changes.strip(), "source_type": "material_changes"})
     return items
 
 

@@ -38,7 +38,21 @@ def chunk_prose_sections(doc: StructuredDocument, max_chars: int = MAX_CHARS) ->
 def simple_chunk(text: str, max_chars: int = 4500) -> list[str]:
     """
     Simple fixed-size text chunker (no overlap).
-    Retained for backward compatibility with commentary_ingest.
+    Retained for backward compatibility.
     """
     text = (text or "").strip()
     return [text[i:i + max_chars] for i in range(0, len(text), max_chars)] if text else []
+
+
+def simple_chunk_overlap(text: str, max_chars: int = 1400, overlap: int = OVERLAP_CHARS) -> list[str]:
+    """Fixed-size text chunker with overlap for commentary/transcript chunks."""
+    text = (text or "").strip()
+    if not text:
+        return []
+    chunks = []
+    start = 0
+    while start < len(text):
+        end = min(start + max_chars, len(text))
+        chunks.append(text[start:end])
+        start = end - overlap if end < len(text) else end
+    return [c for c in chunks if c.strip()]

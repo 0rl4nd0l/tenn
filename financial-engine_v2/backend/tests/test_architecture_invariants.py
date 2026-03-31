@@ -72,6 +72,7 @@ def test_vector_ids_use_document_id_and_chunk_index(monkeypatch):
             self.doc_subtype = "periodic"
             self.title = "Test Document"
             self.pdf_path = "/tmp/test.pdf"
+            self.announcement_type = None
 
     dummy_doc_id = uuid.uuid4()
     dummy_doc = DummyDoc(dummy_doc_id)
@@ -182,6 +183,7 @@ def test_process_document_integration_vector_id_and_payload(monkeypatch):
         doc_subtype = "periodic"
         title = "Integration Test Doc"
         pdf_path = "/tmp/integration_test.pdf"
+        announcement_type = None
 
     class DummyQuery:
         def __init__(self, result):

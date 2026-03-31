@@ -11,7 +11,7 @@ from typing import Any, Callable
 from qdrant_client import QdrantClient
 
 from app.tasks.commentary_tasks import extract_commentary_memo_task
-from app.services.structured_chunking import simple_chunk
+from app.services.structured_chunking import simple_chunk_overlap
 from app.services.commentary_memo_extractor import (
     DEFAULT_COMMENTARY_MEMOS_PATH,
     CommentaryMemoExtractor,
@@ -156,7 +156,7 @@ def ingest_transcript(
         llm_url=llm_url,
         model=embed_model,
     )
-    chunks = _unique_chunks(simple_chunk(cleaned, max_chars=1400))
+    chunks = _unique_chunks(simple_chunk_overlap(cleaned, max_chars=1400))
     client = qdrant_client or verify_qdrant(qdrant_url=qdrant_url)
     embed = embed_batch_fn or _default_embed_batch
     vectors = embed(

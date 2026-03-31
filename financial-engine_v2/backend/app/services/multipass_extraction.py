@@ -530,6 +530,31 @@ Rules:
 - total_debt (balance_sheet only): sum of all financial debt — current + non-current borrowings,
   bonds, notes payable. Exclude AASB 16 / IFRS 16 lease liabilities unless no other financial
   debt exists. Output null if no financial debt is present (e.g. company is debt-free).
+  FOR BANKS: customer deposits, amounts due to other financial institutions, and trading
+  liabilities are NOT financial debt. If the balance sheet has no explicit "borrowings" or
+  "debt securities issued" row separate from deposits, output null for total_debt.
+- shares_outstanding (narrative fallback): if shares_outstanding is NOT found in a structured
+  table row, check Note sections for phrases like "comprises X fully paid shares",
+  "X ordinary shares on issue", or "share capital of X shares". Extract the count from
+  the narrative text. This is common in banking reports where share counts appear in notes
+  rather than in a formal share capital table.
+
+BANKING / FINANCIAL INSTITUTION GUIDANCE:
+If this document is from a bank or financial institution (indicators: "net interest income",
+"credit impairment", "deposits", "banking", "financial institution" in the table text):
+- revenue: use "Operating income", "Total operating income", or "Net interest income" —
+  these are the banking equivalents of revenue. Do NOT use "Interest income" alone
+  (which excludes fee income) or "Net profit" as revenue.
+- ebit: MUST be "Profit before income tax" (AFTER credit impairment provisions).
+  For banks, credit impairment (expected credit losses / ECL) is a CORE OPERATING COST,
+  not an exceptional item. "Profit before credit impairment and income tax" is NOT ebit.
+- capex: banks have minimal PP&E. Valid labels include "Net investments in other assets",
+  "Tangible fixed asset additions", "Purchase of property, plant and equipment".
+  If no specific capex line exists, return null.
+- net_debt: return null. Banks' balance sheets are fundamentally different — deposits
+  and interbank liabilities are not "debt" in the industrial sense. net_debt is
+  not a meaningful metric for banks.
+- total_debt: return null for banks (see net_debt rationale above).
 
 Schema:
 {{
@@ -568,11 +593,16 @@ _ROW_KEYWORDS_BY_TABLE: dict[str, list[str]] = {
         # Appendix 5B section totals and key items
         "subtotal", "exploration", "development", "staff cost",
         "production", "related body corporate",
+        # Banking: capex equivalent line
+        "net investments",
     ],
     "income_statement": [
         "revenue", "sales", "income", "profit", "loss", "ebit", "earnings before",
         "operations", "operating", "income tax", "attributable", "equity holder",
         "owners of", "non-controlling", "comprehensive", "net profit", "net loss",
+        # Banking: keep credit impairment rows so LLM can distinguish pre/post impairment
+        "credit impairment", "expected credit loss", "provision for",
+        "net interest", "fee income", "operating expenses",
     ],
     "balance_sheet": [
         "cash and cash equivalent", "borrowing", "interest bearing",
@@ -580,6 +610,8 @@ _ROW_KEYWORDS_BY_TABLE: dict[str, list[str]] = {
         "net asset", "total equity", "share capital", "issued capital",
         "ordinary share", "shares on issue", "total asset", "total liab",
         "net debt", "current", "non-current",
+        # Banking: distinguish deposits from debt
+        "deposit", "debt securities", "due to other",
     ],
 }
 
@@ -998,13 +1030,13 @@ def _run_pass3b_narrative_extractor(sections: list[dict], llm_client) -> dict:
         "confidence_narrative": 0.0,
     }
 
-    prose = " ".join(s["text"] for s in sections if s.get("text", "").strip())[:4000]
+    prose = " ".join(s["text"] for s in sections if s.get("text", "").strip())[:8000]
     if not prose:
         return null_result
 
     prompt = _PASS3B_PROMPT.format(prose_text=prose)
     try:
-        raw = _llm_json_call(prompt, llm_client, max_tokens=512)
+        raw = _llm_json_call(prompt, llm_client, max_tokens=768)
         return {
             "risk_summary": raw.get("risk_summary"),
             "risk_bullets": raw.get("risk_bullets"),
@@ -1309,8 +1341,28 @@ def run_multipass_extraction(
                                sections=structured_doc.sections, error=f"pass1:{e}")
 
     if pass1.get("classifier_confidence", 0) < 0.60:
+        # Financial classification failed, but still run Pass 3b narrative
+        # extraction — non-financial announcements (ops updates, director
+        # changes, investor presentations) contain valuable narrative even
+        # when they lack financial period/scale signals.
+        _skip_narr = skip_narrative or os.environ.get("EXTRACTION_SKIP_NARRATIVE", "") == "1"
+        if _skip_narr:
+            pass3b_fallback = {
+                "risk_summary": None, "risk_bullets": None,
+                "guidance_summary": None, "material_changes": None,
+                "confidence_narrative": 0.0,
+            }
+        else:
+            pass3b_fallback = _run_pass3b_narrative_extractor(structured_doc.sections, llm_client)
+        narrative_payload = dict(null_payload)
+        narrative_payload.update(pass3b_fallback)
+        has_narrative = any(
+            narrative_payload.get(f)
+            for f in ("risk_summary", "risk_bullets", "guidance_summary", "material_changes")
+        )
         return MultipassResult(
-            status="failed", payload=null_payload,
+            status="ok_narrative_only" if has_narrative else "failed",
+            payload=narrative_payload,
             sections=structured_doc.sections,
             error=f"classifier_low_confidence:{pass1.get('classifier_confidence')}",
         )

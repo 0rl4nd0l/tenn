@@ -24,7 +24,7 @@ from app.models.extractions import ExtractionRun
 from app.providers.marketindex_provider import MarketIndexProvider
 from app.services.asx import ASXProvider
 from app.services.embeddings import delete_points_for_document, ensure_collection, log_rejected_payload, upsert_points, validate_payload
-from app.services.announcement_importance import classify_documents_and_materialize
+from app.services.announcement_importance import classify_announcement, classify_documents_and_materialize
 from app.services.llm import embed_texts, generate_json, get_routing_decision
 from app.services.multipass_extraction import run_multipass_extraction, EXTRACTOR_VERSION, PROMPT_HASH, parse_period_end
 from app.services.structured_chunking import chunk_prose_sections
@@ -862,6 +862,16 @@ def process_document(
         if not doc:
             raise ValueError(f"Document not found: {document_id}")
 
+        # --- Classify announcement type (persist to Document row) ---
+        if not doc.announcement_type:
+            classification = classify_announcement(
+                title=doc.title,
+                doc_class=doc.doc_class,
+                doc_subtype=doc.doc_subtype,
+                pdf_excerpt=None,
+            )
+            doc.announcement_type = classification.get("label", "other")
+
         # --- New multi-pass extraction ---
         multipass_result = None
         sections_for_chunks: list[dict] = []
@@ -969,6 +979,7 @@ def process_document(
                             "ticker": doc.ticker,
                             "doc_class": doc.doc_class,
                             "doc_subtype": doc.doc_subtype,
+                            "announcement_type": doc.announcement_type,
                             "chunk_index": index,
                             "title": doc.title,
                             "text": chunks[index],
@@ -1036,7 +1047,7 @@ def process_document(
             structured_json=_json_safe(structured),
         )
         db.add(run)
-        if status in {"ok", "ok_low_confidence"}:
+        if status in {"ok", "ok_low_confidence", "ok_narrative_only"}:
             _upsert_financial_rows(db, doc, structured)
         db.commit()  # single atomic commit: ExtractionRun + financial rows together
 
