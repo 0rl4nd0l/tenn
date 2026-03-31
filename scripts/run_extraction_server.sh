@@ -4,6 +4,28 @@
 # Safe to run alongside run_llama_server.sh (separate lockfile, no pkill).
 set -euo pipefail
 
+LLAMA_SERVER_ENV_FILE="${LLAMA_SERVER_ENV_FILE:-${HOME}/.config/tenn/llama-server.env}"
+
+load_launcher_defaults() {
+  local env_file="$1"
+  [[ -f "${env_file}" ]] || return 0
+
+  while IFS= read -r line; do
+    local key="${line%%=*}"
+    case "${key}" in
+      LLAMA_SERVER_*|EXTRACTION_SERVER_*|LLM_API_KEY)
+        if [[ -z "${!key+x}" ]]; then
+          export "${line}"
+        fi
+        ;;
+    esac
+  done < <(
+    bash -c 'set -a; source "$1"; env' bash "${env_file}" 2>/dev/null
+  )
+}
+
+load_launcher_defaults "${LLAMA_SERVER_ENV_FILE}"
+
 LOCKFILE="${LOCKFILE:-/tmp/llama-extraction-server.lock}"
 if [[ -f "${LOCKFILE}" ]]; then
   LOCK_PID="$(cat "${LOCKFILE}" 2>/dev/null || true)"
