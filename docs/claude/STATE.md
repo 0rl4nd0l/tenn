@@ -35,7 +35,7 @@ Branch: cloud/session-20260319
 | **gpu-process-rails** | `[ verified ]` | Canonical port manifest (§9.4), agent spawn protocol (§9.5), `gpu_process_guard.sh`, `llamacpp_manager.py` topology check. L022 logged. |
 | **analysis-modules** | `[ verified ]` | 7 modules (+ sentiment), orchestrator, context_loader (Yahoo price fallback), watchlist scanner (7 alert rules), API endpoints, scale validation gate, extraction expansion (total_equity, interest_expense). 48 tests. D2 live-tested. Real-data validated (RIO, BHP). Architecture doc 1151 lines. |
 | **model-eval** | `[ verified ]` | Qwen 3 14B evaluated (85.26%) vs Qwen 2.5 14B (89.47%) — current model stays. |
-| **narrative-extraction** | `[ verified ]` | Phase 1 (849c664f) + Phase 2 (2337a909, dee24890) complete. Classifier expanded (~25K reclassified from "other"). News memo extractor built. Multi-pass transcript extraction (12K→full). Timestamp preservation in chunks. Investor presentation type-specific extractor (4 extra fields). 396 tests. |
+| **narrative-extraction** | `[ verified ]` | Phase 1-3 complete (849c664f→7defd245). Ungated narrative extraction, announcement_type persisted, classifier expanded, news memo extractor + Celery task, multi-pass transcript extraction, timestamp preservation, investor-specific extractor, section-aware chunking, speaker-turn detection. 414 tests. |
 | **docs-governance** | `[ in-progress ]` | Root startup docs aligned to the canonical backend entrypoint. Repository-audit instructions updated to use actual repo manifests. Backend API surface, extraction, embeddings, routing, scripts index, portfolio module docs, Cockpit control-plane docs, and eval-fixture architecture docs refreshed. Open item: Cockpit contract/code mismatch still needs an explicit architecture decision. |
 
 ---
@@ -78,6 +78,7 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 
 | Commit | Workstream | Summary |
 |--------|------------|---------|
+| 7defd245 | narrative-extraction | Phase 3: Section-aware chunking (section_heading in Qdrant payload), speaker-turn detection (primary_speaker in commentary payloads), news memo Celery task. 414 tests. |
 | dee24890 | narrative-extraction | Phase 2: Classifier expansion (~25K reclassified), news memo extractor, multi-pass transcript extraction, timestamp preservation, investor presentation type-specific extractor. 396 tests. |
 | 849c664f | narrative-extraction | Phase 1: Ungate Pass 3b from financial classifier, persist announcement_type (Document + Qdrant), context 4K→8K, commentary chunk overlap, analysis modules consume guidance_summary + material_changes. 365 tests passing. |
 | f4e2f820 | cockpit | Align preboot routing docs and tests: cockpit LLM config authority, env-override gating, current preboot export behavior. |
@@ -109,7 +110,7 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 ## Backlog (scoped but not started)
 
 - ~~**Watchlist trigger mechanism**~~ — SHIPPED: `/watch scan`, `scan_watchlist` tool, `WatchlistTrigger` orchestrator
-- **Narrative extraction Phase 3** — section-aware chunking (preserve section headers in embedded chunks, store section_name in Qdrant payload), speaker-turn detection for transcripts
+- ~~**Narrative extraction Phase 3**~~ — SHIPPED: section-aware chunking, speaker-turn detection, news memo Celery task (7defd245)
 - **Sentiment scoring layer** — quantify narrative sentiment across news/transcripts
 - **Alert thresholds from strategy** — replace hardcoded thresholds in alerts.py with user-defined strategy criteria
 - **FX conversion logic** — build actual currency conversion; policy defined in `docs/architecture/16_currency_and_fx_policy.md`; blocked on product decision about which conversion source to use
