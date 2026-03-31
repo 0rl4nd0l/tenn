@@ -371,6 +371,8 @@ def query_rag(
             "document_id": str(payload.get("document_id") or ""),
             "doc_class": payload.get("doc_class"),
             "doc_subtype": payload.get("doc_subtype"),
+            "announcement_type": payload.get("announcement_type"),
+            "section_heading": payload.get("section_heading"),
             "chunk_index": payload.get("chunk_index"),
         }
         text_value = str(payload.get("text") or "").strip()

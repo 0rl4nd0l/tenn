@@ -140,19 +140,26 @@ def _normalize_news_chunk(chunk: dict[str, Any]) -> dict[str, Any]:
 def _context_rows(chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for chunk in chunks:
-        rows.append(
-            {
-                "text": str(chunk.get("text") or "").strip(),
-                "source_name": str(chunk.get("source_name") or chunk.get("source_file") or "").strip(),
-                "url": str(chunk.get("url") or "").strip(),
-                "relevance_score": _safe_float(chunk.get("relevance_score"), 0.0),
-                "recency_decay": _safe_float(chunk.get("recency_decay"), 1.0),
-                "final_score": _safe_float(chunk.get("final_score"), 0.0),
-                "source_type": str(chunk.get("source_type") or "").strip(),
-                "published_at": str(chunk.get("published_at") or "").strip(),
-                "retrieval_strategies": list(chunk.get("retrieval_strategies") or []),
-            }
-        )
+        row: dict[str, Any] = {
+            "text": str(chunk.get("text") or "").strip(),
+            "source_name": str(chunk.get("source_name") or chunk.get("source_file") or "").strip(),
+            "url": str(chunk.get("url") or "").strip(),
+            "relevance_score": _safe_float(chunk.get("relevance_score"), 0.0),
+            "recency_decay": _safe_float(chunk.get("recency_decay"), 1.0),
+            "final_score": _safe_float(chunk.get("final_score"), 0.0),
+            "source_type": str(chunk.get("source_type") or "").strip(),
+            "published_at": str(chunk.get("published_at") or "").strip(),
+            "retrieval_strategies": list(chunk.get("retrieval_strategies") or []),
+        }
+        # Narrative metadata — include when present so LLM has full context
+        for field in ("announcement_type", "section_heading", "primary_speaker"):
+            val = str(chunk.get(field) or "").strip()
+            if val:
+                row[field] = val
+        ts = chunk.get("chunk_timestamp_seconds")
+        if ts is not None:
+            row["chunk_timestamp_seconds"] = ts
+        rows.append(row)
     return rows
 
 
@@ -179,19 +186,22 @@ def _evidence_context_rows(hits: list[dict[str, Any]]) -> list[dict[str, Any]]:
         url = str(hit.get("url") or hit.get("source_url") or "").strip()
         relevance_score = _safe_float(hit.get("score"), 0.0)
 
-        rows.append(
-            {
-                "text": text,
-                "source_name": source_name,
-                "url": url,
-                "relevance_score": relevance_score,
-                "recency_decay": 1.0,
-                "final_score": relevance_score,
-                "source_type": str(hit.get("doc_class") or "").strip(),
-                "published_at": str(hit.get("published_at") or "").strip(),
-                "retrieval_strategies": ["rag_vector"],
-            }
-        )
+        row: dict[str, Any] = {
+            "text": text,
+            "source_name": source_name,
+            "url": url,
+            "relevance_score": relevance_score,
+            "recency_decay": 1.0,
+            "final_score": relevance_score,
+            "source_type": str(hit.get("doc_class") or "").strip(),
+            "published_at": str(hit.get("published_at") or "").strip(),
+            "retrieval_strategies": ["rag_vector"],
+        }
+        for field in ("announcement_type", "section_heading"):
+            val = str(hit.get(field) or "").strip()
+            if val:
+                row[field] = val
+        rows.append(row)
 
     return rows
 
@@ -253,6 +263,12 @@ def _build_prompt(
     return (
         "You are Tenn, a financial research assistant.\n\n"
         "Use ONLY the provided context. Do not rely on prior knowledge or assumptions.\n\n"
+        "Context items may include structured metadata:\n"
+        "- announcement_type: document category (financial_performance, operations_projects, investor_communications, etc.)\n"
+        "- section_heading: the document section this chunk came from\n"
+        "- primary_speaker: in transcripts, the speaker for this chunk\n"
+        "- chunk_timestamp_seconds: in transcripts, the timestamp offset\n"
+        "Use these to attribute claims and weigh evidence appropriately.\n\n"
         "Temporal and uncertainty rules — follow strictly:\n"
         "- Prefer evidence from more recent sources. Use `published_at` to judge recency.\n"
         "- If sources conflict or contradict, acknowledge the conflict explicitly in your answer.\n"

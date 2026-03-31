@@ -72,6 +72,8 @@ def test_query_rag_skips_malformed_payloads_and_keeps_valid_hits(monkeypatch, ca
             "document_id": valid_document_id,
             "doc_class": "announcement",
             "doc_subtype": "periodic",
+            "announcement_type": None,
+            "section_heading": None,
             "chunk_index": 1,
         }
     ]
