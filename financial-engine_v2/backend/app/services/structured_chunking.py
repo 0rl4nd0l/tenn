@@ -61,13 +61,24 @@ def chunk_prose_sections(doc: StructuredDocument, max_chars: int = MAX_CHARS) ->
     start = 0
     while start < len(prose):
         end = min(start + max_chars, len(prose))
+        # Snap to the last sentence boundary (". ") before the hard limit,
+        # but only if we're not at the end of the text. This avoids
+        # mid-sentence breaks without needing nltk.
+        if end < len(prose):
+            # Look for last ". " or ".\n" in the candidate chunk
+            snap = prose.rfind(". ", start, end)
+            if snap == -1:
+                snap = prose.rfind(".\n", start, end)
+            # Only snap if it doesn't produce a tiny chunk (<400 chars)
+            if snap != -1 and (snap + 2 - start) >= 400:
+                end = snap + 2  # include the period and space
         chunk_text = prose[start:end]
         if chunk_text.strip():
             chunks.append({
                 "text": chunk_text,
                 "section_heading": _heading_at(start),
             })
-        start = end - OVERLAP_CHARS if end < len(prose) else end
+        start = end
 
     return chunks
 
