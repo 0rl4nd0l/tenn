@@ -1011,11 +1011,41 @@ Document text (first 4000 chars of prose):
 {prose_text}
 """
 
+_PASS3B_INVESTOR_PROMPT = """You are a financial narrative extractor specializing in investor presentations. Output ONLY valid JSON.
+
+From the investor presentation text below, extract:
+- risk_summary: 1-2 sentence summary of key risks (null if none)
+- risk_bullets: list of specific risk items (null if none)
+- guidance_summary: management outlook/guidance summary (null if not present)
+- material_changes: any material changes to business or financial position (null if none)
+- production_targets: key production volume/capacity targets mentioned (null if none)
+- capex_guidance: capital expenditure plans or guidance (null if none)
+- development_milestones: list of project milestones mentioned — completed or upcoming (null if none)
+- market_strategy: competitive positioning, market outlook, or strategic themes (null if none)
+- confidence_narrative: float 0-1 (confidence in extraction quality)
+
+Schema:
+{{
+  "risk_summary": "string|null",
+  "risk_bullets": ["string"]|null,
+  "guidance_summary": "string|null",
+  "material_changes": "string|null",
+  "production_targets": "string|null",
+  "capex_guidance": "string|null",
+  "development_milestones": ["string"]|null,
+  "market_strategy": "string|null",
+  "confidence_narrative": 0.0
+}}
+
+Document text:
+{prose_text}
+"""
+
 # Stable fingerprint of all extraction prompt templates.
 # Changes when any prompt is edited — use this in ExtractionRun.prompt_hash
 # so stale cached extractions can be detected if prompts are updated.
 PROMPT_HASH: str = hashlib.sha256(
-    (_PASS1_PROMPT + _PASS3A_PROMPT + _PASS3B_PROMPT).encode()
+    (_PASS1_PROMPT + _PASS3A_PROMPT + _PASS3B_PROMPT + _PASS3B_INVESTOR_PROMPT).encode()
 ).hexdigest()[:16]
 
 
@@ -1046,6 +1076,46 @@ def _run_pass3b_narrative_extractor(sections: list[dict], llm_client) -> dict:
         }
     except Exception as e:
         logger.warning("Pass 3b narrative extraction failed: %s", e)
+        return null_result
+
+
+def _select_pass3b_extractor(announcement_type: str):
+    """Return the appropriate Pass 3b extractor based on announcement type."""
+    if announcement_type == "investor_communications":
+        return _run_pass3b_investor_extractor
+    return _run_pass3b_narrative_extractor
+
+
+def _run_pass3b_investor_extractor(sections: list[dict], llm_client) -> dict:
+    """Pass 3b variant for investor presentations — richer schema."""
+    null_result = {
+        "risk_summary": None, "risk_bullets": None,
+        "guidance_summary": None, "material_changes": None,
+        "production_targets": None, "capex_guidance": None,
+        "development_milestones": None, "market_strategy": None,
+        "confidence_narrative": 0.0,
+    }
+
+    prose = " ".join(s["text"] for s in sections if s.get("text", "").strip())[:8000]
+    if not prose:
+        return null_result
+
+    prompt = _PASS3B_INVESTOR_PROMPT.format(prose_text=prose)
+    try:
+        raw = _llm_json_call(prompt, llm_client, max_tokens=1024)
+        return {
+            "risk_summary": raw.get("risk_summary"),
+            "risk_bullets": raw.get("risk_bullets"),
+            "guidance_summary": raw.get("guidance_summary"),
+            "material_changes": raw.get("material_changes"),
+            "production_targets": raw.get("production_targets"),
+            "capex_guidance": raw.get("capex_guidance"),
+            "development_milestones": raw.get("development_milestones"),
+            "market_strategy": raw.get("market_strategy"),
+            "confidence_narrative": float(raw.get("confidence_narrative", 0.5)),
+        }
+    except Exception as e:
+        logger.warning("Pass 3b investor extraction failed: %s", e)
         return null_result
 
 
@@ -1353,12 +1423,15 @@ def run_multipass_extraction(
                 "confidence_narrative": 0.0,
             }
         else:
-            pass3b_fallback = _run_pass3b_narrative_extractor(structured_doc.sections, llm_client)
+            _ann_type = doc_metadata.get("announcement_type", "")
+            _extractor = _select_pass3b_extractor(_ann_type)
+            pass3b_fallback = _extractor(structured_doc.sections, llm_client)
         narrative_payload = dict(null_payload)
         narrative_payload.update(pass3b_fallback)
         has_narrative = any(
             narrative_payload.get(f)
-            for f in ("risk_summary", "risk_bullets", "guidance_summary", "material_changes")
+            for f in ("risk_summary", "risk_bullets", "guidance_summary", "material_changes",
+                       "production_targets", "capex_guidance", "development_milestones", "market_strategy")
         )
         return MultipassResult(
             status="ok_narrative_only" if has_narrative else "failed",
@@ -1405,7 +1478,9 @@ def run_multipass_extraction(
             "confidence_narrative": 0.0,
         }
     else:
-        pass3b_result = _run_pass3b_narrative_extractor(structured_doc.sections, llm_client)
+        _ann_type = doc_metadata.get("announcement_type", "")
+        _extractor = _select_pass3b_extractor(_ann_type)
+        pass3b_result = _extractor(structured_doc.sections, llm_client)
 
     # Pass 4: Reconcile
     payload = _run_pass4_reconciler(pass3a_results, pass3b_result, pass1)

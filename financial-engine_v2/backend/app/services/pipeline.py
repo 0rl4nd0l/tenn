@@ -887,6 +887,7 @@ def process_document(
                     "document_id": str(doc.document_id),
                     "ticker": str(doc.ticker or ""),
                     "title": str(doc.title or ""),
+                    "announcement_type": str(doc.announcement_type or ""),
                 }
                 multipass_result = run_multipass_extraction(
                     _resolve_pdf_path(doc.pdf_path),
