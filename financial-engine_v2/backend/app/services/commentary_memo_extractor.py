@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 import json
 import os
+from collections import Counter
 from pathlib import Path
 from typing import Any, Callable
 
@@ -13,6 +14,9 @@ from app.services.source_registry import RESEARCH_MEMORY_ROOT
 DEFAULT_COMMENTARY_MEMOS_PATH = RESEARCH_MEMORY_ROOT / "commentary_memos.jsonl"
 DEFAULT_LLAMACPP_URL = os.getenv("LLAMACPP_URL", "http://127.0.0.1:8001").rstrip("/")
 DEFAULT_LLAMACPP_MODEL = os.getenv("LLAMACPP_MODEL", "model.gguf").strip()
+
+MULTIPASS_WINDOW_SIZE = 12_000
+MULTIPASS_OVERLAP = 3_000
 
 
 def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
@@ -55,6 +59,32 @@ def _normalize_list(value: Any, *, uppercase: bool = False) -> list[str]:
         seen.add(candidate)
         normalized.append(candidate)
     return normalized
+
+
+def _dedup_normalized(items: list[str]) -> list[str]:
+    """Deduplicate strings by lowercase+strip, preserving first occurrence."""
+    seen: set[str] = set()
+    result: list[str] = []
+    for item in items:
+        key = item.strip().lower()
+        if key and key not in seen:
+            seen.add(key)
+            result.append(item)
+    return result
+
+
+_TIME_HORIZON_RANK: dict[str, int] = {
+    "short-term": 0,
+    "short term": 0,
+    "near-term": 1,
+    "near term": 1,
+    "medium-term": 2,
+    "medium term": 2,
+    "mid-term": 2,
+    "mid term": 2,
+    "long-term": 3,
+    "long term": 3,
+}
 
 
 class CommentaryMemoExtractor:
@@ -139,6 +169,78 @@ class CommentaryMemoExtractor:
             "published_at": str(published_at or "").strip(),
         }
 
+    def _extract_multipass(
+        self,
+        *,
+        transcript_text: str,
+        speaker: str,
+        source_type: str,
+        published_at: str | None,
+    ) -> dict[str, Any]:
+        """Split a long transcript into overlapping windows and merge LLM results."""
+        step = MULTIPASS_WINDOW_SIZE - MULTIPASS_OVERLAP
+        windows: list[str] = []
+        offset = 0
+        while offset < len(transcript_text):
+            windows.append(transcript_text[offset : offset + MULTIPASS_WINDOW_SIZE])
+            offset += step
+
+        all_claims: list[str] = []
+        all_catalysts: list[str] = []
+        all_risks: list[str] = []
+        all_tickers: list[str] = []
+        sentiments: list[str] = []
+        time_horizons: list[str] = []
+
+        for window in windows:
+            raw = self._call_llm(
+                prompt=self._prompt(
+                    transcript_text=window,
+                    speaker=speaker,
+                    source_type=source_type,
+                    published_at=published_at,
+                ),
+                source_type=source_type,
+                speaker=speaker,
+                published_at=published_at,
+            )
+            payload = dict(raw or {})
+            all_claims.extend(_normalize_list(payload.get("claims")))
+            all_catalysts.extend(_normalize_list(payload.get("catalysts")))
+            all_risks.extend(_normalize_list(payload.get("risks")))
+            all_tickers.extend(_normalize_list(payload.get("tickers"), uppercase=True))
+
+            sentiment = str(payload.get("sentiment") or "").strip().lower()
+            if sentiment:
+                sentiments.append(sentiment)
+
+            horizon = str(payload.get("time_horizon") or "").strip()
+            if horizon:
+                time_horizons.append(horizon)
+
+        # Pick most common sentiment; fall back to first if tie
+        merged_sentiment = ""
+        if sentiments:
+            merged_sentiment = Counter(sentiments).most_common(1)[0][0]
+
+        # Pick earliest (shortest-range) time horizon
+        merged_horizon = ""
+        if time_horizons:
+            merged_horizon = min(
+                time_horizons,
+                key=lambda h: _TIME_HORIZON_RANK.get(h.lower(), 99),
+            )
+
+        return {
+            "speaker": speaker,
+            "claims": _dedup_normalized(all_claims),
+            "catalysts": _dedup_normalized(all_catalysts),
+            "risks": _dedup_normalized(all_risks),
+            "sentiment": merged_sentiment,
+            "time_horizon": merged_horizon,
+            "tickers": _dedup_normalized(all_tickers),
+        }
+
     def extract(
         self,
         *,
@@ -148,17 +250,25 @@ class CommentaryMemoExtractor:
         source_type: str,
         published_at: str | None = None,
     ) -> dict[str, Any]:
-        raw_memo = self._call_llm(
-            prompt=self._prompt(
+        if len(transcript_text) > MULTIPASS_WINDOW_SIZE:
+            raw_memo = self._extract_multipass(
                 transcript_text=transcript_text,
                 speaker=speaker,
                 source_type=source_type,
                 published_at=published_at,
-            ),
-            source_type=source_type,
-            speaker=speaker,
-            published_at=published_at,
-        )
+            )
+        else:
+            raw_memo = self._call_llm(
+                prompt=self._prompt(
+                    transcript_text=transcript_text,
+                    speaker=speaker,
+                    source_type=source_type,
+                    published_at=published_at,
+                ),
+                source_type=source_type,
+                speaker=speaker,
+                published_at=published_at,
+            )
         return self._normalize_memo(
             raw_memo=raw_memo,
             source_id=source_id,

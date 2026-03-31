@@ -57,15 +57,119 @@ def _default_embed_batch(texts: list[str], *, llm_url: str | None, model: str | 
     return embed_texts_batched(texts, llm_url=llm_url, model=model)
 
 
-def clean_transcript_text(transcript_text: str) -> str:
+_TIMESTAMP_RE = re.compile(r"^\s*(\d{1,2}):(\d{2})(?::(\d{2}))?\s*")
+
+
+def _parse_timestamp_seconds(match: re.Match[str]) -> int:
+    """Convert a timestamp regex match to total seconds from start."""
+    parts = match.groups()
+    h_or_m = int(parts[0])
+    m_or_s = int(parts[1])
+    s = int(parts[2]) if parts[2] is not None else None
+    if s is not None:
+        # HH:MM:SS
+        return h_or_m * 3600 + m_or_s * 60 + s
+    # MM:SS
+    return h_or_m * 60 + m_or_s
+
+
+def _extract_timestamp_index(
+    raw_text: str,
+) -> list[tuple[int, int]]:
+    """Extract (char_position, seconds) pairs from raw transcript text.
+
+    Scans the raw text for HH:MM:SS or MM:SS timestamps at the start of lines
+    and records each timestamp's character offset (in the raw text) and its
+    value in seconds.  Returns an empty list when no timestamps are found.
+    """
+    index: list[tuple[int, int]] = []
+    pos = 0
+    for raw_line in raw_text.replace("\r", "\n").splitlines():
+        m = _TIMESTAMP_RE.match(raw_line)
+        if m:
+            index.append((pos, _parse_timestamp_seconds(m)))
+        pos += len(raw_line) + 1  # +1 for the newline
+    return index
+
+
+def _build_char_mapping(raw_text: str) -> list[tuple[int, int]]:
+    """Build a mapping from cleaned-text char positions to raw-text char positions.
+
+    Returns a list of (raw_start, cleaned_start) for each kept line,
+    allowing us to translate chunk boundaries in the cleaned text back to
+    the raw text for timestamp lookup.
+    """
+    mapping: list[tuple[int, int]] = []
+    raw_pos = 0
+    cleaned_pos = 0
+    for raw_line in str(raw_text or "").replace("\r", "\n").splitlines():
+        line = re.sub(r"^\s*\d{1,2}:\d{2}(?::\d{2})?\s*", "", raw_line)
+        line = re.sub(r"^\s*\[[^\]]+\]\s*$", "", line)
+        line = re.sub(r"\s+", " ", line).strip()
+        if line:
+            mapping.append((raw_pos, cleaned_pos))
+            cleaned_pos += len(line) + 1  # +1 for the newline we join with
+        raw_pos += len(raw_line) + 1
+    return mapping
+
+
+def _lookup_chunk_timestamp(
+    chunk_start_cleaned: int,
+    char_mapping: list[tuple[int, int]],
+    timestamp_index: list[tuple[int, int]],
+) -> int | None:
+    """Find the nearest preceding timestamp for a cleaned-text char position.
+
+    Translates *chunk_start_cleaned* back to a raw-text position via
+    *char_mapping*, then searches *timestamp_index* for the latest timestamp
+    at or before that raw position.  Returns seconds, or ``None`` when no
+    preceding timestamp exists.
+    """
+    if not timestamp_index or not char_mapping:
+        return None
+
+    # Find the raw position corresponding to chunk_start_cleaned.
+    raw_pos = 0
+    for r, c in char_mapping:
+        if c <= chunk_start_cleaned:
+            raw_pos = r
+        else:
+            break
+
+    # Find the latest timestamp at or before raw_pos.
+    best: int | None = None
+    for ts_pos, ts_sec in timestamp_index:
+        if ts_pos <= raw_pos:
+            best = ts_sec
+        else:
+            break
+    return best
+
+
+def clean_transcript_text(
+    transcript_text: str,
+) -> tuple[str, list[tuple[int, int]], list[tuple[int, int]]]:
+    """Clean transcript text and extract temporal metadata.
+
+    Returns:
+        A 3-tuple of:
+        - cleaned text (str) — timestamps and bracket-only lines removed
+        - timestamp_index — list of (raw_char_pos, seconds) from the raw text
+        - char_mapping — list of (raw_char_pos, cleaned_char_pos) per kept line
+    """
+    raw = str(transcript_text or "").replace("\r", "\n")
+    timestamp_index = _extract_timestamp_index(raw)
+    char_mapping = _build_char_mapping(transcript_text)
+
     lines = []
-    for raw_line in str(transcript_text or "").replace("\r", "\n").splitlines():
+    for raw_line in raw.splitlines():
         line = re.sub(r"^\s*\d{1,2}:\d{2}(?::\d{2})?\s*", "", raw_line)
         line = re.sub(r"^\s*\[[^\]]+\]\s*$", "", line)
         line = re.sub(r"\s+", " ", line).strip()
         if line:
             lines.append(line)
-    return "\n".join(lines).strip()
+    cleaned = "\n".join(lines).strip()
+    return cleaned, timestamp_index, char_mapping
 
 
 def _unique_chunks(chunks: list[str]) -> list[str]:
@@ -105,7 +209,7 @@ def ingest_transcript(
     if normalized_type not in HOT_SOURCE_TYPES:
         raise ValueError("transcript ingestion only supports commentary source types")
 
-    cleaned = clean_transcript_text(transcript_text)
+    cleaned, timestamp_index, char_mapping = clean_transcript_text(transcript_text)
     if not cleaned:
         raise ValueError("transcript_text is required")
 
@@ -173,10 +277,31 @@ def ingest_transcript(
     if vectors:
         resolved_collection_name = ensure_collection(client, collection_name, len(vectors[0]))
 
+    # Build a position index so we can find each chunk's start offset in the
+    # cleaned text and map it back to a raw-text timestamp.
+    _chunk_start_positions: list[int] = []
+    _search_from = 0
+    for chunk_text in chunks:
+        pos = cleaned.find(chunk_text, _search_from)
+        _chunk_start_positions.append(max(pos, 0))
+        if pos >= 0:
+            _search_from = pos + 1
+
+    has_timestamps = bool(timestamp_index)
+
     points: list[dict[str, Any]] = []
     for index, (chunk_text, vector) in enumerate(zip(chunks, vectors)):
         chunk_id = f"{resolved_source_id}:{index}"
         point_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"commentary_chunks:{chunk_id}"))
+
+        chunk_ts: int | None = None
+        if has_timestamps:
+            chunk_ts = _lookup_chunk_timestamp(
+                _chunk_start_positions[index],
+                char_mapping,
+                timestamp_index,
+            )
+
         points.append(
             {
                 "id": point_id,
@@ -193,6 +318,7 @@ def ingest_transcript(
                     "credibility_weight": resolved_credibility,
                     "decay_half_life": resolved_half_life,
                     "topic_tags": sorted_tags,
+                    "chunk_timestamp_seconds": chunk_ts,
                 },
             }
         )
