@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 from typing import Any
 
 from app.core.config import settings
@@ -126,6 +127,26 @@ def _evidence_context_rows(evidence: list[dict[str, Any]]) -> list[dict[str, Any
             }
         )
     return rows
+
+
+def _normalize_insights(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item).strip()]
+
+
+def _normalize_confidence(value: Any) -> float:
+    try:
+        confidence = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    if not math.isfinite(confidence):
+        return 0.0
+    return max(0.0, min(1.0, confidence))
+
+
+def _normalize_supporting_evidence(value: Any) -> list[Any]:
+    return value if isinstance(value, list) else []
 
 
 def _format_session_context_block(prior_turns: list[dict[str, Any]]) -> str:
@@ -314,21 +335,29 @@ def chat_with_tenn(
             error=detail,
         )
 
-    answer = str(llm_payload.get("answer") or "").strip()
-    insights = [str(item).strip() for item in list(llm_payload.get("insights") or []) if str(item).strip()]
-    confidence = max(0.0, min(1.0, float(llm_payload.get("confidence") or 0.0)))
-    sources = [
-        {
-            "source_name": str(row.get("source_name") or "").strip(),
-            "url": str(row.get("url") or "").strip(),
-            "relevance_score": float(row.get("relevance_score") or 0.0),
-            "recency_decay": float(row.get("recency_decay") or 1.0),
-            "final_score": float(row.get("final_score") or 0.0),
-            "source_type": str(row.get("source_type") or "").strip(),
-            "published_at": str(row.get("published_at") or "").strip(),
-        }
-        for row in context_rows
-    ]
+    try:
+        answer = str(llm_payload.get("answer") or "").strip()
+        insights = _normalize_insights(llm_payload.get("insights"))
+        confidence = _normalize_confidence(llm_payload.get("confidence"))
+        sources = [
+            {
+                "source_name": str(row.get("source_name") or "").strip(),
+                "url": str(row.get("url") or "").strip(),
+                "relevance_score": float(row.get("relevance_score") or 0.0),
+                "recency_decay": float(row.get("recency_decay") or 1.0),
+                "final_score": float(row.get("final_score") or 0.0),
+                "source_type": str(row.get("source_type") or "").strip(),
+                "published_at": str(row.get("published_at") or "").strip(),
+            }
+            for row in context_rows
+        ]
+    except Exception as exc:
+        detail = str(exc).strip() or exc.__class__.__name__
+        logger.exception("chat_with_tenn response normalization failed query=%s error=%s", normalized_query[:120], detail)
+        return _degraded_chat_payload(
+            "Chat analysis produced an invalid response payload.",
+            error=detail,
+        )
 
     if session_memory_enabled:
         retrieved_chunk_ids = [
@@ -352,7 +381,7 @@ def chat_with_tenn(
     return {
         "answer": answer,
         "insights": insights,
-        "supporting_evidence": llm_payload.get("supporting_evidence") or [],
+        "supporting_evidence": _normalize_supporting_evidence(llm_payload.get("supporting_evidence")),
         "confidence": confidence,
         "sources": sources,
     }

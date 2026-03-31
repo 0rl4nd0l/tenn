@@ -390,3 +390,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** `chat_with_tenn()` has two context row paths: `_context_rows()` for ranked commentary/news chunks and an inline fallback path for raw RAG evidence. The fallback rows omitted `url`, but the later `sources` payload indexed `row["url"]` unconditionally outside the guarded retrieval block. When the chat flow fell back to raw evidence, the backend raised `KeyError: 'url'` and surfaced a 500/reset instead of a degraded answer.
 **Fix:** Added `_evidence_context_rows()` so fallback evidence rows use the same schema as `_context_rows()`, including `url`. Hardened `sources` assembly to use `.get()` defaults instead of direct indexing. Added regression tests for fallback row normalization.
 **Rule:** Any alternate payload path that feeds a shared response formatter must produce the same field set as the primary path. In `tenn_chat`, every `context_rows` item must include the full `_context_rows()` schema before answer/sources assembly runs.
+
+---
+
+## L036 — `/chat` must sanitize model JSON before formatting the response
+
+**Date:** 2026-03-31
+**Subsystem:** `backend/app/services/tenn_chat.py`
+**Symptom:** Even after retrieval succeeded, the Next.js cockpit UI could still see `/chat` resets if the model returned malformed-but-parseable JSON, such as non-numeric `confidence` or non-list `insights` / `supporting_evidence`.
+**Root cause:** `chat_with_tenn()` trusted the model payload shape after `generate_json()` and performed strict Python coercions outside the guarded retrieval/LLM try block. A bad `confidence` value like `"high"` could raise during response formatting and turn a recoverable model-output issue into a backend 500.
+**Fix:** Added explicit payload normalizers for `confidence`, `insights`, and `supporting_evidence`, and wrapped post-LLM response formatting in a degraded fallback path instead of letting shape errors propagate.
+**Rule:** Model JSON is untrusted input even after successful parsing. Any backend response formatter consuming LLM output must coerce and validate fields before building the HTTP response, and degrade on schema drift instead of throwing.

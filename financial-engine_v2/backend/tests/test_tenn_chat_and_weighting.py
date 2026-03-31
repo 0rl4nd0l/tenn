@@ -10,7 +10,14 @@ from app.services.source_weighting import (
     half_life_for_type,
     source_weight_for_type,
 )
-from app.services.tenn_chat import _context_rows, _evidence_context_rows, _normalize_news_chunk
+from app.services.tenn_chat import (
+    _context_rows,
+    _evidence_context_rows,
+    _normalize_confidence,
+    _normalize_insights,
+    _normalize_news_chunk,
+    _normalize_supporting_evidence,
+)
 
 
 class TestSourceWeightingNewsArticle:
@@ -154,3 +161,21 @@ class TestEvidenceContextRows:
     def test_skips_empty_hits(self):
         rows = _evidence_context_rows([{"title": ""}, {}])
         assert rows == []
+
+
+class TestChatPayloadNormalization:
+    def test_confidence_defaults_to_zero_for_non_numeric_value(self):
+        assert _normalize_confidence("high") == 0.0
+
+    def test_confidence_clamps_and_rejects_non_finite_values(self):
+        assert _normalize_confidence(9.5) == 1.0
+        assert _normalize_confidence(-2) == 0.0
+        assert _normalize_confidence(float("nan")) == 0.0
+
+    def test_insights_requires_list(self):
+        assert _normalize_insights("single string") == []
+        assert _normalize_insights(["a", "", " b "]) == ["a", "b"]
+
+    def test_supporting_evidence_requires_list(self):
+        assert _normalize_supporting_evidence({"a": 1}) == []
+        assert _normalize_supporting_evidence([{"a": 1}]) == [{"a": 1}]
