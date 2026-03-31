@@ -401,3 +401,25 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** `chat_with_tenn()` trusted the model payload shape after `generate_json()` and performed strict Python coercions outside the guarded retrieval/LLM try block. A bad `confidence` value like `"high"` could raise during response formatting and turn a recoverable model-output issue into a backend 500.
 **Fix:** Added explicit payload normalizers for `confidence`, `insights`, and `supporting_evidence`, and wrapped post-LLM response formatting in a degraded fallback path instead of letting shape errors propagate.
 **Rule:** Model JSON is untrusted input even after successful parsing. Any backend response formatter consuming LLM output must coerce and validate fields before building the HTTP response, and degrade on schema drift instead of throwing.
+
+---
+
+## L037 — `/chat` source scores must reject NaN and infinity before JSON serialization
+
+**Date:** 2026-03-31
+**Subsystem:** `backend/app/services/tenn_chat.py`
+**Symptom:** Cockpit Next.js could still report `ECONNRESET` on `/chat` even after schema fixes, because the backend could assemble a Python dict successfully but fail only when FastAPI serialized the response body.
+**Root cause:** Source score fields like `relevance_score`, `recency_decay`, and `final_score` were converted with bare `float(...)`. If retrieval or weighting produced `nan` or `inf`, the response object remained in-memory but JSON serialization could reject those non-finite floats and terminate the request with a 500/reset.
+**Fix:** Added `_safe_float()` and routed all `/chat` source score fields through it for primary context rows, fallback evidence rows, and final `sources` formatting. Added a regression test covering non-finite values.
+**Rule:** Any float included in an HTTP JSON response must be normalized to a finite value before serialization. Do not pass raw model/retrieval scores through `float(...)` and assume the response encoder will tolerate them.
+
+---
+
+## L038 — `/chat` must recursively sanitize `supporting_evidence` before returning JSON
+
+**Date:** 2026-03-31
+**Subsystem:** `backend/app/services/tenn_chat.py`
+**Symptom:** Cockpit Next.js could still see `socket hang up` / `ECONNRESET` on `/chat` even after `confidence`, `insights`, and `sources` were normalized, because the response could still contain invalid nested values inside `supporting_evidence`.
+**Root cause:** `_normalize_supporting_evidence()` only checked that the top-level value was a list. It passed nested dicts/lists through unchanged, so model JSON containing `NaN`, `Infinity`, or other non-JSON-safe values inside evidence items could still break FastAPI response serialization.
+**Fix:** Added recursive JSON-safe normalization for `supporting_evidence`, converting non-finite floats to `null` and coercing unsupported leaf values to strings. Added a regression test covering nested non-finite evidence values.
+**Rule:** Top-level schema validation is not sufficient for backend JSON responses. Any LLM-provided nested structure that is echoed back to clients must be recursively sanitized to JSON-safe primitives before returning it.

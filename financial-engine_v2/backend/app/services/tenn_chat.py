@@ -95,9 +95,9 @@ def _context_rows(chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "text": str(chunk.get("text") or "").strip(),
                 "source_name": str(chunk.get("source_name") or chunk.get("source_file") or "").strip(),
                 "url": str(chunk.get("url") or "").strip(),
-                "relevance_score": float(chunk.get("relevance_score") or 0.0),
-                "recency_decay": float(chunk.get("recency_decay") or 1.0),
-                "final_score": float(chunk.get("final_score") or 0.0),
+                "relevance_score": _safe_float(chunk.get("relevance_score"), default=0.0),
+                "recency_decay": _safe_float(chunk.get("recency_decay"), default=1.0),
+                "final_score": _safe_float(chunk.get("final_score"), default=0.0),
                 "source_type": str(chunk.get("source_type") or "").strip(),
                 "published_at": str(chunk.get("published_at") or "").strip(),
                 "retrieval_strategies": list(chunk.get("retrieval_strategies") or []),
@@ -118,9 +118,9 @@ def _evidence_context_rows(evidence: list[dict[str, Any]]) -> list[dict[str, Any
                 "text": text,
                 "source_name": str(hit.get("title") or hit.get("document_id") or "").strip(),
                 "url": str(hit.get("url") or "").strip(),
-                "relevance_score": float(hit.get("score") or 0.0),
+                "relevance_score": _safe_float(hit.get("score"), default=0.0),
                 "recency_decay": 1.0,
-                "final_score": float(hit.get("score") or 0.0),
+                "final_score": _safe_float(hit.get("score"), default=0.0),
                 "source_type": str(hit.get("doc_class") or "").strip(),
                 "published_at": str(hit.get("published_at") or "").strip(),
                 "retrieval_strategies": ["rag_vector"],
@@ -146,7 +146,35 @@ def _normalize_confidence(value: Any) -> float:
 
 
 def _normalize_supporting_evidence(value: Any) -> list[Any]:
-    return value if isinstance(value, list) else []
+    if not isinstance(value, list):
+        return []
+    return [_json_safe_value(item) for item in value]
+
+
+def _safe_float(value: Any, *, default: float = 0.0) -> float:
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return default
+    if not math.isfinite(result):
+        return default
+    return result
+
+
+def _json_safe_value(value: Any) -> Any:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, str)):
+        return value
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, dict):
+        return {str(key): _json_safe_value(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe_value(item) for item in value]
+    return str(value)
 
 
 def _format_session_context_block(prior_turns: list[dict[str, Any]]) -> str:
@@ -343,9 +371,9 @@ def chat_with_tenn(
             {
                 "source_name": str(row.get("source_name") or "").strip(),
                 "url": str(row.get("url") or "").strip(),
-                "relevance_score": float(row.get("relevance_score") or 0.0),
-                "recency_decay": float(row.get("recency_decay") or 1.0),
-                "final_score": float(row.get("final_score") or 0.0),
+                "relevance_score": _safe_float(row.get("relevance_score"), default=0.0),
+                "recency_decay": _safe_float(row.get("recency_decay"), default=1.0),
+                "final_score": _safe_float(row.get("final_score"), default=0.0),
                 "source_type": str(row.get("source_type") or "").strip(),
                 "published_at": str(row.get("published_at") or "").strip(),
             }

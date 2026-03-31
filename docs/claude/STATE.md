@@ -4,7 +4,7 @@
 > Update this file at the end of every session alongside the milestone commit.
 > For detailed context on any item, follow the linked doc or run `git log --oneline`.
 
-Last updated: 2026-03-31 (session — `/chat` response normalization hardened for Next.js cockpit UI)
+Last updated: 2026-03-31 (session — `/chat` JSON serialization hardened for Next.js cockpit UI)
 Branch: cloud/session-20260319
 
 ## Legend
@@ -31,7 +31,7 @@ Branch: cloud/session-20260319
 | **cockpit-agent** | `[ verified ]` | Agent mode + ToolExecutor verified via Textual Pilot 2026-03-27: all 7 checks PASS, 217 unit tests. |
 | **cockpit-strategy** | `[ verified ]` | Strategy schema (d173a8da) + improvements (2026-03-31): signal engine (TickerScorer 0-100 composite + sector-relative via sector_comparison.py), thesis tracking (ThesisService JSONL, auto-invalidation on evidence ratio, 90-day expiry), risk gate (bull/bear/judge debate), reflection loop (decision snapshots, auto-reflect in watchlist scanner). Tool routing guide in system prompt. Configurable signal weights via adjust_signal_weights tool. 38 tools total. |
 | **cockpit-sourcing** | `[ verified ]` | Evidence sourcing (2e9c3ddb): SourcesFormatter, sources metadata in gather_local_context, /sources on\|off toggle. 6 tests. |
-| **cockpit-routing** | `[ verified ]` | Chat routing visibility + extraction guard (f037aa09): per-response footer [backend\|model\|latency\|cost], extraction pre-flight guard with auto-model-load via router API, `.env` loading fixed in cockpit entrypoint. Ticker fast-path false positives fixed (2cfb991e): stopwords expanded, _FOLLOW_UP_RE narrowed to topic-referential only. `/chat` RAG fallback rows now preserve the full context schema, and model-output normalization now degrades invalid JSON fields instead of crashing the Next.js cockpit UI. L027+L028+L029+L035+L036. |
+| **cockpit-routing** | `[ verified ]` | Chat routing visibility + extraction guard (f037aa09): per-response footer [backend\|model\|latency\|cost], extraction pre-flight guard with auto-model-load via router API, `.env` loading fixed in cockpit entrypoint. Ticker fast-path false positives fixed (2cfb991e): stopwords expanded, _FOLLOW_UP_RE narrowed to topic-referential only. `/chat` RAG fallback rows now preserve the full context schema, model-output normalization degrades invalid JSON fields, and response payload assembly now rejects non-finite values before FastAPI serialization instead of crashing the Next.js cockpit UI. L027+L028+L029+L035+L036+L037+L038. |
 | **gpu-process-rails** | `[ verified ]` | Canonical port manifest (§9.4), agent spawn protocol (§9.5), `gpu_process_guard.sh`, `llamacpp_manager.py` topology check. Router-mode child workers on ephemeral localhost ports are now treated as authorised descendants of the canonical router instead of rogue instances. L022 + L034 logged. |
 | **analysis-modules** | `[ verified ]` | 7 modules (+ sentiment), orchestrator, context_loader (Yahoo price fallback), watchlist scanner (7 alert rules), API endpoints, scale validation gate, extraction expansion (total_equity, interest_expense). 48 tests. D2 live-tested. Real-data validated (RIO, BHP). Architecture doc 1151 lines. |
 | **model-eval** | `[ verified ]` | Qwen 3 14B evaluated (85.26%) vs Qwen 2.5 14B (89.47%) — current model stays. |
@@ -78,6 +78,7 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 
 | Commit | Workstream | Summary |
 |--------|------------|---------|
+| (2026-03-31) | cockpit-routing | `/chat` now recursively sanitizes nested `supporting_evidence` and rejects non-finite response values before JSON serialization, closing another backend reset path behind the Next.js cockpit UI's `ECONNRESET` errors. |
 | (2026-03-31) | cockpit-routing | `/chat` now sanitizes model JSON fields before response assembly, so malformed `confidence` / `insights` / `supporting_evidence` values degrade cleanly instead of surfacing as backend resets in the Next.js cockpit UI. |
 | (2026-03-31) | cockpit-routing | `/chat` fallback evidence rows now include the full context schema, preventing backend 500/ECONNRESET when the Next.js cockpit UI falls back from weighted chunk retrieval to raw RAG evidence. |
 | (2026-03-31) | gpu-process-rails | GPU topology guard now recognises router-owned llama.cpp child workers, so `scripts/cockpit` no longer blocks startup on the router's ephemeral model port. Contract wording aligned with router mode. |

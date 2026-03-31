@@ -17,6 +17,7 @@ from app.services.tenn_chat import (
     _normalize_insights,
     _normalize_news_chunk,
     _normalize_supporting_evidence,
+    _safe_float,
 )
 
 
@@ -179,3 +180,12 @@ class TestChatPayloadNormalization:
     def test_supporting_evidence_requires_list(self):
         assert _normalize_supporting_evidence({"a": 1}) == []
         assert _normalize_supporting_evidence([{"a": 1}]) == [{"a": 1}]
+
+    def test_supporting_evidence_rejects_non_finite_nested_values(self):
+        assert _normalize_supporting_evidence(
+            [{"score": float("nan"), "nested": [1.0, float("inf")]}]
+        ) == [{"score": None, "nested": [1.0, None]}]
+
+    def test_safe_float_rejects_non_finite_values(self):
+        assert _safe_float(float("nan"), default=0.0) == 0.0
+        assert _safe_float(float("inf"), default=1.0) == 1.0
