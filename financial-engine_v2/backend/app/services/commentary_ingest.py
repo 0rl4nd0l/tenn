@@ -11,6 +11,7 @@ from typing import Any, Callable
 from qdrant_client import QdrantClient
 
 from app.tasks.commentary_tasks import extract_commentary_memo_task
+from app.services.speaker_turn_detector import annotate_chunks_with_speakers
 from app.services.structured_chunking import simple_chunk_overlap
 from app.services.commentary_memo_extractor import (
     DEFAULT_COMMENTARY_MEMOS_PATH,
@@ -261,6 +262,7 @@ def ingest_transcript(
         model=embed_model,
     )
     chunks = _unique_chunks(simple_chunk_overlap(cleaned, max_chars=1400))
+    speaker_annotations = annotate_chunks_with_speakers(chunks, cleaned)
     client = qdrant_client or verify_qdrant(qdrant_url=qdrant_url)
     embed = embed_batch_fn or _default_embed_batch
     vectors = embed(
@@ -319,6 +321,11 @@ def ingest_transcript(
                     "decay_half_life": resolved_half_life,
                     "topic_tags": sorted_tags,
                     "chunk_timestamp_seconds": chunk_ts,
+                    "primary_speaker": (
+                        speaker_annotations[index]["primary_speaker"]
+                        if index < len(speaker_annotations)
+                        else None
+                    ),
                 },
             }
         )

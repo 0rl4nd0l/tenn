@@ -119,7 +119,7 @@ def _resolve_runtime_from_metadata(
     # off the chat/coding GPU and allows a different model (instruct vs
     # coder).  Falls back to the general LLAMACPP_URL when unset.
     component = str(payload.get("component") or "").strip().lower()
-    if component in ("multipass_extraction", "commentary_memo_extractor"):
+    if component in ("multipass_extraction", "commentary_memo_extractor", "news_memo_extractor"):
         return resolve_extraction_runtime_config(
             base_url=payload.get("requested_base_url") or payload.get("llm_url"),
             model=payload.get("requested_model") or payload.get("llm_model"),
@@ -148,7 +148,7 @@ def _resolve_runtime_from_metadata(
 
 def _should_force_llamacpp(metadata: dict[str, Any] | None) -> bool:
     payload = dict(metadata or {})
-    if str(payload.get("component") or "").strip().lower() == "commentary_memo_extractor":
+    if str(payload.get("component") or "").strip().lower() in ("commentary_memo_extractor", "news_memo_extractor"):
         return True
     return any(
         str(payload.get(key) or "").strip()

@@ -119,6 +119,7 @@ def process_document(prev, document_id:str=None):
         err = None
         structured = None
         conf = None
+        chunk_dicts: list[dict] = []
         chunks: list[str] = []
         try:
             doc_metadata={
@@ -127,7 +128,8 @@ def process_document(prev, document_id:str=None):
                 "title": str(doc.title or ""),
             }
             multipass_result=run_multipass_extraction(doc.pdf_path, doc_metadata, None)
-            chunks=chunk_prose_sections(StructuredDocument(sections=multipass_result.sections))
+            chunk_dicts=chunk_prose_sections(StructuredDocument(sections=multipass_result.sections))
+            chunks=[c["text"] for c in chunk_dicts]
             status=multipass_result.status
             err=multipass_result.error
             structured=multipass_result.payload
@@ -149,7 +151,7 @@ def process_document(prev, document_id:str=None):
                 vecs.extend(llamacpp_embed(embedding_base_url, embedding_model, batch))
             dim=len(vecs[0])
             ensure_collection(q, QDRANT_COLLECTION, dim)
-            points=[{"id":str(uuid.uuid4()),"vector":v,"payload":{"document_id":str(doc.document_id),"ticker":doc.ticker,"doc_class":doc.doc_class,"doc_subtype":doc.doc_subtype,"chunk_index":i,"title":doc.title}} for i,(v,chunk) in enumerate(zip(vecs,chunks))]
+            points=[{"id":str(uuid.uuid4()),"vector":v,"payload":{"document_id":str(doc.document_id),"ticker":doc.ticker,"doc_class":doc.doc_class,"doc_subtype":doc.doc_subtype,"chunk_index":i,"title":doc.title,"section_heading":chunk_dicts[i]["section_heading"]}} for i,(v,chunk) in enumerate(zip(vecs,chunks))]
             upsert_points(q, QDRANT_COLLECTION, points)
 
         run=ExtractionRun(document_id=doc.document_id, extractor_version=EXTRACTOR_VERSION, model_name=EXTRACT_MODEL, prompt_hash=PROMPT_HASH,

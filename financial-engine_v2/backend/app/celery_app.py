@@ -45,7 +45,7 @@ def _resolve_task_route(
 
 celery = Celery(
     "financial_engine",
-    include=["app.worker_tasks", "app.tasks.commentary_tasks"],
+    include=["app.worker_tasks", "app.tasks.commentary_tasks", "app.tasks.news_tasks"],
 )
 celery.conf.update(
     broker_url=settings.celery_broker_url,

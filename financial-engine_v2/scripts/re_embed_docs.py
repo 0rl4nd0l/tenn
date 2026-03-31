@@ -85,7 +85,8 @@ def main() -> None:
         try:
             # Extract structure from PDF
             structured_doc = extract_structured(pdf_path)
-            chunks = chunk_prose_sections(structured_doc)
+            chunk_dicts = chunk_prose_sections(structured_doc)
+            chunks = [c["text"] for c in chunk_dicts]
             if not chunks:
                 skip += 1
                 print(f"  SKIP {label} (0 chunks)", flush=True)
@@ -118,6 +119,7 @@ def main() -> None:
                     "chunk_index": idx,
                     "title": doc.title,
                     "text": chunks[idx],
+                    "section_heading": chunk_dicts[idx]["section_heading"],
                 }
                 is_valid, reason = validate_payload(payload)
                 if not is_valid:

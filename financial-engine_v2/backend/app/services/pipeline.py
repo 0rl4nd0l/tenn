@@ -908,7 +908,8 @@ def process_document(
 
         # --- Use structured sections for prose chunking (not raw text) ---
         _doc_for_chunks = StructuredDocument(sections=sections_for_chunks)
-        chunks = chunk_prose_sections(_doc_for_chunks)
+        chunk_dicts = chunk_prose_sections(_doc_for_chunks)
+        chunks = [c["text"] for c in chunk_dicts]
         chunks_created = len(chunks)
         chunks_skipped = 0
         invalid_payloads = 0
@@ -984,6 +985,7 @@ def process_document(
                             "chunk_index": index,
                             "title": doc.title,
                             "text": chunks[index],
+                            "section_heading": chunk_dicts[index]["section_heading"],
                         }
                         is_valid, reason = validate_payload(payload)
                         if not is_valid:

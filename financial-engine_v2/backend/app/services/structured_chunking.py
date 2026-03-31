@@ -12,27 +12,64 @@ MAX_CHARS = 2000  # nomic-embed-text context is 2048 tokens; ~2000 chars fits sa
 OVERLAP_CHARS = 150
 
 
-def chunk_prose_sections(doc: StructuredDocument, max_chars: int = MAX_CHARS) -> list[str]:
+def chunk_prose_sections(doc: StructuredDocument, max_chars: int = MAX_CHARS) -> list[dict]:
     """
-    Returns a list of text chunks from the document's prose sections.
+    Returns a list of chunk dicts from the document's prose sections.
     Tables are excluded. Chunks respect max_chars with simple overlap.
-    """
-    prose = " ".join(
-        s["text"] for s in doc.sections
-        if s.get("text", "").strip()
-    ).strip()
 
-    if not prose:
+    Each dict: {"text": str, "section_heading": str | None}
+    The section_heading is the most recent heading that preceded the chunk.
+    """
+    # Build a list of (char_offset, heading_text) for heading lookups,
+    # and the concatenated prose string.
+    parts: list[str] = []
+    heading_offsets: list[tuple[int, str]] = []
+    current_heading: str | None = None
+    offset = 0
+
+    for s in doc.sections:
+        text = s.get("text", "").strip()
+        if not text:
+            continue
+        if s.get("heading", False):
+            current_heading = text
+        # Record the heading that is active at this character offset
+        if current_heading is not None:
+            # Only record when heading changes or first time
+            if not heading_offsets or heading_offsets[-1][1] != current_heading:
+                heading_offsets.append((offset, current_heading))
+        if parts:
+            offset += 1  # for the joining space
+        parts.append(text)
+        offset += len(text)
+
+    prose = " ".join(parts)
+    if not prose.strip():
         return []
 
-    chunks = []
+    def _heading_at(char_pos: int) -> str | None:
+        """Return the most recent heading at or before char_pos."""
+        result = None
+        for ho, ht in heading_offsets:
+            if ho <= char_pos:
+                result = ht
+            else:
+                break
+        return result
+
+    chunks: list[dict] = []
     start = 0
     while start < len(prose):
         end = min(start + max_chars, len(prose))
-        chunks.append(prose[start:end])
+        chunk_text = prose[start:end]
+        if chunk_text.strip():
+            chunks.append({
+                "text": chunk_text,
+                "section_heading": _heading_at(start),
+            })
         start = end - OVERLAP_CHARS if end < len(prose) else end
 
-    return [c for c in chunks if c.strip()]
+    return chunks
 
 
 def simple_chunk(text: str, max_chars: int = 4500) -> list[str]:
