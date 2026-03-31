@@ -46,24 +46,41 @@ No other component may override or duplicate this authority.
 
 ---
 
-## 1.2 Cockpit Role (STRICT)
+## 1.2 Cockpit Role (STRICT — ENFORCED)
 
 Cockpit is a **client + orchestration layer only**.
 
 Cockpit MUST:
 
-* call backend APIs
+* call backend APIs for all authoritative data reads
 * orchestrate workflows
 * perform reasoning/synthesis using provided context
 
 Cockpit MUST NOT:
 
-* access Qdrant directly
-* access Postgres directly
+* access Qdrant directly (write path enforced via backend commentary API)
+* access Postgres directly for authoritative reads (enforced: `BackendApiClient` is sole data source when configured)
 * implement retrieval pipelines
 * perform data ingestion
 * maintain independent data stores of truth
 * create alternate financial interpretations outside backend
+
+### Enforcement Status (2026-03-31)
+
+**RESOLVED.** All cockpit authoritative reads now flow through `BackendApiClient`:
+
+| Data | Backend Endpoint | Cockpit Consumer |
+|------|-----------------|------------------|
+| Documents, financials, announcements | `GET /api/context/ticker` | `_load_ticker_context`, tool executor, deep research |
+| Extraction failures, low-confidence | `GET /api/context/verification` | verification, data quality tools |
+| Transcript approve/reject/purge | `POST /api/commentary/transcripts/*` | `/review` command handler |
+| Pending transcripts | `GET /api/commentary/transcripts/pending` | `/review list` |
+
+**DbReader** is retained only for:
+* Diagnostic queries (`run_diagnostic_query()`)
+* Legacy fallback when `backend_api_client` is `None` (environments without the backend running)
+
+When `backend_api_client` is configured, backend failure returns empty data with error signal — no silent DbReader fallback.
 
 ---
 
@@ -266,6 +283,49 @@ Rules:
 
 ---
 
+## 5.5 Context API (AUTHORITATIVE)
+
+Backend provides cockpit with all authoritative data reads via:
+
+```
+GET /api/context/ticker?ticker=XYZ
+```
+
+Returns a single bundle: `docs`, `financials`, `latest_financial_snapshot`, `announcement_context`, `extraction_failures`, `low_confidence_financials`. Query params control limits and thresholds. Partial failure populates `errors[]` without aborting the response.
+
+```
+GET /api/context/verification?ticker=XYZ
+```
+
+Returns `extraction_failures` and `low_confidence_financials` for data quality checks. Ticker is optional — omit for cross-ticker view.
+
+Rules:
+* SQL matches the original DbReader queries exactly (field name parity)
+* `low_confidence_threshold` default is `0.4` (matching DbReader)
+* Valid ticker with no data returns HTTP 200 with empty lists — never 404
+
+---
+
+## 5.6 Commentary API (AUTHORITATIVE)
+
+Backend owns all Qdrant writes for commentary/transcript data:
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/commentary/transcripts/pending` | GET | List staged transcripts |
+| `/api/commentary/transcripts/{source_id}/approve` | POST | Read staged JSONL, upsert to Qdrant, clean staging |
+| `/api/commentary/transcripts/{source_id}/reject` | POST | Delete staged transcript |
+| `/api/commentary/transcripts/purge-expired` | POST | Remove expired staged transcripts |
+
+Rules:
+* Write endpoints require API key (`X-API-Key` header)
+* `source_id` validated against `^[a-zA-Z0-9_\-]{1,128}$`
+* Staged files live at `~/.tenn/memory/staged_chunks/`
+* `collection_name` is read from the staging index, not from the request body
+* Qdrant unavailable returns HTTP 503
+
+---
+
 # 6. WORKER CONTRACT
 
 ## 6.1 Canonical Worker
@@ -419,11 +479,12 @@ Agents MUST state:
 
 Agents MUST NOT:
 
-* introduce fallbacks
+* introduce fallbacks that mask backend failures (see §1.2 enforcement)
 * modify multiple layers
-* bypass backend
+* bypass backend (all reads via §5.5/§5.6 APIs, all writes via backend)
 * create parallel systems
 * approximate results
+* re-introduce direct Postgres or Qdrant access in cockpit
 
 ---
 
