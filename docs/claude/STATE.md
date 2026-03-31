@@ -35,6 +35,7 @@ Branch: cloud/session-20260319
 | **gpu-process-rails** | `[ verified ]` | Canonical port manifest (§9.4), agent spawn protocol (§9.5), `gpu_process_guard.sh`, `llamacpp_manager.py` topology check. L022 logged. |
 | **analysis-modules** | `[ verified ]` | 7 modules (+ sentiment), orchestrator, context_loader (Yahoo price fallback), watchlist scanner (7 alert rules), API endpoints, scale validation gate, extraction expansion (total_equity, interest_expense). 48 tests. D2 live-tested. Real-data validated (RIO, BHP). Architecture doc 1151 lines. |
 | **model-eval** | `[ verified ]` | Qwen 3 14B evaluated (85.26%) vs Qwen 2.5 14B (89.47%) — current model stays. |
+| **narrative-extraction** | `[ verified ]` | Phase 1 complete (849c664f): Pass 3b ungated from Pass 1 classifier, announcement_type persisted in Document + Qdrant, context 4K→8K, commentary chunks get 150-char overlap, analysis modules consume guidance_summary + material_changes. Phase 2 (section-aware chunking, type-specific extractors) deferred pending evidence from ungated extraction. |
 | **docs-governance** | `[ in-progress ]` | Root startup docs aligned to the canonical backend entrypoint. Repository-audit instructions updated to use actual repo manifests. Backend API surface, extraction, embeddings, routing, scripts index, portfolio module docs, Cockpit control-plane docs, and eval-fixture architecture docs refreshed. Open item: Cockpit contract/code mismatch still needs an explicit architecture decision. |
 
 ---
@@ -77,6 +78,7 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 
 | Commit | Workstream | Summary |
 |--------|------------|---------|
+| 849c664f | narrative-extraction | Phase 1: Ungate Pass 3b from financial classifier, persist announcement_type (Document + Qdrant), context 4K→8K, commentary chunk overlap, analysis modules consume guidance_summary + material_changes. 365 tests passing. |
 | f4e2f820 | cockpit | Align preboot routing docs and tests: cockpit LLM config authority, env-override gating, current preboot export behavior. |
 | 0e651e8d | analysis-modules | Phase 3 complete: 6 analysis modules (balance_sheet, roic, valuation, risk, catalysts, moat), AnalysisModule Protocol, TickerContext, orchestrator, context_loader. 48 tests, 2350 lines. Qwen 3 14B evaluated and rejected (85.26% vs 89.47%). |
 | adfec5ca | analysis-artifact-v0 | Deterministic `financial_snapshot_v0.json` from `asx_periodic_financials` → `reports/analysis/{TICKER}/`; `periodic_snapshot_export` + `export_financial_snapshot.py`. |
@@ -106,6 +108,8 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 ## Backlog (scoped but not started)
 
 - ~~**Watchlist trigger mechanism**~~ — SHIPPED: `/watch scan`, `scan_watchlist` tool, `WatchlistTrigger` orchestrator
+- **Narrative extraction Phase 2** — evidence-driven: section-aware chunking, type-specific extractors for ops/governance/investor docs, expanded narrative schema. Depends on data from Phase 1 ungated extraction.
+- **Transcript enrichment Phase 3** — speaker-turn parsing, temporal anchoring, multi-pass memo extraction (full transcript instead of 12K truncation)
 - **Sentiment scoring layer** — quantify narrative sentiment across news/transcripts
 - **Alert thresholds from strategy** — replace hardcoded thresholds in alerts.py with user-defined strategy criteria
 - **FX conversion logic** — build actual currency conversion; policy defined in `docs/architecture/16_currency_and_fx_policy.md`; blocked on product decision about which conversion source to use
