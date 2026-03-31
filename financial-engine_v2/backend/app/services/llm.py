@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from time import perf_counter
 from typing import Any, Optional
 
@@ -217,6 +218,52 @@ def _should_retry_with_fallback(
     return isinstance(exc, httpx.HTTPError)
 
 
+def _anthropic_api_key() -> str:
+    return (
+        os.environ.get("ANTHROPIC_API_KEY", "").strip()
+        or getattr(settings, "anthropic_api_key", "").strip()
+    )
+
+
+def _anthropic_fallback_generate_json(
+    prompt: str,
+    *,
+    model: str | None = None,
+) -> dict[str, Any]:
+    """Last-resort fallback: generate JSON via Anthropic API when local llama.cpp is unavailable."""
+    import anthropic
+
+    api_key = _anthropic_api_key()
+    if not api_key:
+        raise RuntimeError("Anthropic API fallback unavailable: ANTHROPIC_API_KEY not set")
+
+    resolved_model = model or os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
+    client = anthropic.Anthropic(api_key=api_key)
+
+    system_msg = "Output ONLY valid JSON."
+    user_content = prompt
+    _first_period = prompt.find(".")
+    if _first_period > 0 and prompt[:_first_period].startswith("You are"):
+        system_msg = prompt[: _first_period + 1].strip()
+        user_content = prompt[_first_period + 1 :].strip()
+
+    msg = client.messages.create(
+        model=resolved_model,
+        max_tokens=2048,
+        system=system_msg,
+        messages=[{"role": "user", "content": user_content}],
+    )
+    raw_text = msg.content[0].text if msg.content else ""
+    try:
+        return json.loads(raw_text)
+    except json.JSONDecodeError:
+        import re
+        match = re.search(r"\{[\s\S]*\}", raw_text)
+        if match:
+            return json.loads(match.group())
+        raise RuntimeError(f"Anthropic response was not valid JSON: {raw_text[:200]}")
+
+
 def _fallback_decision_for_failure(
     decision: RoutingDecision,
     metadata: dict[str, Any] | None,
@@ -418,6 +465,16 @@ def generate_json(
                     attempted_fallback = True
                     decision = fallback_decision
                     continue
+            # Last resort: try Anthropic API if key is available.
+            if _anthropic_api_key() and not _should_force_llamacpp(metadata):
+                logger.warning(
+                    "llm_local_failed_trying_anthropic error=%s",
+                    str(exc)[:200],
+                )
+                try:
+                    return _anthropic_fallback_generate_json(prompt)
+                except Exception as api_exc:
+                    logger.error("anthropic_fallback_also_failed error=%s", str(api_exc)[:200])
             raise
         finally:
             router_state.mark_task_finished(active_decision.execution_queue)

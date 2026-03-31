@@ -116,6 +116,7 @@ def _call_llm(messages: list[dict[str, str]], *, timeout: float = _DEFAULT_TIMEO
             "temperature": 0,
             "max_tokens": 2048,
             "response_format": {"type": "json_object"},
+            "chat_template_kwargs": {"enable_thinking": False},
         }
 
         response = client.post(

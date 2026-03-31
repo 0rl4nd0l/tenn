@@ -308,22 +308,22 @@ def _resolve_provider_base_url(
 def _default_config() -> ModelRoutingConfig:
     return ModelRoutingConfig(
         router=ModelRole(
-            model_name="qwen3-30b-a3b-instruct",
+            model_name="Qwen3-30B-A3B-Instruct-2507-Q3_K_M",
             provider="llamacpp",
             base_url=settings.llamacpp_url,
         ),
         coding=ModelRole(
-            model_name="qwen3-30b-a3b-instruct",
+            model_name="Qwen3-30B-A3B-Instruct-2507-Q3_K_M",
             provider="llamacpp",
             base_url=settings.llamacpp_url,
         ),
         reasoning=ModelRole(
-            model_name="qwen3-30b-a3b-instruct",
+            model_name="Qwen3-30B-A3B-Instruct-2507-Q3_K_M",
             provider="llamacpp",
             base_url=settings.llamacpp_url,
         ),
         deep_reasoning=ModelRole(
-            model_name="qwen3-30b-a3b-instruct",
+            model_name="Qwen3-30B-A3B-Instruct-2507-Q3_K_M",
             provider="llamacpp",
             base_url=settings.llamacpp_url,
         ),

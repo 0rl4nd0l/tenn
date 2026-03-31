@@ -10,7 +10,7 @@ import httpx
 from app.core.config import settings
 
 DEFAULT_LLM_URL = "http://127.0.0.1:8001"
-DEFAULT_LLM_MODEL = "qwen3-30b-a3b-instruct"
+DEFAULT_LLM_MODEL = "Qwen3-30B-A3B-Instruct-2507-Q3_K_M"
 
 
 class LlamaCppServerUnavailable(RuntimeError):
@@ -335,7 +335,7 @@ def generate_json_llamacpp(
     base_url: str,
     model: str,
     prompt: str,
-    timeout: float = 30.0,
+    timeout: float = 60.0,
     client: Optional[httpx.Client] = None,
     include_metadata: bool = False,
 ) -> Any:
@@ -380,6 +380,7 @@ def generate_json_llamacpp(
             "temperature": 0,
             "max_tokens": 2048,
             "response_format": {"type": "json_object"},
+            "chat_template_kwargs": {"enable_thinking": False},
         }
         try:
             response = http_client.post(

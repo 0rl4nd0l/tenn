@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import math
+import re
 from typing import Any
 
 from app.core.config import settings
@@ -15,6 +16,55 @@ from app.services.strategy_controller import get_active_strategy_state
 
 
 logger = logging.getLogger(__name__)
+_CHAT_LLM_TIMEOUT_SECONDS = 90.0
+_SMALL_TALK_RE = re.compile(
+    r"^(hi|hello|hey|yo|sup|thanks|thank you|good (morning|afternoon|evening)|how are you)[\s!,.?]*$",
+    re.IGNORECASE,
+)
+
+
+def _json_safe_value(value: Any) -> Any:
+    """Recursively coerce values into JSON-safe primitives."""
+    if isinstance(value, dict):
+        return {str(k): _json_safe_value(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_json_safe_value(v) for v in value]
+    if isinstance(value, tuple):
+        return [_json_safe_value(v) for v in value]
+    if isinstance(value, float):
+        if math.isnan(value) or math.isinf(value):
+            return None
+        return value
+    return value
+
+
+def _safe_float(value: Any, default: float) -> float:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return default
+    if math.isnan(parsed) or math.isinf(parsed):
+        return default
+    return parsed
+
+
+def _is_small_talk_query(query: str) -> bool:
+    return bool(_SMALL_TALK_RE.match(str(query or "").strip()))
+
+
+def _filter_news_by_ticker(chunks: list[dict[str, Any]], ticker: str | None) -> list[dict[str, Any]]:
+    normalized_ticker = str(ticker or "").strip().upper()
+    if not normalized_ticker:
+        return chunks
+    filtered = [
+        chunk
+        for chunk in chunks
+        if str(chunk.get("ticker") or "").strip().upper() == normalized_ticker
+    ]
+    if filtered:
+        return filtered
+    # If nothing is tagged with ticker, do not silently fall back to unrelated news.
+    return []
 
 
 def _apply_chat_strategy(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -95,9 +145,9 @@ def _context_rows(chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "text": str(chunk.get("text") or "").strip(),
                 "source_name": str(chunk.get("source_name") or chunk.get("source_file") or "").strip(),
                 "url": str(chunk.get("url") or "").strip(),
-                "relevance_score": _safe_float(chunk.get("relevance_score"), default=0.0),
-                "recency_decay": _safe_float(chunk.get("recency_decay"), default=1.0),
-                "final_score": _safe_float(chunk.get("final_score"), default=0.0),
+                "relevance_score": _safe_float(chunk.get("relevance_score"), 0.0),
+                "recency_decay": _safe_float(chunk.get("recency_decay"), 1.0),
+                "final_score": _safe_float(chunk.get("final_score"), 0.0),
                 "source_type": str(chunk.get("source_type") or "").strip(),
                 "published_at": str(chunk.get("published_at") or "").strip(),
                 "retrieval_strategies": list(chunk.get("retrieval_strategies") or []),
@@ -106,27 +156,55 @@ def _context_rows(chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return rows
 
 
-def _evidence_context_rows(evidence: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Normalize RAG fallback hits to the same row shape as weighted chunks."""
+def _evidence_context_rows(hits: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    Normalize RAG evidence hits into the same row shape used by _context_rows.
+
+    This is specifically used when vector retrieval yields zero chunks, but
+    query_rag still provides "evidence_chunks" for grounding.
+    """
     rows: list[dict[str, Any]] = []
-    for hit in evidence[:10]:
-        text = str(hit.get("text") or hit.get("title") or "").strip()
-        if not text:
+    for hit in hits:
+        if not isinstance(hit, dict):
             continue
+
+        # Some RAG evidence hits only have `title` (no `text`), so fall back to
+        # title to avoid sending empty context to the model.
+        text = str(hit.get("text") or hit.get("title") or "").strip()
+        title = str(hit.get("title") or "").strip()
+        if not text and not title:
+            continue
+
+        source_name = title or text
+        url = str(hit.get("url") or hit.get("source_url") or "").strip()
+        relevance_score = _safe_float(hit.get("score"), 0.0)
+
         rows.append(
             {
                 "text": text,
-                "source_name": str(hit.get("title") or hit.get("document_id") or "").strip(),
-                "url": str(hit.get("url") or "").strip(),
-                "relevance_score": _safe_float(hit.get("score"), default=0.0),
+                "source_name": source_name,
+                "url": url,
+                "relevance_score": relevance_score,
                 "recency_decay": 1.0,
-                "final_score": _safe_float(hit.get("score"), default=0.0),
+                "final_score": relevance_score,
                 "source_type": str(hit.get("doc_class") or "").strip(),
                 "published_at": str(hit.get("published_at") or "").strip(),
                 "retrieval_strategies": ["rag_vector"],
             }
         )
+
     return rows
+
+
+def _normalize_confidence(value: Any) -> float:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+    if math.isnan(parsed) or math.isinf(parsed):
+        return 0.0
+    return max(0.0, min(1.0, parsed))
 
 
 def _normalize_insights(value: Any) -> list[str]:
@@ -135,46 +213,11 @@ def _normalize_insights(value: Any) -> list[str]:
     return [str(item).strip() for item in value if str(item).strip()]
 
 
-def _normalize_confidence(value: Any) -> float:
-    try:
-        confidence = float(value)
-    except (TypeError, ValueError):
-        return 0.0
-    if not math.isfinite(confidence):
-        return 0.0
-    return max(0.0, min(1.0, confidence))
-
-
-def _normalize_supporting_evidence(value: Any) -> list[Any]:
+def _normalize_supporting_evidence(value: Any) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         return []
-    return [_json_safe_value(item) for item in value]
-
-
-def _safe_float(value: Any, *, default: float = 0.0) -> float:
-    try:
-        result = float(value)
-    except (TypeError, ValueError):
-        return default
-    if not math.isfinite(result):
-        return default
-    return result
-
-
-def _json_safe_value(value: Any) -> Any:
-    if value is None:
-        return None
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, (int, str)):
-        return value
-    if isinstance(value, float):
-        return value if math.isfinite(value) else None
-    if isinstance(value, dict):
-        return {str(key): _json_safe_value(item) for key, item in value.items()}
-    if isinstance(value, list):
-        return [_json_safe_value(item) for item in value]
-    return str(value)
+    # Ensure nested non-finite floats (NaN/Inf) become JSON-safe nulls.
+    return [_json_safe_value(item) for item in value if isinstance(item, dict)]
 
 
 def _format_session_context_block(prior_turns: list[dict[str, Any]]) -> str:
@@ -257,6 +300,15 @@ def chat_with_tenn(
     normalized_ticker = str(ticker or "").strip().upper() or None
     normalized_session_id = str(session_id or "").strip() or None
 
+    if _is_small_talk_query(normalized_query):
+        return {
+            "answer": "Hello. Ask me about a company, ticker, or financial topic and I will pull relevant evidence.",
+            "insights": [],
+            "supporting_evidence": [],
+            "confidence": 0.0,
+            "sources": [],
+        }
+
     session_memory_enabled = (
         bool(getattr(settings, "enable_session_memory", True))
         and normalized_session_id is not None
@@ -320,6 +372,7 @@ def chat_with_tenn(
                 _normalize_news_chunk(c)
                 for c in list(news_retrieval.get("chunks") or [])
             ]
+            news_chunks = _filter_news_by_ticker(news_chunks, normalized_ticker)
         except Exception as exc:
             logger.warning(
                 "news_retrieval_failed",
@@ -337,7 +390,8 @@ def chat_with_tenn(
         context_rows = _context_rows(ranked_chunks)
 
         if not context_rows and evidence:
-            context_rows = _evidence_context_rows(evidence)
+            if isinstance(evidence, list):
+                context_rows = _evidence_context_rows(evidence[:10])
 
         if not context_rows:
             return _degraded_chat_payload("I do not have enough retrieved context to answer safely.")
@@ -348,7 +402,11 @@ def chat_with_tenn(
                 "task_type": "reasoning",
                 "component": "tenn_chat",
                 "operation": "chat_with_tenn",
+                # Force local llama.cpp path for cockpit chat; prevents
+                # slow external fallback after local timeout.
+                "requested_base_url": settings.llamacpp_url,
             },
+            timeout=_CHAT_LLM_TIMEOUT_SECONDS,
         )
     except Exception as exc:
         detail = str(exc).strip() or exc.__class__.__name__
@@ -363,29 +421,34 @@ def chat_with_tenn(
             error=detail,
         )
 
-    try:
-        answer = str(llm_payload.get("answer") or "").strip()
-        insights = _normalize_insights(llm_payload.get("insights"))
-        confidence = _normalize_confidence(llm_payload.get("confidence"))
-        sources = [
-            {
-                "source_name": str(row.get("source_name") or "").strip(),
-                "url": str(row.get("url") or "").strip(),
-                "relevance_score": _safe_float(row.get("relevance_score"), default=0.0),
-                "recency_decay": _safe_float(row.get("recency_decay"), default=1.0),
-                "final_score": _safe_float(row.get("final_score"), default=0.0),
-                "source_type": str(row.get("source_type") or "").strip(),
-                "published_at": str(row.get("published_at") or "").strip(),
-            }
-            for row in context_rows
-        ]
-    except Exception as exc:
-        detail = str(exc).strip() or exc.__class__.__name__
-        logger.exception("chat_with_tenn response normalization failed query=%s error=%s", normalized_query[:120], detail)
-        return _degraded_chat_payload(
-            "Chat analysis produced an invalid response payload.",
-            error=detail,
+    answer = str(llm_payload.get("answer") or "").strip()
+    insights = _normalize_insights(llm_payload.get("insights"))
+    confidence = _normalize_confidence(llm_payload.get("confidence"))
+    sources = [
+        {
+            "source_name": row["source_name"],
+            "url": row.get("url") or "",
+            "relevance_score": row["relevance_score"],
+            "recency_decay": row["recency_decay"],
+            "final_score": row["final_score"],
+            "source_type": row["source_type"],
+            "published_at": row["published_at"],
+        }
+        for row in context_rows
+    ]
+    if not answer:
+        logger.warning(
+            "chat_empty_answer_fallback query=%s sources=%d",
+            normalized_query[:120],
+            len(sources),
         )
+        answer = (
+            "I found supporting sources but could not generate a narrative answer this turn. "
+            "Please retry, or ask a narrower question (for example: 'summarize today's BHP headlines')."
+        )
+        confidence = 0.0
+
+    supporting_evidence = _normalize_supporting_evidence(llm_payload.get("supporting_evidence"))
 
     if session_memory_enabled:
         retrieved_chunk_ids = [
@@ -409,7 +472,7 @@ def chat_with_tenn(
     return {
         "answer": answer,
         "insights": insights,
-        "supporting_evidence": _normalize_supporting_evidence(llm_payload.get("supporting_evidence")),
+        "supporting_evidence": supporting_evidence,
         "confidence": confidence,
         "sources": sources,
     }

@@ -4,19 +4,18 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { TerminalMessage } from './terminal-message'
 import { TerminalInput } from './terminal-input'
-import { generateId } from '@/lib/cockpit-store'
-import { sendChatMessage } from '@/lib/api-client'
+import { useCockpitStore, generateId } from '@/lib/cockpit-store'
+import { streamChat, sendChatMessage } from '@/lib/api-client'
 import type { ChatMessage as ChatMessageType } from '@/lib/cockpit-types'
-import { createChatSessionId, loadChatSession, saveChatSession } from '@/lib/chat-session-store'
+import { toast } from 'sonner'
 
 export function ChatScreen() {
   const [messages, setMessages] = useState<ChatMessageType[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingContent, setStreamingContent] = useState('')
-  const [activeTicker, setActiveTicker] = useState('BHP')
-  const [sessionId, setSessionId] = useState('')
-  const [draft, setDraft] = useState('')
-  const [isHydrated, setIsHydrated] = useState(false)
+  const [streamingMetadata, setStreamingMetadata] = useState<Partial<ChatMessageType>>({})
+  
+  const { activeTicker, sessionId, addCost, setLatency, setActiveModel } = useCockpitStore()
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = useCallback(() => {
@@ -29,33 +28,7 @@ export function ChatScreen() {
     scrollToBottom()
   }, [messages, streamingContent, scrollToBottom])
 
-  useEffect(() => {
-    const stored = loadChatSession()
-    setMessages(stored.messages)
-    setActiveTicker(stored.activeTicker)
-    setSessionId(stored.sessionId)
-    setDraft(stored.draft)
-    setIsHydrated(true)
-  }, [])
-
-  useEffect(() => {
-    if (!isHydrated) {
-      return
-    }
-    saveChatSession({
-      sessionId: sessionId || createChatSessionId(),
-      activeTicker,
-      draft,
-      messages,
-    })
-  }, [activeTicker, draft, isHydrated, messages, sessionId])
-
   const handleSend = async (content: string) => {
-    const resolvedSessionId = sessionId || createChatSessionId()
-    if (!sessionId) {
-      setSessionId(resolvedSessionId)
-    }
-
     const userMessage: ChatMessageType = {
       id: generateId(),
       role: 'user',
@@ -66,54 +39,119 @@ export function ChatScreen() {
 
     setIsStreaming(true)
     setStreamingContent('')
+    setStreamingMetadata({})
 
-    try {
-      const response = await sendChatMessage({
-        message: content,
-        mode: 'analysis',
-        ticker: activeTicker,
-        sessionId: resolvedSessionId,
-      })
-
-      const sources: ChatMessageType['sources'] = response.content.sources?.map(s => ({
-        title: s.title,
-        score: s.score,
-      }))
-
-      const toolTraces: ChatMessageType['toolTraces'] = response.content.tool_traces?.map(t => ({
-        tool: t.tool,
-        durationMs: t.duration_ms ?? 0,
-        status: 'success' as const,
-      }))
-
-      const assistantMessage: ChatMessageType = {
-        id: generateId(),
-        role: 'assistant',
-        content: response.content.answer,
-        timestamp: new Date(),
-        metadata: {
-          model: response.content.model,
-          latencyMs: response.content.latency_ms,
-          costUsd: 0,
-          source: 'local',
-        },
-        sources,
-        toolTraces,
+    // Slash command handling
+    if (content.startsWith('/')) {
+      try {
+        const response = await sendChatMessage({
+          message: content,
+          mode: 'analysis',
+          ticker: activeTicker,
+          sessionId: sessionId
+        })
+        
+        const systemMessage: ChatMessageType = {
+          id: generateId(),
+          role: 'assistant',
+          content: response.content.answer,
+          timestamp: new Date(),
+          metadata: {
+            model: response.content.model,
+            latencyMs: response.content.latency_ms,
+            costUsd: 0,
+            source: 'local'
+          }
+        }
+        setMessages(prev => [...prev, systemMessage])
+      } catch (err) {
+        toast.error('Command failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
+      } finally {
+        setIsStreaming(false)
       }
-      setMessages(prev => [...prev, assistantMessage])
-    } catch (err) {
-      const detail = err instanceof Error ? err.message : 'Unknown error'
-      const errorMessage: ChatMessageType = {
-        id: generateId(),
-        role: 'system',
-        content: `ERROR: ${detail}. Retry with /reconnect`,
-        timestamp: new Date(),
-      }
-      setMessages(prev => [...prev, errorMessage])
-    } finally {
-      setIsStreaming(false)
-      setStreamingContent('')
+      return
     }
+
+    // Normal chat with streaming
+    let currentContent = ''
+    let currentMetadata: Partial<ChatMessageType> = {
+      toolTraces: [],
+      sources: []
+    }
+
+    streamChat({
+      message: content,
+      mode: 'analysis',
+      ticker: activeTicker,
+      sessionId: sessionId,
+      onMessage: (event) => {
+        switch (event.type) {
+          case 'chunk':
+            currentContent += event.data.text
+            setStreamingContent(currentContent)
+            break
+          case 'tool_trace':
+            currentMetadata.toolTraces = [...(currentMetadata.toolTraces || []), {
+              tool: event.data.tool,
+              durationMs: event.data.duration_ms,
+              status: 'success'
+            }]
+            setStreamingMetadata({ ...currentMetadata })
+            break
+          case 'sources':
+            currentMetadata.sources = event.data.items.map((s: any) => ({
+              title: s.title,
+              score: s.score
+            }))
+            setStreamingMetadata({ ...currentMetadata })
+            break
+          case 'action_preview':
+            currentMetadata.actionPreview = {
+              id: event.data.id,
+              name: event.data.name,
+              description: event.data.description,
+              args: event.data.args,
+              requiresConfirmation: true
+            }
+            setStreamingMetadata({ ...currentMetadata })
+            break
+          case 'done':
+            const assistantMessage: ChatMessageType = {
+              id: generateId(),
+              role: 'assistant',
+              content: currentContent,
+              timestamp: new Date(),
+              metadata: {
+                model: event.data.model,
+                latencyMs: event.data.latency_ms,
+                costUsd: event.data.cost_usd || 0,
+                source: event.data.source || 'local'
+              },
+              sources: currentMetadata.sources,
+              toolTraces: currentMetadata.toolTraces,
+              actionPreview: currentMetadata.actionPreview
+            }
+            
+            // Update global stats
+            if (event.data.cost_usd) addCost(event.data.cost_usd)
+            if (event.data.latency_ms) setLatency(event.data.latency_ms)
+            if (event.data.model) setActiveModel(event.data.model)
+            
+            setMessages(prev => [...prev, assistantMessage])
+            setStreamingContent('')
+            setStreamingMetadata({})
+            setIsStreaming(false)
+            break
+        }
+      },
+      onError: (err) => {
+        toast.error('Streaming error: ' + (err?.data || 'Connection lost'))
+        setIsStreaming(false)
+      },
+      onEnd: () => {
+        setIsStreaming(false)
+      }
+    })
   }
 
   return (
@@ -126,48 +164,37 @@ export function ChatScreen() {
           <div className="w-3 h-3 rounded-full bg-green-500/80" />
         </div>
         <span className="font-mono text-xs terminal-text-dim ml-2">
-          cockpit@financial-ai ~ /chat
+          cockpit@financial-ai ~ /chat ({activeTicker})
         </span>
-        <div className="ml-auto font-mono text-[10px] terminal-text-dim">
-          {messages.length} messages
-        </div>
       </div>
 
-      {/* Terminal output area */}
-      <ScrollArea className="flex-1 relative z-10" ref={scrollRef}>
-        <div className="p-4 font-mono text-sm space-y-1">
-          {/* Boot message */}
-          <div className="terminal-text-dim text-xs mb-4">
-            <div>Financial Cockpit v2.0.0 - Terminal Interface</div>
-            <div>Type /help for available commands</div>
-            <div className="mt-1">---</div>
-          </div>
-
-          {messages.map((message) => (
-            <TerminalMessage key={message.id} message={message} />
+      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+        <div className="space-y-4 pb-4">
+          {messages.map((msg) => (
+            <TerminalMessage key={msg.id} message={msg} />
           ))}
-          
-          {isStreaming && (
-            <TerminalMessage
+          {isStreaming && streamingContent && (
+            <TerminalMessage 
               message={{
                 id: 'streaming',
                 role: 'assistant',
-                content: 'Thinking...',
+                content: streamingContent,
                 timestamp: new Date(),
-              }}
-              isStreaming
+                ...streamingMetadata
+              }} 
+              isStreaming={true}
             />
+          )}
+          {isStreaming && !streamingContent && (
+            <div className="flex items-center gap-2 text-blue-400/60 font-mono text-sm">
+              <span className="terminal-cursor" />
+              <span>Analyzing market data...</span>
+            </div>
           )}
         </div>
       </ScrollArea>
 
-      {/* Terminal input */}
-      <TerminalInput 
-        onSend={handleSend} 
-        disabled={isStreaming}
-        value={draft}
-        onValueChange={setDraft}
-      />
+      <TerminalInput onSend={handleSend} disabled={isStreaming} />
     </div>
   )
 }

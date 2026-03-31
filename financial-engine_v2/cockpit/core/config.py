@@ -48,7 +48,7 @@ def load_env(repo_root: Path | None = None) -> None:
 DEFAULT_BACKEND_URL = "http://localhost:8000"
 DEFAULT_OLLAMA_URL = "http://localhost:11434"
 DEFAULT_LLAMACPP_URL = "http://localhost:8001"
-DEFAULT_LLAMACPP_MODEL = "qwen3-30b-a3b-instruct"
+DEFAULT_LLAMACPP_MODEL = "Qwen3-30B-A3B-Instruct-2507-Q3_K_M"
 
 
 DEFAULT_CONFIG = {

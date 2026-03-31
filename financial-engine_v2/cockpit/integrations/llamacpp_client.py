@@ -107,6 +107,7 @@ class LlamaCppClient:
                     "model": self.model,
                     "messages": messages,
                     "stream": True,
+                    "chat_template_kwargs": {"enable_thinking": False},
                 },
             ) as response:
                 response.raise_for_status()

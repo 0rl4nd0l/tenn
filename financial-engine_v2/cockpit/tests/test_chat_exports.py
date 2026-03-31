@@ -89,6 +89,9 @@ class ChatExportTests(unittest.TestCase):
                 def notify(self, notice: str) -> None:
                     notifications.append(notice)
 
+                _REDACTED_EXPORT_VALUE = CockpitApp._REDACTED_EXPORT_VALUE
+                _is_sensitive_export_key = staticmethod(CockpitApp._is_sensitive_export_key)
+                _sanitize_export_string = classmethod(CockpitApp._sanitize_export_string.__func__)
                 _sanitize_export_payload = classmethod(CockpitApp._sanitize_export_payload.__func__)
                 _export_log_target = staticmethod(CockpitApp._export_log_target)
 
@@ -307,6 +310,36 @@ class ChatExportTests(unittest.TestCase):
             self.assertIn("Last close: 45.12 AUD", markdown)
             self.assertIn("Returns: 1D +1.25%, 20D -2.50%", markdown)
             self.assertIn("Freshness: fresh, market_time=2026-03-29T00:00:00Z, age=2.0h, history_points=252", markdown)
+
+    def test_write_analysis_renders_tool_failures_markdown_section(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_root = Path(tmp)
+            store = ArtifactStore(
+                repo_root=repo_root,
+                exports_dir="reports/analysis",
+                reports_dir="reports",
+            )
+
+            md_path, _json_path = store.write_analysis(
+                "thread-a",
+                "Run update",
+                "Update failed.",
+                {
+                    "tool_failures": [
+                        {
+                            "tool": "run_ticker_sync",
+                            "ok": False,
+                            "error": "backend unavailable",
+                            "hint": "Start backend and retry.",
+                        }
+                    ]
+                },
+            )
+
+            markdown = Path(md_path).read_text(encoding="utf-8")
+            self.assertIn("## Tool Failures", markdown)
+            self.assertIn("`run_ticker_sync`: backend unavailable", markdown)
+            self.assertIn("hint: Start backend and retry.", markdown)
 
 
 if __name__ == "__main__":

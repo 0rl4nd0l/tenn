@@ -6,6 +6,32 @@ from pathlib import Path
 from typing import Any
 
 
+def _render_tool_failures_md(payload: dict[str, Any]) -> str:
+    """Render a ## Tool Failures markdown section from export payload traces."""
+    failures = payload.get("tool_failures")
+    if not isinstance(failures, list):
+        failures = []
+
+    if not failures:
+        traces = payload.get("tool_traces")
+        if isinstance(traces, list):
+            failures = [item for item in traces if isinstance(item, dict) and not bool(item.get("ok", True))]
+
+    if not failures:
+        return ""
+
+    lines = ["## Tool Failures", ""]
+    for index, failure in enumerate(failures, start=1):
+        tool_name = str(failure.get("tool") or failure.get("name") or "unknown_tool")
+        error = str(failure.get("error") or "unknown error")
+        lines.append(f"{index}. `{tool_name}`: {error}")
+        hint = failure.get("hint")
+        if isinstance(hint, str) and hint.strip():
+            lines.append(f"   - hint: {hint.strip()}")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def _render_price_state_md(ps: dict) -> str:
     """Render a ## Price State markdown section from a price_state dict."""
     lines = ["## Price State", ""]
@@ -106,6 +132,7 @@ class ArtifactStore:
         md = f"# Analysis\n\n## Question\n{question}\n\n## Answer\n{answer}\n"
         if price_state is not None:
             md += "\n" + _render_price_state_md(price_state) + "\n"
+        md += _render_tool_failures_md(payload)
 
         md_path.write_text(md, encoding="utf-8")
         json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")

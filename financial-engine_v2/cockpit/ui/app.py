@@ -1591,12 +1591,21 @@ class CockpitApp(App):
                 except Exception as exc:
                     self._append_log(log, f"assistant: chart generation error: {exc}")
 
+        tool_traces = getattr(response, "tool_traces", None) or []
+        failed_tool_traces = [
+            trace
+            for trace in tool_traces
+            if isinstance(trace, dict) and not bool(trace.get("ok", True))
+        ]
+
         export_payload = {
             "question": message,
             "answer": assistant_text,
             "response_mode": response.mode,
             "evidence": response.evidence,
             "actions_taken": [response.action_preview] if response.action_preview else [],
+            "tool_traces": tool_traces,
+            "tool_failures": failed_tool_traces,
             "sources": ["local_context"],
             "routing": response.routing_metadata,
             "created_at": datetime.now(timezone.utc).isoformat(),
