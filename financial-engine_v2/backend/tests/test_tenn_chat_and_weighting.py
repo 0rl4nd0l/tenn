@@ -10,7 +10,7 @@ from app.services.source_weighting import (
     half_life_for_type,
     source_weight_for_type,
 )
-from app.services.tenn_chat import _context_rows, _normalize_news_chunk
+from app.services.tenn_chat import _context_rows, _evidence_context_rows, _normalize_news_chunk
 
 
 class TestSourceWeightingNewsArticle:
@@ -121,3 +121,36 @@ class TestContextRows:
                     "recency_decay", "final_score", "source_type",
                     "published_at", "retrieval_strategies"}
         assert required == set(rows[0].keys())
+
+
+class TestEvidenceContextRows:
+    def test_normalizes_rag_fallback_hits_to_full_row_shape(self):
+        rows = _evidence_context_rows(
+            [
+                {
+                    "text": "BHP updated guidance.",
+                    "title": "BHP guidance update",
+                    "document_id": "doc-1",
+                    "score": 0.87,
+                    "doc_class": "asx_announcement",
+                    "published_at": "2026-03-31T00:00:00Z",
+                }
+            ]
+        )
+        assert rows == [
+            {
+                "text": "BHP updated guidance.",
+                "source_name": "BHP guidance update",
+                "url": "",
+                "relevance_score": 0.87,
+                "recency_decay": 1.0,
+                "final_score": 0.87,
+                "source_type": "asx_announcement",
+                "published_at": "2026-03-31T00:00:00Z",
+                "retrieval_strategies": ["rag_vector"],
+            }
+        ]
+
+    def test_skips_empty_hits(self):
+        rows = _evidence_context_rows([{"title": ""}, {}])
+        assert rows == []

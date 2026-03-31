@@ -105,6 +105,29 @@ def _context_rows(chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return rows
 
 
+def _evidence_context_rows(evidence: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Normalize RAG fallback hits to the same row shape as weighted chunks."""
+    rows: list[dict[str, Any]] = []
+    for hit in evidence[:10]:
+        text = str(hit.get("text") or hit.get("title") or "").strip()
+        if not text:
+            continue
+        rows.append(
+            {
+                "text": text,
+                "source_name": str(hit.get("title") or hit.get("document_id") or "").strip(),
+                "url": str(hit.get("url") or "").strip(),
+                "relevance_score": float(hit.get("score") or 0.0),
+                "recency_decay": 1.0,
+                "final_score": float(hit.get("score") or 0.0),
+                "source_type": str(hit.get("doc_class") or "").strip(),
+                "published_at": str(hit.get("published_at") or "").strip(),
+                "retrieval_strategies": ["rag_vector"],
+            }
+        )
+    return rows
+
+
 def _format_session_context_block(prior_turns: list[dict[str, Any]]) -> str:
     lines: list[str] = ["Relevant prior session context (use as background only):"]
     for turn in prior_turns:
@@ -265,20 +288,7 @@ def chat_with_tenn(
         context_rows = _context_rows(ranked_chunks)
 
         if not context_rows and evidence:
-            context_rows = [
-                {
-                    "text": str(hit.get("text") or hit.get("title") or "").strip(),
-                    "source_name": str(hit.get("title") or hit.get("document_id") or "").strip(),
-                    "relevance_score": float(hit.get("score") or 0.0),
-                    "recency_decay": 1.0,
-                    "final_score": float(hit.get("score") or 0.0),
-                    "source_type": str(hit.get("doc_class") or "").strip(),
-                    "published_at": str(hit.get("published_at") or "").strip(),
-                    "retrieval_strategies": ["rag_vector"],
-                }
-                for hit in evidence[:10]
-                if str(hit.get("text") or hit.get("title") or "").strip()
-            ]
+            context_rows = _evidence_context_rows(evidence)
 
         if not context_rows:
             return _degraded_chat_payload("I do not have enough retrieved context to answer safely.")
@@ -309,13 +319,13 @@ def chat_with_tenn(
     confidence = max(0.0, min(1.0, float(llm_payload.get("confidence") or 0.0)))
     sources = [
         {
-            "source_name": row["source_name"],
-            "url": row["url"],
-            "relevance_score": row["relevance_score"],
-            "recency_decay": row["recency_decay"],
-            "final_score": row["final_score"],
-            "source_type": row["source_type"],
-            "published_at": row["published_at"],
+            "source_name": str(row.get("source_name") or "").strip(),
+            "url": str(row.get("url") or "").strip(),
+            "relevance_score": float(row.get("relevance_score") or 0.0),
+            "recency_decay": float(row.get("recency_decay") or 1.0),
+            "final_score": float(row.get("final_score") or 0.0),
+            "source_type": str(row.get("source_type") or "").strip(),
+            "published_at": str(row.get("published_at") or "").strip(),
         }
         for row in context_rows
     ]

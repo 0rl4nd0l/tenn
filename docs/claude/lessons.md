@@ -379,3 +379,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The guard logic classified every `llama-server` process by its own `--port` only. In router mode, llama.cpp loads models as child worker processes on dynamic localhost ports behind the authorised router, so port-only classification contradicted the actual runtime shape.
 **Fix:** Topology checks now walk the process ancestry and treat ephemeral `llama-server` workers as authorised when they descend from an authorised router-mode parent (`--models-dir` on `:8001`/`:8002`). Updated the contract wording to distinguish independent rogue instances from router-owned child workers.
 **Rule:** Do not enforce the canonical-port rule with port-only process inspection when router mode is enabled. Classify `llama-server` processes by ownership: independently spawned instances on non-canonical ports are rogue; router-owned child workers are part of the canonical runtime.
+
+---
+
+## L035 — `/chat` fallback rows must match the normal context row schema
+
+**Date:** 2026-03-31
+**Subsystem:** `backend/app/services/tenn_chat.py`
+**Symptom:** Cockpit Next.js showed `Failed to proxy http://localhost:8000/chat` with `ECONNRESET` even while `/api/health` stayed green. The chat request reached retrieval, but the backend dropped the connection before returning a JSON response.
+**Root cause:** `chat_with_tenn()` has two context row paths: `_context_rows()` for ranked commentary/news chunks and an inline fallback path for raw RAG evidence. The fallback rows omitted `url`, but the later `sources` payload indexed `row["url"]` unconditionally outside the guarded retrieval block. When the chat flow fell back to raw evidence, the backend raised `KeyError: 'url'` and surfaced a 500/reset instead of a degraded answer.
+**Fix:** Added `_evidence_context_rows()` so fallback evidence rows use the same schema as `_context_rows()`, including `url`. Hardened `sources` assembly to use `.get()` defaults instead of direct indexing. Added regression tests for fallback row normalization.
+**Rule:** Any alternate payload path that feeds a shared response formatter must produce the same field set as the primary path. In `tenn_chat`, every `context_rows` item must include the full `_context_rows()` schema before answer/sources assembly runs.
