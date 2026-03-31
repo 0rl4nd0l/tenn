@@ -423,3 +423,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** `_normalize_supporting_evidence()` only checked that the top-level value was a list. It passed nested dicts/lists through unchanged, so model JSON containing `NaN`, `Infinity`, or other non-JSON-safe values inside evidence items could still break FastAPI response serialization.
 **Fix:** Added recursive JSON-safe normalization for `supporting_evidence`, converting non-finite floats to `null` and coercing unsupported leaf values to strings. Added a regression test covering nested non-finite evidence values.
 **Rule:** Top-level schema validation is not sufficient for backend JSON responses. Any LLM-provided nested structure that is echoed back to clients must be recursively sanitized to JSON-safe primitives before returning it.
+
+---
+
+## L039 — `/chat` route must degrade analysis failures instead of emitting HTTP 500
+
+**Date:** 2026-03-31
+**Subsystem:** `backend/app/routes/chat.py`
+**Symptom:** The Next.js cockpit UI continued to show `[SYSTEM] ERROR: API 500 Internal Server Error` and proxy `ECONNRESET` whenever any unhandled analysis-mode exception escaped the service layer, even after multiple payload-shape fixes.
+**Root cause:** The `/chat` route wrapped `chat_with_tenn()` in a generic `except Exception` that converted all remaining analysis failures into HTTP 500 responses. That meant any new runtime edge case in analysis mode still propagated as a hard backend error instead of a degraded chat payload the client could render safely.
+**Fix:** Added a dedicated `_analysis_response()` boundary in the route. It now sanitizes the full analysis payload recursively and degrades to a normal analysis response envelope with `system_status=degraded` if `chat_with_tenn()` or route-level payload handling throws. Added route-level regression tests for both exception and non-finite payload cases.
+**Rule:** Client-facing analysis endpoints must fail soft at the route boundary. If analysis content cannot be produced safely, return a degraded analysis payload in-band rather than surfacing HTTP 500 for recoverable runtime issues.
