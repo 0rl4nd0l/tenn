@@ -46,10 +46,8 @@ def resolve_llm_runtime_config(
     resolved_model = ""
     for candidate in (
         model,
-        os.getenv("EXTRACT_MODEL"),
         os.getenv("LLM_MODEL"),
         os.getenv("LLAMACPP_MODEL"),
-        getattr(settings, "extract_model", ""),
         DEFAULT_LLM_MODEL,
     ):
         text = str(candidate or "").strip()
@@ -89,21 +87,25 @@ def resolve_extraction_runtime_config(
         or _normalize_url(os.getenv("EXTRACTION_LLAMACPP_URL", ""))
         or _normalize_url(getattr(settings, "extraction_llamacpp_url", ""))
     )
+    # Resolve extraction model regardless of whether a dedicated URL is set.
+    # In router mode, extraction uses the same 8001 server but requests the
+    # extraction model by name.
+    resolved_model = ""
+    for candidate in (
+        model,
+        os.getenv("EXTRACT_MODEL"),
+        getattr(settings, "extract_model", ""),
+        "qwen2.5-14b-instruct",
+    ):
+        text = str(candidate or "").strip()
+        if text:
+            resolved_model = text
+            break
     if extraction_url:
-        resolved_model = ""
-        for candidate in (
-            model,
-            os.getenv("EXTRACT_MODEL"),
-            getattr(settings, "extract_model", ""),
-            "qwen2.5-14b-instruct",
-        ):
-            text = str(candidate or "").strip()
-            if text:
-                resolved_model = text
-                break
         return extraction_url, resolved_model
-    # No dedicated extraction URL — fall back to general LLM config.
-    return resolve_llm_runtime_config(base_url=base_url, model=model)
+    # No dedicated extraction URL — use general LLM URL with extraction model.
+    resolved_base_url, _ = resolve_llm_runtime_config(base_url=base_url)
+    return resolved_base_url, resolved_model
 
 
 def resolve_embedding_runtime_config(

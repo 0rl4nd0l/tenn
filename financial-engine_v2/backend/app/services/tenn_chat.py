@@ -424,6 +424,12 @@ def chat_with_tenn(
             },
             timeout=_CHAT_LLM_TIMEOUT_SECONDS,
         )
+        logger.info(
+            "chat_llm_result query=%s keys=%s answer_len=%d",
+            normalized_query[:80],
+            list(llm_payload.keys()) if isinstance(llm_payload, dict) else type(llm_payload).__name__,
+            len(str(llm_payload.get("answer", ""))) if isinstance(llm_payload, dict) else 0,
+        )
     except Exception as exc:
         detail = str(exc).strip() or exc.__class__.__name__
         logger.exception("chat_with_tenn degraded query=%s error=%s", normalized_query[:120], detail)
