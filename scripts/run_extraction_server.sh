@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
-# Dedicated llama.cpp instance for PDF extraction on port 8002.
-# Runs the instruct model in single-model mode (no router).
-# Safe to run alongside run_llama_server.sh (separate lockfile, no pkill).
+# DEPRECATED: Standalone extraction server on port 8002.
+#
+# The canonical setup is now a SINGLE llama-server instance in router mode
+# on port 8001 (see run_llama_server.sh). Extraction requests use the same
+# port with model selection via the request body's "model" field.
+#
+# This script is kept for manual debugging or when you need to isolate
+# extraction on a dedicated port. It is NOT started by the systemd service.
+#
+# To use the canonical single-instance setup instead:
+#   LLAMA_SERVER_ROUTER_MODE=1 bash scripts/run_llama_server.sh
 set -euo pipefail
 
 LLAMA_SERVER_ENV_FILE="${LLAMA_SERVER_ENV_FILE:-${HOME}/.config/tenn/llama-server.env}"
@@ -53,7 +61,8 @@ fi
 # Defaults — override via env or ~/.config/tenn/llama-server.env
 HOST="${EXTRACTION_SERVER_HOST:-127.0.0.1}"
 PORT="${EXTRACTION_SERVER_PORT:-8002}"
-MODEL_PATH="${EXTRACTION_SERVER_MODEL:-${ROOT_DIR}/models/qwen2.5-14b-instruct-q4_k_m.gguf}"
+DEFAULT_MODEL_PATH="/mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf"
+MODEL_PATH="${EXTRACTION_SERVER_MODEL:-${DEFAULT_MODEL_PATH}}"
 MODEL_ALIAS="${EXTRACTION_SERVER_ALIAS:-qwen2.5-14b-instruct}"
 API_KEY="${LLAMA_SERVER_API_KEY:-${LLM_API_KEY:-local-openai-key}}"
 # 8K context is sufficient — extraction prompts are clipped to ~18,000 chars (~4.5K tokens).
@@ -62,7 +71,7 @@ CTX_SIZE="${EXTRACTION_SERVER_CTX_SIZE:-8192}"
 
 if [[ ! -f "${MODEL_PATH}" ]]; then
   echo "Extraction model not found at ${MODEL_PATH}" >&2
-  echo "Set EXTRACTION_SERVER_MODEL to an existing GGUF file." >&2
+  echo "Set EXTRACTION_SERVER_MODEL to an existing NVMe-backed GGUF file." >&2
   exit 1
 fi
 

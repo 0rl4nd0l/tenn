@@ -4,7 +4,7 @@
   },
   "vlm": {
     "provider": "openai",
-    "model": "qwen2.5-coder-14b",
+    "model": "qwen3-30b-a3b-instruct",
     "api_key": "local-openai-key",
     "api_base": "http://127.0.0.1:8001/v1"
   },

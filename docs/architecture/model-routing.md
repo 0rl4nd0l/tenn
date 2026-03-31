@@ -25,16 +25,21 @@ The backend uses five logical roles:
 
 The checked-in local routing config currently sets:
 
-- `router_model: qwen2.5-coder-14b`
-- `coding_model: qwen2.5-coder-14b`
-- `reasoning_model: qwen2.5-coder-14b`
-- `deep_reasoning_model: qwen2.5-coder-14b`
+- `router_model: qwen3-30b-a3b-instruct` (llmfit score 94.0, MoE 30B/3B-active)
+- `coding_model: qwen3-30b-a3b-instruct`
+- `reasoning_model: qwen3-30b-a3b-instruct`
+- `deep_reasoning_model: qwen3-30b-a3b-instruct`
 - `embedding_model: nomic-embed-text`
 
 Current checked-in base URLs:
 
-- `router/coding/reasoning/deep_reasoning`: `http://127.0.0.1:8001`
+- `router/coding/reasoning/deep_reasoning`: `http://127.0.0.1:8001` (single llama-server in router mode)
 - `embedding`: `http://127.0.0.1:11434`
+
+The server runs in router mode (`--models-dir /mnt/nvme/tenn/models --models-max 1`).
+Extraction requests the `qwen2.5-14b-instruct` model by name; the server loads it on
+demand, evicting the chat model. During the swap window (~78s cold load), HybridRouter
+can fall back to the Anthropic API if `ANTHROPIC_API_KEY` is set and policy allows it.
 
 Operational changes should be made in `model_routing.yaml`, not by editing doc examples.
 

@@ -71,15 +71,16 @@ Pipeline tasks can run in two modes set by `TASK_MODE`:
 
 ### LLM Backend Endpoints
 
-Three endpoints, two required and one optional (`core/config.py`):
+Two endpoints (`core/config.py`):
 
 | Endpoint | Purpose | Default |
 |----------|---------|---------|
-| `LLAMACPP_URL` | Chat, routing, coding | `http://127.0.0.1:8001` |
-| `EXTRACTION_LLAMACPP_URL` | PDF extraction (multipass, commentary) | Falls back to `LLAMACPP_URL` |
+| `LLAMACPP_URL` | Chat, routing, coding, extraction | `http://127.0.0.1:8001` |
 | `OLLAMA_URL` | Embeddings (`nomic-embed-text`) | `http://127.0.0.1:11434` |
 
-When `EXTRACTION_LLAMACPP_URL` is set, extraction calls route to a dedicated llama.cpp instance. This allows running an instruct model (e.g. `qwen2.5-14b-instruct`) for extraction while keeping a coder model on the chat server. When unset, all LLM calls share `LLAMACPP_URL` (single-server mode).
+A single llama-server runs in **router mode** on port 8001 (`--models-dir /mnt/nvme/tenn/models --models-max 1`). All GGUFs in the models directory are available; clients select per-request via the `model` field. Only one model occupies VRAM at a time. Default chat model: `qwen3-30b-a3b-instruct` (MoE 30B/3B-active, llmfit score 94.0). Extraction requests `qwen2.5-14b-instruct` by model name; the router loads it on demand.
+
+`EXTRACTION_LLAMACPP_URL` is a legacy override for running a dedicated extraction server on a separate port. When unset (default), extraction uses `LLAMACPP_URL` via router mode.
 
 The app **fails to start** if `LLAMACPP_URL` and `OLLAMA_URL` resolve to the same host:port. This prevents silent backend aliasing.
 

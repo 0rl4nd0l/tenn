@@ -22,11 +22,12 @@ defaults:
   anthropic_model: claude-sonnet-4-20250514
 
 # Passed into cfg["llm"] (llamacpp client for cockpit chat).
+# Single llama-server in router mode on 8001 — extraction uses same port.
 llm:
   provider: llamacpp
-  model: qwen2.5-coder-14b
+  model: qwen3-30b-a3b-instruct
   llamacpp_url: http://127.0.0.1:8001
   ollama_url: http://127.0.0.1:11434
   llamacpp_api_key: local-openai-key
   timeout_seconds: 300
-  router_mode_opt_in: false
+  router_mode_opt_in: true

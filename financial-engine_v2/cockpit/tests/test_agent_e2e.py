@@ -53,9 +53,15 @@ def mock_tool_router():
     and file_indexer can be set freely without triggering AttributeError.
     """
     router = MagicMock()
-    router.db_reader.get_financials.return_value = [
-        {"metric": "revenue", "value": 55000, "currency": "AUD", "period": "FY2025"}
-    ]
+    mock_backend_api = MagicMock()
+    mock_backend_api.get_ticker_context.return_value = {
+        "financials": [
+            {"metric": "revenue", "value": 55000, "currency": "AUD", "period": "FY2025"}
+        ],
+        "docs": [],
+        "announcement_context": [],
+    }
+    router.backend_api_client = mock_backend_api
     router._build_financials_narrative.return_value = "BHP FY2025 Revenue: $55B AUD"
     router.file_indexer.search_text.return_value = []
     router.file_indexer.list_recent_reports.return_value = []

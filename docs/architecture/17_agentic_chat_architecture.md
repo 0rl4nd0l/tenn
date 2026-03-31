@@ -30,7 +30,7 @@ Users must recognize that the system has proposed an action and type `/confirm` 
 
 ### Model in use
 
-The default llama.cpp model is **qwen2.5-coder-14b** (alias `qwen2.5-coder-14b`, served on port 8001). The `run_llama_server.sh` script loads a single GGUF model with `--ctx-size 16384` (balanced profile). The extraction endpoint optionally uses `qwen2.5-14b-instruct`.
+The default llama.cpp model is **qwen2.5-14b-instruct** (alias `qwen2.5-14b-instruct`, served on port 8001). The `run_llama_server.sh` script loads the NVMe GGUF at `/mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf` with `--ctx-size 16384` (balanced profile) and fails loudly if that model directory is missing. The extraction endpoint uses the same NVMe-backed model path on port 8002 unless explicitly overridden.
 
 ---
 
@@ -424,7 +424,7 @@ Tool results are untrusted input (they may contain user-generated content from n
 
 ## 9. Model Considerations
 
-### 9.1 Current model: qwen2.5-coder-14b
+### 9.1 Current model: qwen2.5-14b-instruct
 
 - **Strengths**: Good at following structured output formats, strong reasoning, good at JSON generation
 - **Weaknesses**: Not trained for function calling; no native tool call support in chat template; 14B parameter count may struggle with complex multi-step reasoning
@@ -555,7 +555,7 @@ cockpit/
 | Prerequisite | Status | Notes |
 |-------------|--------|-------|
 | llama.cpp server running | Available | Existing infrastructure |
-| qwen2.5-coder-14b model | Available | Structured output viable; native tool calling unlikely |
+| qwen2.5-14b-instruct model | Available | Structured output viable; native tool calling unlikely |
 | ToolRouter methods | Available | Already exist, just need dispatch wrapper |
 | ActionRegistry | Available | Confirmation model is correct for agentic use |
 | 16K+ context window | Available | 32K recommended for multi-turn tool loops |

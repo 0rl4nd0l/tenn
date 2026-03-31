@@ -173,7 +173,7 @@ LLM_API_KEY=local-openai-key \
 EMBEDDING_API_KEY=local-openai-key \
 EMBED_MODEL=nomic-embed-text \
 EMBEDDING_MODEL=nomic-embed-text \
-EXTRACT_MODEL=qwen2.5-coder-14b \
+EXTRACT_MODEL=qwen2.5-14b-instruct \
 ENABLE_EXTRACTION=false \
 ./scripts/run_local_backend.sh
 ```

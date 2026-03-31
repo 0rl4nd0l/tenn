@@ -41,8 +41,8 @@ logging.basicConfig(
 )
 
 # Ensure extraction routes to the correct llama.cpp endpoint.
-# Default: EXTRACTION_LLAMACPP_URL (port 8002) for dedicated extraction server.
-# Fallback: LLAMACPP_URL (port 8001) when no dedicated server is running.
+# Router mode: single server on 8001 handles both chat and extraction.
+# EXTRACTION_LLAMACPP_URL is legacy; defaults to LLAMACPP_URL when unset.
 if not os.environ.get("EXTRACTION_LLAMACPP_URL"):
     os.environ["EXTRACTION_LLAMACPP_URL"] = os.environ.get("LLAMACPP_URL", "http://127.0.0.1:8001")
 

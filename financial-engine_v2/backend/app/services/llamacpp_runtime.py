@@ -10,7 +10,7 @@ import httpx
 from app.core.config import settings
 
 DEFAULT_LLM_URL = "http://127.0.0.1:8001"
-DEFAULT_LLM_MODEL = "qwen2.5-coder-14b"
+DEFAULT_LLM_MODEL = "qwen3-30b-a3b-instruct"
 
 
 class LlamaCppServerUnavailable(RuntimeError):
@@ -71,18 +71,18 @@ def resolve_extraction_runtime_config(
 ) -> tuple[str, str]:
     """Resolve LLM config for extraction workloads.
 
-    Extraction (PDF metric extraction) can run on a dedicated llama.cpp
-    instance so it doesn't compete with chat/coding for GPU.
+    In router mode (single-instance), extraction uses the same 8001 server
+    but requests the extraction model by name. The router loads it on demand.
 
     URL priority:
       1. Explicit base_url argument
-      2. EXTRACTION_LLAMACPP_URL env var / settings
-      3. Falls through to resolve_llm_runtime_config (LLAMACPP_URL)
+      2. EXTRACTION_LLAMACPP_URL env var / settings (legacy: dedicated 8002)
+      3. Falls through to resolve_llm_runtime_config (LLAMACPP_URL / 8001)
 
     Model priority:
       1. Explicit model argument
       2. EXTRACT_MODEL env var / settings.extract_model
-      3. Default instruct model
+      3. Default extraction model (qwen2.5-14b-instruct)
     """
     extraction_url = (
         _normalize_url(str(base_url or ""))

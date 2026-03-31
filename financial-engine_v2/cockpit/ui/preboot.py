@@ -4,6 +4,7 @@ import asyncio
 import json
 import os
 import socket
+import subprocess
 import urllib.error
 import urllib.request
 from urllib.parse import urlsplit
@@ -178,6 +179,7 @@ def _resolve_initial_option_state(initial_flags: dict[str, Any] | None) -> dict[
         "no_web": bool(raw["no_web"]) if "no_web" in raw else bool(defaults.get("no_web", False)),
         "verbose": bool(raw["verbose"]) if "verbose" in raw else bool(defaults.get("verbose", False)),
         "enable_rag": bool(raw["enable_rag"]) if "enable_rag" in raw else True,
+        "hybrid_router_policy": raw.get("hybrid_router_policy"),
     }
 
 
@@ -268,6 +270,8 @@ class PreBootScreen(Screen):
     #btn-row { height: 3; margin-top: 1; margin-bottom: 1; width: 1fr; }
     #btn-spacer { width: 1fr; }
     #btn-cancel { margin-right: 1; width: auto; }
+    #btn-repair { margin-right: 1; width: auto; display: none; }
+    #btn-repair.-visible { display: block; }
     #btn-launch { width: auto; }
     """
 
@@ -335,6 +339,11 @@ class PreBootScreen(Screen):
                 with Horizontal(id="profile-row"):
                     yield Label("Profile:", id="profile-label")
                     yield Select(LAUNCH_PROFILES, value=self._initial.get("profile", LAUNCH_PROFILES[0][1]), id="opt-profile")
+                with Horizontal(id="routing-row"):
+                    yield Label("Routing:", id="profile-label")  # Use profile-label style for alignment
+                    from cockpit.core.config import VALID_HYBRID_ROUTER_POLICIES
+                    policy_options = [(p, p) for p in sorted(VALID_HYBRID_ROUTER_POLICIES)]
+                    yield Select(policy_options, id="opt-routing", prompt="Profile policy (YAML default)")
             with Vertical(id="llm-backend-section"):
                 yield Label(
                     "LLM & routing (read-only) — from config/cockpit_llm.yaml + this host",
@@ -347,6 +356,7 @@ class PreBootScreen(Screen):
             with Horizontal(id="btn-row"):
                 yield Static("", id="btn-spacer")
                 yield Button("Help", id="btn-help", variant="default")
+                yield Button("Repair", id="btn-repair", variant="primary")
                 yield Button("Cancel", id="btn-cancel", variant="warning")
                 yield Button("Launch  [Enter]", id="btn-launch", variant="success")
 
@@ -355,6 +365,8 @@ class PreBootScreen(Screen):
         self.query_one("#opt-web", Checkbox).value = not self._initial["no_web"]
         self.query_one("#opt-rag", Checkbox).value = self._initial["enable_rag"]
         self.query_one("#opt-verbose", Checkbox).value = self._initial["verbose"]
+        if self._initial.get("hybrid_router_policy"):
+            self.query_one("#opt-routing", Select).value = self._initial["hybrid_router_policy"]
         self._sync_effective_config_from_ui()
         log = self.query_one("#health-log", RichLog)
         for svc in self._checks:
@@ -373,6 +385,8 @@ class PreBootScreen(Screen):
         self._effective_cfg = None
         try:
             profile = str(self.query_one("#opt-profile", Select).value or LAUNCH_PROFILES[0][1])
+            routing_val = self.query_one("#opt-routing", Select).value
+            policy = str(routing_val) if routing_val is not None and str(routing_val) != "Select.BLANK" else None
             read_only = self.query_one("#opt-readonly", Checkbox).value
             no_web = not self.query_one("#opt-web", Checkbox).value
             cfg = compute_effective_cockpit_config(
@@ -381,6 +395,7 @@ class PreBootScreen(Screen):
                 profile=profile,
                 read_only=read_only,
                 no_web=no_web,
+                hybrid_router_policy=policy,
             )
             self._effective_cfg = cfg
             self._preboot_config_errors = verify_effective_config_for_preboot(cfg)
@@ -393,7 +408,12 @@ class PreBootScreen(Screen):
             llm = self._effective_cfg.get("llm") or {}
             self._llamacpp_url = str(llm.get("llamacpp_url") or self._llamacpp_url)
             self._ollama_url = str(llm.get("ollama_url") or self._ollama_url)
-        self._checks = _build_service_checks(self._backend_url, self._ollama_url, self._llamacpp_url)
+
+        urls_changed = (old_llama, old_ollama) != (self._llamacpp_url, self._ollama_url)
+        # Only rebuild the checks list when URLs actually changed — otherwise
+        # we discard completed probe results and revert icons to "[ ] checking".
+        if urls_changed:
+            self._checks = _build_service_checks(self._backend_url, self._ollama_url, self._llamacpp_url)
 
         self._update_launch_button()
         try:
@@ -401,7 +421,6 @@ class PreBootScreen(Screen):
         except Exception:
             pass
 
-        urls_changed = (old_llama, old_ollama) != (self._llamacpp_url, self._ollama_url)
         if urls_changed and self._health_started:
             asyncio.create_task(self._run_health_checks())
         try:
@@ -549,11 +568,21 @@ class PreBootScreen(Screen):
     def _render_health(self) -> None:
         log = self.query_one("#health-log", RichLog)
         log.clear()
+        any_down = False
+        active_mode = str((self._router_capability or {}).get("active_mode") or "")
         for svc in self._checks:
             mode_tag = ""
             if svc.name == "llama.cpp":
                 mode_tag = self._router_mode_tag()
             log.write(f"  {_STATUS_ICON[svc.status]}  {svc.name:<16} {svc.detail}{mode_tag}")
+            if svc.status in ("error", "warn") and svc.name in ("llama.cpp", "Backend API"):
+                any_down = True
+            # Also treat router_mode_unavailable as "down" — the server
+            # process was not found even if the HTTP probe hasn't finished
+            # or returned an ambiguous result.
+            if svc.name == "llama.cpp" and active_mode == "router_mode_unavailable":
+                any_down = True
+        self.query_one("#btn-repair", Button).set_class(any_down, "-visible")
         self._refresh_llm_widgets()
 
     def _probe_runtime_model_note(self) -> str:
@@ -654,6 +683,8 @@ class PreBootScreen(Screen):
                 self.query_one("#opt-rag", Checkbox).value = flags["enable_rag"]
             if "verbose" in flags:
                 self.query_one("#opt-verbose", Checkbox).value = flags["verbose"]
+        elif event.select.id == "opt-routing":
+            pass  # Handled by generic _sync_effective_config_from_ui call below
         self._sync_effective_config_from_ui()
 
     def on_checkbox_changed(self, event: Checkbox.Changed) -> None:
@@ -667,6 +698,60 @@ class PreBootScreen(Screen):
             self.action_show_help()
         elif event.button.id == "btn-cancel":
             self.action_cancel_boot()
+        elif event.button.id == "btn-repair":
+            asyncio.create_task(self._action_repair())
+
+    async def _action_repair(self) -> None:
+        """Attempt to start missing critical services (llama.cpp, Backend)."""
+        log = self.query_one("#health-log", RichLog)
+        svc_map = {s.name: s for s in self._checks}
+
+        btn = self.query_one("#btn-repair", Button)
+        btn.disabled = True
+        btn.label = "Repairing..."
+
+        if svc_map.get("llama.cpp") and svc_map["llama.cpp"].status != "ok":
+            log.write("  [ ]  Repairing llama.cpp: launching scripts/run_llama_server.sh...")
+            # Use the project-standard script; it handles port 8001 and respects LLAMA_SERVER_ROUTER_MODE.
+            try:
+                subprocess.Popen(
+                    ["bash", str(self._repo_root / "scripts" / "run_llama_server.sh")],
+                    cwd=str(self._repo_root),
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    start_new_session=True,
+                )
+                log.write("  [OK]  llama.cpp start command issued.")
+            except Exception as exc:
+                log.write(f"  [!!]  Failed to launch llama.cpp: {exc}")
+
+        if svc_map.get("Backend API") and svc_map["Backend API"].status != "ok":
+            log.write("  [ ]  Repairing Backend API: launching scripts/run_local_backend.sh...")
+            # Launch in 'full' profile by default if RAG is enabled, else 'isolated'.
+            profile = "full" if self.query_one("#opt-rag", Checkbox).value else "isolated"
+            env = dict(os.environ)
+            env["LOCAL_BACKEND_PROFILE"] = profile
+            try:
+                subprocess.Popen(
+                    ["bash", "financial-engine_v2/scripts/run_local_backend.sh"],
+                    cwd=str(self._repo_root),
+                    env=env,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    start_new_session=True,
+                )
+                log.write(f"  [OK]  Backend API start command issued (profile={profile}).")
+            except Exception as exc:
+                log.write(f"  [!!]  Failed to launch Backend API: {exc}")
+
+        log.write("  [ ]  Waiting for services to settle before re-probing...")
+        await asyncio.sleep(5)
+
+        btn.disabled = False
+        btn.label = "Repair"
+
+        # Trigger re-probe
+        await self._run_health_checks()
 
     def _collect_flags(self) -> dict[str, Any]:
         read_only = self.query_one("#opt-readonly", Checkbox).value
@@ -674,6 +759,8 @@ class PreBootScreen(Screen):
         rag_enabled = self.query_one("#opt-rag", Checkbox).value
         verbose = self.query_one("#opt-verbose", Checkbox).value
         profile = str(self.query_one("#opt-profile", Select).value or LAUNCH_PROFILES[0][1])
+        routing_val = self.query_one("#opt-routing", Select).value
+        policy = str(routing_val) if routing_val is not None and str(routing_val) != "Select.BLANK" else None
         env = dict(PROFILE_FLAGS.get(profile, {}).get("env", {}))
         if verbose:
             env.setdefault("COCKPIT_LOG_LEVEL", "DEBUG")
@@ -686,6 +773,7 @@ class PreBootScreen(Screen):
             "enable_rag": rag_enabled,
             "verbose": verbose,
             "profile": profile,
+            "hybrid_router_policy": policy,
             "env": env,
             "cancelled": False,
         }

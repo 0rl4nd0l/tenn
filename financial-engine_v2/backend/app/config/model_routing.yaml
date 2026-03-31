@@ -1,13 +1,13 @@
-router_model: qwen2.5-coder-14b
+router_model: qwen3-30b-a3b-instruct
 router_provider: llamacpp
 router_base_url: http://127.0.0.1:8001
-coding_model: qwen2.5-coder-14b
+coding_model: qwen3-30b-a3b-instruct
 coding_provider: llamacpp
 coding_base_url: http://127.0.0.1:8001
-reasoning_model: qwen2.5-coder-14b
+reasoning_model: qwen3-30b-a3b-instruct
 reasoning_provider: llamacpp
 reasoning_base_url: http://127.0.0.1:8001
-deep_reasoning_model: qwen2.5-coder-14b
+deep_reasoning_model: qwen3-30b-a3b-instruct
 deep_reasoning_provider: llamacpp
 deep_reasoning_base_url: http://127.0.0.1:8001
 embedding_model: nomic-embed-text

@@ -311,6 +311,30 @@ def sync_news_to_qdrant(
 
     total_upserted += flush_batch()
 
+    # Dispatch news memo extraction for each article (best-effort).
+    # Uses Celery when available, falls back to sync extraction, or skips
+    # silently when neither is reachable (memo extraction is supplementary).
+    memos_dispatched = 0
+    try:
+        from app.tasks.news_tasks import extract_news_memo_task  # noqa: E402
+        for art in articles:
+            memo_payload = {
+                "source_id": f"news:{art['article_id']}",
+                "article_text": art["text"][:12000],
+                "provider": art["provider"],
+                "published_at": art["published_at"],
+            }
+            try:
+                extract_news_memo_task.delay(memo_payload)
+                memos_dispatched += 1
+            except Exception as memo_exc:
+                logger.debug("news_chunks_sync: memo dispatch failed for %s: %s", art["article_id"], memo_exc)
+        logger.info("news_chunks_sync: dispatched %d memo extraction tasks", memos_dispatched)
+    except ImportError:
+        logger.info("news_chunks_sync: news memo extraction not available (app.tasks.news_tasks not importable)")
+    except Exception as exc:
+        logger.warning("news_chunks_sync: memo extraction dispatch setup failed: %s", exc)
+
     # Write model marker after successful sync so future runs can verify consistency.
     try:
         NEWS_CHUNKS_MODEL_FILE.parent.mkdir(parents=True, exist_ok=True)

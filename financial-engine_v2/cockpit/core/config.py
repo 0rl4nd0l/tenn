@@ -48,7 +48,7 @@ def load_env(repo_root: Path | None = None) -> None:
 DEFAULT_BACKEND_URL = "http://localhost:8000"
 DEFAULT_OLLAMA_URL = "http://localhost:11434"
 DEFAULT_LLAMACPP_URL = "http://localhost:8001"
-DEFAULT_LLAMACPP_MODEL = "qwen2.5-coder-14b"
+DEFAULT_LLAMACPP_MODEL = "qwen3-30b-a3b-instruct"
 
 
 DEFAULT_CONFIG = {
@@ -255,6 +255,7 @@ def compute_effective_cockpit_config(
     profile: str,
     read_only: bool,
     no_web: bool,
+    hybrid_router_policy: str | None = None,
 ) -> dict[str, Any]:
     """Same pipeline as launch: ``load_config`` → ``apply_runtime_flags``.
 
@@ -270,6 +271,7 @@ def compute_effective_cockpit_config(
             read_only=read_only,
             no_web=no_web,
             repo_root=repo_root,
+            hybrid_router_policy=hybrid_router_policy,
         ),
     )
 
@@ -526,6 +528,7 @@ class RuntimeFlags:
     read_only: bool
     no_web: bool
     repo_root: Path | None = None
+    hybrid_router_policy: str | None = None
 
 
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
@@ -566,6 +569,11 @@ def apply_runtime_flags(config: dict[str, Any], flags: RuntimeFlags) -> dict[str
 
     repo_root = flags.repo_root or Path(__file__).resolve().parents[2]
     merge_cockpit_llm_file(cfg, repo_root)
+
+    # Apply explicit session-level routing policy override from flags (e.g. pre-boot)
+    if flags.hybrid_router_policy:
+        cfg.setdefault("cockpit_llm", {})
+        cfg["cockpit_llm"]["hybrid_router_policy"] = flags.hybrid_router_policy
 
     cm = cfg.get("cockpit_llm") or {}
     apply_stack_defaults_to_environ(cm)

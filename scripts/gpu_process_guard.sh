@@ -2,8 +2,8 @@
 # gpu_process_guard.sh — Detect and manage rogue llama-server processes.
 #
 # Authorised ports (from SYSTEM_CONTRACT.md §9.4):
-#   :8001 — Chat/Router server
-#   :8002 — Extraction server
+#   :8001 — Single llama-server in router mode (chat + extraction via model selection)
+#   :8002 — Legacy extraction server (manual debugging only; deprecated)
 #
 # Any llama-server process on a port not in {8001, 8002} is ROGUE.
 #

@@ -137,15 +137,15 @@ class ToolRouter:
                 low_confidence_threshold=low_confidence_threshold,
             )
         else:
-            payload = self._load_ticker_context_from_db(
-                ticker_key,
-                docs_limit=docs_limit,
-                context_limit=context_limit,
-                financials_limit=financials_limit,
-                extraction_failures_limit=extraction_failures_limit,
-                low_confidence_limit=low_confidence_limit,
-                low_confidence_threshold=low_confidence_threshold,
-            )
+            payload = {
+                "docs": [],
+                "context_rows": [],
+                "financials": [],
+                "extraction_failures": [],
+                "low_confidence_financials": [],
+                "low_confidence_threshold": float(low_confidence_threshold),
+                "db_error": "backend API client not configured — authoritative data unavailable",
+            }
         self._ticker_cache[cache_key] = (now, payload)
         return payload
 
@@ -192,40 +192,6 @@ class ToolRouter:
                 "low_confidence_threshold": float(low_confidence_threshold),
                 "db_error": f"backend unavailable: {exc}",
             }
-
-    def _load_ticker_context_from_db(
-        self,
-        ticker: str,
-        *,
-        docs_limit: int = 10,
-        context_limit: int = 10,
-        financials_limit: int = 5,
-        extraction_failures_limit: int = 8,
-        low_confidence_limit: int = 8,
-        low_confidence_threshold: float = 0.4,
-    ) -> dict[str, Any]:
-        """Load ticker context from DbReader (legacy fallback)."""
-        docs = self.db_reader.get_docs(ticker, limit=docs_limit)
-        context_rows = self.db_reader.get_announcement_context(ticker, limit=context_limit)
-        financials = self.db_reader.get_financials(ticker, limit=financials_limit)
-        extraction_failures = self.db_reader.get_extraction_failures(
-            limit=extraction_failures_limit,
-            ticker=ticker,
-        )
-        low_confidence_financials = self.db_reader.get_low_confidence_financials(
-            threshold=low_confidence_threshold,
-            limit=low_confidence_limit,
-            ticker=ticker,
-        )
-        return {
-            "docs": docs,
-            "context_rows": context_rows,
-            "financials": financials,
-            "extraction_failures": extraction_failures,
-            "low_confidence_financials": low_confidence_financials,
-            "low_confidence_threshold": float(low_confidence_threshold),
-            "db_error": self.db_reader.last_error,
-        }
 
     @staticmethod
     def _compact_price_payload(price_payload: dict[str, Any], max_history_rows: int) -> dict[str, Any]:
@@ -654,7 +620,8 @@ class ToolRouter:
                     ctx = self._load_ticker_context_from_backend(ticker_key, docs_limit=30)
                     selected_docs = ctx.get("docs", [])
                 else:
-                    selected_docs = self.db_reader.get_docs(ticker_key, limit=30)
+                    logger.warning("get_preferred_web_domains: backend API client not configured")
+                    selected_docs = []
 
         out: list[str] = ["asx.com.au"]
         seen = {"asx.com.au"}

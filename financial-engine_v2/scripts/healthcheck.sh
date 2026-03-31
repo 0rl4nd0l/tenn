@@ -6,7 +6,7 @@ BASE_URL="${BASE_URL%/}"
 if [[ "${BASE_URL}" == */v1 ]]; then
   BASE_URL="${BASE_URL%/v1}"
 fi
-MODEL_FAST="${HEALTHCHECK_FAST_MODEL:-qwen2.5-coder-14b}"
+MODEL_FAST="${HEALTHCHECK_FAST_MODEL:-qwen3-30b-a3b-instruct}"
 EMBED_MODEL="${EMBED_MODEL:-sentence-transformers/all-MiniLM-L6-v2}"
 
 log() { echo "[health] $*"; }

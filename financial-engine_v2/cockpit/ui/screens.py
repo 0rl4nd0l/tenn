@@ -414,10 +414,10 @@ class UpdaterScreen(Screen):
                 try:
                     ctx = self.app._backend_client.get_ticker_context(ticker, financials_limit=1)
                     row = ctx.get("latest_financial_snapshot")
-                except Exception:
-                    row = None
+                except Exception as exc:
+                    row = {"ticker": ticker, "error": f"Backend fetch failed: {exc}"}
             else:
-                row = self.app.db_reader.get_latest_financial_snapshot(ticker)
+                row = {"ticker": ticker, "error": "Backend API client not configured"}
             log.write(json.dumps(row or {"ticker": ticker, "message": "no data"}, default=str, indent=2))
             return
         if event.button.id == "upd-rebuild":

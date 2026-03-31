@@ -25,6 +25,7 @@ usage() {
 Usage:
   cockpit start          Start full stack + terminal TUI
   cockpit start web      Start full stack + web UI (browser)
+  cockpit start new      Start full stack + Next.js cockpit UI (browser, port 3000)
   cockpit stop
   cockpit status
   cockpit logs
@@ -136,6 +137,191 @@ python_cmd() {
   fi
   echo "ERROR: python3 missing" >&2
   exit 1
+}
+
+http_ok() {
+  local url="$1"
+  local timeout_s="${2:-3}"
+  local api_key="${3:-}"
+  if [[ -n "${api_key}" ]]; then
+    curl -fsS -m "${timeout_s}" -H "Authorization: Bearer ${api_key}" "${url}" >/dev/null 2>&1
+    return $?
+  fi
+  curl -fsS -m "${timeout_s}" "${url}" >/dev/null 2>&1
+}
+
+llama_api_key() {
+  echo "${LLAMACPP_API_KEY:-${LLM_API_KEY:-local-openai-key}}"
+}
+
+llama_log_path() {
+  local port="$1"
+  echo "/tmp/llama-server-${port}.log"
+}
+
+base_from_url() {
+  local raw="$1"
+  raw="${raw%%/v1/models}"
+  raw="${raw%%/v1}"
+  raw="${raw%%/}"
+  echo "${raw}"
+}
+
+backend_health_url() {
+  echo "${COCKPIT_BACKEND_URL:-http://127.0.0.1:8000}/api/health"
+}
+
+llama_chat_base_url() {
+  local raw="${COCKPIT_LLAMACPP_URL:-${LLAMACPP_URL:-http://127.0.0.1:8001/v1}}"
+  base_from_url "${raw}"
+}
+
+llama_extraction_base_url() {
+  # Default to sharing the chat server unless a dedicated extraction URL is explicitly
+  # configured. This keeps the stack on a single llama.cpp process by default while
+  # still allowing an opt-in second server for heavy extraction workloads.
+  local raw="${EXTRACTION_LLAMACPP_URL:-}"
+  if [[ -z "${raw}" ]]; then
+    raw="$(llama_chat_base_url)"
+  fi
+  base_from_url "${raw}"
+}
+
+wait_for_health() {
+  local name="$1"
+  local url="$2"
+  local timeout_s="${3:-60}"
+  local log_path="${4:-}"
+  local api_key="${5:-}"
+  local deadline=$(( $(date +%s) + timeout_s ))
+  while true; do
+    if http_ok "${url}" 3 "${api_key}"; then
+      echo "✅ ${name} healthy: ${url}"
+      return 0
+    fi
+    if [[ "$(date +%s)" -ge "${deadline}" ]]; then
+      echo "ERROR: ${name} did not become healthy within ${timeout_s}s (${url})" >&2
+      if [[ -n "${log_path}" ]]; then
+        echo "See log: ${log_path}" >&2
+      fi
+      return 1
+    fi
+    sleep 1
+  done
+}
+
+ensure_llama_servers_up() {
+  local chat_base extraction_base extraction_enabled extraction_distinct api_key chat_log extraction_log
+  chat_base="$(llama_chat_base_url)"
+  extraction_base="$(llama_extraction_base_url)"
+  extraction_enabled="${ENABLE_EXTRACTION_ON_STARTUP:-true}"
+  extraction_distinct="true"
+  if [[ "${extraction_base}" == "${chat_base}" ]]; then
+    extraction_distinct="false"
+  fi
+  api_key="$(llama_api_key)"
+  chat_log="$(llama_log_path "${chat_base##*:}")"
+  extraction_log="$(llama_log_path "${extraction_base##*:}")"
+
+  if http_ok "${chat_base}/health" 3 "${api_key}"; then
+    echo "✅ llama.cpp chat already running (${chat_base})"
+  else
+    echo "Starting llama.cpp chat server on ${chat_base} (log: ${chat_log})..."
+    (cd "${REPO_ROOT}" && bash scripts/run_llama_server.sh >>"${chat_log}" 2>&1 &)
+  fi
+
+  if [[ "${extraction_enabled}" == "true" || "${extraction_enabled}" == "1" ]] && [[ "${extraction_distinct}" == "true" ]]; then
+    if http_ok "${extraction_base}/health" 3 "${api_key}"; then
+      echo "✅ llama.cpp extraction already running (${extraction_base})"
+    else
+      echo "Starting llama.cpp extraction server on ${extraction_base} (log: ${extraction_log})..."
+      (cd "${REPO_ROOT}" && bash scripts/run_extraction_server.sh >>"${extraction_log}" 2>&1 &)
+    fi
+  else
+    if [[ "${extraction_distinct}" == "false" ]]; then
+      echo "ℹ️  Extraction server startup skipped (sharing chat server at ${chat_base})"
+    else
+      echo "ℹ️  Extraction server startup skipped (ENABLE_EXTRACTION_ON_STARTUP=${extraction_enabled})"
+    fi
+  fi
+
+  wait_for_health "llama.cpp chat" "${chat_base}/health" 120 "${chat_log}" "${api_key}"
+  if [[ "${extraction_enabled}" == "true" || "${extraction_enabled}" == "1" ]] && [[ "${extraction_distinct}" == "true" ]]; then
+    wait_for_health "llama.cpp extraction" "${extraction_base}/health" 120 "${extraction_log}" "${api_key}"
+  fi
+}
+
+stop_llama_servers() {
+  local chat_base extraction_base chat_port extraction_port pids
+  chat_base="$(llama_chat_base_url)"
+  extraction_base="$(llama_extraction_base_url)"
+  chat_port="${chat_base##*:}"
+  extraction_port="${extraction_base##*:}"
+
+  if command -v systemctl >/dev/null 2>&1; then
+    systemctl --user stop llama-cpp-qwen25.service >/dev/null 2>&1 || true
+  fi
+
+  pids="$(pgrep -f "llama-server.*--port ${chat_port}\\b" || true)"
+  if [[ -n "${pids}" ]]; then
+    echo "Stopping llama.cpp chat (port ${chat_port}, PID ${pids//$'\n'/ })..."
+    if ! kill ${pids} 2>/dev/null; then
+      echo "WARN: unable to kill llama.cpp chat PIDs without elevated privileges." >&2
+    fi
+  else
+    echo "No llama.cpp chat server found on port ${chat_port}."
+  fi
+
+  pids="$(pgrep -f "llama-server.*--port ${extraction_port}\\b" || true)"
+  if [[ -n "${pids}" ]]; then
+    echo "Stopping llama.cpp extraction (port ${extraction_port}, PID ${pids//$'\n'/ })..."
+    if ! kill ${pids} 2>/dev/null; then
+      echo "WARN: unable to kill llama.cpp extraction PIDs without elevated privileges." >&2
+    fi
+  else
+    echo "No llama.cpp extraction server found on port ${extraction_port}."
+  fi
+}
+
+stop_backend_api() {
+  local pids stopped_via_compose
+  stopped_via_compose=0
+
+  if (cd "${ENGINE_ROOT}" && "${COMPOSE[@]}" ps backend >/dev/null 2>&1); then
+    if (cd "${ENGINE_ROOT}" && "${COMPOSE[@]}" stop backend >/dev/null 2>&1); then
+      echo "Stopped backend service via docker compose."
+      stopped_via_compose=1
+    fi
+  fi
+
+  # Fallback for non-docker uvicorn backend processes.
+  pids="$(pgrep -f "uvicorn app.main:app" || true)"
+  if [[ -n "${pids}" ]]; then
+    echo "Stopping local backend API process (PID ${pids//$'\n'/ })..."
+    if ! kill ${pids} 2>/dev/null; then
+      echo "WARN: unable to kill local backend PID(s) without elevated privileges." >&2
+    fi
+    return 0
+  fi
+
+  if [[ "${stopped_via_compose}" -eq 0 ]]; then
+    echo "No backend process found."
+  fi
+}
+
+start_all_backends_safely() {
+  if [[ -x "${REPO_ROOT}/scripts/gpu_process_guard.sh" ]]; then
+    if ! (cd "${REPO_ROOT}" && scripts/gpu_process_guard.sh --check); then
+      echo "ERROR: GPU process guard failed. Resolve rogue/VRAM issues before starting servers." >&2
+      return 1
+    fi
+  fi
+  ensure_llama_servers_up
+}
+
+kill_backend_stack() {
+  stop_backend_api
+  stop_llama_servers
 }
 
 launch_cockpit_tui() {
@@ -287,15 +473,47 @@ launch_cockpit_web() {
   (cd "${ENGINE_ROOT}" && "${textual_bin}" serve --port "${port}" -c "${py} ${launcher}")
 }
 
+launch_cockpit_new() {
+  if ! command -v node >/dev/null 2>&1; then
+    echo "ERROR: node is not installed or not in PATH" >&2
+    exit 1
+  fi
+  if ! command -v pnpm >/dev/null 2>&1; then
+    echo "ERROR: pnpm is not installed or not in PATH" >&2
+    exit 1
+  fi
+
+  local cockpit_ui_dir="${REPO_ROOT}/cockpit-ui"
+  local port="${COCKPIT_NEW_PORT:-3000}"
+
+  export NEXT_PUBLIC_API_URL="${COCKPIT_BACKEND_URL:-http://localhost:8000}"
+
+  if [[ ! -d "${cockpit_ui_dir}/node_modules" ]]; then
+    echo "Installing dependencies (pnpm install)..."
+    (cd "${cockpit_ui_dir}" && pnpm install)
+  fi
+
+  echo "Building Cockpit UI..."
+  (cd "${cockpit_ui_dir}" && pnpm build)
+  echo "Cockpit UI (Next.js) → http://localhost:${port}"
+  (cd "${cockpit_ui_dir}" && pnpm start --port "${port}")
+}
+
 case "${cmd}" in
   start)
     sub="${1:-}"
     shift || true
     if [[ "${sub}" == "web" ]]; then
       "${REPO_ROOT}/scripts/start_full_stack.sh"
+      start_all_backends_safely
       launch_cockpit_web
+    elif [[ "${sub}" == "new" ]]; then
+      "${REPO_ROOT}/scripts/start_full_stack.sh"
+      start_all_backends_safely
+      launch_cockpit_new
     else
       "${REPO_ROOT}/scripts/start_full_stack.sh"
+      start_all_backends_safely
       launch_cockpit_tui
     fi
     ;;
@@ -320,15 +538,7 @@ case "${cmd}" in
     svc="${1:-}"
     case "${svc}" in
       backend)
-        pids="$(pgrep -f "uvicorn app.main:app" || true)"
-        if [[ -z "${pids}" ]]; then
-          echo "No backend process found." >&2
-          exit 0
-        fi
-        echo "Killing backend (PID ${pids})…"
-        if ! kill ${pids} 2>/dev/null; then
-          sudo kill ${pids}
-        fi
+        kill_backend_stack
         echo "Done."
         ;;
       root | all)
@@ -347,8 +557,10 @@ case "${cmd}" in
       echo "Usage: cockpit restart backend" >&2
       exit 2
     fi
-    py="$(python_cmd)"
-    (cd "${ENGINE_ROOT}" && "${py}" -m cockpit.main restart backend)
+    kill_backend_stack
+    "${REPO_ROOT}/scripts/start_full_stack.sh"
+    start_all_backends_safely
+    wait_for_health "Backend API" "$(backend_health_url)" 120
     ;;
   bugagent)
     py="$(python_cmd)"

@@ -122,6 +122,7 @@ class CockpitWebApp(CockpitApp):
             profile=flags.get("profile", "full"),
             read_only=flags.get("read_only", False),
             no_web=flags.get("no_web", False),
+            hybrid_router_policy=flags.get("hybrid_router_policy"),
         )
 
         # Apply RAG/embedding toggle from the pre-boot checkbox.

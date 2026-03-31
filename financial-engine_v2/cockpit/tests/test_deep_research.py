@@ -9,13 +9,19 @@ import pytest
 from cockpit.core.research.deep_research import DeepResearchRunner
 
 
-def _make_runner(*, backend_result=None, backend_error=None):
+def _make_runner(*, backend_result=None, backend_error=None, backend_api_result=None):
     """Build a DeepResearchRunner with mocked dependencies."""
     mock_router = MagicMock()
-    mock_router.backend_api_client = None  # Force DbReader fallback path
-    mock_router.db_reader.get_financials.return_value = [{"revenue": 50000}]
-    mock_router.db_reader.get_docs.return_value = []
-    mock_router.db_reader.get_announcement_context.return_value = []
+    mock_backend_api = MagicMock()
+    if backend_api_result:
+        mock_backend_api.get_ticker_context.return_value = backend_api_result
+    else:
+        mock_backend_api.get_ticker_context.return_value = {
+            "financials": [{"revenue": 50000}],
+            "docs": [],
+            "announcement_context": [],
+        }
+    mock_router.backend_api_client = mock_backend_api
     mock_router.get_price_context_for_window.return_value = {"price": {"close": 45.0}}
 
     mock_backend = MagicMock()
@@ -72,10 +78,7 @@ class TestDeepResearchRunner:
     def test_backend_none_returns_fallback(self):
         """DeepResearchRunner with no backend client degrades gracefully."""
         mock_router = MagicMock()
-        mock_router.backend_api_client = None  # Force DbReader fallback path
-        mock_router.db_reader.get_financials.return_value = [{"revenue": 100}]
-        mock_router.db_reader.get_docs.return_value = []
-        mock_router.db_reader.get_announcement_context.return_value = []
+        mock_router.backend_api_client = None  # Force error path
         mock_router.get_price_context_for_window.return_value = {}
 
         runner = DeepResearchRunner(
@@ -84,7 +87,7 @@ class TestDeepResearchRunner:
         )
         result = runner.run("CSL")
         assert result["ok"] is True
-        assert "not available" in result["research"]["summary"]
+        assert "No data available" in result["research"]["summary"]
 
     def test_dossier_auto_save_on_success(self):
         runner, _, mock_dossier = _make_runner()
