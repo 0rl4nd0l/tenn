@@ -19,7 +19,7 @@ from app.modules.base import (
     ArtifactSet, Completeness, EvidenceItem, ModuleHelpers,
 )
 from app.modules.math_utils import mean, round_or_none
-from app.modules.ticker_context import RiskNote, TickerContext
+from app.modules.ticker_context import RAGQuerySpec, RiskNote, TickerContext
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +108,7 @@ def _categorize_rag_label(label: str) -> str:
     low = label.lower()
     if "news" in low or "market" in low:
         return "news"
-    if "guidance" in low or "outlook" in low:
+    if "guidance" in low or "outlook" in low or "commentary" in low:
         return "guidance"
     return "filing"
 
@@ -145,6 +145,23 @@ class SentimentModule(ModuleHelpers):
     @property
     def requires(self) -> frozenset[str]:
         return frozenset({"risk_notes"})
+
+    @property
+    def rag_queries(self) -> tuple[RAGQuerySpec, ...]:
+        return (
+            RAGQuerySpec(
+                label="news_sentiment",
+                query_template="{ticker} latest news outlook market sentiment",
+                collection="news_chunks",
+                top_k=8,
+            ),
+            RAGQuerySpec(
+                label="commentary_sentiment",
+                query_template="{ticker} earnings guidance management commentary outlook",
+                collection="commentary_chunks",
+                top_k=6,
+            ),
+        )
 
     def run(self, context: TickerContext) -> ArtifactSet:
         ticker = context.ticker

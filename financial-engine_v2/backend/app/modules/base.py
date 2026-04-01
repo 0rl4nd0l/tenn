@@ -148,6 +148,16 @@ class ModuleHelpers:
     AnalysisModule (Protocol).
     """
 
+    @property
+    def rag_queries(self) -> tuple[Any, ...]:
+        """RAG query specs this module needs. Override in subclasses.
+
+        Returns tuple of RAGQuerySpec objects. Default: empty (no RAG needed).
+        The orchestrator collects these from all modules and merges them into
+        the ContextRequest so the loader pre-fetches the data.
+        """
+        return ()
+
     def _build_artifact(
         self,
         *,

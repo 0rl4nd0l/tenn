@@ -19,6 +19,7 @@ from app.modules.artifacts import read_artifact
 from app.modules.base import ArtifactSet, Completeness
 from app.modules.context_loader import TickerContextLoader
 from app.modules.orchestrator import AnalysisOrchestrator, _merge_context_requests
+from app.services.analysis_rag_adapter import analysis_rag_query
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +105,7 @@ def run_analysis(
         registry = {k: v for k, v in registry.items() if k in requested}
     request = _merge_context_requests(registry)
 
-    loader = TickerContextLoader()
+    loader = TickerContextLoader(rag_fn=analysis_rag_query)
     try:
         context = loader.load(ticker=ticker, request=request, db=db)
     except Exception as exc:

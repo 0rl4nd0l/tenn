@@ -4,7 +4,7 @@
 > Update this file at the end of every session alongside the milestone commit.
 > For detailed context on any item, follow the linked doc or run `git log --oneline`.
 
-Last updated: 2026-03-31 (session — `/chat` route boundary hardened for Next.js cockpit UI)
+Last updated: 2026-04-01 (session — sentiment RAG wiring, ANZ accuracy status update)
 Branch: cloud/session-20260319
 
 ## Legend
@@ -26,16 +26,15 @@ Branch: cloud/session-20260319
 | **extraction-hardening** | `[ in-progress ]` | (1) FX conversion logic not yet built. (2) AZJ font encoding confirmed unsolvable — threshold 0.0. (3) pymupdf quality gate added (flags `pymupdf_degraded`). (4) Live eval run 2026-03-27: 77.89% overall, 88.64% excl. AZJ. L019 logged. |
 | **news-pipeline** | `[ verified ]` | Embedding routing fixed, asx_docs rebuilt at 768-dim (a4564e47). **Default provider switched to newspaper4k** (2026-03-27): 54 AU finance sources (AFR, Stockhead, MarketIndex, SMH, ABC, etc.) with Scrapling/Playwright fallback. EODHD and GDELT suspended from main pipeline — poor ASX coverage. |
 | **eval-fixtures** | `[ verified ]` | 13 fixture JSONs now in repo. Last fully live-validated set remains 9 fixtures on 2026-03-27. AZJ threshold=0.0, FMG threshold=0.60, RMS threshold=0.70. 88.64% excl. AZJ on the validated set. |
-| **extraction-quality** | `[ in-progress ]` | 88.64% accuracy on 8 fixtures (excl. AZJ). Docling restored as default (877a8203). ANZ 72.7% — banking revenue format regression to investigate. |
+| **extraction-quality** | `[ in-progress ]` | 88.64% accuracy on 8 fixtures (excl. AZJ). Docling restored as default (877a8203). ANZ ~90.9% after banking-sector fixes (e1710290, 8e4ec1b3). Remaining gap: shares_outstanding requires narrative Note 13 extraction. |
 | **extraction-perf** | `[ verified ]` | Docling default restored (877a8203). PyMuPDF available via EXTRACTION_BACKEND=pymupdf. |
 | **cockpit-agent** | `[ verified ]` | Agent mode + ToolExecutor verified via Textual Pilot 2026-03-27: all 7 checks PASS, 217 unit tests. |
-| **cockpit-strategy** | `[ verified ]` | Strategy schema (d173a8da) + improvements (2026-03-31): signal engine (TickerScorer 0-100 composite + sector-relative via sector_comparison.py), thesis tracking (ThesisService JSONL, auto-invalidation on evidence ratio, 90-day expiry), risk gate (bull/bear/judge debate), reflection loop (decision snapshots, auto-reflect in watchlist scanner). Tool routing guide in system prompt. Configurable signal weights via adjust_signal_weights tool. 38 tools total. |
+| **cockpit-strategy** | `[ verified ]` | Strategy schema (d173a8da): global + ticker criteria tables, StrategyService, /strategy commands, natural language rules, context injection. 10 tests. |
 | **cockpit-sourcing** | `[ verified ]` | Evidence sourcing (2e9c3ddb): SourcesFormatter, sources metadata in gather_local_context, /sources on\|off toggle. 6 tests. |
-| **cockpit-routing** | `[ verified ]` | Chat routing visibility + extraction guard (f037aa09): per-response footer [backend\|model\|latency\|cost], extraction pre-flight guard with auto-model-load via router API, `.env` loading fixed in cockpit entrypoint. Ticker fast-path false positives fixed (2cfb991e): stopwords expanded, _FOLLOW_UP_RE narrowed to topic-referential only. `/chat` RAG fallback rows now preserve the full context schema, model-output normalization degrades invalid JSON fields, response payload assembly rejects non-finite values before FastAPI serialization, and the `/chat` route now degrades residual analysis failures in-band instead of returning HTTP 500 to the Next.js cockpit UI. L027+L028+L029+L035+L036+L037+L038+L039. |
-| **gpu-process-rails** | `[ verified ]` | Canonical port manifest (§9.4), agent spawn protocol (§9.5), `gpu_process_guard.sh`, `llamacpp_manager.py` topology check. Router-mode child workers on ephemeral localhost ports are now treated as authorised descendants of the canonical router instead of rogue instances. L022 + L034 logged. |
-| **analysis-modules** | `[ verified ]` | 7 modules (+ sentiment), orchestrator, context_loader (Yahoo price fallback), watchlist scanner (7 alert rules), API endpoints, scale validation gate, extraction expansion (total_equity, interest_expense). 48 tests. D2 live-tested. Real-data validated (RIO, BHP). Architecture doc 1151 lines. |
+| **cockpit-routing** | `[ verified ]` | Chat routing visibility + extraction guard (f037aa09): per-response footer [backend\|model\|latency\|cost], extraction pre-flight guard with auto-model-load via router API, `.env` loading fixed in cockpit entrypoint. Ticker fast-path false positives fixed (2cfb991e): stopwords expanded, _FOLLOW_UP_RE narrowed to topic-referential only. L027+L028+L029. |
+| **gpu-process-rails** | `[ verified ]` | Canonical port manifest (§9.4), agent spawn protocol (§9.5), `gpu_process_guard.sh`, `llamacpp_manager.py` topology check. L022 logged. |
+| **analysis-modules** | `[ verified ]` | 7 modules (+ sentiment), orchestrator, context_loader (Yahoo price fallback), watchlist scanner (7 alert rules), API endpoints, scale validation gate, extraction expansion (total_equity, interest_expense). 48+22 tests. D2 live-tested. Real-data validated (RIO, BHP). **Sentiment RAG wiring:** modules declare RAG queries via `rag_queries` property; orchestrator merges into ContextRequest; `analysis_rag_adapter` bridges Qdrant; sentiment scores news_chunks + commentary_chunks. Architecture doc 1151 lines. |
 | **model-eval** | `[ verified ]` | Qwen 3 14B evaluated (85.26%) vs Qwen 2.5 14B (89.47%) — current model stays. |
-| **narrative-extraction** | `[ verified ]` | Phase 1-3 complete (849c664f→7defd245). Ungated narrative extraction, announcement_type persisted, classifier expanded, news memo extractor + Celery task, multi-pass transcript extraction, timestamp preservation, investor-specific extractor, section-aware chunking, speaker-turn detection. 414 tests. |
 | **docs-governance** | `[ in-progress ]` | Root startup docs aligned to the canonical backend entrypoint. Repository-audit instructions updated to use actual repo manifests. Backend API surface, extraction, embeddings, routing, scripts index, portfolio module docs, Cockpit control-plane docs, and eval-fixture architecture docs refreshed. Open item: Cockpit contract/code mismatch still needs an explicit architecture decision. |
 
 ---
@@ -78,15 +77,7 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 
 | Commit | Workstream | Summary |
 |--------|------------|---------|
-| (2026-03-31) | cockpit-routing | `/chat` now has a route-level analysis boundary that sanitizes the full payload and degrades residual runtime failures in-band, so the Next.js cockpit should no longer receive analysis-mode HTTP 500 responses for recoverable backend exceptions. |
-| (2026-03-31) | cockpit-routing | `/chat` now recursively sanitizes nested `supporting_evidence` and rejects non-finite response values before JSON serialization, closing another backend reset path behind the Next.js cockpit UI's `ECONNRESET` errors. |
-| (2026-03-31) | cockpit-routing | `/chat` now sanitizes model JSON fields before response assembly, so malformed `confidence` / `insights` / `supporting_evidence` values degrade cleanly instead of surfacing as backend resets in the Next.js cockpit UI. |
-| (2026-03-31) | cockpit-routing | `/chat` fallback evidence rows now include the full context schema, preventing backend 500/ECONNRESET when the Next.js cockpit UI falls back from weighted chunk retrieval to raw RAG evidence. |
-| (2026-03-31) | gpu-process-rails | GPU topology guard now recognises router-owned llama.cpp child workers, so `scripts/cockpit` no longer blocks startup on the router's ephemeral model port. Contract wording aligned with router mode. |
-| (2026-03-31) | cockpit-strategy | Strategy system improvements: sector_comparison.py (10 GICS sectors, 150+ tickers, 24hr cached stats), thesis auto-invalidation (evidence ratio + 90-day expiry), tool routing guide in system prompt, configurable signal weights, commentary retrieval in deep_research, auto-reflection in watchlist scanner. 38 tools (was 28). |
-| 7defd245 | narrative-extraction | Phase 3: Section-aware chunking (section_heading in Qdrant payload), speaker-turn detection (primary_speaker in commentary payloads), news memo Celery task. 414 tests. |
-| dee24890 | narrative-extraction | Phase 2: Classifier expansion (~25K reclassified), news memo extractor, multi-pass transcript extraction, timestamp preservation, investor presentation type-specific extractor. 396 tests. |
-| 849c664f | narrative-extraction | Phase 1: Ungate Pass 3b from financial classifier, persist announcement_type (Document + Qdrant), context 4K→8K, commentary chunk overlap, analysis modules consume guidance_summary + material_changes. 365 tests passing. |
+| (this session) | analysis-modules | Sentiment RAG wiring: modules declare RAG queries, orchestrator merges them, analysis_rag_adapter bridges Qdrant, sentiment scores news_chunks + commentary_chunks. 22 new tests. |
 | f4e2f820 | cockpit | Align preboot routing docs and tests: cockpit LLM config authority, env-override gating, current preboot export behavior. |
 | 0e651e8d | analysis-modules | Phase 3 complete: 6 analysis modules (balance_sheet, roic, valuation, risk, catalysts, moat), AnalysisModule Protocol, TickerContext, orchestrator, context_loader. 48 tests, 2350 lines. Qwen 3 14B evaluated and rejected (85.26% vs 89.47%). |
 | adfec5ca | analysis-artifact-v0 | Deterministic `financial_snapshot_v0.json` from `asx_periodic_financials` → `reports/analysis/{TICKER}/`; `periodic_snapshot_export` + `export_financial_snapshot.py`. |
@@ -116,8 +107,7 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 ## Backlog (scoped but not started)
 
 - ~~**Watchlist trigger mechanism**~~ — SHIPPED: `/watch scan`, `scan_watchlist` tool, `WatchlistTrigger` orchestrator
-- ~~**Narrative extraction Phase 3**~~ — SHIPPED: section-aware chunking, speaker-turn detection, news memo Celery task (7defd245)
-- **Sentiment scoring layer** — quantify narrative sentiment across news/transcripts
+- ~~**Sentiment scoring layer**~~ — SHIPPED: modules declare RAG queries, orchestrator merges them, sentiment scores news_chunks + commentary_chunks via analysis_rag_adapter. 22 tests.
 - **Alert thresholds from strategy** — replace hardcoded thresholds in alerts.py with user-defined strategy criteria
 - **FX conversion logic** — build actual currency conversion; policy defined in `docs/architecture/16_currency_and_fx_policy.md`; blocked on product decision about which conversion source to use
 - **Scrapling integration** — status unknown; see `docs/ops/scrapling_integration_note.md`

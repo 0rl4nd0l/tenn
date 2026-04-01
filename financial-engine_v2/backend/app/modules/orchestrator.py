@@ -24,7 +24,7 @@ from app.modules.moat import MoatModule
 from app.modules.risk import RiskModule
 from app.modules.roic import ROICModule
 from app.modules.sentiment import SentimentModule
-from app.modules.ticker_context import ContextRequest, TickerContext
+from app.modules.ticker_context import ContextRequest, RAGQuerySpec, TickerContext
 from app.modules.valuation import ValuationModule
 
 logger = logging.getLogger(__name__)
@@ -148,6 +148,8 @@ def _merge_context_requests(
     needs_risk_notes = False
     needs_documents = False
     needs_price = False
+    rag_queries: list[RAGQuerySpec] = []
+    seen_labels: set[str] = set()
 
     for module in modules.values():
         reqs = module.requires
@@ -159,12 +161,19 @@ def _merge_context_requests(
             needs_documents = True
         if "price" in reqs:
             needs_price = True
+        # Collect RAG queries from modules that declare them
+        module_rag = getattr(module, "rag_queries", ())
+        for spec in module_rag:
+            if spec.label not in seen_labels:
+                rag_queries.append(spec)
+                seen_labels.add(spec.label)
 
     return ContextRequest(
         needs_financials=needs_financials,
         needs_risk_notes=needs_risk_notes,
         needs_documents=needs_documents,
         needs_price=needs_price,
+        rag_queries=tuple(rag_queries),
     )
 
 
