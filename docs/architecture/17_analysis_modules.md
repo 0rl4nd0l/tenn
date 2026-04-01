@@ -506,7 +506,20 @@ Typical latency: ~91ms per ticker. Zero GPU. Pure deterministic scoring.
 #### Inputs
 
 - `risk_notes` (required): `RiskNote` objects containing `risk_summary`, `risk_bullets`, `guidance_summary`, `material_changes`
-- `rag_results` (optional): RAG hits from any labeled query; categorized by label into filing / news / guidance
+- `rag_results` (automatic via RAG query declarations): News and commentary passages retrieved from Qdrant
+
+#### RAG Query Declarations
+
+The sentiment module declares two RAG queries via the `rag_queries` property. These are automatically merged into the `ContextRequest` by the orchestrator and executed by the loader before the module runs:
+
+```python
+RAGQuerySpec(label="news_sentiment", collection="news_chunks", top_k=8,
+             query_template="{ticker} latest news outlook market sentiment")
+RAGQuerySpec(label="commentary_sentiment", collection="commentary_chunks", top_k=6,
+             query_template="{ticker} earnings guidance management commentary outlook")
+```
+
+The `analysis_rag_adapter` service (`analysis_rag_adapter.py`) bridges the module layer to Qdrant: it embeds the query via `embed_texts`, searches the specified collection, and normalizes payloads into the `{text, score, document_id, title}` shape expected by `TickerContextLoader`.
 
 #### Scoring Method
 
@@ -532,7 +545,7 @@ Keywords are matched via precompiled regex patterns with word-boundary anchors. 
 | `most_positive` | Highest-scoring passage | Best-case excerpt with source |
 | `most_negative` | Lowest-scoring passage | Worst-case excerpt with source |
 
-RAG hit labels are categorized: labels containing "news" or "market" map to `news`; labels containing "guidance" or "outlook" map to `guidance`; all others map to `filing`.
+RAG hit labels are categorized: labels containing "news" or "market" map to `news`; labels containing "guidance", "outlook", or "commentary" map to `guidance`; all others map to `filing`.
 
 #### Completeness Conditions
 
@@ -604,8 +617,8 @@ def analyse_ticker(
 
 Internally:
 1. Creates an `AnalysisOrchestrator` with LLM config
-2. Merges all module `requires` sets into a single `ContextRequest`
-3. Calls `TickerContextLoader.load()` to assemble the frozen `TickerContext`
+2. Merges all module `requires` sets and `rag_queries` properties into a single `ContextRequest` (deduplicating by label)
+3. Calls `TickerContextLoader.load()` with a `rag_fn` callback (`analysis_rag_adapter.analysis_rag_query`) to assemble the frozen `TickerContext`
 4. Calls `orchestrator.run_all()` to execute all modules
 5. Returns the list of `ArtifactSet` results
 

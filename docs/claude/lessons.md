@@ -434,3 +434,21 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The `/chat` route wrapped `chat_with_tenn()` in a generic `except Exception` that converted all remaining analysis failures into HTTP 500 responses. That meant any new runtime edge case in analysis mode still propagated as a hard backend error instead of a degraded chat payload the client could render safely.
 **Fix:** Added a dedicated `_analysis_response()` boundary in the route. It now sanitizes the full analysis payload recursively and degrades to a normal analysis response envelope with `system_status=degraded` if `chat_with_tenn()` or route-level payload handling throws. Added route-level regression tests for both exception and non-finite payload cases.
 **Rule:** Client-facing analysis endpoints must fail soft at the route boundary. If analysis content cannot be produced safely, return a degraded analysis payload in-band rather than surfacing HTTP 500 for recoverable runtime issues.
+
+## L040 — Prose fallback for metrics missing from structured tables
+
+**Date:** 2026-04-01
+**Subsystem:** `backend/app/services/multipass_extraction.py`
+**Symptom:** ANZ shares_outstanding extracted as null despite the value appearing clearly in the PDF. Banking filings report share counts in narrative Note 13/14 rather than structured tables.
+**Root cause:** Pass 3a only extracts from table markdown. Pass 3b extracts narrative (risk/guidance) but not financial metrics. No mechanism existed to extract metrics from prose sections.
+**Fix:** Added `_extract_shares_from_prose()` with 4 regex patterns covering ASX prose conventions. Called in Pass 4 reconciler as a fallback only when table extraction yields null. Sanity gate rejects values < 1M or > 100B.
+**Rule:** When adding a new financial metric or fixing extraction for a sector, check whether the metric appears in prose notes rather than tables. Deterministic regex is preferred over an LLM call for metrics with predictable prose patterns. Always prefer table-extracted values; prose is a fallback.
+
+## L041 — Analysis modules must declare RAG queries, not fetch their own
+
+**Date:** 2026-04-01
+**Subsystem:** `backend/app/modules/sentiment.py`, `orchestrator.py`
+**Symptom:** Sentiment module had no access to news or commentary data despite those Qdrant collections being fully populated.
+**Root cause:** `_merge_context_requests()` collected `requires` (financials, risk_notes, etc.) but not RAG queries. No module had a way to declare what RAG data it needed.
+**Fix:** Added `rag_queries` property to `ModuleHelpers` (empty default). `_merge_context_requests()` now collects and deduplicates module RAG queries. `analysis_rag_adapter.py` bridges modules to Qdrant. API endpoint passes `rag_fn` to the loader.
+**Rule:** Analysis modules must never do I/O. They declare data needs (via `requires` and `rag_queries`), the orchestrator merges declarations, and the loader pre-fetches everything into the frozen TickerContext. This pattern keeps modules stateless and testable.
