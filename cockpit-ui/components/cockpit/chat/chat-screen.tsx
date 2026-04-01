@@ -5,8 +5,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { TerminalMessage } from './terminal-message'
 import { TerminalInput } from './terminal-input'
 import { useCockpitStore, generateId } from '@/lib/cockpit-store'
-import { streamChat, sendChatMessage } from '@/lib/api-client'
-import type { ChatMessage as ChatMessageType } from '@/lib/cockpit-types'
+import { streamChat, sendChatMessage, executeAction } from '@/lib/api-client'
+import type { ChatMessage as ChatMessageType, ActionPreview } from '@/lib/cockpit-types'
 import { toast } from 'sonner'
 
 export function ChatScreen() {
@@ -162,6 +162,53 @@ export function ChatScreen() {
     })
   }
 
+  const handleConfirmAction = useCallback(async (actionPreview: ActionPreview | undefined) => {
+    if (!actionPreview) return
+    try {
+      const result = await executeAction({
+        actionId: actionPreview.id,
+        args: actionPreview.args,
+        sessionId,
+      })
+      const resultMessage: ChatMessageType = {
+        id: generateId(),
+        role: 'assistant',
+        content: `Action **${actionPreview.name}** executed successfully.\n\n${result.result}`,
+        timestamp: new Date(),
+        metadata: { source: 'local' },
+      }
+      setMessages(prev => [...prev, resultMessage])
+      toast.success(`Action "${actionPreview.name}" executed`)
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      const errorMessage: ChatMessageType = {
+        id: generateId(),
+        role: 'system',
+        content: `Action "${actionPreview.name}" failed: ${errorMsg}`,
+        timestamp: new Date(),
+      }
+      setMessages(prev => [...prev, errorMessage])
+      toast.error(`Action failed: ${errorMsg}`)
+    }
+  }, [sessionId])
+
+  const handleCancelAction = useCallback((actionPreview: ActionPreview | undefined) => {
+    if (!actionPreview) return
+    const cancelMessage: ChatMessageType = {
+      id: generateId(),
+      role: 'system',
+      content: `Action cancelled: ${actionPreview.name}`,
+      timestamp: new Date(),
+    }
+    setMessages(prev => [...prev, cancelMessage])
+  }, [])
+
+  const handleClearMessages = useCallback(() => {
+    setMessages([])
+    setStreamingContent('')
+    setStreamingMetadata({})
+  }, [])
+
   if (!hasHydrated) return null
 
   return (
@@ -181,7 +228,12 @@ export function ChatScreen() {
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>
         <div className="space-y-4 pb-4">
           {messages.map((msg) => (
-            <TerminalMessage key={msg.id} message={msg} />
+            <TerminalMessage
+              key={msg.id}
+              message={msg}
+              onConfirmAction={handleConfirmAction}
+              onCancelAction={handleCancelAction}
+            />
           ))}
           {isStreaming && streamingContent && (
             <TerminalMessage 
@@ -204,7 +256,7 @@ export function ChatScreen() {
         </div>
       </ScrollArea>
 
-      <TerminalInput onSend={handleSend} disabled={isStreaming} />
+      <TerminalInput onSend={handleSend} disabled={isStreaming} onClear={handleClearMessages} />
     </div>
   )
 }

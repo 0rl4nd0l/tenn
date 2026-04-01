@@ -9,9 +9,10 @@ interface TerminalInputProps {
   disabled?: boolean
   value?: string
   onValueChange?: (value: string) => void
+  onClear?: () => void
 }
 
-export function TerminalInput({ onSend, disabled, value: controlledValue, onValueChange }: TerminalInputProps) {
+export function TerminalInput({ onSend, disabled, value: controlledValue, onValueChange, onClear }: TerminalInputProps) {
   const [internalValue, setInternalValue] = useState('')
   const value = controlledValue ?? internalValue
   const setValue = onValueChange ?? setInternalValue
@@ -110,7 +111,11 @@ export function TerminalInput({ onSend, disabled, value: controlledValue, onValu
       setHistoryIndex(-1)
     }
 
-    // Ctrl+L to clear (would need to implement in parent)
+    // Ctrl+L to clear chat
+    if (e.key === 'l' && e.ctrlKey) {
+      e.preventDefault()
+      onClear?.()
+    }
   }
 
   const selectCommand = (index: number) => {

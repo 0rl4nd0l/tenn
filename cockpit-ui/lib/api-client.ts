@@ -66,9 +66,9 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 
 // ── Public API functions ───────────────────────────────────────────────────
 
-/** Health check – GET /api/health */
+/** Health check – GET /api/cockpit/health (aggregated) */
 export async function checkHealth(): Promise<HealthResponse> {
-  return apiFetch<HealthResponse>("/api/health")
+  return apiFetch<HealthResponse>("/api/cockpit/health")
 }
 
 /** Send a chat message (blocking) – POST /api/cockpit/chat */
@@ -139,18 +139,14 @@ export async function streamChat(params: {
   return source
 }
 
-/** System status – GET /api/system/status */
+/** System config – GET /api/cockpit/config */
 export async function getSystemStatus(apiKey?: string): Promise<SystemStatus> {
-  const headers: Record<string, string> = {}
-  if (apiKey) {
-    headers["X-API-Key"] = apiKey
-  }
-  return apiFetch<SystemStatus>("/api/system/status", { headers })
+  return apiFetch<SystemStatus>("/api/cockpit/config")
 }
 
-/** Queue status – GET /api/queue/status */
+/** Queue status – GET /api/cockpit/queue */
 export async function getQueueStatus(): Promise<QueueStatus> {
-  return apiFetch<QueueStatus>("/api/queue/status")
+  return apiFetch<QueueStatus>("/api/cockpit/queue")
 }
 
 /** RAG query – POST /rag/query */
@@ -169,13 +165,45 @@ export async function queryRag(params: {
   })
 }
 
+/** Execute a confirmed action – POST /api/cockpit/action/execute */
+export async function executeAction(params: {
+  actionId: string
+  args: Record<string, unknown>
+  sessionId?: string
+}): Promise<{ result: string }> {
+  return apiFetch<{ result: string }>("/api/cockpit/action/execute", {
+    method: "POST",
+    body: JSON.stringify({
+      action_id: params.actionId,
+      args: params.args,
+      session_id: params.sessionId,
+    }),
+  })
+}
+
+/** Re-run a job – POST /api/cockpit/job/rerun */
+export async function rerunJob(params: {
+  jobId: string
+  action: string
+  args: Record<string, unknown>
+}): Promise<{ jobId: string; status: string }> {
+  return apiFetch<{ jobId: string; status: string }>("/api/cockpit/job/rerun", {
+    method: "POST",
+    body: JSON.stringify({
+      job_id: params.jobId,
+      action: params.action,
+      args: params.args,
+    }),
+  })
+}
+
 /** Ticker context – GET /api/context/ticker?ticker=XXX */
 export async function getTickerContext(ticker: string): Promise<unknown> {
   const encoded = encodeURIComponent(ticker)
   return apiFetch<unknown>(`/api/context/ticker?ticker=${encoded}`)
 }
 
-/** Documents list – GET /api/docs */
+/** Documents list – GET /api/cockpit/docs */
 export async function listDocuments(): Promise<unknown[]> {
-  return apiFetch<unknown[]>("/api/docs")
+  return apiFetch<unknown[]>("/api/cockpit/docs")
 }

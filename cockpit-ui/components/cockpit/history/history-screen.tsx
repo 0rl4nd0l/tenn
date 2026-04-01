@@ -1,0 +1,385 @@
+'use client'
+
+import { useState, useCallback, Fragment, useEffect, useMemo } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { History, Play, ChevronDown, ChevronRight, Clock, CheckCircle2, XCircle, Loader2, RefreshCw } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { listDocuments, getQueueStatus, rerunJob } from '@/lib/api-client'
+import { toast } from 'sonner'
+import { useCockpitStore } from '@/lib/cockpit-store'
+import type { Job } from '@/lib/cockpit-types'
+import { cn } from '@/lib/utils'
+
+function getStatusIcon(status: Job['status']) {
+  switch (status) {
+    case 'completed':
+      return <CheckCircle2 className="h-4 w-4 text-[oklch(0.65_0.2_145)]" />
+    case 'failed':
+      return <XCircle className="h-4 w-4 text-[oklch(0.55_0.2_25)]" />
+    case 'running':
+      return <Loader2 className="h-4 w-4 text-primary animate-spin" />
+    default:
+      return <Clock className="h-4 w-4 text-muted-foreground" />
+  }
+}
+
+function getStatusBadgeVariant(status: Job['status']): 'default' | 'secondary' | 'destructive' | 'outline' {
+  switch (status) {
+    case 'completed':
+      return 'default'
+    case 'failed':
+      return 'destructive'
+    case 'running':
+      return 'secondary'
+    default:
+      return 'outline'
+  }
+}
+
+function formatDuration(startedAt: Date, completedAt?: Date): string {
+  const end = completedAt || new Date()
+  const durationMs = end.getTime() - startedAt.getTime()
+  
+  if (durationMs < 1000) return `${durationMs}ms`
+  if (durationMs < 60000) return `${(durationMs / 1000).toFixed(1)}s`
+  return `${Math.floor(durationMs / 60000)}m ${Math.floor((durationMs % 60000) / 1000)}s`
+}
+
+function formatTimeAgo(date: Date): string {
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  
+  if (diffMs < 60000) return 'Just now'
+  if (diffMs < 3600000) return `${Math.floor(diffMs / 60000)}m ago`
+  if (diffMs < 86400000) return `${Math.floor(diffMs / 3600000)}h ago`
+  return `${Math.floor(diffMs / 86400000)}d ago`
+}
+
+interface JobRowProps {
+  job: Job
+  isOpen: boolean
+  onToggle: () => void
+  onRerun: (job: Job) => void
+}
+
+function JobRow({ job, isOpen, onToggle, onRerun }: JobRowProps) {
+  return (
+    <Fragment>
+      <TableRow 
+        className={cn(
+          'cursor-pointer hover:bg-muted/50',
+          isOpen && 'bg-muted/30'
+        )}
+        onClick={onToggle}
+      >
+        <TableCell>
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onToggle(); }}>
+            {isOpen ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </Button>
+        </TableCell>
+        <TableCell className="font-mono text-xs">{job.id}</TableCell>
+        <TableCell>{job.action}</TableCell>
+        <TableCell className="font-mono text-xs text-muted-foreground">
+          {JSON.stringify(job.args).slice(0, 50)}...
+        </TableCell>
+        <TableCell>
+          <div className="flex items-center gap-2">
+            {getStatusIcon(job.status)}
+            <Badge variant={getStatusBadgeVariant(job.status)} className="text-[10px]">
+              {job.status}
+            </Badge>
+          </div>
+        </TableCell>
+        <TableCell className="text-muted-foreground text-sm">
+          {formatTimeAgo(job.startedAt)}
+        </TableCell>
+        <TableCell className="font-mono text-sm">
+          {formatDuration(job.startedAt, job.completedAt)}
+        </TableCell>
+        <TableCell>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={(e) => { e.stopPropagation(); onRerun(job); }}
+          >
+            <Play className="h-3 w-3 mr-1" />
+            Re-run
+          </Button>
+        </TableCell>
+      </TableRow>
+      {isOpen && (
+        <TableRow>
+          <TableCell colSpan={8} className="bg-muted/20 p-0">
+            <div className="p-4 space-y-3">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Full Arguments</p>
+                <pre className="text-xs font-mono bg-muted p-2 rounded overflow-x-auto">
+                  {JSON.stringify(job.args, null, 2)}
+                </pre>
+              </div>
+              {job.output && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Output</p>
+                  <pre className="text-xs font-mono bg-muted p-2 rounded overflow-x-auto text-[oklch(0.65_0.2_145)]">
+                    {job.output}
+                  </pre>
+                </div>
+              )}
+              {job.error && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Error</p>
+                  <pre className="text-xs font-mono bg-muted p-2 rounded overflow-x-auto text-[oklch(0.55_0.2_25)]">
+                    {job.error}
+                  </pre>
+                </div>
+              )}
+              <div className="flex gap-4 text-xs text-muted-foreground">
+                <span>Started: {job.startedAt.toLocaleString()}</span>
+                {job.completedAt && (
+                  <span>Completed: {job.completedAt.toLocaleString()}</span>
+                )}
+              </div>
+            </div>
+          </TableCell>
+        </TableRow>
+      )}
+    </Fragment>
+  )
+}
+
+function mapDocumentToJob(doc: Record<string, unknown>, index: number): Job {
+  const id = (doc.id as string) ?? `doc-${index}`
+  const title = (doc.title as string) ?? (doc.filename as string) ?? 'Unknown document'
+  const createdAt = doc.created_at ?? doc.createdAt ?? doc.uploaded_at
+  const startedAt = createdAt ? new Date(createdAt as string) : new Date()
+  const docStatus = (doc.status as string) ?? 'completed'
+
+  let status: Job['status'] = 'completed'
+  if (docStatus === 'failed' || docStatus === 'error') {
+    status = 'failed'
+  } else if (docStatus === 'processing' || docStatus === 'running' || docStatus === 'pending') {
+    status = 'running'
+  } else if (docStatus === 'queued') {
+    status = 'pending'
+  }
+
+  return {
+    id: String(id),
+    action: 'document_ingestion',
+    args: { title, filename: doc.filename ?? title },
+    status,
+    startedAt,
+    completedAt: status === 'completed' || status === 'failed' ? startedAt : undefined,
+    output: status === 'completed' ? `Ingested: ${title}` : undefined,
+    error: status === 'failed' ? (doc.error as string) ?? 'Processing failed' : undefined,
+  }
+}
+
+export function HistoryScreen() {
+  const [hasHydrated, setHasHydrated] = useState(false)
+  const { activeTicker, sessionId } = useCockpitStore()
+  const [expandedJobId, setExpandedJobId] = useState<string | null>(null)
+
+  // Wait for hydration to avoid SSR/CSR mismatch
+  useEffect(() => {
+    setHasHydrated(true)
+  }, [])
+
+  const { 
+    data: docs, 
+    isLoading: isLoadingDocs, 
+    isError: isErrorDocs,
+    refetch: refetchDocs 
+  } = useQuery({
+    queryKey: ['documents'],
+    queryFn: listDocuments,
+  })
+
+  const { 
+    data: queueStatus, 
+    isLoading: isLoadingQueue,
+    refetch: refetchQueue
+  } = useQuery({
+    queryKey: ['queue-status'],
+    queryFn: getQueueStatus,
+    refetchInterval: 5000,
+  })
+
+  const jobs = useMemo(() => {
+    const docJobs: Job[] = Array.isArray(docs)
+      ? docs.map((d, i) => mapDocumentToJob(d as Record<string, unknown>, i))
+      : []
+
+    // Merge queue-level counts as a summary row when no document-level data exists
+    if (queueStatus && docJobs.length === 0) {
+      const qs = queueStatus
+      if (qs.pending > 0 || qs.active > 0 || qs.completed > 0 || qs.failed > 0) {
+        docJobs.push({
+          id: 'queue-summary',
+          action: 'queue_status',
+          args: { pending: qs.pending, active: qs.active, completed: qs.completed, failed: qs.failed },
+          status: qs.active > 0 ? 'running' : 'completed',
+          startedAt: new Date(),
+          output: `Queue: ${qs.pending} pending, ${qs.active} active, ${qs.completed} completed, ${qs.failed} failed`,
+        })
+      }
+    }
+    return docJobs
+  }, [docs, queueStatus])
+
+  const loading = isLoadingDocs || isLoadingQueue
+  const fetchError = isErrorDocs ? 'Failed to load document history.' : null
+
+  const runningJobs = jobs.filter(j => j.status === 'running')
+  const completedJobs = jobs.filter(j => j.status === 'completed')
+  const failedJobs = jobs.filter(j => j.status === 'failed')
+
+  const toggleJob = (jobId: string) => {
+    setExpandedJobId(prev => prev === jobId ? null : jobId)
+  }
+
+  const handleRerun = useCallback(async (job: Job) => {
+    try {
+      toast.info(`Re-running job "${job.action}"...`)
+      await rerunJob({
+        jobId: job.id,
+        action: job.action,
+        args: job.args,
+      })
+      toast.success(`Job "${job.action}" re-triggered successfully`)
+      refetchDocs()
+      refetchQueue()
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      toast.error(`Failed to re-run job: ${errorMsg}`)
+    }
+  }, [refetchDocs, refetchQueue])
+
+  const handleRefresh = useCallback(() => {
+    refetchDocs()
+    refetchQueue()
+  }, [refetchDocs, refetchQueue])
+
+  if (!hasHydrated) return null
+
+  return (
+    <ScrollArea className="h-full">
+      <div className="p-6 space-y-6 max-w-6xl mx-auto">
+        {/* Summary Stats */}
+        <div className="grid grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <p className="text-3xl font-mono font-semibold">{jobs.length}</p>
+                <p className="text-xs text-muted-foreground">Total Jobs</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <p className="text-3xl font-mono font-semibold text-primary">{runningJobs.length}</p>
+                <p className="text-xs text-muted-foreground">Running</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <p className="text-3xl font-mono font-semibold text-[oklch(0.65_0.2_145)]">{completedJobs.length}</p>
+                <p className="text-xs text-muted-foreground">Completed</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <p className="text-3xl font-mono font-semibold text-[oklch(0.55_0.2_25)]">{failedJobs.length}</p>
+                <p className="text-xs text-muted-foreground">Failed</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Jobs Table */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <History className="h-5 w-5 text-primary" />
+                  Job History
+                </CardTitle>
+                <CardDescription>
+                  View and manage past job executions
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={loading}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
+                Refresh
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {fetchError && jobs.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <History className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                <p className="text-sm">{fetchError}</p>
+              </div>
+            ) : jobs.length === 0 && !loading ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <History className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                <p className="text-sm">No job history available. Start processing to see results here.</p>
+                <Button variant="outline" size="sm" className="mt-4" onClick={handleRefresh}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Load History
+                </Button>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[40px]"></TableHead>
+                    <TableHead className="w-[100px]">Job ID</TableHead>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Arguments</TableHead>
+                    <TableHead className="w-[120px]">Status</TableHead>
+                    <TableHead className="w-[100px]">Started</TableHead>
+                    <TableHead className="w-[100px]">Duration</TableHead>
+                    <TableHead className="w-[80px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {jobs.map((job) => (
+                    <JobRow
+                      key={job.id}
+                      job={job}
+                      isOpen={expandedJobId === job.id}
+                      onToggle={() => toggleJob(job.id)}
+                      onRerun={handleRerun}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </ScrollArea>
+  )
+}

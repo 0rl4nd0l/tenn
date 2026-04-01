@@ -127,12 +127,9 @@ export function SettingsScreen() {
         // backend unreachable
       }
 
-      // 2. Fetch system status (requires API key)
+      // 2. Fetch cockpit config (no API key required)
       try {
-        const apiKey = process.env.NEXT_PUBLIC_API_KEY || ''
-        const statusRes = await fetch('/api/system/status', {
-          headers: { 'X-API-Key': apiKey },
-        })
+        const statusRes = await fetch('/api/cockpit/config')
 
         if (statusRes.ok) {
           const status = await statusRes.json()
