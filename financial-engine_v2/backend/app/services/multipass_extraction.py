@@ -200,6 +200,11 @@ _TABLE_KEYWORDS: dict[str, list[str]] = {
         "operating income",          # banking: ANZ uses "Operating income" not "Revenue"
         "net interest income",       # banking: core revenue line in consolidated IS
         "operating expenses",        # formal IS row — distinguishes full IS from segment recons
+        "insurance revenue",         # insurance: QBE-style top-line premium income
+        "insurance service",         # insurance: service result subtotal
+        "reinsurance",               # insurance: reinsurance income/expense
+        "insurance profit",          # insurance: intermediate subtotal
+        "investment properties",     # REIT: fair value gains are income statement items
         # These keywords also appear in CF statements but do NOT cause cross-contamination:
         # each table is scored independently per statement type. A CF table may score 3
         # for income_statement, but the real IS scores 7+ because it has BOTH the P&L
@@ -556,6 +561,34 @@ If this document is from a bank or financial institution (indicators: "net inter
   not a meaningful metric for banks.
 - total_debt: return null for banks (see net_debt rationale above).
 
+INSURANCE COMPANY GUIDANCE:
+If this document is from an insurance company (indicators: "insurance revenue",
+"premium", "reinsurance", "claims expense", "underwriting" in the table text):
+- revenue: use "Insurance revenue", "Gross written premium", or "Net earned premium" —
+  these are the insurance equivalents of revenue. Do NOT use "Investment income" or
+  "Total income" as revenue.
+- ebit: use "Profit before income tax". The insurance income statement has intermediate
+  subtotals like "Insurance operating result", "Insurance profit" — these are NOT ebit.
+  Only "Profit before income tax" qualifies.
+- capex: insurers have minimal PP&E. Use "Payments for purchase of property, plant and
+  equipment" if present. If no specific capex line exists, return null.
+- net_debt and total_debt: insurance contract liabilities, reinsurance contract assets,
+  and policyholder liabilities are NOT financial debt. Only explicit "Borrowings" or
+  "Subordinated debt" rows count as total_debt.
+
+REIT / PROPERTY TRUST GUIDANCE:
+If this document is from a real estate investment trust or property group (indicators:
+"investment properties", "property revenue", "distributions", "FFO", "AFFO" in the text):
+- revenue: use "Revenue from ordinary activities", "Total revenue from ordinary activities",
+  or "Property revenue" — the top-line revenue row. Do NOT use "Total income" which
+  includes fair value gains on investment properties.
+- ebit: use "Profit for the period before tax" or "Profit before income tax".
+  Fair value gains/losses on investment properties are included in the income statement
+  but are non-cash — the LLM should still extract the pre-tax profit line.
+- capex: REITs may have two capex lines — "Payments for capital expenditure on investment
+  properties" (the primary REIT capex) and "Payments for property, plant and equipment"
+  (corporate PP&E). Extract whichever is labeled as a specific line item.
+
 Schema:
 {{
 {metric_schema}
@@ -603,6 +636,11 @@ _ROW_KEYWORDS_BY_TABLE: dict[str, list[str]] = {
         # Banking: keep credit impairment rows so LLM can distinguish pre/post impairment
         "credit impairment", "expected credit loss", "provision for",
         "net interest", "fee income", "operating expenses",
+        # Insurance: keep premium/claims rows for revenue identification
+        "insurance revenue", "insurance service", "reinsurance",
+        "insurance operating", "insurance profit", "claims",
+        # REIT: keep property income and fair value rows
+        "property revenue", "investment properties", "fair value",
     ],
     "balance_sheet": [
         "cash and cash equivalent", "borrowing", "interest bearing",
@@ -612,6 +650,8 @@ _ROW_KEYWORDS_BY_TABLE: dict[str, list[str]] = {
         "net debt", "current", "non-current",
         # Banking: distinguish deposits from debt
         "deposit", "debt securities", "due to other",
+        # Insurance: distinguish insurance liabilities from financial debt
+        "insurance contract", "subordinated",
     ],
 }
 

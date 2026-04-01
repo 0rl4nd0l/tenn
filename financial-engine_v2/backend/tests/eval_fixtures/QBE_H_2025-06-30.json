@@ -1,0 +1,51 @@
+{
+  "_source": "Hand-verified from 2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440.pdf (QBE, H, 2025-06-30). Currency=USD, scale=millions. revenue: page 14, Consolidated statement of comprehensive income, 'Insurance revenue' = 10,875; ebit: page 14, 'Profit before income tax' = 1,334; np_attributable: page 14, 'Ordinary equity holders of the Company' = 1,022; operating_cf: page 17, 'Net cash flows from operating activities' = 1,756; investing_cf: page 17, 'Net cash flows from investing activities' = (562); financing_cf: page 17, 'Net cash flows from financing activities' = (668); capex: page 17, 'Payments for purchase of property, plant and equipment' = (9); cash_end: page 15, 'Cash and cash equivalents' = 2,124; net_debt: borrowings (3,679) - cash (2,124) = 1,555; shares_outstanding: page 28, Note 4.3.1, 'Issued ordinary shares, fully paid at 30 June' = 1,510 millions = 1,510,000,000",
+  "_verification": "hand-verified",
+  "_verification_confidence": "high — values hand-verified from audited half-year report. PricewaterhouseCoopers reviewed.",
+  "ticker": "QBE",
+  "pdf_path": "data/asx/docs/QBE/financial_performance/2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440.pdf",
+  "document_id": "qbe_20250630_h",
+  "period_type": "H",
+  "period_end": "2025-06-30",
+  "currency": "USD",
+  "scale": "millions",
+  "metrics": {
+    "revenue": 10875000000.0,
+    "ebit": 1334000000.0,
+    "np_attributable": 1022000000.0,
+    "operating_cf": 1756000000.0,
+    "investing_cf": -562000000.0,
+    "financing_cf": -668000000.0,
+    "capex": -9000000.0,
+    "cash_end": 2124000000.0,
+    "net_debt": 1555000000.0,
+    "shares_outstanding": 1510000000.0
+  },
+  "expected_nulls": [],
+  "tolerances": {
+    "revenue": 0.02,
+    "ebit": 0.02,
+    "np_attributable": 0.02,
+    "operating_cf": 0.01,
+    "investing_cf": 0.01,
+    "financing_cf": 0.01,
+    "capex": 0.10,
+    "cash_end": 0.001,
+    "net_debt": 0.05,
+    "shares_outstanding": 0.01
+  },
+  "notes": {
+    "sector": "Insurance (general insurance, global operations)",
+    "currency_note": "QBE reports in USD despite being ASX-listed. All figures in US$M.",
+    "revenue": "Insurance revenue = 10,875 US$M. This is the insurance-specific top-line (premium income after reinsurance adjustments). The Appendix 4D confirms 'Revenue from ordinary activities = US$10,875M'. Note 1 in Appendix 4D clarifies this refers to insurance revenue with reinsurance income of US$1,745M.",
+    "ebit": "Profit before income tax = 1,334. The income statement shows: Insurance operating result (988) + insurance finance items + investment income/expenses + other items → Insurance profit (1,105) → Profit before income tax (1,334). Income tax expense = (308).",
+    "np_attributable": "Profit after income tax attributable to ordinary equity holders of the Company = 1,022. Non-controlling interests = 4.",
+    "capex": "PP&E capex = (9) US$M — tiny for an insurer. Intangible asset purchases = (36) are separate. Wide tolerance (10%) because the value is small and rounding matters more.",
+    "net_debt": "Borrowings from balance sheet = 3,679 (subordinated debt). Cash = 2,124. net_debt = 1,555. Insurance contract liabilities (30,745) are NOT financial debt.",
+    "shares_outstanding": "1,510 millions = 1,510,000,000 from Note 4.3.1. Share count is in millions in the note — extraction must convert to absolute count."
+  },
+  "config": {
+    "min_accuracy_overall": 0.70,
+    "_note": "First insurance fixture. Set lower threshold (0.70) to establish a baseline before optimizing prompts for insurance-sector terminology (insurance revenue, underwriting profit, etc.)."
+  }
+}

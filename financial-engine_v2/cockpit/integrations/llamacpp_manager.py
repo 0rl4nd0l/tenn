@@ -554,6 +554,9 @@ def restart_with_model(
         new_args.append("--no-mmap")
     # mmap_disabled=False means remove --no-mmap (already stripped above).
 
+    # KV cache quantization: halves KV VRAM at negligible quality cost (q8_0 ~ f16)
+    new_args += ["--cache-type-k", "q8_0", "--cache-type-v", "q8_0"]
+
     # Graceful shutdown: SIGTERM then SIGKILL.
     _status("Stopping current model...")
     try:
@@ -991,6 +994,8 @@ def build_router_args(proc_info: dict, models_dir: str, preset_path: str) -> lis
         "--models-dir", models_dir,
         "--models-max", "1",
         "--models-preset", preset_path,
+        # KV cache quantization: halves KV VRAM at negligible quality cost (q8_0 ~ f16)
+        "--cache-type-k", "q8_0", "--cache-type-v", "q8_0",
     ]
     return new_args
 

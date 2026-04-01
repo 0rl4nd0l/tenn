@@ -92,6 +92,8 @@ cmd=(
   --host "${HOST}"
   --port "${PORT}"
   --parallel 1
+  # KV cache quantization: halves KV VRAM at negligible quality cost (q8_0 ~ f16)
+  --cache-type-k q8_0 --cache-type-v q8_0
 )
 
 # Same knob as scripts/run_llama_server.sh: mmap can stall CUDA load on Maxwell (M40).

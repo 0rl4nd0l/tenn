@@ -109,6 +109,8 @@ cmd=(
   --threads "${LLAMA_SERVER_THREADS:-4}"
   --host "${HOST}"
   --port "${PORT}"
+  # KV cache quantization: halves KV VRAM at negligible quality cost (q8_0 ~ f16)
+  --cache-type-k q8_0 --cache-type-v q8_0
 )
 
 # Router mode (DEFAULT): --models-dir serves all GGUFs in a directory,

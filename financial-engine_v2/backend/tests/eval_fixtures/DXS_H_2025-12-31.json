@@ -1,0 +1,50 @@
+{
+  "_source": "Hand-verified from 2026-02-18_appendix-4d-and-hy26-financial-statements_4dcbaa66-b31c-4add-b27f-2ee2a9a4a9b6.pdf (DXS, H, 2025-12-31). Currency=AUD, scale=millions. revenue: page 12, Consolidated Statement of Comprehensive Income, 'Total revenue from ordinary activities' = 360.0; ebit: page 12, 'Profit for the period before tax' = 347.6; np_attributable: page 12, 'Profit for the period' = 348.5 (consolidated stapled entity; Appendix 4D uses this figure); operating_cf: page 16, 'Net cash inflow/(outflow) from operating activities' = 168.5; investing_cf: page 16, 'Net cash inflow/(outflow) from investing activities' = 83.9; financing_cf: page 16, 'Net cash inflow/(outflow) from financing activities' = (243.0); capex: page 16, 'Payments for property, plant and equipment' = (27.2) — NOTE: REIT-specific 'Payments for capital expenditure on investment properties' = (15.5) is also a valid capex line; cash_end: page 13, 'Cash and cash equivalents' = 74.7; net_debt: derived from interest bearing liabilities (782.8 + 3808.6 = 4591.4) - cash (74.7) = 4516.7; shares_outstanding: page 36, Note 14 Contributed equity, 'Closing balance' = 1,075,565,246 (stapled securities on issue)",
+  "_verification": "hand-verified",
+  "_verification_confidence": "high — values hand-verified from audited interim report PDF pages 12, 13, 16, 36. KPMG reviewed.",
+  "ticker": "DXS",
+  "pdf_path": "data/asx/docs/DXS/financial_performance/2026-02-18_appendix-4d-and-hy26-financial-statements_4dcbaa66-b31c-4add-b27f-2ee2a9a4a9b6.pdf",
+  "document_id": "dxs_20251231_h",
+  "period_type": "H",
+  "period_end": "2025-12-31",
+  "currency": "AUD",
+  "scale": "millions",
+  "metrics": {
+    "revenue": 360000000.0,
+    "ebit": 347600000.0,
+    "np_attributable": 348500000.0,
+    "operating_cf": 168500000.0,
+    "investing_cf": 83900000.0,
+    "financing_cf": -243000000.0,
+    "capex": -27200000.0,
+    "cash_end": 74700000.0,
+    "net_debt": 4516700000.0,
+    "shares_outstanding": 1075565246.0
+  },
+  "expected_nulls": [],
+  "tolerances": {
+    "revenue": 0.02,
+    "ebit": 0.02,
+    "np_attributable": 0.03,
+    "operating_cf": 0.01,
+    "investing_cf": 0.01,
+    "financing_cf": 0.01,
+    "capex": 0.10,
+    "cash_end": 0.001,
+    "net_debt": 0.02,
+    "shares_outstanding": 0.0001
+  },
+  "notes": {
+    "sector": "REIT / Real Estate (A-REIT stapled entity)",
+    "revenue": "Total revenue from ordinary activities = property revenue (150.0) + development revenue (14.9) + management fees (174.3) + interest revenue (20.8). Top-line row on income statement.",
+    "ebit": "Profit for the period before tax = 347.6. Income includes fair value gains on investment properties (47.8) and equity method profits (281.8). Income tax benefit of 0.9 gives profit of 348.5.",
+    "np_attributable": "Using 348.5 (total Profit for the period) as per Appendix 4D 'Statutory net profit/(loss) attributable to security holders'. Note: parent entity unitholders = 364.6, but stapled entity consolidated = 348.5.",
+    "capex": "PP&E capex = (27.2). REIT-specific 'Payments for capital expenditure on investment properties' = (15.5) is also valid. Wide tolerance (10%) to accommodate either extraction. Total investing CF is positive (83.9) due to property sales (314.5).",
+    "net_debt": "Interest bearing liabilities: current 782.8 + non-current 3,808.6 = 4,591.4 (matches Appendix 4D 'Total borrowings'). net_debt = 4,591.4 - 74.7 = 4,516.7",
+    "shares_outstanding": "Stapled securities on issue unchanged at 1,075,565,246 (Note 14). DXS is a stapled entity — each security comprises one unit in Dexus Property Trust + one unit in Dexus Operations Trust."
+  },
+  "config": {
+    "min_accuracy_overall": 0.70,
+    "_note": "First REIT fixture. Set lower threshold (0.70) to establish a baseline before optimizing prompts for property-sector terminology."
+  }
+}
