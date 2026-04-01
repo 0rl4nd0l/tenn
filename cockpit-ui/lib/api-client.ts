@@ -71,36 +71,40 @@ export async function checkHealth(): Promise<HealthResponse> {
   return apiFetch<HealthResponse>("/api/health")
 }
 
-/** Send a chat message (blocking) – POST /chat */
+/** Send a chat message (blocking) – POST /api/cockpit/chat */
 export async function sendChatMessage(params: {
   message: string
   mode: "analysis" | "strategy"
   ticker?: string
   sessionId?: string
+  model?: string
 }): Promise<ChatResponse> {
-  return apiFetch<ChatResponse>("/chat", {
+  return apiFetch<ChatResponse>("/api/cockpit/chat", {
     method: "POST",
     body: JSON.stringify({
       message: params.message,
       mode: params.mode,
       ticker: params.ticker,
       session_id: params.sessionId,
+      model: params.model,
+      stream: false,
     }),
   })
 }
 
-/** SSE Streaming chat - POST /chat with streaming */
+/** SSE Streaming chat - POST /api/cockpit/chat with streaming */
 export async function streamChat(params: {
   message: string
   mode: "analysis" | "strategy"
   ticker?: string
   sessionId?: string
+  model?: string
   onMessage: (event: { type: string; data: any }) => void
   onError: (err: any) => void
   onEnd: () => void
 }) {
   const { SSE } = await import('sse.js')
-  const source = new SSE("/chat", {
+  const source = new SSE("/api/cockpit/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     payload: JSON.stringify({
@@ -108,6 +112,7 @@ export async function streamChat(params: {
       mode: params.mode,
       ticker: params.ticker,
       session_id: params.sessionId,
+      model: params.model,
       stream: true,
     }),
   })

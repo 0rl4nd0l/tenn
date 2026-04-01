@@ -32,6 +32,10 @@ from app.api.analysis import router as analysis_router
 from app.api.context import router as context_router
 from app.api.commentary import router as commentary_router
 from app.routes.chat import router as chat_router
+try:
+    from app.routes.cockpit_api import router as cockpit_api_router
+except ImportError:
+    cockpit_api_router = None
 from app.routes.research import router as research_router
 from app.services.embeddings import (
     get_qdrant_collection_vector_config,
@@ -56,6 +60,8 @@ app.include_router(analysis_router, prefix="/api", tags=["analysis"])
 app.include_router(research_router, prefix="/research", tags=["research"])
 app.include_router(context_router, prefix="/api/context", tags=["context"])
 app.include_router(commentary_router, prefix="/api/commentary", tags=["commentary"])
+if cockpit_api_router is not None:
+    app.include_router(cockpit_api_router, prefix="/api/cockpit", tags=["cockpit"])
 
 
 class RagQueryRequest(BaseModel):

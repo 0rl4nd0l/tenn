@@ -10,13 +10,19 @@ import type { ChatMessage as ChatMessageType } from '@/lib/cockpit-types'
 import { toast } from 'sonner'
 
 export function ChatScreen() {
+  const [hasHydrated, setHasHydrated] = useState(false)
   const [messages, setMessages] = useState<ChatMessageType[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingContent, setStreamingContent] = useState('')
   const [streamingMetadata, setStreamingMetadata] = useState<Partial<ChatMessageType>>({})
   
-  const { activeTicker, sessionId, addCost, setLatency, setActiveModel } = useCockpitStore()
+  const { activeTicker, sessionId, chatModel, addCost, setLatency, setActiveModel } = useCockpitStore()
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Wait for hydration to finish to avoid SSR/CSR mismatch with Zustand
+  useEffect(() => {
+    setHasHydrated(true)
+  }, [])
 
   const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
@@ -48,7 +54,8 @@ export function ChatScreen() {
           message: content,
           mode: 'analysis',
           ticker: activeTicker,
-          sessionId: sessionId
+          sessionId: sessionId,
+          model: chatModel,
         })
         
         const systemMessage: ChatMessageType = {
@@ -84,6 +91,7 @@ export function ChatScreen() {
       mode: 'analysis',
       ticker: activeTicker,
       sessionId: sessionId,
+      model: chatModel,
       onMessage: (event) => {
         switch (event.type) {
           case 'chunk':
@@ -153,6 +161,8 @@ export function ChatScreen() {
       }
     })
   }
+
+  if (!hasHydrated) return null
 
   return (
     <div className="flex h-full flex-col terminal-container overflow-hidden">

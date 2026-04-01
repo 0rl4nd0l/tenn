@@ -309,6 +309,7 @@ def chat_with_tenn(
     *,
     ticker: str | None = None,
     session_id: str | None = None,
+    model: str | None = None,
 ) -> dict[str, Any]:
     normalized_query = str(query or "").strip()
     if not normalized_query:
@@ -412,16 +413,20 @@ def chat_with_tenn(
         if not context_rows:
             return _degraded_chat_payload("I do not have enough retrieved context to answer safely.")
 
+        normalized_model = str(model or "").strip() or None
+        llm_metadata: dict[str, Any] = {
+            "task_type": "reasoning",
+            "component": "tenn_chat",
+            "operation": "chat_with_tenn",
+            # Force local llama.cpp path for cockpit chat; prevents
+            # slow external fallback after local timeout.
+            "requested_base_url": settings.llamacpp_url,
+        }
+        if normalized_model:
+            llm_metadata["requested_model"] = normalized_model
         llm_payload = generate_json(
             _build_prompt(normalized_query, context_rows, prior_turns=prior_turns or None),
-            metadata={
-                "task_type": "reasoning",
-                "component": "tenn_chat",
-                "operation": "chat_with_tenn",
-                # Force local llama.cpp path for cockpit chat; prevents
-                # slow external fallback after local timeout.
-                "requested_base_url": settings.llamacpp_url,
-            },
+            metadata=llm_metadata,
             timeout=_CHAT_LLM_TIMEOUT_SECONDS,
         )
         logger.info(

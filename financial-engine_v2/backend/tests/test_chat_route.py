@@ -57,7 +57,7 @@ def test_analysis_route_sanitizes_non_finite_payload(monkeypatch):
 def test_analysis_route_uses_header_session_id(monkeypatch):
     captured: dict[str, str | None] = {}
 
-    def _fake_chat_with_tenn(message: str, *, ticker: str | None, session_id: str | None):
+    def _fake_chat_with_tenn(message: str, *, ticker: str | None, session_id: str | None, model: str | None = None):
         captured["message"] = message
         captured["ticker"] = ticker
         captured["session_id"] = session_id

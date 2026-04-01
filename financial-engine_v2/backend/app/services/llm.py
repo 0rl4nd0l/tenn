@@ -149,8 +149,13 @@ def _resolve_runtime_from_metadata(
 
 def _should_force_llamacpp(metadata: dict[str, Any] | None) -> bool:
     payload = dict(metadata or {})
-    if str(payload.get("component") or "").strip().lower() in ("commentary_memo_extractor", "news_memo_extractor"):
+    component = str(payload.get("component") or "").strip().lower()
+    if component in ("commentary_memo_extractor", "news_memo_extractor"):
         return True
+    # tenn_chat sets requested_base_url as a preferred-path hint but should
+    # still fall back to Anthropic when the local server is unavailable.
+    if component == "tenn_chat":
+        return False
     return any(
         str(payload.get(key) or "").strip()
         for key in ("requested_base_url", "requested_model", "llm_url", "llm_model")

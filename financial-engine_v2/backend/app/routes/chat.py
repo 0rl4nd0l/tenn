@@ -19,6 +19,7 @@ class ChatRequest(BaseModel):
     mode: Literal["analysis", "strategy"]
     ticker: str | None = None
     session_id: str | None = None
+    model: str | None = None
 
 
 def _extract_proposal_id(message: str, prefix: str) -> str:
@@ -48,12 +49,14 @@ def _analysis_response(
     *,
     ticker: str | None,
     session_id: str | None,
+    model: str | None = None,
 ) -> dict[str, Any]:
     try:
         content = chat_with_tenn(
             message,
             ticker=ticker,
             session_id=session_id,
+            model=model,
         )
         return {
             "type": "analysis",
@@ -82,6 +85,7 @@ def chat(payload: ChatRequest, request: Request) -> dict[str, Any]:
                 payload.message,
                 ticker=payload.ticker,
                 session_id=session_id,
+                model=payload.model,
             )
         return _strategy_response(payload.message)
     except HTTPException:
