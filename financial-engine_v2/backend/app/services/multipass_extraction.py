@@ -16,6 +16,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import date, timedelta
@@ -200,11 +201,6 @@ _TABLE_KEYWORDS: dict[str, list[str]] = {
         "operating income",          # banking: ANZ uses "Operating income" not "Revenue"
         "net interest income",       # banking: core revenue line in consolidated IS
         "operating expenses",        # formal IS row — distinguishes full IS from segment recons
-        "insurance revenue",         # insurance: QBE-style top-line premium income
-        "insurance service",         # insurance: service result subtotal
-        "reinsurance",               # insurance: reinsurance income/expense
-        "insurance profit",          # insurance: intermediate subtotal
-        "investment properties",     # REIT: fair value gains are income statement items
         # These keywords also appear in CF statements but do NOT cause cross-contamination:
         # each table is scored independently per statement type. A CF table may score 3
         # for income_statement, but the real IS scores 7+ because it has BOTH the P&L
@@ -535,59 +531,6 @@ Rules:
 - total_debt (balance_sheet only): sum of all financial debt — current + non-current borrowings,
   bonds, notes payable. Exclude AASB 16 / IFRS 16 lease liabilities unless no other financial
   debt exists. Output null if no financial debt is present (e.g. company is debt-free).
-  FOR BANKS: customer deposits, amounts due to other financial institutions, and trading
-  liabilities are NOT financial debt. If the balance sheet has no explicit "borrowings" or
-  "debt securities issued" row separate from deposits, output null for total_debt.
-- shares_outstanding (narrative fallback): if shares_outstanding is NOT found in a structured
-  table row, check Note sections for phrases like "comprises X fully paid shares",
-  "X ordinary shares on issue", or "share capital of X shares". Extract the count from
-  the narrative text. This is common in banking reports where share counts appear in notes
-  rather than in a formal share capital table.
-
-BANKING / FINANCIAL INSTITUTION GUIDANCE:
-If this document is from a bank or financial institution (indicators: "net interest income",
-"credit impairment", "deposits", "banking", "financial institution" in the table text):
-- revenue: use "Operating income", "Total operating income", or "Net interest income" —
-  these are the banking equivalents of revenue. Do NOT use "Interest income" alone
-  (which excludes fee income) or "Net profit" as revenue.
-- ebit: MUST be "Profit before income tax" (AFTER credit impairment provisions).
-  For banks, credit impairment (expected credit losses / ECL) is a CORE OPERATING COST,
-  not an exceptional item. "Profit before credit impairment and income tax" is NOT ebit.
-- capex: banks have minimal PP&E. Valid labels include "Net investments in other assets",
-  "Tangible fixed asset additions", "Purchase of property, plant and equipment".
-  If no specific capex line exists, return null.
-- net_debt: return null. Banks' balance sheets are fundamentally different — deposits
-  and interbank liabilities are not "debt" in the industrial sense. net_debt is
-  not a meaningful metric for banks.
-- total_debt: return null for banks (see net_debt rationale above).
-
-INSURANCE COMPANY GUIDANCE:
-If this document is from an insurance company (indicators: "insurance revenue",
-"premium", "reinsurance", "claims expense", "underwriting" in the table text):
-- revenue: use "Insurance revenue", "Gross written premium", or "Net earned premium" —
-  these are the insurance equivalents of revenue. Do NOT use "Investment income" or
-  "Total income" as revenue.
-- ebit: use "Profit before income tax". The insurance income statement has intermediate
-  subtotals like "Insurance operating result", "Insurance profit" — these are NOT ebit.
-  Only "Profit before income tax" qualifies.
-- capex: insurers have minimal PP&E. Use "Payments for purchase of property, plant and
-  equipment" if present. If no specific capex line exists, return null.
-- net_debt and total_debt: insurance contract liabilities, reinsurance contract assets,
-  and policyholder liabilities are NOT financial debt. Only explicit "Borrowings" or
-  "Subordinated debt" rows count as total_debt.
-
-REIT / PROPERTY TRUST GUIDANCE:
-If this document is from a real estate investment trust or property group (indicators:
-"investment properties", "property revenue", "distributions", "FFO", "AFFO" in the text):
-- revenue: use "Revenue from ordinary activities", "Total revenue from ordinary activities",
-  or "Property revenue" — the top-line revenue row. Do NOT use "Total income" which
-  includes fair value gains on investment properties.
-- ebit: use "Profit for the period before tax" or "Profit before income tax".
-  Fair value gains/losses on investment properties are included in the income statement
-  but are non-cash — the LLM should still extract the pre-tax profit line.
-- capex: REITs may have two capex lines — "Payments for capital expenditure on investment
-  properties" (the primary REIT capex) and "Payments for property, plant and equipment"
-  (corporate PP&E). Extract whichever is labeled as a specific line item.
 
 Schema:
 {{
@@ -626,21 +569,11 @@ _ROW_KEYWORDS_BY_TABLE: dict[str, list[str]] = {
         # Appendix 5B section totals and key items
         "subtotal", "exploration", "development", "staff cost",
         "production", "related body corporate",
-        # Banking: capex equivalent line
-        "net investments",
     ],
     "income_statement": [
         "revenue", "sales", "income", "profit", "loss", "ebit", "earnings before",
         "operations", "operating", "income tax", "attributable", "equity holder",
         "owners of", "non-controlling", "comprehensive", "net profit", "net loss",
-        # Banking: keep credit impairment rows so LLM can distinguish pre/post impairment
-        "credit impairment", "expected credit loss", "provision for",
-        "net interest", "fee income", "operating expenses",
-        # Insurance: keep premium/claims rows for revenue identification
-        "insurance revenue", "insurance service", "reinsurance",
-        "insurance operating", "insurance profit", "claims",
-        # REIT: keep property income and fair value rows
-        "property revenue", "investment properties", "fair value",
     ],
     "balance_sheet": [
         "cash and cash equivalent", "borrowing", "interest bearing",
@@ -648,10 +581,6 @@ _ROW_KEYWORDS_BY_TABLE: dict[str, list[str]] = {
         "net asset", "total equity", "share capital", "issued capital",
         "ordinary share", "shares on issue", "total asset", "total liab",
         "net debt", "current", "non-current",
-        # Banking: distinguish deposits from debt
-        "deposit", "debt securities", "due to other",
-        # Insurance: distinguish insurance liabilities from financial debt
-        "insurance contract", "subordinated",
     ],
 }
 
@@ -1051,41 +980,11 @@ Document text (first 4000 chars of prose):
 {prose_text}
 """
 
-_PASS3B_INVESTOR_PROMPT = """You are a financial narrative extractor specializing in investor presentations. Output ONLY valid JSON.
-
-From the investor presentation text below, extract:
-- risk_summary: 1-2 sentence summary of key risks (null if none)
-- risk_bullets: list of specific risk items (null if none)
-- guidance_summary: management outlook/guidance summary (null if not present)
-- material_changes: any material changes to business or financial position (null if none)
-- production_targets: key production volume/capacity targets mentioned (null if none)
-- capex_guidance: capital expenditure plans or guidance (null if none)
-- development_milestones: list of project milestones mentioned — completed or upcoming (null if none)
-- market_strategy: competitive positioning, market outlook, or strategic themes (null if none)
-- confidence_narrative: float 0-1 (confidence in extraction quality)
-
-Schema:
-{{
-  "risk_summary": "string|null",
-  "risk_bullets": ["string"]|null,
-  "guidance_summary": "string|null",
-  "material_changes": "string|null",
-  "production_targets": "string|null",
-  "capex_guidance": "string|null",
-  "development_milestones": ["string"]|null,
-  "market_strategy": "string|null",
-  "confidence_narrative": 0.0
-}}
-
-Document text:
-{prose_text}
-"""
-
 # Stable fingerprint of all extraction prompt templates.
 # Changes when any prompt is edited — use this in ExtractionRun.prompt_hash
 # so stale cached extractions can be detected if prompts are updated.
 PROMPT_HASH: str = hashlib.sha256(
-    (_PASS1_PROMPT + _PASS3A_PROMPT + _PASS3B_PROMPT + _PASS3B_INVESTOR_PROMPT).encode()
+    (_PASS1_PROMPT + _PASS3A_PROMPT + _PASS3B_PROMPT).encode()
 ).hexdigest()[:16]
 
 
@@ -1100,13 +999,13 @@ def _run_pass3b_narrative_extractor(sections: list[dict], llm_client) -> dict:
         "confidence_narrative": 0.0,
     }
 
-    prose = " ".join(s["text"] for s in sections if s.get("text", "").strip())[:8000]
+    prose = " ".join(s["text"] for s in sections if s.get("text", "").strip())[:4000]
     if not prose:
         return null_result
 
     prompt = _PASS3B_PROMPT.format(prose_text=prose)
     try:
-        raw = _llm_json_call(prompt, llm_client, max_tokens=768)
+        raw = _llm_json_call(prompt, llm_client, max_tokens=512)
         return {
             "risk_summary": raw.get("risk_summary"),
             "risk_bullets": raw.get("risk_bullets"),
@@ -1119,44 +1018,85 @@ def _run_pass3b_narrative_extractor(sections: list[dict], llm_client) -> dict:
         return null_result
 
 
-def _select_pass3b_extractor(announcement_type: str):
-    """Return the appropriate Pass 3b extractor based on announcement type."""
-    if announcement_type == "investor_communications":
-        return _run_pass3b_investor_extractor
-    return _run_pass3b_narrative_extractor
+# ---------------------------------------------------------------------------
+# Prose fallback — extract shares_outstanding from note sections
+# ---------------------------------------------------------------------------
+
+# Patterns that capture share counts in ASX filing prose.
+# Examples:
+#   "comprises 3,003,366,782 fully paid shares"
+#   "1,924,937,480 ordinary shares on issue"
+#   "Number of shares on issue: 280,874,770"
+_SHARES_PROSE_PATTERNS = [
+    # "comprises X,XXX shares" / "comprised of X shares"
+    re.compile(
+        r"compris\w*\s+([\d,]+(?:\.\d+)?)\s+(?:fully\s+paid\s+)?(?:ordinary\s+)?shares",
+        re.IGNORECASE,
+    ),
+    # "X shares on issue" / "X ordinary shares on issue"
+    re.compile(
+        r"([\d,]+(?:\.\d+)?)\s+(?:fully\s+paid\s+)?(?:ordinary\s+)?shares\s+on\s+issue",
+        re.IGNORECASE,
+    ),
+    # "shares on issue: X" / "number of shares on issue: X"
+    re.compile(
+        r"(?:number\s+of\s+)?shares\s+on\s+issue[:\s]+([\d,]+(?:\.\d+)?)",
+        re.IGNORECASE,
+    ),
+    # "total issued shares X" / "total ordinary shares X"
+    re.compile(
+        r"total\s+(?:issued|ordinary)\s+(?:share\s+)?(?:capital\s+)?(?:of\s+)?([\d,]+(?:\.\d+)?)\s+shares",
+        re.IGNORECASE,
+    ),
+]
+
+# Sections likely to contain share capital notes (filter for efficiency)
+_SHARE_NOTE_RE = re.compile(
+    r"note\s+\d+|share\s+capital|shares\s+on\s+issue|issued\s+capital",
+    re.IGNORECASE,
+)
 
 
-def _run_pass3b_investor_extractor(sections: list[dict], llm_client) -> dict:
-    """Pass 3b variant for investor presentations — richer schema."""
-    null_result = {
-        "risk_summary": None, "risk_bullets": None,
-        "guidance_summary": None, "material_changes": None,
-        "production_targets": None, "capex_guidance": None,
-        "development_milestones": None, "market_strategy": None,
-        "confidence_narrative": 0.0,
-    }
+def _extract_shares_from_prose(sections: list[dict]) -> tuple[float | None, str]:
+    """Scan prose sections for share count mentions.
 
-    prose = " ".join(s["text"] for s in sections if s.get("text", "").strip())[:8000]
-    if not prose:
-        return null_result
+    Returns (shares_outstanding, provenance_string).
+    Returns (None, "") if no match found.
+    """
+    # Filter to sections likely to mention share capital
+    candidates = [
+        s for s in sections
+        if s.get("text") and _SHARE_NOTE_RE.search(s["text"])
+    ]
+    # Also scan all sections if no note-specific candidates found
+    if not candidates:
+        candidates = [s for s in sections if s.get("text")]
 
-    prompt = _PASS3B_INVESTOR_PROMPT.format(prose_text=prose)
-    try:
-        raw = _llm_json_call(prompt, llm_client, max_tokens=1024)
-        return {
-            "risk_summary": raw.get("risk_summary"),
-            "risk_bullets": raw.get("risk_bullets"),
-            "guidance_summary": raw.get("guidance_summary"),
-            "material_changes": raw.get("material_changes"),
-            "production_targets": raw.get("production_targets"),
-            "capex_guidance": raw.get("capex_guidance"),
-            "development_milestones": raw.get("development_milestones"),
-            "market_strategy": raw.get("market_strategy"),
-            "confidence_narrative": float(raw.get("confidence_narrative", 0.5)),
-        }
-    except Exception as e:
-        logger.warning("Pass 3b investor extraction failed: %s", e)
-        return null_result
+    for section in candidates:
+        text = section["text"]
+        page = section.get("page", "?")
+        for pattern in _SHARES_PROSE_PATTERNS:
+            match = pattern.search(text)
+            if match:
+                raw = match.group(1).replace(",", "")
+                try:
+                    value = float(raw)
+                except ValueError:
+                    continue
+                # Sanity: share counts should be > 1M and < 100B
+                if value < 1_000_000 or value > 100_000_000_000:
+                    logger.debug(
+                        "Prose shares_outstanding %.0f outside sane range, skipping",
+                        value,
+                    )
+                    continue
+                provenance = f"prose_note:page_{page}:{match.group(0)[:60]}"
+                logger.info(
+                    "shares_outstanding from prose: %.0f (page %s)", value, page,
+                )
+                return value, provenance
+
+    return None, ""
 
 
 # ---------------------------------------------------------------------------
@@ -1167,10 +1107,13 @@ def _run_pass4_reconciler(
     pass3a_results: list[dict],
     pass3b_result: dict,
     pass1_result: dict,
+    *,
+    sections: list[dict] | None = None,
 ) -> dict:
     """
     Pass 4: merge all Pass 3a results into one canonical payload.
     Source priority: income_statement > cashflow_statement > balance_sheet > highlights.
+    Falls back to prose extraction for shares_outstanding when tables yield null.
     Returns dict matching _upsert_financial_rows contract.
     """
     merged_metrics: dict[str, Any] = {m: None for m in METRIC_FIELDS}
@@ -1219,6 +1162,15 @@ def _run_pass4_reconciler(
                     "net_debt derived from balance sheet: %.0f - %.0f = %.0f",
                     total_debt, cash_end, merged_metrics["net_debt"],
                 )
+
+    # Prose fallback: shares_outstanding from note sections when tables yield null.
+    # Banking filings (ANZ, WBC) often report share counts in prose Note 13/14
+    # rather than in structured tables.
+    if merged_metrics.get("shares_outstanding") is None and sections:
+        prose_shares, prose_prov = _extract_shares_from_prose(sections)
+        if prose_shares is not None:
+            merged_metrics["shares_outstanding"] = prose_shares
+            provenance["shares_outstanding"] = prose_prov
 
     # Weighted average confidence — each source weighted by metrics contributed
     total_weight = sum(n for _, n in source_stats.values())
@@ -1451,31 +1403,8 @@ def run_multipass_extraction(
                                sections=structured_doc.sections, error=f"pass1:{e}")
 
     if pass1.get("classifier_confidence", 0) < 0.60:
-        # Financial classification failed, but still run Pass 3b narrative
-        # extraction — non-financial announcements (ops updates, director
-        # changes, investor presentations) contain valuable narrative even
-        # when they lack financial period/scale signals.
-        _skip_narr = skip_narrative or os.environ.get("EXTRACTION_SKIP_NARRATIVE", "") == "1"
-        if _skip_narr:
-            pass3b_fallback = {
-                "risk_summary": None, "risk_bullets": None,
-                "guidance_summary": None, "material_changes": None,
-                "confidence_narrative": 0.0,
-            }
-        else:
-            _ann_type = doc_metadata.get("announcement_type", "")
-            _extractor = _select_pass3b_extractor(_ann_type)
-            pass3b_fallback = _extractor(structured_doc.sections, llm_client)
-        narrative_payload = dict(null_payload)
-        narrative_payload.update(pass3b_fallback)
-        has_narrative = any(
-            narrative_payload.get(f)
-            for f in ("risk_summary", "risk_bullets", "guidance_summary", "material_changes",
-                       "production_targets", "capex_guidance", "development_milestones", "market_strategy")
-        )
         return MultipassResult(
-            status="ok_narrative_only" if has_narrative else "failed",
-            payload=narrative_payload,
+            status="failed", payload=null_payload,
             sections=structured_doc.sections,
             error=f"classifier_low_confidence:{pass1.get('classifier_confidence')}",
         )
@@ -1518,12 +1447,13 @@ def run_multipass_extraction(
             "confidence_narrative": 0.0,
         }
     else:
-        _ann_type = doc_metadata.get("announcement_type", "")
-        _extractor = _select_pass3b_extractor(_ann_type)
-        pass3b_result = _extractor(structured_doc.sections, llm_client)
+        pass3b_result = _run_pass3b_narrative_extractor(structured_doc.sections, llm_client)
 
     # Pass 4: Reconcile
-    payload = _run_pass4_reconciler(pass3a_results, pass3b_result, pass1)
+    payload = _run_pass4_reconciler(
+        pass3a_results, pass3b_result, pass1,
+        sections=structured_doc.sections,
+    )
 
     # Derive period_start deterministically — schema column exists but was not populated.
     _pe = parse_period_end(payload.get("period_end"))
