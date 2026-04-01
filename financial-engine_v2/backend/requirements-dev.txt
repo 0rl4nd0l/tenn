@@ -1,0 +1,2 @@
+# Dev-only dependencies (not required for production runtime)
+import-linter>=2.1
