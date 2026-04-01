@@ -26,7 +26,7 @@ Branch: cloud/session-20260319
 | **extraction-hardening** | `[ in-progress ]` | (1) FX conversion logic not yet built. (2) AZJ font encoding confirmed unsolvable — threshold 0.0. (3) pymupdf quality gate added (flags `pymupdf_degraded`). (4) Live eval run 2026-03-27: 77.89% overall, 88.64% excl. AZJ. L019 logged. |
 | **news-pipeline** | `[ verified ]` | Embedding routing fixed, asx_docs rebuilt at 768-dim (a4564e47). **Default provider switched to newspaper4k** (2026-03-27): 54 AU finance sources (AFR, Stockhead, MarketIndex, SMH, ABC, etc.) with Scrapling/Playwright fallback. EODHD and GDELT suspended from main pipeline — poor ASX coverage. |
 | **eval-fixtures** | `[ verified ]` | 13 fixture JSONs now in repo. Last fully live-validated set remains 9 fixtures on 2026-03-27. AZJ threshold=0.0, FMG threshold=0.60, RMS threshold=0.70. 88.64% excl. AZJ on the validated set. |
-| **extraction-quality** | `[ in-progress ]` | 88.64% accuracy on 8 fixtures (excl. AZJ). Docling restored as default (877a8203). ANZ ~90.9% after banking-sector fixes (e1710290, 8e4ec1b3). Remaining gap: shares_outstanding requires narrative Note 13 extraction. |
+| **extraction-quality** | `[ in-progress ]` | 88.64% accuracy on 8 fixtures (excl. AZJ). Docling restored as default (877a8203). ANZ ~90.9% after banking-sector fixes (e1710290, 8e4ec1b3). **Prose fallback for shares_outstanding** (88e47336): regex extraction from note sections — covers ANZ Note 13 pattern + 3 other ASX conventions. Remaining: live eval to measure accuracy gain. |
 | **extraction-perf** | `[ verified ]` | Docling default restored (877a8203). PyMuPDF available via EXTRACTION_BACKEND=pymupdf. |
 | **cockpit-agent** | `[ verified ]` | Agent mode + ToolExecutor verified via Textual Pilot 2026-03-27: all 7 checks PASS, 217 unit tests. |
 | **cockpit-strategy** | `[ verified ]` | Strategy schema (d173a8da): global + ticker criteria tables, StrategyService, /strategy commands, natural language rules, context injection. 10 tests. |
@@ -77,7 +77,8 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 
 | Commit | Workstream | Summary |
 |--------|------------|---------|
-| (this session) | analysis-modules | Sentiment RAG wiring: modules declare RAG queries, orchestrator merges them, analysis_rag_adapter bridges Qdrant, sentiment scores news_chunks + commentary_chunks. 22 new tests. |
+| 88e47336 | extraction-quality | Prose fallback for shares_outstanding: regex extraction from note sections (ANZ Note 13 + 3 other patterns), sanity range gate, table priority preserved. 12 tests. |
+| 42eadf64 | analysis-modules | Sentiment RAG wiring: modules declare RAG queries, orchestrator merges them, analysis_rag_adapter bridges Qdrant, sentiment scores news_chunks + commentary_chunks. 22 new tests. |
 | f4e2f820 | cockpit | Align preboot routing docs and tests: cockpit LLM config authority, env-override gating, current preboot export behavior. |
 | 0e651e8d | analysis-modules | Phase 3 complete: 6 analysis modules (balance_sheet, roic, valuation, risk, catalysts, moat), AnalysisModule Protocol, TickerContext, orchestrator, context_loader. 48 tests, 2350 lines. Qwen 3 14B evaluated and rejected (85.26% vs 89.47%). |
 | adfec5ca | analysis-artifact-v0 | Deterministic `financial_snapshot_v0.json` from `asx_periodic_financials` → `reports/analysis/{TICKER}/`; `periodic_snapshot_export` + `export_financial_snapshot.py`. |
