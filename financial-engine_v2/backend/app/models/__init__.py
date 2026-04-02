@@ -1,4 +1,5 @@
 from .base import Base
+from .companies import Company
 from .documents import Document
 from .extractions import ExtractionRun
 from .asx_financials import ASXPeriodicFinancial, ASXRiskNote
