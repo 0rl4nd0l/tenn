@@ -5,7 +5,11 @@ import os
 import sys
 from pathlib import Path
 
-SCRIPTS_DIR = os.environ.get("SCRIPTS_ROOT", str(Path(__file__).resolve().parents[3] / "scripts"))
+try:
+    _default_scripts = str(Path(__file__).resolve().parents[3] / "scripts")
+except IndexError:
+    _default_scripts = ""
+SCRIPTS_DIR = os.environ.get("SCRIPTS_ROOT", _default_scripts)
 if SCRIPTS_DIR and SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, SCRIPTS_DIR)
 

@@ -66,6 +66,23 @@
 | OpenFIGI | Greenfield: model + migration + API client | 1 session |
 | AZJ CID-font encoding | PDF lacks ToUnicode CMap — research problem, not parser swap | Indefinite |
 
+## vibe-kanban (installed 2026-04-01)
+
+- **URL (local):** http://localhost:3000
+- **URL (remote/tailnet):** https://l4nd0-system-product-name.tail7ecd09.ts.net/
+- **Remote access:** `tailscale serve --bg 3000` (persistent, auto-TLS)
+- **Persistence:** systemd user service (`vibe-kanban.service`), enabled on boot
+- **Service commands:**
+  - `systemctl --user status vibe-kanban`
+  - `systemctl --user restart vibe-kanban`
+  - `systemctl --user stop vibe-kanban`
+- **Manual launch (if systemd unavailable):** `PORT=3000 npx vibe-kanban`
+- **Config dir:** `~/.vibe-kanban/`
+- **Service file:** `~/.config/systemd/user/vibe-kanban.service`
+- **Stage B issue:** not yet created (manual step — see instructions below)
+- **Repo detection:** not yet verified (manual step)
+- **Next step:** create Stage B issue, point workspace at `/home/l4nd0/tenn`, run Stage B through vibe-kanban
+
 ## Next Session Candidates
 
 1. **N-gram spec decoding** — start :8001, add flag, benchmark eval + chat

@@ -1,0 +1,158 @@
+[importlinter]
+root_packages =
+    app
+include_external_packages = True
+
+# ============================================================
+# SYSTEM_CONTRACT §2.1 Layer hierarchy:
+#   Ingestion → Extraction → Storage → Retrieval → Analysis → Client
+#
+# Cross-cutting (exempt from layer constraints):
+#   app.core, app.services.llm, app.services.llamacpp_runtime,
+#   app.services.router*, app.tasks
+#
+# Decision: enforce against CURRENT flat structure.
+# Flat services/ maps to multiple layers; individual forbidden
+# contracts guard the critical downward invariants.
+# ============================================================
+
+
+# ============================================================
+# CONTRACT: models-no-services
+# CRITICAL — currently clean.
+# The Storage layer (models/) is the lowest data layer.
+# It must not import from services (any layer above it).
+# ============================================================
+
+[importlinter:contract:models-no-services]
+name = Storage models must not import from services
+type = forbidden
+source_modules =
+    app.models
+forbidden_modules =
+    app.services
+
+# ============================================================
+# CONTRACT: models-no-routes
+# Currently clean.
+# Storage layer must not import from Client (routes/, api/).
+# ============================================================
+
+[importlinter:contract:models-no-routes]
+name = Storage models must not import from routes or api
+type = forbidden
+source_modules =
+    app.models
+forbidden_modules =
+    app.routes
+    app.api
+
+# ============================================================
+# CONTRACT: providers-no-services
+# Currently clean.
+# Providers are Ingestion data sources; they fetch raw external
+# data. They must not call service logic above them.
+# ============================================================
+
+[importlinter:contract:providers-no-services]
+name = Providers must not import from services, routes, api, or modules
+type = forbidden
+source_modules =
+    app.providers
+forbidden_modules =
+    app.services
+    app.routes
+    app.api
+    app.modules
+
+# ============================================================
+# CONTRACT: services-no-client
+# Currently clean.
+# Service layer must not import from Client layer (routes/, api/).
+# Lower layers must never depend on higher layers.
+# ============================================================
+
+[importlinter:contract:services-no-client]
+name = Services must not import from client layer
+type = forbidden
+source_modules =
+    app.services
+forbidden_modules =
+    app.routes
+    app.api
+
+# ============================================================
+# CONTRACT: modules-no-client
+# Currently clean.
+# The analysis modules layer must not import from Client.
+# ============================================================
+
+[importlinter:contract:modules-no-client]
+name = Analysis modules must not import from client layer
+type = forbidden
+source_modules =
+    app.modules
+forbidden_modules =
+    app.routes
+    app.api
+
+# ============================================================
+# CONTRACT: client-no-direct-models
+# PARTIALLY VIOLATED — 4 pre-existing violations allowed below.
+# The Client layer (routes/, api/) should access data through
+# services, not by importing ORM models directly.
+# Target: zero ignore_imports (route access via services).
+#
+# Pre-existing violations (MUST be resolved before tightening):
+#   app/api/routes.py imports Document, ASXPeriodicFinancial,
+#   ASXRiskNote, ExtractionRun directly for response serialization.
+#   app/routes/cockpit_api.py imports Document for type hints.
+# ============================================================
+
+[importlinter:contract:client-no-direct-models]
+name = Client layer must not import ORM models directly
+type = forbidden
+source_modules =
+    app.routes
+    app.api
+forbidden_modules =
+    app.models
+# allow_indirect_imports = True so we only flag direct imports.
+# Transitive paths (api.routes -> services.pipeline -> models) are
+# legitimate; the service owns the model access. Only direct
+# client→models imports indicate a layer skip.
+allow_indirect_imports = True
+ignore_imports =
+    # TODO: Refactor these to go through service/DTO layer
+    app.api.routes -> app.models.documents
+    app.api.routes -> app.models.asx_financials
+    app.api.routes -> app.models.extractions
+    app.routes.cockpit_api -> app.models.documents
+
+# ============================================================
+# CONTRACT: client-no-direct-providers
+# PARTIALLY VIOLATED — 3 pre-existing violations allowed below.
+# Client layer must not import providers directly; it should
+# delegate data acquisition to ingestion services.
+#
+# Pre-existing violations (MUST be resolved before tightening):
+#   app/api/routes.py directly imports MarketPriceProvider,
+#   OpenBBSidecarProvider, and ASX20 from providers/.
+# ============================================================
+
+[importlinter:contract:client-no-direct-providers]
+name = Client layer must not import providers directly
+type = forbidden
+source_modules =
+    app.routes
+    app.api
+forbidden_modules =
+    app.providers
+# allow_indirect_imports = True: only flag direct client→provider
+# imports. Transitive paths via ingestion services are expected.
+allow_indirect_imports = True
+ignore_imports =
+    # TODO: Wrap these in ingestion service calls
+    app.api.routes -> app.providers.universe
+    app.api.routes -> app.providers.market_price_provider
+    app.api.routes -> app.providers.openbb_sidecar_provider

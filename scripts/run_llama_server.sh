@@ -24,16 +24,11 @@ load_launcher_defaults() {
 load_launcher_defaults "${LLAMA_SERVER_ENV_FILE}"
 
 LOCKFILE="${LOCKFILE:-/tmp/llama-server.lock}"
-if [[ -f "${LOCKFILE}" ]]; then
-  LOCK_PID="$(cat "${LOCKFILE}" 2>/dev/null || true)"
-  if [[ -n "${LOCK_PID}" ]] && kill -0 "${LOCK_PID}" 2>/dev/null; then
-    echo "ERROR: llama-server already running (PID ${LOCK_PID}, lock at ${LOCKFILE})" >&2
-    exit 1
-  fi
-  echo "Removing stale lock ${LOCKFILE}"
-  rm -f "${LOCKFILE}"
+exec 200>"${LOCKFILE}"
+if ! flock -n 200; then
+  echo "ERROR: llama-server already running (lock at ${LOCKFILE})" >&2
+  exit 1
 fi
-trap 'rm -f "${LOCKFILE}"' EXIT
 echo $$ > "${LOCKFILE}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -111,6 +106,7 @@ cmd=(
   --port "${PORT}"
   # KV cache quantization: halves KV VRAM at negligible quality cost (q8_0 ~ f16)
   --cache-type-k q8_0 --cache-type-v q8_0
+  --spec-type ngram-simple
 )
 
 # Router mode (DEFAULT): --models-dir serves all GGUFs in a directory,
