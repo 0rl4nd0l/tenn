@@ -5,6 +5,9 @@
     "redis":      { "command": "./scripts/mcp/redis.sh" },
     "qdrant":     { "command": "./scripts/mcp/qdrant.sh" },
     "tenn":       { "command": "./scripts/mcp/tenn.sh" },
-    "screenpipe": { "command": "./scripts/mcp/screenpipe.sh" }
+    "screenpipe": { "command": "./scripts/mcp/screenpipe.sh" },
+    "vibe_kanban":         { "command": "npx", "args": ["-y", "vibe-kanban@latest", "--mcp"] },
+    "sequential-thinking": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"] },
+    "everything": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-everything"] }
   }
 }
