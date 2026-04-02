@@ -117,8 +117,6 @@ def resolve_embedding_runtime_config(
     for candidate in (
         base_url,
         os.getenv("EMBEDDING_URL"),
-        os.getenv("OLLAMA_URL"),
-        getattr(settings, "ollama_url", ""),
         os.getenv("LLM_URL"),
         os.getenv("LLAMACPP_URL"),
         DEFAULT_LLM_URL,

@@ -64,15 +64,12 @@ def _format_risk_block(risk_notes: list[dict[str, Any]]) -> str:
         summary = rn.get("risk_summary") or ""
         bullets = rn.get("risk_bullets") or []
         guidance = rn.get("guidance_summary") or ""
-        changes = rn.get("material_changes") or ""
         if summary:
             parts.append(f"Risk summary: {summary[:400]}")
         if bullets:
             parts.append("Risk bullets: " + "; ".join(str(b) for b in bullets[:5]))
         if guidance:
             parts.append(f"Guidance: {guidance[:300]}")
-        if changes:
-            parts.append(f"Material changes: {changes[:300]}")
     return "\n".join(parts) or "No risk detail available."
 
 

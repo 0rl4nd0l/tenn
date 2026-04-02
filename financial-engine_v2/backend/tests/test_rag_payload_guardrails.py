@@ -72,8 +72,6 @@ def test_query_rag_skips_malformed_payloads_and_keeps_valid_hits(monkeypatch, ca
             "document_id": valid_document_id,
             "doc_class": "announcement",
             "doc_subtype": "periodic",
-            "announcement_type": None,
-            "section_heading": None,
             "chunk_index": 1,
         }
     ]
@@ -260,7 +258,6 @@ def test_process_document_deletes_existing_points_before_upsert(monkeypatch):
         title = "Valid doc"
         pdf_path = "/tmp/valid.pdf"
         source_url = "https://example.com/doc.pdf"
-        announcement_type = None
 
     class DummyQuery:
         def filter(self, *args, **kwargs):
@@ -286,7 +283,7 @@ def test_process_document_deletes_existing_points_before_upsert(monkeypatch):
             pass
 
     monkeypatch.setattr(pipeline, "SessionLocal", lambda: DummySession())
-    monkeypatch.setattr(pipeline, "chunk_prose_sections", lambda doc: [{"text": "chunk-0", "section_heading": None}, {"text": "chunk-1", "section_heading": None}])
+    monkeypatch.setattr(pipeline, "chunk_prose_sections", lambda doc: ["chunk-0", "chunk-1"])
     monkeypatch.setattr(pipeline, "_embed_chunks", lambda chunks, ollama_client=None: [[0.1, 0.2], [0.3, 0.4]])
     monkeypatch.setattr(pipeline, "QdrantClient", lambda url: None)
     monkeypatch.setattr(pipeline, "ensure_collection", lambda client, collection, dim: collection)
@@ -326,7 +323,6 @@ def test_process_document_skips_invalid_chunk_payloads(monkeypatch):
         title = "Invalid ticker doc"
         pdf_path = "/tmp/invalid.pdf"
         source_url = "https://example.com/doc.pdf"
-        announcement_type = None
 
     class DummyQuery:
         def filter(self, *args, **kwargs):
@@ -352,7 +348,7 @@ def test_process_document_skips_invalid_chunk_payloads(monkeypatch):
             pass
 
     monkeypatch.setattr(pipeline, "SessionLocal", lambda: DummySession())
-    monkeypatch.setattr(pipeline, "chunk_prose_sections", lambda doc: [{"text": "chunk-0", "section_heading": None}, {"text": "chunk-1", "section_heading": None}])
+    monkeypatch.setattr(pipeline, "chunk_prose_sections", lambda doc: ["chunk-0", "chunk-1"])
     monkeypatch.setattr(pipeline, "_embed_chunks", lambda chunks, ollama_client=None: [[0.1, 0.2], [0.3, 0.4]])
     monkeypatch.setattr(pipeline, "QdrantClient", lambda url: None)
     monkeypatch.setattr(pipeline, "ensure_collection", lambda client, collection, dim: collection)
@@ -385,7 +381,6 @@ def test_process_document_upserts_financial_rows_for_ok_low_confidence(monkeypat
         title = "Low confidence periodic"
         pdf_path = "/tmp/low_confidence.pdf"
         source_url = "https://example.com/low_confidence.pdf"
-        announcement_type = None
 
     class DummyQuery:
         def filter(self, *args, **kwargs):
@@ -460,7 +455,6 @@ def test_process_document_upserts_financial_rows_for_ok_low_confidence(monkeypat
         ),
     )
     monkeypatch.setattr(pipeline, "chunk_prose_sections", lambda doc: [])
-
     monkeypatch.setattr(
         pipeline,
         "_upsert_financial_rows",

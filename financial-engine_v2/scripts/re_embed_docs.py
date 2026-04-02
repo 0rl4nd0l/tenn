@@ -116,7 +116,6 @@ def main() -> None:
                     "ticker": doc.ticker,
                     "doc_class": doc.doc_class,
                     "doc_subtype": doc.doc_subtype,
-                    "announcement_type": doc.announcement_type,
                     "chunk_index": idx,
                     "title": doc.title,
                     "text": chunks[idx],

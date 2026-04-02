@@ -72,20 +72,6 @@ def _is_garbled(text: str) -> bool:
     return len(alpha_upper) >= 3 and all(c.isupper() for c in alpha_upper)
 
 
-_ASX_BOILERPLATE = {
-    "for personal use only",
-    "confidential",
-    "restricted",
-    "page ",
-}
-
-
-def _is_asx_boilerplate(text: str) -> bool:
-    """Detect ASX watermarks/boilerplate that should not be treated as headings."""
-    lower = text.lower().strip()
-    return any(lower.startswith(bp) or lower == bp for bp in _ASX_BOILERPLATE)
-
-
 def _has_garbled_tables(doc: StructuredDocument, pdf_path: str) -> bool:
     """Sample table cells from a docling result; return True if garbling detected."""
     sample_cells: list[str] = []
@@ -166,8 +152,6 @@ def _extract_pymupdf(pdf_path: str) -> StructuredDocument:
                     max_size = max(s["size"] for s in spans)
                     is_bold = any("bold" in s.get("font", "").lower() for s in spans)
                     is_heading = max_size >= 11.0 or (is_bold and max_size >= 9.5)
-                    if is_heading and _is_asx_boilerplate(text):
-                        is_heading = False
                     y_pos = line["bbox"][1]
 
                     if is_heading:

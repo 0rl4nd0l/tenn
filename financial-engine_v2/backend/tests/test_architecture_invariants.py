@@ -72,7 +72,6 @@ def test_vector_ids_use_document_id_and_chunk_index(monkeypatch):
             self.doc_subtype = "periodic"
             self.title = "Test Document"
             self.pdf_path = "/tmp/test.pdf"
-            self.announcement_type = None
 
     dummy_doc_id = uuid.uuid4()
     dummy_doc = DummyDoc(dummy_doc_id)
@@ -133,7 +132,7 @@ def test_vector_ids_use_document_id_and_chunk_index(monkeypatch):
             captured_ids.append(p["id"])
 
     monkeypatch.setattr(pipeline, "SessionLocal", fake_session_local)
-    monkeypatch.setattr(pipeline, "chunk_prose_sections", lambda doc: [{"text": "chunk-0", "section_heading": None}, {"text": "chunk-1", "section_heading": None}])
+    monkeypatch.setattr(pipeline, "chunk_prose_sections", lambda doc: ["chunk-0", "chunk-1"])
     monkeypatch.setattr(pipeline, "embed_texts", fake_embed_texts)
     monkeypatch.setattr(pipeline, "QdrantClient", DummyQdrantClient)
     monkeypatch.setattr(pipeline, "ensure_collection", fake_ensure_collection)
@@ -183,7 +182,6 @@ def test_process_document_integration_vector_id_and_payload(monkeypatch):
         doc_subtype = "periodic"
         title = "Integration Test Doc"
         pdf_path = "/tmp/integration_test.pdf"
-        announcement_type = None
 
     class DummyQuery:
         def __init__(self, result):
@@ -222,7 +220,7 @@ def test_process_document_integration_vector_id_and_payload(monkeypatch):
             captured_points.append({"id": p["id"], "payload": dict(p["payload"])})
 
     monkeypatch.setattr(pipeline, "SessionLocal", fake_session_local)
-    monkeypatch.setattr(pipeline, "chunk_prose_sections", lambda doc: [{"text": "chunk0", "section_heading": None}, {"text": "chunk1", "section_heading": None}])
+    monkeypatch.setattr(pipeline, "chunk_prose_sections", lambda doc: ["chunk0", "chunk1"])
     monkeypatch.setattr(pipeline, "embed_texts", lambda chunks, **kwargs: [[0.0] * 2, [0.0] * 2])
     monkeypatch.setattr(pipeline, "QdrantClient", lambda url: None)
     monkeypatch.setattr(pipeline, "ensure_collection", lambda c, col, dim: None)

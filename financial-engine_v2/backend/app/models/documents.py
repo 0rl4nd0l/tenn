@@ -17,5 +17,4 @@ class Document(Base):
     source_url: Mapped[str | None] = mapped_column(Text, nullable=True, unique=True, index=True)
     pdf_path: Mapped[str] = mapped_column(Text)
     pdf_sha256: Mapped[str] = mapped_column(String(64), index=True)
-    announcement_type: Mapped[str | None] = mapped_column(String(32), index=True, nullable=True)
     ingested_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
