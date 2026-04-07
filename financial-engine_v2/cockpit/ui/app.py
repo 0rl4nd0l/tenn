@@ -412,8 +412,9 @@ class CockpitApp(App):
         return str(payload.get("message") or f"Applied backend access proposal: {proposal_id}")
 
     async def _start_extraction_runtime(self, log_target: str) -> bool:
-        command = ["bash", "scripts/run_llama_server.sh"]
-        self._write_log(log_target, f"Starting extraction runtime: {' '.join(command)}")
+        script_path = "scripts/run_extraction_server.sh"
+        command = ["bash", script_path]
+        self._write_log(log_target, f"Starting extraction runtime via {script_path}: {' '.join(command)}")
         try:
             subprocess.Popen(
                 command,
@@ -431,6 +432,7 @@ class CockpitApp(App):
             or os.getenv("LLAMACPP_URL", "").strip()
             or DEFAULT_LLAMACPP_URL
         )
+        self._write_log(log_target, f"Probing extraction runtime endpoint: {extraction_url}")
         probe_client = LlamaCppClient(
             extraction_url,
             str(os.getenv("EXTRACT_MODEL") or getattr(self.ollama_client, "model", "") or "unknown"),

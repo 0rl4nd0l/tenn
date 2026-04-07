@@ -57,10 +57,14 @@ class QualContextReader:
         top_k: int | None = None,
         ticker_filter: str = "",
         source_filter: str = "",  # noqa: ARG002 - backend handles source filtering
+        date_from: str | None = None,
+        date_to: str | None = None,
     ) -> dict[str, Any]:
         q = str(query or "").strip()
         limit = int(max(1, int(top_k) if top_k is not None else self.top_k))
         ticker = str(ticker_filter or "").strip().upper() or None
+        normalized_date_from = str(date_from or "").strip() or None
+        normalized_date_to = str(date_to or "").strip() or None
 
         if not q:
             return {"ok": False, "hits": [], "error": "query is required"}
@@ -73,7 +77,14 @@ class QualContextReader:
 
         self._last_backend_call = _BackendCall(query=q, ticker=ticker, top_k=limit)
         try:
-            result = self.backend_api_client.rag_query(q=q, ticker=ticker, top_k=limit, timeout=self.timeout)
+            result = self.backend_api_client.rag_query(
+                q=q,
+                ticker=ticker,
+                top_k=limit,
+                date_from=normalized_date_from,
+                date_to=normalized_date_to,
+                timeout=self.timeout,
+            )
         except Exception as exc:
             return {"ok": False, "hits": [], "error": str(exc)[:400]}
 
@@ -109,4 +120,3 @@ class QualContextReader:
             "filtered_count": len(hits),
             "hits": hits,
         }
-

@@ -1,5 +1,6 @@
 from __future__ import annotations
 from types import MethodType, SimpleNamespace
+from textual.css.query import NoMatches
 from cockpit.ui.preboot import PreBootScreen
 
 def test_collect_flags_includes_hybrid_router_policy():
@@ -35,6 +36,28 @@ def test_collect_flags_handles_blank_routing_policy():
     }
 
     def _query_one(self, selector, cls=None):
+        return widgets[selector]
+
+    screen.query_one = MethodType(_query_one, screen)
+
+    flags = screen._collect_flags()
+
+    assert flags["hybrid_router_policy"] is None
+
+
+def test_collect_flags_handles_missing_routing_selector():
+    screen = PreBootScreen()
+    widgets = {
+        "#opt-readonly": SimpleNamespace(value=False),
+        "#opt-web": SimpleNamespace(value=True),
+        "#opt-rag": SimpleNamespace(value=True),
+        "#opt-verbose": SimpleNamespace(value=False),
+        "#opt-profile": SimpleNamespace(value="full"),
+    }
+
+    def _query_one(self, selector, cls=None):
+        if selector == "#opt-routing":
+            raise NoMatches("missing routing selector")
         return widgets[selector]
 
     screen.query_one = MethodType(_query_one, screen)
