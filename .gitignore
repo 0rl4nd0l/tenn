@@ -25,6 +25,7 @@ financial-engine_v2/config/system.env
 exports/
 tools/
 archive/
+.archives/
 .claude/worktrees/
 .worktrees/
 reports/change_review_agents/
@@ -33,3 +34,4 @@ reports/change_review_agents/
 .claude/monitors/extraction_history/
 .claude/scheduled_tasks.lock
 financial-engine_v2/scripts/broad_test_results/
+.sdd/runtime/

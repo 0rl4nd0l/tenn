@@ -6,7 +6,7 @@ The active runtime is `financial-engine_v2`. The canonical env file lives at `fi
 
 | Variable | Default | Notes |
 | --- | --- | --- |
-| `DATA_ROOT` | `./data` | Root for runtime data, reports, and derived paths. |
+| `DATA_ROOT` | `./data` | Root for runtime data, reports, and derived paths. In the current host deployment, `financial-engine_v2/.env.local` pins this to `/mnt/nvme/tenn/runtime-data`. |
 | `QDRANT_URL` | `http://127.0.0.1:6333` | Qdrant vector store endpoint. |
 | `OLLAMA_URL` | `http://127.0.0.1:11434` | Ollama API base URL. |
 | `LLAMACPP_URL` | `http://127.0.0.1:8001` | llama.cpp endpoint for chat, coding, and routing. |
@@ -37,6 +37,13 @@ Both the **backend** (via pydantic-settings) and the **cockpit** (via `cockpit/m
 
 The cockpit loads `.env` from its own repo root (`financial-engine_v2/.env`) before any config or TUI initialization. This is the canonical place to set `ANTHROPIC_API_KEY`, `BRAVE_SEARCH_API_KEY`, `LLM_API_KEY`, and other secrets that both the backend and cockpit need.
 
+Local host override note:
+
+- `financial-engine_v2/.env.local` currently points Tenn runtime data at `/mnt/nvme/tenn/runtime-data`
+- `~/.config/tenn/llama-server.env` points llama.cpp router mode at `/mnt/nvme/tenn/models`
+- the legacy root Ollama store at `/usr/share/ollama/.ollama/models` has been pruned to keep only `qwen2.5:32b` and `gpt-oss:20b-cloud`
+- inactive root Ollama models are archived at `/mnt/sdb2/home/l4nd0/tenn/.archives/ollama-root-store-2026-04-07`
+
 ## Copy the template
 
 ```bash
@@ -49,6 +56,16 @@ Use a different data root:
 
 ```dotenv
 DATA_ROOT=/srv/tenn-data
+```
+
+Current host-local runtime-data override:
+
+```dotenv
+DATA_ROOT=/mnt/nvme/tenn/runtime-data
+DATABASE_URL=sqlite:////mnt/nvme/tenn/runtime-data/fe_local.db
+DOCS_ROOT=/mnt/nvme/tenn/runtime-data/asx/docs
+IMPORTANCE_OUTPUT_ROOT=/mnt/nvme/tenn/runtime-data/asx/importance
+MARKETINDEX_ANNOUNCEMENTS_FILE=/mnt/nvme/tenn/runtime-data/raw/marketindex_announcements.json
 ```
 
 Point the LLM endpoint to a different host:
@@ -118,3 +135,8 @@ python scripts/check_environment.py
 ```
 
 The checker validates resolved env values, key ports, and whether `DATA_ROOT` is writable.
+
+Host-local storage helpers:
+
+- `scripts/migrate_runtime_to_nvme.sh` — migrate runtime data and repo GGUFs into `/mnt/nvme/tenn`
+- `scripts/archive_prune_root_ollama_store.py` — archive inactive root Ollama models to HDD and prune the root store to the active keep-set

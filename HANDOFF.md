@@ -1,4 +1,4 @@
-# HANDOFF — tooling-install-v2 (2026-04-01)
+# HANDOFF — tooling-install-v2 + storage-migration-followup (2026-04-07)
 
 **Branch:** `cloud/session-20260319`
 
@@ -14,6 +14,8 @@
 | import-linter>=2.1 | INSTALLED | In requirements-dev.txt; design doc produced |
 | KV cache flags | ALREADY SET | `--cache-type-k q8_0 --cache-type-v q8_0` at run_llama_server.sh:113 |
 | pypdfium2 | ALREADY INSTALLED | v5.6.0 via docling transitive dep |
+| Tenn runtime-data moved to NVMe | COMPLETE | `.env.local` now points at `/mnt/nvme/tenn/runtime-data` |
+| Root Ollama store archived/pruned | COMPLETE | keep-set reduced to `qwen2.5:32b` and `gpt-oss:20b-cloud`; archive saved under `.archives/ollama-root-store-2026-04-07` |
 
 ## Skipped
 
@@ -36,6 +38,9 @@
 - `backend/app/utils/trading_calendar.py` — XASX trading day utilities (4 functions)
 - `backend/requirements-dev.txt` — dev-only deps (import-linter)
 - `docs/architecture/import_linter_design.md` — layer → package mapping for import-linter config
+- `scripts/migrate_runtime_to_nvme.sh` — migrate Tenn runtime-data and repo GGUFs onto `/mnt/nvme/tenn`
+- `scripts/archive_prune_root_ollama_store.py` — archive inactive root Ollama models to HDD and prune the root store keep-set
+- `.archives/ollama-root-store-2026-04-07/archive-summary.json` — archived inactive root Ollama manifests/blobs inventory
 
 ## Files Modified
 
@@ -46,6 +51,8 @@
 - ruff check: new files clean (0 errors)
 - pytest: 401 passed, 0 failures (non-eval suite, 678s)
 - XASX smoke test: Australia Day 2024 correctly identified as non-trading
+- storage validation: `/mnt/nvme` free space improved to ~`59G`; root Ollama store reduced to ~`19G`
+- workload validation: docs-heavy local validation kept `/proc/pressure/io avg10` in the low single digits and `vmstat wa` near `1%` after warm-up
 
 ## Eval Baseline
 
@@ -66,26 +73,33 @@
 | OpenFIGI | Greenfield: model + migration + API client | 1 session |
 | AZJ CID-font encoding | PDF lacks ToUnicode CMap — research problem, not parser swap | Indefinite |
 
-## vibe-kanban (installed 2026-04-01)
-
-- **URL (local):** http://localhost:3000
-- **URL (remote/tailnet):** https://l4nd0-system-product-name.tail7ecd09.ts.net/
-- **Remote access:** `tailscale serve --bg 3000` (persistent, auto-TLS)
-- **Persistence:** systemd user service (`vibe-kanban.service`), enabled on boot
-- **Service commands:**
-  - `systemctl --user status vibe-kanban`
-  - `systemctl --user restart vibe-kanban`
-  - `systemctl --user stop vibe-kanban`
-- **Manual launch (if systemd unavailable):** `PORT=3000 npx vibe-kanban`
-- **Config dir:** `~/.vibe-kanban/`
-- **Service file:** `~/.config/systemd/user/vibe-kanban.service`
-- **Stage B issue:** not yet created (manual step — see instructions below)
-- **Repo detection:** not yet verified (manual step)
-- **Next step:** create Stage B issue, point workspace at `/home/l4nd0/tenn`, run Stage B through vibe-kanban
-
 ## Next Session Candidates
 
 1. **N-gram spec decoding** — start :8001, add flag, benchmark eval + chat
 2. **Eval baseline investigation** — 58.33% → target 85%+
 3. **import-linter config** — review design doc, decide services/ split
 4. **Unified schema migration** — companies + instrument_identifiers (enables pyasx, OpenFIGI)
+
+---
+
+## Storage Migration Update (2026-04-07)
+
+Completed host-local storage work:
+
+- migrated Tenn runtime data to `/mnt/nvme/tenn/runtime-data`
+- migrated GGUF llama.cpp router assets to `/mnt/nvme/tenn/models`
+- updated `financial-engine_v2/.env.local` to point runtime data and docs paths at NVMe
+- kept llama.cpp as the primary Tenn serving path
+- pruned root Ollama store to retain only `qwen2.5:32b` and `gpt-oss:20b-cloud`
+- archived inactive root Ollama models to `/mnt/sdb2/home/l4nd0/tenn/.archives/ollama-root-store-2026-04-07`
+
+Validation summary:
+
+- docs-heavy local validation workload against `/mnt/nvme/tenn/runtime-data/asx/docs` no longer reproduced the earlier severe IO pressure
+- `/proc/pressure/io avg10` remained in the low single digits during validation instead of the earlier 50+ spikes
+- `vmstat wa` settled around 1% after warm-up
+
+Operational notes:
+
+- isolated-profile backend validation may still fall back to `/tmp/financial-engine_v2-fe_local_runtime.db` for a writable SQLite runtime DB
+- post-cleanup host free space is roughly `59G` on NVMe, so the system is healthier but still not spacious

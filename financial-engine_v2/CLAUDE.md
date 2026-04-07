@@ -81,6 +81,14 @@ Two endpoints (`core/config.py`):
 
 A single llama-server runs in **router mode** on port 8001 (`--models-dir /mnt/nvme/tenn/models --models-max 1`). All GGUFs in the models directory are available; clients select per-request via the `model` field. Only one model occupies VRAM at a time. Default chat model: `qwen3-30b-a3b-instruct` (MoE 30B/3B-active, llmfit score 94.0). Extraction requests `qwen2.5-14b-instruct` by model name; the router loads it on demand.
 
+Current host storage alignment (2026-04-07):
+
+- runtime data: `/mnt/nvme/tenn/runtime-data`
+- llama.cpp GGUF directory: `/mnt/nvme/tenn/models`
+- root Ollama store: `/usr/share/ollama/.ollama/models` is not the primary Tenn serving path
+- retained root Ollama models: `qwen2.5:32b`, `gpt-oss:20b-cloud`
+- archived inactive root Ollama models: `/mnt/sdb2/home/l4nd0/tenn/.archives/ollama-root-store-2026-04-07`
+
 `EXTRACTION_LLAMACPP_URL` is a legacy override for running a dedicated extraction server on a separate port. When unset (default), extraction uses `LLAMACPP_URL` via router mode.
 
 The app **fails to start** if `LLAMACPP_URL` and `OLLAMA_URL` resolve to the same host:port. This prevents silent backend aliasing.
@@ -145,6 +153,8 @@ Migrations: `backend/app/alembic/versions/`
 | `full` | configured | on | on | configurable | real RAG/chat testing |
 
 `ENABLE_EXTRACTION=false` is safe with `LOCAL_BACKEND_PROFILE=full` — `/chat` works without extraction.
+
+Validation note: in isolated mode, `run_local_backend.sh` may fall back to `/tmp/financial-engine_v2-fe_local_runtime.db` when the configured SQLite path is unsuitable for the isolated profile. That does not change the migrated docs root used for local storage-pressure validation.
 
 ---
 

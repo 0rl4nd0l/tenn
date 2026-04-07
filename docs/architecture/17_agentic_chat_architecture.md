@@ -30,7 +30,9 @@ Users must recognize that the system has proposed an action and type `/confirm` 
 
 ### Model in use
 
-The default llama.cpp model is **qwen2.5-14b-instruct** (alias `qwen2.5-14b-instruct`, served on port 8001). The `run_llama_server.sh` script loads the NVMe GGUF at `/mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf` with `--ctx-size 16384` (balanced profile) and fails loudly if that model directory is missing. The extraction endpoint uses the same NVMe-backed model path on port 8002 unless explicitly overridden.
+This section is historical and does not reflect the latest routed-model defaults.
+
+Current host deployment uses llama.cpp router mode on port 8001 with models served from `/mnt/nvme/tenn/models`. The active `~/.config/tenn/llama-server.env` default model is `qwen3-30b-a3b-instruct`, while extraction requests `qwen2.5-14b-instruct` by model name and the router loads it on demand. The legacy root Ollama store is retained only for local Ollama use and is not the primary Tenn chat/extraction serving path.
 
 ---
 

@@ -4,7 +4,7 @@
 > Update this file at the end of every session alongside the milestone commit.
 > For detailed context on any item, follow the linked doc or run `git log --oneline`.
 
-Last updated: 2026-04-01 (session — sentiment RAG wiring, ANZ accuracy status update)
+Last updated: 2026-04-07 (session — NVMe runtime-data migration, Ollama archive prune, storage/docs alignment)
 Branch: cloud/session-20260319
 
 ## Legend
@@ -36,6 +36,7 @@ Branch: cloud/session-20260319
 | **analysis-modules** | `[ verified ]` | 7 modules (+ sentiment), orchestrator, context_loader (Yahoo price fallback), watchlist scanner (7 alert rules), API endpoints, scale validation gate, extraction expansion (total_equity, interest_expense). 48+22 tests. D2 live-tested. Real-data validated (RIO, BHP). **Sentiment RAG wiring:** modules declare RAG queries via `rag_queries` property; orchestrator merges into ContextRequest; `analysis_rag_adapter` bridges Qdrant; sentiment scores news_chunks + commentary_chunks. Architecture doc 1151 lines. |
 | **model-eval** | `[ verified ]` | Qwen 3 14B evaluated (85.26%) vs Qwen 2.5 14B (89.47%) — current model stays. |
 | **docs-governance** | `[ in-progress ]` | Root startup docs aligned to the canonical backend entrypoint. Repository-audit instructions updated to use actual repo manifests. Backend API surface, extraction, embeddings, routing, scripts index, portfolio module docs, Cockpit control-plane docs, and eval-fixture architecture docs refreshed. Open item: Cockpit contract/code mismatch still needs an explicit architecture decision. |
+| **storage-migration** | `[ verified ]` | Tenn runtime data migrated to `/mnt/nvme/tenn/runtime-data`; GGUF router assets migrated to `/mnt/nvme/tenn/models`; root Ollama store pruned to `qwen2.5:32b` + `gpt-oss:20b-cloud`; inactive Ollama models archived to `.archives/ollama-root-store-2026-04-07`; docs/configs aligned. Validation: docs-heavy workload showed low short-term IO PSI and ~1% `wa` after warm-up. |
 
 ---
 
@@ -102,6 +103,7 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 | b78b2964 | eval | Promote quarterly fixtures + add SEG non-mining fixture |
 | 8db6a212 | extraction-hardening | FX policy doc, quarterly fixture, provenance script |
 | 1d113788 | news-pipeline | Resync Qdrant news_chunks with relevance-ordered primary tickers |
+| (this session) | storage-migration | Runtime data + GGUF models moved to NVMe, inactive root Ollama models archived to HDD, storage/docs/config surfaces aligned, docs-heavy validation no longer reproduced the earlier severe IO pressure. |
 
 ---
 

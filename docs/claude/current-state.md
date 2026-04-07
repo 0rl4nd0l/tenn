@@ -23,7 +23,7 @@ Legacy root launcher scripts are archived under `scripts/archive/legacy_root_202
 | Profile | Behavior |
 |---------|----------|
 | `LOCAL_BACKEND_PROFILE=isolated` (default) | Safe smoke mode. Embeddings/Qdrant/extraction disabled. `/chat` degrades gracefully instead of 500. |
-| `LOCAL_BACKEND_PROFILE=full` | Full local mode. SQLite in `/tmp`, local Qdrant on `127.0.0.1:6333`, local llama.cpp on `127.0.0.1:8001/v1`. `/chat` returns grounded answers when `commentary_chunks` has data. |
+| `LOCAL_BACKEND_PROFILE=full` | Full local mode. Uses configured runtime DB/data roots, local Qdrant on `127.0.0.1:6333`, local llama.cpp on `127.0.0.1:8001/v1`. `/chat` returns grounded answers when `commentary_chunks` has data. |
 
 Cockpit web defaults:
 - Browser UI: `127.0.0.1:8081`
@@ -37,7 +37,16 @@ Cockpit web defaults:
 2. `.env.local` (local overrides; .gitignored, wins over `.env`)
 3. Explicit shell env (wins over both)
 
-Special: local launcher forces `DATA_ROOT` to repo `data/` unless `DATA_ROOT` is explicitly set in shell.
+Special: the launcher reads `.env` first, then `.env.local`, and explicit shell env still wins over both. On this host, the active `.env.local` override points runtime data at `/mnt/nvme/tenn/runtime-data`.
+
+Current host-local overrides (2026-04-07):
+
+- `financial-engine_v2/.env.local` points Tenn runtime data to `/mnt/nvme/tenn/runtime-data`
+- local docs root is `/mnt/nvme/tenn/runtime-data/asx/docs`
+- llama.cpp router models live at `/mnt/nvme/tenn/models`
+- root Ollama keep-set is `qwen2.5:32b` plus `gpt-oss:20b-cloud`
+- inactive root Ollama models are archived at `/mnt/sdb2/home/l4nd0/tenn/.archives/ollama-root-store-2026-04-07`
+- isolated-profile validation may still use `/tmp/financial-engine_v2-fe_local_runtime.db` for a writable runtime DB fallback
 
 ---
 
@@ -139,15 +148,18 @@ Fallback when article_relevance has no rows: single-ticker articles use that tic
 
 ---
 
-## MCP Servers (2026-03-20)
+## MCP Servers (2026-04-03)
 
 | Server | Status | Notes |
 |--------|--------|-------|
 | **qdrant** | Ready | Image built; connects to `127.0.0.1:6333` |
 | **redis** | Ready | Image present; connects to `127.0.0.1:6379` |
-| **playwright** | Ready | Image present; auto-pulls |
-| **github** | Not ready | Needs `GITHUB_PERSONAL_ACCESS_TOKEN` exported |
 | **tenn** | Not ready | Needs `.venv-autodev` with `openclaw` installed |
+| **playwright** | Opt-in | Add to `.mcp.json`; Docker image auto-pulls |
+| **github** | Opt-in | Add to `.mcp.json`; needs `GITHUB_PERSONAL_ACCESS_TOKEN` |
+| **screenpipe** | Opt-in | Mac Screenpipe + tunnel; see [mcp-servers.md](mcp-servers.md) |
+
+Default `.mcp.json` enables **qdrant**, **redis**, and **tenn** only (minimal tool-schema footprint). **github**, **playwright**, **screenpipe**, and generic `npx` demo servers are documented as optional in [mcp-servers.md](mcp-servers.md).
 
 Config: `.mcp.json` (repo root). Full docs: [mcp-servers.md](mcp-servers.md).
 
@@ -158,6 +170,15 @@ Config: `.mcp.json` (repo root). Full docs: [mcp-servers.md](mcp-servers.md).
 - `/chat` now retrieves from both `commentary_chunks` and `news_chunks`. Ticker-scoped queries apply Qdrant payload filter to `news_chunks` when `ticker` param is provided.
 - `commentary_chunks_v2` is optional fallback for commentary. `asx_docs` is NOT the commentary chat collection.
 - Model router active weights: `latency=0.4`, `throughput=0.3`, `error=0.2`, `queue=0.1`, `gpu=0.1`.
-- Checked-in local profile uses `llama3.1:8b` for generation, `nomic-embed-text` for embeddings (Inferred from `docs/architecture/01_system_overview.md`).
+- Current host llama.cpp default model is `qwen3-30b-a3b-instruct`; extraction requests `qwen2.5-14b-instruct` by model name. Local Ollama keep-set is `qwen2.5:32b` plus `gpt-oss:20b-cloud`.
 - OpenClaw config source of truth: `~/.openclaw/openclaw.json` (host-local, not in repo).
 - After committing `scripts/load_news_to_qdrant.py`, re-run the loader to refresh Qdrant with relevance-ordered primary tickers: `python scripts/load_news_to_qdrant.py`.
+
+## Storage Migration Status (2026-04-07)
+
+- Tenn runtime data migrated successfully to `/mnt/nvme/tenn/runtime-data`
+- GGUF router models migrated successfully to `/mnt/nvme/tenn/models`
+- short-term IO pressure during a docs-heavy local validation workload stayed low (`/proc/pressure/io avg10` near zero to low single digits; `vmstat wa` ~1% after warm-up)
+- root Ollama store pruned to keep only `qwen2.5:32b` and `gpt-oss:20b-cloud`
+- archived inactive root Ollama models preserved at `/mnt/sdb2/home/l4nd0/tenn/.archives/ollama-root-store-2026-04-07`
+- host free space after cleanup: roughly `59G` on NVMe

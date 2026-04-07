@@ -41,6 +41,13 @@ Extraction requests the `qwen2.5-14b-instruct` model by name; the server loads i
 demand, evicting the chat model. During the swap window (~78s cold load), HybridRouter
 can fall back to the Anthropic API if `ANTHROPIC_API_KEY` is set and policy allows it.
 
+Operational storage note (2026-04-07):
+
+- runtime data has been migrated to `/mnt/nvme/tenn/runtime-data`
+- llama.cpp GGUF router assets remain on `/mnt/nvme/tenn/models`
+- the separate root Ollama store at `/usr/share/ollama/.ollama/models` is no longer the primary Tenn serving path
+- that Ollama store was pruned to keep only `qwen2.5:32b` and `gpt-oss:20b-cloud`, with inactive models archived under `/mnt/sdb2/home/l4nd0/tenn/.archives/ollama-root-store-2026-04-07`
+
 Operational changes should be made in `model_routing.yaml`, not by editing doc examples.
 
 ## Provider split
