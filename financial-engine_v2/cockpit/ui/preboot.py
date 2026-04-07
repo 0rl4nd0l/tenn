@@ -17,6 +17,7 @@ from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
 from textual.widgets import Button, Checkbox, Collapsible, Label, RichLog, Select, Static
+from textual.css.query import NoMatches
 
 from cockpit.integrations.llamacpp_manager import (
     _extract_arg,
@@ -759,7 +760,11 @@ class PreBootScreen(Screen):
         rag_enabled = self.query_one("#opt-rag", Checkbox).value
         verbose = self.query_one("#opt-verbose", Checkbox).value
         profile = str(self.query_one("#opt-profile", Select).value or LAUNCH_PROFILES[0][1])
-        routing_val = self.query_one("#opt-routing", Select).value
+        routing_val = None
+        try:
+            routing_val = self.query_one("#opt-routing", Select).value
+        except (NoMatches, KeyError):
+            routing_val = None
         policy = str(routing_val) if routing_val is not None and str(routing_val) != "Select.BLANK" else None
         env = dict(PROFILE_FLAGS.get(profile, {}).get("env", {}))
         if verbose:

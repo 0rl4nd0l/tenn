@@ -58,7 +58,12 @@ PORT="${LLAMA_SERVER_PORT:-8001}"
 
 if [[ ! -x "${BIN_PATH}" ]]; then
   echo "llama-server binary not found at ${BIN_PATH}" >&2
+  echo "Build llama.cpp first (e.g. scripts/build_llama_cpp.sh) or set LLAMA_SERVER_BIN to a valid executable path." >&2
   exit 1
+fi
+
+if [[ -n "${HTTPS_PROXY:-${https_proxy:-}}" ]] || [[ -n "${HTTP_PROXY:-${http_proxy:-}}" ]]; then
+  echo "[llama-server] NOTE: proxy environment detected. If HF downloads fail, configure allow-list/auth in your proxy." >&2
 fi
 
 if [[ -n "${HF_MODEL}" ]]; then
@@ -109,6 +114,11 @@ cmd=(
   --spec-type ngram-simple
 )
 
+supports_flag() {
+  local flag="$1"
+  "${BIN_PATH}" --help 2>&1 | grep -q -- "${flag}"
+}
+
 # Router mode (DEFAULT): --models-dir serves all GGUFs in a directory,
 # loading one at a time (--models-max 1). Clients select model per-request.
 # Set LLAMA_SERVER_ROUTER_MODE=0 to fall back to single-model mode.
@@ -142,7 +152,21 @@ fi
 if [[ "${ROUTER_MODE}" != "1" ]]; then
   # Single-model fallback (set LLAMA_SERVER_ROUTER_MODE=0 to use).
   if [[ -n "${HF_MODEL}" ]]; then
-    cmd+=(--hf "${HF_MODEL}")
+    if supports_flag "--hf"; then
+      cmd+=(--hf "${HF_MODEL}")
+      if [[ -z "${HF_TOKEN:-${HUGGING_FACE_HUB_TOKEN:-${HF_HUB_TOKEN:-}}}" ]]; then
+        echo "[llama-server] WARNING: no HF token detected (HF_TOKEN / HUGGING_FACE_HUB_TOKEN / HF_HUB_TOKEN)." >&2
+        echo "[llama-server] Public models may still work; private or gated repos require a token." >&2
+      fi
+    else
+      echo "[llama-server] WARNING: --hf is not supported by this llama-server build; falling back to local GGUF mode (-m)." >&2
+      if [[ ! -f "${MODEL_PATH}" ]]; then
+        echo "[llama-server] HF fallback failed: local model not found at ${MODEL_PATH}" >&2
+        echo "[llama-server] Action: either upgrade llama-server to a build with --hf support, or set LLAMA_SERVER_MODEL to an existing local GGUF." >&2
+        exit 1
+      fi
+      cmd+=(-m "${MODEL_PATH}")
+    fi
   else
     cmd+=(-m "${MODEL_PATH}")
   fi
@@ -170,5 +194,9 @@ echo "[llama-server] PROFILE=${PROFILE}"
 echo "[llama-server] HOST=${HOST}"
 echo "[llama-server] PORT=${PORT}"
 cmd+=(--parallel 1)
+
+if [[ -n "${HF_MODEL}" ]]; then
+  echo "[llama-server] If startup fails with network/auth errors, check: (1) HF token scope, (2) proxy allow-list, (3) repo access permissions." >&2
+fi
 
 exec "${cmd[@]}"
