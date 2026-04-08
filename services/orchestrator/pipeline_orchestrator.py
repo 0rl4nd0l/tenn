@@ -28,11 +28,25 @@ METHOD_COST = {
     "financial_metrics_pdftotext": 1.0,
     "financial_metrics_docling": 4.0,
 }
+DEFAULT_LEARNING_LOOP_ENABLED = False
+DEFAULT_FAST_PATH_ENABLED = True
+DEFAULT_SLOW_PATH_ENABLED = True
+DEFAULT_REVIEW_INTERVAL = 5
+DEFAULT_MIN_SAMPLE_COUNT = 5
+PREFERENCES_PATH = REPO_ROOT / "services" / "extraction" / "routing_preferences.json"
+SKILL_PATH = REPO_ROOT / "services" / "extraction" / "extraction_skill.md"
 
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from services.evaluation.confidence import CONFIDENCE_THRESHOLD
+from services.extraction.routing_preferences import (
+    load_preferences,
+    save_preferences,
+    snapshot_preferences,
+)
+from services.extraction.preference_updater import update_preferences
+from services.extraction.skill_reviewer import should_review, snapshot_skill
 
 
 def _utc_now() -> str:
@@ -545,6 +559,42 @@ class PipelineOrchestrator:
         if "fallback_rate" not in report:
             raise RuntimeError("ERROR_MISSING_FALLBACK_METRICS")
 
+    def _extract_method_accuracies(
+        self, full_payload: Mapping[str, Any], datasets: DatasetSelection
+    ) -> dict[str, dict[str, float]]:
+        """Extract per-doc-type, per-method accuracy from full benchmark results."""
+        accum: dict[str, dict[str, list[float]]] = {}
+        for doc in full_payload.get("documents") or []:
+            if not isinstance(doc, Mapping):
+                continue
+            pdf_path = doc.get("pdf")
+            if not pdf_path:
+                continue
+            doc_type = _dataset_type_from_pdf(Path(str(pdf_path)))
+            method_payloads = dict(doc.get("methods") or {})
+            for method_name, payload in method_payloads.items():
+                if not isinstance(payload, Mapping):
+                    continue
+                score = payload.get("score")
+                if not isinstance(score, Mapping):
+                    continue
+                if str(score.get("status") or "") != "SUCCESS":
+                    continue
+                aggregate = score.get("aggregate")
+                if not isinstance(aggregate, Mapping):
+                    continue
+                accuracy = _safe_float(aggregate.get("accuracy"))
+                bucket = accum.setdefault(doc_type, {})
+                bucket.setdefault(method_name, []).append(accuracy)
+        result: dict[str, dict[str, float]] = {}
+        for doc_type, methods in accum.items():
+            result[doc_type] = {
+                method: round(sum(values) / len(values), 6)
+                for method, values in methods.items()
+                if values
+            }
+        return result
+
     def run(self, config: dict) -> dict:
         mode = _mode_name(config.get("mode"))
         ground_truth = Path(str(config.get("ground_truth") or DEFAULT_GROUND_TRUTH)).expanduser().resolve()
@@ -652,6 +702,47 @@ class PipelineOrchestrator:
                 "routed_runs_dir": str(routed_runs),
             },
         }
+
+        # --- Learning Loop ---
+        learning_config = config.get("learning_loop") or {}
+        if learning_config.get("enabled", DEFAULT_LEARNING_LOOP_ENABLED):
+            fast_path_config = learning_config.get("fast_path") or {}
+            if fast_path_config.get("enabled", DEFAULT_FAST_PATH_ENABLED):
+                self._log("learning_loop", "fast_path", "updating_preferences")
+                prefs_path = Path(str(
+                    fast_path_config.get("preferences_file") or PREFERENCES_PATH
+                ))
+                current_prefs = load_preferences(prefs_path)
+                snapshot_preferences(prefs_path)
+                method_accuracies = self._extract_method_accuracies(
+                    full_payload, selection
+                )
+                new_prefs = update_preferences(
+                    assessment_report=evaluation,
+                    method_accuracies=method_accuracies,
+                    current_prefs=current_prefs,
+                    min_sample_count=int(
+                        fast_path_config.get("min_sample_count", DEFAULT_MIN_SAMPLE_COUNT)
+                    ),
+                )
+                save_preferences(prefs_path, new_prefs)
+                report["learning_loop"] = {"fast_path": "updated"}
+
+            slow_path_config = learning_config.get("slow_path") or {}
+            if slow_path_config.get("enabled", DEFAULT_SLOW_PATH_ENABLED):
+                review_interval = int(
+                    slow_path_config.get("review_interval", DEFAULT_REVIEW_INTERVAL)
+                )
+                runs_since = int(learning_config.get("_runs_since_review", 0))
+                if should_review(runs_since, review_interval):
+                    self._log("learning_loop", "slow_path", "review_triggered")
+                    skill_path = Path(str(
+                        slow_path_config.get("skill_file") or SKILL_PATH
+                    ))
+                    snapshot_skill(skill_path)
+                    report.setdefault("learning_loop", {})["slow_path"] = "review_triggered"
+                else:
+                    report.setdefault("learning_loop", {})["slow_path"] = "skipped"
 
         if mode == "BATCH_RUN":
             self._enforce_batch_requirements(report)
