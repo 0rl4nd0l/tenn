@@ -147,6 +147,13 @@ export async function streamChat(params: {
     source.close()
   })
 
+  try {
+    source.stream()
+  } catch (err) {
+    params.onError(err)
+    source.close()
+  }
+
   return source
 }
 
