@@ -1391,15 +1391,11 @@ function normalizeOutcomeSnippet(value: string): string | null {
 
 function isWeakOutcomeSnippet(value: string): boolean {
   const normalized = value.trim().toLowerCase();
-  const looksLikeSingleCommandOutput = /^\d+(?:\.\d+)?[kmgtp]?\s+\S+$/i.test(value.trim());
   return (
-    looksLikeSingleCommandOutput ||
-    normalized.startsWith("$ ") ||
     normalized.includes("execution plan") ||
     normalized.includes("starting with repo constraints") ||
     normalized.includes("without that, i'd be guessing") ||
-    normalized.includes("without that, i would be guessing") ||
-    normalized.includes("reading the")
+    normalized.includes("without that, i would be guessing")
   );
 }
 
