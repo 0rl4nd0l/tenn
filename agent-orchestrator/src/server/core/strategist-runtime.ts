@@ -114,7 +114,7 @@ function pickRuntime(
       ? preferredRuntimeOverride
       : inputPreferredRuntime(capabilities, configuredRuntime);
   const capability = capabilities.find((candidate) => candidate.runtime === preferredRuntime);
-  if (!capability || capability.installStatus !== "installed" || capability.authStatus !== "authenticated" || !capability.command) {
+  if (!capability || capability.installStatus !== "installed" || capability.authStatus === "logged_out" || !capability.command) {
     return null;
   }
   return {
