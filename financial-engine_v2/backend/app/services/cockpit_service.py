@@ -101,11 +101,13 @@ class CockpitService:
         message: str, 
         ticker: str | None = None, 
         session_id: str | None = None,
-        on_chunk: Callable[[str], None] | None = None
+        on_chunk: Callable[[str], None] | None = None,
+        on_status: Callable[[str], None] | None = None,
     ) -> ChatResponse:
         """Run a chat turn and return the full response, while optionally streaming chunks."""
         return self.chat_controller.build_chat_response(
             message=message,
             prior_ticker=ticker,
             on_chunk=on_chunk,
+            on_status=on_status,
         )

@@ -1087,6 +1087,7 @@ class ChatController:
         enable_web: bool,
         prior_ticker: str | None,
         on_chunk,
+        on_status,
         analysis_mode: str | None,
     ) -> ChatResponse:
         """Run the agentic tool-calling loop and convert the result to a ChatResponse."""
@@ -1137,6 +1138,7 @@ class ChatController:
             ticker=ticker,
             conversation_history=conversation_history,
             on_chunk=on_chunk,
+            on_status=on_status,
         )
 
         # Capture routing metadata from HybridRouter's cost log.
@@ -1201,6 +1203,7 @@ class ChatController:
         enable_web: bool = False,
         prior_ticker: str | None = None,
         on_chunk=None,
+        on_status=None,
         analysis_mode: str | None = None,
         context_profile: str | None = None,
     ) -> ChatResponse:
@@ -1323,7 +1326,7 @@ class ChatController:
             # ------------------------------------------------------------------ #
             agent_mode = os.environ.get("COCKPIT_AGENT_MODE", "structured")
             if agent_mode == "structured" and self._agent_loop is not None:
-                return self._run_agent_loop(message, enable_web, prior_ticker, on_chunk, analysis_mode)
+                return self._run_agent_loop(message, enable_web, prior_ticker, on_chunk, on_status, analysis_mode)
 
         # ------------------------------------------------------------------ #
         # Keyword router (legacy path — explicit opt-in or action fallthrough) #

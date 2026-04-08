@@ -189,6 +189,10 @@ export function CockpitSidebar({
     if (gpus.length === 0) return gpuHealth?.error ?? 'unavailable'
     const first = gpus[0]
     const name = typeof first.name === 'string' ? first.name : 'GPU'
+    const temp =
+      typeof first.temp_c === 'number'
+        ? `${Math.round(first.temp_c)}C`
+        : null
     const util =
       typeof first.util_percent === 'number'
         ? `${Math.round(first.util_percent)}%`
@@ -196,7 +200,7 @@ export function CockpitSidebar({
     const used = typeof first.mem_used_mib === 'number' ? Math.round(first.mem_used_mib) : null
     const total = typeof first.mem_total_mib === 'number' ? Math.round(first.mem_total_mib) : null
     const mem = used !== null && total !== null ? `${used}/${total} MiB` : 'n/a'
-    return `${name} ${util} ${mem}`
+    return `${name}${temp ? ` ${temp}` : ''} ${util} ${mem}`
   }, [gpuHealth])
 
   const gpuHealthy = gpuHealth?.status === 'healthy'

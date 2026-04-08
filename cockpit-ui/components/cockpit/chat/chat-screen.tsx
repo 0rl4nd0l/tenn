@@ -14,6 +14,7 @@ export function ChatScreen() {
   const [messages, setMessages] = useState<ChatMessageType[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingContent, setStreamingContent] = useState('')
+  const [streamingStatus, setStreamingStatus] = useState('Preparing request')
   const [streamingMetadata, setStreamingMetadata] = useState<Partial<ChatMessageType>>({})
   
   const { activeTicker, sessionId, chatModel, addCost, setLatency, setActiveModel } = useCockpitStore()
@@ -45,6 +46,7 @@ export function ChatScreen() {
 
     setIsStreaming(true)
     setStreamingContent('')
+    setStreamingStatus('Preparing request')
     setStreamingMetadata({})
 
     // Slash command handling
@@ -97,6 +99,11 @@ export function ChatScreen() {
           case 'chunk':
             currentContent += event.data.text
             setStreamingContent(currentContent)
+            break
+          case 'status':
+            if (typeof event.data?.stage === 'string' && event.data.stage.trim().length > 0) {
+              setStreamingStatus(event.data.stage)
+            }
             break
           case 'tool_trace':
             currentMetadata.toolTraces = [...(currentMetadata.toolTraces || []), {
@@ -151,6 +158,7 @@ export function ChatScreen() {
             
             setMessages(prev => [...prev, assistantMessage])
             setStreamingContent('')
+            setStreamingStatus('')
             setStreamingMetadata({})
             setIsStreaming(false)
             break
@@ -158,9 +166,11 @@ export function ChatScreen() {
       },
       onError: (err) => {
         toast.error('Streaming error: ' + (err?.data || 'Connection lost'))
+        setStreamingStatus('')
         setIsStreaming(false)
       },
       onEnd: () => {
+        setStreamingStatus('')
         setIsStreaming(false)
       }
     })
@@ -240,21 +250,29 @@ export function ChatScreen() {
             />
           ))}
           {isStreaming && streamingContent && (
-            <TerminalMessage 
-              message={{
-                id: 'streaming',
-                role: 'assistant',
-                content: streamingContent,
-                timestamp: new Date(),
-                ...streamingMetadata
-              }} 
-              isStreaming={true}
-            />
+            <div className="space-y-2">
+              {streamingStatus && (
+                <div className="flex items-center gap-2 text-blue-400/70 font-mono text-xs pl-1">
+                  <span className="terminal-cursor" />
+                  <span>Stage: {streamingStatus}</span>
+                </div>
+              )}
+              <TerminalMessage 
+                message={{
+                  id: 'streaming',
+                  role: 'assistant',
+                  content: streamingContent,
+                  timestamp: new Date(),
+                  ...streamingMetadata
+                }} 
+                isStreaming={true}
+              />
+            </div>
           )}
           {isStreaming && !streamingContent && (
             <div className="flex items-center gap-2 text-blue-400/60 font-mono text-sm">
               <span className="terminal-cursor" />
-              <span>Analyzing market data...</span>
+              <span>{streamingStatus || 'Preparing request...'}</span>
             </div>
           )}
         </div>

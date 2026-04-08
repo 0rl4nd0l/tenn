@@ -176,6 +176,7 @@ class AgentLoop:
         ticker: str | None = None,
         conversation_history: list[dict] | None = None,
         on_chunk: Callable[[str], None] | None = None,
+        on_status: Callable[[str], None] | None = None,
     ) -> AgentResult:
         """Run the agent loop for a single user turn.
 
@@ -188,7 +189,7 @@ class AgentLoop:
         force_backend, message = parse_backend_prefix(message)
         self._turn_force_backend = force_backend
         try:
-            return self._run_inner(message, ticker, conversation_history, on_chunk)
+            return self._run_inner(message, ticker, conversation_history, on_chunk, on_status)
         finally:
             self._turn_force_backend = None
 
@@ -198,6 +199,7 @@ class AgentLoop:
         ticker: str | None,
         conversation_history: list[dict] | None,
         on_chunk: Callable[[str], None] | None,
+        on_status: Callable[[str], None] | None,
     ) -> AgentResult:
         system_prompt = self._build_system_prompt()
         messages: list[dict[str, str]] = [
@@ -221,6 +223,11 @@ class AgentLoop:
         for iteration in range(self.MAX_ITERATIONS):
             # --- Context window guard ---
             self._maybe_summarize_old_results(messages)
+            if on_status:
+                on_status(
+                    f"LLM reasoning pass {iteration + 1}: "
+                    + ("planning tool usage" if not evidence else "synthesizing from tool results")
+                )
 
             # --- LLM call (non-streaming; we need the full response for JSON parsing) ---
             try:
@@ -240,6 +247,8 @@ class AgentLoop:
 
             # --- Direct response ---
             if parsed.type == "response":
+                if on_status:
+                    on_status("Rendering final answer")
                 if self._looks_like_json_non_answer(raw_response, parsed, evidence):
                     messages.append({"role": "assistant", "content": raw_response})
                     if evidence:
@@ -308,6 +317,12 @@ class AgentLoop:
                 for call in calls:
                     tool_name = call.get("tool", "unknown")
                     arguments = call.get("arguments") or {}
+                    if on_status:
+                        arg_bits = [f"{k}={v}" for k, v in list(arguments.items())[:3]]
+                        on_status(
+                            f"Executing tool: {tool_name}"
+                            + (f" ({', '.join(arg_bits)})" if arg_bits else "")
+                        )
                     t0 = time.perf_counter()
                     result = self._execute_tool(tool_name, arguments)
                     elapsed_ms = (time.perf_counter() - t0) * 1000.0
@@ -344,6 +359,8 @@ class AgentLoop:
                     # don't support the "tool" role natively.
                     messages.append({"role": "user", "content": formatted})
 
+                if on_status:
+                    on_status("Tool execution complete; synthesizing final answer")
                 continue  # Next iteration with tool results in context.
 
             # Unknown type — treat as a response (defensive).

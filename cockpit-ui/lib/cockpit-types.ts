@@ -155,6 +155,7 @@ export interface RagResult {
 // SSE Event Types
 export type SSEEventType = 
   | 'chunk'
+  | 'status'
   | 'sources'
   | 'action_preview'
   | 'tool_trace'

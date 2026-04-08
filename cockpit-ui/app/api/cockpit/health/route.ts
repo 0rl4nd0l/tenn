@@ -19,7 +19,7 @@ async function probeHostGpu(): Promise<ServiceHealth> {
   const start = Date.now()
   try {
     const { stdout } = await execFileAsync('nvidia-smi', [
-      '--query-gpu=name,utilization.gpu,memory.used,memory.total',
+      '--query-gpu=name,temperature.gpu,utilization.gpu,memory.used,memory.total',
       '--format=csv,noheader,nounits',
     ], { timeout: 3000 })
 
@@ -40,13 +40,15 @@ async function probeHostGpu(): Promise<ServiceHealth> {
     const gpus = lines
       .map((line) => {
         const parts = line.split(',').map((part) => part.trim())
-        if (parts.length < 4) return null
-        const [name, utilRaw, usedRaw, totalRaw] = parts
+        if (parts.length < 5) return null
+        const [name, tempRaw, utilRaw, usedRaw, totalRaw] = parts
+        const temp = Number(tempRaw)
         const util = Number(utilRaw)
         const used = Number(usedRaw)
         const total = Number(totalRaw)
         return {
           name: name || 'GPU',
+          temp_c: Number.isFinite(temp) ? temp : null,
           util_percent: Number.isFinite(util) ? util : null,
           mem_used_mib: Number.isFinite(used) ? used : null,
           mem_total_mib: Number.isFinite(total) ? total : null,

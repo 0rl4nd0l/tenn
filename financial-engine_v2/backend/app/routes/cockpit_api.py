@@ -90,7 +90,7 @@ def _probe_gpu() -> ServiceHealthItem:
         result = subprocess.run(
             [
                 "nvidia-smi",
-                "--query-gpu=name,utilization.gpu,memory.used,memory.total",
+                "--query-gpu=name,temperature.gpu,utilization.gpu,memory.used,memory.total",
                 "--format=csv,noheader,nounits",
             ],
             capture_output=True,
@@ -127,9 +127,13 @@ def _probe_gpu() -> ServiceHealthItem:
     gpus: list[dict[str, Any]] = []
     for line in lines:
         parts = [part.strip() for part in line.split(",")]
-        if len(parts) < 4:
+        if len(parts) < 5:
             continue
-        name, util_raw, used_raw, total_raw = parts[:4]
+        name, temp_raw, util_raw, used_raw, total_raw = parts[:5]
+        try:
+            temp = float(temp_raw)
+        except ValueError:
+            temp = None
         try:
             util = float(util_raw)
         except ValueError:
@@ -143,6 +147,7 @@ def _probe_gpu() -> ServiceHealthItem:
         gpus.append(
             {
                 "name": name or "GPU",
+                "temp_c": temp,
                 "util_percent": util,
                 "mem_used_mib": used,
                 "mem_total_mib": total,
@@ -447,8 +452,12 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
             # This runs in the LLM thread (from ChatController)
             loop.call_soon_threadsafe(queue.put_nowait, {"type": "chunk", "data": {"text": chunk}})
 
+        def on_status(stage: str):
+            loop.call_soon_threadsafe(queue.put_nowait, {"type": "status", "data": {"stage": stage}})
+
         async def run_chat():
             try:
+                await queue.put({"type": "status", "data": {"stage": "Resolving request context"}})
                 # ChatController.build_chat_response is synchronous and blocking.
                 # We run it in a thread to keep the event loop free.
                 response = await asyncio.to_thread(
@@ -456,7 +465,8 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     message=payload.message,
                     ticker=payload.ticker,
                     session_id=payload.session_id,
-                    on_chunk=on_chunk
+                    on_chunk=on_chunk,
+                    on_status=on_status,
                 )
                 
                 # After streaming finishes, send metadata and final state

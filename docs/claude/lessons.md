@@ -497,3 +497,12 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The first cleanup pass still trusted wrapper-process matching too much. On this host, `lsof` returned no PID for the lingering listener, so the script never fell back to `ss`, and killing the wrapper shell alone did not kill the orphaned `next-server`.
 **Fix:** Changed listener discovery to fall back from `lsof` to `ss` when `lsof` returns no PIDs, and re-ran listener cleanup after wrapper-process kills. Verified against a live orphaned `next-server` on `:8081`: `cockpit kill root` now kills the bound listener and leaves the port clear.
 **Rule:** For launcher cleanup, the bound port is the ground truth. Process-pattern kills are only heuristic; always re-check the actual listener and use a second source (`ss`) when the first source (`lsof`) misses it.
+
+## L047 — Streamed chat UX must expose execution stages, not just final text
+
+**Date:** 2026-04-08
+**Subsystem:** `backend/app/routes/cockpit_api.py`, `cockpit/core/agent_loop.py`, `cockpit-ui/components/cockpit/chat/chat-screen.tsx`
+**Symptom:** The web chat sat on a vague `Analyzing market data...` placeholder for most of a turn, giving no real indication whether it was planning, executing tools, or synthesizing an answer.
+**Root cause:** The SSE route only emitted final content chunks and late tool traces. The frontend had no structured stage signal to render while the backend agent loop was still working.
+**Fix:** Added explicit `status` SSE events from the backend route and agent loop for request-context resolution, reasoning passes, tool execution, and final-answer rendering. The Next.js chat screen now displays the live stage string instead of a generic placeholder, even before final text begins streaming.
+**Rule:** For long-running streamed chat, progress must come from structured backend stage events. Do not rely on token output timing or a generic spinner to explain execution state.
