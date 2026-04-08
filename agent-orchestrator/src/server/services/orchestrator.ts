@@ -707,15 +707,16 @@ export class OrchestratorService extends EventEmitter {
     }
   ): void {
     if (shouldBypassNativeStrategist(input.message, runContext.createdTaskIds.length > 0)) {
+      const deterministicReply = buildDeterministicChatReply(input.message, input.fallbackReply);
       this.store.appendConversationMessage(this.goalId, {
         id: createId("msg"),
         role: "assistant",
-        content: input.fallbackReply,
+        content: deterministicReply,
         createdAt: nowIso()
       });
       this.strategistStreams.publish(runContext.runId, "assistant.completed", {
         runId: runContext.runId,
-        reply: input.fallbackReply,
+        reply: deterministicReply,
         rootTaskId: runContext.rootTaskId,
         createdTaskIds: runContext.createdTaskIds,
         mode: "deterministic"
@@ -804,7 +805,24 @@ function shouldBypassNativeStrategist(message: string, hasDelegatedWork: boolean
     return false;
   }
   const normalized = message.trim().toLowerCase();
-  return /^(hi|hello|hey|yo|sup|how are you|how r u|wyd|thanks|thank you|ok|okay)\b/.test(normalized);
+  return /^(hi|hello|hey|yo|sup|how are you|how r u|wyd|thanks|thank you|ok|okay)\b/.test(normalized) || normalized.length <= 2;
+}
+
+function buildDeterministicChatReply(message: string, fallbackReply: string): string {
+  const normalized = message.trim().toLowerCase();
+  if (/^(hi|hello|hey|yo|sup)\b/.test(normalized)) {
+    return "Hi. Talk to me normally here. If something needs real execution, I’ll turn it into delegated work and show it as it starts.";
+  }
+  if (/^(how are you|how r u|wyd)\b/.test(normalized)) {
+    return "I’m here and ready. Ask a question, describe a goal, or tell me what you want done.";
+  }
+  if (/^(thanks|thank you|ok|okay)\b/.test(normalized)) {
+    return "Understood.";
+  }
+  if (normalized.length <= 2) {
+    return "Need a bit more than that. Ask a question or describe the goal and I’ll handle it from there.";
+  }
+  return fallbackReply;
 }
 
 function makeEvent(
