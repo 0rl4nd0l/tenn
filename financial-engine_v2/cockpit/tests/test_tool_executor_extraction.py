@@ -162,6 +162,33 @@ class TestWithExtractionController:
         assert result["action_id"] == "single_ticker_announcement_backfill"
 
 
+class TestSearchNewsTickerInference:
+    def test_search_news_infers_ticker_from_query_when_missing(self):
+        executor = _make_executor()
+        executor._router.get_news_context.return_value = {"ok": True, "hits": []}
+
+        result = executor.execute("search_news", {"query": "bhp news", "limit": 5})
+
+        assert result["ok"] is True
+        executor._router.get_news_context.assert_called_once_with(
+            query="bhp news",
+            top_k=5,
+            ticker="BHP",
+        )
+
+    def test_search_news_does_not_treat_market_news_as_ticker(self):
+        executor = _make_executor()
+        executor._router.get_news_context.return_value = {"ok": True, "hits": []}
+
+        executor.execute("search_news", {"query": "market news", "limit": 5})
+
+        executor._router.get_news_context.assert_called_once_with(
+            query="market news",
+            top_k=5,
+            ticker=None,
+        )
+
+
 # ---------------------------------------------------------------------------
 # ExtractionController.validate() unit tests
 # ---------------------------------------------------------------------------

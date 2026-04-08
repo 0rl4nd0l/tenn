@@ -68,6 +68,34 @@ class LlamaCppClient:
         return headers
 
     @staticmethod
+    def _extract_choice_content(choice: dict | None) -> str:
+        if not isinstance(choice, dict):
+            return ""
+        delta = choice.get("delta")
+        if isinstance(delta, dict):
+            content = delta.get("content")
+            if isinstance(content, str) and content:
+                return content
+        message = choice.get("message")
+        if isinstance(message, dict):
+            content = message.get("content")
+            if isinstance(content, str) and content:
+                return content
+            if isinstance(content, list):
+                parts = [
+                    str(item.get("text") or "")
+                    for item in content
+                    if isinstance(item, dict) and item.get("type") == "text"
+                ]
+                joined = "".join(parts).strip()
+                if joined:
+                    return joined
+        content = choice.get("text")
+        if isinstance(content, str) and content:
+            return content
+        return ""
+
+    @staticmethod
     def _error_body_preview(response: httpx.Response | None, limit: int = 300) -> str:
         if response is None:
             return ""
@@ -125,7 +153,7 @@ class LlamaCppClient:
                     except json.JSONDecodeError:
                         continue
                     choices = payload.get("choices") or []
-                    chunk = (choices[0].get("delta", {}) if choices else {}).get("content") or ""
+                    chunk = self._extract_choice_content(choices[0] if choices else None)
                     if chunk:
                         parts.append(chunk)
                         if on_chunk is not None:
@@ -145,8 +173,53 @@ class LlamaCppClient:
             ) from exc
 
         if not parts:
+            fallback = self._retry_non_stream_completion(
+                url=url,
+                headers=headers,
+                timeout=stream_timeout,
+                messages=messages,
+            )
+            if fallback:
+                if on_chunk is not None:
+                    on_chunk(fallback)
+                return fallback
             raise RuntimeError(f"llama.cpp returned no content from {url}")
         return "".join(parts)
+
+    def _retry_non_stream_completion(
+        self,
+        *,
+        url: str,
+        headers: dict[str, str],
+        timeout: httpx.Timeout,
+        messages: list[dict[str, str]],
+    ) -> str:
+        response: httpx.Response | None = None
+        try:
+            response = self._http_client().post(
+                url,
+                headers=headers,
+                timeout=timeout,
+                json={
+                    "model": self.model,
+                    "messages": messages,
+                    "stream": False,
+                    "chat_template_kwargs": {"enable_thinking": False},
+                },
+            )
+            response.raise_for_status()
+            payload = response.json() if response.content else {}
+            choices = payload.get("choices") or []
+            return self._extract_choice_content(choices[0] if choices else None)
+        except httpx.HTTPStatusError as exc:
+            body = self._error_body_preview(exc.response)
+            raise RuntimeError(
+                f"llama.cpp request failed ({exc.response.status_code}) at {url}: {body}"
+            ) from exc
+        except (httpx.ConnectError, httpx.TimeoutException):
+            return ""
+        except Exception:
+            return ""
 
     @staticmethod
     def _normalize_base_url(raw: str) -> str:

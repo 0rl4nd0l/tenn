@@ -93,12 +93,56 @@ class _HeaderCaptureClient:
         return _StreamingErrorResponse(401, "Invalid or missing API key")
 
 
+class _EmptyStreamingResponse:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        return None
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def iter_lines(self):
+        return iter(())
+
+
+class _NonStreamingSuccessResponse:
+    def __init__(self, payload: dict) -> None:
+        self.content = str(payload).encode("utf-8")
+        self._payload = payload
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def json(self) -> dict:
+        return self._payload
+
+
+class _EmptyStreamFallbackClient:
+    def stream(self, *args, **kwargs):  # noqa: ANN002, ANN003
+        return _EmptyStreamingResponse()
+
+    def post(self, url, headers=None, timeout=None, json=None):  # noqa: ANN001
+        return _NonStreamingSuccessResponse(
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": '{"type":"response","content":"fallback answer"}',
+                        }
+                    }
+                ]
+            }
+        )
+
+
 class StreamingClientErrorTests(unittest.TestCase):
     def test_ollama_streaming_http_error_uses_response_body(self) -> None:
         import cockpit.integrations.ollama_client as ollama_module
 
         original_client = ollama_module.httpx.Client
-        ollama_module.httpx.Client = lambda timeout=120.0: _FakeClient(  # type: ignore[assignment]
+        ollama_module.httpx.Client = lambda *args, **kwargs: _FakeClient(  # type: ignore[assignment]
             _StreamingErrorResponse(503, "upstream unavailable")
         )
         try:
@@ -116,7 +160,7 @@ class StreamingClientErrorTests(unittest.TestCase):
         import cockpit.integrations.llamacpp_client as llamacpp_module
 
         original_client = llamacpp_module.httpx.Client
-        llamacpp_module.httpx.Client = lambda timeout=120.0: _FakeClient(  # type: ignore[assignment]
+        llamacpp_module.httpx.Client = lambda *args, **kwargs: _FakeClient(  # type: ignore[assignment]
             _StreamingErrorResponse(502, "gateway failure")
         )
         try:
@@ -135,7 +179,7 @@ class StreamingClientErrorTests(unittest.TestCase):
 
         capture: dict[str, dict] = {}
         original_client = llamacpp_module.httpx.Client
-        llamacpp_module.httpx.Client = lambda timeout=120.0: _HeaderCaptureClient(capture)  # type: ignore[assignment]
+        llamacpp_module.httpx.Client = lambda *args, **kwargs: _HeaderCaptureClient(capture)  # type: ignore[assignment]
         try:
             with mock.patch.dict(
                 os.environ,
@@ -158,6 +202,19 @@ class StreamingClientErrorTests(unittest.TestCase):
         self.assertEqual(capture["stream"]["headers"]["Authorization"], "Bearer llm-token")
         self.assertEqual(capture["stream"]["headers"]["X-LLM-Auth"], "extra-value")
         self.assertIn("Verify LLM_API_KEY / LLM_AUTH_HEADER", str(ctx.exception))
+
+    def test_llamacpp_empty_stream_retries_non_stream_completion(self) -> None:
+        import cockpit.integrations.llamacpp_client as llamacpp_module
+
+        original_client = llamacpp_module.httpx.Client
+        llamacpp_module.httpx.Client = lambda timeout=None, limits=None: _EmptyStreamFallbackClient()  # type: ignore[assignment]
+        try:
+            client = LlamaCppClient("http://localhost:8001", "model")
+            result = client.chat("hello")
+        finally:
+            llamacpp_module.httpx.Client = original_client  # type: ignore[assignment]
+
+        self.assertEqual(result, '{"type":"response","content":"fallback answer"}')
 
 
 if __name__ == "__main__":
