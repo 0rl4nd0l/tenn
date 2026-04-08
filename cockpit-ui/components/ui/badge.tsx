@@ -15,6 +15,8 @@ const badgeVariants = cva(
           'border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90',
         destructive:
           'border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
+        critical:
+          'border-destructive/70 bg-destructive/15 text-destructive shadow-[0_0_0_1px_color-mix(in_oklch,var(--destructive)_55%,transparent)] [a&]:hover:bg-destructive/25',
         outline:
           'text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground',
       },

@@ -1,6 +1,7 @@
 import type {
   ChatResponse,
   HealthResponse,
+  ServiceHealth,
   SystemStatus,
   QueueStatus,
   RagResult
@@ -69,6 +70,16 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 /** Health check – GET /api/cockpit/health (aggregated) */
 export async function checkHealth(): Promise<HealthResponse> {
   return apiFetch<HealthResponse>("/api/cockpit/health")
+}
+
+export function isHealthyService(service?: ServiceHealth): boolean {
+  return service?.status === 'healthy'
+}
+
+export function isBackendHealthy(health?: HealthResponse): boolean {
+  const backendService = health?.services?.find((service) => service.name === 'backend')
+  if (backendService) return isHealthyService(backendService)
+  return health?.status === 'healthy'
 }
 
 /** Send a chat message (blocking) – POST /api/cockpit/chat */
@@ -140,7 +151,7 @@ export async function streamChat(params: {
 }
 
 /** System config – GET /api/cockpit/config */
-export async function getSystemStatus(apiKey?: string): Promise<SystemStatus> {
+export async function getSystemStatus(): Promise<SystemStatus> {
   return apiFetch<SystemStatus>("/api/cockpit/config")
 }
 

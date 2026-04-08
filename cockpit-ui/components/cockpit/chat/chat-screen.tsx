@@ -81,7 +81,7 @@ export function ChatScreen() {
 
     // Normal chat with streaming
     let currentContent = ''
-    let currentMetadata: Partial<ChatMessageType> = {
+    const currentMetadata: Partial<ChatMessageType> = {
       toolTraces: [],
       sources: []
     }

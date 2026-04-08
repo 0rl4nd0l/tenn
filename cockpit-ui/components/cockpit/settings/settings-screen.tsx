@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
@@ -80,7 +80,7 @@ interface ConfigState {
 
 const DEFAULTS: ConfigState = {
   llm: {
-    model: 'Qwen3-30B-A3B-Instruct-2507-Q3_K_M',
+    model: 'qwen3-14b-q4_k_m',
     endpoint: 'http://localhost:8001',
     routingPolicy: 'local-first',
     maxTokens: 4096,
@@ -194,11 +194,11 @@ export function SettingsScreen() {
             Read-only view of cockpit configuration and capabilities
           </p>
           <div className="flex items-center gap-2 mt-2">
-            <Badge variant={backendOnline ? 'default' : 'secondary'} className="text-xs">
-              {backendOnline ? 'Backend Online' : 'Backend Offline'}
+            <Badge variant={backendOnline ? 'default' : 'critical'} className="text-xs font-mono">
+              {backendOnline ? 'BACKEND RUNNING' : 'BACKEND DOWN'}
             </Badge>
             {error && (
-              <Badge variant="destructive" className="text-xs">{error}</Badge>
+              <Badge variant="critical" className="text-xs font-mono">CRITICAL: {error}</Badge>
             )}
           </div>
         </div>

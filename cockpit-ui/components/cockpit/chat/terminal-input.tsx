@@ -128,15 +128,15 @@ export function TerminalInput({ onSend, disabled, value: controlledValue, onValu
   }
 
   return (
-    <div className="relative border-t border-border/30 bg-black/30 z-10">
+    <div className="terminal-panel relative z-10 border-t border-border/60 supports-[backdrop-filter:blur(0)]:backdrop-blur-sm">
       {/* Command autocomplete */}
       {showCommands && (
-        <div className="absolute bottom-full left-0 right-0 mb-0 border-t border-x border-blue-500/30 bg-black/90 backdrop-blur max-h-48 overflow-y-auto">
+        <div className="absolute bottom-full left-0 right-0 mb-0 max-h-48 overflow-y-auto border-x border-t border-blue-500/30 bg-black/90 supports-[backdrop-filter:blur(0)]:backdrop-blur-sm">
           {filteredCommands.slice(0, 8).map((cmd, i) => (
             <button
               key={cmd.command}
               className={cn(
-                'w-full flex items-start gap-3 px-4 py-2 text-left text-sm font-mono transition-colors',
+                'flex w-full items-start gap-3 px-4 py-2 text-left text-sm font-mono transition-colors duration-150',
                 i === selectedCommandIndex ? 'bg-blue-500/20' : 'hover:bg-black/50'
               )}
               onClick={() => selectCommand(i)}
@@ -169,7 +169,7 @@ export function TerminalInput({ onSend, disabled, value: controlledValue, onValu
           onKeyDown={handleKeyDown}
           placeholder={disabled ? 'Processing...' : 'Enter command or query...'}
           disabled={disabled}
-          className="flex-1 bg-transparent border-none outline-none font-mono text-lg text-white placeholder:text-blue-400/40"
+          className="flex-1 border-none bg-transparent font-mono text-lg text-white placeholder:text-blue-400/40 outline-none transition-colors duration-150 focus:placeholder:text-blue-400/60"
           autoComplete="off"
           spellCheck={false}
         />

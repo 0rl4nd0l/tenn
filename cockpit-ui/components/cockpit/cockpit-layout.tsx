@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { CockpitSidebar } from './cockpit-sidebar'
 import { CockpitStatusBar } from './cockpit-status-bar'
-import { checkHealth } from '@/lib/api-client'
+import { checkHealth, isBackendHealthy as getBackendHealthy } from '@/lib/api-client'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import { Separator } from '@/components/ui/separator'
 
@@ -15,6 +15,8 @@ interface CockpitLayoutProps {
 
 export function CockpitLayout({ children, title }: CockpitLayoutProps) {
   const [backendHealthy, setBackendHealthy] = useState(false)
+  const [backendLastHealthyAt, setBackendLastHealthyAt] = useState<Date | null>(null)
+  const [backendError, setBackendError] = useState<string | null>(null)
   const { activeTicker, sessionStats } = useCockpitStore()
 
   useEffect(() => {
@@ -23,9 +25,25 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
     async function poll() {
       try {
         const res = await checkHealth()
-        if (!cancelled) setBackendHealthy(res.status === 'ok')
-      } catch {
-        if (!cancelled) setBackendHealthy(false)
+        const healthy = getBackendHealthy(res)
+
+        if (cancelled) return
+
+        setBackendHealthy(healthy)
+        if (healthy) {
+          setBackendLastHealthyAt(new Date())
+          setBackendError(null)
+          return
+        }
+
+        const backendService = res.services?.find((service) => service.name === 'backend')
+        const statusSuffix = backendService?.status ? ` (${backendService.status})` : ''
+        const detail = backendService?.error ?? 'No health response from backend service'
+        setBackendError(`${detail}${statusSuffix}`)
+      } catch (error) {
+        if (cancelled) return
+        setBackendHealthy(false)
+        setBackendError(error instanceof Error ? error.message : 'Backend is unreachable')
       }
     }
 
@@ -41,6 +59,8 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
     <SidebarProvider>
       <CockpitSidebar 
         backendHealthy={backendHealthy} 
+        backendLastHealthyAt={backendLastHealthyAt}
+        backendError={backendError}
         sessionCost={sessionStats.totalCostUsd} 
       />
       <SidebarInset className="flex flex-col overflow-hidden">
@@ -57,7 +77,11 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
         <main className="flex-1 overflow-hidden">
           {children}
         </main>
-        <CockpitStatusBar />
+        <CockpitStatusBar
+          backendHealthy={backendHealthy}
+          backendLastHealthyAt={backendLastHealthyAt}
+          backendError={backendError}
+        />
       </SidebarInset>
     </SidebarProvider>
   )

@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { ChevronRight, ChevronDown, Copy, Check } from 'lucide-react'
 import type { ChatMessage as ChatMessageType } from '@/lib/cockpit-types'
-import { cn } from '@/lib/utils'
 
 interface TerminalMessageProps {
   message: ChatMessageType
@@ -110,7 +109,7 @@ export function TerminalMessage({ message, isStreaming, onConfirmAction, onCance
 
   if (isUser) {
     return (
-      <div className="group">
+      <div className="group rounded-md border border-transparent px-2 py-1 transition-colors duration-150 hover:border-border/40 hover:bg-white/[0.02]">
         <div className="flex items-start gap-2">
           <span className="text-blue-400 shrink-0">{`>`}</span>
           <span className="text-white text-lg whitespace-pre-wrap break-words">{message.content}</span>
@@ -124,7 +123,7 @@ export function TerminalMessage({ message, isStreaming, onConfirmAction, onCance
 
   if (isSystem) {
     return (
-      <div className="text-amber-400/90 text-xs">
+      <div className="rounded-md border border-[oklch(0.78_0.17_80/0.35)] bg-[oklch(0.78_0.17_80/0.08)] px-2 py-1 text-amber-300 text-xs transition-colors duration-150 hover:bg-[oklch(0.78_0.17_80/0.12)]">
         <span className="text-amber-500">[SYSTEM]</span> {message.content}
       </div>
     )
@@ -132,7 +131,7 @@ export function TerminalMessage({ message, isStreaming, onConfirmAction, onCance
 
   // Assistant message
   return (
-    <div className="group mt-2 mb-3">
+    <div className="group mt-2 mb-3 rounded-md border border-transparent px-2 py-1 transition-colors duration-150 hover:border-border/40 hover:bg-white/[0.02]">
       {/* Tool traces */}
       {message.toolTraces && message.toolTraces.length > 0 && (
         <div className="text-sm text-blue-400/70 mb-1">

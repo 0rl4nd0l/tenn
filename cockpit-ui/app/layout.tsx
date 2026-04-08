@@ -1,17 +1,21 @@
 import type { Metadata, Viewport } from 'next'
-import { JetBrains_Mono, Inter } from 'next/font/google'
+import { Fira_Code, Fira_Sans } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { QueryProvider } from '@/components/query-provider'
 import './globals.css'
 
-const inter = Inter({ 
-  subsets: ["latin"],
-  variable: '--font-sans'
+const firaSans = Fira_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-fira-sans',
+  display: 'swap',
 })
 
-const jetbrainsMono = JetBrains_Mono({ 
-  subsets: ["latin"],
-  variable: '--font-mono'
+const firaCode = Fira_Code({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-fira-code',
+  display: 'swap',
 })
 
 export const metadata: Metadata = {
@@ -48,7 +52,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
+      <body className={`${firaSans.variable} ${firaCode.variable} font-sans antialiased`}>
         <QueryProvider>
           {children}
         </QueryProvider>

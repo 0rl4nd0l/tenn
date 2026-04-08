@@ -55,22 +55,35 @@ function getStatusColor(status: ServiceHealth['status']) {
   }
 }
 
-function getStatusBadgeVariant(status: ServiceHealth['status']): 'default' | 'secondary' | 'destructive' | 'outline' {
+function getStatusBadgeVariant(status: ServiceHealth['status']): 'default' | 'secondary' | 'destructive' | 'critical' | 'outline' {
   switch (status) {
     case 'healthy':
       return 'default'
     case 'degraded':
       return 'secondary'
     case 'down':
-      return 'destructive'
+      return 'critical'
     default:
       return 'outline'
   }
 }
 
+function formatStatusLabel(status: ServiceHealth['status']): string {
+  switch (status) {
+    case 'healthy':
+      return 'RUNNING'
+    case 'degraded':
+      return 'DEGRADED'
+    case 'down':
+      return 'DOWN'
+    default:
+      return 'UNKNOWN'
+  }
+}
+
 export function OperationsScreen() {
   const [hasHydrated, setHasHydrated] = useState(false)
-  const { activeTicker, sessionId, preferences, updatePreferences } = useCockpitStore()
+  const { activeTicker, preferences, updatePreferences } = useCockpitStore()
   
   const [selectedAction, setSelectedAction] = useState<string>('')
   const [actionArgs, setActionArgs] = useState(activeTicker || '')
@@ -287,7 +300,7 @@ export function OperationsScreen() {
                   <Activity className="h-5 w-5 text-primary" />
                   Service Health
                 </CardTitle>
-                <CardDescription>Monitor connected services</CardDescription>
+                <CardDescription>Monitor connected services (auto-refresh every 30s)</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={fetchHealth}>
                 <RefreshCw className="h-4 w-4 mr-2" />
@@ -310,15 +323,25 @@ export function OperationsScreen() {
                     <p className="text-xs text-muted-foreground font-mono">{backendHealth.endpoint}</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <Badge variant={getStatusBadgeVariant(backendHealth.status)} className="text-[10px]">
-                    {backendHealth.status}
+                  <div className="text-right">
+                  <Badge variant={getStatusBadgeVariant(backendHealth.status)} className="text-[10px] font-mono">
+                    {formatStatusLabel(backendHealth.status)}
                   </Badge>
                   {backendHealth.responseTimeMs && (
                     <p className="text-[10px] text-muted-foreground font-mono mt-1">
                       {backendHealth.responseTimeMs}ms
                     </p>
                   )}
+                  <p className="text-[10px] text-muted-foreground font-mono mt-1">
+                    {backendHealth.lastChecked
+                      ? backendHealth.lastChecked.toLocaleTimeString('en-AU', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          hour12: false,
+                        })
+                      : '--:--:--'}
+                  </p>
                 </div>
               </div>
             </div>

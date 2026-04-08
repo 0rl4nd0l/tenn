@@ -10,7 +10,6 @@ import { History, Play, ChevronDown, ChevronRight, Clock, CheckCircle2, XCircle,
 import { useQuery } from '@tanstack/react-query'
 import { listDocuments, getQueueStatus, rerunJob } from '@/lib/api-client'
 import { toast } from 'sonner'
-import { useCockpitStore } from '@/lib/cockpit-store'
 import type { Job } from '@/lib/cockpit-types'
 import { cn } from '@/lib/utils'
 
@@ -186,7 +185,6 @@ function mapDocumentToJob(doc: Record<string, unknown>, index: number): Job {
 
 export function HistoryScreen() {
   const [hasHydrated, setHasHydrated] = useState(false)
-  const { activeTicker, sessionId } = useCockpitStore()
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null)
 
   // Wait for hydration to avoid SSR/CSR mismatch
