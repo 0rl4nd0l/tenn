@@ -1,3 +1,0 @@
-{"ts": 1775138782.101604, "elapsed_s": 0.005, "event": "run_started", "run_id": "20260402-140622", "max_agents": 6, "budget_usd": 0.0, "git_sha": "605098d66683933c3b05e1b1ffd573844000e7f7", "git_branch": "cloud/session-20260319", "config_hash": "0cce772c670c75e114a5a56dd5e0ca08d567b397dc9b0576ee03446363f36e4f"}
-{"ts": 1775138782.10169, "elapsed_s": 0.006, "event": "tick_start", "tick": 1}
-{"ts": 1775138788.2029276, "elapsed_s": 6.107, "event": "tick_start", "tick": 2}
