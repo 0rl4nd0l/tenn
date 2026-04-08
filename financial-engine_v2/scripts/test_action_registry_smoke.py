@@ -10,6 +10,19 @@ from cockpit.core.actions import ActionRegistry
 
 
 class TestActionRegistrySmoke(unittest.TestCase):
+    def test_news_ingest_actions_use_absolute_shared_script_paths(self):
+        reg = ActionRegistry(repo_root=ROOT, confirm_required=True)
+        for action_id, script_name in (
+            ("daily_news_ingest", "fetch_daily_news.py"),
+            ("historical_news_ingest", "backfill_news.py"),
+            ("load_news_to_qdrant", "load_news_to_qdrant.py"),
+        ):
+            spec = reg.get(action_id)
+            script_path = Path(str(spec.command_template[1]))
+            self.assertTrue(script_path.is_absolute())
+            self.assertEqual(script_path.name, script_name)
+            self.assertTrue(script_path.exists())
+
     def test_visible_actions_use_streamlined_surface(self):
         reg = ActionRegistry(repo_root=ROOT, confirm_required=True)
         ids = [spec.id for spec in reg.list_actions()]
@@ -58,7 +71,7 @@ class TestActionRegistrySmoke(unittest.TestCase):
 
     def test_doctor_quick_single_action(self):
         reg = ActionRegistry(repo_root=ROOT, confirm_required=True)
-        report = reg.doctor(check_help=False, action_id="update_ticker_financials")
+        report = reg.doctor(check_help=False, action_id="daily_news_ingest")
         self.assertEqual(report["counts"]["total"], 1)
         self.assertEqual(report["counts"]["failed"], 0)
         self.assertTrue(report["checks"][0]["ok"])

@@ -14,6 +14,11 @@ from cockpit.core.actions import ActionRegistry  # noqa: E402
 
 
 class ActionRegistryDoctorTests(unittest.TestCase):
+    @staticmethod
+    def _script_path(raw_path: str) -> Path:
+        path = Path(raw_path)
+        return path if path.is_absolute() else (REPO_ROOT / path).resolve()
+
     def test_extract_control_args_dry_run_aliases(self) -> None:
         clean, control = ActionRegistry.extract_control_args(
             {"ticker": "BHP", "dry_run": "true", "preview-only": "false"},
@@ -23,7 +28,7 @@ class ActionRegistryDoctorTests(unittest.TestCase):
 
     def test_doctor_quick_single_action_does_not_crash(self) -> None:
         reg = ActionRegistry(repo_root=REPO_ROOT, confirm_required=True)
-        report = reg.doctor(check_help=False, action_id="update_ticker_financials")
+        report = reg.doctor(check_help=False, action_id="daily_news_ingest")
 
         self.assertIn("preflight", report)
         self.assertIn("checks", report)
@@ -39,12 +44,18 @@ class ActionRegistryDoctorTests(unittest.TestCase):
                 continue
             self.assertGreaterEqual(len(spec.command_template), 2)
             script_rel = str(spec.command_template[1])
-            script_path = (REPO_ROOT / script_rel).resolve()
-            self.assertTrue(script_path.exists(), msg=f"Missing script for action {spec.id}: {script_path}")
+            script_path = self._script_path(script_rel)
+            self.assertTrue(
+                script_path.exists(),
+                msg=f"Missing script for action {spec.id}: {script_path}",
+            )
             text = script_path.read_text(encoding="utf-8")
-            self.assertIn("--dry-run", text, msg=f"Action {spec.id} script missing --dry-run: {script_rel}")
+            self.assertIn(
+                "--dry-run",
+                text,
+                msg=f"Action {spec.id} script missing --dry-run: {script_rel}",
+            )
 
 
 if __name__ == "__main__":
     unittest.main()
-
