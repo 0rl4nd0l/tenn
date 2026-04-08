@@ -23,12 +23,30 @@ from app.models.documents import Document
 from app.models.extractions import ExtractionRun
 from app.providers.marketindex_provider import MarketIndexProvider
 from app.services.asx import ASXProvider
-from app.services.embeddings import delete_points_for_document, ensure_collection, log_rejected_payload, upsert_points, validate_payload
+from app.services.embeddings import (
+    delete_points_for_document,
+    ensure_collection,
+    log_rejected_payload,
+    upsert_points,
+    validate_payload,
+)
 from app.services.announcement_importance import classify_documents_and_materialize
 from app.services.llm import embed_texts, generate_json, get_routing_decision
-from app.services.multipass_extraction import run_multipass_extraction, EXTRACTOR_VERSION, PROMPT_HASH, parse_period_end
+from app.services.multipass_extraction import (
+    run_multipass_extraction,
+    EXTRACTOR_VERSION,
+    PROMPT_HASH,
+    parse_period_end,
+)
 from app.services.structured_chunking import chunk_prose_sections
 from app.services.docling_extract import StructuredDocument
+from app.services.pipeline_stages import (
+    ExtractionStageStatus,
+    attach_reproducibility_metadata,
+    build_reproducibility_metadata,
+    run_embedding_stage,
+    run_extraction_stage,
+)
 from app.services.storage import ensure_dir, sha256_file, write_bytes
 
 
@@ -37,7 +55,9 @@ logger = logging.getLogger(__name__)
 # Process-local in-memory embedding cache (key: SHA256(text), value: embedding vector).
 # Only used when settings.enable_embedding_cache is True.
 _embedding_cache: dict[str, list[float]] = {}
-DOCUMENT_QUARANTINE_RULES_PATH = PROJECT_ROOT / "config" / "document_quarantine_rules.json"
+DOCUMENT_QUARANTINE_RULES_PATH = (
+    PROJECT_ROOT / "config" / "document_quarantine_rules.json"
+)
 _document_quarantine_rules_cache: Optional[list[dict[str, Any]]] = None
 _document_quarantine_rules_cache_mtime: Optional[float] = None
 
@@ -60,7 +80,9 @@ def _load_document_quarantine_rules(path: Path) -> list[dict[str, Any]]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except Exception as exc:
-        logger.warning("failed to read document quarantine rules from %s: %s", path, exc)
+        logger.warning(
+            "failed to read document quarantine rules from %s: %s", path, exc
+        )
         return []
 
     if isinstance(payload, dict):
@@ -111,11 +133,20 @@ def _get_document_quarantine_rules() -> list[dict[str, Any]]:
     except FileNotFoundError:
         mtime = None
     except Exception as exc:
-        logger.warning("failed to stat document quarantine rules %s: %s", DOCUMENT_QUARANTINE_RULES_PATH, exc)
+        logger.warning(
+            "failed to stat document quarantine rules %s: %s",
+            DOCUMENT_QUARANTINE_RULES_PATH,
+            exc,
+        )
         mtime = None
 
-    if _document_quarantine_rules_cache is None or _document_quarantine_rules_cache_mtime != mtime:
-        _document_quarantine_rules_cache = _load_document_quarantine_rules(DOCUMENT_QUARANTINE_RULES_PATH)
+    if (
+        _document_quarantine_rules_cache is None
+        or _document_quarantine_rules_cache_mtime != mtime
+    ):
+        _document_quarantine_rules_cache = _load_document_quarantine_rules(
+            DOCUMENT_QUARANTINE_RULES_PATH
+        )
         _document_quarantine_rules_cache_mtime = mtime
     return _document_quarantine_rules_cache
 
@@ -133,7 +164,9 @@ def _match_document_quarantine_reason(
 
     ticker_upper = str(ticker or "").strip().upper()
     haystack = " ".join(
-        part for part in (str(title or ""), str(source_url or ""), str(pdf_path or "")) if str(part).strip()
+        part
+        for part in (str(title or ""), str(source_url or ""), str(pdf_path or ""))
+        if str(part).strip()
     ).lower()
     haystack_norm = haystack.replace("-", " ").replace("_", " ")
 
@@ -148,7 +181,10 @@ def _match_document_quarantine_reason(
             needle = str(term).strip().lower()
             if not needle:
                 continue
-            if needle in haystack or needle.replace("-", " ").replace("_", " ") in haystack_norm:
+            if (
+                needle in haystack
+                or needle.replace("-", " ").replace("_", " ") in haystack_norm
+            ):
                 return str(rule.get("reason", "")).strip() or "document_quarantine"
     return ""
 
@@ -219,7 +255,9 @@ EXTRACTION_FAILURE_TAXONOMY = (
 )
 
 
-def classify_extraction_failure(error_text: Any, structured_json: Mapping[str, Any] | None = None) -> str:
+def classify_extraction_failure(
+    error_text: Any, structured_json: Mapping[str, Any] | None = None
+) -> str:
     text = str(error_text or "").strip().lower()
     structured = dict(structured_json or {})
     if not text and structured:
@@ -240,7 +278,10 @@ def classify_extraction_failure(error_text: Any, structured_json: Mapping[str, A
     ):
         return "ocr_or_text_unavailable"
 
-    if any(token in text for token in ("timeout", "timed out", "deadline exceeded", "took too long")):
+    if any(
+        token in text
+        for token in ("timeout", "timed out", "deadline exceeded", "took too long")
+    ):
         return "parser_timeout"
 
     if any(
@@ -293,7 +334,11 @@ def _extract_pdf_url_from_html(html_text, page_url):
     if not html_text:
         return None
 
-    direct = re.search(r"https://announcements\.asx\.com\.au/asxpdf/[^\s\"'<>]+\.pdf", html_text, flags=re.I)
+    direct = re.search(
+        r"https://announcements\.asx\.com\.au/asxpdf/[^\s\"'<>]+\.pdf",
+        html_text,
+        flags=re.I,
+    )
     if direct:
         return direct.group(0)
 
@@ -331,11 +376,14 @@ def _download_bytes(url, client: Optional[httpx.Client] = None):
         if e.response.status_code in (403, 407, 503):
             try:
                 from scrapling.fetchers import Fetcher
+
                 page = Fetcher.get(url, timeout=90.0)
                 content = getattr(page, "content", None) or getattr(page, "body", None)
                 if content is not None and isinstance(content, bytes):
+
                     class _ScraplingFallbackResponse:
                         pass
+
                     out = _ScraplingFallbackResponse()
                     out.content = content
                     out.text = content.decode("utf-8", errors="replace")
@@ -504,7 +552,12 @@ def _ensure_document_pdf_path(doc):
     ensure_dir(str(canonical_path.parent))
 
     # If an old-name file exists but canonical doesn't, move it so DB and disk align.
-    if current_path and current_path.exists() and current_path != canonical_path and not canonical_path.exists():
+    if (
+        current_path
+        and current_path.exists()
+        and current_path != canonical_path
+        and not canonical_path.exists()
+    ):
         current_path.rename(canonical_path)
 
     doc.pdf_path = canonical
@@ -529,7 +582,10 @@ def insert_discovered_documents(db, discovered_docs):
                 "ASX skip",
                 extra={
                     "reason": "invalid_structure",
-                    "data": {"missing": "ticker", "discovered_doc": str(discovered_doc)},
+                    "data": {
+                        "missing": "ticker",
+                        "discovered_doc": str(discovered_doc),
+                    },
                 },
             )
             continue
@@ -545,7 +601,9 @@ def insert_discovered_documents(db, discovered_docs):
                     "data": {
                         "ticker": ticker,
                         "title": str(getattr(discovered_doc, "title", "") or "")[:200],
-                        "source_url": str(getattr(discovered_doc, "source_url", "") or "")[:500],
+                        "source_url": str(
+                            getattr(discovered_doc, "source_url", "") or ""
+                        )[:500],
                     },
                 },
             )
@@ -556,7 +614,11 @@ def insert_discovered_documents(db, discovered_docs):
                 "ASX skip",
                 extra={
                     "reason": "duplicate",
-                    "data": {"ticker": ticker, "source_url": source_url, "scope": "batch"},
+                    "data": {
+                        "ticker": ticker,
+                        "source_url": source_url,
+                        "scope": "batch",
+                    },
                 },
             )
             continue
@@ -566,7 +628,11 @@ def insert_discovered_documents(db, discovered_docs):
     source_urls = [row[2] for row in prepared]
     existing_source_urls: set[str] = set()
     if source_urls:
-        existing_rows = db.query(Document.source_url).filter(Document.source_url.in_(source_urls)).all()
+        existing_rows = (
+            db.query(Document.source_url)
+            .filter(Document.source_url.in_(source_urls))
+            .all()
+        )
         existing_source_urls = {str(row[0]) for row in existing_rows if row and row[0]}
 
     for discovered_doc, ticker, source_url in prepared:
@@ -615,14 +681,22 @@ def insert_discovered_documents(db, discovered_docs):
         per_ticker_inserted = {}
         duplicate_existing = 0
         for discovered_doc, ticker, source_url in prepared:
-            exists = db.query(Document.document_id).filter(Document.source_url == source_url).first()
+            exists = (
+                db.query(Document.document_id)
+                .filter(Document.source_url == source_url)
+                .first()
+            )
             if exists:
                 duplicate_existing += 1
                 logger.warning(
                     "ASX skip",
                     extra={
                         "reason": "duplicate",
-                        "data": {"ticker": ticker, "source_url": source_url, "scope": "db_race"},
+                        "data": {
+                            "ticker": ticker,
+                            "source_url": source_url,
+                            "scope": "db_race",
+                        },
                     },
                 )
                 continue
@@ -655,7 +729,11 @@ def insert_discovered_documents(db, discovered_docs):
                     "ASX skip",
                     extra={
                         "reason": "duplicate",
-                        "data": {"ticker": ticker, "source_url": source_url, "scope": "db_commit"},
+                        "data": {
+                            "ticker": ticker,
+                            "source_url": source_url,
+                            "scope": "db_commit",
+                        },
                     },
                 )
                 continue
@@ -698,7 +776,11 @@ def _load_discovered_document_ids(db, discovered_docs) -> list[str]:
         for document_id, source_url in rows
         if document_id and source_url
     }
-    return [document_id_by_source_url[source_url] for source_url in source_urls if source_url in document_id_by_source_url]
+    return [
+        document_id_by_source_url[source_url]
+        for source_url in source_urls
+        if source_url in document_id_by_source_url
+    ]
 
 
 def discover_and_insert_documents(db, ticker, years=5):
@@ -707,7 +789,9 @@ def discover_and_insert_documents(db, ticker, years=5):
     start = end - timedelta(days=365 * years)
     discovered = ASXProvider().discover(ticker, start, end)
     if settings.enable_marketindex_fallback:
-        marketindex_docs = MarketIndexProvider(settings.marketindex_announcements_file).discover(ticker, start, end)
+        marketindex_docs = MarketIndexProvider(
+            settings.marketindex_announcements_file
+        ).discover(ticker, start, end)
         discovered_by_url = {item.source_url: item for item in discovered}
         for item in marketindex_docs:
             if item.source_url not in discovered_by_url:
@@ -748,7 +832,9 @@ def discover_and_insert_documents(db, ticker, years=5):
     }
 
 
-def download_pdf_for_document(db, document_id, http_client: Optional[httpx.Client] = None):
+def download_pdf_for_document(
+    db, document_id, http_client: Optional[httpx.Client] = None
+):
     doc_uuid = _coerce_uuid(document_id)
     doc = db.query(Document).filter(Document.document_id == doc_uuid).first()
     if not doc:
@@ -836,7 +922,9 @@ def _upsert_financial_rows(db, doc, structured):
         row.period_start = parse_period_end(structured.get("period_start"))
         row.currency = structured.get("currency") or None
 
-    risk_note = db.query(ASXRiskNote).filter(ASXRiskNote.document_id == doc.document_id).first()
+    risk_note = (
+        db.query(ASXRiskNote).filter(ASXRiskNote.document_id == doc.document_id).first()
+    )
     if not risk_note:
         risk_note = ASXRiskNote(document_id=doc.document_id)
         db.add(risk_note)
@@ -844,8 +932,12 @@ def _upsert_financial_rows(db, doc, structured):
     risk_note.risk_summary = _coerce_text(structured.get("risk_summary"))
     risk_note.risk_bullets = _coerce_risk_bullets(structured.get("risk_bullets"))
     risk_note.guidance_summary = _coerce_text(structured.get("guidance_summary"))
-    risk_note.material_changes = _coerce_text(structured.get("material_changes"), join_lists=True)
-    risk_note.confidence_narrative = _coerce_float(structured.get("confidence_narrative"))
+    risk_note.material_changes = _coerce_text(
+        structured.get("material_changes"), join_lists=True
+    )
+    risk_note.confidence_narrative = _coerce_float(
+        structured.get("confidence_narrative")
+    )
     # NOTE: caller is responsible for db.commit() — do not commit here so that
     # ExtractionRun and financial rows are written in a single atomic transaction.
 
@@ -862,144 +954,54 @@ def process_document(
         if not doc:
             raise ValueError(f"Document not found: {document_id}")
 
-        # --- New multi-pass extraction ---
-        multipass_result = None
-        sections_for_chunks: list[dict] = []
-        status = "skipped"
-        error = None
-        structured: dict = {"status": "skipped_extraction"}
-        confidence = None
-        extraction_model_name = None
+        # --- Structured extraction stage ---
+        resolved_pdf_path = _resolve_pdf_path(doc.pdf_path)
+        doc_metadata = {
+            "document_id": str(doc.document_id),
+            "ticker": str(doc.ticker or ""),
+            "title": str(doc.title or ""),
+        }
+        extraction_stage = run_extraction_stage(
+            enable_extraction=settings.enable_extraction,
+            resolved_pdf_path=resolved_pdf_path,
+            doc_metadata=doc_metadata,
+            llm_client=ollama_client,
+            multipass_runner=run_multipass_extraction,
+            default_model_name="qwen2.5-32b-instruct",
+            failure_classifier=classify_extraction_failure,
+        )
 
-        if settings.enable_extraction:
-            try:
-                doc_metadata = {
-                    "document_id": str(doc.document_id),
-                    "ticker": str(doc.ticker or ""),
-                    "title": str(doc.title or ""),
-                }
-                multipass_result = run_multipass_extraction(
-                    _resolve_pdf_path(doc.pdf_path),
-                    doc_metadata,
-                    ollama_client,
-                )
-                sections_for_chunks = multipass_result.sections
-                status = multipass_result.status
-                error = multipass_result.error
-                structured = multipass_result.payload
-                confidence = structured.get("confidence_metrics")
-                extraction_model_name = "qwen2.5-32b-instruct"
-            except Exception as exc:
-                status = "failed"
-                error = str(exc)
-                structured = {"error": error}
-                sections_for_chunks = []
+        sections_for_chunks = extraction_stage.sections
+        structured = extraction_stage.payload
+        confidence = extraction_stage.confidence
 
         # --- Use structured sections for prose chunking (not raw text) ---
         _doc_for_chunks = StructuredDocument(sections=sections_for_chunks)
         chunks = chunk_prose_sections(_doc_for_chunks)
-        chunks_created = len(chunks)
-        chunks_skipped = 0
-        invalid_payloads = 0
-        written_points = 0
+        embedding_stage = run_embedding_stage(
+            chunks=chunks,
+            doc=doc,
+            enable_embeddings=settings.enable_embeddings,
+            enable_qdrant=settings.enable_qdrant,
+            qdrant_client=qdrant_client,
+            qdrant_url=settings.qdrant_url,
+            qdrant_collection=settings.qdrant_collection,
+            ollama_client=ollama_client,
+            embed_chunks=_embed_chunks,
+            qdrant_client_factory=lambda url: QdrantClient(url=url),
+            ensure_collection_fn=ensure_collection,
+            delete_points_for_document_fn=delete_points_for_document,
+            upsert_points_fn=upsert_points,
+            validate_payload_fn=validate_payload,
+            log_rejected_payload_fn=log_rejected_payload,
+            logger_obj=logger,
+        )
 
-        skipped_invalid_vectors = 0
-        if settings.enable_embeddings and chunks:
-            if doc.document_id is None:
-                log_rejected_payload(
-                    "document_id is None before embedding",
-                    payload={"document_id": None, "ticker": doc.ticker},
-                    collection=settings.qdrant_collection,
-                    source=doc.source_url,
-                )
-                skipped_invalid_vectors = len(chunks)
-                invalid_payloads += len(chunks)
-                chunks_skipped += len(chunks)
-            elif not str(doc.ticker or "").strip():
-                log_rejected_payload(
-                    "ticker is missing before embedding",
-                    payload={"document_id": str(doc.document_id).lower(), "ticker": doc.ticker},
-                    collection=settings.qdrant_collection,
-                    source=doc.source_url,
-                )
-                skipped_invalid_vectors = len(chunks)
-                invalid_payloads += len(chunks)
-                chunks_skipped += len(chunks)
-            else:
-                doc_id_str = str(doc.document_id).lower()
-                try:
-                    uuid.UUID(doc_id_str)
-                except Exception:
-                    log_rejected_payload(
-                        "document_id is not a canonical UUID before embedding",
-                        payload={"document_id": doc_id_str, "ticker": doc.ticker},
-                        collection=settings.qdrant_collection,
-                        source=doc.source_url,
-                    )
-                    skipped_invalid_vectors = len(chunks)
-                    invalid_payloads += len(chunks)
-                    chunks_skipped += len(chunks)
-                    doc_id_str = ""
-                if doc_id_str:
-                    vectors = _embed_chunks(chunks, ollama_client=ollama_client)
-                else:
-                    vectors = []
-                if len(vectors) != len(chunks):
-                    mismatch_count = abs(len(chunks) - len(vectors))
-                    skipped_invalid_vectors += mismatch_count
-                    chunks_skipped += mismatch_count
-                    logger.error(
-                        "Embedding/vector count mismatch for document_id=%s ticker=%s source=%s expected=%d got=%d",
-                        doc_id_str,
-                        doc.ticker,
-                        doc.source_url,
-                        len(chunks),
-                        len(vectors),
-                    )
-                if settings.enable_qdrant and vectors:
-                    qc = qdrant_client if qdrant_client is not None else QdrantClient(url=settings.qdrant_url)
-                    usable_vectors = vectors[: len(chunks)]
-                    vector_dimension = len(usable_vectors[0])
-                    ensure_collection(qc, settings.qdrant_collection, vector_dimension)
-                    points = []
-                    for index, vector in enumerate(usable_vectors):
-                        point_id = f"{doc_id_str}:{index}"
-                        payload = {
-                            "document_id": doc_id_str,
-                            "ticker": doc.ticker,
-                            "doc_class": doc.doc_class,
-                            "doc_subtype": doc.doc_subtype,
-                            "chunk_index": index,
-                            "title": doc.title,
-                            "text": chunks[index],
-                        }
-                        is_valid, reason = validate_payload(payload)
-                        if not is_valid:
-                            skipped_invalid_vectors += 1
-                            invalid_payloads += 1
-                            chunks_skipped += 1
-                            log_rejected_payload(
-                                reason or "payload validation failed",
-                                payload=payload,
-                                collection=settings.qdrant_collection,
-                                point_id=point_id,
-                                source=doc.source_url,
-                            )
-                            continue
-                        points.append(
-                            {
-                                "id": point_id,
-                                "vector": vector,
-                                "payload": payload,
-                            }
-                        )
-                    if points:
-                        delete_points_for_document(qc, settings.qdrant_collection, doc_id_str)
-                    upsert_result = dict(upsert_points(qc, settings.qdrant_collection, points) or {})
-                    written_points += int(upsert_result.get("written_points", 0))
-                    rejected_payloads = int(upsert_result.get("rejected_payloads", 0))
-                    invalid_payloads += rejected_payloads
-                    chunks_skipped += rejected_payloads
+        chunks_created = embedding_stage.chunks_created
+        chunks_skipped = embedding_stage.chunks_skipped
+        invalid_payloads = embedding_stage.invalid_payloads
+        written_points = embedding_stage.written_points
+        skipped_invalid_vectors = embedding_stage.skipped_invalid_vectors
 
         logger.info(
             "document_ingestion_result",
@@ -1025,18 +1027,32 @@ def process_document(
                 return obj.isoformat()
             return obj
 
+        reproducibility = build_reproducibility_metadata(
+            doc=doc,
+            resolved_pdf_path=resolved_pdf_path,
+            extractor_version=EXTRACTOR_VERSION,
+            prompt_hash=PROMPT_HASH,
+            stage_result=extraction_stage,
+        )
+        structured_with_repro = attach_reproducibility_metadata(
+            structured, reproducibility
+        )
+
         run = ExtractionRun(
             document_id=doc.document_id,
             extractor_version=EXTRACTOR_VERSION,
-            model_name=extraction_model_name or settings.extract_model,
+            model_name=extraction_stage.model_name or settings.extract_model,
             prompt_hash=PROMPT_HASH,
-            status=status,
+            status=extraction_stage.status.value,
             confidence_overall=confidence,
-            error=error,
-            structured_json=_json_safe(structured),
+            error=extraction_stage.error,
+            structured_json=_json_safe(structured_with_repro),
         )
         db.add(run)
-        if status in {"ok", "ok_low_confidence"}:
+        if extraction_stage.status in {
+            ExtractionStageStatus.OK,
+            ExtractionStageStatus.OK_LOW_CONFIDENCE,
+        }:
             _upsert_financial_rows(db, doc, structured)
         db.commit()  # single atomic commit: ExtractionRun + financial rows together
 
@@ -1044,7 +1060,7 @@ def process_document(
             "ok": True,
             "document_id": str(doc.document_id),
             "chunks": chunks_created,
-            "extraction_status": status,
+            "extraction_status": extraction_stage.status.value,
             "skipped_invalid_vectors": skipped_invalid_vectors,
             "chunks_created": chunks_created,
             "chunks_skipped": chunks_skipped,
@@ -1087,7 +1103,11 @@ def _download_and_process_one(
         }
     except RuntimeError as exc:
         if "marketindex_headed_required" in str(exc):
-            doc = db.query(Document).filter(Document.document_id == _coerce_uuid(document_id)).first()
+            doc = (
+                db.query(Document)
+                .filter(Document.document_id == _coerce_uuid(document_id))
+                .first()
+            )
             if doc:
                 doc.pdf_sha256 = "blocked_marketindex_headed_required"
                 db.commit()
@@ -1126,7 +1146,11 @@ def _download_and_process_one(
     except httpx.HTTPStatusError as exc:
         request_url = str(exc.request.url)
         if exc.response.status_code == 403 and "marketindex.com.au" in request_url:
-            doc = db.query(Document).filter(Document.document_id == _coerce_uuid(document_id)).first()
+            doc = (
+                db.query(Document)
+                .filter(Document.document_id == _coerce_uuid(document_id))
+                .first()
+            )
             if doc:
                 doc.pdf_sha256 = "blocked_marketindex_403"
                 db.commit()
@@ -1225,7 +1249,9 @@ def _download_and_process_document_ids(
                         }
                     )
                 elif out["error"] is not None:
-                    errors.append({"document_id": str(document_id), "error": out["error"]})
+                    errors.append(
+                        {"document_id": str(document_id), "error": out["error"]}
+                    )
         else:
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
                 futures = {
@@ -1249,7 +1275,9 @@ def _download_and_process_document_ids(
                         chunks_skipped += int(out.get("chunks_skipped", 0) or 0)
                         invalid_payloads += int(out.get("invalid_payloads", 0) or 0)
                         written_points += int(out.get("written_points", 0) or 0)
-                        if (out.get("extraction_status") or "").strip().lower() == "failed":
+                        if (
+                            out.get("extraction_status") or ""
+                        ).strip().lower() == "failed":
                             extraction_failed_count += 1
                             errors.append(
                                 {
@@ -1260,35 +1288,55 @@ def _download_and_process_document_ids(
                                 }
                             )
                         elif out["error"] is not None:
-                            errors.append({"document_id": str(document_id), "error": out["error"]})
+                            errors.append(
+                                {"document_id": str(document_id), "error": out["error"]}
+                            )
                     except Exception as exc:
-                        errors.append({"document_id": str(document_id), "error": str(exc)})
+                        errors.append(
+                            {"document_id": str(document_id), "error": str(exc)}
+                        )
     finally:
         if own_http:
             http_client.close()
         if own_ollama and ollama_client is not None:
             ollama_client.close()
 
-    return processed, skipped_download, extraction_failed_count, errors, {
-        "chunks_created": chunks_created,
-        "chunks_skipped": chunks_skipped,
-        "invalid_payloads": invalid_payloads,
-        "written_points": written_points,
-    }
+    return (
+        processed,
+        skipped_download,
+        extraction_failed_count,
+        errors,
+        {
+            "chunks_created": chunks_created,
+            "chunks_skipped": chunks_skipped,
+            "invalid_payloads": invalid_payloads,
+            "written_points": written_points,
+        },
+    )
 
 
-def backfill_ticker_sync(ticker, years=5, process_documents=True, max_workers: Optional[int] = None):
+def backfill_ticker_sync(
+    ticker, years=5, process_documents=True, max_workers: Optional[int] = None
+):
     db = SessionLocal()
     try:
         ticker_upper = ticker.upper() if ticker else ""
-        existing_doc_count = db.query(Document).filter(Document.ticker == ticker_upper).count()
+        existing_doc_count = (
+            db.query(Document).filter(Document.ticker == ticker_upper).count()
+        )
         discovery = discover_and_insert_documents(db, ticker=ticker, years=years)
         doc_ids = discovery["new_document_ids"]
-        workers = max(1, int(max_workers)) if max_workers is not None else max(1, settings.backfill_concurrency)
-        processed, skipped_download, _extraction_failed, errors, ingestion_metrics = _download_and_process_document_ids(
-            doc_ids,
-            process_documents,
-            max_workers=workers,
+        workers = (
+            max(1, int(max_workers))
+            if max_workers is not None
+            else max(1, settings.backfill_concurrency)
+        )
+        processed, skipped_download, _extraction_failed, errors, ingestion_metrics = (
+            _download_and_process_document_ids(
+                doc_ids,
+                process_documents,
+                max_workers=workers,
+            )
         )
         logger.info(
             "ticker_ingestion_result",
@@ -1300,7 +1348,9 @@ def backfill_ticker_sync(ticker, years=5, process_documents=True, max_workers: O
                 "documents_skipped_download": skipped_download,
                 "chunks_created": int(ingestion_metrics.get("chunks_created", 0) or 0),
                 "chunks_skipped": int(ingestion_metrics.get("chunks_skipped", 0) or 0),
-                "invalid_payloads": int(ingestion_metrics.get("invalid_payloads", 0) or 0),
+                "invalid_payloads": int(
+                    ingestion_metrics.get("invalid_payloads", 0) or 0
+                ),
                 "written_points": int(ingestion_metrics.get("written_points", 0) or 0),
                 "error_count": len(errors),
             },
