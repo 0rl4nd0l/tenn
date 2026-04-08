@@ -146,6 +146,31 @@ class TestParallelToolCalls:
         assert result.tool_calls_made == 1
         assert result.iterations_used == 3
 
+    def test_agent_loop_retries_when_first_turn_is_bare_tool_arguments_json(self):
+        """A bare tool-argument dict on the first turn should trigger a corrective retry."""
+        responses = [
+            json.dumps({"query": "BHP", "ticker": "BHP", "limit": 5}),
+            json.dumps({
+                "type": "tool_call",
+                "tool": "search_news",
+                "arguments": {"query": "BHP", "ticker": "BHP", "limit": 5},
+                "reasoning": "Need recent news",
+            }),
+            json.dumps({
+                "type": "response",
+                "content": "Recent BHP news is mixed, with coverage focused on operations and commodity outlook.",
+            }),
+        ]
+        llm = _make_llm(responses)
+        executor = _tool_result({"ok": True, "results": [{"headline": "BHP update"}]})
+
+        loop = AgentLoop(llm_client=llm, tool_executor=executor)
+        result = loop.run("bhp news")
+
+        assert result.text.startswith("Recent BHP news"), result.text
+        assert result.tool_calls_made == 1
+        assert result.iterations_used == 3
+
 
 # ---------------------------------------------------------------------------
 # 3. test_context_window_summarization

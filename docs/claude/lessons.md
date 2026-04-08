@@ -470,3 +470,12 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** Two separate operator assumptions were wrong. First, the embedding path was still treating the Ollama-backed role like a llama.cpp `/v1/embeddings` server, while the intended default was Ollama `nomic-embed-text`. Second, Ollama could already have a large GPU model loaded (`qwen2.5:32b`), leaving no room for the embedding model. Third, the cockpit wrapper backgrounded llama.cpp with a shell job pattern that was not fully detached.
 **Fix:** Wired the active embedding path to the existing Ollama embed client when the embedding role targets Ollama, enforced `nomic-embed-text` into the compose env on restart, stopped non-embedding Ollama runners before backend startup so the embedding probe can succeed, and switched cockpit llama launches to `setsid -f` so `llama-server` persists after `cockpit restart backend` returns.
 **Rule:** When a restart command promises “full functionality,” validate the whole dependency chain, not just the feature flags. Startup wrappers must set the correct provider contract, free any competing GPU-held runtimes needed by startup probes, and detach long-lived local runtimes in a way that survives shell exit.
+
+## L044 — SSE chat UIs must trust the backend’s final normalized answer, not buffered stream chunks
+
+**Date:** 2026-04-08
+**Subsystem:** `backend/app/routes/cockpit_api.py`, `cockpit-ui/components/cockpit/chat/chat-screen.tsx`
+**Symptom:** The cockpit web UI could show raw tool-call JSON like `{"query":"BHP","ticker":"BHP","limit":5}` as the assistant’s final answer even though the structured agent loop had already been hardened against JSON echoes.
+**Root cause:** The SSE route streamed incremental chat chunks but the `done` event only carried metadata. The Next frontend committed the buffered chunk text as the final message. If streamed content and final normalized response diverged, the UI persisted the wrong one.
+**Fix:** Added canonical `text` to the SSE `done` payload and changed the frontend to prefer that final text over buffered chunks. Added a route regression test that simulates streamed JSON drift but verifies the `done` event still carries the normalized prose answer.
+**Rule:** For streamed chat, chunks are provisional UI state only. The server must emit the authoritative final answer explicitly, and the client must render that authoritative value on completion instead of assuming the buffered stream is the canonical result.

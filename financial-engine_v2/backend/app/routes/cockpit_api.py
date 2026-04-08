@@ -401,6 +401,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 await queue.put({
                     "type": "done",
                     "data": {
+                        "text": response.text,
                         "model": meta.get("model", "local"),
                         "latency_ms": meta.get("latency_ms", 0),
                         "cost_usd": meta.get("cost_usd", 0),

@@ -124,10 +124,14 @@ export function ChatScreen() {
             setStreamingMetadata({ ...currentMetadata })
             break
           case 'done':
+            const finalText =
+              typeof event.data?.text === 'string' && event.data.text.trim().length > 0
+                ? event.data.text
+                : currentContent
             const assistantMessage: ChatMessageType = {
               id: generateId(),
               role: 'assistant',
-              content: currentContent,
+              content: finalText,
               timestamp: new Date(),
               metadata: {
                 model: event.data.model,

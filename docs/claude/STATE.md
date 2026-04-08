@@ -4,7 +4,7 @@
 > Update this file at the end of every session alongside the milestone commit.
 > For detailed context on any item, follow the linked doc or run `git log --oneline`.
 
-Last updated: 2026-04-08 (session — cockpit restart backend full-functionality defaults, cockpit chat SSE fix, llama.cpp M40 KV-cache fix, docs alignment, standalone agent-orchestrator Codex stream bridge)
+Last updated: 2026-04-08 (session — cockpit restart backend full-functionality defaults, cockpit chat SSE final-text fix, cockpit chat SSE fix, llama.cpp M40 KV-cache fix, docs alignment, standalone agent-orchestrator Codex stream bridge)
 Branch: cloud/session-20260319
 
 ## Legend
@@ -79,6 +79,7 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 
 | Commit | Workstream | Summary |
 |--------|------------|---------|
+| (this session) | cockpit-ui / cockpit-api | SSE chat now emits canonical final text in the `done` event and the Next UI prefers that value over buffered chunks, preventing raw tool-call JSON from being committed as the assistant reply. |
 | (this session) | cockpit-launcher | `cockpit restart backend` now rewrites `.env.docker`, enforces `nomic-embed-text`, frees conflicting Ollama runners before backend startup, routes embeddings through Ollama correctly, and leaves detached llama.cpp chat alive after the command exits. |
 | (this session) | agent-orchestrator | Replaced blocking native-CLI chat with Codex-backed run/SSE streaming, optimistic chat UI state, and explicit delegated-task events; verified with `npm test`, `npm run build`, `npm run smoke`, and live `/api/chat` SSE curl. |
 | 52508567 | llamacpp-runtime | Stop forcing KV-cache quantization in llama.cpp launchers/runtime manager; `model:gpt-oss-20b` now loads on Tesla M40 and serves chat completions with GPU memory allocated. |

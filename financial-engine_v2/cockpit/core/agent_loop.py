@@ -242,14 +242,26 @@ class AgentLoop:
             if parsed.type == "response":
                 if self._looks_like_json_non_answer(raw_response, parsed, evidence):
                     messages.append({"role": "assistant", "content": raw_response})
-                    messages.append({
-                        "role": "user",
-                        "content": (
+                    if evidence:
+                        retry_instruction = (
                             "Your last message was a raw JSON object, not a final user-facing answer. "
                             "Do not repeat tool arguments or placeholder JSON. "
                             "Using the tool results already in context, respond with a JSON object of the form "
                             '{"type":"response","content":"..."} and write the answer in plain English.'
-                        ),
+                        )
+                    else:
+                        retry_instruction = (
+                            "Your last message was a raw JSON object, not a valid assistant reply. "
+                            "If you need a tool, respond with a JSON object of the form "
+                            '{"type":"tool_call","tool":"...","arguments":{...}} '
+                            "or {'type':'tool_calls','calls':[...]} using the required schema. "
+                            "If you can answer directly, respond with "
+                            '{"type":"response","content":"..."} in plain English. '
+                            "Do not output bare argument objects."
+                        )
+                    messages.append({
+                        "role": "user",
+                        "content": retry_instruction,
                     })
                     continue
                 final_text = parsed.content or raw_response
@@ -480,8 +492,6 @@ class AgentLoop:
         evidence: list[dict],
     ) -> bool:
         """Detect bare JSON echoes after tool use and force one more synthesis round."""
-        if not evidence:
-            return False
         if parsed.content not in (None, ""):
             return False
 
