@@ -37,6 +37,9 @@ export function TaskDetailPane({
   const recentLogs = detail ? detail.logs.slice(-16) : [];
   const latestLog = recentLogs.length > 0 ? recentLogs[recentLogs.length - 1] : null;
   const latestEvent = recentEvents[0] ?? null;
+  const latestSignalAt =
+    latestLog?.createdAt ?? latestEvent?.createdAt ?? latestRun?.startedAt ?? detail?.task.updatedAt ?? new Date().toISOString();
+  const staleRunning = Boolean(detail?.task.status === "running" && isStaleSignal(latestSignalAt));
   const availableActions = useMemo(() => (detail ? resolveActions(detail.task.status) : []), [detail]);
   const actionDisabled = Boolean(detail && (loadingTaskId === detail.task.id || actionPending));
 
@@ -84,6 +87,7 @@ export function TaskDetailPane({
             </span>
             <span className="badge neutral">{task.role}</span>
             <span className="badge neutral">{task.taskType}</span>
+            <span className="badge neutral">{agentTopologyLabel(task.agentMode, detail.children.length)}</span>
             <span className={`badge band-${task.tokenBudget.headroomBand}`}>{task.tokenBudget.headroomBand}</span>
           </div>
         </div>
@@ -129,6 +133,13 @@ export function TaskDetailPane({
           <p>{latestRun?.summary ?? "no run yet"}</p>
         </div>
         <div className="summary-card">
+          <span>Monitoring</span>
+          <strong>{staleRunning ? "stalled" : "healthy"}</strong>
+          <p>
+            last signal {formatTimeAgo(latestSignalAt)} · {latestRun ? runDurationLabel(latestRun.startedAt) : "no active run"}
+          </p>
+        </div>
+        <div className="summary-card">
           <span>Graph</span>
           <strong>{detail.dependencies.length + detail.children.length}</strong>
           <p>{detail.dependencies.length} deps · {detail.children.length} children</p>
@@ -136,7 +147,7 @@ export function TaskDetailPane({
       </div>
 
       {latestLog || latestEvent ? (
-        <div className="progress-signal prominent">
+        <div className={`progress-signal prominent ${staleRunning ? "warn-signal" : ""}`}>
           <span>{latestLog ? latestLog.stream : "latest event"}</span>
           <strong>
             {latestLog
@@ -169,7 +180,9 @@ export function TaskDetailPane({
             <div className="detail-section">
               <div className="section-header-row">
                 <h3>Progress Timeline</h3>
-                <span className="badge neutral">{recentEvents.length} events</span>
+                <span className={`badge ${staleRunning ? "warn" : "neutral"}`}>
+                  {recentEvents.length} events · signal {formatTimeAgo(latestSignalAt)}
+                </span>
               </div>
               <div className="progress-timeline">
                 {recentEvents.length > 0 ? (
@@ -387,6 +400,60 @@ function formatTimestamp(value: string): string {
   }).format(date);
 }
 
+function formatTimeAgo(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  const deltaSeconds = Math.max(0, Math.round((Date.now() - date.getTime()) / 1000));
+  if (deltaSeconds < 60) {
+    return `${deltaSeconds}s ago`;
+  }
+  if (deltaSeconds < 3600) {
+    return `${Math.floor(deltaSeconds / 60)}m ago`;
+  }
+  return `${Math.floor(deltaSeconds / 3600)}h ago`;
+}
+
+function runDurationLabel(startedAt: string): string {
+  const date = new Date(startedAt);
+  if (Number.isNaN(date.getTime())) {
+    return "duration unknown";
+  }
+  const deltaSeconds = Math.max(0, Math.round((Date.now() - date.getTime()) / 1000));
+  if (deltaSeconds < 60) {
+    return `running ${deltaSeconds}s`;
+  }
+  if (deltaSeconds < 3600) {
+    return `running ${Math.floor(deltaSeconds / 60)}m`;
+  }
+  return `running ${Math.floor(deltaSeconds / 3600)}h`;
+}
+
+function isStaleSignal(value: string): boolean {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return true;
+  }
+  return Date.now() - date.getTime() > 5 * 60 * 1000;
+}
+
+function agentTopologyLabel(mode: TaskDetailPayload["task"]["agentMode"], directChildren: number): string {
+  if (mode === "single") {
+    return "1 agent";
+  }
+  if (mode === "read_only_strategist") {
+    return "1 planner";
+  }
+  if (mode === "native_subagents") {
+    return "multi-agent runtime";
+  }
+  if (mode === "orchestrator_subtasks") {
+    return directChildren > 0 ? `${directChildren + 1} agents` : "task graph";
+  }
+  return directChildren > 0 ? `${directChildren + 1} agents` : "hybrid agents";
+}
+
 function summarizeEvent(event: EventRecord): string {
   const label = EVENT_LABELS[event.eventType] ?? event.eventType;
   const payload = summarizeEventPayload(event.payload);
@@ -420,7 +487,7 @@ function describeTaskState(status: TaskDetailPayload["task"]["status"], runtime:
     case "running":
       return `Watching delegated execution in ${runtime ?? "its routed runtime"}.`;
     case "review":
-      return "Ready for deterministic checks, diff review, and approval.";
+      return "Execution finished. Ready for deterministic checks, diff review, and approval.";
     case "failed":
     case "blocked":
       return "This task needs intervention before it can continue.";

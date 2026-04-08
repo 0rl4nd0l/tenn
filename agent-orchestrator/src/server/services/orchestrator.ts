@@ -482,6 +482,7 @@ export class OrchestratorService extends EventEmitter {
   }
 
   private async seed(): Promise<void> {
+    this.recoverOrphanedRunningState();
     await this.refreshCapabilitySnapshots();
     const conversation = this.store.getCollections(this.goalId).conversation;
     if (conversation.messages.length === 0) {
@@ -492,6 +493,82 @@ export class OrchestratorService extends EventEmitter {
           "Strategist ready. I will stay read-only by default, decompose work into routed tasks, and keep execution in delegated runtimes and worktrees.",
         createdAt: nowIso()
       });
+    }
+  }
+
+  private recoverOrphanedRunningState(): void {
+    const collections = this.store.getCollections(this.goalId);
+    const now = nowIso();
+    const runningTasks = collections.tasks.filter((task) => task.status === "running");
+    if (runningTasks.length === 0) {
+      return;
+    }
+
+    const runsByTask = new Map<string, typeof collections.runs>();
+    for (const run of collections.runs) {
+      const bucket = runsByTask.get(run.taskId) ?? [];
+      bucket.push(run);
+      runsByTask.set(run.taskId, bucket);
+    }
+
+    const sessionsByTask = new Map<string, typeof collections.sessions>();
+    for (const session of collections.sessions) {
+      const bucket = sessionsByTask.get(session.taskId) ?? [];
+      bucket.push(session);
+      sessionsByTask.set(session.taskId, bucket);
+    }
+
+    for (const task of runningTasks) {
+      const latestRun = (runsByTask.get(task.id) ?? [])
+        .sort((left, right) => right.startedAt.localeCompare(left.startedAt))[0];
+      if (latestRun && (latestRun.status === "running" || latestRun.status === "queued")) {
+        this.store.upsertRun({
+          ...latestRun,
+          status: "failed",
+          endedAt: now,
+          exitCode: latestRun.exitCode ?? 124,
+          summary: "Failed: orchestrator restarted while run was in progress"
+        });
+        this.store.insertEvent(makeEvent("run", latestRun.id, "run.completed", {
+          runtime: task.chosenRuntime,
+          provider: task.chosenProvider,
+          status: "failed",
+          exitCode: 124,
+          reason: "orchestrator_restart_recovery"
+        }));
+      }
+
+      const latestSession = (sessionsByTask.get(task.id) ?? [])
+        .sort((left, right) => right.startedAt.localeCompare(left.startedAt))[0];
+      if (latestSession && (latestSession.status === "running" || latestSession.status === "waiting")) {
+        this.store.upsertSession({
+          ...latestSession,
+          status: "failed",
+          updatedAt: now
+        });
+        this.store.insertEvent(makeEvent("session", latestSession.id, "session.completed", {
+          runtime: latestSession.runtime,
+          provider: latestSession.provider,
+          status: "failed",
+          reason: "orchestrator_restart_recovery"
+        }));
+      }
+
+      this.store.upsertTask({
+        ...task,
+        status: "failed",
+        updatedAt: now
+      });
+      this.store.insertEvent(makeEvent("task", task.id, "task.watchdog", {
+        reason: "orchestrator restart interrupted this running task"
+      }));
+      this.store.insertEvent(makeEvent("task", task.id, "task.failed", {
+        status: "failed",
+        runtime: task.chosenRuntime,
+        provider: task.chosenProvider,
+        reason: "orchestrator_restart_recovery"
+      }));
+      this.releaseTaskLocks(task.id);
     }
   }
 

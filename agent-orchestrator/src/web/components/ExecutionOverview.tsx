@@ -10,11 +10,20 @@ const REVIEW_STATUSES: TaskRecord["status"][] = ["review", "failed", "blocked", 
 
 export function ExecutionOverview({ board, selectedTaskId, onSelect }: ExecutionOverviewProps) {
   const sessionByTaskId = new Map(board.sessions.map((session) => [session.taskId, session]));
+  const latestSignalByTaskId = buildLatestSignalByTaskId(board);
+  const childTaskCountByParentId = buildChildTaskCountByParentId(board.tasks);
   const liveSessionTaskIds = new Set(
     board.sessions
       .filter((session) => session.status === "running" || session.status === "waiting")
       .map((session) => session.taskId)
   );
+  const doneCount = board.tasks.filter((task) => task.status === "done").length;
+  const reviewCount = board.tasks.filter((task) => task.status === "review").length;
+  const stalledRunningCount = board.tasks.filter(
+    (task) =>
+      task.status === "running" &&
+      (!liveSessionTaskIds.has(task.id) || isStaleSignal(latestSignalByTaskId.get(task.id) ?? task.updatedAt))
+  ).length;
 
   const latestPlanTaskId = board.conversation.latestPlanTaskId;
   const fallbackStrategistRoot = board.tasks
@@ -67,9 +76,11 @@ export function ExecutionOverview({ board, selectedTaskId, onSelect }: Execution
           <span className={`badge ${liveRunningTasks.length > 0 ? "ok" : "warn"}`}>
             {liveRunningTasks.length > 0 ? `${liveRunningTasks.length} live` : "no live session"}
           </span>
-          <span className={`badge ${reviewQueue.length > 0 ? "warn" : "ok"}`}>
-            {reviewQueue.length > 0 ? `${reviewQueue.length} need review` : "review clear"}
+          <span className={`badge ${reviewCount > 0 ? "warn" : "ok"}`}>
+            {reviewCount > 0 ? `${reviewCount} in review` : "review clear"}
           </span>
+          <span className="badge neutral">{doneCount} done</span>
+          {stalledRunningCount > 0 ? <span className="badge warn">{stalledRunningCount} stalled</span> : null}
         </div>
       </div>
 
@@ -99,10 +110,13 @@ export function ExecutionOverview({ board, selectedTaskId, onSelect }: Execution
                   </div>
                   <div className="timeline-item-copy">
                     <strong>{task.title}</strong>
-                    <p>{task.chosenRuntime ?? "routing pending"} · {freshnessLabel(task.updatedAt, liveSessionTaskIds.has(task.id))}</p>
+                    <p>
+                      {task.chosenRuntime ?? "routing pending"} · {freshnessLabel(task.updatedAt, liveSessionTaskIds.has(task.id))}
+                    </p>
                   </div>
                   <div className="timeline-item-meta">
                     <span>{task.taskType}</span>
+                    <span>{agentTopologyLabel(task, childTaskCountByParentId.get(task.id) ?? 0)}</span>
                     {planBranchTaskIds.has(task.id) ? <span>current plan</span> : <span>cross-plan</span>}
                     {task.dependencies.length > 0 ? <span>{task.dependencies.length} deps</span> : null}
                     {task.attempts > 1 ? <span>attempt {task.attempts}</span> : null}
@@ -142,10 +156,13 @@ export function ExecutionOverview({ board, selectedTaskId, onSelect }: Execution
                     </div>
                     <div className="timeline-item-copy">
                       <strong>{task.title}</strong>
-                      <p>{task.chosenRuntime ?? "routing pending"} · {session?.status ?? "running"}</p>
+                      <p>
+                        {task.chosenRuntime ?? "routing pending"} · {session?.status ?? "running"} · {runDurationLabel(session?.startedAt ?? task.updatedAt)}
+                      </p>
                     </div>
                     <div className="timeline-item-meta">
-                      <span>{freshnessLabel(task.updatedAt, true)}</span>
+                      <span>{monitorHealthLabel(latestSignalByTaskId.get(task.id) ?? task.updatedAt, true)}</span>
+                      <span>{agentTopologyLabel(task, childTaskCountByParentId.get(task.id) ?? 0)}</span>
                       {planBranchTaskIds.has(task.id) ? <span>current plan</span> : <span>cross-plan</span>}
                       {task.attempts > 1 ? <span>attempt {task.attempts}</span> : null}
                     </div>
@@ -176,10 +193,11 @@ export function ExecutionOverview({ board, selectedTaskId, onSelect }: Execution
                     </div>
                     <div className="timeline-item-copy">
                       <strong>{task.title}</strong>
-                      <p>{task.chosenRuntime ?? "routing pending"} · {freshnessLabel(task.updatedAt, false)}</p>
+                      <p>{task.chosenRuntime ?? "routing pending"} · {monitorHealthLabel(latestSignalByTaskId.get(task.id) ?? task.updatedAt, false)}</p>
                     </div>
                     <div className="timeline-item-meta">
-                      <span>orphaned running state</span>
+                      <span>needs retry or reopen</span>
+                      <span>{agentTopologyLabel(task, childTaskCountByParentId.get(task.id) ?? 0)}</span>
                       {planBranchTaskIds.has(task.id) ? <span>current plan</span> : <span>historical</span>}
                     </div>
                   </button>
@@ -221,6 +239,7 @@ export function ExecutionOverview({ board, selectedTaskId, onSelect }: Execution
                     <p>{task.status} · {task.chosenRuntime ?? "unrouted"} · {freshnessLabel(task.updatedAt, false)}</p>
                   </div>
                   <div className="timeline-item-meta">
+                    <span>{agentTopologyLabel(task, childTaskCountByParentId.get(task.id) ?? 0)}</span>
                     {planBranchTaskIds.has(task.id) ? <span>current plan</span> : <span>recent</span>}
                     {task.dependencies.length > 0 ? <span>{task.dependencies.length} deps</span> : null}
                   </div>
@@ -255,6 +274,7 @@ export function ExecutionOverview({ board, selectedTaskId, onSelect }: Execution
                       <p>{task.chosenRuntime ?? "unrouted"} · {freshnessLabel(task.updatedAt, false)}</p>
                     </div>
                     <div className="timeline-item-meta">
+                      <span>{agentTopologyLabel(task, childTaskCountByParentId.get(task.id) ?? 0)}</span>
                       <span>historical</span>
                     </div>
                   </button>
@@ -377,4 +397,92 @@ function formatTimeAgo(value: string): string {
     return `${Math.floor(deltaSeconds / 60)}m ago`;
   }
   return `${Math.floor(deltaSeconds / 3600)}h ago`;
+}
+
+function buildChildTaskCountByParentId(tasks: TaskRecord[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const task of tasks) {
+    if (!task.parentId) {
+      continue;
+    }
+    counts.set(task.parentId, (counts.get(task.parentId) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function buildLatestSignalByTaskId(board: BoardState): Map<string, string> {
+  const latest = new Map<string, string>();
+  for (const task of board.tasks) {
+    latest.set(task.id, task.updatedAt);
+  }
+
+  const runTaskById = new Map(board.runs.map((run) => [run.id, run.taskId]));
+  const sessionTaskById = new Map(board.sessions.map((session) => [session.id, session.taskId]));
+  for (const event of board.events) {
+    let taskId: string | null = null;
+    if (event.entityType === "task") {
+      taskId = event.entityId;
+    } else if (event.entityType === "run") {
+      taskId = runTaskById.get(event.entityId) ?? null;
+    } else if (event.entityType === "session") {
+      taskId = sessionTaskById.get(event.entityId) ?? null;
+    }
+    if (!taskId) {
+      continue;
+    }
+    const current = latest.get(taskId);
+    if (!current || event.createdAt > current) {
+      latest.set(taskId, event.createdAt);
+    }
+  }
+  return latest;
+}
+
+function isStaleSignal(value: string): boolean {
+  const stamp = new Date(value).getTime();
+  if (Number.isNaN(stamp)) {
+    return true;
+  }
+  return Date.now() - stamp > 5 * 60 * 1000;
+}
+
+function monitorHealthLabel(lastSignalAt: string, live: boolean): string {
+  if (live && !isStaleSignal(lastSignalAt)) {
+    return `live · signal ${formatTimeAgo(lastSignalAt)}`;
+  }
+  if (!isStaleSignal(lastSignalAt)) {
+    return `recent signal · ${formatTimeAgo(lastSignalAt)}`;
+  }
+  return `stalled signal · ${formatTimeAgo(lastSignalAt)}`;
+}
+
+function runDurationLabel(startedAt: string): string {
+  const stamp = new Date(startedAt).getTime();
+  if (Number.isNaN(stamp)) {
+    return "duration unknown";
+  }
+  const durationSeconds = Math.max(0, Math.round((Date.now() - stamp) / 1000));
+  if (durationSeconds < 60) {
+    return `running ${durationSeconds}s`;
+  }
+  if (durationSeconds < 3600) {
+    return `running ${Math.floor(durationSeconds / 60)}m`;
+  }
+  return `running ${Math.floor(durationSeconds / 3600)}h`;
+}
+
+function agentTopologyLabel(task: TaskRecord, directChildren: number): string {
+  if (task.agentMode === "single") {
+    return "1 agent";
+  }
+  if (task.agentMode === "read_only_strategist") {
+    return "1 planner";
+  }
+  if (task.agentMode === "native_subagents") {
+    return "multi-agent runtime";
+  }
+  if (task.agentMode === "orchestrator_subtasks") {
+    return directChildren > 0 ? `${directChildren + 1} agents` : "task graph";
+  }
+  return directChildren > 0 ? `${directChildren + 1} agents` : "hybrid agents";
 }

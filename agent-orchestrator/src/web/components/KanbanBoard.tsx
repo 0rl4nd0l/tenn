@@ -25,6 +25,8 @@ export function KanbanBoard({ tasks, events, selectedTaskId, onSelect }: KanbanB
   const [focusActive, setFocusActive] = useState(() => readBoardPreference("focus-active", false));
   const [hideDone, setHideDone] = useState(() => readBoardPreference("hide-done", false));
   const [hideEmptyLanes, setHideEmptyLanes] = useState(() => readBoardPreference("hide-empty-lanes", false));
+  const childTaskCountByParentId = useMemo(() => buildChildTaskCountByParentId(tasks), [tasks]);
+  const latestSignalByTaskId = useMemo(() => buildLatestSignalByTaskId(tasks, events), [tasks, events]);
 
   const latestTaskEvents = useMemo(() => {
     const records = new Map<string, EventRecord>();
@@ -129,7 +131,9 @@ export function KanbanBoard({ tasks, events, selectedTaskId, onSelect }: KanbanB
                       key={task.id}
                       type="button"
                       aria-pressed={selectedTaskId === task.id}
-                      className={`task-card ${selectedTaskId === task.id ? "selected" : ""} ${task.status === "running" ? "live" : ""}`}
+                      className={`task-card ${selectedTaskId === task.id ? "selected" : ""} ${
+                        task.status === "running" ? "live" : ""
+                      } ${task.status === "running" && isStaleSignal(latestSignalByTaskId.get(task.id) ?? task.updatedAt) ? "stalled" : ""}`}
                       onClick={() => void onSelect(task.id)}
                     >
                       <div className="task-card-top">
@@ -140,6 +144,14 @@ export function KanbanBoard({ tasks, events, selectedTaskId, onSelect }: KanbanB
                       </div>
                       <strong>{task.title}</strong>
                       <p>{summarizeBody(task, latestTaskEvents.get(task.id))}</p>
+                      <div className="task-card-health">
+                        <span>{agentTopologyLabel(task, childTaskCountByParentId.get(task.id) ?? 0)}</span>
+                        {task.status === "running" ? (
+                          <strong>{runningSignalLabel(latestSignalByTaskId.get(task.id) ?? task.updatedAt)}</strong>
+                        ) : (
+                          <strong>{formatTimeAgo(latestSignalByTaskId.get(task.id) ?? task.updatedAt)}</strong>
+                        )}
+                      </div>
                       {latestTaskEvents.get(task.id) ? (
                         <div className="task-card-signal">
                           <span>{summarizeEventType(latestTaskEvents.get(task.id)?.eventType ?? "")}</span>
@@ -185,6 +197,66 @@ function summarizeDescription(description: string): string {
 
 function summarizeEventType(eventType: string): string {
   return EVENT_LABELS[eventType] ?? eventType.replace(/\./g, " ");
+}
+
+function buildChildTaskCountByParentId(tasks: TaskRecord[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const task of tasks) {
+    if (!task.parentId) {
+      continue;
+    }
+    counts.set(task.parentId, (counts.get(task.parentId) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function buildLatestSignalByTaskId(tasks: TaskRecord[], events: EventRecord[]): Map<string, string> {
+  const latest = new Map<string, string>();
+  for (const task of tasks) {
+    latest.set(task.id, task.updatedAt);
+  }
+
+  for (const event of events) {
+    if (event.entityType !== "task") {
+      continue;
+    }
+    const current = latest.get(event.entityId);
+    if (!current || event.createdAt > current) {
+      latest.set(event.entityId, event.createdAt);
+    }
+  }
+  return latest;
+}
+
+function isStaleSignal(value: string): boolean {
+  const stamp = new Date(value).getTime();
+  if (Number.isNaN(stamp)) {
+    return true;
+  }
+  return Date.now() - stamp > 5 * 60 * 1000;
+}
+
+function runningSignalLabel(signalAt: string): string {
+  if (isStaleSignal(signalAt)) {
+    return `stalled · ${formatTimeAgo(signalAt)}`;
+  }
+  return `active · ${formatTimeAgo(signalAt)}`;
+}
+
+function agentTopologyLabel(task: TaskRecord, directChildren: number): string {
+  if (task.agentMode === "single") {
+    return "1 agent";
+  }
+  if (task.agentMode === "read_only_strategist") {
+    return "1 planner";
+  }
+  if (task.agentMode === "native_subagents") {
+    return "multi-agent runtime";
+  }
+  if (task.agentMode === "orchestrator_subtasks") {
+    return directChildren > 0 ? `${directChildren + 1} agents` : "task graph";
+  }
+  return directChildren > 0 ? `${directChildren + 1} agents` : "hybrid agents";
 }
 
 function formatTimeAgo(value: string): string {

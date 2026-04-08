@@ -607,6 +607,99 @@ async function testStrategistDelegationRequiresApproval(): Promise<void> {
   }
 }
 
+async function testRecoverOrphanedRunningTasksOnStartup(): Promise<void> {
+  const repo = createTempGitRepo();
+  const dataDir = path.join(repo.repoRoot, ".orchestrator-data");
+  const taskId = "task_orphaned_running";
+  const runId = "run_orphaned_running";
+  const sessionId = "session_orphaned_running";
+  try {
+    const firstService = await OrchestratorService.create({
+      repoRoot: repo.repoRoot,
+      dataDir,
+      autoSchedule: false,
+      goalId: "orphaned-recovery-test"
+    });
+    try {
+      const now = new Date().toISOString();
+      const store = (firstService as unknown as { store: any }).store;
+      store.upsertTask(
+        makeTask({
+          id: taskId,
+          goalId: "orphaned-recovery-test",
+          status: "running",
+          chosenRuntime: "codex-local",
+          chosenProvider: "openai",
+          chosenModel: "gpt-5.4-mini",
+          updatedAt: now
+        })
+      );
+      store.upsertSession({
+        id: sessionId,
+        taskId,
+        runtime: "codex-local",
+        provider: "openai",
+        model: "gpt-5.4-mini",
+        mode: "single",
+        localOrCloud: "local",
+        nativeStatsSupported: true,
+        exactUsageSupported: true,
+        compactionSupported: true,
+        contextWindow: 256000,
+        maxOutputTokens: 32000,
+        estimatedContextUsed: 0,
+        nativeContextUsed: null,
+        headroom: 0.9,
+        quotaState: "healthy",
+        status: "running",
+        externalSessionId: null,
+        startedAt: now,
+        updatedAt: now
+      });
+      store.upsertRun({
+        id: runId,
+        taskId,
+        sessionId,
+        attempt: 1,
+        status: "running",
+        startedAt: now,
+        endedAt: null,
+        exitCode: null,
+        summary: "Spawned via codex-local"
+      });
+    } finally {
+      await firstService.dispose();
+    }
+
+    const recoveredService = await OrchestratorService.create({
+      repoRoot: repo.repoRoot,
+      dataDir,
+      autoSchedule: false,
+      goalId: "orphaned-recovery-test"
+    });
+    try {
+      const board = await recoveredService.getBoardState();
+      const task = board.tasks.find((candidate) => candidate.id === taskId);
+      assert.ok(task, "expected orphaned task to exist");
+      assert.equal(task?.status, "failed", "orphaned running task should be failed on startup recovery");
+
+      const detail = await recoveredService.getTaskDetail(taskId);
+      assert.ok(detail, "expected recovered task detail");
+      assert.equal(detail?.session?.status, "failed", "orphaned running session should be failed");
+      assert.equal(detail?.runs[detail.runs.length - 1]?.status, "failed", "orphaned running run should be failed");
+      assert.match(
+        detail?.runs[detail.runs.length - 1]?.summary ?? "",
+        /orchestrator restarted/i,
+        "run summary should explain restart recovery"
+      );
+    } finally {
+      await recoveredService.dispose();
+    }
+  } finally {
+    repo.cleanup();
+  }
+}
+
 async function testWorktreeLifecycleAndSpawnWiring(): Promise<void> {
   const repo = createTempGitRepo();
   const worktreeBaseDir = path.join(repo.repoRoot, ".worktrees");
@@ -695,6 +788,7 @@ async function main(): Promise<void> {
   await testStoreAndStrategist();
   await testProcessAndOpenCodeAttachMode();
   await testStrategistDelegationRequiresApproval();
+  await testRecoverOrphanedRunningTasksOnStartup();
   await testWorktreeLifecycleAndSpawnWiring();
   console.log("orchestrator-core tests passed");
 }

@@ -26,8 +26,16 @@ export function HeaderBar({
       .filter((session) => session.status === "running" || session.status === "waiting")
       .map((session) => session.taskId)
   );
+  const latestSignalByTaskId = buildLatestSignalByTaskId(board);
   const liveRunning = board.tasks.filter((task) => task.status === "running" && liveSessionByTaskId.has(task.id)).length;
-  const queuedTasks = board.tasks.filter((task) => task.status === "ready" || task.status === "review").length;
+  const readyQueue = board.tasks.filter((task) => task.status === "ready" || task.status === "backlog").length;
+  const reviewQueue = board.tasks.filter((task) => task.status === "review").length;
+  const doneTasks = board.tasks.filter((task) => task.status === "done").length;
+  const stalledRunning = board.tasks.filter(
+    (task) =>
+      task.status === "running" &&
+      (!liveSessionByTaskId.has(task.id) || isStaleSignal(latestSignalByTaskId.get(task.id) ?? task.updatedAt))
+  ).length;
   const attention = board.tasks.filter((task) => ["blocked", "failed", "rejected"].includes(task.status)).length;
   const liveSessions = board.sessions.filter((session) => session.status === "running" || session.status === "waiting").length;
 
@@ -47,7 +55,10 @@ export function HeaderBar({
             {streamOnline ? `live · ${liveSessions} sessions` : "polling fallback"}
           </span>
           <span className="summary-inline">{liveRunning} running</span>
-          <span className="summary-inline">{queuedTasks} queued</span>
+          <span className="summary-inline">{readyQueue} queued</span>
+          <span className="summary-inline">{reviewQueue} review</span>
+          <span className="summary-inline">{doneTasks} done</span>
+          {stalledRunning > 0 ? <span className="summary-inline warning-inline">{stalledRunning} stalled</span> : null}
           <span className="summary-inline">{attention} attention</span>
         </div>
         <div className="view-switch" role="tablist" aria-label="Workspace views">
@@ -94,4 +105,42 @@ export function HeaderBar({
       </div>
     </header>
   );
+}
+
+function buildLatestSignalByTaskId(board: BoardState): Map<string, string> {
+  const latest = new Map<string, string>();
+  for (const task of board.tasks) {
+    latest.set(task.id, task.updatedAt);
+  }
+
+  const runTaskById = new Map(board.runs.map((run) => [run.id, run.taskId]));
+  const sessionTaskById = new Map(board.sessions.map((session) => [session.id, session.taskId]));
+
+  for (const event of board.events) {
+    let taskId: string | null = null;
+    if (event.entityType === "task") {
+      taskId = event.entityId;
+    } else if (event.entityType === "run") {
+      taskId = runTaskById.get(event.entityId) ?? null;
+    } else if (event.entityType === "session") {
+      taskId = sessionTaskById.get(event.entityId) ?? null;
+    }
+    if (!taskId) {
+      continue;
+    }
+    const current = latest.get(taskId);
+    if (!current || event.createdAt > current) {
+      latest.set(taskId, event.createdAt);
+    }
+  }
+
+  return latest;
+}
+
+function isStaleSignal(timestamp: string): boolean {
+  const value = new Date(timestamp).getTime();
+  if (Number.isNaN(value)) {
+    return true;
+  }
+  return Date.now() - value > 5 * 60 * 1000;
 }
