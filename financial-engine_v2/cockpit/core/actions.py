@@ -36,17 +36,19 @@ _STREAMLINED_ACTION_IDS: tuple[str, ...] = (
 
 # Actions that operate on a specific ticker and MUST have one provided.
 # Market-wide actions (daily_news_ingest, etc.) are intentionally excluded.
-TICKER_REQUIRED_ACTION_IDS: frozenset[str] = frozenset({
-    "full_history",
-    "update_ticker_financials",
-    "rebuild_ticker_financials",
-    "audit_ticker_financials",
-    "single_ticker_announcement_backfill",
-    "metric_extraction",
-    "show_candlestick",
-    "resume_pending",
-    "recover_headed",
-})
+TICKER_REQUIRED_ACTION_IDS: frozenset[str] = frozenset(
+    {
+        "full_history",
+        "update_ticker_financials",
+        "rebuild_ticker_financials",
+        "audit_ticker_financials",
+        "single_ticker_announcement_backfill",
+        "metric_extraction",
+        "show_candlestick",
+        "resume_pending",
+        "recover_headed",
+    }
+)
 
 
 @dataclass
@@ -63,6 +65,7 @@ class ActionRegistry:
     def __init__(self, repo_root: Path, confirm_required: bool = True) -> None:
         self.repo_root = repo_root
         py = str(repo_root / ".venv" / "bin" / "python")
+        shared_scripts_root = repo_root.parent / "scripts"
         self._actions: dict[str, ActionSpec] = {
             "full_history": ActionSpec(
                 id="full_history",
@@ -209,7 +212,9 @@ class ActionRegistry:
                 },
                 is_mutating=True,
                 requires_confirmation=confirm_required,
-                expected_outputs=["reports/marketindex/daily_marketindex_action_report_*.json"],
+                expected_outputs=[
+                    "reports/marketindex/daily_marketindex_action_report_*.json"
+                ],
                 timeout_seconds=3600,
             ),
             "daily_asx_marketwide": ActionSpec(
@@ -231,7 +236,9 @@ class ActionRegistry:
                 },
                 is_mutating=True,
                 requires_confirmation=confirm_required,
-                expected_outputs=["reports/asx/daily_asx_all_announcements_report*.json"],
+                expected_outputs=[
+                    "reports/asx/daily_asx_all_announcements_report*.json"
+                ],
                 timeout_seconds=7200,
             ),
             "asx_enrichment_sweep": ActionSpec(
@@ -358,7 +365,9 @@ class ActionRegistry:
                 },
                 is_mutating=True,
                 requires_confirmation=confirm_required,
-                expected_outputs=["reports/importance/announcement_importance_report*.json"],
+                expected_outputs=[
+                    "reports/importance/announcement_importance_report*.json"
+                ],
                 timeout_seconds=7200,
             ),
             "resume_pending": ActionSpec(
@@ -413,7 +422,7 @@ class ActionRegistry:
                 label="Daily news ingest",
                 command_template=[
                     py,
-                    "../scripts/fetch_daily_news.py",
+                    str(shared_scripts_root / "fetch_daily_news.py"),
                     "--providers",
                     "{providers}",
                     "--since-hours",
@@ -437,7 +446,9 @@ class ActionRegistry:
                 },
                 is_mutating=True,
                 requires_confirmation=confirm_required,
-                expected_outputs=["../reports/qual_context/news_runs/*/report_summary.json"],
+                expected_outputs=[
+                    "../reports/qual_context/news_runs/*/report_summary.json"
+                ],
                 timeout_seconds=5400,
             ),
             "historical_news_ingest": ActionSpec(
@@ -445,7 +456,7 @@ class ActionRegistry:
                 label="Historical news ingest",
                 command_template=[
                     py,
-                    "../scripts/backfill_news.py",
+                    str(shared_scripts_root / "backfill_news.py"),
                     "--provider",
                     "{provider}",
                     "--from",
@@ -479,7 +490,9 @@ class ActionRegistry:
                 },
                 is_mutating=True,
                 requires_confirmation=confirm_required,
-                expected_outputs=["../reports/qual_context/news_runs/*/report_summary.json"],
+                expected_outputs=[
+                    "../reports/qual_context/news_runs/*/report_summary.json"
+                ],
                 timeout_seconds=14400,
             ),
             "load_news_to_qdrant": ActionSpec(
@@ -487,7 +500,7 @@ class ActionRegistry:
                 label="Load news chunks to Qdrant",
                 command_template=[
                     py,
-                    "../scripts/load_news_to_qdrant.py",
+                    str(shared_scripts_root / "load_news_to_qdrant.py"),
                     "--db-path",
                     "{db_path}",
                     "--qdrant-url",
@@ -530,7 +543,9 @@ class ActionRegistry:
                 },
                 is_mutating=True,
                 requires_confirmation=confirm_required,
-                expected_outputs=["reports/asx/daily_asx_all_announcements_report*.json"],
+                expected_outputs=[
+                    "reports/asx/daily_asx_all_announcements_report*.json"
+                ],
                 timeout_seconds=7200,
             ),
             "single_ticker_announcement_backfill": ActionSpec(
@@ -671,7 +686,11 @@ class ActionRegistry:
         }
 
     def list_actions(self) -> list[ActionSpec]:
-        return [self._actions[action_id] for action_id in _STREAMLINED_ACTION_IDS if action_id in self._actions]
+        return [
+            self._actions[action_id]
+            for action_id in _STREAMLINED_ACTION_IDS
+            if action_id in self._actions
+        ]
 
     def get(self, action_id: str) -> ActionSpec:
         if action_id not in self._actions:
@@ -693,11 +712,17 @@ class ActionRegistry:
 
         if action_id == "full_history" and normalized.get("process_documents"):
             command.append("--process-documents")
-        if action_id == "update_ticker_financials" and normalized.get("process_documents", True):
+        if action_id == "update_ticker_financials" and normalized.get(
+            "process_documents", True
+        ):
             command.append("--process-documents")
-        if action_id == "update_ticker_financials" and not normalized.get("process_documents", True):
+        if action_id == "update_ticker_financials" and not normalized.get(
+            "process_documents", True
+        ):
             command.append("--no-process-documents")
-        if action_id == "update_ticker_financials" and normalized.get("skip_resume_pending"):
+        if action_id == "update_ticker_financials" and normalized.get(
+            "skip_resume_pending"
+        ):
             command.append("--skip-resume-pending")
         if action_id == "daily_marketindex" and normalized.get("overwrite_pdfs"):
             command.append("--overwrite-pdfs")
@@ -713,11 +738,18 @@ class ActionRegistry:
             command.append("--process-documents")
         if action_id == "asx_enrichment_sweep" and normalized.get("skip_download"):
             command.append("--skip-download")
-        if action_id == "asx_enrichment_sweep" and normalized.get("download_existing_missing", True):
+        if action_id == "asx_enrichment_sweep" and normalized.get(
+            "download_existing_missing", True
+        ):
             command.append("--download-existing-missing")
-        if action_id == "asx_enrichment_sweep" and normalized.get("no_historical_fallback"):
+        if action_id == "asx_enrichment_sweep" and normalized.get(
+            "no_historical_fallback"
+        ):
             command.append("--no-historical-fallback")
-        if action_id in {"asx_enrichment_chunked", "universe_announcement_enrichment_backfill"}:
+        if action_id in {
+            "asx_enrichment_chunked",
+            "universe_announcement_enrichment_backfill",
+        }:
             if normalized.get("download_existing_missing", True):
                 command.append("--download-existing-missing")
             else:
@@ -794,6 +826,7 @@ class ActionRegistry:
 
         # Pre-flight: extraction endpoint guard.
         from cockpit.core.action_runtime_guards import check_extraction_endpoint
+
         ok, guard_msg = check_extraction_endpoint(action_id, args)
         if not ok:
             raise ValueError(guard_msg)
@@ -834,7 +867,9 @@ class ActionRegistry:
         return default
 
     @classmethod
-    def extract_control_args(cls, args: dict[str, Any] | None) -> tuple[dict[str, Any], dict[str, Any]]:
+    def extract_control_args(
+        cls, args: dict[str, Any] | None
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
         src = dict(args or {})
         dry_run = False
         for key in (
@@ -851,7 +886,9 @@ class ActionRegistry:
                 dry_run = dry_run or cls._to_bool(raw_value, default=False)
         return src, {"dry_run": dry_run}
 
-    def doctor(self, check_help: bool = True, action_id: str | None = None) -> dict[str, Any]:
+    def doctor(
+        self, check_help: bool = True, action_id: str | None = None
+    ) -> dict[str, Any]:
         specs = [self.get(action_id)] if action_id else self.list_actions()
         preflight = self._run_preflight(specs)
 
@@ -879,7 +916,11 @@ class ActionRegistry:
             row["python_exists"] = bool(python_path) and Path(python_path).exists()
 
             script_rel = str(command[1]) if len(command) > 1 else ""
-            script_path = (self.repo_root / script_rel).resolve() if script_rel else self.repo_root
+            script_path = (
+                (self.repo_root / script_rel).resolve()
+                if script_rel
+                else self.repo_root
+            )
             row["script"] = script_rel
             row["script_exists"] = bool(script_rel) and script_path.exists()
 
@@ -902,7 +943,11 @@ class ActionRegistry:
 
             row_ok = bool(row.get("python_exists")) and bool(row.get("script_exists"))
             if check_help:
-                row_ok = row_ok and int(row.get("help_returncode", 1)) == 0 and not row.get("help_error")
+                row_ok = (
+                    row_ok
+                    and int(row.get("help_returncode", 1)) == 0
+                    and not row.get("help_error")
+                )
             row["ok"] = row_ok
             if row_ok:
                 ok_count += 1
@@ -926,7 +971,9 @@ class ActionRegistry:
                 parent = Path(pattern).parent
                 output_dirs.add((self.repo_root / parent).resolve())
 
-        output_rows = [self._check_writable_dir(path) for path in sorted(output_dirs, key=str)]
+        output_rows = [
+            self._check_writable_dir(path) for path in sorted(output_dirs, key=str)
+        ]
         outputs_ok = all(bool(row.get("ok")) for row in output_rows)
         return {
             "ok": outputs_ok,
@@ -957,7 +1004,9 @@ class ActionRegistry:
         parent = cls._first_existing_parent(dir_path)
         parent_exists = parent.exists()
         parent_writable = os.access(str(parent), os.W_OK) if parent_exists else False
-        ok = (exists and is_dir and writable) or (not exists and parent_exists and parent_writable)
+        ok = (exists and is_dir and writable) or (
+            not exists and parent_exists and parent_writable
+        )
         return {
             "path": str(dir_path),
             "exists": exists,
@@ -981,12 +1030,16 @@ class ActionRegistry:
                 try:
                     out[key] = int(value)
                 except (ValueError, TypeError) as exc:
-                    raise ValueError(f"Arg '{key}' must be an integer, got {value!r}") from exc
+                    raise ValueError(
+                        f"Arg '{key}' must be an integer, got {value!r}"
+                    ) from exc
             elif value_type is float:
                 try:
                     out[key] = float(value)
                 except (ValueError, TypeError) as exc:
-                    raise ValueError(f"Arg '{key}' must be a number, got {value!r}") from exc
+                    raise ValueError(
+                        f"Arg '{key}' must be a number, got {value!r}"
+                    ) from exc
             else:
                 out[key] = str(value)
 
@@ -1026,7 +1079,10 @@ class ActionRegistry:
         out.setdefault("low_confidence_threshold", 0.40)
         out.setdefault("only_unsorted", True)
         out.setdefault("max_tickers", 0)
-        out.setdefault("ticker_universe_file", str(self.repo_root / "data" / "raw" / "asx_ticker_universe.txt"))
+        out.setdefault(
+            "ticker_universe_file",
+            str(self.repo_root / "data" / "raw" / "asx_ticker_universe.txt"),
+        )
         out.setdefault("process_documents", False)
         out.setdefault("allow_warning", True)
         out.setdefault("no_resume_pending", False)
@@ -1041,27 +1097,65 @@ class ActionRegistry:
             "universe_announcement_enrichment_backfill",
             "asx_enrichment_chunked",
         }:
-            out["process_documents"] = self._to_bool(args.get("process_documents"), default=True)
+            out["process_documents"] = self._to_bool(
+                args.get("process_documents"), default=True
+            )
 
         out.setdefault("report_path", f"reports/cockpit_{spec.id}_{ts}.json")
         if spec.id == "update_ticker_financials":
-            out.setdefault("report_path", f"reports/financial_update_{out.get('ticker', 'UNKNOWN')}_{ts}.json")
+            out.setdefault(
+                "report_path",
+                f"reports/financial_update_{out.get('ticker', 'UNKNOWN')}_{ts}.json",
+            )
         if spec.id == "sort_asx_docs" and "ticker" not in args:
             out["ticker"] = ""
         if spec.id == "sort_asx_docs" and "limit" not in args:
             out["limit"] = 0
 
-        out.setdefault("daily_report", f"reports/marketindex/daily_marketindex_action_report_{ts}.json")
-        out.setdefault("download_report", f"reports/marketindex/pdf_download_report_{ts}.json")
-        out.setdefault("daily_asx_report", f"reports/asx/daily_asx_all_announcements_report_{ts}.json")
-        out.setdefault("asx_sweep_report", f"reports/asx/asx_enrichment_sweep_report_{ts}.json")
+        out.setdefault(
+            "daily_report",
+            f"reports/marketindex/daily_marketindex_action_report_{ts}.json",
+        )
+        out.setdefault(
+            "download_report", f"reports/marketindex/pdf_download_report_{ts}.json"
+        )
+        out.setdefault(
+            "daily_asx_report",
+            f"reports/asx/daily_asx_all_announcements_report_{ts}.json",
+        )
+        out.setdefault(
+            "asx_sweep_report", f"reports/asx/asx_enrichment_sweep_report_{ts}.json"
+        )
         out.setdefault("asx_chunk_reports_dir", "reports/asx")
-        out.setdefault("asx_chunk_rollup_report", f"reports/asx/asx_enrichment_chunked_rollup_{ts}.json")
-        out.setdefault("daily_announcement_report", f"reports/asx/daily_asx_all_announcements_report_{ts}.json")
-        out.setdefault("single_ticker_backfill_report", f"reports/ticker_full_history_report_{ts}.json")
-        out.setdefault("universe_backfill_rollup_report", f"reports/asx/asx_enrichment_chunked_rollup_{ts}.json")
-        out.setdefault("metric_extraction_report", f"reports/rebuild_ticker_financials_from_docs_{out.get('ticker', 'UNKNOWN')}_{ts}.json")
-        out.setdefault("db_path", str(self.repo_root.parent / "reports" / "qual_context" / "news_articles.sqlite"))
+        out.setdefault(
+            "asx_chunk_rollup_report",
+            f"reports/asx/asx_enrichment_chunked_rollup_{ts}.json",
+        )
+        out.setdefault(
+            "daily_announcement_report",
+            f"reports/asx/daily_asx_all_announcements_report_{ts}.json",
+        )
+        out.setdefault(
+            "single_ticker_backfill_report",
+            f"reports/ticker_full_history_report_{ts}.json",
+        )
+        out.setdefault(
+            "universe_backfill_rollup_report",
+            f"reports/asx/asx_enrichment_chunked_rollup_{ts}.json",
+        )
+        out.setdefault(
+            "metric_extraction_report",
+            f"reports/rebuild_ticker_financials_from_docs_{out.get('ticker', 'UNKNOWN')}_{ts}.json",
+        )
+        out.setdefault(
+            "db_path",
+            str(
+                self.repo_root.parent
+                / "reports"
+                / "qual_context"
+                / "news_articles.sqlite"
+            ),
+        )
         out.setdefault("qdrant_url", "http://localhost:6333")
         out.setdefault("collection", "news_chunks")
         out.setdefault("batch_size", 64)
@@ -1069,7 +1163,10 @@ class ActionRegistry:
         if spec.id == "load_news_to_qdrant":
             out.setdefault("since_hours", 0)
         out.setdefault("since_hours", 36)
-        out.setdefault("news_runs_root", str(self.repo_root.parent / "reports" / "qual_context" / "news_runs"))
+        out.setdefault(
+            "news_runs_root",
+            str(self.repo_root.parent / "reports" / "qual_context" / "news_runs"),
+        )
         out.setdefault("provider", "gdelt")
         out.setdefault("from_day", "2026-01-01")
         out.setdefault("to_day", today)
@@ -1078,8 +1175,17 @@ class ActionRegistry:
         out.setdefault("lane", "high_precision")
         out.setdefault("tickers", "")
         out.setdefault("no_resume", False)
-        out.setdefault("importance_report", f"reports/importance/announcement_importance_report_{ts}.json")
-        out.setdefault("rebuild_report", f"reports/rebuild_ticker_financials_from_docs_{out.get('ticker', 'UNKNOWN')}_{ts}.json")
-        out.setdefault("audit_report", f"reports/audit_ticker_financials_{out.get('ticker', 'UNKNOWN')}_{ts}.json")
+        out.setdefault(
+            "importance_report",
+            f"reports/importance/announcement_importance_report_{ts}.json",
+        )
+        out.setdefault(
+            "rebuild_report",
+            f"reports/rebuild_ticker_financials_from_docs_{out.get('ticker', 'UNKNOWN')}_{ts}.json",
+        )
+        out.setdefault(
+            "audit_report",
+            f"reports/audit_ticker_financials_{out.get('ticker', 'UNKNOWN')}_{ts}.json",
+        )
 
         return out

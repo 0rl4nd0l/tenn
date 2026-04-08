@@ -1183,6 +1183,454 @@ class ChatController:
         )
         return {"note": note, "action_preview": action_preview}
 
+    # ------------------------------------------------------------------ #
+    # Slash command handling                                              #
+    # ------------------------------------------------------------------ #
+
+    def _handle_slash_command(self, message: str) -> ChatResponse | None:
+        """Parse and dispatch slash commands. Returns None if unrecognised."""
+        parts = message.split(None, 2)
+        cmd = parts[0].lower() if parts else ""
+        sub = parts[1].lower() if len(parts) > 1 else ""
+        rest = parts[2].strip() if len(parts) > 2 else ""
+
+        handler = self._SLASH_DISPATCH.get(cmd)
+        if handler is not None:
+            return handler(self, sub, rest)
+        return None
+
+    # -- Toggle commands ------------------------------------------------ #
+
+    def _slash_web(self, sub: str, _rest: str) -> ChatResponse | None:
+        if sub not in ("on", "off"):
+            return ChatResponse(text="Usage: /web on|off", evidence=[], mode=ResponseMode.FAST)
+        enabled = sub == "on"
+        if hasattr(self.tool_router, "web_default_enabled"):
+            self.tool_router.web_default_enabled = enabled
+        return ChatResponse(
+            text=f"Web search {'enabled' if enabled else 'disabled'}.",
+            evidence=[],
+            mode=ResponseMode.FAST,
+        )
+
+    def _slash_rag(self, sub: str, _rest: str) -> ChatResponse | None:
+        if sub not in ("on", "off"):
+            return ChatResponse(text="Usage: /rag on|off", evidence=[], mode=ResponseMode.FAST)
+        enabled = sub == "on"
+        if hasattr(self.tool_router, "qual_context_enabled"):
+            self.tool_router.qual_context_enabled = enabled
+        return ChatResponse(
+            text=f"RAG context {'enabled' if enabled else 'disabled'}.",
+            evidence=[],
+            mode=ResponseMode.FAST,
+        )
+
+    def _slash_dbdiag(self, sub: str, _rest: str) -> ChatResponse | None:
+        if sub not in ("on", "off"):
+            return ChatResponse(text="Usage: /dbdiag on|off", evidence=[], mode=ResponseMode.FAST)
+        enabled = sub == "on"
+        if hasattr(self.tool_router, "db_diagnostics_enabled"):
+            self.tool_router.db_diagnostics_enabled = enabled
+        return ChatResponse(
+            text=f"DB diagnostics {'enabled' if enabled else 'disabled'}.",
+            evidence=[],
+            mode=ResponseMode.FAST,
+        )
+
+    def _slash_sources(self, sub: str, _rest: str) -> ChatResponse | None:
+        if sub not in ("on", "off"):
+            return ChatResponse(text="Usage: /sources on|off", evidence=[], mode=ResponseMode.FAST)
+        enabled = sub == "on"
+        if self._state_store is not None:
+            self._state_store.set_preference("show_sources", "true" if enabled else "false")
+        return ChatResponse(
+            text=f"Source display {'enabled' if enabled else 'disabled'}.",
+            evidence=[],
+            mode=ResponseMode.FAST,
+        )
+
+    # -- Info commands -------------------------------------------------- #
+
+    def _slash_health(self, _sub: str, _rest: str) -> ChatResponse | None:
+        lines: list[str] = ["Service health:"]
+        for name, client_attr in [
+            ("llama.cpp", "ollama_client"),
+            ("backend", None),
+        ]:
+            client = getattr(self, client_attr, None) if client_attr else getattr(
+                self.tool_router, "backend_api_client", None
+            )
+            if client is None:
+                lines.append(f"  {name}: not configured")
+                continue
+            try:
+                h = client.health(timeout=5.0)
+                ok = h.get("ok", False) if isinstance(h, dict) else False
+                status = "ok" if ok else f"degraded ({h})"
+            except Exception as exc:
+                status = f"unreachable ({exc})"
+            lines.append(f"  {name}: {status}")
+        return ChatResponse(text="\n".join(lines), evidence=[], mode=ResponseMode.FAST)
+
+    def _slash_prompt(self, _sub: str, _rest: str) -> ChatResponse | None:
+        prompt_text = self._build_system_instruction(ResponseMode.FAST, None, {})
+        # Truncate for readability.
+        if len(prompt_text) > 2000:
+            prompt_text = prompt_text[:2000] + "\n... (truncated)"
+        return ChatResponse(text=f"```\n{prompt_text}\n```", evidence=[], mode=ResponseMode.FAST)
+
+    def _slash_access(self, _sub: str, _rest: str) -> ChatResponse | None:
+        lines: list[str] = ["Access status:"]
+        web = getattr(self.tool_router, "web_default_enabled", False)
+        rag = getattr(self.tool_router, "qual_context_enabled", False)
+        dbdiag = getattr(self.tool_router, "db_diagnostics_enabled", False)
+        backend = getattr(self.tool_router, "backend_api_client", None) is not None
+        brave = getattr(self.tool_router, "brave_search_client", None) is not None
+        lines.append(f"  web: {'on' if web else 'off'}")
+        lines.append(f"  rag: {'on' if rag else 'off'}")
+        lines.append(f"  db_diagnostics: {'on' if dbdiag else 'off'}")
+        lines.append(f"  backend_api: {'connected' if backend else 'not configured'}")
+        lines.append(f"  brave_search: {'available' if brave else 'not configured'}")
+        agent_mode = os.environ.get("COCKPIT_AGENT_MODE", "structured")
+        lines.append(f"  agent_mode: {agent_mode}")
+        lines.append(f"  agent_loop: {'active' if self._agent_loop else 'inactive'}")
+        return ChatResponse(text="\n".join(lines), evidence=[], mode=ResponseMode.FAST)
+
+    # -- Watchlist commands --------------------------------------------- #
+
+    def _slash_watch(self, sub: str, rest: str) -> ChatResponse | None:
+        if self._state_store is None:
+            return ChatResponse(text="Watchlist not available (no state store).", evidence=[], mode=ResponseMode.FAST)
+
+        if sub == "list":
+            items = self._state_store.list_watch_tickers()
+            if not items:
+                return ChatResponse(text="Watchlist is empty.", evidence=[], mode=ResponseMode.FAST)
+            lines = [f"  {r['ticker']}  (added {r['added_at'][:10]})" for r in items]
+            return ChatResponse(
+                text=f"Watchlist ({len(items)}):\n" + "\n".join(lines),
+                evidence=[{"type": "watchlist", "details": items}],
+                mode=ResponseMode.FAST,
+            )
+
+        if sub == "add":
+            ticker = rest.strip().upper()
+            if not ticker:
+                return ChatResponse(text="Usage: /watch add <TICKER>", evidence=[], mode=ResponseMode.FAST)
+            now = datetime.now(timezone.utc).isoformat()
+            inserted = self._state_store.add_watch_ticker(ticker, now)
+            msg = f"Added {ticker} to watchlist." if inserted else f"{ticker} already on watchlist."
+            return ChatResponse(text=msg, evidence=[], mode=ResponseMode.FAST)
+
+        if sub == "remove":
+            ticker = rest.strip().upper()
+            if not ticker:
+                return ChatResponse(text="Usage: /watch remove <TICKER>", evidence=[], mode=ResponseMode.FAST)
+            removed = self._state_store.remove_watch_ticker(ticker)
+            msg = f"Removed {ticker} from watchlist." if removed else f"{ticker} not found on watchlist."
+            return ChatResponse(text=msg, evidence=[], mode=ResponseMode.FAST)
+
+        if sub == "clear":
+            count = self._state_store.clear_watch_tickers()
+            return ChatResponse(text=f"Watchlist cleared ({count} removed).", evidence=[], mode=ResponseMode.FAST)
+
+        if sub == "scan":
+            ticker_arg = rest.strip().upper() or None
+            if self._agent_loop is not None and hasattr(self._agent_loop, "_tool_executor"):
+                executor = self._agent_loop._tool_executor
+                tickers_csv = ticker_arg or ""
+                result = executor.execute("scan_watchlist", {"tickers": tickers_csv})
+                ok = result.get("ok", False)
+                if ok:
+                    scanned = result.get("tickers_scanned", [])
+                    return ChatResponse(
+                        text=f"Watchlist scan complete. Scanned: {', '.join(scanned) if scanned else 'none'}.",
+                        evidence=[{"type": "watchlist_scan", "details": result}],
+                        mode=ResponseMode.FAST,
+                    )
+                return ChatResponse(
+                    text=f"Watchlist scan failed: {result.get('error', 'unknown')}",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+            return ChatResponse(
+                text="Watchlist scan not available (agent loop not initialised).",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        return ChatResponse(text="Usage: /watch list|add|remove|clear|scan", evidence=[], mode=ResponseMode.FAST)
+
+    # -- Strategy commands ---------------------------------------------- #
+
+    def _slash_strategy(self, sub: str, rest: str) -> ChatResponse | None:
+        if self._strategy_service is None:
+            return ChatResponse(
+                text="Strategy service not available.", evidence=[], mode=ResponseMode.FAST
+            )
+
+        if sub == "list":
+            ticker = rest.strip().upper() or None
+            global_criteria = self._strategy_service.get_global(limit=20)
+            ticker_criteria = self._strategy_service.get_ticker(ticker) if ticker else []
+            lines: list[str] = []
+            if global_criteria:
+                lines.append("Global criteria:")
+                for c in global_criteria:
+                    lines.append(f"  [{c['id']}] {c['criterion']} (priority={c['priority']})")
+            if ticker_criteria:
+                lines.append(f"\n{ticker} criteria:")
+                for c in ticker_criteria:
+                    dec = f" -> {c['decision']}" if c.get("decision") else ""
+                    lines.append(f"  [{c['id']}] {c['criterion']}{dec}")
+            if not lines:
+                lines.append("No strategy criteria defined.")
+            return ChatResponse(text="\n".join(lines), evidence=[], mode=ResponseMode.FAST)
+
+        if sub == "add":
+            if not rest:
+                return ChatResponse(text="Usage: /strategy add [TICKER] <criterion>", evidence=[], mode=ResponseMode.FAST)
+            tokens = rest.split(None, 1)
+            first = tokens[0].upper() if tokens else ""
+            # If the first token looks like a ticker (2-5 uppercase alpha), treat it as one.
+            if len(first) >= 2 and len(first) <= 5 and first.isalpha() and len(tokens) > 1:
+                ticker = first
+                criterion = tokens[1]
+                row = self._strategy_service.add_ticker(ticker, criterion)
+                return ChatResponse(
+                    text=f"Added criterion for {ticker}: {criterion} (id={row['id']})",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+            criterion = rest
+            row = self._strategy_service.add_global(criterion)
+            return ChatResponse(
+                text=f"Added global criterion: {criterion} (id={row['id']})",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        if sub == "decide":
+            tokens = rest.split(None, 1)
+            if len(tokens) < 2:
+                return ChatResponse(
+                    text="Usage: /strategy decide <TICKER> <buy|watchlist|avoid>",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+            ticker = tokens[0].upper()
+            decision = tokens[1].strip().lower()
+            if decision not in ("buy", "watchlist", "avoid"):
+                return ChatResponse(
+                    text=f"Invalid decision '{decision}'. Use: buy, watchlist, avoid",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+            row = self._strategy_service.record_decision(ticker, decision, f"Manual decision via /strategy decide")
+            return ChatResponse(
+                text=f"Recorded decision for {ticker}: {decision}",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        if sub == "delete":
+            if not rest:
+                return ChatResponse(text="Usage: /strategy delete <id>", evidence=[], mode=ResponseMode.FAST)
+            try:
+                row_id = int(rest.strip())
+            except ValueError:
+                return ChatResponse(text="Invalid id — must be numeric.", evidence=[], mode=ResponseMode.FAST)
+            deleted = self._strategy_service.delete(row_id)
+            msg = f"Deleted criterion {row_id}." if deleted else f"Criterion {row_id} not found."
+            return ChatResponse(text=msg, evidence=[], mode=ResponseMode.FAST)
+
+        return ChatResponse(
+            text="Usage: /strategy list|add|decide|delete",
+            evidence=[],
+            mode=ResponseMode.FAST,
+        )
+
+    # -- Action commands ------------------------------------------------ #
+
+    def _slash_run(self, sub: str, rest: str) -> ChatResponse | None:
+        action_id = sub
+        if not action_id:
+            return ChatResponse(text="Usage: /run <action_id> [args]", evidence=[], mode=ResponseMode.FAST)
+        if not self.action_registry:
+            return ChatResponse(text="Action registry not available.", evidence=[], mode=ResponseMode.FAST)
+        # Parse key=value args from rest.
+        args: dict[str, Any] = {}
+        for token in rest.split():
+            if "=" in token:
+                k, v = token.split("=", 1)
+                args[k] = v
+        try:
+            preview = self.action_registry.preview(action_id, args)
+        except (ValueError, KeyError) as exc:
+            return ChatResponse(text=f"Action '{action_id}' error: {exc}", evidence=[], mode=ResponseMode.FAST)
+        return ChatResponse(
+            text=f"Action ready: {action_id}\nCommand: {' '.join(preview.command)}\nUse /confirm to execute.",
+            evidence=[],
+            action_preview={
+                "action_id": action_id,
+                "args": args,
+                "command": preview.command,
+                "impact": preview.estimated_impact,
+                "timeout_seconds": preview.timeout_seconds,
+            },
+            mode=ResponseMode.ACTION,
+        )
+
+    def _slash_confirm(self, _sub: str, _rest: str) -> ChatResponse | None:
+        # The UI layer handles confirm by re-sending the action_preview to the execute endpoint.
+        # This command is a no-op signal — the ChatController does not store pending actions.
+        return ChatResponse(
+            text="No pending action to confirm. Actions are confirmed via the UI action panel.",
+            evidence=[],
+            mode=ResponseMode.FAST,
+        )
+
+    def _slash_cancel(self, _sub: str, _rest: str) -> ChatResponse | None:
+        return ChatResponse(
+            text="Cancelled. No pending action.",
+            evidence=[],
+            mode=ResponseMode.FAST,
+        )
+
+    # -- File commands -------------------------------------------------- #
+
+    def _slash_read(self, sub: str, rest: str) -> ChatResponse | None:
+        path = sub
+        if not path:
+            return ChatResponse(text="Usage: /read <path> [max_chars=N]", evidence=[], mode=ResponseMode.FAST)
+        max_chars = 4000
+        for token in rest.split():
+            if token.startswith("max_chars="):
+                try:
+                    max_chars = int(token.split("=", 1)[1])
+                except ValueError:
+                    pass
+        try:
+            content = Path(path).expanduser().read_text(errors="replace")
+            if len(content) > max_chars:
+                content = content[:max_chars] + f"\n... (truncated at {max_chars} chars)"
+            return ChatResponse(
+                text=f"```\n{content}\n```",
+                evidence=[{"type": "file_read", "details": {"path": path, "chars": len(content)}}],
+                mode=ResponseMode.FAST,
+            )
+        except FileNotFoundError:
+            return ChatResponse(text=f"File not found: {path}", evidence=[], mode=ResponseMode.FAST)
+        except PermissionError:
+            return ChatResponse(text=f"Permission denied: {path}", evidence=[], mode=ResponseMode.FAST)
+        except Exception as exc:
+            return ChatResponse(text=f"Error reading {path}: {exc}", evidence=[], mode=ResponseMode.FAST)
+
+    # -- Preference commands -------------------------------------------- #
+
+    def _slash_prefer(self, sub: str, rest: str) -> ChatResponse | None:
+        raw = f"{sub} {rest}".strip() if rest else sub
+        if "=" not in raw:
+            return ChatResponse(text="Usage: /prefer <key>=<value>", evidence=[], mode=ResponseMode.FAST)
+        key, value = raw.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        if not key:
+            return ChatResponse(text="Usage: /prefer <key>=<value>", evidence=[], mode=ResponseMode.FAST)
+        if self._state_store is not None:
+            self._state_store.set_preference(key, value)
+        return ChatResponse(text=f"Preference set: {key}={value}", evidence=[], mode=ResponseMode.FAST)
+
+    # -- Review commands ------------------------------------------------ #
+
+    def _slash_review(self, sub: str, rest: str) -> ChatResponse | None:
+        if self._state_store is None:
+            return ChatResponse(text="Review not available (no state store).", evidence=[], mode=ResponseMode.FAST)
+
+        if sub == "list":
+            try:
+                pending = self._state_store.list_pending_reviews()
+            except AttributeError:
+                return ChatResponse(text="Review listing not implemented in state store.", evidence=[], mode=ResponseMode.FAST)
+            if not pending:
+                return ChatResponse(text="No pending reviews.", evidence=[], mode=ResponseMode.FAST)
+            lines = [f"  [{r.get('id', '?')}] {r.get('source_id', '?')}: {r.get('summary', '')[:80]}" for r in pending]
+            return ChatResponse(
+                text=f"Pending reviews ({len(pending)}):\n" + "\n".join(lines),
+                evidence=[{"type": "reviews", "details": pending}],
+                mode=ResponseMode.FAST,
+            )
+
+        if sub == "approve":
+            source_id = rest.strip()
+            if not source_id:
+                return ChatResponse(text="Usage: /review approve <source_id>", evidence=[], mode=ResponseMode.FAST)
+            try:
+                self._state_store.approve_review(source_id)
+            except AttributeError:
+                return ChatResponse(text="Review approval not implemented in state store.", evidence=[], mode=ResponseMode.FAST)
+            return ChatResponse(text=f"Approved review: {source_id}", evidence=[], mode=ResponseMode.FAST)
+
+        if sub == "reject":
+            source_id = rest.strip()
+            if not source_id:
+                return ChatResponse(text="Usage: /review reject <source_id>", evidence=[], mode=ResponseMode.FAST)
+            try:
+                self._state_store.reject_review(source_id)
+            except AttributeError:
+                return ChatResponse(text="Review rejection not implemented in state store.", evidence=[], mode=ResponseMode.FAST)
+            return ChatResponse(text=f"Rejected review: {source_id}", evidence=[], mode=ResponseMode.FAST)
+
+        if sub == "approve-all":
+            try:
+                self._state_store.approve_all_reviews()
+            except AttributeError:
+                return ChatResponse(text="Bulk approval not implemented in state store.", evidence=[], mode=ResponseMode.FAST)
+            return ChatResponse(text="All pending reviews approved.", evidence=[], mode=ResponseMode.FAST)
+
+        return ChatResponse(text="Usage: /review list|approve|reject|approve-all", evidence=[], mode=ResponseMode.FAST)
+
+    # -- Reconnect command ---------------------------------------------- #
+
+    def _slash_reconnect(self, _sub: str, _rest: str) -> ChatResponse | None:
+        lines: list[str] = ["Reconnection attempt:"]
+        # Re-probe health on each known client.
+        for name, client in [
+            ("llama.cpp", self.ollama_client),
+            ("backend", getattr(self.tool_router, "backend_api_client", None)),
+        ]:
+            if client is None:
+                lines.append(f"  {name}: not configured")
+                continue
+            try:
+                h = client.health(timeout=5.0)
+                ok = h.get("ok", False) if isinstance(h, dict) else False
+                lines.append(f"  {name}: {'ok' if ok else 'degraded'}")
+            except Exception as exc:
+                lines.append(f"  {name}: failed ({exc})")
+        return ChatResponse(text="\n".join(lines), evidence=[], mode=ResponseMode.FAST)
+
+    # -- Dispatch table ------------------------------------------------- #
+
+    _SLASH_DISPATCH: dict[str, Any] = {
+        "/web": _slash_web,
+        "/rag": _slash_rag,
+        "/dbdiag": _slash_dbdiag,
+        "/sources": _slash_sources,
+        "/health": _slash_health,
+        "/prompt": _slash_prompt,
+        "/access": _slash_access,
+        "/watch": _slash_watch,
+        "/strategy": _slash_strategy,
+        "/run": _slash_run,
+        "/confirm": _slash_confirm,
+        "/cancel": _slash_cancel,
+        "/read": _slash_read,
+        "/prefer": _slash_prefer,
+        "/review": _slash_review,
+        "/reconnect": _slash_reconnect,
+    }
+
     def _build_system_instruction(
         self, mode: str, ticker: str | None, local_payload: dict
     ) -> str:  # noqa: ARG002
@@ -1432,6 +1880,8 @@ class ChatController:
         self,
         message: str,
         enable_web: bool = False,
+        enable_rag: bool = True,
+        enable_db_diagnostics: bool = False,
         prior_ticker: str | None = None,
         on_chunk=None,
         on_status=None,
@@ -1445,6 +1895,12 @@ class ChatController:
                 'Ask me about a company (e.g. "tell me about CSL") or run an action from the panel.'
             )
             return ChatResponse(text=greeting, evidence=[], mode=ResponseMode.FAST)
+
+        # --- Slash command dispatch: deterministic, no LLM needed ---
+        if message.strip().startswith("/"):
+            cmd_response = self._handle_slash_command(message.strip())
+            if cmd_response is not None:
+                return cmd_response
 
         # ------------------------------------------------------------------ #
         # Deterministic fast-paths — fire BEFORE agent loop or keyword LLM.   #
@@ -1637,7 +2093,7 @@ class ChatController:
 
         # --- Access request: deep analysis requires RAG but it's disabled ---
         rag_available = bool(getattr(self.tool_router, "qual_context_reader", None))
-        rag_enabled = bool(getattr(self.tool_router, "qual_context_enabled", False))
+        rag_enabled = bool(getattr(self.tool_router, "qual_context_enabled", False)) and enable_rag
         if analysis_mode == "deep" and rag_available and not rag_enabled:
             return ChatResponse(
                 text="Deep analysis requires RAG context. Enable RAG and try again.",
