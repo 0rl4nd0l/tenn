@@ -8,7 +8,7 @@ For local assistant work in Tenn, llama.cpp is the preferred runtime over Ollama
 
 Run before maintenance work:
 
-- `systemctl --user status llama-cpp-qwen25.service --no-pager -n 20`
+- `systemctl --user status llama-cpp-router.service --no-pager -n 20`
 - `scripts/openclaw-autodev status`
 - `scripts/openclaw-autodev doctor`
 - `openclaw agent --local --session-id health-chat -m "hi"`
@@ -17,7 +17,7 @@ If the local agent health check returns `NO`, `NO_REPLY`, timeout, or abort, rep
 
 Current local llama.cpp source of truth:
 
-- Service unit: `systemd/llama-cpp-qwen25.service`
+- Service unit: `systemd/llama-cpp-router.service`
 - Launcher: `scripts/run_llama_server.sh`
 - Canonical port: **8001** (env override and launcher default aligned)
 - Host override file: `~/.config/tenn/llama-server.env`

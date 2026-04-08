@@ -4,7 +4,7 @@
 > Update this file at the end of every session alongside the milestone commit.
 > For detailed context on any item, follow the linked doc or run `git log --oneline`.
 
-Last updated: 2026-04-08 (session — cockpit web action execution endpoint + confirm payload normalization, adaptive GPU polling during active chat, chat stream cancel/status UX hardening, context endpoint transaction rollback fix, docs alignment)
+Last updated: 2026-04-08 (session — cockpit launcher process-control audit, root-owned backend kill fallback hardening, cockpit web action execution endpoint + confirm payload normalization, adaptive GPU polling during active chat, chat stream cancel/status UX hardening, context endpoint transaction rollback fix, llama router service rename/switchover, local disk cleanup, docs alignment)
 Branch: cloud/session-20260319
 
 ## Legend
@@ -79,6 +79,8 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 
 | Commit | Workstream | Summary |
 |--------|------------|---------|
+| (this session) | runtime-cleanup | Removed the stale `/tmp/llama-server-8001.log` orphan log, cleaned npm/OpenCode/Cursor disposable caches, and improved root-disk headroom to roughly `53G` free while keeping the managed router healthy on `:8001`. |
+| (this session) | llamacpp-runtime | Renamed the checked-in chat/router user unit to `llama-cpp-router.service`, aligned installer/docs/runtime discovery, and switched the live `:8001` router from an orphaned legacy process to the managed router service. |
 | (this session) | cockpit-ui / cockpit-api | Confirmed action proposals from web chat now execute via `POST /api/cockpit/action/execute`; frontend normalizes `action_preview` payload shapes (`action_id`/`arguments` vs `id`/`args`) to prevent `Action "undefined"` failures. |
 | (this session) | cockpit-ui | Sidebar/system health polling is now adaptive: 3s while a chat completion is active and 15s when idle, improving GPU visibility during active model inference. |
 | (this session) | backend-context | `/api/context/ticker` query error handling now rolls back failed DB transactions and treats missing `cockpit_announcement_context` table as non-fatal instead of poisoning subsequent reads. |
@@ -86,6 +88,7 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 | (this session) | cockpit-ui | Sidebar now shows a host-level GPU indicator sourced from the Next.js `/api/cockpit/health` wrapper, with live `nvidia-smi` name/utilization/VRAM data instead of the backend container’s blind spot. |
 | (this session) | cockpit-launcher | `cockpit kill root` now falls back from `lsof` to `ss` for listener discovery and re-checks ports after wrapper kills, so orphaned `next-server` listeners on `:8081` are actually removed. |
 | (this session) | cockpit-launcher | `cockpit kill root` now cleans stale Next.js UI processes and both configured UI ports, and `cockpit start web/new` preflight the target port before launch so stale listeners fail fast instead of surfacing as misleading `EADDRINUSE`. |
+| (this session) | cockpit-launcher | Process-control commands now share a single sudo-fallback kill path, so `cockpit kill backend`, `cockpit restart backend`, llama shutdown, and bugagent cleanup can remove root-owned processes instead of leaving stale runtimes behind. |
 | (this session) | cockpit-ui / cockpit-api | SSE chat now emits canonical final text in the `done` event and the Next UI prefers that value over buffered chunks, preventing raw tool-call JSON from being committed as the assistant reply. |
 | (this session) | cockpit-launcher | `cockpit restart backend` now rewrites `.env.docker`, enforces `nomic-embed-text`, frees conflicting Ollama runners before backend startup, routes embeddings through Ollama correctly, and leaves detached llama.cpp chat alive after the command exits. |
 | (this session) | agent-orchestrator | Replaced blocking native-CLI chat with Codex-backed run/SSE streaming, optimistic chat UI state, and explicit delegated-task events; verified with `npm test`, `npm run build`, `npm run smoke`, and live `/api/chat` SSE curl. |

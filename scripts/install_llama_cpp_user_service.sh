@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SERVICE_NAME="llama-cpp-qwen25.service"
+SERVICE_NAME="llama-cpp-router.service"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SRC_FILE="${ROOT_DIR}/systemd/${SERVICE_NAME}"
 DST_DIR="${HOME}/.config/systemd/user"

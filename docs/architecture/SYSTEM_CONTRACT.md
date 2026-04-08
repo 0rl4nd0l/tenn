@@ -420,7 +420,7 @@ The GPU (Tesla M40, 24GB) has a fixed process budget.
 
 | Role | Port | VRAM Budget | Startup Owner |
 |------|------|-------------|---------------|
-| Chat/Router | `:8001` | 10 GB | `systemd --user llama-cpp-qwen25.service` via `scripts/run_llama_server.sh` |
+| Chat/Router | `:8001` | 10 GB | `systemd --user llama-cpp-router.service` via `scripts/run_llama_server.sh` |
 | Extraction | `:8002` | 10 GB | `scripts/run_extraction_server.sh` |
 
 **Total allocated:** 20 GB. **Headroom:** 4 GB (Ollama embeddings + OS + CUDA context).

@@ -506,3 +506,21 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The SSE route only emitted final content chunks and late tool traces. The frontend had no structured stage signal to render while the backend agent loop was still working.
 **Fix:** Added explicit `status` SSE events from the backend route and agent loop for request-context resolution, reasoning passes, tool execution, and final-answer rendering. The Next.js chat screen now displays the live stage string instead of a generic placeholder, even before final text begins streaming.
 **Rule:** For long-running streamed chat, progress must come from structured backend stage events. Do not rely on token output timing or a generic spinner to explain execution state.
+
+## L048 — Cockpit process-control commands must share the same privilege-escalation path
+
+**Date:** 2026-04-08
+**Subsystem:** `scripts/cockpit`
+**Symptom:** `cockpit kill root` could remove root-owned UI listeners, but `cockpit kill backend` / `cockpit restart backend` could leave a root-owned `uvicorn` or `llama-server` process alive and then fail later on stale health or port conflicts.
+**Root cause:** The wrapper had drifted into two separate kill implementations. UI cleanup used `kill || sudo kill`, while backend and llama cleanup only attempted an unprivileged `kill` and downgraded failure to a warning.
+**Fix:** Centralized process shutdown behind a shared `kill_with_fallback` helper and routed the backend, llama, bugagent, and UI cleanup paths through it. Added launcher tests that simulate denied `kill` calls and verify the wrapper escalates through `sudo` for backend and listener cleanup.
+**Rule:** Any launcher command that stops processes must use one shared kill helper with the same privilege-escalation behavior. Do not let backend, UI, and runtime cleanup paths diverge into inconsistent kill semantics.
+
+## L049 — Do not infer the live llama model from a stale service name
+
+**Date:** 2026-04-08
+**Subsystem:** `scripts/install_llama_cpp_user_service.sh`, `systemd/llama-cpp-router.service`, runtime ops/docs
+**Symptom:** Runtime discussion drifted into describing the active chat/router service as a Qwen-specific unit even though the live worker/model on the host was `gpt-oss-20b`.
+**Root cause:** The checked-in and installed systemd unit still used the historical name `llama-cpp-qwen25.service`, which encouraged model assumptions from the unit label instead of checking the running router process or loaded model state.
+**Fix:** Renamed the checked-in user unit to the model-neutral `llama-cpp-router.service`, aligned installer/docs/runtime discovery, and switched the live `:8001` router over to the new managed service name.
+**Rule:** Treat llama.cpp service names as topology labels only. Determine the live model from the running process, router model list, or request state — never from a historical unit filename.

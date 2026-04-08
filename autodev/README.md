@@ -17,7 +17,7 @@ Preferred local inference path for the native manager is llama.cpp. Treat Ollama
 Local llama.cpp defaults now live in the repo:
 
 - Launcher: `scripts/run_llama_server.sh`
-- User service unit: `systemd/llama-cpp-qwen25.service`
+- User service unit: `systemd/llama-cpp-router.service`
 - Default endpoint: `http://127.0.0.1:8000/v1`
 - Default model path: `models/model.gguf`
 - Optional host override file: `~/.config/tenn/llama-server.env`

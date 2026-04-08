@@ -171,6 +171,8 @@ Config: `.mcp.json` (repo root). Full docs: [mcp-servers.md](mcp-servers.md).
 - `commentary_chunks_v2` is optional fallback for commentary. `asx_docs` is NOT the commentary chat collection.
 - Model router active weights: `latency=0.4`, `throughput=0.3`, `error=0.2`, `queue=0.1`, `gpu=0.1`.
 - Current host llama.cpp default model is `qwen3-30b-a3b-instruct`; extraction requests `qwen2.5-14b-instruct` by model name. Local Ollama keep-set is `qwen2.5:32b` plus `gpt-oss:20b-cloud`.
+- Live router user service is `llama-cpp-router.service`; legacy `llama-cpp-qwen25.service` should remain disabled on hosts where it still exists.
+- 2026-04-08 cleanup: removed the stale `/tmp/llama-server-8001.log` orphan log and pruned disposable npm/OpenCode/Cursor caches; `/` now has roughly `53G` free.
 - OpenClaw config source of truth: `~/.openclaw/openclaw.json` (host-local, not in repo).
 - After committing `scripts/load_news_to_qdrant.py`, re-run the loader to refresh Qdrant with relevance-ordered primary tickers: `python scripts/load_news_to_qdrant.py`.
 - Cockpit web SSE chat now emits explicit staged status events from request admission through reasoning/tool/synthesis phases (not a single placeholder string).
@@ -185,4 +187,4 @@ Config: `.mcp.json` (repo root). Full docs: [mcp-servers.md](mcp-servers.md).
 - short-term IO pressure during a docs-heavy local validation workload stayed low (`/proc/pressure/io avg10` near zero to low single digits; `vmstat wa` ~1% after warm-up)
 - root Ollama store pruned to keep only `qwen2.5:32b` and `gpt-oss:20b-cloud`
 - archived inactive root Ollama models preserved at `/mnt/sdb2/home/l4nd0/tenn/.archives/ollama-root-store-2026-04-07`
-- host free space after cleanup: roughly `59G` on NVMe
+- host free space after cleanup: roughly `53G` on `/` after stale llama temp log and local cache pruning

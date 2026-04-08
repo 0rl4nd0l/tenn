@@ -79,8 +79,12 @@ def find_llama_server_process() -> dict | None:
     return procs[0] if procs else None
 
 
-def resolve_llama_server_topology(processes: list[dict] | None = None) -> LlamaServerTopology:
-    discovered = list(processes if processes is not None else find_all_llama_server_processes())
+def resolve_llama_server_topology(
+    processes: list[dict] | None = None,
+) -> LlamaServerTopology:
+    discovered = list(
+        processes if processes is not None else find_all_llama_server_processes()
+    )
     if not discovered:
         return LlamaServerTopology(
             selected_process=None,
@@ -89,8 +93,12 @@ def resolve_llama_server_topology(processes: list[dict] | None = None) -> LlamaS
             reason="no_llama_server_processes",
         )
 
-    chat_candidates = [proc for proc in discovered if str(proc.get("port") or "") == "8001"]
-    extraction_candidates = [proc for proc in discovered if str(proc.get("port") or "") == "8002"]
+    chat_candidates = [
+        proc for proc in discovered if str(proc.get("port") or "") == "8001"
+    ]
+    extraction_candidates = [
+        proc for proc in discovered if str(proc.get("port") or "") == "8002"
+    ]
 
     if len(chat_candidates) == 1:
         reason = ""
@@ -131,9 +139,13 @@ def resolve_llama_server_port_topology(
     port: str,
     processes: list[dict] | None = None,
 ) -> LlamaServerTopology:
-    discovered = list(processes if processes is not None else find_all_llama_server_processes())
+    discovered = list(
+        processes if processes is not None else find_all_llama_server_processes()
+    )
     target_port = str(port or "8001").strip() or "8001"
-    matches = [proc for proc in discovered if str(proc.get("port") or "") == target_port]
+    matches = [
+        proc for proc in discovered if str(proc.get("port") or "") == target_port
+    ]
 
     if len(matches) == 1:
         return LlamaServerTopology(
@@ -181,7 +193,11 @@ def probe_router_capability(
     api_key: str = "",
     candidate_processes: list[dict] | None = None,
 ) -> RouterCapabilityState:
-    processes = list(candidate_processes if candidate_processes is not None else find_all_llama_server_processes())
+    processes = list(
+        candidate_processes
+        if candidate_processes is not None
+        else find_all_llama_server_processes()
+    )
     router_configured = str(os.getenv("LLAMA_SERVER_ROUTER_MODE", "0")).strip() == "1"
     selected_port = str((proc_info or {}).get("port") or port or "8001")
     selected_pid = (proc_info or {}).get("pid")
@@ -189,7 +205,9 @@ def probe_router_capability(
 
     if proc_info is None:
         return RouterCapabilityState(
-            active_mode="router_mode_unavailable" if topology.ambiguous else "router_mode_unavailable",
+            active_mode="router_mode_unavailable"
+            if topology.ambiguous
+            else "router_mode_unavailable",
             router_supported=False,
             router_configured=router_configured,
             router_api_reachable=False,
@@ -201,7 +219,9 @@ def probe_router_capability(
 
     binary = str(proc_info.get("binary") or "").strip()
     router_api_reachable = is_router_mode(host, selected_port, api_key)
-    router_supported = bool(proc_info.get("router_mode")) or (bool(binary) and _binary_supports_models_dir(binary))
+    router_supported = bool(proc_info.get("router_mode")) or (
+        bool(binary) and _binary_supports_models_dir(binary)
+    )
 
     if proc_info.get("router_mode"):
         if router_api_reachable:
@@ -255,16 +275,18 @@ def find_all_llama_server_processes() -> list[dict]:
                 models_dir = _extract_arg(args, ("--models-dir",))
                 port = _extract_arg(args, ("--port",)) or "8001"
                 router_mode = bool(models_dir and not model_path)
-                results.append({
-                    "pid": int(entry.name),
-                    "binary": binary,
-                    "model_path": model_path,
-                    "model_alias": model_alias,
-                    "raw_args": args,
-                    "router_mode": router_mode,
-                    "models_dir": models_dir,
-                    "port": port,
-                })
+                results.append(
+                    {
+                        "pid": int(entry.name),
+                        "binary": binary,
+                        "model_path": model_path,
+                        "model_alias": model_alias,
+                        "raw_args": args,
+                        "router_mode": router_mode,
+                        "models_dir": models_dir,
+                        "port": port,
+                    }
+                )
             except (PermissionError, ValueError, FileNotFoundError):
                 continue
     except Exception:
@@ -285,7 +307,9 @@ def _read_proc_cmdline(pid: int) -> str:
 
 def _read_parent_pid(pid: int) -> int | None:
     try:
-        for line in Path(f"/proc/{pid}/status").read_text(encoding="utf-8").splitlines():
+        for line in (
+            Path(f"/proc/{pid}/status").read_text(encoding="utf-8").splitlines()
+        ):
             if line.startswith("PPid:"):
                 return int(line.split(":", 1)[1].strip())
     except Exception:
@@ -325,7 +349,11 @@ def check_gpu_process_topology() -> dict:
         clean: bool — True if no rogues detected
     """
     procs = find_all_llama_server_processes()
-    authorised = [p for p in procs if p["port"] in AUTHORISED_PORTS or _is_router_owned_child_process(p["pid"])]
+    authorised = [
+        p
+        for p in procs
+        if p["port"] in AUTHORISED_PORTS or _is_router_owned_child_process(p["pid"])
+    ]
     rogue = [p for p in procs if p not in authorised]
     return {
         "authorised": authorised,
@@ -399,7 +427,7 @@ def discover_ollama_models() -> list[dict]:
             except (ValueError, IndexError):
                 display = manifest_path.name
 
-            for layer in (manifest.get("layers") or []):
+            for layer in manifest.get("layers") or []:
                 if layer.get("mediaType") != "application/vnd.ollama.image.model":
                     continue
                 digest = layer.get("digest", "")
@@ -410,11 +438,13 @@ def discover_ollama_models() -> list[dict]:
                 if not blob_path.exists():
                     continue
                 seen_digests.add(digest)
-                results.append({
-                    "path": str(blob_path),
-                    "name": f"{display}  (ollama)",
-                    "stem": display,
-                })
+                results.append(
+                    {
+                        "path": str(blob_path),
+                        "name": f"{display}  (ollama)",
+                        "stem": display,
+                    }
+                )
 
     return sorted(results, key=lambda d: d["stem"])
 
@@ -435,6 +465,7 @@ def models_dir_from_process(proc_info: dict) -> str:
 
 
 _KNOWN_SYSTEMD_SERVICES = [
+    "llama-cpp-router",
     "llama-cpp-qwen25",
     "llama-cpp",
     "llama-server",
@@ -450,14 +481,17 @@ def _stop_systemd_service(on_status: object) -> str | None:
         try:
             result = subprocess.run(
                 ["systemctl", "--user", "is-active", svc],
-                capture_output=True, text=True, timeout=5,
+                capture_output=True,
+                text=True,
+                timeout=5,
             )
             if result.returncode == 0:
                 if callable(on_status):
                     on_status(f"Stopping systemd service {svc}...")
                 subprocess.run(
                     ["systemctl", "--user", "stop", svc],
-                    capture_output=True, timeout=15,
+                    capture_output=True,
+                    timeout=15,
                 )
                 return svc
         except Exception:
@@ -484,7 +518,7 @@ def _warm_page_cache(model_path: str, on_status: object = None) -> None:
     if not p.is_file():
         return
     total_bytes = p.stat().st_size
-    size_gb = total_bytes / (1024 ** 3)
+    size_gb = total_bytes / (1024**3)
     if callable(on_status):
         on_status(f"Warming page cache for {p.name} ({size_gb:.1f} GB)...")
     chunk_size = 8 * 1024 * 1024  # 8 MB
@@ -528,6 +562,7 @@ def restart_with_model(
     on_status: optional callable(str) called with progress messages.
     Returns True if the new server becomes ready within startup_timeout seconds.
     """
+
     def _status(msg: str) -> None:
         if callable(on_status):
             on_status(msg)
@@ -588,7 +623,11 @@ def restart_with_model(
     _warm_page_cache(new_model_path, _status)
 
     # Use alias (human-readable) if the path is an Ollama blob (no .gguf suffix).
-    model_label = new_model_alias if Path(new_model_path).suffix != ".gguf" else Path(new_model_path).name
+    model_label = (
+        new_model_alias
+        if Path(new_model_path).suffix != ".gguf"
+        else Path(new_model_path).name
+    )
     _status(f"Starting server with {model_label}...")
     proc = subprocess.Popen(
         [binary] + new_args,
@@ -646,6 +685,7 @@ def _extract_arg(args: list[str], flags: tuple[str, ...]) -> str:
 # Router mode API — zero-downtime model switching via /models/load|unload
 # ---------------------------------------------------------------------------
 
+
 def _api_request(
     url: str,
     api_key: str = "",
@@ -671,7 +711,10 @@ def _api_request(
 
 
 def _is_loading_stalled(
-    host: str, port: str, model_name: str, api_key: str = "",
+    host: str,
+    port: str,
+    model_name: str,
+    api_key: str = "",
 ) -> bool:
     """Detect if a model stuck in 'loading' state actually has a dead child.
 
@@ -687,7 +730,7 @@ def _is_loading_stalled(
     if not result:
         return False
 
-    for entry in (result.get("data") or []):
+    for entry in result.get("data") or []:
         entry_name = entry.get("id") or entry.get("model") or ""
         if entry_name != model_name:
             continue
@@ -704,7 +747,8 @@ def _is_loading_stalled(
         # Probe the child port — if unreachable, child is dead.
         try:
             s = _socket.create_connection(
-                (host or "127.0.0.1", int(child_port)), timeout=2,
+                (host or "127.0.0.1", int(child_port)),
+                timeout=2,
             )
             s.close()
             return False  # child port is reachable — still loading normally
@@ -724,14 +768,16 @@ def is_router_mode(host: str, port: str, api_key: str = "") -> bool:
     result = _api_request(f"http://{host}:{port}/v1/models", api_key=api_key)
     if not result:
         return False
-    for entry in (result.get("data") or []):
+    for entry in result.get("data") or []:
         if isinstance(entry.get("status"), dict):
             return True
     return False
 
 
 def list_models_api(
-    host: str, port: str, api_key: str = "",
+    host: str,
+    port: str,
+    api_key: str = "",
 ) -> list[dict]:
     """List all models known to the router with their load status.
 
@@ -748,7 +794,7 @@ def list_models_api(
     models = []
     # Router mode returns {"data": [...]} with status.value fields.
     # Single-model mode returns {"data": [...]} with no status field.
-    for entry in (result.get("data") or result.get("models") or []):
+    for entry in result.get("data") or result.get("models") or []:
         name = entry.get("id") or entry.get("model") or entry.get("name") or ""
         status = entry.get("status")
         if isinstance(status, dict):
@@ -781,6 +827,7 @@ def load_model_api(
 
     Returns True on success.
     """
+
     def _status(msg: str) -> None:
         if callable(on_status):
             on_status(msg)
@@ -834,7 +881,9 @@ def load_model_api(
                 _status(f"{model_name} loaded successfully ({elapsed}s)")
                 return True
             if state in _TERMINAL_STATES:
-                _status(f"{model_name} failed to load (state: {state} after {elapsed}s)")
+                _status(
+                    f"{model_name} failed to load (state: {state} after {elapsed}s)"
+                )
                 return False
             if state == "loading":
                 if loading_since is None:
@@ -851,14 +900,19 @@ def load_model_api(
                 loading_since = None
 
         remaining = int(deadline - time.monotonic())
-        _status(f"Loading {model_name}... {state} ({elapsed}s elapsed, {remaining}s timeout)")
+        _status(
+            f"Loading {model_name}... {state} ({elapsed}s elapsed, {remaining}s timeout)"
+        )
 
     _status(f"Timed out waiting for {model_name} to load ({timeout:.0f}s)")
     return False
 
 
 def unload_model_api(
-    host: str, port: str, model_name: str, api_key: str = "",
+    host: str,
+    port: str,
+    model_name: str,
+    api_key: str = "",
 ) -> bool:
     """Unload a model via the router API."""
     result = _api_request(
@@ -924,6 +978,7 @@ def switch_model(
 
     Returns a structured result describing the chosen switch path and outcome.
     """
+
     def _status(msg: str) -> None:
         if callable(on_status):
             on_status(msg)
@@ -939,7 +994,12 @@ def switch_model(
         # Warm page cache for the new model before asking the server to load it.
         _warm_page_cache(new_model_path, _status)
         ok = load_model_api(
-            host, port, new_model_name, api_key, startup_timeout, on_status,
+            host,
+            port,
+            new_model_name,
+            api_key,
+            startup_timeout,
+            on_status,
         )
         message = (
             f"Router hot-switch loaded {new_model_name}"
@@ -957,8 +1017,12 @@ def switch_model(
     # Fallback: single-model mode — kill and restart.
     _status("Single-model mode — restarting server")
     ok = restart_with_model(
-        proc_info, new_model_path, new_model_name,
-        startup_timeout, on_status, mmap_disabled,
+        proc_info,
+        new_model_path,
+        new_model_name,
+        startup_timeout,
+        on_status,
+        mmap_disabled,
     )
     message = (
         f"Restarted server with {new_model_name}"
@@ -1001,9 +1065,12 @@ def build_router_args(proc_info: dict, models_dir: str, preset_path: str) -> lis
         new_args.append(arg)
 
     new_args += [
-        "--models-dir", models_dir,
-        "--models-max", "1",
-        "--models-preset", preset_path,
+        "--models-dir",
+        models_dir,
+        "--models-max",
+        "1",
+        "--models-preset",
+        preset_path,
     ]
     new_args += _kv_cache_args_from_env()
     return new_args
@@ -1020,6 +1087,7 @@ def restart_into_router_mode(
     Generates a preset INI, rebuilds args, and starts the server.
     Returns True when the router server is ready.
     """
+
     def _status(msg: str) -> None:
         if callable(on_status):
             on_status(msg)

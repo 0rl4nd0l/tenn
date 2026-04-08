@@ -6,7 +6,7 @@ OpenClaw local/TUI sessions were returning `NO` / `NO_REPLY` for normal prompts 
 
 Current default profile note as of 2026-03-09:
 
-- Tenn now keeps the checked-in llama.cpp startup profile in `scripts/run_llama_server.sh` and `systemd/llama-cpp-qwen25.service`.
+- Tenn now keeps the checked-in llama.cpp startup profile in `scripts/run_llama_server.sh` and `systemd/llama-cpp-router.service`.
 - The checked-in launcher default remains `http://127.0.0.1:8000/v1`, but the current host override and OpenClaw providers are pinned to `http://127.0.0.1:8001/v1`.
 - The default model slot is `models/model.gguf`, with optional host overrides in `~/.config/tenn/llama-server.env`.
 
@@ -15,7 +15,7 @@ Current default profile note as of 2026-03-09:
 - User-visible symptom:
   - `openclaw tui` and `openclaw agent --local` often returned `NO`/`NO_REPLY` or `No reply from agent.`
 - Service state:
-  - `llama-cpp-qwen25.service` was active and serving `qwen2.5-coder-7b`.
+- The router user service (then named `llama-cpp-qwen25.service`) was active and serving `qwen2.5-coder-7b`.
   - OpenClaw gateway was active.
 - Validation:
   - Direct request to cpp endpoint produced normal text:
