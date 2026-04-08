@@ -103,7 +103,7 @@ const DEFAULTS: ConfigState = {
 }
 
 export function SettingsScreen() {
-  const { chatModel, setChatModel } = useCockpitStore()
+  const { chatModel, setChatModel, preferences } = useCockpitStore()
   const [config, setConfig] = useState<ConfigState>(DEFAULTS)
   const [loading, setLoading] = useState(true)
   const [backendOnline, setBackendOnline] = useState(false)
@@ -147,8 +147,8 @@ export function SettingsScreen() {
               profile: status.profile || prev.backend.profile,
             },
             features: {
-              webSearch: status.features?.web_search ?? prev.features.webSearch,
-              rag: status.features?.rag ?? prev.features.rag,
+              webSearch: prev.features.webSearch,
+              rag: prev.features.rag,
               extraction: status.features?.extraction ?? prev.features.extraction,
             },
             environment: {
@@ -174,6 +174,17 @@ export function SettingsScreen() {
 
     fetchConfig()
   }, [])
+
+  useEffect(() => {
+    setConfig((prev) => ({
+      ...prev,
+      features: {
+        ...prev.features,
+        webSearch: preferences.webSearchEnabled,
+        rag: preferences.ragEnabled,
+      },
+    }))
+  }, [preferences.ragEnabled, preferences.webSearchEnabled])
 
   if (loading) {
     return (
@@ -247,6 +258,9 @@ export function SettingsScreen() {
           <ConfigRow label="RAG" value={config.features.rag} />
           <Separator />
           <ConfigRow label="Extraction" value={config.features.extraction} />
+          <p className="text-xs text-muted-foreground">
+            Web Search and RAG reflect the current cockpit session toggles from Operations. Extraction reflects backend runtime capability.
+          </p>
         </ConfigSection>
 
         {/* Environment */}
