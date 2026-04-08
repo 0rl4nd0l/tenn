@@ -104,10 +104,15 @@ cmd=(
   --threads "${LLAMA_SERVER_THREADS:-4}"
   --host "${HOST}"
   --port "${PORT}"
-  # KV cache quantization: halves KV VRAM at negligible quality cost (q8_0 ~ f16)
-  --cache-type-k q8_0 --cache-type-v q8_0
   --spec-type ngram-simple
 )
+
+if [[ -n "${LLAMA_SERVER_CACHE_TYPE_K:-}" ]]; then
+  cmd+=(--cache-type-k "${LLAMA_SERVER_CACHE_TYPE_K}")
+fi
+if [[ -n "${LLAMA_SERVER_CACHE_TYPE_V:-}" ]]; then
+  cmd+=(--cache-type-v "${LLAMA_SERVER_CACHE_TYPE_V}")
+fi
 
 # Router mode (DEFAULT): --models-dir serves all GGUFs in a directory,
 # loading one at a time (--models-max 1). Clients select model per-request.

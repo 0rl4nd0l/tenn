@@ -12,6 +12,17 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 
+def _kv_cache_args_from_env() -> list[str]:
+    args: list[str] = []
+    cache_type_k = str(os.getenv("LLAMA_SERVER_CACHE_TYPE_K") or "").strip()
+    cache_type_v = str(os.getenv("LLAMA_SERVER_CACHE_TYPE_V") or "").strip()
+    if cache_type_k:
+        args += ["--cache-type-k", cache_type_k]
+    if cache_type_v:
+        args += ["--cache-type-v", cache_type_v]
+    return args
+
+
 @dataclass(frozen=True)
 class RouterCapabilityState:
     active_mode: str
@@ -554,8 +565,7 @@ def restart_with_model(
         new_args.append("--no-mmap")
     # mmap_disabled=False means remove --no-mmap (already stripped above).
 
-    # KV cache quantization: halves KV VRAM at negligible quality cost (q8_0 ~ f16)
-    new_args += ["--cache-type-k", "q8_0", "--cache-type-v", "q8_0"]
+    new_args += _kv_cache_args_from_env()
 
     # Graceful shutdown: SIGTERM then SIGKILL.
     _status("Stopping current model...")
@@ -994,9 +1004,8 @@ def build_router_args(proc_info: dict, models_dir: str, preset_path: str) -> lis
         "--models-dir", models_dir,
         "--models-max", "1",
         "--models-preset", preset_path,
-        # KV cache quantization: halves KV VRAM at negligible quality cost (q8_0 ~ f16)
-        "--cache-type-k", "q8_0", "--cache-type-v", "q8_0",
     ]
+    new_args += _kv_cache_args_from_env()
     return new_args
 
 

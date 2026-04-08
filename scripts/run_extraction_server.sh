@@ -92,9 +92,14 @@ cmd=(
   --host "${HOST}"
   --port "${PORT}"
   --parallel 1
-  # KV cache quantization: halves KV VRAM at negligible quality cost (q8_0 ~ f16)
-  --cache-type-k q8_0 --cache-type-v q8_0
 )
+
+if [[ -n "${LLAMA_SERVER_CACHE_TYPE_K:-}" ]]; then
+  cmd+=(--cache-type-k "${LLAMA_SERVER_CACHE_TYPE_K}")
+fi
+if [[ -n "${LLAMA_SERVER_CACHE_TYPE_V:-}" ]]; then
+  cmd+=(--cache-type-v "${LLAMA_SERVER_CACHE_TYPE_V}")
+fi
 
 # Same knob as scripts/run_llama_server.sh: mmap can stall CUDA load on Maxwell (M40).
 if [[ "${LLAMA_SERVER_MMAP:-1}" == "0" ]]; then
