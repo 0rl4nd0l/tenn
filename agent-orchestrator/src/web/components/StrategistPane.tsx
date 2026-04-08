@@ -18,6 +18,7 @@ interface StrategistPaneProps {
   onChatModelChange(model: string): void;
   pendingUserMessage: LiveChatMessage | null;
   streamingAssistantMessage: LiveChatMessage | null;
+  pendingApproval: boolean;
   onSend(message: string): Promise<void>;
 }
 
@@ -32,6 +33,7 @@ export function StrategistPane({
   onChatModelChange,
   pendingUserMessage,
   streamingAssistantMessage,
+  pendingApproval,
   onSend
 }: StrategistPaneProps) {
   const [message, setMessage] = useState("");
@@ -54,7 +56,7 @@ export function StrategistPane({
     messages.push({
       id: streamingAssistantMessage.id,
       role: "assistant" as const,
-      content: streamingAssistantMessage.content || "Codex is thinking…",
+      content: streamingAssistantMessage.content || "Thinking...",
       createdAt: new Date().toISOString()
     });
   }
@@ -100,14 +102,14 @@ export function StrategistPane({
       <div className="strategist-hero">
         <div className="strategist-copy">
           <p className="eyebrow">Main Chat</p>
-          <h2>Chat with GPT</h2>
+          <h2>Agent Orchestrator</h2>
           <p className="strategy-note">
-            Clean chat first. Execution panels stay out of the way until the assistant decides to delegate.
+            Chat first. Work panels stay quiet until needed.
           </p>
         </div>
         <div className="strategist-status">
           <span className={`badge ${hasDelegatedWork ? "ok" : "neutral"}`}>
-            {hasDelegatedWork ? "work delegated" : "chat only"}
+            {hasDelegatedWork ? "active" : "ready"}
           </span>
         </div>
       </div>
@@ -128,7 +130,7 @@ export function StrategistPane({
       </div>
       <div className="chat-runtime-bar">
         <label className="field compact-field">
-          <span>Chat runtime</span>
+          <span>Chat runtime (soft worker preference)</span>
           <select
             value={chatRuntime}
             disabled={chatSending}
@@ -139,7 +141,7 @@ export function StrategistPane({
           </select>
         </label>
         <label className="field compact-field">
-          <span>Provider / model</span>
+          <span>Model</span>
           <select
             value={chatModel}
             disabled={chatSending || chatModelOptions.length === 0}
@@ -161,23 +163,45 @@ export function StrategistPane({
               streamingAssistantMessage?.id === messageItem.id && streamingAssistantMessage.pending ? "streaming" : ""
             }`}
           >
-            <span>{messageItem.role === "assistant" ? "GPT" : messageItem.role}</span>
+            <span>{messageItem.role === "assistant" ? "assistant" : messageItem.role}</span>
             <p>{messageItem.content}</p>
           </article>
         ))}
       </div>
+      {pendingApproval && !chatSending ? (
+        <div className="approval-prompt">
+          <button
+            type="button"
+            className="approval-button approve"
+            onClick={() => {
+              void sendSuggestion("yes");
+            }}
+          >
+            Proceed
+          </button>
+          <button
+            type="button"
+            className="approval-button decline"
+            onClick={() => {
+              void sendSuggestion("no");
+            }}
+          >
+            Stay in chat
+          </button>
+        </div>
+      ) : null}
       {error ? <p className="inline-error">{error}</p> : null}
       <form className="composer" onSubmit={submit}>
         <textarea
           value={message}
           onChange={(event) => setMessage(event.target.value)}
           onKeyDown={handleComposerKeyDown}
-          placeholder="Ask a question, describe a goal, or tell GPT what you want done."
+          placeholder="Ask a question, describe a goal, or tell me what you want done."
           rows={5}
         />
         <div className="composer-footer">
           <button type="submit" disabled={chatSending}>
-            {chatSending ? "Codex is working..." : "Send"}
+            {chatSending ? "Working..." : "Send"}
           </button>
         </div>
       </form>

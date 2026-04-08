@@ -20,6 +20,8 @@ const TASK_RUNTIME_FIT: Record<TaskRecord["taskType"], Partial<Record<RuntimeId,
   merge: { "codex-local": 82, claude: 52, opencode: 50, "codex-cloud": 46, gemini: 30, cursor: 28, generic: 20 }
 };
 
+const PREFERRED_FIT_FLOOR = 72;
+
 export class TaskRouter {
   constructor(private readonly tokenManager: TokenBudgetManager) {}
 
@@ -106,6 +108,7 @@ export class TaskRouter {
     const budget = this.tokenManager.estimateBudget(task, capability, session);
     const hardGuards: string[] = [];
     let policyPenalty = 0;
+    let preferenceBonus = 0;
 
     if (task.role === "strategist" && !capability.supportsReadOnlyPlanMode) {
       policyPenalty += 35;
@@ -133,11 +136,18 @@ export class TaskRouter {
     }
 
     const taskFit = TASK_RUNTIME_FIT[task.taskType][capability.runtime] ?? 20;
+    if (task.preferredRuntime === capability.runtime && taskFit >= PREFERRED_FIT_FLOOR) {
+      preferenceBonus += 12;
+    }
+    if (task.preferredProvider === capability.provider && taskFit >= PREFERRED_FIT_FLOOR) {
+      preferenceBonus += 8;
+    }
     const capabilityMatch =
       (capability.supportsNativeSubagents ? 8 : 0) +
       (capability.supportsContextStats ? 6 : 0) +
       (capability.supportsCompaction ? 5 : 0) +
-      (capability.supportsWorktreeExecution && task.role !== "strategist" ? 7 : 0);
+      (capability.supportsWorktreeExecution && task.role !== "strategist" ? 7 : 0) +
+      preferenceBonus;
     const historicalSuccess = capability.installStatus === "installed" ? 12 : 2;
     const latencyFit = capability.runtime === "codex-cloud" ? 8 : 12;
     const costFit =

@@ -23,6 +23,7 @@ interface State {
   streamOnline: boolean;
   pendingUserMessage: LiveChatMessage | null;
   streamingAssistantMessage: LiveChatMessage | null;
+  pendingApproval: boolean;
   sendChat(message: string): Promise<void>;
   selectTask(taskId: string | null): Promise<void>;
   action(taskId: string, kind: "retry" | "approve" | "reject" | "reopen", runtime?: string): Promise<void>;
@@ -47,6 +48,7 @@ export function useOrchestratorState(): State {
   const [streamOnline, setStreamOnline] = useState(false);
   const [pendingUserMessage, setPendingUserMessage] = useState<LiveChatMessage | null>(null);
   const [streamingAssistantMessage, setStreamingAssistantMessage] = useState<LiveChatMessage | null>(null);
+  const [pendingApproval, setPendingApproval] = useState(false);
   const [socketGeneration, setSocketGeneration] = useState(0);
   const [taskActionCounts, setTaskActionCounts] = useState<Record<string, number>>({});
   const taskActionCountsRef = useRef<Record<string, number>>({});
@@ -296,6 +298,7 @@ export function useOrchestratorState(): State {
       streamOnline,
       pendingUserMessage,
       streamingAssistantMessage,
+      pendingApproval,
       async sendChat(message: string) {
         setError(null);
         setChatSending(true);
@@ -349,12 +352,14 @@ export function useOrchestratorState(): State {
           source.addEventListener("assistant.completed", (event) => {
             const payload = parseStreamEventData(event);
             const reply = typeof payload.reply === "string" ? payload.reply : "";
+            const mode = typeof payload.mode === "string" ? payload.mode : null;
             void (async () => {
               setStreamingAssistantMessage({
                 id: `${response.runId}:assistant`,
                 content: reply,
                 pending: false
               });
+              setPendingApproval(mode === "approval_request");
               const next = await api.getBoard();
               const preferredTaskId = resolveDelegatedTaskId(next.tasks, response);
               const hydrated = await hydrateBoard(next, preferredTaskId);
@@ -470,6 +475,7 @@ export function useOrchestratorState(): State {
       streamOnline,
       pendingUserMessage,
       streamingAssistantMessage,
+      pendingApproval,
       selectedTaskId,
       taskActionCounts
     ]

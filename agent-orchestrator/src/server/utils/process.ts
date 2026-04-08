@@ -1,4 +1,6 @@
 import { execFile, spawn, type ChildProcess } from "child_process";
+import { constants as fsConstants } from "fs";
+import { access } from "fs/promises";
 import { promisify } from "util";
 
 import { createId } from "./id";
@@ -140,6 +142,14 @@ export function spawnCommand(
 
 export async function findFirstInstalledCommand(commands: string[]): Promise<string | null> {
   for (const command of commands) {
+    if (command.includes("/")) {
+      try {
+        await access(command, fsConstants.X_OK);
+        return command;
+      } catch {
+        continue;
+      }
+    }
     const result = await runCommand("which", [command]);
     if (result.ok && result.stdout.trim()) {
       return result.stdout.trim();

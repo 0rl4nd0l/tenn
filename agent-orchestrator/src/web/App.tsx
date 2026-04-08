@@ -67,6 +67,7 @@ export function App() {
               onChatModelChange={state.setChatModel}
               pendingUserMessage={state.pendingUserMessage}
               streamingAssistantMessage={state.streamingAssistantMessage}
+              pendingApproval={state.pendingApproval}
               onSend={async (message) => {
                 await state.sendChat(message);
                 setActiveView("overview");
@@ -81,8 +82,7 @@ export function App() {
                     <p className="eyebrow">Task Stream</p>
                     <h2>Nothing delegated yet</h2>
                     <p className="activity-copy">
-                      Use the main chat like a normal GPT workspace. If the assistant decides the request needs routed execution,
-                      the spawned tasks will appear here automatically.
+                      Use the main chat normally. If I decide something needs execution, work will appear here automatically.
                     </p>
                   </div>
                 </section>
@@ -137,8 +137,7 @@ export function App() {
               <p className="eyebrow">Task Detail</p>
               <h2>Stay in chat</h2>
               <p className="detail-copy">
-                This rail stays quiet until the assistant creates delegated work. When that happens, the selected task will appear
-                here with logs, review controls, and routing detail.
+                This panel stays quiet until work starts. When that happens, the active task will appear here with logs and controls.
               </p>
             </section>
           )}

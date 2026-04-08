@@ -124,7 +124,7 @@ function pickRuntime(
       preferredModelOverride?.trim() ||
       process.env.STRATEGIST_CHAT_MODEL?.trim() ||
       capability.models[0] ||
-      (preferredRuntime === "opencode" ? "openai/gpt-4.1" : "gpt-5.4-mini")
+      (preferredRuntime === "opencode" ? "openai/gpt-5.4" : "gpt-5.4-mini")
   };
 }
 

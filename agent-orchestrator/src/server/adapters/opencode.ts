@@ -4,18 +4,20 @@ import { CliAdapter } from "./cli-adapter";
 /**
  * Default OpenCode server URL for the shared-server pattern.
  *
- * When OPENCODE_SERVER_URL is set, the adapter uses `opencode attach` instead
- * of `opencode run`, connecting to a single long-lived server process. This
- * avoids spawning a full Node + Pyright runtime per task (~2 GB each) and
- * instead creates lightweight TUI clients (~50 MB each).
+ * When OPENCODE_SERVER_URL is set, the adapter uses `opencode run --attach <url>`
+ * instead of standalone `opencode run`, connecting to a single long-lived server
+ * process. This avoids spawning a full Node + Pyright runtime per task (~2 GB each)
+ * and instead creates lightweight headless worker processes (~50 MB each).
  *
  * Start the server once:
- *   opencode serve --port 4096
+ *   scripts/opencode-server start
  *
  * Then set the env var:
  *   OPENCODE_SERVER_URL=http://localhost:4096
  */
-const OPENCODE_SERVER_URL = process.env.OPENCODE_SERVER_URL ?? "";
+function getOpenCodeServerUrl(): string {
+  return process.env.OPENCODE_SERVER_URL?.trim() ?? "";
+}
 
 function resolveOpenCodeAgent(input: AdapterSpawnInput): string {
   if (input.preferredAgent) {
@@ -40,9 +42,9 @@ export class OpenCodeAdapter extends CliAdapter {
       runtime: "opencode",
       provider: "opencode",
       title: "OpenCode",
-      commandCandidates: ["opencode", "open-code"],
+      commandCandidates: ["opencode", "/home/l4nd0/.opencode/bin/opencode", "open-code"],
       versionProbe: ["--version"],
-      models: ["openai/gpt-4.1", "anthropic/claude-sonnet-4", "google/gemini-2.5-pro"],
+      models: ["openai/gpt-5.4", "anthropic/claude-sonnet-4-6", "google/gemini-2.5-pro"],
       supportsNativeSubagents: true,
       supportsCloud: false,
       supportsContextStats: true,
@@ -68,7 +70,7 @@ export class OpenCodeAdapter extends CliAdapter {
   }
 
   protected buildSpawnArgs(input: AdapterSpawnInput): string[] {
-    if (OPENCODE_SERVER_URL) {
+    if (getOpenCodeServerUrl()) {
       return this.buildAttachArgs(input);
     }
     return this.buildRunArgs(input);
@@ -82,21 +84,18 @@ export class OpenCodeAdapter extends CliAdapter {
       args.push("--model", input.plan.model);
     }
 
-    if (input.maxIterations) {
-      args.push("--max-steps", String(input.maxIterations));
-    }
-
-    if (input.plan.agentMode === "read_only_strategist") {
-      args.push("--read-only");
-    }
-
     args.push(this.formatPrompt(input));
     return args;
   }
 
-  /** Shared-server mode: attaches to a running `opencode serve` instance (~50 MB each). */
+  /** Shared-server mode: reuses a running `opencode serve` instance via headless `run --attach`. */
   private buildAttachArgs(input: AdapterSpawnInput): string[] {
-    const args = ["attach", OPENCODE_SERVER_URL];
+    const serverUrl = getOpenCodeServerUrl();
+    const args = ["run", "--attach", serverUrl];
+
+    if (input.plan.model) {
+      args.push("--model", input.plan.model);
+    }
 
     if (input.cwd) {
       args.push("--dir", input.cwd);

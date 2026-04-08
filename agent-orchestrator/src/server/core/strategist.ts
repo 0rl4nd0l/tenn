@@ -322,6 +322,11 @@ function buildDelegationReply(
   childTaskCount: number,
   projectSnapshot: ProjectSnapshot | null
 ): string {
+  if (profile.localInspectionRequest) {
+    const activeRoot = toWorkspaceSnapshot(projectSnapshot)?.activeRoot?.name ?? "the workspace";
+    return `I'll check that in ${activeRoot} and surface the result as work starts.`;
+  }
+
   const domainLine =
     profile.domain === "ingestion"
       ? "I’m treating this as an accuracy program: failure taxonomy, deterministic evals, targeted implementation, and verification."
@@ -413,13 +418,13 @@ function buildConversationalReply(
   const view = toWorkspaceSnapshot(projectSnapshot);
 
   if (isGreeting(normalized)) {
-    return "Hi. You can talk to me normally here. If your request needs real execution, I’ll turn it into tasks and show the work as it starts.";
+    return "Hi. Talk to me normally. If something needs execution, I'll handle it.";
   }
 
   if (isAcknowledgement(normalized)) {
     return priorTopic
-      ? `Understood. If you want, I can keep talking through ${priorTopic} here, or turn it into delegated work.`
-      : "Understood. Keep chatting naturally, and I’ll only delegate work when the request actually needs execution.";
+      ? `Understood. I can keep discussing ${priorTopic} here, or start working on it if you're ready.`
+      : "Understood. Keep chatting, and I'll start execution only when needed.";
   }
 
   if (/what( do)? you think|what u think|thoughts|opinion/i.test(normalized)) {
@@ -451,11 +456,11 @@ function buildConversationalReply(
 
   if (normalized.length < 24) {
     return view
-      ? `I’m here. If you want, I can answer directly, inspect ${formatRoots(view.evidenceBundle?.matchedRoots ?? summarizeRoots(view))}, or spawn delegated work for a concrete goal.`
-      : "I’m here. Ask a question, describe a goal, or tell me what you want done, and I’ll decide whether this should stay in chat or become delegated work.";
+      ? `I'm here. If you want, I can answer directly, inspect ${formatRoots(view.evidenceBundle?.matchedRoots ?? summarizeRoots(view))}, or start working on a concrete goal.`
+      : "I'm here. Ask a question, describe a goal, or tell me what you want done, and I'll decide whether this should stay in chat or need execution.";
   }
 
-  return "I can handle that directly here, or if it needs real execution I’ll break it into delegated work and surface the tasks as they start.";
+  return "I can handle that directly here, or if it needs real execution I'll start working on it.";
 }
 
 function makeTask(
@@ -540,7 +545,7 @@ function shouldClarifyAgainstWorkspace(profile: RequestProfile, projectSnapshot:
   if (!projectSnapshot) {
     return false;
   }
-  if (profile.discoveryRequest || profile.repoDiscoveryRequest || profile.pdfVerificationRequest) {
+  if (profile.discoveryRequest || profile.repoDiscoveryRequest || profile.pdfVerificationRequest || profile.localInspectionRequest) {
     return false;
   }
   if (!profile.explicitWorkRequest || profile.domain === "general" || profile.actionableThemeRequest) {
@@ -562,7 +567,7 @@ function shouldDelegate(profile: RequestProfile): boolean {
   if (profile.repoDiscoveryRequest) {
     return true;
   }
-  if (profile.discoveryRequest || profile.pdfVerificationRequest) {
+  if (profile.discoveryRequest || profile.pdfVerificationRequest || profile.localInspectionRequest) {
     return true;
   }
   if (
@@ -571,7 +576,8 @@ function shouldDelegate(profile: RequestProfile): boolean {
     !profile.explicitWorkRequest &&
     !profile.repoDiscoveryRequest &&
     !profile.discoveryRequest &&
-    !profile.pdfVerificationRequest
+    !profile.pdfVerificationRequest &&
+    !profile.localInspectionRequest
   ) {
     return false;
   }
@@ -602,6 +608,13 @@ function buildRequestProfile(message: string): RequestProfile {
     /(test|validate|verify|check|assess).*(pdf|document).*(accuracy|extraction|parser|parsing|ingestion|ocr)|(pdf|document).*(accuracy|extraction|parsing|parser).*(test|validate|verify|check)|test pdf accuracy|validate pdf extraction|check pdf parsing/i.test(
       normalized
     );
+  const localInspectionRequest =
+    ((/(list|show|find|locate|scan|check|inspect|what(?:'s| is| are)?|which)\b/i.test(normalized) &&
+      /(nvme|ssd|disk|drive|filesystem|folder|directory|path|models?|checkpoints?|weights?|files?|repos?|projects?|\/|\.\.?\/)/i.test(
+        normalized
+      )) ||
+      (/(size|space|usage|du|how big|how large)\b/i.test(normalized) &&
+        /(repo|repository|project|workspace|folder|directory|disk|drive|nvme|ssd|filesystem)\b/i.test(normalized)));
   const queerVisualDirection = /(gay|queer|pride|camp|rainbow)/i.test(normalized);
   const actionableThemeRequest = queerVisualDirection && /(system|ui|app|site|dashboard|frontend|theme|look|brand)/i.test(normalized);
   const personal = /^i need to be gay\b|^am i gay\b|^i am gay\b/i.test(normalized);
@@ -614,7 +627,8 @@ function buildRequestProfile(message: string): RequestProfile {
     ) ||
       discoveryRequest ||
       repoDiscoveryRequest ||
-      pdfVerificationRequest) &&
+      pdfVerificationRequest ||
+      localInspectionRequest) &&
     !personal;
   const wantsFrontend =
     actionableThemeRequest ||
@@ -622,7 +636,7 @@ function buildRequestProfile(message: string): RequestProfile {
     domain === "ui";
   const wantsDocs = /(docs|documentation|readme|adr)/i.test(normalized);
   const discoveryOnly =
-    (discoveryRequest || repoDiscoveryRequest || pdfVerificationRequest) &&
+    (discoveryRequest || repoDiscoveryRequest || pdfVerificationRequest || localInspectionRequest) &&
     !implementationHeavyRequest &&
     !wantsFrontend &&
     !wantsDocs;
@@ -641,6 +655,7 @@ function buildRequestProfile(message: string): RequestProfile {
     discoveryRequest,
     repoDiscoveryRequest,
     pdfVerificationRequest,
+    localInspectionRequest,
     discoveryOnly,
     questionOnly,
     personal,
@@ -848,6 +863,8 @@ interface RequestProfile {
   repoDiscoveryRequest: boolean;
   // PDF validation/extraction/parsing accuracy signals.
   pdfVerificationRequest: boolean;
+  // Concrete read-only local inspection asks such as files/models/paths/drives.
+  localInspectionRequest: boolean;
   // True when strategist should route discovery/review only (no implementation slices).
   discoveryOnly: boolean;
   questionOnly: boolean;

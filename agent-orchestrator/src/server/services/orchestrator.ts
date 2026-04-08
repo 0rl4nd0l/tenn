@@ -8,6 +8,7 @@ import type {
   JanitorCheckDefinition,
   JanitorResultRecord,
   LogRecord,
+  ProviderId,
   ProjectSnapshot,
   ReviewDecisionRecord,
   RuntimeId,
@@ -54,6 +55,13 @@ interface StrategistRunContext {
   rootTaskId: string | null;
 }
 
+interface PendingDelegationApproval {
+  requestedAt: string;
+  originalMessage: string;
+  plan: ReturnType<StrategistService["plan"]>;
+  projectSnapshot: ProjectSnapshot | null;
+}
+
 export class OrchestratorService extends EventEmitter {
   readonly goalId: string;
   private readonly store: OrchestratorStore;
@@ -74,6 +82,7 @@ export class OrchestratorService extends EventEmitter {
   private strategistSessionId: string | null = null;
   private strategistSessionRuntime: "codex-local" | "opencode" | null = null;
   private strategistSessionModel: string | null = null;
+  private pendingDelegationApproval: PendingDelegationApproval | null = null;
   private mergeQueue: Promise<void> = Promise.resolve();
   private scheduling = false;
   private lastProjectSnapshot: ProjectSnapshot | null = null;
@@ -162,42 +171,129 @@ export class OrchestratorService extends EventEmitter {
     const collections = this.store.getCollections(this.goalId);
     const workspaceContext = await this.projectIntelligence.getStrategistContext(collections, message);
     this.lastProjectSnapshot = workspaceContext.snapshot;
+
+    const approvalDecision = classifyDelegationApprovalResponse(message);
+    if (this.pendingDelegationApproval && approvalDecision) {
+      const pending = this.pendingDelegationApproval;
+      this.pendingDelegationApproval = null;
+
+      if (approvalDecision === "decline") {
+        const runContext = this.createStrategistRunContext(userMessage.id, { rootTask: null, childTasks: [] });
+        this.strategistStreams.createStream(runContext.runId);
+        this.strategistStreams.publish(runContext.runId, "run.started", {
+          runId: runContext.runId,
+          userMessageId: userMessage.id,
+          rootTaskId: null,
+          createdTaskIds: []
+        });
+        this.completeStrategistRun(
+          runContext,
+          "Okay. I'll stay in chat and won't start execution unless you ask.",
+          { mode: "approval" }
+        );
+        return {
+          runId: runContext.runId,
+          userMessageId: userMessage.id,
+          createdTaskIds: [],
+          rootTaskId: null
+        };
+      }
+
+      const graph = materializeTaskGraph(pending.plan);
+      this.applyChatRoutingPreferences(graph, options);
+      const approvedRunContext = this.createStrategistRunContext(userMessage.id, graph);
+      this.strategistStreams.createStream(approvedRunContext.runId);
+      this.strategistStreams.publish(approvedRunContext.runId, "run.started", {
+        runId: approvedRunContext.runId,
+        userMessageId: userMessage.id,
+        rootTaskId: approvedRunContext.rootTaskId,
+        createdTaskIds: approvedRunContext.createdTaskIds
+      });
+      this.persistDelegatedGraph(approvedRunContext, graph);
+      this.completeStrategistRun(
+        approvedRunContext,
+        buildDelegationAcceptedReply(pending.originalMessage, pending.projectSnapshot),
+        { mode: "approval" }
+      );
+      if (this.options.autoSchedule && graph.rootTask) {
+        await this.scheduleNow();
+      }
+      return {
+        runId: approvedRunContext.runId,
+        userMessageId: userMessage.id,
+        createdTaskIds: approvedRunContext.createdTaskIds,
+        rootTaskId: approvedRunContext.rootTaskId
+      };
+    }
+
+    if (this.pendingDelegationApproval && !approvalDecision) {
+      const repromptContext = this.createStrategistRunContext(userMessage.id, { rootTask: null, childTasks: [] });
+      this.strategistStreams.createStream(repromptContext.runId);
+      this.strategistStreams.publish(repromptContext.runId, "run.started", {
+        runId: repromptContext.runId,
+        userMessageId: userMessage.id,
+        rootTaskId: null,
+        createdTaskIds: []
+      });
+      this.completeStrategistRun(
+        repromptContext,
+        `I'm still waiting on "${this.pendingDelegationApproval.originalMessage}" — do you want me to proceed with that, or should I handle "${message}" instead?`,
+        { mode: "approval_clarification" }
+      );
+      return {
+        runId: repromptContext.runId,
+        userMessageId: userMessage.id,
+        createdTaskIds: [],
+        rootTaskId: null
+      };
+    }
+
     const plan = this.strategist.plan(this.goalId, message, {
       conversation: collections.conversation,
       projectSnapshot: workspaceContext.snapshot
     });
-    const graph = materializeTaskGraph(plan);
-    const runId = createId("chatrun");
-    const runContext: StrategistRunContext = {
-      runId,
-      userMessageId: userMessage.id,
-      createdTaskIds: graph.rootTask ? [graph.rootTask.id, ...graph.childTasks.map((task) => task.id)] : [],
-      rootTaskId: graph.rootTask?.id ?? null
-    };
 
-    this.strategistStreams.createStream(runId);
-    this.strategistStreams.publish(runId, "run.started", {
-      runId,
+    if (plan.mode === "delegate") {
+      this.pendingDelegationApproval = {
+        requestedAt: nowIso(),
+        originalMessage: message,
+        plan,
+        projectSnapshot: workspaceContext.snapshot
+      };
+      const runContext = this.createStrategistRunContext(userMessage.id, { rootTask: null, childTasks: [] });
+      this.strategistStreams.createStream(runContext.runId);
+      this.strategistStreams.publish(runContext.runId, "run.started", {
+        runId: runContext.runId,
+        userMessageId: userMessage.id,
+        rootTaskId: null,
+        createdTaskIds: []
+      });
+      this.completeStrategistRun(
+        runContext,
+        buildDelegationApprovalPrompt(message, workspaceContext.snapshot),
+        { mode: "approval_request" }
+      );
+      return {
+        runId: runContext.runId,
+        userMessageId: userMessage.id,
+        createdTaskIds: [],
+        rootTaskId: null
+      };
+    }
+
+    const graph = materializeTaskGraph(plan);
+    this.applyChatRoutingPreferences(graph, options);
+    const runContext = this.createStrategistRunContext(userMessage.id, graph);
+
+    this.strategistStreams.createStream(runContext.runId);
+    this.strategistStreams.publish(runContext.runId, "run.started", {
+      runId: runContext.runId,
       userMessageId: userMessage.id,
       rootTaskId: graph.rootTask?.id ?? null,
       createdTaskIds: runContext.createdTaskIds
     });
 
-    if (graph.rootTask) {
-      this.store.upsertTask(graph.rootTask);
-      this.store.bulkUpsertTasks(graph.childTasks);
-      this.store.insertEvent(makeEvent("task", graph.rootTask.id, "strategist.planned", {
-        rootTaskId: graph.rootTask.id,
-        childTaskIds: graph.childTasks.map((task) => task.id)
-      }));
-      this.strategistStreams.publish(runId, "task.spawned", {
-        runId,
-        rootTaskId: graph.rootTask.id,
-        createdTaskIds: runContext.createdTaskIds
-      });
-    }
-
-    this.emitRefresh("strategist");
+    this.persistDelegatedGraph(runContext, graph);
     if (this.options.autoSchedule && graph.rootTask) {
       await this.scheduleNow();
     }
@@ -219,7 +315,7 @@ export class OrchestratorService extends EventEmitter {
     });
 
     return {
-      runId,
+      runId: runContext.runId,
       userMessageId: userMessage.id,
       createdTaskIds: runContext.createdTaskIds,
       rootTaskId: graph.rootTask?.id ?? null
@@ -692,6 +788,92 @@ export class OrchestratorService extends EventEmitter {
       .filter((line) => line.length > 0);
   }
 
+  private createStrategistRunContext(
+    userMessageId: string,
+    graph: ReturnType<typeof materializeTaskGraph>
+  ): StrategistRunContext {
+    return {
+      runId: createId("chatrun"),
+      userMessageId,
+      createdTaskIds: graph.rootTask ? [graph.rootTask.id, ...graph.childTasks.map((task) => task.id)] : [],
+      rootTaskId: graph.rootTask?.id ?? null
+    };
+  }
+
+  private persistDelegatedGraph(
+    runContext: StrategistRunContext,
+    graph: ReturnType<typeof materializeTaskGraph>
+  ): void {
+    if (!graph.rootTask) {
+      return;
+    }
+    this.store.upsertTask(graph.rootTask);
+    this.store.bulkUpsertTasks(graph.childTasks);
+    this.store.insertEvent(makeEvent("task", graph.rootTask.id, "strategist.planned", {
+      rootTaskId: graph.rootTask.id,
+      childTaskIds: graph.childTasks.map((task) => task.id)
+    }));
+    this.strategistStreams.publish(runContext.runId, "task.spawned", {
+      runId: runContext.runId,
+      rootTaskId: graph.rootTask.id,
+      createdTaskIds: runContext.createdTaskIds
+    });
+    this.emitRefresh("strategist");
+  }
+
+  private applyChatRoutingPreferences(
+    graph: ReturnType<typeof materializeTaskGraph>,
+    options?: { runtime?: "codex-local" | "opencode" | null; model?: string | null }
+  ): void {
+    const preferredRuntime = options?.runtime ?? null;
+    if (!preferredRuntime) {
+      return;
+    }
+    const preferredProvider = runtimeToPreferredProvider(preferredRuntime);
+    const preferredModel = options?.model?.trim() ? options.model.trim() : null;
+    const apply = (task: TaskRecord | null) => {
+      if (!task || !isSuitablePreferredRuntime(task, preferredRuntime)) {
+        return task;
+      }
+      task.preferredRuntime = preferredRuntime;
+      task.preferredProvider = preferredProvider;
+      if (preferredModel) {
+        task.constraints = {
+          ...task.constraints,
+          preferredModel
+        };
+      }
+      return task;
+    };
+
+    apply(graph.rootTask);
+    for (const task of graph.childTasks) {
+      apply(task);
+    }
+  }
+
+  private completeStrategistRun(
+    runContext: StrategistRunContext,
+    reply: string,
+    metadata?: Record<string, unknown>
+  ): void {
+    this.store.appendConversationMessage(this.goalId, {
+      id: createId("msg"),
+      role: "assistant",
+      content: reply,
+      createdAt: nowIso()
+    });
+    this.strategistStreams.publish(runContext.runId, "assistant.completed", {
+      runId: runContext.runId,
+      reply,
+      rootTaskId: runContext.rootTaskId,
+      createdTaskIds: runContext.createdTaskIds,
+      ...(metadata ?? {})
+    });
+    this.strategistStreams.end(runContext.runId);
+    this.emitRefresh("strategist.completed");
+  }
+
   private runStrategistReply(
     runContext: StrategistRunContext,
     input: {
@@ -708,41 +890,16 @@ export class OrchestratorService extends EventEmitter {
   ): void {
     if (shouldBypassNativeStrategist(input.message, runContext.createdTaskIds.length > 0)) {
       const deterministicReply = buildDeterministicChatReply(input.message, input.fallbackReply);
-      this.store.appendConversationMessage(this.goalId, {
-        id: createId("msg"),
-        role: "assistant",
-        content: deterministicReply,
-        createdAt: nowIso()
-      });
-      this.strategistStreams.publish(runContext.runId, "assistant.completed", {
-        runId: runContext.runId,
-        reply: deterministicReply,
-        rootTaskId: runContext.rootTaskId,
-        createdTaskIds: runContext.createdTaskIds,
+      this.completeStrategistRun(runContext, deterministicReply, {
         mode: "deterministic"
       });
-      this.strategistStreams.end(runContext.runId);
-      this.emitRefresh("strategist.completed");
       return;
     }
 
     let reply = "";
     const complete = (finalReply: string) => {
       reply = finalReply;
-      this.store.appendConversationMessage(this.goalId, {
-        id: createId("msg"),
-        role: "assistant",
-        content: finalReply,
-        createdAt: nowIso()
-      });
-      this.strategistStreams.publish(runContext.runId, "assistant.completed", {
-        runId: runContext.runId,
-        reply: finalReply,
-        rootTaskId: runContext.rootTaskId,
-        createdTaskIds: runContext.createdTaskIds
-      });
-      this.strategistStreams.end(runContext.runId);
-      this.emitRefresh("strategist.completed");
+      this.completeStrategistRun(runContext, finalReply);
     };
 
     this.strategistRuntime.run(input, {
@@ -811,7 +968,7 @@ function shouldBypassNativeStrategist(message: string, hasDelegatedWork: boolean
 function buildDeterministicChatReply(message: string, fallbackReply: string): string {
   const normalized = message.trim().toLowerCase();
   if (/^(hi|hello|hey|yo|sup)\b/.test(normalized)) {
-    return "Hi. Talk to me normally here. If something needs real execution, I’ll turn it into delegated work and show it as it starts.";
+    return "Hi. Talk to me normally here. If something needs real execution, I'll start it and show progress as it begins.";
   }
   if (/^(how are you|how r u|wyd)\b/.test(normalized)) {
     return "I’m here and ready. Ask a question, describe a goal, or tell me what you want done.";
@@ -823,6 +980,29 @@ function buildDeterministicChatReply(message: string, fallbackReply: string): st
     return "Need a bit more than that. Ask a question or describe the goal and I’ll handle it from there.";
   }
   return fallbackReply;
+}
+
+function classifyDelegationApprovalResponse(message: string): "approve" | "decline" | null {
+  const normalized = message.trim().toLowerCase();
+  if (/^(yes|yep|yeah|sure|ok|okay|do it|go ahead|proceed|spawn it|create it|run it)\b/.test(normalized)) {
+    return "approve";
+  }
+  if (/^(no|nope|nah|don'?t|do not|stop|cancel|not now)\b/.test(normalized)) {
+    return "decline";
+  }
+  return null;
+}
+
+function buildDelegationApprovalPrompt(message: string, snapshot: ProjectSnapshot | null): string {
+  const activeRoot = snapshot?.activeRoot?.name ?? snapshot?.projects[0]?.name ?? "the workspace";
+  const conciseGoal = message.trim().replace(/\s+/g, " ");
+  return `I can handle "${conciseGoal}" in ${activeRoot}. That would start execution. Do you want me to proceed?`;
+}
+
+function buildDelegationAcceptedReply(message: string, snapshot: ProjectSnapshot | null): string {
+  const activeRoot = snapshot?.activeRoot?.name ?? snapshot?.projects[0]?.name ?? "the workspace";
+  const conciseGoal = message.trim().replace(/\s+/g, " ");
+  return `Starting work on "${conciseGoal}" in ${activeRoot} now.`;
 }
 
 function makeEvent(
@@ -907,4 +1087,26 @@ function summarizeWatchdogReason(message: string): string {
     return normalized;
   }
   return `${normalized.slice(0, 177).trim()}...`;
+}
+
+function runtimeToPreferredProvider(runtime: "codex-local" | "opencode"): ProviderId {
+  return runtime === "codex-local" ? "openai" : "opencode";
+}
+
+function isSuitablePreferredRuntime(task: TaskRecord, runtime: "codex-local" | "opencode"): boolean {
+  if (!task.runtimeCandidates.includes(runtime)) {
+    return false;
+  }
+  const fit = {
+    planning: { "codex-local": 72, opencode: 80 },
+    explore: { "codex-local": 68, opencode: 76 },
+    implement: { "codex-local": 90, opencode: 82 },
+    refactor: { "codex-local": 88, opencode: 78 },
+    "test-fix": { "codex-local": 87, opencode: 80 },
+    review: { "codex-local": 76, opencode: 72 },
+    docs: { "codex-local": 64, opencode: 70 },
+    verify: { "codex-local": 85, opencode: 68 },
+    merge: { "codex-local": 82, opencode: 50 }
+  } satisfies Record<TaskRecord["taskType"], Record<"codex-local" | "opencode", number>>;
+  return fit[task.taskType][runtime] >= 72;
 }

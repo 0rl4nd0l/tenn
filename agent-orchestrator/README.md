@@ -89,15 +89,15 @@ AGENT_ORCHESTRATOR_DATA_DIR=/abs/path/to/data
 By default, each OpenCode task spawns a full `opencode run` process (~2 GB RAM: Node runtime +
 Pyright language server + plugins). Running 3-4 concurrent tasks can exhaust a 32 GB machine.
 
-**Shared-server mode** runs one `opencode serve` instance and connects tasks via `opencode attach`,
-sharing a single Pyright and runtime across all sessions (~50 MB per attached client).
+**Shared-server mode** runs one `opencode serve` instance and connects tasks via `opencode run --attach`,
+sharing a single Pyright and runtime across all sessions (~50 MB per worker process).
 
 ### Setup
 
-Start the server once (in tmux, screen, or systemd):
+Start the server once:
 
 ```bash
-opencode serve --port 4096
+scripts/opencode-server start
 ```
 
 Set the env var before starting the orchestrator:
@@ -106,6 +106,10 @@ Set the env var before starting the orchestrator:
 export OPENCODE_SERVER_URL=http://localhost:4096
 cd agent-orchestrator && npm run dev
 ```
+
+When `OPENCODE_SERVER_URL` points at `localhost` or `127.0.0.1`, the orchestrator startup now tries to bootstrap the shared server automatically via `../scripts/opencode-server start`. That only affects the local client/orchestration layer; backend authority remains unchanged.
+
+The OpenCode adapter also falls back to `/home/l4nd0/.opencode/bin/opencode` if `opencode` is not already on `PATH`.
 
 Or add to your shell profile:
 
@@ -118,7 +122,13 @@ echo 'export OPENCODE_SERVER_URL=http://localhost:4096' >> ~/.bashrc
 | Mode | Per-task RAM | 4 concurrent tasks |
 |---|---|---|
 | Standalone (`opencode run`) | ~2 GB | ~8 GB |
-| Shared server (`opencode attach`) | ~50 MB | ~2.2 GB (server + 4 clients) |
+| Shared server (`run --attach`) | ~50 MB | ~2.2 GB (server + 4 workers) |
+
+### Caveats
+
+- In shared-server mode, `opencode run --attach` receives `--model` and `--dir` but not `--agent`.
+- Model selection works correctly in shared-server mode.
+- If you need per-task agent control, use standalone mode.
 
 ### Other agent memory tips
 

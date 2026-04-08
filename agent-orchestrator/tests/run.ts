@@ -16,7 +16,10 @@ import { StrategistRuntimeRunner } from "../src/server/core/strategist-runtime";
 import { StrategistService, materializeTaskGraph } from "../src/server/core/strategist";
 import { TokenBudgetManager } from "../src/server/core/token-budget";
 import { WorktreeManager } from "../src/server/core/worktrees";
+import { OpenCodeAdapter } from "../src/server/adapters/opencode";
+import { OrchestratorService } from "../src/server/services/orchestrator";
 import type { StoreCollections } from "../src/server/db/database";
+import { findFirstInstalledCommand } from "../src/server/utils/process";
 
 function makeCapability(
   runtime: ProviderCapabilitySnapshot["runtime"],
@@ -142,6 +145,12 @@ function createTempGitRepo(): { repoRoot: string; cleanup: () => void } {
   };
 }
 
+class TestableOpenCodeAdapter extends OpenCodeAdapter {
+  buildArgs(input: AdapterSpawnInput): string[] {
+    return this.buildSpawnArgs(input);
+  }
+}
+
 function git(cwd: string, args: string[]): string {
   return execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
 }
@@ -252,6 +261,32 @@ function testRouter(): void {
     authenticatedFallback.runtime,
     "codex-local",
     "router should prefer authenticated runtimes over logged-out ones when viable"
+  );
+
+  const preferredImplement = router.routeTask(
+    makeTask({
+      taskType: "implement",
+      preferredRuntime: "codex-local",
+      preferredProvider: "openai"
+    }),
+    [makeCapability("opencode"), makeCapability("codex-local")]
+  );
+  assert.equal(preferredImplement.runtime, "codex-local", "suitable preferred runtime should win for implementation");
+
+  const unsuitablePreferredExplore = router.routeTask(
+    makeTask({
+      taskType: "explore",
+      preferredRuntime: "codex-local",
+      preferredProvider: "openai",
+      ownedFiles: [],
+      readOnlyPaths: ["."]
+    }),
+    [makeCapability("gemini"), makeCapability("codex-local")]
+  );
+  assert.equal(
+    unsuitablePreferredExplore.runtime,
+    "gemini",
+    "unsuitable preferred runtime should not override a materially better explore candidate"
   );
 }
 
@@ -420,6 +455,156 @@ async function testStoreAndStrategist(): Promise<void> {
   assert.match(assessment.reply, /Active root/i);
   assert.match(assessment.reply, /Current workspace state/i);
   assert.match(assessment.reply, /agent-orchestrator/i);
+
+  const inspection = strategist.plan("goal_test", "what models do we have on nvme", {
+    conversation: collections.conversation,
+    projectSnapshot: makeProjectSnapshot({
+      queryTerms: ["models", "nvme"],
+      evidenceMatches: [{ term: "models", path: "agent-orchestrator/scripts/smoke.ts" }]
+    })
+  });
+  assert.equal(inspection.mode, "delegate");
+  const inspectionGraph = materializeTaskGraph(inspection);
+  assert.ok(inspectionGraph.rootTask, "concrete local inspection prompts should create a root task");
+  assert.ok(inspectionGraph.childTasks.some((task) => task.taskType === "explore"));
+  assert.ok(inspectionGraph.childTasks.some((task) => task.taskType === "verify"));
+  assert.ok(!inspectionGraph.childTasks.some((task) => task.taskType === "implement"));
+  assert.match(inspection.reply, /I'll check that/i);
+  assert.doesNotMatch(inspection.reply, /Initial task graph|read-only discovery|token-aware/i);
+
+  const sizeInspection = strategist.plan("goal_test", "repo size?", {
+    conversation: collections.conversation,
+    projectSnapshot: makeProjectSnapshot({
+      queryTerms: ["repo", "size"],
+      evidenceMatches: [{ term: "repo", path: "agent-orchestrator/README.md" }]
+    })
+  });
+  assert.equal(sizeInspection.mode, "delegate");
+  const sizeGraph = materializeTaskGraph(sizeInspection);
+  assert.ok(sizeGraph.rootTask, "repo size prompts should create a root task");
+  assert.ok(sizeGraph.childTasks.some((task) => task.taskType === "explore"));
+  assert.ok(sizeGraph.childTasks.some((task) => task.taskType === "verify"));
+  assert.ok(!sizeGraph.childTasks.some((task) => task.taskType === "implement"));
+  assert.match(sizeInspection.reply, /I'll check that/i);
+  assert.doesNotMatch(sizeInspection.reply, /Initial task graph|read-only discovery|token-aware/i);
+}
+
+async function testProcessAndOpenCodeAttachMode(): Promise<void> {
+  const tempBase = path.join(process.cwd(), ".tmp", "tests");
+  fs.mkdirSync(tempBase, { recursive: true });
+  const executable = path.join(tempBase, "fake-opencode");
+  fs.writeFileSync(executable, "#!/usr/bin/env bash\nexit 0\n", "utf8");
+  fs.chmodSync(executable, 0o755);
+  assert.equal(await findFirstInstalledCommand([executable]), executable);
+
+  const adapter = new TestableOpenCodeAdapter();
+  const input: AdapterSpawnInput = {
+    task: makeTask({
+      id: "task_opencode",
+      title: "Inspect local models",
+      description: "List local model files on NVMe.",
+      taskType: "explore",
+      role: "worker"
+    }),
+    plan: {
+      runtime: "opencode",
+      provider: "opencode",
+      model: "google/gemini-2.5-pro",
+      useWorktree: false,
+      agentMode: "single",
+      delegationMode: "single",
+      rationale: {
+        summary: "test",
+        tokenBudget: {
+          estimatedInputTokens: 0,
+          estimatedOutputTokens: 0,
+          estimatedTotalTokens: 0,
+          headroomRatio: 1,
+          headroomBand: "healthy"
+        },
+        reasons: []
+      }
+    },
+    cwd: process.cwd(),
+    prompt: "Inspect local models",
+    extraEnv: {}
+  };
+
+  delete process.env.OPENCODE_SERVER_URL;
+  const runArgs = adapter.buildArgs(input);
+  assert.equal(runArgs[0], "run");
+  assert.ok(runArgs.includes("--agent"));
+
+  process.env.OPENCODE_SERVER_URL = "http://127.0.0.1:4096";
+  const attachArgs = adapter.buildArgs(input);
+  assert.deepEqual(attachArgs.slice(0, 6), [
+    "run",
+    "--attach",
+    "http://127.0.0.1:4096",
+    "--model",
+    "google/gemini-2.5-pro",
+    "--dir"
+  ]);
+  assert.equal(attachArgs[6], process.cwd());
+  assert.equal(attachArgs[attachArgs.length - 1], adapter["formatPrompt"](input));
+  assert.ok(!attachArgs.includes("--max-steps"));
+  delete process.env.OPENCODE_SERVER_URL;
+}
+
+async function testStrategistDelegationRequiresApproval(): Promise<void> {
+  const repo = createTempGitRepo();
+  const dataDir = path.join(repo.repoRoot, ".orchestrator-data");
+  try {
+    const service = await OrchestratorService.create({
+      repoRoot: repo.repoRoot,
+      dataDir,
+      autoSchedule: false,
+      goalId: "approval-test"
+    });
+    try {
+      const pending = await service.startStrategistRun("how big is the repo", {
+        runtime: "opencode",
+        model: "openai/gpt-5.4"
+      });
+      assert.equal(pending.createdTaskIds.length, 0, "delegation should not create tasks before approval");
+
+      const pendingBoard = await service.getBoardState();
+      assert.equal(pendingBoard.tasks.length, 0, "board should remain task-free before approval");
+      assert.match(
+        pendingBoard.conversation.messages[pendingBoard.conversation.messages.length - 1]?.content ?? "",
+        /Do you want me to proceed\?/i
+      );
+
+      const unrelated = await service.startStrategistRun("what is 2+2", {
+        runtime: "opencode",
+        model: "openai/gpt-5.4"
+      });
+      assert.equal(unrelated.createdTaskIds.length, 0, "unrelated follow-up should not create tasks either");
+      const clarificationBoard = await service.getBoardState();
+      assert.match(
+        clarificationBoard.conversation.messages[clarificationBoard.conversation.messages.length - 1]?.content ?? "",
+        /still waiting/i,
+        "should reprompt when non-yes/no reply follows approval request"
+      );
+
+      const approved = await service.startStrategistRun("yes", {
+        runtime: "opencode",
+        model: "openai/gpt-5.4"
+      });
+      assert.ok(approved.createdTaskIds.length > 0, "approval should create delegated tasks");
+
+      const approvedBoard = await service.getBoardState();
+      assert.ok(approvedBoard.tasks.length > 0, "board should contain delegated tasks after approval");
+      assert.match(
+        approvedBoard.conversation.messages[approvedBoard.conversation.messages.length - 1]?.content ?? "",
+        /Starting work/i
+      );
+    } finally {
+      await service.dispose();
+    }
+  } finally {
+    repo.cleanup();
+  }
 }
 
 async function testWorktreeLifecycleAndSpawnWiring(): Promise<void> {
@@ -508,6 +693,8 @@ async function main(): Promise<void> {
   testScheduler();
   await testStrategistRuntimeRunner();
   await testStoreAndStrategist();
+  await testProcessAndOpenCodeAttachMode();
+  await testStrategistDelegationRequiresApproval();
   await testWorktreeLifecycleAndSpawnWiring();
   console.log("orchestrator-core tests passed");
 }
