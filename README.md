@@ -80,6 +80,10 @@ Operational notes:
   - `reports/eval_queries.json`
 - Full runbook is in `docs/validation_baseline.md`.
 
+## PDF Extraction Learning Loop
+
+The extraction pipeline supports adaptive routing via a learning loop (`services/extraction/`). It optimizes method selection over time through metrics-based preference updates and periodic LLM skill reviews. Enable via `learning_loop.enabled = True` in pipeline orchestrator config. Design spec: `docs/superpowers/specs/2026-04-08-pdf-extraction-learning-loop-design.md`.
+
 ## System Contract
 
 **[docs/architecture/SYSTEM_CONTRACT.md](docs/architecture/SYSTEM_CONTRACT.md)** is the authoritative specification for this system's data integrity, pipeline behavior, retrieval logic, model usage, and agent behavior.

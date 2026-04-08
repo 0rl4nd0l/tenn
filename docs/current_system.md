@@ -13,6 +13,10 @@ The active system is `financial-engine_v2`.
 
 This is the canonical backend bootstrap path. `python run.py` is still a supported batch/orchestration command, but it is not the canonical backend startup path for agents.
 
+## PDF Extraction Learning Loop
+
+The extraction pipeline (`services/extraction/`) has an adaptive learning loop that improves routing over time. Two paths: fast (deterministic preference updates from metrics) and slow (LLM review every N runs). Enable via `learning_loop.enabled = True` in pipeline orchestrator config.
+
 ## Local Backend API Status
 Verified current local backend workflow lives under `financial-engine_v2/`.
 
