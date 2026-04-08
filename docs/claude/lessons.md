@@ -488,3 +488,12 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The cleanup path only knew about the Textual launcher patterns and one web port. It did not match the `pnpm start` / `next start` process tree created by `cockpit start new`, and the help text still incorrectly claimed that mode used port `3000`.
 **Fix:** Expanded cleanup to check both configured UI ports, kill stale Next.js process patterns, and added a pre-launch port-availability check so `start web` / `start new` clean stale listeners before launching. Updated the usage text to reflect the real default port (`8081`).
 **Rule:** Any launcher cleanup command must track the exact process trees and ports created by every launch mode. If `start` can create a process shape, `kill` must explicitly find and remove it.
+
+## L046 — Listener cleanup must verify the actual bound port, not just wrapper processes
+
+**Date:** 2026-04-08
+**Subsystem:** `scripts/cockpit`
+**Symptom:** Even after broadening `kill root` to match `next start --port 8081`, the command could still report success while an orphaned `next-server` child remained bound to `:8081`.
+**Root cause:** The first cleanup pass still trusted wrapper-process matching too much. On this host, `lsof` returned no PID for the lingering listener, so the script never fell back to `ss`, and killing the wrapper shell alone did not kill the orphaned `next-server`.
+**Fix:** Changed listener discovery to fall back from `lsof` to `ss` when `lsof` returns no PIDs, and re-ran listener cleanup after wrapper-process kills. Verified against a live orphaned `next-server` on `:8081`: `cockpit kill root` now kills the bound listener and leaves the port clear.
+**Rule:** For launcher cleanup, the bound port is the ground truth. Process-pattern kills are only heuristic; always re-check the actual listener and use a second source (`ss`) when the first source (`lsof`) misses it.

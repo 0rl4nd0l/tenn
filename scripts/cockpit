@@ -94,19 +94,42 @@ cockpit_kill_root() {
   ports+=("${COCKPIT_WEB_PORT:-8081}")
   ports+=("${COCKPIT_NEW_PORT:-${COCKPIT_WEB_PORT:-8081}}")
 
-  if command -v lsof >/dev/null 2>&1; then
-    for port in "${ports[@]}"; do
-      port_pids="$(lsof -ti "tcp:${port}" 2>/dev/null | tr '\n' ' ' | sed 's/[[:space:]]*$//' || true)"
-      if [[ -n "${port_pids// /}" ]]; then
-        echo "Freeing Cockpit UI port ${port} (PIDs: ${port_pids})…"
-        # shellcheck disable=SC2086
-        kill ${port_pids} 2>/dev/null || sudo kill ${port_pids} 2>/dev/null || true
-        any=1
-        sleep 0.3
+  _listener_pids_for_port() {
+    local _port="$1"
+    local _pids=""
+    if command -v lsof >/dev/null 2>&1; then
+      _pids="$(lsof -ti "tcp:${_port}" 2>/dev/null | sort -u || true)"
+      if [[ -n "${_pids}" ]]; then
+        printf '%s\n' "${_pids}"
+        return 0
       fi
+    fi
+    if command -v ss >/dev/null 2>&1; then
+      ss -ltnp "( sport = :${_port} )" 2>/dev/null | sed -n 's/.*pid=\([0-9]\+\).*/\1/p' | sort -u || true
+      return 0
+    fi
+    return 1
+  }
+
+  _kill_port_listeners() {
+    local _port="$1"
+    local _pids
+    _pids="$(_listener_pids_for_port "${_port}" | tr '\n' ' ' | sed 's/[[:space:]]*$//' || true)"
+    if [[ -n "${_pids// /}" ]]; then
+      echo "Freeing Cockpit UI port ${_port} (PIDs: ${_pids})…"
+      # shellcheck disable=SC2086
+      kill ${_pids} 2>/dev/null || sudo kill ${_pids} 2>/dev/null || true
+      any=1
+      sleep 0.5
+    fi
+  }
+
+  if command -v lsof >/dev/null 2>&1 || command -v ss >/dev/null 2>&1; then
+    for port in "${ports[@]}"; do
+      _kill_port_listeners "${port}"
     done
   else
-    echo "WARN: lsof not found; cannot free Cockpit UI ports by listener. Install lsof or kill the process manually." >&2
+    echo "WARN: neither lsof nor ss found; cannot free Cockpit UI ports by listener." >&2
   fi
 
   local patterns=(
@@ -126,6 +149,14 @@ cockpit_kill_root() {
       any=1
     fi
   done
+
+  # Killing wrapper shells can orphan their next-server child. Re-check the
+  # actual listener ports after pattern-based cleanup and kill any survivors.
+  if command -v lsof >/dev/null 2>&1 || command -v ss >/dev/null 2>&1; then
+    for port in "${ports[@]}"; do
+      _kill_port_listeners "${port}"
+    done
+  fi
 
   if [[ "${any}" -eq 0 ]]; then
     echo "No local Cockpit UI processes found (ports clear, no cockpit_web/tui/Next.js PIDs)."
