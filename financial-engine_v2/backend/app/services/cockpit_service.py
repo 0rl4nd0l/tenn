@@ -210,11 +210,16 @@ class CockpitService:
         on_status: Callable[[str], None] | None = None,
         enable_web: bool | None = None,
         model: str | None = None,
+        rag: bool | None = None,
+        db_diagnostics: bool | None = None,
     ) -> ChatResponse:
         """Run a chat turn and return the full response, while optionally streaming chunks."""
+        # TODO: pass `model` to ChatController once it supports per-request model selection
         return self.chat_controller.build_chat_response(
             message=message,
             enable_web=bool(enable_web) if enable_web is not None else False,
+            enable_rag=bool(rag) if rag is not None else True,
+            enable_db_diagnostics=bool(db_diagnostics) if db_diagnostics is not None else False,
             prior_ticker=ticker,
             on_chunk=on_chunk,
             on_status=on_status,

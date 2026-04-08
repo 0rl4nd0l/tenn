@@ -674,6 +674,8 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 session_id=payload.session_id,
                 enable_web=payload.web_search,
                 model=payload.model,
+                rag=payload.rag,
+                db_diagnostics=payload.db_diagnostics,
             )
             return {
                 "type": "done",
@@ -727,6 +729,8 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     on_status=on_status,
                     enable_web=payload.web_search,
                     model=payload.model,
+                    rag=payload.rag,
+                    db_diagnostics=payload.db_diagnostics,
                 )
 
                 # After streaming finishes, send metadata and final state
