@@ -35,3 +35,36 @@ reports/change_review_agents/
 .claude/scheduled_tasks.lock
 financial-engine_v2/scripts/broad_test_results/
 .sdd/runtime/
+
+# IDE / agent tool configs (not project-specific)
+.trae/
+.factory/
+.gemini/
+.roo/
+.agents/
+.augment/
+.windsurf/
+.codebuddy/
+.kiro/
+.warp/
+.continue/
+.qoder/
+.opencode/
+.codex/
+.sdd/
+
+# Large data / models (stored externally)
+asx_data/
+backups/
+models/*.gguf
+financial-engine_v2/data/
+
+# Cloned repos (not submodules)
+deer-flow/
+deer-flow-skeleton/
+
+# Misc
+node_modules/
+*.gguf
+package-lock.json
+10
