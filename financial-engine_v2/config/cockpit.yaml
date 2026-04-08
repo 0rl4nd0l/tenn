@@ -16,6 +16,10 @@ memory:
 actions:
   confirm_required: true
 
+backend:
+  api_base_url: http://localhost:8000
+  api_key: ""
+
 web:
   enabled_default: false
 
