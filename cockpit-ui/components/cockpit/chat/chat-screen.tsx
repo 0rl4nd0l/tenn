@@ -5,7 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { TerminalMessage } from './terminal-message'
 import { TerminalInput } from './terminal-input'
 import { useCockpitStore, generateId } from '@/lib/cockpit-store'
-import { streamChat, sendChatMessage, executeAction } from '@/lib/api-client'
+import { streamChat, sendChatMessage, executeAction, restartBackend } from '@/lib/api-client'
 import type { ChatMessage as ChatMessageType, ActionPreview } from '@/lib/cockpit-types'
 import { toast } from 'sonner'
 
@@ -51,6 +51,33 @@ export function ChatScreen() {
 
     // Slash command handling
     if (content.startsWith('/')) {
+      if (content.trim() === '/restart backend') {
+        try {
+          const result = await restartBackend()
+          const systemMessage: ChatMessageType = {
+            id: generateId(),
+            role: 'assistant',
+            content: result.message || 'Backend restarted successfully.',
+            timestamp: new Date(),
+            metadata: { source: 'local' },
+          }
+          setMessages(prev => [...prev, systemMessage])
+          toast.success(result.message || 'Backend restarted')
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Unknown error'
+          toast.error('Backend restart failed: ' + message)
+          setMessages(prev => [...prev, {
+            id: generateId(),
+            role: 'system',
+            content: `Backend restart failed: ${message}`,
+            timestamp: new Date(),
+          }])
+        } finally {
+          setIsStreaming(false)
+        }
+        return
+      }
+
       try {
         const response = await sendChatMessage({
           message: content,
@@ -88,92 +115,127 @@ export function ChatScreen() {
       sources: []
     }
 
-    streamChat({
-      message: content,
-      mode: 'analysis',
-      ticker: activeTicker,
-      sessionId: sessionId,
-      model: chatModel,
-      onMessage: (event) => {
-        switch (event.type) {
-          case 'chunk':
-            currentContent += event.data.text
-            setStreamingContent(currentContent)
-            break
-          case 'status':
-            if (typeof event.data?.stage === 'string' && event.data.stage.trim().length > 0) {
-              setStreamingStatus(event.data.stage)
-            }
-            break
-          case 'tool_trace':
-            currentMetadata.toolTraces = [...(currentMetadata.toolTraces || []), {
-              tool: event.data.tool,
-              durationMs: event.data.duration_ms,
-              status: 'success'
-            }]
-            setStreamingMetadata({ ...currentMetadata })
-            break
-          case 'sources':
-            currentMetadata.sources = event.data.items.map((s: any) => ({
-              title: s.title,
-              score: s.score
-            }))
-            setStreamingMetadata({ ...currentMetadata })
-            break
-          case 'action_preview':
-            currentMetadata.actionPreview = {
-              id: event.data.id,
-              name: event.data.name,
-              description: event.data.description,
-              args: event.data.args,
-              requiresConfirmation: true
-            }
-            setStreamingMetadata({ ...currentMetadata })
-            break
-          case 'done':
-            const finalText =
-              typeof event.data?.text === 'string' && event.data.text.trim().length > 0
-                ? event.data.text
-                : currentContent
-            const assistantMessage: ChatMessageType = {
-              id: generateId(),
-              role: 'assistant',
-              content: finalText,
-              timestamp: new Date(),
-              metadata: {
-                model: event.data.model,
-                latencyMs: event.data.latency_ms,
-                costUsd: event.data.cost_usd || 0,
-                source: event.data.source || 'local'
-              },
-              sources: currentMetadata.sources,
-              toolTraces: currentMetadata.toolTraces,
-              actionPreview: currentMetadata.actionPreview
-            }
-            
-            // Update global stats
-            if (event.data.cost_usd) addCost(event.data.cost_usd)
-            if (event.data.latency_ms) setLatency(event.data.latency_ms)
-            if (event.data.model) setActiveModel(event.data.model)
-            
-            setMessages(prev => [...prev, assistantMessage])
-            setStreamingContent('')
-            setStreamingStatus('')
-            setStreamingMetadata({})
-            setIsStreaming(false)
-            break
+    try {
+      streamChat({
+        message: content,
+        mode: 'analysis',
+        ticker: activeTicker,
+        sessionId: sessionId,
+        model: chatModel,
+        onMessage: (event) => {
+          switch (event.type) {
+            case 'chunk':
+              currentContent += event.data.text
+              setStreamingContent(currentContent)
+              break
+            case 'status':
+              if (typeof event.data?.stage === 'string' && event.data.stage.trim().length > 0) {
+                setStreamingStatus(event.data.stage)
+              }
+              break
+            case 'tool_trace':
+              currentMetadata.toolTraces = [...(currentMetadata.toolTraces || []), {
+                tool: event.data.tool,
+                durationMs: event.data.duration_ms,
+                status: 'success'
+              }]
+              setStreamingMetadata({ ...currentMetadata })
+              break
+            case 'sources':
+              currentMetadata.sources = event.data.items.map((s: any) => ({
+                title: s.title,
+                score: s.score
+              }))
+              setStreamingMetadata({ ...currentMetadata })
+              break
+            case 'action_preview':
+              currentMetadata.actionPreview = {
+                id: event.data.id,
+                name: event.data.name,
+                description: event.data.description,
+                args: event.data.args,
+                requiresConfirmation: true
+              }
+              setStreamingMetadata({ ...currentMetadata })
+              break
+            case 'done':
+              const finalText =
+                typeof event.data?.text === 'string' && event.data.text.trim().length > 0
+                  ? event.data.text
+                  : currentContent
+              const assistantMessage: ChatMessageType = {
+                id: generateId(),
+                role: 'assistant',
+                content: finalText,
+                timestamp: new Date(),
+                metadata: {
+                  model: event.data.model,
+                  latencyMs: event.data.latency_ms,
+                  costUsd: event.data.cost_usd || 0,
+                  source: event.data.source || 'local'
+                },
+                sources: currentMetadata.sources,
+                toolTraces: currentMetadata.toolTraces,
+                actionPreview: currentMetadata.actionPreview
+              }
+              
+              // Update global stats
+              if (event.data.cost_usd) addCost(event.data.cost_usd)
+              if (event.data.latency_ms) setLatency(event.data.latency_ms)
+              if (event.data.model) setActiveModel(event.data.model)
+              
+              setMessages(prev => [...prev, assistantMessage])
+              setStreamingContent('')
+              setStreamingStatus('')
+              setStreamingMetadata({})
+              setIsStreaming(false)
+              break
+            case 'error':
+              // Handle error events from backend
+              console.error('[Chat] Streaming error event:', event.data)
+              const errorMessage = typeof event.data === 'string' ? event.data : 'Chat failed'
+              toast.error('Chat error: ' + errorMessage)
+              setMessages(prev => [...prev, {
+                id: generateId(),
+                role: 'system',
+                content: `Error: ${errorMessage}`,
+                timestamp: new Date(),
+              }])
+              setStreamingStatus('')
+              setIsStreaming(false)
+              break
+          }
+        },
+        onError: (err) => {
+          console.error('[Chat] Streaming connection error:', err)
+          const errorMsg = err?.data || err?.message || 'Connection lost'
+          toast.error('Streaming error: ' + errorMsg)
+          setMessages(prev => [...prev, {
+            id: generateId(),
+            role: 'system',
+            content: `Connection error: ${errorMsg}`,
+            timestamp: new Date(),
+          }])
+          setStreamingStatus('')
+          setIsStreaming(false)
+        },
+        onEnd: () => {
+          setStreamingStatus('')
+          setIsStreaming(false)
         }
-      },
-      onError: (err) => {
-        toast.error('Streaming error: ' + (err?.data || 'Connection lost'))
-        setStreamingStatus('')
-        setIsStreaming(false)
-      },
-      onEnd: () => {
-        setStreamingStatus('')
-        setIsStreaming(false)
-      }
-    })
+      })
+    } catch (err) {
+      console.error('[Chat] Failed to initiate streaming:', err)
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      toast.error('Failed to start chat: ' + errorMsg)
+      setMessages(prev => [...prev, {
+        id: generateId(),
+        role: 'system',
+        content: `Failed to start chat: ${errorMsg}`,
+        timestamp: new Date(),
+      }])
+      setIsStreaming(false)
+    }
   }
 
   const handleConfirmAction = useCallback(async (actionPreview: ActionPreview | undefined) => {

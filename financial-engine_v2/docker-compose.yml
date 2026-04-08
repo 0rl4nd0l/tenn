@@ -35,6 +35,7 @@ services:
     volumes:
       - ./backend:/app
       - ./cockpit:/app/cockpit
+      - ./config:/config
       - ./data:/data
       - ./scripts:/scripts
     depends_on:

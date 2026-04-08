@@ -37,6 +37,7 @@ export async function POST(req: Request): Promise<Response> {
     })
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
+      console.error('[Chat Proxy] Request timeout:', error)
       return Response.json(
         {
           type: 'analysis',
@@ -52,7 +53,16 @@ export async function POST(req: Request): Promise<Response> {
         { status: 504 },
       )
     }
-    return Response.json({ error: 'Failed to reach backend chat endpoint' }, { status: 502 })
+    console.error('[Chat Proxy] Backend connection failed:', error)
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+    return Response.json(
+      { 
+        error: 'Failed to reach backend chat endpoint',
+        detail: errorMsg,
+        backend: backendUrl
+      },
+      { status: 502 }
+    )
   } finally {
     clearTimeout(timeout)
   }

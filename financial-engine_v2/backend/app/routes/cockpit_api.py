@@ -10,7 +10,7 @@ from typing import Any, AsyncGenerator
 from urllib.parse import urlparse
 
 import httpx
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -68,7 +68,9 @@ class QueueStatusResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-def _probe_http(url: str, path: str, *, timeout: float = 3.0) -> tuple[bool, float, str | None]:
+def _probe_http(
+    url: str, path: str, *, timeout: float = 3.0
+) -> tuple[bool, float, str | None]:
     """Return (reachable, latency_ms, error_or_none)."""
     target = str(url or "").strip().rstrip("/")
     if not target:
@@ -100,9 +102,13 @@ def _probe_gpu() -> ServiceHealthItem:
         )
         elapsed_ms = round((time.monotonic() - start) * 1000, 1)
     except FileNotFoundError:
-        return ServiceHealthItem(name="gpu", status="unknown", error="nvidia-smi not installed")
+        return ServiceHealthItem(
+            name="gpu", status="unknown", error="nvidia-smi not installed"
+        )
     except subprocess.TimeoutExpired:
-        return ServiceHealthItem(name="gpu", status="degraded", error="nvidia-smi timed out")
+        return ServiceHealthItem(
+            name="gpu", status="degraded", error="nvidia-smi timed out"
+        )
     except Exception as exc:
         return ServiceHealthItem(name="gpu", status="degraded", error=str(exc))
 
@@ -115,7 +121,9 @@ def _probe_gpu() -> ServiceHealthItem:
             error=stderr or f"nvidia-smi exited {result.returncode}",
         )
 
-    lines = [line.strip() for line in (result.stdout or "").splitlines() if line.strip()]
+    lines = [
+        line.strip() for line in (result.stdout or "").splitlines() if line.strip()
+    ]
     if not lines:
         return ServiceHealthItem(
             name="gpu",
@@ -181,58 +189,70 @@ def cockpit_health() -> AggregatedHealthResponse:
     services: list[ServiceHealthItem] = []
 
     # 1. Backend (self-check — always healthy if this code runs)
-    services.append(ServiceHealthItem(
-        name="backend",
-        status="healthy",
-        endpoint="http://localhost:8000",
-    ))
+    services.append(
+        ServiceHealthItem(
+            name="backend",
+            status="healthy",
+            endpoint="http://localhost:8000",
+        )
+    )
 
     # 2. llama.cpp
     llamacpp_url = str(settings.llamacpp_url or "").strip().rstrip("/")
     ok, latency, err = _probe_http(llamacpp_url, "/v1/models")
-    services.append(ServiceHealthItem(
-        name="llamacpp",
-        status="healthy" if ok else "down",
-        endpoint=llamacpp_url or None,
-        response_time_ms=latency if ok else None,
-        error=err,
-    ))
+    services.append(
+        ServiceHealthItem(
+            name="llamacpp",
+            status="healthy" if ok else "down",
+            endpoint=llamacpp_url or None,
+            response_time_ms=latency if ok else None,
+            error=err,
+        )
+    )
 
     # 3. Ollama
     ollama_url = str(settings.ollama_url or "").strip().rstrip("/")
     if ollama_url:
         ok, latency, err = _probe_http(ollama_url, "/api/tags")
-        services.append(ServiceHealthItem(
-            name="ollama",
-            status="healthy" if ok else "down",
-            endpoint=ollama_url,
-            response_time_ms=latency if ok else None,
-            error=err,
-        ))
+        services.append(
+            ServiceHealthItem(
+                name="ollama",
+                status="healthy" if ok else "down",
+                endpoint=ollama_url,
+                response_time_ms=latency if ok else None,
+                error=err,
+            )
+        )
     else:
-        services.append(ServiceHealthItem(
-            name="ollama",
-            status="unknown",
-            error="not configured",
-        ))
+        services.append(
+            ServiceHealthItem(
+                name="ollama",
+                status="unknown",
+                error="not configured",
+            )
+        )
 
     # 4. Qdrant
     qdrant_url = str(settings.qdrant_url or "").strip().rstrip("/")
     if settings.enable_qdrant and qdrant_url:
         ok, latency, err = _probe_http(qdrant_url, "/collections")
-        services.append(ServiceHealthItem(
-            name="qdrant",
-            status="healthy" if ok else "down",
-            endpoint=qdrant_url,
-            response_time_ms=latency if ok else None,
-            error=err,
-        ))
+        services.append(
+            ServiceHealthItem(
+                name="qdrant",
+                status="healthy" if ok else "down",
+                endpoint=qdrant_url,
+                response_time_ms=latency if ok else None,
+                error=err,
+            )
+        )
     else:
-        services.append(ServiceHealthItem(
-            name="qdrant",
-            status="unknown",
-            error="disabled" if not settings.enable_qdrant else "not configured",
-        ))
+        services.append(
+            ServiceHealthItem(
+                name="qdrant",
+                status="unknown",
+                error="disabled" if not settings.enable_qdrant else "not configured",
+            )
+        )
 
     # 5. Redis
     redis_ok = False
@@ -251,13 +271,15 @@ def cockpit_health() -> AggregatedHealthResponse:
         redis_latency = 0.0
         redis_err = str(exc)
 
-    services.append(ServiceHealthItem(
-        name="redis",
-        status="healthy" if redis_ok else "down",
-        endpoint=str(settings.celery_broker_url or None),
-        response_time_ms=redis_latency if redis_ok else None,
-        error=redis_err,
-    ))
+    services.append(
+        ServiceHealthItem(
+            name="redis",
+            status="healthy" if redis_ok else "down",
+            endpoint=str(settings.celery_broker_url or None),
+            response_time_ms=redis_latency if redis_ok else None,
+            error=redis_err,
+        )
+    )
 
     services.append(_probe_gpu())
 
@@ -412,6 +434,7 @@ def cockpit_docs():
     finally:
         db.close()
 
+
 class CockpitChatRequest(BaseModel):
     message: str
     mode: str = "analysis"
@@ -419,30 +442,49 @@ class CockpitChatRequest(BaseModel):
     session_id: str | None = None
     stream: bool = True
 
+
 @router.post("/chat")
 async def cockpit_chat(payload: CockpitChatRequest, request: Request):
     """
     Unified cockpit chat endpoint supporting SSE streaming.
     Matches the TUI's ChatController logic but exposed for the Web UI.
     """
-    service = CockpitService.get_instance()
-    
+    try:
+        service = CockpitService.get_instance()
+    except Exception as exc:
+        logger.exception("Failed to initialize CockpitService")
+        raise HTTPException(
+            status_code=500, detail=f"Service initialization failed: {str(exc)}"
+        ) from exc
+
     if not payload.stream:
         # Blocking implementation if requested (rare for this UI)
-        response = service.chat_stream(
-            message=payload.message,
-            ticker=payload.ticker,
-            session_id=payload.session_id
-        )
-        return {
-            "type": "done",
-            "data": {
-                "text": response.text,
-                "model": response.routing_metadata.get("model") if response.routing_metadata else "local",
-                "latency_ms": response.routing_metadata.get("latency_ms") if response.routing_metadata else 0,
-                "cost_usd": response.routing_metadata.get("cost_usd") if response.routing_metadata else 0,
+        try:
+            response = service.chat_stream(
+                message=payload.message,
+                ticker=payload.ticker,
+                session_id=payload.session_id,
+            )
+            return {
+                "type": "done",
+                "data": {
+                    "text": response.text,
+                    "model": response.routing_metadata.get("model")
+                    if response.routing_metadata
+                    else "local",
+                    "latency_ms": response.routing_metadata.get("latency_ms")
+                    if response.routing_metadata
+                    else 0,
+                    "cost_usd": response.routing_metadata.get("cost_usd")
+                    if response.routing_metadata
+                    else 0,
+                },
             }
-        }
+        except Exception as exc:
+            logger.exception("Cockpit chat non-streaming error")
+            raise HTTPException(
+                status_code=500, detail=f"Chat processing failed: {str(exc)}"
+            ) from exc
 
     async def event_generator() -> AsyncGenerator[str, None]:
         queue = asyncio.Queue()
@@ -450,14 +492,20 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
 
         def on_chunk(chunk: str):
             # This runs in the LLM thread (from ChatController)
-            loop.call_soon_threadsafe(queue.put_nowait, {"type": "chunk", "data": {"text": chunk}})
+            loop.call_soon_threadsafe(
+                queue.put_nowait, {"type": "chunk", "data": {"text": chunk}}
+            )
 
         def on_status(stage: str):
-            loop.call_soon_threadsafe(queue.put_nowait, {"type": "status", "data": {"stage": stage}})
+            loop.call_soon_threadsafe(
+                queue.put_nowait, {"type": "status", "data": {"stage": stage}}
+            )
 
         async def run_chat():
             try:
-                await queue.put({"type": "status", "data": {"stage": "Resolving request context"}})
+                await queue.put(
+                    {"type": "status", "data": {"stage": "Resolving request context"}}
+                )
                 # ChatController.build_chat_response is synchronous and blocking.
                 # We run it in a thread to keep the event loop free.
                 response = await asyncio.to_thread(
@@ -468,12 +516,12 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     on_chunk=on_chunk,
                     on_status=on_status,
                 )
-                
+
                 # After streaming finishes, send metadata and final state
                 if response.tool_traces:
                     for trace in response.tool_traces:
                         await queue.put({"type": "tool_trace", "data": trace})
-                
+
                 if response.evidence:
                     # Filter/format sources for the UI
                     sources = []
@@ -481,28 +529,38 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                         if ev.get("type") == "local_context":
                             details = ev.get("details", {})
                             for hit in details.get("qual_context", {}).get("hits", []):
-                                sources.append({
-                                    "title": hit.get("title") or hit.get("file") or "Source",
-                                    "score": hit.get("score") or hit.get("final_score") or 0.0
-                                })
+                                sources.append(
+                                    {
+                                        "title": hit.get("title")
+                                        or hit.get("file")
+                                        or "Source",
+                                        "score": hit.get("score")
+                                        or hit.get("final_score")
+                                        or 0.0,
+                                    }
+                                )
                     if sources:
                         await queue.put({"type": "sources", "data": {"items": sources}})
 
                 if response.action_preview:
-                    await queue.put({"type": "action_preview", "data": response.action_preview})
+                    await queue.put(
+                        {"type": "action_preview", "data": response.action_preview}
+                    )
 
                 # Final 'done' event with metrics
                 meta = response.routing_metadata or {}
-                await queue.put({
-                    "type": "done",
-                    "data": {
-                        "text": response.text,
-                        "model": meta.get("model", "local"),
-                        "latency_ms": meta.get("latency_ms", 0),
-                        "cost_usd": meta.get("cost_usd", 0),
-                        "source": meta.get("source", "local")
+                await queue.put(
+                    {
+                        "type": "done",
+                        "data": {
+                            "text": response.text,
+                            "model": meta.get("model", "local"),
+                            "latency_ms": meta.get("latency_ms", 0),
+                            "cost_usd": meta.get("cost_usd", 0),
+                            "source": meta.get("source", "local"),
+                        },
                     }
-                })
+                )
             except Exception as exc:
                 logger.exception("Cockpit chat streaming error")
                 await queue.put({"type": "error", "data": str(exc)})
@@ -518,13 +576,13 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
             if await request.is_disconnected():
                 worker_task.cancel()
                 break
-                
+
             item = await queue.get()
             if item is None:
                 break
-            
+
             yield f"data: {json.dumps(item)}\n\n"
-        
+
         yield "event: end\ndata: {}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
