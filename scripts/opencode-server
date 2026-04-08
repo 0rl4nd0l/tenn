@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# OpenCode shared-server manager.
+# Usage:
+#   scripts/opencode-server start    — start the server (default port 4096)
+#   scripts/opencode-server stop     — stop the server
+#   scripts/opencode-server status   — check if running
+#   scripts/opencode-server attach   — attach a new TUI client
+
+PORT="${OPENCODE_SERVER_PORT:-4096}"
+URL="http://127.0.0.1:${PORT}"
+PIDFILE="/tmp/opencode-server-${PORT}.pid"
+LOGFILE="/tmp/opencode-server-${PORT}.log"
+
+log() { echo "[opencode-server] $*"; }
+
+cmd_start() {
+  if cmd_status_quiet; then
+    log "already running (pid $(cat "$PIDFILE"))"
+    log "attach with: opencode attach ${URL}"
+    return 0
+  fi
+
+  log "starting opencode serve on port ${PORT}"
+  nohup opencode serve --port "${PORT}" > "${LOGFILE}" 2>&1 &
+  local pid=$!
+  echo "$pid" > "$PIDFILE"
+
+  # Wait for server to be ready
+  local retries=10
+  while [ $retries -gt 0 ]; do
+    if curl -s "${URL}" >/dev/null 2>&1; then
+      log "server ready (pid ${pid})"
+      log "attach with: opencode attach ${URL}"
+      log "set env:     export OPENCODE_SERVER_URL=${URL}"
+      return 0
+    fi
+    retries=$((retries - 1))
+    sleep 1
+  done
+
+  log "server started (pid ${pid}) but health check not responding yet"
+  log "check logs: ${LOGFILE}"
+}
+
+cmd_stop() {
+  if [ ! -f "$PIDFILE" ]; then
+    log "no pidfile found, not running"
+    return 0
+  fi
+  local pid
+  pid=$(cat "$PIDFILE")
+  if kill -0 "$pid" 2>/dev/null; then
+    log "stopping server (pid ${pid})"
+    kill "$pid"
+    rm -f "$PIDFILE"
+    log "stopped"
+  else
+    log "pidfile exists but process ${pid} is dead, cleaning up"
+    rm -f "$PIDFILE"
+  fi
+}
+
+cmd_status_quiet() {
+  [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null
+}
+
+cmd_status() {
+  if cmd_status_quiet; then
+    log "running (pid $(cat "$PIDFILE")) on ${URL}"
+  else
+    log "not running"
+    return 1
+  fi
+}
+
+cmd_attach() {
+  if ! cmd_status_quiet; then
+    log "server not running, starting..."
+    cmd_start
+  fi
+  exec opencode attach "${URL}" "$@"
+}
+
+case "${1:-start}" in
+  start)  cmd_start ;;
+  stop)   cmd_stop ;;
+  status) cmd_status ;;
+  attach) shift; cmd_attach "$@" ;;
+  *)      echo "Usage: $0 {start|stop|status|attach}" >&2; exit 1 ;;
+esac

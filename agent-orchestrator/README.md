@@ -84,6 +84,48 @@ AGENT_ORCHESTRATOR_DATA_DIR=/abs/path/to/data
 - See [ADR-0001](./docs/adr-0001-local-agent-first-architecture.md) for the baseline architecture
   decision.
 
+## OpenCode Shared-Server Mode (Recommended)
+
+By default, each OpenCode task spawns a full `opencode run` process (~2 GB RAM: Node runtime +
+Pyright language server + plugins). Running 3-4 concurrent tasks can exhaust a 32 GB machine.
+
+**Shared-server mode** runs one `opencode serve` instance and connects tasks via `opencode attach`,
+sharing a single Pyright and runtime across all sessions (~50 MB per attached client).
+
+### Setup
+
+Start the server once (in tmux, screen, or systemd):
+
+```bash
+opencode serve --port 4096
+```
+
+Set the env var before starting the orchestrator:
+
+```bash
+export OPENCODE_SERVER_URL=http://localhost:4096
+cd agent-orchestrator && npm run dev
+```
+
+Or add to your shell profile:
+
+```bash
+echo 'export OPENCODE_SERVER_URL=http://localhost:4096' >> ~/.bashrc
+```
+
+### Memory comparison
+
+| Mode | Per-task RAM | 4 concurrent tasks |
+|---|---|---|
+| Standalone (`opencode run`) | ~2 GB | ~8 GB |
+| Shared server (`opencode attach`) | ~50 MB | ~2.2 GB (server + 4 clients) |
+
+### Other agent memory tips
+
+- Use `--pure` flag to skip external plugins when not needed
+- Kill idle OpenCode sessions — each holds a Pyright instance
+- Claude Code CLI and Codex are lightweight (~50 MB) and don't need this optimization
+
 ## Known Gaps
 
 - Some runtimes, especially Cursor and OpenCode, use conservative command assumptions and estimated

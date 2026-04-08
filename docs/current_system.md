@@ -17,6 +17,18 @@ This is the canonical backend bootstrap path. `python run.py` is still a support
 
 The extraction pipeline (`services/extraction/`) has an adaptive learning loop that improves routing over time. Two paths: fast (deterministic preference updates from metrics) and slow (LLM review every N runs). Enable via `learning_loop.enabled = True` in pipeline orchestrator config.
 
+## OpenCode Shared-Server Mode
+
+When running multiple OpenCode sessions (e.g., via agent-orchestrator), use shared-server mode to avoid ~2 GB RAM per session. Start the server once, attach clients to it:
+
+```bash
+scripts/opencode-server start           # starts server on port 4096
+export OPENCODE_SERVER_URL=http://localhost:4096  # orchestrator uses attach mode
+scripts/opencode-server attach          # interactive TUI client
+```
+
+The agent-orchestrator's OpenCode adapter auto-detects `OPENCODE_SERVER_URL` and uses `opencode attach` instead of `opencode run`. See `agent-orchestrator/README.md` for details.
+
 ## Local Backend API Status
 Verified current local backend workflow lives under `financial-engine_v2/`.
 
