@@ -479,3 +479,12 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The SSE route streamed incremental chat chunks but the `done` event only carried metadata. The Next frontend committed the buffered chunk text as the final message. If streamed content and final normalized response diverged, the UI persisted the wrong one.
 **Fix:** Added canonical `text` to the SSE `done` payload and changed the frontend to prefer that final text over buffered chunks. Added a route regression test that simulates streamed JSON drift but verifies the `done` event still carries the normalized prose answer.
 **Rule:** For streamed chat, chunks are provisional UI state only. The server must emit the authoritative final answer explicitly, and the client must render that authoritative value on completion instead of assuming the buffered stream is the canonical result.
+
+## L045 — Process cleanup must match the process shapes the launcher actually creates
+
+**Date:** 2026-04-08
+**Subsystem:** `scripts/cockpit`
+**Symptom:** `cockpit kill root` reported no local UI processes, but `cockpit start new` still failed with `EADDRINUSE` on port `8081`.
+**Root cause:** The cleanup path only knew about the Textual launcher patterns and one web port. It did not match the `pnpm start` / `next start` process tree created by `cockpit start new`, and the help text still incorrectly claimed that mode used port `3000`.
+**Fix:** Expanded cleanup to check both configured UI ports, kill stale Next.js process patterns, and added a pre-launch port-availability check so `start web` / `start new` clean stale listeners before launching. Updated the usage text to reflect the real default port (`8081`).
+**Rule:** Any launcher cleanup command must track the exact process trees and ports created by every launch mode. If `start` can create a process shape, `kill` must explicitly find and remove it.
