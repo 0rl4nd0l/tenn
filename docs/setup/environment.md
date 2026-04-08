@@ -17,6 +17,8 @@ The active runtime is `financial-engine_v2`. The canonical env file lives at `fi
 | `LLAMA_SERVER_ROUTER_MODE` | `1` | Enable router mode for zero-downtime model switching (`~/.config/tenn/llama-server.env`). Set to `0` for single-model legacy mode. |
 | `LLAMA_SERVER_MODELS_DIR` | `/mnt/nvme/tenn/models` | Directory of `.gguf` files for router mode model discovery (`~/.config/tenn/llama-server.env`). The launcher now fails instead of silently falling back to a repo-local models directory. |
 | `LLAMA_SERVER_MMAP` | `1` | Set to `0` so `scripts/run_llama_server.sh` and `scripts/run_extraction_server.sh` pass `--no-mmap` when mmap-based load stalls on Tesla M40 (see `docs/ops/09_llama_server_m40_model_load_runbook.md`). |
+| `LLAMA_SERVER_CACHE_TYPE_K` | _(unset)_ | Optional KV-cache override passed to `llama-server` as `--cache-type-k`. Leave unset on Tesla M40 unless you have verified the target model/runtime supports the requested cache type. |
+| `LLAMA_SERVER_CACHE_TYPE_V` | _(unset)_ | Optional KV-cache override passed to `llama-server` as `--cache-type-v`. On Tesla M40, forcing quantized V cache can fail during model load when Flash Attention is unavailable. |
 | `EMBEDDING_BATCH_SIZE` | `32` | Default embedding batch size. |
 | `ROUTER_FEEDBACK_ENABLED` | `true` | Enables analyzer feedback in routing. |
 | `ANALYZER_MAX_AGE_SECONDS` | `600` | Analyzer report freshness window. |
@@ -41,6 +43,7 @@ Local host override note:
 
 - `financial-engine_v2/.env.local` currently points Tenn runtime data at `/mnt/nvme/tenn/runtime-data`
 - `~/.config/tenn/llama-server.env` points llama.cpp router mode at `/mnt/nvme/tenn/models`
+- llama.cpp launcher defaults no longer force KV-cache quantization; enable `LLAMA_SERVER_CACHE_TYPE_K` / `LLAMA_SERVER_CACHE_TYPE_V` explicitly if you want non-default cache types
 - the legacy root Ollama store at `/usr/share/ollama/.ollama/models` has been pruned to keep only `qwen2.5:32b` and `gpt-oss:20b-cloud`
 - inactive root Ollama models are archived at `/mnt/sdb2/home/l4nd0/tenn/.archives/ollama-root-store-2026-04-07`
 

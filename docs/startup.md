@@ -36,6 +36,7 @@ Key values:
 - `TERMINAL_MODE`: how `cockpit start` launches the TUI (`auto | gnome-terminal | tmux`)
 - `ENABLE_EMBEDDINGS_ON_STARTUP`: forces backend `ENABLE_EMBEDDINGS` (default `false` in this environment)
 - `ENABLE_QDRANT_ON_STARTUP`: forces backend `ENABLE_QDRANT` (default `false` in this environment)
+- `LLAMA_SERVER_CACHE_TYPE_K` / `LLAMA_SERVER_CACHE_TYPE_V`: optional host overrides for llama.cpp KV-cache types; leave unset on Tesla M40 unless validated for the selected model/runtime
 
 Docker vs host routing:
 - **Host tools** (doctor, host-run cockpit launcher) should use `127.0.0.1` / `localhost`.
@@ -108,4 +109,3 @@ Common fixes:
 - Backend unhealthy: `cockpit logs` and check `backend` service logs.
 - Ollama unreachable: start Ollama on host, or update `OLLAMA_URL_HOST` / `.env` routing.
 - Port conflicts: stop conflicting process or run fewer local services.
-

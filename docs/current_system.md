@@ -33,6 +33,7 @@ Operational notes:
 - `asx_docs` is not the commentary chat collection
 - local launcher precedence is `.env` then `.env.local`, with explicit shell env overriding both
 - current host-local storage layout uses `/mnt/nvme/tenn/runtime-data` for runtime data and `/mnt/nvme/tenn/models` for llama.cpp GGUFs
+- llama.cpp launcher defaults no longer force quantized KV cache; on Tesla M40, enable `LLAMA_SERVER_CACHE_TYPE_K` / `LLAMA_SERVER_CACHE_TYPE_V` only after verifying the target model can load without Flash Attention errors
 - root Ollama store has been pruned to `qwen2.5:32b` and `gpt-oss:20b-cloud`, with inactive models archived under `.archives/ollama-root-store-2026-04-07`
 
 Canonical local launcher:

@@ -29,6 +29,13 @@ Related: [openclaw_ops_loop.md](openclaw_ops_loop.md), [SYSTEM_CONTRACT.md](../a
 
 Model file on **local ext4** (not NFS) still helps; if symptoms persist, treat as **llama.cpp build + Maxwell + mmap** interaction, not “bad GGUF path” alone.
 
+Additional M40 failure mode seen on 2026-04-08:
+
+| What you see | Likely meaning |
+|----------------|----------------|
+| Child worker exits during `ensure_model`, router keeps model in **`loading`** forever | Router preset/launch args are incompatible with the GPU/runtime. |
+| Log contains `quantized V cache was requested, but this requires Flash Attention` | Forced quantized KV cache is incompatible with this Maxwell/Flash-Attention combination. |
+
 ---
 
 ## 3. First fix: disable mmap (supported by launcher)
@@ -46,6 +53,26 @@ bash scripts/run_llama_server.sh
 **Expect:** VRAM should climb into the **multi‑GB** range within a reasonable time (exact peak depends on model and `--n-gpu-layers`). If load completes, `/health` should stabilise on **200** and `/v1/models` should list the loaded model.
 
 **Trade-off:** Slower startup and higher RAM pressure than mmap; acceptable when mmap path stalls.
+
+---
+
+## 3a. KV-cache quantization on M40
+
+As of 2026-04-08, the checked-in launchers no longer force `--cache-type-k q8_0 --cache-type-v q8_0`.
+
+Why:
+
+- Tesla M40 does not provide the Flash Attention path required by some quantized V-cache combinations.
+- For `model:gpt-oss-20b`, forcing quantized V cache caused the child worker to fail during context init and left the router model status stuck at `loading`.
+
+Use quantized KV cache only as an explicit host override:
+
+```bash
+export LLAMA_SERVER_CACHE_TYPE_K=q8_0
+export LLAMA_SERVER_CACHE_TYPE_V=q8_0
+```
+
+If model load fails with a Flash Attention / quantized V-cache error, unset both variables and restart the router.
 
 ---
 
@@ -69,9 +96,15 @@ bash scripts/run_llama_server.sh
 ```bash
 curl -sS -H "Authorization: Bearer ${LLM_API_KEY:-local-openai-key}" http://127.0.0.1:8001/health
 curl -sS -H "Authorization: Bearer ${LLM_API_KEY:-local-openai-key}" http://127.0.0.1:8001/v1/models
+curl -sS -H "Authorization: Bearer ${LLM_API_KEY:-local-openai-key}" \
+  http://127.0.0.1:8001/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"model:gpt-oss-20b","messages":[{"role":"user","content":"Reply with ok."}],"max_tokens":8,"stream":false}'
 ```
 
 Use **8002** instead of **8001** when checking the extraction instance.
+
+On a healthy M40 load, `gpu_runtime_status.py` or `nvidia-smi` should show the child `llama-server` process holding multi-GB GPU memory after the first completion request.
 
 ---
 

@@ -4,7 +4,7 @@
 > Update this file at the end of every session alongside the milestone commit.
 > For detailed context on any item, follow the linked doc or run `git log --oneline`.
 
-Last updated: 2026-04-07 (session — NVMe runtime-data migration, Ollama archive prune, storage/docs alignment)
+Last updated: 2026-04-08 (session — cockpit chat SSE fix, llama.cpp M40 KV-cache fix, docs alignment)
 Branch: cloud/session-20260319
 
 ## Legend
@@ -33,6 +33,7 @@ Branch: cloud/session-20260319
 | **cockpit-sourcing** | `[ verified ]` | Evidence sourcing (2e9c3ddb): SourcesFormatter, sources metadata in gather_local_context, /sources on\|off toggle. 6 tests. |
 | **cockpit-routing** | `[ verified ]` | Chat routing visibility + extraction guard (f037aa09): per-response footer [backend\|model\|latency\|cost], extraction pre-flight guard with auto-model-load via router API, `.env` loading fixed in cockpit entrypoint. Ticker fast-path false positives fixed (2cfb991e): stopwords expanded, _FOLLOW_UP_RE narrowed to topic-referential only. L027+L028+L029. |
 | **gpu-process-rails** | `[ verified ]` | Canonical port manifest (§9.4), agent spawn protocol (§9.5), `gpu_process_guard.sh`, `llamacpp_manager.py` topology check. L022 logged. |
+| **llamacpp-runtime** | `[ verified ]` | Tesla M40 load path fixed for `model:gpt-oss-20b`: forced KV-cache quantization removed from launcher defaults; router now loads on GPU and serves completions. |
 | **analysis-modules** | `[ verified ]` | 7 modules (+ sentiment), orchestrator, context_loader (Yahoo price fallback), watchlist scanner (7 alert rules), API endpoints, scale validation gate, extraction expansion (total_equity, interest_expense). 48+22 tests. D2 live-tested. Real-data validated (RIO, BHP). **Sentiment RAG wiring:** modules declare RAG queries via `rag_queries` property; orchestrator merges into ContextRequest; `analysis_rag_adapter` bridges Qdrant; sentiment scores news_chunks + commentary_chunks. Architecture doc 1151 lines. |
 | **model-eval** | `[ verified ]` | Qwen 3 14B evaluated (85.26%) vs Qwen 2.5 14B (89.47%) — current model stays. |
 | **docs-governance** | `[ in-progress ]` | Root startup docs aligned to the canonical backend entrypoint. Repository-audit instructions updated to use actual repo manifests. Backend API surface, extraction, embeddings, routing, scripts index, portfolio module docs, Cockpit control-plane docs, and eval-fixture architecture docs refreshed. Open item: Cockpit contract/code mismatch still needs an explicit architecture decision. |
@@ -78,6 +79,8 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 
 | Commit | Workstream | Summary |
 |--------|------------|---------|
+| 52508567 | llamacpp-runtime | Stop forcing KV-cache quantization in llama.cpp launchers/runtime manager; `model:gpt-oss-20b` now loads on Tesla M40 and serves chat completions with GPU memory allocated. |
+| 6e33d5d8 | cockpit-ui | Start the `sse.js` chat stream explicitly so the chat screen no longer gets stuck in `Analyzing market data...` without sending a request. |
 | 88e47336 | extraction-quality | Prose fallback for shares_outstanding: regex extraction from note sections (ANZ Note 13 + 3 other patterns), sanity range gate, table priority preserved. 12 tests. |
 | 42eadf64 | analysis-modules | Sentiment RAG wiring: modules declare RAG queries, orchestrator merges them, analysis_rag_adapter bridges Qdrant, sentiment scores news_chunks + commentary_chunks. 22 new tests. |
 | f4e2f820 | cockpit | Align preboot routing docs and tests: cockpit LLM config authority, env-override gating, current preboot export behavior. |
