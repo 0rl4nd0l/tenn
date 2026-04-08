@@ -44,6 +44,7 @@ export interface ServiceHealth {
   responseTimeMs?: number
   lastChecked?: Date
   error?: string
+  details?: Record<string, unknown>
 }
 
 export interface CockpitPreferences {

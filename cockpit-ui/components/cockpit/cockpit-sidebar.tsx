@@ -30,12 +30,14 @@ import {
   SidebarSeparator,
 } from '@/components/ui/sidebar'
 import { Badge } from '@/components/ui/badge'
+import type { ServiceHealth } from '@/lib/cockpit-types'
 import { useCockpitStore, AVAILABLE_CHAT_MODELS } from '@/lib/cockpit-store'
 
 interface CockpitSidebarProps {
   backendHealthy: boolean
   backendLastHealthyAt: Date | null
   backendError: string | null
+  gpuHealth: ServiceHealth | null
   sessionCost: number
 }
 
@@ -99,6 +101,7 @@ export function CockpitSidebar({
   backendHealthy,
   backendLastHealthyAt,
   backendError,
+  gpuHealth,
   sessionCost,
 }: CockpitSidebarProps) {
   const pathname = usePathname()
@@ -179,6 +182,25 @@ export function CockpitSidebar({
         message: backendError ?? configNotice?.message ?? 'Backend is unavailable',
       }
 
+  const gpuSummary = useMemo(() => {
+    const gpus = Array.isArray(gpuHealth?.details?.gpus)
+      ? (gpuHealth?.details?.gpus as Array<Record<string, unknown>>)
+      : []
+    if (gpus.length === 0) return gpuHealth?.error ?? 'unavailable'
+    const first = gpus[0]
+    const name = typeof first.name === 'string' ? first.name : 'GPU'
+    const util =
+      typeof first.util_percent === 'number'
+        ? `${Math.round(first.util_percent)}%`
+        : 'n/a'
+    const used = typeof first.mem_used_mib === 'number' ? Math.round(first.mem_used_mib) : null
+    const total = typeof first.mem_total_mib === 'number' ? Math.round(first.mem_total_mib) : null
+    const mem = used !== null && total !== null ? `${used}/${total} MiB` : 'n/a'
+    return `${name} ${util} ${mem}`
+  }, [gpuHealth])
+
+  const gpuHealthy = gpuHealth?.status === 'healthy'
+
   return (
     <Sidebar
       collapsible="icon"
@@ -244,6 +266,21 @@ export function CockpitSidebar({
               <div className="text-[11px] text-muted-foreground/90 pl-4 font-mono">
                 last healthy: {formatClock(backendLastHealthyAt)}
               </div>
+              <div className="flex items-center justify-between text-xs py-1 font-mono">
+                <div className="flex items-center gap-2">
+                  <span className={`h-2 w-2 rounded-full ${
+                    gpuHealthy
+                      ? 'bg-[oklch(0.7_0.18_205)] status-dot-running'
+                      : 'bg-[oklch(0.7_0.05_250)]'
+                  }`} />
+                  <span className="text-muted-foreground">
+                    GPU: {gpuHealthy ? 'VISIBLE' : (gpuHealth?.status ?? 'UNKNOWN').toUpperCase()}
+                  </span>
+                </div>
+              </div>
+              <div className="text-[11px] text-muted-foreground/90 pl-4 font-mono break-words">
+                {gpuSummary}
+              </div>
               <div className="text-[11px] text-muted-foreground/90 pl-4 font-mono">
                 config sync: {formatClock(lastConfigSyncAt)}
               </div>
@@ -280,9 +317,12 @@ export function CockpitSidebar({
               )}
             </div>
             <div className="px-2 group-data-[collapsible=icon]:block hidden">
-              <div className="flex items-center justify-center">
+              <div className="flex items-center justify-center gap-1">
                 <Activity
                   className={`h-4 w-4 ${backendHealthy ? 'text-[oklch(0.69_0.22_145)]' : 'text-destructive'}`}
+                />
+                <Cpu
+                  className={`h-4 w-4 ${gpuHealthy ? 'text-[oklch(0.7_0.18_205)]' : 'text-muted-foreground/60'}`}
                 />
               </div>
             </div>

@@ -5,6 +5,7 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/s
 import { CockpitSidebar } from './cockpit-sidebar'
 import { CockpitStatusBar } from './cockpit-status-bar'
 import { checkHealth, isBackendHealthy as getBackendHealthy } from '@/lib/api-client'
+import type { ServiceHealth } from '@/lib/cockpit-types'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import { Separator } from '@/components/ui/separator'
 
@@ -17,6 +18,7 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
   const [backendHealthy, setBackendHealthy] = useState(false)
   const [backendLastHealthyAt, setBackendLastHealthyAt] = useState<Date | null>(null)
   const [backendError, setBackendError] = useState<string | null>(null)
+  const [gpuHealth, setGpuHealth] = useState<ServiceHealth | null>(null)
   const { activeTicker, sessionStats } = useCockpitStore()
 
   useEffect(() => {
@@ -30,6 +32,7 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
         if (cancelled) return
 
         setBackendHealthy(healthy)
+        setGpuHealth(res.services?.find((service) => service.name === 'gpu') ?? null)
         if (healthy) {
           setBackendLastHealthyAt(new Date())
           setBackendError(null)
@@ -43,6 +46,7 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
       } catch (error) {
         if (cancelled) return
         setBackendHealthy(false)
+        setGpuHealth(null)
         setBackendError(error instanceof Error ? error.message : 'Backend is unreachable')
       }
     }
@@ -61,6 +65,7 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
         backendHealthy={backendHealthy} 
         backendLastHealthyAt={backendLastHealthyAt}
         backendError={backendError}
+        gpuHealth={gpuHealth}
         sessionCost={sessionStats.totalCostUsd} 
       />
       <SidebarInset className="flex flex-col overflow-hidden">

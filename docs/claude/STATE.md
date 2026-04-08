@@ -4,7 +4,7 @@
 > Update this file at the end of every session alongside the milestone commit.
 > For detailed context on any item, follow the linked doc or run `git log --oneline`.
 
-Last updated: 2026-04-08 (session — cockpit launcher listener cleanup fix, cockpit launcher cleanup fix, cockpit restart backend full-functionality defaults, cockpit chat SSE final-text fix, cockpit chat SSE fix, llama.cpp M40 KV-cache fix, docs alignment, standalone agent-orchestrator Codex stream bridge)
+Last updated: 2026-04-08 (session — cockpit sidebar GPU indicator, cockpit launcher listener cleanup fix, cockpit launcher cleanup fix, cockpit restart backend full-functionality defaults, cockpit chat SSE final-text fix, cockpit chat SSE fix, llama.cpp M40 KV-cache fix, docs alignment, standalone agent-orchestrator Codex stream bridge)
 Branch: cloud/session-20260319
 
 ## Legend
@@ -79,6 +79,7 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 
 | Commit | Workstream | Summary |
 |--------|------------|---------|
+| (this session) | cockpit-ui | Sidebar now shows a host-level GPU indicator sourced from the Next.js `/api/cockpit/health` wrapper, with live `nvidia-smi` name/utilization/VRAM data instead of the backend container’s blind spot. |
 | (this session) | cockpit-launcher | `cockpit kill root` now falls back from `lsof` to `ss` for listener discovery and re-checks ports after wrapper kills, so orphaned `next-server` listeners on `:8081` are actually removed. |
 | (this session) | cockpit-launcher | `cockpit kill root` now cleans stale Next.js UI processes and both configured UI ports, and `cockpit start web/new` preflight the target port before launch so stale listeners fail fast instead of surfacing as misleading `EADDRINUSE`. |
 | (this session) | cockpit-ui / cockpit-api | SSE chat now emits canonical final text in the `done` event and the Next UI prefers that value over buffered chunks, preventing raw tool-call JSON from being committed as the assistant reply. |

@@ -34,6 +34,7 @@ class ServiceHealthItem(BaseModel):
     endpoint: str | None = None
     response_time_ms: float | None = None
     error: str | None = None
+    details: dict[str, Any] | None = None
 
 
 class AggregatedHealthResponse(BaseModel):
@@ -80,6 +81,88 @@ def _probe_http(url: str, path: str, *, timeout: float = 3.0) -> tuple[bool, flo
         return True, round(elapsed_ms, 1), None
     except Exception as exc:
         return False, 0.0, str(exc)
+
+
+def _probe_gpu() -> ServiceHealthItem:
+    """Return a compact GPU runtime summary for the cockpit sidebar."""
+    try:
+        start = time.monotonic()
+        result = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=name,utilization.gpu,memory.used,memory.total",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=3,
+            check=False,
+        )
+        elapsed_ms = round((time.monotonic() - start) * 1000, 1)
+    except FileNotFoundError:
+        return ServiceHealthItem(name="gpu", status="unknown", error="nvidia-smi not installed")
+    except subprocess.TimeoutExpired:
+        return ServiceHealthItem(name="gpu", status="degraded", error="nvidia-smi timed out")
+    except Exception as exc:
+        return ServiceHealthItem(name="gpu", status="degraded", error=str(exc))
+
+    if result.returncode != 0:
+        stderr = (result.stderr or "").strip()
+        return ServiceHealthItem(
+            name="gpu",
+            status="degraded",
+            response_time_ms=elapsed_ms,
+            error=stderr or f"nvidia-smi exited {result.returncode}",
+        )
+
+    lines = [line.strip() for line in (result.stdout or "").splitlines() if line.strip()]
+    if not lines:
+        return ServiceHealthItem(
+            name="gpu",
+            status="unknown",
+            response_time_ms=elapsed_ms,
+            error="no GPU devices reported",
+        )
+
+    gpus: list[dict[str, Any]] = []
+    for line in lines:
+        parts = [part.strip() for part in line.split(",")]
+        if len(parts) < 4:
+            continue
+        name, util_raw, used_raw, total_raw = parts[:4]
+        try:
+            util = float(util_raw)
+        except ValueError:
+            util = None
+        try:
+            used = float(used_raw)
+            total = float(total_raw)
+        except ValueError:
+            used = None
+            total = None
+        gpus.append(
+            {
+                "name": name or "GPU",
+                "util_percent": util,
+                "mem_used_mib": used,
+                "mem_total_mib": total,
+            }
+        )
+
+    if not gpus:
+        return ServiceHealthItem(
+            name="gpu",
+            status="unknown",
+            response_time_ms=elapsed_ms,
+            error="unable to parse GPU status",
+        )
+
+    return ServiceHealthItem(
+        name="gpu",
+        status="healthy",
+        response_time_ms=elapsed_ms,
+        details={"gpus": gpus},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -170,6 +253,8 @@ def cockpit_health() -> AggregatedHealthResponse:
         response_time_ms=redis_latency if redis_ok else None,
         error=redis_err,
     ))
+
+    services.append(_probe_gpu())
 
     # Derive overall status
     statuses = [s.status for s in services]
