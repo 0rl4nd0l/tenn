@@ -41,9 +41,12 @@ from app.services.multipass_extraction import (
 from app.services.structured_chunking import chunk_prose_sections
 from app.services.docling_extract import StructuredDocument
 from app.services.pipeline_stages import (
+    DocumentProcessResult,
+    DownloadProcessAggregate,
     ExtractionStageStatus,
     attach_reproducibility_metadata,
     build_reproducibility_metadata,
+    normalize_document_process_result,
     run_embedding_stage,
     run_extraction_stage,
 )
@@ -1077,8 +1080,8 @@ def _download_and_process_one(
     http_client: Optional[httpx.Client],
     qdrant_client: Optional[QdrantClient],
     ollama_client: Optional[httpx.Client],
-) -> dict:
-    """Run download + optional process for one document. Returns dict with processed, skipped_download, error, extraction_status."""
+) -> DocumentProcessResult:
+    """Run download + optional process for one document."""
     db = SessionLocal()
     try:
         download_pdf_for_document(db, document_id, http_client=http_client)
@@ -1091,16 +1094,18 @@ def _download_and_process_one(
                 ollama_client=ollama_client,
             )
             extraction_status = (result or {}).get("extraction_status")
-        return {
-            "processed": 1,
-            "skipped_download": 0,
-            "error": None,
-            "extraction_status": extraction_status,
-            "chunks_created": int((result or {}).get("chunks_created", 0) or 0),
-            "chunks_skipped": int((result or {}).get("chunks_skipped", 0) or 0),
-            "invalid_payloads": int((result or {}).get("invalid_payloads", 0) or 0),
-            "written_points": int((result or {}).get("written_points", 0) or 0),
-        }
+        return DocumentProcessResult(
+            processed=1,
+            skipped_download=0,
+            error=None,
+            extraction_status=(
+                str(extraction_status) if extraction_status is not None else None
+            ),
+            chunks_created=int((result or {}).get("chunks_created", 0) or 0),
+            chunks_skipped=int((result or {}).get("chunks_skipped", 0) or 0),
+            invalid_payloads=int((result or {}).get("invalid_payloads", 0) or 0),
+            written_points=int((result or {}).get("written_points", 0) or 0),
+        )
     except RuntimeError as exc:
         if "marketindex_headed_required" in str(exc):
             doc = (
@@ -1111,38 +1116,15 @@ def _download_and_process_one(
             if doc:
                 doc.pdf_sha256 = "blocked_marketindex_headed_required"
                 db.commit()
-            return {
-                "processed": 0,
-                "skipped_download": 1,
-                "error": None,
-                "extraction_status": None,
-                "chunks_created": 0,
-                "chunks_skipped": 0,
-                "invalid_payloads": 0,
-                "written_points": 0,
-            }
+            return DocumentProcessResult(processed=0, skipped_download=1)
         if "document_quarantined" in str(exc):
-            return {
-                "processed": 0,
-                "skipped_download": 1,
-                "error": None,
-                "extraction_status": None,
-                "chunks_created": 0,
-                "chunks_skipped": 0,
-                "invalid_payloads": 0,
-                "written_points": 0,
-            }
+            return DocumentProcessResult(processed=0, skipped_download=1)
         db.rollback()
-        return {
-            "processed": 0,
-            "skipped_download": 0,
-            "error": str(exc),
-            "extraction_status": None,
-            "chunks_created": 0,
-            "chunks_skipped": 0,
-            "invalid_payloads": 0,
-            "written_points": 0,
-        }
+        return DocumentProcessResult(
+            processed=0,
+            skipped_download=0,
+            error=str(exc),
+        )
     except httpx.HTTPStatusError as exc:
         request_url = str(exc.request.url)
         if exc.response.status_code == 403 and "marketindex.com.au" in request_url:
@@ -1154,39 +1136,20 @@ def _download_and_process_one(
             if doc:
                 doc.pdf_sha256 = "blocked_marketindex_403"
                 db.commit()
-            return {
-                "processed": 0,
-                "skipped_download": 1,
-                "error": None,
-                "extraction_status": None,
-                "chunks_created": 0,
-                "chunks_skipped": 0,
-                "invalid_payloads": 0,
-                "written_points": 0,
-            }
+            return DocumentProcessResult(processed=0, skipped_download=1)
         db.rollback()
-        return {
-            "processed": 0,
-            "skipped_download": 0,
-            "error": str(exc),
-            "extraction_status": None,
-            "chunks_created": 0,
-            "chunks_skipped": 0,
-            "invalid_payloads": 0,
-            "written_points": 0,
-        }
+        return DocumentProcessResult(
+            processed=0,
+            skipped_download=0,
+            error=str(exc),
+        )
     except Exception as exc:
         db.rollback()
-        return {
-            "processed": 0,
-            "skipped_download": 0,
-            "error": str(exc),
-            "extraction_status": None,
-            "chunks_created": 0,
-            "chunks_skipped": 0,
-            "invalid_payloads": 0,
-            "written_points": 0,
-        }
+        return DocumentProcessResult(
+            processed=0,
+            skipped_download=0,
+            error=str(exc),
+        )
     finally:
         db.close()
 
@@ -1213,14 +1176,7 @@ def _download_and_process_document_ids(
     else:
         ollama_client = None
 
-    processed = 0
-    skipped_download = 0
-    extraction_failed_count = 0
-    errors: list[dict] = []
-    chunks_created = 0
-    chunks_skipped = 0
-    invalid_payloads = 0
-    written_points = 0
+    aggregate = DownloadProcessAggregate()
 
     try:
         if max_workers == 1:
@@ -1232,26 +1188,7 @@ def _download_and_process_document_ids(
                     qdrant_client,
                     ollama_client,
                 )
-                processed += out["processed"]
-                skipped_download += out["skipped_download"]
-                chunks_created += int(out.get("chunks_created", 0) or 0)
-                chunks_skipped += int(out.get("chunks_skipped", 0) or 0)
-                invalid_payloads += int(out.get("invalid_payloads", 0) or 0)
-                written_points += int(out.get("written_points", 0) or 0)
-                if (out.get("extraction_status") or "").strip().lower() == "failed":
-                    extraction_failed_count += 1
-                    errors.append(
-                        {
-                            "document_id": str(document_id),
-                            "stage": "process_document",
-                            "error": "extraction_failed",
-                            "extraction_status": out.get("extraction_status"),
-                        }
-                    )
-                elif out["error"] is not None:
-                    errors.append(
-                        {"document_id": str(document_id), "error": out["error"]}
-                    )
+                aggregate.add(document_id, normalize_document_process_result(out))
         else:
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
                 futures = {
@@ -1269,30 +1206,12 @@ def _download_and_process_document_ids(
                     document_id = futures[fut]
                     try:
                         out = fut.result()
-                        processed += out["processed"]
-                        skipped_download += out["skipped_download"]
-                        chunks_created += int(out.get("chunks_created", 0) or 0)
-                        chunks_skipped += int(out.get("chunks_skipped", 0) or 0)
-                        invalid_payloads += int(out.get("invalid_payloads", 0) or 0)
-                        written_points += int(out.get("written_points", 0) or 0)
-                        if (
-                            out.get("extraction_status") or ""
-                        ).strip().lower() == "failed":
-                            extraction_failed_count += 1
-                            errors.append(
-                                {
-                                    "document_id": str(document_id),
-                                    "stage": "process_document",
-                                    "error": "extraction_failed",
-                                    "extraction_status": out.get("extraction_status"),
-                                }
-                            )
-                        elif out["error"] is not None:
-                            errors.append(
-                                {"document_id": str(document_id), "error": out["error"]}
-                            )
+                        aggregate.add(
+                            document_id,
+                            normalize_document_process_result(out),
+                        )
                     except Exception as exc:
-                        errors.append(
+                        aggregate.errors.append(
                             {"document_id": str(document_id), "error": str(exc)}
                         )
     finally:
@@ -1301,18 +1220,7 @@ def _download_and_process_document_ids(
         if own_ollama and ollama_client is not None:
             ollama_client.close()
 
-    return (
-        processed,
-        skipped_download,
-        extraction_failed_count,
-        errors,
-        {
-            "chunks_created": chunks_created,
-            "chunks_skipped": chunks_skipped,
-            "invalid_payloads": invalid_payloads,
-            "written_points": written_points,
-        },
-    )
+    return aggregate.to_legacy_tuple()
 
 
 def backfill_ticker_sync(

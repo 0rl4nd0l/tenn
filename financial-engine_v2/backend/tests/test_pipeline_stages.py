@@ -6,11 +6,14 @@ from types import SimpleNamespace
 from app.models.extractions import ExtractionRun
 from app.services import pipeline
 from app.services.pipeline_stages import (
+    DocumentProcessResult,
+    DownloadProcessAggregate,
     EmbeddingStageStatus,
     ExtractionStageResult,
     ExtractionStageStatus,
     attach_reproducibility_metadata,
     build_reproducibility_metadata,
+    normalize_document_process_result,
     run_embedding_stage,
     run_extraction_stage,
 )
@@ -337,3 +340,59 @@ def test_process_document_records_reproducibility_for_failed_extraction(
     repro = run.structured_json["_reproducibility"]
     assert repro["status"] == "failed"
     assert repro["failure_code"] == "parser_timeout"
+
+
+def test_normalize_document_process_result_accepts_mapping() -> None:
+    result = normalize_document_process_result(
+        {
+            "processed": 1,
+            "skipped_download": 0,
+            "error": None,
+            "extraction_status": "ok",
+            "chunks_created": 3,
+            "chunks_skipped": 1,
+            "invalid_payloads": 1,
+            "written_points": 2,
+        }
+    )
+
+    assert isinstance(result, DocumentProcessResult)
+    assert result.processed == 1
+    assert result.extraction_status == "ok"
+    assert result.written_points == 2
+
+
+def test_download_process_aggregate_tracks_failed_extraction_and_errors() -> None:
+    agg = DownloadProcessAggregate()
+    agg.add(
+        "doc-ok",
+        DocumentProcessResult(
+            processed=1,
+            skipped_download=0,
+            extraction_status="failed",
+            chunks_created=2,
+            chunks_skipped=1,
+            invalid_payloads=1,
+            written_points=1,
+        ),
+    )
+    agg.add(
+        "doc-err",
+        DocumentProcessResult(
+            processed=0,
+            skipped_download=0,
+            error="network error",
+        ),
+    )
+
+    processed, skipped, extraction_failed, errors, metrics = agg.to_legacy_tuple()
+    assert processed == 1
+    assert skipped == 0
+    assert extraction_failed == 1
+    assert len(errors) == 2
+    assert errors[0]["error"] == "extraction_failed"
+    assert errors[1]["error"] == "network error"
+    assert metrics["chunks_created"] == 2
+    assert metrics["chunks_skipped"] == 1
+    assert metrics["invalid_payloads"] == 1
+    assert metrics["written_points"] == 1

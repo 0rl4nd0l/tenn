@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 import uuid
@@ -38,6 +38,101 @@ class EmbeddingStageResult:
     invalid_payloads: int = 0
     written_points: int = 0
     skipped_invalid_vectors: int = 0
+
+
+@dataclass(frozen=True)
+class DocumentProcessResult:
+    processed: int
+    skipped_download: int
+    error: Optional[str] = None
+    extraction_status: Optional[str] = None
+    chunks_created: int = 0
+    chunks_skipped: int = 0
+    invalid_payloads: int = 0
+    written_points: int = 0
+
+    def to_legacy_dict(self) -> dict[str, Any]:
+        return {
+            "processed": self.processed,
+            "skipped_download": self.skipped_download,
+            "error": self.error,
+            "extraction_status": self.extraction_status,
+            "chunks_created": self.chunks_created,
+            "chunks_skipped": self.chunks_skipped,
+            "invalid_payloads": self.invalid_payloads,
+            "written_points": self.written_points,
+        }
+
+
+@dataclass
+class DownloadProcessAggregate:
+    processed: int = 0
+    skipped_download: int = 0
+    extraction_failed_count: int = 0
+    chunks_created: int = 0
+    chunks_skipped: int = 0
+    invalid_payloads: int = 0
+    written_points: int = 0
+    errors: list[dict[str, Any]] = field(default_factory=list)
+
+    def add(self, document_id: Any, result: DocumentProcessResult) -> None:
+        self.processed += int(result.processed)
+        self.skipped_download += int(result.skipped_download)
+        self.chunks_created += int(result.chunks_created)
+        self.chunks_skipped += int(result.chunks_skipped)
+        self.invalid_payloads += int(result.invalid_payloads)
+        self.written_points += int(result.written_points)
+
+        status = (result.extraction_status or "").strip().lower()
+        if status == "failed":
+            self.extraction_failed_count += 1
+            self.errors.append(
+                {
+                    "document_id": str(document_id),
+                    "stage": "process_document",
+                    "error": "extraction_failed",
+                    "extraction_status": result.extraction_status,
+                }
+            )
+        elif result.error is not None:
+            self.errors.append({"document_id": str(document_id), "error": result.error})
+
+    def to_legacy_tuple(
+        self,
+    ) -> tuple[int, int, int, list[dict[str, Any]], dict[str, int]]:
+        return (
+            self.processed,
+            self.skipped_download,
+            self.extraction_failed_count,
+            list(self.errors),
+            {
+                "chunks_created": self.chunks_created,
+                "chunks_skipped": self.chunks_skipped,
+                "invalid_payloads": self.invalid_payloads,
+                "written_points": self.written_points,
+            },
+        )
+
+
+def normalize_document_process_result(result: Any) -> DocumentProcessResult:
+    if isinstance(result, DocumentProcessResult):
+        return result
+    if isinstance(result, Mapping):
+        return DocumentProcessResult(
+            processed=int(result.get("processed", 0) or 0),
+            skipped_download=int(result.get("skipped_download", 0) or 0),
+            error=result.get("error") if result.get("error") is not None else None,
+            extraction_status=(
+                str(result.get("extraction_status"))
+                if result.get("extraction_status") is not None
+                else None
+            ),
+            chunks_created=int(result.get("chunks_created", 0) or 0),
+            chunks_skipped=int(result.get("chunks_skipped", 0) or 0),
+            invalid_payloads=int(result.get("invalid_payloads", 0) or 0),
+            written_points=int(result.get("written_points", 0) or 0),
+        )
+    raise TypeError(f"Unsupported document process result type: {type(result)!r}")
 
 
 def _coerce_status(value: Any) -> ExtractionStageStatus:
