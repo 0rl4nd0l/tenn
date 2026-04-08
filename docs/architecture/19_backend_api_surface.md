@@ -56,6 +56,23 @@ The FastAPI app mounts routes in these groups:
   - `analysis` mode delegates to `chat_with_tenn()`
   - `strategy` mode routes to proposal/confirm/apply helpers
 
+### Cockpit web control-plane (`/api/cockpit/*`)
+
+- `GET /api/cockpit/health`
+  - aggregated cockpit-facing health for backend, llama.cpp, Ollama, Qdrant, Redis, and GPU snapshot
+- `GET /api/cockpit/config`
+  - cockpit runtime config snapshot (llm model/endpoint, profile, feature flags)
+- `GET /api/cockpit/queue`
+  - lightweight queue status summary
+- `GET /api/cockpit/docs`
+  - latest global document list for cockpit history views
+- `POST /api/cockpit/chat`
+  - cockpit chat endpoint (blocking and SSE modes)
+  - SSE emits status/chunk/tool/action-preview/done events
+- `POST /api/cockpit/action/execute`
+  - executes a confirmed cockpit action by `action_id` + `args`
+  - returns command output on success, structured HTTP errors on validation/runtime failure
+
 ### System control-plane and capability state
 
 - `GET /api/system/status`

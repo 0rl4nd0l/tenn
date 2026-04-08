@@ -6,10 +6,16 @@
 | --- | --- | --- |
 | `8000` | backend | API and orchestration |
 | `8001` | llama.cpp | OpenAI-compatible endpoint (canonical LLM port) |
-| `8081` | Cockpit web UI | Browser-served Textual UI |
+| `8081` | OpenBB sidecar (optional) | Market data sidecar endpoint |
+| `8081` (launcher default) | Cockpit web UI | Browser-served Textual UI when `cockpit start web/new` is used |
 | `6333` | qdrant | Vector store |
 | `6379` | redis | Celery broker/result backend |
 | `11434` | ollama | Legacy compatibility runtime when explicitly enabled |
+
+Note: `8081` is shared by two optional surfaces in local workflows. If you need
+both local OpenBB sidecar and Cockpit web UI at the same time, move one of them
+to a different host port (for Cockpit launcher flows, override `COCKPIT_WEB_PORT`
+and/or `COCKPIT_NEW_PORT`).
 
 ## Start order
 

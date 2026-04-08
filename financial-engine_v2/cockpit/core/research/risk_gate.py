@@ -69,14 +69,18 @@ class RiskGate:
 
         # 1. Bull case.
         bull_case = self._run_persona(
-            _BULL_SYSTEM,
-            f"Argue FOR a {proposed_signal} signal on {ticker}.\n\n{ctx_text}",
+            ticker=ticker,
+            persona_label="risk_gate_bull",
+            system_prompt=_BULL_SYSTEM,
+            user_msg=f"Argue FOR a {proposed_signal} signal on {ticker}.\n\n{ctx_text}",
         )
 
         # 2. Bear case.
         bear_case = self._run_persona(
-            _BEAR_SYSTEM,
-            f"Argue AGAINST a {proposed_signal} signal on {ticker}.\n\n{ctx_text}",
+            ticker=ticker,
+            persona_label="risk_gate_bear",
+            system_prompt=_BEAR_SYSTEM,
+            user_msg=f"Argue AGAINST a {proposed_signal} signal on {ticker}.\n\n{ctx_text}",
         )
 
         # 3. Judge synthesis.
@@ -84,13 +88,19 @@ class RiskGate:
             f"Ticker: {ticker}\nProposed signal: {proposed_signal}\n\n"
             f"BULL CASE:\n{bull_case}\n\nBEAR CASE:\n{bear_case}\n\nDATA:\n{ctx_text}"
         )
-        judge_result = self._run_judge(judge_input)
+        judge_result = self._run_judge(
+            ticker=ticker,
+            proposed_signal=proposed_signal,
+            user_msg=judge_input,
+        )
 
         # 4. Recall similar past situations.
         past_situations: list[dict[str, Any]] = []
         if self._situation_memory is not None:
             try:
-                situation_desc = f"{ticker} {proposed_signal} — {context.get('thesis', '')}"
+                situation_desc = (
+                    f"{ticker} {proposed_signal} — {context.get('thesis', '')}"
+                )
                 past_situations = self._situation_memory.recall(situation_desc, n=3)
             except Exception as exc:
                 logger.debug("risk_gate: situation recall failed: %s", exc)
@@ -113,34 +123,105 @@ class RiskGate:
     # Internals — routed via backend POST /research/synthesize
     # ------------------------------------------------------------------
 
-    def _run_persona(self, system_prompt: str, user_msg: str) -> str:
+    def _run_persona(
+        self,
+        *,
+        ticker: str,
+        persona_label: str,
+        system_prompt: str,
+        user_msg: str,
+    ) -> str:
         """Run a single persona call via the backend synthesis endpoint."""
         if self._backend is None:
             return "(backend client not available)"
         try:
             result = self._backend.synthesize_research(
-                system_prompt=system_prompt,
-                data={"user_message": user_msg[:6000]},
+                ticker=ticker,
+                gathered_sources={
+                    "risk_gate": {
+                        "persona": persona_label,
+                        "system_prompt": system_prompt,
+                        "prompt": user_msg[:6000],
+                    }
+                },
+                focus=persona_label,
             )
             return result.get("raw_text", result.get("summary", str(result)))
         except Exception as exc:
             logger.warning("risk_gate: persona call failed: %s", exc)
             return f"(LLM call failed: {exc})"
 
-    def _run_judge(self, user_msg: str) -> dict[str, Any]:
+    def _run_judge(
+        self, *, ticker: str, proposed_signal: str, user_msg: str
+    ) -> dict[str, Any]:
         """Run the judge synthesis call, parse JSON output."""
         if self._backend is None:
             return self._fallback_judge()
         try:
             result = self._backend.synthesize_research(
-                system_prompt=_JUDGE_PROMPT,
-                data={"user_message": user_msg[:8000]},
+                ticker=ticker,
+                gathered_sources={
+                    "risk_gate": {
+                        "persona": "judge",
+                        "judge_prompt": _JUDGE_PROMPT,
+                        "prompt": user_msg[:8000],
+                    }
+                },
+                focus="risk_gate_judge",
             )
             raw = result.get("raw_text", result.get("summary", ""))
-            return self._parse_judge(raw)
+            if isinstance(raw, str) and raw.strip().startswith(("{", "```")):
+                parsed = self._parse_judge(raw)
+                if parsed.get("key_risks"):
+                    return parsed
+            return self._parse_structured_judge(result, proposed_signal=proposed_signal)
         except Exception as exc:
             logger.warning("risk_gate: judge call failed: %s", exc)
             return self._fallback_judge()
+
+    @staticmethod
+    def _parse_structured_judge(
+        result: dict[str, Any], *, proposed_signal: str
+    ) -> dict[str, Any]:
+        """Map backend research brief fields into risk-gate decision shape."""
+        sentiment = str(result.get("sentiment") or "neutral").strip().lower()
+        signal_map = {
+            "bullish": "BUY",
+            "neutral": "HOLD",
+            "bearish": "UNDERWEIGHT",
+        }
+        adjusted_signal = signal_map.get(sentiment, proposed_signal.upper())
+        if adjusted_signal not in ("BUY", "OVERWEIGHT", "HOLD", "UNDERWEIGHT", "SELL"):
+            adjusted_signal = "HOLD"
+
+        confidence_raw = result.get("confidence", 0.3)
+        try:
+            confidence = max(0.0, min(1.0, float(confidence_raw)))
+        except Exception:
+            confidence = 0.3
+
+        risks = result.get("risks")
+        if not isinstance(risks, list):
+            risks = ["Could not parse judge output"]
+        risks = [str(item) for item in risks if str(item).strip()]
+        if not risks:
+            risks = ["Could not parse judge output"]
+
+        if confidence >= 0.7 and len(risks) <= 1:
+            risk_level = "low"
+        elif confidence >= 0.45:
+            risk_level = "medium"
+        else:
+            risk_level = "high"
+
+        summary = str(result.get("summary") or "").strip()
+        return {
+            "adjusted_signal": adjusted_signal,
+            "risk_level": risk_level,
+            "key_risks": risks[:5],
+            "synthesis": summary[:500],
+            "confidence": confidence,
+        }
 
     @staticmethod
     def _fallback_judge() -> dict[str, Any]:
@@ -196,10 +277,14 @@ class RiskGate:
             )
         if context.get("valuation"):
             v = context["valuation"]
-            parts.append(f"Valuation: PE={v.get('pe_ratio', '?')}, FCF yield={v.get('fcf_yield_pct', '?')}%")
+            parts.append(
+                f"Valuation: PE={v.get('pe_ratio', '?')}, FCF yield={v.get('fcf_yield_pct', '?')}%"
+            )
         if context.get("technicals"):
             t = context["technicals"]
-            parts.append(f"Technicals: RSI={t.get('rsi_14', '?')}, trend={t.get('trend_regime', '?')}")
+            parts.append(
+                f"Technicals: RSI={t.get('rsi_14', '?')}, trend={t.get('trend_regime', '?')}"
+            )
         if self._dossier is not None:
             try:
                 dossier = self._dossier.recall(ticker, limit=3)

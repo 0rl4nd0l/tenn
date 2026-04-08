@@ -145,6 +145,14 @@ export interface QueueStatus {
   failed: number
 }
 
+export interface RestartBackendResponse {
+  ok: boolean
+  message?: string
+  error?: string
+  stopped?: boolean
+  pid?: string | null
+}
+
 export interface RagResult {
   title?: string
   snippet: string

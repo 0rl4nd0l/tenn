@@ -139,9 +139,17 @@ class TestCompanyDossierSummary:
 
     def test_summary_includes_key_info(self, tmp_path: Path) -> None:
         svc = CompanyDossierService(root=tmp_path / "dossiers")
-        svc.save("BHP", "Revenue up", "annual report", category="financials", confidence=0.9)
+        svc.save(
+            "BHP", "Revenue up", "annual report", category="financials", confidence=0.9
+        )
         svc.save("BHP", "Dividend cut", "news", category="governance", confidence=0.7)
-        svc.save("BHP", "New mine opened", "press release", category="operations", confidence=0.6)
+        svc.save(
+            "BHP",
+            "New mine opened",
+            "press release",
+            category="operations",
+            confidence=0.6,
+        )
 
         text = svc.summary("BHP")
         assert "BHP" in text
@@ -156,14 +164,16 @@ class TestCompanyDossierSummary:
 
 
 class TestCompanyDossierAgeLabels:
-    """Test 8: recall() age labels prepended to findings."""
+    """Test 8: recall() exposes non-destructive age metadata."""
 
     def test_today_label(self, tmp_path: Path) -> None:
         svc = CompanyDossierService(root=tmp_path / "dossiers")
         svc.save("BHP", "Fresh finding", "src")
 
         recalled = svc.recall("BHP")
-        assert recalled["findings"][0]["finding"].startswith("[today]")
+        assert recalled["findings"][0]["finding"] == "Fresh finding"
+        assert recalled["findings"][0]["age_label"] == "[today]"
+        assert recalled["findings"][0]["finding_with_age"].startswith("[today]")
 
     def test_old_finding_label(self, tmp_path: Path) -> None:
         svc = CompanyDossierService(root=tmp_path / "dossiers")
@@ -178,14 +188,16 @@ class TestCompanyDossierAgeLabels:
             "category": "general",
             "ts": old_ts,
         }
-        path = (tmp_path / "dossiers" / "BHP.jsonl")
+        path = tmp_path / "dossiers" / "BHP.jsonl"
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(record) + "\n")
 
         recalled = svc.recall("BHP")
         # 45 days -> "~1 months ago"
-        assert "[~1 months ago]" in recalled["findings"][0]["finding"]
+        assert recalled["findings"][0]["finding"] == "Old finding"
+        assert recalled["findings"][0]["age_label"] == "[~1 months ago]"
+        assert "[~1 months ago]" in recalled["findings"][0]["finding_with_age"]
 
 
 # ============================================================

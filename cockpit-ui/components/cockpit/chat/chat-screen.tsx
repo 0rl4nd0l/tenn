@@ -14,10 +14,23 @@ export function ChatScreen() {
   const [messages, setMessages] = useState<ChatMessageType[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingContent, setStreamingContent] = useState('')
-  const [streamingStatus, setStreamingStatus] = useState('Preparing request')
+  const [streamingStatus, setStreamingStatus] = useState('Connecting to backend stream...')
   const [streamingMetadata, setStreamingMetadata] = useState<Partial<ChatMessageType>>({})
+  const activeStreamRef = useRef<{ close: () => void } | null>(null)
+  const statusFallbackTimersRef = useRef<number[]>([])
+  const receivedServerStatusRef = useRef(false)
+  const actionInFlightRef = useRef(false)
   
-  const { activeTicker, sessionId, chatModel, addCost, setLatency, setActiveModel } = useCockpitStore()
+  const {
+    activeTicker,
+    sessionId,
+    chatModel,
+    preferences,
+    addCost,
+    setLatency,
+    setActiveModel,
+    setChatCompletionActive,
+  } = useCockpitStore()
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Wait for hydration to finish to avoid SSR/CSR mismatch with Zustand
@@ -35,6 +48,41 @@ export function ChatScreen() {
     scrollToBottom()
   }, [messages, streamingContent, scrollToBottom])
 
+  useEffect(() => {
+    return () => {
+      if (activeStreamRef.current) {
+        activeStreamRef.current.close()
+        activeStreamRef.current = null
+      }
+      setChatCompletionActive(false)
+      if (statusFallbackTimersRef.current.length > 0) {
+        statusFallbackTimersRef.current.forEach((timerId) => window.clearTimeout(timerId))
+        statusFallbackTimersRef.current = []
+      }
+    }
+  }, [setChatCompletionActive])
+
+  const clearStatusFallbackTimers = useCallback(() => {
+    if (statusFallbackTimersRef.current.length > 0) {
+      statusFallbackTimersRef.current.forEach((timerId) => window.clearTimeout(timerId))
+      statusFallbackTimersRef.current = []
+    }
+  }, [])
+
+  const formatStageLabel = useCallback((rawStage: string): string => {
+    const stage = rawStage.trim()
+    if (!stage) return 'Working...'
+    if (stage === 'Request accepted') return 'Connected. Preparing tools and request...'
+    if (stage === 'Resolving request context') return 'Preparing tools and retrieval context...'
+    if (stage.startsWith('LLM reasoning pass')) return `Sending to model: ${stage}`
+    if (stage.startsWith('Executing tool:')) return `Preparing tool call: ${stage.replace('Executing tool: ', '')}`
+    if (stage === 'Tool execution complete; synthesizing final answer') {
+      return 'Tool outputs ready. Composing final response...'
+    }
+    if (stage === 'Rendering final answer') return 'Rendering final answer...'
+    return stage
+  }, [])
+
   const handleSend = async (content: string) => {
     const userMessage: ChatMessageType = {
       id: generateId(),
@@ -44,10 +92,26 @@ export function ChatScreen() {
     }
     setMessages(prev => [...prev, userMessage])
 
+    clearStatusFallbackTimers()
+    receivedServerStatusRef.current = false
     setIsStreaming(true)
+    setChatCompletionActive(true)
     setStreamingContent('')
-    setStreamingStatus('Preparing request')
+    setStreamingStatus('Connecting to backend stream...')
     setStreamingMetadata({})
+
+    statusFallbackTimersRef.current = [
+      window.setTimeout(() => {
+        if (!receivedServerStatusRef.current) {
+          setStreamingStatus('Preparing tools and request context...')
+        }
+      }, 900),
+      window.setTimeout(() => {
+        if (!receivedServerStatusRef.current) {
+          setStreamingStatus('Sending prompt to model...')
+        }
+      }, 2200),
+    ]
 
     // Slash command handling
     if (content.startsWith('/')) {
@@ -74,6 +138,7 @@ export function ChatScreen() {
           }])
         } finally {
           setIsStreaming(false)
+          setChatCompletionActive(false)
         }
         return
       }
@@ -85,6 +150,9 @@ export function ChatScreen() {
           ticker: activeTicker,
           sessionId: sessionId,
           model: chatModel,
+          webSearch: preferences.webSearchEnabled,
+          rag: preferences.ragEnabled,
+          dbDiagnostics: preferences.dbDiagnosticsEnabled,
         })
         
         const systemMessage: ChatMessageType = {
@@ -104,6 +172,7 @@ export function ChatScreen() {
         toast.error('Command failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
       } finally {
         setIsStreaming(false)
+        setChatCompletionActive(false)
       }
       return
     }
@@ -116,12 +185,15 @@ export function ChatScreen() {
     }
 
     try {
-      streamChat({
+      const source = await streamChat({
         message: content,
         mode: 'analysis',
         ticker: activeTicker,
         sessionId: sessionId,
         model: chatModel,
+        webSearch: preferences.webSearchEnabled,
+        rag: preferences.ragEnabled,
+        dbDiagnostics: preferences.dbDiagnosticsEnabled,
         onMessage: (event) => {
           switch (event.type) {
             case 'chunk':
@@ -130,7 +202,9 @@ export function ChatScreen() {
               break
             case 'status':
               if (typeof event.data?.stage === 'string' && event.data.stage.trim().length > 0) {
-                setStreamingStatus(event.data.stage)
+                receivedServerStatusRef.current = true
+                clearStatusFallbackTimers()
+                setStreamingStatus(formatStageLabel(event.data.stage))
               }
               break
             case 'tool_trace':
@@ -149,14 +223,30 @@ export function ChatScreen() {
               setStreamingMetadata({ ...currentMetadata })
               break
             case 'action_preview':
+              {
+                const data = event.data || {}
+                const normalizedArgs =
+                  typeof data.args === 'object' && data.args !== null
+                    ? data.args
+                    : (typeof data.arguments === 'object' && data.arguments !== null ? data.arguments : {})
+                const normalizedId =
+                  String(data.id || data.action_id || data.actionId || '').trim()
+                const normalizedName =
+                  String(data.name || data.action_label || normalizedId || 'Requested action').trim()
+                const normalizedDescription =
+                  String(data.description || data.explanation || data.impact || '').trim()
+
               currentMetadata.actionPreview = {
-                id: event.data.id,
-                name: event.data.name,
-                description: event.data.description,
-                args: event.data.args,
-                requiresConfirmation: true
+                id: normalizedId,
+                name: normalizedName,
+                description: normalizedDescription,
+                args: normalizedArgs,
+                requiresConfirmation: Boolean(
+                  data.requiresConfirmation ?? data.requires_confirmation ?? true
+                )
               }
               setStreamingMetadata({ ...currentMetadata })
+              }
               break
             case 'done':
               const finalText =
@@ -189,6 +279,9 @@ export function ChatScreen() {
               setStreamingStatus('')
               setStreamingMetadata({})
               setIsStreaming(false)
+              setChatCompletionActive(false)
+              clearStatusFallbackTimers()
+              activeStreamRef.current = null
               break
             case 'error':
               // Handle error events from backend
@@ -203,6 +296,9 @@ export function ChatScreen() {
               }])
               setStreamingStatus('')
               setIsStreaming(false)
+              setChatCompletionActive(false)
+              clearStatusFallbackTimers()
+              activeStreamRef.current = null
               break
           }
         },
@@ -218,12 +314,21 @@ export function ChatScreen() {
           }])
           setStreamingStatus('')
           setIsStreaming(false)
+          setChatCompletionActive(false)
+          clearStatusFallbackTimers()
+          activeStreamRef.current = null
         },
         onEnd: () => {
           setStreamingStatus('')
           setIsStreaming(false)
+          setChatCompletionActive(false)
+          clearStatusFallbackTimers()
+          activeStreamRef.current = null
         }
       })
+      
+      // Store the stream source so we can cancel it
+      activeStreamRef.current = source
     } catch (err) {
       console.error('[Chat] Failed to initiate streaming:', err)
       const errorMsg = err instanceof Error ? err.message : 'Unknown error'
@@ -235,14 +340,60 @@ export function ChatScreen() {
         timestamp: new Date(),
       }])
       setIsStreaming(false)
+      setChatCompletionActive(false)
+      clearStatusFallbackTimers()
+      activeStreamRef.current = null
     }
   }
 
+  const handleCancelStream = useCallback(() => {
+    if (activeStreamRef.current) {
+      console.log('[Chat] Cancelling active stream')
+      activeStreamRef.current.close()
+      activeStreamRef.current = null
+      
+      setMessages(prev => [...prev, {
+        id: generateId(),
+        role: 'system',
+        content: 'Chat cancelled by user',
+        timestamp: new Date(),
+      }])
+      
+      setIsStreaming(false)
+      setChatCompletionActive(false)
+      setStreamingContent('')
+      setStreamingStatus('')
+      setStreamingMetadata({})
+      clearStatusFallbackTimers()
+      
+      toast.info('Chat cancelled')
+    }
+  }, [clearStatusFallbackTimers, setChatCompletionActive])
+
   const handleConfirmAction = useCallback(async (actionPreview: ActionPreview | undefined) => {
     if (!actionPreview) return
+    if (actionInFlightRef.current) {
+      toast.info('Action already running, please wait...')
+      return
+    }
+
+    const actionId = String(actionPreview.id || '').trim()
+    if (!actionId) {
+      const msg = 'Cannot execute action: missing action id in preview payload'
+      setMessages(prev => [...prev, {
+        id: generateId(),
+        role: 'system',
+        content: msg,
+        timestamp: new Date(),
+      }])
+      toast.error(msg)
+      return
+    }
+
+    actionInFlightRef.current = true
     try {
       const result = await executeAction({
-        actionId: actionPreview.id,
+        actionId,
         args: actionPreview.args,
         sessionId,
       })
@@ -265,6 +416,8 @@ export function ChatScreen() {
       }
       setMessages(prev => [...prev, errorMessage])
       toast.error(`Action failed: ${errorMsg}`)
+    } finally {
+      actionInFlightRef.current = false
     }
   }, [sessionId])
 
@@ -299,6 +452,15 @@ export function ChatScreen() {
         <span className="font-mono text-xs terminal-text-dim ml-2">
           cockpit@financial-ai ~ /chat ({activeTicker})
         </span>
+        {isStreaming && (
+          <button
+            type="button"
+            onClick={handleCancelStream}
+            className="ml-auto rounded border border-red-500/40 bg-red-500/10 px-2 py-1 font-mono text-[11px] text-red-300 transition-colors hover:bg-red-500/20"
+          >
+            Cancel
+          </button>
+        )}
       </div>
 
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>
@@ -340,7 +502,11 @@ export function ChatScreen() {
         </div>
       </ScrollArea>
 
-      <TerminalInput onSend={handleSend} disabled={isStreaming} onClear={handleClearMessages} />
+      <TerminalInput
+        onSend={handleSend}
+        disabled={isStreaming}
+        onClear={handleClearMessages}
+      />
     </div>
   )
 }

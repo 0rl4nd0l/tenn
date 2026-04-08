@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Activity, Globe, Database, Search, Play, Eye, RefreshCw, Terminal } from 'lucide-react'
-import { checkHealth } from '@/lib/api-client'
+import { checkHealth, restartBackend, executeAction, previewAction } from '@/lib/api-client'
 import type { CockpitPreferences, ServiceHealth } from '@/lib/cockpit-types'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import { cn } from '@/lib/utils'
@@ -32,14 +32,23 @@ function getActionEndpoint(actionId: string, ticker: string): { path: string; me
   }
 }
 
-const AVAILABLE_ACTIONS = [
-  { id: 'daily_news_ingest', label: 'Daily News Ingest', description: 'Fetch and process news for watchlist tickers' },
-  { id: 'daily_announcement_ingest', label: 'Daily Announcement Ingest', description: 'Fetch company announcements' },
-  { id: 'metric_extraction', label: 'Metric Extraction', description: 'Extract financial metrics from documents' },
-  { id: 'rebuild_ticker_financials', label: 'Rebuild Ticker Financials', description: 'Rebuild financial data for a ticker' },
-  { id: 'audit_ticker_financials', label: 'Audit Ticker Financials', description: 'Audit financial data integrity' },
-  { id: 'show_candlestick', label: 'Show Candlestick', description: 'Generate candlestick chart' },
-  { id: 'historical_news_ingest', label: 'Historical News Ingest', description: 'Backfill historical news data' },
+/** Whether the action requires a ticker argument. */
+type ActionDef = {
+  id: string
+  label: string
+  description: string
+  requiresTicker: boolean
+}
+
+const AVAILABLE_ACTIONS: readonly ActionDef[] = [
+  { id: 'daily_news_ingest', label: 'Daily News Ingest', description: 'Fetch and process news for watchlist tickers', requiresTicker: false },
+  { id: 'historical_news_ingest', label: 'Historical News Ingest', description: 'Backfill historical news data', requiresTicker: false },
+  { id: 'daily_announcement_ingest', label: 'Daily Announcement Ingest', description: 'Fetch company announcements (market-wide)', requiresTicker: false },
+  { id: 'metric_extraction', label: 'Metric Extraction', description: 'Extract financial metrics from documents', requiresTicker: true },
+  { id: 'rebuild_ticker_financials', label: 'Rebuild Ticker Financials', description: 'Rebuild financial data for a ticker', requiresTicker: true },
+  { id: 'audit_ticker_financials', label: 'Audit Ticker Financials', description: 'Audit financial data integrity', requiresTicker: true },
+  { id: 'single_ticker_announcement_backfill', label: 'Single Ticker Backfill', description: 'Backfill announcements for a single ticker', requiresTicker: true },
+  { id: 'show_candlestick', label: 'Show Candlestick', description: 'Generate candlestick chart', requiresTicker: true },
 ]
 
 function getStatusColor(status: ServiceHealth['status']) {
@@ -89,6 +98,7 @@ export function OperationsScreen() {
   const [actionArgs, setActionArgs] = useState(activeTicker || '')
   const [actionLog, setActionLog] = useState<string[]>([])
   const [isRunning, setIsRunning] = useState(false)
+  const [isRestartingBackend, setIsRestartingBackend] = useState(false)
   const [backendHealth, setBackendHealth] = useState<ServiceHealth>({
     name: 'Backend API',
     status: 'unknown',
@@ -141,16 +151,63 @@ export function OperationsScreen() {
     updatePreferences({ [key]: !preferences[key] })
   }
 
-  if (!hasHydrated) return null
-
-  const handlePreview = () => {
-    const action = AVAILABLE_ACTIONS.find(a => a.id === selectedAction)
-    if (action) {
+  const handleRestartBackend = useCallback(async () => {
+    setIsRestartingBackend(true)
+    setActionLog(prev => [
+      ...prev,
+      `[${new Date().toLocaleTimeString()}] Restarting backend...`,
+    ])
+    try {
+      const result = await restartBackend()
       setActionLog(prev => [
         ...prev,
-        `[${new Date().toLocaleTimeString()}] Preview: ${action.label}`,
-        `  Ticker: ${actionArgs || '(none)'}`,
-        `  Description: ${action.description}`,
+        `[${new Date().toLocaleTimeString()}] ${result.message || 'Backend restart complete.'}`,
+        '',
+      ])
+      await fetchHealth()
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown restart error'
+      setActionLog(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] Backend restart failed`,
+        `  ${message}`,
+        '',
+      ])
+    } finally {
+      setIsRestartingBackend(false)
+    }
+  }, [fetchHealth])
+
+  if (!hasHydrated) return null
+
+  const handlePreview = async () => {
+    const action = AVAILABLE_ACTIONS.find(a => a.id === selectedAction)
+    if (!action) return
+
+    const ticker = actionArgs.trim()
+    const args: Record<string, unknown> = {}
+    if (ticker) args.ticker = ticker
+
+    setActionLog(prev => [
+      ...prev,
+      `[${new Date().toLocaleTimeString()}] Preview: ${action.label}`,
+    ])
+
+    try {
+      const preview = await previewAction({ actionId: action.id, args })
+      setActionLog(prev => [
+        ...prev,
+        `  Command: ${preview.command.join(' ')}`,
+        `  Impact: ${preview.estimated_impact}`,
+        `  Timeout: ${preview.timeout_seconds}s`,
+        preview.guard_message ? `  Guard: ${preview.guard_message}` : '',
+        ''
+      ].filter(Boolean))
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setActionLog(prev => [
+        ...prev,
+        `  Preview failed: ${message}`,
         ''
       ])
     }
@@ -161,18 +218,8 @@ export function OperationsScreen() {
     if (!action) return
 
     const ticker = actionArgs.trim()
-    const endpoint = getActionEndpoint(action.id, ticker)
 
-    if (!endpoint) {
-      setActionLog(prev => [
-        ...prev,
-        `[${new Date().toLocaleTimeString()}] Action not yet wired: ${action.label}`,
-        ''
-      ])
-      return
-    }
-
-    if (!ticker) {
+    if (action.requiresTicker && !ticker) {
       setActionLog(prev => [
         ...prev,
         `[${new Date().toLocaleTimeString()}] Error: Ticker is required for ${action.label}`,
@@ -183,54 +230,94 @@ export function OperationsScreen() {
 
     setIsRunning(true)
     const start = performance.now()
-    setActionLog(prev => [
-      ...prev,
-      `[${new Date().toLocaleTimeString()}] Executing: ${action.label}`,
-      `  Ticker: ${ticker}`,
-      `  Endpoint: ${endpoint.method} ${endpoint.path}`,
-    ])
+    const endpoint = getActionEndpoint(action.id, ticker)
 
-    try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      if (API_KEY) {
-        headers['X-API-Key'] = API_KEY
+    if (endpoint) {
+      // Direct REST endpoint path (pipeline actions)
+      setActionLog(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] Executing: ${action.label}`,
+        `  Ticker: ${ticker}`,
+        `  Endpoint: ${endpoint.method} ${endpoint.path}`,
+      ])
+
+      try {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+        if (API_KEY) {
+          headers['X-API-Key'] = API_KEY
+        }
+        const res = await fetch(endpoint.path, { method: endpoint.method, headers })
+        const elapsed = ((performance.now() - start) / 1000).toFixed(1)
+
+        if (res.ok) {
+          const body = await res.json().catch(() => null)
+          setActionLog(prev => [
+            ...prev,
+            `[${new Date().toLocaleTimeString()}] Completed: ${action.label}`,
+            `  Status: ${res.status} OK`,
+            `  Duration: ${elapsed}s`,
+            body ? `  Response: ${JSON.stringify(body).slice(0, 200)}` : '',
+            ''
+          ])
+        } else {
+          const errText = await res.text().catch(() => res.statusText)
+          setActionLog(prev => [
+            ...prev,
+            `[${new Date().toLocaleTimeString()}] Failed: ${action.label}`,
+            `  Status: ${res.status} ${res.statusText}`,
+            `  Error: ${errText.slice(0, 200)}`,
+            `  Duration: ${elapsed}s`,
+            ''
+          ])
+        }
+      } catch (err: unknown) {
+        const elapsed = ((performance.now() - start) / 1000).toFixed(1)
+        const message = err instanceof Error ? err.message : 'Unknown error'
+        setActionLog(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] Error: ${action.label}`,
+          `  ${message}`,
+          `  Duration: ${elapsed}s`,
+          ''
+        ])
+      } finally {
+        setIsRunning(false)
       }
-      const res = await fetch(endpoint.path, { method: endpoint.method, headers })
-      const elapsed = ((performance.now() - start) / 1000).toFixed(1)
+    } else {
+      // Cockpit action registry path (subprocess dispatch)
+      const args: Record<string, unknown> = {}
+      if (ticker) args.ticker = ticker
 
-      if (res.ok) {
-        const body = await res.json().catch(() => null)
+      setActionLog(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] Executing: ${action.label}`,
+        ticker ? `  Ticker: ${ticker}` : '  Scope: market-wide',
+        `  Dispatch: cockpit action registry`,
+      ])
+
+      try {
+        const result = await executeAction({ actionId: action.id, args })
+        const elapsed = ((performance.now() - start) / 1000).toFixed(1)
         setActionLog(prev => [
           ...prev,
           `[${new Date().toLocaleTimeString()}] Completed: ${action.label}`,
-          `  Status: ${res.status} OK`,
           `  Duration: ${elapsed}s`,
-          body ? `  Response: ${JSON.stringify(body).slice(0, 200)}` : '',
+          `  Output: ${(result.result || '').slice(0, 300)}`,
           ''
         ])
-      } else {
-        const errText = await res.text().catch(() => res.statusText)
+      } catch (err: unknown) {
+        const elapsed = ((performance.now() - start) / 1000).toFixed(1)
+        const message = err instanceof Error ? err.message : 'Unknown error'
         setActionLog(prev => [
           ...prev,
-          `[${new Date().toLocaleTimeString()}] Failed: ${action.label}`,
-          `  Status: ${res.status} ${res.statusText}`,
-          `  Error: ${errText.slice(0, 200)}`,
+          `[${new Date().toLocaleTimeString()}] Error: ${action.label}`,
+          `  ${message}`,
           `  Duration: ${elapsed}s`,
           ''
         ])
+      } finally {
+        setIsRunning(false)
       }
-    } catch (err: unknown) {
-      const elapsed = ((performance.now() - start) / 1000).toFixed(1)
-      const message = err instanceof Error ? err.message : 'Unknown error'
-      setActionLog(prev => [
-        ...prev,
-        `[${new Date().toLocaleTimeString()}] Error: ${action.label}`,
-        `  ${message}`,
-        `  Duration: ${elapsed}s`,
-        ''
-      ])
-    } finally {
-      setIsRunning(false)
     }
   }
 
@@ -302,10 +389,16 @@ export function OperationsScreen() {
                 </CardTitle>
                 <CardDescription>Monitor connected services (auto-refresh every 30s)</CardDescription>
               </div>
-              <Button variant="outline" size="sm" onClick={fetchHealth}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={fetchHealth}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleRestartBackend} disabled={isRestartingBackend}>
+                  <RefreshCw className={cn('h-4 w-4 mr-2', isRestartingBackend && 'animate-spin')} />
+                  {isRestartingBackend ? 'Restarting...' : 'Restart Backend'}
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -374,7 +467,13 @@ export function OperationsScreen() {
                 </SelectContent>
               </Select>
               <Input
-                placeholder="Ticker (e.g. BHP)"
+                placeholder={
+                  selectedAction
+                    ? AVAILABLE_ACTIONS.find(a => a.id === selectedAction)?.requiresTicker
+                      ? 'Ticker (e.g. BHP)'
+                      : 'Ticker (optional — runs market-wide if empty)'
+                    : 'Ticker (e.g. BHP)'
+                }
                 value={actionArgs}
                 onChange={(e) => setActionArgs(e.target.value)}
                 className="flex-1 font-mono text-sm"

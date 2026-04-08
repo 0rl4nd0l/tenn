@@ -11,6 +11,7 @@ Usage (direct):
 Usage (via cockpit CLI):
     cockpit start web
 """
+
 from __future__ import annotations
 
 import argparse
@@ -22,7 +23,12 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from cockpit.core.config import DEFAULT_BACKEND_URL, DEFAULT_LLAMACPP_URL, DEFAULT_OLLAMA_URL, load_env
+from cockpit.core.config import (
+    DEFAULT_BACKEND_URL,
+    DEFAULT_LLAMACPP_URL,
+    DEFAULT_OLLAMA_URL,
+    load_env,
+)
 from cockpit.ui.web import CockpitWebApp
 
 # Load .env BEFORE arg parsing — arg defaults read from os.environ.
@@ -30,7 +36,9 @@ load_env(REPO_ROOT)
 
 
 def _parse() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Cockpit combined web app (pre-boot + cockpit)")
+    p = argparse.ArgumentParser(
+        description="Cockpit combined web app (pre-boot + cockpit)"
+    )
     p.add_argument(
         "--config",
         default=os.environ.get("COCKPIT_CONFIG", "config/cockpit.yaml"),
@@ -38,7 +46,10 @@ def _parse() -> argparse.Namespace:
     )
     p.add_argument(
         "--backend-url",
-        default=os.environ.get("COCKPIT_BACKEND_URL", DEFAULT_BACKEND_URL),
+        default=os.environ.get(
+            "COCKPIT_BACKEND_API_URL",
+            os.environ.get("COCKPIT_BACKEND_URL", DEFAULT_BACKEND_URL),
+        ),
     )
     p.add_argument(
         "--ollama-url",
@@ -46,7 +57,9 @@ def _parse() -> argparse.Namespace:
     )
     p.add_argument(
         "--llamacpp-url",
-        default=os.environ.get("COCKPIT_LLAMACPP_URL", os.environ.get("LLAMACPP_URL", DEFAULT_LLAMACPP_URL)),
+        default=os.environ.get(
+            "COCKPIT_LLAMACPP_URL", os.environ.get("LLAMACPP_URL", DEFAULT_LLAMACPP_URL)
+        ),
     )
     args, _ = p.parse_known_args()
     return args

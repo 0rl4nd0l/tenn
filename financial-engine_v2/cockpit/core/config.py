@@ -31,6 +31,7 @@ def load_env(repo_root: Path | None = None) -> None:
         return
     try:
         from dotenv import load_dotenv
+
         load_dotenv(env_path, override=False)
     except ImportError:
         # Fallback: parse KEY=VALUE lines manually (no interpolation).
@@ -149,7 +150,10 @@ def apply_stack_defaults_to_environ(cm: dict[str, Any]) -> None:
 
 
 def effective_extraction_model(cm: dict[str, Any]) -> str:
-    return os.environ.get("EXTRACT_MODEL", "").strip() or cockpit_llm_stack_defaults(cm)["extraction_model"]
+    return (
+        os.environ.get("EXTRACT_MODEL", "").strip()
+        or cockpit_llm_stack_defaults(cm)["extraction_model"]
+    )
 
 
 def effective_embedding_model(cm: dict[str, Any]) -> str:
@@ -161,7 +165,10 @@ def effective_embedding_model(cm: dict[str, Any]) -> str:
 
 
 def effective_anthropic_model(cm: dict[str, Any]) -> str:
-    return os.environ.get("ANTHROPIC_MODEL", "").strip() or cockpit_llm_stack_defaults(cm)["anthropic_model"]
+    return (
+        os.environ.get("ANTHROPIC_MODEL", "").strip()
+        or cockpit_llm_stack_defaults(cm)["anthropic_model"]
+    )
 
 
 def format_cockpit_llm_readonly(repo_root: Path) -> str:
@@ -298,7 +305,9 @@ def verify_effective_config_for_preboot(cfg: dict[str, Any]) -> list[str]:
     llm = cfg.get("llm") or {}
     provider = str(llm.get("provider") or "").strip().lower()
     if not provider:
-        errors.append("llm.provider is empty after merge — check config/cockpit.yaml and config/cockpit_llm.yaml.")
+        errors.append(
+            "llm.provider is empty after merge — check config/cockpit.yaml and config/cockpit_llm.yaml."
+        )
     elif provider not in VALID_LLM_PROVIDERS:
         errors.append(
             f"Unsupported llm.provider {provider!r} — must be llamacpp or ollama."
@@ -313,11 +322,15 @@ def verify_effective_config_for_preboot(cfg: dict[str, Any]) -> list[str]:
     if provider == "llamacpp":
         url = str(llm.get("llamacpp_url") or "").strip()
         if not url:
-            errors.append("llm.llamacpp_url is empty for llamacpp provider — set it in config/cockpit_llm.yaml.")
+            errors.append(
+                "llm.llamacpp_url is empty for llamacpp provider — set it in config/cockpit_llm.yaml."
+            )
     if provider == "ollama":
         ourl = str(llm.get("ollama_url") or "").strip()
         if not ourl:
-            errors.append("llm.ollama_url is empty for ollama provider — set it in config/cockpit_llm.yaml.")
+            errors.append(
+                "llm.ollama_url is empty for ollama provider — set it in config/cockpit_llm.yaml."
+            )
 
     return errors
 
@@ -382,7 +395,10 @@ def format_llm_backend_tasks_from_cfg(
     policy = str(cm.get("hybrid_router_policy") or "")
     tool_dbg = str(cm.get("tool_debug") or "failures")
     allow_env = cm.get("allow_env_override", False)
-    extract_disp = effective_extraction_model(cm) or "(not set — add defaults.extraction_model in YAML)"
+    extract_disp = (
+        effective_extraction_model(cm)
+        or "(not set — add defaults.extraction_model in YAML)"
+    )
     embed_disp = effective_embedding_model(cm) or "(not set)"
     anthropic_disp = effective_anthropic_model(cm) or "(not set)"
     path = repo_root / "config" / "cockpit_llm.yaml"
@@ -483,7 +499,14 @@ def merge_cockpit_llm_file(cfg: dict[str, Any], repo_root: Path) -> dict[str, An
 def _apply_llm_env_overrides(cfg: dict[str, Any]) -> None:
     """Apply COCKPIT_* / EXTRACT_MODEL env vars into cfg[\"llm\"] (legacy stack alignment)."""
     cfg.setdefault("llm", {})
-    provider = str(os.getenv("COCKPIT_LLM_PROVIDER", cfg["llm"].get("provider", "llamacpp")) or "").strip().lower()
+    provider = (
+        str(
+            os.getenv("COCKPIT_LLM_PROVIDER", cfg["llm"].get("provider", "llamacpp"))
+            or ""
+        )
+        .strip()
+        .lower()
+    )
     if provider not in VALID_LLM_PROVIDERS:
         raise ValueError(f"Unsupported Cockpit LLM provider: {provider}")
     cfg["llm"]["provider"] = provider
@@ -499,14 +522,21 @@ def _apply_llm_env_overrides(cfg: dict[str, Any]) -> None:
         "COCKPIT_LLM_MODEL",
         os.getenv("EXTRACT_MODEL", cfg["llm"].get("model", DEFAULT_LLAMACPP_MODEL)),
     )
-    cfg["llm"]["llamacpp_api_key"] = os.getenv("LLAMACPP_API_KEY") or os.getenv("LLM_API_KEY") or cfg["llm"].get(
-        "llamacpp_api_key", ""
+    cfg["llm"]["llamacpp_api_key"] = (
+        os.getenv("LLAMACPP_API_KEY")
+        or os.getenv("LLM_API_KEY")
+        or cfg["llm"].get("llamacpp_api_key", "")
     )
     router_mode_value = os.getenv(
         "COCKPIT_ROUTER_MODE",
         str(cfg["llm"].get("router_mode_opt_in", False)),
     )
-    cfg["llm"]["router_mode_opt_in"] = str(router_mode_value).strip().lower() in {"1", "true", "yes", "on"}
+    cfg["llm"]["router_mode_opt_in"] = str(router_mode_value).strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
 
 
 def _sync_tool_debug_env(cfg: dict[str, Any]) -> None:
@@ -596,12 +626,16 @@ def apply_runtime_flags(config: dict[str, Any], flags: RuntimeFlags) -> dict[str
         _sync_tool_debug_env(cfg)
 
     cfg.setdefault("backend", {})
-    cfg["backend"]["api_base_url"] = os.getenv(
-        "COCKPIT_BACKEND_URL",
-        cfg["backend"].get("api_base_url", DEFAULT_BACKEND_URL),
+    cfg["backend"]["api_base_url"] = (
+        os.getenv("COCKPIT_BACKEND_API_URL", "").strip()
+        or os.getenv("COCKPIT_BACKEND_URL", "").strip()
+        or str(cfg["backend"].get("api_base_url", DEFAULT_BACKEND_URL)).strip()
+        or DEFAULT_BACKEND_URL
     )
     cfg.setdefault("db", {})
-    cfg["db"]["database_url"] = os.getenv("DATABASE_URL", "sqlite:///./data/fe_local.db")
+    cfg["db"]["database_url"] = os.getenv(
+        "DATABASE_URL", "sqlite:///./data/fe_local.db"
+    )
 
     cm = cfg.get("cockpit_llm") or {}
     llm = cfg.get("llm") or {}

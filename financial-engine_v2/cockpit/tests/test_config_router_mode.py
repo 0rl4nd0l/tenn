@@ -5,7 +5,9 @@ from pathlib import Path
 from cockpit.core.config import RuntimeFlags, apply_runtime_flags
 
 
-def test_apply_runtime_flags_respects_router_mode_opt_in_env(monkeypatch, tmp_path: Path):
+def test_apply_runtime_flags_respects_router_mode_opt_in_env(
+    monkeypatch, tmp_path: Path
+):
     (tmp_path / "config").mkdir()
     (tmp_path / "config" / "cockpit_llm.yaml").write_text(
         "allow_env_override: true\n"
@@ -32,3 +34,41 @@ def test_apply_runtime_flags_respects_router_mode_opt_in_env(monkeypatch, tmp_pa
     )
 
     assert cfg["llm"]["router_mode_opt_in"] is True
+
+
+def test_apply_runtime_flags_prefers_backend_api_url_env(monkeypatch, tmp_path: Path):
+    monkeypatch.setenv("COCKPIT_BACKEND_URL", "http://localhost:8000")
+    monkeypatch.setenv("COCKPIT_BACKEND_API_URL", "http://127.0.0.1:9000")
+
+    cfg = apply_runtime_flags(
+        {"backend": {"api_base_url": "http://fallback:8000"}},
+        RuntimeFlags(
+            config_path="config/cockpit.yaml",
+            profile="default",
+            read_only=False,
+            no_web=False,
+            repo_root=tmp_path,
+        ),
+    )
+
+    assert cfg["backend"]["api_base_url"] == "http://127.0.0.1:9000"
+
+
+def test_apply_runtime_flags_uses_backend_url_when_api_url_unset(
+    monkeypatch, tmp_path: Path
+):
+    monkeypatch.delenv("COCKPIT_BACKEND_API_URL", raising=False)
+    monkeypatch.setenv("COCKPIT_BACKEND_URL", "http://localhost:8100")
+
+    cfg = apply_runtime_flags(
+        {"backend": {"api_base_url": "http://fallback:8000"}},
+        RuntimeFlags(
+            config_path="config/cockpit.yaml",
+            profile="default",
+            read_only=False,
+            no_web=False,
+            repo_root=tmp_path,
+        ),
+    )
+
+    assert cfg["backend"]["api_base_url"] == "http://localhost:8100"

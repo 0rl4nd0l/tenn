@@ -57,10 +57,18 @@ class QualContextReader:
         top_k: int | None = None,
         ticker_filter: str = "",
         source_filter: str = "",  # noqa: ARG002 - backend handles source filtering
+        provider: str | None = None,
+        language: str = "en",
+        date_from: str = "",
+        date_to: str = "",
     ) -> dict[str, Any]:
         q = str(query or "").strip()
         limit = int(max(1, int(top_k) if top_k is not None else self.top_k))
         ticker = str(ticker_filter or "").strip().upper() or None
+        provider_value = str(provider or "").strip() or None
+        language_value = str(language or "").strip() or "en"
+        date_from_value = str(date_from or "").strip() or None
+        date_to_value = str(date_to or "").strip() or None
 
         if not q:
             return {"ok": False, "hits": [], "error": "query is required"}
@@ -73,7 +81,16 @@ class QualContextReader:
 
         self._last_backend_call = _BackendCall(query=q, ticker=ticker, top_k=limit)
         try:
-            result = self.backend_api_client.rag_query(q=q, ticker=ticker, top_k=limit, timeout=self.timeout)
+            result = self.backend_api_client.rag_query(
+                q=q,
+                ticker=ticker,
+                top_k=limit,
+                provider=provider_value,
+                language=language_value,
+                date_from=date_from_value,
+                date_to=date_to_value,
+                timeout=self.timeout,
+            )
         except Exception as exc:
             return {"ok": False, "hits": [], "error": str(exc)[:400]}
 
@@ -105,8 +122,11 @@ class QualContextReader:
             "company": str(company or "").strip().upper(),
             "ticker_filter": ticker_filter,
             "top_k": limit,
+            "provider": provider_value,
+            "language": language_value,
+            "date_from": date_from_value,
+            "date_to": date_to_value,
             "candidate_count": len(raw_results),
             "filtered_count": len(hits),
             "hits": hits,
         }
-

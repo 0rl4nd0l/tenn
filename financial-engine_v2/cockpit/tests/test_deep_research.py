@@ -61,9 +61,7 @@ class TestDeepResearchRunner:
         mock_backend.synthesize_research.assert_called_once()
 
     def test_backend_failure_returns_graceful_fallback(self):
-        runner, _, _ = _make_runner(
-            backend_error=RuntimeError("Backend unreachable")
-        )
+        runner, _, _ = _make_runner(backend_error=RuntimeError("Backend unreachable"))
         result = runner.run("BHP")
         assert result["ok"] is True  # run() always returns ok=True
         assert "LLM synthesis failed" in result["research"]["summary"]
@@ -98,9 +96,7 @@ class TestDeepResearchRunner:
         assert call_args[0][1] == "BHP is strong"  # summary
 
     def test_dossier_not_saved_on_synthesis_failure(self):
-        runner, _, mock_dossier = _make_runner(
-            backend_error=RuntimeError("fail")
-        )
+        runner, _, mock_dossier = _make_runner(backend_error=RuntimeError("fail"))
         runner.run("BHP")
         # Dossier still saves the failure summary (it has a "summary" key)
         # but the summary contains "LLM synthesis failed"
@@ -111,6 +107,26 @@ class TestDeepResearchRunner:
     def test_no_hybrid_router_reference(self):
         """Confirm HybridRouter is not referenced anywhere in DeepResearchRunner."""
         import inspect
+
         source = inspect.getsource(DeepResearchRunner)
         assert "hybrid_router" not in source.lower()
         assert "HybridRouter" not in source
+
+    def test_commentary_query_uses_supported_rag_source(self):
+        runner, mock_backend, _ = _make_runner()
+        mock_backend.rag_query.return_value = {
+            "results": [
+                {
+                    "payload": {
+                        "text": "Management reiterated guidance and margin expansion.",
+                        "source": "filing",
+                    }
+                }
+            ]
+        }
+
+        result = runner.run("BHP")
+
+        mock_backend.rag_query.assert_called_once()
+        assert mock_backend.rag_query.call_args.kwargs["source"] == "asx_docs"
+        assert "commentary" in result["sources_used"]

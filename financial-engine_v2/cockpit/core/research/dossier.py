@@ -78,6 +78,7 @@ class CompanyDossierService:
         *,
         query: str | None = None,
         limit: int = 5,
+        include_age_labels: bool = False,
     ) -> dict[str, Any]:
         """Recall recent findings for a ticker, optionally filtered by keyword.
 
@@ -105,7 +106,8 @@ class CompanyDossierService:
         if query:
             q_lower = query.lower()
             findings = [
-                f for f in findings
+                f
+                for f in findings
                 if q_lower in f.get("finding", "").lower()
                 or q_lower in f.get("category", "").lower()
                 or q_lower in f.get("source", "").lower()
@@ -114,7 +116,7 @@ class CompanyDossierService:
         # Most recent first, limited.
         findings = list(reversed(findings))[:limit]
 
-        # Prepend relative-age labels so the LLM can calibrate confidence.
+        # Attach relative-age metadata for confidence calibration.
         now = datetime.now(timezone.utc)
         for f in findings:
             ts_str = f.get("ts", "")
@@ -134,7 +136,11 @@ class CompanyDossierService:
                         label = f"[~{days // 30} months ago]"
                     else:
                         label = f"[{days // 30} months ago — possibly stale]"
-                    f["finding"] = f"{label} {f.get('finding', '')}"
+                    raw_finding = str(f.get("finding", ""))
+                    f["age_label"] = label
+                    f["finding_with_age"] = f"{label} {raw_finding}"
+                    if include_age_labels:
+                        f["finding"] = f["finding_with_age"]
                 except (ValueError, TypeError):
                     pass
 
@@ -143,9 +149,7 @@ class CompanyDossierService:
     def list_tickers(self) -> list[str]:
         """Return all tickers that have dossier data."""
         return sorted(
-            p.stem.upper()
-            for p in self._root.glob("*.jsonl")
-            if p.stat().st_size > 0
+            p.stem.upper() for p in self._root.glob("*.jsonl") if p.stat().st_size > 0
         )
 
     def summary(self, ticker: str, *, limit: int = 10) -> str:

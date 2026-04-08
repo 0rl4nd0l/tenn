@@ -3,9 +3,11 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import subprocess
 import sys
 import time
+from pathlib import Path
 from typing import Any, AsyncGenerator
 from urllib.parse import urlparse
 
@@ -368,6 +370,7 @@ def cockpit_queue_status() -> QueueStatusResponse:
     so those are reported as 0 unless a result backend is queryable.
     """
     total_queued = 0
+    active_count = 0
     try:
         parsed = urlparse(str(settings.celery_broker_url or ""))
         host = str(parsed.hostname or "127.0.0.1").strip()
@@ -386,13 +389,25 @@ def cockpit_queue_status() -> QueueStatusResponse:
         for queue_name in _SPECIALIZED_QUEUES:
             depth = client.llen(queue_name) or 0
             total_queued += depth
+
+        # Probe active tasks via Celery inspect (best-effort, short timeout).
+        try:
+            from app.celery_app import celery_app
+
+            inspector = celery_app.control.inspect(timeout=1.0)
+            active_tasks = inspector.active() or {}
+            for worker_tasks in active_tasks.values():
+                active_count += len(worker_tasks)
+        except Exception:
+            pass  # workers may be offline
+
         client.close()
     except Exception as exc:
         logger.debug("Queue status probe failed (non-fatal): %s", exc)
 
     return QueueStatusResponse(
         pending=total_queued,
-        active=0,
+        active=active_count,
         completed=0,
         failed=0,
     )
@@ -441,6 +456,199 @@ class CockpitChatRequest(BaseModel):
     ticker: str | None = None
     session_id: str | None = None
     stream: bool = True
+    model: str | None = None
+    web_search: bool | None = None
+    rag: bool | None = None
+    db_diagnostics: bool | None = None
+
+
+class CockpitActionExecuteRequest(BaseModel):
+    action_id: str
+    args: dict[str, Any] = Field(default_factory=dict)
+    session_id: str | None = None
+
+
+class CockpitActionExecuteResponse(BaseModel):
+    ok: bool = True
+    action_id: str
+    result: str
+    exit_code: int = 0
+
+
+class CockpitActionPreviewRequest(BaseModel):
+    action_id: str
+    args: dict[str, Any] = Field(default_factory=dict)
+
+
+class CockpitActionPreviewResponse(BaseModel):
+    action_id: str
+    command: list[str]
+    summary: str
+    estimated_impact: str
+    timeout_seconds: int
+    guard_message: str | None = None
+
+
+@router.post("/action/preview", response_model=CockpitActionPreviewResponse)
+async def cockpit_preview_action(payload: CockpitActionPreviewRequest):
+    """Preview an action: show the command that would run, impact, and guard warnings."""
+    try:
+        service = CockpitService.get_instance()
+    except Exception as exc:
+        logger.exception("Failed to initialize CockpitService for action preview")
+        raise HTTPException(
+            status_code=500, detail=f"Service initialization failed: {str(exc)}"
+        ) from exc
+
+    action_id = str(payload.action_id or "").strip()
+    if not action_id:
+        raise HTTPException(status_code=400, detail="action_id is required")
+
+    args = payload.args if isinstance(payload.args, dict) else {}
+
+    try:
+        preview = service.action_registry.preview(action_id, args)
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404, detail=f"Unknown action_id: {action_id}"
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return CockpitActionPreviewResponse(
+        action_id=preview.action_id,
+        command=preview.command,
+        summary=preview.summary,
+        estimated_impact=preview.estimated_impact,
+        timeout_seconds=preview.timeout_seconds,
+        guard_message=preview.guard_message,
+    )
+
+
+def _normalize_action_command(command: list[str], repo_root: Path) -> list[str]:
+    """Best-effort command normalization for container/runtime differences."""
+    if not command:
+        return command
+
+    normalized = list(command)
+
+    # Python launcher fallback: ActionRegistry may embed /.venv/bin/python which
+    # does not exist in some backend container setups.
+    python_bin = Path(normalized[0])
+    if not python_bin.exists():
+        normalized[0] = sys.executable
+
+    # Script path fallback: resolve against known mount points.
+    if len(normalized) > 1:
+        raw_script = normalized[1]
+        script_path = Path(raw_script)
+        if not script_path.is_absolute():
+            candidates: list[Path] = [
+                (repo_root / script_path).resolve(),
+                (Path("/app") / script_path).resolve(),
+                (Path("/scripts") / script_path.name).resolve(),
+            ]
+            if raw_script.startswith("../scripts/"):
+                candidates.append(
+                    (Path("/scripts") / raw_script.split("/")[-1]).resolve()
+                )
+
+            for candidate in candidates:
+                if candidate.exists():
+                    normalized[1] = str(candidate)
+                    break
+
+    return normalized
+
+
+def _build_action_env(repo_root: Path) -> dict[str, str]:
+    """Ensure action subprocesses can import backend/cockpit modules."""
+    env = os.environ.copy()
+    existing = env.get("PYTHONPATH", "")
+    candidates = [
+        str((repo_root / "backend").resolve()),
+        str((repo_root / "cockpit").resolve()),
+        "/app",
+        "/app/cockpit",
+    ]
+    merged = [p for p in candidates if p]
+    if existing:
+        merged.append(existing)
+    env["PYTHONPATH"] = ":".join(merged)
+    return env
+
+
+@router.post("/action/execute", response_model=CockpitActionExecuteResponse)
+async def cockpit_execute_action(payload: CockpitActionExecuteRequest):
+    """Execute a confirmed cockpit action command and return output."""
+    try:
+        service = CockpitService.get_instance()
+    except Exception as exc:
+        logger.exception("Failed to initialize CockpitService for action execution")
+        raise HTTPException(
+            status_code=500, detail=f"Service initialization failed: {str(exc)}"
+        ) from exc
+
+    action_id = str(payload.action_id or "").strip()
+    if not action_id:
+        raise HTTPException(status_code=400, detail="action_id is required")
+
+    args = payload.args if isinstance(payload.args, dict) else {}
+
+    try:
+        preview = service.action_registry.preview(action_id, args)
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404, detail=f"Unknown action_id: {action_id}"
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    timeout_seconds = max(1, int(preview.timeout_seconds or 300))
+    normalized_command = _normalize_action_command(
+        preview.command, Path(service.repo_root)
+    )
+    action_env = _build_action_env(Path(service.repo_root))
+
+    def _run_action() -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            normalized_command,
+            cwd=str(service.repo_root),
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
+            check=False,
+            env=action_env,
+        )
+
+    try:
+        proc = await asyncio.to_thread(_run_action)
+    except subprocess.TimeoutExpired as exc:
+        raise HTTPException(
+            status_code=504,
+            detail=f"Action timed out after {timeout_seconds}s: {action_id}",
+        ) from exc
+    except Exception as exc:
+        logger.exception("Action execution failed: %s", action_id)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Action execution failed: {str(exc)}",
+        ) from exc
+
+    stdout = (proc.stdout or "").strip()
+    stderr = (proc.stderr or "").strip()
+
+    if proc.returncode != 0:
+        detail = stderr or stdout or f"Action failed with exit code {proc.returncode}"
+        raise HTTPException(status_code=500, detail=detail[:4000])
+
+    output = stdout or stderr or f"Action {action_id} completed successfully"
+    return CockpitActionExecuteResponse(
+        ok=True,
+        action_id=action_id,
+        result=output[:12000],
+        exit_code=proc.returncode,
+    )
 
 
 @router.post("/chat")
@@ -464,6 +672,8 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 message=payload.message,
                 ticker=payload.ticker,
                 session_id=payload.session_id,
+                enable_web=payload.web_search,
+                model=payload.model,
             )
             return {
                 "type": "done",
@@ -515,6 +725,8 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     session_id=payload.session_id,
                     on_chunk=on_chunk,
                     on_status=on_status,
+                    enable_web=payload.web_search,
+                    model=payload.model,
                 )
 
                 # After streaming finishes, send metadata and final state
@@ -561,12 +773,17 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                         },
                     }
                 )
+            except asyncio.CancelledError:
+                logger.info("Cockpit chat stream cancelled by client disconnect")
             except Exception as exc:
                 logger.exception("Cockpit chat streaming error")
                 await queue.put({"type": "error", "data": str(exc)})
             finally:
                 # Signal end of stream
                 await queue.put(None)
+
+        # Emit an immediate status so UI leaves "Preparing request" quickly.
+        yield f"data: {json.dumps({'type': 'status', 'data': {'stage': 'Request accepted'}})}\n\n"
 
         # Start the chat worker
         worker_task = asyncio.create_task(run_chat())
@@ -577,7 +794,11 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 worker_task.cancel()
                 break
 
-            item = await queue.get()
+            try:
+                item = await asyncio.wait_for(queue.get(), timeout=0.25)
+            except asyncio.TimeoutError:
+                continue
+
             if item is None:
                 break
 

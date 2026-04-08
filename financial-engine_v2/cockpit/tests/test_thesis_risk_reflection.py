@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest.mock import MagicMock, Mock
 
 import pytest
@@ -62,7 +63,9 @@ class TestThesisServiceCreate:
         result = svc.create("bhp", "Thesis", signal="HOLD")
         assert result["thesis"]["ticker"] == "BHP"
 
-    def test_create_invalid_thesis_type_defaults_neutral(self, tmp_path: object) -> None:
+    def test_create_invalid_thesis_type_defaults_neutral(
+        self, tmp_path: object
+    ) -> None:
         """Invalid thesis_type silently defaults to neutral."""
         svc = ThesisService(root=tmp_path)
         result = svc.create("BHP", "Thesis", thesis_type="garbage")
@@ -83,7 +86,9 @@ class TestThesisServiceEvidence:
         assert result["total_supporting"] == 1
         assert result["total_disconfirming"] == 0
 
-    def test_disconfirming_evidence_triggers_auto_evaluate(self, tmp_path: object) -> None:
+    def test_disconfirming_evidence_triggers_auto_evaluate(
+        self, tmp_path: object
+    ) -> None:
         """3 disconfirming with 0 supporting triggers auto-invalidation."""
         svc = ThesisService(root=tmp_path)
         svc.create("BHP", "Strong demand", signal="BUY")
@@ -215,13 +220,15 @@ class TestRiskGateAssess:
     ) -> Mock:
         """Create a mock backend that returns persona responses."""
         if judge_json is None:
-            judge_json = json.dumps({
-                "adjusted_signal": "BUY",
-                "risk_level": "medium",
-                "key_risks": ["commodity price risk"],
-                "synthesis": "Bull case prevails.",
-                "confidence": 0.7,
-            })
+            judge_json = json.dumps(
+                {
+                    "adjusted_signal": "BUY",
+                    "risk_level": "medium",
+                    "key_risks": ["commodity price risk"],
+                    "synthesis": "Bull case prevails.",
+                    "confidence": 0.7,
+                }
+            )
 
         backend = Mock()
         # synthesize_research is called 3 times: bull, bear, judge.
@@ -256,6 +263,48 @@ class TestRiskGateAssess:
         assert result["ok"] is True
         assert result["adjusted_signal"] == "HOLD"
         assert result["risk_level"] == "high"
+
+    def test_assess_calls_backend_with_supported_contract_shape(self) -> None:
+        """RiskGate sends ticker+gathered_sources+focus to BackendApiClient."""
+
+        class StrictBackend:
+            def __init__(self) -> None:
+                self.calls: list[tuple[str, dict[str, Any], str | None]] = []
+
+            def synthesize_research(
+                self,
+                *,
+                ticker: str,
+                gathered_sources: dict[str, Any],
+                focus: str | None = None,
+            ) -> dict[str, Any]:
+                self.calls.append((ticker, gathered_sources, focus))
+                if focus == "risk_gate_judge":
+                    return {
+                        "summary": "Bear case outweighs upside in the near term.",
+                        "sentiment": "bearish",
+                        "confidence": 0.4,
+                        "risks": ["Execution risk", "Commodity downside"],
+                    }
+                return {"summary": f"{focus} response"}
+
+        backend = StrictBackend()
+        gate = RiskGate(backend_client=backend)
+
+        result = gate.assess("BHP", "BUY", context={"thesis": "Cycle turning"})
+
+        assert len(backend.calls) == 3
+        assert {call[2] for call in backend.calls} == {
+            "risk_gate_bull",
+            "risk_gate_bear",
+            "risk_gate_judge",
+        }
+        for ticker, gathered, _focus in backend.calls:
+            assert ticker == "BHP"
+            assert "risk_gate" in gathered
+            assert isinstance(gathered["risk_gate"], dict)
+        assert result["adjusted_signal"] in VALID_SIGNALS
+        assert result["risk_level"] in ("low", "medium", "high")
 
     def test_assess_judge_returns_invalid_json(self) -> None:
         """Garbled judge output falls back to HOLD with confidence=0.3."""
@@ -292,13 +341,15 @@ class TestRiskGateParseJudge:
 
     def test_valid_json(self) -> None:
         """Valid JSON is parsed correctly."""
-        raw = json.dumps({
-            "adjusted_signal": "BUY",
-            "risk_level": "low",
-            "key_risks": ["risk1"],
-            "synthesis": "Looks good.",
-            "confidence": 0.8,
-        })
+        raw = json.dumps(
+            {
+                "adjusted_signal": "BUY",
+                "risk_level": "low",
+                "key_risks": ["risk1"],
+                "synthesis": "Looks good.",
+                "confidence": 0.8,
+            }
+        )
         result = RiskGate._parse_judge(raw)
         assert result["adjusted_signal"] == "BUY"
         assert result["risk_level"] == "low"
@@ -306,13 +357,15 @@ class TestRiskGateParseJudge:
 
     def test_markdown_fenced_json(self) -> None:
         """JSON wrapped in ```json ... ``` fences is parsed."""
-        inner = json.dumps({
-            "adjusted_signal": "SELL",
-            "risk_level": "high",
-            "key_risks": ["downtrend"],
-            "synthesis": "Bearish.",
-            "confidence": 0.6,
-        })
+        inner = json.dumps(
+            {
+                "adjusted_signal": "SELL",
+                "risk_level": "high",
+                "key_risks": ["downtrend"],
+                "synthesis": "Bearish.",
+                "confidence": 0.6,
+            }
+        )
         raw = f"```json\n{inner}\n```"
         result = RiskGate._parse_judge(raw)
         assert result["adjusted_signal"] == "SELL"
@@ -320,13 +373,15 @@ class TestRiskGateParseJudge:
 
     def test_invalid_signal_defaults_hold(self) -> None:
         """Invalid signal in judge output defaults to HOLD."""
-        raw = json.dumps({
-            "adjusted_signal": "YOLO",
-            "risk_level": "medium",
-            "key_risks": [],
-            "synthesis": "Confused.",
-            "confidence": 0.5,
-        })
+        raw = json.dumps(
+            {
+                "adjusted_signal": "YOLO",
+                "risk_level": "medium",
+                "key_risks": [],
+                "synthesis": "Confused.",
+                "confidence": 0.5,
+            }
+        )
         result = RiskGate._parse_judge(raw)
         assert result["adjusted_signal"] == "HOLD"
 

@@ -170,6 +170,31 @@ class CockpitNewsQualContextTests(unittest.TestCase):
         self.assertEqual(payload.get("hits"), [])
         self.assertIn("backend down", str(payload.get("error")))
 
+    def test_query_passes_optional_news_filters_to_backend(self):
+        backend = _BackendStub({"results": []})
+        reader = QualContextReader(
+            repo_root=REPO_ROOT,
+            backend_api_client=backend,
+            embed_backend="ollama",
+            embed_model="nomic-embed-text",
+        )
+
+        payload = reader.query(
+            query="BHP news",
+            top_k=5,
+            ticker_filter="BHP",
+            provider="asx",
+            language="en",
+            date_from="2026-04-01",
+            date_to="2026-04-08",
+        )
+
+        self.assertEqual(payload.get("date_from"), "2026-04-01")
+        self.assertEqual(payload.get("date_to"), "2026-04-08")
+        self.assertEqual(payload.get("provider"), "asx")
+        self.assertEqual(payload.get("language"), "en")
+        self.assertEqual(backend.last_kwargs, {"q": "BHP news", "ticker": "BHP", "top_k": 5})
+
 
 if __name__ == "__main__":
     unittest.main()

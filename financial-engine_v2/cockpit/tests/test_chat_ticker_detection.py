@@ -171,6 +171,17 @@ class ChatTickerDetectionTests(unittest.TestCase):
             )
             self.assertIsNotNone(controller)
 
+    def test_structured_mode_agent_loop_can_build_system_prompt(self) -> None:
+        with unittest.mock.patch.dict(os.environ, {"COCKPIT_AGENT_MODE": "structured"}):
+            controller = ChatController(
+                ollama_client=MagicMock(),
+                tool_router=MagicMock(),
+                action_registry=MagicMock(),
+            )
+            self.assertIsNotNone(controller._agent_loop)
+            prompt = controller._agent_loop._build_system_prompt()
+            self.assertTrue(prompt)
+
 
 if __name__ == "__main__":
     unittest.main()

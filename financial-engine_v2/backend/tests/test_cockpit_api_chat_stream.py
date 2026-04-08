@@ -14,11 +14,22 @@ from app.routes.cockpit_api import router
 from app.services.cockpit_service import CockpitService
 
 
-def test_cockpit_chat_stream_done_event_carries_canonical_final_text(monkeypatch) -> None:
+def test_cockpit_chat_stream_done_event_carries_canonical_final_text(
+    monkeypatch,
+) -> None:
     class FakeService:
-        def chat_stream(self, message: str, ticker: str | None = None, session_id: str | None = None, on_chunk=None):
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+        ):
             if on_chunk is not None:
                 on_chunk('{"query":"BHP","ticker":"BHP","limit":5}')
+            if on_status is not None:
+                on_status("Resolving request context")
             return SimpleNamespace(
                 text="Recent BHP news is mixed, with coverage focused on operations and commodity outlook.",
                 evidence=[],
@@ -32,7 +43,9 @@ def test_cockpit_chat_stream_done_event_carries_canonical_final_text(monkeypatch
                 tool_traces=[],
             )
 
-    monkeypatch.setattr(CockpitService, "get_instance", classmethod(lambda cls: FakeService()))
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
 
     app = FastAPI()
     app.include_router(router, prefix="/api/cockpit")

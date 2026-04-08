@@ -19,7 +19,7 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
   const [backendLastHealthyAt, setBackendLastHealthyAt] = useState<Date | null>(null)
   const [backendError, setBackendError] = useState<string | null>(null)
   const [gpuHealth, setGpuHealth] = useState<ServiceHealth | null>(null)
-  const { activeTicker, sessionStats } = useCockpitStore()
+  const { activeTicker, sessionStats, chatCompletionActive } = useCockpitStore()
 
   useEffect(() => {
     let cancelled = false
@@ -52,12 +52,13 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
     }
 
     poll()
-    const interval = setInterval(poll, 30_000)
+    const intervalMs = chatCompletionActive ? 3_000 : 15_000
+    const interval = setInterval(poll, intervalMs)
     return () => {
       cancelled = true
       clearInterval(interval)
     }
-  }, [])
+  }, [chatCompletionActive])
 
   return (
     <SidebarProvider>

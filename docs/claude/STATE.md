@@ -4,7 +4,7 @@
 > Update this file at the end of every session alongside the milestone commit.
 > For detailed context on any item, follow the linked doc or run `git log --oneline`.
 
-Last updated: 2026-04-08 (session — cockpit chat execution stages + GPU temperature, cockpit sidebar GPU indicator, cockpit launcher listener cleanup fix, cockpit launcher cleanup fix, cockpit restart backend full-functionality defaults, cockpit chat SSE final-text fix, cockpit chat SSE fix, llama.cpp M40 KV-cache fix, docs alignment, standalone agent-orchestrator Codex stream bridge)
+Last updated: 2026-04-08 (session — cockpit web action execution endpoint + confirm payload normalization, adaptive GPU polling during active chat, chat stream cancel/status UX hardening, context endpoint transaction rollback fix, docs alignment)
 Branch: cloud/session-20260319
 
 ## Legend
@@ -79,6 +79,9 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 
 | Commit | Workstream | Summary |
 |--------|------------|---------|
+| (this session) | cockpit-ui / cockpit-api | Confirmed action proposals from web chat now execute via `POST /api/cockpit/action/execute`; frontend normalizes `action_preview` payload shapes (`action_id`/`arguments` vs `id`/`args`) to prevent `Action "undefined"` failures. |
+| (this session) | cockpit-ui | Sidebar/system health polling is now adaptive: 3s while a chat completion is active and 15s when idle, improving GPU visibility during active model inference. |
+| (this session) | backend-context | `/api/context/ticker` query error handling now rolls back failed DB transactions and treats missing `cockpit_announcement_context` table as non-fatal instead of poisoning subsequent reads. |
 | (this session) | cockpit-ui | Sidebar GPU indicator now includes temperature, and web chat streams explicit execution-stage status events (`Resolving request context`, tool execution, synthesis, final rendering) instead of a generic `Analyzing market data...` placeholder. |
 | (this session) | cockpit-ui | Sidebar now shows a host-level GPU indicator sourced from the Next.js `/api/cockpit/health` wrapper, with live `nvidia-smi` name/utilization/VRAM data instead of the backend container’s blind spot. |
 | (this session) | cockpit-launcher | `cockpit kill root` now falls back from `lsof` to `ss` for listener discovery and re-checks ports after wrapper kills, so orphaned `next-server` listeners on `:8081` are actually removed. |

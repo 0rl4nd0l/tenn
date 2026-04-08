@@ -1,14 +1,19 @@
 # 15 — Agentic Chat Architecture
 
-> Status: **Proposed** (research document)
+> Status: **Historical design document** (authored pre-implementation)
 > Author: Architecture review session, 2026-03-25
 > Scope: `financial-engine_v2/cockpit/` — ChatController, LlamaCppClient, ToolRouter, ActionRegistry
 
+This document captured the migration plan from keyword-router chat to agentic
+tool-calling chat. The cockpit has since moved to structured agent mode as the
+default path. Treat this file as design history and migration rationale, not as
+the current source of truth for runtime behavior.
+
 ---
 
-## 1. Problem Statement
+## 1. Problem Statement (Historical)
 
-The cockpit chat system (`cockpit/core/chat.py`) is a **keyword router**, not an agent. The ~400-line `build_chat_response()` method uses regex and substring matching to classify user intent, then either short-circuits with a canned response or stuffs context into a prompt and asks the LLM to generate text. The LLM has no ability to:
+At the time this plan was written, the cockpit chat system (`cockpit/core/chat.py`) was a **keyword router**, not an agent. The ~400-line `build_chat_response()` method used regex and substring matching to classify user intent, then either short-circuited with a canned response or stuffed context into a prompt and asked the LLM to generate text. The LLM had no ability to:
 
 - Query the database for ticker data
 - Fetch live prices

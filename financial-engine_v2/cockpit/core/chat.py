@@ -8,6 +8,7 @@ import threading
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
+
 try:
     from enum import StrEnum
 except ImportError:  # Python < 3.11
@@ -15,6 +16,8 @@ except ImportError:  # Python < 3.11
 
     class StrEnum(str, Enum):  # type: ignore[no-redef]
         pass
+
+
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -60,15 +63,28 @@ class ChatResponse:
 @dataclass
 class _ContextResult:
     """Lightweight result wrapper for gather_local_context calls."""
+
     payload: dict[str, Any]
     ok: bool = True
 
 
 ACTION_KEYWORDS = {
     "full_history": ["backfill", "full history", "history sync"],
-    "update_ticker_financials": ["refresh financials", "update financial data", "financial refresh"],
-    "rebuild_ticker_financials": ["rebuild financials", "rebuild ticker financials", "reprocess docs financials"],
-    "audit_ticker_financials": ["audit financials", "financial qa", "check financial quality"],
+    "update_ticker_financials": [
+        "refresh financials",
+        "update financial data",
+        "financial refresh",
+    ],
+    "rebuild_ticker_financials": [
+        "rebuild financials",
+        "rebuild ticker financials",
+        "reprocess docs financials",
+    ],
+    "audit_ticker_financials": [
+        "audit financials",
+        "financial qa",
+        "check financial quality",
+    ],
     "daily_news_ingest": [
         "daily news ingest",
         "ingest daily news",
@@ -77,7 +93,12 @@ ACTION_KEYWORDS = {
         "news ingewstion",
         "today news ingest",
     ],
-    "historical_news_ingest": ["historical news ingest", "news backfill", "backfill news", "news history ingest"],
+    "historical_news_ingest": [
+        "historical news ingest",
+        "news backfill",
+        "backfill news",
+        "news history ingest",
+    ],
     "load_news_to_qdrant": [
         "load news to qdrant",
         "sync news chunks to qdrant",
@@ -111,7 +132,12 @@ ACTION_KEYWORDS = {
         "extract financial metrics",
         "financial metric extraction",
     ],
-    "sort_asx_docs": ["sort asx docs", "classify announcements", "sort announcements", "organise asx docs"],
+    "sort_asx_docs": [
+        "sort asx docs",
+        "classify announcements",
+        "sort announcements",
+        "organise asx docs",
+    ],
     "resume_pending": ["resume pending", "retry pending", "pending downloads"],
     "recover_headed": ["recover headed", "headed recovery"],
 }
@@ -155,6 +181,7 @@ class ChatController:
         if state_store is not None:
             try:
                 from cockpit.core.strategy import StrategyService
+
                 self._strategy_service = StrategyService(state_store)
             except Exception as exc:
                 logger.warning("StrategyService init failed: %s", exc)
@@ -171,12 +198,20 @@ class ChatController:
                     try:
                         from cockpit.core.agent.anthropic_client import AnthropicClient
 
-                        defaults = self._cockpit_llm.get("defaults") if isinstance(self._cockpit_llm.get("defaults"), dict) else {}
+                        defaults = (
+                            self._cockpit_llm.get("defaults")
+                            if isinstance(self._cockpit_llm.get("defaults"), dict)
+                            else {}
+                        )
                         anthropic_model = (
                             os.environ.get("ANTHROPIC_MODEL", "").strip()
                             or str(defaults.get("anthropic_model") or "").strip()
                         )
-                        api_client = AnthropicClient(model=anthropic_model) if anthropic_model else AnthropicClient()
+                        api_client = (
+                            AnthropicClient(model=anthropic_model)
+                            if anthropic_model
+                            else AnthropicClient()
+                        )
                     except Exception as exc:
                         logger.warning("AnthropicClient init failed: %s", exc)
 
@@ -200,18 +235,23 @@ class ChatController:
                 deep_runner = None
                 try:
                     from cockpit.integrations.brave_search import BraveSearchClient
-                    brave_client = BraveSearchClient(web_fetcher=tool_router.web_fetcher)
+
+                    brave_client = BraveSearchClient(
+                        web_fetcher=tool_router.web_fetcher
+                    )
                     tool_router.brave_search_client = brave_client
                 except Exception as exc:
                     logger.warning("BraveSearchClient init failed: %s", exc)
                 try:
                     from cockpit.integrations.hn_search import HNSearchClient
+
                     hn_client = HNSearchClient()
                     tool_router.hn_search_client = hn_client
                 except Exception as exc:
                     logger.warning("HNSearchClient init failed: %s", exc)
                 try:
                     from cockpit.core.research.dossier import CompanyDossierService
+
                     dossier_svc = CompanyDossierService()
                     self._dossier_service = dossier_svc
                     tool_router.dossier_service = dossier_svc
@@ -219,6 +259,7 @@ class ChatController:
                     logger.warning("CompanyDossierService init failed: %s", exc)
                 try:
                     from cockpit.core.research.deep_research import DeepResearchRunner
+
                     deep_runner = DeepResearchRunner(
                         tool_router=tool_router,
                         backend_client=tool_router.backend_api_client,
@@ -233,6 +274,7 @@ class ChatController:
                 alert_rdr = None
                 try:
                     from cockpit.core.research.alerts import AlertReader
+
                     alert_rdr = AlertReader()
                 except Exception as exc:
                     logger.warning("AlertReader init failed: %s", exc)
@@ -240,7 +282,11 @@ class ChatController:
                 wl_trigger = None
                 try:
                     from cockpit.core.watchlist_trigger import WatchlistTrigger
-                    if state_store is not None and tool_router.backend_api_client is not None:
+
+                    if (
+                        state_store is not None
+                        and tool_router.backend_api_client is not None
+                    ):
                         wl_trigger = WatchlistTrigger(
                             state_store=state_store,
                             strategy_service=self._strategy_service,
@@ -258,7 +304,11 @@ class ChatController:
                 risk_gate_svc = None
                 reflection_svc = None
                 try:
-                    from cockpit.core.research.signal_engine import ScreenRunner, TickerScorer
+                    from cockpit.core.research.signal_engine import (
+                        ScreenRunner,
+                        TickerScorer,
+                    )
+
                     ticker_scorer = TickerScorer(
                         tool_router,
                         state_store=state_store,
@@ -269,11 +319,13 @@ class ChatController:
                     logger.warning("Signal engine init failed: %s", exc)
                 try:
                     from cockpit.core.research.thesis import ThesisService
+
                     thesis_svc = ThesisService()
                 except Exception as exc:
                     logger.warning("ThesisService init failed: %s", exc)
                 try:
                     from cockpit.core.research.risk_gate import RiskGate
+
                     risk_gate_svc = RiskGate(
                         backend_client=tool_router.backend_api_client,
                         dossier_service=dossier_svc,
@@ -283,6 +335,7 @@ class ChatController:
                 try:
                     from cockpit.core.research.reflection import ReflectionService
                     from cockpit.core.research.situation_memory import SituationMemory
+
                     sit_mem = SituationMemory()
                     if risk_gate_svc is not None:
                         risk_gate_svc._situation_memory = sit_mem
@@ -312,7 +365,11 @@ class ChatController:
                         risk_gate=risk_gate_svc,
                         reflection_service=reflection_svc,
                     ),
-                    system_instruction_builder=lambda mode, ticker: self._build_system_instruction(mode, ticker, {}),
+                    system_instruction_builder=lambda: self._build_system_instruction(
+                        ResponseMode.FAST,
+                        None,
+                        {},
+                    ),
                     llm_timeout=self.llm_timeout_seconds,
                 )
                 from cockpit.core.llm_profile import cockpit_llm_profile_label
@@ -528,13 +585,58 @@ class ChatController:
         # Financial signal vocabulary by type
         SIGNAL_WORDS = {
             "revenue": ["revenue", "sales", "turnover", "top-line", "top line"],
-            "profitability": ["profit", "ebit", "ebitda", "npat", "margin", "earnings", "loss"],
+            "profitability": [
+                "profit",
+                "ebit",
+                "ebitda",
+                "npat",
+                "margin",
+                "earnings",
+                "loss",
+            ],
             "cashflow": ["cash flow", "cashflow", "fcf", "operating cash", "free cash"],
-            "debt": ["debt", "leverage", "net debt", "borrowings", "net cash", "gearing"],
-            "guidance": ["guidance", "outlook", "forecast", "expects", "target", "projected"],
-            "risk": ["risk", "headwind", "concern", "impairment", "write-down", "write-off"],
-            "catalyst": ["catalyst", "upgrade", "acquisition", "merger", "buyback", "dividend"],
-            "valuation": ["cheap", "expensive", "overvalued", "undervalued", "discount", "premium", "p/e", "ev/ebit"],
+            "debt": [
+                "debt",
+                "leverage",
+                "net debt",
+                "borrowings",
+                "net cash",
+                "gearing",
+            ],
+            "guidance": [
+                "guidance",
+                "outlook",
+                "forecast",
+                "expects",
+                "target",
+                "projected",
+            ],
+            "risk": [
+                "risk",
+                "headwind",
+                "concern",
+                "impairment",
+                "write-down",
+                "write-off",
+            ],
+            "catalyst": [
+                "catalyst",
+                "upgrade",
+                "acquisition",
+                "merger",
+                "buyback",
+                "dividend",
+            ],
+            "valuation": [
+                "cheap",
+                "expensive",
+                "overvalued",
+                "undervalued",
+                "discount",
+                "premium",
+                "p/e",
+                "ev/ebit",
+            ],
         }
 
         observations = []
@@ -556,10 +658,12 @@ class ChatController:
             # Check for signal words
             for obs_type, words in SIGNAL_WORDS.items():
                 if any(w in sentence.lower() for w in words):
-                    observations.append({
-                        "type": obs_type,
-                        "content": sentence,
-                    })
+                    observations.append(
+                        {
+                            "type": obs_type,
+                            "content": sentence,
+                        }
+                    )
                     break  # one type per sentence
 
         # Cap at 3 observations per turn to avoid noise
@@ -585,7 +689,9 @@ class ChatController:
 
         # Non-blocking acquire: if already locked the worker is still running.
         if not self._context_gather_lock.acquire(blocking=False):
-            return _ContextResult(ok=False, payload={"note": "context_gather_busy", "ticker": ticker})
+            return _ContextResult(
+                ok=False, payload={"note": "context_gather_busy", "ticker": ticker}
+            )
 
         result_holder: list[Any] = [None]
         error_holder: list[BaseException | None] = [None]
@@ -607,12 +713,18 @@ class ChatController:
 
         if worker.is_alive():
             # Worker timed out — lock still held by worker thread until it finishes.
-            return _ContextResult(ok=False, payload={"note": "context_gather_timeout", "ticker": ticker})
+            return _ContextResult(
+                ok=False, payload={"note": "context_gather_timeout", "ticker": ticker}
+            )
 
         if error_holder[0] is not None:
             return _ContextResult(
                 ok=False,
-                payload={"note": "context_gather_error", "ticker": ticker, "db_error": str(error_holder[0])},
+                payload={
+                    "note": "context_gather_error",
+                    "ticker": ticker,
+                    "db_error": str(error_holder[0]),
+                },
             )
 
         return result_holder[0]
@@ -623,12 +735,21 @@ class ChatController:
         # OR digit-started tickers that contain at least one letter (e.g. 29M, 4DS, 5GN).
         return [
             (m.group(0), m.group(0).upper())
-            for m in re.finditer(r"\b(?:[A-Za-z][A-Za-z0-9]{1,4}|[0-9]+[A-Za-z][A-Za-z0-9]{0,3})\b", message)
+            for m in re.finditer(
+                r"\b(?:[A-Za-z][A-Za-z0-9]{1,4}|[0-9]+[A-Za-z][A-Za-z0-9]{0,3})\b",
+                message,
+            )
         ]
 
-    def _detect_ticker(self, message: str, prior_ticker: str | None = None) -> str | None:
+    def _detect_ticker(
+        self, message: str, prior_ticker: str | None = None
+    ) -> str | None:
         # Prefer explicit ticker-like mentions first, e.g. "$BHP", "ASX:BHP", or "BHP.AX" / "29M.AX".
-        explicit = re.search(r"(?:\bASX:|\$)([A-Za-z]{2,5})\b|([A-Za-z0-9]{2,5})\.AX\b", message, re.IGNORECASE)
+        explicit = re.search(
+            r"(?:\bASX:|\$)([A-Za-z]{2,5})\b|([A-Za-z0-9]{2,5})\.AX\b",
+            message,
+            re.IGNORECASE,
+        )
         if explicit:
             token = (explicit.group(1) or explicit.group(2)).upper()
             if token not in self.TICKER_STOPWORDS:
@@ -663,7 +784,10 @@ class ChatController:
             if upper in self.TICKER_STOPWORDS:
                 continue
             token_pattern = re.escape(original)
-            if any(re.search(pattern.format(token=token_pattern), message, re.IGNORECASE) for pattern in ticker_cue_patterns):
+            if any(
+                re.search(pattern.format(token=token_pattern), message, re.IGNORECASE)
+                for pattern in ticker_cue_patterns
+            ):
                 return upper
         return prior_ticker
 
@@ -687,7 +811,9 @@ class ChatController:
             return prior, False
         return None, False
 
-    _GLOBAL_NEWS_RE = re.compile(r"\basx\s+news\b|\bmarket\s+news\b|\ball\s+news\b", re.IGNORECASE)
+    _GLOBAL_NEWS_RE = re.compile(
+        r"\basx\s+news\b|\bmarket\s+news\b|\ball\s+news\b", re.IGNORECASE
+    )
     _GLOBAL_ANNOUNCEMENT_RE = re.compile(
         r"\basx\s+announc|\ball\s+announc|\bmarket.?wide\s+announc", re.IGNORECASE
     )
@@ -757,7 +883,9 @@ class ChatController:
         re.IGNORECASE,
     )
 
-    def _try_price_history_shortcircuit(self, message: str, ticker: str | None) -> ChatResponse | None:
+    def _try_price_history_shortcircuit(
+        self, message: str, ticker: str | None
+    ) -> ChatResponse | None:
         """Detect price-on-date, range, or full-history queries and short-circuit."""
         if ticker is None:
             return None
@@ -765,7 +893,10 @@ class ChatController:
         # Fetch price context (10y window gives us maximum coverage for queries).
         try:
             bundle = self.tool_router.get_price_context_for_window(
-                ticker, range_="10y", interval="1d", max_history_rows=3000,
+                ticker,
+                range_="10y",
+                interval="1d",
+                max_history_rows=3000,
             )
         except Exception:
             return None
@@ -808,12 +939,26 @@ class ChatController:
                 text = f"No price history for {symbol} between {start_date} and {end_date}."
                 return ChatResponse(
                     text=text,
-                    evidence=[{"type": "local_context", "details": {"price_history_query": {"kind": "range", "ticker": ticker, "start": start_date, "end": end_date}}}],
+                    evidence=[
+                        {
+                            "type": "local_context",
+                            "details": {
+                                "price_history_query": {
+                                    "kind": "range",
+                                    "ticker": ticker,
+                                    "start": start_date,
+                                    "end": end_date,
+                                }
+                            },
+                        }
+                    ],
                     mode=ResponseMode.FAST,
                 )
             first_close = in_range[0][1]
             last_close = in_range[-1][1]
-            period_return = ((last_close / first_close) - 1.0) * 100.0 if first_close != 0 else 0.0
+            period_return = (
+                ((last_close / first_close) - 1.0) * 100.0 if first_close != 0 else 0.0
+            )
             high = max(c for _, c in in_range)
             low = min(c for _, c in in_range)
             text = (
@@ -823,7 +968,19 @@ class ChatController:
             )
             return ChatResponse(
                 text=text,
-                evidence=[{"type": "local_context", "details": {"price_history_query": {"kind": "range", "ticker": ticker, "start": start_date, "end": end_date}}}],
+                evidence=[
+                    {
+                        "type": "local_context",
+                        "details": {
+                            "price_history_query": {
+                                "kind": "range",
+                                "ticker": ticker,
+                                "start": start_date,
+                                "end": end_date,
+                            }
+                        },
+                    }
+                ],
                 mode=ResponseMode.FAST,
             )
 
@@ -841,7 +998,18 @@ class ChatController:
                 )
                 return ChatResponse(
                     text=text,
-                    evidence=[{"type": "local_context", "details": {"price_history_query": {"kind": "on_date", "ticker": ticker, "date": query_date}}}],
+                    evidence=[
+                        {
+                            "type": "local_context",
+                            "details": {
+                                "price_history_query": {
+                                    "kind": "on_date",
+                                    "ticker": ticker,
+                                    "date": query_date,
+                                }
+                            },
+                        }
+                    ],
                     mode=ResponseMode.FAST,
                 )
             # Try nearest preceding date.
@@ -854,13 +1022,35 @@ class ChatController:
                 )
                 return ChatResponse(
                     text=text,
-                    evidence=[{"type": "local_context", "details": {"price_history_query": {"kind": "on_date", "ticker": ticker, "date": query_date}}}],
+                    evidence=[
+                        {
+                            "type": "local_context",
+                            "details": {
+                                "price_history_query": {
+                                    "kind": "on_date",
+                                    "ticker": ticker,
+                                    "date": query_date,
+                                }
+                            },
+                        }
+                    ],
                     mode=ResponseMode.FAST,
                 )
             text = f"No price history exists on or before {query_date} for {symbol}."
             return ChatResponse(
                 text=text,
-                evidence=[{"type": "local_context", "details": {"price_history_query": {"kind": "on_date", "ticker": ticker, "date": query_date}}}],
+                evidence=[
+                    {
+                        "type": "local_context",
+                        "details": {
+                            "price_history_query": {
+                                "kind": "on_date",
+                                "ticker": ticker,
+                                "date": query_date,
+                            }
+                        },
+                    }
+                ],
                 mode=ResponseMode.FAST,
             )
 
@@ -871,7 +1061,9 @@ class ChatController:
             n_points = len(dated_closes)
             first_close = dated_closes[0][1]
             last_close = dated_closes[-1][1]
-            total_return = ((last_close / first_close) - 1.0) * 100.0 if first_close != 0 else 0.0
+            total_return = (
+                ((last_close / first_close) - 1.0) * 100.0 if first_close != 0 else 0.0
+            )
             high = max(c for _, c in dated_closes)
             low = min(c for _, c in dated_closes)
             text = (
@@ -882,7 +1074,17 @@ class ChatController:
             )
             return ChatResponse(
                 text=text,
-                evidence=[{"type": "local_context", "details": {"price_history_query": {"kind": "full_summary", "ticker": ticker}}}],
+                evidence=[
+                    {
+                        "type": "local_context",
+                        "details": {
+                            "price_history_query": {
+                                "kind": "full_summary",
+                                "ticker": ticker,
+                            }
+                        },
+                    }
+                ],
                 mode=ResponseMode.FAST,
             )
 
@@ -894,7 +1096,10 @@ class ChatController:
         if not text:
             return ResponseMode.FAST
 
-        if any(url_prefix in text for url_prefix in ("http://", "https://")) and enable_web:
+        if (
+            any(url_prefix in text for url_prefix in ("http://", "https://"))
+            and enable_web
+        ):
             return ResponseMode.WEB
 
         verification_markers = (
@@ -930,7 +1135,9 @@ class ChatController:
 
         return ResponseMode.FAST
 
-    def _compute_announcement_sync_status(self, ticker: str, docs: list[dict], message: str) -> dict:  # noqa: ARG002
+    def _compute_announcement_sync_status(
+        self, ticker: str, docs: list[dict], message: str
+    ) -> dict:  # noqa: ARG002
         """Return {status, needs_update_offer} based on recency of docs."""
         if not docs:
             return {"status": "missing", "needs_update_offer": True}
@@ -957,7 +1164,10 @@ class ChatController:
                 "action_preview": None,
             }
         args: dict[str, Any] = {"ticker": ticker, "years": 1, "process_documents": True}
-        action_preview: dict[str, Any] = {"action_id": "update_ticker_financials", "args": args}
+        action_preview: dict[str, Any] = {
+            "action_id": "update_ticker_financials",
+            "args": args,
+        }
         if self.action_registry:
             try:
                 preview = self.action_registry.preview("update_ticker_financials", args)
@@ -973,7 +1183,9 @@ class ChatController:
         )
         return {"note": note, "action_preview": action_preview}
 
-    def _build_system_instruction(self, mode: str, ticker: str | None, local_payload: dict) -> str:  # noqa: ARG002
+    def _build_system_instruction(
+        self, mode: str, ticker: str | None, local_payload: dict
+    ) -> str:  # noqa: ARG002
         """Build the ASX-domain-specific system prompt for the LLM."""
         date_str = datetime.now().strftime("%Y-%m-%d")
         instruction = (
@@ -1019,7 +1231,9 @@ class ChatController:
         # Cross-session episodic memory
         if self._state_store:
             try:
-                recent_sessions = self._state_store.get_recent_session_summaries(limit=2)
+                recent_sessions = self._state_store.get_recent_session_summaries(
+                    limit=2
+                )
                 if recent_sessions:
                     session_lines = []
                     for s in recent_sessions:
@@ -1028,7 +1242,9 @@ class ChatController:
                             f"  {s['date']}: {s['summary']}"
                             + (f" [tickers: {tickers_str}]" if tickers_str else "")
                         )
-                    instruction += "\nPrior session context:\n" + "\n".join(session_lines) + "\n"
+                    instruction += (
+                        "\nPrior session context:\n" + "\n".join(session_lines) + "\n"
+                    )
             except Exception:
                 pass
 
@@ -1072,6 +1288,8 @@ class ChatController:
             "**Tool dependencies:**\n"
             "- `get_valuation` needs financials — call `get_financials` first if data is stale\n"
             "- `create_thesis` benefits from `score_ticker` context — score first\n"
+            "- If `search_news` returns `data_insufficient=true` with a `recommended_tool_call`, "
+            "propose that mutating tool call so the user can confirm corpus population\n"
             "- `screen_tickers([])` with empty list uses the watchlist automatically\n"
         )
 
@@ -1092,7 +1310,9 @@ class ChatController:
     ) -> ChatResponse:
         """Run the agentic tool-calling loop and convert the result to a ChatResponse."""
         # Reuse existing ticker detection logic
-        ticker, explicit_ticker = self._resolve_ticker_context(message, prior_ticker=prior_ticker)
+        ticker, explicit_ticker = self._resolve_ticker_context(
+            message, prior_ticker=prior_ticker
+        )
         if ticker:
             self.last_ticker = ticker
 
@@ -1100,10 +1320,15 @@ class ChatController:
         conversation_history: list[dict] = []
         if self._state_store is not None:
             try:
-                history_msgs = self._state_store.get_chat_messages(self._thread_id, limit=12)
+                history_msgs = self._state_store.get_chat_messages(
+                    self._thread_id, limit=12
+                )
                 prior_turns = history_msgs[:-1] if history_msgs else []
                 conversation_history = [
-                    {"role": m.get("role", "user"), "content": str(m.get("content", ""))[:400]}
+                    {
+                        "role": m.get("role", "user"),
+                        "content": str(m.get("content", ""))[:400],
+                    }
                     for m in prior_turns[-6:]
                 ]
             except Exception:
@@ -1125,13 +1350,17 @@ class ChatController:
             try:
                 research = self._memory.read_research(ticker)
                 if research:
-                    extra_context = f"\n\n## Prior Research for {ticker}\n{research[:4000]}"
+                    extra_context = (
+                        f"\n\n## Prior Research for {ticker}\n{research[:4000]}"
+                    )
                     augmented_message = message + extra_context
             except Exception:
                 pass  # memory injection is best-effort
 
         # Run the agent loop
-        from cockpit.core.agent_loop import AgentResult  # guaranteed available if _agent_loop is set
+        from cockpit.core.agent_loop import (
+            AgentResult,
+        )  # guaranteed available if _agent_loop is set
 
         result: AgentResult = self._agent_loop.run(
             message=augmented_message,
@@ -1177,7 +1406,9 @@ class ChatController:
         # Extract and store ticker observations (same as keyword path)
         if self._state_store is not None and ticker:
             try:
-                obs_list = ChatController._extract_ticker_observations(ticker, result.text)
+                obs_list = ChatController._extract_ticker_observations(
+                    ticker, result.text
+                )
                 for obs in obs_list:
                     self._state_store.add_entity_observation(
                         ticker=ticker,
@@ -1211,7 +1442,7 @@ class ChatController:
         if self._GREETING_RE.match(message):
             greeting = (
                 "Hey! I'm Tenn — your ASX research assistant. "
-                "Ask me about a company (e.g. \"tell me about CSL\") or run an action from the panel."
+                'Ask me about a company (e.g. "tell me about CSL") or run an action from the panel.'
             )
             return ChatResponse(text=greeting, evidence=[], mode=ResponseMode.FAST)
 
@@ -1221,7 +1452,9 @@ class ChatController:
         # ------------------------------------------------------------------ #
 
         # Ticker detection (shared by both agent and keyword paths).
-        ticker, explicit_ticker = self._resolve_ticker_context(message, prior_ticker=prior_ticker)
+        ticker, explicit_ticker = self._resolve_ticker_context(
+            message, prior_ticker=prior_ticker
+        )
         if ticker:
             self.last_ticker = ticker
 
@@ -1229,12 +1462,25 @@ class ChatController:
 
         # --- Conversational update shortcut: "update <ticker> announcements" ---
         explicit_ticker_in_message = ticker if explicit_ticker else None
-        if "update" in msg_lower and "announcement" in msg_lower and explicit_ticker_in_message:
-            args: dict[str, Any] = {"ticker": explicit_ticker_in_message, "years": 1, "process_documents": True}
-            action_preview: dict[str, Any] = {"action_id": "update_ticker_financials", "args": args}
+        if (
+            "update" in msg_lower
+            and "announcement" in msg_lower
+            and explicit_ticker_in_message
+        ):
+            args: dict[str, Any] = {
+                "ticker": explicit_ticker_in_message,
+                "years": 1,
+                "process_documents": True,
+            }
+            action_preview: dict[str, Any] = {
+                "action_id": "update_ticker_financials",
+                "args": args,
+            }
             if self.action_registry:
                 try:
-                    preview = self.action_registry.preview("update_ticker_financials", args)
+                    preview = self.action_registry.preview(
+                        "update_ticker_financials", args
+                    )
                     action_preview["command"] = preview.command
                     action_preview["impact"] = preview.estimated_impact
                     action_preview["timeout_seconds"] = preview.timeout_seconds
@@ -1253,8 +1499,9 @@ class ChatController:
 
             if not ticker:
                 return ChatResponse(
-                    text="Which ticker do you want to chart? e.g. \"chart CSL\" or \"candlestick BHP\"",
-                    evidence=[], mode=ResponseMode.FAST,
+                    text='Which ticker do you want to chart? e.g. "chart CSL" or "candlestick BHP"',
+                    evidence=[],
+                    mode=ResponseMode.FAST,
                 )
             chart_ticker = ticker
             out_dir = Path("reports") / "candles"
@@ -1268,7 +1515,9 @@ class ChatController:
                     out[k] = v
                 return out
 
-            _parse_kv = getattr(self.action_registry, "parse_kv_args", _default_parse_kv)
+            _parse_kv = getattr(
+                self.action_registry, "parse_kv_args", _default_parse_kv
+            )
             chart_args, chart_err = prepare_chart_action_args(
                 chart_ticker,
                 parse_kv_args=_parse_kv,
@@ -1278,14 +1527,21 @@ class ChatController:
             if chart_err:
                 return ChatResponse(
                     text=f"/chart failed: {chart_err}",
-                    evidence=[{"type": "chart_error", "details": {"error": chart_err, "ticker": chart_ticker}}],
+                    evidence=[
+                        {
+                            "type": "chart_error",
+                            "details": {"error": chart_err, "ticker": chart_ticker},
+                        }
+                    ],
                     action_preview=None,
                     mode=ResponseMode.ACTION,
                 )
             if chart_args is None:
                 return ChatResponse(
                     text=f"/chart failed: no chart args returned for {chart_ticker}",
-                    evidence=[{"type": "chart_error", "details": {"ticker": chart_ticker}}],
+                    evidence=[
+                        {"type": "chart_error", "details": {"ticker": chart_ticker}}
+                    ],
                     action_preview=None,
                     mode=ResponseMode.ACTION,
                 )
@@ -1293,7 +1549,12 @@ class ChatController:
             preview = self.action_registry.preview("show_candlestick", chart_args)
             return ChatResponse(
                 text=f"Running candlestick chart for {chart_ticker}...",
-                evidence=[{"type": "chart_action", "details": {"ticker": chart_ticker, **chart_args}}],
+                evidence=[
+                    {
+                        "type": "chart_action",
+                        "details": {"ticker": chart_ticker, **chart_args},
+                    }
+                ],
                 action_preview={
                     "action_id": "show_candlestick",
                     "args": chart_args,
@@ -1326,7 +1587,14 @@ class ChatController:
             # ------------------------------------------------------------------ #
             agent_mode = os.environ.get("COCKPIT_AGENT_MODE", "structured")
             if agent_mode == "structured" and self._agent_loop is not None:
-                return self._run_agent_loop(message, enable_web, prior_ticker, on_chunk, on_status, analysis_mode)
+                return self._run_agent_loop(
+                    message,
+                    enable_web,
+                    prior_ticker,
+                    on_chunk,
+                    on_status,
+                    analysis_mode,
+                )
 
         # ------------------------------------------------------------------ #
         # Keyword router (legacy path — explicit opt-in or action fallthrough) #
@@ -1337,7 +1605,9 @@ class ChatController:
         else:
             mode = self.classify_request(message, enable_web=enable_web)
 
-        effective_profile = context_profile or os.environ.get("COCKPIT_CONTEXT_PROFILE", "balanced")
+        effective_profile = context_profile or os.environ.get(
+            "COCKPIT_CONTEXT_PROFILE", "balanced"
+        )
 
         # --- Access request: URL in message but web is disabled ---
         if any(p in message for p in ("http://", "https://")) and not enable_web:
@@ -1381,22 +1651,27 @@ class ChatController:
             )
 
         deep_mode = mode in {ResponseMode.DEEP_ANALYSIS, ResponseMode.VERIFICATION}
-        local_context = self.tool_router.gather_local_context(ticker=ticker, query=message, deep_mode=deep_mode)
+        local_context = self.tool_router.gather_local_context(
+            ticker=ticker, query=message, deep_mode=deep_mode
+        )
 
         evidence = [
             {"type": "local_context", "details": local_context.payload},
         ]
 
         _MARKET_WIDE_ACTIONS = {
-            "daily_news_ingest", "historical_news_ingest",
-            "daily_announcement_ingest", "load_news_to_qdrant",
+            "daily_news_ingest",
+            "historical_news_ingest",
+            "daily_announcement_ingest",
+            "load_news_to_qdrant",
             "universe_announcement_enrichment_backfill",
         }
         if action_id:
             if not ticker and action_id not in _MARKET_WIDE_ACTIONS:
                 return ChatResponse(
-                    text=f"Action **{action_id}** needs a ticker. e.g. \"{action_id} CSL\"",
-                    evidence=[], mode=ResponseMode.FAST,
+                    text=f'Action **{action_id}** needs a ticker. e.g. "{action_id} CSL"',
+                    evidence=[],
+                    mode=ResponseMode.FAST,
                 )
             args = {"ticker": ticker or ""}
             try:
@@ -1451,8 +1726,14 @@ class ChatController:
 
         # --- Announcement sync check ---
         if "announcement" in msg_lower and ticker:
-            local_docs = (local_context.payload or {}).get("docs", []) if isinstance(local_context.payload, dict) else []
-            sync = self._compute_announcement_sync_status(ticker, docs=local_docs, message=message)
+            local_docs = (
+                (local_context.payload or {}).get("docs", [])
+                if isinstance(local_context.payload, dict)
+                else []
+            )
+            sync = self._compute_announcement_sync_status(
+                ticker, docs=local_docs, message=message
+            )
             offer = self._build_ticker_update_offer(ticker, sync)
             return ChatResponse(
                 text=offer.get("note", ""),
@@ -1461,7 +1742,11 @@ class ChatController:
                 mode=ResponseMode.FAST,
             )
 
-        local_payload = dict(local_context.payload) if isinstance(local_context.payload, dict) else {}
+        local_payload = (
+            dict(local_context.payload)
+            if isinstance(local_context.payload, dict)
+            else {}
+        )
         if mode == ResponseMode.WEB:
             local_payload["web_requested"] = True
         local_payload["response_mode"] = mode.value
@@ -1488,7 +1773,9 @@ class ChatController:
             }
             if self.action_registry:
                 try:
-                    _bp = self.action_registry.preview("single_ticker_announcement_backfill", _backfill_args)
+                    _bp = self.action_registry.preview(
+                        "single_ticker_announcement_backfill", _backfill_args
+                    )
                     _action_preview["command"] = _bp.command
                     _action_preview["impact"] = _bp.estimated_impact
                     _action_preview["timeout_seconds"] = _bp.timeout_seconds
@@ -1508,7 +1795,12 @@ class ChatController:
 
         # Docs exist but no extracted financials — warn the user before hitting the LLM,
         # so the response is grounded rather than speculative.
-        if ticker and has_docs and not has_financials and mode not in {ResponseMode.ACTION, ResponseMode.WEB}:
+        if (
+            ticker
+            and has_docs
+            and not has_financials
+            and mode not in {ResponseMode.ACTION, ResponseMode.WEB}
+        ):
             n_docs = len(local_payload["docs"])
             local_payload["_missing_financials_warning"] = (
                 f"Note: {n_docs} document(s) found for {ticker} but no extracted financial metrics. "
@@ -1534,7 +1826,9 @@ class ChatController:
 
         # OpenViking: fetch semantically relevant prior turns for this query
         ov_context_block = ""
-        prior_ov_turns = get_relevant_session_context(self._ov_session_id, message, limit=3)
+        prior_ov_turns = get_relevant_session_context(
+            self._ov_session_id, message, limit=3
+        )
         if prior_ov_turns:
             lines = ["Relevant prior session context:"]
             for t in prior_ov_turns:
@@ -1552,7 +1846,9 @@ class ChatController:
         history_block = ""
         if self._state_store is not None:
             try:
-                history_msgs = self._state_store.get_chat_messages(self._thread_id, limit=12)
+                history_msgs = self._state_store.get_chat_messages(
+                    self._thread_id, limit=12
+                )
                 # Exclude the most recent message (current turn, just stored)
                 prior_turns = history_msgs[:-1] if history_msgs else []
                 if prior_turns:
@@ -1576,13 +1872,17 @@ class ChatController:
                     _src = local_payload.get("sources")
                     if isinstance(_src, dict):
                         g_count = len(self._strategy_service.get_global(limit=10))
-                        t_count = len(self._strategy_service.get_ticker(ticker, limit=10))
+                        t_count = len(
+                            self._strategy_service.get_ticker(ticker, limit=10)
+                        )
                         _src["strategy_criteria_count"] = g_count + t_count
             except Exception:
                 pass  # strategy injection is best-effort
 
         if local_payload.get("financials_narrative"):
-            context_sections.append("Financial Trend Summary:\n" + local_payload["financials_narrative"])
+            context_sections.append(
+                "Financial Trend Summary:\n" + local_payload["financials_narrative"]
+            )
 
         if local_payload.get("valuation_multiples"):
             vm = local_payload["valuation_multiples"]
@@ -1596,9 +1896,14 @@ class ChatController:
         if local_payload.get("agent_memory"):
             mem_lines = []
             for obs in local_payload["agent_memory"]:
-                mem_lines.append(f"  [{obs.get('type', 'note')}] {obs.get('content', '')}")
+                mem_lines.append(
+                    f"  [{obs.get('type', 'note')}] {obs.get('content', '')}"
+                )
             if mem_lines:
-                context_sections.append("Prior agent observations about this ticker:\n" + "\n".join(mem_lines[:6]))
+                context_sections.append(
+                    "Prior agent observations about this ticker:\n"
+                    + "\n".join(mem_lines[:6])
+                )
 
         if local_payload.get("prior_export"):
             pe = local_payload["prior_export"]
@@ -1626,7 +1931,11 @@ class ChatController:
                 pub = str(d.get("published_at") or "").strip()[:10]
                 doc_class = str(d.get("doc_class") or "").strip()
                 if title:
-                    doc_lines.append(f"  - {title} ({doc_class}, {pub})" if pub else f"  - {title} ({doc_class})")
+                    doc_lines.append(
+                        f"  - {title} ({doc_class}, {pub})"
+                        if pub
+                        else f"  - {title} ({doc_class})"
+                    )
             evidence_parts.append("\n".join(doc_lines))
 
         # Summarise doc snippets as readable excerpts
@@ -1645,12 +1954,23 @@ class ChatController:
         if isinstance(financials, list) and financials:
             fin_lines = [f"Financial metrics for {ticker or 'query'}:"]
             for row in financials[:6]:
-                period = str(row.get("period_end") or row.get("period") or row.get("year") or "").strip()
+                period = str(
+                    row.get("period_end") or row.get("period") or row.get("year") or ""
+                ).strip()
                 period_type = str(row.get("period_type") or "").strip()
                 label = f"{period} ({period_type})" if period_type else period
                 metrics_found = []
-                for metric in ("revenue", "ebit", "npat", "operating_cash_flow", "free_cash_flow",
-                               "net_debt", "total_assets", "total_equity", "shares_on_issue"):
+                for metric in (
+                    "revenue",
+                    "ebit",
+                    "npat",
+                    "operating_cash_flow",
+                    "free_cash_flow",
+                    "net_debt",
+                    "total_assets",
+                    "total_equity",
+                    "shares_on_issue",
+                ):
                     val = row.get(metric)
                     if val is not None:
                         metrics_found.append(f"    {metric}: {val}")
@@ -1673,7 +1993,13 @@ class ChatController:
         price_state = local_payload.get("price_state")
         if isinstance(price_state, dict) and price_state:
             state_lines = ["Price state:"]
-            for key in ("trend_regime", "momentum_1d", "momentum_20d", "annualised_vol", "drawdown_from_high"):
+            for key in (
+                "trend_regime",
+                "momentum_1d",
+                "momentum_20d",
+                "annualised_vol",
+                "drawdown_from_high",
+            ):
                 val = price_state.get(key)
                 if val is not None:
                     state_lines.append(f"  {key}: {val}")
@@ -1698,7 +2024,9 @@ class ChatController:
             if dq.get("extraction_failures"):
                 issues.append(f"{len(dq['extraction_failures'])} extraction failure(s)")
             if dq.get("low_confidence_rows"):
-                issues.append(f"{len(dq['low_confidence_rows'])} low-confidence metric(s)")
+                issues.append(
+                    f"{len(dq['low_confidence_rows'])} low-confidence metric(s)"
+                )
             if issues:
                 evidence_parts.append("Data quality notes: " + "; ".join(issues))
 
@@ -1730,25 +2058,34 @@ class ChatController:
         if on_chunk is not None:
             try:
                 answer = self.ollama_client.chat(
-                    user_message, timeout=self.llm_timeout_seconds,
-                    on_chunk=on_chunk, prior_messages=prior_messages,
+                    user_message,
+                    timeout=self.llm_timeout_seconds,
+                    on_chunk=on_chunk,
+                    prior_messages=prior_messages,
                 )
             except TypeError as exc:
                 if "on_chunk" not in str(exc) and "prior_messages" not in str(exc):
                     raise
                 logger.info("ollama_client.chat fallback (unsupported kwarg): %s", exc)
-                answer = self.ollama_client.chat(prompt_fallback, timeout=self.llm_timeout_seconds)
+                answer = self.ollama_client.chat(
+                    prompt_fallback, timeout=self.llm_timeout_seconds
+                )
         else:
             try:
                 answer = self.ollama_client.chat(
-                    user_message, timeout=self.llm_timeout_seconds,
+                    user_message,
+                    timeout=self.llm_timeout_seconds,
                     prior_messages=prior_messages,
                 )
             except TypeError as exc:
                 if "prior_messages" not in str(exc):
                     raise
-                logger.info("ollama_client.chat fallback (no prior_messages support): %s", exc)
-                answer = self.ollama_client.chat(prompt_fallback, timeout=self.llm_timeout_seconds)
+                logger.info(
+                    "ollama_client.chat fallback (no prior_messages support): %s", exc
+                )
+                answer = self.ollama_client.chat(
+                    prompt_fallback, timeout=self.llm_timeout_seconds
+                )
 
         if analysis_mode == "deep" and (
             self._looks_like_framework_only_analysis(
@@ -1788,13 +2125,21 @@ class ChatController:
             except Exception:
                 pass  # observations are best-effort, never block the response
 
-        return ChatResponse(text=answer.strip(), evidence=evidence, mode=mode, prompt=prompt_fallback)
+        return ChatResponse(
+            text=answer.strip(), evidence=evidence, mode=mode, prompt=prompt_fallback
+        )
 
     @staticmethod
     def now_iso() -> str:
         return datetime.now(timezone.utc).isoformat()
 
-    _DEEP_REQUIRED_HEADERS = ("Verdict:", "Evidence:", "Risks:", "Counterpoints:", "Unknowns:")
+    _DEEP_REQUIRED_HEADERS = (
+        "Verdict:",
+        "Evidence:",
+        "Risks:",
+        "Counterpoints:",
+        "Unknowns:",
+    )
 
     def _violates_deep_output_contract(self, text: str) -> bool:
         """Return True if text is missing required deep-analysis headers or source anchors."""
@@ -1804,7 +2149,11 @@ class ChatController:
         return "[source:" not in text.lower()
 
     def _looks_like_framework_only_analysis(
-        self, *, answer: str, ticker: str, local_payload: dict[str, Any]  # noqa: ARG002
+        self,
+        *,
+        answer: str,
+        ticker: str,
+        local_payload: dict[str, Any],  # noqa: ARG002
     ) -> bool:
         """Return True if the answer looks like an empty outline with no grounded evidence."""
         # Must have numbered markdown section headers (### N. ...) to be a framework answer.
@@ -1818,7 +2167,11 @@ class ChatController:
         return True
 
     def _build_grounded_deep_analysis_brief(
-        self, *, ticker: str, message: str, local_payload: dict[str, Any]  # noqa: ARG002
+        self,
+        *,
+        ticker: str,
+        message: str,
+        local_payload: dict[str, Any],  # noqa: ARG002
     ) -> str:
         """Build a structured evidence brief directly from local_payload, bypassing the LLM."""
         lines: list[str] = []
@@ -1829,7 +2182,11 @@ class ChatController:
         hits = [h for h in (qual.get("hits") or []) if isinstance(h, dict)]
         seen_files: dict[str, float] = {}
         unique_hits: list[dict[str, Any]] = []
-        for hit in sorted(hits, key=lambda h: float(h.get("score") or h.get("final_score") or 0.0), reverse=True):
+        for hit in sorted(
+            hits,
+            key=lambda h: float(h.get("score") or h.get("final_score") or 0.0),
+            reverse=True,
+        ):
             file_key = str(hit.get("file") or hit.get("title") or "")
             score = float(hit.get("score") or hit.get("final_score") or 0.0)
             if file_key and file_key in seen_files:
@@ -1844,13 +2201,18 @@ class ChatController:
             title = str(hit.get("title") or "")
             # Clean absolute paths — use basename only.
             src_label = Path(raw_file).name if raw_file else title
-            evidence_lines.append(f"- score {score:.3f} | {date} | {title or src_label} [source: {src_label}]")
+            evidence_lines.append(
+                f"- score {score:.3f} | {date} | {title or src_label} [source: {src_label}]"
+            )
 
         # --- Doc snippets — signal extraction for liquidity/refinancing terms ---
         _SIGNAL_TERMS = re.compile(
-            r"liquidity|refinanc|cash\s+runway|undrawn|debt\s+facilit|maturity|covenant", re.IGNORECASE
+            r"liquidity|refinanc|cash\s+runway|undrawn|debt\s+facilit|maturity|covenant",
+            re.IGNORECASE,
         )
-        snippets = [s for s in (local_payload.get("doc_snippets") or []) if isinstance(s, dict)]
+        snippets = [
+            s for s in (local_payload.get("doc_snippets") or []) if isinstance(s, dict)
+        ]
         signal_snippets: list[str] = []
         for snippet in snippets:
             excerpt = str(snippet.get("excerpt") or "")
@@ -1859,17 +2221,19 @@ class ChatController:
                 excerpt_short = excerpt[:200]
                 signal_snippets.append(f'- "{excerpt_short}" [source: {src}]')
         if signal_snippets:
-            evidence_lines.append("Signal extraction identified concrete liquidity/refinancing snippets:")
+            evidence_lines.append(
+                "Signal extraction identified concrete liquidity/refinancing snippets:"
+            )
             evidence_lines.extend(signal_snippets)
 
         # --- Data quality signals ---
         dq = local_payload.get("data_quality") or {}
-        for failure in (dq.get("recent_failures") or []):
+        for failure in dq.get("recent_failures") or []:
             if isinstance(failure, dict):
                 evidence_lines.append(
                     f"- Extraction failed for {failure.get('title', 'unknown')} [source: extraction_runs/documents]"
                 )
-        for row in (dq.get("recent_low_conf_rows") or []):
+        for row in dq.get("recent_low_conf_rows") or []:
             if isinstance(row, dict):
                 conf = float(row.get("confidence_metrics") or 0.0)
                 period = str(row.get("period_type") or "")
@@ -1890,7 +2254,7 @@ class ChatController:
                 )
 
         # --- Web facts ---
-        for fact in (local_payload.get("web_facts") or []):
+        for fact in local_payload.get("web_facts") or []:
             if isinstance(fact, dict):
                 claim = str(fact.get("claim") or "")
                 url = str(fact.get("url") or "")
@@ -1904,13 +2268,17 @@ class ChatController:
         )
         lines.append("")
         lines.append("Evidence:")
-        lines.extend(evidence_lines if evidence_lines else ["- No local evidence available."])
+        lines.extend(
+            evidence_lines if evidence_lines else ["- No local evidence available."]
+        )
         lines.append("")
         lines.append("Risks:")
         lines.append("- Dependent on availability and recency of evidence above.")
         lines.append("")
         lines.append("Counterpoints:")
-        lines.append("- Data coverage may be partial; full picture requires additional sources.")
+        lines.append(
+            "- Data coverage may be partial; full picture requires additional sources."
+        )
         lines.append("")
         lines.append("Unknowns:")
         lines.append("- Items not yet disclosed or unavailable in local evidence.")

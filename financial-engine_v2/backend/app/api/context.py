@@ -3,6 +3,7 @@
 Replaces direct DbReader SQL from cockpit with proper API endpoints.
 All queries use the same SQL and field names as DbReader for parity.
 """
+
 from __future__ import annotations
 
 import logging
@@ -28,19 +29,31 @@ def _validate_ticker(raw: str) -> str:
     if not cleaned:
         raise HTTPException(status_code=400, detail="ticker must not be empty")
     if not _TICKER_RE.match(cleaned):
-        raise HTTPException(status_code=400, detail="ticker must be 1-10 alphanumeric characters")
+        raise HTTPException(
+            status_code=400, detail="ticker must be 1-10 alphanumeric characters"
+        )
     return cleaned
 
 
-def _run_query(db: Session, sql: str, params: dict[str, Any]) -> tuple[list[dict[str, Any]], str | None]:
+def _run_query(
+    db: Session, sql: str, params: dict[str, Any]
+) -> tuple[list[dict[str, Any]], str | None]:
     """Run a read-only query, returning (rows, error_or_none)."""
     try:
         result = db.execute(text(sql), params)
         return [dict(row._mapping) for row in result], None
     except OperationalError as exc:
+        try:
+            db.rollback()
+        except Exception:
+            pass
         logger.warning("Query failed: %s", exc)
         return [], str(exc)
     except Exception as exc:
+        try:
+            db.rollback()
+        except Exception:
+            pass
         logger.warning("Query failed: %s", exc)
         return [], str(exc)
 
@@ -48,6 +61,7 @@ def _run_query(db: Session, sql: str, params: dict[str, Any]) -> tuple[list[dict
 # ---------------------------------------------------------------------------
 # GET /api/context/ticker
 # ---------------------------------------------------------------------------
+
 
 @router.get("/ticker")
 def get_ticker_context(
@@ -64,7 +78,9 @@ def get_ticker_context(
     errors: list[str] = []
 
     # --- docs (matches DbReader.get_docs) ---
-    docs, err = _run_query(db, """
+    docs, err = _run_query(
+        db,
+        """
         SELECT document_id, ticker, doc_class, doc_subtype, published_at,
                title, source_url, pdf_path, pdf_sha256
         FROM documents
@@ -78,12 +94,16 @@ def get_ticker_context(
             END ASC,
             published_at DESC
         LIMIT :limit
-    """, {"ticker": ticker, "limit": docs_limit})
+    """,
+        {"ticker": ticker, "limit": docs_limit},
+    )
     if err:
         errors.append(f"docs: {err}")
 
     # --- financials (matches DbReader.get_financials) ---
-    financials, err = _run_query(db, """
+    financials, err = _run_query(
+        db,
+        """
         SELECT ticker, period_end, period_type, revenue, ebit, np_attributable,
                operating_cf, investing_cf, financing_cf, capex, cash_end, net_debt,
                shares_outstanding, confidence_metrics, source_document_id
@@ -91,12 +111,16 @@ def get_ticker_context(
         WHERE ticker = :ticker
         ORDER BY period_end DESC
         LIMIT :limit
-    """, {"ticker": ticker, "limit": financials_limit})
+    """,
+        {"ticker": ticker, "limit": financials_limit},
+    )
     if err:
         errors.append(f"financials: {err}")
 
     # --- latest_financial_snapshot (matches DbReader.get_latest_financial_snapshot) ---
-    snapshot_rows, err = _run_query(db, """
+    snapshot_rows, err = _run_query(
+        db,
+        """
         SELECT ticker, period_end, period_type, revenue, ebit, np_attributable,
                operating_cf, investing_cf, financing_cf, capex, cash_end, net_debt,
                shares_outstanding, confidence_metrics, source_document_id
@@ -104,27 +128,40 @@ def get_ticker_context(
         WHERE ticker = :ticker
         ORDER BY period_end DESC
         LIMIT 1
-    """, {"ticker": ticker})
+    """,
+        {"ticker": ticker},
+    )
     latest_financial_snapshot = snapshot_rows[0] if snapshot_rows else None
     if err:
         errors.append(f"latest_financial_snapshot: {err}")
 
     # --- announcement_context (matches DbReader.get_announcement_context) ---
-    announcement_context, err = _run_query(db, """
+    announcement_context, err = _run_query(
+        db,
+        """
         SELECT document_id, ticker, published_at, title, pdf_path, excerpt, updated_at
         FROM cockpit_announcement_context
         WHERE ticker = :ticker
         ORDER BY published_at DESC
         LIMIT :limit
-    """, {"ticker": ticker, "limit": announcements_limit})
+    """,
+        {"ticker": ticker, "limit": announcements_limit},
+    )
     if err:
-        if "no such table" in err.lower():
+        lowered = err.lower()
+        if (
+            "no such table" in lowered
+            or "does not exist" in lowered
+            or "undefinedtable" in lowered
+        ):
             announcement_context = []
         else:
             errors.append(f"announcement_context: {err}")
 
     # --- extraction_failures (matches DbReader.get_extraction_failures with ticker) ---
-    extraction_failures, err = _run_query(db, """
+    extraction_failures, err = _run_query(
+        db,
+        """
         SELECT r.run_id, r.document_id, r.status, r.error, r.created_at,
                d.ticker, d.title
         FROM extraction_runs r
@@ -132,19 +169,29 @@ def get_ticker_context(
         WHERE r.status = 'failed' AND d.ticker = :ticker
         ORDER BY r.created_at DESC
         LIMIT :limit
-    """, {"ticker": ticker, "limit": failures_limit})
+    """,
+        {"ticker": ticker, "limit": failures_limit},
+    )
     if err:
         errors.append(f"extraction_failures: {err}")
 
     # --- low_confidence_financials (matches DbReader.get_low_confidence_financials with ticker) ---
-    low_confidence_financials, err = _run_query(db, """
+    low_confidence_financials, err = _run_query(
+        db,
+        """
         SELECT ticker, period_end, period_type, confidence_metrics, source_document_id
         FROM asx_periodic_financials
         WHERE confidence_metrics IS NOT NULL AND confidence_metrics < :threshold
           AND ticker = :ticker
         ORDER BY confidence_metrics ASC
         LIMIT :limit
-    """, {"ticker": ticker, "threshold": low_confidence_threshold, "limit": low_confidence_limit})
+    """,
+        {
+            "ticker": ticker,
+            "threshold": low_confidence_threshold,
+            "limit": low_confidence_limit,
+        },
+    )
     if err:
         errors.append(f"low_confidence_financials: {err}")
 
@@ -165,6 +212,7 @@ def get_ticker_context(
 # GET /api/context/verification
 # ---------------------------------------------------------------------------
 
+
 @router.get("/verification")
 def get_verification_context(
     ticker: str | None = Query(default=None),
@@ -180,7 +228,9 @@ def get_verification_context(
 
     # --- extraction_failures ---
     if ticker:
-        failures, err = _run_query(db, """
+        failures, err = _run_query(
+            db,
+            """
             SELECT r.run_id, r.document_id, r.status, r.error, r.created_at,
                    d.ticker, d.title
             FROM extraction_runs r
@@ -188,36 +238,54 @@ def get_verification_context(
             WHERE r.status = 'failed' AND d.ticker = :ticker
             ORDER BY r.created_at DESC
             LIMIT :limit
-        """, {"ticker": ticker, "limit": failures_limit})
+        """,
+            {"ticker": ticker, "limit": failures_limit},
+        )
     else:
-        failures, err = _run_query(db, """
+        failures, err = _run_query(
+            db,
+            """
             SELECT run_id, document_id, status, error, created_at
             FROM extraction_runs
             WHERE status = 'failed'
             ORDER BY created_at DESC
             LIMIT :limit
-        """, {"limit": failures_limit})
+        """,
+            {"limit": failures_limit},
+        )
     if err:
         errors.append(f"extraction_failures: {err}")
 
     # --- low_confidence_financials ---
     if ticker:
-        low_conf, err = _run_query(db, """
+        low_conf, err = _run_query(
+            db,
+            """
             SELECT ticker, period_end, period_type, confidence_metrics, source_document_id
             FROM asx_periodic_financials
             WHERE confidence_metrics IS NOT NULL AND confidence_metrics < :threshold
               AND ticker = :ticker
             ORDER BY confidence_metrics ASC
             LIMIT :limit
-        """, {"ticker": ticker, "threshold": low_confidence_threshold, "limit": low_confidence_limit})
+        """,
+            {
+                "ticker": ticker,
+                "threshold": low_confidence_threshold,
+                "limit": low_confidence_limit,
+            },
+        )
     else:
-        low_conf, err = _run_query(db, """
+        low_conf, err = _run_query(
+            db,
+            """
             SELECT ticker, period_end, period_type, confidence_metrics, source_document_id
             FROM asx_periodic_financials
             WHERE confidence_metrics IS NOT NULL AND confidence_metrics < :threshold
             ORDER BY confidence_metrics ASC
             LIMIT :limit
-        """, {"threshold": low_confidence_threshold, "limit": low_confidence_limit})
+        """,
+            {"threshold": low_confidence_threshold, "limit": low_confidence_limit},
+        )
     if err:
         errors.append(f"low_confidence_financials: {err}")
 

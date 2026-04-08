@@ -4,6 +4,7 @@ Covers the validation gate introduced in _propose_action() for
 run_metric_extraction: valid inputs pass through, invalid inputs return an
 error dict before the action proposal is built.
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -18,6 +19,7 @@ from cockpit.core.types import ActionSpec
 # ---------------------------------------------------------------------------
 # Helpers / fixtures
 # ---------------------------------------------------------------------------
+
 
 def _make_action_spec(action_id: str = "metric_extraction") -> ActionSpec:
     return ActionSpec(
@@ -55,6 +57,7 @@ def _make_controller() -> ExtractionController:
 # No controller wired — baseline behaviour unchanged
 # ---------------------------------------------------------------------------
 
+
 class TestNoExtractionController:
     def test_valid_args_produce_proposal_without_controller(self):
         executor = _make_executor(extraction_controller=None)
@@ -75,6 +78,7 @@ class TestNoExtractionController:
 # ---------------------------------------------------------------------------
 # Controller wired — validation gate active
 # ---------------------------------------------------------------------------
+
 
 class TestWithExtractionController:
     def test_valid_ticker_and_doc_id_produce_proposal(self):
@@ -188,10 +192,43 @@ class TestSearchNewsTickerInference:
             ticker=None,
         )
 
+    def test_search_news_suggests_population_when_news_db_unavailable(self):
+        executor = _make_executor()
+        executor._router.get_news_context.return_value = {
+            "ok": False,
+            "hits": [],
+            "error": "Server error '502 Bad Gateway' for url 'http://localhost:8000/rag/query'",
+            "_source": "sqlite_fallback",
+        }
+
+        result = executor.execute("search_news", {"query": "bhp news", "limit": 5})
+
+        assert result["ok"] is False
+        assert result["data_insufficient"] is True
+        assert "run_news_ingest" in result["suggestion"]
+        assert result["recommended_tool_call"]["tool"] == "run_news_ingest"
+        assert result["recommended_tool_call"]["arguments"]["since_hours"] == 24
+        assert result["recommended_tool_call"]["requires_confirmation"] is True
+
+    def test_search_news_does_not_suggest_population_when_hits_exist(self):
+        executor = _make_executor()
+        executor._router.get_news_context.return_value = {
+            "ok": True,
+            "hits": [{"title": "BHP updates"}],
+            "error": None,
+            "_source": "qdrant",
+        }
+
+        result = executor.execute("search_news", {"query": "bhp news", "limit": 5})
+
+        assert result["ok"] is True
+        assert "recommended_tool_call" not in result
+
 
 # ---------------------------------------------------------------------------
 # ExtractionController.validate() unit tests
 # ---------------------------------------------------------------------------
+
 
 class TestExtractionControllerValidate:
     def test_valid_inputs_do_not_raise(self):

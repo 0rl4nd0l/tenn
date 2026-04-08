@@ -20,6 +20,7 @@ interface CockpitState {
   activeTicker: string
   sessionId: string
   chatModel: string
+  chatCompletionActive: boolean
   preferences: CockpitPreferences
   sessionStats: {
     totalCostUsd: number
@@ -31,6 +32,7 @@ interface CockpitState {
   setActiveTicker: (ticker: string) => void
   setSessionId: (id: string) => void
   setChatModel: (model: string) => void
+  setChatCompletionActive: (active: boolean) => void
   updatePreferences: (prefs: Partial<CockpitPreferences>) => void
   addCost: (cost: number) => void
   setLatency: (latency: number) => void
@@ -43,6 +45,7 @@ export const useCockpitStore = create<CockpitState>()(
       activeTicker: 'BHP',
       sessionId: generateId(),
       chatModel: 'model:gpt-oss-20b',
+      chatCompletionActive: false,
       preferences: {
         webSearchEnabled: true,
         ragEnabled: true,
@@ -59,6 +62,7 @@ export const useCockpitStore = create<CockpitState>()(
       setActiveTicker: (ticker) => set({ activeTicker: ticker }),
       setSessionId: (id) => set({ sessionId: id }),
       setChatModel: (model) => set({ chatModel: model }),
+      setChatCompletionActive: (active) => set({ chatCompletionActive: active }),
       updatePreferences: (prefs) => set((state) => ({ 
         preferences: { ...state.preferences, ...prefs } 
       })),

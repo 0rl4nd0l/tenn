@@ -173,6 +173,10 @@ Config: `.mcp.json` (repo root). Full docs: [mcp-servers.md](mcp-servers.md).
 - Current host llama.cpp default model is `qwen3-30b-a3b-instruct`; extraction requests `qwen2.5-14b-instruct` by model name. Local Ollama keep-set is `qwen2.5:32b` plus `gpt-oss:20b-cloud`.
 - OpenClaw config source of truth: `~/.openclaw/openclaw.json` (host-local, not in repo).
 - After committing `scripts/load_news_to_qdrant.py`, re-run the loader to refresh Qdrant with relevance-ordered primary tickers: `python scripts/load_news_to_qdrant.py`.
+- Cockpit web SSE chat now emits explicit staged status events from request admission through reasoning/tool/synthesis phases (not a single placeholder string).
+- Cockpit web action confirmations execute through backend route `POST /api/cockpit/action/execute` using normalized `action_id` payloads.
+- Cockpit sidebar health polling is adaptive: every 3s while a chat completion is active, every 15s when idle.
+- If `news_chunks` is missing in Qdrant, `search_news` may return no hits and should trigger a corpus population flow (`run_news_ingest` then `load_news_to_qdrant`).
 
 ## Storage Migration Status (2026-04-07)
 

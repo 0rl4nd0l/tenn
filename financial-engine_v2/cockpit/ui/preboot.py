@@ -16,7 +16,15 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
-from textual.widgets import Button, Checkbox, Collapsible, Label, RichLog, Select, Static
+from textual.widgets import (
+    Button,
+    Checkbox,
+    Collapsible,
+    Label,
+    RichLog,
+    Select,
+    Static,
+)
 
 from cockpit.integrations.llamacpp_manager import (
     _extract_arg,
@@ -45,11 +53,12 @@ from cockpit.core.config import (
 # Service health probes
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class _ServiceCheck:
     name: str
-    url: str           # HTTP URL, or "tcp://host:port" for raw TCP
-    status: str = "checking"   # checking | ok | warn | error
+    url: str  # HTTP URL, or "tcp://host:port" for raw TCP
+    status: str = "checking"  # checking | ok | warn | error
     detail: str = ""
     models: list[str] = field(default_factory=list)
 
@@ -140,33 +149,36 @@ def _probe(svc: _ServiceCheck) -> None:
 # ---------------------------------------------------------------------------
 
 LAUNCH_PROFILES: list[tuple[str, str]] = [
-    ("Full",    "full"),
+    ("Full", "full"),
     ("Testing", "testing"),
 ]
 
 PROFILE_FLAGS: dict[str, dict[str, Any]] = {
     "full": {
-        "read_only":  False,
-        "no_web":     False,
-        "verbose":    False,
+        "read_only": False,
+        "no_web": False,
+        "verbose": False,
         "enable_rag": True,
-        "env":        {},
+        "env": {},
     },
     "testing": {
-        "read_only":  True,
-        "no_web":     False,
-        "verbose":    True,
+        "read_only": True,
+        "no_web": False,
+        "verbose": True,
         "enable_rag": False,
         "env": {
-            "COCKPIT_LOG_LEVEL":                      "DEBUG",
-            "COCKPIT_VERBOSE_LOGGING":                "1",
-            "COCKPIT_LOG_TO_STDERR":                  "1",
+            "COCKPIT_LOG_LEVEL": "DEBUG",
+            "COCKPIT_VERBOSE_LOGGING": "1",
+            "COCKPIT_LOG_TO_STDERR": "1",
             "COCKPIT_CONTEXT_GATHER_TIMEOUT_SECONDS": "15",
         },
     },
 }
 
-def _resolve_initial_option_state(initial_flags: dict[str, Any] | None) -> dict[str, Any]:
+
+def _resolve_initial_option_state(
+    initial_flags: dict[str, Any] | None,
+) -> dict[str, Any]:
     raw = dict(initial_flags or {})
     valid_profiles = {value for _, value in LAUNCH_PROFILES}
     profile = raw.get("profile")
@@ -175,9 +187,15 @@ def _resolve_initial_option_state(initial_flags: dict[str, Any] | None) -> dict[
     defaults = PROFILE_FLAGS.get(profile, {})
     return {
         "profile": profile,
-        "read_only": bool(raw["read_only"]) if "read_only" in raw else bool(defaults.get("read_only", False)),
-        "no_web": bool(raw["no_web"]) if "no_web" in raw else bool(defaults.get("no_web", False)),
-        "verbose": bool(raw["verbose"]) if "verbose" in raw else bool(defaults.get("verbose", False)),
+        "read_only": bool(raw["read_only"])
+        if "read_only" in raw
+        else bool(defaults.get("read_only", False)),
+        "no_web": bool(raw["no_web"])
+        if "no_web" in raw
+        else bool(defaults.get("no_web", False)),
+        "verbose": bool(raw["verbose"])
+        if "verbose" in raw
+        else bool(defaults.get("verbose", False)),
         "enable_rag": bool(raw["enable_rag"]) if "enable_rag" in raw else True,
         "hybrid_router_policy": raw.get("hybrid_router_policy"),
     }
@@ -292,7 +310,11 @@ class PreBootScreen(Screen):
         load_env(Path(__file__).resolve().parents[2])
         super().__init__()
         self._repo_root = repo_root or Path(__file__).resolve().parents[2]
-        rp = Path(config_path) if config_path else (self._repo_root / "config" / "cockpit.yaml")
+        rp = (
+            Path(config_path)
+            if config_path
+            else (self._repo_root / "config" / "cockpit.yaml")
+        )
         self._config_path = str(rp.resolve())
         self._backend_url = backend_url
         self._ollama_url = ollama_url
@@ -329,27 +351,52 @@ class PreBootScreen(Screen):
                     "(not a guarantee of quota or that the service will succeed).",
                     id="capability-legend",
                 )
-                yield RichLog(id="capability-log", wrap=False, markup=False, max_lines=20)
+                yield RichLog(
+                    id="capability-log", wrap=False, markup=False, max_lines=20
+                )
             with Vertical(id="options-section"):
                 yield Label("Launch Options", id="options-label")
-                yield Checkbox("Read-only mode  (block mutating actions)", id="opt-readonly")
+                yield Checkbox(
+                    "Read-only mode  (block mutating actions)", id="opt-readonly"
+                )
                 yield Checkbox("Enable web fetch", id="opt-web")
-                yield Checkbox("Enable embedding + RAG  (qualitative_context, news_context)", id="opt-rag")
-                yield Checkbox("Verbose logging  (DEBUG level + stderr)", id="opt-verbose")
+                yield Checkbox(
+                    "Enable embedding + RAG  (qualitative_context, news_context)",
+                    id="opt-rag",
+                )
+                yield Checkbox(
+                    "Verbose logging  (DEBUG level + stderr)", id="opt-verbose"
+                )
                 with Horizontal(id="profile-row"):
                     yield Label("Profile:", id="profile-label")
-                    yield Select(LAUNCH_PROFILES, value=self._initial.get("profile", LAUNCH_PROFILES[0][1]), id="opt-profile")
+                    yield Select(
+                        LAUNCH_PROFILES,
+                        value=self._initial.get("profile", LAUNCH_PROFILES[0][1]),
+                        id="opt-profile",
+                    )
                 with Horizontal(id="routing-row"):
-                    yield Label("Routing:", id="profile-label")  # Use profile-label style for alignment
+                    yield Label(
+                        "Routing:", id="profile-label"
+                    )  # Use profile-label style for alignment
                     from cockpit.core.config import VALID_HYBRID_ROUTER_POLICIES
-                    policy_options = [(p, p) for p in sorted(VALID_HYBRID_ROUTER_POLICIES)]
-                    yield Select(policy_options, id="opt-routing", prompt="Profile policy (YAML default)")
+
+                    policy_options = [
+                        (p, p) for p in sorted(VALID_HYBRID_ROUTER_POLICIES)
+                    ]
+                    yield Select(
+                        policy_options,
+                        id="opt-routing",
+                        prompt="Profile policy (YAML default)",
+                    )
             with Vertical(id="llm-backend-section"):
                 yield Label(
                     "LLM & routing (read-only) — from config/cockpit_llm.yaml + this host",
                     id="llm-backend-label",
                 )
-                yield Static("Resolving configuration (load_config → apply_runtime_flags)…", id="llm-backend-body")
+                yield Static(
+                    "Resolving configuration (load_config → apply_runtime_flags)…",
+                    id="llm-backend-body",
+                )
                 with Horizontal(id="llm-runtime-row"):
                     yield Label("llama.cpp endpoint (probe):", id="llm-runtime-label")
                     yield Static("", id="provider-status")
@@ -366,7 +413,12 @@ class PreBootScreen(Screen):
         self.query_one("#opt-rag", Checkbox).value = self._initial["enable_rag"]
         self.query_one("#opt-verbose", Checkbox).value = self._initial["verbose"]
         if self._initial.get("hybrid_router_policy"):
-            self.query_one("#opt-routing", Select).value = self._initial["hybrid_router_policy"]
+            try:
+                self.query_one("#opt-routing", Select).value = self._initial[
+                    "hybrid_router_policy"
+                ]
+            except Exception:
+                pass
         self._sync_effective_config_from_ui()
         log = self.query_one("#health-log", RichLog)
         for svc in self._checks:
@@ -378,15 +430,25 @@ class PreBootScreen(Screen):
     def _activate_selects(self) -> None:
         self._selects_active = True
 
+    def _selected_routing_policy(self) -> str | None:
+        try:
+            routing_val = self.query_one("#opt-routing", Select).value
+        except Exception:
+            return None
+        if routing_val is None or str(routing_val) == "Select.BLANK":
+            return None
+        return str(routing_val)
+
     def _sync_effective_config_from_ui(self) -> None:
         """Recompute the same cfg Launch will use; refresh probes and LLM panel."""
         old_llama, old_ollama = self._llamacpp_url, self._ollama_url
         self._preboot_config_errors = []
         self._effective_cfg = None
         try:
-            profile = str(self.query_one("#opt-profile", Select).value or LAUNCH_PROFILES[0][1])
-            routing_val = self.query_one("#opt-routing", Select).value
-            policy = str(routing_val) if routing_val is not None and str(routing_val) != "Select.BLANK" else None
+            profile = str(
+                self.query_one("#opt-profile", Select).value or LAUNCH_PROFILES[0][1]
+            )
+            policy = self._selected_routing_policy()
             read_only = self.query_one("#opt-readonly", Checkbox).value
             no_web = not self.query_one("#opt-web", Checkbox).value
             cfg = compute_effective_cockpit_config(
@@ -413,11 +475,15 @@ class PreBootScreen(Screen):
         # Only rebuild the checks list when URLs actually changed — otherwise
         # we discard completed probe results and revert icons to "[ ] checking".
         if urls_changed:
-            self._checks = _build_service_checks(self._backend_url, self._ollama_url, self._llamacpp_url)
+            self._checks = _build_service_checks(
+                self._backend_url, self._ollama_url, self._llamacpp_url
+            )
 
         self._update_launch_button()
         try:
-            self.query_one("#llm-backend-body", Static).update(self._format_llm_backend_body())
+            self.query_one("#llm-backend-body", Static).update(
+                self._format_llm_backend_body()
+            )
         except Exception:
             pass
 
@@ -429,7 +495,9 @@ class PreBootScreen(Screen):
             pass
 
     def _update_launch_button(self) -> None:
-        blocked = bool(self._preboot_config_errors) or bool(self._runtime_model_mismatch)
+        blocked = bool(self._preboot_config_errors) or bool(
+            self._runtime_model_mismatch
+        )
         try:
             self.query_one("#btn-launch", Button).disabled = blocked
         except Exception:
@@ -488,7 +556,9 @@ class PreBootScreen(Screen):
         processes = results[-1] if isinstance(results[-1], list) else []
         topology = resolve_llama_server_topology(processes)
         self._llama_topology = topology.as_dict()
-        self._llama_proc = dict(topology.selected_process) if topology.selected_process else None
+        self._llama_proc = (
+            dict(topology.selected_process) if topology.selected_process else None
+        )
 
         if self._llama_proc:
             models_dir = models_dir_from_process(self._llama_proc)
@@ -508,23 +578,41 @@ class PreBootScreen(Screen):
             # In router mode, also include models known to the router API
             # that aren't on the local filesystem (e.g. HuggingFace cached).
             if self._llama_proc.get("router_mode"):
-                host = _extract_arg(self._llama_proc.get("raw_args", []), ("--host",)) or "127.0.0.1"
-                port = _extract_arg(self._llama_proc.get("raw_args", []), ("--port",)) or "8001"
-                api_key = _extract_arg(self._llama_proc.get("raw_args", []), ("--api-key",))
-                api_models = await asyncio.to_thread(list_models_api, host, port, api_key)
+                host = (
+                    _extract_arg(self._llama_proc.get("raw_args", []), ("--host",))
+                    or "127.0.0.1"
+                )
+                port = (
+                    _extract_arg(self._llama_proc.get("raw_args", []), ("--port",))
+                    or "8001"
+                )
+                api_key = _extract_arg(
+                    self._llama_proc.get("raw_args", []), ("--api-key",)
+                )
+                api_models = await asyncio.to_thread(
+                    list_models_api, host, port, api_key
+                )
                 seen_stems = {m["stem"] for m in merged}
                 for am in api_models:
                     if am["name"] not in seen_stems:
-                        merged.append({
-                            "path": am["name"],  # router mode uses name, not path
-                            "name": am["name"],
-                            "stem": am["name"],
-                        })
+                        merged.append(
+                            {
+                                "path": am["name"],  # router mode uses name, not path
+                                "name": am["name"],
+                                "stem": am["name"],
+                            }
+                        )
 
             self._llama_fs_models = merged
 
-            host = _extract_arg(self._llama_proc.get("raw_args", []), ("--host",)) or "127.0.0.1"
-            port = _extract_arg(self._llama_proc.get("raw_args", []), ("--port",)) or "8001"
+            host = (
+                _extract_arg(self._llama_proc.get("raw_args", []), ("--host",))
+                or "127.0.0.1"
+            )
+            port = (
+                _extract_arg(self._llama_proc.get("raw_args", []), ("--port",))
+                or "8001"
+            )
             api_key = _extract_arg(self._llama_proc.get("raw_args", []), ("--api-key",))
             self._router_capability = probe_router_capability(
                 self._llama_proc,
@@ -574,8 +662,13 @@ class PreBootScreen(Screen):
             mode_tag = ""
             if svc.name == "llama.cpp":
                 mode_tag = self._router_mode_tag()
-            log.write(f"  {_STATUS_ICON[svc.status]}  {svc.name:<16} {svc.detail}{mode_tag}")
-            if svc.status in ("error", "warn") and svc.name in ("llama.cpp", "Backend API"):
+            log.write(
+                f"  {_STATUS_ICON[svc.status]}  {svc.name:<16} {svc.detail}{mode_tag}"
+            )
+            if svc.status in ("error", "warn") and svc.name in (
+                "llama.cpp",
+                "Backend API",
+            ):
                 any_down = True
             # Also treat router_mode_unavailable as "down" — the server
             # process was not found even if the HTTP probe hasn't finished
@@ -600,7 +693,11 @@ class PreBootScreen(Screen):
 
     def _format_llm_backend_body(self) -> str:
         if not self._effective_cfg:
-            err = "\n".join(self._preboot_config_errors) if self._preboot_config_errors else "Configuration not loaded."
+            err = (
+                "\n".join(self._preboot_config_errors)
+                if self._preboot_config_errors
+                else "Configuration not loaded."
+            )
             return f"[!!]  {err}"
         base = format_llm_backend_tasks_from_cfg(
             self._effective_cfg,
@@ -617,7 +714,11 @@ class PreBootScreen(Screen):
             extra.append("")
             extra.append("RUNTIME VERIFICATION — Launch disabled:")
             extra.append(f"  • {self._runtime_model_mismatch}")
-        return base + ("\n".join(extra) if extra else "") + self._probe_runtime_model_note()
+        return (
+            base
+            + ("\n".join(extra) if extra else "")
+            + self._probe_runtime_model_note()
+        )
 
     def _refresh_llm_widgets(self) -> None:
         """Refresh read-only LLM task text + llama.cpp probe line; verify loaded model vs cfg."""
@@ -639,28 +740,44 @@ class PreBootScreen(Screen):
             and not self._preboot_config_errors
         ):
             loaded = ""
-            if self._llama_proc and self._llama_proc.get("router_mode") and self._llama_fs_models:
+            if (
+                self._llama_proc
+                and self._llama_proc.get("router_mode")
+                and self._llama_fs_models
+            ):
                 loaded = self._find_router_loaded_model()
             elif self._llama_proc and self._llama_proc.get("model_path"):
                 loaded = str(self._llama_proc.get("model_path") or "")
             if loaded:
-                self._runtime_model_mismatch = verify_chat_model_matches_llamacpp_runtime(
-                    self._effective_cfg,
-                    loaded,
+                self._runtime_model_mismatch = (
+                    verify_chat_model_matches_llamacpp_runtime(
+                        self._effective_cfg,
+                        loaded,
+                    )
                 )
             # else: probe OK but could not resolve loaded id — do not block (ambiguous topology)
         self._update_launch_button()
 
         try:
-            self.query_one("#llm-backend-body", Static).update(self._format_llm_backend_body())
+            self.query_one("#llm-backend-body", Static).update(
+                self._format_llm_backend_body()
+            )
         except Exception:
             pass
 
     def _find_router_loaded_model(self) -> str:
         """Return the path/name of the currently loaded model in router mode."""
-        host = _extract_arg((self._llama_proc or {}).get("raw_args", []), ("--host",)) or "127.0.0.1"
-        port = _extract_arg((self._llama_proc or {}).get("raw_args", []), ("--port",)) or "8001"
-        api_key = _extract_arg((self._llama_proc or {}).get("raw_args", []), ("--api-key",))
+        host = (
+            _extract_arg((self._llama_proc or {}).get("raw_args", []), ("--host",))
+            or "127.0.0.1"
+        )
+        port = (
+            _extract_arg((self._llama_proc or {}).get("raw_args", []), ("--port",))
+            or "8001"
+        )
+        api_key = _extract_arg(
+            (self._llama_proc or {}).get("raw_args", []), ("--api-key",)
+        )
         for m in list_models_api(host, port, api_key):
             if m["state"] == "loaded":
                 # Match against fs_models by stem name → return the path
@@ -711,7 +828,9 @@ class PreBootScreen(Screen):
         btn.label = "Repairing..."
 
         if svc_map.get("llama.cpp") and svc_map["llama.cpp"].status != "ok":
-            log.write("  [ ]  Repairing llama.cpp: launching scripts/run_llama_server.sh...")
+            log.write(
+                "  [ ]  Repairing llama.cpp: launching scripts/run_llama_server.sh..."
+            )
             # Use the project-standard script; it handles port 8001 and respects LLAMA_SERVER_ROUTER_MODE.
             try:
                 subprocess.Popen(
@@ -726,9 +845,13 @@ class PreBootScreen(Screen):
                 log.write(f"  [!!]  Failed to launch llama.cpp: {exc}")
 
         if svc_map.get("Backend API") and svc_map["Backend API"].status != "ok":
-            log.write("  [ ]  Repairing Backend API: launching scripts/run_local_backend.sh...")
+            log.write(
+                "  [ ]  Repairing Backend API: launching scripts/run_local_backend.sh..."
+            )
             # Launch in 'full' profile by default if RAG is enabled, else 'isolated'.
-            profile = "full" if self.query_one("#opt-rag", Checkbox).value else "isolated"
+            profile = (
+                "full" if self.query_one("#opt-rag", Checkbox).value else "isolated"
+            )
             env = dict(os.environ)
             env["LOCAL_BACKEND_PROFILE"] = profile
             try:
@@ -740,7 +863,9 @@ class PreBootScreen(Screen):
                     stderr=subprocess.DEVNULL,
                     start_new_session=True,
                 )
-                log.write(f"  [OK]  Backend API start command issued (profile={profile}).")
+                log.write(
+                    f"  [OK]  Backend API start command issued (profile={profile})."
+                )
             except Exception as exc:
                 log.write(f"  [!!]  Failed to launch Backend API: {exc}")
 
@@ -758,9 +883,10 @@ class PreBootScreen(Screen):
         web_enabled = self.query_one("#opt-web", Checkbox).value
         rag_enabled = self.query_one("#opt-rag", Checkbox).value
         verbose = self.query_one("#opt-verbose", Checkbox).value
-        profile = str(self.query_one("#opt-profile", Select).value or LAUNCH_PROFILES[0][1])
-        routing_val = self.query_one("#opt-routing", Select).value
-        policy = str(routing_val) if routing_val is not None and str(routing_val) != "Select.BLANK" else None
+        profile = str(
+            self.query_one("#opt-profile", Select).value or LAUNCH_PROFILES[0][1]
+        )
+        policy = self._selected_routing_policy()
         env = dict(PROFILE_FLAGS.get(profile, {}).get("env", {}))
         if verbose:
             env.setdefault("COCKPIT_LOG_LEVEL", "DEBUG")

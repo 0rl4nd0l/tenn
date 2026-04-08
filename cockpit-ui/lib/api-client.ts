@@ -4,7 +4,7 @@ import type {
   ServiceHealth,
   SystemStatus,
   QueueStatus,
-  RagResult
+  RestartBackendResponse,
 } from './cockpit-types'
 
 // ── Error class ────────────────────────────────────────────────────────────
@@ -22,9 +22,9 @@ export class ApiError extends Error {
 
 // ── Base fetch helper ──────────────────────────────────────────────────────
 
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+async function apiFetch<T>(path: string, options?: RequestInit, timeoutMs: number = 120_000): Promise<T> {
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 120_000) // 120s timeout
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
     const res = await fetch(path, {
@@ -57,7 +57,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
     return res.json() as Promise<T>
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new ApiError(504, 'Gateway Timeout', 'Request timed out after 120s')
+      throw new ApiError(504, 'Gateway Timeout', `Request timed out after ${Math.round(timeoutMs / 1000)}s`)
     }
     throw err
   } finally {
@@ -89,6 +89,9 @@ export async function sendChatMessage(params: {
   ticker?: string
   sessionId?: string
   model?: string
+  webSearch?: boolean
+  rag?: boolean
+  dbDiagnostics?: boolean
 }): Promise<ChatResponse> {
   return apiFetch<ChatResponse>("/api/cockpit/chat", {
     method: "POST",
@@ -98,6 +101,9 @@ export async function sendChatMessage(params: {
       ticker: params.ticker,
       session_id: params.sessionId,
       model: params.model,
+      web_search: params.webSearch,
+      rag: params.rag,
+      db_diagnostics: params.dbDiagnostics,
       stream: false,
     }),
   })
@@ -110,6 +116,9 @@ export async function streamChat(params: {
   ticker?: string
   sessionId?: string
   model?: string
+  webSearch?: boolean
+  rag?: boolean
+  dbDiagnostics?: boolean
   onMessage: (event: { type: string; data: any }) => void
   onError: (err: any) => void
   onEnd: () => void
@@ -124,6 +133,9 @@ export async function streamChat(params: {
       ticker: params.ticker,
       session_id: params.sessionId,
       model: params.model,
+      web_search: params.webSearch,
+      rag: params.rag,
+      db_diagnostics: params.dbDiagnostics,
       stream: true,
     }),
   })
@@ -167,19 +179,10 @@ export async function getQueueStatus(): Promise<QueueStatus> {
   return apiFetch<QueueStatus>("/api/cockpit/queue")
 }
 
-/** RAG query – POST /rag/query */
-export async function queryRag(params: {
-  query: string
-  collection?: string
-  top_k?: number
-}): Promise<RagResult[]> {
-  return apiFetch<RagResult[]>("/rag/query", {
-    method: "POST",
-    body: JSON.stringify({
-      query: params.query,
-      collection: params.collection,
-      top_k: params.top_k,
-    }),
+/** Restart backend – POST /api/cockpit/restart */
+export async function restartBackend(): Promise<RestartBackendResponse> {
+  return apiFetch<RestartBackendResponse>('/api/cockpit/restart', {
+    method: 'POST',
   })
 }
 
@@ -196,29 +199,41 @@ export async function executeAction(params: {
       args: params.args,
       session_id: params.sessionId,
     }),
-  })
+  }, 900_000)
 }
 
-/** Re-run a job – POST /api/cockpit/job/rerun */
-export async function rerunJob(params: {
-  jobId: string
-  action: string
+/** Action preview – POST /api/cockpit/action/preview */
+export async function previewAction(params: {
+  actionId: string
   args: Record<string, unknown>
-}): Promise<{ jobId: string; status: string }> {
-  return apiFetch<{ jobId: string; status: string }>("/api/cockpit/job/rerun", {
+}): Promise<{
+  action_id: string
+  command: string[]
+  summary: string
+  estimated_impact: string
+  timeout_seconds: number
+  guard_message: string | null
+}> {
+  return apiFetch("/api/cockpit/action/preview", {
     method: "POST",
     body: JSON.stringify({
-      job_id: params.jobId,
-      action: params.action,
+      action_id: params.actionId,
       args: params.args,
     }),
   })
 }
 
-/** Ticker context – GET /api/context/ticker?ticker=XXX */
-export async function getTickerContext(ticker: string): Promise<unknown> {
-  const encoded = encodeURIComponent(ticker)
-  return apiFetch<unknown>(`/api/context/ticker?ticker=${encoded}`)
+/** Re-run a historical job via the action registry */
+export async function rerunJob(params: {
+  jobId: string
+  action: string
+  args: Record<string, unknown>
+}): Promise<{ jobId: string; status: string }> {
+  const result = await executeAction({
+    actionId: params.action,
+    args: params.args,
+  })
+  return { jobId: params.jobId, status: result.result ? 'triggered' : 'failed' }
 }
 
 /** Documents list – GET /api/cockpit/docs */

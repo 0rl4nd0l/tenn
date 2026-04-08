@@ -87,10 +87,16 @@ class DeepResearchRunner:
             financials = []
             if self._router.backend_api_client:
                 try:
-                    ctx = self._router.backend_api_client.get_ticker_context(ticker, financials_limit=6)
+                    ctx = self._router.backend_api_client.get_ticker_context(
+                        ticker, financials_limit=6
+                    )
                     financials = ctx.get("financials", [])
                 except Exception as exc:
-                    logger.warning("deep_research: backend financials failed for %s: %s", ticker, exc)
+                    logger.warning(
+                        "deep_research: backend financials failed for %s: %s",
+                        ticker,
+                        exc,
+                    )
             else:
                 logger.warning("deep_research: backend API client not configured")
             if financials:
@@ -101,7 +107,10 @@ class DeepResearchRunner:
         # Price data.
         try:
             price = self._router.get_price_context_for_window(
-                ticker=ticker, range_="6mo", interval="1d", max_history_rows=30,
+                ticker=ticker,
+                range_="6mo",
+                interval="1d",
+                max_history_rows=30,
             )
             if price:
                 data["price"] = price
@@ -109,7 +118,9 @@ class DeepResearchRunner:
             logger.warning("deep_research: price failed for %s: %s", ticker, exc)
 
         # Web search.
-        if self._brave is not None and bool(getattr(self._router, "web_default_enabled", False)):
+        if self._brave is not None and bool(
+            getattr(self._router, "web_default_enabled", False)
+        ):
             try:
                 focus_q = f" {focus}" if focus else ""
                 web = self._brave.search(f"{ticker} ASX{focus_q} news", count=5)
@@ -132,11 +143,17 @@ class DeepResearchRunner:
             docs, context = [], []
             if self._router.backend_api_client:
                 try:
-                    ctx = self._router.backend_api_client.get_ticker_context(ticker, docs_limit=5, announcements_limit=5)
+                    ctx = self._router.backend_api_client.get_ticker_context(
+                        ticker, docs_limit=5, announcements_limit=5
+                    )
                     docs = ctx.get("docs", [])
                     context = ctx.get("announcement_context", [])
                 except Exception as exc:
-                    logger.warning("deep_research: backend announcements failed for %s: %s", ticker, exc)
+                    logger.warning(
+                        "deep_research: backend announcements failed for %s: %s",
+                        ticker,
+                        exc,
+                    )
             else:
                 logger.warning("deep_research: backend API client not configured")
 
@@ -157,22 +174,47 @@ class DeepResearchRunner:
             except Exception as exc:
                 logger.warning("deep_research: dossier recall failed: %s", exc)
 
-        # Commentary / qualitative context (investor letters, transcripts).
+        # Company-context retrieval via backend RAG (supported source only).
         if self._backend is not None:
             try:
                 commentary = self._backend.rag_query(
                     q=f"{ticker} outlook guidance strategy",
                     top_k=3,
                     ticker=ticker,
-                    source="company",
+                    source="asx_docs",
                 )
-                hits = commentary.get("results", []) if isinstance(commentary, dict) else []
+                hits = (
+                    commentary.get("results", [])
+                    if isinstance(commentary, dict)
+                    else []
+                )
                 if hits:
-                    data["commentary"] = [
-                        {"text": h.get("text", "")[:400], "source": h.get("source", "")}
-                        for h in hits[:3]
-                        if h.get("text")
-                    ]
+                    normalized: list[dict[str, str]] = []
+                    for hit in hits[:3]:
+                        if not isinstance(hit, dict):
+                            continue
+                        payload = (
+                            hit.get("payload")
+                            if isinstance(hit.get("payload"), dict)
+                            else hit
+                        )
+                        text = str(
+                            payload.get("text") or payload.get("chunk_text") or ""
+                        ).strip()
+                        if not text:
+                            continue
+                        normalized.append(
+                            {
+                                "text": text[:400],
+                                "source": str(
+                                    payload.get("source")
+                                    or payload.get("corpus")
+                                    or "asx_docs"
+                                ),
+                            }
+                        )
+                    if normalized:
+                        data["commentary"] = normalized
             except Exception as exc:
                 logger.debug("deep_research: commentary retrieval failed: %s", exc)
 
@@ -187,7 +229,9 @@ class DeepResearchRunner:
 
         logger.info(
             "deep_research: gathered %d sources for %s: %s",
-            len(data), ticker, list(data.keys()),
+            len(data),
+            ticker,
+            list(data.keys()),
         )
         return data
 
