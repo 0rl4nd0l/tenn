@@ -466,10 +466,10 @@ async function testStoreAndStrategist(): Promise<void> {
   assert.equal(inspection.mode, "delegate");
   const inspectionGraph = materializeTaskGraph(inspection);
   assert.ok(inspectionGraph.rootTask, "concrete local inspection prompts should create a root task");
+  assert.equal(inspectionGraph.childTasks.length, 1, "local inspection should use a single focused worker task");
   assert.ok(inspectionGraph.childTasks.some((task) => task.taskType === "explore"));
-  assert.ok(inspectionGraph.childTasks.some((task) => task.taskType === "verify"));
   assert.ok(!inspectionGraph.childTasks.some((task) => task.taskType === "implement"));
-  assert.match(inspection.reply, /I'll check that/i);
+  assert.match(inspection.reply, /direct answer/i);
   assert.doesNotMatch(inspection.reply, /Initial task graph|read-only discovery|token-aware/i);
 
   const sizeInspection = strategist.plan("goal_test", "repo size?", {
@@ -482,10 +482,10 @@ async function testStoreAndStrategist(): Promise<void> {
   assert.equal(sizeInspection.mode, "delegate");
   const sizeGraph = materializeTaskGraph(sizeInspection);
   assert.ok(sizeGraph.rootTask, "repo size prompts should create a root task");
+  assert.equal(sizeGraph.childTasks.length, 1, "repo size checks should use a single focused worker task");
   assert.ok(sizeGraph.childTasks.some((task) => task.taskType === "explore"));
-  assert.ok(sizeGraph.childTasks.some((task) => task.taskType === "verify"));
   assert.ok(!sizeGraph.childTasks.some((task) => task.taskType === "implement"));
-  assert.match(sizeInspection.reply, /I'll check that/i);
+  assert.match(sizeInspection.reply, /direct answer/i);
   assert.doesNotMatch(sizeInspection.reply, /Initial task graph|read-only discovery|token-aware/i);
 }
 
@@ -700,6 +700,70 @@ async function testRecoverOrphanedRunningTasksOnStartup(): Promise<void> {
   }
 }
 
+async function testTaskOutcomeMessagesAppearInConversation(): Promise<void> {
+  const repo = createTempGitRepo();
+  const dataDir = path.join(repo.repoRoot, ".orchestrator-data");
+  const taskId = "task_worker_outcome";
+  const runId = "run_worker_outcome";
+  try {
+    const service = await OrchestratorService.create({
+      repoRoot: repo.repoRoot,
+      dataDir,
+      autoSchedule: false,
+      goalId: "outcome-message-test"
+    });
+    try {
+      const now = new Date().toISOString();
+      const store = (service as unknown as { store: any }).store;
+      store.upsertTask(
+        makeTask({
+          id: taskId,
+          goalId: "outcome-message-test",
+          status: "done",
+          role: "worker",
+          taskType: "explore",
+          chosenRuntime: "opencode",
+          chosenProvider: "opencode",
+          chosenModel: "openai/gpt-5.4",
+          title: "Inspect repo size",
+          updatedAt: now
+        })
+      );
+      store.insertLogs([
+        {
+          id: "log_outcome_1",
+          runId,
+          stream: "stdout",
+          message:
+            '{"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"Top directories by size are backend (1.2G), .venv (900M), and cockpit-ui (420M)."}}',
+          createdAt: now
+        }
+      ]);
+
+      const createdTask = store
+        .getCollections("outcome-message-test")
+        .tasks.find((candidate: TaskRecord) => candidate.id === taskId) as TaskRecord | undefined;
+      assert.ok(createdTask, "expected seeded worker task");
+      await (service as unknown as {
+        publishTaskOutcomeToConversation: (task: TaskRecord, runId: string) => Promise<void>;
+      }).publishTaskOutcomeToConversation(
+        createdTask,
+        runId
+      );
+
+      const board = await service.getBoardState();
+      const lastAssistant = [...board.conversation.messages].reverse().find((message) => message.role === "assistant");
+      assert.ok(lastAssistant, "expected an assistant outcome message");
+      assert.match(lastAssistant?.content ?? "", /Result from \"Inspect repo size\"/i);
+      assert.match(lastAssistant?.content ?? "", /Top directories by size/i);
+    } finally {
+      await service.dispose();
+    }
+  } finally {
+    repo.cleanup();
+  }
+}
+
 async function testWorktreeLifecycleAndSpawnWiring(): Promise<void> {
   const repo = createTempGitRepo();
   const worktreeBaseDir = path.join(repo.repoRoot, ".worktrees");
@@ -789,6 +853,7 @@ async function main(): Promise<void> {
   await testProcessAndOpenCodeAttachMode();
   await testStrategistDelegationRequiresApproval();
   await testRecoverOrphanedRunningTasksOnStartup();
+  await testTaskOutcomeMessagesAppearInConversation();
   await testWorktreeLifecycleAndSpawnWiring();
   console.log("orchestrator-core tests passed");
 }

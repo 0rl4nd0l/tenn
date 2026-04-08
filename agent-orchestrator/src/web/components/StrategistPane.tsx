@@ -44,6 +44,15 @@ export function StrategistPane({
   ];
   const conversationMessageIds = new Set(conversation.messages.map((messageItem) => messageItem.id));
   const messages = [...conversation.messages.slice(-8)];
+  const latestExecutionUpdate = [...conversation.messages]
+    .reverse()
+    .find(
+      (messageItem) =>
+        messageItem.role === "assistant" &&
+        (messageItem.content.startsWith("Result from \"") ||
+          messageItem.content.startsWith("I could not complete \"") ||
+          messageItem.content.includes("finished in"))
+    );
   if (pendingUserMessage && !conversationMessageIds.has(pendingUserMessage.id)) {
     messages.push({
       id: pendingUserMessage.id,
@@ -155,6 +164,12 @@ export function StrategistPane({
           </select>
         </label>
       </div>
+      {latestExecutionUpdate ? (
+        <div className="latest-answer-card">
+          <span>Latest execution update</span>
+          <p>{latestExecutionUpdate.content}</p>
+        </div>
+      ) : null}
       <div className="message-stack clean-chat-stack">
         {messages.map((messageItem) => (
           <article

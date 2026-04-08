@@ -732,8 +732,113 @@ export class OrchestratorService extends EventEmitter {
       runtime: finalTask.chosenRuntime,
       provider: finalTask.chosenProvider
     }));
+    await this.publishTaskOutcomeToConversation(finalTask, completedRun.id);
     this.emitRefresh("task.completed");
     await this.scheduleNow();
+  }
+
+  private async publishTaskOutcomeToConversation(task: TaskRecord, runId: string): Promise<void> {
+    if (!shouldPublishTaskOutcome(task)) {
+      return;
+    }
+    const collections = this.store.getCollections(this.goalId);
+    const logs = collections.logs.filter((log) => log.runId === runId);
+    const userQuestion = typeof task.constraints.userQuestion === "string" ? task.constraints.userQuestion.trim() : "";
+    let snippet = extractAnswerSnippetFromLogs(logs);
+    if (
+      typeof task.constraints.directAnswerRequired === "boolean" &&
+      task.constraints.directAnswerRequired &&
+      userQuestion &&
+      (!snippet || isWeakOutcomeSnippet(snippet))
+    ) {
+      const deterministicAnswer = await this.buildLocalInspectionFallback(userQuestion);
+      if (deterministicAnswer) {
+        snippet = deterministicAnswer;
+      }
+    }
+    const runtime = task.chosenRuntime ?? "its runtime";
+    const topology = agentTopologyLabel(task, collections.tasks);
+
+    let content: string;
+    if (task.status === "failed" || task.status === "blocked") {
+      const reason = snippet || "The run failed before producing a usable result.";
+      content = `I could not complete \"${task.title}\" (${runtime}, ${topology}). ${reason}`;
+    } else if (snippet) {
+      content = `Result from \"${task.title}\" (${runtime}, ${topology}): ${snippet}`;
+    } else {
+      content = `\"${task.title}\" finished in ${runtime} (${topology}). I did not capture a concise answer in logs, so open task detail for full output.`;
+    }
+
+    this.store.appendConversationMessage(this.goalId, {
+      id: createId("msg"),
+      role: "assistant",
+      content,
+      createdAt: nowIso()
+    });
+  }
+
+  private async buildLocalInspectionFallback(question: string): Promise<string | null> {
+    const normalized = question.toLowerCase();
+    if (/(how big|size|disk usage|directory size|repo size|repository size)/i.test(normalized)) {
+      const total = await runCommand("bash", ["-lc", "du -sh ."], {
+        cwd: this.options.repoRoot,
+        timeoutMs: 15_000
+      });
+      const largest = await runCommand(
+        "bash",
+        ["-lc", "du -sk ./* 2>/dev/null | sort -rn | head -n 6"],
+        {
+          cwd: this.options.repoRoot,
+          timeoutMs: 15_000
+        }
+      );
+      if (!total.ok) {
+        return null;
+      }
+      const totalLine = total.stdout.split(/\r?\n/).map((line) => line.trim()).find((line) => line.length > 0) ?? "unknown";
+      const largestLines = largest.stdout
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+        .slice(0, 5)
+        .map((line) => {
+          const [sizeKb, ...pathParts] = line.split(/\s+/);
+          const pathLabel = pathParts.join(" ");
+          const sizeMb = Number(sizeKb) / 1024;
+          if (!Number.isFinite(sizeMb)) {
+            return line;
+          }
+          return `${pathLabel} (${sizeMb >= 1024 ? `${(sizeMb / 1024).toFixed(2)} GB` : `${sizeMb.toFixed(0)} MB`})`;
+        });
+      return `Repo size is ${totalLine.split(/\s+/)[0]}. Largest top-level paths: ${largestLines.join(", ")}.`;
+    }
+
+    if (/(models?|weights?|checkpoints?|gguf|safetensors|on disk|nvme|ssd)/i.test(normalized)) {
+      const files = await runCommand(
+        "bash",
+        [
+          "-lc",
+          "rg --files -g '*.gguf' -g '*.safetensors' -g '*.onnx' -g '*.pt' -g '*.pth' -g '*.bin' . | head -n 15"
+        ],
+        {
+          cwd: this.options.repoRoot,
+          timeoutMs: 15_000
+        }
+      );
+      if (!files.ok) {
+        return null;
+      }
+      const lines = files.stdout
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+      if (lines.length === 0) {
+        return "I did not find model weight files (*.gguf, *.safetensors, *.pt, *.bin) under the current workspace root.";
+      }
+      return `Found ${lines.length} model-like files in the workspace (showing up to 15): ${lines.join(", ")}.`;
+    }
+
+    return null;
   }
 
   private resolveTaskCompletion(
@@ -1138,7 +1243,16 @@ function buildExecutionPrompt(task: TaskRecord, plan: ExecutionPlan): string {
     "Prefer concise progress notes and leave a clear summary for review.",
     plan.useWorktree ? "You are in a write-isolated worktree." : "This is a read-only or non-worktree task."
   ];
-  return `${directives.join("\n")}\n\n${task.description}`;
+  const userQuestion = typeof task.constraints.userQuestion === "string" ? task.constraints.userQuestion.trim() : "";
+  const answerDirectives = userQuestion
+    ? [
+        `Primary user question: ${userQuestion}`,
+        "Return a direct answer to that question.",
+        "End with a short Findings section with concrete values, paths, or commands used.",
+        "Do not reply with a planning-only update unless execution is blocked."
+      ]
+    : [];
+  return `${directives.join("\n")}\n\n${task.description}${answerDirectives.length > 0 ? `\n\n${answerDirectives.join("\n")}` : ""}`;
 }
 
 const PROCESS_WATCHDOG_PATTERN =
@@ -1164,6 +1278,150 @@ function summarizeWatchdogReason(message: string): string {
     return normalized;
   }
   return `${normalized.slice(0, 177).trim()}...`;
+}
+
+function shouldPublishTaskOutcome(task: TaskRecord): boolean {
+  if (task.role !== "worker" && task.status !== "failed" && task.status !== "blocked") {
+    return false;
+  }
+  return ["done", "review", "failed", "blocked"].includes(task.status);
+}
+
+function extractAnswerSnippetFromLogs(logs: LogRecord[]): string | null {
+  const candidates: string[] = [];
+  for (const log of logs) {
+    if (typeof log.message !== "string" || log.message.trim().length === 0) {
+      continue;
+    }
+    const lines = stripAnsi(log.message)
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    for (const line of lines) {
+      const agentMessage = extractAgentMessageFromJsonLine(line);
+      if (agentMessage) {
+        candidates.push(agentMessage);
+        continue;
+      }
+      if (looksLikeHumanAnswerLine(line)) {
+        candidates.push(line);
+      }
+    }
+  }
+
+  for (let index = candidates.length - 1; index >= 0; index -= 1) {
+    const candidate = candidates[index];
+    if (!candidate) {
+      continue;
+    }
+    const normalized = normalizeOutcomeSnippet(candidate);
+    if (normalized) {
+      return normalized;
+    }
+  }
+  return null;
+}
+
+function extractAgentMessageFromJsonLine(line: string): string | null {
+  try {
+    const parsed = JSON.parse(line) as Record<string, unknown>;
+    if (parsed.type !== "item.completed") {
+      return null;
+    }
+    const item = parsed.item as Record<string, unknown> | undefined;
+    if (!item || item.type !== "agent_message") {
+      return null;
+    }
+    const text = item.text;
+    return typeof text === "string" ? text : null;
+  } catch {
+    return null;
+  }
+}
+
+function looksLikeHumanAnswerLine(line: string): boolean {
+  if (line.length < 28) {
+    return false;
+  }
+  const lower = line.toLowerCase();
+  if (
+    lower.startsWith("permission requested") ||
+    lower.startsWith("reading additional input") ||
+    lower.startsWith("error:") ||
+    lower.startsWith("warning:") ||
+    lower.startsWith("run started") ||
+    lower.includes("auto-rejecting") ||
+    lower.includes("tool call") ||
+    lower.includes("task:") ||
+    lower.includes("instruction:") ||
+    lower.startsWith("[") ||
+    lower.startsWith("{") ||
+    lower.startsWith("/") ||
+    lower.startsWith("-") ||
+    lower.startsWith(">")
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function normalizeOutcomeSnippet(value: string): string | null {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length < 20) {
+    return null;
+  }
+  if (
+    /^\u2192/i.test(normalized) ||
+    /^→/.test(normalized) ||
+    /^read\s+\S+/i.test(normalized) ||
+    normalized.includes("[offset=") ||
+    normalized.toLowerCase().includes("permission requested") ||
+    normalized.toLowerCase().includes("auto-rejecting") ||
+    normalized.toLowerCase().includes("tool call") ||
+    normalized.toLowerCase().includes("/bin/bash")
+  ) {
+    return null;
+  }
+  if (normalized.length <= 280) {
+    return normalized;
+  }
+  return `${normalized.slice(0, 277).trim()}...`;
+}
+
+function isWeakOutcomeSnippet(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  const looksLikeSingleCommandOutput = /^\d+(?:\.\d+)?[kmgtp]?\s+\S+$/i.test(value.trim());
+  return (
+    looksLikeSingleCommandOutput ||
+    normalized.startsWith("$ ") ||
+    normalized.includes("execution plan") ||
+    normalized.includes("starting with repo constraints") ||
+    normalized.includes("without that, i'd be guessing") ||
+    normalized.includes("without that, i would be guessing") ||
+    normalized.includes("reading the")
+  );
+}
+
+function stripAnsi(value: string): string {
+  return value.replace(/\u001b\[[0-9;]*m/g, "");
+}
+
+function agentTopologyLabel(task: TaskRecord, tasks: TaskRecord[]): string {
+  if (task.agentMode === "single") {
+    return "1 agent";
+  }
+  if (task.agentMode === "read_only_strategist") {
+    return "1 planner";
+  }
+  const directChildren = tasks.filter((candidate) => candidate.parentId === task.id).length;
+  if (task.agentMode === "native_subagents") {
+    return "multi-agent runtime";
+  }
+  if (task.agentMode === "orchestrator_subtasks") {
+    return directChildren > 0 ? `${directChildren + 1} agents` : "task graph";
+  }
+  return directChildren > 0 ? `${directChildren + 1} agents` : "hybrid agents";
 }
 
 function runtimeToPreferredProvider(runtime: "codex-local" | "opencode"): ProviderId {

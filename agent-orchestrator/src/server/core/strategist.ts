@@ -167,6 +167,31 @@ function buildTaskSlices(
   profile: RequestProfile,
   projectSnapshot: ProjectSnapshot | null
 ): SliceTemplate[] {
+  if (profile.localInspectionRequest) {
+    return [
+      {
+        localKey: "inspection",
+        title: "Local inspection answer",
+        description:
+          "Inspect local files and runtime state relevant to the user's question, then return a direct answer with concrete findings and short evidence references. Do not propose unrelated plans.",
+        role: "worker",
+        taskType: "explore",
+        delegationPolicy: "single",
+        runtimeCandidates: ["opencode", "codex-local", "claude", "gemini"],
+        providerCandidates: ["opencode", "openai", "anthropic", "google"],
+        ownedFiles: [],
+        readOnlyPaths: ["./"],
+        verificationPolicy: ["diff_sanity"],
+        constraints: {
+          readOnly: true,
+          directAnswerRequired: true,
+          userQuestion: message
+        },
+        dependsOnLocalKeys: []
+      }
+    ];
+  }
+
   // Discovery is always first and read-only. It establishes repo context,
   // constraints, and risk before implementation/review lanes.
   const slices: SliceTemplate[] = [
@@ -324,7 +349,7 @@ function buildDelegationReply(
 ): string {
   if (profile.localInspectionRequest) {
     const activeRoot = toWorkspaceSnapshot(projectSnapshot)?.activeRoot?.name ?? "the workspace";
-    return `I'll check that in ${activeRoot} and surface the result as work starts.`;
+    return `I'll check that in ${activeRoot} and send you a direct answer as soon as it completes.`;
   }
 
   const domainLine =

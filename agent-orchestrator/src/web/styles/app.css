@@ -501,6 +501,27 @@ button:disabled {
   padding: 12px 4px 12px 0;
 }
 
+.latest-answer-card {
+  margin: 10px 0 2px;
+  border: 1px solid rgba(120, 168, 255, 0.28);
+  border-radius: 14px;
+  background: rgba(120, 168, 255, 0.1);
+  padding: 10px 12px;
+}
+
+.latest-answer-card span {
+  display: block;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-size: 0.66rem;
+}
+
+.latest-answer-card p {
+  margin: 6px 0 0;
+  line-height: 1.4;
+}
+
 .approval-prompt {
   margin-top: 12px;
   display: flex;
