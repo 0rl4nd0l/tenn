@@ -2,14 +2,17 @@
 
 Current active runtime is `financial-engine_v2`.
 
-## Run in 3 steps
-1. Create/activate your main venv at repo root.
+## Run in 4 steps
+1. Create and activate the canonical local venv:
+   - `python3 -m venv financial-engine_v2/.venv`
+   - `export PATH="$PWD/financial-engine_v2/.venv/bin:$PATH"`
 2. Install deps:
-   - `pip install -r financial-engine_v2/backend/requirements.txt`
-   - `pip install -r financial-engine_v2/worker/requirements.txt`
+   - `pip install -r requirements.txt`
    - `python -m playwright install chromium`
-3. Run:
-   - `bash financial-engine_v2/scripts/run_local_backend.sh`
+3. Start deterministic local backend mode:
+   - `LOCAL_BACKEND_PROFILE=isolated bash financial-engine_v2/scripts/run_local_backend.sh`
+4. Verify health:
+   - `curl -sS http://127.0.0.1:8000/api/health`
 
 For agents and deterministic local backend startup, `financial-engine_v2/scripts/run_local_backend.sh` is the canonical entrypoint.
 `python run.py` remains a supported batch/orchestration path, but it is not the canonical "system is up" signal.
@@ -19,6 +22,9 @@ Canonical environment and runtime docs:
 - `docs/setup/runtime.md`
 - `docs/setup/troubleshooting.md`
 - `docs/entrypoints.md`
+
+Repository governance note:
+- `LICENSE_STATUS.md` (top-level Tenn license intent pending maintainer decision)
 
 ## Local Backend Status
 Current verified local backend entrypoint is:

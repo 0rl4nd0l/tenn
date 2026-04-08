@@ -80,7 +80,7 @@ interface ConfigState {
 
 const DEFAULTS: ConfigState = {
   llm: {
-    model: 'qwen3-14b-q4_k_m',
+    model: 'model:gpt-oss-20b',
     endpoint: 'http://localhost:8001',
     routingPolicy: 'local-first',
     maxTokens: 4096,

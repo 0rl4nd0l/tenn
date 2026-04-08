@@ -23,7 +23,7 @@ Profiles:
   - `/chat` degrades safely instead of returning `500`
 - `LOCAL_BACKEND_PROFILE=full`
   - verified working with:
-    - local SQLite in `/tmp`
+    - configured runtime DB/data roots (host-local `.env.local` may point at `/mnt/nvme/tenn/runtime-data`; isolated validation can still fall back to `/tmp/financial-engine_v2-fe_local_runtime.db`)
     - local Qdrant on `127.0.0.1:6333`
     - local llama.cpp on `127.0.0.1:8001/v1`
   - `/chat` returns grounded answers when `commentary_chunks` has data
@@ -32,7 +32,8 @@ Operational notes:
 - `/chat` uses `commentary_chunks` with optional `commentary_chunks_v2` fallback support
 - `asx_docs` is not the commentary chat collection
 - local launcher precedence is `.env` then `.env.local`, with explicit shell env overriding both
-- local launcher forces `DATA_ROOT` to the repo `data/` path unless `DATA_ROOT` is explicitly set
+- current host-local storage layout uses `/mnt/nvme/tenn/runtime-data` for runtime data and `/mnt/nvme/tenn/models` for llama.cpp GGUFs
+- root Ollama store has been pruned to `qwen2.5:32b` and `gpt-oss:20b-cloud`, with inactive models archived under `.archives/ollama-root-store-2026-04-07`
 
 Canonical local launcher:
 - `financial-engine_v2/scripts/run_local_backend.sh`

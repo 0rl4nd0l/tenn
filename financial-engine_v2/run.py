@@ -23,7 +23,6 @@ REPO_ROOT = Path(__file__).resolve().parent
 CONFIG = {
     # "both" | "full_history" | "daily_marketindex" | "daily_asx_marketwide"
     "workflow": "both",
-
     # Full-history ticker gathering config
     "full_history": {
         "use_asx10": False,
@@ -34,7 +33,6 @@ CONFIG = {
         "resume_max_retries": 5,
         "resume_retry_delay_seconds": 2.0,
     },
-
     # Daily MarketIndex config
     "daily_marketindex": {
         "download_limit": 0,
@@ -43,7 +41,6 @@ CONFIG = {
         "min_success_ratio": 0.35,
         "null_retry_delay_seconds": 15,
     },
-
     # Daily ASX market-wide config
     "daily_asx_marketwide": {
         "days": 1,
@@ -58,11 +55,14 @@ def _set_default_env() -> dict:
     data_root = env.setdefault("DATA_ROOT", "./data")
     env.setdefault("DATABASE_URL", f"sqlite:///{data_root}/fe_local.db")
     env.setdefault("DOCS_ROOT", f"{data_root}/asx/docs")
-    env.setdefault("MARKETINDEX_ANNOUNCEMENTS_FILE", f"{data_root}/raw/marketindex_announcements.json")
+    env.setdefault(
+        "MARKETINDEX_ANNOUNCEMENTS_FILE",
+        f"{data_root}/raw/marketindex_announcements.json",
+    )
     env.setdefault("QDRANT_URL", "http://127.0.0.1:6333")
     env.setdefault("OLLAMA_URL", "http://127.0.0.1:11434")
     env.setdefault("LLM_URL", "http://127.0.0.1:8001")
-    env.setdefault("LLAMACPP_URL", "http://127.0.0.1:8001/v1")
+    env.setdefault("LLAMACPP_URL", "http://127.0.0.1:8001")
     env.setdefault("LLM_API_KEY", "local-openai-key")
     env.setdefault("EMBEDDING_BATCH_SIZE", "32")
     env.setdefault("ROUTER_FEEDBACK_ENABLED", "true")
@@ -113,7 +113,9 @@ def _build_full_history_cmd() -> list[str]:
     else:
         tickers = [t.strip().upper() for t in cfg.get("tickers", []) if str(t).strip()]
         if not tickers:
-            raise ValueError("CONFIG.full_history.tickers cannot be empty when use_asx10=false")
+            raise ValueError(
+                "CONFIG.full_history.tickers cannot be empty when use_asx10=false"
+            )
         cmd.extend(["--ticker", ",".join(tickers)])
     return cmd
 
@@ -164,8 +166,15 @@ def main() -> int:
     print(f"[startup] LLAMACPP_URL={env['LLAMACPP_URL']}")
     print(f"[startup] OLLAMA_URL={env['OLLAMA_URL']}")
 
-    if workflow not in {"both", "full_history", "daily_marketindex", "daily_asx_marketwide"}:
-        raise ValueError("CONFIG.workflow must be one of: both, full_history, daily_marketindex, daily_asx_marketwide")
+    if workflow not in {
+        "both",
+        "full_history",
+        "daily_marketindex",
+        "daily_asx_marketwide",
+    }:
+        raise ValueError(
+            "CONFIG.workflow must be one of: both, full_history, daily_marketindex, daily_asx_marketwide"
+        )
 
     results = []
     if workflow in {"both", "full_history"}:
@@ -173,7 +182,9 @@ def main() -> int:
     if workflow in {"both", "daily_marketindex"}:
         results.append(_run_step("daily_marketindex", _build_daily_cmd(), env))
     if workflow in {"daily_asx_marketwide"}:
-        results.append(_run_step("daily_asx_marketwide", _build_daily_asx_marketwide_cmd(), env))
+        results.append(
+            _run_step("daily_asx_marketwide", _build_daily_asx_marketwide_cmd(), env)
+        )
 
     # Fail overall if any step failed.
     return 0 if all(code == 0 for code in results) else 1

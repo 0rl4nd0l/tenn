@@ -55,7 +55,7 @@ Detailed API inventory:
 - `LOCAL_BACKEND_PROFILE=full ./scripts/run_local_backend.sh` is now verified working locally against:
   - SQLite in `/tmp`
   - local Qdrant on `127.0.0.1:6333`
-  - local llama.cpp on `127.0.0.1:8001/v1`
+  - local llama.cpp on `127.0.0.1:8001`
 - `/chat` is verified end-to-end for local commentary retrieval plus llama.cpp JSON generation.
 - `/chat` uses commentary collections, not `asx_docs`.
   - Primary collection: `commentary_chunks`
@@ -139,7 +139,7 @@ Defaults in local mode:
 - MarketIndex fallback enabled by default (`ENABLE_MARKETINDEX_FALLBACK=true`) using `../data/raw/marketindex_announcements.json`
 - `.env.local` is loaded when present before profile defaults are applied
 - `LOCAL_BACKEND_PROFILE=full` enables embeddings, Qdrant, and extraction for local runs
-- If the default SQLite file is unreadable in isolated mode, launcher fallback is `./data/fe_local_runtime.db`
+- If the default SQLite file is unreadable in isolated mode, launcher fallback is `/tmp/financial-engine_v2-fe_local_runtime.db`
 - Local llama.cpp/auth env support includes `LLAMACPP_URL`, `LLM_API_KEY`, and `EMBEDDING_API_KEY`
 - Explicit shell env now overrides `.env` and `.env.local` for local runs
 - Local runs default `DATA_ROOT` to `./data`, not `/data`
@@ -152,7 +152,7 @@ Use this mode when you want real `/chat` responses from local Qdrant + llama.cpp
 Prerequisites:
 - active venv or `export PATH="$PWD/.venv/bin:$PATH"`
 - Qdrant running on `127.0.0.1:6333`
-- llama.cpp server running on `127.0.0.1:8001/v1`
+- llama.cpp server running on `127.0.0.1:8001`
 - matching local auth key, e.g. `local-openai-key`
 - commentary data loaded into `commentary_chunks`
 
@@ -167,7 +167,7 @@ DATABASE_URL=sqlite:////tmp/financial-engine_v2-full.db \
 DOCS_ROOT="$HOME/tenn/financial-engine_v2/data/asx/docs" \
 QDRANT_URL=http://127.0.0.1:6333 \
 QDRANT_TIMEOUT_SECONDS=120 \
-LLAMACPP_URL=http://127.0.0.1:8001/v1 \
+LLAMACPP_URL=http://127.0.0.1:8001 \
 LLAMACPP_TIMEOUT_SECONDS=180 \
 LLM_API_KEY=local-openai-key \
 EMBEDDING_API_KEY=local-openai-key \
@@ -208,7 +208,7 @@ cd ~/tenn/financial-engine_v2
 
 PYTHONPATH=backend \
 QDRANT_URL=http://127.0.0.1:6333 \
-LLAMACPP_URL=http://127.0.0.1:8001/v1 \
+LLAMACPP_URL=http://127.0.0.1:8001 \
 LLM_API_KEY=local-openai-key \
 EMBEDDING_API_KEY=local-openai-key \
 EMBED_MODEL=nomic-embed-text \
@@ -335,10 +335,10 @@ Operational controls:
 
 ## Key environment variables
 - `OLLAMA_URL` (default `http://127.0.0.1:11434`)
-- `LLAMACPP_URL` (default `http://127.0.0.1:8001/v1` from the local launcher)
+- `LLAMACPP_URL` (default `http://127.0.0.1:8001` from the local launcher)
 - `LLAMACPP_URL` and `OLLAMA_URL` must point to different endpoints; startup fails fast if they match.
 - `EMBED_MODEL` (default `nomic-embed-text`)
-- `EXTRACT_MODEL` (default `llama3:latest`)
+- `EXTRACT_MODEL` (default `qwen2.5-14b-instruct`)
 - `DOCS_ROOT` (default `./data/asx/docs` in local mode)
 - `LLM_API_KEY` and `EMBEDDING_API_KEY` for llama.cpp-compatible auth headers
 - `MARKET_DATA_MODE` (`yahoo` or `openbb_sidecar`)
@@ -347,7 +347,7 @@ Operational controls:
 ## LLM Backend Configuration
 You MUST configure separate endpoints:
 
-- `LLAMACPP_URL=http://127.0.0.1:8001/v1`
+- `LLAMACPP_URL=http://127.0.0.1:8001`
 - `OLLAMA_URL=http://127.0.0.1:11434`
 
 The application will fail to start if:

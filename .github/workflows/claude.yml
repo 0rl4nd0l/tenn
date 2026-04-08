@@ -5,8 +5,8 @@ on:
     types: [created]
   pull_request_review_comment:
     types: [created]
-  pull_request:
-    types: [opened, synchronize]
+  # Manual dispatch keeps advisory scans available without automatic PR write-back.
+  workflow_dispatch:
 
 jobs:
   claude-on-mention:
@@ -16,29 +16,31 @@ jobs:
       contains(github.event.comment.body, '@claude')
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      # Least privilege: commenting only, no repository content writes.
+      contents: read
       pull-requests: write
       issues: write
     steps:
-      - uses: anthropics/claude-code-action@beta
+      # Pinned to immutable commit SHA for supply-chain safety.
+      - uses: anthropics/claude-code-action@de8e0b9c42c6cb58e904c857f164aa072244c1ac
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
 
-  claude-pr-review:
-    # Auto-review every PR when opened or updated
-    if: github.event_name == 'pull_request'
+  claude-manual-advisory:
+    # Manual-only advisory run; no automatic PR review trigger.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
+      issues: write
     steps:
-      - uses: anthropics/claude-code-action@beta
+      - uses: anthropics/claude-code-action@de8e0b9c42c6cb58e904c857f164aa072244c1ac
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           direct_prompt: |
-            Review this pull request. Check for:
-            - Correctness and logic errors
-            - Security issues (secrets exposure, injection, validation gaps)
-            - Adherence to CLAUDE.md rules (minimal changes, no schema drift, milestone commits)
-            - Missing tests for new code paths
-            Post a concise review comment. If the PR looks clean, say so briefly.
+            Run an advisory-only repository review. Focus on:
+            - security and secret-handling risks
+            - CI/workflow safety and least-privilege permissions
+            - startup and runtime determinism mismatches in docs/scripts
+            Return a concise findings summary.

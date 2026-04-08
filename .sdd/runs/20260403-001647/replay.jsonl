@@ -1,0 +1,37 @@
+{"ts": 1775175407.3502321, "elapsed_s": 0.009, "event": "run_started", "run_id": "20260403-001647", "max_agents": 3, "budget_usd": 0.0, "git_sha": "605098d66683933c3b05e1b1ffd573844000e7f7", "git_branch": "cloud/session-20260319", "config_hash": "29cede8b280ea0943db0377391c68ffbb068c848476f80b9babdaaa086fd18a3"}
+{"ts": 1775175407.3503687, "elapsed_s": 0.009, "event": "tick_start", "tick": 1}
+{"ts": 1775175414.0926256, "elapsed_s": 6.752, "event": "tick_start", "tick": 2}
+{"ts": 1775175594.534093, "elapsed_s": 187.193, "event": "agent_spawned", "agent_id": "manager-94db148a", "role": "manager", "model": "opus", "provider": null, "task_ids": ["110b7f32e498"], "agent_source": "agency"}
+{"ts": 1775175594.5341961, "elapsed_s": 187.193, "event": "task_claimed", "task_id": "110b7f32e498", "agent_id": "manager-94db148a", "model": "opus"}
+{"ts": 1775175594.5342376, "elapsed_s": 187.193, "event": "agent_spawned", "agent_id": "manager-e6788fe4", "role": "manager", "model": "haiku", "provider": null, "task_ids": ["bf9d545b5a8d"], "agent_source": "agency"}
+{"ts": 1775175594.5342684, "elapsed_s": 187.193, "event": "task_claimed", "task_id": "bf9d545b5a8d", "agent_id": "manager-e6788fe4", "model": "haiku"}
+{"ts": 1775175597.5345054, "elapsed_s": 190.194, "event": "tick_start", "tick": 3}
+{"ts": 1775175604.2609086, "elapsed_s": 196.92, "event": "tick_start", "tick": 4}
+{"ts": 1775175616.7636404, "elapsed_s": 209.423, "event": "tick_start", "tick": 5}
+{"ts": 1775175640.943346, "elapsed_s": 233.602, "event": "tick_start", "tick": 6}
+{"ts": 1775175671.1491878, "elapsed_s": 263.808, "event": "tick_start", "tick": 7}
+{"ts": 1775175701.8719177, "elapsed_s": 294.531, "event": "tick_start", "tick": 8}
+{"ts": 1775175732.0462017, "elapsed_s": 324.705, "event": "tick_start", "tick": 9}
+{"ts": 1775175762.1704335, "elapsed_s": 354.83, "event": "tick_start", "tick": 10}
+{"ts": 1775175792.6248558, "elapsed_s": 385.284, "event": "tick_start", "tick": 11}
+{"ts": 1775175822.9799058, "elapsed_s": 415.639, "event": "tick_start", "tick": 12}
+{"ts": 1775175854.1286888, "elapsed_s": 446.788, "event": "tick_start", "tick": 13}
+{"ts": 1775175884.226469, "elapsed_s": 476.886, "event": "tick_start", "tick": 14}
+{"ts": 1775175914.54022, "elapsed_s": 507.199, "event": "tick_start", "tick": 15}
+{"ts": 1775175944.6709812, "elapsed_s": 537.33, "event": "tick_start", "tick": 16}
+{"ts": 1775175974.8052585, "elapsed_s": 567.464, "event": "tick_start", "tick": 17}
+{"ts": 1775176004.9797006, "elapsed_s": 597.639, "event": "tick_start", "tick": 18}
+{"ts": 1775176035.1396914, "elapsed_s": 627.799, "event": "tick_start", "tick": 19}
+{"ts": 1775176065.2445292, "elapsed_s": 657.904, "event": "tick_start", "tick": 20}
+{"ts": 1775176095.5148768, "elapsed_s": 688.174, "event": "tick_start", "tick": 21}
+{"ts": 1775176126.0959466, "elapsed_s": 718.755, "event": "tick_start", "tick": 22}
+{"ts": 1775176156.7704296, "elapsed_s": 749.43, "event": "tick_start", "tick": 23}
+{"ts": 1775176187.0832589, "elapsed_s": 779.742, "event": "tick_start", "tick": 24}
+{"ts": 1775176217.3746223, "elapsed_s": 810.034, "event": "tick_start", "tick": 25}
+{"ts": 1775176247.9528763, "elapsed_s": 840.612, "event": "tick_start", "tick": 26}
+{"ts": 1775176278.1369245, "elapsed_s": 870.796, "event": "tick_start", "tick": 27}
+{"ts": 1775176309.2747152, "elapsed_s": 901.934, "event": "tick_start", "tick": 28}
+{"ts": 1775176339.4533627, "elapsed_s": 932.112, "event": "tick_start", "tick": 29}
+{"ts": 1775176369.6449528, "elapsed_s": 962.304, "event": "tick_start", "tick": 30}
+{"ts": 1775176399.838543, "elapsed_s": 992.498, "event": "tick_start", "tick": 31}
+{"ts": 1775176430.5277355, "elapsed_s": 1023.187, "event": "tick_start", "tick": 32}

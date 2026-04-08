@@ -1,0 +1,61 @@
+recommendations:
+- id: claude-3-do-not-introduce-fallbacks-substitutions-paral
+  category: safety
+  severity: suggestion
+  text: 3. **Do NOT introduce:** fallbacks, substitutions, parallel implementations,
+    or approximations that violate contract invariants.
+  applies_to: []
+- id: claude-4-do-not-bypass-the-canonical-pipeline-single-so
+  category: safety
+  severity: suggestion
+  text: 4. **Do NOT bypass:** the canonical pipeline, single-source-of-truth rules,
+    or fail-fast extraction behavior.
+  applies_to: []
+- id: claude-5-gpu-process-check-required-does-this-task-spaw
+  category: coding
+  severity: suggestion
+  text: "5. **GPU process check required** \u2014 does this task spawn, restart, or\
+    \ depend on llama-server? If yes: run `scripts/gpu_process_guard.sh --check` and\
+    \ report the result before proceeding. If exit code 1 (rogues) or 2 (VRAM critical),\
+    \ resolve before continuing. See SYSTEM_CONTRACT.md \xA79.4\u2013\xA79.5."
+  applies_to: []
+- id: claude-if-a-violation-is-detected-stop-execution-surfac
+  category: safety
+  severity: suggestion
+  text: 'If a violation is detected: STOP execution, surface the violation, and do
+    not proceed'
+  applies_to: []
+- id: claude-commit-format-this-project-uses-milestone-subsys
+  category: testing
+  severity: suggestion
+  text: "**Commit format:** This project uses `milestone(<subsystem>): ...` with `Working:`\
+    \ / `Tested:` fields (see \xA7Milestone Commit Protocol below), overriding the\
+    \ generic `<type>: <description>` format in `rules/common/git-workflow.md`."
+  applies_to: []
+- id: claude-formatter-this-project-uses-ruff-exclusively-via
+  category: tool_usage
+  severity: suggestion
+  text: '**Formatter:** This project uses `ruff` exclusively (via PostToolUse hook).
+    `black` and `isort` are not used, overriding `rules/python/coding-style.md`.'
+  applies_to: []
+- id: claude-do-not-fabricate-metrics-financial-values-system
+  category: safety
+  severity: critical
+  text: Do not fabricate metrics, financial values, system state, or data lineage.
+    If evidence is absent, say so.
+  applies_to: []
+- id: claude-do-not-disable-existing-safety-checks-validation
+  category: safety
+  severity: critical
+  text: Do not disable existing safety checks, validation paths, or guardrails.
+  applies_to: []
+- id: claude-do-not-introduce-db-schema-changes-unless-explic
+  category: safety
+  severity: critical
+  text: Do not introduce DB schema changes unless explicitly tasked and reviewed.
+  applies_to: []
+- id: claude-do-not-commit-credentials-api-keys-or-secrets-se
+  category: git
+  severity: critical
+  text: Do not commit credentials, API keys, or secrets. See [docs/architecture/13_security_and_secrets.md](docs/architecture/13_security_and_secrets.md).
+  applies_to: []

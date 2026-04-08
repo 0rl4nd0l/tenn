@@ -1,0 +1,747 @@
+import { EventEmitter } from "events";
+import path from "path";
+
+import type {
+  BoardState,
+  EventRecord,
+  ExecutionPlan,
+  JanitorCheckDefinition,
+  JanitorResultRecord,
+  LogRecord,
+  ProjectSnapshot,
+  ReviewDecisionRecord,
+  RuntimeId,
+  StrategistResponse,
+  TaskDetailPayload,
+  TaskRecord
+} from "../../shared/types";
+import { createAdapterRegistry, refreshCapabilities } from "../adapters";
+import { buildBoardState, buildTaskDetailPayload } from "../api/state";
+import { Janitor } from "../core/janitor";
+import { OwnershipLockManager } from "../core/locks";
+import { ProjectIntelligenceService } from "../core/project-intelligence";
+import { TaskRouter } from "../core/router";
+import { TaskScheduler } from "../core/scheduler";
+import { StrategistLlmResponder } from "../core/strategist-llm";
+import { TaskSpawner } from "../core/spawner";
+import { StrategistService, materializeTaskGraph } from "../core/strategist";
+import { TokenBudgetManager } from "../core/token-budget";
+import { WorktreeManager } from "../core/worktrees";
+import { OrchestratorStore } from "../db/database";
+import { ensureDir } from "../utils/filesystem";
+import { createId } from "../utils/id";
+import { runCommand } from "../utils/process";
+import { nowIso } from "../utils/time";
+
+export interface OrchestratorServiceOptions {
+  repoRoot: string;
+  dataDir?: string;
+  goalId?: string;
+  autoSchedule?: boolean;
+}
+
+interface ActiveTaskRun {
+  taskId: string;
+  runId: string;
+  sessionId: string;
+}
+
+export class OrchestratorService extends EventEmitter {
+  readonly goalId: string;
+  private readonly store: OrchestratorStore;
+  private readonly adapterRegistry = createAdapterRegistry();
+  private readonly tokenBudgetManager = new TokenBudgetManager();
+  private readonly router = new TaskRouter(this.tokenBudgetManager);
+  private readonly scheduler = new TaskScheduler();
+  private readonly strategist = new StrategistService();
+  private readonly strategistLlm = new StrategistLlmResponder();
+  private readonly janitor = new Janitor();
+  private readonly lockManager: OwnershipLockManager;
+  private readonly worktreeManager: WorktreeManager;
+  private readonly spawner: TaskSpawner;
+  private readonly projectIntelligence: ProjectIntelligenceService;
+  private readonly activeRuns = new Map<string, ActiveTaskRun>();
+  private mergeQueue: Promise<void> = Promise.resolve();
+  private scheduling = false;
+  private lastProjectSnapshot: ProjectSnapshot | null = null;
+
+  private constructor(private readonly options: Required<OrchestratorServiceOptions>, store: OrchestratorStore) {
+    super();
+    this.store = store;
+    this.goalId = options.goalId;
+    const collections = this.store.getCollections(this.goalId);
+    this.lockManager = new OwnershipLockManager(collections.locks);
+    this.worktreeManager = new WorktreeManager(this.options.repoRoot, path.join(this.options.dataDir, "worktrees"));
+    this.spawner = new TaskSpawner({
+      repoRoot: this.options.repoRoot,
+      adapterRegistry: this.adapterRegistry,
+      worktreeManager: this.worktreeManager,
+      lockManager: this.lockManager
+    });
+    this.projectIntelligence = new ProjectIntelligenceService(this.options.repoRoot);
+  }
+
+  static async create(options: OrchestratorServiceOptions): Promise<OrchestratorService> {
+    const resolved: Required<OrchestratorServiceOptions> = {
+      repoRoot: options.repoRoot,
+      dataDir: options.dataDir ?? path.join(options.repoRoot, "agent-orchestrator", ".data"),
+      goalId: options.goalId ?? "default-goal",
+      autoSchedule: options.autoSchedule ?? true
+    };
+    ensureDir(resolved.dataDir);
+    const store = await OrchestratorStore.open(path.join(resolved.dataDir, "orchestrator.sqlite"));
+    const service = new OrchestratorService(resolved, store);
+    await service.seed();
+    return service;
+  }
+
+  async dispose(): Promise<void> {
+    this.store.destroy();
+  }
+
+  async getBoardState(): Promise<BoardState> {
+    const collections = this.store.getCollections(this.goalId);
+    const query = this.lastProjectSnapshot?.queryTerms.join(" ") ?? "";
+    this.lastProjectSnapshot = await this.projectIntelligence.buildSnapshot(collections, query);
+    return buildBoardState(this.goalId, collections, this.scheduler, this.lastProjectSnapshot);
+  }
+
+  async getTaskDetail(taskId: string): Promise<TaskDetailPayload | null> {
+    const diffText = await this.getTaskDiff(taskId);
+    return buildTaskDetailPayload(this.store.getCollections(this.goalId), taskId, diffText);
+  }
+
+  async refreshCapabilitySnapshots(): Promise<void> {
+    const capabilities = await refreshCapabilities(this.adapterRegistry);
+    this.store.replaceCapabilities(capabilities);
+    this.emitRefresh("capabilities");
+  }
+
+  async strategistChat(message: string): Promise<StrategistResponse> {
+    const userMessage = {
+      id: createId("msg"),
+      role: "user" as const,
+      content: message,
+      createdAt: nowIso()
+    };
+    this.store.appendConversationMessage(this.goalId, userMessage);
+
+    const collections = this.store.getCollections(this.goalId);
+    const workspaceContext = await this.projectIntelligence.getStrategistContext(collections, message);
+    this.lastProjectSnapshot = workspaceContext.snapshot;
+    const plan = this.strategist.plan(this.goalId, message, {
+      conversation: collections.conversation,
+      projectSnapshot: workspaceContext.snapshot
+    });
+    const graph = materializeTaskGraph(plan);
+    if (graph.rootTask) {
+      this.store.upsertTask(graph.rootTask);
+      this.store.bulkUpsertTasks(graph.childTasks);
+      this.store.insertEvent(makeEvent("task", graph.rootTask.id, "strategist.planned", {
+        rootTaskId: graph.rootTask.id,
+        childTaskIds: graph.childTasks.map((task) => task.id)
+      }));
+    }
+
+    const reply = await this.strategistLlm.generateReply({
+      message,
+      fallbackReply: plan.reply,
+      mode: plan.mode,
+      cwd: this.options.repoRoot,
+      capabilities: collections.capabilities,
+      conversation: collections.conversation,
+      projectSummary: summarizeWorkspaceForStrategist(workspaceContext.snapshot)
+    });
+
+    const assistantMessage = {
+      id: createId("msg"),
+      role: "assistant" as const,
+      content: reply,
+      createdAt: nowIso()
+    };
+    this.store.appendConversationMessage(this.goalId, assistantMessage);
+    this.emitRefresh("strategist");
+    if (this.options.autoSchedule && graph.rootTask) {
+      await this.scheduleNow();
+    }
+
+    return {
+      reply,
+      createdTaskIds: graph.rootTask ? [graph.rootTask.id, ...graph.childTasks.map((task) => task.id)] : [],
+      rootTaskId: graph.rootTask?.id ?? null
+    };
+  }
+
+  async retryTask(taskId: string): Promise<void> {
+    const task = this.requireTask(taskId);
+    await this.discardPreservedWorktree(taskId);
+    const next: TaskRecord = {
+      ...task,
+      status: "ready",
+      chosenRuntime: null,
+      chosenProvider: null,
+      chosenModel: null,
+      routingRationale: null,
+      updatedAt: nowIso()
+    };
+    this.store.upsertTask(next);
+    this.releaseTaskLocks(taskId);
+    this.store.insertReview(makeReview(taskId, "retry", "user", "Task scheduled for another attempt."));
+    this.emitRefresh("task.retry");
+    await this.scheduleNow();
+  }
+
+  async reassignTask(taskId: string, runtime?: RuntimeId | null): Promise<void> {
+    const task = this.requireTask(taskId);
+    await this.discardPreservedWorktree(taskId);
+    const next: TaskRecord = {
+      ...task,
+      status: "ready",
+      preferredRuntime: runtime ?? task.preferredRuntime,
+      chosenRuntime: null,
+      chosenProvider: null,
+      chosenModel: null,
+      routingRationale: null,
+      updatedAt: nowIso()
+    };
+    this.store.upsertTask(next);
+    this.store.insertReview(
+      makeReview(taskId, "retry", "user", `Task reassigned${runtime ? ` with preferred runtime ${runtime}` : ""}.`)
+    );
+    this.emitRefresh("task.reassign");
+    await this.scheduleNow();
+  }
+
+  async reopenTask(taskId: string): Promise<void> {
+    const task = this.requireTask(taskId);
+    await this.discardPreservedWorktree(taskId);
+    const next: TaskRecord = {
+      ...task,
+      status: "ready",
+      updatedAt: nowIso()
+    };
+    this.store.upsertTask(next);
+    this.store.insertReview(makeReview(taskId, "reopen", "user", "Task reopened and returned to ready."));
+    this.emitRefresh("task.reopen");
+    await this.scheduleNow();
+  }
+
+  async approveTask(taskId: string): Promise<void> {
+    this.mergeQueue = this.mergeQueue.then(async () => {
+      const detail = await this.getTaskDetail(taskId);
+      if (!detail) {
+        throw new Error(`Task ${taskId} was not found`);
+      }
+
+      const task = detail.task;
+      if (task.chosenRuntime === "codex-cloud" && !detail.worktree) {
+        throw new Error("Codex Cloud approvals require explicit local diff application before approval in V1");
+      }
+      const lastJanitor =
+        detail.janitorResults.length > 0 ? detail.janitorResults[detail.janitorResults.length - 1] : undefined;
+      if (lastJanitor && lastJanitor.status === "failed") {
+        throw new Error("Cannot approve a task with failing janitor results");
+      }
+
+      if (detail.worktree) {
+        const [rootDirtyPaths, taskDirtyPaths] = await Promise.all([
+          this.repoStatusPaths(this.options.repoRoot),
+          this.repoStatusPaths(detail.worktree.path)
+        ]);
+        const overlappingDirtyPaths = rootDirtyPaths.filter((dirtyPath) =>
+          taskDirtyPaths.some((taskPath) => taskPath === dirtyPath || taskPath.startsWith(`${dirtyPath}/`) || dirtyPath.startsWith(`${taskPath}/`))
+        );
+        if (overlappingDirtyPaths.length > 0) {
+          throw new Error(
+            `Repository has overlapping uncommitted changes on ${overlappingDirtyPaths.slice(0, 4).join(", ")}; merge is deferred until that overlap is clean`
+          );
+        }
+      }
+
+      if (detail.worktree) {
+        const mergeResult = await runCommand("git", ["merge", "--no-ff", "--no-edit", detail.worktree.branchName], {
+          cwd: this.options.repoRoot
+        });
+        if (!mergeResult.ok) {
+          throw new Error(mergeResult.stderr || mergeResult.stdout || "merge failed");
+        }
+        const cleaned = await this.worktreeManager.cleanup(detail.worktree);
+        this.store.upsertWorktree(cleaned);
+      }
+
+      this.releaseTaskLocks(taskId);
+      const next: TaskRecord = {
+        ...task,
+        status: "done",
+        updatedAt: nowIso()
+      };
+      this.store.upsertTask(next);
+      this.store.insertReview(makeReview(taskId, "approve", "user", "Task approved for completion."));
+      this.emitRefresh("task.approve");
+      await this.scheduleNow();
+    });
+
+    return this.mergeQueue;
+  }
+
+  async rejectTask(taskId: string): Promise<void> {
+    const task = this.requireTask(taskId);
+    const next: TaskRecord = {
+      ...task,
+      status: "rejected",
+      updatedAt: nowIso()
+    };
+    this.store.upsertTask(next);
+    this.releaseTaskLocks(taskId);
+    this.store.insertReview(makeReview(taskId, "reject", "user", "Task rejected and removed from the merge queue."));
+    this.emitRefresh("task.reject");
+  }
+
+  async scheduleNow(options?: { force?: boolean }): Promise<void> {
+    if (!this.options.autoSchedule && !options?.force) {
+      return;
+    }
+    if (this.scheduling) {
+      return;
+    }
+    this.scheduling = true;
+
+    try {
+      await this.refreshCapabilitySnapshots();
+      this.promoteBacklogTasks();
+      const collections = this.store.getCollections(this.goalId);
+      const runnable = this.scheduler.selectRunnableTasks(collections.tasks, collections.sessions, collections.locks);
+      for (const task of runnable) {
+        if (this.activeRuns.has(task.id)) {
+          continue;
+        }
+        this.activeRuns.set(task.id, {
+          taskId: task.id,
+          runId: "pending",
+          sessionId: "pending"
+        });
+        void this.executeTask(task);
+      }
+    } finally {
+      this.scheduling = false;
+    }
+  }
+
+  private async seed(): Promise<void> {
+    await this.refreshCapabilitySnapshots();
+    const conversation = this.store.getCollections(this.goalId).conversation;
+    if (conversation.messages.length === 0) {
+      this.store.appendConversationMessage(this.goalId, {
+        id: createId("msg"),
+        role: "assistant",
+        content:
+          "Strategist ready. I will stay read-only by default, decompose work into routed tasks, and keep execution in delegated runtimes and worktrees.",
+        createdAt: nowIso()
+      });
+    }
+  }
+
+  private async executeTask(task: TaskRecord): Promise<void> {
+    const collections = this.store.getCollections(this.goalId);
+    const activeSession = collections.sessions.find((session) => session.taskId === task.id) ?? null;
+    const plan = this.router.routeTask(task, collections.capabilities, activeSession);
+    const routedTask: TaskRecord = {
+      ...task,
+      status: "running",
+      chosenRuntime: plan.runtime,
+      chosenProvider: plan.provider,
+      chosenModel: plan.model,
+      tokenBudget: plan.tokenBudget,
+      routingRationale: plan.rationale,
+      attempts: task.attempts + 1,
+      updatedAt: nowIso()
+    };
+    this.store.upsertTask(routedTask);
+    this.store.insertEvent(makeEvent("task", routedTask.id, "task.started", {
+      runtime: plan.runtime,
+      provider: plan.provider,
+      model: plan.model
+    }));
+    this.emitRefresh("task.running");
+
+    let spawnResult;
+    try {
+      spawnResult = await this.spawner.spawnTask(routedTask, plan, buildExecutionPrompt(routedTask, plan));
+    } catch (error) {
+      await this.failTask(routedTask, error instanceof Error ? error.message : String(error));
+      return;
+    }
+
+    this.store.upsertSession(spawnResult.session);
+    this.store.upsertRun(spawnResult.run);
+    if (spawnResult.worktree) {
+      this.store.upsertWorktree(spawnResult.worktree);
+    }
+    if (spawnResult.logs.length > 0) {
+      this.store.insertLogs(spawnResult.logs);
+    }
+    this.store.insertEvent(makeEvent("session", spawnResult.session.id, "session.started", {
+      runtime: plan.runtime,
+      provider: plan.provider,
+      externalSessionId: spawnResult.session.externalSessionId
+    }));
+    this.store.insertEvent(makeEvent("run", spawnResult.run.id, "run.started", {
+      runtime: plan.runtime,
+      provider: plan.provider,
+      attempt: spawnResult.run.attempt
+    }));
+    this.store.insertEvent(makeEvent("task", routedTask.id, "task.spawned", {
+      runId: spawnResult.run.id,
+      sessionId: spawnResult.session.id,
+      runtime: plan.runtime,
+      worktree: spawnResult.worktree?.path ?? null
+    }));
+    this.store.replaceAllLocks(this.lockManager.snapshot());
+    this.activeRuns.set(routedTask.id, {
+      taskId: routedTask.id,
+      runId: spawnResult.run.id,
+      sessionId: spawnResult.session.id
+    });
+
+    let watchdogCancelled = false;
+    let watchdogReason: string | null = null;
+    let transportErrorCount = 0;
+    const handleWatchdogSignal = (message: string) => {
+      if (!PROCESS_WATCHDOG_PATTERN.test(message)) {
+        return;
+      }
+      transportErrorCount += 1;
+      watchdogReason = summarizeWatchdogReason(message);
+      if (transportErrorCount < PROCESS_WATCHDOG_ERROR_THRESHOLD || watchdogCancelled) {
+        return;
+      }
+      watchdogCancelled = true;
+      this.store.insertEvent(makeEvent("task", routedTask.id, "task.watchdog", {
+        reason: watchdogReason,
+        transportErrorCount
+      }));
+      this.emitRefresh("task.watchdog");
+      void spawnResult.handle.cancel().catch(() => undefined);
+    };
+
+    for (const log of spawnResult.logs) {
+      handleWatchdogSignal(log.message);
+    }
+
+    if (spawnResult.handle.process) {
+      spawnResult.handle.process.child.stdout?.on("data", (chunk: Buffer | string) => {
+        const text = chunk.toString();
+        this.appendTaskLog(spawnResult.run.id, "stdout", text);
+        handleWatchdogSignal(text);
+      });
+      spawnResult.handle.process.child.stderr?.on("data", (chunk: Buffer | string) => {
+        const text = chunk.toString();
+        this.appendTaskLog(spawnResult.run.id, "stderr", text);
+        handleWatchdogSignal(text);
+      });
+    }
+
+    const result = await spawnResult.handle.wait();
+    this.activeRuns.delete(routedTask.id);
+
+    if (result.stdout.trim() && spawnResult.handle.mode === "remote") {
+      this.appendTaskLog(spawnResult.run.id, "stdout", result.stdout);
+    }
+    if (result.stderr.trim()) {
+      this.appendTaskLog(spawnResult.run.id, "stderr", result.stderr);
+    }
+
+    const completedRun = {
+      ...spawnResult.run,
+      status: result.ok && !watchdogCancelled ? "complete" as const : "failed" as const,
+      endedAt: nowIso(),
+      exitCode: result.exitCode,
+      summary:
+        result.ok && !watchdogCancelled
+          ? `Completed via ${plan.runtime}`
+          : watchdogReason
+            ? `Failed via ${plan.runtime}: ${watchdogReason}`
+            : `Failed via ${plan.runtime}`
+    };
+    const completedSession = {
+      ...spawnResult.session,
+      status: result.ok && !watchdogCancelled ? "complete" as const : "failed" as const,
+      updatedAt: nowIso()
+    };
+    this.store.upsertRun(completedRun);
+    this.store.upsertSession(completedSession);
+    this.store.insertEvent(makeEvent("run", completedRun.id, "run.completed", {
+      runtime: plan.runtime,
+      provider: plan.provider,
+      status: completedRun.status,
+      exitCode: completedRun.exitCode
+    }));
+    this.store.insertEvent(makeEvent("session", completedSession.id, "session.completed", {
+      runtime: plan.runtime,
+      provider: plan.provider,
+      status: completedSession.status
+    }));
+
+    const janitorResult = await this.runJanitor(routedTask, spawnResult.worktree, completedRun.id);
+    const finalTask = this.resolveTaskCompletion(routedTask, plan, result.ok && !watchdogCancelled, janitorResult);
+    this.store.upsertTask(finalTask);
+    if (finalTask.status !== "review") {
+      this.releaseTaskLocks(finalTask.id);
+    }
+    if (spawnResult.worktree && finalTask.status !== "review") {
+      const preserved =
+        finalTask.status === "done"
+          ? await this.worktreeManager.cleanup(spawnResult.worktree)
+          : await this.worktreeManager.preserve(spawnResult.worktree);
+      this.store.upsertWorktree(preserved);
+    }
+
+    this.store.insertEvent(makeEvent("task", finalTask.id, terminalTaskEventType(finalTask.status), {
+      status: finalTask.status,
+      runtime: finalTask.chosenRuntime,
+      provider: finalTask.chosenProvider
+    }));
+    this.emitRefresh("task.completed");
+    await this.scheduleNow();
+  }
+
+  private resolveTaskCompletion(
+    task: TaskRecord,
+    plan: ExecutionPlan,
+    runSucceeded: boolean,
+    janitorResult: JanitorResultRecord
+  ): TaskRecord {
+    let status: TaskRecord["status"];
+    if (!runSucceeded) {
+      status = "failed";
+    } else if (janitorResult.status === "failed") {
+      status = "blocked";
+    } else if (plan.useWorktree || task.ownedFiles.length > 0) {
+      status = "review";
+    } else {
+      status = "done";
+    }
+
+    return {
+      ...task,
+      status,
+      updatedAt: nowIso()
+    };
+  }
+
+  private async runJanitor(
+    task: TaskRecord,
+    worktree: Awaited<ReturnType<TaskSpawner["spawnTask"]>>["worktree"],
+    runId: string
+  ): Promise<JanitorResultRecord> {
+    const checks = buildVerificationChecks(task);
+    const result = await this.janitor.verifyTask(task, {
+      repoRoot: this.options.repoRoot,
+      worktree,
+      checks
+    });
+    const enriched = {
+      ...result,
+      runId
+    };
+    this.store.insertJanitorResult(enriched);
+    return enriched;
+  }
+
+  private promoteBacklogTasks(): void {
+    const collections = this.store.getCollections(this.goalId);
+    const completed = new Set(collections.tasks.filter((task) => task.status === "done").map((task) => task.id));
+    const toPromote = collections.tasks.filter(
+      (task) => task.status === "backlog" && task.dependencies.every((dependency) => completed.has(dependency))
+    );
+
+    for (const task of toPromote) {
+      this.store.upsertTask({
+        ...task,
+        status: "ready",
+        updatedAt: nowIso()
+      });
+    }
+  }
+
+  private appendTaskLog(runId: string, stream: LogRecord["stream"], message: string): void {
+    const log: LogRecord = {
+      id: createId("log"),
+      runId,
+      stream,
+      message,
+      createdAt: nowIso()
+    };
+    this.store.insertLogs([log]);
+    this.emitRefresh("log.appended");
+  }
+
+  private async failTask(task: TaskRecord, reason: string): Promise<void> {
+    this.activeRuns.delete(task.id);
+    const failed: TaskRecord = {
+      ...task,
+      status: "failed",
+      updatedAt: nowIso()
+    };
+    this.store.upsertTask(failed);
+    this.store.insertEvent(makeEvent("task", task.id, "task.failed", { reason }));
+    this.releaseTaskLocks(task.id);
+    this.emitRefresh("task.failed");
+  }
+
+  private releaseTaskLocks(taskId: string): void {
+    this.lockManager.releaseForTask(taskId);
+    this.store.replaceAllLocks(this.lockManager.snapshot());
+  }
+
+  private async discardPreservedWorktree(taskId: string): Promise<void> {
+    const worktree = this.store.getCollections(this.goalId).worktrees.find((entry) => entry.taskId === taskId);
+    if (!worktree || worktree.status !== "preserved") {
+      return;
+    }
+    const cleaned = await this.worktreeManager.cleanup(worktree);
+    this.store.upsertWorktree(cleaned);
+  }
+
+  private requireTask(taskId: string): TaskRecord {
+    const task = this.store.getTask(taskId);
+    if (!task) {
+      throw new Error(`Task ${taskId} was not found`);
+    }
+    return task;
+  }
+
+  private async getTaskDiff(taskId: string): Promise<string> {
+    const detail = buildTaskDetailPayload(this.store.getCollections(this.goalId), taskId, "");
+    if (!detail) {
+      return "";
+    }
+    const cwd = detail.worktree?.path ?? this.options.repoRoot;
+    const result = await runCommand("git", ["diff", "--no-ext-diff"], { cwd });
+    return `${result.stdout}${result.stderr}`.trim();
+  }
+
+  private async repoStatusPaths(cwd: string): Promise<string[]> {
+    const result = await runCommand("git", ["status", "--porcelain"], { cwd });
+    if (!result.ok || !result.stdout.trim()) {
+      return [];
+    }
+    return result.stdout
+      .split("\n")
+      .map((line) => line.trimEnd())
+      .filter((line) => line.length > 3)
+      .map((line) => line.slice(3).trim())
+      .filter((line) => line.length > 0);
+  }
+
+  private emitRefresh(reason: string): void {
+    this.emit("refresh", {
+      reason,
+      timestamp: nowIso()
+    });
+  }
+}
+
+function summarizeWorkspaceForStrategist(snapshot: ProjectSnapshot | null): string | null {
+  if (!snapshot) {
+    return null;
+  }
+  const activeProject =
+    snapshot.activeRoot?.name ??
+    snapshot.projects[0]?.name ??
+    "workspace";
+  const evidence = snapshot.evidenceMatches.slice(0, 3).map((match) => match.path);
+  const runtimeSummary = snapshot.runtimeHealth?.filter((runtime) => runtime.status === "ready").map((runtime) => runtime.runtime) ?? [];
+  return [
+    `Active project: ${activeProject}.`,
+    evidence.length > 0 ? `Relevant files: ${evidence.join(", ")}.` : null,
+    `Operational health: ${snapshot.operationalHealth.runningTasks} running, ${snapshot.operationalHealth.reviewTasks} in review, ${snapshot.operationalHealth.failedTasks} failed.`,
+    runtimeSummary.length > 0 ? `Ready runtimes: ${runtimeSummary.join(", ")}.` : null
+  ]
+    .filter((line): line is string => Boolean(line))
+    .join(" ");
+}
+
+function makeEvent(
+  entityType: EventRecord["entityType"],
+  entityId: string,
+  eventType: string,
+  payload: EventRecord["payload"]
+): EventRecord {
+  return {
+    id: createId("evt"),
+    entityType,
+    entityId,
+    eventType,
+    payload,
+    createdAt: nowIso()
+  };
+}
+
+function makeReview(
+  taskId: string,
+  decision: ReviewDecisionRecord["decision"],
+  reviewer: string,
+  summary: string
+): ReviewDecisionRecord {
+  return {
+    id: createId("review"),
+    taskId,
+    decision,
+    reviewer,
+    summary,
+    createdAt: nowIso()
+  };
+}
+
+function buildVerificationChecks(task: TaskRecord): JanitorCheckDefinition[] {
+  return task.verificationPolicy.map((type) => {
+    switch (type) {
+      case "typecheck":
+        return { type, label: "Typecheck", command: "cd agent-orchestrator && npm run build:server" };
+      case "test":
+        return { type, label: "Tests", command: "cd agent-orchestrator && npm run test" };
+      case "build":
+        return { type, label: "Build", command: "cd agent-orchestrator && npm run build" };
+      case "review":
+        return { type, label: "Review", command: "git diff --stat" };
+      default:
+        return { type, label: type };
+    }
+  });
+}
+
+function buildExecutionPrompt(task: TaskRecord, plan: ExecutionPlan): string {
+  const directives = [
+    "You are executing a delegated task inside a deterministic orchestrator.",
+    "Do not broaden scope beyond the declared task.",
+    "Prefer concise progress notes and leave a clear summary for review.",
+    plan.useWorktree ? "You are in a write-isolated worktree." : "This is a read-only or non-worktree task."
+  ];
+  return `${directives.join("\n")}\n\n${task.description}`;
+}
+
+const PROCESS_WATCHDOG_PATTERN =
+  /failed to connect to websocket|failed to lookup address information|stream disconnected before completion|reconnecting\.\.\./i;
+const PROCESS_WATCHDOG_ERROR_THRESHOLD = 3;
+
+function terminalTaskEventType(status: TaskRecord["status"]): string {
+  switch (status) {
+    case "failed":
+      return "task.failed";
+    case "blocked":
+      return "task.blocked";
+    case "rejected":
+      return "task.rejected";
+    default:
+      return "task.completed";
+  }
+}
+
+function summarizeWatchdogReason(message: string): string {
+  const normalized = message.replace(/\s+/g, " ").trim();
+  if (normalized.length <= 180) {
+    return normalized;
+  }
+  return `${normalized.slice(0, 177).trim()}...`;
+}

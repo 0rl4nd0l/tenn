@@ -25,10 +25,23 @@ interface HealthCheckConfig {
   url: string
   /** If true, this is a cross-origin request that may fail due to CORS */
   crossOrigin: boolean
+  /** Optional custom response parser for non-trivial health payloads */
+  parseResponse?: (response: Response, body: unknown) => { ok: boolean; error?: string }
 }
 
 const serviceConfigs: Record<string, HealthCheckConfig | null> = {
-  'Backend API': { url: '/api/health', crossOrigin: false },
+  'Backend API': {
+    url: '/api/cockpit/health',
+    crossOrigin: false,
+    parseResponse: (_response, body) => {
+      const services = Array.isArray((body as { services?: unknown[] } | null)?.services)
+        ? (body as { services: Array<{ name?: string; status?: string }> }).services
+        : []
+      const backend = services.find((service) => service.name === 'backend')
+      const ok = backend?.status === 'healthy'
+      return { ok, error: ok ? undefined : backend?.status ?? 'backend not healthy' }
+    },
+  },
   'llama.cpp': { url: 'http://localhost:8001/health', crossOrigin: true },
   'Ollama Embeddings': { url: 'http://localhost:11434/api/tags', crossOrigin: true },
   'Qdrant': { url: 'http://localhost:6333/healthz', crossOrigin: true },
@@ -36,7 +49,7 @@ const serviceConfigs: Record<string, HealthCheckConfig | null> = {
 }
 
 const initialServices: ServiceCheck[] = [
-  { name: 'Backend API', icon: <Server className="h-4 w-4" />, status: 'checking', required: true, endpoint: '/api/health' },
+  { name: 'Backend API', icon: <Server className="h-4 w-4" />, status: 'checking', required: true, endpoint: '/api/cockpit/health' },
   { name: 'llama.cpp', icon: <Brain className="h-4 w-4" />, status: 'checking', required: true, endpoint: 'http://localhost:8001' },
   { name: 'Ollama Embeddings', icon: <Brain className="h-4 w-4" />, status: 'checking', required: true, endpoint: 'http://localhost:11434' },
   { name: 'Qdrant', icon: <Search className="h-4 w-4" />, status: 'checking', required: false, endpoint: 'http://localhost:6333' },
@@ -103,7 +116,17 @@ export function BootScreen() {
         clearTimeout(timeoutId)
         const elapsed = Math.round(performance.now() - start)
 
-        if (response.ok) {
+        let parsedBody: unknown = null
+        try {
+          parsedBody = await response.json()
+        } catch {
+          parsedBody = null
+        }
+
+        const parsed = config.parseResponse?.(response, parsedBody)
+        const serviceOk = parsed ? parsed.ok : response.ok
+
+        if (serviceOk) {
           setServices(prev => {
             const next = [...prev]
             next[index] = { ...next[index], status: 'healthy', responseTimeMs: elapsed }
@@ -116,7 +139,7 @@ export function BootScreen() {
               ...next[index],
               status: 'down',
               responseTimeMs: elapsed,
-              error: `HTTP ${response.status}`,
+              error: parsed?.error ?? `HTTP ${response.status}`,
             }
             return next
           })

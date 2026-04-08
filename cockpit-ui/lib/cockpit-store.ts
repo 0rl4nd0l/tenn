@@ -10,14 +10,9 @@ export function generateId(): string {
 // Available chat models served by llama-server in router mode on port 8001
 export const AVAILABLE_CHAT_MODELS = [
   {
-    id: 'Qwen3-30B-A3B-Instruct-2507-Q3_K_M',
-    label: 'Qwen3 30B MoE',
-    description: 'MoE 30B — best quality, default',
-  },
-  {
-    id: 'gpt-oss-20b-mxfp4',
+    id: 'model:gpt-oss-20b',
     label: 'GPT-OSS 20B',
-    description: 'Dense 20B — faster inference',
+    description: 'Dense 20B — loaded from local SSD cache',
   },
 ] as const
 
@@ -47,7 +42,7 @@ export const useCockpitStore = create<CockpitState>()(
     (set) => ({
       activeTicker: 'BHP',
       sessionId: generateId(),
-      chatModel: 'Qwen3-30B-A3B-Instruct-2507-Q3_K_M',
+      chatModel: 'model:gpt-oss-20b',
       preferences: {
         webSearchEnabled: true,
         ragEnabled: true,

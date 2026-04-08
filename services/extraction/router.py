@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import logging
+from pathlib import Path
 from typing import Any, Mapping
 
 from services.extraction.pdf_classifier import classify_pdf
+from services.extraction.routing_preferences import load_preferences
+
+logger = logging.getLogger(__name__)
+_PREFERENCES_PATH = Path(__file__).parent / "routing_preferences.json"
 
 
 DEFAULT_EXTRACTOR = "financial_metrics_pdftotext"
@@ -32,6 +38,10 @@ def _coverage(method_payload: Mapping[str, Any] | None) -> float:
     return 0.0
 
 
+def _load_routing_preferences() -> dict[str, Any] | None:
+    return load_preferences(_PREFERENCES_PATH)
+
+
 def select_extractor_with_reason(
     document_diagnostics: Mapping[str, Any] | None,
     method_results: Mapping[str, Any] | None,
@@ -41,6 +51,18 @@ def select_extractor_with_reason(
     classifier = classify_pdf(diagnostics, methods)
     document_type = str(classifier.get("document_type") or "unknown").strip().lower()
     complexity_score = float(classifier.get("complexity_score") or 0.0)
+
+    # Rule 0: Learned preference (if available and sufficient samples)
+    prefs = _load_routing_preferences()
+    if prefs and document_type in prefs.get("method_preferences", {}):
+        pref = prefs["method_preferences"][document_type]
+        min_samples = int(prefs.get("min_sample_count", 5))
+        if int(pref.get("sample_count", 0)) >= min_samples:
+            return {
+                "selected_extractor": pref["preferred"],
+                "reason": f"learned_preference_{document_type}",
+                "classifier": classifier,
+            }
 
     if document_type == "appendix_report" and complexity_score < 0.3:
         return {

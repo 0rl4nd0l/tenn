@@ -78,3 +78,34 @@ def test_wait_for_health_reports_log_path_on_timeout(tmp_path: Path) -> None:
     assert completed.returncode == 1
     assert "did not become healthy within 0s" in completed.stderr
     assert "See log: /tmp/llama-server-8001.log" in completed.stderr
+
+
+def test_llama_chat_base_url_prefers_host_endpoint_over_container_env(tmp_path: Path) -> None:
+    env = os.environ.copy()
+    env["LLAMACPP_URL"] = "http://172.18.0.1:8001/v1"
+    env["LLAMACPP_URL_HOST"] = "http://127.0.0.1:8001/v1"
+    env.pop("COCKPIT_LLAMACPP_URL", None)
+
+    completed = subprocess.run(
+        [
+            "bash",
+            "-lc",
+            "source /dev/stdin <<'EOF'\n"
+            f"{_helper_block()}\n"
+            "EOF\n"
+            "llama_chat_base_url\n",
+        ],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert completed.stdout.strip() == "http://127.0.0.1:8001"
+
+
+def test_launch_cockpit_new_defaults_to_web_port_8081() -> None:
+    script = COCKPIT_SCRIPT.read_text(encoding="utf-8")
+
+    assert 'local port="${COCKPIT_NEW_PORT:-${COCKPIT_WEB_PORT:-8081}}"' in script

@@ -8,12 +8,5 @@
     "AGENTS.md",
     "docs/architecture/SYSTEM_CONTRACT.md"
   ],
-  "mcp": {
-    "vibe_kanban": {
-      "type": "local",
-      "command": ["npx", "-y", "vibe-kanban@latest", "--mcp"],
-      "enabled": true,
-      "timeout": 10000
-    }
-  }
+  "mcp": {}
 }

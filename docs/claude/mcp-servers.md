@@ -20,6 +20,32 @@ MCP (Model Context Protocol) servers extend Claude Code with direct access to ex
 | **tenn** | `scripts/mcp/tenn.sh` | _(native Python)_ | Custom Tenn/OpenClaw MCP server (`openclaw.tenn_mcp_server`) |
 | **screenpipe** | `scripts/mcp/screenpipe.sh` | _(native macOS app + npx mcp-remote)_ | Query screen/audio history captured by Screenpipe on Mac |
 
+### Default `.mcp.json` (token-light)
+
+The checked-in `.mcp.json` enables only **redis**, **qdrant**, and **tenn** so MCP tool schemas stay small in Cursor/Claude. Everything else in the table above is supported via launcher scripts but **opt-in**.
+
+### Optional: add repo launcher MCPs
+
+Merge any of these into `mcpServers` when needed:
+
+```json
+"github":     { "command": "./scripts/mcp/github.sh" },
+"playwright": { "command": "./scripts/mcp/playwright.sh" },
+"screenpipe": { "command": "./scripts/mcp/screenpipe.sh" }
+```
+
+### Optional: generic `npx` MCP packages
+
+| Package | Purpose |
+|---------|---------|
+| `@modelcontextprotocol/server-sequential-thinking` | Step-by-step reasoning tool |
+| `@modelcontextprotocol/server-everything` | Large bundled demo surface (very heavy on context) |
+
+```json
+"sequential-thinking": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"] },
+"everything": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-everything"] }
+```
+
 ---
 
 ## Prerequisites
@@ -84,9 +110,9 @@ All servers use `--network host` for Docker, so they connect to localhost servic
 - Use **qdrant** MCP to inspect `commentary_chunks` collection directly — verify embedding counts, search quality, collection metadata
 - Use **redis** MCP to inspect Celery task state — check queue depth, worker status, failed tasks
 
-**Development:**
-- Use **playwright** MCP to test FastAPI endpoints in a browser context
-- Use **github** MCP for PR/issue management without leaving the session
+**Development (opt-in — add to `.mcp.json`):**
+- **playwright** MCP for browser checks against FastAPI
+- **github** MCP for PR/issue workflows (needs PAT + Docker)
 
 **Ops:**
 - Use **tenn** MCP for OpenClaw-specific operations (when `.venv-autodev` is available)

@@ -48,6 +48,16 @@
             "statusMessage": "Running backend tests..."
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/metadata-updater.sh",
+            "timeout": 5000
+          }
+        ]
       }
     ],
     "Stop": [

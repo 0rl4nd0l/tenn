@@ -172,7 +172,7 @@ backend_health_url() {
 }
 
 llama_chat_base_url() {
-  local raw="${COCKPIT_LLAMACPP_URL:-${LLAMACPP_URL:-http://127.0.0.1:8001/v1}}"
+  local raw="${COCKPIT_LLAMACPP_URL:-${LLAMACPP_URL_HOST:-${LLAMACPP_URL:-http://127.0.0.1:8001/v1}}}"
   base_from_url "${raw}"
 }
 
@@ -466,7 +466,7 @@ launch_cockpit_web() {
   export COCKPIT_CONFIG="${cfg}"
   export COCKPIT_BACKEND_URL="${backend_url}"
   export OLLAMA_URL="${ollama_url}"
-  export COCKPIT_LLAMACPP_URL="${COCKPIT_LLAMACPP_URL:-${LLAMACPP_URL:-http://localhost:8001}}"
+  export COCKPIT_LLAMACPP_URL="${COCKPIT_LLAMACPP_URL:-${LLAMACPP_URL_HOST:-${LLAMACPP_URL:-http://localhost:8001}}}"
 
   echo "Starting Cockpit web UI on http://localhost:${port}"
   echo "Open that URL in your browser."
@@ -484,7 +484,7 @@ launch_cockpit_new() {
   fi
 
   local cockpit_ui_dir="${REPO_ROOT}/cockpit-ui"
-  local port="${COCKPIT_NEW_PORT:-3000}"
+  local port="${COCKPIT_NEW_PORT:-${COCKPIT_WEB_PORT:-8081}}"
 
   export NEXT_PUBLIC_API_URL="${COCKPIT_BACKEND_URL:-http://localhost:8000}"
 

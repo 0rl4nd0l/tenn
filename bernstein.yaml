@@ -1,0 +1,82 @@
+# Bernstein — Tenn + Cockpit: gap backlog from audit + investigation + task registration
+# Run: bernstein
+
+goal: |
+  Stay within SYSTEM_CONTRACT.md. This run executes against a **fixed gap backlog** (repo audit
+  2026-04-03). Use subtasks / parallel agents where useful; do not drop items silently.
+
+  ## Mandatory remediation tasks (do in dependency order where noted)
+
+  **Docs accuracy**
+  1. Update `docs/claude/gap-analysis.md`: fix the **CI / automated lint** row so it matches
+     reality (`.github/workflows/ci.yml` and `claude.yml` exist; STATE says CI shipped). Remove
+     or correct any claim that no workflows directory exists.
+  2. Refresh `docs/superpowers/plans/2026-03-21-extraction-redesign.md` and the matching spec
+     so checkboxes and file map match **current** code: `pipeline.py` delegates to
+     `run_multipass_extraction`; old monolithic `services/extraction.py` is gone. Mark completed
+     sections done; list only remaining work.
+
+  **Architecture / product (author ADR or explicit doc decision where noted)**
+  3. **Cockpit contract vs code**: resolve the open item in STATE (`docs-governance`): either
+     align Cockpit docs to implementation or change code — produce a short ADR or
+     `docs/claude/` decision note with acceptance criteria.
+  4. **FX conversion**: `docs/architecture/16_currency_and_fx_policy.md` exists; implementation
+     is missing pending conversion source choice. Document the product decision (which source)
+     and stub or implement the smallest safe slice **without** forbidden contract fallbacks.
+  5. **Eval discipline**: align live-eval procedure with gate (85% / fixture thresholds):
+     document when llama-server is required, how to interpret server-down runs, and how
+     fixture accuracy relates to production — update `HANDOFF.md` or `docs/validation_baseline.md`
+     as appropriate.
+  6. **Alert thresholds**: backlog item — replace hardcoded thresholds in `alerts.py` with
+     strategy-driven values from existing strategy tables; add tests.
+
+  **Integration status (verify, then document)**
+  7. Scrapling: read `docs/ops/scrapling_integration_note.md` and code paths; update the note
+     with **Verified / Not wired / Deferred** and evidence paths.
+  8. Recovery/reconstruction: read `docs/ops/recovery_reconstruction_integration_manifest.md`
+     and code; same — status + evidence.
+
+  **Engineering debt (scoped; no schema unless explicitly approved)**
+  9. Pandera: `backend/app/services/validation/extraction_schemas.py` — decide activate vs
+     delete vs leave documented-only; if activate, wire minimally with tests (no broad refactor).
+  10. import-linter: follow `docs/architecture/import_linter_design.md` — either document
+     “blocked until services/ split” with a ticket-sized next step, or complete the split + config
+     in a **single** focused change set (prefer doc + ticket if large).
+
+  **Tooling / agent ops**
+  11. MCP: update `docs/claude/mcp-servers.md` if needed so GitHub (PAT) and Tenn (`.venv-autodev`)
+     activation steps match `.mcp.json` reality.
+  12. Optional / deferred (only if time; otherwise ticket): n-gram spec decoding experiment per
+     `HANDOFF.md`; Claude PostTurnUse / session turn recording gap noted in gap-analysis.
+
+  **Known indefinite / do not “fix” in one run**
+  - AZJ CID-font / PDFs without ToUnicode: threshold/policy already in STATE; no parser swap
+    unless new evidence.
+
+  ## Deliverables (same for every Bernstein run)
+
+  A. Findings table: task id → what changed or **BLOCKED** (reason) → evidence (paths, commits).
+  B. For completed tasks: PR-sized summary; for blocked: single follow-up owner + unblock criteria.
+  C. **Register work on the task server** (POST http://127.0.0.1:8052/tasks) for any item not
+     finished, with `[remediation gap-audit 2026-04-03]` in the description. If server down,
+     append/update `.sdd/runtime/remediation_tasks.md` with the same backlog.
+
+  Schema migrations, embedding model changes, and full Qdrant rebuilds are **out of scope**
+  unless a task above explicitly requires them and risks are documented.
+
+cli: claude
+model: sonnet
+max_agents: 3
+cells: 1
+
+team:
+  - backend
+  - cockpit
+  - manager
+
+budget: "$25"
+
+constraints:
+  - "SYSTEM_CONTRACT.md governs pipeline claims; no forbidden fallbacks in proposed fixes."
+  - "Evidence for findings; mark UNVERIFIED where not read in repo."
+  - "Canonical backend reference: financial-engine_v2/scripts/run_local_backend.sh"

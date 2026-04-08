@@ -1,0 +1,139 @@
+import { useState } from "react";
+import { ExecutionOverview } from "./components/ExecutionOverview";
+import { CapabilityStrip } from "./components/CapabilityStrip";
+import { HeaderBar } from "./components/HeaderBar";
+import { KanbanBoard } from "./components/KanbanBoard";
+import { StrategistPane } from "./components/StrategistPane";
+import { TaskDetailPane } from "./components/TaskDetailPane";
+import { WorkspaceContextPane } from "./components/WorkspaceContextPane";
+import { useOrchestratorState } from "./hooks/useOrchestratorState";
+
+type WorkspaceView = "overview" | "board" | "inspect";
+
+export function App() {
+  const state = useOrchestratorState();
+  const [activeView, setActiveView] = useState<WorkspaceView>("overview");
+  const delegatedTasks = state.board?.tasks.filter((task) => task.role !== "strategist" && task.taskType !== "planning") ?? [];
+  const hasDelegatedWork = delegatedTasks.length > 0;
+
+  if (state.loading) {
+    return <main className="app-shell loading">Loading orchestrator…</main>;
+  }
+
+  if (state.error && !state.board) {
+    return <main className="app-shell loading">Error: {state.error}</main>;
+  }
+
+  if (!state.board) {
+    return <main className="app-shell loading">No board loaded.</main>;
+  }
+
+  return (
+    <main className="app-shell">
+      <HeaderBar
+        board={state.board}
+        streamOnline={state.streamOnline}
+        onRefresh={state.refresh}
+        onDispatchReady={state.dispatchReady}
+        onRefreshRuntimes={state.refreshRuntimes}
+        activeView={activeView}
+        onChangeView={setActiveView}
+      />
+      {state.error ? (
+        <div className="app-banner" role="status">
+          <span>{state.error}</span>
+          <button type="button" onClick={state.clearError}>
+            Dismiss
+          </button>
+        </div>
+      ) : null}
+      <div className="workspace-layout">
+        <section className="workspace-primary">
+          <div
+            className={`workspace-main ${
+              activeView === "board" ? "board-view" : activeView === "inspect" ? "inspect-view" : "overview-view"
+            }`}
+          >
+            <StrategistPane
+              conversation={state.board.conversation}
+              hasDelegatedWork={hasDelegatedWork}
+              onSend={async (message) => {
+                await state.sendChat(message);
+                setActiveView("overview");
+              }}
+            />
+            {activeView === "overview" ? (
+              hasDelegatedWork ? (
+                <ExecutionOverview board={state.board} selectedTaskId={state.selectedTaskId} onSelect={state.selectTask} />
+              ) : (
+                <section className="panel chat-empty-panel">
+                  <div className="chat-empty-copy">
+                    <p className="eyebrow">Task Stream</p>
+                    <h2>Nothing delegated yet</h2>
+                    <p className="activity-copy">
+                      Use the main chat like a normal GPT workspace. If the assistant decides the request needs routed execution,
+                      the spawned tasks will appear here automatically.
+                    </p>
+                  </div>
+                </section>
+              )
+            ) : activeView === "board" ? (
+              <KanbanBoard
+                tasks={state.board.tasks}
+                events={state.board.events}
+                selectedTaskId={state.selectedTaskId}
+                onSelect={state.selectTask}
+              />
+            ) : (
+              <div className="support-grid">
+                <CapabilityStrip capabilities={state.board.capabilities} />
+                <WorkspaceContextPane snapshot={state.board.projectSnapshot} />
+              </div>
+            )}
+          </div>
+
+          {activeView === "inspect" ? (
+            <section className="panel support-drawer">
+              <div className="support-summary">
+                <div>
+                  <p className="eyebrow">Context</p>
+                  <strong>Runtime diagnostics and workspace context</strong>
+                </div>
+              </div>
+              <div className="support-grid">
+                <CapabilityStrip capabilities={state.board.capabilities} />
+                <WorkspaceContextPane snapshot={state.board.projectSnapshot} />
+              </div>
+            </section>
+          ) : null}
+        </section>
+
+        <aside className="detail-rail">
+          {hasDelegatedWork ? (
+            <TaskDetailPane
+              detail={state.detail}
+              loadingTaskId={state.detailLoadingTaskId}
+              actionPending={state.isTaskActionPending(state.detail?.task.id ?? null)}
+              runtimes={state.board.capabilities.map((capability) => capability.runtime)}
+              onRetry={(taskId) => state.action(taskId, "retry")}
+              onApprove={(taskId) => state.action(taskId, "approve")}
+              onReject={(taskId) => state.action(taskId, "reject")}
+              onReopen={(taskId) => state.action(taskId, "reopen")}
+              onReassign={state.reassign}
+              onSelectTask={state.selectTask}
+            />
+          ) : (
+            <section className="panel detail-panel empty-state quiet-detail-panel" id="task-detail">
+              <p className="eyebrow">Task Detail</p>
+              <h2>Stay in chat</h2>
+              <p className="detail-copy">
+                This rail stays quiet until the assistant creates delegated work. When that happens, the selected task will appear
+                here with logs, review controls, and routing detail.
+              </p>
+            </section>
+          )}
+        </aside>
+      </div>
+    </main>
+  );
+}

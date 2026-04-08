@@ -10,7 +10,7 @@ import httpx
 from app.core.config import settings
 
 DEFAULT_LLM_URL = "http://127.0.0.1:8001"
-DEFAULT_LLM_MODEL = "Qwen3-30B-A3B-Instruct-2507-Q3_K_M"
+DEFAULT_LLM_MODEL = "model:gpt-oss-20b"
 
 
 class LlamaCppServerUnavailable(RuntimeError):

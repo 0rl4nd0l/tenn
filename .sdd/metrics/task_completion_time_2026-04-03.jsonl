@@ -1,0 +1,5 @@
+{"timestamp": 1775140612.2696764, "metric_type": "task_completion_time", "value": 74.2376458644867, "labels": {"task_id": "2d74b973314b", "role": "manager", "model": "haiku", "success": "True", "tenant_id": "default"}}
+{"timestamp": 1775175671.8352592, "metric_type": "task_completion_time", "value": 77.3916826248169, "labels": {"task_id": "bf9d545b5a8d", "role": "manager", "model": "haiku", "success": "True", "tenant_id": "default"}}
+{"timestamp": 1775176667.4995303, "metric_type": "task_completion_time", "value": 85.95883893966675, "labels": {"task_id": "ac5512f517f6", "role": "manager", "model": "haiku", "success": "True", "tenant_id": "default"}}
+{"timestamp": 1775176957.4926548, "metric_type": "task_completion_time", "value": 294.18463110923767, "labels": {"task_id": "1256461d6d73", "role": "backend", "model": "opus", "success": "True", "tenant_id": "default"}}
+{"timestamp": 1775177690.8296492, "metric_type": "task_completion_time", "value": 1139.3718321323395, "labels": {"task_id": "d43b821c407f", "role": "manager", "model": "opus", "success": "True", "tenant_id": "default"}}

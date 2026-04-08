@@ -8,14 +8,13 @@ All agents MUST use this path.
 
 ### Agent Boot Sequence (deterministic)
 
-1. Setup venv (preferred: `/workspace/.venv`).
-   - Create: `python3 -m venv /workspace/.venv`
-   - Activate (optional): `source /workspace/.venv/bin/activate`
+1. Setup venv (canonical: `financial-engine_v2/.venv`).
+   - Create: `python3 -m venv financial-engine_v2/.venv`
+   - Activate (optional): `source financial-engine_v2/.venv/bin/activate`
 2. Install dependencies (deterministic).
    - `pip install -r requirements.txt`
-   - `pip install -r financial-engine_v2/backend/requirements.txt`
 3. Run the system (canonical).
-   - `bash financial-engine_v2/scripts/run_local_backend.sh`
+   - `LOCAL_BACKEND_PROFILE=isolated bash financial-engine_v2/scripts/run_local_backend.sh`
 4. Validate (smoke).
    - `bash financial-engine_v2/scripts/smoke_local.sh`
 5. Confirm health.
@@ -52,7 +51,7 @@ Agents MUST NOT use these paths unless a task explicitly requires them:
 Use these wrappers for deterministic agent control:
 
 - `scripts/start_system.sh`
-  - Starts the canonical backend (if not already running), waits briefly, then runs `scripts/agent_check.sh`.
+  - Starts the canonical backend (if not already running), then uses bounded readiness retries via `scripts/agent_check.sh`.
 - `scripts/validate_system.sh`
   - Runs `scripts/agent_check.sh` and then `financial-engine_v2/scripts/smoke_local.sh` (when available).
 - `scripts/prepare_cloud_worktree.sh`

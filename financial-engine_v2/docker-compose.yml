@@ -29,11 +29,12 @@ services:
     build: { context: ./backend }
     container_name: fe_backend
     network_mode: host
-    env_file: [.env]
+    env_file: [.env.docker]
     environment:
       TENN_HOST_NETWORK: ${TENN_HOST_NETWORK:-true}
     volumes:
       - ./backend:/app
+      - ./cockpit:/app/cockpit
       - ./data:/data
       - ./scripts:/scripts
     depends_on:
@@ -45,7 +46,7 @@ services:
     build: { context: ./backend }
     container_name: fe_worker
     network_mode: host
-    env_file: [.env]
+    env_file: [.env.docker]
     environment:
       TENN_HOST_NETWORK: ${TENN_HOST_NETWORK:-true}
     command: ["celery", "-A", "app.celery_app.celery", "worker", "--loglevel=INFO", "-Q", "ingest,embed,score,llm_cpu,llm_gpu"]
@@ -62,7 +63,7 @@ services:
     container_name: fe_beat
     restart: unless-stopped
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
-    env_file: [.env]
+    env_file: [.env.docker]
     working_dir: /app_worker
     command: ["celery", "-A", "worker_app.celery_app:celery", "beat", "--loglevel=INFO"]
     environment:

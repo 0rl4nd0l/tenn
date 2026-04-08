@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/pyright/main/packages/pyright/schema/pyrightconfig.schema.json",
+  "typeCheckingMode": "standard",
+  "exclude": [
+    "**/__pycache__",
+    "**/.pytest_cache",
+    "**/.ruff_cache",
+    "**/.mypy_cache",
+    "**/node_modules",
+    ".git",
+    ".worktrees",
+    ".venv",
+    ".venv-*",
+    "archive",
+    "backups",
+    "asx_data",
+    "data",
+    "exports",
+    "failed",
+    "models",
+    "notebooks",
+    "processed",
+    "reports"
+  ]
+}
