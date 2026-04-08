@@ -452,3 +452,21 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** `_merge_context_requests()` collected `requires` (financials, risk_notes, etc.) but not RAG queries. No module had a way to declare what RAG data it needed.
 **Fix:** Added `rag_queries` property to `ModuleHelpers` (empty default). `_merge_context_requests()` now collects and deduplicates module RAG queries. `analysis_rag_adapter.py` bridges modules to Qdrant. API endpoint passes `rag_fn` to the loader.
 **Rule:** Analysis modules must never do I/O. They declare data needs (via `requires` and `rag_queries`), the orchestrator merges declarations, and the loader pre-fetches everything into the frozen TickerContext. This pattern keeps modules stateless and testable.
+
+## L042 — Native CLI chat must be run/stream based, not blocking request/response
+
+**Date:** 2026-04-08
+**Subsystem:** `agent-orchestrator`
+**Symptom:** The standalone orchestrator chat looked broken and unnatural because `/api/chat` blocked on a one-shot native CLI call, then returned late or hung while the UI sat waiting with no live state.
+**Root cause:** I wired the native CLI like a synchronous HTTP helper instead of like a managed run with streamed events. That shape hides runtime progress, makes reconnect/replay impossible, and turns CLI quirks like open stdin or delayed output into a frozen chat UX.
+**Fix:** Replaced the blocking reply path with a run-start endpoint plus SSE stream, server-owned run ids, in-memory event replay, and UI-side optimistic chat state. Codex now streams as a managed run and delegated-task creation is surfaced as an event instead of being implied by a late HTTP response.
+**Rule:** When embedding a native coding CLI in an app, never model chat as `POST -> wait -> return text`. Use backend-managed runs plus streamed events so the UI can render progress, recover on reconnect, and surface delegation as part of the conversation flow.
+
+## L043 — “Full functionality” restart must free Ollama resources before embedding startup probes
+
+**Date:** 2026-04-08
+**Subsystem:** `scripts/start_full_stack.sh`, `backend/app/services/embeddings.py`, `scripts/cockpit`
+**Symptom:** `cockpit restart backend` enabled embeddings/RAG/extraction by default but the backend still died on startup validation because Ollama returned `500` for `nomic-embed-text`, and the local llama.cpp server could disappear after the wrapper exited.
+**Root cause:** Two separate operator assumptions were wrong. First, the embedding path was still treating the Ollama-backed role like a llama.cpp `/v1/embeddings` server, while the intended default was Ollama `nomic-embed-text`. Second, Ollama could already have a large GPU model loaded (`qwen2.5:32b`), leaving no room for the embedding model. Third, the cockpit wrapper backgrounded llama.cpp with a shell job pattern that was not fully detached.
+**Fix:** Wired the active embedding path to the existing Ollama embed client when the embedding role targets Ollama, enforced `nomic-embed-text` into the compose env on restart, stopped non-embedding Ollama runners before backend startup so the embedding probe can succeed, and switched cockpit llama launches to `setsid -f` so `llama-server` persists after `cockpit restart backend` returns.
+**Rule:** When a restart command promises “full functionality,” validate the whole dependency chain, not just the feature flags. Startup wrappers must set the correct provider contract, free any competing GPU-held runtimes needed by startup probes, and detach long-lived local runtimes in a way that survives shell exit.

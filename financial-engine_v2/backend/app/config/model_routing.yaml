@@ -11,7 +11,7 @@ deep_reasoning_model: Qwen3-30B-A3B-Instruct-2507-Q3_K_M
 deep_reasoning_provider: llamacpp
 deep_reasoning_base_url: http://127.0.0.1:8001
 embedding_model: nomic-embed-text
-embedding_provider: local
+embedding_provider: ollama
 embedding_base_url: http://127.0.0.1:11434
 adaptive_routing: true
 router_strategy: adaptive

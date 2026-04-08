@@ -49,6 +49,7 @@ from app.services.llamacpp_runtime import (
     resolve_extraction_runtime_config,
     resolve_llm_runtime_config,
 )
+from app.services.ollama import probe_ollama_embeddings
 from app.services.rag import query_news_chunks, query_rag
 
 
@@ -609,6 +610,13 @@ def _probe_embedding_runtime(base_url: str, expected_model: str, *, timeout: flo
         result["error"] = "base_url_not_configured"
         return result
     try:
+        parsed = urlparse(normalized_url)
+        if parsed.port == 11434:
+            probe = probe_ollama_embeddings(normalized_url, expected, timeout=timeout)
+            result["reachable"] = True
+            result["dimension"] = int(probe.get("dimension") or 0)
+            result["provider"] = "ollama"
+            return result
         response = httpx.post(
             f"{normalized_url}/v1/embeddings",
             json={"model": expected, "input": ["healthcheck"]},
@@ -625,6 +633,7 @@ def _probe_embedding_runtime(base_url: str, expected_model: str, *, timeout: flo
                 dimension = len(vector)
         result["reachable"] = True
         result["dimension"] = dimension
+        result["provider"] = "llamacpp"
         return result
     except Exception as exc:
         result["error"] = str(exc)

@@ -227,7 +227,10 @@ ensure_llama_servers_up() {
     echo "✅ llama.cpp chat already running (${chat_base})"
   else
     echo "Starting llama.cpp chat server on ${chat_base} (log: ${chat_log})..."
-    (cd "${REPO_ROOT}" && bash scripts/run_llama_server.sh >>"${chat_log}" 2>&1 &)
+    (
+      cd "${REPO_ROOT}" &&
+      setsid -f bash -lc "cd '${REPO_ROOT}' && exec bash scripts/run_llama_server.sh >>'${chat_log}' 2>&1 </dev/null"
+    )
   fi
 
   if [[ "${extraction_enabled}" == "true" || "${extraction_enabled}" == "1" ]] && [[ "${extraction_distinct}" == "true" ]]; then
@@ -235,7 +238,10 @@ ensure_llama_servers_up() {
       echo "✅ llama.cpp extraction already running (${extraction_base})"
     else
       echo "Starting llama.cpp extraction server on ${extraction_base} (log: ${extraction_log})..."
-      (cd "${REPO_ROOT}" && bash scripts/run_extraction_server.sh >>"${extraction_log}" 2>&1 &)
+      (
+        cd "${REPO_ROOT}" &&
+        setsid -f bash -lc "cd '${REPO_ROOT}' && exec bash scripts/run_extraction_server.sh >>'${extraction_log}' 2>&1 </dev/null"
+      )
     fi
   else
     if [[ "${extraction_distinct}" == "false" ]]; then

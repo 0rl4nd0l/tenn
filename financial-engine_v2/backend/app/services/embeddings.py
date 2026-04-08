@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from urllib.parse import urlparse
 import uuid
 from collections.abc import Mapping
 from typing import Any, Optional
@@ -14,9 +15,45 @@ from app.services.llamacpp_embeddings import (
     probe_llamacpp_embeddings,
 )
 from app.services.llamacpp_runtime import resolve_embedding_runtime_config
+from app.services.ollama import ollama_embed, probe_ollama_embeddings
 
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_runtime_base_url(value: str | None) -> str:
+    normalized = str(value or "").strip().rstrip("/")
+    if normalized.endswith("/v1"):
+        normalized = normalized[: -len("/v1")]
+    return normalized.rstrip("/")
+
+
+def _extract_runtime_host_port(value: str | None) -> tuple[str, int | None]:
+    normalized = _normalize_runtime_base_url(value)
+    if not normalized:
+        return "", None
+    parsed = urlparse(normalized)
+    return str(parsed.hostname or "").strip().lower(), parsed.port
+
+
+def _looks_like_ollama_runtime(base_url: str | None) -> bool:
+    hostname, port = _extract_runtime_host_port(base_url)
+    if port == 11434:
+        return True
+    return hostname in {"ollama", "host.docker.internal"} and port is None
+
+
+def _resolve_embedding_backend(
+    *,
+    provider: str | None,
+    base_url: str | None,
+) -> str:
+    normalized_provider = str(provider or "").strip().lower()
+    if normalized_provider == "ollama":
+        return "ollama"
+    if normalized_provider == "local" and _looks_like_ollama_runtime(base_url):
+        return "ollama"
+    return "llamacpp"
 
 
 def _extract_vector_params(candidate: Any) -> tuple[int | None, Any | None]:
@@ -187,6 +224,7 @@ def embed_texts_batched(
     *,
     llm_url: str | None = None,
     model: str | None = None,
+    provider: str | None = None,
     batch_size: int | None = None,
     timeout: float = 120.0,
     client: Optional[Any] = None,
@@ -198,18 +236,41 @@ def embed_texts_batched(
         llm_url=llm_url,
         model=model,
     )
+    embedding_backend = _resolve_embedding_backend(
+        provider=provider,
+        base_url=resolved_base_url,
+    )
     effective_batch_size = max(1, int(batch_size or settings.embedding_batch_size or 32))
 
-    probe_llamacpp_embeddings(
-        resolved_base_url,
-        resolved_model,
-        timeout=min(float(timeout), 30.0),
-        client=client,
-    )
+    if embedding_backend == "ollama":
+        probe_ollama_embeddings(
+            resolved_base_url,
+            resolved_model,
+            timeout=min(float(timeout), 30.0),
+            client=client,
+        )
+    else:
+        probe_llamacpp_embeddings(
+            resolved_base_url,
+            resolved_model,
+            timeout=min(float(timeout), 30.0),
+            client=client,
+        )
 
     vectors: list[list[float]] = []
     for index in range(0, len(texts), effective_batch_size):
         batch = texts[index : index + effective_batch_size]
+        if embedding_backend == "ollama":
+            vectors.extend(
+                ollama_embed(
+                    resolved_base_url,
+                    resolved_model,
+                    batch,
+                    timeout=float(timeout),
+                    client=client,
+                )
+            )
+            continue
         vectors.extend(
             llamacpp_embed(
                 resolved_base_url,
@@ -225,16 +286,24 @@ def embed_texts_batched(
 
 def get_embedding_runtime_diagnostics() -> dict[str, Any]:
     base_url, model = resolve_llamacpp_embedding_config()
+    embedding_backend = _resolve_embedding_backend(
+        provider=None,
+        base_url=base_url,
+    )
     diagnostics: dict[str, Any] = {
         "base_url": base_url,
         "model": model,
+        "provider": embedding_backend,
         "batch_size": int(max(1, settings.embedding_batch_size)),
         "qdrant_url": str(settings.qdrant_url),
         "qdrant_collection": str(settings.qdrant_collection),
     }
 
     try:
-        diagnostics["probe"] = probe_llamacpp_embeddings(base_url, model)
+        if embedding_backend == "ollama":
+            diagnostics["probe"] = probe_ollama_embeddings(base_url, model)
+        else:
+            diagnostics["probe"] = probe_llamacpp_embeddings(base_url, model)
     except Exception as exc:
         diagnostics["probe"] = {
             "base_url": base_url,

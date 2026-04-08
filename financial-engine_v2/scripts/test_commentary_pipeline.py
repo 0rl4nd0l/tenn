@@ -145,6 +145,9 @@ class FakeQdrantClient:
         self.created.append((collection_name, int(vectors_config.size)))
         self.payloads.setdefault(collection_name, [])
 
+    def create_payload_index(self, *, collection_name: str, field_name: str, field_schema) -> None:
+        return None
+
     def upsert(self, *, collection_name: str, points):
         persisted: list[dict] = []
         for point in points:
@@ -530,6 +533,8 @@ def test_generate_json_uses_llamacpp_even_when_router_selects_ollama(monkeypatch
         llm_service,
         "route_request",
         lambda prompt, metadata=None: RoutingDecision(
+            selected_role="reasoning",
+            policy_name="heavy",
             model_name="llama3:latest",
             execution_queue="llm_gpu",
             task_type="reasoning",
@@ -555,29 +560,21 @@ def test_generate_json_uses_llamacpp_even_when_router_selects_ollama(monkeypatch
     )
 
     assert payload["claims"] == ["Demand is improving."]
-    assert http_client.calls == [
-        {
-            "method": "GET",
-            "url": "http://127.0.0.1:8001/v1/models",
-            "json": None,
-            "headers": {},
-        },
-        {
-            "method": "POST",
-            "url": "http://127.0.0.1:8001/v1/chat/completions",
-            "json": {
-                "model": "qwen2.5-coder-14b",
-                "messages": [
-                    {"role": "system", "content": "Extract structured JSON only."},
-                    {"role": "user", "content": "Transcript text about improving demand."},
-                ],
-                "temperature": 0,
-                "max_tokens": 2048,
-                "response_format": {"type": "json_object"},
-            },
-            "headers": {},
-        },
-    ]
+    assert http_client.calls[0] == {
+        "method": "GET",
+        "url": "http://127.0.0.1:8001/v1/models",
+        "json": None,
+        "headers": {},
+    }
+    assert http_client.calls[1]["method"] == "POST"
+    assert http_client.calls[1]["url"] == "http://127.0.0.1:8001/v1/chat/completions"
+    assert http_client.calls[1]["headers"] == {}
+    assert http_client.calls[1]["json"]["model"] == "qwen2.5-coder-14b"
+    assert http_client.calls[1]["json"]["messages"][-1] == {
+        "role": "user",
+        "content": "Transcript text about improving demand.",
+    }
+    assert http_client.calls[1]["json"]["response_format"] == {"type": "json_object"}
     assert records[-1]["success"] is True
     assert records[-1]["model_name"] == "qwen2.5-coder-14b"
 
@@ -756,7 +753,7 @@ def test_embedding_runtime_uses_generation_values_when_embedding_env_missing(mon
     monkeypatch.delenv("EMBEDDING_API_KEY", raising=False)
     monkeypatch.delenv("LLM_AUTH_HEADER", raising=False)
 
-    assert resolve_llamacpp_embedding_config() == ("http://127.0.0.1:8001", "qwen2.5-coder-14b")
+    assert resolve_llamacpp_embedding_config() == ("http://127.0.0.1:11434", "nomic-embed-text")
     assert build_embedding_headers() == {
         "Authorization": "Bearer llm-token",
         "Content-Type": "application/json",
@@ -770,6 +767,7 @@ def test_embedding_runtime_defaults_to_local_llamacpp_when_env_missing(monkeypat
     monkeypatch.delenv("LLM_URL", raising=False)
     monkeypatch.delenv("LLAMACPP_URL", raising=False)
     monkeypatch.delenv("EMBEDDING_URL", raising=False)
+    monkeypatch.delenv("OLLAMA_URL", raising=False)
     monkeypatch.delenv("LLM_MODEL", raising=False)
     monkeypatch.delenv("LLAMACPP_MODEL", raising=False)
     monkeypatch.delenv("EMBEDDING_MODEL", raising=False)
@@ -777,8 +775,9 @@ def test_embedding_runtime_defaults_to_local_llamacpp_when_env_missing(monkeypat
     # settings.embed_model is loaded from .env at import time; patch it out so
     # resolve_embedding_runtime_config falls through to DEFAULT_LLM_MODEL.
     monkeypatch.setattr(llamacpp_runtime.settings, "embed_model", "")
+    monkeypatch.setattr(llamacpp_runtime.settings, "ollama_url", "")
 
-    assert resolve_llamacpp_embedding_config() == ("http://127.0.0.1:8001", "qwen2.5-coder-14b")
+    assert resolve_llamacpp_embedding_config() == ("http://127.0.0.1:8001", "model:gpt-oss-20b")
 
 
 def test_embedding_runtime_prefers_non_cpu_model_for_local_cpu_routing(monkeypatch) -> None:
@@ -790,6 +789,77 @@ def test_embedding_runtime_prefers_non_cpu_model_for_local_cpu_routing(monkeypat
         llm_url="cpu://sentence-transformers",
         model="sentence-transformers/all-MiniLM-L6-v2",
     ) == ("http://127.0.0.1:8101", "nomic-embed-text")
+
+
+def test_embedding_runtime_prefers_ollama_endpoint_and_model(monkeypatch) -> None:
+    from app.services.embeddings import resolve_llamacpp_embedding_config
+
+    monkeypatch.delenv("EMBEDDING_URL", raising=False)
+    monkeypatch.delenv("EMBEDDING_MODEL", raising=False)
+    monkeypatch.setenv("OLLAMA_URL", "http://127.0.0.1:11434")
+    monkeypatch.setenv("EMBED_MODEL", "nomic-embed-text")
+    monkeypatch.setenv("LLM_URL", "http://127.0.0.1:8001")
+    monkeypatch.setenv("LLM_MODEL", "model:gpt-oss-20b")
+
+    assert resolve_llamacpp_embedding_config() == ("http://127.0.0.1:11434", "nomic-embed-text")
+
+
+def test_embed_texts_batched_uses_ollama_for_ollama_provider(monkeypatch) -> None:
+    from app.services.embeddings import embed_texts_batched
+
+    calls: list[dict[str, object]] = []
+
+    def fake_probe(base_url: str, model: str, timeout=30.0, client=None):
+        calls.append(
+            {
+                "kind": "probe",
+                "base_url": base_url,
+                "model": model,
+            }
+        )
+        return {"ok": True, "dimension": 3}
+
+    def fake_ollama_embed(base_url: str, model: str, texts: list[str], timeout=120.0, client=None):
+        calls.append(
+            {
+                "kind": "embed",
+                "base_url": base_url,
+                "model": model,
+                "texts": list(texts),
+            }
+        )
+        return [[0.1, 0.2, 0.3]]
+
+    monkeypatch.setattr("app.services.embeddings.probe_ollama_embeddings", fake_probe)
+    monkeypatch.setattr("app.services.embeddings.ollama_embed", fake_ollama_embed)
+    monkeypatch.setattr(
+        "app.services.embeddings.probe_llamacpp_embeddings",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("llama.cpp probe should not run")),
+    )
+    monkeypatch.setattr(
+        "app.services.embeddings.llamacpp_embed",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("llama.cpp embed should not run")),
+    )
+
+    assert embed_texts_batched(
+        ["alpha"],
+        llm_url="http://127.0.0.1:11434",
+        model="nomic-embed-text",
+        provider="ollama",
+    ) == [[0.1, 0.2, 0.3]]
+    assert calls == [
+        {
+            "kind": "probe",
+            "base_url": "http://127.0.0.1:11434",
+            "model": "nomic-embed-text",
+        },
+        {
+            "kind": "embed",
+            "base_url": "http://127.0.0.1:11434",
+            "model": "nomic-embed-text",
+            "texts": ["alpha"],
+        },
+    ]
 
 
 def test_embedding_probe_raises_clear_error_on_501(monkeypatch) -> None:
@@ -879,6 +949,11 @@ def test_transcript_ingestion_uses_unified_llamacpp_runtime_path(monkeypatch, tm
     monkeypatch.setenv("EMBEDDING_MODEL", "nomic-embed-text")
     monkeypatch.setattr("app.services.commentary_ingest.embed_texts_batched", fake_embed_texts_batched)
     monkeypatch.setattr("app.services.commentary_ingest.extract_commentary_memo_task", FakeMemoTask())
+    monkeypatch.setattr("app.services.commentary_ingest.STAGED_CHUNKS_DIR", tmp_path / "staged_chunks")
+    monkeypatch.setattr(
+        "app.services.commentary_ingest.STAGED_CHUNKS_INDEX",
+        tmp_path / "staged_chunks" / "index.json",
+    )
 
     registry_path = tmp_path / "research_memory" / "source_registry.jsonl"
     memos_path = tmp_path / "research_memory" / "commentary_memos.jsonl"
@@ -898,10 +973,9 @@ def test_transcript_ingestion_uses_unified_llamacpp_runtime_path(monkeypatch, tm
     stored_chunks = qdrant.payloads["commentary_chunks"]
 
     assert result["ok"] is True
-    assert result["chunks_indexed"] == len(stored_chunks) == 1
-    assert stored_chunks[0]["chunk_id"].endswith(":0")
-    assert stored_chunks[0]["source_name"] == "Specialist Share Education"
-    assert len(stored_chunks[0]["_vector"]) == 768
+    assert result["staged"] is True
+    assert result["chunks_staged"] == 1
+    assert result["chunks_indexed"] == len(stored_chunks) == 0
     assert result["memo"] is None
     assert result["memos_path"] == str(memos_path.expanduser().resolve())
     assert queued_payloads == [
@@ -923,7 +997,13 @@ def test_transcript_ingestion_uses_unified_llamacpp_runtime_path(monkeypatch, tm
     assert embed_calls == [
         {
             "batch_size": None,
-            "inputs": [stored_chunks[0]["text"]],
+            "inputs": [
+                (
+                    "Durable demand is improving.\n"
+                    "Management says a margin catalyst is pricing discipline.\n"
+                    "The main risk is channel inventory volatility."
+                )
+            ],
             "llm_url": "http://127.0.0.1:8101",
             "model": "nomic-embed-text",
         }
@@ -938,6 +1018,11 @@ def test_transcript_ingestion_writes_registry_chunks_and_queues_memo(monkeypatch
             queued_payloads.append(dict(payload))
 
     monkeypatch.setattr("app.services.commentary_ingest.extract_commentary_memo_task", FakeMemoTask())
+    monkeypatch.setattr("app.services.commentary_ingest.STAGED_CHUNKS_DIR", tmp_path / "staged_chunks")
+    monkeypatch.setattr(
+        "app.services.commentary_ingest.STAGED_CHUNKS_INDEX",
+        tmp_path / "staged_chunks" / "index.json",
+    )
 
     registry_path = tmp_path / "research_memory" / "source_registry.jsonl"
     memos_path = tmp_path / "research_memory" / "commentary_memos.jsonl"
@@ -964,14 +1049,20 @@ def test_transcript_ingestion_writes_registry_chunks_and_queues_memo(monkeypatch
     registry = SourceRegistry(registry_path)
     sources = registry.all()
     stored_chunks = qdrant.payloads["commentary_chunks"]
+    staged_rows = [
+        json.loads(line)
+        for line in (tmp_path / "staged_chunks" / f"{result['source_id']}.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
 
     assert result["collection"] == "commentary_chunks"
     assert result["memo"] is None
-    assert result["chunks_indexed"] == len(stored_chunks)
-    assert len(stored_chunks) == 1
-    assert stored_chunks[0]["speaker"] == "Jane Analyst"
-    assert stored_chunks[0]["source_type"] == "youtube_transcript"
-    assert stored_chunks[0]["topic_tags"] == ["capital-allocation", "moat"]
+    assert result["staged"] is True
+    assert result["chunks_staged"] == 1
+    assert result["chunks_indexed"] == len(stored_chunks) == 0
+    assert staged_rows[0]["payload"]["speaker"] == "Jane Analyst"
+    assert staged_rows[0]["payload"]["source_type"] == "youtube_transcript"
+    assert staged_rows[0]["payload"]["topic_tags"] == ["capital-allocation", "moat"]
     assert sources[0]["source_name"] == "Edge Case Capital Interview"
     assert sources[0]["credibility_weight"] == DEFAULT_SOURCE_WEIGHTS["youtube_transcript"]
     assert not memos_path.exists()
@@ -984,14 +1075,14 @@ def test_transcript_ingestion_writes_registry_chunks_and_queues_memo(monkeypatch
                 "Demand looks resilient and a catalyst is margin expansion.\n"
                 "Risks include customer concentration."
             ),
-            "speaker": "Jane Analyst",
-            "source_type": "youtube_transcript",
-            "published_at": "2026-03-01T00:00:00Z",
-            "llm_url": "http://127.0.0.1:8001",
-            "llm_model": "qwen2.5-coder-14b",
-            "memos_path": str(memos_path.expanduser().resolve()),
-        }
-    ]
+                "speaker": "Jane Analyst",
+                "source_type": "youtube_transcript",
+                "published_at": "2026-03-01T00:00:00Z",
+                "llm_url": "http://127.0.0.1:8001",
+                "llm_model": "model:gpt-oss-20b",
+                "memos_path": str(memos_path.expanduser().resolve()),
+            }
+        ]
 
 
 def test_extract_commentary_memo_task_stores_memo(monkeypatch, tmp_path: Path) -> None:
@@ -1052,6 +1143,11 @@ def test_transcript_ingestion_keeps_success_when_memo_queueing_fails(
     memos_path = tmp_path / "research_memory" / "commentary_memos.jsonl"
     qdrant = FakeQdrantClient()
     monkeypatch.setattr("app.services.commentary_ingest.extract_commentary_memo_task", FailingMemoTask())
+    monkeypatch.setattr("app.services.commentary_ingest.STAGED_CHUNKS_DIR", tmp_path / "staged_chunks")
+    monkeypatch.setattr(
+        "app.services.commentary_ingest.STAGED_CHUNKS_INDEX",
+        tmp_path / "staged_chunks" / "index.json",
+    )
 
     result = ingest_transcript(
         transcript_text="Transcript text with a clear thesis and one catalyst.",
@@ -1069,7 +1165,9 @@ def test_transcript_ingestion_keeps_success_when_memo_queueing_fails(
 
     assert result["ok"] is True
     assert result["memo"] is None
-    assert result["chunks_indexed"] == len(qdrant.payloads["commentary_chunks"]) == 1
+    assert result["staged"] is True
+    assert result["chunks_staged"] == 1
+    assert result["chunks_indexed"] == len(qdrant.payloads["commentary_chunks"]) == 0
     assert "[WARN] memo extraction queue failed: memo timeout" in captured.out
     assert "[INFO] transcript stored successfully (memo optional)" in captured.out
 

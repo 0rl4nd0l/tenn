@@ -389,6 +389,7 @@ def embed_texts(
         texts,
         llm_url=decision.base_url,
         model=requested_model,
+        provider=decision.provider,
     )
 
 

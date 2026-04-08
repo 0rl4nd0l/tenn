@@ -58,6 +58,29 @@ def ollama_embed(
         return _do_embed(http_client)
 
 
+def probe_ollama_embeddings(
+    ollama_url: str,
+    model: str,
+    timeout: float = 120.0,
+    client: httpx.Client | None = None,
+) -> dict[str, Any]:
+    vectors = ollama_embed(
+        ollama_url,
+        model,
+        ["hello"],
+        timeout=timeout,
+        client=client,
+    )
+    if not vectors or not vectors[0]:
+        raise RuntimeError("Ollama embedding probe returned an empty vector.")
+    return {
+        "base_url": _normalize_url(ollama_url),
+        "model": str(model or "").strip(),
+        "ok": True,
+        "dimension": len(vectors[0]),
+    }
+
+
 def ollama_generate_json(
     ollama_url: str,
     model: str,

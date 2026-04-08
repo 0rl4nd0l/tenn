@@ -136,6 +136,14 @@ if [[ -n "${OLLAMA_URL_CONTAINER:-}" ]]; then
   fi
 fi
 
+if [[ -n "${EMBED_MODEL_ON_STARTUP:-}" ]]; then
+  current_embed_model="$(grep -E '^EMBED_MODEL=' "${COMPOSE_ENV_PATH}" 2>/dev/null | tail -n 1 | cut -d= -f2- || true)"
+  if [[ -z "${current_embed_model}" || "${current_embed_model}" != "${EMBED_MODEL_ON_STARTUP}" ]]; then
+    echo "🔧 Setting ${COMPOSE_ENV_PATH}: EMBED_MODEL=${EMBED_MODEL_ON_STARTUP}"
+    set_env_key "EMBED_MODEL" "${EMBED_MODEL_ON_STARTUP}" "${COMPOSE_ENV_PATH}"
+  fi
+fi
+
 # Backend startup embeds/probes need EMBEDDING_API_KEY; default it to LLM_API_KEY if missing.
 llm_api_key="$(grep -E '^LLM_API_KEY=' "${COMPOSE_ENV_PATH}" 2>/dev/null | tail -n 1 | cut -d= -f2- || true)"
 if [[ -n "${llm_api_key}" ]]; then
@@ -146,7 +154,7 @@ if [[ -n "${llm_api_key}" ]]; then
   fi
 fi
 
-# Deterministic boot: disable embeddings/qdrant startup validation by default.
+# Deterministic boot: write the requested runtime feature flags into the compose env file.
 if [[ -n "${ENABLE_EMBEDDINGS_ON_STARTUP:-}" ]]; then
   echo "🔧 Setting ${COMPOSE_ENV_PATH}: ENABLE_EMBEDDINGS=${ENABLE_EMBEDDINGS_ON_STARTUP}"
   set_env_key "ENABLE_EMBEDDINGS" "${ENABLE_EMBEDDINGS_ON_STARTUP}" "${COMPOSE_ENV_PATH}"
@@ -196,6 +204,25 @@ check_port_free 6333 "Qdrant" "fe_qdrant"
 if [[ -n "${OLLAMA_URL_HOST:-}" ]]; then
   if ! curl -fsS "${OLLAMA_URL_HOST}" >/dev/null 2>&1; then
     echo "⚠️  Ollama not reachable at ${OLLAMA_URL_HOST}"
+  fi
+fi
+
+if [[ "${ENABLE_EMBEDDINGS_ON_STARTUP:-}" == "true" || "${ENABLE_EMBEDDINGS_ON_STARTUP:-}" == "1" ]]; then
+  embed_model="${EMBED_MODEL_ON_STARTUP:-nomic-embed-text}"
+  if command -v ollama >/dev/null 2>&1; then
+    while IFS= read -r loaded_model; do
+      [[ -n "${loaded_model}" ]] || continue
+      if [[ ! "${loaded_model}" =~ ^${embed_model}(:|$) ]]; then
+        echo "🧹 Stopping loaded Ollama model ${loaded_model} to free resources for ${embed_model}..."
+        ollama stop "${loaded_model}" >/dev/null 2>&1 || true
+      fi
+    done < <(ollama ps | awk 'NR>1 {print $1}')
+    if ! ollama list | awk 'NR>1 {print $1}' | grep -Eq "^${embed_model}(:|$)"; then
+      echo "⬇️  Pulling Ollama embedding model ${embed_model}..."
+      ollama pull "${embed_model}"
+    fi
+  else
+    echo "⚠️  ollama CLI not found; cannot ensure embedding model ${embed_model} is installed"
   fi
 fi
 
@@ -317,4 +344,3 @@ while true; do
   fi
   sleep 1
 done
-

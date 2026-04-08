@@ -117,8 +117,11 @@ def resolve_embedding_runtime_config(
     for candidate in (
         base_url,
         os.getenv("EMBEDDING_URL"),
+        os.getenv("OLLAMA_URL"),
+        getattr(settings, "ollama_url", ""),
         os.getenv("LLM_URL"),
         os.getenv("LLAMACPP_URL"),
+        getattr(settings, "llamacpp_url", ""),
         DEFAULT_LLM_URL,
     ):
         normalized = _normalize_url(str(candidate or ""))
@@ -131,9 +134,9 @@ def resolve_embedding_runtime_config(
         model,
         os.getenv("EMBEDDING_MODEL"),
         os.getenv("EMBED_MODEL"),
+        getattr(settings, "embed_model", ""),
         os.getenv("LLM_MODEL"),
         os.getenv("LLAMACPP_MODEL"),
-        getattr(settings, "embed_model", ""),
         DEFAULT_LLM_MODEL,
     ):
         text = str(candidate or "").strip()

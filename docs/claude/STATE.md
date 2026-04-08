@@ -4,7 +4,7 @@
 > Update this file at the end of every session alongside the milestone commit.
 > For detailed context on any item, follow the linked doc or run `git log --oneline`.
 
-Last updated: 2026-04-08 (session — cockpit chat SSE fix, llama.cpp M40 KV-cache fix, docs alignment)
+Last updated: 2026-04-08 (session — cockpit restart backend full-functionality defaults, cockpit chat SSE fix, llama.cpp M40 KV-cache fix, docs alignment, standalone agent-orchestrator Codex stream bridge)
 Branch: cloud/session-20260319
 
 ## Legend
@@ -36,7 +36,7 @@ Branch: cloud/session-20260319
 | **llamacpp-runtime** | `[ verified ]` | Tesla M40 load path fixed for `model:gpt-oss-20b`: forced KV-cache quantization removed from launcher defaults; router now loads on GPU and serves completions. |
 | **analysis-modules** | `[ verified ]` | 7 modules (+ sentiment), orchestrator, context_loader (Yahoo price fallback), watchlist scanner (7 alert rules), API endpoints, scale validation gate, extraction expansion (total_equity, interest_expense). 48+22 tests. D2 live-tested. Real-data validated (RIO, BHP). **Sentiment RAG wiring:** modules declare RAG queries via `rag_queries` property; orchestrator merges into ContextRequest; `analysis_rag_adapter` bridges Qdrant; sentiment scores news_chunks + commentary_chunks. Architecture doc 1151 lines. |
 | **model-eval** | `[ verified ]` | Qwen 3 14B evaluated (85.26%) vs Qwen 2.5 14B (89.47%) — current model stays. |
-| **docs-governance** | `[ in-progress ]` | Root startup docs aligned to the canonical backend entrypoint. Repository-audit instructions updated to use actual repo manifests. Backend API surface, extraction, embeddings, routing, scripts index, portfolio module docs, Cockpit control-plane docs, and eval-fixture architecture docs refreshed. Open item: Cockpit contract/code mismatch still needs an explicit architecture decision. |
+| **docs-governance** | `[ in-progress ]` | Root startup docs aligned to the canonical backend entrypoint. Repository-audit instructions updated to use actual repo manifests. Backend API surface, extraction, embeddings, routing, scripts index, portfolio module docs, Cockpit control-plane docs, and eval-fixture architecture docs refreshed. Startup docs now reflect `cockpit restart backend` full-functionality defaults. Open item: Cockpit contract/code mismatch still needs an explicit architecture decision. |
 | **storage-migration** | `[ verified ]` | Tenn runtime data migrated to `/mnt/nvme/tenn/runtime-data`; GGUF router assets migrated to `/mnt/nvme/tenn/models`; root Ollama store pruned to `qwen2.5:32b` + `gpt-oss:20b-cloud`; inactive Ollama models archived to `.archives/ollama-root-store-2026-04-07`; docs/configs aligned. Validation: docs-heavy workload showed low short-term IO PSI and ~1% `wa` after warm-up. |
 
 ---
@@ -79,6 +79,8 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 
 | Commit | Workstream | Summary |
 |--------|------------|---------|
+| (this session) | cockpit-launcher | `cockpit restart backend` now rewrites `.env.docker`, enforces `nomic-embed-text`, frees conflicting Ollama runners before backend startup, routes embeddings through Ollama correctly, and leaves detached llama.cpp chat alive after the command exits. |
+| (this session) | agent-orchestrator | Replaced blocking native-CLI chat with Codex-backed run/SSE streaming, optimistic chat UI state, and explicit delegated-task events; verified with `npm test`, `npm run build`, `npm run smoke`, and live `/api/chat` SSE curl. |
 | 52508567 | llamacpp-runtime | Stop forcing KV-cache quantization in llama.cpp launchers/runtime manager; `model:gpt-oss-20b` now loads on Tesla M40 and serves chat completions with GPU memory allocated. |
 | 6e33d5d8 | cockpit-ui | Start the `sse.js` chat stream explicitly so the chat screen no longer gets stuck in `Analyzing market data...` without sending a request. |
 | 88e47336 | extraction-quality | Prose fallback for shares_outstanding: regex extraction from note sections (ANZ Note 13 + 3 other patterns), sanity range gate, table priority preserved. 12 tests. |
