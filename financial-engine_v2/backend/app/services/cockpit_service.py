@@ -208,6 +208,7 @@ class CockpitService:
         session_id: str | None = None,
         on_chunk: Callable[[str], None] | None = None,
         on_status: Callable[[str], None] | None = None,
+        on_thinking: Callable[[str, str], None] | None = None,
         enable_web: bool | None = None,
         model: str | None = None,
         rag: bool | None = None,
@@ -223,4 +224,5 @@ class CockpitService:
             prior_ticker=ticker,
             on_chunk=on_chunk,
             on_status=on_status,
+            on_thinking=on_thinking,
         )
