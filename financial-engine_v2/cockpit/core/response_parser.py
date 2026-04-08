@@ -1,6 +1,7 @@
 """Parse structured LLM responses for the agentic chat protocol.
 
-The cockpit LLM is instructed to respond with JSON in one of four formats:
+The cockpit LLM is instructed to respond with JSON in one of five formats:
+  - "thinking":        deliberation step — information assessment and tool plan
   - "response":        plain text answer (no tool needed)
   - "tool_call":       single tool invocation request
   - "tool_calls":      multiple parallel tool invocations
@@ -26,20 +27,22 @@ logger = logging.getLogger(__name__)
 # Data structure
 # ---------------------------------------------------------------------------
 
-VALID_TYPES = frozenset({"response", "tool_call", "tool_calls", "action_proposal"})
+VALID_TYPES = frozenset({"thinking", "response", "tool_call", "tool_calls", "action_proposal"})
 
 
 @dataclass
 class ParsedResponse:
     """Normalized representation of an LLM structured response."""
 
-    type: str  # "response", "tool_call", "tool_calls", "action_proposal"
-    content: str | None = None  # For "response" type
+    type: str  # "thinking", "response", "tool_call", "tool_calls", "action_proposal"
+    content: str | None = None  # For "response" / "thinking" type
     tool: str | None = None  # For "tool_call" / "action_proposal"
     arguments: dict | None = None  # For "tool_call" / "action_proposal"
     calls: list[dict] | None = None  # For "tool_calls" — [{id, tool, arguments}, …]
     explanation: str | None = None  # For "action_proposal"
     reasoning: str | None = None  # Optional reasoning (any type)
+    assessment: str | None = None  # For "thinking" — what data is available/missing
+    plan: str | None = None  # For "thinking" — which tools to call and why
     raw: str = ""  # Always preserved for debugging
 
 
@@ -86,6 +89,8 @@ def _try_parse_json(text: str) -> dict | None:
 
 def _infer_type(obj: dict) -> str:
     """Infer response type from keys when "type" is absent."""
+    if "assessment" in obj or "plan" in obj:
+        return "thinking"
     if "calls" in obj:
         return "tool_calls"
     if "tool" in obj and "explanation" in obj:
@@ -110,6 +115,8 @@ def _build_from_dict(obj: dict, raw: str) -> ParsedResponse:
         calls=obj.get("calls"),
         explanation=obj.get("explanation"),
         reasoning=obj.get("reasoning"),
+        assessment=obj.get("assessment"),
+        plan=obj.get("plan"),
         raw=raw,
     )
 

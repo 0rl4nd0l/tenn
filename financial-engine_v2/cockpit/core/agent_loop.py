@@ -90,17 +90,32 @@ _STRUCTURED_OUTPUT_INSTRUCTIONS = """
 RESPONSE FORMAT:
 Always respond with a JSON object. Choose one of these types:
 
-1. "response" — You have enough information to answer.
+1. "thinking" — MANDATORY as your first response. Assess what you know and plan your approach.
+   {"type": "thinking", "assessment": "<what data do I have / what is the user asking>", "plan": "<what tools will I call and why>"}
+
+2. "response" — You have enough information to answer.
    {"type": "response", "content": "<your answer>"}
 
-2. "tool_call" — You need to call a single tool.
+3. "tool_call" — You need to call a single tool.
    {"type": "tool_call", "tool": "<tool_name>", "arguments": {…}, "reasoning": "<why>"}
 
-3. "tool_calls" — You need to call multiple tools in parallel.
+4. "tool_calls" — You need to call multiple tools in parallel.
    {"type": "tool_calls", "calls": [{"id": "call_1", "tool": "<name>", "arguments": {…}}, …], "reasoning": "<why>"}
 
-4. "action_proposal" — You want to suggest a mutating action that requires user confirmation.
+5. "action_proposal" — You want to suggest a mutating action that requires user confirmation.
    {"type": "action_proposal", "tool": "<tool_name>", "arguments": {…}, "explanation": "<what and why>", "requires_confirmation": true}
+
+THINKING PROTOCOL (first response must be "thinking"):
+Before calling any tool or answering, walk through these steps in your assessment:
+  a) What is the user actually asking? (restate the core question)
+  b) What information do I already have in this conversation? (prior tool results, ticker context, session history)
+  c) Is what I have sufficient to give a quality answer? If yes, state why and set plan to "respond directly".
+  d) If not, what specific gaps exist? Which tools would fill each gap?
+  e) Could I strengthen my answer with supplementary data? (e.g. news context, price data alongside financials)
+  f) State your plan: which tools, in what order, and what you expect each to provide.
+
+After the thinking step, proceed with tool_call/tool_calls/response as planned.
+After receiving tool results, you may respond directly or call additional tools — no further thinking step required.
 
 Rules:
 - Never fabricate data. If you lack information after using tools, say so.
@@ -177,11 +192,19 @@ class AgentLoop:
         conversation_history: list[dict] | None = None,
         on_chunk: Callable[[str], None] | None = None,
         on_status: Callable[[str], None] | None = None,
+        on_thinking: Callable[[str, str], None] | None = None,
     ) -> AgentResult:
         """Run the agent loop for a single user turn.
 
         Returns an ``AgentResult`` with the final text, evidence collected
         from tool calls, and optional action preview.
+
+        Parameters
+        ----------
+        on_thinking:
+            Callback ``(assessment, plan)`` fired when the LLM emits a
+            thinking step.  Used by the SSE layer to surface reasoning to
+            the UI.
 
         Prefix ``/advisor`` or ``/cloud`` forces the cloud backend for this turn
         (when HybridRouter + API client). ``/local`` or ``/ops`` forces local.
@@ -189,9 +212,14 @@ class AgentLoop:
         force_backend, message = parse_backend_prefix(message)
         self._turn_force_backend = force_backend
         try:
-            return self._run_inner(message, ticker, conversation_history, on_chunk, on_status)
+            return self._run_inner(
+                message, ticker, conversation_history, on_chunk, on_status, on_thinking,
+            )
         finally:
             self._turn_force_backend = None
+
+    # Maximum thinking steps before we force the LLM to act.
+    MAX_THINKING_STEPS: int = 2
 
     def _run_inner(
         self,
@@ -200,6 +228,7 @@ class AgentLoop:
         conversation_history: list[dict] | None,
         on_chunk: Callable[[str], None] | None,
         on_status: Callable[[str], None] | None,
+        on_thinking: Callable[[str, str], None] | None = None,
     ) -> AgentResult:
         system_prompt = self._build_system_prompt()
         messages: list[dict[str, str]] = [
@@ -219,15 +248,21 @@ class AgentLoop:
         evidence: list[dict] = []
         tool_traces: list[dict[str, Any]] = []
         total_tool_calls = 0
+        thinking_steps = 0
+        has_thought = False  # Track whether the LLM has completed a thinking step
 
-        for iteration in range(self.MAX_ITERATIONS):
+        iteration = 0
+        while iteration < self.MAX_ITERATIONS:
             # --- Context window guard ---
             self._maybe_summarize_old_results(messages)
             if on_status:
-                on_status(
-                    f"LLM reasoning pass {iteration + 1}: "
-                    + ("planning tool usage" if not evidence else "synthesizing from tool results")
-                )
+                if not has_thought:
+                    on_status("Assessing information and planning approach...")
+                else:
+                    on_status(
+                        f"LLM reasoning pass {iteration + 1}: "
+                        + ("planning tool usage" if not evidence else "synthesizing from tool results")
+                    )
 
             # --- LLM call (non-streaming; we need the full response for JSON parsing) ---
             try:
@@ -244,6 +279,60 @@ class AgentLoop:
 
             # --- Parse ---
             parsed = parse_llm_response(raw_response)
+
+            # --- Thinking step (deliberation before acting) ---
+            if parsed.type == "thinking":
+                thinking_steps += 1
+                has_thought = True
+                assessment = parsed.assessment or parsed.content or ""
+                plan = parsed.plan or ""
+                logger.info(
+                    "Agent thinking step %d: assessment=%s plan=%s",
+                    thinking_steps,
+                    assessment[:200],
+                    plan[:200],
+                )
+                if on_thinking:
+                    on_thinking(assessment, plan)
+                if on_status:
+                    plan_summary = plan[:120] if plan else assessment[:120]
+                    on_status(f"Planning: {plan_summary}")
+
+                # Append thinking to conversation so the LLM can reference it
+                messages.append({"role": "assistant", "content": raw_response})
+
+                if thinking_steps >= self.MAX_THINKING_STEPS:
+                    messages.append({
+                        "role": "user",
+                        "content": (
+                            "You have completed your assessment. Now execute your plan: "
+                            "call the tools you identified, or respond directly if you "
+                            "determined no tools are needed."
+                        ),
+                    })
+
+                # Thinking doesn't consume an iteration slot
+                continue
+
+            # --- Iteration-0 nudge: if the LLM skips thinking on the first pass ---
+            if not has_thought and iteration == 0 and parsed.type in ("tool_call", "tool_calls"):
+                has_thought = True  # Don't nudge again
+                logger.info("LLM skipped thinking step; injecting nudge")
+                messages.append({"role": "assistant", "content": raw_response})
+                messages.append({
+                    "role": "user",
+                    "content": (
+                        "Before executing tools, briefly assess: What data do you already have? "
+                        "What gaps exist? Are these the right tools to fill those gaps? "
+                        'Respond with {"type": "thinking", "assessment": "...", "plan": "..."} '
+                        "then proceed with your tool calls."
+                    ),
+                })
+                # Nudge doesn't consume an iteration slot either
+                continue
+
+            # From here on, the LLM is acting — count the iteration.
+            iteration += 1
 
             # --- Direct response ---
             if parsed.type == "response":
@@ -280,7 +369,7 @@ class AgentLoop:
                     text=final_text,
                     evidence=evidence,
                     tool_calls_made=total_tool_calls,
-                    iterations_used=iteration + 1,
+                    iterations_used=iteration,
                     tool_traces=tool_traces,
                 )
 
@@ -295,7 +384,7 @@ class AgentLoop:
                     evidence=evidence,
                     action_preview=preview,
                     tool_calls_made=total_tool_calls,
-                    iterations_used=iteration + 1,
+                    iterations_used=iteration,
                     tool_traces=tool_traces,
                 )
 
@@ -327,7 +416,7 @@ class AgentLoop:
                     result = self._execute_tool(tool_name, arguments)
                     elapsed_ms = (time.perf_counter() - t0) * 1000.0
                     trace = build_tool_trace_entry(
-                        iteration=iteration + 1,
+                        iteration=iteration,
                         tool_name=tool_name,
                         arguments=arguments,
                         result=result if isinstance(result, dict) else {"result": result},
@@ -374,7 +463,7 @@ class AgentLoop:
                 text=final_text,
                 evidence=evidence,
                 tool_calls_made=total_tool_calls,
-                iterations_used=iteration + 1,
+                iterations_used=iteration,
                 tool_traces=tool_traces,
             )
 

@@ -1741,6 +1741,29 @@ class ChatController:
             "- `screen_tickers([])` with empty list uses the watchlist automatically\n"
         )
 
+        instruction += (
+            "\n## Information Assessment Protocol\n"
+            "\n"
+            "Before answering or calling tools, ALWAYS think through these steps:\n"
+            "\n"
+            "1. **What is the user asking?** Restate the core question in your own words.\n"
+            "2. **What do I already have?** Check conversation history, ticker context, "
+            "prior tool results, and session memory. List what is available.\n"
+            "3. **Is this sufficient?** Can I give a quality, evidence-backed answer "
+            "with what I have? If yes, respond directly — don't call tools unnecessarily.\n"
+            "4. **What gaps exist?** Identify specific missing data: financials? price? "
+            "news? announcements? valuation multiples?\n"
+            "5. **Which tools fill each gap?** Map each gap to a specific tool. "
+            "Prefer parallel calls (tool_calls) when multiple independent lookups are needed.\n"
+            "6. **Can I strengthen the answer?** Even if I can answer, consider whether "
+            "supplementary data (e.g. recent news alongside financials, or price trend "
+            "alongside a valuation question) would materially improve the response.\n"
+            "\n"
+            "Emit your assessment as a thinking step before acting. After receiving tool "
+            "results, proceed directly — no second thinking step is needed unless the "
+            "results reveal unexpected gaps.\n"
+        )
+
         return instruction
 
     # ------------------------------------------------------------------ #
@@ -1755,6 +1778,7 @@ class ChatController:
         on_chunk,
         on_status,
         analysis_mode: str | None,
+        on_thinking=None,
     ) -> ChatResponse:
         """Run the agentic tool-calling loop and convert the result to a ChatResponse."""
         # Reuse existing ticker detection logic
@@ -1816,6 +1840,7 @@ class ChatController:
             conversation_history=conversation_history,
             on_chunk=on_chunk,
             on_status=on_status,
+            on_thinking=on_thinking,
         )
 
         # Capture routing metadata from HybridRouter's cost log.
@@ -1885,6 +1910,7 @@ class ChatController:
         prior_ticker: str | None = None,
         on_chunk=None,
         on_status=None,
+        on_thinking=None,
         analysis_mode: str | None = None,
         context_profile: str | None = None,
     ) -> ChatResponse:
@@ -2050,6 +2076,7 @@ class ChatController:
                     on_chunk,
                     on_status,
                     analysis_mode,
+                    on_thinking=on_thinking,
                 )
 
         # ------------------------------------------------------------------ #
