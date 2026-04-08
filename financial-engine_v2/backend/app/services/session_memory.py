@@ -57,7 +57,9 @@ def _log_startup_status() -> None:
     _status_logged = True
     ov = _get_ov()
     if ov is not None:
-        config_path = os.environ.get("OPENVIKING_CONFIG_FILE") or "~/.openviking/ov.conf"
+        config_path = (
+            os.environ.get("OPENVIKING_CONFIG_FILE") or "~/.openviking/ov.conf"
+        )
         logger.info("session_memory: OpenViking enabled (config: %s)", config_path)
     elif _ov_config_present():
         logger.warning(
@@ -132,8 +134,7 @@ def record_turn(session_id: str, payload: dict[str, Any]) -> None:
         ov.add_message(session_id, "assistant", content=answer_json)
     except Exception as exc:
         logger.warning(
-            "session_memory.record_turn failed — turn not persisted. "
-            "%s: %s",
+            "session_memory.record_turn failed — turn not persisted. %s: %s",
             type(exc).__name__,
             exc,
         )
@@ -148,6 +149,7 @@ def _build_turn_payload(
     confidence: float | None,
     sources: list[dict[str, Any]] | None,
     retrieved_chunk_ids: list[str] | None,
+    quality_metrics: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "timestamp": datetime.now(tz=timezone.utc).isoformat(),
@@ -170,4 +172,10 @@ def _build_turn_payload(
         ]
     if retrieved_chunk_ids:
         payload["retrieved_chunk_ids"] = retrieved_chunk_ids[:10]
+    if quality_metrics:
+        payload["quality_metrics"] = {
+            "composite_metric": quality_metrics.get("composite_metric"),
+            "retrieval_precision": quality_metrics.get("retrieval_precision"),
+            "session_coherence": quality_metrics.get("session_coherence"),
+        }
     return payload

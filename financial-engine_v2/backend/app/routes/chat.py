@@ -6,8 +6,17 @@ from typing import Any, Literal
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from app.services.strategy_controller import apply_change, confirm_change, propose_change
-from app.services.tenn_chat import _degraded_chat_payload, _json_safe_value, chat_with_tenn
+from app.services.chat_quality_scorer import score_turn
+from app.services.strategy_controller import (
+    apply_change,
+    confirm_change,
+    propose_change,
+)
+from app.services.tenn_chat import (
+    _degraded_chat_payload,
+    _json_safe_value,
+    chat_with_tenn,
+)
 
 
 router = APIRouter()
@@ -58,13 +67,50 @@ def _analysis_response(
             session_id=session_id,
             model=model,
         )
+
+        # Learning loop: score turn quality (non-blocking, logs only for MVP)
+        try:
+            retrieval_hits = content.get("sources", [])
+            model_confidence = float(content.get("confidence", 0.85))
+            quality_metrics = score_turn(
+                query=message,
+                session_id=session_id or "unknown",
+                retrieval_hits=retrieval_hits,
+                model_confidence=model_confidence,
+                prev_query=None,  # TODO: integrate with session_memory
+            )
+            logger.info(
+                "chat_quality_metrics session_id=%s composite=%.3f retrieval=%.3f confidence=%.3f coherence=%.3f",
+                session_id or "unknown",
+                quality_metrics["composite_metric"],
+                quality_metrics["retrieval_precision"],
+                quality_metrics["model_confidence"],
+                quality_metrics["session_coherence"],
+            )
+        except Exception as score_exc:
+            logger.warning("chat_quality_scorer failed: %s", score_exc)
+
         return {
             "type": "analysis",
             "content": _json_safe_value(content),
         }
     except Exception as exc:
         detail = str(exc).strip() or exc.__class__.__name__
-        logger.exception("chat route degraded message=%s error=%s", str(message or "")[:120], detail)
+        logger.exception(
+            "chat route degraded message=%s error=%s", str(message or "")[:120], detail
+        )
+        return {
+            "type": "analysis",
+            "content": _degraded_chat_payload(
+                "Chat analysis failed before a valid response could be returned.",
+                error=detail,
+            ),
+        }
+    except Exception as exc:
+        detail = str(exc).strip() or exc.__class__.__name__
+        logger.exception(
+            "chat route degraded message=%s error=%s", str(message or "")[:120], detail
+        )
         return {
             "type": "analysis",
             "content": _degraded_chat_payload(
