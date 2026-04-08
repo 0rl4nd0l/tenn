@@ -42,10 +42,52 @@ export async function createHttpServer(service: OrchestratorService) {
 
   app.post("/api/chat", async (request, response, next) => {
     try {
-      response.json(await service.strategistChat(String(request.body?.message ?? "")));
+      response.json(
+        await service.startStrategistRun(String(request.body?.message ?? ""), {
+          runtime: request.body?.runtime ?? null,
+          model: request.body?.model ?? null
+        })
+      );
     } catch (error) {
       next(error);
     }
+  });
+
+  app.get("/api/chat/runs/:runId/stream", (request, response) => {
+    const runId = request.params.runId;
+    if (!service.hasStrategistRun(runId)) {
+      response.status(404).json({ error: "Chat run not found" });
+      return;
+    }
+
+    response.setHeader("Content-Type", "text/event-stream");
+    response.setHeader("Cache-Control", "no-cache, no-transform");
+    response.setHeader("Connection", "keep-alive");
+    response.flushHeaders();
+
+    const heartbeat = globalThis.setInterval(() => {
+      response.write(": heartbeat\n\n");
+    }, 15000);
+
+    const unsubscribe = service.subscribeStrategistRun(runId, {
+      lastEventId: request.header("last-event-id") ?? null,
+      onEntry: (entry) => {
+        response.write(`id: ${entry.id}\n`);
+        response.write(`event: ${entry.event}\n`);
+        response.write(`data: ${JSON.stringify(entry.data)}\n\n`);
+      },
+      onEnd: () => {
+        response.write("event: run.ended\n");
+        response.write(`data: ${JSON.stringify({ runId })}\n\n`);
+        globalThis.clearInterval(heartbeat);
+        response.end();
+      }
+    });
+
+    request.on("close", () => {
+      unsubscribe();
+      globalThis.clearInterval(heartbeat);
+    });
   });
 
   app.post("/api/tasks/:taskId/retry", async (request, response, next) => {
@@ -59,7 +101,7 @@ export async function createHttpServer(service: OrchestratorService) {
 
   app.post("/api/tasks/:taskId/reassign", async (request, response, next) => {
     try {
-      await service.reassignTask(request.params.taskId, request.body?.runtime ?? null);
+      await service.reassignTask(request.params.taskId, request.body?.runtime ?? null, request.body?.model ?? null);
       response.json({ ok: true });
     } catch (error) {
       next(error);

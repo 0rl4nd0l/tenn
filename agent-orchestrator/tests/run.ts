@@ -12,7 +12,7 @@ import type { ProjectSnapshot, ProviderCapabilitySnapshot, TaskRecord } from "..
 import { buildBoardState } from "../src/server/api/state";
 import { TaskRouter } from "../src/server/core/router";
 import { TaskScheduler } from "../src/server/core/scheduler";
-import { StrategistLlmResponder } from "../src/server/core/strategist-llm";
+import { StrategistRuntimeRunner } from "../src/server/core/strategist-runtime";
 import { StrategistService, materializeTaskGraph } from "../src/server/core/strategist";
 import { TokenBudgetManager } from "../src/server/core/token-budget";
 import { WorktreeManager } from "../src/server/core/worktrees";
@@ -275,46 +275,105 @@ function testScheduler(): void {
   );
 }
 
-async function testStrategistLlmResponder(): Promise<void> {
-  const responder = new StrategistLlmResponder(async (command, args) => ({
-    ok: true,
-    command,
-    args,
-    stdout: "Natural reply from model",
-    stderr: "",
-    exitCode: 0,
-    durationMs: 12
-  }));
+async function testStrategistRuntimeRunner(): Promise<void> {
+  process.env.STRATEGIST_CHAT_RUNTIME = "codex-local";
+  try {
+    const observedArgs: string[][] = [];
+    const runner = new StrategistRuntimeRunner((command, args, options) => {
+      observedArgs.push(args);
+      options.onStdout?.('{"type":"item.completed","item":{"type":"agent_message","text":"hello from codex"}}\n');
+      return {
+        id: "proc_test",
+        pid: 123,
+        startedAt: new Date().toISOString(),
+        child: {} as never,
+        wait: async () => ({
+          ok: true,
+          command,
+          args,
+          stdout: "",
+          stderr: "",
+          exitCode: 0,
+          durationMs: 5
+        }),
+        cancel: async () => undefined,
+        isAlive: () => false
+      };
+    });
 
-  const reply = await responder.generateReply({
-    message: "how r u",
-    fallbackReply: "fallback",
-    mode: "respond",
-    cwd: process.cwd(),
-    capabilities: [makeCapability("codex-local")],
-    conversation: {
-      latestPlanTaskId: null,
-      messages: [{ id: "m1", role: "user", content: "hi", createdAt: new Date().toISOString() }]
-    },
-    projectSummary: "Active project: agent-orchestrator."
-  });
-  assert.equal(reply, "Natural reply from model");
+    const reply = await new Promise<string>((resolve, reject) => {
+      runner.run(
+        {
+          message: "how r u",
+          fallbackReply: "fallback",
+          cwd: process.cwd(),
+          capabilities: [makeCapability("codex-local")],
+          conversation: {
+            latestPlanTaskId: null,
+            messages: [{ id: "m1", role: "user", content: "hi", createdAt: new Date().toISOString() }]
+          },
+          projectSummary: "Active project: agent-orchestrator."
+        },
+        {
+          onDelta: () => undefined,
+          onComplete: resolve,
+          onError: reject
+        }
+      );
+    });
 
-  const fallbackResponder = new StrategistLlmResponder(async () => ({
-    ok: false,
-    command: "codex",
-    args: [],
-    stdout: "",
-    stderr: "failed",
-    exitCode: 1,
-    durationMs: 10
-  }));
-  const fallbackReply = await fallbackResponder.generateReply({
-    message: "hi",
-    fallbackReply: "fallback",
-    mode: "respond",
-    cwd: process.cwd(),
-    capabilities: [makeCapability("codex-local", { authStatus: "logged_out" })]
+    assert.ok(observedArgs[0]?.includes("--json"));
+    assert.ok(observedArgs[0]?.includes("--cd"));
+    assert.equal(reply, "hello from codex");
+
+    const resumedReply = await new Promise<string>((resolve, reject) => {
+      runner.run(
+        {
+          message: "how r u",
+          fallbackReply: "fallback",
+          cwd: process.cwd(),
+          capabilities: [makeCapability("codex-local")],
+          conversation: {
+            latestPlanTaskId: null,
+            messages: [{ id: "m1", role: "user", content: "hi", createdAt: new Date().toISOString() }]
+          },
+          sessionId: "session-123"
+        },
+        {
+          onDelta: () => undefined,
+          onComplete: resolve,
+          onError: reject
+        }
+      );
+    });
+
+    assert.equal(resumedReply, "hello from codex");
+    assert.equal(observedArgs[1]?.[0], "exec");
+    assert.equal(observedArgs[1]?.[1], "resume");
+    assert.equal(observedArgs[1]?.[2], "session-123");
+  } finally {
+    delete process.env.STRATEGIST_CHAT_RUNTIME;
+  }
+
+  const fallbackRunner = new StrategistRuntimeRunner();
+  const fallbackReply = await new Promise<string>((resolve, reject) => {
+    fallbackRunner.run(
+      {
+        message: "hi",
+        fallbackReply: "fallback",
+        cwd: process.cwd(),
+        capabilities: [makeCapability("codex-local", { authStatus: "logged_out" })],
+        conversation: {
+          latestPlanTaskId: null,
+          messages: []
+        }
+      },
+      {
+        onDelta: () => undefined,
+        onComplete: resolve,
+        onError: reject
+      }
+    );
   });
   assert.equal(fallbackReply, "fallback");
 }
@@ -447,7 +506,7 @@ async function main(): Promise<void> {
   testTokenBudget();
   testRouter();
   testScheduler();
-  await testStrategistLlmResponder();
+  await testStrategistRuntimeRunner();
   await testStoreAndStrategist();
   await testWorktreeLifecycleAndSpawnWiring();
   console.log("orchestrator-core tests passed");

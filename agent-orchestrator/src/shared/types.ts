@@ -469,8 +469,9 @@ export interface StrategistRequest {
   message: string;
 }
 
-export interface StrategistResponse {
-  reply: string;
+export interface StrategistRunStartResponse {
+  runId: string;
+  userMessageId: string;
   createdTaskIds: string[];
   rootTaskId: string | null;
 }

@@ -1,4 +1,4 @@
-import { BoardState, StrategistResponse, TaskDetailPayload } from "../shared/types";
+import { BoardState, StrategistRunStartResponse, TaskDetailPayload } from "../shared/types";
 
 const BASE_URL = "";
 
@@ -43,6 +43,11 @@ async function readJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
   return payload as T;
 }
 
+export interface ChatStartOptions {
+  runtime?: "codex-local" | "opencode" | null;
+  model?: string | null;
+}
+
 export const api = {
   getBoard(): Promise<BoardState> {
     return readJson<BoardState>(`${BASE_URL}/api/board`);
@@ -50,19 +55,22 @@ export const api = {
   getTask(taskId: string): Promise<TaskDetailPayload> {
     return readJson<TaskDetailPayload>(`${BASE_URL}/api/tasks/${taskId}`);
   },
-  sendChat(message: string): Promise<StrategistResponse> {
-    return readJson<StrategistResponse>(`${BASE_URL}/api/chat`, {
+  startChat(message: string, options?: ChatStartOptions): Promise<StrategistRunStartResponse> {
+    return readJson<StrategistRunStartResponse>(`${BASE_URL}/api/chat`, {
       method: "POST",
-      body: JSON.stringify({ message })
+      body: JSON.stringify({ message, runtime: options?.runtime ?? null, model: options?.model ?? null })
     });
+  },
+  streamChatRun(runId: string): EventSource {
+    return new EventSource(`${BASE_URL}/api/chat/runs/${runId}/stream`);
   },
   retryTask(taskId: string) {
     return readJson(`${BASE_URL}/api/tasks/${taskId}/retry`, { method: "POST" });
   },
-  reassignTask(taskId: string, runtime: string) {
+  reassignTask(taskId: string, runtime: string, model?: string | null) {
     return readJson(`${BASE_URL}/api/tasks/${taskId}/reassign`, {
       method: "POST",
-      body: JSON.stringify({ runtime })
+      body: JSON.stringify({ runtime, model: model ?? null })
     });
   },
   approveTask(taskId: string) {

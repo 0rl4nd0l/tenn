@@ -11,7 +11,7 @@ import type {
   ProjectSnapshot,
   ReviewDecisionRecord,
   RuntimeId,
-  StrategistResponse,
+  StrategistRunStartResponse,
   TaskDetailPayload,
   TaskRecord
 } from "../../shared/types";
@@ -22,9 +22,10 @@ import { OwnershipLockManager } from "../core/locks";
 import { ProjectIntelligenceService } from "../core/project-intelligence";
 import { TaskRouter } from "../core/router";
 import { TaskScheduler } from "../core/scheduler";
-import { StrategistLlmResponder } from "../core/strategist-llm";
+import { StrategistRuntimeRunner } from "../core/strategist-runtime";
 import { TaskSpawner } from "../core/spawner";
 import { StrategistService, materializeTaskGraph } from "../core/strategist";
+import { MemoryStreamBridge } from "../core/stream-bridge";
 import { TokenBudgetManager } from "../core/token-budget";
 import { WorktreeManager } from "../core/worktrees";
 import { OrchestratorStore } from "../db/database";
@@ -46,6 +47,13 @@ interface ActiveTaskRun {
   sessionId: string;
 }
 
+interface StrategistRunContext {
+  runId: string;
+  userMessageId: string;
+  createdTaskIds: string[];
+  rootTaskId: string | null;
+}
+
 export class OrchestratorService extends EventEmitter {
   readonly goalId: string;
   private readonly store: OrchestratorStore;
@@ -54,13 +62,18 @@ export class OrchestratorService extends EventEmitter {
   private readonly router = new TaskRouter(this.tokenBudgetManager);
   private readonly scheduler = new TaskScheduler();
   private readonly strategist = new StrategistService();
-  private readonly strategistLlm = new StrategistLlmResponder();
+  private readonly strategistRuntime = new StrategistRuntimeRunner();
+  private readonly strategistStreams = new MemoryStreamBridge();
   private readonly janitor = new Janitor();
   private readonly lockManager: OwnershipLockManager;
   private readonly worktreeManager: WorktreeManager;
   private readonly spawner: TaskSpawner;
   private readonly projectIntelligence: ProjectIntelligenceService;
   private readonly activeRuns = new Map<string, ActiveTaskRun>();
+  private readonly strategistChatCwd: string;
+  private strategistSessionId: string | null = null;
+  private strategistSessionRuntime: "codex-local" | "opencode" | null = null;
+  private strategistSessionModel: string | null = null;
   private mergeQueue: Promise<void> = Promise.resolve();
   private scheduling = false;
   private lastProjectSnapshot: ProjectSnapshot | null = null;
@@ -72,6 +85,8 @@ export class OrchestratorService extends EventEmitter {
     const collections = this.store.getCollections(this.goalId);
     this.lockManager = new OwnershipLockManager(collections.locks);
     this.worktreeManager = new WorktreeManager(this.options.repoRoot, path.join(this.options.dataDir, "worktrees"));
+    this.strategistChatCwd = path.join(this.options.dataDir, "chat-runtime");
+    ensureDir(this.strategistChatCwd);
     this.spawner = new TaskSpawner({
       repoRoot: this.options.repoRoot,
       adapterRegistry: this.adapterRegistry,
@@ -117,7 +132,25 @@ export class OrchestratorService extends EventEmitter {
     this.emitRefresh("capabilities");
   }
 
-  async strategistChat(message: string): Promise<StrategistResponse> {
+  hasStrategistRun(runId: string): boolean {
+    return this.strategistStreams.hasStream(runId);
+  }
+
+  subscribeStrategistRun(
+    runId: string,
+    options: {
+      lastEventId?: string | null;
+      onEntry: (entry: { id: string; event: string; data: Record<string, unknown> }) => void;
+      onEnd: () => void;
+    }
+  ): () => void {
+    return this.strategistStreams.subscribe(runId, options);
+  }
+
+  async startStrategistRun(
+    message: string,
+    options?: { runtime?: "codex-local" | "opencode" | null; model?: string | null }
+  ): Promise<StrategistRunStartResponse> {
     const userMessage = {
       id: createId("msg"),
       role: "user" as const,
@@ -134,6 +167,22 @@ export class OrchestratorService extends EventEmitter {
       projectSnapshot: workspaceContext.snapshot
     });
     const graph = materializeTaskGraph(plan);
+    const runId = createId("chatrun");
+    const runContext: StrategistRunContext = {
+      runId,
+      userMessageId: userMessage.id,
+      createdTaskIds: graph.rootTask ? [graph.rootTask.id, ...graph.childTasks.map((task) => task.id)] : [],
+      rootTaskId: graph.rootTask?.id ?? null
+    };
+
+    this.strategistStreams.createStream(runId);
+    this.strategistStreams.publish(runId, "run.started", {
+      runId,
+      userMessageId: userMessage.id,
+      rootTaskId: graph.rootTask?.id ?? null,
+      createdTaskIds: runContext.createdTaskIds
+    });
+
     if (graph.rootTask) {
       this.store.upsertTask(graph.rootTask);
       this.store.bulkUpsertTasks(graph.childTasks);
@@ -141,33 +190,38 @@ export class OrchestratorService extends EventEmitter {
         rootTaskId: graph.rootTask.id,
         childTaskIds: graph.childTasks.map((task) => task.id)
       }));
+      this.strategistStreams.publish(runId, "task.spawned", {
+        runId,
+        rootTaskId: graph.rootTask.id,
+        createdTaskIds: runContext.createdTaskIds
+      });
     }
 
-    const reply = await this.strategistLlm.generateReply({
-      message,
-      fallbackReply: plan.reply,
-      mode: plan.mode,
-      cwd: this.options.repoRoot,
-      capabilities: collections.capabilities,
-      conversation: collections.conversation,
-      projectSummary: summarizeWorkspaceForStrategist(workspaceContext.snapshot)
-    });
-
-    const assistantMessage = {
-      id: createId("msg"),
-      role: "assistant" as const,
-      content: reply,
-      createdAt: nowIso()
-    };
-    this.store.appendConversationMessage(this.goalId, assistantMessage);
     this.emitRefresh("strategist");
     if (this.options.autoSchedule && graph.rootTask) {
       await this.scheduleNow();
     }
 
+    const shouldReuseStrategistSession =
+      (!options?.runtime || this.strategistSessionRuntime === options.runtime) &&
+      (!options?.model || this.strategistSessionModel === options.model);
+
+    this.runStrategistReply(runContext, {
+      message,
+      fallbackReply: plan.reply,
+      cwd: this.strategistChatCwd,
+      capabilities: collections.capabilities,
+      conversation: collections.conversation,
+      projectSummary: summarizeWorkspaceForStrategist(workspaceContext.snapshot),
+      sessionId: shouldReuseStrategistSession ? this.strategistSessionId : null,
+      preferredRuntime: options?.runtime ?? null,
+      preferredModel: options?.model ?? null
+    });
+
     return {
-      reply,
-      createdTaskIds: graph.rootTask ? [graph.rootTask.id, ...graph.childTasks.map((task) => task.id)] : [],
+      runId,
+      userMessageId: userMessage.id,
+      createdTaskIds: runContext.createdTaskIds,
       rootTaskId: graph.rootTask?.id ?? null
     };
   }
@@ -191,7 +245,7 @@ export class OrchestratorService extends EventEmitter {
     await this.scheduleNow();
   }
 
-  async reassignTask(taskId: string, runtime?: RuntimeId | null): Promise<void> {
+  async reassignTask(taskId: string, runtime?: RuntimeId | null, model?: string | null): Promise<void> {
     const task = this.requireTask(taskId);
     await this.discardPreservedWorktree(taskId);
     const next: TaskRecord = {
@@ -202,6 +256,10 @@ export class OrchestratorService extends EventEmitter {
       chosenProvider: null,
       chosenModel: null,
       routingRationale: null,
+      constraints:
+        model && model.trim()
+          ? { ...task.constraints, preferredModel: model.trim() }
+          : Object.fromEntries(Object.entries(task.constraints).filter(([key]) => key !== "preferredModel")),
       updatedAt: nowIso()
     };
     this.store.upsertTask(next);
@@ -634,6 +692,85 @@ export class OrchestratorService extends EventEmitter {
       .filter((line) => line.length > 0);
   }
 
+  private runStrategistReply(
+    runContext: StrategistRunContext,
+    input: {
+      message: string;
+      fallbackReply: string;
+      cwd: string;
+      capabilities: ReturnType<OrchestratorStore["getCollections"]>["capabilities"];
+      conversation: ReturnType<OrchestratorStore["getCollections"]>["conversation"];
+      projectSummary?: string | null;
+      sessionId?: string | null;
+      preferredRuntime?: "codex-local" | "opencode" | null;
+      preferredModel?: string | null;
+    }
+  ): void {
+    if (shouldBypassNativeStrategist(input.message, runContext.createdTaskIds.length > 0)) {
+      this.store.appendConversationMessage(this.goalId, {
+        id: createId("msg"),
+        role: "assistant",
+        content: input.fallbackReply,
+        createdAt: nowIso()
+      });
+      this.strategistStreams.publish(runContext.runId, "assistant.completed", {
+        runId: runContext.runId,
+        reply: input.fallbackReply,
+        rootTaskId: runContext.rootTaskId,
+        createdTaskIds: runContext.createdTaskIds,
+        mode: "deterministic"
+      });
+      this.strategistStreams.end(runContext.runId);
+      this.emitRefresh("strategist.completed");
+      return;
+    }
+
+    let reply = "";
+    const complete = (finalReply: string) => {
+      reply = finalReply;
+      this.store.appendConversationMessage(this.goalId, {
+        id: createId("msg"),
+        role: "assistant",
+        content: finalReply,
+        createdAt: nowIso()
+      });
+      this.strategistStreams.publish(runContext.runId, "assistant.completed", {
+        runId: runContext.runId,
+        reply: finalReply,
+        rootTaskId: runContext.rootTaskId,
+        createdTaskIds: runContext.createdTaskIds
+      });
+      this.strategistStreams.end(runContext.runId);
+      this.emitRefresh("strategist.completed");
+    };
+
+    this.strategistRuntime.run(input, {
+      onSessionStarted: (sessionId) => {
+        this.strategistSessionId = sessionId;
+        this.strategistSessionRuntime = input.preferredRuntime ?? "opencode";
+        this.strategistSessionModel = input.preferredModel ?? null;
+      },
+      onDelta: (delta) => {
+        reply += delta;
+        this.strategistStreams.publish(runContext.runId, "assistant.delta", {
+          runId: runContext.runId,
+          delta,
+          reply
+        });
+      },
+      onComplete: complete,
+      onError: (message) => {
+        const fallbackReply = reply.trim() || input.fallbackReply;
+        this.strategistStreams.publish(runContext.runId, "run.failed", {
+          runId: runContext.runId,
+          error: message,
+          reply: fallbackReply
+        });
+        complete(fallbackReply);
+      }
+    });
+  }
+
   private emitRefresh(reason: string): void {
     this.emit("refresh", {
       reason,
@@ -660,6 +797,14 @@ function summarizeWorkspaceForStrategist(snapshot: ProjectSnapshot | null): stri
   ]
     .filter((line): line is string => Boolean(line))
     .join(" ");
+}
+
+function shouldBypassNativeStrategist(message: string, hasDelegatedWork: boolean): boolean {
+  if (hasDelegatedWork) {
+    return false;
+  }
+  const normalized = message.trim().toLowerCase();
+  return /^(hi|hello|hey|yo|sup|how are you|how r u|wyd|thanks|thank you|ok|okay)\b/.test(normalized);
 }
 
 function makeEvent(

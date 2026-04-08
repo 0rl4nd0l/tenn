@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BoardState, StrategistResponse, TaskDetailPayload, TaskRecord } from "../../shared/types";
+import { BoardState, StrategistRunStartResponse, TaskDetailPayload, TaskRecord } from "../../shared/types";
 import { api } from "../api";
+
+interface LiveChatMessage {
+  id: string;
+  content: string;
+  pending?: boolean;
+}
 
 interface State {
   board: BoardState | null;
@@ -8,12 +14,19 @@ interface State {
   detailLoadingTaskId: string | null;
   selectedTaskId: string | null;
   loading: boolean;
+  chatSending: boolean;
+  chatRuntime: "codex-local" | "opencode";
+  chatModel: string;
+  setChatRuntime(runtime: "codex-local" | "opencode"): void;
+  setChatModel(model: string): void;
   error: string | null;
   streamOnline: boolean;
+  pendingUserMessage: LiveChatMessage | null;
+  streamingAssistantMessage: LiveChatMessage | null;
   sendChat(message: string): Promise<void>;
   selectTask(taskId: string | null): Promise<void>;
   action(taskId: string, kind: "retry" | "approve" | "reject" | "reopen", runtime?: string): Promise<void>;
-  reassign(taskId: string, runtime: string): Promise<boolean>;
+  reassign(taskId: string, runtime: string, model?: string | null): Promise<boolean>;
   refresh(): Promise<void>;
   dispatchReady(): Promise<void>;
   refreshRuntimes(): Promise<void>;
@@ -27,13 +40,19 @@ export function useOrchestratorState(): State {
   const [detailLoadingTaskId, setDetailLoadingTaskId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [chatSending, setChatSending] = useState(false);
+  const [chatRuntime, setChatRuntimeState] = useState<"codex-local" | "opencode">("opencode");
+  const [chatModel, setChatModelState] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [streamOnline, setStreamOnline] = useState(false);
+  const [pendingUserMessage, setPendingUserMessage] = useState<LiveChatMessage | null>(null);
+  const [streamingAssistantMessage, setStreamingAssistantMessage] = useState<LiveChatMessage | null>(null);
   const [socketGeneration, setSocketGeneration] = useState(0);
   const [taskActionCounts, setTaskActionCounts] = useState<Record<string, number>>({});
   const taskActionCountsRef = useRef<Record<string, number>>({});
   const selectedTaskIdRef = useRef<string | null>(null);
   const detailRequestGenerationRef = useRef(0);
+  const chatEventSourceRef = useRef<EventSource | null>(null);
 
   const focusTaskDetail = () => {
     if (!window.matchMedia("(max-width: 1180px)").matches) {
@@ -154,6 +173,40 @@ export function useOrchestratorState(): State {
   }, [selectedTaskId]);
 
   useEffect(() => {
+    if (!board) {
+      return;
+    }
+    const availableChatRuntimes = board.capabilities.filter(
+      (capability) =>
+        (capability.runtime === "opencode" || capability.runtime === "codex-local") &&
+        capability.installStatus === "installed" &&
+        capability.authStatus !== "logged_out"
+    );
+    const preferredRuntime =
+      availableChatRuntimes.find((capability) => capability.runtime === chatRuntime)?.runtime ??
+      availableChatRuntimes.find((capability) => capability.runtime === "opencode")?.runtime ??
+      availableChatRuntimes[0]?.runtime;
+    if (preferredRuntime && preferredRuntime !== chatRuntime) {
+      setChatRuntimeState(preferredRuntime);
+      const preferredModel = availableChatRuntimes.find((capability) => capability.runtime === preferredRuntime)?.models[0] ?? "";
+      setChatModelState(preferredModel);
+      return;
+    }
+
+    const runtimeCapability = board.capabilities.find((capability) => capability.runtime === chatRuntime);
+    if (!runtimeCapability) {
+      return;
+    }
+    if (!chatModel || !runtimeCapability.models.includes(chatModel)) {
+      setChatModelState(runtimeCapability.models[0] ?? "");
+    }
+  }, [board, chatRuntime, chatModel]);
+
+  useEffect(() => () => {
+    chatEventSourceRef.current?.close();
+  }, []);
+
+  useEffect(() => {
     void (async () => {
       try {
         await refreshBoard();
@@ -228,20 +281,114 @@ export function useOrchestratorState(): State {
       detailLoadingTaskId,
       selectedTaskId,
       loading,
+      chatSending,
+      chatRuntime,
+      chatModel,
+      setChatRuntime(runtime: "codex-local" | "opencode") {
+        setChatRuntimeState(runtime);
+        const capability = board?.capabilities.find((candidate) => candidate.runtime === runtime);
+        setChatModelState(capability?.models[0] ?? "");
+      },
+      setChatModel(model: string) {
+        setChatModelState(model);
+      },
       error,
       streamOnline,
+      pendingUserMessage,
+      streamingAssistantMessage,
       async sendChat(message: string) {
         setError(null);
+        setChatSending(true);
+        chatEventSourceRef.current?.close();
         try {
-          const response = await api.sendChat(message);
-          const next = await api.getBoard();
-          const preferredTaskId = resolveDelegatedTaskId(next.tasks, response);
-          const hydrated = await hydrateBoard(next, preferredTaskId);
-          if (hydrated && preferredTaskId) {
-            focusTaskDetail();
-          }
+          const response = await api.startChat(message, {
+            runtime: chatRuntime,
+            model: chatModel || null
+          });
+          setPendingUserMessage({
+            id: response.userMessageId,
+            content: message
+          });
+          setStreamingAssistantMessage({
+            id: `${response.runId}:assistant`,
+            content: "",
+            pending: true
+          });
+
+          const source = api.streamChatRun(response.runId);
+          chatEventSourceRef.current = source;
+
+          source.addEventListener("assistant.delta", (event) => {
+            const payload = parseStreamEventData(event);
+            const reply = typeof payload.reply === "string" ? payload.reply : null;
+            const delta = typeof payload.delta === "string" ? payload.delta : "";
+            setStreamingAssistantMessage((current) => {
+              const base = current ?? { id: `${response.runId}:assistant`, content: "", pending: true };
+              return {
+                ...base,
+                pending: true,
+                content: reply ?? `${base.content}${delta}`
+              };
+            });
+          });
+
+          source.addEventListener("task.spawned", () => {
+            void refreshBoard(response.rootTaskId);
+            if (response.rootTaskId) {
+              focusTaskDetail();
+            }
+          });
+
+          source.addEventListener("run.failed", (event) => {
+            const payload = parseStreamEventData(event);
+            if (typeof payload.error === "string" && payload.error.trim()) {
+              setError(payload.error);
+            }
+          });
+
+          source.addEventListener("assistant.completed", (event) => {
+            const payload = parseStreamEventData(event);
+            const reply = typeof payload.reply === "string" ? payload.reply : "";
+            void (async () => {
+              setStreamingAssistantMessage({
+                id: `${response.runId}:assistant`,
+                content: reply,
+                pending: false
+              });
+              const next = await api.getBoard();
+              const preferredTaskId = resolveDelegatedTaskId(next.tasks, response);
+              const hydrated = await hydrateBoard(next, preferredTaskId);
+              if (hydrated && preferredTaskId) {
+                focusTaskDetail();
+              }
+              setPendingUserMessage(null);
+              setStreamingAssistantMessage(null);
+            })().catch((nextError: unknown) => {
+              setError(toErrorMessage(nextError));
+            });
+          });
+
+          source.addEventListener("run.ended", () => {
+            source.close();
+            if (chatEventSourceRef.current === source) {
+              chatEventSourceRef.current = null;
+            }
+            setChatSending(false);
+          });
+
+          source.onerror = () => {
+            source.close();
+            if (chatEventSourceRef.current === source) {
+              chatEventSourceRef.current = null;
+            }
+            setChatSending(false);
+            setError((current) => current ?? "Live chat stream degraded before completion.");
+          };
         } catch (error) {
           setError(toErrorMessage(error));
+          setPendingUserMessage(null);
+          setStreamingAssistantMessage(null);
+          setChatSending(false);
         }
       },
       async selectTask(taskId: string | null) {
@@ -275,10 +422,10 @@ export function useOrchestratorState(): State {
           return refreshBoard(selectedTaskId);
         });
       },
-      async reassign(taskId: string, runtime: string) {
+      async reassign(taskId: string, runtime: string, model?: string | null) {
         setError(null);
         return runTaskAction(taskId, async () => {
-          await api.reassignTask(taskId, runtime);
+          await api.reassignTask(taskId, runtime, model ?? null);
           return refreshBoard(selectedTaskId);
         });
       },
@@ -311,11 +458,25 @@ export function useOrchestratorState(): State {
         return Boolean(taskId && (taskActionCountsRef.current[taskId] ?? 0) > 0);
       }
     }),
-    [board, detail, detailLoadingTaskId, loading, error, selectedTaskId, streamOnline, taskActionCounts]
+    [
+      board,
+      detail,
+      detailLoadingTaskId,
+      loading,
+      chatSending,
+      chatRuntime,
+      chatModel,
+      error,
+      streamOnline,
+      pendingUserMessage,
+      streamingAssistantMessage,
+      selectedTaskId,
+      taskActionCounts
+    ]
   );
 }
 
-function resolveDelegatedTaskId(tasks: TaskRecord[], response: StrategistResponse): string | null {
+function resolveDelegatedTaskId(tasks: TaskRecord[], response: StrategistRunStartResponse): string | null {
   const statusPriority: Record<TaskRecord["status"], number> = {
     running: 0,
     failed: 1,
@@ -332,6 +493,14 @@ function resolveDelegatedTaskId(tasks: TaskRecord[], response: StrategistRespons
     .filter((task): task is TaskRecord => Boolean(task))
     .sort((left, right) => statusPriority[left.status] - statusPriority[right.status]);
   return createdChildren[0]?.id ?? response.rootTaskId ?? null;
+}
+
+function parseStreamEventData(event: MessageEvent<string>): Record<string, unknown> {
+  try {
+    return JSON.parse(event.data) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
 }
 
 function resolvePreferredTaskId(tasks: TaskRecord[], taskId?: string | null): string | null {

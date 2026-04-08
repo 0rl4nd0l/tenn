@@ -1,40 +1,90 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, KeyboardEvent, useState } from "react";
 import { StrategistConversation } from "../../shared/types";
+
+interface LiveChatMessage {
+  id: string;
+  content: string;
+  pending?: boolean;
+}
 
 interface StrategistPaneProps {
   conversation: StrategistConversation;
   hasDelegatedWork: boolean;
+  chatSending: boolean;
+  chatRuntime: "codex-local" | "opencode";
+  chatModel: string;
+  chatModelOptions: string[];
+  onChatRuntimeChange(runtime: "codex-local" | "opencode"): void;
+  onChatModelChange(model: string): void;
+  pendingUserMessage: LiveChatMessage | null;
+  streamingAssistantMessage: LiveChatMessage | null;
   onSend(message: string): Promise<void>;
 }
 
-export function StrategistPane({ conversation, hasDelegatedWork, onSend }: StrategistPaneProps) {
+export function StrategistPane({
+  conversation,
+  hasDelegatedWork,
+  chatSending,
+  chatRuntime,
+  chatModel,
+  chatModelOptions,
+  onChatRuntimeChange,
+  onChatModelChange,
+  pendingUserMessage,
+  streamingAssistantMessage,
+  onSend
+}: StrategistPaneProps) {
   const [message, setMessage] = useState("");
-  const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const suggestions = [
     "How is the system looking?",
     "I want to fix the orchestrator UI flow."
   ];
+  const conversationMessageIds = new Set(conversation.messages.map((messageItem) => messageItem.id));
+  const messages = [...conversation.messages.slice(-8)];
+  if (pendingUserMessage && !conversationMessageIds.has(pendingUserMessage.id)) {
+    messages.push({
+      id: pendingUserMessage.id,
+      role: "user" as const,
+      content: pendingUserMessage.content,
+      createdAt: new Date().toISOString()
+    });
+  }
+  if (streamingAssistantMessage) {
+    messages.push({
+      id: streamingAssistantMessage.id,
+      role: "assistant" as const,
+      content: streamingAssistantMessage.content || "Codex is thinking…",
+      createdAt: new Date().toISOString()
+    });
+  }
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!message.trim()) {
       return;
     }
-    setSending(true);
     setError(null);
     try {
       await onSend(message.trim());
       setMessage("");
     } catch (nextError) {
       setError((nextError as Error).message);
-    } finally {
-      setSending(false);
     }
   };
 
+  const handleComposerKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== "Enter" || event.shiftKey) {
+      return;
+    }
+    event.preventDefault();
+    if (!message.trim() || chatSending) {
+      return;
+    }
+    void submit(event as unknown as FormEvent);
+  };
+
   const sendSuggestion = async (prompt: string) => {
-    setSending(true);
     setError(null);
     try {
       setMessage(prompt);
@@ -42,8 +92,6 @@ export function StrategistPane({ conversation, hasDelegatedWork, onSend }: Strat
       setMessage("");
     } catch (nextError) {
       setError((nextError as Error).message);
-    } finally {
-      setSending(false);
     }
   };
 
@@ -69,7 +117,7 @@ export function StrategistPane({ conversation, hasDelegatedWork, onSend }: Strat
             key={suggestion}
             type="button"
             className="prompt-chip"
-            disabled={sending}
+            disabled={chatSending}
             onClick={() => {
               void sendSuggestion(suggestion);
             }}
@@ -78,9 +126,41 @@ export function StrategistPane({ conversation, hasDelegatedWork, onSend }: Strat
           </button>
         ))}
       </div>
+      <div className="chat-runtime-bar">
+        <label className="field compact-field">
+          <span>Chat runtime</span>
+          <select
+            value={chatRuntime}
+            disabled={chatSending}
+            onChange={(event) => onChatRuntimeChange(event.target.value as "codex-local" | "opencode")}
+          >
+            <option value="opencode">opencode</option>
+            <option value="codex-local">codex-local</option>
+          </select>
+        </label>
+        <label className="field compact-field">
+          <span>Provider / model</span>
+          <select
+            value={chatModel}
+            disabled={chatSending || chatModelOptions.length === 0}
+            onChange={(event) => onChatModelChange(event.target.value)}
+          >
+            {chatModelOptions.map((modelOption) => (
+              <option key={modelOption} value={modelOption}>
+                {modelOption}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
       <div className="message-stack clean-chat-stack">
-        {conversation.messages.slice(-8).map((messageItem) => (
-          <article key={messageItem.id} className={`message ${messageItem.role}`}>
+        {messages.map((messageItem) => (
+          <article
+            key={messageItem.id}
+            className={`message ${messageItem.role} ${
+              streamingAssistantMessage?.id === messageItem.id && streamingAssistantMessage.pending ? "streaming" : ""
+            }`}
+          >
             <span>{messageItem.role === "assistant" ? "GPT" : messageItem.role}</span>
             <p>{messageItem.content}</p>
           </article>
@@ -91,12 +171,13 @@ export function StrategistPane({ conversation, hasDelegatedWork, onSend }: Strat
         <textarea
           value={message}
           onChange={(event) => setMessage(event.target.value)}
+          onKeyDown={handleComposerKeyDown}
           placeholder="Ask a question, describe a goal, or tell GPT what you want done."
           rows={5}
         />
         <div className="composer-footer">
-          <button type="submit" disabled={sending}>
-            {sending ? "Thinking..." : "Send"}
+          <button type="submit" disabled={chatSending}>
+            {chatSending ? "Codex is working..." : "Send"}
           </button>
         </div>
       </form>

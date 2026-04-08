@@ -6,6 +6,8 @@ import { OrchestratorService } from "../src/server/services/orchestrator";
 async function main() {
   const repoRoot = path.resolve(__dirname, "..", "..");
   const dataDir = path.join(repoRoot, "agent-orchestrator", ".tmp", "smoke-data");
+  const previousRuntime = process.env.STRATEGIST_CHAT_RUNTIME;
+  process.env.STRATEGIST_CHAT_RUNTIME = "";
   fs.rmSync(dataDir, { recursive: true, force: true });
   fs.mkdirSync(dataDir, { recursive: true });
 
@@ -22,10 +24,26 @@ async function main() {
       throw new Error("Expected seeded strategist readiness message.");
     }
 
-    const response = await service.strategistChat("Plan a new verification-focused task graph for the orchestrator.");
+    const response = await service.startStrategistRun("Plan a new verification-focused task graph for the orchestrator.");
     if (!response.createdTaskIds.length) {
       throw new Error("Expected strategist to create delegated tasks.");
     }
+
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        unsubscribe();
+        reject(new Error("Timed out waiting for strategist stream completion."));
+      }, 30000);
+      let unsubscribe = () => undefined;
+      unsubscribe = service.subscribeStrategistRun(response.runId, {
+        onEntry: () => undefined,
+        onEnd: () => {
+          clearTimeout(timer);
+          unsubscribe();
+          resolve();
+        }
+      });
+    });
 
     const board = await service.getBoardState();
     if (board.tasks.length < 4) {
@@ -47,6 +65,11 @@ async function main() {
       })
     );
   } finally {
+    if (previousRuntime === undefined) {
+      delete process.env.STRATEGIST_CHAT_RUNTIME;
+    } else {
+      process.env.STRATEGIST_CHAT_RUNTIME = previousRuntime;
+    }
     await service.dispose();
   }
 }

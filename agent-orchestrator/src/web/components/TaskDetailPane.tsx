@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { EventRecord, TaskDetailPayload } from "../../shared/types";
+import type { EventRecord, ProviderCapabilitySnapshot, TaskDetailPayload } from "../../shared/types";
 
 type DetailTab = "progress" | "review" | "route";
 
@@ -7,12 +7,12 @@ interface TaskDetailPaneProps {
   detail: TaskDetailPayload | null;
   loadingTaskId: string | null;
   actionPending: boolean;
-  runtimes: string[];
+  capabilities: ProviderCapabilitySnapshot[];
   onRetry(taskId: string): Promise<void>;
   onApprove(taskId: string): Promise<void>;
   onReject(taskId: string): Promise<void>;
   onReopen(taskId: string): Promise<void>;
-  onReassign(taskId: string, runtime: string): Promise<boolean>;
+  onReassign(taskId: string, runtime: string, model?: string | null): Promise<boolean>;
   onSelectTask(taskId: string): Promise<void>;
 }
 
@@ -20,7 +20,7 @@ export function TaskDetailPane({
   detail,
   loadingTaskId,
   actionPending,
-  runtimes,
+  capabilities,
   onRetry,
   onApprove,
   onReject,
@@ -29,6 +29,7 @@ export function TaskDetailPane({
   onSelectTask
 }: TaskDetailPaneProps) {
   const [runtimeSelection, setRuntimeSelection] = useState("");
+  const [modelSelection, setModelSelection] = useState("");
   const [activeTab, setActiveTab] = useState<DetailTab>("progress");
   const latestRun = detail?.runs[detail.runs.length - 1] ?? null;
   const latestJanitor = detail?.janitorResults[detail.janitorResults.length - 1] ?? null;
@@ -41,8 +42,12 @@ export function TaskDetailPane({
 
   useEffect(() => {
     setRuntimeSelection("");
+    setModelSelection("");
     setActiveTab(detail?.task.status === "review" || detail?.task.status === "done" ? "review" : "progress");
   }, [detail?.task.id, detail?.task.status]);
+
+  const runtimeOptions = capabilities.map((capability) => capability.runtime);
+  const selectedCapability = capabilities.find((capability) => capability.runtime === runtimeSelection) ?? null;
 
   const staleWhileLoading = Boolean(loadingTaskId && loadingTaskId !== detail?.task.id);
 
@@ -290,9 +295,24 @@ export function TaskDetailPane({
                   onChange={(event) => setRuntimeSelection(event.target.value)}
                 >
                   <option value="">Choose runtime</option>
-                  {runtimes.map((runtime) => (
+                  {runtimeOptions.map((runtime) => (
                     <option key={runtime} value={runtime}>
                       {runtime}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>Provider / model</span>
+                <select
+                  value={modelSelection}
+                  disabled={!runtimeSelection || actionDisabled}
+                  onChange={(event) => setModelSelection(event.target.value)}
+                >
+                  <option value="">Use router default</option>
+                  {selectedCapability?.models.map((model) => (
+                    <option key={model} value={model}>
+                      {model}
                     </option>
                   ))}
                 </select>
@@ -304,9 +324,10 @@ export function TaskDetailPane({
                   if (!runtimeSelection) {
                     return;
                   }
-                  const succeeded = await onReassign(task.id, runtimeSelection);
+                  const succeeded = await onReassign(task.id, runtimeSelection, modelSelection || null);
                   if (succeeded) {
                     setRuntimeSelection("");
+                    setModelSelection("");
                   }
                 }}
               >

@@ -15,6 +15,8 @@ export function App() {
   const [activeView, setActiveView] = useState<WorkspaceView>("overview");
   const delegatedTasks = state.board?.tasks.filter((task) => task.role !== "strategist" && task.taskType !== "planning") ?? [];
   const hasDelegatedWork = delegatedTasks.length > 0;
+  const chatModelOptions =
+    state.board?.capabilities.find((capability) => capability.runtime === state.chatRuntime)?.models ?? [];
 
   if (state.loading) {
     return <main className="app-shell loading">Loading orchestrator…</main>;
@@ -57,6 +59,14 @@ export function App() {
             <StrategistPane
               conversation={state.board.conversation}
               hasDelegatedWork={hasDelegatedWork}
+              chatSending={state.chatSending}
+              chatRuntime={state.chatRuntime}
+              chatModel={state.chatModel}
+              chatModelOptions={chatModelOptions}
+              onChatRuntimeChange={state.setChatRuntime}
+              onChatModelChange={state.setChatModel}
+              pendingUserMessage={state.pendingUserMessage}
+              streamingAssistantMessage={state.streamingAssistantMessage}
               onSend={async (message) => {
                 await state.sendChat(message);
                 setActiveView("overview");
@@ -114,7 +124,7 @@ export function App() {
               detail={state.detail}
               loadingTaskId={state.detailLoadingTaskId}
               actionPending={state.isTaskActionPending(state.detail?.task.id ?? null)}
-              runtimes={state.board.capabilities.map((capability) => capability.runtime)}
+              capabilities={state.board.capabilities}
               onRetry={(taskId) => state.action(taskId, "retry")}
               onApprove={(taskId) => state.action(taskId, "approve")}
               onReject={(taskId) => state.action(taskId, "reject")}

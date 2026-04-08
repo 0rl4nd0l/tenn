@@ -45,6 +45,9 @@ export class StrategistLlmResponder {
 
 function pickStrategistRuntime(capabilities: ProviderCapabilitySnapshot[]): StrategistRuntime | null {
   const preferred = (process.env.STRATEGIST_CHAT_RUNTIME?.trim() ?? "") as StrategistRuntime | "";
+  if (!preferred) {
+    return null;
+  }
   const ordered: StrategistRuntime[] = preferred
     ? [preferred, "claude", "gemini", "codex-local"]
     : ["claude", "gemini", "codex-local"];

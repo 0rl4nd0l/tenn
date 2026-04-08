@@ -400,6 +400,18 @@ button:disabled {
   cursor: pointer;
 }
 
+.chat-runtime-bar {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 12px;
+}
+
+.compact-field span {
+  display: block;
+  margin-bottom: 6px;
+}
+
 .message-stack {
   display: grid;
   gap: 12px;
@@ -452,6 +464,11 @@ button:disabled {
 .message.assistant {
   background: rgba(255, 255, 255, 0.03);
   max-width: min(88%, 820px);
+}
+
+.message.streaming {
+  border-color: rgba(120, 168, 255, 0.28);
+  box-shadow: 0 0 0 1px rgba(120, 168, 255, 0.08);
 }
 
 .message.system {
