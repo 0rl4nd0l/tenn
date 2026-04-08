@@ -105,6 +105,22 @@ Requests are classified by heuristic pattern matching into task types (`coding`,
 - Hybrid retrieval: `hybrid_retriever.py` (dense + optional reranking via `reranker.py`)
 - Query entrypoint: `POST /api/chat` → `tenn_chat.py` → `retrieval_orchestrator.py`
 
+### Chat Learning Loop
+
+The `/chat` endpoint includes a learning loop that improves quality over time:
+
+- **Fast path (deterministic):** Computes composite quality metric (retrieval precision + model confidence + session coherence) → updates `chat_preferences.json` with learned retrieval params and router role preferences
+- **Slow path (periodic LLM review):** Reviews session transcripts → patches skill files (`chat_skill.md`, `tenn-learned.md`)
+- **Rule 0 integration:** Both `retrieval_orchestrator.py` and `router_optimizer.py` check `chat_preferences.json` at startup and apply learned preferences when available
+- **Rollback protection:** Snapshot mechanism (`.prev` files) for regression guard
+
+Quality metric components:
+- **Retrieval precision (0.4 weight):** avg `final_score` from retrieved chunks
+- **Model confidence (0.35 weight):** router optimizer confidence score
+- **Session coherence (0.25 weight):** `1 - cosine_similarity(current_query, prev_query)` — detects user rephrasing
+
+See [docs/architecture/20_chat_learning_loop.md](../docs/architecture/20_chat_learning_loop.md) for full design.
+
 ### Key Services
 
 | File | Role |
@@ -118,9 +134,15 @@ Requests are classified by heuristic pattern matching into task types (`coding`,
 | `backend/app/services/llm.py` | `embed_texts`, `generate_json`, `get_routing_decision` — all LLM calls go through here |
 | `backend/app/services/extraction.py` | `build_prompt` for financial JSON extraction; clips to first 18,000 chars |
 | `backend/app/services/router.py` | Task-type classifier + adaptive model selector |
+| `backend/app/services/router_optimizer.py` | Adaptive model routing with learned role preferences (Rule 0) |
+| `backend/app/services/retrieval_orchestrator.py` | Multi-source retrieval coordinator with learned params (Rule 0) |
+| `backend/app/services/chat_preferences.py` | Chat learning loop: atomic preference I/O, snapshot/rollback |
+| `backend/app/services/chat_quality_scorer.py` | Chat learning loop: composite quality metric computation |
+| `backend/app/services/chat_preference_updater.py` | Chat learning loop: quality turns → preferences with min sample thresholds |
+| `backend/app/services/chat_skill_reviewer.py` | Chat learning loop: LLM-driven skill patching (slow path) |
 | `backend/app/services/analysis_rag_adapter.py` | Thin adapter: embed query → Qdrant search → normalized hits for analysis modules |
 | `backend/app/api/routes.py` | Backfill, docs, financials, ingest endpoints |
-| `backend/app/routes/chat.py` | `/chat` endpoint |
+| `backend/app/routes/chat.py` | `/chat` endpoint with quality scoring integration |
 
 ### DB Models (Postgres/SQLite via SQLAlchemy)
 
