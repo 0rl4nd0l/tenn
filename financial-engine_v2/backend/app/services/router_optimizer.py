@@ -1,14 +1,20 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from app.core.config import settings
 from app.services import router_metrics
+from app.services.chat_preferences import load_preferences
 from app.services.router_state import RouterState
 
+logger = logging.getLogger(__name__)
+
+
+_CHAT_PREFERENCES_PATH = Path(__file__).parent / "chat_preferences.json"
 
 HIGH_COMPLEXITY_KEYWORDS = (
     "compare",
@@ -58,10 +64,14 @@ def _load_snapshot_baseline() -> dict[str, dict[str, Any]]:
         return {
             model_name: {
                 "avg_latency_seconds": float(metrics.get("avg_latency_seconds", 0.0)),
-                "avg_tokens_per_second": float(metrics.get("avg_tokens_per_second", 0.0)),
+                "avg_tokens_per_second": float(
+                    metrics.get("avg_tokens_per_second", 0.0)
+                ),
                 "error_rate": float(metrics.get("error_rate", 0.0)),
                 "timeout_rate": float(metrics.get("timeout_rate", 0.0)),
-                "sample_size": float(metrics.get("sample_size", metrics.get("sample_count", 0.0))),
+                "sample_size": float(
+                    metrics.get("sample_size", metrics.get("sample_count", 0.0))
+                ),
             }
             for model_name, metrics in router_metrics.load_metrics_snapshot().items()
             if isinstance(model_name, str) and isinstance(metrics, dict)
@@ -75,11 +85,17 @@ def _load_snapshot_task_baseline() -> dict[str, dict[str, dict[str, Any]]]:
         return {
             model_name: {
                 task_name: {
-                    "avg_latency_seconds": float(metrics.get("avg_latency_seconds", 0.0)),
-                    "avg_tokens_per_second": float(metrics.get("avg_tokens_per_second", 0.0)),
+                    "avg_latency_seconds": float(
+                        metrics.get("avg_latency_seconds", 0.0)
+                    ),
+                    "avg_tokens_per_second": float(
+                        metrics.get("avg_tokens_per_second", 0.0)
+                    ),
                     "error_rate": float(metrics.get("error_rate", 0.0)),
                     "timeout_rate": float(metrics.get("timeout_rate", 0.0)),
-                    "sample_size": float(metrics.get("sample_size", metrics.get("sample_count", 0.0))),
+                    "sample_size": float(
+                        metrics.get("sample_size", metrics.get("sample_count", 0.0))
+                    ),
                 }
                 for task_name, metrics in task_map.items()
                 if isinstance(task_name, str) and isinstance(metrics, dict)
@@ -107,7 +123,11 @@ class OptimalModelDecision:
 
 
 def _benchmark_report_path() -> Path:
-    path = Path(getattr(settings, "data_root", "/data")) / "reports" / "model_benchmark.json"
+    path = (
+        Path(getattr(settings, "data_root", "/data"))
+        / "reports"
+        / "model_benchmark.json"
+    )
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
     except OSError:
@@ -169,7 +189,11 @@ def _metadata_int(metadata: dict[str, Any] | None, key: str, default: int = 0) -
 
 def detect_complexity(prompt: str, metadata: dict[str, Any] | None = None) -> str:
     payload = dict(metadata or {})
-    explicit = str(payload.get("complexity") or payload.get("semantic_complexity") or "").strip().lower()
+    explicit = (
+        str(payload.get("complexity") or payload.get("semantic_complexity") or "")
+        .strip()
+        .lower()
+    )
     if explicit in {"low", "medium", "high"}:
         return explicit
     if payload.get("deep_reasoning") is True:
@@ -187,7 +211,10 @@ def detect_complexity(prompt: str, metadata: dict[str, Any] | None = None) -> st
     if any(keyword in haystack for keyword in HIGH_COMPLEXITY_KEYWORDS):
         return "high"
 
-    if _metadata_int(metadata, "document_count", default=1) > 1 and "filing" in haystack:
+    if (
+        _metadata_int(metadata, "document_count", default=1) > 1
+        and "filing" in haystack
+    ):
         return "high"
 
     word_count = len(prompt_text.split())
@@ -202,7 +229,9 @@ def detect_complexity(prompt: str, metadata: dict[str, Any] | None = None) -> st
     return "medium"
 
 
-def _normalized_metric(value: float | int | None, *, neutral: float, scale: float) -> float:
+def _normalized_metric(
+    value: float | int | None, *, neutral: float, scale: float
+) -> float:
     if value is None:
         return neutral
     numeric = max(float(value), 0.0)
@@ -212,7 +241,13 @@ def _normalized_metric(value: float | int | None, *, neutral: float, scale: floa
 
 
 def _normalize_financial_task_type(metadata: dict[str, Any] | None) -> str | None:
-    financial = str((metadata or {}).get("financial_task_type") or "").strip().lower().replace("-", "_").replace(" ", "_")
+    financial = (
+        str((metadata or {}).get("financial_task_type") or "")
+        .strip()
+        .lower()
+        .replace("-", "_")
+        .replace(" ", "_")
+    )
     if financial in {
         "earnings_analysis",
         "guidance_analysis",
@@ -241,13 +276,13 @@ def _looks_multi_company(prompt: str, metadata: dict[str, Any] | None) -> bool:
     return False
 
 
-def _should_use_rag_deep_model(prompt: str, metadata: dict[str, Any] | None, config: dict[str, Any]) -> bool:
+def _should_use_rag_deep_model(
+    prompt: str, metadata: dict[str, Any] | None, config: dict[str, Any]
+) -> bool:
     haystack = str(prompt or "").lower()
     context_chars = _metadata_int(metadata, "retrieved_context_chars", default=0)
     document_count = _metadata_int(metadata, "document_count", default=0)
-    if context_chars >= int(
-        config.get("financial_rag_deep_context_chars", 5000)
-    ):
+    if context_chars >= int(config.get("financial_rag_deep_context_chars", 5000)):
         return True
     if document_count >= 3:
         return True
@@ -275,6 +310,22 @@ def _preferred_role_name(
     complexity: str,
     config: dict[str, Any],
 ) -> str:
+    # Rule 0: Check learned router preferences from chat learning loop
+    if financial_task_type:
+        prefs = load_preferences(_CHAT_PREFERENCES_PATH)
+        if prefs is not None:
+            router_prefs = prefs.get("router_preferences", {})
+            task_pref = router_prefs.get(financial_task_type)
+            if task_pref is not None:
+                learned_role = task_pref.get("preferred_role")
+                if learned_role in {"router", "reasoning", "deep_reasoning"}:
+                    logger.info(
+                        "router_optimizer: applying learned preferred_role=%s for financial_task_type=%s from chat_preferences",
+                        learned_role,
+                        financial_task_type,
+                    )
+                    return learned_role
+
     prompt_haystack = str(prompt or "").lower()
 
     if task_type in {"embedding", "router", "coding"}:
@@ -283,7 +334,10 @@ def _preferred_role_name(
         return "deep_reasoning"
 
     if financial_task_type == "filing_summary":
-        if prompt_length <= int(config.get("financial_short_summary_chars", 400)) and complexity != "high":
+        if (
+            prompt_length <= int(config.get("financial_short_summary_chars", 400))
+            and complexity != "high"
+        ):
             return "router"
         if prompt_length > int(config.get("financial_deep_analysis_chars", 2500)):
             return "deep_reasoning"
@@ -299,7 +353,10 @@ def _preferred_role_name(
     if financial_task_type == "peer_comparison":
         if _looks_multi_company(prompt, metadata):
             return "deep_reasoning"
-        if prompt_length >= int(config.get("financial_peer_compare_chars", 1800)) or complexity == "high":
+        if (
+            prompt_length >= int(config.get("financial_peer_compare_chars", 1800))
+            or complexity == "high"
+        ):
             return "deep_reasoning"
         return "reasoning"
 
@@ -311,31 +368,53 @@ def _preferred_role_name(
         return "reasoning"
 
     if financial_task_type == "earnings_analysis":
-        if prompt_length > int(config.get("financial_deep_analysis_chars", 2500)) or any(
-            token in prompt_haystack for token in ("multi-period", "multi period", "multi-step", "multi step")
+        if prompt_length > int(
+            config.get("financial_deep_analysis_chars", 2500)
+        ) or any(
+            token in prompt_haystack
+            for token in ("multi-period", "multi period", "multi-step", "multi step")
         ):
             return "deep_reasoning"
         return "reasoning"
 
     if financial_task_type == "guidance_analysis":
-        if prompt_length > int(config.get("financial_deep_analysis_chars", 2500)) or any(
+        if prompt_length > int(
+            config.get("financial_deep_analysis_chars", 2500)
+        ) or any(
             token in prompt_haystack
-            for token in ("cross-period", "cross period", "multiple filings", "multi-document", "multi document")
+            for token in (
+                "cross-period",
+                "cross period",
+                "multiple filings",
+                "multi-document",
+                "multi document",
+            )
         ):
             return "deep_reasoning"
         return "reasoning"
 
     if financial_task_type == "capital_allocation":
-        if prompt_length > int(config.get("financial_deep_analysis_chars", 2500)) or any(
+        if prompt_length > int(
+            config.get("financial_deep_analysis_chars", 2500)
+        ) or any(
             token in prompt_haystack
-            for token in ("tradeoff", "tradeoffs", "board-level", "board level", "compare capital allocation paths")
+            for token in (
+                "tradeoff",
+                "tradeoffs",
+                "board-level",
+                "board level",
+                "compare capital allocation paths",
+            )
         ):
             return "deep_reasoning"
         return "reasoning"
 
     if financial_task_type == "balance_sheet_risk":
-        if prompt_length > int(config.get("financial_deep_analysis_chars", 2500)) or any(
-            token in prompt_haystack for token in ("debt stack", "refinancing", "covenant")
+        if prompt_length > int(
+            config.get("financial_deep_analysis_chars", 2500)
+        ) or any(
+            token in prompt_haystack
+            for token in ("debt stack", "refinancing", "covenant")
         ):
             return "deep_reasoning"
         return "reasoning"
@@ -410,7 +489,9 @@ def _resolve_model_summary(
         }
 
     def _has_sufficient_samples(values: dict[str, float]) -> bool:
-        sample_size = float(values.get("sample_size", values.get("sample_count", 0.0)) or 0.0)
+        sample_size = float(
+            values.get("sample_size", values.get("sample_count", 0.0)) or 0.0
+        )
         return sample_size >= MIN_DEGRADATION_SAMPLE_SIZE
 
     global_summary = _to_float_dict(dict((model_summaries or {}).get(model_name) or {}))
@@ -425,11 +506,22 @@ def _resolve_model_summary(
     task_summary_has_evidence = _has_sufficient_samples(task_summary)
     global_summary_has_evidence = _has_sufficient_samples(global_summary)
     if task_summary_has_evidence and global_summary_has_evidence:
-        weight = min(task_summary.get("sample_size", task_summary.get("sample_count", 0.0)), 20.0) / 20.0
+        weight = (
+            min(
+                task_summary.get("sample_size", task_summary.get("sample_count", 0.0)),
+                20.0,
+            )
+            / 20.0
+        )
         combined = {
             key: (global_summary.get(key, 0.0) * (1.0 - weight))
             + (task_summary.get(key, 0.0) * weight)
-            for key in {"avg_latency_seconds", "avg_tokens_per_second", "error_rate", "timeout_rate"}
+            for key in {
+                "avg_latency_seconds",
+                "avg_tokens_per_second",
+                "error_rate",
+                "timeout_rate",
+            }
             if key in global_summary or key in task_summary
         }
         combined["sample_size"] = max(
@@ -489,7 +581,9 @@ def score_model(
 ) -> dict[str, float]:
     summary = dict(metrics or {})
     cfg = dict(config or {})
-    sample_size = float(summary.get("sample_size", summary.get("sample_count", 0.0)) or 0.0)
+    sample_size = float(
+        summary.get("sample_size", summary.get("sample_count", 0.0)) or 0.0
+    )
     use_live_metrics = sample_size >= MIN_DEGRADATION_SAMPLE_SIZE
     latency_weight = float(cfg.get("latency_weight", 0.4))
     throughput_weight = float(cfg.get("throughput_weight", 0.3))
@@ -498,7 +592,9 @@ def score_model(
     gpu_weight = float(cfg.get("gpu_weight", 0.1))
 
     latency_score = 1.0 - _normalized_metric(
-        summary.get("avg_latency_seconds", summary.get("avg_latency")) if use_live_metrics else None,
+        summary.get("avg_latency_seconds", summary.get("avg_latency"))
+        if use_live_metrics
+        else None,
         neutral=0.5,
         scale=20.0,
     )
@@ -518,7 +614,9 @@ def score_model(
         scale=1.0,
     )
 
-    queue_depth = int(state.queue_depths.get(queue_name, 0)) + int(state.active_tasks.get(queue_name, 0))
+    queue_depth = int(state.queue_depths.get(queue_name, 0)) + int(
+        state.active_tasks.get(queue_name, 0)
+    )
     queue_pressure_score = 1.0 - _normalized_metric(
         queue_depth,
         neutral=1.0,
@@ -533,7 +631,9 @@ def score_model(
             scale=max(float(cfg.get("gpu_overload_threshold", 95)), 1.0),
         )
 
-    total_weight = latency_weight + throughput_weight + error_weight + queue_weight + gpu_weight
+    total_weight = (
+        latency_weight + throughput_weight + error_weight + queue_weight + gpu_weight
+    )
     if total_weight <= 0:
         total_weight = 1.0
 
@@ -569,7 +669,9 @@ def score_model(
     }
 
 
-def _candidate_fit_adjustment(role_name: str, preferred_role: str, complexity: str) -> float:
+def _candidate_fit_adjustment(
+    role_name: str, preferred_role: str, complexity: str
+) -> float:
     adjustment = 0.0
     if role_name == preferred_role:
         adjustment += 0.18
@@ -597,7 +699,9 @@ def _performance_degraded(
 ) -> bool:
     if not summary:
         return False
-    sample_size = float(summary.get("sample_size", summary.get("sample_count", 0.0)) or 0.0)
+    sample_size = float(
+        summary.get("sample_size", summary.get("sample_count", 0.0)) or 0.0
+    )
     if sample_size < MIN_DEGRADATION_SAMPLE_SIZE:
         return False
     error_rate = float(summary.get("error_rate") or 0.0)
@@ -638,13 +742,17 @@ def _needs_hard_router_fallback(
     if not preferred_summary:
         return False
     sample_size = float(
-        preferred_summary.get("sample_size", preferred_summary.get("sample_count", 0.0)) or 0.0
+        preferred_summary.get("sample_size", preferred_summary.get("sample_count", 0.0))
+        or 0.0
     )
     if sample_size < MIN_DEGRADATION_SAMPLE_SIZE:
         return False
     if float(preferred_summary.get("error_rate") or 0.0) > HIGH_ERROR_RATE_THRESHOLD:
         return True
-    if float(preferred_summary.get("timeout_rate") or 0.0) > HIGH_TIMEOUT_RATE_THRESHOLD:
+    if (
+        float(preferred_summary.get("timeout_rate") or 0.0)
+        > HIGH_TIMEOUT_RATE_THRESHOLD
+    ):
         return True
     return False
 
@@ -718,7 +826,9 @@ def optimize(
     feedback: dict[str, Any] | None = None,
 ) -> OptimalModelDecision:
     complexity = detect_complexity(prompt, metadata)
-    resolved_financial_task_type = financial_task_type or _normalize_financial_task_type(metadata)
+    resolved_financial_task_type = (
+        financial_task_type or _normalize_financial_task_type(metadata)
+    )
     preferred_role = _preferred_role_name(
         task_type,
         resolved_financial_task_type,
@@ -732,7 +842,9 @@ def optimize(
     resolved_feedback = _normalize_feedback(feedback)
     feedback_mode = str(resolved_feedback.get("mode") or "no_op")
     feedback_penalty = float(resolved_feedback.get("penalty") or 0.0)
-    role_names = _candidate_role_names(task_type, preferred_role, resolved_financial_task_type)
+    role_names = _candidate_role_names(
+        task_type, preferred_role, resolved_financial_task_type
+    )
     primary = _build_candidate(preferred_role, preferred_role, roles)
 
     gpu_hot = (
@@ -808,7 +920,8 @@ def optimize(
             base_url=fallback["base_url"],
             queue=fallback["queue"],
             confidence=0.8,
-            deferred=preferred_role == "deep_reasoning" and fallback["role_name"] != "router",
+            deferred=preferred_role == "deep_reasoning"
+            and fallback["role_name"] != "router",
         )
 
     feedback_fallback = None
@@ -826,7 +939,8 @@ def optimize(
                 base_url=feedback_fallback["base_url"],
                 queue=feedback_fallback["queue"],
                 confidence=min(0.7 + feedback_penalty, 0.9),
-                deferred=preferred_role == "deep_reasoning" and feedback_fallback["role_name"] != "router",
+                deferred=preferred_role == "deep_reasoning"
+                and feedback_fallback["role_name"] != "router",
             )
 
     if len(role_names) == 1:
@@ -840,7 +954,9 @@ def optimize(
             deferred=preferred_role == "deep_reasoning",
         )
 
-    candidates = [_build_candidate(role_name, preferred_role, roles) for role_name in role_names]
+    candidates = [
+        _build_candidate(role_name, preferred_role, roles) for role_name in role_names
+    ]
     scored: list[tuple[float, dict[str, Any]]] = []
     for candidate in candidates:
         summary = _resolve_model_summary(
@@ -861,7 +977,9 @@ def optimize(
             config=config,
         )
         score = component_scores["final_score"]
-        score += _candidate_fit_adjustment(candidate["role_name"], preferred_role, complexity)
+        score += _candidate_fit_adjustment(
+            candidate["role_name"], preferred_role, complexity
+        )
 
         benchmark = dict(benchmark_metrics.get(candidate["model_name"]) or {})
         if _performance_degraded(summary, benchmark):
@@ -870,12 +988,18 @@ def optimize(
             score -= 0.08
         if candidate["role_name"] == "router" and complexity == "high":
             score -= 0.05
-        if feedback_mode == "degrade_model" and candidate["role_name"] == preferred_role:
+        if (
+            feedback_mode == "degrade_model"
+            and candidate["role_name"] == preferred_role
+        ):
             score *= max(0.0, 1.0 - feedback_penalty)
         elif feedback_mode == "prefer_fallback" and feedback_fallback is not None:
             if candidate["role_name"] == feedback_fallback["role_name"]:
                 score += feedback_penalty
-            elif candidate["role_name"] == preferred_role and feedback_fallback["role_name"] != preferred_role:
+            elif (
+                candidate["role_name"] == preferred_role
+                and feedback_fallback["role_name"] != preferred_role
+            ):
                 score *= max(0.0, 1.0 - min(feedback_penalty, 0.5))
 
         scored.append((score, candidate))
@@ -892,5 +1016,6 @@ def optimize(
         base_url=top_candidate["base_url"],
         queue=top_candidate["queue"],
         confidence=confidence,
-        deferred=preferred_role == "deep_reasoning" and top_candidate["role_name"] != "router",
+        deferred=preferred_role == "deep_reasoning"
+        and top_candidate["role_name"] != "router",
     )
