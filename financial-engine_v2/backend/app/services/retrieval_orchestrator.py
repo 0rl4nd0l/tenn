@@ -1,15 +1,20 @@
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+from app.services.chat_preferences import load_preferences
 from app.services.commentary_memo_extractor import load_commentary_memos
 from app.services.framework_classifier import FrameworkClassifier
 from app.services.framework_retriever import FrameworkRetriever
 from app.services.hybrid_retriever import HybridRetriever
 from app.services.reranker import RetrievalReranker
 from app.services.source_weighting import apply_weighting_to_chunk
+
+logger = logging.getLogger(__name__)
+_CHAT_PREFERENCES_PATH = Path(__file__).parent / "chat_preferences.json"
 
 
 def _page_range(page_start: int | None, page_end: int | None) -> str | None:
@@ -26,7 +31,9 @@ class RetrievalOrchestrator:
             return []
 
     class _NullFrameworkRetriever:
-        def retrieve(self, framework_families: list[str] | None) -> list[dict[str, Any]]:
+        def retrieve(
+            self, framework_families: list[str] | None
+        ) -> list[dict[str, Any]]:
             return []
 
     class _NullHybridRetriever:
@@ -66,30 +73,48 @@ class RetrievalOrchestrator:
         commentary_memos_path: str | Path | None = None,
     ) -> None:
         self.classifier = classifier or self._build_default_classifier()
-        self.framework_retriever = framework_retriever or self._build_default_framework_retriever()
+        self.framework_retriever = (
+            framework_retriever or self._build_default_framework_retriever()
+        )
         self.hybrid_retriever = hybrid_retriever or HybridRetriever()
         self.reranker = reranker or RetrievalReranker()
         if commentary_retriever is not None:
             self.commentary_retriever = commentary_retriever
-        elif any(dep is not None for dep in (classifier, framework_retriever, hybrid_retriever, reranker)):
+        elif any(
+            dep is not None
+            for dep in (classifier, framework_retriever, hybrid_retriever, reranker)
+        ):
             self.commentary_retriever = self._NullHybridRetriever()
         else:
-            self.commentary_retriever = HybridRetriever(collection_name="commentary_chunks")
+            self.commentary_retriever = HybridRetriever(
+                collection_name="commentary_chunks"
+            )
         if commentary_reranker is not None:
             self.commentary_reranker = commentary_reranker
-        elif commentary_retriever is None and any(dep is not None for dep in (classifier, framework_retriever, hybrid_retriever, reranker)):
+        elif commentary_retriever is None and any(
+            dep is not None
+            for dep in (classifier, framework_retriever, hybrid_retriever, reranker)
+        ):
             self.commentary_reranker = self._NullReranker()
         else:
             self.commentary_reranker = RetrievalReranker()
-        self.commentary_memos_path = Path(commentary_memos_path).expanduser().resolve() if commentary_memos_path else None
+        self.commentary_memos_path = (
+            Path(commentary_memos_path).expanduser().resolve()
+            if commentary_memos_path
+            else None
+        )
 
-    def _build_default_classifier(self) -> FrameworkClassifier | _NullFrameworkClassifier:
+    def _build_default_classifier(
+        self,
+    ) -> FrameworkClassifier | _NullFrameworkClassifier:
         try:
             return FrameworkClassifier()
         except FileNotFoundError:
             return self._NullFrameworkClassifier()
 
-    def _build_default_framework_retriever(self) -> FrameworkRetriever | _NullFrameworkRetriever:
+    def _build_default_framework_retriever(
+        self,
+    ) -> FrameworkRetriever | _NullFrameworkRetriever:
         try:
             return FrameworkRetriever()
         except FileNotFoundError:
@@ -174,7 +199,9 @@ class RetrievalOrchestrator:
         )
         return [apply_weighting_to_chunk(chunk) for chunk in reranked]
 
-    def _load_commentary_memos(self, commentary_chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _load_commentary_memos(
+        self, commentary_chunks: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         if self.commentary_memos_path is None:
             memos = load_commentary_memos()
         else:
@@ -206,6 +233,38 @@ class RetrievalOrchestrator:
         top_k_commentary_vector: int = 12,
         top_k_commentary_keyword: int = 12,
     ) -> dict[str, Any]:
+        # Rule 0: Check learned retrieval preferences from chat learning loop
+        prefs = load_preferences(_CHAT_PREFERENCES_PATH)
+        if prefs is not None:
+            retrieval_prefs = prefs.get("retrieval_preferences", {})
+            # Match task type - for now we use rag_financial_synthesis as the primary type
+            task_pref = retrieval_prefs.get("rag_financial_synthesis")
+            if task_pref is not None:
+                learned_top_k = task_pref.get("top_k")
+                learned_commentary_weight = task_pref.get("commentary_weight")
+                if learned_top_k is not None and isinstance(learned_top_k, int):
+                    top_k_chunks = learned_top_k
+                    logger.info(
+                        "retrieval_orchestrator: applying learned top_k=%d from chat_preferences",
+                        learned_top_k,
+                    )
+                if learned_commentary_weight is not None and isinstance(
+                    learned_commentary_weight, (int, float)
+                ):
+                    # commentary_weight controls the ratio of commentary chunks
+                    # Scale top_k_commentary proportionally to top_k_chunks
+                    # If weight is 0.25, commentary should be ~25% of total chunks
+                    total_target = top_k_chunks / (1 - learned_commentary_weight)
+                    top_k_commentary = max(
+                        1, int(total_target * learned_commentary_weight)
+                    )
+                    logger.info(
+                        "retrieval_orchestrator: applying learned commentary_weight=%.2f, "
+                        "setting top_k_commentary=%d",
+                        learned_commentary_weight,
+                        top_k_commentary,
+                    )
+
         framework_families = self.classifier.classify(query, top_k=top_k_families)
         frameworks = self.framework_retriever.retrieve(framework_families)
         try:
