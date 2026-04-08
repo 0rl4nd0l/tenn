@@ -240,6 +240,18 @@ class AgentLoop:
 
             # --- Direct response ---
             if parsed.type == "response":
+                if self._looks_like_json_non_answer(raw_response, parsed, evidence):
+                    messages.append({"role": "assistant", "content": raw_response})
+                    messages.append({
+                        "role": "user",
+                        "content": (
+                            "Your last message was a raw JSON object, not a final user-facing answer. "
+                            "Do not repeat tool arguments or placeholder JSON. "
+                            "Using the tool results already in context, respond with a JSON object of the form "
+                            '{"type":"response","content":"..."} and write the answer in plain English.'
+                        ),
+                    })
+                    continue
                 final_text = parsed.content or raw_response
                 if on_chunk:
                     self._replay_through_chunks(final_text, on_chunk)
@@ -460,6 +472,48 @@ class AgentLoop:
         except Exception as exc:
             logger.error("Tool %s raised: %s", tool_name, exc, exc_info=True)
             return {"error": f"Tool '{tool_name}' failed: {exc}"}
+
+    @staticmethod
+    def _looks_like_json_non_answer(
+        raw_response: str,
+        parsed: ParsedResponse,
+        evidence: list[dict],
+    ) -> bool:
+        """Detect bare JSON echoes after tool use and force one more synthesis round."""
+        if not evidence:
+            return False
+        if parsed.content not in (None, ""):
+            return False
+
+        text = str(raw_response or "").strip()
+        if not text.startswith("{") or not text.endswith("}"):
+            return False
+
+        try:
+            payload = json.loads(text)
+        except Exception:
+            return False
+
+        if not isinstance(payload, dict):
+            return False
+
+        # Structured protocol objects with an explicit type are handled elsewhere.
+        if "type" in payload or "content" in payload:
+            return False
+
+        # A dict with tool-call-shaped fields but no type/content is almost always
+        # the model echoing arguments instead of synthesizing an answer.
+        toolish_keys = {
+            "tool",
+            "arguments",
+            "query",
+            "ticker",
+            "limit",
+            "start_date",
+            "end_date",
+            "date",
+        }
+        return bool(set(payload.keys()) & toolish_keys)
 
     # ------------------------------------------------------------------
     # Action proposal

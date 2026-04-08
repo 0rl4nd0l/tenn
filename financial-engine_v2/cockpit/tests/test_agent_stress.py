@@ -121,6 +121,31 @@ class TestParallelToolCalls:
         # Final response text preserved
         assert "55B" in result.text
 
+    def test_agent_loop_retries_when_model_echoes_tool_arguments_as_json(self):
+        """A bare JSON echo after tool use should trigger one more synthesis round."""
+        responses = [
+            json.dumps({
+                "type": "tool_call",
+                "tool": "search_news",
+                "arguments": {"query": "BHP", "ticker": "BHP", "limit": 5},
+                "reasoning": "Need recent news",
+            }),
+            json.dumps({"query": "BHP", "ticker": "BHP", "limit": 5}),
+            json.dumps({
+                "type": "response",
+                "content": "Recent BHP news in the corpus is mixed, with coverage focused on operations and commodity outlook.",
+            }),
+        ]
+        llm = _make_llm(responses)
+        executor = _tool_result({"ok": True, "results": [{"headline": "BHP update"}]})
+
+        loop = AgentLoop(llm_client=llm, tool_executor=executor)
+        result = loop.run("what bhp news do u have")
+
+        assert result.text.startswith("Recent BHP news"), result.text
+        assert result.tool_calls_made == 1
+        assert result.iterations_used == 3
+
 
 # ---------------------------------------------------------------------------
 # 3. test_context_window_summarization
