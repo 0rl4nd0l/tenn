@@ -74,6 +74,8 @@ export function ChatScreen() {
     if (!stage) return 'Working...'
     if (stage === 'Request accepted') return 'Connected. Preparing tools and request...'
     if (stage === 'Resolving request context') return 'Preparing tools and retrieval context...'
+    if (stage === 'Assessing information and planning approach...') return 'Assessing what data is available...'
+    if (stage.startsWith('Planning:')) return `Reasoning: ${stage.replace('Planning: ', '')}`
     if (stage.startsWith('LLM reasoning pass')) return `Sending to model: ${stage}`
     if (stage.startsWith('Executing tool:')) return `Preparing tool call: ${stage.replace('Executing tool: ', '')}`
     if (stage === 'Tool execution complete; synthesizing final answer') {
