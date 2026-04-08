@@ -236,6 +236,11 @@ export async function rerunJob(params: {
   return { jobId: params.jobId, status: result.result ? 'triggered' : 'failed' }
 }
 
+/** Financials for a ticker – GET /api/financials?ticker=... */
+export async function fetchFinancials(ticker: string): Promise<unknown[]> {
+  return apiFetch<unknown[]>(`/api/financials?ticker=${encodeURIComponent(ticker)}`)
+}
+
 /** Documents list – GET /api/cockpit/docs */
 export async function listDocuments(): Promise<unknown[]> {
   return apiFetch<unknown[]>("/api/cockpit/docs")

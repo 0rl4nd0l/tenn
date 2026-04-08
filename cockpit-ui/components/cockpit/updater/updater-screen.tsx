@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { RefreshCw, Download, FileText, CheckCircle2, AlertCircle } from 'lucide-react'
 import { FinancialData } from '@/lib/cockpit-types'
+import { executeAction, fetchFinancials } from '@/lib/api-client'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import { useEffect } from 'react'
@@ -58,45 +59,30 @@ export function UpdaterScreen() {
     }, 500)
 
     try {
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || ''
       const normalizedTicker = ticker.trim().toUpperCase()
 
-      // 1. Trigger backfill
-      const backfillRes = await fetch(`/api/backfill/ticker/${normalizedTicker}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': apiKey,
-        },
-        body: JSON.stringify({
+      // 1. Trigger backfill via the cockpit action registry
+      //    Uses POST /api/cockpit/action/execute with action_id
+      //    "single_ticker_announcement_backfill", which runs the full
+      //    headed-browser ticker sync script with correct args.
+      await executeAction({
+        actionId: 'single_ticker_announcement_backfill',
+        args: {
+          ticker: normalizedTicker,
           years: parseInt(yearRange, 10),
           process_documents: processDocuments,
-        }),
+        },
       })
-
-      if (!backfillRes.ok) {
-        const body = await backfillRes.text()
-        throw new Error(`Backfill failed (${backfillRes.status}): ${body}`)
-      }
 
       setProgress(70)
 
-      // 2. Fetch financial results
-      const financialsRes = await fetch(`/api/financials?ticker=${normalizedTicker}`)
-
-      if (!financialsRes.ok) {
-        throw new Error(`Failed to fetch financials (${financialsRes.status})`)
-      }
-
-      const financialsData = await financialsRes.json()
+      // 2. Fetch financial results via GET /api/financials?ticker=...
+      const financialsData = await fetchFinancials(normalizedTicker)
       setProgress(100)
 
       // Map API response to FinancialData shape
-      const items: unknown[] = Array.isArray(financialsData)
-        ? financialsData
-        : financialsData.data ?? financialsData.results ?? []
-
-      const mapped: FinancialData[] = (items as Record<string, unknown>[]).map((item) => ({
+      // GET /api/financials returns a flat JSON array of financial rows
+      const mapped: FinancialData[] = (financialsData as Record<string, unknown>[]).map((item) => ({
         ticker: (item.ticker as string) || normalizedTicker,
         date: new Date((item.date as string) || (item.period_end as string) || ''),
         revenue: item.revenue as number | undefined,

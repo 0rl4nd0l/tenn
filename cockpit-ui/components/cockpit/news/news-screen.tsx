@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Search, Newspaper, ChevronDown, ChevronUp, Database, ExternalLink, Calendar } from 'lucide-react'
 import { useCockpitStore } from '@/lib/cockpit-store'
-import type { RagResult } from '@/lib/cockpit-types'
 import type { NewsSearchResult } from '@/lib/cockpit-types'
 import { cn } from '@/lib/utils'
 import { Field, FieldLabel } from '@/components/ui/field'
@@ -119,16 +118,29 @@ export function NewsScreen() {
     }
   }, [activeTicker])
 
-  function mapRagToNews(ragResults: RagResult[]): NewsSearchResult[] {
-    return ragResults.map((r, i) => ({
-      id: `rag-${i}-${Date.now()}`,
-      headline: r.title || r.snippet.split('\n')[0].slice(0, 120),
-      source: (r.metadata?.source as string) || 'RAG',
-      date: r.metadata?.date ? new Date(r.metadata.date as string) : new Date(),
-      relevanceScore: r.score,
-      ticker: r.metadata?.ticker as string | undefined,
-      content: r.snippet,
-      url: r.metadata?.url as string | undefined,
+  interface NewsChunkHit {
+    score: number
+    payload: {
+      title?: string
+      text?: string
+      url?: string
+      ticker?: string
+      provider?: string
+      published_at?: string
+      chunk_id?: string
+    }
+  }
+
+  function mapHitsToNews(hits: NewsChunkHit[]): NewsSearchResult[] {
+    return hits.map((h, i) => ({
+      id: h.payload.chunk_id || `news-${i}-${Date.now()}`,
+      headline: h.payload.title || (h.payload.text || '').split('\n')[0].slice(0, 120),
+      source: h.payload.provider || 'news',
+      date: h.payload.published_at ? new Date(h.payload.published_at) : new Date(),
+      relevanceScore: h.score,
+      ticker: h.payload.ticker || undefined,
+      content: h.payload.text || undefined,
+      url: h.payload.url || undefined,
     }))
   }
 
@@ -148,9 +160,9 @@ export function NewsScreen() {
         },
         body: JSON.stringify({
           query: query.trim(),
-          collection: 'commentary_chunks',
+          source: 'news',
+          ticker: ticker || undefined,
           top_k: 20,
-          session_id: sessionId,
         }),
       })
 
@@ -159,13 +171,8 @@ export function NewsScreen() {
         throw new Error(`${res.status} ${res.statusText}: ${body}`)
       }
 
-      const ragResults: RagResult[] = await res.json()
-
-      let mapped = mapRagToNews(ragResults)
-
-      if (ticker) {
-        mapped = mapped.filter(r => r.ticker?.toLowerCase() === ticker.toLowerCase())
-      }
+      const data: { results: NewsChunkHit[] } = await res.json()
+      const mapped = mapHitsToNews(data.results || [])
 
       setResults(mapped)
       setSearchBackend('qdrant')
