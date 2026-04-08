@@ -258,20 +258,19 @@ Input:
 
 ---
 
-## 5.3 Current Exception (TRANSITIONAL)
+## 5.3 Legacy Exception (REMOVED)
 
-The following exists temporarily:
+The former transitional route has been removed:
 
 ```
-GET /api/rag/query → news_chunks
+GET /api/rag/query
 ```
 
 Rules:
 
-* MUST remain read-only
-* MUST be marked deprecated
-* MUST NOT be expanded
-* MUST be removed after migration
+* MUST NOT be reintroduced
+* All retrieval callers MUST use `POST /rag/query`
+* News retrieval MUST use `POST /rag/query` with `source="news"`
 
 ---
 

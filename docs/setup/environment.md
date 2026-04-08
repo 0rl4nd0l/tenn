@@ -10,7 +10,7 @@ The active runtime is `financial-engine_v2`. The canonical env file lives at `fi
 | `QDRANT_URL` | `http://127.0.0.1:6333` | Qdrant vector store endpoint. |
 | `OLLAMA_URL` | `http://127.0.0.1:11434` | Ollama API base URL. |
 | `LLAMACPP_URL` | `http://127.0.0.1:8001` | llama.cpp endpoint for chat, coding, and routing. |
-| `EXTRACTION_BACKEND` | `pymupdf` | PDF structure extraction backend. `pymupdf` (default): fast PyMuPDF `find_tables()`, ~1-25s, no ML models. `docling`: IBM docling with TableFormer, 120s+, for complex/scanned PDFs. |
+| `EXTRACTION_BACKEND` | `docling` | PDF structure extraction backend. `docling` (default): higher-fidelity table extraction for the multipass pipeline. `pymupdf`: fast fallback/override via `EXTRACTION_BACKEND=pymupdf` when speed is preferred. |
 | `EXTRACTION_LLAMACPP_URL` | _(falls back to `LLAMACPP_URL`)_ | Dedicated llama.cpp endpoint for PDF extraction. When set, multipass extraction and commentary extraction use this instead of `LLAMACPP_URL`. Allows running an instruct model for extraction on a separate GPU/instance from the chat/coding server. |
 | `EXTRACT_MODEL` | `qwen2.5-14b-instruct` | Model name for extraction workloads. In router mode, extraction requests this model by name and the server loads it on demand. Should be an instruct-tuned model for reliable structured JSON output from financial documents. |
 | `LLM_API_KEY` | `local-openai-key` | Used for local OpenAI-compatible auth. |

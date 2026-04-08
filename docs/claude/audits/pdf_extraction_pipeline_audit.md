@@ -105,8 +105,8 @@ extract_structured(pdf_path, backend="") → StructuredDocument
 ```
 
 Backend selection (env `EXTRACTION_BACKEND` or kwarg):
-- `"pymupdf"` (project default) — PyMuPDF `find_tables()`, fast (~1-25s)
-- `"docling"` — IBM Docling with TableFormer, slow (~120s+), opt-in
+- `"docling"` (project default) — IBM Docling with TableFormer
+- `"pymupdf"` — PyMuPDF `find_tables()`, fast (~1-25s), fallback/override
 
 ### 3.3 Execution Flow
 

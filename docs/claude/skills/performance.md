@@ -54,7 +54,7 @@ Source: `docs/architecture/01_system_overview.md`
 - Embedding batch size: default `EMBEDDING_BATCH_SIZE=32`
 - Embeddings use Ollama or local sentence-transformers depending on config
 - Deterministic vector IDs enable upsert without re-embedding; avoid changing ID generation logic
-- PDF extraction defaults to PyMuPDF `find_tables()` (~1-25s, no GPU needed). Docling is opt-in via `EXTRACTION_BACKEND=docling` but typically times out on ASX filings
+- PDF extraction defaults to Docling for the multipass pipeline. PyMuPDF `find_tables()` remains available as a fast override via `EXTRACTION_BACKEND=pymupdf`
 
 ---
 

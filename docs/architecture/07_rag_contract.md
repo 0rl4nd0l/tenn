@@ -15,9 +15,21 @@ Request and response are JSON. No path or query parameters; all inputs are in th
 | Field   | Type   | Required | Description |
 |--------|--------|----------|-------------|
 | `query` | string | yes | Natural-language search query. Must be non-empty after trim. |
+| `source` | `"asx_docs" \| "news" \| "commentary" \| "hybrid"` | no | Retrieval source selector. Defaults to `"asx_docs"`. |
 | `ticker` | string \| null | no | Optional ticker symbol (e.g. `"BHP"`). When set, results are filtered to that ticker. |
 | `top_k` | integer | no | Maximum number of hits to return. Default `8`; clamped to at least 1. |
 | `debug` | boolean | no | If supported, set to `true` to include a `debug` object in the response (score distribution, embedding norm, etc.). |
+| `provider` | string \| null | no | Optional news-provider filter (used with `source="news"`). |
+| `language` | string \| null | no | Optional news-language filter (used with `source="news"`). |
+| `date_from` | string \| null | no | Optional news lower date bound (used with `source="news"`). |
+| `date_to` | string \| null | no | Optional news upper date bound (used with `source="news"`). |
+
+### Source behavior
+
+- `source="asx_docs"`: implemented.
+- `source="news"`: implemented.
+- `source="commentary"`: currently returns HTTP `501` (not implemented via `/rag/query`; use `/chat`).
+- `source="hybrid"`: currently returns HTTP `501` (not implemented via `/rag/query`; use `/chat`).
 
 ---
 

@@ -65,8 +65,8 @@ Do not write synthetic or interpolated values to Postgres financial tables. Extr
 
 ## PDF Extraction
 
-- **Default:** PyMuPDF `find_tables()` — fast (~1-25s), no ML models, preserves 2D table structure. Set via `EXTRACTION_BACKEND=pymupdf` (default).
-- **Opt-in:** Docling (`EXTRACTION_BACKEND=docling`) — IBM layout model + TableFormer. Much slower (120s+), often times out on ASX filings. Only useful for complex/scanned PDFs.
+- **Default:** Docling (`EXTRACTION_BACKEND=docling`) — primary structured extraction backend used by the multipass pipeline.
+- **Fast override/fallback:** PyMuPDF `find_tables()` via `EXTRACTION_BACKEND=pymupdf` when speed is preferred for local workflows.
 - Both backends produce the same `StructuredDocument` (tables + sections) consumed by the multipass extraction pipeline.
 - Cache: `{pdf}.pymupdf.json` / `{pdf}.docling.json` — second runs are instant.
 - Known issues: see `docs/ops/pdf_parsing_assessment_report.md`
