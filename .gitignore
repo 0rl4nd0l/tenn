@@ -62,6 +62,7 @@ financial-engine_v2/data/
 # Cloned repos (not submodules)
 deer-flow/
 deer-flow-skeleton/
+notebooks/
 
 # Misc
 node_modules/
