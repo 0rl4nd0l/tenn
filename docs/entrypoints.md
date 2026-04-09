@@ -1,59 +1,44 @@
-## Entrypoints (Agent Canon)
+## Entrypoints
 
-### Canonical Execution (ENFORCED)
+### Canonical Execution
 
-`financial-engine_v2/scripts/run_local_backend.sh` is the **ONLY** canonical execution path for this repository.
+`financial-engine_v2/scripts/run_local_backend.sh` is the canonical local backend entrypoint for agents and reconciliation work.
 
-All agents MUST use this path.
+### Preferred Boot Sequence
 
-### Agent Boot Sequence (deterministic)
+1. Ensure the project virtual environment exists and dependencies are installed.
+2. Run `bash financial-engine_v2/scripts/run_local_backend.sh`.
+3. Confirm health with `curl -sS http://127.0.0.1:8000/api/health`.
+4. Run `bash financial-engine_v2/scripts/smoke_local.sh` when available.
 
-1. Setup venv (preferred: `/workspace/.venv`).
-   - Create: `python3 -m venv /workspace/.venv`
-   - Activate (optional): `source /workspace/.venv/bin/activate`
-2. Install dependencies (deterministic).
-   - `pip install -r requirements.txt`
-   - `pip install -r financial-engine_v2/backend/requirements.txt`
-3. Run the system (canonical).
-   - `bash financial-engine_v2/scripts/run_local_backend.sh`
-4. Validate (smoke).
-   - `bash financial-engine_v2/scripts/smoke_local.sh`
-5. Confirm health.
-   - `curl -sS http://127.0.0.1:8000/api/health`
-
-### System Mental Model
-
-- Core system = **FastAPI backend**.
-- The system is considered **running** when the API is reachable (at least `/api/health`).
-
-### Entrypoint Classification Table
-
-| Entrypoint | Status | Description |
-|------------|--------|------------|
-| `financial-engine_v2/scripts/run_local_backend.sh` | **CANONICAL** | Main execution path for agents (backend API in isolated mode). |
-| `uvicorn app.main:app ...` | **SUPPORTED** | Equivalent backend API start (prefer the canonical script). |
-| `financial-engine_v2/docker-compose.yml` | **SUPPORTED** | Full infrastructure mode (Postgres/Redis/Qdrant/worker; host Ollama expected). |
-| `financial-engine_v2/scripts/cockpit_tui.py` / `python -m cockpit.main` | **SUPPORTED** | Operator UI layer; depends on backend API and optional infra. |
-| `python run.py` | **SUPPORTED (batch)** | Batch orchestrator (runs workflows; not system bootstrap). |
-
-### Prohibited Paths (for agents)
-
-Agents MUST NOT use these paths unless a task explicitly requires them:
-
-- `python run.py`
-  - Why: runs batch workflows and may depend on external providers/network; it does not define “system is running” (API up) deterministically.
-- Cockpit UI (`financial-engine_v2/scripts/cockpit_tui.py`, `python -m cockpit.main`)
-  - Why: adds an interactive UI layer and optional bootstrap behaviors; increases nondeterminism for agents.
-- Docker (`docker compose ...`)
-  - Why: adds hidden dependencies (Docker daemon, Postgres/Redis/Qdrant, host Ollama) and longer startup surface area.
-
-### Programmatic Interface
-
-Use these wrappers for deterministic agent control:
+### Supported Helper Scripts
 
 - `scripts/start_system.sh`
-  - Starts the canonical backend (if not already running), waits briefly, then runs `scripts/agent_check.sh`.
+  - Starts the canonical backend only if it is not already healthy.
 - `scripts/validate_system.sh`
-  - Runs `scripts/agent_check.sh` and then `financial-engine_v2/scripts/smoke_local.sh` (when available).
-- `agent_contract.json`
-  - Machine-readable pointers to the canonical entrypoint, wrapper, healthcheck route, and validation script.
+  - Runs the health check and local smoke script.
+
+These helpers wrap the canonical launcher; they do not replace it.
+
+### Supported But Non-Canonical Paths
+
+- `uvicorn app.main:app ...`
+  - Equivalent backend startup for debugging, but prefer the canonical script.
+- `python run.py`
+  - Batch workflow entrypoint, not the canonical definition of "system is running" for agent work.
+
+### Prohibited For Routine Agent Bootstrap
+
+- Cockpit UI / TUI paths as the primary way to decide backend readiness.
+- Broad Docker bootstrap when the task only needs the local backend.
+- Any alternate launcher that bypasses `financial-engine_v2/scripts/run_local_backend.sh` without a task-specific reason.
+
+### Validation Baseline For Conservative Reconciliation
+
+Use the smallest relevant validation after each small changeset:
+
+1. `bash scripts/validate_system.sh` for launcher/runtime changes.
+2. `curl -sS http://127.0.0.1:8000/api/health` for backend availability.
+3. Targeted `pytest` or `python -m py_compile` for isolated code additions.
+
+Avoid claiming a full baseline unless it was actually run in the current session.
