@@ -44,6 +44,10 @@ Docker vs host routing:
 - **Host tools** (doctor, host-run cockpit launcher) should use `127.0.0.1` / `localhost`.
 - **Backend/worker containers** run with host networking in this stack, so `127.0.0.1` is the correct host-service URL for Ollama from those services.
 
+Docker packaging notes:
+- The backend and worker images build from the `financial-engine_v2/` repo root so Docker can include both `backend/` and the shared Python package at `shared/`.
+- Compose still bind-mounts both `backend/` and `shared/` for local live-code iteration; the image itself remains bootable without those dev mounts.
+
 ### Deterministic runtime
 
 The CLI uses explicit interpreter selection:

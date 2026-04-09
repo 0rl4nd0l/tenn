@@ -26,7 +26,9 @@ services:
     volumes: [fe_qdrant:/qdrant/storage]
 
   backend:
-    build: { context: ./backend }
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: fe_backend
     network_mode: host
     env_file: [.env.docker]
@@ -37,6 +39,7 @@ services:
       COCKPIT_MODELS_HDD_DIR: /models/hdd
     volumes:
       - ./backend:/app
+      - ./shared:/app/shared
       - ./cockpit:/app/cockpit
       - ./config:/config
       - ./data:/data
@@ -51,7 +54,9 @@ services:
       qdrant: { condition: service_started }
 
   worker:
-    build: { context: ./backend }
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: fe_worker
     network_mode: host
     env_file: [.env.docker]
@@ -60,6 +65,7 @@ services:
     command: ["celery", "-A", "app.celery_app.celery", "worker", "--loglevel=INFO", "-Q", "ingest,embed,score,llm_cpu,llm_gpu"]
     volumes:
       - ./backend:/app
+      - ./shared:/app/shared
       - ./data:/data
     depends_on:
       postgres: { condition: service_healthy }
