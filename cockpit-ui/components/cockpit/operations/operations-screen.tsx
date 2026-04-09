@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { Activity, Globe, Database, Search, Play, Eye, RefreshCw, Terminal } from 'lucide-react'
+import { Activity, Globe, Database, Search, Play, Eye, RefreshCw, Terminal, Cpu, ExternalLink } from 'lucide-react'
+import { GpuActivityDialog, getGpuProcesses, getGpuSummary } from '@/components/cockpit/gpu-activity-dialog'
 import { checkHealth, restartBackend, executeAction, previewAction } from '@/lib/api-client'
 import type { CockpitPreferences, ServiceHealth } from '@/lib/cockpit-types'
 import { useCockpitStore } from '@/lib/cockpit-store'
@@ -90,6 +91,17 @@ function formatStatusLabel(status: ServiceHealth['status']): string {
   }
 }
 
+function formatClock(time: Date | undefined): string {
+  return time
+    ? time.toLocaleTimeString('en-AU', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      })
+    : '--:--:--'
+}
+
 export function OperationsScreen() {
   const [hasHydrated, setHasHydrated] = useState(false)
   const { activeTicker, preferences, updatePreferences } = useCockpitStore()
@@ -105,6 +117,7 @@ export function OperationsScreen() {
     endpoint: '/api/health',
     lastChecked: new Date(),
   })
+  const [gpuHealth, setGpuHealth] = useState<ServiceHealth | null>(null)
 
   // Wait for hydration to finish to avoid SSR/CSR mismatch with Zustand
   useEffect(() => {
@@ -121,15 +134,27 @@ export function OperationsScreen() {
   const fetchHealth = useCallback(async () => {
     const start = performance.now()
     try {
-      await checkHealth()
+      const health = await checkHealth()
       const elapsed = Math.round(performance.now() - start)
+      const backendService = health.services?.find((service) => service.name === 'backend')
+      const gpuService = health.services?.find((service) => service.name === 'gpu') ?? null
       setBackendHealth({
-        name: 'Backend API',
-        status: 'healthy',
-        endpoint: '/api/health',
-        responseTimeMs: elapsed,
+        name: backendService?.name ?? 'Backend API',
+        status: backendService?.status ?? 'healthy',
+        endpoint: backendService?.endpoint ?? '/api/health',
+        responseTimeMs: backendService?.responseTimeMs ?? elapsed,
         lastChecked: new Date(),
+        error: backendService?.error,
+        details: backendService?.details,
       })
+      setGpuHealth(
+        gpuService
+          ? {
+              ...gpuService,
+              lastChecked: new Date(),
+            }
+          : null,
+      )
     } catch {
       setBackendHealth({
         name: 'Backend API',
@@ -138,6 +163,7 @@ export function OperationsScreen() {
         lastChecked: new Date(),
         error: 'Unreachable',
       })
+      setGpuHealth(null)
     }
   }, [])
 
@@ -179,6 +205,9 @@ export function OperationsScreen() {
   }, [fetchHealth])
 
   if (!hasHydrated) return null
+
+  const gpuSummary = getGpuSummary(gpuHealth)
+  const gpuProcesses = getGpuProcesses(gpuHealth)
 
   const handlePreview = async () => {
     const action = AVAILABLE_ACTIONS.find(a => a.id === selectedAction)
@@ -415,7 +444,7 @@ export function OperationsScreen() {
                     <p className="text-sm font-medium">{backendHealth.name}</p>
                     <p className="text-xs text-muted-foreground font-mono">{backendHealth.endpoint}</p>
                   </div>
-                </div>
+                  </div>
                   <div className="text-right">
                   <Badge variant={getStatusBadgeVariant(backendHealth.status)} className="text-[10px] font-mono">
                     {formatStatusLabel(backendHealth.status)}
@@ -426,17 +455,43 @@ export function OperationsScreen() {
                     </p>
                   )}
                   <p className="text-[10px] text-muted-foreground font-mono mt-1">
-                    {backendHealth.lastChecked
-                      ? backendHealth.lastChecked.toLocaleTimeString('en-AU', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit',
-                          hour12: false,
-                        })
-                      : '--:--:--'}
+                    {formatClock(backendHealth.lastChecked)}
                   </p>
                 </div>
               </div>
+
+              <GpuActivityDialog gpuHealth={gpuHealth}>
+                  <button
+                    type="button"
+                    className="flex items-center justify-between rounded-lg border border-border bg-card p-3 text-left transition-colors hover:border-primary/50 hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={cn(
+                        'h-3 w-3 rounded-full',
+                        getStatusColor(gpuHealth?.status ?? 'unknown')
+                      )} />
+                      <div>
+                        <p className="text-sm font-medium flex items-center gap-2">
+                          <Cpu className="h-4 w-4 text-primary" />
+                          GPU Activity
+                        </p>
+                        <p className="text-xs text-muted-foreground font-mono break-words">{gpuSummary}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <Badge variant={getStatusBadgeVariant(gpuHealth?.status ?? 'unknown')} className="text-[10px] font-mono">
+                        {formatStatusLabel(gpuHealth?.status ?? 'unknown')}
+                      </Badge>
+                      <p className="mt-1 flex items-center justify-end gap-1 text-[10px] text-muted-foreground font-mono">
+                        details
+                        <ExternalLink className="h-3 w-3" />
+                      </p>
+                      <p className="text-[10px] text-muted-foreground font-mono mt-1">
+                        {gpuProcesses.length} proc{gpuProcesses.length === 1 ? '' : 's'}
+                      </p>
+                    </div>
+                  </button>
+              </GpuActivityDialog>
             </div>
           </CardContent>
         </Card>

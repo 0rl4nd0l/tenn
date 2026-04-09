@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import {
   AlertTriangle,
   Cpu,
+  ExternalLink,
   MessageSquare,
   Settings2,
   RefreshCw,
@@ -30,8 +31,9 @@ import {
   SidebarSeparator,
 } from '@/components/ui/sidebar'
 import { Badge } from '@/components/ui/badge'
+import { GpuActivityDialog, getGpuProcesses, getGpuSummary } from '@/components/cockpit/gpu-activity-dialog'
 import type { ServiceHealth } from '@/lib/cockpit-types'
-import { useCockpitStore, AVAILABLE_CHAT_MODELS } from '@/lib/cockpit-store'
+import { useCockpitStore } from '@/lib/cockpit-store'
 
 interface CockpitSidebarProps {
   backendHealthy: boolean
@@ -105,7 +107,7 @@ export function CockpitSidebar({
   sessionCost,
 }: CockpitSidebarProps) {
   const pathname = usePathname()
-  const { chatModel } = useCockpitStore()
+  const { chatModel, sessionStats } = useCockpitStore()
   const [configSummary, setConfigSummary] = useState<ConfigSummary>(INITIAL_CONFIG_SUMMARY)
   const [configNotice, setConfigNotice] = useState<ConfigNotice | null>(null)
   const [lastConfigSyncAt, setLastConfigSyncAt] = useState<Date | null>(null)
@@ -170,10 +172,12 @@ export function CockpitSidebar({
     return () => clearTimeout(timeout)
   }, [configNotice])
 
-  const modelLabel = useMemo(() => {
-    const configuredModel = configSummary.model ?? chatModel
-    return AVAILABLE_CHAT_MODELS.find((model) => model.id === configuredModel)?.label ?? configuredModel
-  }, [chatModel, configSummary.model])
+  const activeModelLabel = useMemo(() => {
+    if (sessionStats.activeModel && sessionStats.activeModel !== 'local') {
+      return sessionStats.activeModel
+    }
+    return configSummary.model ?? '--'
+  }, [configSummary.model, sessionStats.activeModel])
 
   const displayNotice = backendHealthy
     ? configNotice
@@ -182,28 +186,10 @@ export function CockpitSidebar({
         message: backendError ?? configNotice?.message ?? 'Backend is unavailable',
       }
 
-  const gpuSummary = useMemo(() => {
-    const gpus = Array.isArray(gpuHealth?.details?.gpus)
-      ? (gpuHealth?.details?.gpus as Array<Record<string, unknown>>)
-      : []
-    if (gpus.length === 0) return gpuHealth?.error ?? 'unavailable'
-    const first = gpus[0]
-    const name = typeof first.name === 'string' ? first.name : 'GPU'
-    const temp =
-      typeof first.temp_c === 'number'
-        ? `${Math.round(first.temp_c)}C`
-        : null
-    const util =
-      typeof first.util_percent === 'number'
-        ? `${Math.round(first.util_percent)}%`
-        : 'n/a'
-    const used = typeof first.mem_used_mib === 'number' ? Math.round(first.mem_used_mib) : null
-    const total = typeof first.mem_total_mib === 'number' ? Math.round(first.mem_total_mib) : null
-    const mem = used !== null && total !== null ? `${used}/${total} MiB` : 'n/a'
-    return `${name}${temp ? ` ${temp}` : ''} ${util} ${mem}`
-  }, [gpuHealth])
+  const gpuSummary = useMemo(() => getGpuSummary(gpuHealth), [gpuHealth])
 
   const gpuHealthy = gpuHealth?.status === 'healthy'
+  const gpuProcesses = useMemo(() => getGpuProcesses(gpuHealth), [gpuHealth])
 
   return (
     <Sidebar
@@ -270,21 +256,37 @@ export function CockpitSidebar({
               <div className="text-[11px] text-muted-foreground/90 pl-4 font-mono">
                 last healthy: {formatClock(backendLastHealthyAt)}
               </div>
-              <div className="flex items-center justify-between text-xs py-1 font-mono">
-                <div className="flex items-center gap-2">
-                  <span className={`h-2 w-2 rounded-full ${
-                    gpuHealthy
-                      ? 'bg-[oklch(0.7_0.18_205)] status-dot-running'
-                      : 'bg-[oklch(0.7_0.05_250)]'
-                  }`} />
-                  <span className="text-muted-foreground">
-                    GPU: {gpuHealthy ? 'VISIBLE' : (gpuHealth?.status ?? 'UNKNOWN').toUpperCase()}
-                  </span>
-                </div>
-              </div>
-              <div className="text-[11px] text-muted-foreground/90 pl-4 font-mono break-words">
-                {gpuSummary}
-              </div>
+              <GpuActivityDialog gpuHealth={gpuHealth}>
+                  <button
+                    type="button"
+                    className="w-full rounded border border-sidebar-border/70 px-2 py-2 text-left transition-colors hover:border-primary/50 hover:bg-sidebar-accent/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  >
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <div className="flex items-center gap-2">
+                        <span className={`h-2 w-2 rounded-full ${
+                          gpuHealthy
+                            ? 'bg-[oklch(0.7_0.18_205)] status-dot-running'
+                            : 'bg-[oklch(0.7_0.05_250)]'
+                        }`} />
+                        <span className="text-muted-foreground">
+                          GPU: {gpuHealthy ? 'VISIBLE' : (gpuHealth?.status ?? 'UNKNOWN').toUpperCase()}
+                        </span>
+                      </div>
+                      <span className="flex items-center gap-1 text-[10px] text-muted-foreground/80">
+                        details
+                        <ExternalLink className="h-3 w-3" />
+                      </span>
+                    </div>
+                    <div className="mt-1 text-[11px] text-muted-foreground/90 pl-4 font-mono break-words">
+                      {gpuSummary}
+                    </div>
+                    <div className="mt-1 pl-4 text-[10px] font-mono text-muted-foreground/75">
+                      {gpuProcesses.length > 0
+                        ? `${gpuProcesses.length} active GPU process${gpuProcesses.length === 1 ? '' : 'es'}`
+                        : 'No active GPU compute processes'}
+                    </div>
+                  </button>
+              </GpuActivityDialog>
               <div className="text-[11px] text-muted-foreground/90 pl-4 font-mono">
                 config sync: {formatClock(lastConfigSyncAt)}
               </div>
@@ -294,7 +296,8 @@ export function CockpitSidebar({
                   <Cpu className="h-3 w-3" />
                   Cockpit Config
                 </div>
-                <div className="text-[11px] text-foreground font-mono">model: {modelLabel}</div>
+                <div className="text-[11px] text-foreground font-mono">selected: {chatModel}</div>
+                <div className="text-[11px] text-muted-foreground font-mono">active: {activeModelLabel}</div>
                 <div className="text-[11px] text-muted-foreground font-mono">
                   max_tokens: {configSummary.maxTokens ?? '--'} | temp:{' '}
                   {configSummary.temperature?.toFixed(2) ?? '--'}
