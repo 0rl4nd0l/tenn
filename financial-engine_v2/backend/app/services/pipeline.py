@@ -43,12 +43,12 @@ from app.services.docling_extract import StructuredDocument
 from app.services.pipeline_stages import (
     DocumentProcessResult,
     DownloadProcessAggregate,
+    ExtractionStageResult,
     ExtractionStageStatus,
     attach_reproducibility_metadata,
     build_reproducibility_metadata,
     normalize_document_process_result,
     run_embedding_stage,
-    run_extraction_stage,
 )
 from app.services.storage import ensure_dir, sha256_file, write_bytes
 
@@ -964,15 +964,85 @@ def process_document(
             "ticker": str(doc.ticker or ""),
             "title": str(doc.title or ""),
         }
-        extraction_stage = run_extraction_stage(
-            enable_extraction=settings.enable_extraction,
-            resolved_pdf_path=resolved_pdf_path,
-            doc_metadata=doc_metadata,
-            llm_client=ollama_client,
-            multipass_runner=run_multipass_extraction,
-            default_model_name="qwen2.5-32b-instruct",
-            failure_classifier=classify_extraction_failure,
-        )
+        default_model_name = "qwen2.5-32b-instruct"
+        if not settings.enable_extraction:
+            extraction_stage = ExtractionStageResult(
+                status=ExtractionStageStatus.SKIPPED,
+                payload={"status": "skipped_extraction"},
+                sections=[],
+                model_name=None,
+                failure_code="disabled",
+            )
+        else:
+            from app.services.router_state import set_extraction_active
+
+            set_extraction_active(True)
+            try:
+                multipass_result = run_multipass_extraction(
+                    resolved_pdf_path,
+                    dict(doc_metadata),
+                    ollama_client,
+                )
+            except Exception as exc:
+                error_text = str(exc)
+                extraction_stage = ExtractionStageResult(
+                    status=ExtractionStageStatus.FAILED,
+                    payload={"error": error_text},
+                    sections=[],
+                    error=error_text,
+                    confidence=None,
+                    model_name=default_model_name,
+                    failure_code=classify_extraction_failure(error_text, None),
+                )
+            else:
+                raw_payload = getattr(multipass_result, "payload", None)
+                if isinstance(raw_payload, dict):
+                    payload = raw_payload
+                elif isinstance(raw_payload, Mapping):
+                    payload = dict(raw_payload)
+                else:
+                    payload = {}
+                if not payload:
+                    payload = {"error": "invalid_multipass_payload"}
+
+                raw_sections = getattr(multipass_result, "sections", None)
+                sections = list(raw_sections) if isinstance(raw_sections, list) else []
+
+                raw_status = (
+                    str(getattr(multipass_result, "status", "")).strip().lower()
+                )
+                if raw_status == ExtractionStageStatus.OK.value:
+                    status = ExtractionStageStatus.OK
+                elif raw_status == ExtractionStageStatus.OK_LOW_CONFIDENCE.value:
+                    status = ExtractionStageStatus.OK_LOW_CONFIDENCE
+                elif raw_status == ExtractionStageStatus.SKIPPED.value:
+                    status = ExtractionStageStatus.SKIPPED
+                else:
+                    status = ExtractionStageStatus.FAILED
+
+                error = getattr(multipass_result, "error", None)
+                raw_confidence = payload.get("confidence_metrics")
+                confidence = (
+                    float(raw_confidence)
+                    if isinstance(raw_confidence, (int, float))
+                    and not isinstance(raw_confidence, bool)
+                    else None
+                )
+                failure_code: Optional[str] = None
+                if status == ExtractionStageStatus.FAILED:
+                    failure_code = classify_extraction_failure(error, payload)
+
+                extraction_stage = ExtractionStageResult(
+                    status=status,
+                    payload=payload,
+                    sections=sections,
+                    error=error,
+                    confidence=confidence,
+                    model_name=default_model_name,
+                    failure_code=failure_code,
+                )
+            finally:
+                set_extraction_active(False)
 
         sections_for_chunks = extraction_stage.sections
         structured = extraction_stage.payload
