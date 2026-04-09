@@ -1,0 +1,15 @@
+{
+  "fixture_id": "wrong_value",
+  "period_type": "A",
+  "period_end": "2024-12-31",
+  "currency": "AUD",
+  "scale": "thousands",
+  "metrics": {
+    "revenue": 1500000
+  },
+  "expected_nulls": [],
+  "optional_metrics": [],
+  "tolerances": {
+    "revenue": 0.01
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "fixture_id": "correct_ok",
+  "period_type": "A",
+  "period_end": "2024-12-31",
+  "currency": "AUD",
+  "scale": "thousands",
+  "metrics": {
+    "revenue": 1500000,
+    "ebit": 120000,
+    "np_attributable": 50000
+  },
+  "expected_nulls": [
+    "net_debt"
+  ],
+  "optional_metrics": [
+    "shares_outstanding"
+  ],
+  "tolerances": {
+    "revenue": 0.01,
+    "ebit": 0.01,
+    "np_attributable": 0.02
+  }
+}

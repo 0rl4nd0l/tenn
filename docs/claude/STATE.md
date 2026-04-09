@@ -23,7 +23,7 @@ Branch: cloud/session-20260319
 | Workstream | Status | Open items |
 |------------|--------|------------|
 | **bug-ui** | `[ verified ]` | None — claude agent deploy + on-demand debate UI complete (58ff4e85) |
-| **extraction-hardening** | `[ in-progress ]` | (1) FX conversion logic not yet built. (2) AZJ font encoding confirmed unsolvable — threshold 0.0. (3) pymupdf quality gate added (flags `pymupdf_degraded`). (4) Live eval run 2026-03-27: 77.89% overall, 88.64% excl. AZJ. L019 logged. |
+| **extraction-hardening** | `[ in-progress ]` | (1) FX conversion logic not yet built. (2) AZJ font encoding confirmed unsolvable — threshold 0.0. (3) pymupdf quality gate added (flags `pymupdf_degraded`). (4) Live eval run 2026-03-27: 77.89% overall, 88.64% excl. AZJ. (5) Synthetic fixture hardening scaffold now implemented (pure doc-level scoring, context quarantine, optional metric abstain handling). |
 | **news-pipeline** | `[ verified ]` | Embedding routing fixed, asx_docs rebuilt at 768-dim (a4564e47). **Default provider switched to newspaper4k** (2026-03-27): 54 AU finance sources (AFR, Stockhead, MarketIndex, SMH, ABC, etc.) with Scrapling/Playwright fallback. EODHD and GDELT suspended from main pipeline — poor ASX coverage. |
 | **eval-fixtures** | `[ verified ]` | 13 fixture JSONs now in repo. Last fully live-validated set remains 9 fixtures on 2026-03-27. AZJ threshold=0.0, FMG threshold=0.60, RMS threshold=0.70. 88.64% excl. AZJ on the validated set. |
 | **extraction-quality** | `[ in-progress ]` | 88.64% accuracy on 8 fixtures (excl. AZJ). Docling restored as default (877a8203). ANZ ~90.9% after banking-sector fixes (e1710290, 8e4ec1b3). **Prose fallback for shares_outstanding** (88e47336): regex extraction from note sections — covers ANZ Note 13 pattern + 3 other ASX conventions. Remaining: live eval to measure accuracy gain. |
@@ -131,7 +131,8 @@ From [docs/claude/introduction-plan.md](introduction-plan.md).
 | 8db6a212 | extraction-hardening | FX policy doc, quarterly fixture, provenance script |
 | 1d113788 | news-pipeline | Resync Qdrant news_chunks with relevance-ordered primary tickers |
 | (this session) | storage-migration | Runtime data + GGUF models moved to NVMe, inactive root Ollama models archived to HDD, storage/docs/config surfaces aligned, docs-heavy validation no longer reproduced the earlier severe IO pressure. |
-
+| (this session) | extraction-hardening | Added synthetic extraction-eval scaffold (`financial-engine_v2/backend/app/services/extraction_eval.py`), fixtures under `backend/tests/fixtures/extraction_eval/`, contract/taxonomy docs, and unit tests in `test_extraction_eval_harness.py` with deterministic scoring semantics. |
+ 
 ---
 
 ## Backlog (scoped but not started)
