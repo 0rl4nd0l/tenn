@@ -578,3 +578,12 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The backend route scanned fallback directories derived from `Path.home()` and host-local paths, but the live backend was running inside Docker as `root` without mounts for those model directories. The container could query llama-server, but it could not stat the host files it was supposed to group.
 **Fix:** Mounted the host model directories into the backend container as read-only `/models/{nvme,ssd,hdd}`, added explicit `COCKPIT_MODELS_*_DIR` env overrides for backend-side discovery, and kept a llama-server-registry fallback so the route still returns usable model groups when direct filesystem scans are unavailable.
 **Rule:** Any backend feature that discovers host files from a Docker container must use explicit mounted paths or container-local env overrides. Do not rely on `Path.home()` or bare host-user paths inside a containerized runtime.
+
+## L059 — Cockpit UI changes require verifying the active surface before implementation
+
+**Date:** 2026-04-09
+**Subsystem:** `cockpit-ui`, `financial-engine_v2/cockpit`
+**Symptom:** A cockpit feedback-button task was initially scoped against the legacy Textual chat screen even though the user meant the active Next.js chat window.
+**Root cause:** The repo contains multiple cockpit surfaces in parallel. I assumed the older Textual path from nearby files and memory instead of confirming the active operator surface in the current task.
+**Fix:** Switched the implementation target to `cockpit-ui` after the user correction and added this lesson.
+**Rule:** For any Cockpit UI request, verify whether the target surface is the Next.js app (`cockpit-ui`) or the legacy Textual app before planning or patching. Do not infer the active UI solely from historical files or prior sessions.

@@ -825,6 +825,25 @@ class CockpitActionExecuteResponse(BaseModel):
     chart: dict[str, str] | None = None
 
 
+class CockpitFeedbackFlagRequest(BaseModel):
+    session_id: str | None = None
+    ticker: str | None = None
+    note: str | None = None
+    flagged_message: dict[str, Any] = Field(default_factory=dict)
+    transcript: list[dict[str, Any]] = Field(default_factory=list)
+    frontend_context: dict[str, Any] = Field(default_factory=dict)
+
+
+class CockpitFeedbackFlagResponse(BaseModel):
+    ok: bool = True
+    report_id: str
+    report_dir: str
+    bundle_path: str
+    summary_path: str
+    analysis_path: str | None = None
+    analysis_summary: str | None = None
+
+
 def _coerce_float(raw: Any) -> float | None:
     text = str(raw or "").strip()
     if not text:
@@ -1154,6 +1173,37 @@ async def cockpit_execute_action(payload: CockpitActionExecuteRequest):
         result=output[:12000],
         exit_code=proc.returncode,
     )
+
+
+@router.post("/feedback/flag", response_model=CockpitFeedbackFlagResponse)
+async def cockpit_flag_feedback(payload: CockpitFeedbackFlagRequest):
+    """Persist a flagged cockpit chat turn with relevant backend diagnostics."""
+    try:
+        service = CockpitService.get_instance()
+    except Exception as exc:
+        logger.exception("Failed to initialize CockpitService for feedback capture")
+        raise HTTPException(
+            status_code=500, detail=f"Service initialization failed: {str(exc)}"
+        ) from exc
+
+    try:
+        result = await asyncio.to_thread(
+            service.flag_chat_feedback,
+            session_id=payload.session_id,
+            ticker=payload.ticker,
+            note=payload.note,
+            flagged_message=payload.flagged_message,
+            transcript=payload.transcript,
+            frontend_context=payload.frontend_context,
+        )
+    except Exception as exc:
+        logger.exception("Cockpit feedback capture failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Feedback capture failed: {str(exc)}",
+        ) from exc
+
+    return CockpitFeedbackFlagResponse(**result)
 
 
 @router.post("/chat")

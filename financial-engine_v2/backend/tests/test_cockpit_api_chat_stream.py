@@ -70,3 +70,49 @@ def test_cockpit_chat_stream_done_event_carries_canonical_final_text(
         done_events[-1]["data"]["text"]
         == "Recent BHP news is mixed, with coverage focused on operations and commodity outlook."
     )
+
+
+def test_cockpit_feedback_flag_route_returns_saved_artifact_info(monkeypatch) -> None:
+    class FakeService:
+        def flag_chat_feedback(self, **kwargs):
+            assert kwargs["session_id"] == "session-123"
+            assert kwargs["ticker"] == "BHP"
+            assert kwargs["flagged_message"]["content"] == "Bad answer"
+            return {
+                "ok": True,
+                "report_id": "flag_20260409_abc123",
+                "report_dir": "/tmp/reports/cockpit/flagged_sessions/session-123/flag_20260409_abc123",
+                "bundle_path": "/tmp/reports/cockpit/flagged_sessions/session-123/flag_20260409_abc123/bundle.json",
+                "summary_path": "/tmp/reports/cockpit/flagged_sessions/session-123/flag_20260409_abc123/summary.md",
+                "analysis_path": "/tmp/reports/cockpit/flagged_sessions/session-123/flag_20260409_abc123/analysis.json",
+                "analysis_summary": "The answer appears to have ignored the retrieved evidence.",
+            }
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/feedback/flag",
+        json={
+            "session_id": "session-123",
+            "ticker": "BHP",
+            "flagged_message": {
+                "id": "assistant-1",
+                "role": "assistant",
+                "content": "Bad answer",
+            },
+            "transcript": [
+                {"id": "user-1", "role": "user", "content": "Tell me about BHP"},
+                {"id": "assistant-1", "role": "assistant", "content": "Bad answer"},
+            ],
+            "frontend_context": {"source": "cockpit-ui-chat"},
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["report_id"] == "flag_20260409_abc123"

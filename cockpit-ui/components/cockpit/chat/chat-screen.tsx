@@ -9,6 +9,27 @@ import { streamChat, sendChatMessage, executeAction, restartBackend } from '@/li
 import type { ChatMessage as ChatMessageType, ActionPreview } from '@/lib/cockpit-types'
 import { toast } from 'sonner'
 
+type FlagState = 'saving' | 'saved'
+
+type FlagFeedbackResponse = {
+  report_id: string
+  report_dir: string
+  analysis_summary?: string | null
+}
+
+function serializeMessageForFeedback(message: ChatMessageType) {
+  return {
+    id: message.id,
+    role: message.role,
+    content: message.content,
+    timestamp: message.timestamp.toISOString(),
+    metadata: message.metadata,
+    sources: message.sources,
+    toolTraces: message.toolTraces,
+    actionPreview: message.actionPreview,
+  }
+}
+
 export function ChatScreen() {
   const [hasHydrated, setHasHydrated] = useState(false)
   const [messages, setMessages] = useState<ChatMessageType[]>([])
@@ -16,6 +37,7 @@ export function ChatScreen() {
   const [streamingContent, setStreamingContent] = useState('')
   const [streamingStatus, setStreamingStatus] = useState('Connecting to backend stream...')
   const [streamingMetadata, setStreamingMetadata] = useState<Partial<ChatMessageType>>({})
+  const [flagStates, setFlagStates] = useState<Record<string, FlagState>>({})
   const activeStreamRef = useRef<{ close: () => void } | null>(null)
   const statusFallbackTimersRef = useRef<number[]>([])
   const receivedServerStatusRef = useRef(false)
@@ -438,7 +460,61 @@ export function ChatScreen() {
     setMessages([])
     setStreamingContent('')
     setStreamingMetadata({})
+    setFlagStates({})
   }, [])
+
+  const handleFlagMessage = useCallback(async (message: ChatMessageType) => {
+    if (message.role !== 'assistant') {
+      return
+    }
+    if (flagStates[message.id]) {
+      return
+    }
+
+    setFlagStates((prev) => ({ ...prev, [message.id]: 'saving' }))
+    try {
+      const response = await fetch('/api/cockpit/feedback/flag', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          ticker: activeTicker,
+          flagged_message: serializeMessageForFeedback(message),
+          transcript: messages.map(serializeMessageForFeedback),
+          frontend_context: {
+            source: 'cockpit-ui-chat',
+            activeTicker,
+            sessionId,
+            chatModel,
+            preferences,
+            clientTimestamp: new Date().toISOString(),
+          },
+        }),
+      })
+
+      const payload = (await response.json().catch(() => null)) as FlagFeedbackResponse | { detail?: string } | null
+      if (!response.ok) {
+        const detail = payload && typeof payload === 'object' && 'detail' in payload
+          ? String(payload.detail || '')
+          : ''
+        throw new Error(detail || `HTTP ${response.status}`)
+      }
+
+      setFlagStates((prev) => ({ ...prev, [message.id]: 'saved' }))
+      const result = payload as FlagFeedbackResponse
+      toast.success(result.analysis_summary?.trim()
+        ? `Flag saved: ${result.analysis_summary}`
+        : `Flag saved to ${result.report_dir}`)
+    } catch (error) {
+      setFlagStates((prev) => {
+        const next = { ...prev }
+        delete next[message.id]
+        return next
+      })
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(`Failed to flag response: ${errorMessage}`)
+    }
+  }, [activeTicker, chatModel, flagStates, messages, preferences, sessionId])
 
   if (!hasHydrated) return null
 
@@ -468,12 +544,29 @@ export function ChatScreen() {
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>
         <div className="space-y-4 pb-4">
           {messages.map((msg) => (
-            <TerminalMessage
-              key={msg.id}
-              message={msg}
-              onConfirmAction={handleConfirmAction}
-              onCancelAction={handleCancelAction}
-            />
+            <div key={msg.id} className="space-y-1">
+              <TerminalMessage
+                message={msg}
+                onConfirmAction={handleConfirmAction}
+                onCancelAction={handleCancelAction}
+              />
+              {msg.role === 'assistant' && (
+                <div className="ml-6 flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => void handleFlagMessage(msg)}
+                    disabled={Boolean(flagStates[msg.id])}
+                    className="rounded border border-red-500/30 bg-red-500/8 px-2 py-0.5 font-mono text-[11px] text-red-300 transition-colors hover:bg-red-500/15 disabled:cursor-default disabled:opacity-70"
+                  >
+                    {flagStates[msg.id] === 'saving'
+                      ? '[flagging...]'
+                      : flagStates[msg.id] === 'saved'
+                        ? '[flagged]'
+                        : '[flag response]'}
+                  </button>
+                </div>
+              )}
+            </div>
           ))}
           {isStreaming && streamingContent && (
             <div className="space-y-2">
