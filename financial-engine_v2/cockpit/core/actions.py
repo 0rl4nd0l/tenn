@@ -64,8 +64,43 @@ class ActionPreview:
 class ActionRegistry:
     def __init__(self, repo_root: Path, confirm_required: bool = True) -> None:
         self.repo_root = repo_root
+        workspace_root_override = str(os.getenv("COCKPIT_WORKSPACE_ROOT") or "").strip()
+        self.workspace_root = (
+            Path(workspace_root_override)
+            if workspace_root_override
+            else repo_root.parent
+        )
         py = str(repo_root / ".venv" / "bin" / "python")
-        shared_scripts_root = repo_root.parent / "scripts"
+
+        def _resolve_shared_script(script_name: str) -> str:
+            candidate_roots: list[Path] = []
+            override = str(os.getenv("COCKPIT_SHARED_SCRIPTS_ROOT") or "").strip()
+            if override:
+                candidate_roots.append(Path(override))
+            candidate_roots.extend(
+                [
+                    repo_root.parent / "scripts",
+                    repo_root / "scripts",
+                    Path("/workspace/scripts"),
+                    Path("/workspace-scripts"),
+                    Path("/scripts"),
+                ]
+            )
+
+            seen: set[str] = set()
+            fallback = (
+                Path(override) if override else repo_root.parent / "scripts"
+            ) / script_name
+            for root in candidate_roots:
+                key = str(root)
+                if not key or key in seen:
+                    continue
+                seen.add(key)
+                candidate = (root / script_name).resolve()
+                if candidate.exists():
+                    return str(candidate)
+            return str(fallback.resolve())
+
         self._actions: dict[str, ActionSpec] = {
             "full_history": ActionSpec(
                 id="full_history",
@@ -422,7 +457,7 @@ class ActionRegistry:
                 label="Daily news ingest",
                 command_template=[
                     py,
-                    str(shared_scripts_root / "fetch_daily_news.py"),
+                    _resolve_shared_script("fetch_daily_news.py"),
                     "--providers",
                     "{providers}",
                     "--since-hours",
@@ -456,7 +491,7 @@ class ActionRegistry:
                 label="Historical news ingest",
                 command_template=[
                     py,
-                    str(shared_scripts_root / "backfill_news.py"),
+                    _resolve_shared_script("backfill_news.py"),
                     "--provider",
                     "{provider}",
                     "--from",
@@ -500,7 +535,7 @@ class ActionRegistry:
                 label="Load news chunks to Qdrant",
                 command_template=[
                     py,
-                    str(shared_scripts_root / "load_news_to_qdrant.py"),
+                    _resolve_shared_script("load_news_to_qdrant.py"),
                     "--db-path",
                     "{db_path}",
                     "--qdrant-url",
@@ -1150,7 +1185,7 @@ class ActionRegistry:
         out.setdefault(
             "db_path",
             str(
-                self.repo_root.parent
+                self.workspace_root
                 / "reports"
                 / "qual_context"
                 / "news_articles.sqlite"
@@ -1159,13 +1194,13 @@ class ActionRegistry:
         out.setdefault("qdrant_url", "http://localhost:6333")
         out.setdefault("collection", "news_chunks")
         out.setdefault("batch_size", 64)
-        out.setdefault("providers", "eodhd,gdelt")
+        out.setdefault("providers", "newspaper4k")
         if spec.id == "load_news_to_qdrant":
             out.setdefault("since_hours", 0)
         out.setdefault("since_hours", 36)
         out.setdefault(
             "news_runs_root",
-            str(self.repo_root.parent / "reports" / "qual_context" / "news_runs"),
+            str(self.workspace_root / "reports" / "qual_context" / "news_runs"),
         )
         out.setdefault("provider", "gdelt")
         out.setdefault("from_day", "2026-01-01")

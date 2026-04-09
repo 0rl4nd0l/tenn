@@ -5,6 +5,7 @@ Main news pipeline orchestrator.
 Runs provider fetches (optionally with incremental fetch windows), optionally
 calls fetch_gdelt_doc_api.py, and triggers chunk build.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -66,6 +67,7 @@ def _max_window_end_utc(db_path: Path, provider: str) -> Optional[str]:
 def _build_rss_provider(feeds_file: Path):
     """Instantiate RssProvider; imported lazily to avoid hard dep at module level."""
     from news_pipeline.providers.rss import RssProvider
+
     return RssProvider(feeds_file=feeds_file)
 
 
@@ -73,6 +75,7 @@ def _run_gdelt_doc_api(out_jsonl: Path) -> bool:
     """Call fetch_gdelt_doc_api main() as an in-process step. Returns True on success."""
     try:
         import fetch_gdelt_doc_api as gdelt_doc
+
         argv = [
             "--query",
             '("ASX" OR "Australian Securities Exchange" OR "ASX listed")',
@@ -84,6 +87,7 @@ def _run_gdelt_doc_api(out_jsonl: Path) -> bool:
         ]
         # fetch_gdelt_doc_api.main() uses sys.argv; call directly with argv override.
         import sys as _sys
+
         old_argv = _sys.argv
         _sys.argv = ["fetch_gdelt_doc_api"] + argv
         try:
@@ -96,7 +100,9 @@ def _run_gdelt_doc_api(out_jsonl: Path) -> bool:
         return False
 
 
-def _merge_gdelt_doc_jsonl(jsonl_path: Path, store: NewsArticleStore, linker: EntityLinker) -> int:
+def _merge_gdelt_doc_jsonl(
+    jsonl_path: Path, store: NewsArticleStore, linker: EntityLinker
+) -> int:
     """Merge JSONL rows from fetch_gdelt_doc_api into the article store. Returns inserted count."""
     if not jsonl_path.exists():
         return 0
@@ -145,11 +151,18 @@ def main(argv: List[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Run the full news ingestion pipeline.")
     ap.add_argument(
         "--providers",
-        default="eodhd,gdelt",
-        help="Comma-separated provider list (eodhd,gdelt,worldmonitor,rss)",
+        default="newspaper4k",
+        help="Comma-separated provider list (newspaper4k,rss,eodhd,gdelt,worldmonitor)",
     )
-    ap.add_argument("--since-hours", type=int, default=36, help="Lookback window in hours (default mode)")
-    ap.add_argument("--lane", default="high_precision", choices=["high_precision", "high_recall"])
+    ap.add_argument(
+        "--since-hours",
+        type=int,
+        default=36,
+        help="Lookback window in hours (default mode)",
+    )
+    ap.add_argument(
+        "--lane", default="high_precision", choices=["high_precision", "high_recall"]
+    )
     ap.add_argument("--max-tickers", type=int, default=0)
     ap.add_argument("--asx-wide", action="store_true")
     ap.add_argument("--tickers", default="")
@@ -195,7 +208,10 @@ def main(argv: List[str] | None = None) -> int:
     eodhd_capture_dir = resolve_path(args.eodhd_capture_dir)
     worldmonitor_capture_path = resolve_path(args.worldmonitor_capture_path)
     runs_root = resolve_path(args.news_runs_root)
-    eodhd_key = str(args.eodhd_api_key or "").strip() or str(os.getenv("EODHD_API_KEY") or "").strip()
+    eodhd_key = (
+        str(args.eodhd_api_key or "").strip()
+        or str(os.getenv("EODHD_API_KEY") or "").strip()
+    )
     gdelt_kwargs = gdelt_kwargs_from_args(args)
 
     explicit_tickers = parse_ticker_list(args.tickers)
@@ -213,9 +229,15 @@ def main(argv: List[str] | None = None) -> int:
     linker_ticker_path = tickers_file
     temp_ticker_file: Path | None = None
     if explicit_tickers and not bool(args.asx_wide):
-        merged = sorted(set(load_tickers(tickers_file, limit=0)) | set(explicit_tickers))
+        merged = sorted(
+            set(load_tickers(tickers_file, limit=0)) | set(explicit_tickers)
+        )
         with tempfile.NamedTemporaryFile(
-            "w", encoding="utf-8", delete=False, prefix="run_news_pipeline_tickers_", suffix=".txt"
+            "w",
+            encoding="utf-8",
+            delete=False,
+            prefix="run_news_pipeline_tickers_",
+            suffix=".txt",
         ) as tf:
             for ticker in merged:
                 tf.write(f"{ticker}\n")
@@ -261,13 +283,19 @@ def main(argv: List[str] | None = None) -> int:
                             provider_name=provider_name,
                             eodhd_api_key=eodhd_key,
                             eodhd_capture_dir=eodhd_capture_dir,
-                            allow_missing_eodhd_captures=bool(args.allow_missing_eodhd_captures),
-                            worldmonitor_api_cache_url=str(args.worldmonitor_api_cache_url or ""),
+                            allow_missing_eodhd_captures=bool(
+                                args.allow_missing_eodhd_captures
+                            ),
+                            worldmonitor_api_cache_url=str(
+                                args.worldmonitor_api_cache_url or ""
+                            ),
                             worldmonitor_capture_path=worldmonitor_capture_path,
                             gdelt_kwargs=gdelt_kwargs,
                         )
                     except Exception as exc:
-                        log.warning("Could not build provider %s: %s", provider_name, exc)
+                        log.warning(
+                            "Could not build provider %s: %s", provider_name, exc
+                        )
                         continue
 
                 run_id, failures = run_provider_daily(
@@ -301,10 +329,14 @@ def main(argv: List[str] | None = None) -> int:
                 gdelt_doc_jsonl = runs_root / "gdelt_doc_api_latest.jsonl"
                 success = _run_gdelt_doc_api(gdelt_doc_jsonl)
                 if success:
-                    merged_count = _merge_gdelt_doc_jsonl(gdelt_doc_jsonl, store, linker)
+                    merged_count = _merge_gdelt_doc_jsonl(
+                        gdelt_doc_jsonl, store, linker
+                    )
                     log.info("gdelt_doc_api merged %d articles", merged_count)
                 else:
-                    log.warning("gdelt_doc_api step failed or produced no output; continuing.")
+                    log.warning(
+                        "gdelt_doc_api step failed or produced no output; continuing."
+                    )
 
         finally:
             store.close()

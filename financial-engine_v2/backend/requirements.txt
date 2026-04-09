@@ -19,6 +19,7 @@ qdrant-client==1.12.1
 pymupdf==1.24.10
 beautifulsoup4==4.12.3
 lxml==5.3.0
+newspaper4k[gnews]
 python-dateutil==2.9.0.post0
 playwright>=1.56.0
 textual==0.86.3

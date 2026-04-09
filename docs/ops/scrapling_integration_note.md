@@ -67,6 +67,7 @@ items = page.css(".product", auto_save=True)
 ## Implemented
 
 - **Dependency**: `scrapling[fetchers]>=0.4.0` added to `financial-engine_v2/backend/requirements.txt`. Install with `pip install -r backend/requirements.txt`. For browser-based fetchers (Stealthy/Dynamic) run `scrapling install` separately.
+- **Docker runtime**: `financial-engine_v2/backend/Dockerfile` now pre-installs the browser runtimes required by the canonical `newspaper4k` news path: `python -m playwright install --with-deps chromium` plus `camoufox fetch --browserforge`. That makes the backend and worker container images ready for Playwright and Scrapling StealthyFetcher without manual post-start setup.
 - **Cockpit WebFetcher**: Scrapling-backed path behind the same `fetch_text` / `search_and_fetch` API. Enable with **`COCKPIT_USE_SCRAPLING=1`**. When Scrapling is enabled:
   - **fetch_text**: Tries `Fetcher.get` first; if that returns empty or raises, retries with **StealthyFetcher** (headless) when available. Then falls back to httpx.
   - **search_and_fetch**: Uses **CSS-based URL extraction** from the DuckDuckGo search page (`_extract_urls_from_scrapling_search_page` with `a[href]`) with regex fallback, so layout changes are easier to handle.

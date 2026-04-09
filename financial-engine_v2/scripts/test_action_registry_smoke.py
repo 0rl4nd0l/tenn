@@ -1,4 +1,6 @@
+import os
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -37,6 +39,56 @@ class TestActionRegistrySmoke(unittest.TestCase):
                 "metric_extraction",
             ],
         )
+
+    def test_news_actions_respect_shared_scripts_override(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            workspace_root = Path(temp_dir)
+            scripts_root = workspace_root / "scripts"
+            scripts_root.mkdir(parents=True)
+            for script_name in (
+                "fetch_daily_news.py",
+                "backfill_news.py",
+                "load_news_to_qdrant.py",
+            ):
+                (scripts_root / script_name).write_text("# stub\n", encoding="utf-8")
+
+            prev = os.environ.get("COCKPIT_SHARED_SCRIPTS_ROOT")
+            prev_workspace = os.environ.get("COCKPIT_WORKSPACE_ROOT")
+            os.environ["COCKPIT_SHARED_SCRIPTS_ROOT"] = str(scripts_root)
+            os.environ["COCKPIT_WORKSPACE_ROOT"] = str(workspace_root)
+            try:
+                reg = ActionRegistry(repo_root=ROOT, confirm_required=True)
+            finally:
+                if prev is None:
+                    os.environ.pop("COCKPIT_SHARED_SCRIPTS_ROOT", None)
+                else:
+                    os.environ["COCKPIT_SHARED_SCRIPTS_ROOT"] = prev
+                if prev_workspace is None:
+                    os.environ.pop("COCKPIT_WORKSPACE_ROOT", None)
+                else:
+                    os.environ["COCKPIT_WORKSPACE_ROOT"] = prev_workspace
+
+            for action_id, script_name in (
+                ("daily_news_ingest", "fetch_daily_news.py"),
+                ("historical_news_ingest", "backfill_news.py"),
+                ("load_news_to_qdrant", "load_news_to_qdrant.py"),
+            ):
+                spec = reg.get(action_id)
+                self.assertEqual(
+                    str(spec.command_template[1]), str(scripts_root / script_name)
+                )
+
+            preview = reg.preview("daily_news_ingest", {})
+            self.assertIn(
+                str(workspace_root / "reports" / "qual_context" / "news_runs"),
+                preview.command,
+            )
+
+    def test_daily_news_ingest_defaults_to_newspaper4k(self):
+        reg = ActionRegistry(repo_root=ROOT, confirm_required=True)
+        preview = reg.preview("daily_news_ingest", {})
+        self.assertIn("newspaper4k", preview.command)
+        self.assertNotIn("eodhd,gdelt", preview.command)
 
     def test_build_preview_does_not_crash(self):
         reg = ActionRegistry(repo_root=ROOT, confirm_required=True)

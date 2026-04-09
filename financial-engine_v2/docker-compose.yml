@@ -37,7 +37,14 @@ services:
       COCKPIT_MODELS_NVME_DIR: /models/nvme
       COCKPIT_MODELS_SSD_DIR: /models/ssd
       COCKPIT_MODELS_HDD_DIR: /models/hdd
+      COCKPIT_SHARED_SCRIPTS_ROOT: /workspace/scripts
+      COCKPIT_WORKSPACE_ROOT: /workspace
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     volumes:
+      - ..:/workspace:ro
+      - ../reports:/workspace/reports
       - ./backend:/app
       - ./shared:/app/shared
       - ./cockpit:/app/cockpit
@@ -62,6 +69,9 @@ services:
     env_file: [.env.docker]
     environment:
       TENN_HOST_NETWORK: ${TENN_HOST_NETWORK:-true}
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     command: ["celery", "-A", "app.celery_app.celery", "worker", "--loglevel=INFO", "-Q", "ingest,embed,score,llm_cpu,llm_gpu"]
     volumes:
       - ./backend:/app
