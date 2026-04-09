@@ -3,6 +3,7 @@ from pathlib import Path
 from app.services.extraction_eval import (
     ExtractionFixture,
     MetricEvalStatus,
+    build_fixture_scorecard,
     evaluate_fixture,
     load_fixtures,
     summarize_overall_score,
@@ -131,3 +132,92 @@ def test_scoring_prefers_abstain_over_wrong_for_aggregate_metrics():
     assert summary["metric_scores"]["ebit"] == 0.0
     assert summary["metric_scores"]["net_debt"] == 0.0
     assert summary["metric_scores"]["shares_outstanding"] == 0.5
+
+
+def _fixture_payload_map() -> dict[str, dict]:
+    fixtures = load_fixtures(FIXTURES_DIR)
+    payloads: dict[str, dict] = {}
+    for fixture in fixtures:
+        payloads[fixture.fixture_id] = {
+            "period_type": fixture.context.period_type,
+            "period_end": fixture.context.period_end,
+            "currency": fixture.context.currency,
+            "scale": fixture.context.scale,
+            "metrics": dict(fixture.metrics),
+        }
+    return payloads
+
+
+def test_scorecard_helper_includes_status_totals_and_context_summaries():
+    payloads = _fixture_payload_map()
+
+    # wrong_value fixture intentionally mismatches a required metric.
+    payloads["wrong_value"]["metrics"]["revenue"] = 1_200_000
+
+    # missing_metric fixture simulates absent extraction for a required metric.
+    payloads["missing_metric"]["metrics"] = {}
+
+    # scoring_mix fixture intentionally mixes correct, wrong, and abstain.
+    payloads["scoring_mix"]["metrics"] = {
+        "revenue": 1_000_000,
+        "ebit": 50_000,
+        "net_debt": 2_000,
+    }
+
+    # context_mismatch fixture keeps period/scale correct but currency mismatched.
+    payloads["context_mismatch"]["currency"] = "AUD"
+
+    scorecard = build_fixture_scorecard(FIXTURES_DIR, payloads)
+
+    assert scorecard["total_fixture_count"] == 6
+    assert scorecard["total_metric_expectations"] == 14
+    assert scorecard["correct_count"] == 6
+    assert scorecard["wrong_count"] == 3
+    assert scorecard["missing_count"] == 1
+    assert scorecard["abstained_count"] == 3
+    assert scorecard["quarantined_count"] == 1
+
+    assert scorecard["period_correctness_summary"] == {
+        "expected_count": 6,
+        "matched_count": 6,
+        "mismatched_count": 0,
+        "missing_count": 0,
+    }
+    assert scorecard["currency_correctness_summary"] == {
+        "expected_count": 6,
+        "matched_count": 5,
+        "mismatched_count": 1,
+        "missing_count": 0,
+    }
+    assert scorecard["scale_correctness_summary"] == {
+        "expected_count": 6,
+        "matched_count": 6,
+        "mismatched_count": 0,
+        "missing_count": 0,
+    }
+
+
+def test_scorecard_per_fixture_entries_are_stable_and_complete():
+    payloads = _fixture_payload_map()
+    scorecard = build_fixture_scorecard(FIXTURES_DIR, payloads)
+    entries = scorecard["fixture_summaries"]
+    assert [e["fixture_id"] for e in entries] == [
+        "context_mismatch",
+        "correct_ok",
+        "missing_metric",
+        "optional_abstain",
+        "scoring_mix",
+        "wrong_value",
+    ]
+
+    by_fixture = {e["fixture_id"]: e for e in entries}
+    correct_ok = by_fixture["correct_ok"]
+    assert correct_ok["metric_count"] == 5
+    assert correct_ok["correct_count"] == 4
+    assert correct_ok["abstain_count"] == 1
+    assert correct_ok["context_ok"] is True
+
+    context_mismatch = by_fixture["context_mismatch"]
+    assert context_mismatch["context_ok"] is True
+    assert context_mismatch["quarantine_count"] == 0
+    assert context_mismatch["metric_count"] == 1

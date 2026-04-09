@@ -48,3 +48,31 @@ When quarantined, all metrics in that fixture are excluded from aggregate scorin
 - No DB writes, no embedding calls, no retrieval.
 - No production metric thresholds are inferred from synthetic fixtures.
 - No synthetic fixture is a benchmark claim for model quality.
+
+## Reporting helper
+
+Generate a deterministic scorecard JSON directly from the synthetic fixture set:
+
+```bash
+python financial-engine_v2/scripts/extraction_eval_scorecard.py
+```
+
+Optional actual payload file (fixture_id -> extracted payload mapping):
+
+```bash
+python financial-engine_v2/scripts/extraction_eval_scorecard.py \
+  --actuals-json /path/to/actuals.json
+```
+
+Output is a stable JSON object with keys including:
+- `total_fixture_count`
+- `total_metric_expectations`
+- `correct_count`
+- `wrong_count`
+- `missing_count`
+- `abstained_count`
+- `quarantined_count`
+- `period_correctness_summary`
+- `currency_correctness_summary`
+- `scale_correctness_summary`
+- `fixture_summaries`

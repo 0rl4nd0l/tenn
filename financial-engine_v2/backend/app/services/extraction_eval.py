@@ -274,6 +274,62 @@ def summarize_overall_score(evaluations: Iterable[FixtureEvaluation]) -> dict[st
     }
 
 
+def build_fixture_scorecard(
+    fixtures_dir: str | Path,
+    extracted_payloads: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Build a stable JSON-serializable scorecard for all fixtures.
+
+    The scorecard is deterministic: fixtures are processed and serialized in
+    sorted order, and every field is present even when empty.
+    """
+
+    fixtures = load_fixtures(fixtures_dir)
+    fixture_payloads: dict[str, dict[str, Any]] = extracted_payloads or {}
+    evaluations = classify_fixtures_against_payloads(fixtures, fixture_payloads)
+
+    status_counts = {
+        "correct": 0,
+        "wrong": 0,
+        "missing": 0,
+        "abstain": 0,
+        "quarantine": 0,
+    }
+    fixture_summaries: list[dict[str, Any]] = []
+
+    for eval_result in evaluations:
+        summary = _summarize_fixture_eval(eval_result)
+        fixture_summaries.append(summary)
+        for status in status_counts:
+            status_counts[status] += summary[status + "_count"]
+
+    total_metric_expectations = sum(v["metric_count"] for v in fixture_summaries)
+    period_summary = _build_context_summary(fixtures, fixture_payloads, "period_end")
+    currency_summary = _build_context_summary(fixtures, fixture_payloads, "currency")
+    scale_summary = _build_context_summary(fixtures, fixture_payloads, "scale")
+
+    return {
+        "total_fixture_count": len(fixtures),
+        "total_metric_expectations": total_metric_expectations,
+        "correct_count": status_counts["correct"],
+        "wrong_count": status_counts["wrong"],
+        "missing_count": status_counts["missing"],
+        "abstained_count": status_counts["abstain"],
+        "quarantined_count": status_counts["quarantine"],
+        "period_correctness_summary": period_summary,
+        "currency_correctness_summary": currency_summary,
+        "scale_correctness_summary": scale_summary,
+        "fixture_summaries": fixture_summaries,
+        "status_summary": {
+            "correct": status_counts["correct"],
+            "wrong": status_counts["wrong"],
+            "missing": status_counts["missing"],
+            "abstain": status_counts["abstain"],
+            "quarantine": status_counts["quarantine"],
+        },
+    }
+
+
 def _status_score(status: MetricEvalStatus) -> float | None:
     if status == MetricEvalStatus.CORRECT:
         return 1.0
@@ -282,6 +338,81 @@ def _status_score(status: MetricEvalStatus) -> float | None:
     if status in (MetricEvalStatus.WRONG, MetricEvalStatus.MISSING):
         return 0.0
     return None
+
+
+def _summarize_fixture_eval(evaluation: FixtureEvaluation) -> dict[str, Any]:
+    """Return a compact per-fixture status summary."""
+
+    metric_count = len(evaluation.metrics)
+    status_counts = {
+        "correct_count": 0,
+        "wrong_count": 0,
+        "missing_count": 0,
+        "abstain_count": 0,
+        "quarantine_count": 0,
+    }
+
+    for metric_eval in evaluation.metrics:
+        if metric_eval.status == MetricEvalStatus.CORRECT:
+            status_counts["correct_count"] += 1
+        elif metric_eval.status == MetricEvalStatus.WRONG:
+            status_counts["wrong_count"] += 1
+        elif metric_eval.status == MetricEvalStatus.MISSING:
+            status_counts["missing_count"] += 1
+        elif metric_eval.status == MetricEvalStatus.ABSTAIN:
+            status_counts["abstain_count"] += 1
+        elif metric_eval.status == MetricEvalStatus.QUARANTINE:
+            status_counts["quarantine_count"] += 1
+
+    return {
+        "fixture_id": evaluation.fixture_id,
+        "context_ok": evaluation.context_ok,
+        "context_mismatches": evaluation.context_mismatches,
+        "metric_count": metric_count,
+        **status_counts,
+        "overall_score": evaluation.overall_score,
+    }
+
+
+def _build_context_summary(
+    fixtures: Iterable[ExtractionFixture],
+    extracted_payloads: dict[str, dict[str, Any]],
+    field_name: str,
+) -> dict[str, int]:
+    """Return stable match/mismatch counts for one fixture context field."""
+
+    expected_total = 0
+    matched = 0
+    mismatched = 0
+    missing = 0
+
+    for fixture in fixtures:
+        expected_raw = str_or_none(
+            getattr(fixture.context, field_name, None),
+        )
+        if expected_raw is None:
+            continue
+
+        expected_total += 1
+        actual_payload = extracted_payloads.get(fixture.fixture_id, {})
+        actual_raw = str_or_none(actual_payload.get(field_name))
+
+        if actual_raw is None:
+            missing += 1
+            mismatched += 1
+            continue
+
+        if actual_raw.lower() == expected_raw.lower():
+            matched += 1
+        else:
+            mismatched += 1
+
+    return {
+        "expected_count": expected_total,
+        "matched_count": matched,
+        "mismatched_count": mismatched,
+        "missing_count": missing,
+    }
 
 
 def _compare_expected_null(metric: str, actual: float | None) -> MetricEvalStatus:
