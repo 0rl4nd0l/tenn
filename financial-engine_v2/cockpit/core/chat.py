@@ -8,6 +8,7 @@ import threading
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 try:
     from enum import StrEnum
@@ -39,6 +40,7 @@ from cockpit.core.backend_proposals import (
     build_backend_access_proposal_request,
     build_backend_runtime_remediation_request,
 )
+from cockpit.core.sources import SourcesFormatter
 
 
 class ResponseMode(StrEnum):
@@ -154,10 +156,13 @@ class ChatController:
         thread_id: str = "global-main",
         memory_store=None,
         cockpit_llm: dict[str, Any] | None = None,
+        repo_root: Path | None = None,
+        query_orchestrator=None,
     ) -> None:
         # Same .env as backend (financial-engine_v2/.env) — must run before ANTHROPIC_* checks.
         load_env(Path(__file__).resolve().parents[2])
 
+        self.repo_root = repo_root or Path(__file__).resolve().parents[2]
         self.ollama_client = ollama_client
         self.tool_router = tool_router
         self.action_registry = action_registry
@@ -167,7 +172,9 @@ class ChatController:
         self._state_store = state_store
         self._thread_id = thread_id
         self._memory = memory_store
+        self._query_orchestrator = query_orchestrator
         self._ov_session_id: str = uuid.uuid4().hex
+        self._latest_sources_payloads: list[dict[str, Any]] = []
         _ov_log_startup_status()
         # Prevents concurrent context-gather calls from stacking up.
         self._context_gather_lock = threading.Lock()
@@ -217,6 +224,16 @@ class ChatController:
 
                 from cockpit.core.llm_profile import resolve_hybrid_router_policy
 
+                # Import extraction-state checker so HybridRouter can route
+                # chat to the cloud API while GPU extraction is running.
+                extraction_checker = None
+                try:
+                    from app.services.router_state import is_extraction_active
+
+                    extraction_checker = is_extraction_active
+                except Exception:
+                    pass  # Backend not available (e.g. standalone cockpit)
+
                 hybrid_router = HybridRouter(
                     llm_client=ollama_client,
                     api_client=api_client,
@@ -225,6 +242,7 @@ class ChatController:
                         cockpit_llm=self._cockpit_llm,
                     ),
                     llm_timeout=self.llm_timeout_seconds,
+                    extraction_active_fn=extraction_checker,
                 )
                 self._hybrid_router = hybrid_router
 
@@ -777,8 +795,11 @@ class ChatController:
 
         ticker_cue_patterns = (
             r"\b(?:about|on|for|vs|versus|compare|chart|price|financials?|announcements?|news|"
-            r"analyse|analyze|analysis|ticker|stock|company|research|show|plot|candlestick|candle)\s+{token}\b",
-            r"\b{token}\s+(?:vs|versus|chart|price|financials?|announcements?|news)\b",
+            r"analyse|analyze|analysis|ticker|stock|company|research|show|plot|candlestick|candle|"
+            r"was|history)\s+{token}\b",
+            r"\bprice\s+history\s+{token}\b",
+            r"\b{token}\s+(?:vs|versus|chart|price|financials?|announcements?|news|on|between|"
+            r"close|closing|summary|performance)\b",
         )
         for original, upper in tokens:
             if upper in self.TICKER_STOPWORDS:
@@ -817,6 +838,12 @@ class ChatController:
     _GLOBAL_ANNOUNCEMENT_RE = re.compile(
         r"\basx\s+announc|\ball\s+announc|\bmarket.?wide\s+announc", re.IGNORECASE
     )
+    _DOCUMENT_GROUNDING_RE = re.compile(
+        r"\b(?:based on|from|in)\s+(?:the\s+)?(?:announcement|document|release|filing|report|results?|presentation)\b"
+        r"|\b(?:what does|what did)\s+(?:the\s+)?(?:announcement|document|release|filing|report|results?|presentation)\s+say\b"
+        r"|\b(?:summari(?:s|z)e|quote)\s+(?:the\s+)?(?:announcement|document|release|filing|report|results?|presentation)\b",
+        re.IGNORECASE,
+    )
 
     def _is_global_news_request(self, message: str) -> bool:
         """Return True when the message targets market-wide news rather than a specific company."""
@@ -825,6 +852,22 @@ class ChatController:
     def _is_global_announcement_request(self, message: str) -> bool:
         """Return True when the message targets market-wide ASX announcements."""
         return bool(self._GLOBAL_ANNOUNCEMENT_RE.search(message))
+
+    def _query_requires_document_grounding(self, message: str) -> bool:
+        return bool(self._DOCUMENT_GROUNDING_RE.search(str(message or "")))
+
+    @staticmethod
+    def _orchestration_has_substantive_evidence(orchestration_result) -> bool:
+        if orchestration_result is None:
+            return False
+        return bool(
+            orchestration_result.financial_truth_results.get("items")
+            or orchestration_result.financial_truth_results.get(
+                "latest_financial_snapshot"
+            )
+            or orchestration_result.company_memory_results.get("items")
+            or orchestration_result.market_memory_results.get("items")
+        )
 
     # Chart intent keywords — checked before general action detection.
     # NOTE: "price history" is a price-query pattern, not a chart request.
@@ -857,10 +900,350 @@ class ChatController:
         r"|show\s+\S+\s*chart",
         re.IGNORECASE,
     )
+    _AFFIRMATIVE_REPLY_RE = re.compile(
+        r"^\s*(?:ok(?:ay)?|yes|yep|yeah|sure|go ahead|please do|do it|sounds good|alright|all right|fine|works for me)\s*[!?.]*\s*$",
+        re.IGNORECASE,
+    )
+    _NEGATIVE_REPLY_RE = re.compile(
+        r"^\s*(?:no|nope|nah|no thanks|not now|stop|cancel|skip|don't|do not)\b.*$",
+        re.IGNORECASE,
+    )
+    _CONFIRMABLE_ASSISTANT_RE = re.compile(
+        r"(?:\?|would you like|do you want|should I|shall I|can I|want me to|if you'd like|if you want|let me know and I can|I can offer to|I can provide|I can give you)",
+        re.IGNORECASE,
+    )
+    _SUMMARY_OFFER_RE = re.compile(
+        r"(?:offer to give you a summary|give you a summary|provide (?:you )?a summary|summar(?:y|ize).*(?:helpful|if you'd like|if you want))",
+        re.IGNORECASE,
+    )
+    _ARTICLE_TEXT_REQUEST_RE = re.compile(
+        r"(?:\bprint\b|\bshow\b|\bgive me\b|\bread\b|\bdisplay\b|\bpaste\b).*(?:\bfull\b|\bentire\b|\bcontents?\b).*(?:\barticle\b|\bstory\b)"
+        r"|\bprint the contents of the article\b"
+        r"|\bprint the full [a-z]+ article\b",
+        re.IGNORECASE,
+    )
+    _ARTICLE_DOMAIN_HINTS = {
+        "kalkine": "kalkinemedia.com",
+        "stockhead": "stockhead.com.au",
+        "afr": "afr.com",
+        "market index": "marketindex.com.au",
+    }
 
     def detect_chart_intent(self, message: str) -> bool:
         """Return True if *message* looks like a chart request."""
         return bool(self._CHART_KEYWORDS.search(message))
+
+    def _classify_confirmation_reply(self, message: str) -> str | None:
+        text = str(message or "").strip()
+        if not text:
+            return None
+        if self._NEGATIVE_REPLY_RE.match(text):
+            return "no"
+        if self._AFFIRMATIVE_REPLY_RE.match(text):
+            return "yes"
+        return None
+
+    def _recent_confirmation_context(
+        self, current_message: str
+    ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+        if self._state_store is None:
+            return None, None
+        try:
+            history_msgs = self._state_store.get_chat_messages(
+                self._thread_id, limit=10
+            )
+        except Exception:
+            return None, None
+        if not history_msgs:
+            return None, None
+
+        current_text = str(current_message or "").strip()
+        if (
+            current_text
+            and history_msgs[-1].get("role") == "user"
+            and str(history_msgs[-1].get("content") or "").strip() == current_text
+        ):
+            history_msgs = history_msgs[:-1]
+        if not history_msgs:
+            return None, None
+
+        assistant_idx: int | None = None
+        for idx in range(len(history_msgs) - 1, -1, -1):
+            if history_msgs[idx].get("role") == "assistant":
+                assistant_idx = idx
+                break
+        if assistant_idx is None:
+            return None, None
+
+        prior_user = None
+        for idx in range(assistant_idx - 1, -1, -1):
+            if history_msgs[idx].get("role") == "user":
+                prior_user = history_msgs[idx]
+                break
+        return prior_user, history_msgs[assistant_idx]
+
+    def _assistant_invited_confirmation(self, assistant_text: str) -> bool:
+        return bool(self._CONFIRMABLE_ASSISTANT_RE.search(str(assistant_text or "")))
+
+    def _find_recent_article_reference(self, message: str) -> dict[str, str] | None:
+        if self._state_store is None:
+            return None
+        try:
+            history_msgs = self._state_store.get_chat_messages(
+                self._thread_id, limit=10
+            )
+        except Exception:
+            return None
+
+        text = str(message or "").lower()
+        preferred_domain = ""
+        for hint, domain in self._ARTICLE_DOMAIN_HINTS.items():
+            if hint in text:
+                preferred_domain = domain
+                break
+
+        url_pattern = re.compile(r"https?://\S+")
+        for row in reversed(history_msgs):
+            if row.get("role") != "assistant":
+                continue
+            content = str(row.get("content") or "")
+            urls = [
+                match.group(0).rstrip(").,") for match in url_pattern.finditer(content)
+            ]
+            if not urls:
+                continue
+            chosen_url = ""
+            if preferred_domain:
+                for url in urls:
+                    if preferred_domain in url.lower():
+                        chosen_url = url
+                        break
+            if not chosen_url:
+                chosen_url = urls[0]
+            if not chosen_url:
+                continue
+            domain = urlparse(chosen_url).netloc.lower()
+            return {"url": chosen_url, "domain": domain}
+        return None
+
+    def _try_article_text_request(self, message: str) -> ChatResponse | None:
+        if not self._ARTICLE_TEXT_REQUEST_RE.search(str(message or "")):
+            return None
+
+        article_ref = self._find_recent_article_reference(message)
+        if article_ref is None:
+            return ChatResponse(
+                text="I couldn't identify which local article you mean. If you want, paste the article URL or ask me to summarize the article you just referenced instead.",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        url = article_ref.get("url", "")
+        article = (
+            self.tool_router.get_local_news_article(url)
+            if hasattr(self.tool_router, "get_local_news_article")
+            else {"ok": False, "error": "local article reader unavailable", "url": url}
+        )
+        if not bool(article.get("ok")):
+            target_url = str(article.get("url") or url).strip()
+            text = "I couldn't print that article from the local corpus"
+            error = str(article.get("error") or "").strip()
+            if error:
+                text += f": {error}."
+            else:
+                text += "."
+            if target_url:
+                text += f"\n{target_url}"
+            return ChatResponse(
+                text=text,
+                evidence=[{"type": "article_request", "details": article_ref}],
+                mode=ResponseMode.FAST,
+            )
+
+        title = str(article.get("title") or "").strip()
+        published_at = str(article.get("published_at") or "").strip()
+        provider = str(article.get("provider") or "").strip()
+        body = str(article.get("body") or "").strip()
+        lines: list[str] = []
+        if title:
+            lines.append(title)
+        meta_bits = [
+            bit
+            for bit in (published_at[:10] if published_at else "", provider, url)
+            if bit
+        ]
+        if meta_bits:
+            lines.append(" | ".join(meta_bits))
+        if body:
+            if lines:
+                lines.append("")
+            lines.append(body)
+        return ChatResponse(
+            text="\n".join(lines),
+            evidence=[
+                {"type": "article_request", "details": {**article_ref, **article}}
+            ],
+            mode=ResponseMode.FAST,
+        )
+
+    @staticmethod
+    def _extract_summary_points(text: str, *, max_points: int = 2) -> list[str]:
+        cleaned = re.sub(r"\s+", " ", str(text or "").strip())
+        if not cleaned:
+            return []
+        sentences = [
+            sentence.strip(" -")
+            for sentence in re.split(r"(?<=[.!?])\s+", cleaned)
+            if sentence.strip()
+        ]
+        points = [sentence for sentence in sentences if len(sentence) >= 40][
+            :max_points
+        ]
+        if points:
+            return points
+        return [cleaned[:220]]
+
+    def _try_summary_offer_followup(
+        self, message: str, prior_ticker: str | None
+    ) -> ChatResponse | None:
+        decision = self._classify_confirmation_reply(message)
+        if decision is None:
+            return None
+
+        prior_user, prior_assistant = self._recent_confirmation_context(message)
+        assistant_text = str((prior_assistant or {}).get("content") or "")
+        if not assistant_text or not self._SUMMARY_OFFER_RE.search(assistant_text):
+            return None
+        if decision == "no":
+            return ChatResponse(
+                text="Okay, I won't do that.",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        prior_user_text = str((prior_user or {}).get("content") or "")
+        inferred_ticker, _ = self._resolve_ticker_context(
+            prior_user_text, prior_ticker=prior_ticker
+        )
+        requested_stockhead = "stockhead" in prior_user_text.lower()
+        resolved_ticker = inferred_ticker or prior_ticker
+        query = resolved_ticker or prior_user_text or ""
+        if requested_stockhead and resolved_ticker:
+            query = f"{resolved_ticker} stockhead article"
+
+        try:
+            payload = self.tool_router.get_news_context(
+                query=query,
+                top_k=5,
+                ticker=resolved_ticker,
+            )
+        except Exception:
+            return None
+
+        raw_hits = payload.get("hits") if isinstance(payload, dict) else []
+        hits = (
+            [row for row in raw_hits if isinstance(row, dict)]
+            if isinstance(raw_hits, list)
+            else []
+        )
+        if requested_stockhead:
+            stockhead_hits = [
+                hit
+                for hit in hits
+                if "stockhead.com.au" in str(hit.get("url") or "").lower()
+            ]
+            if stockhead_hits:
+                hits = stockhead_hits
+            elif resolved_ticker and query != resolved_ticker:
+                try:
+                    fallback_payload = self.tool_router.get_news_context(
+                        query=resolved_ticker,
+                        top_k=5,
+                        ticker=resolved_ticker,
+                    )
+                except Exception:
+                    fallback_payload = {}
+                fallback_raw_hits = (
+                    fallback_payload.get("hits")
+                    if isinstance(fallback_payload, dict)
+                    else []
+                )
+                fallback_hits = [
+                    row
+                    for row in fallback_raw_hits
+                    if isinstance(row, dict)
+                    and "stockhead.com.au" in str(row.get("url") or "").lower()
+                ]
+                if fallback_hits:
+                    hits = fallback_hits
+        if not hits:
+            target = resolved_ticker or "that article"
+            return ChatResponse(
+                text=f"Okay. I couldn't find a matching indexed article to summarize for {target}.",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        hit = hits[0]
+        title = str(hit.get("title") or "the requested article").strip()
+        published_at = str(hit.get("published_at") or "").strip()
+        url = str(hit.get("url") or "").strip()
+        summary_points = self._extract_summary_points(
+            str(hit.get("text") or hit.get("snippet") or "")
+        )
+
+        lines = [f"Here’s the summary for {title}:"]
+        if published_at:
+            lines.append(f"Published: {published_at[:10]}")
+        for point in summary_points:
+            lines.append(f"- {point}")
+        if url:
+            lines.append(url)
+
+        return ChatResponse(
+            text="\n".join(lines),
+            evidence=[
+                {
+                    "type": "news_summary",
+                    "details": {
+                        "title": title,
+                        "published_at": published_at,
+                        "url": url,
+                        "ticker": resolved_ticker,
+                    },
+                }
+            ],
+            mode=ResponseMode.FAST,
+        )
+
+    def _rewrite_confirmation_followup(
+        self, message: str, prior_ticker: str | None
+    ) -> str | None:
+        decision = self._classify_confirmation_reply(message)
+        if decision is None:
+            return None
+
+        _prior_user, prior_assistant = self._recent_confirmation_context(message)
+        assistant_text = str((prior_assistant or {}).get("content") or "")
+        if not assistant_text or not self._assistant_invited_confirmation(
+            assistant_text
+        ):
+            return None
+
+        answer = (
+            "yes, please proceed with that"
+            if decision == "yes"
+            else "no, do not proceed with that"
+        )
+        if prior_ticker:
+            return (
+                f"Regarding your last question or offer about {prior_ticker}: {assistant_text}\n"
+                f"My answer is {answer}."
+            )
+        return (
+            f"Regarding your last question or offer: {assistant_text}\n"
+            f"My answer is {answer}."
+        )
 
     def detect_action_intent(self, message: str) -> str | None:
         text = message.lower()
@@ -882,6 +1265,86 @@ class ChatController:
         r"\bprice\s+history\b",
         re.IGNORECASE,
     )
+    _RELATIVE_WEEK_RE = re.compile(
+        r"\b(?:last|past|previous)\s+week\b",
+        re.IGNORECASE,
+    )
+    _DIRECT_NEWS_RE = re.compile(
+        r"^\s*(?:latest\s+)?(?:news(?:\s+for)?\s+(?P<prefix>[A-Za-z0-9]{2,5})|(?P<suffix>[A-Za-z0-9]{2,5})\s+news)\s*[?!.]*\s*$",
+        re.IGNORECASE,
+    )
+
+    def _try_news_shortcircuit(
+        self, message: str, ticker: str | None
+    ) -> ChatResponse | None:
+        if ticker is None:
+            return None
+        if not self._DIRECT_NEWS_RE.fullmatch(message.strip()):
+            return None
+
+        try:
+            payload = self.tool_router.get_news_context(
+                query=ticker,
+                top_k=5,
+                ticker=ticker,
+            )
+        except Exception:
+            return None
+
+        raw_hits = payload.get("hits") if isinstance(payload, dict) else []
+        hits = (
+            [row for row in raw_hits if isinstance(row, dict)]
+            if isinstance(raw_hits, list)
+            else []
+        )
+        if not hits:
+            return ChatResponse(
+                text=f"I couldn't find recent indexed news for {ticker}.",
+                evidence=[
+                    {
+                        "type": "news_search",
+                        "details": {"ticker": ticker, "hits": []},
+                    }
+                ],
+                mode=ResponseMode.FAST,
+            )
+
+        lines = [f"Recent {ticker}-linked news:"]
+        summarized_hits: list[dict[str, Any]] = []
+        for hit in hits[:5]:
+            title = str(hit.get("title") or "Untitled").strip()
+            published_at = str(hit.get("published_at") or "").strip()
+            url = str(hit.get("url") or "").strip()
+            snippet = re.sub(
+                r"\s+", " ", str(hit.get("text") or hit.get("snippet") or "").strip()
+            )[:180]
+            lines.append(f"- {title}")
+            if published_at:
+                lines.append(f"  published: {published_at[:10]}")
+            if snippet:
+                lines.append(f"  {snippet}")
+            if url:
+                lines.append(f"  {url}")
+            summarized_hits.append(
+                {
+                    "title": title,
+                    "published_at": published_at,
+                    "url": url,
+                    "snippet": snippet,
+                    "score": hit.get("score") or hit.get("final_score"),
+                }
+            )
+
+        return ChatResponse(
+            text="\n".join(lines),
+            evidence=[
+                {
+                    "type": "news_search",
+                    "details": {"ticker": ticker, "hits": summarized_hits},
+                }
+            ],
+            mode=ResponseMode.FAST,
+        )
 
     def _try_price_history_shortcircuit(
         self, message: str, ticker: str | None
@@ -928,6 +1391,50 @@ class ChatController:
 
         if not dated_closes:
             return None
+
+        msg_lower = message.lower()
+
+        # --- Relative weekly summary: "price summary for last week" ---
+        if self._RELATIVE_WEEK_RE.search(message) and any(
+            marker in msg_lower
+            for marker in ("price", "close", "summary", "performance", "trading")
+        ):
+            week_window = dated_closes[-5:] if len(dated_closes) >= 2 else dated_closes
+            if len(week_window) >= 2:
+                first_date = week_window[0][0]
+                final_date = week_window[-1][0]
+                first_close = week_window[0][1]
+                last_close = week_window[-1][1]
+                period_return = (
+                    ((last_close / first_close) - 1.0) * 100.0
+                    if first_close != 0
+                    else 0.0
+                )
+                high = max(c for _, c in week_window)
+                low = min(c for _, c in week_window)
+                text = (
+                    f"Last-week price summary for {symbol}\n"
+                    f"Coverage: {first_date} to {final_date} ({len(week_window)} points)\n"
+                    f"Period return (close-to-close): {period_return:+.2f}%\n"
+                    f"High: {high:.4f}  Low: {low:.4f}  Last close: {last_close:.4f}"
+                )
+                return ChatResponse(
+                    text=text,
+                    evidence=[
+                        {
+                            "type": "local_context",
+                            "details": {
+                                "price_history_query": {
+                                    "kind": "relative_week",
+                                    "ticker": ticker,
+                                    "start": first_date,
+                                    "end": final_date,
+                                }
+                            },
+                        }
+                    ],
+                    mode=ResponseMode.FAST,
+                )
 
         # --- Range query: "between DATE and DATE" ---
         range_match = self._RANGE_RE.search(message)
@@ -1201,9 +1708,26 @@ class ChatController:
 
     # -- Toggle commands ------------------------------------------------ #
 
+    @staticmethod
+    def _parse_positive_int(value: str) -> int | None:
+        try:
+            parsed = int(value.strip())
+        except Exception:
+            return None
+        if parsed <= 0:
+            return None
+        return parsed
+
+    def _set_latest_sources_payloads(self, evidence: list[dict[str, Any]]) -> None:
+        self._latest_sources_payloads = SourcesFormatter.collect_sources_payloads(
+            evidence
+        )
+
     def _slash_web(self, sub: str, _rest: str) -> ChatResponse | None:
         if sub not in ("on", "off"):
-            return ChatResponse(text="Usage: /web on|off", evidence=[], mode=ResponseMode.FAST)
+            return ChatResponse(
+                text="Usage: /web on|off", evidence=[], mode=ResponseMode.FAST
+            )
         enabled = sub == "on"
         if hasattr(self.tool_router, "web_default_enabled"):
             self.tool_router.web_default_enabled = enabled
@@ -1215,7 +1739,9 @@ class ChatController:
 
     def _slash_rag(self, sub: str, _rest: str) -> ChatResponse | None:
         if sub not in ("on", "off"):
-            return ChatResponse(text="Usage: /rag on|off", evidence=[], mode=ResponseMode.FAST)
+            return ChatResponse(
+                text="Usage: /rag on|off", evidence=[], mode=ResponseMode.FAST
+            )
         enabled = sub == "on"
         if hasattr(self.tool_router, "qual_context_enabled"):
             self.tool_router.qual_context_enabled = enabled
@@ -1227,7 +1753,9 @@ class ChatController:
 
     def _slash_dbdiag(self, sub: str, _rest: str) -> ChatResponse | None:
         if sub not in ("on", "off"):
-            return ChatResponse(text="Usage: /dbdiag on|off", evidence=[], mode=ResponseMode.FAST)
+            return ChatResponse(
+                text="Usage: /dbdiag on|off", evidence=[], mode=ResponseMode.FAST
+            )
         enabled = sub == "on"
         if hasattr(self.tool_router, "db_diagnostics_enabled"):
             self.tool_router.db_diagnostics_enabled = enabled
@@ -1237,14 +1765,73 @@ class ChatController:
             mode=ResponseMode.FAST,
         )
 
-    def _slash_sources(self, sub: str, _rest: str) -> ChatResponse | None:
-        if sub not in ("on", "off"):
-            return ChatResponse(text="Usage: /sources on|off", evidence=[], mode=ResponseMode.FAST)
-        enabled = sub == "on"
+    def _slash_sources(self, sub: str, rest: str) -> ChatResponse | None:
+        if sub in ("on", "off"):
+            enabled = sub == "on"
+            if self._state_store is not None:
+                self._state_store.set_preference(
+                    "show_sources", "true" if enabled else "false"
+                )
+            return ChatResponse(
+                text=f"Source display {'enabled' if enabled else 'disabled'}.",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        if sub == "list":
+            footer = SourcesFormatter.format_list(self._latest_sources_payloads)
+            if footer:
+                return ChatResponse(text=footer, evidence=[], mode=ResponseMode.FAST)
+            return ChatResponse(
+                text="No sources available for inspection. Ask a question first.",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        if sub == "show":
+            if not self._latest_sources_payloads:
+                return ChatResponse(
+                    text="No sources available for inspection. Ask a question first.",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+            index = self._parse_positive_int(rest)
+            if index is None:
+                return ChatResponse(
+                    text="Usage: /sources show <n>", evidence=[], mode=ResponseMode.FAST
+                )
+            show_text = SourcesFormatter.format_show(
+                self._latest_sources_payloads, index
+            )
+            return ChatResponse(
+                text=show_text,
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        if sub:
+            if self._state_store is not None:
+                current = self._state_store.get_preference("show_sources", "true")
+            else:
+                current = "true"
+            return ChatResponse(
+                text=(
+                    f"Sources display: {'ON' if current == 'true' else 'OFF'}. "
+                    "Use /sources on|off to toggle."
+                ),
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
         if self._state_store is not None:
-            self._state_store.set_preference("show_sources", "true" if enabled else "false")
+            current = self._state_store.get_preference("show_sources", "true")
+        else:
+            current = "true"
         return ChatResponse(
-            text=f"Source display {'enabled' if enabled else 'disabled'}.",
+            text=(
+                f"Sources display: {'ON' if current == 'true' else 'OFF'}. "
+                "Use /sources on|off to toggle."
+            ),
             evidence=[],
             mode=ResponseMode.FAST,
         )
@@ -1257,8 +1844,10 @@ class ChatController:
             ("llama.cpp", "ollama_client"),
             ("backend", None),
         ]:
-            client = getattr(self, client_attr, None) if client_attr else getattr(
-                self.tool_router, "backend_api_client", None
+            client = (
+                getattr(self, client_attr, None)
+                if client_attr
+                else getattr(self.tool_router, "backend_api_client", None)
             )
             if client is None:
                 lines.append(f"  {name}: not configured")
@@ -1277,7 +1866,9 @@ class ChatController:
         # Truncate for readability.
         if len(prompt_text) > 2000:
             prompt_text = prompt_text[:2000] + "\n... (truncated)"
-        return ChatResponse(text=f"```\n{prompt_text}\n```", evidence=[], mode=ResponseMode.FAST)
+        return ChatResponse(
+            text=f"```\n{prompt_text}\n```", evidence=[], mode=ResponseMode.FAST
+        )
 
     def _slash_access(self, _sub: str, _rest: str) -> ChatResponse | None:
         lines: list[str] = ["Access status:"]
@@ -1300,12 +1891,18 @@ class ChatController:
 
     def _slash_watch(self, sub: str, rest: str) -> ChatResponse | None:
         if self._state_store is None:
-            return ChatResponse(text="Watchlist not available (no state store).", evidence=[], mode=ResponseMode.FAST)
+            return ChatResponse(
+                text="Watchlist not available (no state store).",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
 
         if sub == "list":
             items = self._state_store.list_watch_tickers()
             if not items:
-                return ChatResponse(text="Watchlist is empty.", evidence=[], mode=ResponseMode.FAST)
+                return ChatResponse(
+                    text="Watchlist is empty.", evidence=[], mode=ResponseMode.FAST
+                )
             lines = [f"  {r['ticker']}  (added {r['added_at'][:10]})" for r in items]
             return ChatResponse(
                 text=f"Watchlist ({len(items)}):\n" + "\n".join(lines),
@@ -1316,27 +1913,49 @@ class ChatController:
         if sub == "add":
             ticker = rest.strip().upper()
             if not ticker:
-                return ChatResponse(text="Usage: /watch add <TICKER>", evidence=[], mode=ResponseMode.FAST)
+                return ChatResponse(
+                    text="Usage: /watch add <TICKER>",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
             now = datetime.now(timezone.utc).isoformat()
             inserted = self._state_store.add_watch_ticker(ticker, now)
-            msg = f"Added {ticker} to watchlist." if inserted else f"{ticker} already on watchlist."
+            msg = (
+                f"Added {ticker} to watchlist."
+                if inserted
+                else f"{ticker} already on watchlist."
+            )
             return ChatResponse(text=msg, evidence=[], mode=ResponseMode.FAST)
 
         if sub == "remove":
             ticker = rest.strip().upper()
             if not ticker:
-                return ChatResponse(text="Usage: /watch remove <TICKER>", evidence=[], mode=ResponseMode.FAST)
+                return ChatResponse(
+                    text="Usage: /watch remove <TICKER>",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
             removed = self._state_store.remove_watch_ticker(ticker)
-            msg = f"Removed {ticker} from watchlist." if removed else f"{ticker} not found on watchlist."
+            msg = (
+                f"Removed {ticker} from watchlist."
+                if removed
+                else f"{ticker} not found on watchlist."
+            )
             return ChatResponse(text=msg, evidence=[], mode=ResponseMode.FAST)
 
         if sub == "clear":
             count = self._state_store.clear_watch_tickers()
-            return ChatResponse(text=f"Watchlist cleared ({count} removed).", evidence=[], mode=ResponseMode.FAST)
+            return ChatResponse(
+                text=f"Watchlist cleared ({count} removed).",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
 
         if sub == "scan":
             ticker_arg = rest.strip().upper() or None
-            if self._agent_loop is not None and hasattr(self._agent_loop, "_tool_executor"):
+            if self._agent_loop is not None and hasattr(
+                self._agent_loop, "_tool_executor"
+            ):
                 executor = self._agent_loop._tool_executor
                 tickers_csv = ticker_arg or ""
                 result = executor.execute("scan_watchlist", {"tickers": tickers_csv})
@@ -1359,25 +1978,35 @@ class ChatController:
                 mode=ResponseMode.FAST,
             )
 
-        return ChatResponse(text="Usage: /watch list|add|remove|clear|scan", evidence=[], mode=ResponseMode.FAST)
+        return ChatResponse(
+            text="Usage: /watch list|add|remove|clear|scan",
+            evidence=[],
+            mode=ResponseMode.FAST,
+        )
 
     # -- Strategy commands ---------------------------------------------- #
 
     def _slash_strategy(self, sub: str, rest: str) -> ChatResponse | None:
         if self._strategy_service is None:
             return ChatResponse(
-                text="Strategy service not available.", evidence=[], mode=ResponseMode.FAST
+                text="Strategy service not available.",
+                evidence=[],
+                mode=ResponseMode.FAST,
             )
 
         if sub == "list":
             ticker = rest.strip().upper() or None
             global_criteria = self._strategy_service.get_global(limit=20)
-            ticker_criteria = self._strategy_service.get_ticker(ticker) if ticker else []
+            ticker_criteria = (
+                self._strategy_service.get_ticker(ticker) if ticker else []
+            )
             lines: list[str] = []
             if global_criteria:
                 lines.append("Global criteria:")
                 for c in global_criteria:
-                    lines.append(f"  [{c['id']}] {c['criterion']} (priority={c['priority']})")
+                    lines.append(
+                        f"  [{c['id']}] {c['criterion']} (priority={c['priority']})"
+                    )
             if ticker_criteria:
                 lines.append(f"\n{ticker} criteria:")
                 for c in ticker_criteria:
@@ -1385,15 +2014,26 @@ class ChatController:
                     lines.append(f"  [{c['id']}] {c['criterion']}{dec}")
             if not lines:
                 lines.append("No strategy criteria defined.")
-            return ChatResponse(text="\n".join(lines), evidence=[], mode=ResponseMode.FAST)
+            return ChatResponse(
+                text="\n".join(lines), evidence=[], mode=ResponseMode.FAST
+            )
 
         if sub == "add":
             if not rest:
-                return ChatResponse(text="Usage: /strategy add [TICKER] <criterion>", evidence=[], mode=ResponseMode.FAST)
+                return ChatResponse(
+                    text="Usage: /strategy add [TICKER] <criterion>",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
             tokens = rest.split(None, 1)
             first = tokens[0].upper() if tokens else ""
             # If the first token looks like a ticker (2-5 uppercase alpha), treat it as one.
-            if len(first) >= 2 and len(first) <= 5 and first.isalpha() and len(tokens) > 1:
+            if (
+                len(first) >= 2
+                and len(first) <= 5
+                and first.isalpha()
+                and len(tokens) > 1
+            ):
                 ticker = first
                 criterion = tokens[1]
                 row = self._strategy_service.add_ticker(ticker, criterion)
@@ -1426,7 +2066,9 @@ class ChatController:
                     evidence=[],
                     mode=ResponseMode.FAST,
                 )
-            row = self._strategy_service.record_decision(ticker, decision, f"Manual decision via /strategy decide")
+            row = self._strategy_service.record_decision(
+                ticker, decision, f"Manual decision via /strategy decide"
+            )
             return ChatResponse(
                 text=f"Recorded decision for {ticker}: {decision}",
                 evidence=[],
@@ -1435,13 +2077,25 @@ class ChatController:
 
         if sub == "delete":
             if not rest:
-                return ChatResponse(text="Usage: /strategy delete <id>", evidence=[], mode=ResponseMode.FAST)
+                return ChatResponse(
+                    text="Usage: /strategy delete <id>",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
             try:
                 row_id = int(rest.strip())
             except ValueError:
-                return ChatResponse(text="Invalid id — must be numeric.", evidence=[], mode=ResponseMode.FAST)
+                return ChatResponse(
+                    text="Invalid id — must be numeric.",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
             deleted = self._strategy_service.delete(row_id)
-            msg = f"Deleted criterion {row_id}." if deleted else f"Criterion {row_id} not found."
+            msg = (
+                f"Deleted criterion {row_id}."
+                if deleted
+                else f"Criterion {row_id} not found."
+            )
             return ChatResponse(text=msg, evidence=[], mode=ResponseMode.FAST)
 
         return ChatResponse(
@@ -1455,19 +2109,33 @@ class ChatController:
     def _slash_run(self, sub: str, rest: str) -> ChatResponse | None:
         action_id = sub
         if not action_id:
-            return ChatResponse(text="Usage: /run <action_id> [args]", evidence=[], mode=ResponseMode.FAST)
+            return ChatResponse(
+                text="Usage: /run <action_id> [args]",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
         if not self.action_registry:
-            return ChatResponse(text="Action registry not available.", evidence=[], mode=ResponseMode.FAST)
+            return ChatResponse(
+                text="Action registry not available.",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
         # Parse key=value args from rest.
         args: dict[str, Any] = {}
         for token in rest.split():
             if "=" in token:
                 k, v = token.split("=", 1)
                 args[k] = v
+            else:
+                args[token] = True
         try:
             preview = self.action_registry.preview(action_id, args)
         except (ValueError, KeyError) as exc:
-            return ChatResponse(text=f"Action '{action_id}' error: {exc}", evidence=[], mode=ResponseMode.FAST)
+            return ChatResponse(
+                text=f"Action '{action_id}' error: {exc}",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
         return ChatResponse(
             text=f"Action ready: {action_id}\nCommand: {' '.join(preview.command)}\nUse /confirm to execute.",
             evidence=[],
@@ -1502,7 +2170,11 @@ class ChatController:
     def _slash_read(self, sub: str, rest: str) -> ChatResponse | None:
         path = sub
         if not path:
-            return ChatResponse(text="Usage: /read <path> [max_chars=N]", evidence=[], mode=ResponseMode.FAST)
+            return ChatResponse(
+                text="Usage: /read <path> [max_chars=N]",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
         max_chars = 4000
         for token in rest.split():
             if token.startswith("max_chars="):
@@ -1511,50 +2183,85 @@ class ChatController:
                 except ValueError:
                     pass
         try:
-            content = Path(path).expanduser().read_text(errors="replace")
+            path_obj = Path(path).expanduser()
+            if not path_obj.is_absolute():
+                path_obj = self.repo_root / path_obj
+            content = path_obj.read_text(errors="replace")
             if len(content) > max_chars:
-                content = content[:max_chars] + f"\n... (truncated at {max_chars} chars)"
+                content = (
+                    content[:max_chars] + f"\n... (truncated at {max_chars} chars)"
+                )
             return ChatResponse(
                 text=f"```\n{content}\n```",
-                evidence=[{"type": "file_read", "details": {"path": path, "chars": len(content)}}],
+                evidence=[
+                    {
+                        "type": "file_read",
+                        "details": {"path": path, "chars": len(content)},
+                    }
+                ],
                 mode=ResponseMode.FAST,
             )
         except FileNotFoundError:
-            return ChatResponse(text=f"File not found: {path}", evidence=[], mode=ResponseMode.FAST)
+            return ChatResponse(
+                text=f"File not found: {path}", evidence=[], mode=ResponseMode.FAST
+            )
         except PermissionError:
-            return ChatResponse(text=f"Permission denied: {path}", evidence=[], mode=ResponseMode.FAST)
+            return ChatResponse(
+                text=f"Permission denied: {path}", evidence=[], mode=ResponseMode.FAST
+            )
         except Exception as exc:
-            return ChatResponse(text=f"Error reading {path}: {exc}", evidence=[], mode=ResponseMode.FAST)
+            return ChatResponse(
+                text=f"Error reading {path}: {exc}", evidence=[], mode=ResponseMode.FAST
+            )
 
     # -- Preference commands -------------------------------------------- #
 
     def _slash_prefer(self, sub: str, rest: str) -> ChatResponse | None:
         raw = f"{sub} {rest}".strip() if rest else sub
         if "=" not in raw:
-            return ChatResponse(text="Usage: /prefer <key>=<value>", evidence=[], mode=ResponseMode.FAST)
+            return ChatResponse(
+                text="Usage: /prefer <key>=<value>", evidence=[], mode=ResponseMode.FAST
+            )
         key, value = raw.split("=", 1)
         key = key.strip()
         value = value.strip()
         if not key:
-            return ChatResponse(text="Usage: /prefer <key>=<value>", evidence=[], mode=ResponseMode.FAST)
+            return ChatResponse(
+                text="Usage: /prefer <key>=<value>", evidence=[], mode=ResponseMode.FAST
+            )
         if self._state_store is not None:
             self._state_store.set_preference(key, value)
-        return ChatResponse(text=f"Preference set: {key}={value}", evidence=[], mode=ResponseMode.FAST)
+        return ChatResponse(
+            text=f"Preference set: {key}={value}", evidence=[], mode=ResponseMode.FAST
+        )
 
     # -- Review commands ------------------------------------------------ #
 
     def _slash_review(self, sub: str, rest: str) -> ChatResponse | None:
         if self._state_store is None:
-            return ChatResponse(text="Review not available (no state store).", evidence=[], mode=ResponseMode.FAST)
+            return ChatResponse(
+                text="Review not available (no state store).",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
 
         if sub == "list":
             try:
                 pending = self._state_store.list_pending_reviews()
             except AttributeError:
-                return ChatResponse(text="Review listing not implemented in state store.", evidence=[], mode=ResponseMode.FAST)
+                return ChatResponse(
+                    text="Review listing not implemented in state store.",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
             if not pending:
-                return ChatResponse(text="No pending reviews.", evidence=[], mode=ResponseMode.FAST)
-            lines = [f"  [{r.get('id', '?')}] {r.get('source_id', '?')}: {r.get('summary', '')[:80]}" for r in pending]
+                return ChatResponse(
+                    text="No pending reviews.", evidence=[], mode=ResponseMode.FAST
+                )
+            lines = [
+                f"  [{r.get('id', '?')}] {r.get('source_id', '?')}: {r.get('summary', '')[:80]}"
+                for r in pending
+            ]
             return ChatResponse(
                 text=f"Pending reviews ({len(pending)}):\n" + "\n".join(lines),
                 evidence=[{"type": "reviews", "details": pending}],
@@ -1564,31 +2271,67 @@ class ChatController:
         if sub == "approve":
             source_id = rest.strip()
             if not source_id:
-                return ChatResponse(text="Usage: /review approve <source_id>", evidence=[], mode=ResponseMode.FAST)
+                return ChatResponse(
+                    text="Usage: /review approve <source_id>",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
             try:
                 self._state_store.approve_review(source_id)
             except AttributeError:
-                return ChatResponse(text="Review approval not implemented in state store.", evidence=[], mode=ResponseMode.FAST)
-            return ChatResponse(text=f"Approved review: {source_id}", evidence=[], mode=ResponseMode.FAST)
+                return ChatResponse(
+                    text="Review approval not implemented in state store.",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+            return ChatResponse(
+                text=f"Approved review: {source_id}",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
 
         if sub == "reject":
             source_id = rest.strip()
             if not source_id:
-                return ChatResponse(text="Usage: /review reject <source_id>", evidence=[], mode=ResponseMode.FAST)
+                return ChatResponse(
+                    text="Usage: /review reject <source_id>",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
             try:
                 self._state_store.reject_review(source_id)
             except AttributeError:
-                return ChatResponse(text="Review rejection not implemented in state store.", evidence=[], mode=ResponseMode.FAST)
-            return ChatResponse(text=f"Rejected review: {source_id}", evidence=[], mode=ResponseMode.FAST)
+                return ChatResponse(
+                    text="Review rejection not implemented in state store.",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+            return ChatResponse(
+                text=f"Rejected review: {source_id}",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
 
         if sub == "approve-all":
             try:
                 self._state_store.approve_all_reviews()
             except AttributeError:
-                return ChatResponse(text="Bulk approval not implemented in state store.", evidence=[], mode=ResponseMode.FAST)
-            return ChatResponse(text="All pending reviews approved.", evidence=[], mode=ResponseMode.FAST)
+                return ChatResponse(
+                    text="Bulk approval not implemented in state store.",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+            return ChatResponse(
+                text="All pending reviews approved.",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
 
-        return ChatResponse(text="Usage: /review list|approve|reject|approve-all", evidence=[], mode=ResponseMode.FAST)
+        return ChatResponse(
+            text="Usage: /review list|approve|reject|approve-all",
+            evidence=[],
+            mode=ResponseMode.FAST,
+        )
 
     # -- Reconnect command ---------------------------------------------- #
 
@@ -1660,6 +2403,8 @@ class ChatController:
             "- When valuation_multiples are provided, anchor your valuation assessment to them.\n"
             "- Never fabricate metrics not present in the evidence payload.\n"
             "- If data is absent, say so plainly rather than speculating.\n"
+            "- You are in direct-answer mode for this response: no tools can be called from here.\n"
+            "- Do not emit tool-call JSON, planner arguments, or schema-shaped payloads. Return plain text only.\n"
             "\n"
             f"Current mode: {mode}\n"
             f"Current date (AEST): {date_str}\n"
@@ -1675,6 +2420,15 @@ class ChatController:
         if prefs:
             pref_lines = [f"  {k}: {v}" for k, v in prefs.items()]
             instruction += "\nUser preferences:\n" + "\n".join(pref_lines) + "\n"
+
+        if not local_payload.get("financials"):
+            instruction += (
+                "\nFinancial truth guard:\n"
+                "- Canonical financial metrics are not available for this ticker in the current payload.\n"
+                "- Do not state exact revenue, profit, EBIT, NPAT, margin, dividend, balance-sheet, or YoY figures unless they are quoted verbatim in the provided document excerpts.\n"
+                "- Do not fabricate financial tables or comparative period values.\n"
+                "- For generic company overviews, stay qualitative and say that detailed extracted financials are currently unavailable.\n"
+            )
 
         # Cross-session episodic memory
         if self._state_store:
@@ -1695,74 +2449,6 @@ class ChatController:
                     )
             except Exception:
                 pass
-
-        # Tool selection guide — helps the LLM pick the right tool on first attempt.
-        instruction += (
-            "\n## Tool Selection Guide\n"
-            "\n"
-            "**For quick lookups:**\n"
-            "- `get_price` — current price + technicals (RSI, SMA, trend)\n"
-            "- `get_financials` — extracted financial metrics\n"
-            "- `query_ticker_data` — documents, announcements, context\n"
-            "\n"
-            "**For analysis:**\n"
-            "- `score_ticker` — composite 0-100 score with breakdown (use for single ticker assessment)\n"
-            "- `screen_tickers` — rank multiple tickers (use instead of looping score_ticker)\n"
-            "- `get_valuation` — PE, FCF yield, EV/EBIT multiples\n"
-            "- `run_analysis` — full 7-module analysis pipeline (balance sheet, ROIC, risk, valuation, catalysts, sentiment, moat)\n"
-            "- `deep_research` — multi-source research synthesis (web + social + news + dossier)\n"
-            "\n"
-            "**For strategy:**\n"
-            "- `get_thesis` — active investment theses with evidence\n"
-            "- `create_thesis` — record a new thesis with signal (BUY→SELL) + risk gate debate\n"
-            "- `score_ticker` first, then `create_thesis` — always score before creating a thesis\n"
-            "\n"
-            "**For monitoring:**\n"
-            "- `get_watchlist_alerts` — recent material changes from background scanner\n"
-            "- `scan_watchlist` — trigger full watchlist analysis now\n"
-            "- `review_open_decisions` — decisions needing reflection\n"
-            "\n"
-            "**For research:**\n"
-            "- `search_news` — Australian financial news (RAG, last 30 days)\n"
-            "- `search_announcements` — ASX filings (all time)\n"
-            "- `search_web` — broader web (external sources)\n"
-            "- `search_social` — Hacker News developer sentiment\n"
-            "- `recall_dossier` — accumulated research memory for a ticker\n"
-            "\n"
-            "**For visualization:**\n"
-            "- `generate_chart` — candlestick / price chart (HTML dashboard). Always use this tool "
-            "for chart requests — emit a proper tool_call JSON, never plain text.\n"
-            "\n"
-            "**Tool dependencies:**\n"
-            "- `get_valuation` needs financials — call `get_financials` first if data is stale\n"
-            "- `create_thesis` benefits from `score_ticker` context — score first\n"
-            "- If `search_news` returns `data_insufficient=true` with a `recommended_tool_call`, "
-            "propose that mutating tool call so the user can confirm corpus population\n"
-            "- `screen_tickers([])` with empty list uses the watchlist automatically\n"
-        )
-
-        instruction += (
-            "\n## Information Assessment Protocol\n"
-            "\n"
-            "Before answering or calling tools, ALWAYS think through these steps:\n"
-            "\n"
-            "1. **What is the user asking?** Restate the core question in your own words.\n"
-            "2. **What do I already have?** Check conversation history, ticker context, "
-            "prior tool results, and session memory. List what is available.\n"
-            "3. **Is this sufficient?** Can I give a quality, evidence-backed answer "
-            "with what I have? If yes, respond directly — don't call tools unnecessarily.\n"
-            "4. **What gaps exist?** Identify specific missing data: financials? price? "
-            "news? announcements? valuation multiples?\n"
-            "5. **Which tools fill each gap?** Map each gap to a specific tool. "
-            "Prefer parallel calls (tool_calls) when multiple independent lookups are needed.\n"
-            "6. **Can I strengthen the answer?** Even if I can answer, consider whether "
-            "supplementary data (e.g. recent news alongside financials, or price trend "
-            "alongside a valuation question) would materially improve the response.\n"
-            "\n"
-            "Emit your assessment as a thinking step before acting. After receiving tool "
-            "results, proceed directly — no second thinking step is needed unless the "
-            "results reveal unexpected gaps.\n"
-        )
 
         return instruction
 
@@ -1788,23 +2474,7 @@ class ChatController:
         if ticker:
             self.last_ticker = ticker
 
-        # Gather conversation history from state store
-        conversation_history: list[dict] = []
-        if self._state_store is not None:
-            try:
-                history_msgs = self._state_store.get_chat_messages(
-                    self._thread_id, limit=12
-                )
-                prior_turns = history_msgs[:-1] if history_msgs else []
-                conversation_history = [
-                    {
-                        "role": m.get("role", "user"),
-                        "content": str(m.get("content", ""))[:400],
-                    }
-                    for m in prior_turns[-6:]
-                ]
-            except Exception:
-                pass  # history is best-effort
+        conversation_history = self._recent_conversation_history()
 
         # Inject strategy criteria context into message if available
         strategy_block = ""
@@ -1856,41 +2526,12 @@ class ChatController:
                     "total_session_cost_usd": self._hybrid_router.total_cost_usd(),
                 }
 
-        # Record the turn in session memory (same as keyword path)
-        record_turn(
-            self._ov_session_id,
-            build_turn_payload(
-                session_id=self._ov_session_id,
-                thread_id=self._thread_id,
-                query=message,
-                answer=result.text.strip(),
-                ticker=ticker,
-            ),
+        self._record_answer_side_effects(
+            query=message,
+            answer=result.text.strip(),
+            ticker=ticker,
         )
-
-        # Persist turns to tiered MemoryStore (best-effort)
-        if self._memory:
-            try:
-                self._memory.append_session_turn("user", message)
-                self._memory.append_session_turn("assistant", result.text.strip())
-            except Exception:
-                pass
-
-        # Extract and store ticker observations (same as keyword path)
-        if self._state_store is not None and ticker:
-            try:
-                obs_list = ChatController._extract_ticker_observations(
-                    ticker, result.text
-                )
-                for obs in obs_list:
-                    self._state_store.add_entity_observation(
-                        ticker=ticker,
-                        observation_type=obs["type"],
-                        content=obs["content"],
-                        source="chat",
-                    )
-            except Exception:
-                pass  # observations are best-effort
+        self._set_latest_sources_payloads(result.evidence)
 
         return ChatResponse(
             text=result.text.strip(),
@@ -1900,6 +2541,169 @@ class ChatController:
             routing_metadata=result.routing_metadata,
             tool_traces=getattr(result, "tool_traces", None) or [],
         )
+
+    def _recent_conversation_history(self) -> list[dict[str, str]]:
+        conversation_history: list[dict[str, str]] = []
+        if self._state_store is not None:
+            try:
+                history_msgs = self._state_store.get_chat_messages(
+                    self._thread_id, limit=12
+                )
+                prior_turns = history_msgs[:-1] if history_msgs else []
+                conversation_history = [
+                    {
+                        "role": m.get("role", "user"),
+                        "content": str(m.get("content", ""))[:400],
+                    }
+                    for m in prior_turns[-6:]
+                ]
+            except Exception:
+                pass
+        return conversation_history
+
+    def _record_answer_side_effects(
+        self,
+        *,
+        query: str,
+        answer: str,
+        ticker: str | None,
+    ) -> None:
+        record_turn(
+            self._ov_session_id,
+            build_turn_payload(
+                session_id=self._ov_session_id,
+                thread_id=self._thread_id,
+                query=query,
+                answer=answer.strip(),
+                ticker=ticker,
+            ),
+        )
+
+        if self._memory:
+            try:
+                self._memory.append_session_turn("user", query)
+                self._memory.append_session_turn("assistant", answer.strip())
+            except Exception:
+                pass
+
+        if self._state_store is not None and ticker:
+            try:
+                obs_list = ChatController._extract_ticker_observations(ticker, answer)
+                for obs in obs_list:
+                    self._state_store.add_entity_observation(
+                        ticker=ticker,
+                        observation_type=obs["type"],
+                        content=obs["content"],
+                        source="chat",
+                    )
+            except Exception:
+                pass
+
+    def _build_orchestrated_response(
+        self,
+        *,
+        orchestration_result,
+        message: str,
+        ticker: str | None,
+        on_chunk=None,
+        on_status=None,
+    ) -> ChatResponse | None:
+        if orchestration_result is None:
+            return None
+
+        primary_ticker = (
+            str(orchestration_result.entities.get("primary_ticker") or ticker or "")
+            .strip()
+            .upper()
+        )
+        if not self._orchestration_has_substantive_evidence(orchestration_result):
+            return None
+
+        evidence = [
+            {
+                "type": "orchestrator",
+                "tool": "orchestrator",
+                "details": {
+                    "intent": orchestration_result.intent,
+                    "source_plan": list(orchestration_result.source_plan),
+                    "entities": orchestration_result.entities,
+                    "source_status": orchestration_result.answer.get("source_status")
+                    or {},
+                },
+                "result": {
+                    "intent": orchestration_result.intent,
+                    "source_plan": list(orchestration_result.source_plan),
+                    "entities": orchestration_result.entities,
+                    "source_status": orchestration_result.answer.get("source_status")
+                    or {},
+                },
+            }
+        ]
+        for source_name in orchestration_result.source_plan:
+            payload = (
+                orchestration_result.raw_supporting_evidence.get(source_name) or {}
+            )
+            evidence.append(
+                {
+                    "type": source_name,
+                    "tool": source_name,
+                    "details": payload,
+                    "result": payload,
+                }
+            )
+
+        if on_status:
+            on_status("Routing query through orchestrator")
+
+        final_text = orchestration_result.answer_input
+        if self._agent_loop is not None:
+            conversation_history = self._recent_conversation_history()
+            if on_status:
+                on_status("Streaming final synthesis")
+            if on_chunk is not None:
+                final_text = self._agent_loop.synthesize_final_answer_stream(
+                    evidence,
+                    on_chunk,
+                    question=message,
+                    ticker=primary_ticker or ticker,
+                    conversation_history=conversation_history,
+                    draft_answer=orchestration_result.answer_input,
+                    on_status=on_status,
+                )
+            else:
+                final_text = self._agent_loop.synthesize_final_answer(
+                    evidence,
+                    question=message,
+                    ticker=primary_ticker or ticker,
+                    conversation_history=conversation_history,
+                    draft_answer=orchestration_result.answer_input,
+                    on_status=on_status,
+                )
+        elif on_chunk is not None and final_text:
+            self._stream_plain_text(final_text, on_chunk)
+
+        self._record_answer_side_effects(
+            query=message,
+            answer=final_text,
+            ticker=primary_ticker or ticker,
+        )
+        self._set_latest_sources_payloads(evidence)
+        return ChatResponse(
+            text=final_text.strip(),
+            evidence=evidence,
+            mode=ResponseMode.FAST,
+            routing_metadata={
+                "source": "orchestrator",
+                "intent": orchestration_result.intent,
+                "sources": list(orchestration_result.source_plan),
+            },
+        )
+
+    @staticmethod
+    def _stream_plain_text(text: str, on_chunk) -> None:
+        for index, token in enumerate(text.split()):
+            suffix = " " if index < len(text.split()) - 1 else ""
+            on_chunk(token + suffix)
 
     def build_chat_response(
         self,
@@ -1914,8 +2718,21 @@ class ChatController:
         analysis_mode: str | None = None,
         context_profile: str | None = None,
     ) -> ChatResponse:
+        article_text_request = self._try_article_text_request(message)
+        if article_text_request is not None:
+            return article_text_request
+
+        summary_followup = self._try_summary_offer_followup(message, prior_ticker)
+        if summary_followup is not None:
+            return summary_followup
+
+        rewritten_confirmation = self._rewrite_confirmation_followup(
+            message, prior_ticker
+        )
+        effective_message = rewritten_confirmation or message
+
         # --- Greeting short-circuit: don't invoke the full analyst pipeline ---
-        if self._GREETING_RE.match(message):
+        if self._GREETING_RE.match(effective_message):
             greeting = (
                 "Hey! I'm Tenn — your ASX research assistant. "
                 'Ask me about a company (e.g. "tell me about CSL") or run an action from the panel.'
@@ -1923,8 +2740,8 @@ class ChatController:
             return ChatResponse(text=greeting, evidence=[], mode=ResponseMode.FAST)
 
         # --- Slash command dispatch: deterministic, no LLM needed ---
-        if message.strip().startswith("/"):
-            cmd_response = self._handle_slash_command(message.strip())
+        if effective_message.strip().startswith("/"):
+            cmd_response = self._handle_slash_command(effective_message.strip())
             if cmd_response is not None:
                 return cmd_response
 
@@ -1935,12 +2752,12 @@ class ChatController:
 
         # Ticker detection (shared by both agent and keyword paths).
         ticker, explicit_ticker = self._resolve_ticker_context(
-            message, prior_ticker=prior_ticker
+            effective_message, prior_ticker=prior_ticker
         )
         if ticker:
             self.last_ticker = ticker
 
-        msg_lower = message.lower()
+        msg_lower = effective_message.lower()
 
         # --- Conversational update shortcut: "update <ticker> announcements" ---
         explicit_ticker_in_message = ticker if explicit_ticker else None
@@ -1976,7 +2793,7 @@ class ChatController:
             )
 
         # --- Chart intent short-circuit (before general action detection) ---
-        if self.detect_chart_intent(message):
+        if self.detect_chart_intent(effective_message):
             from cockpit.core.chart_args import prepare_chart_action_args
 
             if not ticker:
@@ -2048,12 +2865,21 @@ class ChatController:
             )
 
         # --- Price history short-circuit ---
-        price_history_result = self._try_price_history_shortcircuit(message, ticker)
+        price_history_result = self._try_price_history_shortcircuit(
+            effective_message, ticker
+        )
         if price_history_result is not None:
             return price_history_result
 
+        # --- Direct ticker news short-circuit ---
+        news_shortcircuit_result = self._try_news_shortcircuit(
+            effective_message, ticker
+        )
+        if news_shortcircuit_result is not None:
+            return news_shortcircuit_result
+
         # --- Action keyword detection (deterministic, no LLM) ---
-        action_id = self.detect_action_intent(message)
+        action_id = self.detect_action_intent(effective_message)
         if action_id:
             # Action fast-paths need the keyword mode's ActionRegistry.preview()
             # flow, which is handled below in the keyword router section.
@@ -2063,14 +2889,53 @@ class ChatController:
             # handler below rather than routing through the LLM.
             pass
         else:
+            orchestrated_response = None
+            prefer_local_context = False
+            if self._query_orchestrator is not None:
+                try:
+                    orchestration_result = (
+                        self._query_orchestrator.orchestrate_query_with_context(
+                            effective_message,
+                            context={"prior_ticker": prior_ticker or self.last_ticker},
+                        )
+                    )
+                    has_orchestrated_evidence = (
+                        self._orchestration_has_substantive_evidence(
+                            orchestration_result
+                        )
+                    )
+                    prefer_local_context = bool(ticker) and (
+                        self._query_requires_document_grounding(effective_message)
+                        or not has_orchestrated_evidence
+                    )
+                    if not prefer_local_context:
+                        orchestrated_response = self._build_orchestrated_response(
+                            orchestration_result=orchestration_result,
+                            message=effective_message,
+                            ticker=ticker,
+                            on_chunk=on_chunk,
+                            on_status=on_status,
+                        )
+                except Exception as exc:
+                    logger.warning(
+                        "Query orchestrator failed; falling back to agent loop: %s",
+                        exc,
+                    )
+            if orchestrated_response is not None:
+                return orchestrated_response
+
             # ------------------------------------------------------------------ #
             # Agent mode dispatch — routes general queries through HybridRouter.  #
             # Only fires for non-action, non-shortcircuited queries.              #
             # ------------------------------------------------------------------ #
             agent_mode = os.environ.get("COCKPIT_AGENT_MODE", "structured")
-            if agent_mode == "structured" and self._agent_loop is not None:
+            if (
+                not prefer_local_context
+                and agent_mode == "structured"
+                and self._agent_loop is not None
+            ):
                 return self._run_agent_loop(
-                    message,
+                    effective_message,
                     enable_web,
                     prior_ticker,
                     on_chunk,
@@ -2086,21 +2951,24 @@ class ChatController:
         if action_id:
             mode = ResponseMode.ACTION
         else:
-            mode = self.classify_request(message, enable_web=enable_web)
+            mode = self.classify_request(effective_message, enable_web=enable_web)
 
         effective_profile = context_profile or os.environ.get(
             "COCKPIT_CONTEXT_PROFILE", "balanced"
         )
 
         # --- Access request: URL in message but web is disabled ---
-        if any(p in message for p in ("http://", "https://")) and not enable_web:
+        if (
+            any(p in effective_message for p in ("http://", "https://"))
+            and not enable_web
+        ):
             return ChatResponse(
                 text="Web access is required to fetch that URL. Enable web and try again.",
                 evidence=[],
                 action_preview=build_backend_access_proposal_request(
                     "web",
                     enable=True,
-                    resume_message=message,
+                    resume_message=effective_message,
                 ),
                 mode=ResponseMode.FAST,
             )
@@ -2113,14 +2981,17 @@ class ChatController:
                 action_preview=build_backend_access_proposal_request(
                     "web",
                     enable=True,
-                    resume_message=message,
+                    resume_message=effective_message,
                 ),
                 mode=ResponseMode.FAST,
             )
 
         # --- Access request: deep analysis requires RAG but it's disabled ---
         rag_available = bool(getattr(self.tool_router, "qual_context_reader", None))
-        rag_enabled = bool(getattr(self.tool_router, "qual_context_enabled", False)) and enable_rag
+        rag_enabled = (
+            bool(getattr(self.tool_router, "qual_context_enabled", False))
+            and enable_rag
+        )
         if analysis_mode == "deep" and rag_available and not rag_enabled:
             return ChatResponse(
                 text="Deep analysis requires RAG context. Enable RAG and try again.",
@@ -2128,14 +2999,14 @@ class ChatController:
                 action_preview=build_backend_access_proposal_request(
                     "rag",
                     enable=True,
-                    resume_message=message,
+                    resume_message=effective_message,
                 ),
                 mode=ResponseMode.FAST,
             )
 
         deep_mode = mode in {ResponseMode.DEEP_ANALYSIS, ResponseMode.VERIFICATION}
         local_context = self.tool_router.gather_local_context(
-            ticker=ticker, query=message, deep_mode=deep_mode
+            ticker=ticker, query=effective_message, deep_mode=deep_mode
         )
 
         evidence = [
@@ -2195,7 +3066,7 @@ class ChatController:
             )
 
         if mode == ResponseMode.WEB:
-            maybe_url = re.search(r"https?://\S+", message)
+            maybe_url = re.search(r"https?://\S+", effective_message)
             if maybe_url:
                 web = self.tool_router.fetch_web(maybe_url.group(0), enabled=True)
                 evidence.append({"type": "web", "details": web.payload})
@@ -2203,7 +3074,9 @@ class ChatController:
         # --- Web enrichment for deep mode or max-depth profile ---
         if (analysis_mode == "deep" or effective_profile == "max-depth") and enable_web:
             if hasattr(self.tool_router, "web_enrich"):
-                web_query = f"{ticker}: {message}" if ticker else message
+                web_query = (
+                    f"{ticker}: {effective_message}" if ticker else effective_message
+                )
                 web_result = self.tool_router.web_enrich(web_query, enabled=True)
                 evidence.append({"type": "web", "details": web_result.payload})
 
@@ -2215,7 +3088,7 @@ class ChatController:
                 else []
             )
             sync = self._compute_announcement_sync_status(
-                ticker, docs=local_docs, message=message
+                ticker, docs=local_docs, message=effective_message
             )
             offer = self._build_ticker_update_offer(ticker, sync)
             return ChatResponse(
@@ -2310,7 +3183,7 @@ class ChatController:
         # OpenViking: fetch semantically relevant prior turns for this query
         ov_context_block = ""
         prior_ov_turns = get_relevant_session_context(
-            self._ov_session_id, message, limit=3
+            self._ov_session_id, effective_message, limit=3
         )
         if prior_ov_turns:
             lines = ["Relevant prior session context:"]
@@ -2527,7 +3400,7 @@ class ChatController:
             user_parts.append(ov_context_block.strip())
         if history_block:
             user_parts.append(history_block.strip())
-        user_parts.append(message)
+        user_parts.append(effective_message)
         if evidence_section.strip():
             user_parts.append(evidence_section.strip())
         user_message = "\n\n".join(user_parts)
@@ -2582,31 +3455,8 @@ class ChatController:
                 local_payload=local_payload,
             )
 
-        # OpenViking: record this turn for future session context retrieval
-        record_turn(
-            self._ov_session_id,
-            build_turn_payload(
-                session_id=self._ov_session_id,
-                thread_id=self._thread_id,
-                query=message,
-                answer=answer.strip(),
-                ticker=ticker,
-            ),
-        )
-
-        # Extract and store ticker observations from this response
-        if self._state_store is not None and ticker:
-            try:
-                obs_list = ChatController._extract_ticker_observations(ticker, answer)
-                for obs in obs_list:
-                    self._state_store.add_entity_observation(
-                        ticker=ticker,
-                        observation_type=obs["type"],
-                        content=obs["content"],
-                        source="chat",
-                    )
-            except Exception:
-                pass  # observations are best-effort, never block the response
+        self._record_answer_side_effects(query=message, answer=answer, ticker=ticker)
+        self._set_latest_sources_payloads(evidence)
 
         return ChatResponse(
             text=answer.strip(), evidence=evidence, mode=mode, prompt=prompt_fallback
