@@ -106,6 +106,12 @@ python scripts/validate_financial_coverage_gates.py \
 | Feature flag | `ENABLE_SESSION_MEMORY=true` | Default on. Disable per domain: set `ENABLE_SESSION_MEMORY=false` in `.env`. |
 | Fail-open | **Yes** | Missing/unreachable OV emits one WARNING on startup; all chat paths continue stateless. |
 
+Cockpit web chat follow-up behavior (2026-04-09):
+
+- Browser chat requests now persist turns under the provided `session_id` instead of sharing a single `global-main` thread.
+- Short acknowledgements like `ok`, `okay`, `yes`, and `sure` are treated as confirmations of the last assistant offer or yes/no question unless the user explicitly says no.
+- When a recent assistant message includes article URLs, requests like `print the full kalkine article` resolve against that same session history.
+
 Setup: see `docs/setup/environment.md` → Session memory setup section.
 
 ---
@@ -179,12 +185,30 @@ Config: `.mcp.json` (repo root). Full docs: [mcp-servers.md](mcp-servers.md).
 - Cockpit web action confirmations execute through backend route `POST /api/cockpit/action/execute` using normalized `action_id` payloads.
 - Cockpit sidebar health polling is adaptive: every 3s while a chat completion is active, every 15s when idle.
 - If `news_chunks` is missing in Qdrant, `search_news` may return no hits and should trigger a corpus population flow (`run_news_ingest` then `load_news_to_qdrant`).
+- Cockpit can now print the full locally stored body for a recently referenced news article by reading `articles.body` from `reports/qual_context/news_articles.sqlite`.
+- In Docker-backed Cockpit runs, the backend container needs the workspace reports mount (`../reports` → `/workspace-reports`) so the local news corpus is visible for article printing.
+- In Docker-backed Cockpit runs, the backend container now mounts host GGUF directories read-only at `/models/{nvme,ssd,hdd}` and uses `COCKPIT_MODELS_*_DIR` env vars so `/api/cockpit/models` can discover hot, cached, and cold-storage models even when the backend runs as container root.
+- Full-article printing is still session-contextual: if Cockpit cannot identify which recent article URL you mean, it will ask for the URL or a clearer reference instead of guessing.
 
-## Storage Migration Status (2026-04-07)
+## Storage Layout (2026-04-09)
 
-- Tenn runtime data migrated successfully to `/mnt/nvme/tenn/runtime-data`
-- GGUF router models migrated successfully to `/mnt/nvme/tenn/models`
-- short-term IO pressure during a docs-heavy local validation workload stayed low (`/proc/pressure/io avg10` near zero to low single digits; `vmstat wa` ~1% after warm-up)
-- root Ollama store pruned to keep only `qwen2.5:32b` and `gpt-oss:20b-cloud`
-- archived inactive root Ollama models preserved at `/mnt/sdb2/home/l4nd0/tenn/.archives/ollama-root-store-2026-04-07`
-- host free space after cleanup: roughly `53G` on `/` after stale llama temp log and local cache pruning
+| Device | Label | Mount | Size | Free | Use |
+|--------|-------|-------|------|------|-----|
+| nvme0n1p1 | `nvme-system` | `/` | 458G | 193G | System, hot models, Docker |
+| sdb2 | `hdd-data` | `/mnt/sdb2` | 931G | 152G | Repo, archives, bulk data |
+| sdc2 | `ssd-cache` | `/mnt/ssd` | 100G | 79G | Swap, gpt-oss GGUF, caches |
+| sda1 | `hdd-cold` | `/mnt/hdd-cold` | 466G | 286G | ASX filing PDFs, llmfit cache |
+
+Key paths:
+- Tenn runtime data: `/mnt/nvme/tenn/runtime-data`
+- ASX filing PDFs: `/mnt/hdd-cold/tenn/asx-docs` (symlinked from `/mnt/nvme/tenn/runtime-data/asx/docs`)
+- GGUF router models (hot): `/mnt/nvme/tenn/models`
+- gpt-oss-20b fallback GGUF: `/mnt/ssd/log/ssd_data/l4nd0_cache/.cache/llmfit/models/gpt-oss-20b-mxfp4.gguf`
+- llmfit model cache: `~/.cache/llmfit/models` → `/mnt/hdd-cold/tenn/llmfit-cache`
+- Archived inactive Ollama models: `/mnt/sdb2/home/l4nd0/tenn/.archives/ollama-root-store-2026-04-07`
+- Root Ollama keep-set: `qwen2.5:32b` + `gpt-oss:20b-cloud`
+
+Storage migration history:
+- 2026-04-07: Runtime data + GGUF models moved to NVMe; Ollama store pruned
+- 2026-04-09: Old 500GB Barracuda (sda) wiped, reformatted as ext4 `hdd-cold`, added to fstab; old PC backup data (135,412 files across 3 folders) verified and archived to external USB drive; redundant 41G `old_pc_backup_2012` deleted from sdb2; all drives labeled; llmfit updated 0.8.4→0.9.2; `llama-server` and `llama-cli` symlinked to `~/.local/bin`
+- 2026-04-09: ASX filing PDFs (149G, 176,467 files) moved from NVMe to hdd-cold with symlink back; stale Ollama models (phi3, qwen2.5-coder) deleted from SSD; Docker unused images pruned; llmfit cache redirected to hdd-cold. NVMe freed from 52G→193G available

@@ -6,8 +6,10 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Cpu, Server, ToggleLeft, Info, GitBranch, FolderOpen, Loader2 } from 'lucide-react'
-import { useCockpitStore, AVAILABLE_CHAT_MODELS } from '@/lib/cockpit-store'
+import { Cpu, Server, ToggleLeft, Info, GitBranch, FolderOpen, Loader2, HardDrive } from 'lucide-react'
+import { useCockpitStore } from '@/lib/cockpit-store'
+import { fetchAvailableModels } from '@/lib/api-client'
+import type { ModelGroup } from '@/lib/cockpit-types'
 
 interface ConfigSectionProps {
   title: string
@@ -105,6 +107,7 @@ const DEFAULTS: ConfigState = {
 export function SettingsScreen() {
   const { chatModel, setChatModel, preferences } = useCockpitStore()
   const [config, setConfig] = useState<ConfigState>(DEFAULTS)
+  const [modelGroups, setModelGroups] = useState<ModelGroup[]>([])
   const [loading, setLoading] = useState(true)
   const [backendOnline, setBackendOnline] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -158,7 +161,6 @@ export function SettingsScreen() {
             },
           }))
         } else {
-          // Auth required or other error — fall back to defaults + health info
           if (!healthOk) {
             setError('Backend unreachable and system status unavailable')
           }
@@ -167,6 +169,14 @@ export function SettingsScreen() {
         if (!healthOk) {
           setError('Failed to connect to backend')
         }
+      }
+
+      // 3. Fetch available models
+      try {
+        const modelsData = await fetchAvailableModels()
+        setModelGroups(modelsData.groups)
+      } catch {
+        // Non-fatal — model list just won't be dynamic
       }
 
       setLoading(false)
@@ -219,18 +229,39 @@ export function SettingsScreen() {
           <div className="flex items-center justify-between py-2">
             <span className="text-sm text-muted-foreground">Chat Model</span>
             <Select value={chatModel} onValueChange={setChatModel}>
-              <SelectTrigger className="w-[260px] h-8 text-sm font-mono">
-                <SelectValue />
+              <SelectTrigger className="w-[340px] h-8 text-sm font-mono">
+                <SelectValue placeholder="Select a model..." />
               </SelectTrigger>
               <SelectContent>
-                {AVAILABLE_CHAT_MODELS.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    <div className="flex flex-col">
-                      <span className="font-mono text-sm">{m.label}</span>
-                      <span className="text-xs text-muted-foreground">{m.description}</span>
+                {modelGroups.length > 0 ? (
+                  modelGroups.map((group) => (
+                    <div key={group.location}>
+                      <div className="flex items-center gap-1.5 px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        <HardDrive className="h-3 w-3" />
+                        {group.label}
+                      </div>
+                      {group.models.map((m) => (
+                        <SelectItem
+                          key={`${group.location}:${m.id}`}
+                          value={m.id}
+                          disabled={!m.available}
+                        >
+                          <div className="flex items-center justify-between w-full gap-3">
+                            <span className="font-mono text-sm truncate">{m.id}</span>
+                            <span className="text-xs text-muted-foreground shrink-0">
+                              {m.size_gb > 0 ? `${m.size_gb}G` : ''}{m.quantization ? `${m.size_gb > 0 ? ' ' : ''}${m.quantization}` : ''}
+                              {!m.available ? ' (cold)' : ''}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
                     </div>
+                  ))
+                ) : (
+                  <SelectItem value={chatModel}>
+                    <span className="font-mono text-sm">{chatModel}</span>
                   </SelectItem>
-                ))}
+                )}
               </SelectContent>
             </Select>
           </div>

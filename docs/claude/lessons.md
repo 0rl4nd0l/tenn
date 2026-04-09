@@ -524,3 +524,57 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The checked-in and installed systemd unit still used the historical name `llama-cpp-qwen25.service`, which encouraged model assumptions from the unit label instead of checking the running router process or loaded model state.
 **Fix:** Renamed the checked-in user unit to the model-neutral `llama-cpp-router.service`, aligned installer/docs/runtime discovery, and switched the live `:8001` router over to the new managed service name.
 **Rule:** Treat llama.cpp service names as topology labels only. Determine the live model from the running process, router model list, or request state — never from a historical unit filename.
+
+## L050 — Multi-ticker news retrieval needs linked tickers plus a deterministic fast path
+
+**Date:** 2026-04-08
+**Subsystem:** `scripts/load_news_to_qdrant.py`, `backend/app/services/rag.py`, `cockpit/core/tool_executor.py`, `cockpit/core/chat.py`
+**Symptom:** `bhp news` either returned broad market wrap stories only or stalled in the agent loop despite recent BHP-linked articles existing in the local corpus.
+**Root cause:** News vectors only stored a single primary `ticker`, so Qdrant filtering excluded articles where BHP was linked but not primary. The remaining tool payloads were also too verbose for the model, and a simple ticker-news query was still taking the full agent path instead of a deterministic lookup.
+**Fix:** Stored both `primary_ticker` and `tickers[]` in `news_chunks`, changed backend news retrieval to match any linked ticker and dedupe by article, compacted `search_news` tool payloads, and added a direct `ticker news` short-circuit that returns headlines without entering the agent loop.
+**Rule:** For multi-entity news, payloads must preserve all linked tickers. Bare `ticker news` queries should use a deterministic fast path and not depend on iterative tool-calling behavior.
+
+## L051 — Web chat sessions must not collapse into one global thread
+
+**Date:** 2026-04-08
+**Subsystem:** `backend/app/services/cockpit_service.py`
+**Symptom:** In Cockpit web chat, short follow-ups like `ok` lost the immediately prior assistant offer and reset to generic responses such as `How can I help you today?`
+**Root cause:** The web client sent a `session_id`, but the backend reused a singleton `ChatController(thread_id="global-main")` for every request and did not persist user/assistant turns into `StateStore`. Follow-up continuity therefore depended on best-effort memory only, with no real per-session thread history.
+**Fix:** Resolved each web request to a session-scoped thread ID, persisted both user and assistant turns to `StateStore`, and built per-request `ChatController` instances for non-default threads so history lookup/prompt injection uses the active web session.
+**Rule:** If the client provides a chat session identifier, the backend must persist and read conversation history under that same thread ID. Do not route all web chat through a shared global thread.
+
+## L052 — Short acknowledgements should confirm the last assistant offer, not reset the conversation
+
+**Date:** 2026-04-08
+**Subsystem:** `cockpit/core/chat.py`
+**Symptom:** After the assistant asked a yes/no style follow-up or offered the next step (`I can summarize it`), replies like `ok` or `sure` were treated as fresh standalone prompts and often collapsed into generic resets.
+**Root cause:** The follow-up parser intentionally excluded discourse markers like `ok`/`yes` from ticker reattachment, but nothing else converted those acknowledgements into explicit confirmations of the last assistant question or offer.
+**Fix:** Added confirmation-reply detection for short acknowledgements and explicit negatives, rewrote generic yes/no follow-ups into contextual confirmations for the model, and added a deterministic summary-offer fast path so `ok` after `I can summarize it` executes the offered next step instead of reopening broad chat.
+**Rule:** When the immediately previous assistant turn is a confirmable offer or yes/no question, short acknowledgements like `ok`, `okay`, `yes`, and `sure` should be treated as confirmations unless the user explicitly says no.
+
+## L053 — Bare tool-argument JSON must never surface as assistant text
+
+**Date:** 2026-04-09
+**Subsystem:** `cockpit/core/agent_loop.py`, `cockpit/core/chat.py`
+**Symptom:** Article follow-up requests like `print the full kalkine article` sometimes surfaced raw JSON such as `{"url": ..., "max_chars": 8000}` instead of a user-facing response.
+**Root cause:** The agent loop already retried bare argument JSON, but its guard only recognized keys like `query`/`ticker`/`limit`; it missed `fetch_url`-style blobs (`url`, `max_chars`). Separately, article-reproduction requests were still allowed to enter the agent loop even though the only compliant outcome is a refusal plus optional summary offer.
+**Fix:** Extended the raw-JSON guard to flag `url`/`max_chars` argument objects, and added a deterministic article-text request short-circuit that resolves against the most recent referenced article URL and returns a clean refusal instead of leaking tool arguments or stalling the loop.
+**Rule:** If the model emits a bare tool-argument object, recover and retry — never show it to the user. For requests to reproduce full article text, short-circuit to a policy-safe refusal instead of routing through generic agent execution.
+
+## L054 — Local article printing in Cockpit only works if the backend can see the workspace reports corpus
+
+**Date:** 2026-04-09
+**Subsystem:** `cockpit/core/tools.py`, `cockpit/core/chat.py`, `financial-engine_v2/docker-compose.yml`
+**Symptom:** After adding local article-print support, the live backend still said the article could not be identified or that the local corpus was unavailable, even though the article body existed on disk under `../reports/qual_context/news_articles.sqlite`.
+**Root cause:** The Dockerized backend only mounted `./backend`, `./cockpit`, `./config`, `./data`, and `./scripts`. The workspace-level `../reports` directory containing `news_articles.sqlite` was not visible inside the container, so the local article reader could not resolve the stored corpus.
+**Fix:** Added a small `ToolRouter.get_local_news_article(url)` reader over the existing SQLite corpus, mounted `../reports` into the backend container as `/workspace-reports`, and taught the path resolver to check that mounted location. Article-print requests now read and print the locally stored `articles.body` when the referenced URL exists in recent session history.
+**Rule:** If Cockpit needs to expose locally stored corpus content inside Docker, ensure the authoritative host data path is mounted into the backend container and resolve that mounted path explicitly in the reader.
+
+## L055 — Dockerized model discovery must not depend on host-user home paths
+
+**Date:** 2026-04-09
+**Subsystem:** `backend/app/routes/cockpit_api.py`, `financial-engine_v2/docker-compose.yml`
+**Symptom:** `GET /api/cockpit/models` returned `groups: []` even though the host had GGUF files on NVMe, SSD cache, and HDD cold storage, and the settings UI therefore showed an empty or degraded model picker.
+**Root cause:** The backend route scanned fallback directories derived from `Path.home()` and host-local paths, but the live backend was running inside Docker as `root` without mounts for those model directories. The container could query llama-server, but it could not stat the host files it was supposed to group.
+**Fix:** Mounted the host model directories into the backend container as read-only `/models/{nvme,ssd,hdd}`, added explicit `COCKPIT_MODELS_*_DIR` env overrides for backend-side discovery, and kept a llama-server-registry fallback so the route still returns usable model groups when direct filesystem scans are unavailable.
+**Rule:** Any backend feature that discovers host files from a Docker container must use explicit mounted paths or container-local env overrides. Do not rely on `Path.home()` or bare host-user paths inside a containerized runtime.

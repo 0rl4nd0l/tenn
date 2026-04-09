@@ -32,12 +32,19 @@ services:
     env_file: [.env.docker]
     environment:
       TENN_HOST_NETWORK: ${TENN_HOST_NETWORK:-true}
+      COCKPIT_MODELS_NVME_DIR: /models/nvme
+      COCKPIT_MODELS_SSD_DIR: /models/ssd
+      COCKPIT_MODELS_HDD_DIR: /models/hdd
     volumes:
       - ./backend:/app
       - ./cockpit:/app/cockpit
       - ./config:/config
       - ./data:/data
       - ./scripts:/scripts
+      - ../reports:/workspace-reports
+      - ${TENN_MODELS_NVME_DIR:-/mnt/nvme/tenn/models}:/models/nvme:ro
+      - ${TENN_LLMFIT_MODELS_DIR:-/home/l4nd0/.cache/llmfit/models}:/models/ssd:ro
+      - ${TENN_COLD_MODELS_DIR:-/home/l4nd0/cold_storage/models}:/models/hdd:ro
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_started }

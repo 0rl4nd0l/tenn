@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import csv
 import json
 import logging
 import os
 import subprocess
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, AsyncGenerator
 from urllib.parse import urlparse
@@ -56,6 +58,25 @@ class CockpitConfigResponse(BaseModel):
     python_version: str | None = None
     git_branch: str | None = None
     data_root: str | None = None
+
+
+class ModelInfo(BaseModel):
+    id: str
+    filename: str
+    size_gb: float
+    quantization: str | None = None
+    available: bool = True
+
+
+class ModelGroup(BaseModel):
+    location: str
+    label: str
+    models: list[ModelInfo] = Field(default_factory=list)
+
+
+class AvailableModelsResponse(BaseModel):
+    groups: list[ModelGroup] = Field(default_factory=list)
+    active_model: str | None = None
 
 
 class QueueStatusResponse(BaseModel):
@@ -285,6 +306,27 @@ def cockpit_health() -> AggregatedHealthResponse:
 
     services.append(_probe_gpu())
 
+    # 7. CockpitService initialization
+    cs_ok = False
+    cs_latency: float = 0.0
+    cs_err: str | None = None
+    try:
+        cs_start = time.monotonic()
+        CockpitService.get_instance()
+        cs_latency = round((time.monotonic() - cs_start) * 1000, 1)
+        cs_ok = True
+    except Exception as exc:
+        cs_err = str(exc)
+
+    services.append(
+        ServiceHealthItem(
+            name="cockpit_service",
+            status="healthy" if cs_ok else "down",
+            response_time_ms=cs_latency if cs_ok else None,
+            error=cs_err,
+        )
+    )
+
     # Derive overall status
     statuses = [s.status for s in services]
     if all(s == "healthy" for s in statuses):
@@ -334,6 +376,12 @@ def cockpit_config() -> CockpitConfigResponse:
         llm_endpoint = str(settings.llamacpp_url or "").strip() or None
         llm_model = None
 
+    server_models = _fetch_llama_server_models()
+    for model_id, info in server_models.items():
+        if info.get("status") == "loaded":
+            llm_model = model_id
+            break
+
     import os
 
     return CockpitConfigResponse(
@@ -353,6 +401,307 @@ def cockpit_config() -> CockpitConfigResponse:
         python_version=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
         git_branch=_git_branch(),
         data_root=str(settings.data_root or "").strip() or None,
+    )
+
+
+# ---------------------------------------------------------------------------
+# GET /api/cockpit/models
+# ---------------------------------------------------------------------------
+
+
+def _parse_quantization(filename: str) -> str | None:
+    """Extract quantization tag from GGUF filename (e.g. 'Q4_K_M' from '...-Q4_K_M.gguf')."""
+    stem = filename.rsplit(".", 1)[0] if "." in filename else filename
+    parts = stem.split("-")
+    for part in reversed(parts):
+        upper = part.upper()
+        if upper.startswith("Q") and any(c.isdigit() for c in upper):
+            return upper
+        if upper in ("MXFP4", "FP16", "BF16", "F16", "F32"):
+            return upper
+    return None
+
+
+def _extract_model_path(status_obj: dict[str, Any]) -> str:
+    args_list = status_obj.get("args") or []
+    for i, arg in enumerate(args_list):
+        if arg == "--model" and i + 1 < len(args_list):
+            return str(args_list[i + 1] or "").strip()
+
+    preset_text = str(status_obj.get("preset") or "")
+    for line in preset_text.splitlines():
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        if key.strip().lower() == "model":
+            return value.strip()
+    return ""
+
+
+def _path_location_key(path_text: str) -> str:
+    return path_text.replace("\\", "/").rstrip("/").lower()
+
+
+def _classify_model_location(model_path: str) -> dict[str, str] | None:
+    normalized = _path_location_key(model_path)
+    if not normalized:
+        return None
+
+    for loc in _MODEL_LOCATIONS:
+        dir_path = os.environ.get(loc["env_key"], "").strip() if loc["env_key"] else ""
+        if not dir_path:
+            dir_path = loc["default"]
+        if dir_path and normalized.startswith(_path_location_key(dir_path) + "/"):
+            return loc
+
+    if "/.cache/llmfit/models/" in normalized:
+        return next(loc for loc in _MODEL_LOCATIONS if loc["location"] == "ssd")
+    if "/cold_storage/models/" in normalized:
+        return next(loc for loc in _MODEL_LOCATIONS if loc["location"] == "hdd")
+    return None
+
+
+def _choose_preferred_model_id(path_stem: str, server_model_ids: list[str]) -> str:
+    norm_stem = path_stem.strip().lower()
+    if not server_model_ids:
+        return path_stem
+
+    normalized_ids = [
+        model_id for model_id in server_model_ids if str(model_id).strip()
+    ]
+    alias_ids = [
+        model_id for model_id in normalized_ids if model_id.startswith("model:")
+    ]
+    for model_id in alias_ids:
+        short = model_id.split(":", 1)[1].strip().lower()
+        if short and (
+            norm_stem == short
+            or norm_stem.startswith(short)
+            or short.startswith(norm_stem)
+        ):
+            return model_id
+
+    for model_id in normalized_ids:
+        if model_id.strip().lower() == norm_stem:
+            return model_id
+    return path_stem
+
+
+def _build_server_model_groups(
+    server_models: dict[str, dict[str, Any]],
+) -> list[ModelGroup]:
+    grouped: dict[str, list[ModelInfo]] = {
+        loc["location"]: [] for loc in _MODEL_LOCATIONS
+    }
+    by_path: dict[str, dict[str, Any]] = {}
+
+    for model_id, info in server_models.items():
+        model_path = str(info.get("model_path") or "").strip()
+        if not model_path:
+            continue
+        location = _classify_model_location(model_path)
+        if location is None:
+            continue
+
+        normalized_path = _path_location_key(model_path)
+        entry = by_path.setdefault(
+            normalized_path,
+            {
+                "path": model_path,
+                "filename": Path(model_path).name,
+                "stem": Path(model_path).stem,
+                "location": location,
+                "server_ids": set(),
+            },
+        )
+        entry["server_ids"].add(model_id)
+
+    all_server_ids = list(server_models.keys())
+    for entry in sorted(
+        by_path.values(), key=lambda item: str(item["filename"]).lower()
+    ):
+        filename = str(entry["filename"])
+        path_stem = str(entry["stem"])
+        model_path = str(entry["path"])
+        model_file = Path(model_path)
+        size_gb = 0.0
+        if model_file.is_file():
+            size_gb = round(model_file.stat().st_size / (1024**3), 1)
+
+        location = entry["location"]
+        grouped[location["location"]].append(
+            ModelInfo(
+                id=_choose_preferred_model_id(
+                    path_stem,
+                    list(entry["server_ids"]) + all_server_ids,
+                ),
+                filename=filename,
+                size_gb=size_gb,
+                quantization=_parse_quantization(filename),
+                available=location["location"] != "hdd",
+            )
+        )
+
+    result: list[ModelGroup] = []
+    for loc in _MODEL_LOCATIONS:
+        models = grouped.get(loc["location"], [])
+        if models:
+            result.append(
+                ModelGroup(
+                    location=loc["location"],
+                    label=loc["label"],
+                    models=models,
+                )
+            )
+    return result
+
+
+def _scan_model_directory(dir_path: str) -> list[ModelInfo]:
+    """Scan a directory for .gguf files and return ModelInfo list."""
+    results: list[ModelInfo] = []
+    p = Path(dir_path)
+    if not p.is_dir():
+        return results
+    for f in sorted(p.glob("*.gguf")):
+        if not f.is_file():
+            continue
+        size_bytes = f.stat().st_size
+        stem = f.stem
+        results.append(
+            ModelInfo(
+                id=stem,
+                filename=f.name,
+                size_gb=round(size_bytes / (1024**3), 1),
+                quantization=_parse_quantization(f.name),
+                available=True,
+            )
+        )
+    return results
+
+
+_MODEL_LOCATIONS: list[dict[str, str]] = [
+    {
+        "env_key": "COCKPIT_MODELS_NVME_DIR",
+        "default": "/mnt/nvme/tenn/models",
+        "label": "NVMe (Fast)",
+        "location": "nvme",
+    },
+    {
+        "env_key": "COCKPIT_MODELS_SSD_DIR",
+        "default": str(Path.home() / ".cache" / "llmfit" / "models"),
+        "label": "SSD Cache",
+        "location": "ssd",
+    },
+    {
+        "env_key": "COCKPIT_MODELS_HDD_DIR",
+        "default": str(Path.home() / "cold_storage" / "models"),
+        "label": "HDD Cold Storage",
+        "location": "hdd",
+    },
+]
+
+
+def _fetch_llama_server_models() -> dict[str, dict[str, Any]]:
+    """Query llama-server /v1/models and return {model_id: {status, path_stem}}."""
+    llamacpp_url = str(settings.llamacpp_url or "").strip().rstrip("/")
+    if not llamacpp_url:
+        return {}
+    try:
+        resp = httpx.get(f"{llamacpp_url}/v1/models", timeout=3.0)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception:
+        return {}
+
+    result: dict[str, dict[str, Any]] = {}
+    for entry in data.get("data", []):
+        model_id = str(entry.get("id", "")).strip()
+        if not model_id:
+            continue
+        status_obj = entry.get("status") or {}
+        status_val = str(status_obj.get("value", "unknown"))
+        model_path = _extract_model_path(status_obj)
+        result[model_id] = {
+            "status": status_val,
+            "model_path": model_path,
+            "path_stem": Path(model_path).stem if model_path else "",
+        }
+    return result
+
+
+@router.get("/models", response_model=AvailableModelsResponse)
+def cockpit_available_models() -> AvailableModelsResponse:
+    """Return all discoverable GGUF models grouped by storage location.
+
+    Model IDs are resolved from llama-server's registry so the UI sends
+    exactly the ID that llama-server expects in chat requests.
+    """
+    server_models = _fetch_llama_server_models()
+    all_server_ids = list(server_models.keys())
+
+    # Build filename_stem → preferred server model ID lookup
+    stem_to_server_id: dict[str, str] = {}
+    active_model: str | None = None
+    for model_id, info in server_models.items():
+        if info["status"] == "loaded":
+            active_model = model_id
+        stem = info.get("path_stem", "")
+        if stem:
+            # Prefer model:alias form over bare filename stems
+            existing = stem_to_server_id.get(stem, "")
+            if not existing or model_id.startswith("model:"):
+                stem_to_server_id[stem] = model_id
+
+    # Map preset aliases that lack explicit --model paths
+    for model_id in server_models:
+        if model_id.startswith("model:"):
+            short = model_id.split(":", 1)[1]
+            if short not in stem_to_server_id:
+                stem_to_server_id[short] = model_id
+
+    groups: list[ModelGroup] = []
+    seen_files: set[str] = set()
+
+    for loc in _MODEL_LOCATIONS:
+        dir_path = os.environ.get(loc["env_key"], "").strip() if loc["env_key"] else ""
+        if not dir_path:
+            dir_path = loc["default"]
+
+        raw_models = _scan_model_directory(dir_path)
+        unique_models: list[ModelInfo] = []
+        for m in raw_models:
+            if m.filename in seen_files:
+                continue
+            seen_files.add(m.filename)
+            server_id = _choose_preferred_model_id(
+                m.id,
+                [stem_to_server_id.get(m.id, "")] + all_server_ids,
+            )
+            unique_models.append(
+                ModelInfo(
+                    id=server_id if server_id else m.id,
+                    filename=m.filename,
+                    size_gb=m.size_gb,
+                    quantization=m.quantization,
+                    available=loc["location"] != "hdd",
+                )
+            )
+
+        if unique_models:
+            groups.append(
+                ModelGroup(
+                    location=loc["location"],
+                    label=loc["label"],
+                    models=unique_models,
+                )
+            )
+
+    if not groups:
+        groups = _build_server_model_groups(server_models)
+
+    return AvailableModelsResponse(
+        groups=groups,
+        active_model=active_model,
     )
 
 
@@ -473,6 +822,159 @@ class CockpitActionExecuteResponse(BaseModel):
     action_id: str
     result: str
     exit_code: int = 0
+    chart: dict[str, str] | None = None
+
+
+def _coerce_float(raw: Any) -> float | None:
+    text = str(raw or "").strip()
+    if not text:
+        return None
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+
+def _coerce_int(raw: Any) -> int | None:
+    value = _coerce_float(raw)
+    if value is None:
+        return None
+    return int(value)
+
+
+def _resolve_chart_csv_path(repo_root: Path, raw_path: str) -> Path:
+    raw_text = str(raw_path or "").strip()
+    if not raw_text:
+        raise HTTPException(status_code=400, detail="Chart CSV path is required")
+
+    candidate = Path(raw_text)
+    if not candidate.is_absolute():
+        candidate = (repo_root / candidate).resolve()
+    else:
+        candidate = candidate.resolve()
+
+    allowed_root = (repo_root / "reports" / "candles").resolve()
+    try:
+        candidate.relative_to(allowed_root)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail="Chart CSV must be under reports/candles",
+        ) from exc
+
+    if not candidate.exists():
+        raise HTTPException(
+            status_code=404, detail=f"Chart CSV not found: {candidate.name}"
+        )
+    return candidate
+
+
+def _read_chart_rows_from_csv(csv_path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    with csv_path.open("r", encoding="utf-8", newline="") as fh:
+        reader = csv.DictReader(fh)
+        for row in reader:
+            rows.append(
+                {
+                    "timestamp": str(row.get("timestamp") or ""),
+                    "open": _coerce_float(row.get("open")),
+                    "high": _coerce_float(row.get("high")),
+                    "low": _coerce_float(row.get("low")),
+                    "close": _coerce_float(row.get("close")),
+                    "volume": _coerce_int(row.get("volume")),
+                }
+            )
+    return rows
+
+
+def _build_candlestick_chart_response(
+    service: CockpitService,
+    action_id: str,
+    args: dict[str, Any],
+) -> CockpitActionExecuteResponse:
+    from cockpit.core.plotly_html import build_candlestick_dashboard_html
+
+    ticker = str(args.get("ticker") or "UNKNOWN").strip().upper() or "UNKNOWN"
+    timeframe = str(args.get("timeframe") or "1d").strip() or "1d"
+    mode_flag = str(args.get("mode_flag") or "").strip()
+
+    price_state: dict[str, Any] = {}
+    recent_history: list[dict[str, Any]] = []
+    csv_error: HTTPException | None = None
+
+    if mode_flag == "-f":
+        try:
+            csv_path = _resolve_chart_csv_path(
+                service.repo_root, str(args.get("mode_value") or "")
+            )
+            recent_history = _read_chart_rows_from_csv(csv_path)
+            if recent_history:
+                latest_close = recent_history[-1].get("close")
+                price_state = {
+                    "current": {"close": latest_close},
+                    "metrics": {"sample_count": len(recent_history)},
+                }
+        except HTTPException as exc:
+            csv_error = exc
+
+    if not recent_history:
+        try:
+            bundle = service.tool_router.get_price_context_for_window(
+                ticker,
+                range_="1y",
+                interval=timeframe,
+                max_history_rows=260,
+            )
+        except RuntimeError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+        if not isinstance(bundle, dict):
+            raise HTTPException(
+                status_code=502, detail=f"Chart data unavailable for {ticker}"
+            )
+
+        price = bundle.get("price") if isinstance(bundle.get("price"), dict) else {}
+        recent_history = (
+            price.get("recent_history")
+            if isinstance(price.get("recent_history"), list)
+            else []
+        )
+        if not recent_history:
+            if csv_error is not None:
+                raise csv_error
+            raise HTTPException(
+                status_code=404, detail=f"No OHLC data available for {ticker}"
+            )
+        price_state = (
+            bundle.get("price_state")
+            if isinstance(bundle.get("price_state"), dict)
+            else {}
+        )
+
+    html = build_candlestick_dashboard_html(
+        {
+            "ticker": ticker,
+            "window": "1y",
+            "price_state": price_state,
+            "recent_history": recent_history,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+        }
+    )
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
+    service.artifact_store.write_text(
+        f"reports/cockpit/{ticker}_{ts}_candlestick_dashboard.html",
+        html,
+    )
+    return CockpitActionExecuteResponse(
+        ok=True,
+        action_id=action_id,
+        result=f"Candlestick chart rendered for {ticker} ({timeframe}).",
+        exit_code=0,
+        chart={
+            "title": f"{ticker} candlestick chart",
+            "html": html,
+        },
+    )
 
 
 class CockpitActionPreviewRequest(BaseModel):
@@ -532,7 +1034,7 @@ def _normalize_action_command(command: list[str], repo_root: Path) -> list[str]:
 
     normalized = list(command)
 
-    # Python launcher fallback: ActionRegistry may embed /.venv/bin/python which
+    # Python launcher normalization: ActionRegistry may include /.venv/bin/python which
     # does not exist in some backend container setups.
     python_bin = Path(normalized[0])
     if not python_bin.exists():
@@ -603,6 +1105,9 @@ async def cockpit_execute_action(payload: CockpitActionExecuteRequest):
         ) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if action_id == "show_candlestick":
+        return _build_candlestick_chart_response(service, action_id, args)
 
     timeout_seconds = max(1, int(preview.timeout_seconds or 300))
     normalized_command = _normalize_action_command(
@@ -690,6 +1195,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     "cost_usd": response.routing_metadata.get("cost_usd")
                     if response.routing_metadata
                     else 0,
+                    "action_preview": response.action_preview,
                 },
             }
         except Exception as exc:
