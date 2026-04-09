@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import csv
+import io
 import json
 import os
 import shlex
@@ -338,6 +340,119 @@ def _is_router_owned_child_process(pid: int) -> bool:
             return True
         current = parent
     return False
+
+
+def _is_descended_from(pid: int, ancestor_pids: set[int]) -> bool:
+    current = pid
+    for _ in range(8):
+        parent = _read_parent_pid(current)
+        if not parent:
+            return False
+        if parent in ancestor_pids:
+            return True
+        current = parent
+    return False
+
+
+def _list_gpu_compute_processes() -> list[dict[str, object]]:
+    try:
+        result = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-compute-apps=pid,process_name,used_memory",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except Exception:
+        return []
+
+    output = str(result.stdout or "").strip()
+    if result.returncode != 0 or not output:
+        return []
+
+    rows: list[dict[str, object]] = []
+    reader = csv.reader(io.StringIO(output))
+    for row in reader:
+        if len(row) < 3:
+            continue
+        pid_raw, process_name, used_memory = [
+            str(value or "").strip() for value in row[:3]
+        ]
+        try:
+            pid = int(pid_raw)
+        except ValueError:
+            continue
+        try:
+            used_memory_mb = int(
+                "".join(ch for ch in used_memory if ch.isdigit()) or "0"
+            )
+        except ValueError:
+            used_memory_mb = 0
+        rows.append(
+            {
+                "pid": pid,
+                "process_name": process_name,
+                "used_memory_mb": used_memory_mb,
+            }
+        )
+    return rows
+
+
+def check_chat_gpu_preemption(port: str = "8001") -> dict[str, object]:
+    """Return whether cockpit chat should yield the GPU to other work.
+
+    Chat is the lowest-priority GPU consumer. If any independent llama-server
+    other than the selected chat runtime is present, or any non-chat compute
+    process is already holding GPU memory, cockpit should prefer the API path.
+    """
+
+    target_port = str(port or "8001").strip() or "8001"
+    topology = resolve_llama_server_port_topology(target_port)
+    chat_proc = topology.selected_process or {}
+    chat_root_pid = int(chat_proc.get("pid") or 0) if chat_proc else 0
+    chat_lineage = {chat_root_pid} if chat_root_pid > 0 else set()
+
+    if topology.ambiguous:
+        return {
+            "should_defer": True,
+            "reason": topology.reason or f"ambiguous_chat_runtime_on_{target_port}",
+            "competing_processes": list(topology.candidate_processes),
+        }
+
+    llama_processes = find_all_llama_server_processes()
+    competing_llama = [
+        proc
+        for proc in llama_processes
+        if int(proc.get("pid") or 0) > 0
+        and int(proc.get("pid") or 0) not in chat_lineage
+        and not _is_descended_from(int(proc.get("pid") or 0), chat_lineage)
+    ]
+    if competing_llama:
+        return {
+            "should_defer": True,
+            "reason": "higher_priority_llama_runtime_present",
+            "competing_processes": competing_llama,
+        }
+
+    competing_gpu = [
+        proc
+        for proc in _list_gpu_compute_processes()
+        if int(proc.get("pid") or 0) > 0
+        and int(proc.get("pid") or 0) not in chat_lineage
+        and not _is_descended_from(int(proc.get("pid") or 0), chat_lineage)
+    ]
+    if competing_gpu:
+        return {
+            "should_defer": True,
+            "reason": "higher_priority_gpu_process_present",
+            "competing_processes": competing_gpu,
+        }
+
+    return {"should_defer": False, "reason": "", "competing_processes": []}
 
 
 def check_gpu_process_topology() -> dict:

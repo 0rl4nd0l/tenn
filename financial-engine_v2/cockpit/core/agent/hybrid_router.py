@@ -15,11 +15,13 @@ The API client is never called without an explicit ``api_client`` being
 supplied *and* either ``force_backend="api"`` or a policy that allows API.
 This prevents accidental cloud cost.
 """
+
 from __future__ import annotations
 
 import logging
 import os
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -38,10 +40,10 @@ class RouterResponse:
     """Normalised response from a single LLM call."""
 
     text: str
-    source: str          # "local" | "api"
+    source: str  # "local" | "api"
     model: str
     latency_ms: int
-    cost_usd: float      # 0.0 for local
+    cost_usd: float  # 0.0 for local
     tool_calls: list[dict] = field(default_factory=list)
 
 
@@ -54,6 +56,7 @@ class _CostEntry:
     model: str
     latency_ms: int
     cost_usd: float
+    routing_reason: str
 
 
 # ---------------------------------------------------------------------------
@@ -82,6 +85,10 @@ class HybridRouter:
         environment variable; default is ``"api_preferred"``.
     llm_timeout:
         Per-call timeout in seconds passed through to the underlying client.
+    extraction_active_fn:
+        Optional callable returning ``True`` when a GPU-bound extraction is
+        running on the shared llama.cpp server.  When active and an API client
+        is available, chat is routed to the cloud API to avoid VRAM contention.
     """
 
     def __init__(
@@ -90,11 +97,15 @@ class HybridRouter:
         api_client: Any = None,
         policy: str | None = None,
         llm_timeout: float = 120.0,
+        extraction_active_fn: Callable[[], bool] | None = None,
+        gpu_preemption_fn: Callable[[], str | None] | None = None,
     ) -> None:
         self._local = llm_client
         self._api = api_client
         self._timeout = llm_timeout
         self._policy = self._resolve_policy(policy)
+        self._extraction_active_fn = extraction_active_fn
+        self._gpu_preemption_fn = gpu_preemption_fn
         self._log: list[_CostEntry] = []
 
         if self._policy == "api_preferred" and self._api is None:
@@ -113,6 +124,8 @@ class HybridRouter:
         *,
         role: str = "orchestrator",
         force_backend: str | None = None,
+        on_chunk: Callable[[str], None] | None = None,
+        on_status: Callable[[str], None] | None = None,
     ) -> RouterResponse:
         """Route ``messages`` to the selected backend and return a ``RouterResponse``.
 
@@ -126,13 +139,16 @@ class HybridRouter:
             ``"local"`` or ``"api"`` to override the configured policy for
             this call.
         """
-        backend = self._select_backend(force_backend)
+        backend, routing_reason = self._select_backend(
+            force_backend,
+            on_status=on_status,
+        )
 
         start = time.monotonic()
         if backend == "local":
-            response = self._call_local(messages)
+            response = self._call_local(messages, on_chunk=on_chunk)
         else:
-            response = self._call_api(messages)
+            response = self._call_api(messages, on_chunk=on_chunk)
         elapsed_ms = int((time.monotonic() - start) * 1000)
 
         result = RouterResponse(
@@ -151,6 +167,7 @@ class HybridRouter:
                 model=result.model,
                 latency_ms=elapsed_ms,
                 cost_usd=result.cost_usd,
+                routing_reason=routing_reason,
             )
         )
         return result
@@ -164,6 +181,7 @@ class HybridRouter:
                 "model": e.model,
                 "latency_ms": e.latency_ms,
                 "cost_usd": e.cost_usd,
+                "routing_reason": e.routing_reason,
             }
             for e in self._log
         ]
@@ -176,43 +194,95 @@ class HybridRouter:
     # Backend selection
     # ------------------------------------------------------------------
 
-    def _select_backend(self, force_backend: str | None) -> str:
+    def _select_backend(
+        self,
+        force_backend: str | None,
+        *,
+        on_status: Callable[[str], None] | None = None,
+    ) -> tuple[str, str]:
         """Determine which backend to use for this call."""
         if force_backend is not None:
             if force_backend not in ("local", "api"):
                 raise ValueError(
                     f"force_backend must be 'local' or 'api', got {force_backend!r}"
                 )
-            return force_backend
+            return force_backend, f"force:{force_backend}"
+
+        # Extraction-aware override: when a GPU extraction is running on the
+        # shared llama.cpp server, route chat to the cloud API to avoid VRAM
+        # contention.  Only applies when an API client is available and the
+        # policy is not explicitly local_only.
+        if (
+            self._extraction_active_fn is not None
+            and self._api is not None
+            and self._policy != "local_only"
+        ):
+            try:
+                if self._extraction_active_fn():
+                    logger.info(
+                        "Extraction active on shared llama.cpp — routing chat to API"
+                    )
+                    if on_status is not None:
+                        on_status(
+                            "Extraction active on shared llama.cpp - routing chat to API"
+                        )
+                    return "api", "extraction_active"
+            except Exception:
+                pass  # Best-effort check; fall through to normal policy
+
+        if (
+            self._gpu_preemption_fn is not None
+            and self._api is not None
+            and self._policy != "local_only"
+        ):
+            try:
+                reason = str(self._gpu_preemption_fn() or "").strip()
+                if reason:
+                    logger.info(
+                        "Higher-priority GPU claimant detected (%s) — routing chat to API",
+                        reason,
+                    )
+                    if on_status is not None:
+                        on_status(
+                            "Higher-priority GPU work detected - routing chat to API"
+                        )
+                    return "api", "gpu_preempted"
+            except Exception:
+                pass  # Best-effort check; fall through to normal policy
 
         policy = self._policy
 
         if policy == "local_only":
-            return "local"
+            return "local", "policy:local_only"
 
         if policy == "local_preferred":
             if self._local is not None:
-                return "local"
+                return "local", "policy:local_preferred"
             if self._api is not None:
-                return "api"
-            return "local"  # will fail in _call_local with a clear message
+                return "api", "policy:local_preferred_fallback_api"
+            return "local", "policy:local_preferred"  # clear fail in _call_local
 
         if policy == "api_preferred":
             if self._api is not None:
-                return "api"
-            return "local"
+                return "api", "policy:api_preferred"
+            return "local", "policy:api_preferred_fallback_local"
 
         if policy == "api_only":
-            return "api"
+            return "api", "policy:api_only"
 
         # Unreachable — _resolve_policy validates.
-        return "local"
+        return "local", "policy:local_preferred"
 
     # ------------------------------------------------------------------
     # Local backend
     # ------------------------------------------------------------------
 
-    def _call_local(self, messages: list[dict]) -> dict:
+    def _call_local(
+        self,
+        messages: list[dict],
+        *,
+        on_chunk: Callable[[str], None] | None = None,
+    ) -> dict:
         """Call the local llama.cpp backend, normalise to an internal dict."""
         if self._local is None:
             raise RuntimeError(
@@ -234,6 +304,7 @@ class HybridRouter:
             prompt=prompt,
             timeout=self._timeout,
             prior_messages=prior,
+            on_chunk=on_chunk,
         )
         return {"text": text, "model": model_name, "cost_usd": 0.0, "tool_calls": []}
 
@@ -241,7 +312,12 @@ class HybridRouter:
     # API backend
     # ------------------------------------------------------------------
 
-    def _call_api(self, messages: list[dict]) -> dict:
+    def _call_api(
+        self,
+        messages: list[dict],
+        *,
+        on_chunk: Callable[[str], None] | None = None,
+    ) -> dict:
         """Call the cloud API backend, normalise to an internal dict.
 
         Prefers the richer ``complete()`` interface (returns cost and
@@ -261,8 +337,10 @@ class HybridRouter:
             prior = None
             prompt = messages[-1]["content"] if messages else ""
 
-        # Prefer complete() for rich responses (cost, tool_calls, usage).
-        if hasattr(self._api, "complete"):
+        # Prefer complete() for rich responses (cost, tool_calls, usage) when
+        # streaming is not required. During final-answer synthesis we need the
+        # chat interface so chunks can pass through safely.
+        if on_chunk is None and hasattr(self._api, "complete"):
             return self._api.complete(
                 prompt=prompt,
                 timeout=self._timeout,
@@ -275,6 +353,7 @@ class HybridRouter:
             prompt=prompt,
             timeout=self._timeout,
             prior_messages=prior,
+            on_chunk=on_chunk,
         )
         return {"text": text, "model": model_name, "cost_usd": 0.0, "tool_calls": []}
 
@@ -292,14 +371,15 @@ class HybridRouter:
         prompt: str,
         timeout: float = 120.0,
         prior_messages: list[dict] | None = None,
-        on_chunk: Any = None,  # noqa: ARG002  (accepted for interface compat, unused)
+        on_chunk: Any = None,
         force_backend: str | None = None,
+        on_status: Callable[[str], None] | None = None,
     ) -> str:
         """LlamaCppClient-compatible chat interface.
 
         Builds an OpenAI-style message list and delegates to :meth:`complete`.
-        Returns the plain-text response.  ``on_chunk`` is accepted for
-        interface compatibility but ignored (HybridRouter does not stream).
+        Returns the plain-text response. ``on_chunk`` is passed through to
+        backend clients that support token callbacks.
 
         ``force_backend`` (``\"local\"`` | ``\"api\"``) overrides policy for this call only
         when HybridRouter is used from :class:`cockpit.core.agent_loop.AgentLoop`
@@ -316,6 +396,8 @@ class HybridRouter:
             timeout=timeout,
             role="orchestrator",
             force_backend=force_backend,
+            on_chunk=on_chunk,
+            on_status=on_status,
         )
         return result.text
 
@@ -326,9 +408,14 @@ class HybridRouter:
         timeout: float,
         role: str = "orchestrator",
         force_backend: str | None = None,
+        on_chunk: Callable[[str], None] | None = None,
+        on_status: Callable[[str], None] | None = None,
     ) -> "RouterResponse":
         """Like :meth:`complete` but with a per-call timeout override (thread-safe)."""
-        backend = self._select_backend(force_backend)
+        backend, routing_reason = self._select_backend(
+            force_backend,
+            on_status=on_status,
+        )
 
         start = time.monotonic()
         if backend == "local":
@@ -336,14 +423,14 @@ class HybridRouter:
             saved = self._timeout
             self._timeout = timeout
             try:
-                response = self._call_local(messages)
+                response = self._call_local(messages, on_chunk=on_chunk)
             finally:
                 self._timeout = saved
         else:
             saved = self._timeout
             self._timeout = timeout
             try:
-                response = self._call_api(messages)
+                response = self._call_api(messages, on_chunk=on_chunk)
             finally:
                 self._timeout = saved
         elapsed_ms = int((time.monotonic() - start) * 1000)
@@ -364,6 +451,7 @@ class HybridRouter:
                 model=result.model,
                 latency_ms=elapsed_ms,
                 cost_usd=result.cost_usd,
+                routing_reason=routing_reason,
             )
         )
         return result

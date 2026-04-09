@@ -72,8 +72,12 @@ def test_load_model_api_returns_true_when_target_becomes_loaded(monkeypatch):
             [{"name": "qwen2.5-coder-14b", "state": "loaded"}],
         ]
     )
-    monkeypatch.setattr(manager.urllib.request, "urlopen", lambda req, timeout=30: MagicMock())
-    monkeypatch.setattr(manager, "list_models_api", lambda host, port, api_key="": next(states))
+    monkeypatch.setattr(
+        manager.urllib.request, "urlopen", lambda req, timeout=30: MagicMock()
+    )
+    monkeypatch.setattr(
+        manager, "list_models_api", lambda host, port, api_key="": next(states)
+    )
     monkeypatch.setattr(manager.time, "sleep", lambda _: None)
 
     messages: list[str] = []
@@ -90,11 +94,15 @@ def test_load_model_api_returns_true_when_target_becomes_loaded(monkeypatch):
 
 
 def test_load_model_api_returns_false_on_terminal_failure(monkeypatch):
-    monkeypatch.setattr(manager.urllib.request, "urlopen", lambda req, timeout=30: MagicMock())
+    monkeypatch.setattr(
+        manager.urllib.request, "urlopen", lambda req, timeout=30: MagicMock()
+    )
     monkeypatch.setattr(
         manager,
         "list_models_api",
-        lambda host, port, api_key="": [{"name": "qwen2.5-coder-14b", "state": "failed"}],
+        lambda host, port, api_key="": [
+            {"name": "qwen2.5-coder-14b", "state": "failed"}
+        ],
     )
     monkeypatch.setattr(manager.time, "sleep", lambda _: None)
 
@@ -112,11 +120,15 @@ def test_load_model_api_returns_false_on_terminal_failure(monkeypatch):
 
 
 def test_load_model_api_detects_stalled_loading_child(monkeypatch):
-    monkeypatch.setattr(manager.urllib.request, "urlopen", lambda req, timeout=30: MagicMock())
+    monkeypatch.setattr(
+        manager.urllib.request, "urlopen", lambda req, timeout=30: MagicMock()
+    )
     monkeypatch.setattr(
         manager,
         "list_models_api",
-        lambda host, port, api_key="": [{"name": "qwen2.5-coder-14b", "state": "loading"}],
+        lambda host, port, api_key="": [
+            {"name": "qwen2.5-coder-14b", "state": "loading"}
+        ],
     )
     monkeypatch.setattr(manager.time, "sleep", lambda _: None)
 
@@ -129,7 +141,9 @@ def test_load_model_api_detects_stalled_loading_child(monkeypatch):
         return 100.0 + call_count["n"] * 2.0
 
     monkeypatch.setattr(manager.time, "monotonic", _monotonic)
-    monkeypatch.setattr(manager, "_is_loading_stalled", lambda host, port, model_name, api_key="": True)
+    monkeypatch.setattr(
+        manager, "_is_loading_stalled", lambda host, port, model_name, api_key="": True
+    )
 
     messages: list[str] = []
     ok = manager.load_model_api(
@@ -148,14 +162,17 @@ def test_switch_model_uses_router_path_when_router_detected(monkeypatch):
     monkeypatch.setattr(manager, "is_router_mode", lambda host, port, api_key="": True)
     warm_calls: list[str] = []
     load_calls: list[tuple[str, str, str]] = []
-    monkeypatch.setattr(manager, "_warm_page_cache", lambda model_path, on_status=None: warm_calls.append(model_path))
+    monkeypatch.setattr(
+        manager,
+        "_warm_page_cache",
+        lambda model_path, on_status=None: warm_calls.append(model_path),
+    )
     monkeypatch.setattr(
         manager,
         "load_model_api",
-        lambda host, port, model_name, api_key="", timeout=600.0, on_status=None: load_calls.append(
-            (host, port, model_name)
-        )
-        or True,
+        lambda host, port, model_name, api_key="", timeout=600.0, on_status=None: (
+            load_calls.append((host, port, model_name)) or True
+        ),
     )
 
     result = manager.switch_model(
@@ -179,10 +196,9 @@ def test_switch_model_uses_restart_path_when_router_not_detected(monkeypatch):
     monkeypatch.setattr(
         manager,
         "restart_with_model",
-        lambda proc_info, new_model_path, new_model_alias, startup_timeout=600.0, on_status=None, mmap_disabled=None: restart_calls.append(
-            (new_model_path, new_model_alias)
-        )
-        or True,
+        lambda proc_info, new_model_path, new_model_alias, startup_timeout=600.0, on_status=None, mmap_disabled=None: (
+            restart_calls.append((new_model_path, new_model_alias)) or True
+        ),
     )
 
     result = manager.switch_model(
@@ -237,7 +253,9 @@ def test_probe_router_capability_reports_router_degraded(monkeypatch):
     assert state.reason == "router_process_detected_but_api_shape_missing"
 
 
-def test_probe_router_capability_trusts_live_router_even_if_binary_probe_fails(monkeypatch):
+def test_probe_router_capability_trusts_live_router_even_if_binary_probe_fails(
+    monkeypatch,
+):
     monkeypatch.setattr(manager, "_binary_supports_models_dir", lambda binary: False)
     monkeypatch.setattr(manager, "is_router_mode", lambda host, port, api_key="": True)
 
@@ -276,7 +294,11 @@ def test_resolve_llama_server_topology_prefers_chat_port_when_extraction_also_pr
     )
 
     assert topology.ambiguous is False
-    assert topology.selected_process == {"pid": 202, "port": "8001", "router_mode": True}
+    assert topology.selected_process == {
+        "pid": 202,
+        "port": "8001",
+        "router_mode": True,
+    }
     assert topology.reason == "chat_runtime_selected_with_extraction_runtime_present"
 
 
@@ -337,7 +359,9 @@ def test_load_model_api_surfaces_http_error_body(monkeypatch):
     assert any("HTTP 503" in message for message in messages)
 
 
-def test_check_gpu_process_topology_treats_router_child_worker_as_authorised(monkeypatch):
+def test_check_gpu_process_topology_treats_router_child_worker_as_authorised(
+    monkeypatch,
+):
     router_proc = {
         "pid": 100,
         "binary": "/usr/bin/llama-server",
@@ -350,8 +374,12 @@ def test_check_gpu_process_topology_treats_router_child_worker_as_authorised(mon
         "port": "48039",
         "router_mode": False,
     }
-    monkeypatch.setattr(manager, "find_all_llama_server_processes", lambda: [router_proc, child_proc])
-    monkeypatch.setattr(manager, "_is_router_owned_child_process", lambda pid: pid == 200)
+    monkeypatch.setattr(
+        manager, "find_all_llama_server_processes", lambda: [router_proc, child_proc]
+    )
+    monkeypatch.setattr(
+        manager, "_is_router_owned_child_process", lambda pid: pid == 200
+    )
 
     topology = manager.check_gpu_process_topology()
 
@@ -360,7 +388,9 @@ def test_check_gpu_process_topology_treats_router_child_worker_as_authorised(mon
     assert topology["authorised"] == [router_proc, child_proc]
 
 
-def test_check_gpu_process_topology_keeps_unrelated_ephemeral_server_as_rogue(monkeypatch):
+def test_check_gpu_process_topology_keeps_unrelated_ephemeral_server_as_rogue(
+    monkeypatch,
+):
     router_proc = {
         "pid": 100,
         "binary": "/usr/bin/llama-server",
@@ -373,7 +403,9 @@ def test_check_gpu_process_topology_keeps_unrelated_ephemeral_server_as_rogue(mo
         "port": "48039",
         "router_mode": False,
     }
-    monkeypatch.setattr(manager, "find_all_llama_server_processes", lambda: [router_proc, rogue_proc])
+    monkeypatch.setattr(
+        manager, "find_all_llama_server_processes", lambda: [router_proc, rogue_proc]
+    )
     monkeypatch.setattr(manager, "_is_router_owned_child_process", lambda pid: False)
 
     topology = manager.check_gpu_process_topology()
@@ -381,3 +413,97 @@ def test_check_gpu_process_topology_keeps_unrelated_ephemeral_server_as_rogue(mo
     assert topology["clean"] is False
     assert topology["authorised"] == [router_proc]
     assert topology["rogue"] == [rogue_proc]
+
+
+def test_check_chat_gpu_preemption_allows_selected_chat_runtime_only(monkeypatch):
+    router_proc = {
+        "pid": 100,
+        "binary": "/usr/bin/llama-server",
+        "port": "8001",
+        "router_mode": True,
+    }
+    child_proc = {
+        "pid": 200,
+        "binary": "/usr/bin/llama-server",
+        "port": "48039",
+        "router_mode": False,
+    }
+    monkeypatch.setattr(
+        manager,
+        "resolve_llama_server_port_topology",
+        lambda port: manager.LlamaServerTopology(router_proc, [router_proc], False, ""),
+    )
+    monkeypatch.setattr(
+        manager, "find_all_llama_server_processes", lambda: [router_proc, child_proc]
+    )
+    monkeypatch.setattr(
+        manager,
+        "_is_descended_from",
+        lambda pid, ancestors: pid == 200 and ancestors == {100},
+    )
+    monkeypatch.setattr(
+        manager, "_list_gpu_compute_processes", lambda: [{"pid": 100}, {"pid": 200}]
+    )
+
+    state = manager.check_chat_gpu_preemption("8001")
+
+    assert state == {"should_defer": False, "reason": "", "competing_processes": []}
+
+
+def test_check_chat_gpu_preemption_defers_for_other_llama_runtime(monkeypatch):
+    router_proc = {
+        "pid": 100,
+        "binary": "/usr/bin/llama-server",
+        "port": "8001",
+        "router_mode": True,
+    }
+    extraction_proc = {
+        "pid": 300,
+        "binary": "/usr/bin/llama-server",
+        "port": "8002",
+        "router_mode": False,
+    }
+    monkeypatch.setattr(
+        manager,
+        "resolve_llama_server_port_topology",
+        lambda port: manager.LlamaServerTopology(router_proc, [router_proc], False, ""),
+    )
+    monkeypatch.setattr(
+        manager,
+        "find_all_llama_server_processes",
+        lambda: [router_proc, extraction_proc],
+    )
+    monkeypatch.setattr(manager, "_is_descended_from", lambda pid, ancestors: False)
+    monkeypatch.setattr(manager, "_list_gpu_compute_processes", lambda: [])
+
+    state = manager.check_chat_gpu_preemption("8001")
+
+    assert state["should_defer"] is True
+    assert state["reason"] == "higher_priority_llama_runtime_present"
+    assert state["competing_processes"] == [extraction_proc]
+
+
+def test_check_chat_gpu_preemption_defers_for_other_gpu_compute_process(monkeypatch):
+    router_proc = {
+        "pid": 100,
+        "binary": "/usr/bin/llama-server",
+        "port": "8001",
+        "router_mode": True,
+    }
+    gpu_proc = {"pid": 555, "process_name": "python", "used_memory_mb": 4096}
+    monkeypatch.setattr(
+        manager,
+        "resolve_llama_server_port_topology",
+        lambda port: manager.LlamaServerTopology(router_proc, [router_proc], False, ""),
+    )
+    monkeypatch.setattr(
+        manager, "find_all_llama_server_processes", lambda: [router_proc]
+    )
+    monkeypatch.setattr(manager, "_is_descended_from", lambda pid, ancestors: False)
+    monkeypatch.setattr(manager, "_list_gpu_compute_processes", lambda: [gpu_proc])
+
+    state = manager.check_chat_gpu_preemption("8001")
+
+    assert state["should_defer"] is True
+    assert state["reason"] == "higher_priority_gpu_process_present"
+    assert state["competing_processes"] == [gpu_proc]

@@ -173,7 +173,7 @@ class ChatController:
         self._thread_id = thread_id
         self._memory = memory_store
         self._query_orchestrator = query_orchestrator
-        self._ov_session_id: str = uuid.uuid4().hex
+        self._ov_session_id: str = self._load_or_create_session_id()
         self._latest_sources_payloads: list[dict[str, Any]] = []
         _ov_log_startup_status()
         # Prevents concurrent context-gather calls from stacking up.
@@ -234,6 +234,25 @@ class ChatController:
                 except Exception:
                     pass  # Backend not available (e.g. standalone cockpit)
 
+                gpu_preemption_checker = None
+                try:
+                    from cockpit.integrations.llamacpp_manager import (
+                        check_chat_gpu_preemption,
+                    )
+
+                    llm_base_url = str(getattr(ollama_client, "base_url", "") or "")
+                    chat_port = urlparse(llm_base_url).port or 8001
+
+                    def _gpu_preemption_checker() -> str | None:
+                        state = check_chat_gpu_preemption(str(chat_port))
+                        if bool(state.get("should_defer")):
+                            return str(state.get("reason") or "gpu_preempted")
+                        return None
+
+                    gpu_preemption_checker = _gpu_preemption_checker
+                except Exception:
+                    pass
+
                 hybrid_router = HybridRouter(
                     llm_client=ollama_client,
                     api_client=api_client,
@@ -243,6 +262,7 @@ class ChatController:
                     ),
                     llm_timeout=self.llm_timeout_seconds,
                     extraction_active_fn=extraction_checker,
+                    gpu_preemption_fn=gpu_preemption_checker,
                 )
                 self._hybrid_router = hybrid_router
 
@@ -404,6 +424,65 @@ class ChatController:
                     "requires cockpit.core.agent_loop and cockpit.core.tool_executor. "
                     "Falling back to keyword mode."
                 )
+
+    # ---------------------------------------------------------------------- #
+    # Session ID persistence                                                   #
+    # ---------------------------------------------------------------------- #
+
+    _OV_SESSION_FILE = Path("~/.openviking/workspaces/cockpit/active_session_id")
+
+    @classmethod
+    def _session_id_path(cls) -> Path:
+        return cls._OV_SESSION_FILE.expanduser()
+
+    @classmethod
+    def _load_or_create_session_id(cls) -> str:
+        """Return the persisted session ID, or mint and persist a new one.
+
+        The ID is stored at ~/.openviking/workspaces/cockpit/active_session_id so
+        that cockpit restarts reuse the same OpenViking session and can retrieve
+        prior turns.  A fresh ID is written if the file is absent or its content
+        is not a valid 32-char hex string.
+        """
+        path = cls._session_id_path()
+        try:
+            raw = path.read_text().strip()
+            if len(raw) == 32 and all(c in "0123456789abcdef" for c in raw):
+                logger.debug("cockpit.session: reusing persisted session_id=%s", raw)
+                return raw
+        except FileNotFoundError:
+            pass
+        except Exception as exc:
+            logger.warning("cockpit.session: could not read session file: %s", exc)
+
+        new_id = uuid.uuid4().hex
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(new_id)
+            logger.info(
+                "cockpit.session: new session_id=%s persisted to %s", new_id, path
+            )
+        except Exception as exc:
+            logger.warning("cockpit.session: could not persist session_id: %s", exc)
+        return new_id
+
+    def rotate_session(self) -> str:
+        """Mint a new session ID, persist it, and return it.
+
+        Call this to create an explicit session break (e.g. /new-session command).
+        """
+        new_id = uuid.uuid4().hex
+        path = self._session_id_path()
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(new_id)
+        except Exception as exc:
+            logger.warning(
+                "cockpit.session: could not persist rotated session_id: %s", exc
+            )
+        self._ov_session_id = new_id
+        logger.info("cockpit.session: session rotated to session_id=%s", new_id)
+        return new_id
 
     TICKER_STOPWORDS = {
         "A",
@@ -2484,8 +2563,29 @@ class ChatController:
             except Exception:
                 pass  # strategy injection is best-effort
 
+        # OpenViking: fetch semantically relevant prior turns for agent mode.
+        # Context source hierarchy: OpenViking (semantic) > StateStore (recency) > Memory (research).
+        ov_agent_block = ""
+        prior_ov_turns = get_relevant_session_context(
+            self._ov_session_id, message, limit=3
+        )
+        if prior_ov_turns:
+            lines = ["Prior session context:"]
+            for t in prior_ov_turns:
+                q = str(t.get("query") or "")[:150]
+                a = str(t.get("answer") or "")[:250]
+                tkr = str(t.get("ticker") or "").strip()
+                note = f" [{tkr}]" if tkr else ""
+                if q:
+                    lines.append(f"  Q{note}: {q}")
+                if a:
+                    lines.append(f"  A: {a}")
+            ov_agent_block = "\n".join(lines)
+
         # Inject research memory context into message if available
         augmented_message = message
+        if ov_agent_block:
+            augmented_message = ov_agent_block + "\n\n" + augmented_message
         if strategy_block:
             augmented_message = augmented_message + "\n\n" + strategy_block
         if self._memory and ticker:
@@ -2495,7 +2595,7 @@ class ChatController:
                     extra_context = (
                         f"\n\n## Prior Research for {ticker}\n{research[:4000]}"
                     )
-                    augmented_message = message + extra_context
+                    augmented_message = augmented_message + extra_context
             except Exception:
                 pass  # memory injection is best-effort
 
@@ -2523,6 +2623,7 @@ class ChatController:
                     "model": last["model"],
                     "latency_ms": last["latency_ms"],
                     "cost_usd": last["cost_usd"],
+                    "routing_reason": last.get("routing_reason"),
                     "total_session_cost_usd": self._hybrid_router.total_cost_usd(),
                 }
 
@@ -2688,15 +2789,22 @@ class ChatController:
             ticker=primary_ticker or ticker,
         )
         self._set_latest_sources_payloads(evidence)
+        routing_metadata: dict[str, Any] = {
+            "source": "orchestrator",
+            "intent": orchestration_result.intent,
+            "sources": list(orchestration_result.source_plan),
+        }
+        if self._hybrid_router is not None:
+            cost_entries = self._hybrid_router.cost_log()
+            if cost_entries:
+                last = cost_entries[-1]
+                routing_metadata["routing_reason"] = last.get("routing_reason")
+
         return ChatResponse(
             text=final_text.strip(),
             evidence=evidence,
             mode=ResponseMode.FAST,
-            routing_metadata={
-                "source": "orchestrator",
-                "intent": orchestration_result.intent,
-                "sources": list(orchestration_result.source_plan),
-            },
+            routing_metadata=routing_metadata,
         )
 
     @staticmethod
@@ -3198,18 +3306,25 @@ class ChatController:
                     lines.append(f"  A: {a}")
             ov_context_block = "\n".join(lines) + "\n\n"
 
-        # Inject recent conversation history for context continuity
+        # Inject recent conversation history for context continuity.
+        # Context source hierarchy (keyword mode):
+        #   1. OpenViking prior turns (ov_context_block) — semantic relevance, PRIMARY session context
+        #   2. StateStore history (history_block)        — last 2 turns only, immediate recency
+        #   3. StateStore entity observations            — structured facts, different purpose
+        # Using only 2 StateStore turns because OpenViking already covers broader session history.
         history_block = ""
         if self._state_store is not None:
             try:
                 history_msgs = self._state_store.get_chat_messages(
-                    self._thread_id, limit=12
+                    self._thread_id, limit=4
                 )
                 # Exclude the most recent message (current turn, just stored)
                 prior_turns = history_msgs[:-1] if history_msgs else []
                 if prior_turns:
                     lines = []
-                    for m in prior_turns[-6:]:  # last 6 turns max
+                    for m in prior_turns[
+                        -2:
+                    ]:  # last 2 turns for immediate recency only
                         role = m.get("role", "user")
                         content = str(m.get("content", ""))[:400]  # cap per message
                         lines.append(f"{role}: {content}")
@@ -3454,6 +3569,11 @@ class ChatController:
                 message=message,
                 local_payload=local_payload,
             )
+        elif self._violates_missing_financials_contract(answer, local_payload):
+            answer = self._build_grounded_overview_brief(
+                ticker=ticker or str(local_payload.get("ticker") or ""),
+                local_payload=local_payload,
+            )
 
         self._record_answer_side_effects(query=message, answer=answer, ticker=ticker)
         self._set_latest_sources_payloads(evidence)
@@ -3472,6 +3592,10 @@ class ChatController:
         "Risks:",
         "Counterpoints:",
         "Unknowns:",
+    )
+    _MISSING_FINANCIALS_FORBIDDEN = re.compile(
+        r"\b(revenue|profit|npat|ebit|ebitda|dividend|net tangible assets|margin|yoy)\b",
+        re.IGNORECASE,
     )
 
     def _violates_deep_output_contract(self, text: str) -> bool:
@@ -3498,6 +3622,57 @@ class ChatController:
         if re.search(r"\bscore\b\s+\d+\.\d|\b0\.\d{3,}\b", answer, re.IGNORECASE):
             return False
         return True
+
+    def _violates_missing_financials_contract(
+        self,
+        answer: str,
+        local_payload: dict[str, Any],
+    ) -> bool:
+        if local_payload.get("financials"):
+            return False
+        text = str(answer or "")
+        if not text.strip():
+            return False
+        if not self._MISSING_FINANCIALS_FORBIDDEN.search(text):
+            return False
+        has_table = "|" in text
+        has_money = bool(re.search(r"\b(?:US\$|A\$|AUD|USD)\s*\d", text))
+        has_percent = bool(re.search(r"\b\d+(?:\.\d+)?\s*%", text))
+        return has_table or has_money or has_percent
+
+    def _build_grounded_overview_brief(
+        self,
+        *,
+        ticker: str,
+        local_payload: dict[str, Any],
+    ) -> str:
+        lines: list[str] = []
+        label = ticker or "This company"
+        lines.append(f"**{label}**")
+        lines.append("")
+        docs = [d for d in (local_payload.get("docs") or []) if isinstance(d, dict)]
+        if docs:
+            lines.append("Recent filings available:")
+            for doc in docs[:3]:
+                title = str(doc.get("title") or "Untitled filing").strip()
+                date = str(doc.get("published_at") or "").strip()[:10]
+                if date:
+                    lines.append(f"- {date}: {title}")
+                else:
+                    lines.append(f"- {title}")
+            lines.append("")
+        price_state = local_payload.get("price_state") or {}
+        trend = str(price_state.get("trend_regime") or "").strip()
+        if trend:
+            lines.append(f"Current price trend: {trend}.")
+            lines.append("")
+        lines.append(
+            "Detailed extracted financial metrics are not currently available in the canonical data for this ticker."
+        )
+        lines.append(
+            "I can still help with a document-grounded summary, recent filings, or price context, but I should not state exact revenue, profit, or margin figures until those metrics are extracted or directly quoted from the documents."
+        )
+        return "\n".join(lines)
 
     def _build_grounded_deep_analysis_brief(
         self,

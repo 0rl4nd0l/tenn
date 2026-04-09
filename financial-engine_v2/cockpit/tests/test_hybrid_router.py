@@ -1,4 +1,5 @@
 """Tests for HybridRouter — local/API LLM routing."""
+
 from __future__ import annotations
 import pytest
 from unittest.mock import MagicMock, patch
@@ -14,7 +15,14 @@ def mock_llm_client():
 
 
 def test_router_response_is_dataclass():
-    r = RouterResponse(text="hi", source="local", model="qwen", latency_ms=100, cost_usd=0.0, tool_calls=[])
+    r = RouterResponse(
+        text="hi",
+        source="local",
+        model="qwen",
+        latency_ms=100,
+        cost_usd=0.0,
+        tool_calls=[],
+    )
     assert r.text == "hi"
     assert r.source == "local"
     assert r.cost_usd == 0.0
@@ -47,9 +55,177 @@ def test_cost_tracker_records_call(mock_llm_client):
     assert len(log) == 1
     assert log[0]["source"] == "local"
     assert log[0]["role"] == "orchestrator"
+    assert log[0]["routing_reason"] == "policy:api_preferred_fallback_local"
 
 
 def test_latency_is_positive(mock_llm_client):
     router = HybridRouter(llm_client=mock_llm_client)
     result = router.complete([{"role": "user", "content": "hi"}])
     assert result.latency_ms >= 0
+
+
+# ---------------------------------------------------------------------------
+# Extraction-aware routing tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def mock_api_client():
+    client = MagicMock(spec=["chat", "model"])
+    client.chat.return_value = "api response"
+    client.model = "claude-sonnet"
+    return client
+
+
+class TestExtractionAwareRouting:
+    """HybridRouter routes chat to API when GPU extraction is active."""
+
+    def test_routes_to_api_when_extraction_active(
+        self, mock_llm_client, mock_api_client
+    ):
+        statuses: list[str] = []
+        router = HybridRouter(
+            llm_client=mock_llm_client,
+            api_client=mock_api_client,
+            policy="local_preferred",
+            extraction_active_fn=lambda: True,
+        )
+        result = router.complete(
+            [{"role": "user", "content": "hi"}],
+            on_status=statuses.append,
+        )
+        assert result.source == "api"
+        assert router.cost_log()[-1]["routing_reason"] == "extraction_active"
+        assert any("routing chat to API" in msg for msg in statuses)
+        mock_api_client.chat.assert_called_once()
+        mock_llm_client.chat.assert_not_called()
+
+    def test_routes_to_local_when_extraction_inactive(
+        self, mock_llm_client, mock_api_client
+    ):
+        router = HybridRouter(
+            llm_client=mock_llm_client,
+            api_client=mock_api_client,
+            policy="local_preferred",
+            extraction_active_fn=lambda: False,
+        )
+        result = router.complete([{"role": "user", "content": "hi"}])
+        assert result.source == "local"
+        assert router.cost_log()[-1]["routing_reason"] == "policy:local_preferred"
+
+    def test_respects_local_only_even_during_extraction(
+        self, mock_llm_client, mock_api_client
+    ):
+        router = HybridRouter(
+            llm_client=mock_llm_client,
+            api_client=mock_api_client,
+            policy="local_only",
+            extraction_active_fn=lambda: True,
+        )
+        result = router.complete([{"role": "user", "content": "hi"}])
+        assert result.source == "local"
+
+    def test_no_api_client_falls_through_during_extraction(self, mock_llm_client):
+        router = HybridRouter(
+            llm_client=mock_llm_client,
+            api_client=None,
+            policy="local_preferred",
+            extraction_active_fn=lambda: True,
+        )
+        result = router.complete([{"role": "user", "content": "hi"}])
+        assert result.source == "local"
+
+    def test_force_backend_overrides_extraction_check(
+        self, mock_llm_client, mock_api_client
+    ):
+        router = HybridRouter(
+            llm_client=mock_llm_client,
+            api_client=mock_api_client,
+            policy="local_preferred",
+            extraction_active_fn=lambda: True,
+        )
+        result = router.complete(
+            [{"role": "user", "content": "hi"}], force_backend="local"
+        )
+        assert result.source == "local"
+        assert router.cost_log()[-1]["routing_reason"] == "force:local"
+
+    def test_extraction_fn_exception_falls_through(
+        self, mock_llm_client, mock_api_client
+    ):
+        def broken_checker():
+            raise ConnectionError("Redis down")
+
+        router = HybridRouter(
+            llm_client=mock_llm_client,
+            api_client=mock_api_client,
+            policy="local_preferred",
+            extraction_active_fn=broken_checker,
+        )
+        result = router.complete([{"role": "user", "content": "hi"}])
+        assert result.source == "local"
+
+    def test_no_extraction_fn_uses_normal_policy(
+        self, mock_llm_client, mock_api_client
+    ):
+        router = HybridRouter(
+            llm_client=mock_llm_client,
+            api_client=mock_api_client,
+            policy="local_preferred",
+            extraction_active_fn=None,
+        )
+        result = router.complete([{"role": "user", "content": "hi"}])
+        assert result.source == "local"
+
+    def test_chat_interface_respects_extraction_active(
+        self, mock_llm_client, mock_api_client
+    ):
+        router = HybridRouter(
+            llm_client=mock_llm_client,
+            api_client=mock_api_client,
+            policy="local_preferred",
+            extraction_active_fn=lambda: True,
+        )
+        text = router.chat(prompt="hello", timeout=10.0)
+        assert text == "api response"
+        mock_api_client.chat.assert_called_once()
+
+
+class TestGpuPreemptionRouting:
+    def test_routes_to_api_when_gpu_preemption_detected(
+        self, mock_llm_client, mock_api_client
+    ):
+        statuses: list[str] = []
+        router = HybridRouter(
+            llm_client=mock_llm_client,
+            api_client=mock_api_client,
+            policy="local_preferred",
+            gpu_preemption_fn=lambda: "higher_priority_gpu_process_present",
+        )
+
+        result = router.complete(
+            [{"role": "user", "content": "hi"}],
+            on_status=statuses.append,
+        )
+
+        assert result.source == "api"
+        assert router.cost_log()[-1]["routing_reason"] == "gpu_preempted"
+        assert any("routing chat to API" in msg for msg in statuses)
+        mock_api_client.chat.assert_called_once()
+        mock_llm_client.chat.assert_not_called()
+
+    def test_local_only_still_respects_explicit_local_policy(
+        self, mock_llm_client, mock_api_client
+    ):
+        router = HybridRouter(
+            llm_client=mock_llm_client,
+            api_client=mock_api_client,
+            policy="local_only",
+            gpu_preemption_fn=lambda: "higher_priority_gpu_process_present",
+        )
+
+        result = router.complete([{"role": "user", "content": "hi"}])
+
+        assert result.source == "local"
+        mock_llm_client.chat.assert_called_once()
+        mock_api_client.chat.assert_not_called()
