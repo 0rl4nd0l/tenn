@@ -26,11 +26,22 @@ function getActionEndpoint(actionId: string, ticker: string): { path: string; me
     case 'rebuild_ticker_financials':
     case 'audit_ticker_financials':
       return { path: `/api/process/ticker/${encoded}`, method: 'POST' }
-    case 'daily_news_ingest':
-      return { path: `/api/backfill/ticker/${encoded}`, method: 'POST' }
     default:
       return null
   }
+}
+
+function buildActionArgs(actionId: string, ticker: string): Record<string, unknown> {
+  const normalizedTicker = ticker.trim()
+  if (!normalizedTicker) {
+    return {}
+  }
+
+  if (actionId === 'daily_news_ingest' || actionId === 'historical_news_ingest') {
+    return { tickers: normalizedTicker }
+  }
+
+  return { ticker: normalizedTicker }
 }
 
 /** Whether the action requires a ticker argument. */
@@ -214,8 +225,7 @@ export function OperationsScreen() {
     if (!action) return
 
     const ticker = actionArgs.trim()
-    const args: Record<string, unknown> = {}
-    if (ticker) args.ticker = ticker
+    const args = buildActionArgs(action.id, ticker)
 
     setActionLog(prev => [
       ...prev,
@@ -314,8 +324,7 @@ export function OperationsScreen() {
       }
     } else {
       // Cockpit action registry path (subprocess dispatch)
-      const args: Record<string, unknown> = {}
-      if (ticker) args.ticker = ticker
+      const args = buildActionArgs(action.id, ticker)
 
       setActionLog(prev => [
         ...prev,
