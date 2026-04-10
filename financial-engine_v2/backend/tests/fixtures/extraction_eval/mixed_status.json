@@ -1,0 +1,21 @@
+{
+  "fixture_id": "mixed_status",
+  "period_type": "A",
+  "period_end": "2024-12-31",
+  "currency": "AUD",
+  "scale": "thousands",
+  "metrics": {
+    "revenue": 2000000,
+    "ebit": 180000,
+    "net_debt": 500000
+  },
+  "expected_nulls": [],
+  "optional_metrics": [
+    "shares_outstanding"
+  ],
+  "tolerances": {
+    "revenue": 0.01,
+    "ebit": 0.01,
+    "net_debt": 0.01
+  }
+}

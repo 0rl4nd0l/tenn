@@ -1,0 +1,15 @@
+{
+  "fixture_id": "wrong_current_period_column",
+  "period_type": "H",
+  "period_end": "2024-06-30",
+  "currency": "AUD",
+  "scale": "thousands",
+  "metrics": {
+    "revenue": 880000
+  },
+  "expected_nulls": [],
+  "optional_metrics": [],
+  "tolerances": {
+    "revenue": 0.01
+  }
+}

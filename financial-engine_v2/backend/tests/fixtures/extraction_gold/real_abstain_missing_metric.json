@@ -1,0 +1,14 @@
+{
+  "document_id": "real_abstain_missing_metric",
+  "period_type": "A",
+  "period_end": "2025-06-30",
+  "currency": "AUD",
+  "scale": "thousands",
+  "metrics": {
+    "net_debt": 25000
+  },
+  "tolerances": {
+    "net_debt": 0.02
+  },
+  "expected_trust": "abstain"
+}

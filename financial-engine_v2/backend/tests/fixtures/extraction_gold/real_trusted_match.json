@@ -1,0 +1,16 @@
+{
+  "document_id": "real_trusted_match",
+  "period_type": "A",
+  "period_end": "2024-12-31",
+  "currency": "AUD",
+  "scale": "thousands",
+  "metrics": {
+    "revenue": 1500000,
+    "ebit": 120000
+  },
+  "tolerances": {
+    "revenue": 0.01,
+    "ebit": 0.02
+  },
+  "expected_trust": "trusted"
+}

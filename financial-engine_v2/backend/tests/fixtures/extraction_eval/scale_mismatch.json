@@ -1,0 +1,17 @@
+{
+  "fixture_id": "scale_mismatch",
+  "period_type": "A",
+  "period_end": "2024-12-31",
+  "currency": "AUD",
+  "scale": "millions",
+  "metrics": {
+    "operating_cf": 250000,
+    "cash_end": 1200000
+  },
+  "expected_nulls": [],
+  "optional_metrics": [],
+  "tolerances": {
+    "operating_cf": 0.01,
+    "cash_end": 0.01
+  }
+}

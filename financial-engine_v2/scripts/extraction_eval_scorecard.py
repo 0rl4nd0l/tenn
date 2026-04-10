@@ -52,6 +52,67 @@ def _build_default_payloads(fixtures_dir: Path) -> dict[str, dict[str, Any]]:
             "metrics": {**fixture.metrics},
         }
         payloads[fixture.fixture_id] = payload
+    return _inject_failure_modes(payloads)
+
+
+def _inject_failure_modes(
+    payloads: dict[str, dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    """Inject deterministic negative cases for scorecard coverage.
+
+    Keep this deterministic so the scorecard baseline exercises wrong values,
+    missing required metrics, and quarantine behavior without extra config.
+    """
+
+    if "wrong_value" in payloads:
+        payloads["wrong_value"]["metrics"]["revenue"] = 1_200_000
+
+    if "missing_metric" in payloads:
+        payloads["missing_metric"]["metrics"] = {}
+
+    if "scoring_mix" in payloads:
+        payloads["scoring_mix"]["metrics"] = {
+            "revenue": 1_000_000,
+            "ebit": 50_000,
+            "net_debt": 2_000,
+        }
+
+    if "context_mismatch" in payloads:
+        payloads["context_mismatch"]["currency"] = "AUD"
+
+    if "period_mismatch" in payloads:
+        payloads["period_mismatch"]["period_end"] = "2024-12-31"
+
+    if "scale_mismatch" in payloads:
+        payloads["scale_mismatch"]["scale"] = "thousands"
+
+    if "currency_mismatch" in payloads:
+        payloads["currency_mismatch"]["currency"] = "AUD"
+
+    if "quarantine_context_conflict" in payloads:
+        payloads["quarantine_context_conflict"]["currency"] = "AUD"
+
+    if "mixed_status" in payloads:
+        payloads["mixed_status"]["metrics"] = {
+            "revenue": 2_000_000,
+            "ebit": 100_000,
+            "net_debt": 500_000,
+            "shares_outstanding": 4_500_000,
+        }
+
+    if "shares_fallback_disagreement" in payloads:
+        payloads["shares_fallback_disagreement"]["metrics"]["shares_outstanding"] = (
+            4_500_000
+        )
+
+    if "statutory_underlying_wrong_value" in payloads:
+        payloads["statutory_underlying_wrong_value"]["metrics"]["np_attributable"] = (
+            60_000
+        )
+
+    if "wrong_current_period_column" in payloads:
+        payloads["wrong_current_period_column"]["metrics"]["revenue"] = 900_000
+
     return payloads
 
 
@@ -71,7 +132,8 @@ def _parse_args() -> argparse.Namespace:
         default=None,
         help=(
             "Optional JSON mapping of fixture_id -> extracted payload."
-            " If omitted, fixture expectations are used as extracted values."
+            " If omitted, a deterministic injected-variation payload set is used "
+            "to exercise negative-path scorecard behavior."
         ),
     )
     parser.add_argument(

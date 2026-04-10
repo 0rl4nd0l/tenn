@@ -1,0 +1,14 @@
+{
+  "document_id": "real_quarantine_currency_mismatch",
+  "period_type": "H",
+  "period_end": "2025-06-30",
+  "currency": "USD",
+  "scale": "thousands",
+  "metrics": {
+    "revenue": 750000
+  },
+  "tolerances": {
+    "revenue": 0.01
+  },
+  "expected_trust": "quarantine"
+}

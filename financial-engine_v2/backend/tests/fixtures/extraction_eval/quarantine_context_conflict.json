@@ -1,0 +1,15 @@
+{
+  "fixture_id": "quarantine_context_conflict",
+  "period_type": "A",
+  "period_end": "2024-12-31",
+  "currency": "EUR",
+  "scale": "thousands",
+  "metrics": {
+    "ebit": 110000
+  },
+  "expected_nulls": [],
+  "optional_metrics": [],
+  "tolerances": {
+    "ebit": 0.01
+  }
+}
