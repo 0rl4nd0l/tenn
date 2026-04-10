@@ -39,7 +39,9 @@ class BackendApiClient:
                     detail = body.get("detail")
                 except Exception:
                     detail = None
-                code = exc.response.status_code if exc.response is not None else "unknown"
+                code = (
+                    exc.response.status_code if exc.response is not None else "unknown"
+                )
                 return {
                     "ok": False,
                     "url": self.base_url,
@@ -56,7 +58,9 @@ class BackendApiClient:
             headers["X-API-Key"] = self.api_key
         with httpx.Client(timeout=timeout, follow_redirects=True) as client:
             try:
-                response = client.post(url, json={"proposal_id": proposal_id}, headers=headers)
+                response = client.post(
+                    url, json={"proposal_id": proposal_id}, headers=headers
+                )
                 response.raise_for_status()
                 payload = response.json() if response.content else {}
                 return {"ok": True, "url": self.base_url, "payload": payload}
@@ -67,7 +71,9 @@ class BackendApiClient:
                     detail = body.get("detail")
                 except Exception:
                     detail = None
-                code = exc.response.status_code if exc.response is not None else "unknown"
+                code = (
+                    exc.response.status_code if exc.response is not None else "unknown"
+                )
                 return {
                     "ok": False,
                     "url": self.base_url,
@@ -105,7 +111,9 @@ class BackendApiClient:
                     detail = body.get("detail")
                 except Exception:
                     detail = None
-                code = exc.response.status_code if exc.response is not None else "unknown"
+                code = (
+                    exc.response.status_code if exc.response is not None else "unknown"
+                )
                 message = str(detail or f"HTTP {code}")
                 return {
                     "ok": False,
@@ -186,10 +194,16 @@ class BackendApiClient:
                     detail = err_body.get("detail")
                 except Exception:
                     pass
-                code = exc.response.status_code if exc.response is not None else "unknown"
-                raise RuntimeError(f"Synthesis failed (HTTP {code}): {detail or exc}") from exc
+                code = (
+                    exc.response.status_code if exc.response is not None else "unknown"
+                )
+                raise RuntimeError(
+                    f"Synthesis failed (HTTP {code}): {detail or exc}"
+                ) from exc
             except httpx.TimeoutException as exc:
-                raise RuntimeError(f"Synthesis timed out after {timeout}s: {exc}") from exc
+                raise RuntimeError(
+                    f"Synthesis timed out after {timeout}s: {exc}"
+                ) from exc
 
     # ------------------------------------------------------------------
     # Context endpoints (Stage A — backend-authority migration)
@@ -250,6 +264,165 @@ class BackendApiClient:
             response.raise_for_status()
             return response.json() if response.content else {}
 
+    def get_company_dump(
+        self,
+        ticker: str,
+        *,
+        docs_limit: int | None = None,
+        financials_limit: int | None = None,
+        announcements_limit: int | None = None,
+        failures_limit: int | None = None,
+        low_confidence_threshold: float | None = None,
+        low_confidence_limit: int | None = None,
+        risk_notes_limit: int | None = None,
+        company_memory_entries_limit: int | None = None,
+        company_memory_change_limit: int | None = None,
+        market_memory_limit: int | None = None,
+        timeout: float = 20.0,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}/api/context/company_dump"
+        params: dict[str, Any] = {"ticker": str(ticker or "").strip().upper()}
+        if docs_limit is not None:
+            params["docs_limit"] = docs_limit
+        if financials_limit is not None:
+            params["financials_limit"] = financials_limit
+        if announcements_limit is not None:
+            params["announcements_limit"] = announcements_limit
+        if failures_limit is not None:
+            params["failures_limit"] = failures_limit
+        if low_confidence_threshold is not None:
+            params["low_confidence_threshold"] = low_confidence_threshold
+        if low_confidence_limit is not None:
+            params["low_confidence_limit"] = low_confidence_limit
+        if risk_notes_limit is not None:
+            params["risk_notes_limit"] = risk_notes_limit
+        if company_memory_entries_limit is not None:
+            params["company_memory_entries_limit"] = company_memory_entries_limit
+        if company_memory_change_limit is not None:
+            params["company_memory_change_limit"] = company_memory_change_limit
+        if market_memory_limit is not None:
+            params["market_memory_limit"] = market_memory_limit
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.get(url, params=params)
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
+    def process_document(
+        self,
+        document_id: str,
+        *,
+        timeout: float = 120.0,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}/api/process/document/{str(document_id or '').strip()}"
+        headers: dict[str, str] = {}
+        if self.api_key:
+            headers["X-API-Key"] = self.api_key
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.post(url, headers=headers)
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
+    def create_extraction_review_session(
+        self,
+        document_ids: list[str] | None = None,
+        run_ids: list[str] | None = None,
+        *,
+        timeout: float = 120.0,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}/api/extraction-review/session"
+        headers: dict[str, str] = {}
+        if self.api_key:
+            headers["X-API-Key"] = self.api_key
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.post(
+                url,
+                json={
+                    "document_ids": [
+                        str(document_id).strip()
+                        for document_id in (document_ids or [])
+                        if str(document_id).strip()
+                    ],
+                    "run_ids": [
+                        str(run_id).strip()
+                        for run_id in (run_ids or [])
+                        if str(run_id).strip()
+                    ],
+                },
+                headers=headers,
+            )
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
+    def list_extraction_review_runs(
+        self,
+        *,
+        ticker: str | None = None,
+        limit: int | None = None,
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}/api/extraction-review/runs"
+        params: dict[str, Any] = {}
+        if ticker is not None:
+            params["ticker"] = str(ticker).strip().upper()
+        if limit is not None:
+            params["limit"] = limit
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.get(url, params=params)
+            response.raise_for_status()
+            return response.json() if response.content else {"count": 0, "items": []}
+
+    def get_extraction_review_session(
+        self,
+        session_id: str,
+        *,
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}/api/extraction-review/session/{str(session_id or '').strip()}"
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.get(url)
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
+    def submit_extraction_review_decision(
+        self,
+        session_id: str,
+        *,
+        item_id: str,
+        status: str,
+        expected_value: Any | None = None,
+        reviewer_note: str | None = None,
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}/api/extraction-review/session/{str(session_id or '').strip()}/decision"
+        headers: dict[str, str] = {}
+        if self.api_key:
+            headers["X-API-Key"] = self.api_key
+        body = {
+            "item_id": str(item_id or "").strip(),
+            "status": str(status or "").strip().lower(),
+            "expected_value": expected_value,
+            "reviewer_note": reviewer_note,
+        }
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.post(url, json=body, headers=headers)
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
+    def get_extraction_review_errors(
+        self,
+        *,
+        limit: int | None = None,
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}/api/extraction-review/errors"
+        params: dict[str, Any] = {}
+        if limit is not None:
+            params["limit"] = limit
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.get(url, params=params)
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
     # ------------------------------------------------------------------
     # Commentary endpoints (Stage A — backend-authority migration)
     # ------------------------------------------------------------------
@@ -302,7 +475,9 @@ class BackendApiClient:
         if self.api_key:
             headers["X-API-Key"] = self.api_key
         with httpx.Client(timeout=timeout, follow_redirects=True) as client:
-            response = client.post(url, params={"max_age_days": max_age_days}, headers=headers)
+            response = client.post(
+                url, params={"max_age_days": max_age_days}, headers=headers
+            )
             response.raise_for_status()
             return response.json() if response.content else {"purged": [], "count": 0}
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any, Callable
 
@@ -7,7 +8,17 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen, Screen
-from textual.widgets import Button, Collapsible, DataTable, Input, Label, RichLog, Select, Static, Switch
+from textual.widgets import (
+    Button,
+    Collapsible,
+    DataTable,
+    Input,
+    Label,
+    RichLog,
+    Select,
+    Static,
+    Switch,
+)
 
 from cockpit.core.config import format_cockpit_llm_readonly
 from cockpit.core.plotly_html import build_verification_dashboard_html
@@ -63,7 +74,9 @@ class ConfirmActionScreen(ModalScreen[bool]):
         ("escape", "cancel", "Cancel"),
     ]
 
-    def __init__(self, preview: dict[str, Any], on_decision: Callable[[bool], None] | None = None) -> None:
+    def __init__(
+        self, preview: dict[str, Any], on_decision: Callable[[bool], None] | None = None
+    ) -> None:
         super().__init__()
         self.preview = preview
         self.on_decision = on_decision
@@ -123,16 +136,38 @@ class ChatScreen(Screen):
                 Button("Help", id="chat-open-help"),
             ),
             Horizontal(
-                Button("Daily News Ingest", id="chat-run-daily-news", variant="success"),
-                Button("Daily Announcement Ingest", id="chat-run-daily-announcements", variant="primary"),
+                Button(
+                    "Daily News Ingest", id="chat-run-daily-news", variant="success"
+                ),
+                Button(
+                    "Daily Announcement Ingest",
+                    id="chat-run-daily-announcements",
+                    variant="primary",
+                ),
             ),
             Horizontal(
-                Button("Historical News Ingest", id="chat-run-historical-news", variant="warning"),
-                Button("Single Ticker Backfill", id="chat-run-single-ticker-backfill", variant="primary"),
+                Button(
+                    "Historical News Ingest",
+                    id="chat-run-historical-news",
+                    variant="warning",
+                ),
+                Button(
+                    "Single Ticker Backfill",
+                    id="chat-run-single-ticker-backfill",
+                    variant="primary",
+                ),
             ),
             Horizontal(
-                Button("Universe Announcement Backfill", id="chat-run-universe-backfill", variant="error"),
-                Button("Metric Extraction", id="chat-run-metric-extraction", variant="warning"),
+                Button(
+                    "Universe Announcement Backfill",
+                    id="chat-run-universe-backfill",
+                    variant="error",
+                ),
+                Button(
+                    "Metric Extraction",
+                    id="chat-run-metric-extraction",
+                    variant="warning",
+                ),
             ),
             Horizontal(
                 Button("Kill Running Action", id="chat-kill-action", variant="error"),
@@ -153,6 +188,7 @@ class ChatScreen(Screen):
 
     async def _run_ticker_action(self, action_id: str, label: str) -> None:
         """Prompt user for a ticker via modal, then execute the action."""
+
         def _on_dismiss(ticker: str) -> None:
             if not ticker:
                 return
@@ -160,6 +196,7 @@ class ChatScreen(Screen):
             self.app.call_later(
                 self.app.execute_action, action_id, args, log_target="chat-log"
             )
+
         self.app.push_screen(TickerInputScreen(label), callback=_on_dismiss)
 
     def action_clear_log(self) -> None:
@@ -199,22 +236,32 @@ class ChatScreen(Screen):
             return
         if event.button.id == "chat-run-daily-news":
             args = self.app.action_registry.parse_kv_args("")
-            await self.app.execute_action("daily_news_ingest", args, log_target="chat-log")
+            await self.app.execute_action(
+                "daily_news_ingest", args, log_target="chat-log"
+            )
             return
         if event.button.id == "chat-run-daily-announcements":
             args = self.app.action_registry.parse_kv_args("")
-            await self.app.execute_action("daily_announcement_ingest", args, log_target="chat-log")
+            await self.app.execute_action(
+                "daily_announcement_ingest", args, log_target="chat-log"
+            )
             return
         if event.button.id == "chat-run-historical-news":
             args = self.app.action_registry.parse_kv_args("")
-            await self.app.execute_action("historical_news_ingest", args, log_target="chat-log")
+            await self.app.execute_action(
+                "historical_news_ingest", args, log_target="chat-log"
+            )
             return
         if event.button.id == "chat-run-single-ticker-backfill":
-            await self._run_ticker_action("single_ticker_announcement_backfill", "Single Ticker Backfill")
+            await self._run_ticker_action(
+                "single_ticker_announcement_backfill", "Single Ticker Backfill"
+            )
             return
         if event.button.id == "chat-run-universe-backfill":
             args = self.app.action_registry.parse_kv_args("")
-            await self.app.execute_action("universe_announcement_enrichment_backfill", args, log_target="chat-log")
+            await self.app.execute_action(
+                "universe_announcement_enrichment_backfill", args, log_target="chat-log"
+            )
             return
         if event.button.id == "chat-run-metric-extraction":
             await self._run_ticker_action("metric_extraction", "Metric Extraction")
@@ -238,11 +285,19 @@ class OperationsScreen(Screen):
             with Horizontal(id="perm-toggles"):
                 with Vertical():
                     yield Label("Feature Toggles")
-                    yield Horizontal(Switch(id="perm-web", value=False), Label("Web Search"))
-                    yield Horizontal(Switch(id="perm-rag", value=False), Label("RAG Context"))
-                    yield Horizontal(Switch(id="perm-dbdiag", value=False), Label("DB Diagnostics"))
+                    yield Horizontal(
+                        Switch(id="perm-web", value=False), Label("Web Search")
+                    )
+                    yield Horizontal(
+                        Switch(id="perm-rag", value=False), Label("RAG Context")
+                    )
+                    yield Horizontal(
+                        Switch(id="perm-dbdiag", value=False), Label("DB Diagnostics")
+                    )
                 with Vertical():
-                    yield Label("Cockpit LLM (read-only — edit config/cockpit_llm.yaml)")
+                    yield Label(
+                        "Cockpit LLM (read-only — edit config/cockpit_llm.yaml)"
+                    )
                     yield Static(
                         format_cockpit_llm_readonly(self.app.repo_root),
                         id="perm-llm-readonly",
@@ -251,15 +306,42 @@ class OperationsScreen(Screen):
 
         # ── Ingestion Control ──
         with Collapsible(title="Ingestion Control", collapsed=False):
-            actions = [(spec.label, spec.id) for spec in self.app.action_registry.list_actions()]
+            actions = [
+                (spec.label, spec.id)
+                for spec in self.app.action_registry.list_actions()
+            ]
             yield Select(actions, value="daily_news_ingest", id="ops-action")
-            yield Input(value="", id="ops-args", placeholder="ticker=CSL years=5 (required for ticker actions)")
-            yield Button("Daily News Ingest", id="ops-run-daily-news", variant="success")
-            yield Button("Daily Announcement Ingest", id="ops-run-daily-announcements", variant="primary")
-            yield Button("Historical News Ingest", id="ops-run-historical-news", variant="warning")
-            yield Button("Single Ticker Backfill", id="ops-run-single-ticker-backfill", variant="primary")
-            yield Button("Universe Announcement Backfill", id="ops-run-universe-backfill", variant="error")
-            yield Button("Metric Extraction", id="ops-run-metric-extraction", variant="warning")
+            yield Input(
+                value="",
+                id="ops-args",
+                placeholder="ticker=CSL years=5 (required for ticker actions)",
+            )
+            yield Button(
+                "Daily News Ingest", id="ops-run-daily-news", variant="success"
+            )
+            yield Button(
+                "Daily Announcement Ingest",
+                id="ops-run-daily-announcements",
+                variant="primary",
+            )
+            yield Button(
+                "Historical News Ingest",
+                id="ops-run-historical-news",
+                variant="warning",
+            )
+            yield Button(
+                "Single Ticker Backfill",
+                id="ops-run-single-ticker-backfill",
+                variant="primary",
+            )
+            yield Button(
+                "Universe Announcement Backfill",
+                id="ops-run-universe-backfill",
+                variant="error",
+            )
+            yield Button(
+                "Metric Extraction", id="ops-run-metric-extraction", variant="warning"
+            )
             yield Horizontal(
                 Button("Preview + Run", id="ops-run", variant="primary"),
                 Button("Kill Running Action", id="ops-kill-action", variant="error"),
@@ -283,7 +365,9 @@ class OperationsScreen(Screen):
         except Exception:
             pass
         try:
-            self.query_one("#perm-dbdiag", Switch).value = access.get("db_diagnostic_query_enabled", False)
+            self.query_one("#perm-dbdiag", Switch).value = access.get(
+                "db_diagnostic_query_enabled", False
+            )
         except Exception:
             pass
 
@@ -298,18 +382,30 @@ class OperationsScreen(Screen):
         ok = "+"
         no = "-"
         lines = []
-        lines.append(f"  {ok if caps.get('backend_api') else no}  Backend API   {caps.get('backend_url') or 'not configured'}")
+        lines.append(
+            f"  {ok if caps.get('backend_api') else no}  Backend API   {caps.get('backend_url') or 'not configured'}"
+        )
         lines.append(f"  +  Effective routing  {caps.get('routing_policy')}")
         lines.append(f"  +  Profile label  {caps.get('llm_profile')}")
         lines.append(f"  +  Config  {caps.get('cockpit_llm_config_path')}")
         exo = caps.get("explicit_policy_override")
         if exo:
             lines.append(f"  !  HYBRID_ROUTER_POLICY (env override)  {exo}")
-        lines.append(f"  {ok if caps.get('anthropic_api') else no}  Claude API    {'key loaded' if caps.get('anthropic_api') else 'no key'}")
-        lines.append(f"  {ok if caps.get('brave_search') else no}  Brave Search  {'active' if caps.get('brave_search') else 'no key'}")
-        lines.append(f"  {ok if caps.get('hn_search') else no}  HN Search     {'active' if caps.get('hn_search') else 'inactive'}")
-        lines.append(f"  {ok if caps.get('dossier') else no}  Dossier       {'active' if caps.get('dossier') else 'inactive'}")
-        lines.append(f"  {ok if caps.get('deep_research') else no}  Deep Research {'active' if caps.get('deep_research') else 'inactive'}")
+        lines.append(
+            f"  {ok if caps.get('anthropic_api') else no}  Claude API    {'key loaded' if caps.get('anthropic_api') else 'no key'}"
+        )
+        lines.append(
+            f"  {ok if caps.get('brave_search') else no}  Brave Search  {'active' if caps.get('brave_search') else 'no key'}"
+        )
+        lines.append(
+            f"  {ok if caps.get('hn_search') else no}  HN Search     {'active' if caps.get('hn_search') else 'inactive'}"
+        )
+        lines.append(
+            f"  {ok if caps.get('dossier') else no}  Dossier       {'active' if caps.get('dossier') else 'inactive'}"
+        )
+        lines.append(
+            f"  {ok if caps.get('deep_research') else no}  Deep Research {'active' if caps.get('deep_research') else 'inactive'}"
+        )
         lines.append(f"  +  Price Feeds   Yahoo Finance (no key needed)")
         cost = caps.get("session_cost_usd", 0.0)
         if cost > 0:
@@ -339,35 +435,61 @@ class OperationsScreen(Screen):
             return
         if event.button.id == "ops-tail":
             for job in self.app.state_store.list_jobs(limit=3):
-                log.write(f"{job['job_id']} {job['status']} out={job.get('stdout_path')}")
+                log.write(
+                    f"{job['job_id']} {job['status']} out={job.get('stdout_path')}"
+                )
             return
         if event.button.id == "ops-kill-action":
             await self.app.cancel_active_action(log_target="ops-log")
             return
 
         if event.button.id == "ops-run-daily-news":
-            args = self.app.action_registry.parse_kv_args(self.query_one("#ops-args", Input).value)
-            await self.app.execute_action("daily_news_ingest", args, log_target="ops-log")
+            args = self.app.action_registry.parse_kv_args(
+                self.query_one("#ops-args", Input).value
+            )
+            await self.app.execute_action(
+                "daily_news_ingest", args, log_target="ops-log"
+            )
             return
         if event.button.id == "ops-run-daily-announcements":
-            args = self.app.action_registry.parse_kv_args(self.query_one("#ops-args", Input).value)
-            await self.app.execute_action("daily_announcement_ingest", args, log_target="ops-log")
+            args = self.app.action_registry.parse_kv_args(
+                self.query_one("#ops-args", Input).value
+            )
+            await self.app.execute_action(
+                "daily_announcement_ingest", args, log_target="ops-log"
+            )
             return
         if event.button.id == "ops-run-historical-news":
-            args = self.app.action_registry.parse_kv_args(self.query_one("#ops-args", Input).value)
-            await self.app.execute_action("historical_news_ingest", args, log_target="ops-log")
+            args = self.app.action_registry.parse_kv_args(
+                self.query_one("#ops-args", Input).value
+            )
+            await self.app.execute_action(
+                "historical_news_ingest", args, log_target="ops-log"
+            )
             return
         if event.button.id == "ops-run-single-ticker-backfill":
-            args = self.app.action_registry.parse_kv_args(self.query_one("#ops-args", Input).value)
-            await self.app.execute_action("single_ticker_announcement_backfill", args, log_target="ops-log")
+            args = self.app.action_registry.parse_kv_args(
+                self.query_one("#ops-args", Input).value
+            )
+            await self.app.execute_action(
+                "single_ticker_announcement_backfill", args, log_target="ops-log"
+            )
             return
         if event.button.id == "ops-run-universe-backfill":
-            args = self.app.action_registry.parse_kv_args(self.query_one("#ops-args", Input).value)
-            await self.app.execute_action("universe_announcement_enrichment_backfill", args, log_target="ops-log")
+            args = self.app.action_registry.parse_kv_args(
+                self.query_one("#ops-args", Input).value
+            )
+            await self.app.execute_action(
+                "universe_announcement_enrichment_backfill", args, log_target="ops-log"
+            )
             return
         if event.button.id == "ops-run-metric-extraction":
-            args = self.app.action_registry.parse_kv_args(self.query_one("#ops-args", Input).value)
-            await self.app.execute_action("metric_extraction", args, log_target="ops-log")
+            args = self.app.action_registry.parse_kv_args(
+                self.query_one("#ops-args", Input).value
+            )
+            await self.app.execute_action(
+                "metric_extraction", args, log_target="ops-log"
+            )
             return
 
         action_id = self.query_one("#ops-action", Select).value
@@ -379,7 +501,9 @@ class OperationsScreen(Screen):
         await self.app.execute_action(action_id, args, log_target="ops-log")
 
     async def action_run_daily_news_ingest(self) -> None:
-        args = self.app.action_registry.parse_kv_args(self.query_one("#ops-args", Input).value)
+        args = self.app.action_registry.parse_kv_args(
+            self.query_one("#ops-args", Input).value
+        )
         await self.app.execute_action("daily_news_ingest", args, log_target="ops-log")
 
 
@@ -389,11 +513,17 @@ class UpdaterScreen(Screen):
         yield Horizontal(
             Input(value="", id="upd-ticker", placeholder="Ticker (e.g. CSL, BHP)"),
             Input(value="5", id="upd-years", placeholder="Years"),
-            Input(value="true", id="upd-process", placeholder="process_documents true/false"),
+            Input(
+                value="true",
+                id="upd-process",
+                placeholder="process_documents true/false",
+            ),
         )
         yield Horizontal(
             Input(value="", id="upd-since", placeholder="since YYYY-MM-DD (optional)"),
-            Input(value="0.40", id="upd-lowconf", placeholder="low confidence threshold"),
+            Input(
+                value="0.40", id="upd-lowconf", placeholder="low confidence threshold"
+            ),
         )
         yield Horizontal(
             Button("Run Financial Refresh + Snapshot", id="upd-run", variant="primary"),
@@ -412,27 +542,39 @@ class UpdaterScreen(Screen):
         if event.button.id == "upd-latest":
             if self.app._backend_client:
                 try:
-                    ctx = self.app._backend_client.get_ticker_context(ticker, financials_limit=1)
+                    ctx = self.app._backend_client.get_ticker_context(
+                        ticker, financials_limit=1
+                    )
                     row = ctx.get("latest_financial_snapshot")
                 except Exception as exc:
                     row = {"ticker": ticker, "error": f"Backend fetch failed: {exc}"}
             else:
                 row = {"ticker": ticker, "error": "Backend API client not configured"}
-            log.write(json.dumps(row or {"ticker": ticker, "message": "no data"}, default=str, indent=2))
+            log.write(
+                json.dumps(
+                    row or {"ticker": ticker, "message": "no data"},
+                    default=str,
+                    indent=2,
+                )
+            )
             return
         if event.button.id == "upd-rebuild":
             since = self.query_one("#upd-since", Input).value.strip()
             args = {"ticker": ticker}
             if since:
                 args["since"] = since
-            await self.app.execute_action("rebuild_ticker_financials", args, log_target="upd-log")
+            await self.app.execute_action(
+                "rebuild_ticker_financials", args, log_target="upd-log"
+            )
             return
         if event.button.id == "upd-audit":
             lowconf_raw = self.query_one("#upd-lowconf", Input).value.strip()
             args: dict[str, Any] = {"ticker": ticker}
             if lowconf_raw:
                 args["low_confidence_threshold"] = lowconf_raw
-            await self.app.execute_action("audit_ticker_financials", args, log_target="upd-log")
+            await self.app.execute_action(
+                "audit_ticker_financials", args, log_target="upd-log"
+            )
             return
 
         try:
@@ -440,30 +582,461 @@ class UpdaterScreen(Screen):
         except (ValueError, TypeError):
             log.write("Invalid years value, defaulting to 5")
             years = 5
-        process_documents = self.query_one("#upd-process", Input).value.strip().lower() in {"1", "true", "yes", "on"}
-        await self.app.run_updater_snapshot(ticker=ticker, years=years, process_documents=process_documents, log_target="upd-log")
+        process_documents = self.query_one(
+            "#upd-process", Input
+        ).value.strip().lower() in {"1", "true", "yes", "on"}
+        await self.app.run_updater_snapshot(
+            ticker=ticker,
+            years=years,
+            process_documents=process_documents,
+            log_target="upd-log",
+        )
 
 
 class VerificationScreen(Screen):
+    BINDINGS = [
+        Binding("a", "approve_metric", "Approve"),
+        Binding("w", "mark_wrong", "Wrong"),
+        Binding("u", "skip_metric", "Skip"),
+        Binding("left", "prev_metric", "Prev", show=False),
+        Binding("right", "next_metric", "Next", show=False),
+    ]
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._verification_docs: list[dict[str, Any]] = []
+        self._review_runs: list[dict[str, Any]] = []
+        self._review_session: dict[str, Any] | None = None
+        self._review_items: list[dict[str, Any]] = []
+        self._review_index: int = 0
+
     def compose(self) -> ComposeResult:
         yield Label("Data Verification")
-        yield Input(value="", id="ver-ticker", placeholder="Ticker (e.g. CSL — blank for broad checks)")
+        yield Horizontal(
+            Input(value="", id="ver-ticker", placeholder="Ticker (e.g. CSL)"),
+            Input(value="10", id="ver-doc-limit", placeholder="Docs"),
+        )
         yield Horizontal(
             Button("Run Verification", id="ver-run", variant="primary"),
+            Button("Load Docs", id="ver-load-docs"),
+            Button("Load Runs", id="ver-load-runs"),
+            Button("Run Extraction", id="ver-run-extraction", variant="warning"),
+            Button("Load Review", id="ver-load-review", variant="success"),
+            Button("Show Wrong Queue", id="ver-show-errors"),
             Button("Export Verification", id="ver-export"),
         )
-        yield RichLog(id="ver-log", wrap=True, markup=False)
+        yield Input(
+            value="",
+            id="ver-doc-ids",
+            placeholder="Optional extra document_ids (comma separated) for a small review set",
+        )
+        yield Input(
+            value="",
+            id="ver-run-ids",
+            placeholder="Optional run_ids (comma separated) for a prior extraction run review",
+        )
+        yield DataTable(id="ver-docs")
+        yield DataTable(id="ver-runs")
+        yield Static("No review session loaded.", id="ver-item-summary")
+        yield Static("", id="ver-item-meta")
+        yield Horizontal(
+            Input(
+                value="",
+                id="ver-expected",
+                placeholder="Correct / expected value (optional)",
+            ),
+            Input(value="", id="ver-note", placeholder="Reviewer note (optional)"),
+        )
+        yield Horizontal(
+            Button("Prev", id="ver-prev"),
+            Button("Approve", id="ver-approve", variant="success"),
+            Button("Wrong", id="ver-wrong", variant="error"),
+            Button("Skip / Unsure", id="ver-skip"),
+            Button("Next", id="ver-next"),
+        )
+        yield RichLog(id="ver-log", wrap=False, markup=False)
+        yield RichLog(id="ver-queue-log", wrap=True, markup=False)
+
+    def on_mount(self) -> None:
+        table = self.query_one("#ver-docs", DataTable)
+        table.cursor_type = "row"
+        table.add_columns("Published", "Document", "Class", "Title")
+        runs_table = self.query_one("#ver-runs", DataTable)
+        runs_table.cursor_type = "row"
+        runs_table.add_columns(
+            "Created", "Run", "Document", "Status", "Metrics", "Model"
+        )
+
+    def _parse_doc_limit(self) -> int:
+        raw = self.query_one("#ver-doc-limit", Input).value.strip()
+        try:
+            return max(1, min(50, int(raw or "10")))
+        except (TypeError, ValueError):
+            return 10
+
+    def _render_docs(self) -> None:
+        table = self.query_one("#ver-docs", DataTable)
+        table.clear()
+        for doc in self._verification_docs:
+            published_at = str(doc.get("published_at") or "")[:10]
+            document_id = str(doc.get("document_id") or "")[:12]
+            doc_class = str(doc.get("doc_class") or "")
+            title = str(doc.get("title") or "")[:80]
+            table.add_row(published_at, document_id, doc_class, title)
+
+    def _render_runs(self) -> None:
+        table = self.query_one("#ver-runs", DataTable)
+        table.clear()
+        for run in self._review_runs:
+            created_at = str(run.get("created_at") or "")[:16].replace("T", " ")
+            run_id = str(run.get("run_id") or "")[:12]
+            document_id = str(run.get("document_id") or "")[:12]
+            status = str(run.get("status") or "")
+            metrics_count = str(run.get("metrics_count") or 0)
+            model_name = str(run.get("model_name") or "")[:24]
+            table.add_row(
+                created_at, run_id, document_id, status, metrics_count, model_name
+            )
+
+    def _selected_document_ids(self) -> list[str]:
+        selected: list[str] = []
+        if self._verification_docs:
+            table = self.query_one("#ver-docs", DataTable)
+            try:
+                row_index = int(getattr(table, "cursor_row", 0) or 0)
+            except Exception:
+                row_index = 0
+            if 0 <= row_index < len(self._verification_docs):
+                document_id = str(
+                    self._verification_docs[row_index].get("document_id") or ""
+                ).strip()
+                if document_id:
+                    selected.append(document_id)
+
+        extra = self.query_one("#ver-doc-ids", Input).value
+        for chunk in extra.replace("\n", ",").split(","):
+            document_id = chunk.strip()
+            if document_id and document_id not in selected:
+                selected.append(document_id)
+        return selected
+
+    def _selected_run_ids(self) -> list[str]:
+        selected: list[str] = []
+        if self._review_runs:
+            table = self.query_one("#ver-runs", DataTable)
+            try:
+                row_index = int(getattr(table, "cursor_row", 0) or 0)
+            except Exception:
+                row_index = 0
+            if 0 <= row_index < len(self._review_runs):
+                run_id = str(self._review_runs[row_index].get("run_id") or "").strip()
+                if run_id:
+                    selected.append(run_id)
+
+        extra = self.query_one("#ver-run-ids", Input).value
+        for chunk in extra.replace("\n", ",").split(","):
+            run_id = chunk.strip()
+            if run_id and run_id not in selected:
+                selected.append(run_id)
+        return selected
+
+    def _current_review_item(self) -> dict[str, Any] | None:
+        if not self._review_items:
+            return None
+        self._review_index = max(
+            0, min(self._review_index, len(self._review_items) - 1)
+        )
+        return self._review_items[self._review_index]
+
+    def _render_review_item(self) -> None:
+        summary = self.query_one("#ver-item-summary", Static)
+        meta = self.query_one("#ver-item-meta", Static)
+        log = self.query_one("#ver-log", RichLog)
+        log.clear()
+
+        item = self._current_review_item()
+        if item is None:
+            summary.update("No review items loaded.")
+            meta.update("")
+            return
+
+        summary.update(
+            "Review {current}/{total}: {metric} | {ticker} | {status}".format(
+                current=self._review_index + 1,
+                total=len(self._review_items),
+                metric=item.get("metric_name", "metric"),
+                ticker=item.get("ticker", "?"),
+                status=item.get("review_status", "pending"),
+            )
+        )
+        meta.update(
+            "Run: {run_id} | Value: {value} | Period: {ptype} {pend} | Page: {page} | Provenance: {prov}\n"
+            "Doc: {doc}\nFile: {file_path}\nEvidence: {summary}".format(
+                run_id=item.get("run_id") or "?",
+                value=item.get("extracted_value"),
+                ptype=item.get("period_type") or "?",
+                pend=item.get("period_end") or "?",
+                page=item.get("page_number") or "?",
+                prov=item.get("provenance_status") or "unknown",
+                doc=item.get("document_id") or "?",
+                file_path=item.get("file_path") or "?",
+                summary=item.get("evidence_summary") or "none recorded",
+            )
+        )
+
+        snippet = item.get("snippet") if isinstance(item.get("snippet"), dict) else {}
+        log.write(f"Snippet kind: {snippet.get('kind', 'text_only')}")
+        if snippet.get("image_path"):
+            log.write(f"Image artifact: {snippet['image_path']}")
+        if snippet.get("reason"):
+            log.write(f"Snippet note: {snippet['reason']}")
+        matched_text = snippet.get("matched_text") or item.get("evidence_text")
+        if matched_text:
+            log.write("Matched text:")
+            for line in str(matched_text).splitlines():
+                log.write(f"  {line}")
+        ascii_preview = snippet.get("ascii_preview")
+        if ascii_preview:
+            log.write("ASCII preview:")
+            for line in str(ascii_preview).splitlines():
+                log.write(line)
+        elif item.get("evidence_text"):
+            log.write("Text evidence only:")
+            for line in str(item.get("evidence_text") or "").splitlines():
+                log.write(f"  {line}")
+
+    def _render_error_queue(self, payload: dict[str, Any]) -> None:
+        log = self.query_one("#ver-queue-log", RichLog)
+        log.clear()
+        items = payload.get("items") if isinstance(payload.get("items"), list) else []
+        log.write(f"Wrong queue ({len(items)} item(s))")
+        for item in items[:20]:
+            log.write(
+                "- {ticker} {metric} = {value} | expected={expected} | page={page} | note={note}".format(
+                    ticker=item.get("ticker") or "?",
+                    metric=item.get("metric_name") or "metric",
+                    value=item.get("extracted_value"),
+                    expected=item.get("expected_value") or "",
+                    page=item.get("page_number") or "?",
+                    note=item.get("reviewer_note") or "",
+                )
+            )
+
+    async def _load_docs(self) -> None:
+        ticker = self.query_one("#ver-ticker", Input).value.strip().upper()
+        if not ticker:
+            self.query_one("#ver-log", RichLog).write(
+                "Ticker is required to load documents."
+            )
+            return
+        if not getattr(self.app, "_backend_client", None):
+            self.query_one("#ver-log", RichLog).write(
+                "Backend API client not configured."
+            )
+            return
+        payload = await asyncio.to_thread(
+            self.app._backend_client.get_ticker_context,
+            ticker,
+            docs_limit=self._parse_doc_limit(),
+            financials_limit=1,
+            announcements_limit=1,
+            failures_limit=5,
+            low_confidence_limit=5,
+        )
+        docs = payload.get("docs") if isinstance(payload.get("docs"), list) else []
+        self._verification_docs = [doc for doc in docs if isinstance(doc, dict)]
+        self._render_docs()
+        self.query_one("#ver-log", RichLog).write(
+            f"Loaded {len(self._verification_docs)} document(s). Cursor row selects the primary document."
+        )
+
+    async def _load_runs(self) -> None:
+        ticker = self.query_one("#ver-ticker", Input).value.strip().upper()
+        log = self.query_one("#ver-log", RichLog)
+        if not ticker:
+            log.write("Ticker is required to load extraction runs.")
+            return
+        if not getattr(self.app, "_backend_client", None):
+            log.write("Backend API client not configured.")
+            return
+        payload = await asyncio.to_thread(
+            self.app.list_extraction_review_runs,
+            ticker=ticker,
+            limit=max(10, self._parse_doc_limit() * 3),
+        )
+        items = payload.get("items") if isinstance(payload.get("items"), list) else []
+        self._review_runs = [item for item in items if isinstance(item, dict)]
+        self._render_runs()
+        log.write(
+            f"Loaded {len(self._review_runs)} extraction run(s) for {ticker}. Cursor row selects the run to review."
+        )
+
+    async def _run_selected_extraction(self) -> None:
+        document_ids = self._selected_document_ids()
+        log = self.query_one("#ver-log", RichLog)
+        if not document_ids:
+            log.write("Select a document row or enter document_ids first.")
+            return
+        for document_id in document_ids:
+            try:
+                result = await asyncio.to_thread(
+                    self.app.run_document_extraction, document_id
+                )
+                log.write(
+                    f"Extraction run for {document_id}: {result.get('extraction_status', result.get('mode', 'ok'))}"
+                )
+            except Exception as exc:
+                log.write(f"Extraction failed for {document_id}: {exc}")
+
+    async def _load_review(self) -> None:
+        log = self.query_one("#ver-log", RichLog)
+        run_ids = self._selected_run_ids()
+        document_ids: list[str] = []
+        if not run_ids:
+            document_ids = self._selected_document_ids()
+            if not document_ids:
+                log.write(
+                    "Select a run row / enter run_ids, or select a document row / enter document_ids first."
+                )
+                return
+        try:
+            session = await asyncio.to_thread(
+                self.app.create_extraction_review_session,
+                document_ids,
+                run_ids=run_ids or None,
+            )
+        except Exception as exc:
+            log.write(f"Failed to create review session: {exc}")
+            return
+        self._review_session = session
+        self._review_items = (
+            session.get("items") if isinstance(session.get("items"), list) else []
+        )
+        self._review_index = 0
+        log.write(
+            f"Review session {session.get('session_id')} loaded with {len(self._review_items)} metric item(s)."
+        )
+        self._render_review_item()
+        await self._show_error_queue()
+
+    async def _show_error_queue(self) -> None:
+        try:
+            payload = await asyncio.to_thread(self.app.get_extraction_review_errors)
+        except Exception as exc:
+            self.query_one("#ver-queue-log", RichLog).write(
+                f"Failed to load wrong queue: {exc}"
+            )
+            return
+        self._render_error_queue(payload)
+
+    async def _submit_review(self, status: str) -> None:
+        item = self._current_review_item()
+        log = self.query_one("#ver-log", RichLog)
+        if item is None or not self._review_session:
+            log.write("Load a review session first.")
+            return
+        expected_value = self.query_one("#ver-expected", Input).value.strip() or None
+        reviewer_note = self.query_one("#ver-note", Input).value.strip()
+        try:
+            result = await asyncio.to_thread(
+                self.app.submit_extraction_review_decision,
+                str(self._review_session.get("session_id") or ""),
+                item_id=str(item.get("item_id") or ""),
+                status=status,
+                expected_value=expected_value,
+                reviewer_note=reviewer_note,
+            )
+        except Exception as exc:
+            log.write(f"Failed to save review decision: {exc}")
+            return
+
+        updated_item = (
+            result.get("item") if isinstance(result.get("item"), dict) else None
+        )
+        if updated_item is not None:
+            self._review_items[self._review_index] = updated_item
+        if isinstance(self._review_session, dict):
+            self._review_session["items"] = list(self._review_items)
+            if isinstance(result.get("summary"), dict):
+                self._review_session["summary"] = result.get("summary")
+        self.query_one("#ver-expected", Input).value = ""
+        self.query_one("#ver-note", Input).value = ""
+        log.write(
+            f"Saved {status} for {item.get('metric_name')} ({item.get('document_id')})."
+        )
+        if self._review_index < len(self._review_items) - 1:
+            self._review_index += 1
+        self._render_review_item()
+        await self._show_error_queue()
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         ticker = self.query_one("#ver-ticker", Input).value.strip().upper()
         if event.button.id == "ver-run":
             payload = self.app.run_verification(ticker=ticker or None)
             self.app.last_verification_payload = payload
-            self.query_one("#ver-log", RichLog).write(json.dumps(payload, default=str, indent=2))
+            self.query_one("#ver-log", RichLog).write(
+                json.dumps(payload, default=str, indent=2)
+            )
+            return
+        if event.button.id == "ver-load-docs":
+            await self._load_docs()
+            return
+        if event.button.id == "ver-load-runs":
+            await self._load_runs()
+            return
+        if event.button.id == "ver-run-extraction":
+            await self._run_selected_extraction()
+            return
+        if event.button.id == "ver-load-review":
+            await self._load_review()
+            return
+        if event.button.id == "ver-show-errors":
+            await self._show_error_queue()
+            return
+        if event.button.id == "ver-approve":
+            await self._submit_review("approved")
+            return
+        if event.button.id == "ver-wrong":
+            await self._submit_review("wrong")
+            return
+        if event.button.id == "ver-skip":
+            await self._submit_review("abstain")
+            return
+        if event.button.id == "ver-prev":
+            self.action_prev_metric()
+            return
+        if event.button.id == "ver-next":
+            self.action_next_metric()
+            return
+
+        if self._review_session:
+            out_path = self.app.write_report_json(
+                f"reports/cockpit/extraction_review_{self.app.timestamp()}.json",
+                self._review_session,
+            )
+            self.query_one("#ver-log", RichLog).write(
+                f"Exported review session JSON: {out_path}"
+            )
+            try:
+                queue_payload = await asyncio.to_thread(
+                    self.app.get_extraction_review_errors
+                )
+            except Exception:
+                queue_payload = None
+            if queue_payload is not None:
+                queue_path = self.app.write_report_json(
+                    f"reports/cockpit/extraction_review_wrong_queue_{self.app.timestamp()}.json",
+                    queue_payload,
+                )
+                self.query_one("#ver-log", RichLog).write(
+                    f"Exported wrong queue JSON: {queue_path}"
+                )
             return
 
         if not self.app.last_verification_payload:
-            self.query_one("#ver-log", RichLog).write("Run verification first")
+            self.query_one("#ver-log", RichLog).write(
+                "Run verification or load a review session first"
+            )
             return
         out_path = self.app.write_report_json(
             f"reports/cockpit/verification_{self.app.timestamp()}.json",
@@ -474,7 +1047,28 @@ class VerificationScreen(Screen):
             build_verification_dashboard_html(self.app.last_verification_payload),
         )
         self.query_one("#ver-log", RichLog).write(f"Exported JSON: {out_path}")
-        self.query_one("#ver-log", RichLog).write(f"Exported HTML dashboard: {html_path}")
+        self.query_one("#ver-log", RichLog).write(
+            f"Exported HTML dashboard: {html_path}"
+        )
+
+    async def action_approve_metric(self) -> None:
+        await self._submit_review("approved")
+
+    async def action_mark_wrong(self) -> None:
+        await self._submit_review("wrong")
+
+    async def action_skip_metric(self) -> None:
+        await self._submit_review("abstain")
+
+    def action_prev_metric(self) -> None:
+        if self._review_items and self._review_index > 0:
+            self._review_index -= 1
+            self._render_review_item()
+
+    def action_next_metric(self) -> None:
+        if self._review_items and self._review_index < len(self._review_items) - 1:
+            self._review_index += 1
+            self._render_review_item()
 
 
 class HistoryScreen(Screen):
@@ -496,9 +1090,21 @@ class HistoryScreen(Screen):
         table = self.query_one("#hist-table", DataTable)
         table.clear()
         for job in self.app.state_store.list_jobs(limit=40):
-            table.add_row("job", job["job_id"], job["status"], job["started_at"], job.get("stdout_path") or "")
+            table.add_row(
+                "job",
+                job["job_id"],
+                job["status"],
+                job["started_at"],
+                job.get("stdout_path") or "",
+            )
         for export in self.app.state_store.list_exports(limit=40):
-            table.add_row("analysis", export["thread_id"], "saved", export["created_at"], export["markdown_path"])
+            table.add_row(
+                "analysis",
+                export["thread_id"],
+                "saved",
+                export["created_at"],
+                export["markdown_path"],
+            )
 
 
 class SettingsScreen(Screen):
@@ -593,7 +1199,12 @@ class NewsSearchScreen(Screen):
             await self._run_search()
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
-        if event.input.id in ("news-query", "news-ticker", "news-date-from", "news-date-to"):
+        if event.input.id in (
+            "news-query",
+            "news-ticker",
+            "news-date-from",
+            "news-date-to",
+        ):
             await self._run_search()
 
     async def _run_search(self) -> None:
@@ -639,7 +1250,9 @@ class NewsSearchScreen(Screen):
         if source == "qdrant":
             source_status.update("Source: Qdrant")
         else:
-            source_status.update("Source: SQLite (fallback) [WARNING: Qdrant unavailable]")
+            source_status.update(
+                "Source: SQLite (fallback) [WARNING: Qdrant unavailable]"
+            )
 
         if not hits:
             log.write("No results found.")
@@ -647,10 +1260,17 @@ class NewsSearchScreen(Screen):
 
         for i, hit in enumerate(hits, 1):
             title = str(hit.get("title") or hit.get("headline") or "(no title)")
-            provider = str(hit.get("provider") or hit.get("source") or hit.get("source_domain") or "")
+            provider = str(
+                hit.get("provider")
+                or hit.get("source")
+                or hit.get("source_domain")
+                or ""
+            )
             published = str(hit.get("published_at") or hit.get("doc_date") or "")
             hit_ticker = str(hit.get("ticker") or "")
-            score = hit.get("score") or hit.get("final_score") or hit.get("semantic_score")
+            score = (
+                hit.get("score") or hit.get("final_score") or hit.get("semantic_score")
+            )
             score_str = f"{float(score):.4f}" if score is not None else "n/a"
 
             line_parts = [f"[{i}] {title}"]

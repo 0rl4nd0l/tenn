@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """TDD: verify news chunk payloads include corpus='news' for Qdrant filter support."""
+
 import sys
 import unittest
 from pathlib import Path
@@ -24,12 +25,32 @@ _SAMPLE_ART = {
 class NewsQdrantCorpusPayloadTests(unittest.TestCase):
     def test_payload_includes_corpus_news(self):
         payload = _build_chunk_payload(_SAMPLE_ART, idx=0)
-        self.assertEqual(payload.get("corpus"), "news", "corpus field must be 'news' for RAG corpus filtering")
+        self.assertEqual(
+            payload.get("corpus"),
+            "news",
+            "corpus field must be 'news' for RAG corpus filtering",
+        )
 
     def test_payload_includes_standard_fields(self):
         payload = _build_chunk_payload(_SAMPLE_ART, idx=0)
-        for field in ("article_id", "chunk_id", "provider", "ticker", "published_at", "language", "title", "url"):
+        for field in (
+            "article_id",
+            "chunk_id",
+            "provider",
+            "ticker",
+            "tickers",
+            "primary_ticker",
+            "published_at",
+            "language",
+            "title",
+            "url",
+        ):
             self.assertIn(field, payload, f"missing field: {field}")
+
+    def test_payload_preserves_all_linked_tickers(self):
+        art = dict(_SAMPLE_ART, tickers=["BHP", "RIO", " bhp "])
+        payload = _build_chunk_payload(art, idx=0)
+        self.assertEqual(payload["tickers"], ["BHP", "RIO"])
 
     def test_payload_chunk_id_encodes_article_and_index(self):
         payload = _build_chunk_payload(_SAMPLE_ART, idx=2)
@@ -39,7 +60,9 @@ class NewsQdrantCorpusPayloadTests(unittest.TestCase):
         """primary_ticker from article_relevance takes precedence over tickers list order."""
         art = dict(_SAMPLE_ART, tickers=["ABC", "BHP", "RIO"], primary_ticker="RIO")
         payload = _build_chunk_payload(art, idx=0)
-        self.assertEqual(payload["ticker"], "RIO", "primary_ticker must win over alphabetical first")
+        self.assertEqual(
+            payload["ticker"], "RIO", "primary_ticker must win over alphabetical first"
+        )
 
     def test_payload_single_ticker_used_as_fallback(self):
         """When primary_ticker is absent but only one ticker is linked, use it."""

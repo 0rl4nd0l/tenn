@@ -124,6 +124,8 @@ export interface ContextDocument {
   source_url?: string | null
 }
 
+export type ExtractionMethod = 'auto' | 'docling' | 'pymupdf' | 'anthropic'
+
 export interface ExtractionReviewSnippet {
   kind: string
   status: string
@@ -156,6 +158,17 @@ export interface ExtractionReviewItem {
   provenance_status?: string | null
   source_label?: string | null
   location_ref?: string | null
+  requested_method?: ExtractionMethod | null
+  actual_method?: string | null
+  strict_method?: boolean | null
+  parser_id?: string | null
+  model_id?: string | null
+  runtime_id?: string | null
+  fallback_used?: boolean | null
+  error_stage?: string | null
+  method_warnings?: string[] | null
+  gold_document_id?: string | null
+  gold_expected_trust?: string | null
   snippet: ExtractionReviewSnippet
   review_status: 'pending' | 'approved' | 'wrong' | 'abstain'
   reviewed_at?: string | null
@@ -175,6 +188,9 @@ export interface ExtractionReviewSession {
     title?: string | null
     status?: string | null
     run_id?: string | null
+    requested_method?: ExtractionMethod | null
+    actual_method?: string | null
+    strict_method?: boolean | null
     items_count?: number
     created_at?: string | null
   }>

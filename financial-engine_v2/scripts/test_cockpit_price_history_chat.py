@@ -120,7 +120,9 @@ class _ToolRouterStub:
             )
         return rows
 
-    def gather_local_context(self, ticker: str | None, query: str, deep_mode: bool = False):  # noqa: ARG002
+    def gather_local_context(
+        self, ticker: str | None, query: str, deep_mode: bool = False
+    ):  # noqa: ARG002
         class _Result:
             def __init__(self, payload):
                 self.payload = payload
@@ -160,17 +162,27 @@ class CockpitPriceHistoryChatTests(unittest.TestCase):
 
     def test_price_on_date_query_returns_historical_close(self):
         c = self._controller()
-        response = c.build_chat_response("what was bhp price on 2025-01-10", enable_web=False)
+        response = c.build_chat_response(
+            "what was bhp price on 2025-01-10", enable_web=False
+        )
         self.assertIn("Historical close for BHP.AX on 2025-01-10", response.text)
         self.assertIn("Matched candle date: 2025-01-10 (exact)", response.text)
-        self.assertEqual(response.evidence[0]["details"]["price_history_query"]["kind"], "on_date")
+        self.assertEqual(
+            response.evidence[0]["details"]["price_history_query"]["kind"], "on_date"
+        )
 
     def test_price_range_query_returns_period_summary(self):
         c = self._controller()
-        response = c.build_chat_response("bhp between 2025-01-05 and 2025-01-15", enable_web=False)
-        self.assertIn("Historical range for BHP.AX: 2025-01-05 to 2025-01-15", response.text)
+        response = c.build_chat_response(
+            "bhp between 2025-01-05 and 2025-01-15", enable_web=False
+        )
+        self.assertIn(
+            "Historical range for BHP.AX: 2025-01-05 to 2025-01-15", response.text
+        )
         self.assertIn("Period return (close-to-close):", response.text)
-        self.assertEqual(response.evidence[0]["details"]["price_history_query"]["kind"], "range")
+        self.assertEqual(
+            response.evidence[0]["details"]["price_history_query"]["kind"], "range"
+        )
 
     def test_price_on_date_before_coverage_is_safe(self):
         c = self._controller()
@@ -182,7 +194,23 @@ class CockpitPriceHistoryChatTests(unittest.TestCase):
         response = c.build_chat_response("price history bhp", enable_web=False)
         self.assertIn("Full historical summary for BHP.AX", response.text)
         self.assertIn("Coverage: 2025-01-01 to 2025-02-09 (40 points)", response.text)
-        self.assertEqual(response.evidence[0]["details"]["price_history_query"]["kind"], "full_summary")
+        self.assertEqual(
+            response.evidence[0]["details"]["price_history_query"]["kind"],
+            "full_summary",
+        )
+
+    def test_last_week_price_summary_short_circuits(self):
+        c = self._controller()
+        response = c.build_chat_response(
+            "bhp price summary for last week", enable_web=False
+        )
+        self.assertIn("Last-week price summary for BHP.AX", response.text)
+        self.assertIn("Coverage: 2025-02-05 to 2025-02-09", response.text)
+        self.assertIn("Period return (close-to-close): +2.04%", response.text)
+        self.assertEqual(
+            response.evidence[0]["details"]["price_history_query"]["kind"],
+            "relative_week",
+        )
 
     def test_equity_candlestick_uses_backend_ohlc(self):
         # When asking for a candlestick chart on an equity ticker (BHP),
@@ -194,7 +222,9 @@ class CockpitPriceHistoryChatTests(unittest.TestCase):
             tool_router=_ToolRouterStub(),
             action_registry=registry,
         )
-        response = controller.build_chat_response("candlestick chart for bhp", enable_web=False)
+        response = controller.build_chat_response(
+            "candlestick chart for bhp", enable_web=False
+        )
         # Should short-circuit into an action preview reply.
         self.assertIn("Running candlestick chart for", response.text)
         self.assertEqual(registry.last_action_id, "show_candlestick")
@@ -238,7 +268,9 @@ class CockpitPriceHistoryChatTests(unittest.TestCase):
             tool_router=_NoEquityCandlesToolRouterStub(),
             action_registry=registry,
         )
-        response = controller.build_chat_response("candlestick chart for bhp", enable_web=False)
+        response = controller.build_chat_response(
+            "candlestick chart for bhp", enable_web=False
+        )
         self.assertIn("/chart failed: no OHLC data for BHP", response.text)
         self.assertIsNone(response.action_preview)
 

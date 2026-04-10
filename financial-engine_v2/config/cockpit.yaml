@@ -1,7 +1,7 @@
 llm:
   provider: llamacpp
   llamacpp_url: http://127.0.0.1:8001
-  model: mistral-7b-instruct-v0.2-q4_k_m
+  model: model:qwen3.5-35b-a3b
   timeout_seconds: 300
 
 paths:

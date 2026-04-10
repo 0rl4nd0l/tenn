@@ -2,6 +2,7 @@ import type {
   AvailableModelsResponse,
   ChatResponse,
   ContextDocument,
+  ExtractionMethod,
   ExtractionReviewDecisionResponse,
   ExtractionReviewErrorQueue,
   ExtractionReviewSession,
@@ -313,24 +314,38 @@ export async function getTickerDocuments(ticker: string, docsLimit: number = 10)
   return Array.isArray(payload.docs) ? payload.docs : []
 }
 
-export async function processDocument(documentId: string): Promise<Record<string, unknown>> {
+export async function processDocument(params: {
+  documentId: string
+  method?: ExtractionMethod
+  strictMethod?: boolean
+}): Promise<Record<string, unknown>> {
   return apiFetch<Record<string, unknown>>(
-    `/api/process/document/${encodeURIComponent(documentId)}`,
+    `/api/process/document/${encodeURIComponent(params.documentId)}`,
     {
       method: 'POST',
       headers: withApiKey(),
+      body: JSON.stringify({
+        method: params.method ?? 'auto',
+        strict_method: params.strictMethod ?? false,
+      }),
     },
     900_000,
   )
 }
 
-export async function createExtractionReviewSession(documentIds: string[]): Promise<ExtractionReviewSession> {
+export async function createExtractionReviewSession(params: {
+  documentIds?: string[]
+  runIds?: string[]
+}): Promise<ExtractionReviewSession> {
   return apiFetch<ExtractionReviewSession>(
     '/api/extraction-review/session',
     {
       method: 'POST',
       headers: withApiKey(),
-      body: JSON.stringify({ document_ids: documentIds }),
+      body: JSON.stringify({
+        document_ids: params.documentIds ?? [],
+        run_ids: params.runIds ?? [],
+      }),
     },
     120_000,
   )
@@ -375,4 +390,3 @@ export async function getDiagnosticMatrix(stage: string, ticker?: string): Promi
   const url = ticker ? `${base}&ticker=${encodeURIComponent(ticker)}` : base
   return apiFetch<IntelPulseMatrixResponse>(url)
 }
-

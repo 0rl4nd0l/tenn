@@ -1,4 +1,5 @@
 """Stress and edge-case tests for the agent loop, tool execution, and context management."""
+
 from __future__ import annotations
 
 import json
@@ -13,6 +14,7 @@ from cockpit.core.tool_definitions import TOOL_DEFINITIONS, MUTATING_TOOL_NAMES
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_llm(responses):
     """Return a mock LLM client whose chat() yields *responses* in order."""
@@ -42,13 +44,17 @@ class TestMaxIterationsCap:
     def test_agent_loop_max_iterations_cap(self):
         """Loop always returning tool_call must terminate after MAX_ITERATIONS=6."""
         # LLM always returns a tool_call — never gives a final response
-        tool_call_response = json.dumps({
-            "type": "tool_call",
-            "tool": "get_financials",
-            "arguments": {"ticker": "BHP"},
-            "reasoning": "need more data",
-        })
-        llm = _make_llm(tool_call_response)  # side_effect=return_value repeated every call
+        tool_call_response = json.dumps(
+            {
+                "type": "tool_call",
+                "tool": "get_financials",
+                "arguments": {"ticker": "BHP"},
+                "reasoning": "need more data",
+            }
+        )
+        llm = _make_llm(
+            tool_call_response
+        )  # side_effect=return_value repeated every call
         executor = _tool_result({"ok": True, "data": "some data"})
 
         loop = AgentLoop(llm_client=llm, tool_executor=executor)
@@ -66,9 +72,10 @@ class TestMaxIterationsCap:
         assert result.text, "Exhaustion result text must not be empty"
         # Exhaustion text should hint at what was found or the limit reached
         text_lower = result.text.lower()
-        assert any(kw in text_lower for kw in ("limit", "found", "tool", "reach", "get_financials")), (
-            f"Exhaustion text does not mention findings: {result.text!r}"
-        )
+        assert any(
+            kw in text_lower
+            for kw in ("limit", "found", "tool", "reach", "get_financials")
+        ), f"Exhaustion text does not mention findings: {result.text!r}"
 
 
 # ---------------------------------------------------------------------------
@@ -82,19 +89,35 @@ class TestParallelToolCalls:
     def test_agent_loop_parallel_tool_calls(self):
         """Multiple tools called in one iteration via tool_calls type."""
         responses = [
-            json.dumps({
-                "type": "tool_calls",
-                "calls": [
-                    {"id": "call_1", "tool": "get_financials", "arguments": {"ticker": "BHP"}},
-                    {"id": "call_2", "tool": "get_price", "arguments": {"ticker": "BHP"}},
-                    {"id": "call_3", "tool": "search_news", "arguments": {"query": "BHP news"}},
-                ],
-                "reasoning": "Need financials, price, and news simultaneously",
-            }),
-            json.dumps({
-                "type": "response",
-                "content": "BHP analysis: revenue $55B, price $42, recent news positive.",
-            }),
+            json.dumps(
+                {
+                    "type": "tool_calls",
+                    "calls": [
+                        {
+                            "id": "call_1",
+                            "tool": "get_financials",
+                            "arguments": {"ticker": "BHP"},
+                        },
+                        {
+                            "id": "call_2",
+                            "tool": "get_price",
+                            "arguments": {"ticker": "BHP"},
+                        },
+                        {
+                            "id": "call_3",
+                            "tool": "search_news",
+                            "arguments": {"query": "BHP news"},
+                        },
+                    ],
+                    "reasoning": "Need financials, price, and news simultaneously",
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "response",
+                    "content": "BHP analysis: revenue $55B, price $42, recent news positive.",
+                }
+            ),
         ]
         llm = _make_llm(responses)
         executor = _tool_result({"ok": True, "data": "result"})
@@ -124,17 +147,21 @@ class TestParallelToolCalls:
     def test_agent_loop_retries_when_model_echoes_tool_arguments_as_json(self):
         """A bare JSON echo after tool use should trigger one more synthesis round."""
         responses = [
-            json.dumps({
-                "type": "tool_call",
-                "tool": "search_news",
-                "arguments": {"query": "BHP", "ticker": "BHP", "limit": 5},
-                "reasoning": "Need recent news",
-            }),
+            json.dumps(
+                {
+                    "type": "tool_call",
+                    "tool": "search_news",
+                    "arguments": {"query": "BHP", "ticker": "BHP", "limit": 5},
+                    "reasoning": "Need recent news",
+                }
+            ),
             json.dumps({"query": "BHP", "ticker": "BHP", "limit": 5}),
-            json.dumps({
-                "type": "response",
-                "content": "Recent BHP news in the corpus is mixed, with coverage focused on operations and commodity outlook.",
-            }),
+            json.dumps(
+                {
+                    "type": "response",
+                    "content": "Recent BHP news in the corpus is mixed, with coverage focused on operations and commodity outlook.",
+                }
+            ),
         ]
         llm = _make_llm(responses)
         executor = _tool_result({"ok": True, "results": [{"headline": "BHP update"}]})
@@ -150,16 +177,20 @@ class TestParallelToolCalls:
         """A bare tool-argument dict on the first turn should trigger a corrective retry."""
         responses = [
             json.dumps({"query": "BHP", "ticker": "BHP", "limit": 5}),
-            json.dumps({
-                "type": "tool_call",
-                "tool": "search_news",
-                "arguments": {"query": "BHP", "ticker": "BHP", "limit": 5},
-                "reasoning": "Need recent news",
-            }),
-            json.dumps({
-                "type": "response",
-                "content": "Recent BHP news is mixed, with coverage focused on operations and commodity outlook.",
-            }),
+            json.dumps(
+                {
+                    "type": "tool_call",
+                    "tool": "search_news",
+                    "arguments": {"query": "BHP", "ticker": "BHP", "limit": 5},
+                    "reasoning": "Need recent news",
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "response",
+                    "content": "Recent BHP news is mixed, with coverage focused on operations and commodity outlook.",
+                }
+            ),
         ]
         llm = _make_llm(responses)
         executor = _tool_result({"ok": True, "results": [{"headline": "BHP update"}]})
@@ -194,7 +225,9 @@ class TestContextWindowSummarization:
 
         # Each tool result: ~12100 chars. 5 results = ~60500 chars = ~15125 tokens.
         big_body = "D" * 10000
-        tool_result_content = "[Tool: query_ticker_data]\n" + json.dumps({"ok": True, "data": big_body})
+        tool_result_content = "[Tool: query_ticker_data]\n" + json.dumps(
+            {"ok": True, "data": big_body}
+        )
 
         # Build messages bypassing format_tool_result 2000-char cap
         messages = [
@@ -202,10 +235,18 @@ class TestContextWindowSummarization:
             {"role": "user", "content": "Analyse all the tickers"},
         ]
         for i in range(5):
-            messages.append({
-                "role": "assistant",
-                "content": json.dumps({"type": "tool_call", "tool": "query_ticker_data", "arguments": {"ticker": f"T{i}"}}),
-            })
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": json.dumps(
+                        {
+                            "type": "tool_call",
+                            "tool": "query_ticker_data",
+                            "arguments": {"ticker": f"T{i}"},
+                        }
+                    ),
+                }
+            )
             messages.append({"role": "user", "content": tool_result_content})
 
         total_chars = sum(len(m["content"]) for m in messages)
@@ -224,19 +265,52 @@ class TestContextWindowSummarization:
             "Expected older tool results to be compressed. "
             f"Tool messages: {[m['content'][:80] for m in tool_msgs]}"
         )
-        assert messages[0]["content"] == "You are Tenn.", "System message must not be modified"
+        assert messages[0]["content"] == "You are Tenn.", (
+            "System message must not be modified"
+        )
         for msg in tool_msgs[-2:]:
-            assert "[summarized" not in msg["content"], "Last 2 tool results must not be summarized"
+            assert "[summarized" not in msg["content"], (
+                "Last 2 tool results must not be summarized"
+            )
+
     def test_summarization_preserves_last_two_results(self):
         """The two most recent tool results must NOT be summarized even when over budget."""
         # Force context overflow by using a large system prompt + big tool results
         big_payload = "Y" * 6000
 
         responses = [
-            json.dumps({"type": "tool_call", "tool": "get_financials", "arguments": {"ticker": "A"}, "reasoning": "1"}),
-            json.dumps({"type": "tool_call", "tool": "get_financials", "arguments": {"ticker": "B"}, "reasoning": "2"}),
-            json.dumps({"type": "tool_call", "tool": "get_financials", "arguments": {"ticker": "C"}, "reasoning": "3"}),
-            json.dumps({"type": "tool_call", "tool": "get_financials", "arguments": {"ticker": "D"}, "reasoning": "4"}),
+            json.dumps(
+                {
+                    "type": "tool_call",
+                    "tool": "get_financials",
+                    "arguments": {"ticker": "A"},
+                    "reasoning": "1",
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "tool_call",
+                    "tool": "get_financials",
+                    "arguments": {"ticker": "B"},
+                    "reasoning": "2",
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "tool_call",
+                    "tool": "get_financials",
+                    "arguments": {"ticker": "C"},
+                    "reasoning": "3",
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "tool_call",
+                    "tool": "get_financials",
+                    "arguments": {"ticker": "D"},
+                    "reasoning": "4",
+                }
+            ),
             json.dumps({"type": "response", "content": "Done with all."}),
         ]
         llm = _make_llm(responses)
@@ -306,7 +380,9 @@ class TestToolResultTruncation:
 
         returned = executor._truncate(small_result)
 
-        assert "_truncated" not in returned, "Small result should not have _truncated flag"
+        assert "_truncated" not in returned, (
+            "Small result should not have _truncated flag"
+        )
         assert returned["price"] == 42.5
 
     def test_default_max_result_chars_is_2000(self):
@@ -319,7 +395,14 @@ class TestToolResultTruncation:
         executor = _tool_result(huge_response)
 
         llm_responses = [
-            json.dumps({"type": "tool_call", "tool": "get_financials", "arguments": {"ticker": "BHP"}, "reasoning": "x"}),
+            json.dumps(
+                {
+                    "type": "tool_call",
+                    "tool": "get_financials",
+                    "arguments": {"ticker": "BHP"},
+                    "reasoning": "x",
+                }
+            ),
             json.dumps({"type": "response", "content": "Got the data."}),
         ]
         llm = _make_llm(llm_responses)
@@ -408,16 +491,20 @@ class TestToolErrorRecovery:
     def test_agent_loop_tool_error_recovery(self):
         """Tool executor raising an exception returns error payload and loop continues."""
         responses = [
-            json.dumps({
-                "type": "tool_call",
-                "tool": "get_financials",
-                "arguments": {"ticker": "BROKEN"},
-                "reasoning": "try fetching",
-            }),
-            json.dumps({
-                "type": "response",
-                "content": "I encountered an error fetching data for BROKEN; no financials available.",
-            }),
+            json.dumps(
+                {
+                    "type": "tool_call",
+                    "tool": "get_financials",
+                    "arguments": {"ticker": "BROKEN"},
+                    "reasoning": "try fetching",
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "response",
+                    "content": "I encountered an error fetching data for BROKEN; no financials available.",
+                }
+            ),
         ]
         llm = _make_llm(responses)
 
@@ -442,14 +529,24 @@ class TestToolErrorRecovery:
     def test_intermittent_tool_failure_does_not_abort_loop(self):
         """If one tool in a parallel call fails, the other results still go through."""
         responses = [
-            json.dumps({
-                "type": "tool_calls",
-                "calls": [
-                    {"id": "1", "tool": "get_financials", "arguments": {"ticker": "GOOD"}},
-                    {"id": "2", "tool": "get_price", "arguments": {"ticker": "BROKEN"}},
-                ],
-                "reasoning": "parallel fetch",
-            }),
+            json.dumps(
+                {
+                    "type": "tool_calls",
+                    "calls": [
+                        {
+                            "id": "1",
+                            "tool": "get_financials",
+                            "arguments": {"ticker": "GOOD"},
+                        },
+                        {
+                            "id": "2",
+                            "tool": "get_price",
+                            "arguments": {"ticker": "BROKEN"},
+                        },
+                    ],
+                    "reasoning": "parallel fetch",
+                }
+            ),
             json.dumps({"type": "response", "content": "Partial data retrieved."}),
         ]
         llm = _make_llm(responses)
@@ -483,7 +580,14 @@ class TestToolErrorRecovery:
         the assistant's tool-call request appears in `prior_messages`.
         """
         responses = [
-            json.dumps({"type": "tool_call", "tool": "get_financials", "arguments": {"ticker": "X"}, "reasoning": "x"}),
+            json.dumps(
+                {
+                    "type": "tool_call",
+                    "tool": "get_financials",
+                    "arguments": {"ticker": "X"},
+                    "reasoning": "x",
+                }
+            ),
             json.dumps({"type": "response", "content": "Acknowledged the error."}),
         ]
         llm = _make_llm(responses)
@@ -495,7 +599,9 @@ class TestToolErrorRecovery:
         # The second LLM call: the tool result (with error) is the `prompt`,
         # and the assistant's tool_call message is in `prior_messages`.
         second_call = llm.chat.call_args_list[1]
-        prompt = second_call.kwargs.get("prompt") or (second_call.args[0] if second_call.args else "")
+        prompt = second_call.kwargs.get("prompt") or (
+            second_call.args[0] if second_call.args else ""
+        )
         prior = second_call.kwargs.get("prior_messages") or []
         prior_content = " ".join(m.get("content", "") for m in prior)
 
@@ -547,16 +653,20 @@ class TestRapidSequentialMessages:
         results = []
 
         for i in range(5):
-            tool_response = json.dumps({
-                "type": "tool_call",
-                "tool": "get_financials",
-                "arguments": {"ticker": f"T{i}"},
-                "reasoning": f"fetch T{i}",
-            })
-            final_response = json.dumps({
-                "type": "response",
-                "content": f"T{i} analysis complete.",
-            })
+            tool_response = json.dumps(
+                {
+                    "type": "tool_call",
+                    "tool": "get_financials",
+                    "arguments": {"ticker": f"T{i}"},
+                    "reasoning": f"fetch T{i}",
+                }
+            )
+            final_response = json.dumps(
+                {
+                    "type": "response",
+                    "content": f"T{i} analysis complete.",
+                }
+            )
 
             llm = _make_llm([tool_response, final_response])
             executor = _tool_result({"ok": True, "ticker": f"T{i}"})
@@ -617,7 +727,9 @@ class TestMultipleToolCallSequences:
             '{"type": "response", "content": "BHP revenue is $55B based on the data."}',
         ]
         llm = _make_llm(responses)
-        executor = _tool_result({"ok": True, "ticker": "BHP", "financials": [{"revenue": 55000}]})
+        executor = _tool_result(
+            {"ok": True, "ticker": "BHP", "financials": [{"revenue": 55000}]}
+        )
 
         loop = AgentLoop(llm_client=llm, tool_executor=executor)
         result = loop.run("What is BHP revenue?")
@@ -637,7 +749,9 @@ class TestMultipleToolCallSequences:
 
         assert result.action_preview is not None
         assert result.action_preview["tool"] == "run_backfill"
-        assert result.action_preview["action_id"] == "single_ticker_announcement_backfill"
+        assert (
+            result.action_preview["action_id"] == "single_ticker_announcement_backfill"
+        )
         assert result.action_preview["args"] == {"ticker": "MIN"}
         assert result.iterations_used == 1
 
@@ -667,17 +781,18 @@ class TestToolDefinitions:
             assert "name" in tool, f"Tool missing 'name': {tool}"
             assert "description" in tool, f"Tool {tool['name']} missing 'description'"
             assert "parameters" in tool, f"Tool {tool['name']} missing 'parameters'"
-            assert isinstance(tool["parameters"], dict), \
+            assert isinstance(tool["parameters"], dict), (
                 f"Tool {tool['name']} parameters must be a dict"
+            )
 
     def test_mutating_tools_are_flagged_in_frozenset(self):
         for tool in TOOL_DEFINITIONS:
             if tool.get("mutating"):
-                assert tool["name"] in MUTATING_TOOL_NAMES, \
+                assert tool["name"] in MUTATING_TOOL_NAMES, (
                     f"Mutating tool {tool['name']} missing from MUTATING_TOOL_NAMES"
+                )
 
     def test_no_duplicate_tool_names(self):
         names = [t["name"] for t in TOOL_DEFINITIONS]
         duplicates = [n for n in names if names.count(n) > 1]
-        assert len(names) == len(set(names)), \
-            f"Duplicate tool names: {duplicates}"
+        assert len(names) == len(set(names)), f"Duplicate tool names: {duplicates}"

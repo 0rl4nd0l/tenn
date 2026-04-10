@@ -25,7 +25,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -38,6 +40,7 @@ import {
 import { useCockpitStore } from '@/lib/cockpit-store'
 import type {
   ContextDocument,
+  ExtractionMethod,
   ExtractionReviewErrorQueue,
   ExtractionReviewItem,
   ExtractionReviewSession,
@@ -62,10 +65,22 @@ type RealGoldEvalDocument = {
   expected_trust: string
   mismatch_reasons: string[]
   metric_results: Record<string, RealGoldEvalMetricResult>
+  method_provenance?: {
+    requested_method?: ExtractionMethod
+    actual_method?: string | null
+    strict_method?: boolean
+    parser_id?: string | null
+    model_id?: string | null
+    runtime_id?: string | null
+    fallback_used?: boolean
+    error_stage?: string | null
+  }
 }
 
 type RealGoldEvalResponse = {
   dataset_dir: string
+  requested_method?: ExtractionMethod
+  strict_method?: boolean
   summary: {
     total_documents: number
     total_accuracy: number
@@ -76,6 +91,31 @@ type RealGoldEvalResponse = {
   }
   documents: RealGoldEvalDocument[]
 }
+
+type ProcessDocumentResponse = {
+  mode?: string
+  document_id?: string
+  run_id?: string
+  extraction_status?: string
+  method_provenance?: {
+    requested_method?: ExtractionMethod
+    actual_method?: string | null
+    strict_method?: boolean
+    parser_id?: string | null
+    model_id?: string | null
+    runtime_id?: string | null
+    fallback_used?: boolean
+    error_stage?: string | null
+    warnings?: string[]
+  }
+}
+
+const EXTRACTION_METHOD_OPTIONS: Array<{ value: ExtractionMethod; label: string }> = [
+  { value: 'auto', label: 'Auto' },
+  { value: 'docling', label: 'Docling' },
+  { value: 'pymupdf', label: 'PyMuPDF' },
+  { value: 'anthropic', label: 'Anthropic' },
+]
 
 function escapeHtml(text: string): string {
   return text
@@ -179,6 +219,14 @@ function summarizeSessionDocuments(session: ExtractionReviewSession | null): str
     .join(' | ')
 }
 
+function formatMethodLabel(method: string | null | undefined): string {
+  const normalized = String(method || '').trim()
+  if (!normalized) return 'unknown'
+  if (normalized === 'pymupdf') return 'PyMuPDF'
+  if (normalized === 'pymupdf_degraded') return 'PyMuPDF degraded'
+  return normalized
+}
+
 export function VerificationScreen() {
   const [hasHydrated, setHasHydrated] = useState(false)
   const { activeTicker } = useCockpitStore()
@@ -193,6 +241,8 @@ export function VerificationScreen() {
   const [selectedDocumentId, setSelectedDocumentId] = useState('')
   const [extraDocumentIds, setExtraDocumentIds] = useState('')
   const [docsLimit, setDocsLimit] = useState('10')
+  const [extractionMethod, setExtractionMethod] = useState<ExtractionMethod>('auto')
+  const [strictMethod, setStrictMethod] = useState(true)
   const [reviewError, setReviewError] = useState<string | null>(null)
   const [reviewActionLoading, setReviewActionLoading] = useState(false)
   const [reviewSession, setReviewSession] = useState<ExtractionReviewSession | null>(null)
@@ -282,6 +332,42 @@ export function VerificationScreen() {
     }
   }
 
+  const runSelectedDocumentExtractions = async (): Promise<{
+    queuedIds: string[]
+    failedRuns: string[]
+    runIds: string[]
+    results: ProcessDocumentResponse[]
+  }> => {
+    const queuedIds: string[] = []
+    const failedRuns: string[] = []
+    const runIds: string[] = []
+    const results: ProcessDocumentResponse[] = []
+
+    for (const documentId of selectedReviewDocumentIds) {
+      const result = await processDocument({
+        documentId,
+        method: extractionMethod,
+        strictMethod,
+      }) as ProcessDocumentResponse
+      results.push(result)
+      const mode = String(result.mode ?? '')
+      const extractionStatus = String(result.extraction_status ?? '')
+      if (mode === 'celery') {
+        queuedIds.push(documentId)
+        continue
+      }
+      if (!isReviewableExtractionStatus(extractionStatus)) {
+        failedRuns.push(`${documentId.slice(0, 12)}:${extractionStatus || 'unknown'}`)
+        continue
+      }
+      if (result.run_id) {
+        runIds.push(result.run_id)
+      }
+    }
+
+    return { queuedIds, failedRuns, runIds, results }
+  }
+
   const handleRunExtraction = async () => {
     if (selectedReviewDocumentIds.length === 0) {
       setReviewError('Select one document or enter document IDs first.')
@@ -291,20 +377,7 @@ export function VerificationScreen() {
     setReviewError(null)
     setReviewActionLoading(true)
     try {
-      const queuedIds: string[] = []
-      const failedRuns: string[] = []
-      for (const documentId of selectedReviewDocumentIds) {
-        const result = await processDocument(documentId)
-        const mode = String(result.mode ?? '')
-        const extractionStatus = String(result.extraction_status ?? '')
-        if (mode === 'celery') {
-          queuedIds.push(documentId)
-          continue
-        }
-        if (!isReviewableExtractionStatus(extractionStatus)) {
-          failedRuns.push(`${documentId.slice(0, 12)}:${extractionStatus || 'unknown'}`)
-        }
-      }
+      const { queuedIds, failedRuns, results } = await runSelectedDocumentExtractions()
       if (queuedIds.length > 0) {
         const message = `Extraction queued for ${queuedIds.length} document(s). Wait for completion before loading the review session.`
         setReviewError(message)
@@ -317,7 +390,10 @@ export function VerificationScreen() {
         toast.error(message)
         return
       }
-      toast.success(`Extraction requested for ${selectedReviewDocumentIds.length} document(s)`)
+      const methodSummary = results[0]?.method_provenance
+      toast.success(
+        `Extraction requested for ${selectedReviewDocumentIds.length} document(s) using ${formatMethodLabel(methodSummary?.actual_method || extractionMethod)}${strictMethod ? ' (strict)' : ''}`,
+      )
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to run extraction'
       setReviewError(message)
@@ -346,20 +422,7 @@ export function VerificationScreen() {
     setReviewError(null)
     setReviewActionLoading(true)
     try {
-      const queuedIds: string[] = []
-      const failedRuns: string[] = []
-      for (const documentId of selectedReviewDocumentIds) {
-        const result = await processDocument(documentId)
-        const mode = String(result.mode ?? '')
-        const extractionStatus = String(result.extraction_status ?? '')
-        if (mode === 'celery') {
-          queuedIds.push(documentId)
-          continue
-        }
-        if (!isReviewableExtractionStatus(extractionStatus)) {
-          failedRuns.push(`${documentId.slice(0, 12)}:${extractionStatus || 'unknown'}`)
-        }
-      }
+      const { queuedIds, failedRuns, runIds } = await runSelectedDocumentExtractions()
 
       if (queuedIds.length > 0) {
         const message = `Extraction is queued for ${queuedIds.length} document(s). Wait for the worker to finish, then retry loading the review.`
@@ -376,7 +439,7 @@ export function VerificationScreen() {
         return
       }
 
-      const session = await createExtractionReviewSession(selectedReviewDocumentIds)
+      const session = await createExtractionReviewSession({ runIds })
 
       setReviewSession(session)
       setReviewIndex(0)
@@ -415,6 +478,8 @@ export function VerificationScreen() {
         headers,
         body: JSON.stringify({
           limit: Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 0,
+          method: extractionMethod,
+          strict_method: strictMethod,
         }),
       })
 
@@ -434,7 +499,9 @@ export function VerificationScreen() {
 
       const data = await res.json() as RealGoldEvalResponse
       setGoldEval(data)
-      toast.success(`Gold set evaluation finished for ${data.summary.total_documents} document(s)`)
+      toast.success(
+        `Gold set evaluation finished for ${data.summary.total_documents} document(s) using ${formatMethodLabel(data.requested_method || extractionMethod)}${strictMethod ? ' (strict)' : ''}`,
+      )
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to run gold set evaluation'
       setGoldEvalError(message)
@@ -738,6 +805,26 @@ export function VerificationScreen() {
                   className="font-mono"
                 />
               </Field>
+              <Field className="w-[180px]">
+                <FieldLabel>Extraction method</FieldLabel>
+                <Select value={extractionMethod} onValueChange={(value) => setExtractionMethod(value as ExtractionMethod)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EXTRACTION_METHOD_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field className="w-[160px]">
+                <FieldLabel>Strict mode</FieldLabel>
+                <div className="flex h-10 items-center gap-3 rounded-md border border-input px-3">
+                  <Switch checked={strictMethod} onCheckedChange={setStrictMethod} />
+                  <span className="text-sm text-muted-foreground">No fallback</span>
+                </div>
+              </Field>
               <div className="flex gap-2">
                 <Button onClick={handleRunGoldEval} disabled={goldEvalLoading}>
                   <Play className="mr-2 h-4 w-4" />
@@ -789,6 +876,8 @@ export function VerificationScreen() {
                   <Badge variant="outline">trusted {goldSummary.trust_distribution.trusted ?? 0}</Badge>
                   <Badge variant="outline">abstain {goldSummary.trust_distribution.abstain ?? 0}</Badge>
                   <Badge variant="outline">quarantine {goldSummary.trust_distribution.quarantine ?? 0}</Badge>
+                  <Badge variant="outline">method {formatMethodLabel(goldEval.requested_method || extractionMethod)}</Badge>
+                  <Badge variant="outline">strict {goldEval.strict_method ? 'yes' : 'no'}</Badge>
                   <Badge variant="outline">dataset {goldEval.dataset_dir}</Badge>
                 </div>
 
@@ -799,6 +888,7 @@ export function VerificationScreen() {
                         <TableHead>Document</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Trust</TableHead>
+                        <TableHead>Method</TableHead>
                         <TableHead>Metric statuses</TableHead>
                         <TableHead>Mismatch reasons</TableHead>
                       </TableRow>
@@ -820,6 +910,10 @@ export function VerificationScreen() {
                               <Badge variant={doc.trust_outcome === 'trusted' ? 'default' : doc.trust_outcome === 'quarantine' ? 'critical' : 'secondary'}>
                                 {doc.trust_outcome} / {doc.expected_trust}
                               </Badge>
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {formatMethodLabel(doc.method_provenance?.actual_method || doc.method_provenance?.requested_method)}
+                              <div>{doc.method_provenance?.strict_method ? 'strict' : 'auto'}</div>
                             </TableCell>
                             <TableCell className="text-xs text-muted-foreground">{metricStatuses || '-'}</TableCell>
                             <TableCell className="text-xs text-muted-foreground">
@@ -847,7 +941,7 @@ export function VerificationScreen() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="grid gap-4 md:grid-cols-[220px_120px_1fr]">
+            <div className="grid gap-4 md:grid-cols-[220px_120px_1fr_180px_160px]">
               <Field>
                 <FieldLabel>Ticker</FieldLabel>
                 <Input value={ticker} onChange={(e) => setTicker(e.target.value.toUpperCase())} className="font-mono" />
@@ -864,6 +958,26 @@ export function VerificationScreen() {
                   placeholder="Comma or space separated document IDs"
                   className="font-mono"
                 />
+              </Field>
+              <Field>
+                <FieldLabel>Extraction method</FieldLabel>
+                <Select value={extractionMethod} onValueChange={(value) => setExtractionMethod(value as ExtractionMethod)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EXTRACTION_METHOD_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field>
+                <FieldLabel>Strict mode</FieldLabel>
+                <div className="flex h-10 items-center gap-3 rounded-md border border-input px-3">
+                  <Switch checked={strictMethod} onCheckedChange={setStrictMethod} />
+                  <span className="text-sm text-muted-foreground">No fallback</span>
+                </div>
               </Field>
             </div>
 
@@ -950,7 +1064,7 @@ export function VerificationScreen() {
             </div>
 
             <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
-              The review loader always reprocesses the selected PDFs first. If the latest extraction fails or queues in Celery mode, the screen stops instead of silently showing an older successful run.
+              The review loader always reprocesses the selected PDFs first using the selected method. It then loads the review session from the explicit run IDs returned by that request, so strict benchmarking never silently falls back to an older auto run.
             </div>
           </CardContent>
         </Card>
@@ -1011,6 +1125,8 @@ export function VerificationScreen() {
                     <Badge variant={statusVariant(currentReviewItem.review_status)}>{currentReviewItem.review_status}</Badge>
                     <Badge variant="outline">{currentReviewItem.metric_name}</Badge>
                     <Badge variant="outline">page {currentReviewItem.page_number ?? '?'}</Badge>
+                    <Badge variant="outline">method {formatMethodLabel(currentReviewItem.actual_method || currentReviewItem.requested_method)}</Badge>
+                    <Badge variant="outline">{currentReviewItem.strict_method ? 'strict' : 'auto'}</Badge>
                     {currentReviewItem.snippet.kind && <Badge variant="outline">{currentReviewItem.snippet.kind}</Badge>}
                   </div>
 
@@ -1019,6 +1135,10 @@ export function VerificationScreen() {
                       <div>
                         <p className="text-xs uppercase tracking-wide text-muted-foreground">Extracted value</p>
                         <p className="mt-1 font-mono text-lg">{String(currentReviewItem.extracted_value ?? '-')}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Gold expected</p>
+                        <p className="mt-1 font-mono text-lg">{String(currentReviewItem.expected_value ?? '-')}</p>
                       </div>
                       <div>
                         <p className="text-xs uppercase tracking-wide text-muted-foreground">Period</p>
@@ -1032,8 +1152,28 @@ export function VerificationScreen() {
                         <p className="text-xs uppercase tracking-wide text-muted-foreground">Provenance</p>
                         <p className="mt-1 text-sm">{currentReviewItem.evidence_summary || currentReviewItem.evidence_reference || 'No provenance summary'}</p>
                       </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Method provenance</p>
+                        <p className="mt-1 text-sm">
+                          actual={formatMethodLabel(currentReviewItem.actual_method)} parser={currentReviewItem.parser_id || '-'} fallback={currentReviewItem.fallback_used ? 'yes' : 'no'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Model / runtime</p>
+                        <p className="mt-1 text-sm">{currentReviewItem.model_id || '-'} @ {currentReviewItem.runtime_id || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Gold record</p>
+                        <p className="mt-1 text-sm">{currentReviewItem.gold_document_id || 'No gold label'} {currentReviewItem.gold_expected_trust ? `(${currentReviewItem.gold_expected_trust})` : ''}</p>
+                      </div>
                     </div>
                   </div>
+
+                  {currentReviewItem.method_warnings && currentReviewItem.method_warnings.length > 0 && (
+                    <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
+                      Warnings: {currentReviewItem.method_warnings.join('; ')}
+                    </div>
+                  )}
 
                   <div className="space-y-3 rounded-lg border border-border/60 p-4">
                     <div className="flex items-center gap-2 text-sm font-medium">

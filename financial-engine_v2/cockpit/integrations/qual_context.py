@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -42,11 +43,38 @@ class QualContextReader:
         self.timeout = float(timeout)
         self._last_backend_call: _BackendCall | None = None
 
+    @staticmethod
+    def _title_mentions_ticker(title: str, ticker: str) -> bool:
+        symbol = str(ticker or "").strip().upper()
+        if not symbol:
+            return False
+        return bool(
+            re.search(rf"\b{re.escape(symbol)}\b", str(title or ""), re.IGNORECASE)
+        )
+
+    def _matches_news_ticker(self, hit: dict[str, Any], ticker: str) -> bool:
+        symbol = str(ticker or "").strip().upper()
+        if not symbol:
+            return True
+        primary_ticker = str(hit.get("primary_ticker") or "").strip().upper()
+        top_level_ticker = str(hit.get("ticker") or "").strip().upper()
+        company = str(hit.get("company") or "").strip().upper()
+        title = str(hit.get("title") or "")
+        if primary_ticker == symbol or top_level_ticker == symbol or company == symbol:
+            return True
+        if self._title_mentions_ticker(title, symbol):
+            return True
+        return False
+
     def validate_runtime(self) -> None:
         if self.embed_backend != "ollama":
-            raise RuntimeError("Cockpit RAG must use backend API. Local embeddings disabled.")
+            raise RuntimeError(
+                "Cockpit RAG must use backend API. Local embeddings disabled."
+            )
         if not hasattr(self.backend_api_client, "rag_query"):
-            raise RuntimeError("backend_api_client.rag_query is required for Cockpit RAG.")
+            raise RuntimeError(
+                "backend_api_client.rag_query is required for Cockpit RAG."
+            )
 
     def query(
         self,
@@ -100,20 +128,33 @@ class QualContextReader:
         # rag_query() returns {"results": [{"score": float, "payload": {...}}, ...]} directly.
         raw_results = result.get("results")
         if not isinstance(raw_results, list):
-            return {"ok": False, "hits": [], "error": "unexpected backend response shape"}
+            return {
+                "ok": False,
+                "hits": [],
+                "error": "unexpected backend response shape",
+            }
 
         hits: list[dict[str, Any]] = []
         for item in raw_results:
             if not isinstance(item, dict):
                 continue
             score = float(item.get("score") or 0.0)
-            item_payload = item.get("payload") if isinstance(item.get("payload"), dict) else {}
+            item_payload = (
+                item.get("payload") if isinstance(item.get("payload"), dict) else {}
+            )
             corpus = str(item_payload.get("corpus") or "")
             if self.corpus_filter and corpus and corpus != self.corpus_filter:
                 continue
             hit = dict(item_payload)
             hit.setdefault("semantic_score", score)
             hit.setdefault("final_score", float(hit.get("semantic_score") or score))
+            if (
+                ticker
+                and self.corpus_filter == "news"
+                and self.ticker_match_mode == "soft"
+                and not self._matches_news_ticker(hit, ticker)
+            ):
+                continue
             hits.append(hit)
 
         return {

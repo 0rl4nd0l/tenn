@@ -103,7 +103,9 @@ class CockpitNewsQualContextTests(unittest.TestCase):
         )
 
         self.assertTrue(payload.get("ok"))
-        self.assertEqual(backend.last_kwargs, {"q": "BHP guidance", "ticker": "BHP", "top_k": 3})
+        self.assertEqual(
+            backend.last_kwargs, {"q": "BHP guidance", "ticker": "BHP", "top_k": 3}
+        )
 
     def test_query_parses_results_list_from_backend_response(self):
         """`{"results": [...]}` response is correctly unwrapped into hits."""
@@ -138,7 +140,9 @@ class CockpitNewsQualContextTests(unittest.TestCase):
         self.assertEqual(hits[0].get("title"), "ASX:BHP guidance update")
         self.assertAlmostEqual(hits[0].get("semantic_score"), 0.91)
         self.assertAlmostEqual(hits[0].get("final_score"), 0.91)
-        self.assertIsNone(hits[0].get("score"))  # score lives in semantic_score, not raw key
+        self.assertIsNone(
+            hits[0].get("score")
+        )  # score lives in semantic_score, not raw key
 
     def test_query_returns_empty_hits_when_results_is_empty(self):
         backend = _BackendStub({"results": []})
@@ -193,7 +197,56 @@ class CockpitNewsQualContextTests(unittest.TestCase):
         self.assertEqual(payload.get("date_to"), "2026-04-08")
         self.assertEqual(payload.get("provider"), "asx")
         self.assertEqual(payload.get("language"), "en")
-        self.assertEqual(backend.last_kwargs, {"q": "BHP news", "ticker": "BHP", "top_k": 5})
+        self.assertEqual(
+            backend.last_kwargs, {"q": "BHP news", "ticker": "BHP", "top_k": 5}
+        )
+
+    def test_soft_news_match_drops_linked_ticker_mentions_without_direct_identity(self):
+        backend = _BackendStub(
+            {
+                "results": [
+                    {
+                        "score": 0.71,
+                        "payload": {
+                            "title": "ASX copper players step into action as supply shortage looms",
+                            "ticker": "SFR",
+                            "primary_ticker": "SFR",
+                            "tickers": ["BHP", "SFR"],
+                            "corpus": "news",
+                            "text": "Broad copper roundup that mentions BHP in passing.",
+                        },
+                    },
+                    {
+                        "score": 0.69,
+                        "payload": {
+                            "title": "BHP lifts guidance after strong quarter",
+                            "ticker": "BHP",
+                            "primary_ticker": "BHP",
+                            "tickers": ["BHP"],
+                            "corpus": "news",
+                            "text": "Direct BHP article.",
+                        },
+                    },
+                ]
+            }
+        )
+        reader = QualContextReader(
+            repo_root=REPO_ROOT,
+            backend_api_client=backend,
+            embed_backend="ollama",
+            embed_model="nomic-embed-text",
+            corpus_filter="news",
+            ticker_match_mode="soft",
+        )
+
+        payload = reader.query(query="latest BHP news", top_k=5, ticker_filter="BHP")
+
+        hits = payload.get("hits", [])
+        self.assertEqual(len(hits), 1)
+        self.assertEqual(hits[0].get("primary_ticker"), "BHP")
+        self.assertEqual(
+            hits[0].get("title"), "BHP lifts guidance after strong quarter"
+        )
 
 
 if __name__ == "__main__":

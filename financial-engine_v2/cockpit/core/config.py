@@ -108,6 +108,7 @@ DEFAULT_COCKPIT_LLM_FILE: dict[str, Any] = {
         "extraction_model": "qwen2.5-14b-instruct",
         "embedding_model": "nomic-embed-text",
         "anthropic_model": "claude-sonnet-4-20250514",
+        "anthropic_api_key": "",
     },
     "llm": {
         "provider": "llamacpp",
@@ -128,6 +129,7 @@ def cockpit_llm_stack_defaults(cm: dict[str, Any]) -> dict[str, str]:
         "extraction_model": str(raw.get("extraction_model") or "").strip(),
         "embedding_model": str(raw.get("embedding_model") or "").strip(),
         "anthropic_model": str(raw.get("anthropic_model") or "").strip(),
+        "anthropic_api_key": str(raw.get("anthropic_api_key") or "").strip(),
     }
 
 
@@ -146,6 +148,8 @@ def apply_stack_defaults_to_environ(cm: dict[str, Any]) -> None:
         os.environ.setdefault("EMBEDDING_MODEL", d["embedding_model"])
     if d["anthropic_model"]:
         os.environ.setdefault("ANTHROPIC_MODEL", d["anthropic_model"])
+    if d["anthropic_api_key"]:
+        os.environ.setdefault("ANTHROPIC_API_KEY", d["anthropic_api_key"])
     os.environ.setdefault("COCKPIT_LLM_PROFILE", "ops")
 
 
@@ -171,6 +175,13 @@ def effective_anthropic_model(cm: dict[str, Any]) -> str:
     )
 
 
+def effective_anthropic_api_key(cm: dict[str, Any]) -> str:
+    return (
+        os.environ.get("ANTHROPIC_API_KEY", "").strip()
+        or cockpit_llm_stack_defaults(cm)["anthropic_api_key"]
+    )
+
+
 def format_cockpit_llm_readonly(repo_root: Path) -> str:
     """Human-readable snapshot of authoritative cockpit_llm settings (for pre-boot / Ops)."""
     cfg = load_config(None)
@@ -181,6 +192,7 @@ def format_cockpit_llm_readonly(repo_root: Path) -> str:
     pol = str(cm.get("hybrid_router_policy") or "")
     td = str(cm.get("tool_debug") or "")
     d = cockpit_llm_stack_defaults(cm)
+    anthropic_key_disp = "(set)" if d["anthropic_api_key"] else "(none)"
     lines = [
         f"Source: {path}",
         f"allow_env_override: {cm.get('allow_env_override')}",
@@ -190,10 +202,11 @@ def format_cockpit_llm_readonly(repo_root: Path) -> str:
         f"llm_profile_label: {cm.get('llm_profile_label')}  (diagnostic label only)",
         f"tool_debug → COCKPIT_TOOL_DEBUG: {td}",
         f"  → {describe_tool_debug_choice(td)}",
-        "defaults (EXTRACT_MODEL / EMBED_MODEL / ANTHROPIC_MODEL setdefault on startup):",
+        "defaults (EXTRACT_MODEL / EMBED_MODEL / ANTHROPIC_MODEL / ANTHROPIC_API_KEY setdefault on startup):",
         f"  extraction_model: {d['extraction_model'] or '(none)'}",
         f"  embedding_model: {d['embedding_model'] or '(none)'}",
         f"  anthropic_model: {d['anthropic_model'] or '(none)'}",
+        f"  anthropic_api_key: {anthropic_key_disp}",
         f"provider / model: {llm.get('provider')} / {llm.get('model')}",
         f"llamacpp_url: {llm.get('llamacpp_url')}",
         f"router_mode_opt_in: {llm.get('router_mode_opt_in')}",
@@ -246,8 +259,8 @@ def cockpit_llm_yaml_glossary() -> str:
         "allow_env_override — false: file wins; COCKPIT_* / HYBRID_ROUTER_POLICY env ignored for cockpit LLM.\n"
         "  true: env vars may override the file (advanced / automation only).\n"
         "router_mode_opt_in — Intended llama-server router feature; actual mode depends on the running binary.\n"
-        "defaults — extraction_model, embedding_model, anthropic_model; startup setdefault for EXTRACT_MODEL, "
-        "EMBED_MODEL, EMBEDDING_MODEL, ANTHROPIC_MODEL (host env wins if already set).\n"
+        "defaults — extraction_model, embedding_model, anthropic_model, anthropic_api_key; startup setdefault for EXTRACT_MODEL, "
+        "EMBED_MODEL, EMBEDDING_MODEL, ANTHROPIC_MODEL, ANTHROPIC_API_KEY (host env wins if already set).\n"
         "provider / model / llamacpp_url — Cockpit chat client (local llama.cpp).\n"
         "EXTRACT_MODEL — Backend extraction; effective = env or defaults.extraction_model.\n"
         "ollama_url — Ollama endpoint for embeddings; embedding model = env or defaults.embedding_model.\n"
@@ -401,6 +414,14 @@ def format_llm_backend_tasks_from_cfg(
     )
     embed_disp = effective_embedding_model(cm) or "(not set)"
     anthropic_disp = effective_anthropic_model(cm) or "(not set)"
+    anthropic_key_state = (
+        "set"
+        if (
+            os.environ.get("ANTHROPIC_API_KEY", "").strip()
+            or cockpit_llm_stack_defaults(cm)["anthropic_api_key"]
+        )
+        else "unset"
+    )
     path = repo_root / "config" / "cockpit_llm.yaml"
     policy_line = describe_hybrid_router_policy(policy)
     tool_line = describe_tool_debug_choice(tool_dbg)
@@ -425,6 +446,7 @@ def format_llm_backend_tasks_from_cfg(
             f"  Backend PDF extraction:   EXTRACT_MODEL={extract_disp}",
             f"  Embeddings (Ollama):      {ollama_url}  model={embed_disp}",
             f"  Anthropic (Claude API):   ANTHROPIC_MODEL={anthropic_disp}  (when router uses cloud)",
+            f"                           ANTHROPIC_API_KEY={anthropic_key_state}",
             "",
             "Resolved routing & diagnostics",
             f"  hybrid_router_policy = {policy}",

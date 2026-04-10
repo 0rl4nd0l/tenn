@@ -16,12 +16,17 @@ def _helper_block() -> str:
     return script[start:end]
 
 
+def _process_control_block() -> str:
+    script = COCKPIT_SCRIPT.read_text(encoding="utf-8")
+    start = script.index("kill_with_fallback() {")
+    end = script.index("launch_cockpit_tui() {")
+    return script[start:end]
+
+
 def test_http_ok_adds_bearer_header_when_api_key_is_provided(tmp_path: Path) -> None:
     curl_path = tmp_path / "curl"
     curl_path.write_text(
-        "#!/usr/bin/env bash\n"
-        'printf "%s\\n" "$@" > "$TMPDIR_OUT/args.txt"\n'
-        "exit 0\n",
+        '#!/usr/bin/env bash\nprintf "%s\\n" "$@" > "$TMPDIR_OUT/args.txt"\nexit 0\n',
         encoding="utf-8",
     )
     curl_path.chmod(0o755)
@@ -80,7 +85,9 @@ def test_wait_for_health_reports_log_path_on_timeout(tmp_path: Path) -> None:
     assert "See log: /tmp/llama-server-8001.log" in completed.stderr
 
 
-def test_llama_chat_base_url_prefers_host_endpoint_over_container_env(tmp_path: Path) -> None:
+def test_llama_chat_base_url_prefers_host_endpoint_over_container_env(
+    tmp_path: Path,
+) -> None:
     env = os.environ.copy()
     env["LLAMACPP_URL"] = "http://172.18.0.1:8001/v1"
     env["LLAMACPP_URL_HOST"] = "http://127.0.0.1:8001/v1"
@@ -90,10 +97,7 @@ def test_llama_chat_base_url_prefers_host_endpoint_over_container_env(tmp_path: 
         [
             "bash",
             "-lc",
-            "source /dev/stdin <<'EOF'\n"
-            f"{_helper_block()}\n"
-            "EOF\n"
-            "llama_chat_base_url\n",
+            f"source /dev/stdin <<'EOF'\n{_helper_block()}\nEOF\nllama_chat_base_url\n",
         ],
         cwd=REPO_ROOT,
         env=env,
@@ -109,3 +113,129 @@ def test_launch_cockpit_new_defaults_to_web_port_8081() -> None:
     script = COCKPIT_SCRIPT.read_text(encoding="utf-8")
 
     assert 'local port="${COCKPIT_NEW_PORT:-${COCKPIT_WEB_PORT:-8081}}"' in script
+
+
+def test_usage_lists_reboot_command() -> None:
+    script = COCKPIT_SCRIPT.read_text(encoding="utf-8")
+
+    assert "cockpit reboot" in script
+
+
+def test_stop_backend_api_falls_back_to_sudo_for_root_owned_process(
+    tmp_path: Path,
+) -> None:
+    engine_root = tmp_path / "financial-engine_v2"
+    engine_root.mkdir()
+    sudo_args = tmp_path / "sudo_args.txt"
+
+    completed = subprocess.run(
+        [
+            "bash",
+            "-lc",
+            "source /dev/stdin <<'EOF'\n"
+            f"{_process_control_block()}\n"
+            "EOF\n"
+            f'ENGINE_ROOT="{engine_root}"\n'
+            "COMPOSE=(false)\n"
+            f'SUDO_ARGS_FILE="{sudo_args}"\n'
+            "pgrep() {\n"
+            '  if [[ "$*" == *"uvicorn app.main:app"* ]]; then printf "2026153\\n"; fi\n'
+            "}\n"
+            "kill() { return 1; }\n"
+            'sudo() { printf "%s\\n" "$*" >> "$SUDO_ARGS_FILE"; return 0; }\n'
+            "stop_backend_api\n",
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert "Stopping local backend API process (PID 2026153)" in completed.stdout
+    assert sudo_args.read_text(encoding="utf-8").strip() == "kill 2026153"
+
+
+def test_cockpit_kill_root_uses_sudo_fallback_for_listener_cleanup(
+    tmp_path: Path,
+) -> None:
+    ss_path = tmp_path / "ss"
+    ss_path.write_text(
+        "#!/usr/bin/env bash\n"
+        'if [[ "$*" == *":8081"* ]]; then\n'
+        '  printf "LISTEN 0 2048 0.0.0.0:8081 0.0.0.0:* users:((\\"next-server\\",pid=4242,fd=24))\\n"\n'
+        "fi\n",
+        encoding="utf-8",
+    )
+    ss_path.chmod(0o755)
+
+    sudo_args = tmp_path / "sudo_args.txt"
+    env = os.environ.copy()
+    env["PATH"] = f"{tmp_path}:{env['PATH']}"
+
+    completed = subprocess.run(
+        [
+            "bash",
+            "-lc",
+            "source /dev/stdin <<'EOF'\n"
+            f"{_process_control_block()}\n"
+            "EOF\n"
+            f'ENGINE_ROOT="{tmp_path}"\n'
+            f'REPO_ROOT="{REPO_ROOT}"\n'
+            "COCKPIT_WEB_PORT=8081\n"
+            "COCKPIT_NEW_PORT=8081\n"
+            f'SUDO_ARGS_FILE="{sudo_args}"\n'
+            "pgrep() { return 0; }\n"
+            "kill() { return 1; }\n"
+            'sudo() { printf "%s\\n" "$*" >> "$SUDO_ARGS_FILE"; return 0; }\n'
+            "cockpit_kill_root\n",
+        ],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert "Freeing Cockpit UI port 8081 (PIDs: 4242)" in completed.stdout
+    assert "Done." in completed.stdout
+    assert "kill 4242" in sudo_args.read_text(encoding="utf-8")
+
+
+def test_reboot_cockpit_runs_shutdown_then_start_sequence(tmp_path: Path) -> None:
+    calls_file = tmp_path / "calls.txt"
+
+    completed = subprocess.run(
+        [
+            "bash",
+            "-lc",
+            "source /dev/stdin <<'EOF'\n"
+            f"{_process_control_block()}\n"
+            "EOF\n"
+            f'REPO_ROOT="{REPO_ROOT}"\n'
+            f'CALLS_FILE="{calls_file}"\n'
+            'stop_backend_api() { printf "stop_backend_api\\n" >> "$CALLS_FILE"; }\n'
+            'stop_llama_servers() { printf "stop_llama_servers\\n" >> "$CALLS_FILE"; }\n'
+            'cockpit_kill_root() { printf "cockpit_kill_root\\n" >> "$CALLS_FILE"; }\n'
+            'start_full_stack() { printf "start_full_stack\\n" >> "$CALLS_FILE"; }\n'
+            'start_all_backends_safely() { printf "start_all_backends_safely\\n" >> "$CALLS_FILE"; }\n'
+            'backend_health_url() { printf "http://127.0.0.1:8000/api/health\\n"; }\n'
+            'wait_for_health() { printf "wait_for_health %s %s %s\\n" "$1" "$2" "$3" >> "$CALLS_FILE"; }\n'
+            'launch_cockpit_new() { printf "launch_cockpit_new\\n" >> "$CALLS_FILE"; }\n'
+            "reboot_cockpit\n",
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert completed.stdout == ""
+    assert calls_file.read_text(encoding="utf-8").splitlines() == [
+        "stop_backend_api",
+        "stop_llama_servers",
+        "cockpit_kill_root",
+        "start_full_stack",
+        "start_all_backends_safely",
+        "wait_for_health Backend API http://127.0.0.1:8000/api/health 120",
+        "launch_cockpit_new",
+    ]

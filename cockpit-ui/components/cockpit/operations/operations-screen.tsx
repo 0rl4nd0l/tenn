@@ -11,6 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Activity, Globe, Database, Search, Play, Eye, RefreshCw, Terminal, Cpu, ExternalLink } from 'lucide-react'
 import { GpuActivityDialog, getGpuProcesses, getGpuSummary } from '@/components/cockpit/gpu-activity-dialog'
+import { HostActivityDialog, getHostSummary } from '@/components/cockpit/host-activity-dialog'
 import { checkHealth, restartBackend, executeAction, previewAction } from '@/lib/api-client'
 import type { CockpitPreferences, ServiceHealth } from '@/lib/cockpit-types'
 import { useCockpitStore } from '@/lib/cockpit-store'
@@ -129,6 +130,7 @@ export function OperationsScreen() {
     lastChecked: new Date(),
   })
   const [gpuHealth, setGpuHealth] = useState<ServiceHealth | null>(null)
+  const [hostHealth, setHostHealth] = useState<ServiceHealth | null>(null)
 
   // Wait for hydration to finish to avoid SSR/CSR mismatch with Zustand
   useEffect(() => {
@@ -149,6 +151,7 @@ export function OperationsScreen() {
       const elapsed = Math.round(performance.now() - start)
       const backendService = health.services?.find((service) => service.name === 'backend')
       const gpuService = health.services?.find((service) => service.name === 'gpu') ?? null
+      const hostService = health.services?.find((service) => service.name === 'host') ?? null
       setBackendHealth({
         name: backendService?.name ?? 'Backend API',
         status: backendService?.status ?? 'healthy',
@@ -166,6 +169,14 @@ export function OperationsScreen() {
             }
           : null,
       )
+      setHostHealth(
+        hostService
+          ? {
+              ...hostService,
+              lastChecked: new Date(),
+            }
+          : null,
+      )
     } catch {
       setBackendHealth({
         name: 'Backend API',
@@ -175,6 +186,7 @@ export function OperationsScreen() {
         error: 'Unreachable',
       })
       setGpuHealth(null)
+      setHostHealth(null)
     }
   }, [])
 
@@ -219,6 +231,12 @@ export function OperationsScreen() {
 
   const gpuSummary = getGpuSummary(gpuHealth)
   const gpuProcesses = getGpuProcesses(gpuHealth)
+  const hostSummary = getHostSummary(hostHealth)
+  const hostCpu = hostHealth?.details?.cpu as Record<string, unknown> | undefined
+  const hostMemory = hostHealth?.details?.memory as Record<string, unknown> | undefined
+  const hostDisks = Array.isArray(hostHealth?.details?.disks)
+    ? (hostHealth?.details?.disks as Array<Record<string, unknown>>)
+    : []
 
   const handlePreview = async () => {
     const action = AVAILABLE_ACTIONS.find(a => a.id === selectedAction)
@@ -501,6 +519,97 @@ export function OperationsScreen() {
                     </div>
                   </button>
               </GpuActivityDialog>
+
+              <HostActivityDialog hostHealth={hostHealth}>
+                <button
+                  type="button"
+                  className="flex items-center justify-between rounded-lg border border-border bg-card p-3 text-left transition-colors hover:border-primary/50 hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={cn(
+                      'h-3 w-3 rounded-full',
+                      getStatusColor(hostHealth?.status ?? 'unknown')
+                    )} />
+                    <div>
+                      <p className="text-sm font-medium flex items-center gap-2">
+                        <Cpu className="h-4 w-4 text-primary" />
+                        Host Resources
+                      </p>
+                      <p className="text-xs text-muted-foreground font-mono break-words">{hostSummary}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <Badge variant={getStatusBadgeVariant(hostHealth?.status ?? 'unknown')} className="text-[10px] font-mono">
+                      {formatStatusLabel(hostHealth?.status ?? 'unknown')}
+                    </Badge>
+                    <p className="mt-1 flex items-center justify-end gap-1 text-[10px] text-muted-foreground font-mono">
+                      details
+                      <ExternalLink className="h-3 w-3" />
+                    </p>
+                    <p className="text-[10px] text-muted-foreground font-mono mt-1">
+                      {hostDisks.length} disk{hostDisks.length === 1 ? '' : 's'}
+                    </p>
+                  </div>
+                </button>
+              </HostActivityDialog>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Cpu className="h-5 w-5 text-primary" />
+              Hardware Status
+            </CardTitle>
+            <CardDescription>Live host CPU, RAM, and storage usage from the Cockpit health probe</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="rounded-lg border border-border bg-card p-4">
+                <p className="text-xs font-medium text-muted-foreground">CPU Load</p>
+                <p className="mt-2 text-2xl font-semibold text-foreground">
+                  {typeof hostCpu?.normalized_load_percent === 'number' ? `${hostCpu.normalized_load_percent}%` : 'n/a'}
+                </p>
+                <p className="mt-1 text-xs font-mono text-muted-foreground">
+                  {typeof hostCpu?.core_count === 'number' ? `${hostCpu.core_count} cores` : 'core count unavailable'}
+                </p>
+                <p className="mt-1 text-xs font-mono text-muted-foreground">
+                  {typeof hostCpu?.load_1m === 'number' ? `1m ${hostCpu.load_1m}` : '1m n/a'}
+                  {typeof hostCpu?.load_5m === 'number' ? ` | 5m ${hostCpu.load_5m}` : ''}
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-border bg-card p-4">
+                <p className="text-xs font-medium text-muted-foreground">RAM Usage</p>
+                <p className="mt-2 text-2xl font-semibold text-foreground">
+                  {typeof hostMemory?.used_percent === 'number' ? `${hostMemory.used_percent}%` : 'n/a'}
+                </p>
+                <p className="mt-1 text-xs font-mono text-muted-foreground">
+                  {typeof hostMemory?.used_gib === 'number' && typeof hostMemory?.total_gib === 'number'
+                    ? `${hostMemory.used_gib} / ${hostMemory.total_gib} GiB`
+                    : 'memory unavailable'}
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-border bg-card p-4">
+                <p className="text-xs font-medium text-muted-foreground">Storage</p>
+                <p className="mt-2 text-2xl font-semibold text-foreground">
+                  {hostDisks.length > 0 && typeof hostDisks[0]?.used_percent === 'number'
+                    ? `${hostDisks[0].used_percent}%`
+                    : 'n/a'}
+                </p>
+                <p className="mt-1 text-xs font-mono text-muted-foreground">
+                  {hostDisks.length > 0 ? `Primary ${String(hostDisks[0]?.mount ?? '/')}` : 'disk data unavailable'}
+                </p>
+                <p className="mt-1 text-xs font-mono text-muted-foreground">
+                  {hostDisks.length > 1 && typeof hostDisks[1]?.used_percent === 'number'
+                    ? `${String(hostDisks[1]?.mount ?? '/home')} ${hostDisks[1].used_percent}%`
+                    : hostDisks.length > 1
+                      ? String(hostDisks[1]?.mount ?? '/home')
+                      : 'additional mounts unavailable'}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>

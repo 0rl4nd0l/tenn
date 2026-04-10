@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process'
+import os from 'node:os'
 import { promisify } from 'node:util'
 
 const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -11,6 +12,7 @@ type ServiceHealth = {
   status: 'healthy' | 'degraded' | 'down' | 'unknown'
   endpoint?: string | null
   response_time_ms?: number | null
+  responseTimeMs?: number | null
   error?: string | null
   details?: Record<string, unknown> | null
 }
@@ -31,6 +33,22 @@ type GpuProcessSnapshot = {
   process_name: string
   used_gpu_memory_mib: number | null
   task_label: string
+  command: string | null
+}
+
+type HostDiskSnapshot = {
+  mount: string
+  used_gib: number | null
+  total_gib: number | null
+  used_percent: number | null
+}
+
+type HostProcessSnapshot = {
+  pid: number
+  command_name: string
+  cpu_percent: number | null
+  mem_percent: number | null
+  rss_mib: number | null
   command: string | null
 }
 
@@ -91,6 +109,144 @@ async function readProcessCommands(pids: number[]): Promise<Map<number, string>>
     return commands
   } catch {
     return new Map()
+  }
+}
+
+function parsePercent(value: string): number | null {
+  const parsed = Number(value.replace('%', '').trim())
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+async function probeHostDisks(): Promise<HostDiskSnapshot[]> {
+  try {
+    const { stdout } = await execFileAsync('df', ['-kP', '/', '/home'], { timeout: 3000 })
+    const rows = stdout
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(1)
+
+    return rows
+      .map((line) => {
+        const parts = line.split(/\s+/)
+        if (parts.length < 6) return null
+        const totalKiB = Number(parts[1])
+        const usedKiB = Number(parts[2])
+        const usedPercent = parsePercent(parts[4])
+        const mount = parts[5]
+        return {
+          mount,
+          used_gib: Number.isFinite(usedKiB) ? Number((usedKiB / 1024 / 1024).toFixed(1)) : null,
+          total_gib: Number.isFinite(totalKiB) ? Number((totalKiB / 1024 / 1024).toFixed(1)) : null,
+          used_percent: usedPercent,
+        }
+      })
+      .filter((disk): disk is HostDiskSnapshot => disk !== null)
+  } catch {
+    return []
+  }
+}
+
+async function probeTopProcesses(): Promise<HostProcessSnapshot[]> {
+  try {
+    const { stdout } = await execFileAsync(
+      'ps',
+      ['-eo', 'pid=,comm=,%cpu=,%mem=,rss=,args=', '--sort=-rss'],
+      { timeout: 3000 },
+    )
+
+    return stdout
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(0, 8)
+      .map((line) => {
+        const match = line.match(/^(\d+)\s+(\S+)\s+([\d.]+)\s+([\d.]+)\s+(\d+)\s+(.*)$/)
+        if (!match) return null
+        const pid = Number(match[1])
+        if (!Number.isFinite(pid)) return null
+        const rssKiB = Number(match[5])
+        return {
+          pid,
+          command_name: match[2],
+          cpu_percent: parseMetric(match[3]),
+          mem_percent: parseMetric(match[4]),
+          rss_mib: Number.isFinite(rssKiB) ? Number((rssKiB / 1024).toFixed(1)) : null,
+          command: match[6].trim() || null,
+        }
+      })
+      .filter((process): process is HostProcessSnapshot => process !== null)
+  } catch {
+    return []
+  }
+}
+
+async function probeHostResources(): Promise<ServiceHealth> {
+  const start = Date.now()
+
+  try {
+    const [disks, topProcesses] = await Promise.all([probeHostDisks(), probeTopProcesses()])
+    const totalMem = os.totalmem()
+    const freeMem = os.freemem()
+    const usedMem = Math.max(totalMem - freeMem, 0)
+    const cpuCount = os.cpus().length
+    const load = os.loadavg()
+
+    return {
+      name: 'host',
+      status: 'healthy',
+      response_time_ms: Date.now() - start,
+      responseTimeMs: Date.now() - start,
+      details: {
+        cpu: {
+          core_count: cpuCount,
+          model: os.cpus()[0]?.model ?? null,
+          load_1m: Number(load[0]?.toFixed(2) ?? 0),
+          load_5m: Number(load[1]?.toFixed(2) ?? 0),
+          load_15m: Number(load[2]?.toFixed(2) ?? 0),
+          normalized_load_percent: cpuCount > 0 ? Number(((load[0] / cpuCount) * 100).toFixed(1)) : null,
+        },
+        memory: {
+          used_gib: Number((usedMem / 1024 / 1024 / 1024).toFixed(1)),
+          total_gib: Number((totalMem / 1024 / 1024 / 1024).toFixed(1)),
+          used_percent: totalMem > 0 ? Number(((usedMem / totalMem) * 100).toFixed(1)) : null,
+        },
+        disks,
+        top_processes: topProcesses,
+        hostname: os.hostname(),
+        platform: `${os.platform()} ${os.release()}`,
+        uptime_seconds: os.uptime(),
+      },
+    }
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : 'Host resource probe failed'
+    return {
+      name: 'host',
+      status: 'unknown',
+      response_time_ms: Date.now() - start,
+      responseTimeMs: Date.now() - start,
+      error: detail,
+    }
+  }
+}
+
+function normalizeService(service: Record<string, unknown>): ServiceHealth {
+  const responseTimeMs = typeof service.response_time_ms === 'number'
+    ? service.response_time_ms
+    : typeof service.responseTimeMs === 'number'
+      ? service.responseTimeMs
+      : null
+
+  return {
+    name: typeof service.name === 'string' ? service.name : 'service',
+    status: typeof service.status === 'string' ? service.status as ServiceHealth['status'] : 'unknown',
+    endpoint: typeof service.endpoint === 'string' ? service.endpoint : null,
+    response_time_ms: responseTimeMs,
+    responseTimeMs,
+    error: typeof service.error === 'string' ? service.error : null,
+    details: service.details && typeof service.details === 'object'
+      ? service.details as Record<string, unknown>
+      : null,
   }
 }
 
@@ -223,11 +379,16 @@ export async function GET(): Promise<Response> {
     })
   }
 
-  const gpu = await probeHostGpu()
-  const services = Array.isArray(payload.services) ? payload.services : []
+  const [gpu, host] = await Promise.all([probeHostGpu(), probeHostResources()])
+  const services = Array.isArray(payload.services)
+    ? payload.services
+        .filter((service): service is Record<string, unknown> => typeof service === 'object' && service !== null)
+        .map(normalizeService)
+    : []
   const mergedServices = [
-    ...services.filter((service: { name?: string }) => service?.name !== 'gpu'),
+    ...services.filter((service) => service.name !== 'gpu' && service.name !== 'host'),
     gpu,
+    host,
   ]
 
   return Response.json({

@@ -15,17 +15,20 @@ llm_profile_label: ops
 tool_debug: failures
 
 # Stack-wide model defaults (this process + backend workers when env matches).
-# Startup calls setdefault on EXTRACT_MODEL, EMBED_MODEL, EMBEDDING_MODEL, ANTHROPIC_MODEL.
+# Startup calls setdefault on EXTRACT_MODEL, EMBED_MODEL, EMBEDDING_MODEL, ANTHROPIC_MODEL, ANTHROPIC_API_KEY.
 defaults:
   extraction_model: qwen2.5-14b-instruct
   embedding_model: nomic-embed-text
   anthropic_model: claude-sonnet-4-20250514
+  anthropic_api_key: ""
 
 # Passed into cfg["llm"] (llamacpp client for cockpit chat).
 # Single llama-server in router mode on 8001 — extraction uses same port.
+# While extraction is active on the shared router, cockpit chat must route to
+# the configured API backend instead of local llama.cpp.
 llm:
   provider: llamacpp
-  model: model:gpt-oss-20b
+  model: model:qwen3.5-35b-a3b
   llamacpp_url: http://127.0.0.1:8001
   ollama_url: http://127.0.0.1:11434
   llamacpp_api_key: local-openai-key

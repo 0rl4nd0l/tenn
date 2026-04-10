@@ -31,17 +31,155 @@ class LlamaCppClient:
 
     def switch_model(self, new_model: str) -> None:
         """Update the active model name for subsequent requests."""
-        self.model = new_model
+        resolved = self._resolve_model_id(new_model)
+        if resolved != new_model:
+            self._log_model_resolution(new_model, resolved)
+        self.model = resolved
+
+    @staticmethod
+    def _extract_model_path(status_obj: dict | None) -> str:
+        if not isinstance(status_obj, dict):
+            return ""
+        args_list = status_obj.get("args") or []
+        for i, arg in enumerate(args_list):
+            if arg == "--model" and i + 1 < len(args_list):
+                return str(args_list[i + 1] or "").strip()
+
+        preset_text = str(status_obj.get("preset") or "")
+        for line in preset_text.splitlines():
+            if "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            if key.strip().lower() == "model":
+                return value.strip()
+        return ""
+
+    def _fetch_model_registry(self, timeout: float = 5.0) -> dict[str, dict[str, str]]:
+        url = f"{self.base_url}/v1/models"
+        headers = self._build_headers()
+        req_timeout = httpx.Timeout(
+            connect=min(5.0, timeout),
+            read=timeout,
+            write=timeout,
+            pool=2.0,
+        )
+        response = self._http_client().get(url, headers=headers, timeout=req_timeout)
+        response.raise_for_status()
+        payload = response.json() if response.content else {}
+        result: dict[str, dict[str, str]] = {}
+        for entry in payload.get("data", []):
+            model_id = str(entry.get("id", "") or "").strip()
+            if not model_id:
+                continue
+            status_obj = entry.get("status") or {}
+            model_path = self._extract_model_path(status_obj)
+            result[model_id] = {
+                "status": str(status_obj.get("value", "unknown") or "unknown").strip(),
+                "model_path": model_path,
+                "path_stem": model_path.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+                if model_path
+                else "",
+            }
+        return result
+
+    @staticmethod
+    def _is_usable_registry_entry(info: dict[str, str]) -> bool:
+        return bool(info.get("model_path")) or info.get("status") == "loaded"
+
+    @staticmethod
+    def _model_alias_tokens(model_id: str, info: dict[str, str]) -> set[str]:
+        tokens = {str(model_id or "").strip().lower()}
+        path_stem = str(info.get("path_stem") or "").strip().lower()
+        if path_stem:
+            tokens.add(path_stem)
+        if model_id.startswith("model:"):
+            tokens.add(model_id.split(":", 1)[1].strip().lower())
+        return {token for token in tokens if token}
+
+    @classmethod
+    def _matches_requested_model(
+        cls,
+        requested: str,
+        model_id: str,
+        info: dict[str, str],
+    ) -> bool:
+        requested_norm = str(requested or "").strip().lower()
+        if not requested_norm:
+            return False
+        requested_tokens = {requested_norm}
+        if requested_norm.startswith("model:"):
+            requested_tokens.add(requested_norm.split(":", 1)[1].strip())
+        for token in cls._model_alias_tokens(model_id, info):
+            if any(not req or not token for req in requested_tokens):
+                continue
+            if any(req == token for req in requested_tokens):
+                return True
+            if any(
+                req.startswith(token) or token.startswith(req)
+                for req in requested_tokens
+            ):
+                return True
+        return False
+
+    def _resolve_model_id(self, requested_model: str) -> str:
+        requested = str(requested_model or "").strip()
+        if not requested:
+            return requested
+        try:
+            registry = self._fetch_model_registry()
+        except Exception:
+            return requested
+        if not registry:
+            return requested
+
+        info = registry.get(requested)
+        if info and self._is_usable_registry_entry(info):
+            return requested
+
+        for model_id, model_info in registry.items():
+            if self._is_usable_registry_entry(
+                model_info
+            ) and self._matches_requested_model(
+                requested,
+                model_id,
+                model_info,
+            ):
+                return model_id
+
+        for model_id, model_info in registry.items():
+            if model_info.get("status") == "loaded":
+                return model_id
+
+        return requested
+
+    @staticmethod
+    def _log_model_resolution(requested: str, resolved: str) -> None:
+        try:
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "Resolved stale llama.cpp model id %s -> %s",
+                requested,
+                resolved,
+            )
+        except Exception:
+            pass
 
     def health(self, timeout: float = 5.0) -> dict:
         url = f"{self.base_url}/v1/models"
         headers = self._build_headers()
-        t = httpx.Timeout(connect=min(5.0, timeout), read=timeout, write=timeout, pool=2.0)
+        t = httpx.Timeout(
+            connect=min(5.0, timeout), read=timeout, write=timeout, pool=2.0
+        )
         try:
             response = self._http_client().get(url, headers=headers, timeout=t)
             response.raise_for_status()
             payload = response.json() if response.content else {}
-            names = [str(m.get("id", "")).strip() for m in payload.get("data", []) if m.get("id")]
+            names = [
+                str(m.get("id", "")).strip()
+                for m in payload.get("data", [])
+                if m.get("id")
+            ]
             return {"ok": True, "url": self.base_url, "models": names}
         except Exception as exc:
             return {"ok": False, "url": self.base_url, "error": str(exc)}
@@ -62,7 +200,9 @@ class LlamaCppClient:
         if raw_header:
             name, sep, value = raw_header.partition(":")
             if not sep or not name.strip() or not value.strip():
-                raise RuntimeError("LLM_AUTH_HEADER must be formatted as 'Header-Name: value'")
+                raise RuntimeError(
+                    "LLM_AUTH_HEADER must be formatted as 'Header-Name: value'"
+                )
             headers[name.strip()] = value.strip()
 
         return headers
@@ -118,13 +258,19 @@ class LlamaCppClient:
         url = f"{self.base_url}/v1/chat/completions"
         parts: list[str] = []
         headers = self._build_headers()
+        resolved_model = self._resolve_model_id(self.model)
+        if resolved_model != self.model:
+            self._log_model_resolution(self.model, resolved_model)
+            self.model = resolved_model
 
         if prior_messages:
             messages = prior_messages + [{"role": "user", "content": prompt}]
         else:
             messages = [{"role": "user", "content": prompt}]
 
-        stream_timeout = httpx.Timeout(connect=5.0, read=timeout, write=min(120.0, timeout), pool=5.0)
+        stream_timeout = httpx.Timeout(
+            connect=5.0, read=timeout, write=min(120.0, timeout), pool=5.0
+        )
         try:
             with self._http_client().stream(
                 "POST",
@@ -132,7 +278,7 @@ class LlamaCppClient:
                 headers=headers,
                 timeout=stream_timeout,
                 json={
-                    "model": self.model,
+                    "model": resolved_model,
                     "messages": messages,
                     "stream": True,
                     "chat_template_kwargs": {"enable_thinking": False},
@@ -153,7 +299,9 @@ class LlamaCppClient:
                     except json.JSONDecodeError:
                         continue
                     choices = payload.get("choices") or []
-                    chunk = self._extract_choice_content(choices[0] if choices else None)
+                    chunk = self._extract_choice_content(
+                        choices[0] if choices else None
+                    )
                     if chunk:
                         parts.append(chunk)
                         if on_chunk is not None:
@@ -162,7 +310,9 @@ class LlamaCppClient:
             body = self._error_body_preview(exc.response)
             hint = ""
             if exc.response is not None and exc.response.status_code == 401:
-                hint = " Verify LLM_API_KEY / LLM_AUTH_HEADER for the llama.cpp endpoint."
+                hint = (
+                    " Verify LLM_API_KEY / LLM_AUTH_HEADER for the llama.cpp endpoint."
+                )
             raise RuntimeError(
                 f"llama.cpp request failed ({exc.response.status_code}) at {url}: {body}{hint}"
             ) from exc
@@ -177,6 +327,7 @@ class LlamaCppClient:
                 url=url,
                 headers=headers,
                 timeout=stream_timeout,
+                model=resolved_model,
                 messages=messages,
             )
             if fallback:
@@ -192,6 +343,7 @@ class LlamaCppClient:
         url: str,
         headers: dict[str, str],
         timeout: httpx.Timeout,
+        model: str,
         messages: list[dict[str, str]],
     ) -> str:
         response: httpx.Response | None = None
@@ -201,7 +353,7 @@ class LlamaCppClient:
                 headers=headers,
                 timeout=timeout,
                 json={
-                    "model": self.model,
+                    "model": model,
                     "messages": messages,
                     "stream": False,
                     "chat_template_kwargs": {"enable_thinking": False},

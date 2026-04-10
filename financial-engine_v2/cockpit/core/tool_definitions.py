@@ -50,6 +50,25 @@ _READ_ONLY_TOOLS: list[dict[str, Any]] = [
         "mutating": False,
     },
     {
+        "name": "get_company_dump",
+        "description": (
+            "Get a deterministic full company data dump from the backend authority, "
+            "including documents, financials, 1y daily price history, narrative "
+            "risk notes, and memory sections."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {
+                    "type": "string",
+                    "description": "ASX ticker symbol, e.g. 'BHP', 'CSL', '29M'",
+                },
+            },
+            "required": ["ticker"],
+        },
+        "mutating": False,
+    },
+    {
         "name": "get_price",
         "description": (
             "Get current and recent price data for an ASX ticker, including "
@@ -511,9 +530,18 @@ _READ_ONLY_TOOLS: list[dict[str, Any]] = [
                     "items": {"type": "string"},
                     "description": "ASX tickers to screen. Empty = use watchlist.",
                 },
-                "min_health_score": {"type": "number", "description": "Minimum financial health score (0-100)"},
-                "trend_regime": {"type": "string", "description": "Filter by trend: bull, bear, neutral"},
-                "min_fcf_yield": {"type": "number", "description": "Minimum FCF yield percentage"},
+                "min_health_score": {
+                    "type": "number",
+                    "description": "Minimum financial health score (0-100)",
+                },
+                "trend_regime": {
+                    "type": "string",
+                    "description": "Filter by trend: bull, bear, neutral",
+                },
+                "min_fcf_yield": {
+                    "type": "number",
+                    "description": "Minimum FCF yield percentage",
+                },
                 "max_pe": {"type": "number", "description": "Maximum P/E ratio"},
             },
             "required": [],
@@ -796,9 +824,19 @@ _MUTATING_TOOLS: list[dict[str, Any]] = [
             "type": "object",
             "properties": {
                 "ticker": {"type": "string", "description": "ASX ticker symbol"},
-                "thesis": {"type": "string", "description": "The investment thesis statement"},
-                "signal": {"type": "string", "description": "Signal: BUY, OVERWEIGHT, HOLD, UNDERWEIGHT, SELL"},
-                "run_risk_gate": {"type": "boolean", "description": "Run bull/bear debate", "default": True},
+                "thesis": {
+                    "type": "string",
+                    "description": "The investment thesis statement",
+                },
+                "signal": {
+                    "type": "string",
+                    "description": "Signal: BUY, OVERWEIGHT, HOLD, UNDERWEIGHT, SELL",
+                },
+                "run_risk_gate": {
+                    "type": "boolean",
+                    "description": "Run bull/bear debate",
+                    "default": True,
+                },
             },
             "required": ["ticker", "thesis", "signal"],
         },
@@ -813,8 +851,15 @@ _MUTATING_TOOLS: list[dict[str, Any]] = [
             "type": "object",
             "properties": {
                 "ticker": {"type": "string", "description": "ASX ticker symbol"},
-                "finding": {"type": "string", "description": "The evidence finding text"},
-                "is_supporting": {"type": "boolean", "description": "True=supporting, False=disconfirming", "default": True},
+                "finding": {
+                    "type": "string",
+                    "description": "The evidence finding text",
+                },
+                "is_supporting": {
+                    "type": "boolean",
+                    "description": "True=supporting, False=disconfirming",
+                    "default": True,
+                },
             },
             "required": ["ticker", "finding"],
         },
@@ -844,10 +889,22 @@ _MUTATING_TOOLS: list[dict[str, Any]] = [
         "parameters": {
             "type": "object",
             "properties": {
-                "health": {"type": "number", "description": "Weight for financial health sub-score"},
-                "momentum": {"type": "number", "description": "Weight for momentum sub-score"},
-                "valuation": {"type": "number", "description": "Weight for valuation sub-score"},
-                "technical": {"type": "number", "description": "Weight for technical sub-score"},
+                "health": {
+                    "type": "number",
+                    "description": "Weight for financial health sub-score",
+                },
+                "momentum": {
+                    "type": "number",
+                    "description": "Weight for momentum sub-score",
+                },
+                "valuation": {
+                    "type": "number",
+                    "description": "Weight for valuation sub-score",
+                },
+                "technical": {
+                    "type": "number",
+                    "description": "Weight for technical sub-score",
+                },
             },
             "required": ["health", "momentum", "valuation", "technical"],
         },

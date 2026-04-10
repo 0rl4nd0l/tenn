@@ -1,4 +1,5 @@
 """Tests for AnthropicClient — Anthropic Messages API adapter."""
+
 from __future__ import annotations
 
 import pytest
@@ -8,6 +9,7 @@ from unittest.mock import MagicMock, patch, PropertyMock
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_text_block(text: str) -> MagicMock:
     block = MagicMock()
@@ -59,6 +61,7 @@ def _make_client_with_mock_sdk(response: MagicMock) -> tuple:
 # Initialisation
 # ---------------------------------------------------------------------------
 
+
 class TestInit:
     def test_default_model(self):
         from cockpit.core.agent.anthropic_client import AnthropicClient, _DEFAULT_MODEL
@@ -85,8 +88,11 @@ class TestInit:
         with patch.dict("os.environ", {}, clear=True):
             # Ensure key is absent
             import os
+
             os.environ.pop("ANTHROPIC_API_KEY", None)
-            with caplog.at_level(logging.WARNING, logger="cockpit.core.agent.anthropic_client"):
+            with caplog.at_level(
+                logging.WARNING, logger="cockpit.core.agent.anthropic_client"
+            ):
                 client = AnthropicClient()
 
         assert client._client is None
@@ -96,6 +102,7 @@ class TestInit:
         import logging
         from cockpit.core.agent.anthropic_client import AnthropicClient
         import builtins
+
         real_import = builtins.__import__
 
         def mock_import(name, *args, **kwargs):
@@ -105,16 +112,28 @@ class TestInit:
 
         with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "sk-test"}):
             with patch("builtins.__import__", side_effect=mock_import):
-                with caplog.at_level(logging.WARNING, logger="cockpit.core.agent.anthropic_client"):
+                with caplog.at_level(
+                    logging.WARNING, logger="cockpit.core.agent.anthropic_client"
+                ):
                     client = AnthropicClient()
 
         assert client._client is None
         assert "anthropic" in caplog.text.lower()
 
+    def test_explicit_api_key_initializes_without_env(self):
+        from cockpit.core.agent.anthropic_client import AnthropicClient
+
+        with patch.dict("os.environ", {}, clear=True):
+            with patch("anthropic.Anthropic") as mock_sdk:
+                client = AnthropicClient(api_key="sk-explicit")
+
+        assert client._client is mock_sdk.return_value
+
 
 # ---------------------------------------------------------------------------
 # complete()
 # ---------------------------------------------------------------------------
+
 
 class TestComplete:
     def test_returns_required_keys(self):
@@ -126,14 +145,18 @@ class TestComplete:
         assert {"text", "model", "cost_usd", "tool_calls", "usage"} <= result.keys()
 
     def test_text_concatenated(self):
-        response = _make_response([_make_text_block("Hello "), _make_text_block("world")])
+        response = _make_response(
+            [_make_text_block("Hello "), _make_text_block("world")]
+        )
         client, _ = _make_client_with_mock_sdk(response)
 
         result = client.complete("Say hi")
         assert result["text"] == "Hello world"
 
     def test_model_echoed_from_response(self):
-        response = _make_response([_make_text_block("Hi")], model="claude-haiku-4-5-20251001")
+        response = _make_response(
+            [_make_text_block("Hi")], model="claude-haiku-4-5-20251001"
+        )
         client, _ = _make_client_with_mock_sdk(response)
 
         result = client.complete("Hi")
@@ -232,6 +255,7 @@ class TestComplete:
 
         with patch.dict("os.environ", {}, clear=True):
             import os
+
             os.environ.pop("ANTHROPIC_API_KEY", None)
             client = AnthropicClient()
 
@@ -262,6 +286,7 @@ class TestComplete:
 # chat()
 # ---------------------------------------------------------------------------
 
+
 class TestChat:
     def test_returns_string(self):
         response = _make_response([_make_text_block("Hello there")])
@@ -289,6 +314,7 @@ class TestChat:
 # ---------------------------------------------------------------------------
 # HybridRouter integration
 # ---------------------------------------------------------------------------
+
 
 class TestHybridRouterIntegration:
     """Verify that HybridRouter uses complete() when available."""

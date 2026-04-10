@@ -825,6 +825,118 @@ def _api_request(
         return None
 
 
+def _extract_model_path(status_obj: dict | None) -> str:
+    if not isinstance(status_obj, dict):
+        return ""
+    args_list = status_obj.get("args") or []
+    for i, arg in enumerate(args_list):
+        if arg == "--model" and i + 1 < len(args_list):
+            return str(args_list[i + 1] or "").strip()
+
+    preset_text = str(status_obj.get("preset") or "")
+    for line in preset_text.splitlines():
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        if key.strip().lower() == "model":
+            return value.strip()
+    return ""
+
+
+def _fetch_model_registry(
+    host: str,
+    port: str,
+    api_key: str = "",
+) -> dict[str, dict[str, str]]:
+    result = _api_request(f"http://{host}:{port}/v1/models", api_key=api_key)
+    if not isinstance(result, dict):
+        return {}
+
+    registry: dict[str, dict[str, str]] = {}
+    for entry in result.get("data") or result.get("models") or []:
+        if not isinstance(entry, dict):
+            continue
+        model_id = str(
+            entry.get("id") or entry.get("model") or entry.get("name") or ""
+        ).strip()
+        if not model_id:
+            continue
+        status_obj = entry.get("status") or {}
+        model_path = _extract_model_path(status_obj)
+        registry[model_id] = {
+            "status": str(status_obj.get("value", "unknown") or "unknown").strip(),
+            "model_path": model_path,
+            "path_stem": Path(model_path).stem if model_path else "",
+        }
+    return registry
+
+
+def _is_usable_registry_entry(info: dict[str, str]) -> bool:
+    return bool(info.get("model_path")) or info.get("status") == "loaded"
+
+
+def _model_alias_tokens(model_id: str, info: dict[str, str]) -> set[str]:
+    tokens = {str(model_id or "").strip().lower()}
+    path_stem = str(info.get("path_stem") or "").strip().lower()
+    if path_stem:
+        tokens.add(path_stem)
+    if model_id.startswith("model:"):
+        tokens.add(model_id.split(":", 1)[1].strip().lower())
+    return {token for token in tokens if token}
+
+
+def _matches_requested_model(
+    requested: str,
+    model_id: str,
+    info: dict[str, str],
+) -> bool:
+    requested_norm = str(requested or "").strip().lower()
+    if not requested_norm:
+        return False
+
+    requested_tokens = {requested_norm}
+    if requested_norm.startswith("model:"):
+        requested_tokens.add(requested_norm.split(":", 1)[1].strip())
+
+    for token in _model_alias_tokens(model_id, info):
+        if any(req == token for req in requested_tokens):
+            return True
+        if any(
+            req.startswith(token) or token.startswith(req) for req in requested_tokens
+        ):
+            return True
+    return False
+
+
+def resolve_model_api_name(
+    host: str,
+    port: str,
+    requested_model: str,
+    api_key: str = "",
+) -> str:
+    requested = str(requested_model or "").strip()
+    if not requested:
+        return requested
+
+    registry = _fetch_model_registry(host, port, api_key=api_key)
+    if not registry:
+        return requested
+
+    info = registry.get(requested)
+    if info and _is_usable_registry_entry(info):
+        return requested
+
+    for model_id, model_info in registry.items():
+        if _is_usable_registry_entry(model_info) and _matches_requested_model(
+            requested,
+            model_id,
+            model_info,
+        ):
+            return model_id
+
+    return requested
+
+
 def _is_loading_stalled(
     host: str,
     port: str,
@@ -947,6 +1059,13 @@ def load_model_api(
         if callable(on_status):
             on_status(msg)
 
+    resolved_model_name = resolve_model_api_name(
+        host, port, model_name, api_key=api_key
+    )
+    if resolved_model_name != model_name:
+        _status(f"Resolved stale model id: {model_name} -> {resolved_model_name}")
+    model_name = resolved_model_name
+
     _status(f"Requesting load of {model_name}...")
     url = f"http://{host}:{port}/models/load"
     req = urllib.request.Request(
@@ -1030,6 +1149,7 @@ def unload_model_api(
     api_key: str = "",
 ) -> bool:
     """Unload a model via the router API."""
+    model_name = resolve_model_api_name(host, port, model_name, api_key=api_key)
     result = _api_request(
         f"http://{host}:{port}/models/unload",
         api_key=api_key,

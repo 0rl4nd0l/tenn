@@ -1,8 +1,10 @@
 """AnthropicClient — adapter for the Anthropic Messages API.
 
-Reads ANTHROPIC_API_KEY from environment. Normalizes responses to the
-dict format expected by HybridRouter._call_api().
+Reads ANTHROPIC_API_KEY from environment unless an explicit ``api_key`` is
+passed. Normalizes responses to the dict format expected by
+HybridRouter._call_api().
 """
+
 from __future__ import annotations
 
 import logging
@@ -35,14 +37,20 @@ class AnthropicClient:
         router = HybridRouter(api_client=client, policy="api_preferred")
     """
 
-    def __init__(self, model: str = _DEFAULT_MODEL, max_tokens: int = 4096) -> None:
+    def __init__(
+        self,
+        model: str = _DEFAULT_MODEL,
+        max_tokens: int = 4096,
+        api_key: str | None = None,
+    ) -> None:
         self.model = model
         self._max_tokens = max_tokens
+        self._api_key = str(api_key or "").strip()
         self._client: Any = None
         self._init_client()
 
     def _init_client(self) -> None:
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        api_key = self._api_key or os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:
             logger.warning("ANTHROPIC_API_KEY not set — API calls will fail")
             return
@@ -62,14 +70,20 @@ class AnthropicClient:
         prompt: str,
         timeout: float = 120.0,
         prior_messages: list[dict] | None = None,
+        on_chunk=None,
     ) -> str:
         """Return the text reply as a plain string.
 
         Compatible with ``LlamaCppClient.chat()`` so that the same code
         path works for both local and cloud backends.
         """
-        result = self.complete(prompt=prompt, timeout=timeout, prior_messages=prior_messages)
-        return result["text"]
+        result = self.complete(
+            prompt=prompt, timeout=timeout, prior_messages=prior_messages
+        )
+        text = result["text"]
+        if on_chunk is not None and text:
+            on_chunk(text)
+        return text
 
     def complete(
         self,

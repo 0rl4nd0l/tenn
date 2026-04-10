@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import math
+import sqlite3 as _sqlite3
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -37,8 +38,11 @@ class ToolRouter:
         self.backend_api_client = backend_api_client
         self.brave_search_client = brave_search_client
         self.hn_search_client = hn_search_client
+        self.db_diagnostics_enabled = False
         self.qual_context_company_reader = (
-            qual_context_company_reader if qual_context_company_reader is not None else qual_context_reader
+            qual_context_company_reader
+            if qual_context_company_reader is not None
+            else qual_context_reader
         )
         self.qual_context_news_reader = qual_context_news_reader
         # Backward-compatible alias for existing call sites/tests.
@@ -46,21 +50,93 @@ class ToolRouter:
         self.repo_root = Path(repo_root).resolve()
         self.web_default_enabled = web_default_enabled
         self.news_context_db_path = str(news_context_db_path or "").strip()
-        self.news_context_corpus_filter = str(news_context_corpus_filter or "news").strip()
+        self.news_context_corpus_filter = str(
+            news_context_corpus_filter or "news"
+        ).strip()
         self._state_store = state_store
-        self.qual_context_enabled = (
-            any(
-                reader is not None
-                for reader in (self.qual_context_company_reader, self.qual_context_news_reader)
+        self.qual_context_enabled = any(
+            reader is not None
+            for reader in (
+                self.qual_context_company_reader,
+                self.qual_context_news_reader,
             )
-            or bool(self.news_context_db_path)
-        )
+        ) or bool(self.news_context_db_path)
         self.dossier_service = None
         self._ticker_cache_ttl_seconds = 120.0
         self._ticker_cache: dict[tuple[Any, ...], tuple[float, dict[str, Any]]] = {}
         self._price_cache_ttl_seconds = 20.0
-        self._price_cache: dict[tuple[str, str, str, int], tuple[float, dict[str, Any]]] = {}
+        self._price_cache: dict[
+            tuple[str, str, str, int], tuple[float, dict[str, Any]]
+        ] = {}
         self._excerpt_cache: dict[str, tuple[float, str]] = {}
+
+    def _resolve_news_articles_db_path(self) -> Path | None:
+        candidates = [
+            self.repo_root / "reports" / "qual_context" / "news_articles.sqlite",
+            self.repo_root.parent / "reports" / "qual_context" / "news_articles.sqlite",
+            Path("/workspace-reports") / "qual_context" / "news_articles.sqlite",
+        ]
+        for candidate in candidates:
+            path = candidate.expanduser().resolve()
+            if path.exists() and path.is_file():
+                return path
+        return None
+
+    def get_local_news_article(self, url: str) -> dict[str, Any]:
+        target = str(url or "").strip()
+        if not target:
+            return {"ok": False, "error": "url is required"}
+
+        db = self._resolve_news_articles_db_path()
+        if db is None:
+            return {"ok": False, "error": "local news article database not found"}
+
+        conn = _sqlite3.connect(str(db))
+        conn.row_factory = _sqlite3.Row
+        try:
+            rows = conn.execute(
+                """
+                SELECT article_id, canonical_url, title, description, body, provider_best, published_at_utc
+                  FROM articles
+                 WHERE canonical_url = ? OR canonical_url = ?
+                 ORDER BY published_at_utc DESC, article_id DESC
+                 LIMIT 1
+                """,
+                (target, target.rstrip("/")),
+            ).fetchall()
+        finally:
+            conn.close()
+
+        if not rows:
+            return {
+                "ok": False,
+                "error": "article not found in local corpus",
+                "url": target,
+            }
+
+        row = rows[0]
+        body = str(row["body"] or "").strip()
+        description = str(row["description"] or "").strip()
+        if not body:
+            return {
+                "ok": False,
+                "error": "local article body is empty",
+                "url": str(row["canonical_url"] or target).strip(),
+                "title": str(row["title"] or "").strip(),
+                "description": description,
+            }
+
+        return {
+            "ok": True,
+            "article_id": str(row["article_id"] or "").strip(),
+            "url": str(row["canonical_url"] or target).strip(),
+            "title": str(row["title"] or "").strip(),
+            "description": description,
+            "body": body,
+            "provider": str(row["provider_best"] or "").strip(),
+            "published_at": str(row["published_at_utc"] or "").strip(),
+            "source": "local_news_corpus",
+        }
 
     def _resolve_doc_path(self, path_value: str | None) -> Path | None:
         if not path_value:
@@ -194,9 +270,15 @@ class ToolRouter:
             }
 
     @staticmethod
-    def _compact_price_payload(price_payload: dict[str, Any], max_history_rows: int) -> dict[str, Any]:
-        current = price_payload.get("current", {}) if isinstance(price_payload, dict) else {}
-        history = price_payload.get("history", []) if isinstance(price_payload, dict) else []
+    def _compact_price_payload(
+        price_payload: dict[str, Any], max_history_rows: int
+    ) -> dict[str, Any]:
+        current = (
+            price_payload.get("current", {}) if isinstance(price_payload, dict) else {}
+        )
+        history = (
+            price_payload.get("history", []) if isinstance(price_payload, dict) else []
+        )
         if not isinstance(history, list):
             history = []
         recent = [row for row in history if isinstance(row, dict)][-max_history_rows:]
@@ -259,6 +341,76 @@ class ToolRouter:
         return parsed
 
     @staticmethod
+    def _safe_score(value: Any) -> float:
+        try:
+            parsed = float(value)
+        except Exception:
+            return 0.0
+        if not math.isfinite(parsed):
+            return 0.0
+        return parsed
+
+    @staticmethod
+    def _safe_text_excerpt(value: Any, max_chars: int = 1600) -> str:
+        text = str(value or "").strip()
+        if not text:
+            return ""
+        if len(text) <= max_chars:
+            return text
+        return text[: max_chars - 3] + "..."
+
+    @classmethod
+    def _build_sources_hit_payload(
+        cls, hit: dict[str, Any], index: int
+    ) -> dict[str, Any]:
+        """Build stable provenance metadata for a single RAG hit.
+
+        The payload is intentionally separate from LLM prompt context. It is used
+        only for UI display and interactive source inspection.
+        """
+        chunk_id = str(hit.get("chunk_id") or "").strip()
+        source_id = str(hit.get("source_id") or "").strip()
+        document_id = str(hit.get("document_id") or "").strip()
+        chunk_index = hit.get("chunk_index")
+        if not chunk_index and ":" in chunk_id:
+            doc_id, chunk_index = chunk_id.rsplit(":", 1)
+            if not document_id:
+                document_id = doc_id
+
+        if not source_id:
+            if chunk_id:
+                source_id = chunk_id
+            elif document_id and chunk_index not in (None, ""):
+                source_id = f"{document_id}:{chunk_index}"
+            else:
+                source_id = f"source-{index + 1}"
+
+        final_score = cls._safe_score(
+            hit.get("final_score", hit.get("semantic_score", 0.0))
+        )
+        if final_score == 0.0:
+            # fallback to explicit score fields if present.
+            final_score = cls._safe_score(hit.get("score", 0.0))
+
+        return {
+            "source_id": source_id,
+            "title": str(
+                hit.get("title")
+                or hit.get("source_name")
+                or hit.get("source")
+                or "untitled"
+            ).strip(),
+            "score": final_score,
+            "doc_type": str(hit.get("source_corpus") or hit.get("corpus") or ""),
+            "document_id": document_id or str(hit.get("source") or ""),
+            "chunk_index": chunk_index,
+            "ticker": str(hit.get("ticker") or "").strip(),
+            "published_at": str(hit.get("published_at") or "").strip(),
+            "url": str(hit.get("url") or "").strip(),
+            "text": cls._safe_text_excerpt(hit.get("text"), max_chars=1600),
+        }
+
+    @staticmethod
     def _parse_timestamp_utc(value: Any) -> datetime | None:
         text = str(value or "").strip()
         if not text:
@@ -276,7 +428,9 @@ class ToolRouter:
     @classmethod
     def _compute_price_state(cls, price_payload: dict[str, Any]) -> dict[str, Any]:
         ticker = str((price_payload or {}).get("ticker") or "").strip().upper() or None
-        symbol = str((price_payload or {}).get("symbol") or "").strip().upper() or ticker
+        symbol = (
+            str((price_payload or {}).get("symbol") or "").strip().upper() or ticker
+        )
         currency = (price_payload or {}).get("currency")
         history_rows = []
         if isinstance(price_payload, dict):
@@ -308,7 +462,9 @@ class ToolRouter:
                 "stale_data": True,
                 "history_points": 0,
                 "insufficient_history": True,
-                "error": str((price_payload or {}).get("error") or "price lookup failed"),
+                "error": str(
+                    (price_payload or {}).get("error") or "price lookup failed"
+                ),
             }
 
         deduped: dict[str, tuple[datetime | None, float]] = {}
@@ -326,11 +482,20 @@ class ToolRouter:
             deduped[key] = (dt, close)
 
         ordered = list(deduped.items())
-        ordered.sort(key=lambda item: ((item[1][0].timestamp() if item[1][0] else float("inf")), item[0]))
+        ordered.sort(
+            key=lambda item: (
+                (item[1][0].timestamp() if item[1][0] else float("inf")),
+                item[0],
+            )
+        )
         closes = [item[1][1] for item in ordered]
         history_points = len(closes)
 
-        current = price_payload.get("current", {}) if isinstance(price_payload.get("current"), dict) else {}
+        current = (
+            price_payload.get("current", {})
+            if isinstance(price_payload.get("current"), dict)
+            else {}
+        )
         last_close = closes[-1] if closes else cls._safe_float(current.get("price"))
         previous_close_effective = (
             closes[-2]
@@ -468,7 +633,11 @@ class ToolRouter:
                 "price_state": self._compute_price_state(error_payload),
             }
         if self.backend_api_client is None:
-            error_payload = {"ok": False, "ticker": ticker_key, "error": "backend_api_client is not configured"}
+            error_payload = {
+                "ok": False,
+                "ticker": ticker_key,
+                "error": "backend_api_client is not configured",
+            }
             return {
                 "price": error_payload,
                 "price_state": self._compute_price_state(error_payload),
@@ -496,7 +665,9 @@ class ToolRouter:
                 payload if isinstance(payload, dict) else {},
                 max_history_rows=max_rows,
             )
-            price_state = self._compute_price_state(payload if isinstance(payload, dict) else compact)
+            price_state = self._compute_price_state(
+                payload if isinstance(payload, dict) else compact
+            )
             cached_payload = {"price": compact, "price_state": price_state}
             self._price_cache[cache_key] = (now, cached_payload)
             return cached_payload
@@ -586,7 +757,9 @@ class ToolRouter:
         except Exception:
             return []
 
-    def get_price_state(self, ticker: str, *, deep_mode: bool = False) -> dict[str, Any]:
+    def get_price_state(
+        self, ticker: str, *, deep_mode: bool = False
+    ) -> dict[str, Any]:
         bundle = self._load_price_context(ticker=ticker, deep_mode=deep_mode)
         state = bundle.get("price_state")
         if isinstance(state, dict):
@@ -617,10 +790,14 @@ class ToolRouter:
             ticker_key = str(ticker or "").strip().upper()
             if ticker_key:
                 if self.backend_api_client:
-                    ctx = self._load_ticker_context_from_backend(ticker_key, docs_limit=30)
+                    ctx = self._load_ticker_context_from_backend(
+                        ticker_key, docs_limit=30
+                    )
                     selected_docs = ctx.get("docs", [])
                 else:
-                    logger.warning("get_preferred_web_domains: backend API client not configured")
+                    logger.warning(
+                        "get_preferred_web_domains: backend API client not configured"
+                    )
                     selected_docs = []
 
         out: list[str] = ["asx.com.au"]
@@ -653,7 +830,9 @@ class ToolRouter:
             if rev_prior and rev_prior != 0:
                 rev_yoy = (rev - rev_prior) / abs(rev_prior) * 100
                 direction = "grew" if rev_yoy > 0 else "declined"
-                parts.append(f"Revenue {direction} {abs(rev_yoy):.1f}% YoY to ${rev:,.0f}.")
+                parts.append(
+                    f"Revenue {direction} {abs(rev_yoy):.1f}% YoY to ${rev:,.0f}."
+                )
             else:
                 parts.append(f"Latest revenue: ${rev:,.0f}.")
 
@@ -729,8 +908,12 @@ class ToolRouter:
             )
 
         return {
-            "extraction_failed_count_recent": len([row for row in extraction_failures if isinstance(row, dict)]),
-            "low_conf_financial_count_recent": len([row for row in low_conf_rows if isinstance(row, dict)]),
+            "extraction_failed_count_recent": len(
+                [row for row in extraction_failures if isinstance(row, dict)]
+            ),
+            "low_conf_financial_count_recent": len(
+                [row for row in low_conf_rows if isinstance(row, dict)]
+            ),
             "confidence_threshold": float(confidence_threshold),
             "recent_failures": trimmed_failures,
             "recent_low_conf_rows": trimmed_low_conf,
@@ -748,7 +931,12 @@ class ToolRouter:
 
         db = Path(self.news_context_db_path).expanduser().resolve()
         if not db.exists():
-            return {"ok": False, "hits": [], "source": "news_sqlite_context", "error": "db not found"}
+            return {
+                "ok": False,
+                "hits": [],
+                "source": "news_sqlite_context",
+                "error": "db not found",
+            }
 
         ticker_upper = str(ticker or "").strip().upper()
         conn = _sqlite3.connect(str(db))
@@ -803,7 +991,9 @@ class ToolRouter:
             if url not in hits_by_url or final_score > hits_by_url[url]["final_score"]:
                 hits_by_url[url] = hit
 
-        hits = sorted(hits_by_url.values(), key=lambda h: h["final_score"], reverse=True)[:top_k]
+        hits = sorted(
+            hits_by_url.values(), key=lambda h: h["final_score"], reverse=True
+        )[:top_k]
         return {
             "ok": True,
             "hits": hits,
@@ -826,7 +1016,11 @@ class ToolRouter:
     ) -> dict[str, Any]:
         if reader is None:
             return {"ok": False, "hits": [], "error": "reader not configured"}
-        company_value = str(company_filter if company_filter is not None else ticker).strip().upper()
+        company_value = (
+            str(company_filter if company_filter is not None else ticker)
+            .strip()
+            .upper()
+        )
         ticker_value = str(ticker_filter or "").strip().upper()
         source_value = str(source_filter or "").strip()
         try:
@@ -861,12 +1055,28 @@ class ToolRouter:
 
         company_hits_raw = (company_payload or {}).get("hits")
         news_hits_raw = (news_payload or {}).get("hits")
-        company_hits = [row for row in company_hits_raw if isinstance(row, dict)] if isinstance(company_hits_raw, list) else []
-        news_hits = [row for row in news_hits_raw if isinstance(row, dict)] if isinstance(news_hits_raw, list) else []
+        company_hits = (
+            [row for row in company_hits_raw if isinstance(row, dict)]
+            if isinstance(company_hits_raw, list)
+            else []
+        )
+        news_hits = (
+            [row for row in news_hits_raw if isinstance(row, dict)]
+            if isinstance(news_hits_raw, list)
+            else []
+        )
 
         # Filter by minimum RAG score
-        company_hits = [h for h in company_hits if h.get("final_score", h.get("semantic_score", 1.0)) >= MIN_RAG_SCORE]
-        news_hits = [h for h in news_hits if h.get("final_score", h.get("semantic_score", 1.0)) >= MIN_RAG_SCORE]
+        company_hits = [
+            h
+            for h in company_hits
+            if h.get("final_score", h.get("semantic_score", 1.0)) >= MIN_RAG_SCORE
+        ]
+        news_hits = [
+            h
+            for h in news_hits
+            if h.get("final_score", h.get("semantic_score", 1.0)) >= MIN_RAG_SCORE
+        ]
 
         # Enforce max 2 chunks per source document
         def _dedup_by_doc(hits: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -902,7 +1112,9 @@ class ToolRouter:
                 j += 1
 
         return {
-            "ok": bool(merged) or bool((company_payload or {}).get("ok")) or bool((news_payload or {}).get("ok")),
+            "ok": bool(merged)
+            or bool((company_payload or {}).get("ok"))
+            or bool((news_payload or {}).get("ok")),
             "hits": merged,
             "merge_policy": "quota_interleave",
             "company_quota": company_quota,
@@ -914,7 +1126,9 @@ class ToolRouter:
         }
 
     @classmethod
-    def _build_price_horizon_metrics(cls, horizon: str, bundle: dict[str, Any]) -> dict[str, Any]:
+    def _build_price_horizon_metrics(
+        cls, horizon: str, bundle: dict[str, Any]
+    ) -> dict[str, Any]:
         price = bundle.get("price") if isinstance(bundle, dict) else {}
         price = price if isinstance(price, dict) else {}
         state = bundle.get("price_state") if isinstance(bundle, dict) else {}
@@ -932,7 +1146,11 @@ class ToolRouter:
             dt = cls._parse_timestamp_utc(row.get("timestamp"))
             series.append((dt, close))
 
-        series.sort(key=lambda item: item[0].timestamp() if item[0] is not None else float("inf"))
+        series.sort(
+            key=lambda item: (
+                item[0].timestamp() if item[0] is not None else float("inf")
+            )
+        )
         closes = [item[1] for item in series]
 
         total_return_pct = None
@@ -950,7 +1168,9 @@ class ToolRouter:
                     returns.append(value)
             if len(returns) >= 2:
                 mean = sum(returns) / float(len(returns))
-                variance = sum((x - mean) ** 2 for x in returns) / float(len(returns) - 1)
+                variance = sum((x - mean) ** 2 for x in returns) / float(
+                    len(returns) - 1
+                )
                 volatility_ann_pct = math.sqrt(variance) * math.sqrt(252.0) * 100.0
 
         max_drawdown_pct = None
@@ -971,8 +1191,12 @@ class ToolRouter:
             "max_drawdown_pct": max_drawdown_pct,
             "volatility_ann_pct": volatility_ann_pct,
             "history_points": len(closes),
-            "coverage_start_utc": series[0][0].isoformat() if series and series[0][0] else None,
-            "coverage_end_utc": series[-1][0].isoformat() if series and series[-1][0] else None,
+            "coverage_start_utc": series[0][0].isoformat()
+            if series and series[0][0]
+            else None,
+            "coverage_end_utc": series[-1][0].isoformat()
+            if series and series[-1][0]
+            else None,
             "data_age_hours": state.get("data_age_hours"),
             "stale_data": state.get("stale_data"),
             "error": state.get("error"),
@@ -1009,20 +1233,37 @@ class ToolRouter:
                     date_from=date_from,
                     date_to=date_to,
                 )
-                raw_results = result.get("results") if isinstance(result, dict) else None
+                raw_results = (
+                    result.get("results") if isinstance(result, dict) else None
+                )
                 if isinstance(raw_results, list) and raw_results:
-                    logger.info("news_context: source=qdrant results=%d", len(raw_results))
+                    logger.info(
+                        "news_context: source=qdrant results=%d", len(raw_results)
+                    )
                     hits = [
                         {
-                            "score": float(item.get("score", 0.0)) if isinstance(item, dict) else 0.0,
-                            **({k: v for k, v in (item.get("payload") or {}).items()} if isinstance(item, dict) else {}),
+                            "score": float(item.get("score", 0.0))
+                            if isinstance(item, dict)
+                            else 0.0,
+                            **(
+                                {k: v for k, v in (item.get("payload") or {}).items()}
+                                if isinstance(item, dict)
+                                else {}
+                            ),
                         }
                         for item in raw_results
                         if isinstance(item, dict)
                     ]
-                    return {"ok": True, "hits": hits, "_source": "qdrant", "error": None}
+                    return {
+                        "ok": True,
+                        "hits": hits,
+                        "_source": "qdrant",
+                        "error": None,
+                    }
             except Exception as exc:
-                logger.info("news_context: qdrant unavailable (%s), falling back to sqlite", exc)
+                logger.info(
+                    "news_context: qdrant unavailable (%s), falling back to sqlite", exc
+                )
 
         # Fallback to SQLite via qual_context_news_reader.
         if self.qual_context_news_reader is not None:
@@ -1040,7 +1281,9 @@ class ToolRouter:
                     payload = {}
                 hits = payload.get("hits")
                 hits = hits if isinstance(hits, list) else []
-                logger.info("news_context: source=sqlite_fallback results=%d", len(hits))
+                logger.info(
+                    "news_context: source=sqlite_fallback results=%d", len(hits)
+                )
                 return {
                     "ok": bool(payload.get("ok")),
                     "hits": hits,
@@ -1049,14 +1292,53 @@ class ToolRouter:
                 }
             except Exception as exc:
                 logger.info("news_context: sqlite fallback failed: %s", exc)
-                return {"ok": False, "hits": [], "_source": "sqlite_fallback", "error": str(exc)[:400]}
+                return {
+                    "ok": False,
+                    "hits": [],
+                    "_source": "sqlite_fallback",
+                    "error": str(exc)[:400],
+                }
 
         logger.info("news_context: no backend or reader configured")
-        return {"ok": False, "hits": [], "_source": "sqlite_fallback", "error": "no news source configured"}
+        return {
+            "ok": False,
+            "hits": [],
+            "_source": "sqlite_fallback",
+            "error": "no news source configured",
+        }
 
     _FILE_SEARCH_KEYWORDS = (
-        "report", "file", "document", "log", "output", "export", "read",
-        "list", "show", "find", "search", "recent", "latest", "what's in",
+        "report",
+        "file",
+        "document",
+        "log",
+        "output",
+        "export",
+        "read",
+        "list",
+        "show",
+        "find",
+        "search",
+        "recent",
+        "latest",
+        "what's in",
+    )
+    _NEWS_CONTEXT_KEYWORDS = (
+        "news",
+        "headline",
+        "headlines",
+        "media",
+        "press",
+        "market",
+        "sector",
+        "macro",
+        "sentiment",
+        "guidance",
+        "update",
+        "outlook",
+        "downgrade",
+        "upgrade",
+        "reaction",
     )
 
     @classmethod
@@ -1064,7 +1346,16 @@ class ToolRouter:
         lower = query.lower()
         return any(kw in lower for kw in cls._FILE_SEARCH_KEYWORDS)
 
-    def gather_local_context(self, ticker: str | None, query: str, deep_mode: bool = False) -> ToolResult:
+    @classmethod
+    def _query_wants_news_context(cls, query: str, *, deep_mode: bool) -> bool:
+        if deep_mode:
+            return True
+        lower = str(query or "").lower()
+        return any(kw in lower for kw in cls._NEWS_CONTEXT_KEYWORDS)
+
+    def gather_local_context(
+        self, ticker: str | None, query: str, deep_mode: bool = False
+    ) -> ToolResult:
         reports_limit = 25 if deep_mode else 10
         matches_limit = 80 if deep_mode else 20
         docs_limit = 30 if deep_mode else 10
@@ -1082,8 +1373,12 @@ class ToolRouter:
             "ticker": ticker,
         }
         if deep_mode or self._query_wants_file_search(query):
-            payload["reports"] = self.file_indexer.list_recent_reports(limit=reports_limit)
-            payload["matches"] = self.file_indexer.search_text(pattern=query, limit=matches_limit)
+            payload["reports"] = self.file_indexer.list_recent_reports(
+                limit=reports_limit
+            )
+            payload["matches"] = self.file_indexer.search_text(
+                pattern=query, limit=matches_limit
+            )
         if ticker:
             ticker_payload = self._load_ticker_context(
                 ticker,
@@ -1098,19 +1393,29 @@ class ToolRouter:
             context_rows = ticker_payload.get("context_rows", [])
             db_error = ticker_payload.get("db_error")
             extraction_failures = ticker_payload.get("extraction_failures", [])
-            extraction_failures = extraction_failures if isinstance(extraction_failures, list) else []
+            extraction_failures = (
+                extraction_failures if isinstance(extraction_failures, list) else []
+            )
             low_conf_rows = ticker_payload.get("low_confidence_financials", [])
             low_conf_rows = low_conf_rows if isinstance(low_conf_rows, list) else []
             payload["docs"] = docs
-            payload["web_preferred_domains"] = self.get_preferred_web_domains(ticker=ticker, docs=docs)
-            payload["doc_snippets_source"] = "cockpit_announcement_context" if context_rows else "live_pdf_fallback"
+            payload["web_preferred_domains"] = self.get_preferred_web_domains(
+                ticker=ticker, docs=docs
+            )
+            payload["doc_snippets_source"] = (
+                "cockpit_announcement_context" if context_rows else "live_pdf_fallback"
+            )
             if context_rows:
                 payload["doc_snippets"] = context_rows[:snippets_limit]
             else:
                 payload["doc_snippets"] = []
                 for row in docs[:snippets_limit]:
                     resolved = self._resolve_doc_path(str(row.get("pdf_path", "")))
-                    excerpt = self._extract_pdf_excerpt(resolved, max_chars=excerpt_chars) if resolved else ""
+                    excerpt = (
+                        self._extract_pdf_excerpt(resolved, max_chars=excerpt_chars)
+                        if resolved
+                        else ""
+                    )
                     payload["doc_snippets"].append(
                         {
                             "document_id": row.get("document_id"),
@@ -1128,17 +1433,28 @@ class ToolRouter:
                 if narrative:
                     payload["financials_narrative"] = narrative
             payload["data_quality"] = self._build_data_quality_payload(
-                extraction_failures=[row for row in extraction_failures if isinstance(row, dict)],
+                extraction_failures=[
+                    row for row in extraction_failures if isinstance(row, dict)
+                ],
                 low_conf_rows=[row for row in low_conf_rows if isinstance(row, dict)],
-                confidence_threshold=float(ticker_payload.get("low_confidence_threshold", low_confidence_threshold)),
+                confidence_threshold=float(
+                    ticker_payload.get(
+                        "low_confidence_threshold", low_confidence_threshold
+                    )
+                ),
                 deep_mode=deep_mode,
             )
             price_bundle = self._load_price_context(ticker=ticker, deep_mode=deep_mode)
             payload["price"] = price_bundle.get("price", {})
-            price_state = price_bundle.get("price_state", self._compute_price_state(payload["price"]))
+            price_state = price_bundle.get(
+                "price_state", self._compute_price_state(payload["price"])
+            )
             payload["price_state"] = price_state
             try:
-                from backend.app.services.analysis.financial_metrics import compute_valuation_multiples  # type: ignore
+                from backend.app.services.analysis.financial_metrics import (
+                    compute_valuation_multiples,
+                )  # type: ignore
+
                 if price_state and price_state.get("last_close") and financials:
                     vm = compute_valuation_multiples(
                         price_last_close=price_state["last_close"],
@@ -1164,13 +1480,19 @@ class ToolRouter:
                         interval="1d",
                         max_history_rows=max_rows,
                     )
-                    horizons[horizon] = self._build_price_horizon_metrics(horizon, bundle)
+                    horizons[horizon] = self._build_price_horizon_metrics(
+                        horizon, bundle
+                    )
                 payload["price_horizons"] = horizons
                 # Attach price reaction to each doc snippet in deep mode
                 doc_snippets = payload.get("doc_snippets", [])
                 if doc_snippets:
                     try:
-                        from cockpit.core.update_delta import build_close_series, compute_reaction_for_time
+                        from cockpit.core.update_delta import (
+                            build_close_series,
+                            compute_reaction_for_time,
+                        )
+
                         close_series = build_close_series(price_bundle.get("price", {}))
                         if close_series:
                             for snippet in doc_snippets:
@@ -1178,7 +1500,9 @@ class ToolRouter:
                                 if published_at_raw:
                                     pub_dt = self._parse_timestamp_utc(published_at_raw)
                                     if pub_dt is not None:
-                                        reaction = compute_reaction_for_time(close_series, published_at=pub_dt)
+                                        reaction = compute_reaction_for_time(
+                                            close_series, published_at=pub_dt
+                                        )
                                         if reaction:
                                             snippet["price_reaction"] = reaction
                     except Exception:
@@ -1189,9 +1513,12 @@ class ToolRouter:
                     f"db_url={getattr(self.db_reader, 'database_url', 'unknown')}"
                 )
                 payload["db_error"] = str(db_error)[:400]
+            include_news_context = self._query_wants_news_context(
+                query, deep_mode=deep_mode
+            )
             if self.qual_context_enabled and (
                 self.qual_context_company_reader is not None
-                or self.qual_context_news_reader is not None
+                or (include_news_context and self.qual_context_news_reader is not None)
                 or bool(self.news_context_db_path)
             ):
                 company_payload = None
@@ -1207,7 +1534,7 @@ class ToolRouter:
                         ticker_filter="",
                     )
                     payload["qual_context_company"] = company_payload
-                if self.qual_context_news_reader is not None:
+                if include_news_context and self.qual_context_news_reader is not None:
                     news_payload = self._query_qual_context_reader(
                         self.qual_context_news_reader,
                         query=query,
@@ -1218,7 +1545,7 @@ class ToolRouter:
                         ticker_filter=ticker,
                     )
                     payload["qual_context_news"] = news_payload
-                elif self.news_context_db_path and ticker:
+                elif include_news_context and self.news_context_db_path and ticker:
                     news_payload = self._query_news_sqlite_context(
                         ticker=ticker,
                         corpus_filter=self.news_context_corpus_filter,
@@ -1233,8 +1560,15 @@ class ToolRouter:
             # Inject watchlist history if ticker is being watched
             if ticker and self._state_store is not None:
                 try:
-                    watchlist = self._state_store.list_watch_tickers() if hasattr(self._state_store, "list_watch_tickers") else []
-                    watched_tickers = [t["ticker"].upper() if isinstance(t, dict) else str(t).upper() for t in watchlist]
+                    watchlist = (
+                        self._state_store.list_watch_tickers()
+                        if hasattr(self._state_store, "list_watch_tickers")
+                        else []
+                    )
+                    watched_tickers = [
+                        t["ticker"].upper() if isinstance(t, dict) else str(t).upper()
+                        for t in watchlist
+                    ]
                     if ticker.upper() in watched_tickers:
                         update_events = (
                             self._state_store.list_update_events(
@@ -1249,7 +1583,9 @@ class ToolRouter:
                                     "action": e.get("action_id"),
                                     "status": e.get("status"),
                                     "date": e.get("created_at", "")[:10],
-                                    "summary": e.get("summary", e.get("summary_json", {})),
+                                    "summary": e.get(
+                                        "summary", e.get("summary_json", {})
+                                    ),
                                 }
                                 for e in update_events
                             ]
@@ -1258,7 +1594,9 @@ class ToolRouter:
             # Inject agent memory: accumulated observations about this ticker
             if self._state_store is not None and ticker:
                 try:
-                    observations = self._state_store.get_entity_observations(ticker, limit=8)
+                    observations = self._state_store.get_entity_observations(
+                        ticker, limit=8
+                    )
                     if observations:
                         payload["agent_memory"] = observations
                 except Exception:
@@ -1267,7 +1605,11 @@ class ToolRouter:
             if self.dossier_service is not None and ticker:
                 try:
                     dossier_result = self.dossier_service.recall(ticker, limit=5)
-                    findings = dossier_result.get("findings", []) if dossier_result.get("ok") else []
+                    findings = (
+                        dossier_result.get("findings", [])
+                        if dossier_result.get("ok")
+                        else []
+                    )
                     if findings:
                         payload["dossier_findings"] = [
                             {
@@ -1288,12 +1630,9 @@ class ToolRouter:
         merged_hits = qual.get("hits") or []
         if merged_hits:
             sources["rag_hits"] = [
-                {
-                    "title": str(h.get("title") or h.get("source_name") or "untitled"),
-                    "score": float(h.get("final_score", h.get("semantic_score", 0.0))),
-                    "doc_type": str(h.get("source_corpus") or h.get("corpus") or ""),
-                }
-                for h in merged_hits[:3]
+                self._build_sources_hit_payload(h, index=index)
+                for index, h in enumerate(merged_hits)
+                if isinstance(h, dict)
             ]
         fins = payload.get("financials") or []
         if fins:
@@ -1312,14 +1651,24 @@ class ToolRouter:
 
         return ToolResult(ok=True, title="local_context", payload=payload)
 
-    def fetch_web(self, url: str, enabled: bool, max_chars: int | None = 8000) -> ToolResult:
+    def fetch_web(
+        self, url: str, enabled: bool, max_chars: int | None = 8000
+    ) -> ToolResult:
         if not enabled:
-            return ToolResult(ok=False, title="web_disabled", payload={"error": "Web fetch is disabled"})
+            return ToolResult(
+                ok=False,
+                title="web_disabled",
+                payload={"error": "Web fetch is disabled"},
+            )
         try:
             body = self.web_fetcher.fetch_text(url, max_chars=max_chars)
-            return ToolResult(ok=True, title="web_fetch", payload={"url": url, "content": body})
+            return ToolResult(
+                ok=True, title="web_fetch", payload={"url": url, "content": body}
+            )
         except Exception as exc:
-            return ToolResult(ok=False, title="web_fetch", payload={"url": url, "error": str(exc)})
+            return ToolResult(
+                ok=False, title="web_fetch", payload={"url": url, "error": str(exc)}
+            )
 
     def web_enrich(
         self,
@@ -1332,7 +1681,11 @@ class ToolRouter:
         strict_official: bool = False,
     ) -> ToolResult:
         if not enabled:
-            return ToolResult(ok=False, title="web_disabled", payload={"error": "Web fetch is disabled"})
+            return ToolResult(
+                ok=False,
+                title="web_disabled",
+                payload={"error": "Web fetch is disabled"},
+            )
         try:
             payload = self.web_fetcher.search_and_fetch(
                 query=query,
@@ -1341,7 +1694,9 @@ class ToolRouter:
                 preferred_domains=preferred_domains,
                 strict_official=bool(strict_official),
             )
-            return ToolResult(ok=bool(payload.get("ok")), title="web_enrich", payload=payload)
+            return ToolResult(
+                ok=bool(payload.get("ok")), title="web_enrich", payload=payload
+            )
         except Exception as exc:
             return ToolResult(
                 ok=False,

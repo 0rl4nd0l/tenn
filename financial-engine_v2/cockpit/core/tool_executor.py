@@ -143,6 +143,33 @@ class ToolExecutor:
             payload["docs"] = docs[:limit]
         return {"ok": result.ok if hasattr(result, "ok") else True, **payload}
 
+    def _exec_get_company_dump(self, args: dict[str, Any]) -> dict[str, Any]:
+        ticker = str(args.get("ticker", "")).strip().upper()
+        if not ticker:
+            return {"ok": False, "error": "ticker is required"}
+        client = self._router.backend_api_client
+        if client is None:
+            return {
+                "ok": False,
+                "ticker": ticker,
+                "error": "backend API client not configured",
+            }
+        try:
+            payload = client.get_company_dump(ticker=ticker)
+        except Exception as exc:
+            return {
+                "ok": False,
+                "ticker": ticker,
+                "error": f"company dump request failed: {exc}",
+            }
+        if not isinstance(payload, dict):
+            return {
+                "ok": False,
+                "ticker": ticker,
+                "error": "backend returned a non-object company dump payload",
+            }
+        return {"ok": True, **payload}
+
     def _exec_get_price(self, args: dict[str, Any]) -> dict[str, Any]:
         ticker = str(args.get("ticker", "")).strip().upper()
         if not ticker:
@@ -316,7 +343,40 @@ class ToolExecutor:
                     enriched["ticker"] = ticker
                 return enriched
 
-        return result
+        compact_hits: list[dict[str, Any]] = []
+        for hit in hits if isinstance(hits, list) else []:
+            if not isinstance(hit, dict):
+                continue
+            raw_snippet = str(hit.get("text") or hit.get("snippet") or "").strip()
+            compact_hits.append(
+                {
+                    "title": str(hit.get("title") or "").strip(),
+                    "published_at": str(hit.get("published_at") or "").strip(),
+                    "url": str(hit.get("url") or "").strip(),
+                    "provider": str(hit.get("provider") or "").strip(),
+                    "ticker": str(hit.get("ticker") or "").strip(),
+                    "primary_ticker": str(
+                        hit.get("primary_ticker") or hit.get("ticker") or ""
+                    ).strip(),
+                    "tickers": [
+                        str(value).strip()
+                        for value in (hit.get("tickers") or [])
+                        if str(value).strip()
+                    ],
+                    "score": float(hit.get("score") or hit.get("final_score") or 0.0),
+                    "snippet": re.sub(r"\s+", " ", raw_snippet)[:280],
+                }
+            )
+
+        return {
+            "ok": bool(result.get("ok", hit_count > 0)),
+            "query": query,
+            "ticker": ticker,
+            "hit_count": len(compact_hits),
+            "hits": compact_hits,
+            "_source": result.get("_source"),
+            "error": error_text or None,
+        }
 
     @staticmethod
     def _infer_news_ticker(query: str) -> str | None:
@@ -867,6 +927,7 @@ class ToolExecutor:
     # Dispatch table: tool_name -> handler method
     _READ_ONLY_DISPATCH: dict[str, Any] = {
         "query_ticker_data": _exec_query_ticker_data,
+        "get_company_dump": _exec_get_company_dump,
         "get_price": _exec_get_price,
         "get_price_on_date": _exec_get_price_on_date,
         "get_price_range": _exec_get_price_range,

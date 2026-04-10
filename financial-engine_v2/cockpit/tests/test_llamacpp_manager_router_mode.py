@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import urllib.error
 from unittest.mock import MagicMock
 
@@ -91,6 +92,69 @@ def test_load_model_api_returns_true_when_target_becomes_loaded(monkeypatch):
 
     assert ok is True
     assert any("loaded successfully" in message for message in messages)
+
+
+def test_load_model_api_resolves_stale_alias_before_posting(monkeypatch):
+    posted_models: list[str] = []
+
+    class _Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self) -> bytes:
+            return b"{}"
+
+    def _urlopen(req, timeout=30):
+        posted_models.append(json.loads(req.data.decode("utf-8"))["model"])
+        return _Response()
+
+    monkeypatch.setattr(manager.urllib.request, "urlopen", _urlopen)
+    monkeypatch.setattr(
+        manager,
+        "_api_request",
+        lambda url, api_key="", method="GET", body=None, timeout=10.0: {
+            "data": [
+                {
+                    "id": "model:qwen2.5-14b-instruct",
+                    "status": {"value": "unloaded"},
+                },
+                {
+                    "id": "qwen2.5-14b-instruct-q4_k_m",
+                    "status": {
+                        "value": "loaded",
+                        "args": [
+                            "--model",
+                            "/mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf",
+                        ],
+                    },
+                },
+            ]
+        },
+    )
+    monkeypatch.setattr(
+        manager,
+        "list_models_api",
+        lambda host, port, api_key="": [
+            {"name": "qwen2.5-14b-instruct-q4_k_m", "state": "loaded"}
+        ],
+    )
+    monkeypatch.setattr(manager.time, "sleep", lambda _: None)
+
+    messages: list[str] = []
+    ok = manager.load_model_api(
+        "127.0.0.1",
+        "8001",
+        "model:qwen2.5-14b-instruct",
+        on_status=messages.append,
+        timeout=5.0,
+    )
+
+    assert ok is True
+    assert posted_models == ["qwen2.5-14b-instruct-q4_k_m"]
+    assert any("Resolved stale model id" in message for message in messages)
 
 
 def test_load_model_api_returns_false_on_terminal_failure(monkeypatch):

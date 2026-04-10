@@ -22,7 +22,10 @@ from cockpit.core.actions import ActionRegistry
 from cockpit.core.backend_restart import restart_backend
 from cockpit.core.chat import ChatController
 from cockpit.core.job_runner import JobRunner
-from cockpit.core.plotly_html import build_candlestick_dashboard_html, build_snapshot_dashboard_html
+from cockpit.core.plotly_html import (
+    build_candlestick_dashboard_html,
+    build_snapshot_dashboard_html,
+)
 from cockpit.core.snapshot import build_snapshot_payload
 from cockpit.core.config import DEFAULT_LLAMACPP_URL, DEFAULT_OLLAMA_URL
 from cockpit.core.export_utils import extract_ticker_from_payload
@@ -32,16 +35,23 @@ from cockpit.integrations.backend_api import BackendApiClient
 from cockpit.integrations.db_reader import DbReader
 from cockpit.integrations.file_indexer import FileIndexer
 from cockpit.integrations.llamacpp_client import LlamaCppClient
-from cockpit.integrations.qual_context_bootstrap import build_qual_context_reader, context_enabled
+from cockpit.integrations.qual_context_bootstrap import (
+    build_qual_context_reader,
+    context_enabled,
+)
 from cockpit.integrations.web_fetcher import WebFetcher
 from cockpit.core.conversation_commands import derive_conversational_command
-from cockpit.core.tool_call_debug import cockpit_tool_chat_debug_mode, format_failure_block
+from cockpit.core.tool_call_debug import (
+    cockpit_tool_chat_debug_mode,
+    format_failure_block,
+)
 from cockpit.core.access_resume import (
     build_pending_action_payload,
     resolve_pending_action_alias,
 )
 from cockpit.core.backend_proposals import build_backend_runtime_remediation_request
 from cockpit.core.backend_proposals import build_backend_access_proposal_request
+from cockpit.core.sources import SourcesFormatter
 from cockpit.core.tools import ToolRouter
 from cockpit.storage.artifacts import ArtifactStore
 from cockpit.storage.state import StateStore
@@ -149,11 +159,15 @@ class CockpitApp(App):
         Binding("q", "quit", "Quit"),
     ]
 
-    def __init__(self, repo_root: Path, config: dict[str, Any], read_only: bool) -> None:
+    def __init__(
+        self, repo_root: Path, config: dict[str, Any], read_only: bool
+    ) -> None:
         super().__init__()
         self._init_services(repo_root, config, read_only)
 
-    def _init_services(self, repo_root: Path, config: dict[str, Any], read_only: bool) -> None:
+    def _init_services(
+        self, repo_root: Path, config: dict[str, Any], read_only: bool
+    ) -> None:
         """Initialize all cockpit services. Called from __init__ and from CockpitWebApp after pre-boot."""
         self.repo_root = repo_root
         self.config = config
@@ -178,14 +192,21 @@ class CockpitApp(App):
             llm_url = llm_cfg.get("llamacpp_url", DEFAULT_LLAMACPP_URL)
         else:
             # Ollama also exposes an OpenAI-compatible /v1 API.
-            llm_url = llm_cfg.get("llamacpp_url") or llm_cfg.get("ollama_url", DEFAULT_OLLAMA_URL)
+            llm_url = llm_cfg.get("llamacpp_url") or llm_cfg.get(
+                "ollama_url", DEFAULT_OLLAMA_URL
+            )
         self.ollama_client = LlamaCppClient(
             llm_url,
             llm_model,
             api_key=llm_cfg.get("llamacpp_api_key", ""),
         )
-        self.action_registry = ActionRegistry(repo_root=repo_root, confirm_required=config["actions"].get("confirm_required", True))
-        self.job_runner = JobRunner(repo_root=repo_root, logs_dir=self.artifacts.logs_dir)
+        self.action_registry = ActionRegistry(
+            repo_root=repo_root,
+            confirm_required=config["actions"].get("confirm_required", True),
+        )
+        self.job_runner = JobRunner(
+            repo_root=repo_root, logs_dir=self.artifacts.logs_dir
+        )
 
         # Wire production pipeline: BackendApiClient → qual/news context readers.
         backend_cfg = config.get("backend") or {}
@@ -204,7 +225,11 @@ class CockpitApp(App):
         qual_news = None
 
         if self._backend_client is not None:
-            qc_cfg = rag_cfg.get("qualitative_context") if isinstance(rag_cfg.get("qualitative_context"), dict) else None
+            qc_cfg = (
+                rag_cfg.get("qualitative_context")
+                if isinstance(rag_cfg.get("qualitative_context"), dict)
+                else None
+            )
             if context_enabled(qc_cfg, default=False):
                 try:
                     qual_company = build_qual_context_reader(
@@ -214,9 +239,15 @@ class CockpitApp(App):
                         context_name="qualitative_context",
                     )
                 except Exception as exc:
-                    self._startup_warnings.append(f"qual_context (company) disabled: {exc}")
+                    self._startup_warnings.append(
+                        f"qual_context (company) disabled: {exc}"
+                    )
 
-            news_cfg = rag_cfg.get("news_context") if isinstance(rag_cfg.get("news_context"), dict) else None
+            news_cfg = (
+                rag_cfg.get("news_context")
+                if isinstance(rag_cfg.get("news_context"), dict)
+                else None
+            )
             if context_enabled(news_cfg, default=False):
                 try:
                     qual_news = build_qual_context_reader(
@@ -226,9 +257,13 @@ class CockpitApp(App):
                         context_name="news_context",
                     )
                 except Exception as exc:
-                    self._startup_warnings.append(f"qual_context (news) disabled: {exc}")
+                    self._startup_warnings.append(
+                        f"qual_context (news) disabled: {exc}"
+                    )
         else:
-            self._startup_warnings.append("backend.api_base_url not set — price, RAG, and news context disabled")
+            self._startup_warnings.append(
+                "backend.api_base_url not set — price, RAG, and news context disabled"
+            )
 
         self.tool_router = ToolRouter(
             db_reader=self.db_reader,
@@ -245,7 +280,9 @@ class CockpitApp(App):
             ollama_client=self.ollama_client,
             tool_router=self.tool_router,
             action_registry=self.action_registry,
-            llm_timeout_seconds=float(config.get("llm", {}).get("timeout_seconds", 300)),
+            llm_timeout_seconds=float(
+                config.get("llm", {}).get("timeout_seconds", 300)
+            ),
             state_store=self.state_store,
             thread_id="global-main",
             cockpit_llm=config.get("cockpit_llm"),
@@ -258,6 +295,7 @@ class CockpitApp(App):
         self.last_chart_path: str | None = None
         self.last_detected_ticker: str | None = None
         self.last_response_mode: str | None = None
+        self._latest_sources_payloads: list[dict[str, Any]] = []
         self.chat_inflight = False
         self._input_history: list[str] = []
         self._history_idx: int = -1
@@ -274,7 +312,7 @@ class CockpitApp(App):
             value = "sqlite:///./data/fe_local.db"
 
         if value.startswith("sqlite:///"):
-            path_part = value[len("sqlite:///"):]
+            path_part = value[len("sqlite:///") :]
             if path_part.startswith("./") or not path_part.startswith("/"):
                 resolved = (self.repo_root / path_part).resolve()
                 resolved.parent.mkdir(parents=True, exist_ok=True)
@@ -298,19 +336,27 @@ class CockpitApp(App):
             )
             or getattr(self.tool_router, "news_context_db_path", "")
         )
-        rag_enabled = bool(getattr(self.tool_router, "qual_context_enabled", False)) and rag_available
+        rag_enabled = (
+            bool(getattr(self.tool_router, "qual_context_enabled", False))
+            and rag_available
+        )
         return {
-            "web_enabled": bool(self.config.get("web", {}).get("enabled_default", False)),
+            "web_enabled": bool(
+                self.config.get("web", {}).get("enabled_default", False)
+            ),
             "rag_enabled": rag_enabled,
             "db_diagnostic_query_enabled": bool(
-                self.state_store.get_preference("db_diagnostic_query_enabled", "true") == "true"
+                self.state_store.get_preference("db_diagnostic_query_enabled", "true")
+                == "true"
             ),
         }
 
     def get_capabilities(self) -> dict[str, Any]:
         """Return current capability status for the settings UI."""
         chat_ctrl = getattr(self, "chat_controller", None)
-        hybrid_router = getattr(chat_ctrl, "_hybrid_router", None) if chat_ctrl else None
+        hybrid_router = (
+            getattr(chat_ctrl, "_hybrid_router", None) if chat_ctrl else None
+        )
         from cockpit.core.llm_profile import cockpit_llm_profile_label
 
         cm = self.config.get("cockpit_llm") or {}
@@ -318,18 +364,30 @@ class CockpitApp(App):
         explicit = (os.environ.get("HYBRID_ROUTER_POLICY") or "").strip()
         return {
             "backend_api": self._backend_client is not None,
-            "backend_url": self._backend_client.base_url if self._backend_client else None,
-            "brave_search": getattr(self.tool_router, "brave_search_client", None) is not None,
-            "hn_search": getattr(self.tool_router, "hn_search_client", None) is not None,
+            "backend_url": self._backend_client.base_url
+            if self._backend_client
+            else None,
+            "brave_search": getattr(self.tool_router, "brave_search_client", None)
+            is not None,
+            "hn_search": getattr(self.tool_router, "hn_search_client", None)
+            is not None,
             "dossier": getattr(self.tool_router, "dossier_service", None) is not None,
-            "deep_research": getattr(self.tool_router, "deep_research_runner", None) is not None,
-            "anthropic_api": hybrid_router is not None and hybrid_router._api is not None,
-            "routing_policy": hybrid_router._policy if hybrid_router else "not initialized",
+            "deep_research": getattr(self.tool_router, "deep_research_runner", None)
+            is not None,
+            "anthropic_api": hybrid_router is not None
+            and hybrid_router._api is not None,
+            "routing_policy": hybrid_router._policy
+            if hybrid_router
+            else "not initialized",
             "llm_profile": cockpit_llm_profile_label(cm),
             "llm_profile_id": str(cm.get("llm_profile_label") or "ops").strip().lower(),
             "explicit_policy_override": (explicit or None) if allow_env else None,
-            "session_cost_usd": hybrid_router.total_cost_usd() if hybrid_router else 0.0,
-            "cockpit_llm_config_path": str(self.repo_root / "config" / "cockpit_llm.yaml"),
+            "session_cost_usd": hybrid_router.total_cost_usd()
+            if hybrid_router
+            else 0.0,
+            "cockpit_llm_config_path": str(
+                self.repo_root / "config" / "cockpit_llm.yaml"
+            ),
         }
 
     def set_llm_profile(self, profile: str) -> str:
@@ -393,7 +451,9 @@ class CockpitApp(App):
         if self._backend_client is None:
             return
         try:
-            capabilities = await asyncio.to_thread(self._backend_client.capabilities, 5.0)
+            capabilities = await asyncio.to_thread(
+                self._backend_client.capabilities, 5.0
+            )
         except Exception:
             return
         if not capabilities.get("ok"):
@@ -409,7 +469,17 @@ class CockpitApp(App):
             return f"Failed to apply backend access proposal: {result.get('error', 'unknown error')}"
         payload = result.get("payload") or {}
         self._apply_access_state(payload.get("access"))
-        return str(payload.get("message") or f"Applied backend access proposal: {proposal_id}")
+        return str(
+            payload.get("message") or f"Applied backend access proposal: {proposal_id}"
+        )
+
+    @staticmethod
+    def _parse_positive_int(value: str) -> int | None:
+        try:
+            parsed = int(value)
+        except Exception:
+            return None
+        return parsed if parsed > 0 else None
 
     async def _start_extraction_runtime(self, log_target: str) -> bool:
         command = ["bash", "scripts/run_llama_server.sh"]
@@ -433,26 +503,37 @@ class CockpitApp(App):
         )
         probe_client = LlamaCppClient(
             extraction_url,
-            str(os.getenv("EXTRACT_MODEL") or getattr(self.ollama_client, "model", "") or "unknown"),
+            str(
+                os.getenv("EXTRACT_MODEL")
+                or getattr(self.ollama_client, "model", "")
+                or "unknown"
+            ),
             api_key=str(os.getenv("LLM_API_KEY") or ""),
         )
         for _ in range(20):
             await asyncio.sleep(1.0)
             health = probe_client.health(timeout=2.0)
             if health.get("ok"):
-                self._write_log(log_target, f"Extraction runtime is reachable at {health.get('url')}.")
+                self._write_log(
+                    log_target,
+                    f"Extraction runtime is reachable at {health.get('url')}.",
+                )
                 return True
         self._write_log(log_target, "Extraction runtime did not become ready in time.")
         return False
 
-    async def _execute_internal_action(self, action: dict[str, Any], log_target: str) -> bool:
+    async def _execute_internal_action(
+        self, action: dict[str, Any], log_target: str
+    ) -> bool:
         action_id = str(action.get("action_id") or "").strip()
         args = dict(action.get("args") or {})
 
         if action_id == "__runtime_remediation__":
             scope = str(args.get("scope") or "").strip().lower()
             if scope != "extraction_runtime":
-                self._write_log(log_target, f"Unsupported runtime remediation scope: {scope}")
+                self._write_log(
+                    log_target, f"Unsupported runtime remediation scope: {scope}"
+                )
                 return False
             error = str(args.get("error") or "").strip()
             if error:
@@ -463,12 +544,18 @@ class CockpitApp(App):
             resume_args = dict(args.get("resume_args") or {})
             if resume_action_id:
                 self._write_log(log_target, f"Resuming action: {resume_action_id}")
-                await self.execute_action(resume_action_id, resume_args, log_target=log_target, skip_confirm=True)
+                await self.execute_action(
+                    resume_action_id,
+                    resume_args,
+                    log_target=log_target,
+                    skip_confirm=True,
+                )
             return True
 
         if action_id == "adjust_signal_weights":
             try:
                 from cockpit.core.strategy import StrategyService
+
                 svc = StrategyService(self.state_store)
                 result = svc.set_signal_weights(args)
                 self._write_log(
@@ -485,16 +572,27 @@ class CockpitApp(App):
                 self._write_log(log_target, "Backend proposal is missing proposal_id.")
                 return False
             if self._backend_client is None:
-                self._write_log(log_target, "Backend proposal requested but backend client is not configured.")
+                self._write_log(
+                    log_target,
+                    "Backend proposal requested but backend client is not configured.",
+                )
                 return False
             self._write_log(log_target, f"Applying backend proposal: {proposal_id}")
             result = self._backend_client.apply_proposal(proposal_id, timeout=45.0)
             if not result.get("ok"):
-                self._write_log(log_target, f"Backend proposal failed: {result.get('error', 'unknown error')}")
+                self._write_log(
+                    log_target,
+                    f"Backend proposal failed: {result.get('error', 'unknown error')}",
+                )
                 return False
             payload = result.get("payload") or {}
             self._apply_access_state(payload.get("access"))
-            self._write_log(log_target, str(payload.get("message") or f"Backend proposal applied: {proposal_id}"))
+            self._write_log(
+                log_target,
+                str(
+                    payload.get("message") or f"Backend proposal applied: {proposal_id}"
+                ),
+            )
             resume_message = str(args.get("resume_message") or "").strip()
             if resume_message:
                 self._write_log(log_target, "Resuming request after backend approval.")
@@ -504,7 +602,12 @@ class CockpitApp(App):
             resume_args = dict(args.get("resume_args") or {})
             if resume_action_id:
                 self._write_log(log_target, f"Resuming action: {resume_action_id}")
-                await self.execute_action(resume_action_id, resume_args, log_target=log_target, skip_confirm=True)
+                await self.execute_action(
+                    resume_action_id,
+                    resume_args,
+                    log_target=log_target,
+                    skip_confirm=True,
+                )
             return True
 
         return False
@@ -624,7 +727,9 @@ class CockpitApp(App):
         asyncio.create_task(self._sync_access_state_from_backend())
 
         self._schedule_model_status_refresh()
-        self._model_status_timer = self.set_interval(15.0, self._schedule_model_status_refresh)
+        self._model_status_timer = self.set_interval(
+            15.0, self._schedule_model_status_refresh
+        )
 
     def action_show_help(self) -> None:
         self.push_screen(HelpScreen(repo_root=self.repo_root))
@@ -635,9 +740,15 @@ class CockpitApp(App):
             try:
                 health = await asyncio.to_thread(self._backend_client.health, 4.0)
                 if health.get("ok"):
-                    self._screen_log("chat", f"startup: backend API reachable at {self._backend_client.base_url}")
+                    self._screen_log(
+                        "chat",
+                        f"startup: backend API reachable at {self._backend_client.base_url}",
+                    )
                 else:
-                    self._screen_log("chat", f"startup: backend API unreachable at {self._backend_client.base_url}: {health.get('error')}")
+                    self._screen_log(
+                        "chat",
+                        f"startup: backend API unreachable at {self._backend_client.base_url}: {health.get('error')}",
+                    )
             except Exception as exc:
                 self._screen_log("chat", f"startup: backend health check failed: {exc}")
 
@@ -645,14 +756,20 @@ class CockpitApp(App):
             health = await asyncio.to_thread(self.ollama_client.health, 4.0)
             if health.get("ok"):
                 model = str(self.config.get("llm", {}).get("model", ""))
-                names = health.get("models") if isinstance(health.get("models"), list) else []
+                names = (
+                    health.get("models")
+                    if isinstance(health.get("models"), list)
+                    else []
+                )
                 if model and names and model not in names:
                     self._screen_log(
                         "chat",
                         f"startup: llama.cpp reachable at {health.get('url')} but model '{model}' is not pulled.",
                     )
                 else:
-                    self._screen_log("chat", f"startup: llama.cpp reachable at {health.get('url')}")
+                    self._screen_log(
+                        "chat", f"startup: llama.cpp reachable at {health.get('url')}"
+                    )
             else:
                 self._screen_log(
                     "chat",
@@ -687,10 +804,16 @@ class CockpitApp(App):
             )
             if proc.returncode != 0:
                 err = (proc.stderr or proc.stdout or "").strip()
-                metrics["gpu_error"] = err.splitlines()[0] if err else "nvidia-smi failed"
+                metrics["gpu_error"] = (
+                    err.splitlines()[0] if err else "nvidia-smi failed"
+                )
                 return metrics
 
-            rows = [line.strip() for line in (proc.stdout or "").splitlines() if line.strip()]
+            rows = [
+                line.strip()
+                for line in (proc.stdout or "").splitlines()
+                if line.strip()
+            ]
             gpus: list[dict[str, Any]] = []
             for row in rows:
                 parts = [part.strip() for part in row.split(",")]
@@ -724,7 +847,9 @@ class CockpitApp(App):
 
         return metrics
 
-    def _collect_runtime_snapshot(self, endpoint: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    def _collect_runtime_snapshot(
+        self, endpoint: str
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
         try:
             health = self.ollama_client.health(timeout=2.0)
         except Exception as exc:
@@ -743,11 +868,23 @@ class CockpitApp(App):
     async def _refresh_model_status_widget_inner(self) -> None:
         llm_cfg = self.config.get("llm", {})
         provider = str(llm_cfg.get("provider") or "ollama")
-        model = str(llm_cfg.get("model") or getattr(self.ollama_client, "model", "") or "unknown")
-        endpoint = str(getattr(self.ollama_client, "base_url", "") or llm_cfg.get("ollama_url", ""))
-        provider_label = "Local llama.cpp (chat client)" if provider == "llamacpp" else "Ollama (chat client)"
+        model = str(
+            llm_cfg.get("model")
+            or getattr(self.ollama_client, "model", "")
+            or "unknown"
+        )
+        endpoint = str(
+            getattr(self.ollama_client, "base_url", "") or llm_cfg.get("ollama_url", "")
+        )
+        provider_label = (
+            "Local llama.cpp (chat client)"
+            if provider == "llamacpp"
+            else "Ollama (chat client)"
+        )
 
-        health, sys_metrics = await asyncio.to_thread(self._collect_runtime_snapshot, endpoint)
+        health, sys_metrics = await asyncio.to_thread(
+            self._collect_runtime_snapshot, endpoint
+        )
 
         # For llama.cpp, get the actually-loaded model from the API.
         if health.get("ok") and provider == "llamacpp":
@@ -774,15 +911,23 @@ class CockpitApp(App):
         ]
 
         if health.get("ok"):
-            names = health.get("models") if isinstance(health.get("models"), list) else []
+            names = (
+                health.get("models") if isinstance(health.get("models"), list) else []
+            )
             if provider == "ollama" and model and names and model not in names:
-                lines.append(f"{provider_label}: reachable — configured model not pulled")
+                lines.append(
+                    f"{provider_label}: reachable — configured model not pulled"
+                )
             else:
                 lines.append(f"{provider_label}: reachable")
         else:
-            lines.append(f"{provider_label}: unavailable ({health.get('error') or 'unknown error'})")
+            lines.append(
+                f"{provider_label}: unavailable ({health.get('error') or 'unknown error'})"
+            )
 
-        gpus = sys_metrics.get("gpus") if isinstance(sys_metrics.get("gpus"), list) else []
+        gpus = (
+            sys_metrics.get("gpus") if isinstance(sys_metrics.get("gpus"), list) else []
+        )
         if gpus:
             preview_lines: list[str] = []
             for gpu in gpus[:2]:
@@ -874,7 +1019,10 @@ class CockpitApp(App):
             and not message.startswith("/run ")
             and not message.startswith("/read ")
         ):
-            self._append_log(log, f"{self.ASSISTANT_NAME}: still thinking about the previous message.")
+            self._append_log(
+                log,
+                f"{self.ASSISTANT_NAME}: still thinking about the previous message.",
+            )
             return
 
         message = resolve_pending_action_alias(message, self.pending_action is not None)
@@ -883,6 +1031,7 @@ class CockpitApp(App):
         self.state_store.add_chat_message(self.thread_id, "user", message, created)
         try:
             from rich.text import Text as _Text
+
             _user_line = _Text()
             _user_line.append("You: ", style="bold cyan")
             _user_line.append(message)
@@ -900,16 +1049,21 @@ class CockpitApp(App):
         derived_cmd = derive_conversational_command(stripped) if stripped else None
         if derived_cmd:
             import logging as _logging
-            _logging.getLogger(__name__).debug("conversational command resolved: %s", derived_cmd)
+
+            _logging.getLogger(__name__).debug(
+                "conversational command resolved: %s", derived_cmd
+            )
             stripped = derived_cmd
 
         if stripped.startswith("/request-access"):
-            scope = stripped[len("/request-access"):].strip().lower()
+            scope = stripped[len("/request-access") :].strip().lower()
             now_iso = datetime.now(timezone.utc).isoformat()
             if scope not in {"web", "rag", "dbdiag"}:
                 reply = "Usage: /request-access <web|rag|dbdiag>"
                 self._append_log(log, f"assistant: {reply}")
-                self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+                self.state_store.add_chat_message(
+                    self.thread_id, "assistant", reply, now_iso
+                )
                 return
             preview = build_backend_access_proposal_request(
                 scope,
@@ -917,24 +1071,38 @@ class CockpitApp(App):
                 resume_message=message,
             )
             self.pending_action = build_pending_action_payload(preview, message)
-            reply = f"Approve enabling {scope} access with /confirm or cancel with /cancel."
-            pending.update(f"Pending: __backend_proposal__ args={self.pending_action['args']} (/confirm or /cancel)")
+            reply = (
+                f"Approve enabling {scope} access with /confirm or cancel with /cancel."
+            )
+            pending.update(
+                f"Pending: __backend_proposal__ args={self.pending_action['args']} (/confirm or /cancel)"
+            )
             self._append_log(log, f"assistant: {reply}")
-            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            self.state_store.add_chat_message(
+                self.thread_id, "assistant", reply, now_iso
+            )
             return
 
         # Handle /watch commands (from slash input or resolved conversational command)
         if stripped.startswith("/watch "):
-            parts = stripped[len("/watch "):].split(maxsplit=1)
+            parts = stripped[len("/watch ") :].split(maxsplit=1)
             sub = parts[0].lower() if parts else ""
             arg = parts[1].strip().upper() if len(parts) > 1 else ""
             now_iso = datetime.now(timezone.utc).isoformat()
             if sub == "add" and arg:
                 added = self.state_store.add_watch_ticker(arg, now_iso)
-                reply = f"Added {arg} to watchlist." if added else f"{arg} is already on the watchlist."
+                reply = (
+                    f"Added {arg} to watchlist."
+                    if added
+                    else f"{arg} is already on the watchlist."
+                )
             elif sub == "remove" and arg:
                 removed = self.state_store.remove_watch_ticker(arg)
-                reply = f"Removed {arg} from watchlist." if removed else f"{arg} was not on the watchlist."
+                reply = (
+                    f"Removed {arg} from watchlist."
+                    if removed
+                    else f"{arg} was not on the watchlist."
+                )
             elif sub == "list":
                 tickers = self.state_store.list_watch_tickers()
                 if tickers:
@@ -953,51 +1121,70 @@ class CockpitApp(App):
 
                     strategy_svc = StrategyService(self.state_store)
                     if self._backend_client is None:
-                        reply = "Backend API not configured — cannot run watchlist scan."
+                        reply = (
+                            "Backend API not configured — cannot run watchlist scan."
+                        )
                     else:
                         trigger = WatchlistTrigger(
                             state_store=self.state_store,
                             strategy_service=strategy_svc,
                             backend_api_client=self._backend_client,
                             alert_reader=AlertReader(),
-                            dossier_service=getattr(self.chat_controller, "_dossier_service", None),
+                            dossier_service=getattr(
+                                self.chat_controller, "_dossier_service", None
+                            ),
                         )
                         ticker_list: list[str] | None = None
                         if arg:
-                            ticker_list = [t.strip() for t in arg.split(",") if t.strip()]
+                            ticker_list = [
+                                t.strip() for t in arg.split(",") if t.strip()
+                            ]
                         summary = trigger.run(tickers=ticker_list)
-                        lines = [f"Watchlist scan complete: {summary.tickers_scanned} ticker(s), "
-                                 f"{summary.total_alerts} alert(s), {summary.total_errors} error(s)."]
+                        lines = [
+                            f"Watchlist scan complete: {summary.tickers_scanned} ticker(s), "
+                            f"{summary.total_alerts} alert(s), {summary.total_errors} error(s)."
+                        ]
                         for r in summary.results:
                             status = "ok" if r.analysis_ok else "no analysis"
-                            alerts_str = f"{r.alerts_generated} alert(s)" if r.alerts_generated else "clean"
+                            alerts_str = (
+                                f"{r.alerts_generated} alert(s)"
+                                if r.alerts_generated
+                                else "clean"
+                            )
                             err_str = f" [{', '.join(r.errors)}]" if r.errors else ""
-                            lines.append(f"  {r.ticker}: {status}, {alerts_str}{err_str}")
+                            lines.append(
+                                f"  {r.ticker}: {status}, {alerts_str}{err_str}"
+                            )
                         reply = "\n".join(lines)
                 except Exception as exc:
                     reply = f"Watchlist scan failed: {exc}"
             else:
                 reply = "Usage: /watch add|remove|list|clear|scan [TICKER]"
             self._append_log(log, f"assistant: {reply}")
-            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            self.state_store.add_chat_message(
+                self.thread_id, "assistant", reply, now_iso
+            )
             return
 
         # Handle /review commands for transcript approval gate
         if stripped.startswith("/review"):
-            parts = stripped[len("/review"):].strip().split(maxsplit=1)
+            parts = stripped[len("/review") :].strip().split(maxsplit=1)
             sub = parts[0].lower() if parts else "list"
             arg = parts[1].strip() if len(parts) > 1 else ""
             now_iso = datetime.now(timezone.utc).isoformat()
             reply = self._handle_review_command(sub, arg, log)
             self._append_log(log, f"assistant: {reply}")
-            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            self.state_store.add_chat_message(
+                self.thread_id, "assistant", reply, now_iso
+            )
             return
 
         # Handle /strategy commands
         if stripped.startswith("/strategy"):
             from cockpit.core.strategy import StrategyService
+
             strategy_svc = StrategyService(self.state_store)
-            parts = stripped[len("/strategy"):].strip().split(maxsplit=2)
+            parts = stripped[len("/strategy") :].strip().split(maxsplit=2)
             sub = parts[0].lower() if parts else "list"
             arg1 = parts[1] if len(parts) > 1 else ""
             arg2 = parts[2] if len(parts) > 2 else ""
@@ -1014,21 +1201,37 @@ class CockpitApp(App):
                     if gcriteria:
                         lines.append(f"Global criteria ({len(gcriteria)}):")
                         for c in gcriteria:
-                            lines.append(f"  [{c['id']}] {c['criterion']} ({c['category']}, P{c['priority']})")
+                            lines.append(
+                                f"  [{c['id']}] {c['criterion']} ({c['category']}, P{c['priority']})"
+                            )
                     if tcriteria:
                         lines.append(f"\n{tkr}-specific criteria ({len(tcriteria)}):")
                         for c in tcriteria:
-                            dec = f" [decision: {c['decision']}]" if c.get("decision") else ""
-                            lines.append(f"  [{c['id']}] {c['criterion']} ({c['category']}, P{c['priority']}){dec}")
+                            dec = (
+                                f" [decision: {c['decision']}]"
+                                if c.get("decision")
+                                else ""
+                            )
+                            lines.append(
+                                f"  [{c['id']}] {c['criterion']} ({c['category']}, P{c['priority']}){dec}"
+                            )
                     if decision and decision.get("decision_rationale"):
-                        lines.append(f"\nDecision: {decision['decision']} — {decision['decision_rationale']}")
-                    reply = "\n".join(lines) if lines else f"No strategy criteria defined for {tkr}."
+                        lines.append(
+                            f"\nDecision: {decision['decision']} — {decision['decision_rationale']}"
+                        )
+                    reply = (
+                        "\n".join(lines)
+                        if lines
+                        else f"No strategy criteria defined for {tkr}."
+                    )
                 else:
                     gcriteria = strategy_svc.get_global()
                     if gcriteria:
                         lines = [f"Global criteria ({len(gcriteria)}):"]
                         for c in gcriteria:
-                            lines.append(f"  [{c['id']}] {c['criterion']} ({c['category']}, P{c['priority']})")
+                            lines.append(
+                                f"  [{c['id']}] {c['criterion']} ({c['category']}, P{c['priority']})"
+                            )
                         reply = "\n".join(lines)
                     else:
                         reply = "No global strategy criteria defined. Use /strategy add <criterion> to add one."
@@ -1050,8 +1253,13 @@ class CockpitApp(App):
                     decision_val = dec_parts[0].lower() if dec_parts else ""
                     rationale = dec_parts[1] if len(dec_parts) > 1 else ""
                     if decision_val in ("buy", "watchlist", "avoid"):
-                        result = strategy_svc.record_decision(arg1.upper(), decision_val, rationale)
-                        reply = f"Recorded decision for {arg1.upper()}: {decision_val}" + (f" — {rationale}" if rationale else "")
+                        result = strategy_svc.record_decision(
+                            arg1.upper(), decision_val, rationale
+                        )
+                        reply = (
+                            f"Recorded decision for {arg1.upper()}: {decision_val}"
+                            + (f" — {rationale}" if rationale else "")
+                        )
                     else:
                         reply = "Decision must be one of: buy, watchlist, avoid"
                 else:
@@ -1059,19 +1267,26 @@ class CockpitApp(App):
             elif sub == "delete":
                 if arg1 and arg1.isdigit():
                     deleted = strategy_svc.delete(int(arg1))
-                    reply = f"Deleted criterion [{arg1}]." if deleted else f"Criterion [{arg1}] not found."
+                    reply = (
+                        f"Deleted criterion [{arg1}]."
+                        if deleted
+                        else f"Criterion [{arg1}] not found."
+                    )
                 else:
                     reply = "Usage: /strategy delete <id>"
             else:
                 reply = "Usage: /strategy list|add|decide|delete [TICKER] [criterion]"
             self._append_log(log, f"assistant: {reply}")
-            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            self.state_store.add_chat_message(
+                self.thread_id, "assistant", reply, now_iso
+            )
             return
 
         # Handle /sources commands
         if stripped.startswith("/sources"):
-            parts = stripped[len("/sources"):].strip().split(maxsplit=1)
+            parts = stripped[len("/sources") :].strip().split(maxsplit=1)
             sub = parts[0].lower() if parts else ""
+            arg = parts[1].strip() if len(parts) > 1 else ""
             now_iso = datetime.now(timezone.utc).isoformat()
             if sub == "on":
                 self.state_store.set_preference("show_sources", "true")
@@ -1079,16 +1294,36 @@ class CockpitApp(App):
             elif sub == "off":
                 self.state_store.set_preference("show_sources", "false")
                 reply = "Sources display disabled."
+            elif sub == "list":
+                footer = SourcesFormatter.format_list(self._latest_sources_payloads)
+                if footer:
+                    reply = footer
+                else:
+                    reply = "No sources available for inspection. Ask a question first."
+            elif sub == "show":
+                index = self._parse_positive_int(arg)
+                if index is None:
+                    reply = "Usage: /sources show <n>"
+                else:
+                    reply = SourcesFormatter.format_show(
+                        self._latest_sources_payloads, index=index
+                    )
+                    if not reply:
+                        reply = (
+                            "No sources available for inspection. Ask a question first."
+                        )
             else:
                 current = self.state_store.get_preference("show_sources", "true")
                 reply = f"Sources display: {'ON' if current == 'true' else 'OFF'}. Use /sources on|off to toggle."
             self._append_log(log, f"assistant: {reply}")
-            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            self.state_store.add_chat_message(
+                self.thread_id, "assistant", reply, now_iso
+            )
             return
 
         # Handle /rag on|off
         if stripped.startswith("/rag"):
-            sub = stripped[len("/rag"):].strip().lower()
+            sub = stripped[len("/rag") :].strip().lower()
             now_iso = datetime.now(timezone.utc).isoformat()
             if sub == "on":
                 reply = self._apply_backend_access_proposal("enable_rag_access")
@@ -1098,12 +1333,14 @@ class CockpitApp(App):
                 enabled = self._access_state().get("rag_enabled", False)
                 reply = f"RAG retrieval: {'ON' if enabled else 'OFF'}. Use /rag on|off to toggle."
             self._append_log(log, f"assistant: {reply}")
-            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            self.state_store.add_chat_message(
+                self.thread_id, "assistant", reply, now_iso
+            )
             return
 
         # Handle /web on|off
         if stripped.startswith("/web"):
-            sub = stripped[len("/web"):].strip().lower()
+            sub = stripped[len("/web") :].strip().lower()
             now_iso = datetime.now(timezone.utc).isoformat()
             if sub == "on":
                 reply = self._apply_backend_access_proposal("enable_web_access")
@@ -1113,11 +1350,13 @@ class CockpitApp(App):
                 enabled = self._access_state().get("web_enabled", False)
                 reply = f"Web search: {'ON' if enabled else 'OFF'}. Use /web on|off to toggle."
             self._append_log(log, f"assistant: {reply}")
-            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            self.state_store.add_chat_message(
+                self.thread_id, "assistant", reply, now_iso
+            )
             return
 
         if stripped.startswith("/dbdiag"):
-            sub = stripped[len("/dbdiag"):].strip().lower()
+            sub = stripped[len("/dbdiag") :].strip().lower()
             now_iso = datetime.now(timezone.utc).isoformat()
             if sub == "on":
                 reply = self._apply_backend_access_proposal("enable_dbdiag_access")
@@ -1127,7 +1366,9 @@ class CockpitApp(App):
                 enabled = self._access_state().get("db_diagnostic_query_enabled", False)
                 reply = f"DB diagnostics: {'ON' if enabled else 'OFF'}. Use /dbdiag on|off to toggle."
             self._append_log(log, f"assistant: {reply}")
-            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            self.state_store.add_chat_message(
+                self.thread_id, "assistant", reply, now_iso
+            )
             return
 
         # Handle /health — check backend API health
@@ -1144,19 +1385,27 @@ class CockpitApp(App):
                 except Exception as exc:
                     reply = f"Backend health check failed: {exc}"
             self._append_log(log, f"assistant: {reply}")
-            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            self.state_store.add_chat_message(
+                self.thread_id, "assistant", reply, now_iso
+            )
             return
 
         # Handle /access — show current access/connection info
         if stripped == "/access":
             now_iso = datetime.now(timezone.utc).isoformat()
             lines = ["Access configuration:"]
-            lines.append(f"  Backend API: {self._backend_client.base_url if self._backend_client else 'not configured'}")
+            lines.append(
+                f"  Backend API: {self._backend_client.base_url if self._backend_client else 'not configured'}"
+            )
             lines.append(f"  LLM: {self.ollama_client.base_url}")
             lines.append(f"  State DB: {self.state_store.db_path}")
             access_state = self._access_state()
-            lines.append(f"  Web: {'enabled' if access_state['web_enabled'] else 'disabled'}")
-            lines.append(f"  RAG: {'enabled' if access_state['rag_enabled'] else 'disabled'}")
+            lines.append(
+                f"  Web: {'enabled' if access_state['web_enabled'] else 'disabled'}"
+            )
+            lines.append(
+                f"  RAG: {'enabled' if access_state['rag_enabled'] else 'disabled'}"
+            )
             lines.append(
                 f"  DB diagnostics: {'enabled' if access_state['db_diagnostic_query_enabled'] else 'disabled'}"
             )
@@ -1173,10 +1422,14 @@ class CockpitApp(App):
                         suffix = f" ({blockers})" if blockers else ""
                         lines.append(f"    {key}: {status}{suffix}")
                 else:
-                    lines.append(f"  Backend capabilities: unavailable ({capabilities.get('error', 'unknown error')})")
+                    lines.append(
+                        f"  Backend capabilities: unavailable ({capabilities.get('error', 'unknown error')})"
+                    )
             reply = "\n".join(lines)
             self._append_log(log, f"assistant: {reply}")
-            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            self.state_store.add_chat_message(
+                self.thread_id, "assistant", reply, now_iso
+            )
             return
 
         # Handle /reconnect — re-probe all services and re-wire failed clients
@@ -1189,7 +1442,9 @@ class CockpitApp(App):
             try:
                 llm_health = self.ollama_client.health(timeout=5.0)
                 if llm_health.get("ok"):
-                    results.append(f"  + llama.cpp: reachable at {llm_health.get('url')}")
+                    results.append(
+                        f"  + llama.cpp: reachable at {llm_health.get('url')}"
+                    )
                 else:
                     results.append(f"  - llama.cpp: {llm_health.get('error')}")
             except Exception as exc:
@@ -1209,7 +1464,9 @@ class CockpitApp(App):
                 try:
                     bh = self._backend_client.health(timeout=5.0)
                     if bh.get("ok"):
-                        results.append(f"  + Backend API: reachable at {self._backend_client.base_url}")
+                        results.append(
+                            f"  + Backend API: reachable at {self._backend_client.base_url}"
+                        )
                     else:
                         results.append(f"  - Backend API: {bh.get('error')}")
                 except Exception as exc:
@@ -1219,14 +1476,20 @@ class CockpitApp(App):
 
             # 3. Re-attempt Anthropic client if missing
             chat_ctrl = getattr(self, "chat_controller", None)
-            hybrid_router = getattr(chat_ctrl, "_hybrid_router", None) if chat_ctrl else None
+            hybrid_router = (
+                getattr(chat_ctrl, "_hybrid_router", None) if chat_ctrl else None
+            )
             if hybrid_router and hybrid_router._api is None:
                 import os as _os
+
                 if _os.environ.get("ANTHROPIC_API_KEY"):
                     try:
                         from cockpit.core.agent.anthropic_client import AnthropicClient
+
                         hybrid_router._api = AnthropicClient()
-                        results.append("  + Claude API: connected (was missing, now initialized)")
+                        results.append(
+                            "  + Claude API: connected (was missing, now initialized)"
+                        )
                     except Exception as exc:
                         results.append(f"  - Claude API: init failed: {exc}")
                 else:
@@ -1238,7 +1501,9 @@ class CockpitApp(App):
 
             reply = "Reconnect results:\n" + "\n".join(results)
             self._append_log(log, f"assistant: {reply}")
-            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            self.state_store.add_chat_message(
+                self.thread_id, "assistant", reply, now_iso
+            )
             return
 
         # Handle /prompt — show the last assembled system instruction
@@ -1254,14 +1519,21 @@ class CockpitApp(App):
             except Exception as exc:
                 reply = f"Could not build prompt: {exc}"
             self._append_log(log, f"assistant: {reply}")
-            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            self.state_store.add_chat_message(
+                self.thread_id, "assistant", reply, now_iso
+            )
             return
 
         if message.strip() == "/cancel":
             self.pending_action = None
             pending.update("No pending action")
             self._append_log(log, "assistant: Pending action canceled.")
-            self.state_store.add_chat_message(self.thread_id, "assistant", "Pending action canceled.", datetime.now(timezone.utc).isoformat())
+            self.state_store.add_chat_message(
+                self.thread_id,
+                "assistant",
+                "Pending action canceled.",
+                datetime.now(timezone.utc).isoformat(),
+            )
             return
 
         if message.strip() == "/confirm":
@@ -1283,18 +1555,25 @@ class CockpitApp(App):
             pending.update("No pending action")
             if await self._execute_internal_action(action, "chat-log"):
                 return
-            await self.execute_action(action["action_id"], action["args"], log_target="chat-log", skip_confirm=True)
+            await self.execute_action(
+                action["action_id"],
+                action["args"],
+                log_target="chat-log",
+                skip_confirm=True,
+            )
             return
 
         if message.startswith("/run "):
             parts = message[5:].split(maxsplit=1)
             action_id = parts[0]
-            args = self.action_registry.parse_kv_args(parts[1] if len(parts) > 1 else "")
+            args = self.action_registry.parse_kv_args(
+                parts[1] if len(parts) > 1 else ""
+            )
             await self.execute_action(action_id, args, log_target="chat-log")
             return
 
         if message.startswith("/read "):
-            raw = message[len("/read "):].strip()
+            raw = message[len("/read ") :].strip()
             max_chars = 16000
             if " max_chars=" in raw:
                 head, tail = raw.rsplit(" max_chars=", 1)
@@ -1307,7 +1586,12 @@ class CockpitApp(App):
             if not result.get("ok"):
                 text = f"assistant: /read failed: {result.get('error')}"
                 self._append_log(log, text)
-                self.state_store.add_chat_message(self.thread_id, "assistant", text, datetime.now(timezone.utc).isoformat())
+                self.state_store.add_chat_message(
+                    self.thread_id,
+                    "assistant",
+                    text,
+                    datetime.now(timezone.utc).isoformat(),
+                )
                 return
 
             snippet = (
@@ -1326,17 +1610,26 @@ class CockpitApp(App):
             return
 
         if message.startswith("/prefer "):
-            rest = message[len("/prefer "):].strip()
+            rest = message[len("/prefer ") :].strip()
             if "=" in rest:
                 key, _, value = rest.partition("=")
                 self.state_store.set_preference(key.strip(), value.strip())
-                self._append_log(log, f"assistant: Preference saved: {key.strip()} = {value.strip()}")
+                self._append_log(
+                    log, f"assistant: Preference saved: {key.strip()} = {value.strip()}"
+                )
             else:
                 prefs = self.state_store.get_preferences()
                 if prefs:
-                    self._append_log(log, "assistant: Current preferences:\n" + "\n".join(f"  {k} = {v}" for k, v in prefs.items()))
+                    self._append_log(
+                        log,
+                        "assistant: Current preferences:\n"
+                        + "\n".join(f"  {k} = {v}" for k, v in prefs.items()),
+                    )
                 else:
-                    self._append_log(log, "assistant: No preferences set. Use /prefer key=value to set one.")
+                    self._append_log(
+                        log,
+                        "assistant: No preferences set. Use /prefer key=value to set one.",
+                    )
             return
 
         if message.strip() == "/restart backend":
@@ -1363,7 +1656,9 @@ class CockpitApp(App):
         async def _spinner() -> None:
             idx = 0
             while self.chat_inflight:
-                status.update(f"{thinking_prefix} {spinner_frames[idx % len(spinner_frames)]}")
+                status.update(
+                    f"{thinking_prefix} {spinner_frames[idx % len(spinner_frames)]}"
+                )
                 idx += 1
                 await asyncio.sleep(0.12)
 
@@ -1376,7 +1671,9 @@ class CockpitApp(App):
                 return
             stream_state["last_flush"] = now
             try:
-                self.call_from_thread(self._set_chat_live_response, stream_state["text"])
+                self.call_from_thread(
+                    self._set_chat_live_response, stream_state["text"]
+                )
             except Exception:
                 pass
 
@@ -1386,6 +1683,7 @@ class CockpitApp(App):
             spinner_task = asyncio.create_task(_spinner())
             _deep = provisional_mode == "deep_analysis"
             _analysis_mode_kw = {"analysis_mode": "deep"} if _deep else {}
+
             def _build_response():
                 try:
                     return self.chat_controller.build_chat_response(
@@ -1421,14 +1719,21 @@ class CockpitApp(App):
             # Store pending_action immediately so /confirm can find it even
             # if it arrives before the finally block clears chat_inflight.
             if response.action_preview:
-                self.pending_action = build_pending_action_payload(response.action_preview, message)
+                self.pending_action = build_pending_action_payload(
+                    response.action_preview, message
+                )
         except Exception as exc:
             self.chat_inflight = False
             status.update("")
             partial = stream_state["text"].strip()
             if partial:
                 self._append_log(log, f"assistant: {partial}")
-                self.state_store.add_chat_message(self.thread_id, "assistant", partial, datetime.now(timezone.utc).isoformat())
+                self.state_store.add_chat_message(
+                    self.thread_id,
+                    "assistant",
+                    partial,
+                    datetime.now(timezone.utc).isoformat(),
+                )
             self._set_chat_live_response("")
             err_str = str(exc)
             # Provide user-friendly messages for common infrastructure errors
@@ -1442,7 +1747,9 @@ class CockpitApp(App):
             else:
                 err = f"assistant: chat error: {exc}"
             self._append_log(log, err)
-            self.state_store.add_chat_message(self.thread_id, "assistant", err, datetime.now(timezone.utc).isoformat())
+            self.state_store.add_chat_message(
+                self.thread_id, "assistant", err, datetime.now(timezone.utc).isoformat()
+            )
             return
         finally:
             self.chat_inflight = False
@@ -1463,7 +1770,9 @@ class CockpitApp(App):
             ticker = extract_ticker_from_payload(
                 {
                     "evidence": response.evidence,
-                    "actions_taken": [response.action_preview] if response.action_preview else [],
+                    "actions_taken": [response.action_preview]
+                    if response.action_preview
+                    else [],
                     "action_preview": response.action_preview,
                 }
             )
@@ -1474,23 +1783,28 @@ class CockpitApp(App):
 
         try:
             self.query_one("#chat-ticker-context", Static).update(
-                f"Context: {self.last_detected_ticker}" if self.last_detected_ticker else ""
+                f"Context: {self.last_detected_ticker}"
+                if self.last_detected_ticker
+                else ""
             )
         except Exception:
             pass
 
         try:
             from rich.markdown import Markdown as _Markdown
-            log.write(_Markdown(f"**{self.ASSISTANT_NAME}:** {assistant_text}"), scroll_end=True)
+
+            log.write(
+                _Markdown(f"**{self.ASSISTANT_NAME}:** {assistant_text}"),
+                scroll_end=True,
+            )
         except Exception:
             self._append_log(log, f"assistant: {assistant_text}")
 
         # Append sources footer for analysis responses
         try:
-            local_details = (response.evidence or [{}])[0].get("details", {})
-            sources_data = local_details.get("sources", {})
+            sources_data = SourcesFormatter.collect_sources_payloads(response.evidence)
+            self._latest_sources_payloads = sources_data
             if sources_data:
-                from cockpit.core.sources import SourcesFormatter
                 show = self.state_store.get_preference("show_sources", "true") == "true"
                 footer = SourcesFormatter.format_footer(sources_data, show_sources=show)
                 if footer:
@@ -1504,14 +1818,10 @@ class CockpitApp(App):
                 meta = response.routing_metadata
                 if meta.get("source") == "api":
                     src = "Anthropic Claude (cloud API)"
-                    self._last_chat_inference_line = (
-                        f"Last chat inference: Anthropic Claude (cloud) — model {meta.get('model', '?')}"
-                    )
+                    self._last_chat_inference_line = f"Last chat inference: Anthropic Claude (cloud) — model {meta.get('model', '?')}"
                 else:
                     src = "Local llama.cpp"
-                    self._last_chat_inference_line = (
-                        f"Last chat inference: local llama.cpp — model {meta.get('model', '?')}"
-                    )
+                    self._last_chat_inference_line = f"Last chat inference: local llama.cpp — model {meta.get('model', '?')}"
                 cost_raw = meta.get("cost_usd")
                 cost_str = f"${float(cost_raw):.4f}" if cost_raw is not None else "free"
                 self._append_log(
@@ -1538,7 +1848,12 @@ class CockpitApp(App):
         except Exception:
             pass
 
-        self.state_store.add_chat_message(self.thread_id, "assistant", assistant_text, datetime.now(timezone.utc).isoformat())
+        self.state_store.add_chat_message(
+            self.thread_id,
+            "assistant",
+            assistant_text,
+            datetime.now(timezone.utc).isoformat(),
+        )
 
         if response.action_preview:
             # pending_action was already set in the try block above (before
@@ -1552,18 +1867,17 @@ class CockpitApp(App):
                     aargs = ap.get("args")
                     if aargs is None:
                         aargs = ap.get("arguments")
-                pending.update(
-                    "Pending: "
-                    f"{aid} "
-                    f"args={aargs} "
-                    "(/confirm or /cancel)"
-                )
+                pending.update(f"Pending: {aid} args={aargs} (/confirm or /cancel)")
 
             # Candlestick chart — generate HTML dashboard immediately.
             if response.action_preview.get("action_id") == "show_candlestick":
                 try:
                     chart_args = response.action_preview.get("args") or {}
-                    chart_ticker = str(chart_args.get("ticker") or self.last_detected_ticker or "UNKNOWN")
+                    chart_ticker = str(
+                        chart_args.get("ticker")
+                        or self.last_detected_ticker
+                        or "UNKNOWN"
+                    )
                     bundle = self.tool_router.get_price_context_for_window(
                         chart_ticker,
                         range_="1y",
@@ -1586,8 +1900,12 @@ class CockpitApp(App):
                         html,
                     )
                     self.last_chart_path = chart_path
-                    self._append_log(log, f"assistant: Chart dashboard written: {chart_path}")
-                    self.pending_action = None  # chart already generated; no subprocess needed
+                    self._append_log(
+                        log, f"assistant: Chart dashboard written: {chart_path}"
+                    )
+                    self.pending_action = (
+                        None  # chart already generated; no subprocess needed
+                    )
                 except Exception as exc:
                     self._append_log(log, f"assistant: chart generation error: {exc}")
 
@@ -1603,15 +1921,25 @@ class CockpitApp(App):
             "answer": assistant_text,
             "response_mode": response.mode,
             "evidence": response.evidence,
-            "actions_taken": [response.action_preview] if response.action_preview else [],
+            "actions_taken": [response.action_preview]
+            if response.action_preview
+            else [],
             "tool_traces": tool_traces,
             "tool_failures": failed_tool_traces,
             "sources": ["local_context"],
             "routing": response.routing_metadata,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
-        md_path, json_path = self.artifacts.write_analysis(self.thread_id, message, assistant_text, export_payload)
-        self.state_store.add_export(self.thread_id, message, md_path, json_path, datetime.now(timezone.utc).isoformat())
+        md_path, json_path = self.artifacts.write_analysis(
+            self.thread_id, message, assistant_text, export_payload
+        )
+        self.state_store.add_export(
+            self.thread_id,
+            message,
+            md_path,
+            json_path,
+            datetime.now(timezone.utc).isoformat(),
+        )
 
     async def execute_action(
         self,
@@ -1621,7 +1949,10 @@ class CockpitApp(App):
         skip_confirm: bool = False,
     ) -> None:
         if self.active_job_task and not self.active_job_task.done():
-            self._write_log(log_target, f"Action already running (job_id={self.active_job_id or 'unknown'}). Kill it first.")
+            self._write_log(
+                log_target,
+                f"Action already running (job_id={self.active_job_id or 'unknown'}). Kill it first.",
+            )
             return
 
         try:
@@ -1710,14 +2041,18 @@ class CockpitApp(App):
             if "CRITICAL" in line:
                 last_critical_line = line
 
-            ticker_match = re.search(r"\[(?:backfill|probe)\]\s+([A-Z0-9.]+)\s+attempt\s+\d+", line)
+            ticker_match = re.search(
+                r"\[(?:backfill|probe)\]\s+([A-Z0-9.]+)\s+attempt\s+\d+", line
+            )
             if ticker_match:
                 ticker = ticker_match.group(1)
                 if ticker != last_ticker:
                     last_ticker = ticker
                     self._write_log(log_target, f"[progress] ingesting ticker={ticker}")
 
-            day_match = re.search(r"\[asx_sweep\]\s+date=([0-9]{4}-[0-9]{2}-[0-9]{2})", line)
+            day_match = re.search(
+                r"\[asx_sweep\]\s+date=([0-9]{4}-[0-9]{2}-[0-9]{2})", line
+            )
             if day_match:
                 day = day_match.group(1)
                 if day != last_day:
@@ -1740,7 +2075,9 @@ class CockpitApp(App):
                         "action_id": run_result.action_id,
                         "args": run_result.args,
                         "started_at": run_result.started_at.isoformat(),
-                        "ended_at": run_result.ended_at.isoformat() if run_result.ended_at else None,
+                        "ended_at": run_result.ended_at.isoformat()
+                        if run_result.ended_at
+                        else None,
                         "status": run_result.status,
                         "exit_code": run_result.exit_code,
                         "stdout_path": run_result.stdout_path,
@@ -1748,7 +2085,10 @@ class CockpitApp(App):
                         "artifacts": run_result.artifacts,
                     }
                 )
-                self._write_log(log_target, f"Completed with status={run_result.status} exit={run_result.exit_code}")
+                self._write_log(
+                    log_target,
+                    f"Completed with status={run_result.status} exit={run_result.exit_code}",
+                )
                 if run_result.status == "failed":
                     # Surface the most important failure context so the user
                     # doesn't have to scroll through the full log.
@@ -1759,7 +2099,12 @@ class CockpitApp(App):
                     elif run_result.stderr_path:
                         # Show last meaningful stderr lines as failure context.
                         try:
-                            tail_lines = Path(run_result.stderr_path).read_text().strip().splitlines()[-5:]
+                            tail_lines = (
+                                Path(run_result.stderr_path)
+                                .read_text()
+                                .strip()
+                                .splitlines()[-5:]
+                            )
                             if tail_lines:
                                 self._write_log(log_target, "⚠ Last stderr output:")
                                 for tl in tail_lines:
@@ -1782,7 +2127,10 @@ class CockpitApp(App):
             return
 
         status = await self.job_runner.cancel_active()
-        self._write_log(log_target, f"Cancel request sent: {status} (job_id={self.active_job_id or 'unknown'})")
+        self._write_log(
+            log_target,
+            f"Cancel request sent: {status} (job_id={self.active_job_id or 'unknown'})",
+        )
 
     async def _confirm_action(self, preview: dict[str, Any]) -> bool:
         # Avoid push_screen_wait (requires worker context). Resolve a Future directly
@@ -1823,8 +2171,12 @@ class CockpitApp(App):
                     title = item.get("title", "?")[:40]
                     chunks = item.get("chunk_count", 0)
                     staged = item.get("staged_at", "")[:10]
-                    lines.append(f"  [{i}] {sid} | {stype} | {title} | staged {staged} | {chunks} chunks")
-                lines.append("Use: /review approve <source_id> or /review reject <source_id>")
+                    lines.append(
+                        f"  [{i}] {sid} | {stype} | {title} | staged {staged} | {chunks} chunks"
+                    )
+                lines.append(
+                    "Use: /review approve <source_id> or /review reject <source_id>"
+                )
                 return "\n".join(lines)
             return "No pending transcripts to review."
         if sub == "approve" and arg:
@@ -1861,7 +2213,11 @@ class CockpitApp(App):
             try:
                 result = client.purge_expired_transcripts()
                 purged = result.get("purged", [])
-                return f"Purged {len(purged)} expired staged source(s)." if purged else "No expired items."
+                return (
+                    f"Purged {len(purged)} expired staged source(s)."
+                    if purged
+                    else "No expired items."
+                )
             except Exception as exc:
                 return f"Purge failed: {exc}"
         return "Usage: /review list|approve|reject|approve-all|expired [source_id]"
@@ -1881,8 +2237,12 @@ class CockpitApp(App):
                     title = item.get("title", "?")[:40]
                     chunks = item.get("chunk_count", 0)
                     staged = item.get("staged_at", "")[:10]
-                    lines.append(f"  [{i}] {sid} | {stype} | {title} | staged {staged} | {chunks} chunks")
-                lines.append("Use: /review approve <source_id> or /review reject <source_id>")
+                    lines.append(
+                        f"  [{i}] {sid} | {stype} | {title} | staged {staged} | {chunks} chunks"
+                    )
+                lines.append(
+                    "Use: /review approve <source_id> or /review reject <source_id>"
+                )
                 return "\n".join(lines)
             return "No pending transcripts to review."
         if sub == "approve" and arg:
@@ -1907,22 +2267,32 @@ class CockpitApp(App):
             return f"Approved {len(pending_items)} source(s), indexed {total} chunks."
         if sub == "expired":
             purged = review_svc.purge_expired()
-            return f"Purged {len(purged)} expired staged source(s)." if purged else "No expired items."
+            return (
+                f"Purged {len(purged)} expired staged source(s)."
+                if purged
+                else "No expired items."
+            )
         return "Usage: /review list|approve|reject|approve-all|expired [source_id]"
 
     def _get_snapshot_data(self, ticker: str) -> tuple[dict | None, list]:
         """Get latest financial snapshot + docs via backend API."""
         if not self._backend_client:
-            logger.warning("Snapshot data requested but backend API client not configured")
+            logger.warning(
+                "Snapshot data requested but backend API client not configured"
+            )
             return None, []
         try:
-            ctx = self._backend_client.get_ticker_context(ticker, docs_limit=20, financials_limit=1)
+            ctx = self._backend_client.get_ticker_context(
+                ticker, docs_limit=20, financials_limit=1
+            )
             return ctx.get("latest_financial_snapshot"), ctx.get("docs", [])
         except Exception as exc:
             logger.warning("Snapshot data fetch failed for %s: %s", ticker, exc)
             return None, []
 
-    async def run_updater_snapshot(self, ticker: str, years: int, process_documents: bool, log_target: str) -> None:
+    async def run_updater_snapshot(
+        self, ticker: str, years: int, process_documents: bool, log_target: str
+    ) -> None:
         before, _ = self._get_snapshot_data(ticker)
 
         args = {
@@ -1931,7 +2301,9 @@ class CockpitApp(App):
             "process_documents": process_documents,
             "report_path": f"reports/financial_update_{ticker}_{self.timestamp()}.json",
         }
-        await self.execute_action("update_ticker_financials", args, log_target=log_target)
+        await self.execute_action(
+            "update_ticker_financials", args, log_target=log_target
+        )
 
         after, docs = self._get_snapshot_data(ticker)
         verification = self.run_verification(ticker=ticker)
@@ -1945,7 +2317,9 @@ class CockpitApp(App):
             verification_summary=verification,
         )
         self.last_snapshot_payload = payload
-        out_path = self.write_report_json(f"reports/snapshots/{ticker}_{self.timestamp()}.json", payload)
+        out_path = self.write_report_json(
+            f"reports/snapshots/{ticker}_{self.timestamp()}.json", payload
+        )
         self._write_log(log_target, f"Snapshot written: {out_path}")
         html_path = self.write_report_html(
             f"reports/cockpit/{ticker}_{self.timestamp()}_snapshot_dashboard.html",
@@ -1956,6 +2330,66 @@ class CockpitApp(App):
 
     def run_verification(self, ticker: str | None = None) -> dict[str, Any]:
         return run_verification(ticker=ticker, backend_api_client=self._backend_client)
+
+    def run_document_extraction(self, document_id: str) -> dict[str, Any]:
+        if not self._backend_client:
+            raise RuntimeError("backend API client not configured")
+        return self._backend_client.process_document(document_id)
+
+    def create_extraction_review_session(
+        self,
+        document_ids: list[str] | None = None,
+        *,
+        run_ids: list[str] | None = None,
+    ) -> dict[str, Any]:
+        if not self._backend_client:
+            raise RuntimeError("backend API client not configured")
+        return self._backend_client.create_extraction_review_session(
+            document_ids=document_ids,
+            run_ids=run_ids,
+        )
+
+    def list_extraction_review_runs(
+        self,
+        *,
+        ticker: str | None = None,
+        limit: int = 50,
+    ) -> dict[str, Any]:
+        if not self._backend_client:
+            raise RuntimeError("backend API client not configured")
+        return self._backend_client.list_extraction_review_runs(
+            ticker=ticker,
+            limit=limit,
+        )
+
+    def get_extraction_review_session(self, session_id: str) -> dict[str, Any]:
+        if not self._backend_client:
+            raise RuntimeError("backend API client not configured")
+        return self._backend_client.get_extraction_review_session(session_id)
+
+    def submit_extraction_review_decision(
+        self,
+        session_id: str,
+        *,
+        item_id: str,
+        status: str,
+        expected_value: Any | None = None,
+        reviewer_note: str | None = None,
+    ) -> dict[str, Any]:
+        if not self._backend_client:
+            raise RuntimeError("backend API client not configured")
+        return self._backend_client.submit_extraction_review_decision(
+            session_id,
+            item_id=item_id,
+            status=status,
+            expected_value=expected_value,
+            reviewer_note=reviewer_note,
+        )
+
+    def get_extraction_review_errors(self, *, limit: int = 200) -> dict[str, Any]:
+        if not self._backend_client:
+            raise RuntimeError("backend API client not configured")
+        return self._backend_client.get_extraction_review_errors(limit=limit)
 
     def _write_log(self, log_target: str, text: str) -> None:
         try:
@@ -2027,7 +2461,9 @@ class CockpitApp(App):
             latest_export_payload: dict[str, Any] | None = None
             effective_ticker = self.last_detected_ticker
             chat_export_limit = 80
-            chat_messages = self.state_store.get_chat_messages(self.thread_id, limit=chat_export_limit)
+            chat_messages = self.state_store.get_chat_messages(
+                self.thread_id, limit=chat_export_limit
+            )
             payload["chat_messages"] = chat_messages
             payload["chat_messages_export_limit"] = chat_export_limit
             try:
@@ -2045,7 +2481,9 @@ class CockpitApp(App):
                 try:
                     json_path = Path(str(latest.get("json_path", ""))).expanduser()
                     if json_path.exists() and json_path.is_file():
-                        latest_export_payload = json.loads(json_path.read_text(encoding="utf-8"))
+                        latest_export_payload = json.loads(
+                            json_path.read_text(encoding="utf-8")
+                        )
                         payload["latest_analysis_export"] = latest_export_payload
                 except (OSError, json.JSONDecodeError) as exc:
                     payload["latest_analysis_export_error"] = str(exc)
@@ -2105,11 +2543,17 @@ class CockpitApp(App):
             parsed = urlsplit(text)
         except Exception:
             parsed = None
-        if parsed and parsed.scheme and (parsed.username is not None or parsed.password is not None):
+        if (
+            parsed
+            and parsed.scheme
+            and (parsed.username is not None or parsed.password is not None)
+        ):
             host = parsed.hostname or ""
             if parsed.port is not None:
                 host = f"{host}:{parsed.port}"
-            return urlunsplit((parsed.scheme, host, parsed.path, parsed.query, parsed.fragment))
+            return urlunsplit(
+                (parsed.scheme, host, parsed.path, parsed.query, parsed.fragment)
+            )
 
         if text.lower().startswith("bearer ") and len(text) > 7:
             return "Bearer " + cls._REDACTED_EXPORT_VALUE
@@ -2122,7 +2566,9 @@ class CockpitApp(App):
 
         if isinstance(value, dict):
             return {
-                str(child_key): cls._sanitize_export_payload(child_value, key=str(child_key))
+                str(child_key): cls._sanitize_export_payload(
+                    child_value, key=str(child_key)
+                )
                 for child_key, child_value in value.items()
             }
         if isinstance(value, list):
@@ -2173,13 +2619,23 @@ class CockpitApp(App):
         # Linux X11
         if shutil.which("xclip"):
             try:
-                subprocess.run(["xclip", "-selection", "clipboard"], input=text, text=True, check=True)
+                subprocess.run(
+                    ["xclip", "-selection", "clipboard"],
+                    input=text,
+                    text=True,
+                    check=True,
+                )
                 return True
             except Exception:
                 pass
         if shutil.which("xsel"):
             try:
-                subprocess.run(["xsel", "--clipboard", "--input"], input=text, text=True, check=True)
+                subprocess.run(
+                    ["xsel", "--clipboard", "--input"],
+                    input=text,
+                    text=True,
+                    check=True,
+                )
                 return True
             except Exception:
                 pass

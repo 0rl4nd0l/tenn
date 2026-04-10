@@ -88,7 +88,14 @@ class _FileIndexerStub:
 class _BackendApiStub:
     RANGE_POINTS = {"3mo": 70, "1y": 260, "3y": 780, "5y": 1260, "10y": 2520}
 
-    def get_price(self, ticker: str, exchange: str, range_: str, interval: str, timeout: float = 12.0):  # noqa: ARG002
+    def get_price(
+        self,
+        ticker: str,
+        exchange: str,
+        range_: str,
+        interval: str,
+        timeout: float = 12.0,
+    ):  # noqa: ARG002
         points = self.RANGE_POINTS.get(range_, 260)
         start = datetime(2020, 1, 1, tzinfo=timezone.utc)
         history = []
@@ -179,16 +186,25 @@ class CockpitToolsAdditionalContextTests(unittest.TestCase):
 
     def test_deep_context_includes_data_quality_and_price_horizons(self):
         router = self._router()
-        payload = router.gather_local_context("BHP", "deep analysis", deep_mode=True).payload
+        payload = router.gather_local_context(
+            "BHP", "deep analysis", deep_mode=True
+        ).payload
         self.assertIn("data_quality", payload)
         self.assertIn("price_horizons", payload)
         self.assertEqual(payload["data_quality"]["extraction_failed_count_recent"], 1)
         self.assertEqual(payload["data_quality"]["low_conf_financial_count_recent"], 1)
-        self.assertEqual(set(payload["price_horizons"].keys()), {"1y", "3y", "5y", "10y"})
+        self.assertEqual(
+            set(payload["price_horizons"].keys()), {"1y", "3y", "5y", "10y"}
+        )
 
     def test_deep_context_merges_company_and_news_rag_with_interleave(self):
-        router = self._router(company_reader=_QualReaderStub("company", 3), news_reader=_QualReaderStub("news", 2))
-        payload = router.gather_local_context("BHP", "deep analysis", deep_mode=True).payload
+        router = self._router(
+            company_reader=_QualReaderStub("company", 3),
+            news_reader=_QualReaderStub("news", 2),
+        )
+        payload = router.gather_local_context(
+            "BHP", "deep analysis", deep_mode=True
+        ).payload
         self.assertIn("qual_context_company", payload)
         self.assertIn("qual_context_news", payload)
         self.assertEqual(payload["qual_context_news"].get("ticker_match_mode"), "soft")
@@ -200,16 +216,65 @@ class CockpitToolsAdditionalContextTests(unittest.TestCase):
         self.assertEqual(hits[1].get("source_corpus"), "news")
         self.assertEqual(merged.get("merge_policy"), "quota_interleave")
 
+    def test_generic_ticker_overview_skips_news_context(self):
+        router = self._router(
+            company_reader=_QualReaderStub("company", 2),
+            news_reader=_QualReaderStub("news", 2),
+        )
+        payload = router.gather_local_context(
+            "BHP", "tell me about BHP", deep_mode=False
+        ).payload
+        self.assertIn("qual_context_company", payload)
+        self.assertNotIn("qual_context_news", payload)
+        merged = payload.get("qual_context", {})
+        hits = merged.get("hits", [])
+        self.assertTrue(
+            all(
+                row.get("source_corpus") != "news"
+                for row in hits
+                if isinstance(row, dict)
+            )
+        )
+
+    def test_news_queries_still_include_news_context(self):
+        router = self._router(
+            company_reader=_QualReaderStub("company", 2),
+            news_reader=_QualReaderStub("news", 2),
+        )
+        payload = router.gather_local_context(
+            "BHP", "latest BHP news", deep_mode=False
+        ).payload
+        self.assertIn("qual_context_news", payload)
+        merged = payload.get("qual_context", {})
+        hits = merged.get("hits", [])
+        self.assertTrue(
+            any(
+                row.get("source_corpus") == "news"
+                for row in hits
+                if isinstance(row, dict)
+            )
+        )
+
     def test_deep_context_falls_back_to_company_only_when_news_absent(self):
-        router = self._router(company_reader=_QualReaderStub("company", 3), news_reader=None)
-        payload = router.gather_local_context("BHP", "deep analysis", deep_mode=True).payload
+        router = self._router(
+            company_reader=_QualReaderStub("company", 3), news_reader=None
+        )
+        payload = router.gather_local_context(
+            "BHP", "deep analysis", deep_mode=True
+        ).payload
         self.assertIn("qual_context_company", payload)
         if "qual_context_news" in payload:
             self.assertIsInstance(payload["qual_context_news"].get("hits"), list)
         merged = payload.get("qual_context", {})
         hits = merged.get("hits", [])
         self.assertTrue(hits)
-        self.assertTrue(any(row.get("source_corpus") == "company" for row in hits if isinstance(row, dict)))
+        self.assertTrue(
+            any(
+                row.get("source_corpus") == "company"
+                for row in hits
+                if isinstance(row, dict)
+            )
+        )
 
     def test_news_sqlite_fallback_populates_news_hits_when_reader_absent(self):
         with tempfile.TemporaryDirectory() as td:
@@ -299,19 +364,34 @@ class CockpitToolsAdditionalContextTests(unittest.TestCase):
                 news_context_db_path=db_path,
                 news_context_corpus_filter="news",
             )
-            payload = router.gather_local_context("BHP", "guidance update", deep_mode=False).payload
+            payload = router.gather_local_context(
+                "BHP", "guidance update", deep_mode=False
+            ).payload
             news_payload = payload.get("qual_context_news", {})
             self.assertTrue(news_payload.get("ok"))
             self.assertEqual(news_payload.get("source"), "news_sqlite_context")
             hits = news_payload.get("hits", [])
             self.assertEqual(len(hits), 2)
-            self.assertTrue(all("BHP" in str(row.get("ticker", "")) or row.get("company") == "BHP" for row in hits))
+            self.assertTrue(
+                all(
+                    "BHP" in str(row.get("ticker", "")) or row.get("company") == "BHP"
+                    for row in hits
+                )
+            )
             merged = payload.get("qual_context", {})
             merged_hits = merged.get("hits", [])
             self.assertTrue(merged_hits)
-            self.assertTrue(any(row.get("source_corpus", "").startswith("news") for row in merged_hits if isinstance(row, dict)))
+            self.assertTrue(
+                any(
+                    row.get("source_corpus", "").startswith("news")
+                    for row in merged_hits
+                    if isinstance(row, dict)
+                )
+            )
 
-    def test_news_sqlite_fallback_ranks_primary_company_above_broad_sector_mention(self):
+    def test_news_sqlite_fallback_ranks_primary_company_above_broad_sector_mention(
+        self,
+    ):
         with tempfile.TemporaryDirectory() as td:
             db_path = Path(td) / "news.sqlite"
             conn = sqlite3.connect(str(db_path))
@@ -351,7 +431,7 @@ class CockpitToolsAdditionalContextTests(unittest.TestCase):
                             "2026-03-03",
                             "|BHP|RIO|NST|",
                             "RIO",
-                            "{\"BHP\":{\"confidence\":0.45,\"label\":\"sector_context\",\"primary\":false,\"score\":0.22}}",
+                            '{"BHP":{"confidence":0.45,"label":"sector_context","primary":false,"score":0.22}}',
                         ),
                         (
                             "news_eodhd:art_bhp_1:0",
@@ -364,7 +444,7 @@ class CockpitToolsAdditionalContextTests(unittest.TestCase):
                             "2026-03-01",
                             "|BHP|",
                             "BHP",
-                            "{\"BHP\":{\"confidence\":0.99,\"label\":\"primary_company\",\"primary\":true,\"score\":0.93}}",
+                            '{"BHP":{"confidence":0.99,"label":"primary_company","primary":true,"score":0.93}}',
                         ),
                     ],
                 )
@@ -378,13 +458,20 @@ class CockpitToolsAdditionalContextTests(unittest.TestCase):
                 news_context_db_path=db_path,
                 news_context_corpus_filter="news",
             )
-            payload = router.gather_local_context("BHP", "guidance", deep_mode=False).payload
+            payload = router.gather_local_context(
+                "BHP", "guidance", deep_mode=False
+            ).payload
             news_payload = payload.get("qual_context_news", {})
             self.assertTrue(news_payload.get("ok"))
             hits = news_payload.get("hits", [])
             self.assertEqual(len(hits), 2)
-            self.assertEqual(hits[0].get("title"), "ASX:BHP lifts guidance after strong quarter")
-            self.assertGreater(float(hits[0].get("final_score") or 0.0), float(hits[1].get("final_score") or 0.0))
+            self.assertEqual(
+                hits[0].get("title"), "ASX:BHP lifts guidance after strong quarter"
+            )
+            self.assertGreater(
+                float(hits[0].get("final_score") or 0.0),
+                float(hits[1].get("final_score") or 0.0),
+            )
             self.assertEqual(hits[0].get("ticker_relation_type"), "primary_company")
             self.assertEqual(hits[1].get("ticker_relation_type"), "sector_context")
 

@@ -174,6 +174,121 @@ class TestInfoCommands(SlashCommandTestBase):
         assert "rag: off" in resp.text
         assert "backend_api: connected" in resp.text
 
+    def test_filestats_usage_when_missing_ticker(self) -> None:
+        resp = self.controller._handle_slash_command("/filestats")
+        assert resp is not None
+        assert "Usage: /filestats <TICKER>" in resp.text
+
+    def test_filestats_fetches_company_dump(self) -> None:
+        backend = MagicMock()
+        backend.get_company_dump.return_value = {
+            "ticker": "BHP",
+            "summary": {
+                "doc_count": 1,
+                "financial_period_count": 1,
+                "announcement_context_count": 0,
+                "risk_note_count": 0,
+                "extraction_failure_count": 0,
+                "low_confidence_financial_count": 0,
+                "company_memory_entry_count": 0,
+                "market_memory_item_count": 0,
+                "price_points_1y": 1,
+                "last_close": 10.5,
+                "one_year_return_pct": 1.2,
+            },
+            "docs": [
+                {
+                    "document_id": "doc-1",
+                    "published_at": "2026-04-01",
+                    "doc_class": "results",
+                    "title": "BHP Results",
+                    "pdf_path": "/tmp/doc.pdf",
+                }
+            ],
+            "financials": [
+                {
+                    "period_end": "2025-12-31",
+                    "period_type": "FY",
+                    "revenue": 100,
+                    "ebit": 50,
+                    "np_attributable": 40,
+                    "operating_cf": 30,
+                    "capex": -10,
+                    "cash_end": 20,
+                    "net_debt": 5,
+                    "confidence_metrics": 0.9,
+                    "source_document_id": "doc-1",
+                }
+            ],
+            "announcement_context": [],
+            "risk_notes": [],
+            "price_history_1y": [
+                {
+                    "timestamp": "2026-04-01T00:00:00Z",
+                    "open": 10,
+                    "high": 11,
+                    "low": 9,
+                    "close": 10.5,
+                    "volume": 1000,
+                }
+            ],
+            "price": {"price": 10.5},
+            "price_summary_1y": {
+                "points": 1,
+                "coverage_start": "2026-04-01",
+                "coverage_end": "2026-04-01",
+                "last_close": 10.5,
+                "high_close": 10.5,
+                "low_close": 10.5,
+                "one_year_return_pct": 1.2,
+            },
+            "extraction_failures": [],
+            "low_confidence_financials": [],
+            "company_memory": {"entries": [], "change_log": []},
+            "market_memory": {"items": []},
+            "errors": [],
+        }
+        self.tool_router.backend_api_client = backend
+
+        resp = self.controller._handle_slash_command("/filestats bhp")
+
+        assert resp is not None
+        assert resp.mode == ResponseMode.FAST
+        assert "Dashboard:" in resp.text
+        assert "Company Data Dump: BHP" in resp.text
+        assert "Financial Metrics" in resp.text
+        backend.get_company_dump.assert_called_once_with(ticker="BHP")
+        assert resp.evidence
+        assert resp.evidence[0]["details"]["dashboard_path"]
+
+    def test_filestats_raw_mode_hint_and_evidence_mode(self) -> None:
+        backend = MagicMock()
+        backend.get_company_dump.return_value = {
+            "ticker": "BHP",
+            "summary": {},
+            "docs": [],
+            "financials": [],
+            "announcement_context": [],
+            "risk_notes": [],
+            "price_history_1y": [],
+            "price": {},
+            "price_summary_1y": {},
+            "extraction_failures": [],
+            "low_confidence_financials": [],
+            "company_memory": {"entries": [], "change_log": []},
+            "market_memory": {"items": []},
+            "errors": [],
+        }
+        self.tool_router.backend_api_client = backend
+
+        resp = self.controller._handle_slash_command("/filestats raw bhp")
+
+        assert resp is not None
+        assert "Dashboard:" in resp.text
+        assert "View: raw (full rows)." in resp.text
+        assert resp.evidence
+        assert resp.evidence[0]["details"]["view_mode"] == "raw"
+
 
 class TestWatchlistCommands(SlashCommandTestBase):
     def test_watch_list_empty(self) -> None:

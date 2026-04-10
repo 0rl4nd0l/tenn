@@ -170,6 +170,7 @@ class AgentLoop:
         system_instruction_builder: Callable[[], str] | None = None,
         tool_definitions_prompt: str | None = None,
         llm_timeout: float = 120.0,
+        synthesis_timeout: float | None = None,
     ) -> None:
         self._llm = llm_client
         self._tool_executor = tool_executor
@@ -180,6 +181,11 @@ class AgentLoop:
             else TOOL_DEFINITIONS_PROMPT
         )
         self._llm_timeout = llm_timeout
+        self._synthesis_timeout = (
+            synthesis_timeout
+            if synthesis_timeout is not None
+            else min(llm_timeout, 90.0)
+        )
 
     # ------------------------------------------------------------------
     # Public entry point
@@ -212,8 +218,20 @@ class AgentLoop:
         force_backend, message = parse_backend_prefix(message)
         self._turn_force_backend = force_backend
         try:
-            return self._run_inner(
-                message, ticker, conversation_history, on_chunk, on_status, on_thinking,
+            result = self._run_inner(
+                message,
+                ticker,
+                conversation_history,
+                on_status,
+                on_thinking,
+            )
+            return self._finalize_result(
+                result,
+                message=message,
+                ticker=ticker,
+                conversation_history=conversation_history,
+                on_chunk=on_chunk,
+                on_status=on_status,
             )
         finally:
             self._turn_force_backend = None
@@ -226,7 +244,6 @@ class AgentLoop:
         message: str,
         ticker: str | None,
         conversation_history: list[dict] | None,
-        on_chunk: Callable[[str], None] | None,
         on_status: Callable[[str], None] | None,
         on_thinking: Callable[[str, str], None] | None = None,
     ) -> AgentResult:
@@ -261,13 +278,33 @@ class AgentLoop:
                 else:
                     on_status(
                         f"LLM reasoning pass {iteration + 1}: "
-                        + ("planning tool usage" if not evidence else "synthesizing from tool results")
+                        + (
+                            "planning tool usage"
+                            if not evidence
+                            else "synthesizing from tool results"
+                        )
                     )
 
             # --- LLM call (non-streaming; we need the full response for JSON parsing) ---
+            call_timeout = self._synthesis_timeout if evidence else self._llm_timeout
             try:
-                raw_response = self._call_llm(messages)
+                raw_response = self._call_llm(
+                    messages,
+                    timeout=call_timeout,
+                    on_status=on_status,
+                )
             except Exception as exc:
+                if evidence and self._is_timeout_error(exc):
+                    timeout_text = self._build_synthesis_timeout_text(evidence, exc)
+                    if on_status:
+                        on_status("Synthesis timed out; returning gathered evidence")
+                    return AgentResult(
+                        text=timeout_text,
+                        evidence=evidence,
+                        tool_calls_made=total_tool_calls,
+                        iterations_used=iteration + 1,
+                        tool_traces=tool_traces,
+                    )
                 logger.error("LLM call failed on iteration %d: %s", iteration, exc)
                 return AgentResult(
                     text=f"I encountered an error communicating with the language model: {exc}",
@@ -302,32 +339,40 @@ class AgentLoop:
                 messages.append({"role": "assistant", "content": raw_response})
 
                 if thinking_steps >= self.MAX_THINKING_STEPS:
-                    messages.append({
-                        "role": "user",
-                        "content": (
-                            "You have completed your assessment. Now execute your plan: "
-                            "call the tools you identified, or respond directly if you "
-                            "determined no tools are needed."
-                        ),
-                    })
+                    messages.append(
+                        {
+                            "role": "user",
+                            "content": (
+                                "You have completed your assessment. Now execute your plan: "
+                                "call the tools you identified, or respond directly if you "
+                                "determined no tools are needed."
+                            ),
+                        }
+                    )
 
                 # Thinking doesn't consume an iteration slot
                 continue
 
             # --- Iteration-0 nudge: if the LLM skips thinking on the first pass ---
-            if not has_thought and iteration == 0 and parsed.type in ("tool_call", "tool_calls"):
+            if (
+                not has_thought
+                and iteration == 0
+                and parsed.type in ("tool_call", "tool_calls")
+            ):
                 has_thought = True  # Don't nudge again
                 logger.info("LLM skipped thinking step; injecting nudge")
                 messages.append({"role": "assistant", "content": raw_response})
-                messages.append({
-                    "role": "user",
-                    "content": (
-                        "Before executing tools, briefly assess: What data do you already have? "
-                        "What gaps exist? Are these the right tools to fill those gaps? "
-                        'Respond with {"type": "thinking", "assessment": "...", "plan": "..."} '
-                        "then proceed with your tool calls."
-                    ),
-                })
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": (
+                            "Before executing tools, briefly assess: What data do you already have? "
+                            "What gaps exist? Are these the right tools to fill those gaps? "
+                            'Respond with {"type": "thinking", "assessment": "...", "plan": "..."} '
+                            "then proceed with your tool calls."
+                        ),
+                    }
+                )
                 # Nudge doesn't consume an iteration slot either
                 continue
 
@@ -337,7 +382,11 @@ class AgentLoop:
             # --- Direct response ---
             if parsed.type == "response":
                 if on_status:
-                    on_status("Rendering final answer")
+                    on_status(
+                        "Preparing final synthesis"
+                        if evidence
+                        else "Rendering final answer"
+                    )
                 if self._looks_like_json_non_answer(raw_response, parsed, evidence):
                     messages.append({"role": "assistant", "content": raw_response})
                     if evidence:
@@ -357,14 +406,14 @@ class AgentLoop:
                             '{"type":"response","content":"..."} in plain English. '
                             "Do not output bare argument objects."
                         )
-                    messages.append({
-                        "role": "user",
-                        "content": retry_instruction,
-                    })
+                    messages.append(
+                        {
+                            "role": "user",
+                            "content": retry_instruction,
+                        }
+                    )
                     continue
                 final_text = parsed.content or raw_response
-                if on_chunk:
-                    self._replay_through_chunks(final_text, on_chunk)
                 return AgentResult(
                     text=final_text,
                     evidence=evidence,
@@ -377,8 +426,6 @@ class AgentLoop:
             if parsed.type == "action_proposal":
                 preview = self._build_action_preview(parsed)
                 explanation = parsed.explanation or parsed.content or ""
-                if on_chunk and explanation:
-                    self._replay_through_chunks(explanation, on_chunk)
                 return AgentResult(
                     text=explanation,
                     evidence=evidence,
@@ -419,7 +466,9 @@ class AgentLoop:
                         iteration=iteration,
                         tool_name=tool_name,
                         arguments=arguments,
-                        result=result if isinstance(result, dict) else {"result": result},
+                        result=result
+                        if isinstance(result, dict)
+                        else {"result": result},
                         duration_ms=elapsed_ms,
                     )
                     tool_traces.append(trace)
@@ -457,8 +506,6 @@ class AgentLoop:
                 "Unexpected parsed type %r; treating as direct response", parsed.type
             )
             final_text = parsed.content or raw_response
-            if on_chunk:
-                self._replay_through_chunks(final_text, on_chunk)
             return AgentResult(
                 text=final_text,
                 evidence=evidence,
@@ -477,8 +524,6 @@ class AgentLoop:
             "I reached my tool-call limit before arriving at a complete answer. "
             f"Here is what I found so far:\n\n{summary}"
         )
-        if on_chunk:
-            self._replay_through_chunks(exhaustion_text, on_chunk)
         return AgentResult(
             text=exhaustion_text,
             evidence=evidence,
@@ -527,7 +572,14 @@ class AgentLoop:
     # LLM interaction
     # ------------------------------------------------------------------
 
-    def _call_llm(self, messages: list[dict[str, str]]) -> str:
+    def _call_llm(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        timeout: float | None = None,
+        on_chunk: Callable[[str], None] | None = None,
+        on_status: Callable[[str], None] | None = None,
+    ) -> str:
         """Call the LLM with the accumulated messages.
 
         Uses ``LlamaCppClient.chat()`` with ``prior_messages`` so the full
@@ -538,9 +590,16 @@ class AgentLoop:
         from cockpit.core.agent.hybrid_router import HybridRouter
 
         fb = getattr(self, "_turn_force_backend", None)
-        kwargs: dict[str, Any] = {"timeout": self._llm_timeout}
-        if fb is not None and isinstance(self._llm, HybridRouter):
-            kwargs["force_backend"] = fb
+        kwargs: dict[str, Any] = {
+            "timeout": timeout if timeout is not None else self._llm_timeout
+        }
+        if on_chunk is not None:
+            kwargs["on_chunk"] = on_chunk
+        if isinstance(self._llm, HybridRouter):
+            if fb is not None:
+                kwargs["force_backend"] = fb
+            if on_status is not None:
+                kwargs["on_status"] = on_status
 
         if len(messages) < 2:
             # Should not happen — but be safe.
@@ -552,6 +611,196 @@ class AgentLoop:
         kwargs["prompt"] = last_content
         kwargs["prior_messages"] = prior
         return self._llm.chat(**kwargs)
+
+    @staticmethod
+    def _is_timeout_error(exc: Exception) -> bool:
+        message = str(exc).lower()
+        return (
+            isinstance(exc, TimeoutError)
+            or "timed out" in message
+            or "timeout" in message
+        )
+
+    def _build_synthesis_timeout_text(
+        self,
+        evidence: list[dict],
+        exc: Exception,
+    ) -> str:
+        logger.warning("Final synthesis timed out: %s", exc)
+        return self._build_available_evidence_text(evidence)
+
+    def _finalize_result(
+        self,
+        result: AgentResult,
+        *,
+        message: str,
+        ticker: str | None,
+        conversation_history: list[dict] | None,
+        on_chunk: Callable[[str], None] | None,
+        on_status: Callable[[str], None] | None,
+    ) -> AgentResult:
+        if result.action_preview is not None:
+            return result
+
+        if result.evidence:
+            if on_status:
+                on_status("Streaming final synthesis")
+            draft_answer = result.text.strip()
+            if on_chunk is not None:
+                final_text = self.synthesize_final_answer_stream(
+                    result.evidence,
+                    on_chunk,
+                    question=message,
+                    ticker=ticker,
+                    conversation_history=conversation_history,
+                    draft_answer=draft_answer,
+                    on_status=on_status,
+                )
+            else:
+                final_text = self.synthesize_final_answer(
+                    result.evidence,
+                    question=message,
+                    ticker=ticker,
+                    conversation_history=conversation_history,
+                    draft_answer=draft_answer,
+                    on_status=on_status,
+                )
+            result.text = final_text.strip()
+            return result
+
+        if on_chunk and result.text:
+            self._replay_through_chunks(result.text, on_chunk)
+        return result
+
+    def synthesize_final_answer(
+        self,
+        evidence: list[dict],
+        *,
+        question: str = "",
+        ticker: str | None = None,
+        conversation_history: list[dict] | None = None,
+        draft_answer: str = "",
+        on_status: Callable[[str], None] | None = None,
+    ) -> str:
+        return self._synthesize_final_answer(
+            evidence,
+            question=question,
+            ticker=ticker,
+            conversation_history=conversation_history,
+            draft_answer=draft_answer,
+            on_chunk=None,
+            on_status=on_status,
+        )
+
+    def synthesize_final_answer_stream(
+        self,
+        evidence: list[dict],
+        on_chunk: Callable[[str], None],
+        *,
+        question: str = "",
+        ticker: str | None = None,
+        conversation_history: list[dict] | None = None,
+        draft_answer: str = "",
+        on_status: Callable[[str], None] | None = None,
+    ) -> str:
+        return self._synthesize_final_answer(
+            evidence,
+            question=question,
+            ticker=ticker,
+            conversation_history=conversation_history,
+            draft_answer=draft_answer,
+            on_chunk=on_chunk,
+            on_status=on_status,
+        )
+
+    def _synthesize_final_answer(
+        self,
+        evidence: list[dict],
+        *,
+        question: str,
+        ticker: str | None,
+        conversation_history: list[dict] | None,
+        draft_answer: str,
+        on_chunk: Callable[[str], None] | None,
+        on_status: Callable[[str], None] | None,
+    ) -> str:
+        messages = self._build_synthesis_messages(
+            evidence,
+            question=question,
+            ticker=ticker,
+            conversation_history=conversation_history,
+            draft_answer=draft_answer,
+        )
+        try:
+            return self._call_llm(
+                messages,
+                timeout=self._synthesis_timeout,
+                on_chunk=on_chunk,
+                on_status=on_status,
+            )
+        except Exception as exc:
+            if self._is_timeout_error(exc):
+                if on_status:
+                    on_status("Final synthesis timed out; returning available evidence")
+                fallback = self._build_synthesis_timeout_text(evidence, exc)
+            elif draft_answer:
+                logger.warning(
+                    "Final synthesis failed; reusing structured draft: %s", exc
+                )
+                fallback = draft_answer.strip()
+            else:
+                logger.warning(
+                    "Final synthesis failed; returning evidence summary: %s", exc
+                )
+                fallback = self._build_available_evidence_text(evidence)
+            if on_chunk:
+                self._replay_through_chunks(fallback, on_chunk)
+            return fallback
+
+    def _build_synthesis_messages(
+        self,
+        evidence: list[dict],
+        *,
+        question: str,
+        ticker: str | None,
+        conversation_history: list[dict] | None,
+        draft_answer: str,
+    ) -> list[dict[str, str]]:
+        system_prompt = (
+            "You are Tenn. Write the final user-facing answer in plain text only. "
+            "Do not output JSON, markdown fences, or internal protocol fields. "
+            "Use only the supplied evidence and draft answer. Do not invent numbers or facts. "
+            "Separate financial facts from interpretation and external context when all three are present. "
+            "Numbers must stay anchored to financial truth, qualitative meaning to company memory, and backdrop to market memory. "
+            "Avoid dumping raw evidence or protocol payloads. "
+            "If the evidence is incomplete, say so plainly."
+        )
+        history_lines = []
+        for msg in (conversation_history or [])[-4:]:
+            role = str(msg.get("role", "user"))
+            content = str(msg.get("content", "")).strip()
+            if content:
+                history_lines.append(f"{role}: {content}")
+        user_prompt = (
+            f"Question:\n{question or '(not provided)'}\n\n"
+            + (f"Ticker context: {ticker}\n\n" if ticker else "")
+            + (
+                "Recent conversation:\n" + "\n".join(history_lines) + "\n\n"
+                if history_lines
+                else ""
+            )
+            + (f"Draft answer:\n{draft_answer}\n\n" if draft_answer else "")
+            + "Evidence:\n"
+            + self._summarize_evidence(evidence)
+            + "\n\nReturn the final answer in plain text only."
+        )
+        return [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+    def _build_available_evidence_text(self, evidence: list[dict]) -> str:
+        return f"Based on available evidence:\n\n{self._summarize_evidence(evidence)}"
 
     # ------------------------------------------------------------------
     # Tool execution
@@ -625,6 +874,9 @@ class AgentLoop:
             "query",
             "ticker",
             "limit",
+            "url",
+            "max_chars",
+            "path",
             "start_date",
             "end_date",
             "date",
@@ -638,12 +890,14 @@ class AgentLoop:
     @staticmethod
     def _build_action_preview(parsed: ParsedResponse) -> dict:
         """Build an action_preview dict from an action_proposal response."""
-        return normalize_action_preview({
-            "tool": parsed.tool or "unknown",
-            "arguments": parsed.arguments or {},
-            "explanation": parsed.explanation or "",
-            "requires_confirmation": True,
-        })
+        return normalize_action_preview(
+            {
+                "tool": parsed.tool or "unknown",
+                "arguments": parsed.arguments or {},
+                "explanation": parsed.explanation or "",
+                "requires_confirmation": True,
+            }
+        )
 
     # ------------------------------------------------------------------
     # Context window management
@@ -707,11 +961,25 @@ class AgentLoop:
 
         lines: list[str] = []
         for entry in evidence:
-            tool = entry.get("tool", "unknown")
-            result = entry.get("result", {})
+            tool = entry.get("tool") or entry.get("type") or "unknown"
+            result = entry.get("result")
+            if result is None:
+                result = entry.get("details", {})
             error = result.get("error") if isinstance(result, dict) else None
             if error:
                 lines.append(f"- {tool}: error — {error}")
+            elif tool == "orchestrator" and isinstance(result, dict):
+                intent = result.get("intent") or "unknown"
+                sources = ", ".join(result.get("source_plan") or []) or "none"
+                lines.append(f"- orchestrator: intent={intent}; sources={sources}")
+            elif tool == "financial_truth" and isinstance(result, dict):
+                lines.append(f"- financial_truth: {_summarize_financial_truth(result)}")
+            elif tool == "company_memory" and isinstance(result, dict):
+                lines.append(
+                    f"- company_memory: {_summarize_memory_items(result.get('items') or [])}"
+                )
+            elif tool == "market_memory" and isinstance(result, dict):
+                lines.append(f"- market_memory: {_summarize_market_memory(result)}")
             else:
                 # Take a short preview of the result.
                 try:
@@ -744,3 +1012,56 @@ class AgentLoop:
             on_chunk(text[i : i + chunk_size])
             if delay > 0 and i + chunk_size < len(text):
                 time.sleep(delay)
+
+
+def _summarize_financial_truth(result: dict) -> str:
+    snapshot = result.get("latest_financial_snapshot") or {}
+    if snapshot:
+        parts = []
+        for field in (
+            "period_end",
+            "revenue",
+            "ebit",
+            "np_attributable",
+            "operating_cf",
+            "net_debt",
+        ):
+            value = snapshot.get(field)
+            if value not in (None, ""):
+                parts.append(f"{field}={value}")
+        if parts:
+            return ", ".join(parts)
+    financials = result.get("financials") or []
+    if financials:
+        periods = [str(row.get("period_end") or "") for row in financials[:2] if row]
+        if periods:
+            return "periods=" + ", ".join(periods)
+    return "no canonical financial rows returned"
+
+
+def _summarize_memory_items(items: list[dict]) -> str:
+    if not items:
+        return "no matching signals"
+    snippets: list[str] = []
+    for item in items[:3]:
+        if not isinstance(item, dict):
+            continue
+        label = str(item.get("type") or "context").replace("_", " ")
+        statement = str(item.get("statement") or "").strip()
+        if statement:
+            snippets.append(f"{label}: {statement}")
+    return "; ".join(snippets) if snippets else "no matching signals"
+
+
+def _summarize_market_memory(result: dict) -> str:
+    sector = str(result.get("sector") or "").strip()
+    parts: list[str] = []
+    if sector:
+        parts.append(f"sector={sector}")
+    sector_items = _summarize_memory_items(result.get("sector_items") or [])
+    macro_items = _summarize_memory_items(result.get("macro_items") or [])
+    if sector_items != "no matching signals":
+        parts.append(f"sector_items={sector_items}")
+    if macro_items != "no matching signals":
+        parts.append(f"macro_items={macro_items}")
+    return "; ".join(parts) if parts else "no matching signals"

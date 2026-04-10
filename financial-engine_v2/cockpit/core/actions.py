@@ -129,6 +129,7 @@ class ActionRegistry:
                     "resume_retry_delay_seconds": float,
                     "report_path": str,
                     "process_documents": bool,
+                    "allow_warning": bool,
                 },
                 is_mutating=True,
                 requires_confirmation=confirm_required,
@@ -745,8 +746,11 @@ class ActionRegistry:
             else:
                 command.append(token)
 
-        if action_id == "full_history" and normalized.get("process_documents"):
-            command.append("--process-documents")
+        if action_id == "full_history":
+            if normalized.get("process_documents"):
+                command.append("--process-documents")
+            if normalized.get("allow_warning"):
+                command.append("--allow-warning")
         if action_id == "update_ticker_financials" and normalized.get(
             "process_documents", True
         ):

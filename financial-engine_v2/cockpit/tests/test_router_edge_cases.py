@@ -4,6 +4,7 @@ Covers all four policies × all client configurations, force_backend overrides,
 cost tracking, API client interfaces (complete vs chat fallback), timeout
 passthrough, and input edge cases (empty / single-message lists).
 """
+
 from __future__ import annotations
 
 import pytest
@@ -16,7 +17,10 @@ from cockpit.core.agent.hybrid_router import HybridRouter, RouterResponse
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _local_client(model: str = "local-model", response: str = "local response") -> MagicMock:
+
+def _local_client(
+    model: str = "local-model", response: str = "local response"
+) -> MagicMock:
     """Minimal local client stub: exposes chat()."""
     client = MagicMock()
     client.model = model
@@ -24,7 +28,9 @@ def _local_client(model: str = "local-model", response: str = "local response") 
     return client
 
 
-def _api_client_chat_only(model: str = "api-model", response: str = "api response") -> MagicMock:
+def _api_client_chat_only(
+    model: str = "api-model", response: str = "api response"
+) -> MagicMock:
     """API client with only chat() — no complete() attribute."""
     client = MagicMock(spec=["chat", "model"])
     client.model = model
@@ -60,6 +66,7 @@ _MSG2 = [
 # 1. All four policies × all four client availability combinations
 # ---------------------------------------------------------------------------
 
+
 class TestAllFourPoliciesWithBothClients:
     """For each policy: (a) both clients, (b) local only, (c) API only, (d) neither."""
 
@@ -94,7 +101,9 @@ class TestAllFourPoliciesWithBothClients:
     def test_local_preferred__both_clients__uses_local(self):
         local = _local_client()
         api = _api_client_chat_only()
-        router = HybridRouter(llm_client=local, api_client=api, policy="local_preferred")
+        router = HybridRouter(
+            llm_client=local, api_client=api, policy="local_preferred"
+        )
         resp = router.complete(_MSG1)
         assert resp.source == "local"
         api.chat.assert_not_called()
@@ -171,8 +180,8 @@ class TestAllFourPoliciesWithBothClients:
 # 2. force_backend overrides policy
 # ---------------------------------------------------------------------------
 
-class TestForceBackendOverridesPolicy:
 
+class TestForceBackendOverridesPolicy:
     def test_force_local_with_api_only_policy_uses_local(self):
         local = _local_client()
         api = _api_client_chat_only()
@@ -207,8 +216,8 @@ class TestForceBackendOverridesPolicy:
 # 3. Invalid force_backend raises ValueError
 # ---------------------------------------------------------------------------
 
-class TestInvalidForceBackendRaises:
 
+class TestInvalidForceBackendRaises:
     def test_invalid_string_raises_value_error(self):
         router = HybridRouter(llm_client=_local_client(), policy="local_only")
         with pytest.raises(ValueError, match="force_backend must be"):
@@ -226,12 +235,30 @@ class TestInvalidForceBackendRaises:
             router.complete(_MSG1, force_backend=bad)
 
 
+class TestRoutingReasonValues:
+    def test_force_api_sets_force_reason(self):
+        router = HybridRouter(
+            llm_client=_local_client(),
+            api_client=_api_client_chat_only(),
+            policy="local_only",
+        )
+        router.complete(_MSG1, force_backend="api")
+        assert router.cost_log()[-1]["routing_reason"] == "force:api"
+
+    def test_api_preferred_policy_sets_policy_reason(self):
+        router = HybridRouter(
+            api_client=_api_client_chat_only(), policy="api_preferred"
+        )
+        router.complete(_MSG1)
+        assert router.cost_log()[-1]["routing_reason"] == "policy:api_preferred"
+
+
 # ---------------------------------------------------------------------------
 # 4. Cost tracking accumulates correctly
 # ---------------------------------------------------------------------------
 
-class TestCostTrackingAccumulates:
 
+class TestCostTrackingAccumulates:
     def test_five_local_calls_produce_five_entries(self):
         router = HybridRouter(llm_client=_local_client(), policy="local_only")
         for _ in range(5):
@@ -261,6 +288,8 @@ class TestCostTrackingAccumulates:
         assert "model" in entry
         assert "latency_ms" in entry
         assert "cost_usd" in entry
+        assert "routing_reason" in entry
+        assert entry["routing_reason"] == "policy:local_only"
 
     def test_cost_log_returns_independent_copy(self):
         """Mutating the returned list must not affect internal state."""
@@ -275,8 +304,8 @@ class TestCostTrackingAccumulates:
 # 5. API client with complete() method — cost and routing
 # ---------------------------------------------------------------------------
 
-class TestApiClientWithCompleteMethod:
 
+class TestApiClientWithCompleteMethod:
     def test_complete_is_called_not_chat(self):
         api = _api_client_with_complete()
         router = HybridRouter(api_client=api, policy="api_only")
@@ -326,8 +355,8 @@ class TestApiClientWithCompleteMethod:
 # 6. API client without complete() falls back to chat()
 # ---------------------------------------------------------------------------
 
-class TestApiClientWithoutCompleteFallback:
 
+class TestApiClientWithoutCompleteFallback:
     def test_chat_fallback_is_invoked(self):
         api = _api_client_chat_only()
         router = HybridRouter(api_client=api, policy="api_only")
@@ -354,8 +383,8 @@ class TestApiClientWithoutCompleteFallback:
 # 7. Timeout passthrough to llm_client.chat()
 # ---------------------------------------------------------------------------
 
-class TestLocalClientTimeoutPassthrough:
 
+class TestLocalClientTimeoutPassthrough:
     def test_custom_timeout_passed_to_local_chat(self):
         local = _local_client()
         router = HybridRouter(llm_client=local, policy="local_only", llm_timeout=42.0)
@@ -386,11 +415,38 @@ class TestLocalClientTimeoutPassthrough:
 
 
 # ---------------------------------------------------------------------------
-# 8. Empty messages list — should not crash
+# 8. on_chunk passthrough for chat() adapter
 # ---------------------------------------------------------------------------
 
-class TestEmptyMessagesList:
 
+class TestChatOnChunkPassthrough:
+    def test_chat_passes_on_chunk_to_local_client(self):
+        local = _local_client()
+        router = HybridRouter(llm_client=local, policy="local_only")
+        callback = MagicMock()
+
+        router.chat(prompt="hello", on_chunk=callback)
+
+        kw = local.chat.call_args.kwargs
+        assert kw.get("on_chunk") is callback
+
+    def test_chat_passes_on_chunk_to_api_chat_fallback(self):
+        api = _api_client_chat_only()
+        router = HybridRouter(api_client=api, policy="api_only")
+        callback = MagicMock()
+
+        router.chat(prompt="hello", on_chunk=callback)
+
+        kw = api.chat.call_args.kwargs
+        assert kw.get("on_chunk") is callback
+
+
+# ---------------------------------------------------------------------------
+# 9. Empty messages list — should not crash
+# ---------------------------------------------------------------------------
+
+
+class TestEmptyMessagesList:
     def test_empty_list_local_does_not_raise(self):
         local = _local_client()
         router = HybridRouter(llm_client=local, policy="local_only")
@@ -426,11 +482,11 @@ class TestEmptyMessagesList:
 
 
 # ---------------------------------------------------------------------------
-# 9. Single message — no prior_messages
+# 10. Single message — no prior_messages
 # ---------------------------------------------------------------------------
 
-class TestSingleMessageNoPrior:
 
+class TestSingleMessageNoPrior:
     def test_single_message_prior_is_none(self):
         local = _local_client()
         router = HybridRouter(llm_client=local, policy="local_only")
@@ -475,11 +531,11 @@ class TestSingleMessageNoPrior:
 
 
 # ---------------------------------------------------------------------------
-# 10. Invalid policy raises ValueError at construction time
+# 11. Invalid policy raises ValueError at construction time
 # ---------------------------------------------------------------------------
 
-class TestInvalidPolicyRaises:
 
+class TestInvalidPolicyRaises:
     def test_bogus_policy_raises_value_error(self):
         with pytest.raises(ValueError, match="Unknown HybridRouter policy"):
             HybridRouter(policy="bogus")

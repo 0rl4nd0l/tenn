@@ -12,6 +12,13 @@ def _json_compact(value: Any) -> str:
     return json.dumps(value, separators=(",", ":"), default=str)
 
 
+def _to_float(value: Any) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def _build_document(title: str, body: str, script: str) -> str:
     safe_title = escape(title)
     return f"""<!DOCTYPE html>
@@ -113,10 +120,26 @@ def _build_document(title: str, body: str, script: str) -> str:
 
 def build_snapshot_dashboard_html(payload: dict[str, Any]) -> str:
     ticker = str(payload.get("ticker") or "UNKNOWN")
-    confidence_summary = payload.get("confidence_summary") if isinstance(payload.get("confidence_summary"), dict) else {}
-    verification_summary = payload.get("verification_summary") if isinstance(payload.get("verification_summary"), dict) else {}
-    verification_checks = verification_summary.get("checks") if isinstance(verification_summary.get("checks"), dict) else {}
-    metrics_diff = payload.get("metrics_diff") if isinstance(payload.get("metrics_diff"), list) else []
+    confidence_summary = (
+        payload.get("confidence_summary")
+        if isinstance(payload.get("confidence_summary"), dict)
+        else {}
+    )
+    verification_summary = (
+        payload.get("verification_summary")
+        if isinstance(payload.get("verification_summary"), dict)
+        else {}
+    )
+    verification_checks = (
+        verification_summary.get("checks")
+        if isinstance(verification_summary.get("checks"), dict)
+        else {}
+    )
+    metrics_diff = (
+        payload.get("metrics_diff")
+        if isinstance(payload.get("metrics_diff"), list)
+        else []
+    )
 
     metric_fields: list[str] = []
     metric_before: list[float | None] = []
@@ -137,7 +160,12 @@ def build_snapshot_dashboard_html(payload: dict[str, Any]) -> str:
         ("Ticker", ticker),
         ("Confidence Before", str(confidence_summary.get("before") or "n/a")),
         ("Confidence After", str(confidence_summary.get("after") or "n/a")),
-        ("Verification Flags", str(sum(int(v or 0) for v in verification_checks.values())) if verification_checks else "0"),
+        (
+            "Verification Flags",
+            str(sum(int(v or 0) for v in verification_checks.values()))
+            if verification_checks
+            else "0",
+        ),
     ]
     cards_html = "".join(
         f'<div class="card"><div class="label">{escape(label)}</div><div class="value mono">{escape(value)}</div></div>'
@@ -194,10 +222,26 @@ def build_snapshot_dashboard_html(payload: dict[str, Any]) -> str:
 def build_price_dashboard_html(payload: dict[str, Any]) -> str:
     ticker = str(payload.get("ticker") or "UNKNOWN")
     window = str(payload.get("window") or "1y")
-    price_state = payload.get("price_state") if isinstance(payload.get("price_state"), dict) else {}
-    current = price_state.get("current") if isinstance(price_state.get("current"), dict) else {}
-    metrics = price_state.get("metrics") if isinstance(price_state.get("metrics"), dict) else {}
-    recent_history = payload.get("recent_history") if isinstance(payload.get("recent_history"), list) else []
+    price_state = (
+        payload.get("price_state")
+        if isinstance(payload.get("price_state"), dict)
+        else {}
+    )
+    current = (
+        price_state.get("current")
+        if isinstance(price_state.get("current"), dict)
+        else {}
+    )
+    metrics = (
+        price_state.get("metrics")
+        if isinstance(price_state.get("metrics"), dict)
+        else {}
+    )
+    recent_history = (
+        payload.get("recent_history")
+        if isinstance(payload.get("recent_history"), list)
+        else []
+    )
 
     timestamps: list[str] = []
     closes: list[float | None] = []
@@ -217,10 +261,24 @@ def build_price_dashboard_html(payload: dict[str, Any]) -> str:
 
     cards = [
         ("Ticker", ticker),
-        ("Current Close", f"{current_close:.4f}" if isinstance(current_close, (int, float)) else "n/a"),
-        ("YTD Return", f"{ytd_return:.2f}%" if isinstance(ytd_return, (int, float)) else "n/a"),
-        ("Volatility 30d", f"{vol_30d:.2f}%" if isinstance(vol_30d, (int, float)) else "n/a"),
-        ("Max Drawdown", f"{max_drawdown:.2f}%" if isinstance(max_drawdown, (int, float)) else "n/a"),
+        (
+            "Current Close",
+            f"{current_close:.4f}"
+            if isinstance(current_close, (int, float))
+            else "n/a",
+        ),
+        (
+            "YTD Return",
+            f"{ytd_return:.2f}%" if isinstance(ytd_return, (int, float)) else "n/a",
+        ),
+        (
+            "Volatility 30d",
+            f"{vol_30d:.2f}%" if isinstance(vol_30d, (int, float)) else "n/a",
+        ),
+        (
+            "Max Drawdown",
+            f"{max_drawdown:.2f}%" if isinstance(max_drawdown, (int, float)) else "n/a",
+        ),
         ("Sample Count", str(sample_count)),
     ]
     cards_html = "".join(
@@ -290,10 +348,26 @@ def build_price_dashboard_html(payload: dict[str, Any]) -> str:
 def build_candlestick_dashboard_html(payload: dict[str, Any]) -> str:
     ticker = str(payload.get("ticker") or "UNKNOWN")
     window = str(payload.get("window") or "1y")
-    price_state = payload.get("price_state") if isinstance(payload.get("price_state"), dict) else {}
-    current = price_state.get("current") if isinstance(price_state.get("current"), dict) else {}
-    metrics = price_state.get("metrics") if isinstance(price_state.get("metrics"), dict) else {}
-    recent_history = payload.get("recent_history") if isinstance(payload.get("recent_history"), list) else []
+    price_state = (
+        payload.get("price_state")
+        if isinstance(payload.get("price_state"), dict)
+        else {}
+    )
+    current = (
+        price_state.get("current")
+        if isinstance(price_state.get("current"), dict)
+        else {}
+    )
+    metrics = (
+        price_state.get("metrics")
+        if isinstance(price_state.get("metrics"), dict)
+        else {}
+    )
+    recent_history = (
+        payload.get("recent_history")
+        if isinstance(payload.get("recent_history"), list)
+        else []
+    )
 
     timestamps: list[str] = []
     opens: list[float | None] = []
@@ -316,7 +390,11 @@ def build_candlestick_dashboard_html(payload: dict[str, Any]) -> str:
     for i in range(1, len(closes)):
         prev = closes[i - 1]
         cur = closes[i]
-        if isinstance(prev, (int, float)) and isinstance(cur, (int, float)) and prev != 0:
+        if (
+            isinstance(prev, (int, float))
+            and isinstance(cur, (int, float))
+            and prev != 0
+        ):
             daily_returns.append(((cur - prev) / prev) * 100.0)
         else:
             daily_returns.append(None)
@@ -329,10 +407,24 @@ def build_candlestick_dashboard_html(payload: dict[str, Any]) -> str:
 
     cards = [
         ("Ticker", ticker),
-        ("Current Close", f"{current_close:.4f}" if isinstance(current_close, (int, float)) else "n/a"),
-        ("YTD Return", f"{ytd_return:.2f}%" if isinstance(ytd_return, (int, float)) else "n/a"),
-        ("Volatility 30d", f"{vol_30d:.2f}%" if isinstance(vol_30d, (int, float)) else "n/a"),
-        ("Max Drawdown", f"{max_drawdown:.2f}%" if isinstance(max_drawdown, (int, float)) else "n/a"),
+        (
+            "Current Close",
+            f"{current_close:.4f}"
+            if isinstance(current_close, (int, float))
+            else "n/a",
+        ),
+        (
+            "YTD Return",
+            f"{ytd_return:.2f}%" if isinstance(ytd_return, (int, float)) else "n/a",
+        ),
+        (
+            "Volatility 30d",
+            f"{vol_30d:.2f}%" if isinstance(vol_30d, (int, float)) else "n/a",
+        ),
+        (
+            "Max Drawdown",
+            f"{max_drawdown:.2f}%" if isinstance(max_drawdown, (int, float)) else "n/a",
+        ),
         ("Sample Count", str(sample_count)),
     ]
     cards_html = "".join(
@@ -392,10 +484,319 @@ def build_candlestick_dashboard_html(payload: dict[str, Any]) -> str:
     return _build_document(f"{ticker} Candlestick Dashboard", body, script)
 
 
+def build_filestats_dashboard_html(payload: dict[str, Any]) -> str:
+    ticker = str(payload.get("ticker") or "UNKNOWN")
+    generated_at = str(payload.get("generated_at") or "")
+    summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+
+    docs = payload.get("docs") if isinstance(payload.get("docs"), list) else []
+    financials = (
+        payload.get("financials") if isinstance(payload.get("financials"), list) else []
+    )
+    risk_notes = (
+        payload.get("risk_notes") if isinstance(payload.get("risk_notes"), list) else []
+    )
+    price_history = (
+        payload.get("price_history_1y")
+        if isinstance(payload.get("price_history_1y"), list)
+        else []
+    )
+    extraction_failures = (
+        payload.get("extraction_failures")
+        if isinstance(payload.get("extraction_failures"), list)
+        else []
+    )
+    low_conf = (
+        payload.get("low_confidence_financials")
+        if isinstance(payload.get("low_confidence_financials"), list)
+        else []
+    )
+    company_memory = (
+        payload.get("company_memory")
+        if isinstance(payload.get("company_memory"), dict)
+        else {}
+    )
+    market_memory = (
+        payload.get("market_memory")
+        if isinstance(payload.get("market_memory"), dict)
+        else {}
+    )
+    cockpit_local = (
+        payload.get("cockpit_local_memory")
+        if isinstance(payload.get("cockpit_local_memory"), dict)
+        else {}
+    )
+
+    timestamps: list[str] = []
+    closes: list[float] = []
+    for row in price_history:
+        if not isinstance(row, dict):
+            continue
+        close = _to_float(row.get("close"))
+        ts = str(row.get("timestamp") or "")
+        if close is None or not ts:
+            continue
+        timestamps.append(ts)
+        closes.append(close)
+
+    doc_class_counts: dict[str, int] = {}
+    recent_docs: list[dict[str, str]] = []
+    for row in docs:
+        if not isinstance(row, dict):
+            continue
+        doc_class = str(row.get("doc_class") or "other").strip() or "other"
+        doc_class_counts[doc_class] = int(doc_class_counts.get(doc_class, 0)) + 1
+        recent_docs.append(
+            {
+                "published": str(row.get("published_at") or "")[:10],
+                "doc_class": doc_class,
+                "title": str(row.get("title") or ""),
+                "document_id": str(row.get("document_id") or ""),
+            }
+        )
+
+    financial_rows: list[dict[str, Any]] = []
+    for row in financials[:20]:
+        if not isinstance(row, dict):
+            continue
+        financial_rows.append(
+            {
+                "period_end": str(row.get("period_end") or ""),
+                "period_type": str(row.get("period_type") or ""),
+                "revenue": row.get("revenue"),
+                "ebit": row.get("ebit"),
+                "npat": row.get("np_attributable"),
+                "operating_cf": row.get("operating_cf"),
+                "capex": row.get("capex"),
+            }
+        )
+
+    risk_rows: list[dict[str, str]] = []
+    for row in risk_notes[:20]:
+        if not isinstance(row, dict):
+            continue
+        risk_rows.append(
+            {
+                "published": str(row.get("published_at") or "")[:10],
+                "title": str(row.get("title") or ""),
+                "risk_summary": str(row.get("risk_summary") or ""),
+                "guidance": str(row.get("guidance_summary") or ""),
+            }
+        )
+
+    quality_counts = {
+        "extraction_failures": len(
+            [r for r in extraction_failures if isinstance(r, dict)]
+        ),
+        "low_conf_financials": len([r for r in low_conf if isinstance(r, dict)]),
+        "risk_notes": len([r for r in risk_notes if isinstance(r, dict)]),
+    }
+
+    memory_counts = {
+        "backend_company_entries": len(
+            [r for r in (company_memory.get("entries") or []) if isinstance(r, dict)]
+        ),
+        "backend_market_items": len(
+            [r for r in (market_memory.get("items") or []) if isinstance(r, dict)]
+        ),
+        "cockpit_agent_memory": len(
+            [
+                r
+                for r in (cockpit_local.get("agent_memory") or [])
+                if isinstance(r, dict)
+            ]
+        ),
+        "cockpit_dossier_findings": len(
+            [
+                r
+                for r in (cockpit_local.get("dossier_findings") or [])
+                if isinstance(r, dict)
+            ]
+        ),
+        "cockpit_watchlist_history": len(
+            [
+                r
+                for r in (cockpit_local.get("watchlist_history") or [])
+                if isinstance(r, dict)
+            ]
+        ),
+        "cockpit_strategy_criteria": len(
+            [
+                r
+                for r in (cockpit_local.get("strategy_criteria") or [])
+                if isinstance(r, dict)
+            ]
+        ),
+    }
+
+    cards = [
+        ("Ticker", ticker),
+        ("Docs", str(summary.get("doc_count", len(docs)))),
+        (
+            "Financial Periods",
+            str(summary.get("financial_period_count", len(financials))),
+        ),
+        ("1Y Points", str(summary.get("price_points_1y", len(timestamps)))),
+        (
+            "Last Close",
+            (
+                f"{float(summary.get('last_close')):,.4f}"
+                if _to_float(summary.get("last_close")) is not None
+                else "n/a"
+            ),
+        ),
+        (
+            "1Y Return",
+            (
+                f"{float(summary.get('one_year_return_pct')):+.2f}%"
+                if _to_float(summary.get("one_year_return_pct")) is not None
+                else "n/a"
+            ),
+        ),
+        ("Risk Notes", str(summary.get("risk_note_count", len(risk_notes)))),
+        (
+            "Extraction Failures",
+            str(
+                summary.get(
+                    "extraction_failure_count", quality_counts["extraction_failures"]
+                )
+            ),
+        ),
+    ]
+    cards_html = "".join(
+        f'<div class="card"><div class="label">{escape(label)}</div><div class="value mono">{escape(value)}</div></div>'
+        for label, value in cards
+    )
+
+    body = f"""
+    <section class="hero">
+      <h1>{escape(ticker)} Filestats Dashboard</h1>
+      <p>Visual company data dump with price, filing, financial, quality, and memory context.</p>
+      <p class="meta mono">generated={escape(generated_at)} | price_window=1y daily</p>
+    </section>
+    <section class="grid">{cards_html}</section>
+    <section class="panel"><h2>Price (1Y Daily Close)</h2><div id="fs-price" class="plot"></div></section>
+    <section class="panel"><h2>Document Classes</h2><div id="fs-doc-class" class="plot"></div></section>
+    <section class="panel"><h2>Latest Financial Snapshot</h2><div id="fs-financial-bars" class="plot"></div></section>
+    <section class="panel"><h2>Data Quality</h2><div id="fs-quality" class="plot"></div></section>
+    <section class="panel"><h2>Memory Surface Counts</h2><div id="fs-memory" class="plot"></div></section>
+    <section class="panel"><h2>Recent Documents</h2><div id="fs-docs-table" class="plot"></div></section>
+    <section class="panel"><h2>Narrative / Risk Notes</h2><div id="fs-risk-table" class="plot"></div></section>
+    """
+
+    latest_fin = financial_rows[0] if financial_rows else {}
+    fin_labels = ["Revenue", "EBIT", "NPAT", "Operating CF", "Capex"]
+    fin_values = [
+        _to_float(latest_fin.get("revenue")),
+        _to_float(latest_fin.get("ebit")),
+        _to_float(latest_fin.get("npat")),
+        _to_float(latest_fin.get("operating_cf")),
+        _to_float(latest_fin.get("capex")),
+    ]
+
+    doc_classes_sorted = sorted(
+        doc_class_counts.items(), key=lambda item: item[1], reverse=True
+    )
+    doc_class_names = [name for name, _ in doc_classes_sorted]
+    doc_class_values = [count for _, count in doc_classes_sorted]
+
+    docs_table = recent_docs[:30]
+    risks_table = risk_rows[:20]
+
+    script = f"""
+    const timestamps = {_json_compact(timestamps)};
+    const closes = {_json_compact(closes)};
+    const docClassNames = {_json_compact(doc_class_names)};
+    const docClassValues = {_json_compact(doc_class_values)};
+    const finLabels = {_json_compact(fin_labels)};
+    const finValues = {_json_compact(fin_values)};
+    const qualityCounts = {_json_compact(quality_counts)};
+    const memoryCounts = {_json_compact(memory_counts)};
+    const docsTable = {_json_compact(docs_table)};
+    const risksTable = {_json_compact(risks_table)};
+    const finPeriodLabel = {_json_compact(str(latest_fin.get("period_end") or ""))};
+
+    const baseLayout = {{
+      paper_bgcolor: 'rgba(0,0,0,0)',
+      plot_bgcolor: 'rgba(0,0,0,0)',
+      font: {{color: '#e6edf3'}},
+      margin: {{l: 60, r: 20, t: 30, b: 90}}
+    }};
+
+    Plotly.newPlot('fs-price', [
+      {{type: 'scatter', mode: 'lines', x: timestamps, y: closes, line: {{color: '#58a6ff', width: 2}}, name: 'Close'}}
+    ], {{...baseLayout, xaxis: {{type: 'date'}}}}, {{displayModeBar: false, responsive: true}});
+
+    Plotly.newPlot('fs-doc-class', [
+      {{type: 'bar', x: docClassNames, y: docClassValues, marker: {{color: '#3fb950'}}}}
+    ], baseLayout, {{displayModeBar: false, responsive: true}});
+
+    Plotly.newPlot('fs-financial-bars', [
+      {{type: 'bar', x: finLabels, y: finValues, marker: {{color: ['#58a6ff','#3fb950','#d29922','#2f81f7','#f85149']}}}}
+    ], {{...baseLayout, title: {{text: finPeriodLabel ? `Period: ${{finPeriodLabel}}` : 'No financial rows'}}}}, {{displayModeBar: false, responsive: true}});
+
+    Plotly.newPlot('fs-quality', [
+      {{type: 'bar', x: Object.keys(qualityCounts), y: Object.values(qualityCounts), marker: {{color: ['#f85149','#d29922','#58a6ff']}}}}
+    ], baseLayout, {{displayModeBar: false, responsive: true}});
+
+    Plotly.newPlot('fs-memory', [
+      {{type: 'bar', x: Object.keys(memoryCounts), y: Object.values(memoryCounts), marker: {{color: '#7ee787'}}}}
+    ], {{...baseLayout, margin: {{l: 80, r: 20, t: 20, b: 140}}}}, {{displayModeBar: false, responsive: true}});
+
+    Plotly.newPlot('fs-docs-table', [{{
+      type: 'table',
+      header: {{
+        values: ['Published', 'Class', 'Title', 'Document ID'],
+        fill: {{color: '#1f2937'}},
+        font: {{color: '#e6edf3'}},
+        align: 'left'
+      }},
+      cells: {{
+        values: [
+          docsTable.map(r => r.published || ''),
+          docsTable.map(r => r.doc_class || ''),
+          docsTable.map(r => r.title || ''),
+          docsTable.map(r => r.document_id || ''),
+        ],
+        fill: {{color: '#161b22'}},
+        font: {{color: '#e6edf3'}},
+        align: 'left'
+      }}
+    }}], {{paper_bgcolor:'rgba(0,0,0,0)', margin: {{l: 10, r: 10, t: 10, b: 10}}}}, {{displayModeBar: false, responsive: true}});
+
+    Plotly.newPlot('fs-risk-table', [{{
+      type: 'table',
+      header: {{
+        values: ['Published', 'Title', 'Risk Summary', 'Guidance'],
+        fill: {{color: '#1f2937'}},
+        font: {{color: '#e6edf3'}},
+        align: 'left'
+      }},
+      cells: {{
+        values: [
+          risksTable.map(r => r.published || ''),
+          risksTable.map(r => r.title || ''),
+          risksTable.map(r => r.risk_summary || ''),
+          risksTable.map(r => r.guidance || ''),
+        ],
+        fill: {{color: '#161b22'}},
+        font: {{color: '#e6edf3'}},
+        align: 'left'
+      }}
+    }}], {{paper_bgcolor:'rgba(0,0,0,0)', margin: {{l: 10, r: 10, t: 10, b: 10}}}}, {{displayModeBar: false, responsive: true}});
+    """
+
+    return _build_document(f"{ticker} Filestats Dashboard", body, script)
+
+
 def build_verification_dashboard_html(payload: dict[str, Any]) -> str:
     ticker = str(payload.get("ticker") or "ALL")
     checks = payload.get("checks") if isinstance(payload.get("checks"), dict) else {}
-    remediation = payload.get("remediation") if isinstance(payload.get("remediation"), list) else []
+    remediation = (
+        payload.get("remediation")
+        if isinstance(payload.get("remediation"), list)
+        else []
+    )
     samples = payload.get("samples") if isinstance(payload.get("samples"), dict) else {}
 
     sample_rows: list[dict[str, str]] = []
@@ -409,8 +810,18 @@ def build_verification_dashboard_html(payload: dict[str, Any]) -> str:
                 {
                     "bucket": str(bucket),
                     "ticker": str(row.get("ticker") or ""),
-                    "title": str(row.get("title") or row.get("document_id") or row.get("source_document_id") or ""),
-                    "detail": str(row.get("error") or row.get("status") or row.get("period_end") or ""),
+                    "title": str(
+                        row.get("title")
+                        or row.get("document_id")
+                        or row.get("source_document_id")
+                        or ""
+                    ),
+                    "detail": str(
+                        row.get("error")
+                        or row.get("status")
+                        or row.get("period_end")
+                        or ""
+                    ),
                 }
             )
 

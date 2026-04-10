@@ -224,6 +224,36 @@ class TestSearchNewsTickerInference:
         assert result["ok"] is True
         assert "recommended_tool_call" not in result
 
+    def test_search_news_compacts_hit_payload_for_model_context(self):
+        executor = _make_executor()
+        executor._router.get_news_context.return_value = {
+            "ok": True,
+            "hits": [
+                {
+                    "title": "BHP copper update",
+                    "url": "https://example.com/bhp",
+                    "provider": "newswire",
+                    "ticker": "SFR",
+                    "tickers": ["SFR", "BHP"],
+                    "published_at": "2026-04-08T03:00:00Z",
+                    "score": 0.61,
+                    "text": "BHP expanded its copper footprint. " * 40,
+                }
+            ],
+            "error": None,
+            "_source": "qdrant",
+        }
+
+        result = executor.execute("search_news", {"query": "bhp news", "limit": 5})
+
+        assert result["ok"] is True
+        assert result["hit_count"] == 1
+        assert result["hits"][0]["title"] == "BHP copper update"
+        assert result["hits"][0]["primary_ticker"] == "SFR"
+        assert result["hits"][0]["tickers"] == ["SFR", "BHP"]
+        assert len(result["hits"][0]["snippet"]) <= 280
+        assert "text" not in result["hits"][0]
+
 
 # ---------------------------------------------------------------------------
 # ExtractionController.validate() unit tests

@@ -11,9 +11,11 @@ Policy (local-first, no surprise costs):
 
 The default policy is ``api_preferred``.
 
-The API client is never called without an explicit ``api_client`` being
-supplied *and* either ``force_backend="api"`` or a policy that allows API.
-This prevents accidental cloud cost.
+The API client is never called unless an explicit ``api_client`` is supplied.
+Normal routing follows ``force_backend`` or the configured policy, except for
+the shared-router extraction mutex: when extraction is active on the local
+llama.cpp router, chat is forced to API when available and otherwise fails
+fast instead of contending for VRAM.
 """
 
 from __future__ import annotations
@@ -87,8 +89,9 @@ class HybridRouter:
         Per-call timeout in seconds passed through to the underlying client.
     extraction_active_fn:
         Optional callable returning ``True`` when a GPU-bound extraction is
-        running on the shared llama.cpp server.  When active and an API client
-        is available, chat is routed to the cloud API to avoid VRAM contention.
+        running on the shared llama.cpp server. When active, chat is routed to
+        the cloud API when available; otherwise local chat is blocked fail-fast
+        to avoid VRAM contention on the shared router.
     """
 
     def __init__(
@@ -212,21 +215,25 @@ class HybridRouter:
         # shared llama.cpp server, route chat to the cloud API to avoid VRAM
         # contention.  Only applies when an API client is available and the
         # policy is not explicitly local_only.
-        if (
-            self._extraction_active_fn is not None
-            and self._api is not None
-            and self._policy != "local_only"
-        ):
+        if self._extraction_active_fn is not None:
             try:
                 if self._extraction_active_fn():
-                    logger.info(
-                        "Extraction active on shared llama.cpp — routing chat to API"
-                    )
+                    logger.info("Extraction active on shared llama.cpp")
+                    if self._api is not None:
+                        if on_status is not None:
+                            on_status(
+                                "Extraction active on shared llama.cpp - routing chat to API"
+                            )
+                        return "api", "extraction_active"
                     if on_status is not None:
                         on_status(
-                            "Extraction active on shared llama.cpp - routing chat to API"
+                            "Extraction active on shared llama.cpp - local chat blocked until extraction finishes"
                         )
-                    return "api", "extraction_active"
+                    raise RuntimeError(
+                        "Extraction active on shared llama.cpp and no API client is configured"
+                    )
+            except RuntimeError:
+                raise
             except Exception:
                 pass  # Best-effort check; fall through to normal policy
 

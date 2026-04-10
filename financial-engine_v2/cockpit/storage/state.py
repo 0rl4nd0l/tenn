@@ -153,6 +153,18 @@ class StateStore:
         cur.execute(
             "CREATE INDEX IF NOT EXISTS idx_ticker_strategy_ticker ON ticker_strategy(ticker)"
         )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS pending_reviews (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                source_id TEXT NOT NULL UNIQUE,
+                summary TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending',
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """
+        )
         self.conn.commit()
 
     # ------------------------------------------------------------------ #
@@ -184,10 +196,17 @@ class StateStore:
                     (cutoff,),
                 )
                 if cur.rowcount:
-                    logger.info("cleanup: deleted %d rows from %s (older than %d days)", cur.rowcount, table, days)
+                    logger.info(
+                        "cleanup: deleted %d rows from %s (older than %d days)",
+                        cur.rowcount,
+                        table,
+                        days,
+                    )
             self.conn.commit()
 
-    def add_chat_message(self, thread_id: str, role: str, content: str, created_at: str) -> None:
+    def add_chat_message(
+        self, thread_id: str, role: str, content: str, created_at: str
+    ) -> None:
         with self._lock:
             self.conn.execute(
                 "insert into chat_messages(thread_id, role, content, created_at) values(?,?,?,?)",
@@ -195,7 +214,9 @@ class StateStore:
             )
             self.conn.commit()
 
-    def get_chat_messages(self, thread_id: str, limit: int = 200) -> list[dict[str, Any]]:
+    def get_chat_messages(
+        self, thread_id: str, limit: int = 200
+    ) -> list[dict[str, Any]]:
         # Fetch the most recent `limit` messages, then reverse so the result
         # is chronological (oldest→newest).  Previously used ASC which returned
         # the oldest 200 rows — useless for context when history is long.
@@ -265,7 +286,32 @@ class StateStore:
             out.append(item)
         return out
 
-    def add_export(self, thread_id: str, question: str, markdown_path: str, json_path: str, created_at: str) -> None:
+    def get_job(self, job_id: str) -> dict[str, Any] | None:
+        row = self.conn.execute(
+            """
+            select job_id, action_id, args_json, started_at, ended_at, status,
+                   exit_code, stdout_path, stderr_path, artifacts_json
+            from jobs
+            where job_id = ?
+            limit 1
+            """,
+            (job_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        item = dict(row)
+        item["args"] = json.loads(item.pop("args_json"))
+        item["artifacts"] = json.loads(item.pop("artifacts_json"))
+        return item
+
+    def add_export(
+        self,
+        thread_id: str,
+        question: str,
+        markdown_path: str,
+        json_path: str,
+        created_at: str,
+    ) -> None:
         with self._lock:
             self.conn.execute(
                 "insert into analysis_exports(thread_id, question, markdown_path, json_path, created_at) values(?,?,?,?,?)",
@@ -355,7 +401,14 @@ class StateStore:
                 insert into update_events(thread_id, ticker, action_id, status, summary_json, created_at)
                 values(?,?,?,?,?,?)
                 """,
-                (thread_id, ticker.upper(), action_id, status, json.dumps(summary), created_at),
+                (
+                    thread_id,
+                    ticker.upper(),
+                    action_id,
+                    status,
+                    json.dumps(summary),
+                    created_at,
+                ),
             )
             self.conn.commit()
 
@@ -438,9 +491,7 @@ class StateStore:
 
     def get_preferences(self) -> dict[str, str]:
         """Return all user preferences as a dict."""
-        rows = self.conn.execute(
-            "SELECT key, value FROM user_preferences"
-        ).fetchall()
+        rows = self.conn.execute("SELECT key, value FROM user_preferences").fetchall()
         return {r[0]: r[1] for r in rows}
 
     def get_preference(self, key: str, default: str = "") -> str:
@@ -467,4 +518,46 @@ class StateStore:
             "ORDER BY created_at DESC LIMIT ?",
             (limit,),
         ).fetchall()
-        return [{"date": r[0], "summary": r[1], "tickers": json.loads(r[2])} for r in rows]
+        return [
+            {"date": r[0], "summary": r[1], "tickers": json.loads(r[2])} for r in rows
+        ]
+
+    # ------------------------------------------------------------------ #
+    # Transcript reviews                                                   #
+    # ------------------------------------------------------------------ #
+
+    def list_pending_reviews(self) -> list[dict]:
+        """Return all reviews with 'pending' status."""
+        rows = self.conn.execute(
+            "SELECT id, source_id, summary, created_at FROM pending_reviews WHERE status = 'pending' ORDER BY created_at ASC"
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def approve_review(self, source_id: str) -> bool:
+        """Mark a review as 'approved'. Returns True if a row was updated."""
+        with self._lock:
+            cur = self.conn.execute(
+                "UPDATE pending_reviews SET status = 'approved', updated_at = datetime('now') WHERE source_id = ? AND status = 'pending'",
+                (source_id,),
+            )
+            self.conn.commit()
+            return cur.rowcount == 1
+
+    def reject_review(self, source_id: str) -> bool:
+        """Mark a review as 'rejected'. Returns True if a row was updated."""
+        with self._lock:
+            cur = self.conn.execute(
+                "UPDATE pending_reviews SET status = 'rejected', updated_at = datetime('now') WHERE source_id = ? AND status = 'pending'",
+                (source_id,),
+            )
+            self.conn.commit()
+            return cur.rowcount == 1
+
+    def approve_all_reviews(self) -> int:
+        """Mark all pending reviews as 'approved'. Returns count updated."""
+        with self._lock:
+            cur = self.conn.execute(
+                "UPDATE pending_reviews SET status = 'approved', updated_at = datetime('now') WHERE status = 'pending'"
+            )
+            self.conn.commit()
+            return cur.rowcount

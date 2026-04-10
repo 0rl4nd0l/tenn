@@ -29,7 +29,7 @@ try:
 except ImportError:
     MemoryStore = None  # type: ignore[misc,assignment]
 
-from cockpit.core.config import load_env
+from cockpit.core.config import effective_anthropic_api_key, load_env
 from cockpit.core.session_memory import (
     _log_startup_status as _ov_log_startup_status,
     build_turn_payload,
@@ -201,7 +201,8 @@ class ChatController:
 
                 # Build HybridRouter with local llama.cpp client + optional API client.
                 api_client = None
-                if os.environ.get("ANTHROPIC_API_KEY"):
+                anthropic_api_key = effective_anthropic_api_key(self._cockpit_llm)
+                if anthropic_api_key:
                     try:
                         from cockpit.core.agent.anthropic_client import AnthropicClient
 
@@ -215,9 +216,12 @@ class ChatController:
                             or str(defaults.get("anthropic_model") or "").strip()
                         )
                         api_client = (
-                            AnthropicClient(model=anthropic_model)
+                            AnthropicClient(
+                                model=anthropic_model,
+                                api_key=anthropic_api_key,
+                            )
                             if anthropic_model
-                            else AnthropicClient()
+                            else AnthropicClient(api_key=anthropic_api_key)
                         )
                     except Exception as exc:
                         logger.warning("AnthropicClient init failed: %s", exc)
@@ -951,7 +955,13 @@ class ChatController:
     # Chart intent keywords — checked before general action detection.
     # NOTE: "price history" is a price-query pattern, not a chart request.
     _GREETING_RE = re.compile(
-        r"^\s*(?:hi|hello|hey|g'?day|yo|sup|howdy|good\s+(?:morning|afternoon|evening)|what'?s?\s+up)\s*[!?.]*\s*$",
+        r"^\s*(?:"
+        r"hi|hello|hey|g'?day|yo|sup|howdy|"
+        r"good\s+(?:morning|afternoon|evening)|"
+        r"what'?s?\s+up|"
+        r"how\s+are\s+you(?:\s+doing)?|"
+        r"how\s+r\s+u|hru"
+        r")\s*[!?.]*\s*$",
         re.IGNORECASE,
     )
 
@@ -1350,6 +1360,10 @@ class ChatController:
     )
     _DIRECT_NEWS_RE = re.compile(
         r"^\s*(?:latest\s+)?(?:news(?:\s+for)?\s+(?P<prefix>[A-Za-z0-9]{2,5})|(?P<suffix>[A-Za-z0-9]{2,5})\s+news)\s*[?!.]*\s*$",
+        re.IGNORECASE,
+    )
+    _DIRECT_FILESTATS_RE = re.compile(
+        r"^\s*(?:(?P<ticker_prefix>[A-Za-z0-9]{1,10})\s+filestats?|filestats?\s+(?P<ticker_suffix>[A-Za-z0-9]{1,10}))\s*[?!.]*\s*$",
         re.IGNORECASE,
     )
 
@@ -1966,6 +1980,854 @@ class ChatController:
         lines.append(f"  agent_loop: {'active' if self._agent_loop else 'inactive'}")
         return ChatResponse(text="\n".join(lines), evidence=[], mode=ResponseMode.FAST)
 
+    @staticmethod
+    def _format_table(
+        headers: list[str], rows: list[list[Any]], *, max_cell_chars: int = 120
+    ) -> str:
+        if not rows:
+            return "(none)"
+
+        def _clean(value: Any) -> str:
+            text = str(value if value is not None else "")
+            text = re.sub(r"\s+", " ", text).strip()
+            if len(text) > max_cell_chars:
+                return text[: max_cell_chars - 3] + "..."
+            return text or "-"
+
+        cleaned_rows = [[_clean(col) for col in row] for row in rows]
+        widths: list[int] = []
+        for idx, header in enumerate(headers):
+            column_width = len(_clean(header))
+            for row in cleaned_rows:
+                if idx < len(row):
+                    column_width = max(column_width, len(row[idx]))
+            widths.append(min(column_width, max_cell_chars))
+
+        def _fit(text: str, width: int) -> str:
+            clipped = text if len(text) <= width else text[: width - 3] + "..."
+            return clipped.ljust(width)
+
+        header_line = " | ".join(
+            _fit(_clean(header), widths[idx]) for idx, header in enumerate(headers)
+        )
+        divider = "-+-".join("-" * width for width in widths)
+
+        lines = [header_line, divider]
+        for row in cleaned_rows:
+            padded = []
+            for idx, width in enumerate(widths):
+                value = row[idx] if idx < len(row) else "-"
+                padded.append(_fit(value, width))
+            lines.append(" | ".join(padded))
+        return "\n".join(lines)
+
+    @staticmethod
+    def _clip_rows(
+        rows: list[dict[str, Any]],
+        *,
+        max_rows: int,
+        keep_ends: bool = False,
+    ) -> tuple[list[dict[str, Any]], int]:
+        if max_rows <= 0 or len(rows) <= max_rows:
+            return rows, 0
+        if keep_ends and max_rows >= 2:
+            head = max_rows // 2
+            tail = max_rows - head
+            clipped = rows[:head] + rows[-tail:]
+            return clipped, len(rows) - len(clipped)
+        clipped = rows[:max_rows]
+        return clipped, len(rows) - max_rows
+
+    @staticmethod
+    def _build_ascii_trend(values: list[float], *, width: int = 64) -> str:
+        if not values:
+            return ""
+        glyphs = " .:-=+*#%@"
+        points: list[float] = []
+        if len(values) <= width:
+            points = values
+        else:
+            step = (len(values) - 1) / float(width - 1)
+            for idx in range(width):
+                points.append(values[int(round(idx * step))])
+
+        low = min(points)
+        high = max(points)
+        span = high - low
+        if span <= 1e-12:
+            return "-" * len(points)
+
+        out = []
+        max_idx = len(glyphs) - 1
+        for value in points:
+            scaled = int(round(((value - low) / span) * max_idx))
+            scaled = max(0, min(max_idx, scaled))
+            out.append(glyphs[scaled])
+        return "".join(out)
+
+    @staticmethod
+    def _format_numeric(value: Any, *, digits: int = 2) -> str:
+        try:
+            return f"{float(value):,.{digits}f}"
+        except (TypeError, ValueError):
+            return "-"
+
+    @staticmethod
+    def _format_percent(value: Any, *, digits: int = 2) -> str:
+        try:
+            return f"{float(value):+.{digits}f}%"
+        except (TypeError, ValueError):
+            return "-"
+
+    @staticmethod
+    def _is_valid_dump_ticker(value: str) -> bool:
+        return bool(re.fullmatch(r"[A-Z0-9]{1,10}", str(value or "").strip().upper()))
+
+    def _collect_cockpit_local_memory(self, ticker: str) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "agent_memory": [],
+            "watchlist_history": [],
+            "dossier_findings": [],
+            "strategy_criteria": [],
+            "strategy_decision": None,
+            "errors": [],
+        }
+
+        if self._state_store is not None and hasattr(
+            self._state_store, "get_entity_observations"
+        ):
+            try:
+                observations = self._state_store.get_entity_observations(
+                    ticker, limit=200
+                )
+                if isinstance(observations, list):
+                    payload["agent_memory"] = [
+                        row for row in observations if isinstance(row, dict)
+                    ]
+            except Exception as exc:
+                payload["errors"].append(f"agent_memory: {exc}")
+
+        if self._state_store is not None and hasattr(
+            self._state_store, "list_update_events"
+        ):
+            try:
+                events = self._state_store.list_update_events(
+                    "", ticker=ticker, limit=100
+                )
+                if isinstance(events, list):
+                    payload["watchlist_history"] = [
+                        row for row in events if isinstance(row, dict)
+                    ]
+            except Exception as exc:
+                payload["errors"].append(f"watchlist_history: {exc}")
+
+        if self._dossier_service is not None:
+            try:
+                dossier = self._dossier_service.recall(ticker, limit=100)
+                if isinstance(dossier, dict) and dossier.get("ok"):
+                    findings = dossier.get("findings") or []
+                    if isinstance(findings, list):
+                        payload["dossier_findings"] = [
+                            row for row in findings if isinstance(row, dict)
+                        ]
+            except Exception as exc:
+                payload["errors"].append(f"dossier_findings: {exc}")
+
+        if self._strategy_service is not None:
+            try:
+                criteria = self._strategy_service.get_ticker(ticker)
+                if isinstance(criteria, list):
+                    payload["strategy_criteria"] = [
+                        row for row in criteria if isinstance(row, dict)
+                    ]
+                payload["strategy_decision"] = self._strategy_service.get_decision(
+                    ticker
+                )
+            except Exception as exc:
+                payload["errors"].append(f"strategy: {exc}")
+
+        return payload
+
+    def _format_company_dump_output(
+        self,
+        ticker: str,
+        backend_dump: dict[str, Any],
+        cockpit_local_memory: dict[str, Any],
+        *,
+        compact: bool,
+    ) -> str:
+        summary = backend_dump.get("summary") or {}
+        docs = [
+            row for row in (backend_dump.get("docs") or []) if isinstance(row, dict)
+        ]
+        financials = [
+            row
+            for row in (backend_dump.get("financials") or [])
+            if isinstance(row, dict)
+        ]
+        announcements = [
+            row
+            for row in (backend_dump.get("announcement_context") or [])
+            if isinstance(row, dict)
+        ]
+        risk_notes = [
+            row
+            for row in (backend_dump.get("risk_notes") or [])
+            if isinstance(row, dict)
+        ]
+        price_history = [
+            row
+            for row in (backend_dump.get("price_history_1y") or [])
+            if isinstance(row, dict)
+        ]
+        extraction_failures = [
+            row
+            for row in (backend_dump.get("extraction_failures") or [])
+            if isinstance(row, dict)
+        ]
+        low_conf = [
+            row
+            for row in (backend_dump.get("low_confidence_financials") or [])
+            if isinstance(row, dict)
+        ]
+
+        company_memory = backend_dump.get("company_memory") or {}
+        market_memory = backend_dump.get("market_memory") or {}
+        company_entries = [
+            row
+            for row in (company_memory.get("entries") or [])
+            if isinstance(row, dict)
+        ]
+        company_change_log = [
+            row
+            for row in (company_memory.get("change_log") or [])
+            if isinstance(row, dict)
+        ]
+        market_items = [
+            row for row in (market_memory.get("items") or []) if isinstance(row, dict)
+        ]
+
+        local_agent = [
+            row
+            for row in (cockpit_local_memory.get("agent_memory") or [])
+            if isinstance(row, dict)
+        ]
+        local_dossier = [
+            row
+            for row in (cockpit_local_memory.get("dossier_findings") or [])
+            if isinstance(row, dict)
+        ]
+        local_watchlist = [
+            row
+            for row in (cockpit_local_memory.get("watchlist_history") or [])
+            if isinstance(row, dict)
+        ]
+        local_strategy = [
+            row
+            for row in (cockpit_local_memory.get("strategy_criteria") or [])
+            if isinstance(row, dict)
+        ]
+
+        limits = {
+            "financials": 12,
+            "price_history": 42,
+            "docs": 24,
+            "announcements": 12,
+            "risk_notes": 12,
+            "company_entries": 18,
+            "company_change_log": 18,
+            "market_items": 18,
+            "local_agent": 12,
+            "local_dossier": 12,
+            "local_watchlist": 12,
+            "local_strategy": 12,
+            "extraction_failures": 18,
+            "low_conf": 18,
+        }
+
+        def _limit(
+            rows: list[dict[str, Any]], key: str, *, keep_ends: bool = False
+        ) -> tuple[list[dict[str, Any]], int]:
+            if not compact:
+                return rows, 0
+            return self._clip_rows(
+                rows,
+                max_rows=int(limits[key]),
+                keep_ends=keep_ends,
+            )
+
+        financials_view, financials_omitted = _limit(financials, "financials")
+        price_view, price_omitted = _limit(
+            price_history,
+            "price_history",
+            keep_ends=True,
+        )
+        docs_view, docs_omitted = _limit(docs, "docs")
+        announcements_view, announcements_omitted = _limit(
+            announcements, "announcements"
+        )
+        risk_view, risk_omitted = _limit(risk_notes, "risk_notes")
+        company_entries_view, company_entries_omitted = _limit(
+            company_entries,
+            "company_entries",
+        )
+        company_change_view, company_change_omitted = _limit(
+            company_change_log,
+            "company_change_log",
+        )
+        market_view, market_omitted = _limit(market_items, "market_items")
+        local_agent_view, local_agent_omitted = _limit(local_agent, "local_agent")
+        local_dossier_view, local_dossier_omitted = _limit(
+            local_dossier, "local_dossier"
+        )
+        local_watchlist_view, local_watchlist_omitted = _limit(
+            local_watchlist,
+            "local_watchlist",
+        )
+        local_strategy_view, local_strategy_omitted = _limit(
+            local_strategy,
+            "local_strategy",
+        )
+        failures_view, failures_omitted = _limit(
+            extraction_failures,
+            "extraction_failures",
+        )
+        low_conf_view, low_conf_omitted = _limit(low_conf, "low_conf")
+
+        lines: list[str] = [f"Company Data Dump: {ticker}"]
+        lines.append(f"Generated: {datetime.now(timezone.utc).isoformat()}")
+        if compact:
+            lines.append(
+                "View: clean (compact). Use `/filestats raw <TICKER>` for full rows."
+            )
+        else:
+            lines.append("View: raw (full rows).")
+        lines.append("")
+        lines.append("Summary")
+        lines.append(
+            f"- Docs: {summary.get('doc_count', len(docs))} | Financial periods: {summary.get('financial_period_count', len(financials))} | Announcements: {summary.get('announcement_context_count', len(announcements))}"
+        )
+        lines.append(
+            f"- Risk notes: {summary.get('risk_note_count', len(risk_notes))} | Extraction failures: {summary.get('extraction_failure_count', len(extraction_failures))} | Low-confidence rows: {summary.get('low_confidence_financial_count', len(low_conf))}"
+        )
+        lines.append(
+            f"- Backend company memory: {summary.get('company_memory_entry_count', len(company_entries))} entries | Backend market memory: {summary.get('market_memory_item_count', len(market_items))} items"
+        )
+        lines.append(
+            f"- 1Y price points: {summary.get('price_points_1y', len(price_history))} | Last close: {self._format_numeric(summary.get('last_close'), digits=4)} | 1Y return: {self._format_percent(summary.get('one_year_return_pct'))}"
+        )
+        lines.append("")
+
+        lines.append("Financial Metrics")
+        lines.append(
+            self._format_table(
+                [
+                    "Period End",
+                    "Type",
+                    "Revenue",
+                    "EBIT",
+                    "NPAT",
+                    "Operating CF",
+                    "Capex",
+                    "Cash End",
+                    "Net Debt",
+                    "Confidence",
+                    "Source Doc",
+                ],
+                [
+                    [
+                        row.get("period_end"),
+                        row.get("period_type"),
+                        row.get("revenue"),
+                        row.get("ebit"),
+                        row.get("np_attributable"),
+                        row.get("operating_cf"),
+                        row.get("capex"),
+                        row.get("cash_end"),
+                        row.get("net_debt"),
+                        row.get("confidence_metrics"),
+                        row.get("source_document_id"),
+                    ]
+                    for row in financials_view
+                ],
+            )
+        )
+        if financials_omitted > 0:
+            lines.append(
+                f"... {financials_omitted} financial rows omitted in clean view."
+            )
+        lines.append("")
+
+        lines.append("Price Summary (1Y Daily)")
+        lines.append(
+            f"- Coverage: {summary.get('price_coverage_start') or '-'} to {summary.get('price_coverage_end') or '-'}"
+        )
+        lines.append(
+            f"- High close: {self._format_numeric(summary.get('high_close_1y'), digits=4)} | Low close: {self._format_numeric(summary.get('low_close_1y'), digits=4)}"
+        )
+        close_values: list[float] = []
+        for row in price_history:
+            try:
+                close_val = float(row.get("close"))
+            except (TypeError, ValueError):
+                continue
+            close_values.append(close_val)
+        trend = self._build_ascii_trend(close_values, width=72)
+        if trend:
+            lines.append(f"- Trend: [{trend}]")
+        lines.append(
+            self._format_table(
+                ["Date", "Open", "High", "Low", "Close", "Volume"],
+                [
+                    [
+                        str(row.get("timestamp") or "")[:10],
+                        self._format_numeric(row.get("open"), digits=4),
+                        self._format_numeric(row.get("high"), digits=4),
+                        self._format_numeric(row.get("low"), digits=4),
+                        self._format_numeric(row.get("close"), digits=4),
+                        row.get("volume"),
+                    ]
+                    for row in price_view
+                ],
+            )
+        )
+        if price_omitted > 0:
+            lines.append(f"... {price_omitted} price rows omitted in clean view.")
+        lines.append("")
+
+        lines.append("PDFs / Documents")
+        lines.append(
+            self._format_table(
+                ["Document ID", "Published", "Class", "Title", "PDF Path"],
+                [
+                    [
+                        row.get("document_id"),
+                        str(row.get("published_at") or "")[:10],
+                        row.get("doc_class"),
+                        row.get("title"),
+                        row.get("pdf_path"),
+                    ]
+                    for row in docs_view
+                ],
+            )
+        )
+        if docs_omitted > 0:
+            lines.append(f"... {docs_omitted} document rows omitted in clean view.")
+        lines.append("")
+
+        lines.append("Announcement Context")
+        lines.append(
+            self._format_table(
+                ["Published", "Title", "Excerpt"],
+                [
+                    [
+                        str(row.get("published_at") or "")[:10],
+                        row.get("title"),
+                        row.get("excerpt"),
+                    ]
+                    for row in announcements_view
+                ],
+                max_cell_chars=180,
+            )
+        )
+        if announcements_omitted > 0:
+            lines.append(
+                f"... {announcements_omitted} announcement rows omitted in clean view."
+            )
+        lines.append("")
+
+        lines.append("Narrative / Risk Notes")
+        lines.append(
+            self._format_table(
+                ["Published", "Title", "Risk Summary", "Guidance", "Material Changes"],
+                [
+                    [
+                        str(row.get("published_at") or "")[:10],
+                        row.get("title"),
+                        row.get("risk_summary"),
+                        row.get("guidance_summary"),
+                        row.get("material_changes"),
+                    ]
+                    for row in risk_view
+                ],
+                max_cell_chars=180,
+            )
+        )
+        if risk_omitted > 0:
+            lines.append(f"... {risk_omitted} risk-note rows omitted in clean view.")
+        lines.append("")
+
+        lines.append("Saved Memory — Backend")
+        lines.append("Company Memory Entries")
+        lines.append(
+            self._format_table(
+                [
+                    "ID",
+                    "Type",
+                    "Status",
+                    "Statement",
+                    "Confidence",
+                    "Materiality",
+                    "Source",
+                    "Source ID",
+                    "Last Seen",
+                ],
+                [
+                    [
+                        row.get("entry_id"),
+                        row.get("type"),
+                        row.get("status"),
+                        row.get("statement"),
+                        row.get("confidence"),
+                        row.get("materiality"),
+                        row.get("source"),
+                        row.get("source_id"),
+                        row.get("last_seen_at"),
+                    ]
+                    for row in company_entries_view
+                ],
+                max_cell_chars=160,
+            )
+        )
+        if company_entries_omitted > 0:
+            lines.append(
+                f"... {company_entries_omitted} backend company-memory rows omitted in clean view."
+            )
+        lines.append("Company Memory Change Log")
+        lines.append(
+            self._format_table(
+                ["Change ID", "Entry ID", "Event", "Created", "Details"],
+                [
+                    [
+                        row.get("change_id"),
+                        row.get("entry_id"),
+                        row.get("event_type"),
+                        row.get("created_at"),
+                        row.get("details"),
+                    ]
+                    for row in company_change_view
+                ],
+                max_cell_chars=180,
+            )
+        )
+        if company_change_omitted > 0:
+            lines.append(
+                f"... {company_change_omitted} backend company-memory changes omitted in clean view."
+            )
+        lines.append("Market Memory")
+        lines.append(
+            self._format_table(
+                ["Type", "Statement", "Confidence", "Materiality", "Source"],
+                [
+                    [
+                        row.get("type"),
+                        row.get("statement"),
+                        row.get("confidence"),
+                        row.get("materiality"),
+                        row.get("source"),
+                    ]
+                    for row in market_view
+                ],
+                max_cell_chars=180,
+            )
+        )
+        if market_omitted > 0:
+            lines.append(
+                f"... {market_omitted} backend market-memory rows omitted in clean view."
+            )
+        lines.append("")
+
+        lines.append("Saved Memory — Cockpit Local")
+        lines.append("Agent Memory")
+        lines.append(
+            self._format_table(
+                ["Observed At", "Observation", "Kind"],
+                [
+                    [
+                        row.get("created_at") or row.get("observed_at"),
+                        row.get("observation")
+                        or row.get("content")
+                        or row.get("statement")
+                        or row.get("summary")
+                        or row,
+                        row.get("kind") or row.get("type"),
+                    ]
+                    for row in local_agent_view
+                ],
+                max_cell_chars=180,
+            )
+        )
+        if local_agent_omitted > 0:
+            lines.append(
+                f"... {local_agent_omitted} cockpit-local agent-memory rows omitted in clean view."
+            )
+        lines.append("Dossier Findings")
+        lines.append(
+            self._format_table(
+                ["Date", "Category", "Finding", "Confidence", "Source"],
+                [
+                    [
+                        str(row.get("ts") or row.get("date") or "")[:10],
+                        row.get("category"),
+                        row.get("finding"),
+                        row.get("confidence"),
+                        row.get("source"),
+                    ]
+                    for row in local_dossier_view
+                ],
+                max_cell_chars=180,
+            )
+        )
+        if local_dossier_omitted > 0:
+            lines.append(
+                f"... {local_dossier_omitted} cockpit-local dossier rows omitted in clean view."
+            )
+        lines.append("Watchlist History")
+        lines.append(
+            self._format_table(
+                ["Date", "Action", "Status", "Summary"],
+                [
+                    [
+                        str(row.get("created_at") or row.get("date") or "")[:10],
+                        row.get("action_id") or row.get("action"),
+                        row.get("status"),
+                        row.get("summary") or row.get("summary_json"),
+                    ]
+                    for row in local_watchlist_view
+                ],
+                max_cell_chars=180,
+            )
+        )
+        if local_watchlist_omitted > 0:
+            lines.append(
+                f"... {local_watchlist_omitted} cockpit-local watchlist rows omitted in clean view."
+            )
+        lines.append("Strategy Criteria")
+        lines.append(
+            self._format_table(
+                ["ID", "Criterion", "Priority", "Decision"],
+                [
+                    [
+                        row.get("id"),
+                        row.get("criterion"),
+                        row.get("priority"),
+                        row.get("decision"),
+                    ]
+                    for row in local_strategy_view
+                ],
+                max_cell_chars=180,
+            )
+        )
+        if local_strategy_omitted > 0:
+            lines.append(
+                f"... {local_strategy_omitted} cockpit-local strategy rows omitted in clean view."
+            )
+        if cockpit_local_memory.get("strategy_decision"):
+            lines.append(
+                f"Current strategy decision: {cockpit_local_memory.get('strategy_decision')}"
+            )
+        lines.append("")
+
+        lines.append("Data Quality")
+        lines.append("Extraction Failures")
+        lines.append(
+            self._format_table(
+                ["Run ID", "Document", "Status", "Created", "Error"],
+                [
+                    [
+                        row.get("run_id"),
+                        row.get("document_id"),
+                        row.get("status"),
+                        row.get("created_at"),
+                        row.get("error"),
+                    ]
+                    for row in failures_view
+                ],
+                max_cell_chars=180,
+            )
+        )
+        if failures_omitted > 0:
+            lines.append(
+                f"... {failures_omitted} extraction-failure rows omitted in clean view."
+            )
+        lines.append("Low-confidence Financial Rows")
+        lines.append(
+            self._format_table(
+                ["Period End", "Type", "Confidence", "Source Doc"],
+                [
+                    [
+                        row.get("period_end"),
+                        row.get("period_type"),
+                        row.get("confidence_metrics"),
+                        row.get("source_document_id"),
+                    ]
+                    for row in low_conf_view
+                ],
+            )
+        )
+        if low_conf_omitted > 0:
+            lines.append(
+                f"... {low_conf_omitted} low-confidence rows omitted in clean view."
+            )
+        lines.append("")
+
+        backend_errors = [e for e in (backend_dump.get("errors") or []) if e]
+        local_errors = [e for e in (cockpit_local_memory.get("errors") or []) if e]
+        if backend_errors or local_errors:
+            lines.append("Errors")
+            for item in backend_errors:
+                lines.append(f"- backend: {item}")
+            for item in local_errors:
+                lines.append(f"- cockpit-local: {item}")
+            lines.append("")
+
+        return "\n".join(lines).strip()
+
+    def _build_filestats_response(self, ticker: str, *, compact: bool) -> ChatResponse:
+        backend_client = getattr(self.tool_router, "backend_api_client", None)
+        if backend_client is None:
+            return ChatResponse(
+                text="Filestats unavailable: backend API client is not configured.",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        try:
+            backend_dump = backend_client.get_company_dump(ticker=ticker)
+        except Exception as exc:
+            return ChatResponse(
+                text=f"Filestats failed for {ticker}: {exc}",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        if not isinstance(backend_dump, dict):
+            return ChatResponse(
+                text=f"Filestats failed for {ticker}: backend returned non-object payload.",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        local_memory = self._collect_cockpit_local_memory(ticker)
+        dashboard_path, dashboard_error = self._write_filestats_dashboard(
+            ticker,
+            backend_dump,
+            local_memory,
+        )
+        if dashboard_error:
+            local_errors = local_memory.get("errors")
+            if isinstance(local_errors, list):
+                local_errors.append(f"dashboard: {dashboard_error}")
+
+        text = self._format_company_dump_output(
+            ticker,
+            backend_dump,
+            local_memory,
+            compact=compact,
+        )
+        if dashboard_path:
+            text = f"Dashboard: {dashboard_path}\n\n{text}"
+        return ChatResponse(
+            text=text,
+            evidence=[
+                {
+                    "type": "company_dump",
+                    "details": {
+                        "ticker": ticker,
+                        "view_mode": "compact" if compact else "raw",
+                        "dashboard_path": dashboard_path,
+                        "backend": backend_dump,
+                        "cockpit_local_memory": local_memory,
+                    },
+                }
+            ],
+            mode=ResponseMode.FAST,
+        )
+
+    def _write_filestats_dashboard(
+        self,
+        ticker: str,
+        backend_dump: dict[str, Any],
+        cockpit_local_memory: dict[str, Any],
+    ) -> tuple[str | None, str | None]:
+        try:
+            from cockpit.core.plotly_html import build_filestats_dashboard_html
+        except Exception as exc:
+            return None, f"dashboard builder unavailable: {exc}"
+
+        report_root_raw = str(os.environ.get("COCKPIT_REPORT_DIR", "")).strip()
+        if report_root_raw:
+            base_dir = Path(report_root_raw).expanduser()
+        else:
+            base_dir = Path("/tmp/tenn/reports")
+        out_dir = base_dir / "cockpit"
+
+        ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        out_path = out_dir / f"{ticker}_{ts}_filestats_dashboard.html"
+
+        try:
+            out_dir.mkdir(parents=True, exist_ok=True)
+            html = build_filestats_dashboard_html(
+                {
+                    "ticker": ticker,
+                    "generated_at": datetime.now(timezone.utc).isoformat(),
+                    **backend_dump,
+                    "cockpit_local_memory": cockpit_local_memory,
+                }
+            )
+            out_path.write_text(html, encoding="utf-8")
+            return str(out_path), None
+        except Exception as exc:
+            return None, str(exc)
+
+    def _slash_filestats(self, sub: str, rest: str) -> ChatResponse | None:
+        raw = f"{sub} {rest}".strip()
+        tokens = [tok for tok in raw.split() if tok]
+        compact = True
+        ticker = ""
+
+        for token in tokens:
+            candidate = token.strip().upper()
+            if candidate in {"RAW", "FULL", "ALL"}:
+                compact = False
+                continue
+            if ticker:
+                return ChatResponse(
+                    text=("Usage: /filestats <TICKER>\n       /filestats raw <TICKER>"),
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+            ticker = candidate
+
+        if not ticker:
+            return ChatResponse(
+                text=("Usage: /filestats <TICKER>\n       /filestats raw <TICKER>"),
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+        if not self._is_valid_dump_ticker(ticker):
+            return ChatResponse(
+                text="Ticker must be 1-10 alphanumeric characters.",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+        return self._build_filestats_response(ticker, compact=compact)
+
+    def _try_filestats_shortcircuit(self, message: str) -> ChatResponse | None:
+        match = self._DIRECT_FILESTATS_RE.fullmatch(message.strip())
+        if not match:
+            return None
+        ticker = (
+            match.group("ticker_prefix") or match.group("ticker_suffix") or ""
+        ).upper()
+        if not ticker or not self._is_valid_dump_ticker(ticker):
+            return ChatResponse(
+                text="Ticker must be 1-10 alphanumeric characters.",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+        return self._build_filestats_response(ticker, compact=True)
+
     # -- Watchlist commands --------------------------------------------- #
 
     def _slash_watch(self, sub: str, rest: str) -> ChatResponse | None:
@@ -2442,6 +3304,7 @@ class ChatController:
         "/health": _slash_health,
         "/prompt": _slash_prompt,
         "/access": _slash_access,
+        "/filestats": _slash_filestats,
         "/watch": _slash_watch,
         "/strategy": _slash_strategy,
         "/run": _slash_run,
@@ -2858,6 +3721,11 @@ class ChatController:
         # These are pure regex/keyword matches that don't need LLM inference. #
         # ------------------------------------------------------------------ #
 
+        # --- Direct company data dump short-circuit ---
+        filestats_result = self._try_filestats_shortcircuit(effective_message)
+        if filestats_result is not None:
+            return filestats_result
+
         # Ticker detection (shared by both agent and keyword paths).
         ticker, explicit_ticker = self._resolve_ticker_context(
             effective_message, prior_ticker=prior_ticker
@@ -3004,7 +3872,7 @@ class ChatController:
                     orchestration_result = (
                         self._query_orchestrator.orchestrate_query_with_context(
                             effective_message,
-                            context={"prior_ticker": prior_ticker or self.last_ticker},
+                            context={"prior_ticker": ticker},
                         )
                     )
                     has_orchestrated_evidence = (

@@ -12,9 +12,11 @@ _RULES: list[tuple[re.Pattern[str], object]] = []
 
 def _rule(pattern: str, flags: int = re.IGNORECASE):
     """Decorator: register a pattern rule that returns a command string."""
+
     def decorator(fn):
         _RULES.append((re.compile(pattern, flags), fn))
         return fn
+
     return decorator
 
 
@@ -89,6 +91,11 @@ def _(m, _msg):
     return f"/changes {m.group(1).upper()}"
 
 
+@_rule(r"^([A-Za-z0-9]{1,10})\s+filestats?\b")
+def _(m, _msg):
+    return f"/filestats {m.group(1).upper()}"
+
+
 @_rule(r"\bwhat\s+changed\b")
 def _(_m, _msg):
     return "/changes"
@@ -145,7 +152,9 @@ def _(_m, _msg):
     return "/strategy list"
 
 
-@_rule(r"\bwhat\s+(?:do\s+I\s+think|is\s+my\s+(?:decision|view|take))\s+(?:about|on)\s+([A-Za-z]{2,5})\b")
+@_rule(
+    r"\bwhat\s+(?:do\s+I\s+think|is\s+my\s+(?:decision|view|take))\s+(?:about|on)\s+([A-Za-z]{2,5})\b"
+)
 def _(m, _msg):
     return f"/strategy list {m.group(1).upper()}"
 

@@ -113,7 +113,7 @@ class TestExtractionAwareRouting:
         assert result.source == "local"
         assert router.cost_log()[-1]["routing_reason"] == "policy:local_preferred"
 
-    def test_respects_local_only_even_during_extraction(
+    def test_extraction_override_beats_local_only_policy(
         self, mock_llm_client, mock_api_client
     ):
         router = HybridRouter(
@@ -123,17 +123,24 @@ class TestExtractionAwareRouting:
             extraction_active_fn=lambda: True,
         )
         result = router.complete([{"role": "user", "content": "hi"}])
-        assert result.source == "local"
+        assert result.source == "api"
+        mock_api_client.chat.assert_called_once()
+        mock_llm_client.chat.assert_not_called()
 
-    def test_no_api_client_falls_through_during_extraction(self, mock_llm_client):
+    def test_no_api_client_blocks_local_chat_during_extraction(self, mock_llm_client):
         router = HybridRouter(
             llm_client=mock_llm_client,
             api_client=None,
             policy="local_preferred",
             extraction_active_fn=lambda: True,
         )
-        result = router.complete([{"role": "user", "content": "hi"}])
-        assert result.source == "local"
+        with pytest.raises(
+            RuntimeError,
+            match="Extraction active on shared llama.cpp and no API client is configured",
+        ):
+            router.complete([{"role": "user", "content": "hi"}])
+
+        mock_llm_client.chat.assert_not_called()
 
     def test_force_backend_overrides_extraction_check(
         self, mock_llm_client, mock_api_client
