@@ -452,6 +452,16 @@ Agents MUST NOT:
 * Spawn without checking the health of the target port first.
 * Ignore VRAM constraints.
 
+## 9.6 Shared-Router Mutual Exclusion
+
+When chat and extraction share the canonical router on `:8001`, they MUST NOT contend for the same local GPU runtime at the same time.
+
+Invariants:
+* Extraction activity MUST be registered in a process-safe shared state for the full duration of each multipass extraction run.
+* Cockpit/local chat MUST route to the configured API backend while extraction is active on the shared router.
+* If no API backend is configured, chat MUST fail fast or remain blocked until extraction finishes; it MUST NOT silently continue on the local router during extraction.
+* Any caller that uses `POST /models/load` MUST resolve stale alias IDs to a usable router registry entry before requesting the load.
+
 ---
 
 # 10. AGENT (CLAUDE / CODEX) RULES

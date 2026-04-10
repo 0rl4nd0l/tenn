@@ -43,10 +43,12 @@ As of 2026-03-20 audit. Source: deep inventory of `/home/l4nd0/tenn`.
 | Codex skills registry integration | **Present** | Repo-local Codex skill ports exist under `.codex/skills/`, including `investigation-orchestrator`; `bash scripts/sync_codex_skills.sh` links them into `$CODEX_HOME/skills/` | Re-run sync after adding or updating repo-local skills | Low |
 | Domain skill: news substrate | **Present** | Created `docs/claude/skills/domain-news-substrate.md` from `15_news_substrate.md` | — | — |
 | Domain skill: model routing | **Present** | Created `docs/claude/skills/domain-model-routing.md` from `model-routing.md` | — | — |
+| Cockpit verification review of historical extraction runs | **Present** | Verification UI now loads backend-authoritative extraction run history via `/api/extraction-review/runs` and can open review sessions for explicit `run_id` selections | Keep this backend-authoritative; do not add cockpit-local run indexing | Medium |
 | Domain skill: OpenClaw/llama.cpp ops | **Deferred** | OpenClaw no longer primary workflow; not prioritized | Defer indefinitely unless OpenClaw re-enters active use | Low |
 | System analyzer loop (Claude-readable) | **Partial** | `docs/ops/system_analyzer_loop.md` exists | Link from runbook; consider extracting key checks | Low |
 | Explicit agent contract in CLAUDE.md | **Present** | `agent_contract.json` + CLAUDE.md reference it | — | — |
 | Session memory (conversational context) | **Present** | `backend/app/services/session_memory.py` + `cockpit/core/session_memory.py`. OpenViking embedded, fail-open, domain-isolated workspaces. Activated by copying `config/openviking/*.ov.conf.example` to `~/.openviking/`. | Claude Code automated turn recording remains DATA_MISSING (no PostTurnUse hook). | Low |
+| Company + market memory (qualitative only) | **Present** | `backend/app/services/company_memory.py`, `backend/app/services/market_memory.py`, `backend/app/services/memory_signal_router.py`, and `backend/app/services/query_orchestrator.py`. Separate SQLite stores for company and market context only; explicit block on financial-metric signal types; memo extractors now auto-route qualitative signals after `extract_and_store(...)`; live Cockpit/backend chat routes retrieval-driven questions through the orchestrator. | Add broader end-to-end product coverage and refine production trigger ownership if ingestion flows multiply. | Medium |
 
 ---
 

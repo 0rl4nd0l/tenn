@@ -77,6 +77,8 @@ Point the LLM endpoint to a different host:
 LLAMACPP_URL=http://192.168.1.50:8001
 ```
 
+Launcher note: `financial-engine_v2/scripts/run_local_backend.sh` loads `.env` and then `.env.local`. For secret-bearing keys (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `LLM_API_KEY`, `EMBEDDING_API_KEY`), a blank value in `.env.local` no longer clears a non-empty value already loaded from `.env`.
+
 Single-instance router mode (default — recommended):
 
 ```dotenv
@@ -84,6 +86,8 @@ Single-instance router mode (default — recommended):
 # All models served from NVMe; clients select per-request via "model" field.
 # Chat default: qwen3-30b-a3b-instruct (llmfit score 94.0)
 # Extraction: qwen2.5-14b-instruct (requested by model name, loaded on demand)
+# Chat/extraction mutex: while extraction is active on the shared router,
+# cockpit chat must route to the configured API backend instead of local llama.cpp.
 LLAMACPP_URL=http://127.0.0.1:8001
 EXTRACT_MODEL=qwen2.5-14b-instruct
 ```
@@ -96,7 +100,7 @@ EXTRACTION_LLAMACPP_URL=http://127.0.0.1:8002
 EXTRACT_MODEL=qwen2.5-14b-instruct
 ```
 
-When `EXTRACTION_LLAMACPP_URL` is not set, extraction uses `LLAMACPP_URL` (single-server router mode).
+When `EXTRACTION_LLAMACPP_URL` is not set, extraction uses `LLAMACPP_URL` (single-server router mode). In that mode, extraction activity blocks local chat on the shared router and forces cockpit chat to the configured API backend until extraction completes.
 
 Switch Redis/Qdrant to Docker service names:
 

@@ -2,6 +2,10 @@
 
 Current active runtime is `financial-engine_v2`.
 
+Main user entrypoint:
+- `cockpit start new`
+- UI served at `http://127.0.0.1:8081`
+
 ## Run in 4 steps
 1. Create and activate the canonical local venv:
    - `python3 -m venv financial-engine_v2/.venv`
@@ -15,6 +19,7 @@ Current active runtime is `financial-engine_v2`.
    - `curl -sS http://127.0.0.1:8000/api/health`
 
 For agents and deterministic local backend startup, `financial-engine_v2/scripts/run_local_backend.sh` is the canonical entrypoint.
+For interactive local use, the main user-facing entrypoint is `cockpit start new`.
 `python run.py` remains a supported batch/orchestration path, but it is not the canonical "system is up" signal.
 
 Canonical environment and runtime docs:

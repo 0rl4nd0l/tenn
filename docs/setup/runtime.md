@@ -27,11 +27,21 @@ and/or `COCKPIT_NEW_PORT`).
 
 ## Start commands
 
+Primary user entrypoint:
+
+```bash
+cockpit start new
+```
+
+This launches the Cockpit browser UI on `http://127.0.0.1:8081` after starting the required local services.
+
 Canonical backend start:
 
 ```bash
 bash financial-engine_v2/scripts/run_local_backend.sh
 ```
+
+The backend launcher above remains the canonical agent/bootstrap entrypoint. For humans using the local product, prefer `cockpit start new`.
 
 Batch/orchestration path:
 

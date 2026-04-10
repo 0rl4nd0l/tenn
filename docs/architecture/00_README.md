@@ -21,7 +21,7 @@ Overview of the architecture docs in this folder and what each covers.
 | [10_failure_model.md](10_failure_model.md) | Failure model and error handling |
 | [11_engineering_discipline.md](11_engineering_discipline.md) | Pre-merge checklist and engineering discipline guardrails |
 | [11_rebuild_and_recovery.md](11_rebuild_and_recovery.md) | Rebuild and recovery procedures |
-| [12_evaluation_and_drift_monitoring.md](12_evaluation_and_drift_monitoring.md) | Evaluation and drift monitoring |
+| [12_evaluation_and_drift_monitoring.md](12_evaluation_and_drift_monitoring.md) | Evaluation and drift monitoring, including the real-document gold eval pilot, local MLflow tracking, and read-only DuckDB analysis |
 | [13_security_and_secrets.md](13_security_and_secrets.md) | Security and secrets management |
 | [14_roadmap_and_modules.md](14_roadmap_and_modules.md) | Roadmap, module boundaries, and future capability: Autonomous Dev Optimization Loop (deferred) |
 | [15_news_substrate.md](15_news_substrate.md) | Canonical news substrate: one RAG DB, layers, orchestrator, verification |

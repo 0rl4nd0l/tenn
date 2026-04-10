@@ -155,3 +155,99 @@ When promoting a fixture from structural-only to value-asserted, or adding a new
 3. Store values in absolute native units (e.g. multiply `$A'000` values by 1000).
 4. Remove a metric from `expected_nulls` when adding it to `metrics`.
 5. Update the fixture inventory table in this doc.
+
+---
+
+## Real-document gold eval pilot
+
+The real-document pilot is a separate measurement lane for hand-labelled ASX filings. It is additive only: it does not change extraction behavior, canonical database writes, routing, or financial truth rules.
+
+### Corpus location and contract
+
+- Corpus path: `financial-engine_v2/data/extraction_gold_real/`
+- Labeling guide: `financial-engine_v2/data/extraction_gold_real/README.md`
+- Current required fields per gold file:
+  - `document_id`
+  - `source_file`
+  - `period_type`
+  - `period_end`
+  - `currency`
+  - `scale`
+  - `metrics`
+  - `expected_trust`
+- Current supported real-gold metric scope:
+  - `revenue`
+  - `operating_cash_flow`
+  - `net_debt`
+
+Rules:
+
+- Values must come from the source PDF, not model output.
+- Keep `source_file` pointed at the exact repo-relative source PDF when possible.
+- Do not infer, reconcile, or derive missing values in this corpus.
+- Keep the pilot in the existing corpus path; do not create a second gold location.
+
+### Base eval run
+
+The canonical local runner is:
+
+```bash
+financial-engine_v2/.venv/bin/python scripts/run_real_extraction_eval.py \
+  --dataset-dir financial-engine_v2/data/extraction_gold_real \
+  --results-json reports/extraction_real_eval_results.json \
+  --report-path reports/extraction_real_eval_summary.md
+```
+
+Artifacts:
+
+- JSON results: `reports/extraction_real_eval_results.json`
+- Markdown summary: `reports/extraction_real_eval_summary.md`
+
+### Local MLflow tracking
+
+Local-only experiment tracking is available through the wrapper:
+
+```bash
+financial-engine_v2/.venv/bin/python scripts/run_real_extraction_eval_mlflow.py \
+  --dataset-dir financial-engine_v2/data/extraction_gold_real \
+  --results-json reports/extraction_real_eval_results.json \
+  --report-path reports/extraction_real_eval_summary.md \
+  --tracking-dir mlruns \
+  --model-label "<label>" \
+  --profile-label "<label>"
+```
+
+Properties:
+
+- File-backed only (`mlruns/` in the repo root)
+- No remote tracking server
+- No backend runtime instrumentation
+- Logs params, summary metrics, per-metric accuracy when available, and eval artifacts
+
+If you already have eval artifacts and only want to register them in MLflow without rerunning extraction:
+
+```bash
+financial-engine_v2/.venv/bin/python scripts/run_real_extraction_eval_mlflow.py \
+  --reuse-existing \
+  --results-json reports/extraction_real_eval_results.json \
+  --report-path reports/extraction_real_eval_summary.md \
+  --tracking-dir mlruns
+```
+
+### Read-only DuckDB analysis
+
+Use the local analysis helper to slice existing eval artifacts without touching canonical tables or request paths:
+
+```bash
+financial-engine_v2/.venv/bin/python scripts/analyze_real_extraction_eval_duckdb.py \
+  reports/extraction_real_eval_results.json \
+  --summary-path reports/analysis/extraction_real_eval_duckdb_summary.md
+```
+
+The script is intentionally read-only and answers questions such as:
+
+- which metrics fail most
+- which documents end in `abstain` or `quarantine`
+- what failure patterns appear by period type or trust outcome
+
+It reads eval JSON artifacts only and writes an optional local markdown summary.

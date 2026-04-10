@@ -39,6 +39,9 @@ The FastAPI app mounts routes in these groups:
   - structured financial rows for one ticker
 - `GET /api/risk?document_id=...`
   - stored risk/guidance note for one document
+- `GET /api/context/verification?ticker=...`
+  - verification context bundle for extraction failures and low-confidence financial rows
+  - ticker is optional; empty scope returns cross-ticker queue state
 
 ### Retrieval and chat
 
@@ -72,6 +75,66 @@ The FastAPI app mounts routes in these groups:
 - `POST /api/cockpit/action/execute`
   - executes a confirmed cockpit action by `action_id` + `args`
   - returns command output on success, structured HTTP errors on validation/runtime failure
+- `POST /api/cockpit/feedback/flag`
+  - persists a cockpit assistant turn plus user feedback with `feedback_type: "poor" | "good"`, transcript, and backend diagnostics
+  - poor feedback returns artifact paths, `report_id`, `read_api_path`, and a backend-generated Codex prompt keyed to the saved flag ID
+  - good feedback uses the same backend-owned persistence path so strong responses can be reviewed later for training/tuning
+  - persistence happens before optional LLM review so the save returns immediately; poor feedback may later get `analysis.json`, while positive feedback is stored immediately without the failure-analysis pass
+- `GET /api/cockpit/feedback/flags?limit=...`
+  - lists recent cockpit feedback reports with `report_id`, `feedback_type`, excerpt, and read API path
+- `GET /api/cockpit/feedback/flags/{report_id}`
+  - returns the saved feedback report bundle, markdown summary, and analysis payload by report ID
+
+### Flagged chat references
+
+Flagged cockpit chats should be referenced by backend API, not by assuming a local
+filesystem path visible to the current shell or agent runtime.
+
+Canonical discovery flow:
+
+- list recent flags:
+  - `GET /api/cockpit/feedback/flags?limit=10`
+- read one flagged chat by ID:
+  - `GET /api/cockpit/feedback/flags/{report_id}`
+
+Important fields:
+
+- `report_id`
+  - stable identifier for one flagged chat report
+- `feedback_type`
+  - whether the saved example was marked `poor` or `good`
+- `read_api_path`
+  - backend-owned path Codex or other tools should use to read the saved flag
+- `bundle`
+  - saved transcript snapshot, flagged message, backend turn, runtime context
+- `summary_markdown`
+  - compact human-readable summary of the flagged turn
+- `analysis`
+  - backend-generated review of likely failure modes when available
+
+Example operator flow:
+
+1. Call `GET /api/cockpit/feedback/flags?limit=5`
+2. Copy the newest `report_id`
+3. Refer Codex to `http://127.0.0.1:8000/api/cockpit/feedback/flags/{report_id}`
+
+Example prompt for Codex:
+
+```text
+Investigate this flagged cockpit response and fix the underlying bug.
+
+Read:
+http://127.0.0.1:8000/api/cockpit/feedback/flags/flag_20260409_074407_58b51013
+
+Check the flagged message, transcript, backend_turn, routing metadata, and analysis.
+Identify root cause in code, implement the minimal safe fix, and verify it.
+```
+
+Runtime note:
+
+- the backend may persist the underlying artifacts inside a container/runtime-specific
+  filesystem such as `/reports/...`
+- the API above is the supported way to retrieve flagged chats across environments
 
 ### System control-plane and capability state
 
@@ -128,6 +191,25 @@ The FastAPI app mounts routes in these groups:
   - process one already-downloaded document
 - `POST /api/process/ticker/{ticker}`
   - process downloaded-but-unextracted documents for a ticker
+
+### Extraction verification and review
+
+- `POST /api/extraction-eval/real-gold`
+  - runs the current `run_multipass_extraction()` pipeline against the real gold corpus under `financial-engine_v2/data/extraction_gold_real`
+  - accepts optional JSON body fields:
+    - `limit`
+    - `tolerance`
+  - returns inline JSON summary plus per-document metric/trust results for the verification UI
+- `POST /api/extraction-review/session`
+  - builds a manual metric-review session from the latest extracted run(s) for selected document IDs
+- `GET /api/extraction-review/session/{session_id}`
+  - loads one saved manual review session snapshot
+- `POST /api/extraction-review/session/{session_id}/decision`
+  - persists one manual reviewer decision (`approved`, `wrong`, `abstain`)
+- `GET /api/extraction-review/errors?limit=...`
+  - returns the structured wrong-metric queue accumulated from manual review decisions
+- `GET /api/extraction-review/snippets/{image_name}`
+  - serves generated evidence snippet PNGs for manual extraction review
 
 ### Analysis modules
 

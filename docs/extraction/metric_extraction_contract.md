@@ -76,3 +76,124 @@ Output is a stable JSON object with keys including:
 - `currency_correctness_summary`
 - `scale_correctness_summary`
 - `fixture_summaries`
+
+## Real-document gold eval pilot
+
+The real-gold pilot keeps real document labels separate from synthetic fixtures
+and evaluates an extracted JSON payload map against labelled expectations.
+
+### Pilot semantics (trust vs metric status)
+
+Each real fixture is first evaluated with the existing metric evaluator, then mapped to
+a trust outcome using deterministic rules:
+
+- `trusted`: context matches and every required metric is `correct`.
+- `abstain`: context matches and at least one required metric is `wrong`, `missing`,
+  or `abstain`.
+- `quarantine`: any context mismatch (`period_end`, `currency`, or `scale`), in which case
+  every metric is marked `quarantine`.
+
+For real fixtures, `missing` means a required metric in the fixture is not present in
+`metrics` in the extraction payload. It is **not** treated as `abstain`; `abstain`
+metric status is only used when extraction marks an optional metric absent in an
+optional list, and this pilot does not define optional metrics today.
+
+Interpretation pattern in scorecards:
+
+- `abstain` is not an error state by itself; it means "not fully reliable for trust." A
+  document can be `abstain` with `wrong_count: 1`, `missing_count: 1`, or both.
+- `trust_triggers` (or `context_mismatches` for quarantine) explains why trust is not
+  `trusted`.
+- `trusted` requires the per-document metric statuses in aggregate to be clean and
+  context-aligned.
+
+### Real gold fixture format
+
+Place fixtures under `backend/tests/fixtures/extraction_gold/*.json` using:
+
+- `document_id`: stable document key (e.g., filing id)
+- `period_type`, `period_end`, `currency`, `scale`: context expected by extractor
+- `metrics`: required numeric/null expectations for this pilot document
+- optional `tolerances`: per-metric relative tolerance
+- optional `expected_trust`: one of `trusted`, `abstain`, `quarantine`
+
+Example:
+
+```json
+{
+  "document_id": "real_trusted_match",
+  "period_type": "A",
+  "period_end": "2024-12-31",
+  "currency": "AUD",
+  "scale": "thousands",
+  "metrics": {
+    "revenue": 1500000,
+    "ebit": 120000
+  },
+  "tolerances": {
+    "revenue": 0.01,
+    "ebit": 0.02
+  },
+  "expected_trust": "trusted"
+}
+```
+
+### Running the real gold scorecard
+
+```bash
+python financial-engine_v2/scripts/extraction_gold_eval_scorecard.py \
+  --actuals-json path/to/actuals.json
+```
+
+`actuals.json` must be a map keyed by `document_id` with extractor output payloads:
+
+```json
+{
+  "real_trusted_match": {
+    "period_end": "2024-12-31",
+    "period_type": "A",
+    "currency": "AUD",
+    "scale": "thousands",
+    "metrics": {
+      "revenue": 1500000,
+      "ebit": 120000
+    }
+  }
+}
+```
+
+The output includes per-document trust outcomes and fixture separation status:
+
+- `trusted_count`
+- `abstained_count`
+- `quarantined_count`
+- `trust_check_summary`
+- `fixture_summaries`
+
+Per-entry `fixture_summaries` fields are designed to be read together:
+
+- `trust`: final trust outcome.
+- `trust_triggers`: metric-level blockers when `trust=abstain` (for example
+  `revenue:missing`).
+- `context_mismatches`: context blockers when `trust=quarantine`.
+- `wrong_count`, `missing_count`, etc.: diagnostic metric quality bucket totals.
+
+Example of a clean non-contradictory interpretation:
+
+- `trusted` with `wrong_count: 0`, `missing_count: 0` -> reliable extraction for this fixture.
+- `abstain` with `missing_count: 1` -> required metric unavailable, intentionally
+  non-trustworthy for downstream decisions.
+- `quarantine` with non-empty `context_mismatches` -> fixture context does not match
+  source slice; metric values are considered inconclusive.
+
+### Pilot scope and limits
+
+- It is a **pilot only**: no pipeline or schema changes.
+- Trust is derived from fixture metrics + context checks; it does not replace existing
+  extraction accuracy gates.
+- A document is `quarantine` if any context field mismatches, even when metric values
+  match.
+- A document is `abstain` when required metrics are missing or wrong without a
+  context mismatch.
+- Missing fixtures or missing output keys are evaluated in the same deterministic,
+  non-LLM fixture flow.

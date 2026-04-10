@@ -22,6 +22,7 @@ When OpenBB sidecar is used: **8081** (OpenBB sidecar HTTP API).
 
 - **llama.cpp** — OpenAI-compatible LLM server, not in Docker. Default port **8001**. Backend and worker call it over the host network through `llamacpp_bridge`.
   - **Router mode** (default since 2026-03-25): launched with `--models-dir` + `--models-max 1` for zero-downtime model switching via `POST /models/load` API. Per-model config (pooling, embeddings) via `--models-preset` INI file at `~/.config/tenn/llamacpp-presets.ini`. Models are auto-evicted (LRU) when a new model is loaded, keeping VRAM usage bounded.
+  - **Shared-router rule:** chat and extraction must never run locally on the shared `:8001` router at the same time. While extraction is active, cockpit chat must route to the configured API backend; without an API backend it must fail fast instead of contending for VRAM.
   - **Single-model mode** (legacy): launched with `-m <model.gguf>`. Model switching requires killing and restarting the server process.
   - Mode controlled by `LLAMA_SERVER_ROUTER_MODE=1` in `~/.config/tenn/llama-server.env`.
 - **Sentence Transformers** — local CPU embedding runtime loaded in-process by the backend/worker; no separate container.

@@ -79,7 +79,7 @@ Two endpoints (`core/config.py`):
 | `LLAMACPP_URL` | Chat, routing, coding, extraction | `http://127.0.0.1:8001` |
 | `OLLAMA_URL` | Embeddings (`nomic-embed-text`) | `http://127.0.0.1:11434` |
 
-A single llama-server runs in **router mode** on port 8001 (`--models-dir /mnt/nvme/tenn/models --models-max 1`). All GGUFs in the models directory are available; clients select per-request via the `model` field. Only one model occupies VRAM at a time. Default chat model: `qwen3-30b-a3b-instruct` (MoE 30B/3B-active, llmfit score 94.0). Extraction requests `qwen2.5-14b-instruct` by model name; the router loads it on demand.
+A single llama-server runs in **router mode** on port 8001 (`--models-dir /mnt/nvme/tenn/models --models-max 1`). All GGUFs in the models directory are available; clients select per-request via the `model` field. Only one model occupies VRAM at a time. Default chat model: `qwen3-30b-a3b-instruct` (MoE 30B/3B-active, llmfit score 94.0). Extraction requests `qwen2.5-14b-instruct` by model name; the router loads it on demand. While extraction is active on the shared router, cockpit chat must route to the configured API backend instead of local llama.cpp; without an API backend, chat must fail fast rather than contend for VRAM.
 
 Current host storage alignment (2026-04-07):
 

@@ -14,12 +14,18 @@ ln -sf /home/l4nd0/tenn/scripts/cockpit ~/.local/bin/cockpit
 Commands:
 
 ```bash
+cockpit start new # main user entrypoint: full system + Next.js Cockpit UI on http://127.0.0.1:8081
 cockpit start     # full system (docker compose) + launch Cockpit TUI
 cockpit stop      # stop containers
 cockpit status    # show services
 cockpit logs      # stream logs
 cockpit doctor    # diagnose system
 ```
+
+Recommended user entrypoint:
+- `cockpit start new`
+- Served on `http://127.0.0.1:8081`
+- Starts the full stack, then launches the browser UI
 
 ### Configuration
 
@@ -36,6 +42,7 @@ Key values:
 - `EMBED_MODEL_ON_STARTUP`: embedding model written into `.env.docker` before backend restart (default `nomic-embed-text`)
 - `BACKEND_START_TIMEOUT`: backend readiness timeout for startup
 - `TERMINAL_MODE`: how `cockpit start` launches the TUI (`auto | gnome-terminal | tmux`)
+- `COCKPIT_NEW_PORT`: host port for `cockpit start new` (default `8081`)
 - `ENABLE_EMBEDDINGS_ON_STARTUP`: forces backend `ENABLE_EMBEDDINGS` (default `false` in this environment)
 - `ENABLE_QDRANT_ON_STARTUP`: forces backend `ENABLE_QDRANT` (default `false` in this environment)
 - `LLAMA_SERVER_CACHE_TYPE_K` / `LLAMA_SERVER_CACHE_TYPE_V`: optional host overrides for llama.cpp KV-cache types; leave unset on Tesla M40 unless validated for the selected model/runtime

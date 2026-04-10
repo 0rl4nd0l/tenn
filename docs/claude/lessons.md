@@ -579,6 +579,33 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Fix:** Mounted the host model directories into the backend container as read-only `/models/{nvme,ssd,hdd}`, added explicit `COCKPIT_MODELS_*_DIR` env overrides for backend-side discovery, and kept a llama-server-registry fallback so the route still returns usable model groups when direct filesystem scans are unavailable.
 **Rule:** Any backend feature that discovers host files from a Docker container must use explicit mounted paths or container-local env overrides. Do not rely on `Path.home()` or bare host-user paths inside a containerized runtime.
 
+## L056 — Partial local model scans still need registry fallback per location
+
+**Date:** 2026-04-09
+**Subsystem:** `backend/app/routes/cockpit_api.py`, `financial-engine_v2/docker-compose.yml`
+**Symptom:** `/api/cockpit/models` showed NVMe and HDD groups but silently dropped SSD models from the settings switcher, even though llama-server knew about `model:gpt-oss-20b`.
+**Root cause:** The backend only fell back to llama-server registry data when *all* local model groups were empty. If one mounted directory was wrong or empty, that single location vanished from the response. In this case the Docker SSD mount default pointed at a stale llmfit cache path, so `/models/ssd` was empty.
+**Fix:** Changed the Docker SSD mount default to the actual active llmfit GGUF cache path on this host and merged registry-derived model groups into any storage locations missing from the local scan.
+**Rule:** When combining local filesystem discovery with llama-server registry data, fill missing locations individually rather than treating discovery as all-or-nothing. Also ensure Docker mount defaults follow the live host storage path, not an outdated symlink target.
+
+## L057 — Fix cockpit routing gaps by tightening the early-return gate, not by bypassing orchestrator-first
+
+**Date:** 2026-04-09
+**Subsystem:** `financial-engine_v2/cockpit/core/chat.py`
+**Symptom:** Generic ticker questions like `tell me about BHP` returned “no financial data / no memory signals” even though `/api/context/ticker` already had BHP documents available.
+**Root cause:** `build_chat_response()` called the query orchestrator first and returned its synthesized answer whenever it produced a ticker-shaped result, even when the orchestrator had no substantive evidence beyond empty financial truth and empty memory stores. That early return prevented the existing local-context path from using authoritative document payloads already available from the backend.
+**Fix:** Kept orchestrator-first behavior as the default, but narrowed the early-return gate. Cockpit now prefers the existing local-context assembly path only when a ticker query explicitly requires document-grounded evidence or when the orchestrator has no substantive evidence for that ticker.
+**Rule:** When a routing bug sits at the orchestrator/local-context boundary, extend the gate instead of adding a parallel answer path or broadly disabling orchestrated responses. Preserve orchestrator-first behavior, keep canonical financial truth authoritative for numbers, and let raw document context supplement narrative evidence only when the query or evidence sufficiency requires it.
+
+## L058 — Generic ticker overviews must not be polluted by linked-ticker news or invented financial tables
+
+**Date:** 2026-04-09
+**Subsystem:** `financial-engine_v2/cockpit/core/tools.py`, `financial-engine_v2/cockpit/integrations/qual_context.py`, `financial-engine_v2/cockpit/core/chat.py`
+**Symptom:** After fixing the orchestrator early-return bug, `tell me about BHP` started grounding on weak linked-ticker news chunks (for other primary companies that merely mentioned BHP) and then generating precise financial tables despite canonical `financials` being empty.
+**Root cause:** Local-context gathering always attached news qualitative context when enabled, even for generic ticker overviews. The news reader accepted soft matches where BHP only appeared in linked tickers, and the direct-answer prompt did not hard-block exact financial claims when canonical financial truth was absent.
+**Fix:** Gated news qualitative context to news/market-sensitive queries (or deep mode), tightened soft news ticker matching to require direct ticker identity (primary ticker, top-level ticker, company label, or title mention), and added a direct-answer prompt guard forbidding exact financial metrics/tables when canonical financials are unavailable.
+**Rule:** For generic company overviews, do not inject broad linked-ticker news context by default. When canonical financial truth is absent, the direct-answer path must stay qualitative unless exact figures are quoted verbatim from provided excerpts.
+
 ## L059 — Cockpit UI changes require verifying the active surface before implementation
 
 **Date:** 2026-04-09
@@ -587,3 +614,56 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The repo contains multiple cockpit surfaces in parallel. I assumed the older Textual path from nearby files and memory instead of confirming the active operator surface in the current task.
 **Fix:** Switched the implementation target to `cockpit-ui` after the user correction and added this lesson.
 **Rule:** For any Cockpit UI request, verify whether the target surface is the Next.js app (`cockpit-ui`) or the legacy Textual app before planning or patching. Do not infer the active UI solely from historical files or prior sessions.
+
+## L060 — Local extraction eval scripts must persist llama.cpp auth before relying on backend defaults
+
+**Date:** 2026-04-09
+**Subsystem:** `scripts/run_real_extraction_eval.py`, `backend/app/services/llamacpp_runtime.py`
+**Symptom:** A full real-extraction eval completed with `0.00%` accuracy because every document failed in Pass 1 with `401 Unauthorized` from `POST /v1/chat/completions`, even though the local llama.cpp server on `:8001` was healthy.
+**Root cause:** `run_real_extraction_eval.py` called `run_multipass_extraction(..., llm_client=None)`, which delegates auth header construction to `build_llm_headers()`. The script never ensured `LLM_API_KEY` was present in `os.environ`. The live local server required `--api-key`, and `GET /v1/models` still returned `200`, masking the missing auth until the first chat completion request.
+**Fix:** Added `_persist_local_llm_api_key()` to the eval script so it mirrors `OPENAI_API_KEY` when present, otherwise detects `--api-key` from the running `llama-server` process, and finally falls back to the canonical local default `local-openai-key`. Added regression tests for env mirroring, process detection, and fallback behavior.
+**Rule:** Any local eval or CLI script that relies on backend llama.cpp calls with `llm_client=None` must populate `LLM_API_KEY` explicitly before the first extraction call, or build an authenticated client itself. Do not assume shell env is already set just because the local server is reachable.
+
+---
+
+## L061 — Shared-router extraction mutex must be enforced end-to-end, not just in HybridRouter
+
+**Date:** 2026-04-09
+**Subsystem:** `backend/app/services/router_state.py`, `backend/app/services/pipeline.py`, `backend/app/main.py`, `cockpit/integrations/llamacpp_manager.py`
+**Symptom:** `model:qwen3.5-35b-a3b` worked from a clean load, then started failing with CUDA OOM after extraction/model-switch activity. Chat could still contend with extraction on the shared `:8001` router because the extraction-active signal only existed on some code paths and some `/models/load` callers still requested a broken extraction alias.
+**Root cause:** The extraction/chat mutex was only partially implemented: `HybridRouter` could respect `is_extraction_active()`, but the active flag depended on Redis and only `pipeline.py` set it. Direct extraction/eval entrypoints bypassed the signal entirely. Separately, router `/models/load` callers could still ask for the stale `model:qwen2.5-14b-instruct` preset ID, which launched a bad child and led to overlapping GPU loads.
+**Fix:** Added process-safe extraction activity registration with a file-backed fallback, wrapped all direct multipass extraction entrypoints in that guard, and resolved stale router model IDs before any `/models/load` request. HybridRouter now treats extraction on the shared router as a hard mutex: route chat to API when available, otherwise fail fast.
+**Rule:** A runtime mutex is only real if every entrypoint participates. Any new extraction entrypoint must register shared extraction activity for the full extraction window, and any llama.cpp router load caller must resolve the requested model to a usable registry entry before posting `/models/load`.
+
+---
+
+## L062 — API availability must use effective Cockpit config, not raw env-only checks
+
+**Date:** 2026-04-09
+**Subsystem:** `cockpit/core/config.py`, `cockpit/core/chat.py`, `backend/app/routes/cockpit_api.py`, `backend/app/services/cockpit_service.py`
+**Symptom:** Cockpit reported `anthropic_key_configured: false` and failed fast during extraction even though operators expected cloud fallback to be available. Startup also emitted noisy preferred-model preload warnings while extraction was using the shared router.
+**Root cause:** API availability checks were split across surfaces and some of them only looked at `os.environ["ANTHROPIC_API_KEY"]`. That bypassed the effective cockpit config path and made the UI/runtime status less trustworthy. Separately, preferred-model preload treated a best-effort startup optimization like a warning-worthy failure and did not skip active extraction windows.
+**Fix:** Added `effective_anthropic_api_key(...)` so status/UI/runtime code all resolve API availability from the same effective cockpit config path, updated `AnthropicClient` to accept an explicit API key, and changed startup preload to skip active extraction and log non-completion as best-effort info instead of warning noise.
+**Rule:** For Cockpit cloud fallback, never infer API availability from raw process env alone when an effective runtime config already exists. Status surfaces, runtime wiring, and diagnostics must all agree on the same resolved configuration source.
+
+---
+
+## L063 — Blank `.env.local` secrets must not silently erase working `.env` values
+
+**Date:** 2026-04-09
+**Subsystem:** `financial-engine_v2/scripts/run_local_backend.sh`
+**Symptom:** The backend process showed `ANTHROPIC_API_KEY` in its environment, but the value was empty. Cockpit therefore reported `anthropic_key_configured: false` and could not route chat to API during extraction, even though operators knew the key existed in `.env`.
+**Root cause:** The local launcher sources `.env` and then `.env.local`. A blank secret assignment in `.env.local` silently clobbered the non-empty value loaded from `.env`, leaving the running backend with an empty secret and no clear startup error.
+**Fix:** Hardened `run_local_backend.sh` so a blank `.env.local` value no longer clears a previously loaded non-empty secret for `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `LLM_API_KEY`, or `EMBEDDING_API_KEY`.
+**Rule:** For secret-bearing launcher vars, later local overrides may replace a value only with another non-empty value. Blank local overrides must not silently disable a working backend capability.
+
+---
+
+## L064 — Long-running extraction eval routes must stay off FastAPI's sync worker-thread path
+
+**Date:** 2026-04-10
+**Subsystem:** `backend/app/main.py`, `backend/app/services/docling_extract.py`, `backend/app/services/multipass_extraction.py`
+**Symptom:** The new `POST /api/extraction-eval/real-gold` endpoint worked when called directly from Python, but failed over HTTP from the verification UI with `Gold set evaluation failed (HTTP 500)` or an empty reply. In reproduction, `limit=1` succeeded, but `limit=2` over HTTP dropped the connection while the same `limit=2` run completed normally in a standalone Python process.
+**Root cause:** The route was implemented as a synchronous FastAPI handler (`def`), so FastAPI executed it in an AnyIO worker thread. The extraction stack contains main-thread-sensitive behavior (for example docling timeout handling via `signal.signal`/`SIGALRM`, plus other extraction/runtime interactions that are stable in the main thread but not inside the worker-thread route context). The direct Python invocation ran on the main thread and therefore did not reproduce the failure.
+**Fix:** Moved the gold-eval body into `_run_real_gold_eval_sync(...)` and changed the public FastAPI route to `async def run_real_gold_eval(...)` that calls the sync helper directly on the main event-loop thread. Added a regression test that the route remains async while the helper retains the tested synchronous behavior.
+**Rule:** Any backend endpoint that runs the real extraction pipeline directly must not be implemented as a plain sync FastAPI handler unless the full extraction path is proven worker-thread-safe. When in doubt, keep the route `async def` and call the extraction logic on the main thread, or move the work to an explicit background job model rather than relying on FastAPI’s sync threadpool.

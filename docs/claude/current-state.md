@@ -13,6 +13,7 @@
 **Active engine:** `financial-engine_v2/`
 **Canonical entrypoint:** `financial-engine_v2/scripts/run_local_backend.sh`
 **Health endpoint:** `http://127.0.0.1:8000/api/health`
+**Primary user entrypoint:** `cockpit start new` → `http://127.0.0.1:8081`
 
 Legacy root launcher scripts are archived under `scripts/archive/legacy_root_20260218/`.
 
@@ -26,8 +27,9 @@ Legacy root launcher scripts are archived under `scripts/archive/legacy_root_202
 | `LOCAL_BACKEND_PROFILE=full` | Full local mode. Uses configured runtime DB/data roots, local Qdrant on `127.0.0.1:6333`, local llama.cpp on `127.0.0.1:8001/v1`. `/chat` returns grounded answers when `commentary_chunks` has data. |
 
 Cockpit web defaults:
-- Browser UI: `127.0.0.1:8081`
+- Browser UI: `127.0.0.1:8081` via `cockpit start new`
 - llama.cpp health probe: `COCKPIT_LLAMACPP_URL` → `LLAMACPP_URL` → `http://localhost:8001` (canonical)
+- Cockpit chat now treats local llama.cpp as the lowest-priority GPU consumer: if a second llama runtime or any non-chat compute process is already holding GPU memory, HybridRouter prefers the configured API client instead of competing locally.
 
 ---
 
@@ -177,17 +179,23 @@ Config: `.mcp.json` (repo root). Full docs: [mcp-servers.md](mcp-servers.md).
 - `commentary_chunks_v2` is optional fallback for commentary. `asx_docs` is NOT the commentary chat collection.
 - Model router active weights: `latency=0.4`, `throughput=0.3`, `error=0.2`, `queue=0.1`, `gpu=0.1`.
 - Current host llama.cpp default model is `qwen3-30b-a3b-instruct`; extraction requests `qwen2.5-14b-instruct` by model name. Local Ollama keep-set is `qwen2.5:32b` plus `gpt-oss:20b-cloud`.
+- Shared-router mutex: when extraction is active on the shared `:8001` llama.cpp router, cockpit chat must route to the configured API backend. If no API backend is configured, local chat is blocked fail-fast instead of contending with extraction for GPU VRAM.
+- Cockpit cloud-fallback availability is resolved from the effective Cockpit runtime config (env plus `config/cockpit_llm.yaml` defaults), not from raw `ANTHROPIC_API_KEY` checks alone. Preferred-model preload is best-effort and skips active extraction windows.
 - Live router user service is `llama-cpp-router.service`; legacy `llama-cpp-qwen25.service` should remain disabled on hosts where it still exists.
 - 2026-04-08 cleanup: removed the stale `/tmp/llama-server-8001.log` orphan log and pruned disposable npm/OpenCode/Cursor caches; `/` now has roughly `53G` free.
 - OpenClaw config source of truth: `~/.openclaw/openclaw.json` (host-local, not in repo).
 - After committing `scripts/load_news_to_qdrant.py`, re-run the loader to refresh Qdrant with relevance-ordered primary tickers: `python scripts/load_news_to_qdrant.py`.
 - Cockpit web SSE chat now emits explicit staged status events from request admission through reasoning/tool/synthesis phases (not a single placeholder string).
+- Live Cockpit/backend chat now routes normal retrieval-driven questions through the backend query orchestrator: financial facts use canonical financial truth, strategy/risk/context questions use company memory, market questions use market memory, and mixed questions combine all three before the final plain-text synthesis stream.
 - Cockpit web action confirmations execute through backend route `POST /api/cockpit/action/execute` using normalized `action_id` payloads.
 - Cockpit sidebar health polling is adaptive: every 3s while a chat completion is active, every 15s when idle.
 - If `news_chunks` is missing in Qdrant, `search_news` may return no hits and should trigger a corpus population flow (`run_news_ingest` then `load_news_to_qdrant`).
 - Cockpit can now print the full locally stored body for a recently referenced news article by reading `articles.body` from `reports/qual_context/news_articles.sqlite`.
 - In Docker-backed Cockpit runs, the backend container needs the workspace reports mount (`../reports` → `/workspace-reports`) so the local news corpus is visible for article printing.
-- In Docker-backed Cockpit runs, the backend container now mounts host GGUF directories read-only at `/models/{nvme,ssd,hdd}` and uses `COCKPIT_MODELS_*_DIR` env vars so `/api/cockpit/models` can discover hot, cached, and cold-storage models even when the backend runs as container root.
+- In Docker-backed Cockpit runs, the backend container now mounts host GGUF directories read-only at `/models/{nvme,ssd,hdd}` and uses `COCKPIT_MODELS_*_DIR` env vars so `/api/cockpit/models` can discover hot, cached, and cold-storage models even when the backend runs as container root. The SSD cache mount must point at the live llmfit GGUF directory (`/mnt/ssd/log/ssd_data/l4nd0_cache/.cache/llmfit/models` on this host), not the stale `~/.cache/llmfit/models` symlink target.
+- In Docker-backed Cockpit runs, the shared backend/worker image now bakes in the browser runtimes for the canonical `newspaper4k` fallback stack: Playwright Chromium via `python -m playwright install --with-deps chromium` and Camoufox via `camoufox fetch --browserforge`. This makes `newspaper4k -> Scrapling StealthyFetcher -> Playwright` available without manual container setup.
+- Because the canonical `newspaper4k` provider imports `integrations/newspaper4k_au/collect_au_finance_news.py` in-process, the shared backend/worker image now also installs `newspaper4k[gnews]` from `backend/requirements.txt`. Without that package the collector raises its manual isolated-venv setup error at runtime.
+- In Docker-backed Cockpit runs on this host, `backend` and `worker` also pin upstream DNS servers (`1.1.1.1`, `8.8.8.8`) in compose. Docker was inheriting the host `127.0.0.53` systemd-resolved stub into containers, which broke external hostname resolution for news scraping.
 - Full-article printing is still session-contextual: if Cockpit cannot identify which recent article URL you mean, it will ask for the URL or a clearer reference instead of guessing.
 
 ## Storage Layout (2026-04-09)
@@ -195,16 +203,18 @@ Config: `.mcp.json` (repo root). Full docs: [mcp-servers.md](mcp-servers.md).
 | Device | Label | Mount | Size | Free | Use |
 |--------|-------|-------|------|------|-----|
 | nvme0n1p1 | `nvme-system` | `/` | 458G | 193G | System, hot models, Docker |
-| sdb2 | `hdd-data` | `/mnt/sdb2` | 931G | 152G | Repo, archives, bulk data |
+| sdb2 | `hdd-data` | `/mnt/sdb2` | 931G | 376G | Repo, archives, bulk data |
 | sdc2 | `ssd-cache` | `/mnt/ssd` | 100G | 79G | Swap, gpt-oss GGUF, caches |
-| sda1 | `hdd-cold` | `/mnt/hdd-cold` | 466G | 286G | ASX filing PDFs, llmfit cache |
+| sda1 | `hdd-cold` | `/mnt/hdd-cold` | 466G | 208G | ASX filing PDFs, old models, backups, llmfit cache |
 
 Key paths:
 - Tenn runtime data: `/mnt/nvme/tenn/runtime-data`
 - ASX filing PDFs: `/mnt/hdd-cold/tenn/asx-docs` (symlinked from `/mnt/nvme/tenn/runtime-data/asx/docs`)
 - GGUF router models (hot): `/mnt/nvme/tenn/models`
+- GGUF archived models (cold): `/mnt/hdd-cold/tenn/models` (mistral-7b, qwen3-14b)
 - gpt-oss-20b fallback GGUF: `/mnt/ssd/log/ssd_data/l4nd0_cache/.cache/llmfit/models/gpt-oss-20b-mxfp4.gguf`
 - llmfit model cache: `~/.cache/llmfit/models` → `/mnt/hdd-cold/tenn/llmfit-cache`
+- NVMe recovery snapshots (2026-02-28): `/mnt/hdd-cold/tenn/nvme-backups-20260228`
 - Archived inactive Ollama models: `/mnt/sdb2/home/l4nd0/tenn/.archives/ollama-root-store-2026-04-07`
 - Root Ollama keep-set: `qwen2.5:32b` + `gpt-oss:20b-cloud`
 
@@ -212,3 +222,4 @@ Storage migration history:
 - 2026-04-07: Runtime data + GGUF models moved to NVMe; Ollama store pruned
 - 2026-04-09: Old 500GB Barracuda (sda) wiped, reformatted as ext4 `hdd-cold`, added to fstab; old PC backup data (135,412 files across 3 folders) verified and archived to external USB drive; redundant 41G `old_pc_backup_2012` deleted from sdb2; all drives labeled; llmfit updated 0.8.4→0.9.2; `llama-server` and `llama-cli` symlinked to `~/.local/bin`
 - 2026-04-09: ASX filing PDFs (149G, 176,467 files) moved from NVMe to hdd-cold with symlink back; stale Ollama models (phi3, qwen2.5-coder) deleted from SSD; Docker unused images pruned; llmfit cache redirected to hdd-cold. NVMe freed from 52G→193G available
+- 2026-04-09: Legacy `cold_storage/` on sdb2 (225G) cleaned up — orphan PDF preserved, old models (mistral-7b, qwen3-14b) and NVMe backups moved to hdd-cold, stale `asx_data` symlink removed, docker-compose defaults updated. sdb2 freed from 152G→376G available. Total usable free: 856G
