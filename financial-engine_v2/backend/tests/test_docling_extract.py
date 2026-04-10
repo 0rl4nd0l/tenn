@@ -4,6 +4,8 @@ import os
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from app.services import docling_extract
 from app.services.docling_extract import DoclingTable, StructuredDocument
 
@@ -34,7 +36,9 @@ def test_extract_structured_reads_fresh_cache(tmp_path, monkeypatch):
     monkeypatch.setattr(
         docling_extract,
         "_run_docling_with_timeout",
-        lambda path: (_ for _ in ()).throw(AssertionError("docling should not run when cache is fresh")),
+        lambda path: (_ for _ in ()).throw(
+            AssertionError("docling should not run when cache is fresh")
+        ),
     )
 
     loaded = docling_extract.extract_structured(str(pdf_path), backend="docling")
@@ -59,7 +63,9 @@ def test_extract_structured_reextracts_when_cache_is_corrupt(tmp_path, monkeypat
     )
     calls: list[str] = []
 
-    def fake_run(path: str, timeout: int = docling_extract.DOCLING_TIMEOUT_SECONDS) -> StructuredDocument:
+    def fake_run(
+        path: str, timeout: int = docling_extract.DOCLING_TIMEOUT_SECONDS
+    ) -> StructuredDocument:
         calls.append(path)
         return extracted_doc
 
@@ -73,7 +79,9 @@ def test_extract_structured_reextracts_when_cache_is_corrupt(tmp_path, monkeypat
     assert docling_extract._load_cache(cache_path) == extracted_doc
 
 
-def test_extract_structured_uses_pymupdf_fallback_when_docling_fails(tmp_path, monkeypatch):
+def test_extract_structured_uses_pymupdf_fallback_when_docling_fails(
+    tmp_path, monkeypatch
+):
     pdf_path = tmp_path / "report.pdf"
     pdf_path.write_bytes(b"%PDF-1.4 test")
 
@@ -87,7 +95,9 @@ def test_extract_structured_uses_pymupdf_fallback_when_docling_fails(tmp_path, m
     monkeypatch.setattr(
         docling_extract,
         "_run_docling_with_timeout",
-        lambda path, timeout=120: (_ for _ in ()).throw(TimeoutError("docling timeout")),
+        lambda path, timeout=120: (_ for _ in ()).throw(
+            TimeoutError("docling timeout")
+        ),
     )
     monkeypatch.setattr(docling_extract, "_extract_pymupdf", lambda path: fallback_doc)
     monkeypatch.setattr(docling_extract, "_get_page_count_fast", lambda path: 1)
@@ -95,6 +105,35 @@ def test_extract_structured_uses_pymupdf_fallback_when_docling_fails(tmp_path, m
     loaded = docling_extract.extract_structured(str(pdf_path), backend="docling")
 
     assert loaded == fallback_doc
+
+
+def test_extract_structured_strict_docling_does_not_fallback(tmp_path, monkeypatch):
+    pdf_path = tmp_path / "report.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4 test")
+
+    monkeypatch.setattr(docling_extract, "validate_docling_environment", lambda: None)
+    monkeypatch.setattr(
+        docling_extract,
+        "_run_docling_with_timeout",
+        lambda path, timeout=120: (_ for _ in ()).throw(
+            TimeoutError("docling timeout")
+        ),
+    )
+    monkeypatch.setattr(
+        docling_extract,
+        "_extract_pymupdf",
+        lambda path: (_ for _ in ()).throw(
+            AssertionError("strict docling must not fallback")
+        ),
+    )
+    monkeypatch.setattr(docling_extract, "_get_page_count_fast", lambda path: 1)
+
+    with pytest.raises(RuntimeError, match="strict backend failed"):
+        docling_extract.extract_structured(
+            str(pdf_path),
+            backend="docling",
+            strict_backend=True,
+        )
 
 
 def test_pymupdf_fallback_extracts_sections_and_tables(monkeypatch):
@@ -201,7 +240,8 @@ def test_garbling_detected_falls_back_to_pymupdf(tmp_path, monkeypatch, caplog):
         return pymupdf_doc
 
     monkeypatch.setattr(
-        docling_extract, "_run_docling_with_timeout",
+        docling_extract,
+        "_run_docling_with_timeout",
         lambda path, timeout=120: garbled_doc,
     )
     monkeypatch.setattr(docling_extract, "_extract_pymupdf", fake_pymupdf)

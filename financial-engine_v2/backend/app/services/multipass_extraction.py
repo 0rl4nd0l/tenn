@@ -1734,6 +1734,8 @@ def run_multipass_extraction(
     llm_client,
     *,
     skip_narrative: bool = False,
+    parser_backend: str | None = None,
+    strict_parser: bool = False,
 ) -> MultipassResult:
     """
     Orchestrate all 4 passes and return a MultipassResult.
@@ -1763,9 +1765,20 @@ def run_multipass_extraction(
 
     # Extract structured document
     try:
-        structured_doc = extract_structured(pdf_path)
+        structured_doc = extract_structured(
+            pdf_path,
+            backend=parser_backend or "",
+            strict_backend=strict_parser,
+        )
     except Exception as e:
         logger.error("docling_extract failed for %s: %s", pdf_path, e)
+        null_payload["_structured_extraction"] = {
+            "parser_id": parser_backend or "auto",
+            "page_count": 0,
+            "docling_version": None,
+            "fallback_used": False,
+            "warnings": [],
+        }
         return MultipassResult(
             status="failed", payload=null_payload, sections=[], error=str(e)
         )
@@ -1873,6 +1886,15 @@ def run_multipass_extraction(
     # Flatten metrics into payload for _upsert_financial_rows compat
     for m in METRIC_FIELDS:
         payload[m] = payload["metrics"].get(m)
+
+    payload["_structured_extraction"] = {
+        "parser_id": structured_doc.extraction_method,
+        "page_count": structured_doc.page_count,
+        "docling_version": structured_doc.docling_version or None,
+        "fallback_used": structured_doc.extraction_method.startswith("pymupdf")
+        and (parser_backend in (None, "", "docling")),
+        "warnings": [],
+    }
 
     # Propagate scale and currency from Pass 1 into payload so _validate_gate
     # can inspect them and so _upsert_financial_rows stores the correct currency.

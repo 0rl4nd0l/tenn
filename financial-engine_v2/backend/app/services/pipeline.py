@@ -949,6 +949,9 @@ def process_document(
     document_id,
     qdrant_client: Optional[QdrantClient] = None,
     ollama_client: Optional[httpx.Client] = None,
+    *,
+    requested_method: str = "auto",
+    strict_method: bool = False,
 ):
     db = SessionLocal()
     try:
@@ -975,13 +978,18 @@ def process_document(
             )
         else:
             from app.services.router_state import extraction_activity
+            from app.services.method_isolated_extraction import (
+                run_method_isolated_extraction,
+            )
 
             try:
                 with extraction_activity():
-                    multipass_result = run_multipass_extraction(
+                    multipass_result = run_method_isolated_extraction(
                         resolved_pdf_path,
                         dict(doc_metadata),
                         ollama_client,
+                        requested_method=requested_method,
+                        strict_method=strict_method,
                     )
             except Exception as exc:
                 error_text = str(exc)
@@ -1032,13 +1040,20 @@ def process_document(
                 if status == ExtractionStageStatus.FAILED:
                     failure_code = classify_extraction_failure(error, payload)
 
+                method_provenance = payload.get("_method_provenance")
+                model_name = default_model_name
+                if isinstance(method_provenance, Mapping):
+                    method_model = str(method_provenance.get("model_id") or "").strip()
+                    if method_model:
+                        model_name = method_model
+
                 extraction_stage = ExtractionStageResult(
                     status=status,
                     payload=payload,
                     sections=sections,
                     error=error,
                     confidence=confidence,
-                    model_name=default_model_name,
+                    model_name=model_name,
                     failure_code=failure_code,
                 )
 
@@ -1130,8 +1145,10 @@ def process_document(
         return {
             "ok": True,
             "document_id": str(doc.document_id),
+            "run_id": str(run.run_id),
             "chunks": chunks_created,
             "extraction_status": extraction_stage.status.value,
+            "method_provenance": structured_with_repro.get("_method_provenance"),
             "skipped_invalid_vectors": skipped_invalid_vectors,
             "chunks_created": chunks_created,
             "chunks_skipped": chunks_skipped,

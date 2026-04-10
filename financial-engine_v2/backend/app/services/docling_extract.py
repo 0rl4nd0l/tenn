@@ -58,6 +58,16 @@ class StructuredDocument:
     )
 
 
+def validate_docling_environment() -> None:
+    if DOCLING_VERSION == "unknown":
+        raise RuntimeError("docling environment invalid: package not installed")
+    try:
+        from docling.document_converter import DocumentConverter, PdfFormatOption  # noqa: F401
+        from docling.datamodel.pipeline_options import PdfPipelineOptions  # noqa: F401
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError(f"docling environment invalid: {exc}") from exc
+
+
 def _is_garbled(text: str) -> bool:
     """Detect font-encoding garbling (e.g. +3 ASCII shift from PDF font subsetting).
 
@@ -247,7 +257,12 @@ def _extract_pymupdf(pdf_path: str) -> StructuredDocument:
     return result
 
 
-def extract_structured(pdf_path: str, *, backend: str = "") -> StructuredDocument:
+def extract_structured(
+    pdf_path: str,
+    *,
+    backend: str = "",
+    strict_backend: bool = False,
+) -> StructuredDocument:
     """
     Main entry point. Returns StructuredDocument for the given PDF path.
 
@@ -257,6 +272,8 @@ def extract_structured(pdf_path: str, *, backend: str = "") -> StructuredDocumen
       - "" — auto: uses docling unless EXTRACTION_BACKEND is set
     """
     chosen = backend or os.environ.get("EXTRACTION_BACKEND", "docling")
+    if chosen == "docling" and strict_backend:
+        validate_docling_environment()
 
     # Cache check (works for both backends)
     cache_suffix = ".docling.json" if chosen == "docling" else ".pymupdf.json"
@@ -269,6 +286,10 @@ def extract_structured(pdf_path: str, *, backend: str = "") -> StructuredDocumen
             # For docling cache, validate version; pymupdf cache is always valid
             if chosen != "docling" or cached.docling_version == DOCLING_VERSION:
                 if chosen == "docling" and _has_garbled_tables(cached, pdf_path):
+                    if strict_backend:
+                        raise RuntimeError(
+                            f"docling strict backend rejected garbled cached output for {pdf_path}"
+                        )
                     result = _extract_pymupdf(pdf_path)
                     _save_cache(Path(pdf_path + ".pymupdf.json"), result)
                     return result
@@ -292,11 +313,17 @@ def extract_structured(pdf_path: str, *, backend: str = "") -> StructuredDocumen
             result = _run_docling_with_timeout(pdf_path, timeout=timeout)
             _save_cache(cache_path, result)
             if _has_garbled_tables(result, pdf_path):
+                if strict_backend:
+                    raise RuntimeError(
+                        f"docling strict backend rejected garbled output for {pdf_path}"
+                    )
                 result = _extract_pymupdf(pdf_path)
                 _save_cache(Path(pdf_path + ".pymupdf.json"), result)
                 return result
             return result
         except Exception as e:
+            if strict_backend:
+                raise RuntimeError(f"docling strict backend failed: {e}") from e
             logger.warning(
                 "docling failed (%s), falling back to PyMuPDF: %s", type(e).__name__, e
             )

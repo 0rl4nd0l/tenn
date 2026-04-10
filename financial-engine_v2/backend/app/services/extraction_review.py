@@ -5,6 +5,7 @@ import json
 import re
 import subprocess
 import xml.etree.ElementTree as ET
+from functools import lru_cache
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -28,6 +29,7 @@ REVIEW_ROOT = PROJECT_ROOT / "reports" / "extraction_review"
 SESSIONS_ROOT = REVIEW_ROOT / "sessions"
 SNIPPETS_ROOT = REVIEW_ROOT / "snippets"
 ERROR_QUEUE_PATH = REVIEW_ROOT / "wrong_metric_queue.json"
+REAL_GOLD_REVIEW_DIR = PROJECT_ROOT / "data" / "extraction_gold_real"
 
 VALID_REVIEW_STATUSES = {"approved", "wrong", "abstain"}
 _PAGE_RE = re.compile(r"page_(\d+)")
@@ -66,6 +68,35 @@ def _project_relative(path: Path | None) -> str | None:
         return str(path.resolve().relative_to(PROJECT_ROOT))
     except Exception:
         return str(path.resolve())
+
+
+@lru_cache(maxsize=1)
+def _load_real_gold_by_source() -> dict[str, dict[str, Any]]:
+    records: dict[str, dict[str, Any]] = {}
+    if not REAL_GOLD_REVIEW_DIR.exists():
+        return records
+    for path in sorted(REAL_GOLD_REVIEW_DIR.glob("*.json")):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(payload, Mapping):
+            continue
+        source_file = str(payload.get("source_file") or "").strip()
+        if source_file:
+            records[source_file] = dict(payload)
+    return records
+
+
+def _gold_payload_for_document(
+    document: Document, pdf_path: Path | None
+) -> dict[str, Any] | None:
+    records = _load_real_gold_by_source()
+    candidates = {
+        str(getattr(document, "pdf_path", "") or "").strip(),
+        _project_relative(pdf_path) or "",
+    }
+    for candidate in candidates:
+        if candidate and candidate in records:
+            return records[candidate]
+    return None
 
 
 def _coerce_pdf_path(document: Document, payload: Mapping[str, Any]) -> Path | None:
@@ -528,6 +559,21 @@ def list_review_runs(
                 "confidence_overall": run.confidence_overall,
                 "model_name": str(run.model_name or "").strip() or None,
                 "extractor_version": str(run.extractor_version or "").strip() or None,
+                "requested_method": (
+                    payload.get("_method_provenance", {}).get("requested_method")
+                    if isinstance(payload.get("_method_provenance"), Mapping)
+                    else None
+                ),
+                "actual_method": (
+                    payload.get("_method_provenance", {}).get("actual_method")
+                    if isinstance(payload.get("_method_provenance"), Mapping)
+                    else None
+                ),
+                "strict_method": (
+                    payload.get("_method_provenance", {}).get("strict_method")
+                    if isinstance(payload.get("_method_provenance"), Mapping)
+                    else None
+                ),
                 "error": str(run.error or "").strip() or None,
                 "metrics_count": sum(
                     1 for value in metrics.values() if value is not None
@@ -591,6 +637,16 @@ def build_review_item(
     page_number = _parse_page_number(record.location_ref)
     item_id = f"{run.run_id}:{metric}"
     pdf_path = _coerce_pdf_path(document, payload)
+    method_provenance = payload.get("_method_provenance")
+    method_provenance = (
+        dict(method_provenance) if isinstance(method_provenance, Mapping) else {}
+    )
+    gold_payload = _gold_payload_for_document(document, pdf_path)
+    gold_metrics = (
+        gold_payload.get("metrics") if isinstance(gold_payload, Mapping) else {}
+    )
+    gold_metrics = gold_metrics if isinstance(gold_metrics, Mapping) else {}
+    gold_expected_value = gold_metrics.get(metric)
     snippet = build_metric_snippet(
         item_id=item_id,
         pdf_path=pdf_path,
@@ -618,10 +674,25 @@ def build_review_item(
         "provenance_status": record.provenance_status,
         "source_label": record.source_label,
         "location_ref": record.location_ref,
+        "requested_method": method_provenance.get("requested_method"),
+        "actual_method": method_provenance.get("actual_method"),
+        "strict_method": method_provenance.get("strict_method"),
+        "parser_id": method_provenance.get("parser_id"),
+        "model_id": method_provenance.get("model_id"),
+        "runtime_id": method_provenance.get("runtime_id"),
+        "fallback_used": method_provenance.get("fallback_used"),
+        "error_stage": method_provenance.get("error_stage"),
+        "method_warnings": method_provenance.get("warnings") or [],
+        "gold_document_id": gold_payload.get("document_id")
+        if isinstance(gold_payload, Mapping)
+        else None,
+        "gold_expected_trust": gold_payload.get("expected_trust")
+        if isinstance(gold_payload, Mapping)
+        else None,
         "snippet": snippet,
         "review_status": "pending",
         "reviewed_at": None,
-        "expected_value": None,
+        "expected_value": gold_expected_value,
         "reviewer_note": "",
     }
 

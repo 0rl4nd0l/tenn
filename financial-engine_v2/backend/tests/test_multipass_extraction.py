@@ -2,6 +2,7 @@
 Unit tests for the 4-pass multipass extraction pipeline.
 LLM calls are mocked — these test logic, not model quality.
 """
+
 import pytest
 from unittest.mock import patch, MagicMock
 
@@ -9,6 +10,7 @@ from unittest.mock import patch, MagicMock
 # ---------------------------------------------------------------------------
 # Pass 1 — Document Classifier
 # ---------------------------------------------------------------------------
+
 
 def test_pass1_extracts_period_from_appendix_4d():
     """Classifier must identify half-year period from Appendix 4D heading."""
@@ -22,7 +24,9 @@ def test_pass1_extracts_period_from_appendix_4d():
         "classifier_confidence": 0.97,
     }
 
-    with patch("app.services.multipass_extraction._llm_json_call", return_value=mock_response):
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_response
+    ):
         result = _run_pass1_classifier(
             title="Appendix 4D Half Year Report",
             first_page_text="For the half year ended 31 December 2024. All figures in AUD thousands.",
@@ -47,7 +51,9 @@ def test_pass1_returns_low_confidence_on_empty_input():
         "classifier_confidence": 0.1,
     }
 
-    with patch("app.services.multipass_extraction._llm_json_call", return_value=mock_response):
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_response
+    ):
         result = _run_pass1_classifier(title="", first_page_text="", llm_client=None)
 
     assert result["classifier_confidence"] < 0.6
@@ -57,6 +63,7 @@ def test_pass1_returns_low_confidence_on_empty_input():
 # Pass 2 — Table Locator
 # ---------------------------------------------------------------------------
 
+
 def test_pass2_labels_cashflow_table_by_caption():
     """Table locator must assign a table with 'cash flow' caption to cashflow_statement."""
     from app.services.multipass_extraction import _run_pass2_locator
@@ -65,7 +72,10 @@ def test_pass2_labels_cashflow_table_by_caption():
     cashflow_table = DoclingTable(
         page_number=3,
         caption="Consolidated Statement of Cash Flows",
-        rows=[["Row", "Current", "Prior"], ["Net cash from operations", "3,241", "2,876"]],
+        rows=[
+            ["Row", "Current", "Prior"],
+            ["Net cash from operations", "3,241", "2,876"],
+        ],
         headers=["Row", "Current", "Prior"],
     )
     result = _run_pass2_locator([cashflow_table])
@@ -78,11 +88,15 @@ def test_pass2_higher_score_wins_on_conflict():
     from app.services.multipass_extraction import _run_pass2_locator
     from app.services.docling_extract import DoclingTable
 
-    weak = DoclingTable(page_number=1, caption="cash",
-                        rows=[["cash flow", "100"]], headers=[])
-    strong = DoclingTable(page_number=3, caption="Cash Flow Statement — Financing Activities",
-                          rows=[["net cash from operations", "1000"],
-                                ["financing activities", "200"]], headers=[])
+    weak = DoclingTable(
+        page_number=1, caption="cash", rows=[["cash flow", "100"]], headers=[]
+    )
+    strong = DoclingTable(
+        page_number=3,
+        caption="Cash Flow Statement — Financing Activities",
+        rows=[["net cash from operations", "1000"], ["financing activities", "200"]],
+        headers=[],
+    )
     result = _run_pass2_locator([weak, strong])
     assert result["cashflow_statement"] is strong
 
@@ -91,6 +105,7 @@ def test_pass2_higher_score_wins_on_conflict():
 # Pass 3a — Scale normalisation and negative values
 # ---------------------------------------------------------------------------
 
+
 def test_pass3a_applies_thousands_multiplier():
     """Metric values must be multiplied by 1000 when scale=thousands."""
     from unittest.mock import patch
@@ -98,22 +113,37 @@ def test_pass3a_applies_thousands_multiplier():
     from app.services.docling_extract import DoclingTable
 
     table = DoclingTable(
-        page_number=2, caption="Cash Flow Statement",
+        page_number=2,
+        caption="Cash Flow Statement",
         rows=[["", "H1 2025"], ["Net cash from operations", "3,241"]],
         headers=["", "H1 2025"],
     )
-    labelled = {"cashflow_statement": table, "income_statement": None,
-                "balance_sheet": None, "highlights": None, "unmatched": []}
-    pass1 = {"report_type": "H", "period_end": "2024-12-31",
-             "currency": "AUD", "scale": "thousands"}
+    labelled = {
+        "cashflow_statement": table,
+        "income_statement": None,
+        "balance_sheet": None,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2024-12-31",
+        "currency": "AUD",
+        "scale": "thousands",
+    }
 
     mock_raw = {
         "operating_cf": 3241,
-        "investing_cf": None, "financing_cf": None, "cash_end": None,
-        "pass3_confidence": 0.95, "row_refs": {"operating_cf": "Net cash from operations"},
+        "investing_cf": None,
+        "financing_cf": None,
+        "cash_end": None,
+        "pass3_confidence": 0.95,
+        "row_refs": {"operating_cf": "Net cash from operations"},
     }
 
-    with patch("app.services.multipass_extraction._llm_json_call", return_value=mock_raw):
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
         results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
 
     assert len(results) == 1
@@ -127,21 +157,36 @@ def test_pass3a_negative_values_preserved():
     from app.services.docling_extract import DoclingTable
 
     table = DoclingTable(
-        page_number=2, caption="Cash Flow",
+        page_number=2,
+        caption="Cash Flow",
         rows=[["", "H1"], ["Investing activities", "(412)"]],
         headers=[],
     )
-    labelled = {"cashflow_statement": table, "income_statement": None,
-                "balance_sheet": None, "highlights": None, "unmatched": []}
-    pass1 = {"report_type": "H", "period_end": "2024-12-31",
-             "currency": "AUD", "scale": "thousands"}
+    labelled = {
+        "cashflow_statement": table,
+        "income_statement": None,
+        "balance_sheet": None,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2024-12-31",
+        "currency": "AUD",
+        "scale": "thousands",
+    }
 
     mock_raw = {
-        "operating_cf": None, "investing_cf": -412,
-        "financing_cf": None, "cash_end": None,
-        "pass3_confidence": 0.9, "row_refs": {},
+        "operating_cf": None,
+        "investing_cf": -412,
+        "financing_cf": None,
+        "cash_end": None,
+        "pass3_confidence": 0.9,
+        "row_refs": {},
     }
-    with patch("app.services.multipass_extraction._llm_json_call", return_value=mock_raw):
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
         results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
 
     assert results[0]["investing_cf"] == -412_000
@@ -150,6 +195,7 @@ def test_pass3a_negative_values_preserved():
 # ---------------------------------------------------------------------------
 # Pass 3b — Narrative extractor
 # ---------------------------------------------------------------------------
+
 
 def test_pass3b_returns_null_on_empty_sections():
     """Narrative extractor must return all-null dict when sections are empty."""
@@ -165,18 +211,37 @@ def test_pass3b_returns_null_on_empty_sections():
 # Pass 4 — Reconciler
 # ---------------------------------------------------------------------------
 
+
 def test_pass4_merges_non_overlapping_metrics():
     """Reconciler must combine metrics from different table sources."""
     from app.services.multipass_extraction import _run_pass4_reconciler
 
     pass3a = [
-        {"_source": "cashflow_statement", "operating_cf": 3_241_000, "investing_cf": -412_000,
-         "financing_cf": None, "cash_end": None, "pass3_confidence": 0.9, "row_refs": {}},
-        {"_source": "income_statement", "revenue": 27_841_000_000, "ebit": 9_100_000_000,
-         "np_attributable": None, "pass3_confidence": 0.88, "row_refs": {}},
+        {
+            "_source": "cashflow_statement",
+            "operating_cf": 3_241_000,
+            "investing_cf": -412_000,
+            "financing_cf": None,
+            "cash_end": None,
+            "pass3_confidence": 0.9,
+            "row_refs": {},
+        },
+        {
+            "_source": "income_statement",
+            "revenue": 27_841_000_000,
+            "ebit": 9_100_000_000,
+            "np_attributable": None,
+            "pass3_confidence": 0.88,
+            "row_refs": {},
+        },
     ]
-    pass3b = {"risk_summary": None, "risk_bullets": None,
-              "guidance_summary": None, "material_changes": None, "confidence_narrative": 0.0}
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.0,
+    }
     pass1 = {"report_type": "H", "period_end": "2024-12-31"}
 
     result = _run_pass4_reconciler(pass3a, pass3b, pass1)
@@ -190,13 +255,15 @@ def test_pass4_merges_non_overlapping_metrics():
 # Scale detection priority — table headers always authoritative over LLM
 # ---------------------------------------------------------------------------
 
+
 def test_scale_override_mutates_pass1_dict():
     """The override block must mutate pass1['scale'] when table headers are authoritative."""
     from app.services.multipass_extraction import _detect_scale_from_tables
     from app.services.docling_extract import DoclingTable
 
     table = DoclingTable(
-        page_number=2, caption="Cash Flows",
+        page_number=2,
+        caption="Cash Flows",
         rows=[["", "31 Dec 2024 $'000"], ["Operating CF", "3,241"]],
         headers=["", "31 Dec 2024 $'000"],
     )
@@ -219,7 +286,8 @@ def test_scale_unknown_table_preserves_pass1_scale():
     from app.services.docling_extract import DoclingTable
 
     table = DoclingTable(
-        page_number=1, caption="Highlights",
+        page_number=1,
+        caption="Highlights",
         rows=[["Metric", "Value"], ["Revenue", "27,841"]],
         headers=["Metric", "Value"],
     )
@@ -240,7 +308,8 @@ def test_scale_override_log_condition_fires_on_disagreement():
     from app.services.docling_extract import DoclingTable
 
     table = DoclingTable(
-        page_number=2, caption="Cash Flows",
+        page_number=2,
+        caption="Cash Flows",
         rows=[["", "H1 2025 $'000"], ["Operating CF", "3,241"]],
         headers=["", "H1 2025 $'000"],
     )
@@ -251,7 +320,55 @@ def test_scale_override_log_condition_fires_on_disagreement():
 
     # This is the exact condition guarding logger.info in run_multipass_extraction.
     gate = pass1_scale not in (detected, "unknown", None, "")
-    assert gate, f"INFO log gate must be True when LLM='{pass1_scale}' vs table='{detected}'"
+    assert gate, (
+        f"INFO log gate must be True when LLM='{pass1_scale}' vs table='{detected}'"
+    )
+
+
+def test_currency_detection_from_tables_prefers_dominant_signal():
+    """Dominant table currency markers should resolve to one currency code."""
+    from app.services.multipass_extraction import _detect_currency_from_tables
+    from app.services.docling_extract import DoclingTable
+
+    tables = [
+        DoclingTable(
+            page_number=1,
+            caption="Consolidated statement of cash flows",
+            headers=["Item", "Current quarter A$'000"],
+            rows=[["Net cash from operations", "3,241"]],
+        ),
+        DoclingTable(
+            page_number=2,
+            caption="Financial position (A$M)",
+            headers=["Metric", "A$M"],
+            rows=[["Net debt", "12.4"]],
+        ),
+    ]
+
+    assert _detect_currency_from_tables(tables) == "AUD"
+
+
+def test_currency_detection_returns_none_when_signals_tie():
+    """When AUD/USD evidence ties, currency detector must abstain (None)."""
+    from app.services.multipass_extraction import _detect_currency_from_tables
+    from app.services.docling_extract import DoclingTable
+
+    tables = [
+        DoclingTable(
+            page_number=1,
+            caption="USD summary",
+            headers=["Metric", "US$M"],
+            rows=[["Revenue", "53.6"]],
+        ),
+        DoclingTable(
+            page_number=2,
+            caption="AUD summary",
+            headers=["Metric", "A$M"],
+            rows=[["Revenue", "80.1"]],
+        ),
+    ]
+
+    assert _detect_currency_from_tables(tables) is None
 
 
 def test_pass3a_applies_corrected_scale_multiplier():
@@ -267,20 +384,34 @@ def test_pass3a_applies_corrected_scale_multiplier():
         rows=[["", "H1 2025 $'000"], ["Net cash from operations", "3,241"]],
         headers=["", "H1 2025 $'000"],
     )
-    labelled = {"cashflow_statement": table, "income_statement": None,
-                "balance_sheet": None, "highlights": None, "unmatched": []}
+    labelled = {
+        "cashflow_statement": table,
+        "income_statement": None,
+        "balance_sheet": None,
+        "highlights": None,
+        "unmatched": [],
+    }
 
     # scale already corrected (e.g. by the table-header override in run_multipass_extraction)
-    pass1 = {"report_type": "H", "period_end": "2024-12-31",
-             "currency": "AUD", "scale": "thousands"}
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2024-12-31",
+        "currency": "AUD",
+        "scale": "thousands",
+    }
 
     mock_raw = {
         "operating_cf": 3241,
-        "investing_cf": None, "financing_cf": None, "cash_end": None,
-        "pass3_confidence": 0.95, "row_refs": {"operating_cf": "Net cash from operations"},
+        "investing_cf": None,
+        "financing_cf": None,
+        "cash_end": None,
+        "pass3_confidence": 0.95,
+        "row_refs": {"operating_cf": "Net cash from operations"},
     }
 
-    with patch("app.services.multipass_extraction._llm_json_call", return_value=mock_raw):
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
         results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
 
     assert len(results) == 1
@@ -294,11 +425,26 @@ def test_pass4_higher_priority_source_wins():
     from app.services.multipass_extraction import _run_pass4_reconciler
 
     pass3a = [
-        {"_source": "highlights", "revenue": 45_200_000, "pass3_confidence": 0.7, "row_refs": {}},
-        {"_source": "income_statement", "revenue": 45_192_000, "pass3_confidence": 0.92, "row_refs": {}},
+        {
+            "_source": "highlights",
+            "revenue": 45_200_000,
+            "pass3_confidence": 0.7,
+            "row_refs": {},
+        },
+        {
+            "_source": "income_statement",
+            "revenue": 45_192_000,
+            "pass3_confidence": 0.92,
+            "row_refs": {},
+        },
     ]
-    pass3b = {"risk_summary": None, "risk_bullets": None,
-              "guidance_summary": None, "material_changes": None, "confidence_narrative": 0.0}
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.0,
+    }
     pass1 = {"report_type": "H", "period_end": "2024-12-31"}
 
     result = _run_pass4_reconciler(pass3a, pass3b, pass1)
@@ -308,6 +454,7 @@ def test_pass4_higher_priority_source_wins():
 # ---------------------------------------------------------------------------
 # Pipeline integration — _upsert_financial_rows (DB smoke test)
 # ---------------------------------------------------------------------------
+
 
 def test_upsert_financial_rows_smoke():
     """_upsert_financial_rows must write all metric and narrative fields to the DB,
@@ -399,12 +546,18 @@ def test_upsert_financial_rows_smoke():
 # Pass 3a — Period column disambiguation (B2)
 # ---------------------------------------------------------------------------
 
+
 def test_pass3a_prompt_contains_column_selection_instruction():
     """_PASS3A_PROMPT must instruct the LLM to select the period_end column."""
     from app.services.multipass_extraction import _PASS3A_PROMPT
+
     prompt_lower = _PASS3A_PROMPT.lower()
-    assert "prior" in prompt_lower, "Prompt must explicitly mention prior-period columns"
-    assert "comparative" in prompt_lower, "Prompt must explicitly mention comparative columns"
+    assert "prior" in prompt_lower, (
+        "Prompt must explicitly mention prior-period columns"
+    )
+    assert "comparative" in prompt_lower, (
+        "Prompt must explicitly mention comparative columns"
+    )
     assert "period_end" in _PASS3A_PROMPT or "{period_end}" in _PASS3A_PROMPT, (
         "Prompt must reference period_end for column selection"
     )
@@ -413,6 +566,7 @@ def test_pass3a_prompt_contains_column_selection_instruction():
 def test_pass3a_prompt_documents_bank_revenue_equivalent():
     """Banking half-year reports (e.g. ANZ) use operating / net interest income, not 'Revenue'."""
     from app.services.multipass_extraction import _PASS3A_PROMPT
+
     pl = _PASS3A_PROMPT.lower()
     assert "bank" in pl
     assert "net interest income" in pl
@@ -427,32 +581,54 @@ def test_pass3a_prompt_includes_period_end_for_column_selection():
     from app.services.docling_extract import DoclingTable
 
     table = DoclingTable(
-        page_number=2, caption="Income Statement",
-        rows=[["", "H1 2025", "H1 2024"],
-              ["Revenue", "485,630", "390,200"],
-              ["EBIT", "31,284", "22,100"]],
+        page_number=2,
+        caption="Income Statement",
+        rows=[
+            ["", "H1 2025", "H1 2024"],
+            ["Revenue", "485,630", "390,200"],
+            ["EBIT", "31,284", "22,100"],
+        ],
         headers=["", "H1 2025", "H1 2024"],
     )
-    labelled = {"cashflow_statement": None, "income_statement": table,
-                "balance_sheet": None, "highlights": None, "unmatched": []}
-    pass1 = {"report_type": "H", "period_end": "2025-06-30",
-             "currency": "AUD", "scale": "thousands"}
+    labelled = {
+        "cashflow_statement": None,
+        "income_statement": table,
+        "balance_sheet": None,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2025-06-30",
+        "currency": "AUD",
+        "scale": "thousands",
+    }
 
-    mock_raw = {"revenue": 485630, "ebit": 31284, "np_attributable": None,
-                "period_col": "H1 2025",
-                "pass3_confidence": 0.9, "row_refs": {}}
+    mock_raw = {
+        "revenue": 485630,
+        "ebit": 31284,
+        "np_attributable": None,
+        "period_col": "H1 2025",
+        "pass3_confidence": 0.9,
+        "row_refs": {},
+    }
 
     captured_prompts = []
+
     def capture_llm_call(prompt, llm_client, max_tokens=512):
         captured_prompts.append(prompt)
         return mock_raw
 
-    with patch("app.services.multipass_extraction._llm_json_call", side_effect=capture_llm_call):
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", side_effect=capture_llm_call
+    ):
         results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
 
     assert captured_prompts, "LLM must have been called"
     prompt = captured_prompts[0]
-    assert "2025-06-30" in prompt, "period_end date must appear in the prompt for column selection"
+    assert "2025-06-30" in prompt, (
+        "period_end date must appear in the prompt for column selection"
+    )
     assert "prior" in prompt.lower() or "comparative" in prompt.lower(), (
         "Prompt must warn against prior-period column extraction"
     )
@@ -469,6 +645,7 @@ def test_pass3a_prompt_includes_period_end_for_column_selection():
 # Pass 4 — net_debt derivation (B4)
 # ---------------------------------------------------------------------------
 
+
 def test_pass4_reconciler_derives_net_debt_from_total_debt():
     """Reconciler must derive net_debt = total_debt - cash_end when net_debt is null."""
     from app.services.multipass_extraction import _run_pass4_reconciler
@@ -476,19 +653,29 @@ def test_pass4_reconciler_derives_net_debt_from_total_debt():
     pass3a = [
         {
             "_source": "cashflow_statement",
-            "operating_cf": 500_000_000, "investing_cf": None, "financing_cf": None,
-            "cash_end": 200_000_000, "capex": None,
-            "pass3_confidence": 0.9, "row_refs": {},
+            "operating_cf": 500_000_000,
+            "investing_cf": None,
+            "financing_cf": None,
+            "cash_end": 200_000_000,
+            "capex": None,
+            "pass3_confidence": 0.9,
+            "row_refs": {"cash_end": "Cash and cash equivalents at end of period"},
         },
         {
             "_source": "balance_sheet",
-            "net_debt": None, "total_debt": 800_000_000, "shares_outstanding": None,
-            "pass3_confidence": 0.8, "row_refs": {},
+            "net_debt": None,
+            "total_debt": 800_000_000,
+            "shares_outstanding": None,
+            "pass3_confidence": 0.8,
+            "row_refs": {"total_debt": "Borrowings"},
         },
     ]
     pass3b = {
-        "risk_summary": None, "risk_bullets": None,
-        "guidance_summary": None, "material_changes": None, "confidence_narrative": 0.5,
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.5,
     }
     pass1 = {"report_type": "H", "period_end": "2024-12-31", "currency": "AUD"}
 
@@ -509,19 +696,29 @@ def test_pass4_reconciler_skips_derivation_when_net_debt_already_extracted():
     pass3a = [
         {
             "_source": "cashflow_statement",
-            "operating_cf": 100_000_000, "investing_cf": None, "financing_cf": None,
-            "cash_end": 50_000_000, "capex": None,
-            "pass3_confidence": 0.9, "row_refs": {},
+            "operating_cf": 100_000_000,
+            "investing_cf": None,
+            "financing_cf": None,
+            "cash_end": 50_000_000,
+            "capex": None,
+            "pass3_confidence": 0.9,
+            "row_refs": {"cash_end": "Cash and cash equivalents at end of period"},
         },
         {
             "_source": "balance_sheet",
-            "net_debt": 300_000_000, "total_debt": 999_000_000, "shares_outstanding": None,
-            "pass3_confidence": 0.9, "row_refs": {},
+            "net_debt": 300_000_000,
+            "total_debt": 999_000_000,
+            "shares_outstanding": None,
+            "pass3_confidence": 0.9,
+            "row_refs": {"net_debt": "Net debt", "total_debt": "Borrowings"},
         },
     ]
     pass3b = {
-        "risk_summary": None, "risk_bullets": None,
-        "guidance_summary": None, "material_changes": None, "confidence_narrative": 0.5,
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.5,
     }
     pass1 = {"report_type": "H", "period_end": "2024-12-31", "currency": "AUD"}
 
@@ -539,13 +736,19 @@ def test_pass4_reconciler_skips_derivation_when_cash_end_missing():
     pass3a = [
         {
             "_source": "balance_sheet",
-            "net_debt": None, "total_debt": 500_000_000, "shares_outstanding": 100_000_000,
-            "pass3_confidence": 0.7, "row_refs": {},
+            "net_debt": None,
+            "total_debt": 500_000_000,
+            "shares_outstanding": 100_000_000,
+            "pass3_confidence": 0.7,
+            "row_refs": {},
         },
     ]
     pass3b = {
-        "risk_summary": None, "risk_bullets": None,
-        "guidance_summary": None, "material_changes": None, "confidence_narrative": 0.5,
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.5,
     }
     pass1 = {"report_type": "H", "period_end": "2024-12-31", "currency": "AUD"}
 
@@ -556,9 +759,191 @@ def test_pass4_reconciler_skips_derivation_when_cash_end_missing():
     )
 
 
+def test_pass4_preserves_explicit_summary_net_debt():
+    """Explicit summary-table net_debt must beat ambiguous balance-sheet debt labels."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "highlights",
+            "_page_number": 1,
+            "net_debt": 12_924_000_000,
+            "pass3_confidence": 0.8,
+            "row_refs": {"net_debt": "Net debt"},
+        },
+        {
+            "_source": "balance_sheet",
+            "_page_number": 123,
+            "net_debt": -34_465_000_000,
+            "total_debt": -20_420_000_000,
+            "pass3_confidence": 0.9,
+            "row_refs": {
+                "net_debt": "Borrowings",
+                "total_debt": "Borrowings",
+            },
+        },
+    ]
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.5,
+    }
+    pass1 = {"report_type": "A", "period_end": "2025-06-30", "currency": "AUD"}
+
+    payload = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert payload["metrics"]["net_debt"] == 12_924_000_000
+    assert payload["provenance"]["net_debt"] == "highlights:page_1:Net debt"
+
+
+def test_pass4_rejects_total_liabilities_as_total_debt():
+    """Total liabilities must not be treated as debt evidence for net_debt derivation."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "cashflow_statement",
+            "_page_number": 8,
+            "cash_end": 1_436_000_000,
+            "pass3_confidence": 0.9,
+            "row_refs": {"cash_end": "Cash and cash equivalents at period end"},
+        },
+        {
+            "_source": "balance_sheet",
+            "_page_number": 19,
+            "net_debt": None,
+            "total_debt": 28_900_000_000,
+            "pass3_confidence": 0.8,
+            "row_refs": {"total_debt": "Total liabilities"},
+        },
+    ]
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.5,
+    }
+    pass1 = {"report_type": "H", "period_end": "2025-12-31", "currency": "AUD"}
+
+    payload = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert payload["metrics"]["net_debt"] is None
+    assert "net_debt" not in payload["provenance"]
+
+
+def test_pass4_rejects_accounting_negative_borrowings_for_derivation():
+    """Accounting-negative borrowings must not fabricate derived net_debt."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "cashflow_statement",
+            "_page_number": 6,
+            "cash_end": 14_045_000_000,
+            "pass3_confidence": 0.9,
+            "row_refs": {"cash_end": "Cash and cash equivalents"},
+        },
+        {
+            "_source": "balance_sheet",
+            "_page_number": 32,
+            "net_debt": None,
+            "total_debt": -20_420_000_000,
+            "pass3_confidence": 0.8,
+            "row_refs": {"total_debt": "Borrowings"},
+        },
+    ]
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.5,
+    }
+    pass1 = {"report_type": "A", "period_end": "2023-12-31", "currency": "AUD"}
+
+    payload = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert payload["metrics"]["net_debt"] is None
+
+
+def test_pass4_ambiguous_balance_sheet_net_debt_abstains():
+    """A balance-sheet value from a non-explicit debt row must be rejected."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "balance_sheet",
+            "_page_number": 32,
+            "net_debt": 27_464_000_000,
+            "pass3_confidence": 0.8,
+            "row_refs": {"net_debt": "Borrowings"},
+        }
+    ]
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.5,
+    }
+    pass1 = {"report_type": "A", "period_end": "2023-12-31", "currency": "AUD"}
+
+    payload = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert payload["metrics"]["net_debt"] is None
+    assert "net_debt" not in payload["provenance"]
+
+
+def test_pass4_explicit_net_debt_not_overwritten_by_balance_sheet_derivation():
+    """Derived balance-sheet debt must not replace explicit summary net_debt evidence."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "cashflow_statement",
+            "_page_number": 5,
+            "cash_end": 200_000_000,
+            "pass3_confidence": 0.9,
+            "row_refs": {"cash_end": "Cash and cash equivalents at end of period"},
+        },
+        {
+            "_source": "highlights",
+            "_page_number": 1,
+            "net_debt": 300_000_000,
+            "pass3_confidence": 0.85,
+            "row_refs": {"net_debt": "Net debt"},
+        },
+        {
+            "_source": "balance_sheet",
+            "_page_number": 19,
+            "net_debt": None,
+            "total_debt": 800_000_000,
+            "pass3_confidence": 0.8,
+            "row_refs": {"total_debt": "Borrowings"},
+        },
+    ]
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.5,
+    }
+    pass1 = {"report_type": "H", "period_end": "2024-12-31", "currency": "AUD"}
+
+    payload = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert payload["metrics"]["net_debt"] == 300_000_000
+    assert payload["provenance"]["net_debt"] == "highlights:page_1:Net debt"
+
+
 def test_compute_docling_timeout_floor():
     """Short PDFs must never drop below the 120s floor."""
     from app.services.docling_extract import _compute_docling_timeout
+
     # 10 pages × 4 = 40s — below the floor, so we expect 120s
     assert _compute_docling_timeout(10) == 120
 
@@ -566,6 +951,7 @@ def test_compute_docling_timeout_floor():
 def test_compute_docling_timeout_scales():
     """Mid-sized PDFs must scale proportionally when above the floor."""
     from app.services.docling_extract import _compute_docling_timeout
+
     # 50 pages × 4 = 200s — above floor, below cap
     assert _compute_docling_timeout(50) == 200
 
@@ -573,6 +959,7 @@ def test_compute_docling_timeout_scales():
 def test_compute_docling_timeout_cap():
     """Very large PDFs must not exceed the 300s ceiling."""
     from app.services.docling_extract import _compute_docling_timeout
+
     # 100 pages × 4 = 400s — exceeds cap
     assert _compute_docling_timeout(100) == 300
 
@@ -580,6 +967,7 @@ def test_compute_docling_timeout_cap():
 # ---------------------------------------------------------------------------
 # Pass 2 — footnote table scoring guard (B5)
 # ---------------------------------------------------------------------------
+
 
 def test_pass2_header_bonus_beats_footnote_keyword_count():
     """
@@ -629,6 +1017,7 @@ def test_pass2_header_bonus_beats_footnote_keyword_count():
 # ---------------------------------------------------------------------------
 # period_start derivation (B6)
 # ---------------------------------------------------------------------------
+
 
 def test_derive_period_start_annual():
     """Annual period: period_start = period_end − 12 months + 1 day."""
@@ -680,6 +1069,7 @@ def test_derive_period_start_returns_none_for_missing_inputs():
 # Validation gate — new guards (B7: scale, B8: currency, B9: quarterly)
 # ---------------------------------------------------------------------------
 
+
 def _good_payload(period_type="H", scale="thousands", currency="AUD", confidence=0.85):
     """Minimal well-formed payload for _validate_gate tests."""
     return {
@@ -692,8 +1082,12 @@ def _good_payload(period_type="H", scale="thousands", currency="AUD", confidence
             "ebit": 80_000_000,
             "np_attributable": 55_000_000,
             "operating_cf": 90_000_000,
-            "investing_cf": None, "financing_cf": None,
-            "capex": None, "cash_end": None, "net_debt": None, "shares_outstanding": None,
+            "investing_cf": None,
+            "financing_cf": None,
+            "capex": None,
+            "cash_end": None,
+            "net_debt": None,
+            "shares_outstanding": None,
         },
         "confidence_metrics": confidence,
     }
@@ -732,12 +1126,15 @@ def test_validate_gate_non_aud_returns_ok_low_confidence():
         assert status == "ok_low_confidence", (
             f"currency={currency} must yield ok_low_confidence; got status={status!r}"
         )
-        assert error is None, f"error must be None for currency downgrade; got {error!r}"
+        assert error is None, (
+            f"error must be None for currency downgrade; got {error!r}"
+        )
 
 
 # ---------------------------------------------------------------------------
 # Pass 3a — page_number in output (B10)
 # ---------------------------------------------------------------------------
+
 
 def test_pass3a_page_number_in_output():
     """Pass 3a output dict must include _page_number from the source DoclingTable."""
@@ -745,20 +1142,37 @@ def test_pass3a_page_number_in_output():
     from app.services.docling_extract import DoclingTable
 
     table = DoclingTable(
-        page_number=7, caption="Statement of Cash Flows",
+        page_number=7,
+        caption="Statement of Cash Flows",
         rows=[["", "Q1 2025"], ["Net cash from operations", "1,200"]],
         headers=["", "Q1 2025"],
     )
-    labelled = {"cashflow_statement": table, "income_statement": None,
-                "balance_sheet": None, "highlights": None, "unmatched": []}
-    pass1 = {"report_type": "Q", "period_end": "2025-03-31", "currency": "AUD", "scale": "thousands"}
-
-    mock_raw = {
-        "operating_cf": 1200, "investing_cf": None, "financing_cf": None, "cash_end": None,
-        "pass3_confidence": 0.88, "row_refs": {"operating_cf": "Net cash from operations"},
+    labelled = {
+        "cashflow_statement": table,
+        "income_statement": None,
+        "balance_sheet": None,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "Q",
+        "period_end": "2025-03-31",
+        "currency": "AUD",
+        "scale": "thousands",
     }
 
-    with patch("app.services.multipass_extraction._llm_json_call", return_value=mock_raw):
+    mock_raw = {
+        "operating_cf": 1200,
+        "investing_cf": None,
+        "financing_cf": None,
+        "cash_end": None,
+        "pass3_confidence": 0.88,
+        "row_refs": {"operating_cf": "Net cash from operations"},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
         results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
 
     assert len(results) == 1
@@ -771,6 +1185,7 @@ def test_pass3a_page_number_in_output():
 # Pass 4 — page_number in provenance strings (B11)
 # ---------------------------------------------------------------------------
 
+
 def test_pass4_provenance_includes_page_number():
     """Provenance strings must embed the source page number: '{source}:page_{n}:{row_ref}'."""
     from app.services.multipass_extraction import _run_pass4_reconciler
@@ -779,15 +1194,21 @@ def test_pass4_provenance_includes_page_number():
         {
             "_source": "cashflow_statement",
             "_page_number": 5,
-            "operating_cf": 3_000_000, "investing_cf": None, "financing_cf": None,
-            "cash_end": None, "capex": None,
+            "operating_cf": 3_000_000,
+            "investing_cf": None,
+            "financing_cf": None,
+            "cash_end": None,
+            "capex": None,
             "pass3_confidence": 0.9,
             "row_refs": {"operating_cf": "Net cash from operations"},
         },
     ]
     pass3b = {
-        "risk_summary": None, "risk_bullets": None,
-        "guidance_summary": None, "material_changes": None, "confidence_narrative": 0.0,
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.0,
     }
     pass1 = {"report_type": "Q", "period_end": "2025-03-31"}
 
@@ -802,6 +1223,7 @@ def test_pass4_provenance_includes_page_number():
 # ---------------------------------------------------------------------------
 # JSON parse — accounting parentheses
 # ---------------------------------------------------------------------------
+
 
 def test_parse_json_accounting_parentheses():
     """
@@ -838,6 +1260,7 @@ def test_parse_json_normal_negatives_unchanged():
 # ASX Appendix 5B — scale detection and table merging
 # ---------------------------------------------------------------------------
 
+
 def test_scale_detection_matches_dollar_a_thousands():
     """$A'000 notation (ASX Appendix 5B) must be detected as 'thousands'."""
     from app.services.multipass_extraction import _detect_scale_from_tables
@@ -847,10 +1270,12 @@ def test_scale_detection_matches_dollar_a_thousands():
         DoclingTable(
             page_number=1,
             caption="",
-            headers=["Consolidated statement of cash flows",
-                     "Consolidated statement of cash flows",
-                     "Current quarter $A'000",
-                     "Year to date (6 months) $A'000"],
+            headers=[
+                "Consolidated statement of cash flows",
+                "Consolidated statement of cash flows",
+                "Current quarter $A'000",
+                "Year to date (6 months) $A'000",
+            ],
             rows=[["1.1", "Receipts from customers", "500", "1,000"]],
         )
     ]
@@ -865,7 +1290,8 @@ def test_scale_detection_matches_dollar_a_millions():
     # A$M notation
     tables_am = [
         DoclingTable(
-            page_number=1, caption="",
+            page_number=1,
+            caption="",
             headers=["Item", "A$M"],
             rows=[["Revenue", "42.5"]],
         )
@@ -893,7 +1319,12 @@ def test_pass2_score_uses_all_body_columns():
             ["4.", "Net increase / (decrease) in cash", "", ""],
             ["4.1", "Cash and cash equivalents at beginning of period", "907", "1,822"],
             ["4.2", "Net cash from / (used in) operating activities", "(450)", "(796)"],
-            ["4.3", "Net cash from / (used in) investing activities", "(624)", "(1,193)"],
+            [
+                "4.3",
+                "Net cash from / (used in) investing activities",
+                "(624)",
+                "(1,193)",
+            ],
             ["4.4", "Net cash from / (used in) financing activities", "869", "869"],
         ],
     )
@@ -913,38 +1344,63 @@ def test_pass2_merges_fragmented_5b_cf_tables():
 
     # Simulate 3 fragmented 5B tables
     operating = DoclingTable(
-        page_number=11, caption="",
-        headers=["Consolidated statement of cash flows",
-                 "Consolidated statement of cash flows",
-                 "Current quarter $A'000", "Year to date $A'000"],
+        page_number=11,
+        caption="",
+        headers=[
+            "Consolidated statement of cash flows",
+            "Consolidated statement of cash flows",
+            "Current quarter $A'000",
+            "Year to date $A'000",
+        ],
         rows=[
-            ["Consolidated statement of cash flows",
-             "Consolidated statement of cash flows",
-             "Current quarter $A'000", "Year to date $A'000"],
+            [
+                "Consolidated statement of cash flows",
+                "Consolidated statement of cash flows",
+                "Current quarter $A'000",
+                "Year to date $A'000",
+            ],
             ["1.", "Cash flows from operating activities", "", ""],
             ["1.9", "Net cash from / (used in) operating activities", "(450)", "(796)"],
         ],
     )
     investing = DoclingTable(
-        page_number=12, caption="",
-        headers=["Consolidated statement of cash flows",
-                 "Consolidated statement of cash flows",
-                 "Current quarter $A'000", "Year to date $A'000"],
+        page_number=12,
+        caption="",
+        headers=[
+            "Consolidated statement of cash flows",
+            "Consolidated statement of cash flows",
+            "Current quarter $A'000",
+            "Year to date $A'000",
+        ],
         rows=[
-            ["Consolidated statement of cash flows",
-             "Consolidated statement of cash flows",
-             "Current quarter $A'000", "Year to date $A'000"],
+            [
+                "Consolidated statement of cash flows",
+                "Consolidated statement of cash flows",
+                "Current quarter $A'000",
+                "Year to date $A'000",
+            ],
             ["2.", "Cash flows from investing activities", "", ""],
-            ["2.6", "Net cash from / (used in) investing activities", "(624)", "(1,193)"],
+            [
+                "2.6",
+                "Net cash from / (used in) investing activities",
+                "(624)",
+                "(1,193)",
+            ],
         ],
     )
     section4 = DoclingTable(
-        page_number=13, caption="",
+        page_number=13,
+        caption="",
         headers=["0", "1", "2", "3"],
         rows=[
             ["0", "1", "2", "3"],
             ["4.2", "Net cash from / (used in) operating activities", "(450)", "(796)"],
-            ["4.3", "Net cash from / (used in) investing activities", "(624)", "(1,193)"],
+            [
+                "4.3",
+                "Net cash from / (used in) investing activities",
+                "(624)",
+                "(1,193)",
+            ],
             ["4.4", "Net cash from / (used in) financing activities", "869", "869"],
             ["4.6", "Cash and cash equivalents at end of period", "702", "702"],
         ],
@@ -968,6 +1424,7 @@ def test_pass2_merges_fragmented_5b_cf_tables():
 # Pass 3a — shares_outstanding scaling (body text + doc-level fallback)
 # ---------------------------------------------------------------------------
 
+
 def test_pass3a_shares_scaling_from_body_text():
     """shares_outstanding sanity check must also scan body rows for '000 indicators.
 
@@ -978,7 +1435,8 @@ def test_pass3a_shares_scaling_from_body_text():
     from app.services.docling_extract import DoclingTable
 
     table = DoclingTable(
-        page_number=24, caption="Note 6 — Issued Capital",
+        page_number=24,
+        caption="Note 6 — Issued Capital",
         rows=[
             ["", "No. '000s", "$'000s"],
             ["Balance at beginning of period", "280,875", "42,110"],
@@ -988,20 +1446,30 @@ def test_pass3a_shares_scaling_from_body_text():
         headers=["", "Dec 2025", "Dec 2025"],  # headers DON'T have '000s
     )
     labelled = {
-        "cashflow_statement": None, "income_statement": None,
-        "balance_sheet": None, "share_capital": table,
-        "highlights": None, "unmatched": [],
+        "cashflow_statement": None,
+        "income_statement": None,
+        "balance_sheet": None,
+        "share_capital": table,
+        "highlights": None,
+        "unmatched": [],
     }
-    pass1 = {"report_type": "H", "period_end": "2025-12-31",
-             "currency": "AUD", "scale": "thousands"}
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "thousands",
+    }
 
     # LLM returns raw table value without conversion
     mock_raw = {
         "shares_outstanding": 280875,  # raw from table, not absolute
-        "pass3_confidence": 0.9, "row_refs": {"shares_outstanding": "Balance at end of period"},
+        "pass3_confidence": 0.9,
+        "row_refs": {"shares_outstanding": "Balance at end of period"},
     }
 
-    with patch("app.services.multipass_extraction._llm_json_call", return_value=mock_raw):
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
         results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
 
     assert len(results) == 1
@@ -1021,7 +1489,8 @@ def test_pass3a_shares_scaling_doc_level_fallback():
     from app.services.docling_extract import DoclingTable
 
     table = DoclingTable(
-        page_number=24, caption="Share Capital",
+        page_number=24,
+        caption="Share Capital",
         rows=[
             ["", "No.", "Amount"],
             ["Ordinary shares at end of period", "280,875", "42,110"],
@@ -1029,19 +1498,29 @@ def test_pass3a_shares_scaling_doc_level_fallback():
         headers=["", "No.", "Amount"],  # no scale indicator
     )
     labelled = {
-        "cashflow_statement": None, "income_statement": None,
-        "balance_sheet": None, "share_capital": table,
-        "highlights": None, "unmatched": [],
+        "cashflow_statement": None,
+        "income_statement": None,
+        "balance_sheet": None,
+        "share_capital": table,
+        "highlights": None,
+        "unmatched": [],
     }
-    pass1 = {"report_type": "H", "period_end": "2025-12-31",
-             "currency": "AUD", "scale": "thousands"}
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "thousands",
+    }
 
     mock_raw = {
         "shares_outstanding": 280875,
-        "pass3_confidence": 0.9, "row_refs": {},
+        "pass3_confidence": 0.9,
+        "row_refs": {},
     }
 
-    with patch("app.services.multipass_extraction._llm_json_call", return_value=mock_raw):
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
         results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
 
     assert len(results) == 1
@@ -1059,7 +1538,8 @@ def test_pass3a_shares_no_scaling_when_absolute():
     from app.services.docling_extract import DoclingTable
 
     table = DoclingTable(
-        page_number=32, caption="Share Capital Note",
+        page_number=32,
+        caption="Share Capital Note",
         rows=[
             ["", "Number", "$M"],
             ["Balance at end of period", "196,478,902", "5,057"],
@@ -1067,19 +1547,29 @@ def test_pass3a_shares_no_scaling_when_absolute():
         headers=["", "Number", "$M"],
     )
     labelled = {
-        "cashflow_statement": None, "income_statement": None,
-        "balance_sheet": None, "share_capital": table,
-        "highlights": None, "unmatched": [],
+        "cashflow_statement": None,
+        "income_statement": None,
+        "balance_sheet": None,
+        "share_capital": table,
+        "highlights": None,
+        "unmatched": [],
     }
-    pass1 = {"report_type": "H", "period_end": "2025-12-31",
-             "currency": "AUD", "scale": "millions"}
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "millions",
+    }
 
     mock_raw = {
         "shares_outstanding": 196478902,  # absolute count, already correct
-        "pass3_confidence": 0.95, "row_refs": {},
+        "pass3_confidence": 0.95,
+        "row_refs": {},
     }
 
-    with patch("app.services.multipass_extraction._llm_json_call", return_value=mock_raw):
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
         results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
 
     assert len(results) == 1
@@ -1092,6 +1582,7 @@ def test_pass3a_shares_no_scaling_when_absolute():
 # Pass 2 — CF table disqualification for IS/BS slots
 # ---------------------------------------------------------------------------
 
+
 def test_pass2_cf_disqualification_blocks_5b_from_income_statement():
     """A cash-flow table (Appendix 5B) with 'income tax' keyword must NOT
     claim the income_statement slot due to CF disqualification phrases in
@@ -1102,13 +1593,19 @@ def test_pass2_cf_disqualification_blocks_5b_from_income_statement():
     cf_table = DoclingTable(
         page_number=11,
         caption="",
-        headers=["Consolidated statement of cash flows",
-                 "Consolidated statement of cash flows",
-                 "Current quarter $A'000", "Year to date $A'000"],
+        headers=[
+            "Consolidated statement of cash flows",
+            "Consolidated statement of cash flows",
+            "Current quarter $A'000",
+            "Year to date $A'000",
+        ],
         rows=[
-            ["Consolidated statement of cash flows",
-             "Consolidated statement of cash flows",
-             "Current quarter $A'000", "Year to date $A'000"],
+            [
+                "Consolidated statement of cash flows",
+                "Consolidated statement of cash flows",
+                "Current quarter $A'000",
+                "Year to date $A'000",
+            ],
             ["1.1", "Receipts from customers", "21,836", "44,295"],
             ["1.7", "Income tax paid", "(400)", "(800)"],
         ],
@@ -1133,13 +1630,19 @@ def test_pass2_cf_disqualification_blocks_5b_from_balance_sheet():
     cf_table = DoclingTable(
         page_number=12,
         caption="",
-        headers=["Consolidated statement of cash flows",
-                 "Consolidated statement of cash flows",
-                 "Current quarter $A'000", "Year to date $A'000"],
+        headers=[
+            "Consolidated statement of cash flows",
+            "Consolidated statement of cash flows",
+            "Current quarter $A'000",
+            "Year to date $A'000",
+        ],
         rows=[
-            ["Consolidated statement of cash flows",
-             "Consolidated statement of cash flows",
-             "Current quarter $A'000", "Year to date $A'000"],
+            [
+                "Consolidated statement of cash flows",
+                "Consolidated statement of cash flows",
+                "Current quarter $A'000",
+                "Year to date $A'000",
+            ],
             ["2.", "Cash flows from investing activities", "", ""],
             ["2.1(d)", "Exploration — non-current assets", "(100)", "(200)"],
         ],
@@ -1156,10 +1659,13 @@ def test_pass2_cf_disqualification_blocks_5b_from_balance_sheet():
 # Redundant table skipping
 # ---------------------------------------------------------------------------
 
+
 def _make_dummy_table(caption="Dummy"):
     from app.services.docling_extract import DoclingTable
+
     return DoclingTable(
-        page_number=1, caption=caption,
+        page_number=1,
+        caption=caption,
         rows=[["", "H1"], ["Item", "100"]],
         headers=["", "H1"],
     )
@@ -1181,11 +1687,20 @@ def test_share_capital_not_skipped_when_balance_sheet_present():
         "highlights": None,
         "unmatched": [],
     }
-    pass1 = {"report_type": "H", "period_end": "2024-12-31",
-             "currency": "AUD", "scale": "thousands"}
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2024-12-31",
+        "currency": "AUD",
+        "scale": "thousands",
+    }
 
-    mock_raw = {"net_debt": 500, "total_debt": None, "shares_outstanding": 1_000_000,
-                "pass3_confidence": 0.9, "row_refs": {}}
+    mock_raw = {
+        "net_debt": 500,
+        "total_debt": None,
+        "shares_outstanding": 1_000_000,
+        "pass3_confidence": 0.9,
+        "row_refs": {},
+    }
 
     original_tables = []
 
@@ -1196,7 +1711,10 @@ def test_share_capital_not_skipped_when_balance_sheet_present():
             original_tables.append("balance_sheet")
         return mock_raw
 
-    with patch("app.services.multipass_extraction._llm_json_call", side_effect=_tracking_llm_call):
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        side_effect=_tracking_llm_call,
+    ):
         with patch.dict("os.environ", {"EXTRACTION_SKIP_REDUNDANT": "1"}):
             results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
 
@@ -1219,13 +1737,22 @@ def test_share_capital_not_skipped_when_balance_sheet_absent():
         "highlights": None,
         "unmatched": [],
     }
-    pass1 = {"report_type": "H", "period_end": "2024-12-31",
-             "currency": "AUD", "scale": "thousands"}
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2024-12-31",
+        "currency": "AUD",
+        "scale": "thousands",
+    }
 
-    mock_raw = {"shares_outstanding": 1_000_000,
-                "pass3_confidence": 0.9, "row_refs": {}}
+    mock_raw = {
+        "shares_outstanding": 1_000_000,
+        "pass3_confidence": 0.9,
+        "row_refs": {},
+    }
 
-    with patch("app.services.multipass_extraction._llm_json_call", return_value=mock_raw):
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
         with patch.dict("os.environ", {"EXTRACTION_SKIP_REDUNDANT": "1"}):
             results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
 
@@ -1245,13 +1772,25 @@ def test_skip_highlights_when_is_and_cf_present():
         "highlights": _make_dummy_table("Highlights"),
         "unmatched": [],
     }
-    pass1 = {"report_type": "H", "period_end": "2024-12-31",
-             "currency": "AUD", "scale": "thousands"}
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2024-12-31",
+        "currency": "AUD",
+        "scale": "thousands",
+    }
 
-    mock_raw = {"revenue": 1000, "ebit": 200, "np_attributable": 150,
-                "operating_cf": 500, "investing_cf": -100, "financing_cf": -50,
-                "capex": None, "cash_end": None,
-                "pass3_confidence": 0.9, "row_refs": {}}
+    mock_raw = {
+        "revenue": 1000,
+        "ebit": 200,
+        "np_attributable": 150,
+        "operating_cf": 500,
+        "investing_cf": -100,
+        "financing_cf": -50,
+        "capex": None,
+        "cash_end": None,
+        "pass3_confidence": 0.9,
+        "row_refs": {},
+    }
 
     called_tables = []
 
@@ -1264,7 +1803,10 @@ def test_skip_highlights_when_is_and_cf_present():
             called_tables.append("cashflow_statement")
         return mock_raw
 
-    with patch("app.services.multipass_extraction._llm_json_call", side_effect=_tracking_llm_call):
+    with patch(
+        "app.services.multipass_extraction._llm_json_call",
+        side_effect=_tracking_llm_call,
+    ):
         with patch.dict("os.environ", {"EXTRACTION_SKIP_REDUNDANT": "1"}):
             results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
 
@@ -1285,16 +1827,31 @@ def test_highlights_not_skipped_when_cf_absent():
         "highlights": _make_dummy_table("Highlights"),
         "unmatched": [],
     }
-    pass1 = {"report_type": "H", "period_end": "2024-12-31",
-             "currency": "AUD", "scale": "thousands"}
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2024-12-31",
+        "currency": "AUD",
+        "scale": "thousands",
+    }
 
-    mock_raw = {"revenue": 1000, "ebit": 200, "np_attributable": 150,
-                "operating_cf": None, "investing_cf": None, "financing_cf": None,
-                "capex": None, "cash_end": None, "net_debt": None,
-                "shares_outstanding": None,
-                "pass3_confidence": 0.9, "row_refs": {}}
+    mock_raw = {
+        "revenue": 1000,
+        "ebit": 200,
+        "np_attributable": 150,
+        "operating_cf": None,
+        "investing_cf": None,
+        "financing_cf": None,
+        "capex": None,
+        "cash_end": None,
+        "net_debt": None,
+        "shares_outstanding": None,
+        "pass3_confidence": 0.9,
+        "row_refs": {},
+    }
 
-    with patch("app.services.multipass_extraction._llm_json_call", return_value=mock_raw):
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
         with patch.dict("os.environ", {"EXTRACTION_SKIP_REDUNDANT": "1"}):
             results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
 
@@ -1314,16 +1871,32 @@ def test_skip_redundant_disabled_by_env_var():
         "highlights": _make_dummy_table("Highlights"),
         "unmatched": [],
     }
-    pass1 = {"report_type": "H", "period_end": "2024-12-31",
-             "currency": "AUD", "scale": "thousands"}
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2024-12-31",
+        "currency": "AUD",
+        "scale": "thousands",
+    }
 
-    mock_raw = {"revenue": 1000, "ebit": 200, "np_attributable": 150,
-                "operating_cf": 500, "investing_cf": -100, "financing_cf": -50,
-                "capex": None, "cash_end": 800, "net_debt": 300,
-                "total_debt": None, "shares_outstanding": 1_000_000,
-                "pass3_confidence": 0.9, "row_refs": {}}
+    mock_raw = {
+        "revenue": 1000,
+        "ebit": 200,
+        "np_attributable": 150,
+        "operating_cf": 500,
+        "investing_cf": -100,
+        "financing_cf": -50,
+        "capex": None,
+        "cash_end": 800,
+        "net_debt": 300,
+        "total_debt": None,
+        "shares_outstanding": 1_000_000,
+        "pass3_confidence": 0.9,
+        "row_refs": {},
+    }
 
-    with patch("app.services.multipass_extraction._llm_json_call", return_value=mock_raw):
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
         with patch.dict("os.environ", {"EXTRACTION_SKIP_REDUNDANT": "0"}):
             results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
 
@@ -1336,6 +1909,7 @@ def test_skip_redundant_disabled_by_env_var():
 # skip_narrative — optional Pass 3b skipping
 # ---------------------------------------------------------------------------
 
+
 def _mock_structured_doc():
     """Build a minimal StructuredDocument for run_multipass_extraction tests."""
     from app.services.docling_extract import DoclingTable
@@ -1344,12 +1918,15 @@ def _mock_structured_doc():
         sections = [{"text": "Some prose about risk.", "page": 1}]
         tables = [
             DoclingTable(
-                page_number=1, caption="Income Statement",
+                page_number=1,
+                caption="Income Statement",
                 headers=["", "H1 2025 $'000"],
-                rows=[["", "H1 2025 $'000"],
-                      ["Revenue", "500,000"],
-                      ["EBIT", "80,000"],
-                      ["Net profit", "55,000"]],
+                rows=[
+                    ["", "H1 2025 $'000"],
+                    ["Revenue", "500,000"],
+                    ["EBIT", "80,000"],
+                    ["Net profit", "55,000"],
+                ],
             ),
         ]
 
@@ -1358,19 +1935,29 @@ def _mock_structured_doc():
 
 def _pass1_response():
     return {
-        "report_type": "H", "period_end": "2025-06-30",
-        "currency": "AUD", "scale": "thousands",
+        "report_type": "H",
+        "period_end": "2025-06-30",
+        "currency": "AUD",
+        "scale": "thousands",
         "classifier_confidence": 0.95,
     }
 
 
 def _pass3a_response():
     return {
-        "revenue": 500_000, "ebit": 80_000, "np_attributable": 55_000,
-        "operating_cf": None, "investing_cf": None, "financing_cf": None,
-        "capex": None, "cash_end": None, "net_debt": None,
-        "shares_outstanding": None, "total_debt": None,
-        "pass3_confidence": 0.88, "row_refs": {},
+        "revenue": 500_000,
+        "ebit": 80_000,
+        "np_attributable": 55_000,
+        "operating_cf": None,
+        "investing_cf": None,
+        "financing_cf": None,
+        "capex": None,
+        "cash_end": None,
+        "net_debt": None,
+        "shares_outstanding": None,
+        "total_debt": None,
+        "pass3_confidence": 0.88,
+        "row_refs": {},
     }
 
 
@@ -1397,10 +1984,13 @@ def test_skip_narrative_param_skips_pass3b_llm_call():
             return _pass1_response()
         return _pass3a_response()
 
-    with patch("app.services.docling_extract.extract_structured",
-               return_value=_mock_structured_doc()):
-        with patch("app.services.multipass_extraction._llm_json_call",
-                   side_effect=mock_llm):
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_mock_structured_doc(),
+    ):
+        with patch(
+            "app.services.multipass_extraction._llm_json_call", side_effect=mock_llm
+        ):
             result = run_multipass_extraction(
                 "/fake/path.pdf",
                 {"document_id": "d1", "ticker": "TST", "title": "Test Report"},
@@ -1432,10 +2022,13 @@ def test_skip_narrative_env_var_skips_pass3b():
             return _pass1_response()
         return _pass3a_response()
 
-    with patch("app.services.docling_extract.extract_structured",
-               return_value=_mock_structured_doc()):
-        with patch("app.services.multipass_extraction._llm_json_call",
-                   side_effect=mock_llm):
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_mock_structured_doc(),
+    ):
+        with patch(
+            "app.services.multipass_extraction._llm_json_call", side_effect=mock_llm
+        ):
             with patch.dict("os.environ", {"EXTRACTION_SKIP_NARRATIVE": "1"}):
                 result = run_multipass_extraction(
                     "/fake/path.pdf",
@@ -1453,17 +2046,23 @@ def test_skip_narrative_env_var_skips_pass3b():
 def test_skip_narrative_produces_valid_pipeline_output():
     """Pipeline with skip_narrative must still produce a structurally valid result
     that passes the validation gate (all narrative fields null is acceptable)."""
-    from app.services.multipass_extraction import run_multipass_extraction, METRIC_FIELDS
+    from app.services.multipass_extraction import (
+        run_multipass_extraction,
+        METRIC_FIELDS,
+    )
 
     def mock_llm(prompt, llm_client, max_tokens=512):
         if "classifier" in prompt.lower() or "report_type" in prompt.lower():
             return _pass1_response()
         return _pass3a_response()
 
-    with patch("app.services.docling_extract.extract_structured",
-               return_value=_mock_structured_doc()):
-        with patch("app.services.multipass_extraction._llm_json_call",
-                   side_effect=mock_llm):
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_mock_structured_doc(),
+    ):
+        with patch(
+            "app.services.multipass_extraction._llm_json_call", side_effect=mock_llm
+        ):
             result = run_multipass_extraction(
                 "/fake/path.pdf",
                 {"document_id": "d3", "ticker": "TST", "title": "Test"},
@@ -1500,12 +2099,16 @@ def test_skip_narrative_false_still_calls_pass3b():
             return _pass3b_response()
         return _pass3a_response()
 
-    with patch("app.services.docling_extract.extract_structured",
-               return_value=_mock_structured_doc()):
-        with patch("app.services.multipass_extraction._llm_json_call",
-                   side_effect=mock_llm):
-            with patch.dict("os.environ", {"EXTRACTION_SKIP_NARRATIVE": ""},
-                            clear=False):
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_mock_structured_doc(),
+    ):
+        with patch(
+            "app.services.multipass_extraction._llm_json_call", side_effect=mock_llm
+        ):
+            with patch.dict(
+                "os.environ", {"EXTRACTION_SKIP_NARRATIVE": ""}, clear=False
+            ):
                 result = run_multipass_extraction(
                     "/fake/path.pdf",
                     {"document_id": "d4", "ticker": "TST", "title": "Test"},
@@ -1514,8 +2117,9 @@ def test_skip_narrative_false_still_calls_pass3b():
                 )
 
     # At least one call must be for narrative extraction
-    narrative_calls = [p for p in call_log
-                       if "narrative" in p.lower() or "risk" in p.lower()]
+    narrative_calls = [
+        p for p in call_log if "narrative" in p.lower() or "risk" in p.lower()
+    ]
     assert len(narrative_calls) >= 1, (
         "Pass 3b LLM call must be made when skip_narrative=False"
     )
@@ -1543,6 +2147,7 @@ def test_validation_gate_accepts_null_narrative_fields():
 # Parallel Pass 3a — verify parallel produces same results as sequential
 # ---------------------------------------------------------------------------
 
+
 def test_pass3a_parallel_matches_sequential():
     """Parallel and sequential Pass 3a must produce identical results."""
     from app.services.multipass_extraction import _run_pass3a_metric_extractor
@@ -1551,17 +2156,20 @@ def test_pass3a_parallel_matches_sequential():
 
     # Build multiple tables so parallelism actually kicks in (>1 eligible table).
     cf_table = DoclingTable(
-        page_number=2, caption="Cash Flow Statement",
+        page_number=2,
+        caption="Cash Flow Statement",
         rows=[["", "H1 2025"], ["Net cash from operations", "3,241"]],
         headers=["", "H1 2025"],
     )
     is_table = DoclingTable(
-        page_number=3, caption="Income Statement",
+        page_number=3,
+        caption="Income Statement",
         rows=[["", "H1 2025"], ["Revenue", "10,000"]],
         headers=["", "H1 2025"],
     )
     bs_table = DoclingTable(
-        page_number=4, caption="Balance Sheet",
+        page_number=4,
+        caption="Balance Sheet",
         rows=[["", "H1 2025"], ["Net debt", "5,000"]],
         headers=["", "H1 2025"],
     )
@@ -1572,23 +2180,37 @@ def test_pass3a_parallel_matches_sequential():
         "highlights": None,
         "unmatched": [],
     }
-    pass1 = {"report_type": "H", "period_end": "2024-12-31",
-             "currency": "AUD", "scale": "thousands"}
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2024-12-31",
+        "currency": "AUD",
+        "scale": "thousands",
+    }
 
     # Per-table mock responses keyed by table_type embedded in the prompt.
     mock_responses = {
         "cashflow_statement": {
-            "operating_cf": 3241, "investing_cf": -100, "financing_cf": -50,
-            "cash_end": 500, "capex": None,
-            "pass3_confidence": 0.9, "row_refs": {},
+            "operating_cf": 3241,
+            "investing_cf": -100,
+            "financing_cf": -50,
+            "cash_end": 500,
+            "capex": None,
+            "pass3_confidence": 0.9,
+            "row_refs": {},
         },
         "income_statement": {
-            "revenue": 10000, "ebit": 5000, "np_attributable": 3000,
-            "pass3_confidence": 0.85, "row_refs": {},
+            "revenue": 10000,
+            "ebit": 5000,
+            "np_attributable": 3000,
+            "pass3_confidence": 0.85,
+            "row_refs": {},
         },
         "balance_sheet": {
-            "net_debt": 5000, "total_debt": 6000, "shares_outstanding": 2_000_000,
-            "pass3_confidence": 0.92, "row_refs": {},
+            "net_debt": 5000,
+            "total_debt": 6000,
+            "shares_outstanding": 2_000_000,
+            "pass3_confidence": 0.92,
+            "row_refs": {},
         },
     }
     call_threads = []
@@ -1601,14 +2223,18 @@ def test_pass3a_parallel_matches_sequential():
         return {}
 
     # Run sequentially (EXTRACTION_PARALLEL=0)
-    with patch("app.services.multipass_extraction._llm_json_call", side_effect=_mock_llm):
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", side_effect=_mock_llm
+    ):
         with patch.dict("os.environ", {"EXTRACTION_PARALLEL": "0"}):
             seq_results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
 
     call_threads.clear()
 
     # Run in parallel (EXTRACTION_PARALLEL=1, the default)
-    with patch("app.services.multipass_extraction._llm_json_call", side_effect=_mock_llm):
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", side_effect=_mock_llm
+    ):
         with patch.dict("os.environ", {"EXTRACTION_PARALLEL": "1"}):
             par_results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
 
@@ -1642,13 +2268,18 @@ def test_pass3a_parallel_disabled_by_env():
     tables = {}
     for tt in ("cashflow_statement", "income_statement"):
         tables[tt] = DoclingTable(
-            page_number=1, caption=tt,
+            page_number=1,
+            caption=tt,
             rows=[["", "H1"], ["Item", "100"]],
             headers=["", "H1"],
         )
     labelled = {**tables, "balance_sheet": None, "highlights": None, "unmatched": []}
-    pass1 = {"report_type": "H", "period_end": "2024-12-31",
-             "currency": "AUD", "scale": "units"}
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2024-12-31",
+        "currency": "AUD",
+        "scale": "units",
+    }
 
     mock_raw = {"revenue": 100, "pass3_confidence": 0.5, "row_refs": {}}
     call_threads = []
@@ -1658,7 +2289,9 @@ def test_pass3a_parallel_disabled_by_env():
         return mock_raw
 
     main_thread = threading.current_thread().name
-    with patch("app.services.multipass_extraction._llm_json_call", side_effect=_mock_llm):
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", side_effect=_mock_llm
+    ):
         with patch.dict("os.environ", {"EXTRACTION_PARALLEL": "0"}):
             _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
 
@@ -1741,7 +2374,9 @@ class TestRowFiltering:
         result = _filter_table_rows(table, "cashflow_statement")
         # Should have fewer rows than original
         real_rows = [r for r in result if not str(r[0]).startswith("[...")]
-        assert len(real_rows) < len(rows), f"Expected filtering, got {len(real_rows)} vs {len(rows)}"
+        assert len(real_rows) < len(rows), (
+            f"Expected filtering, got {len(real_rows)} vs {len(rows)}"
+        )
         # Must keep header, section headers, totals, and key metric rows
         labels = [str(r[0]) for r in result]
         assert "Item" in labels  # header
@@ -1771,3 +2406,68 @@ class TestRowFiltering:
         # So test the filter still works (it's the caller that gates it).
         result = _filter_table_rows(table, "cashflow_statement")
         assert len(result) <= len(rows)
+
+
+def test_pass3a_retries_full_table_when_filtered_output_misses_key_metric():
+    """Filtered-table extraction should retry full table when key metrics are missing."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    rows = [["Item", "Current", "Prior"]]
+    rows.extend([[f"Noise row {i}", str(i), str(i - 1)] for i in range(1, 28)])
+    rows.append(["Revenue", "1200", "1100"])
+
+    table = DoclingTable(
+        page_number=4,
+        caption="Income Statement",
+        rows=rows,
+        headers=["Item", "Current", "Prior"],
+    )
+    labelled = {
+        "cashflow_statement": None,
+        "income_statement": table,
+        "balance_sheet": None,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2024-12-31",
+        "currency": "AUD",
+        "scale": "units",
+    }
+
+    first_raw = {
+        "revenue": None,
+        "ebit": 500,
+        "np_attributable": 300,
+        "period_col": "Current",
+        "pass3_confidence": 0.7,
+        "row_refs": {"ebit": "EBIT", "np_attributable": "NPAT"},
+    }
+    second_raw = {
+        "revenue": 1200,
+        "ebit": 500,
+        "np_attributable": 300,
+        "period_col": "Current",
+        "pass3_confidence": 0.85,
+        "row_refs": {
+            "revenue": "Revenue",
+            "ebit": "EBIT",
+            "np_attributable": "NPAT",
+        },
+    }
+
+    with patch(
+        "app.services.multipass_extraction._filter_table_rows",
+        return_value=rows[:8],
+    ):
+        with patch(
+            "app.services.multipass_extraction._llm_json_call",
+            side_effect=[first_raw, second_raw],
+        ) as mock_llm:
+            results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert len(results) == 1
+    assert mock_llm.call_count == 2, "Expected filtered extraction + full-table retry"
+    assert results[0]["revenue"] == 1200

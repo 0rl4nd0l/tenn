@@ -3,7 +3,10 @@ from __future__ import annotations
 from app.celery_app import celery
 from app.core.db import SessionLocal
 from app.services.llm import embed_texts, generate_json
-from app.services.pipeline import download_pdf_for_document, process_document as process_document_sync
+from app.services.pipeline import (
+    download_pdf_for_document,
+    process_document as process_document_sync,
+)
 from app.services.pipeline_service import PipelineJobSpec, run_pipeline_sync
 
 
@@ -34,12 +37,21 @@ def download_pdf(document_id: str):
 
 
 @celery.task(name="process_document")
-def process_document(prev=None, document_id: str | None = None):
+def process_document(
+    prev=None,
+    document_id: str | None = None,
+    requested_method: str = "auto",
+    strict_method: bool = False,
+):
     if isinstance(prev, dict) and not document_id:
         document_id = str(prev.get("document_id") or "").strip()
     if not document_id:
         return {"error": "missing document_id"}
-    return process_document_sync(document_id)
+    return process_document_sync(
+        document_id,
+        requested_method=requested_method,
+        strict_method=strict_method,
+    )
 
 
 @celery.task(name="llm_generate_json")
