@@ -104,18 +104,59 @@ def _json_object_or_none(raw: str) -> dict[str, Any] | None:
 
 def _extract_tool_calls(evidence: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
     calls: list[dict[str, Any]] = []
+    passthrough_keys = (
+        "id",
+        "status",
+        "ok",
+        "error",
+        "iteration",
+        "duration_ms",
+        "latency_ms",
+        "hint",
+        "reasoning",
+    )
     for item in evidence or []:
         if not isinstance(item, dict) or not item.get("tool"):
             continue
-        calls.append(
-            {
-                "tool": str(item.get("tool") or ""),
-                "arguments": item.get("arguments")
-                if isinstance(item.get("arguments"), dict)
-                else {},
-                "result": item.get("result"),
-            }
-        )
+        call: dict[str, Any] = {
+            "tool": str(item.get("tool") or ""),
+            "arguments": item.get("arguments")
+            if isinstance(item.get("arguments"), dict)
+            else {},
+            "result": item.get("result"),
+        }
+        for key in passthrough_keys:
+            value = item.get(key)
+            if value is not None:
+                call[key] = value
+        calls.append(call)
+    return calls
+
+
+def _merge_tool_trace_metadata(
+    calls: list[dict[str, Any]], tool_traces: list[dict[str, Any]] | None
+) -> list[dict[str, Any]]:
+    if not calls:
+        return calls
+    trace_items = [item for item in (tool_traces or []) if isinstance(item, dict)]
+    if not trace_items:
+        return calls
+
+    trace_keys = (
+        "iteration",
+        "ok",
+        "error",
+        "duration_ms",
+        "hint",
+        "arguments_summary",
+    )
+    for idx, call in enumerate(calls):
+        if idx >= len(trace_items):
+            break
+        trace = trace_items[idx]
+        for key in trace_keys:
+            if call.get(key) is None and trace.get(key) is not None:
+                call[key] = trace.get(key)
     return calls
 
 
@@ -676,6 +717,8 @@ class CockpitService:
                 "message"
             ),
             "flagged_response": ((bundle.get("flagged_message") or {}).get("content")),
+            "response_mode": (bundle.get("backend_turn") or {}).get("response_mode"),
+            "response_prompt": (bundle.get("backend_turn") or {}).get("prompt"),
             "thinking": (
                 (bundle.get("backend_turn") or {}).get("thinking_events") or []
             )[:4],
@@ -888,7 +931,22 @@ class CockpitService:
     ) -> dict[str, Any]:
         normalized_feedback_type = _normalize_feedback_type(feedback_type)
         thread_id = self._resolve_thread_id(session_id)
-        matched_turn = self._resolve_turn_diagnostics(thread_id, flagged_message) or {}
+        resolved_turn = self._resolve_turn_diagnostics(thread_id, flagged_message) or {}
+        matched_turn = resolved_turn if isinstance(resolved_turn, dict) else {}
+        evidence = (
+            matched_turn.get("evidence")
+            if isinstance(matched_turn.get("evidence"), list)
+            else []
+        )
+        tool_traces = (
+            matched_turn.get("tool_traces")
+            if isinstance(matched_turn.get("tool_traces"), list)
+            else []
+        )
+        tool_calls = _merge_tool_trace_metadata(
+            _extract_tool_calls(evidence),
+            tool_traces,
+        )
         persisted_history: list[dict[str, Any]] = []
         if self.state_store is not None:
             try:
@@ -928,7 +986,9 @@ class CockpitService:
             "persisted_history": persisted_history,
             "backend_turn": {
                 **matched_turn,
-                "tool_calls": _extract_tool_calls(matched_turn.get("evidence")),
+                "response_mode": matched_turn.get("response_mode"),
+                "response_prompt": matched_turn.get("prompt"),
+                "tool_calls": tool_calls,
             },
             "backend_runtime": {
                 "thread_id": thread_id,
@@ -1265,6 +1325,7 @@ class CockpitService:
                 },
                 "status_events": status_events,
                 "thinking_events": thinking_events,
+                "response_mode": str(getattr(response, "mode", "") or "") or None,
                 "response_text": response.text,
                 "prompt": getattr(response, "prompt", None),
                 "action_preview": response.action_preview,

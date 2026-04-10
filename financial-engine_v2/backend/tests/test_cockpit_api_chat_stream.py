@@ -500,7 +500,22 @@ def test_flag_chat_feedback_persists_before_background_analysis(tmp_path) -> Non
     service._resolve_turn_diagnostics = lambda thread_id, flagged_message: {
         "request": {"message": "bhp 7 day price summary"},
         "routing_metadata": {"model": "model:test"},
-        "evidence": [],
+        "response_mode": "deep_analysis",
+        "prompt": "system prompt excerpt",
+        "evidence": [
+            {
+                "tool": "query_ticker_data",
+                "arguments": {"ticker": "BHP"},
+                "result": {"ok": True},
+            }
+        ],
+        "tool_traces": [
+            {
+                "iteration": 2,
+                "ok": True,
+                "duration_ms": 42.5,
+            }
+        ],
     }
 
     scheduled: dict[str, object] = {}
@@ -537,6 +552,11 @@ def test_flag_chat_feedback_persists_before_background_analysis(tmp_path) -> Non
     bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
     assert bundle["feedback_type"] == "poor"
     assert bundle["note"] == "Unsupported claim"
+    assert bundle["backend_turn"]["response_mode"] == "deep_analysis"
+    assert bundle["backend_turn"]["response_prompt"] == "system prompt excerpt"
+    assert bundle["backend_turn"]["tool_calls"][0]["tool"] == "query_ticker_data"
+    assert bundle["backend_turn"]["tool_calls"][0]["iteration"] == 2
+    assert bundle["backend_turn"]["tool_calls"][0]["duration_ms"] == 42.5
     assert scheduled["report_id"] == result["report_id"]
     assert scheduled["analysis_path"] == analysis_path
 
@@ -558,6 +578,8 @@ def test_good_chat_feedback_persists_without_background_analysis(tmp_path) -> No
     service._resolve_turn_diagnostics = lambda thread_id, flagged_message: {
         "request": {"message": "tell me about bhp"},
         "routing_metadata": {"model": "model:test"},
+        "response_mode": "fast",
+        "prompt": "good prompt excerpt",
         "evidence": [],
     }
 
@@ -585,5 +607,7 @@ def test_good_chat_feedback_persists_without_background_analysis(tmp_path) -> No
     bundle = json.loads(Path(result["bundle_path"]).read_text(encoding="utf-8"))
     assert result["feedback_type"] == "good"
     assert bundle["feedback_type"] == "good"
+    assert bundle["backend_turn"]["response_mode"] == "fast"
+    assert bundle["backend_turn"]["response_prompt"] == "good prompt excerpt"
     assert result["report_id"].startswith("good_")
     assert scheduled == {}

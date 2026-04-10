@@ -41,6 +41,24 @@ class _FakeController:
         )
 
 
+class _FakeControllerWithMode:
+    def __init__(self, text: str, mode: str, prompt: str) -> None:
+        self.text = text
+        self.mode = mode
+        self.prompt = prompt
+
+    def build_chat_response(self, **kwargs):
+        return SimpleNamespace(
+            text=self.text,
+            routing_metadata=None,
+            action_preview=None,
+            tool_traces=[],
+            evidence=[],
+            mode=self.mode,
+            prompt=self.prompt,
+        )
+
+
 class _FakeLlmClient:
     def __init__(self, model: str) -> None:
         self.model = model
@@ -149,6 +167,29 @@ def test_chat_stream_emits_model_switch_status_events() -> None:
     assert service.llm_client.model == "model:qwen3.5-35b-a3b"
     assert statuses[0] == "Switching model: model:gpt-oss-20b -> model:qwen3.5-35b-a3b"
     assert "Model ready: model:qwen3.5-35b-a3b" in statuses
+
+
+def test_chat_stream_records_response_mode_in_turn_diagnostics() -> None:
+    service = CockpitService.__new__(CockpitService)
+    _prime_service(service)
+    service.state_store = _FakeStateStore()
+    controller = _FakeControllerWithMode(
+        text="Deep answer.",
+        mode="deep_analysis",
+        prompt="prompt excerpt",
+    )
+    service._build_chat_controller = lambda thread_id: controller  # type: ignore[method-assign]
+
+    response = CockpitService.chat_stream(
+        service,
+        message="deep dive",
+        session_id="session-deep",
+    )
+
+    assert response.text == "Deep answer."
+    saved = service._recent_turn_diagnostics["session-deep"][-1]
+    assert saved["response_mode"] == "deep_analysis"
+    assert saved["prompt"] == "prompt excerpt"
 
 
 def test_preload_preferred_model_skips_during_active_extraction(monkeypatch) -> None:
