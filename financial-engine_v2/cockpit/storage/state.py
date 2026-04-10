@@ -53,6 +53,16 @@ class StateStore:
             )
             """
         )
+        # Additive migration: progress fields for real-time job tracking.
+        for col, typedef in [
+            ("progress_stage", "TEXT DEFAULT NULL"),
+            ("progress_pct", "REAL DEFAULT NULL"),
+        ]:
+            try:
+                cur.execute(f"ALTER TABLE jobs ADD COLUMN {col} {typedef}")
+            except sqlite3.OperationalError:
+                pass  # column already exists
+
         cur.execute(
             """
             create table if not exists analysis_exports (
@@ -271,7 +281,8 @@ class StateStore:
         rows = self.conn.execute(
             """
             select job_id, action_id, args_json, started_at, ended_at, status,
-                   exit_code, stdout_path, stderr_path, artifacts_json
+                   exit_code, stdout_path, stderr_path, artifacts_json,
+                   progress_stage, progress_pct
             from jobs
             order by started_at desc
             limit ?
@@ -290,7 +301,8 @@ class StateStore:
         row = self.conn.execute(
             """
             select job_id, action_id, args_json, started_at, ended_at, status,
-                   exit_code, stdout_path, stderr_path, artifacts_json
+                   exit_code, stdout_path, stderr_path, artifacts_json,
+                   progress_stage, progress_pct
             from jobs
             where job_id = ?
             limit 1
@@ -303,6 +315,17 @@ class StateStore:
         item["args"] = json.loads(item.pop("args_json"))
         item["artifacts"] = json.loads(item.pop("artifacts_json"))
         return item
+
+    def update_job_progress(
+        self, job_id: str, stage: str, pct: float | None = None
+    ) -> None:
+        """Update progress fields for a running job (lightweight targeted UPDATE)."""
+        with self._lock:
+            self.conn.execute(
+                "UPDATE jobs SET progress_stage = ?, progress_pct = ? WHERE job_id = ?",
+                (stage, pct, job_id),
+            )
+            self.conn.commit()
 
     def add_export(
         self,

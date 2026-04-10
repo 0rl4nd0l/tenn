@@ -12,7 +12,8 @@ import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, AsyncGenerator, Literal
+from collections.abc import Callable
+from typing import IO, Any, AsyncGenerator, Literal
 from urllib.parse import urlparse
 
 import httpx
@@ -957,6 +958,8 @@ class CockpitActionJobStatusResponse(BaseModel):
     stdout_path: str | None = None
     stderr_path: str | None = None
     result: str | None = None
+    progress_stage: str | None = None
+    progress_pct: float | None = None
 
 
 class CockpitFeedbackFlagRequest(BaseModel):
@@ -1062,32 +1065,128 @@ def _run_action_subprocess(
     )
 
 
+def _run_action_subprocess_streaming(
+    *,
+    normalized_command: list[str],
+    repo_root: Path,
+    action_env: dict[str, str],
+    timeout_seconds: int,
+    stdout_path: Path,
+    stderr_path: Path,
+    on_stdout_line: Callable[[str], None] | None = None,
+) -> tuple[int, str, str]:
+    """Run a subprocess, streaming stdout/stderr to log files line-by-line.
+
+    Returns ``(exit_code, stdout_text, stderr_text)``.
+    """
+
+    def _pump(
+        pipe: IO[str],
+        dest: IO[str],
+        callback: Callable[[str], None] | None,
+    ) -> None:
+        """Read lines from *pipe*, write to *dest* (flushed), optionally call *callback*."""
+        try:
+            for raw_line in pipe:
+                dest.write(raw_line)
+                dest.flush()
+                if callback is not None:
+                    callback(raw_line)
+        except ValueError:
+            pass  # pipe closed
+
+    with (
+        stdout_path.open("w", encoding="utf-8") as out_f,
+        stderr_path.open("w", encoding="utf-8") as err_f,
+    ):
+        proc = subprocess.Popen(
+            normalized_command,
+            cwd=str(repo_root),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+            env=action_env,
+        )
+        t_out = threading.Thread(
+            target=_pump, args=(proc.stdout, out_f, on_stdout_line), daemon=True
+        )
+        t_err = threading.Thread(
+            target=_pump, args=(proc.stderr, err_f, None), daemon=True
+        )
+        t_out.start()
+        t_err.start()
+
+        try:
+            proc.wait(timeout=timeout_seconds)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=5)
+            t_out.join(timeout=2)
+            t_err.join(timeout=2)
+            return 124, "", f"Action timed out after {timeout_seconds}s\n"
+
+        t_out.join(timeout=5)
+        t_err.join(timeout=5)
+
+    stdout_text = stdout_path.read_text(encoding="utf-8", errors="replace")
+    stderr_text = stderr_path.read_text(encoding="utf-8", errors="replace")
+    return proc.returncode, stdout_text, stderr_text
+
+
+def _read_job_output_tail(raw_path: str | None, max_bytes: int = 8000) -> str:
+    """Read the last *max_bytes* of a log file (for tailing in-progress jobs)."""
+    if not raw_path:
+        return ""
+    p = Path(raw_path)
+    if not p.is_file():
+        return ""
+    try:
+        size = p.stat().st_size
+        with p.open("r", encoding="utf-8", errors="replace") as f:
+            if size > max_bytes:
+                f.seek(size - max_bytes)
+                f.readline()  # skip partial first line
+            return f.read()
+    except OSError:
+        return ""
+
+
 def _serialize_action_job_status(
-    service: CockpitService, job_id: str
+    service: CockpitService, job_id: str, *, tail: int = 0
 ) -> dict[str, Any]:
     job = service.state_store.get_job(job_id)
     if job is None:
         raise FileNotFoundError(job_id)
 
+    status = str(job.get("status") or "unknown")
     result_text = ""
-    if str(job.get("status") or "") == "success":
+    if status == "success":
         result_text = _read_job_output(job.get("stdout_path"))
-    elif str(job.get("status") or "") == "failed":
+    elif status == "failed":
         result_text = _read_job_output(job.get("stderr_path")) or _read_job_output(
             job.get("stdout_path")
         )
+    elif status == "running":
+        raw = _read_job_output_tail(job.get("stdout_path"))
+        if tail > 0:
+            result_text = "\n".join(raw.splitlines()[-tail:])
+        else:
+            result_text = raw
 
     return {
         "ok": True,
         "job_id": str(job.get("job_id") or job_id),
         "action_id": str(job.get("action_id") or ""),
-        "status": str(job.get("status") or "unknown"),
+        "status": status,
         "started_at": job.get("started_at"),
         "ended_at": job.get("ended_at"),
         "exit_code": job.get("exit_code"),
         "stdout_path": job.get("stdout_path"),
         "stderr_path": job.get("stderr_path"),
         "result": result_text or None,
+        "progress_stage": job.get("progress_stage"),
+        "progress_pct": job.get("progress_pct"),
     }
 
 
@@ -1123,6 +1222,8 @@ def _launch_action_job(
     )
 
     def _worker() -> None:
+        from app.services.progress_parser import parse_progress_line
+
         service.state_store.add_job(
             {
                 "job_id": job_id,
@@ -1138,31 +1239,39 @@ def _launch_action_job(
             }
         )
 
-        stdout_text = ""
-        stderr_text = ""
+        _last_stage: str | None = None
+
+        def _on_stdout_line(line: str) -> None:
+            nonlocal _last_stage
+            info = parse_progress_line(line)
+            if info is None:
+                return
+            # Debounce: only write to DB when stage or pct changes
+            if info.stage != _last_stage or info.pct is not None:
+                _last_stage = info.stage
+                service.state_store.update_job_progress(
+                    job_id, info.stage, info.pct
+                )
+
         exit_code: int | None = None
         status = "failed"
         try:
-            proc = _run_action_subprocess(
+            exit_code, _, _ = _run_action_subprocess_streaming(
                 normalized_command=normalized_command,
                 repo_root=Path(service.repo_root),
                 action_env=action_env,
                 timeout_seconds=timeout_seconds,
+                stdout_path=stdout_path,
+                stderr_path=stderr_path,
+                on_stdout_line=_on_stdout_line,
             )
-            stdout_text = proc.stdout or ""
-            stderr_text = proc.stderr or ""
-            exit_code = proc.returncode
-            status = "success" if proc.returncode == 0 else "failed"
-        except subprocess.TimeoutExpired:
-            exit_code = 124
-            stderr_text = f"Action timed out after {timeout_seconds}s: {action_id}\n"
-            status = "failed"
+            status = "success" if exit_code == 0 else "failed"
         except Exception as exc:
-            stderr_text = f"Action execution failed: {exc}\n"
+            stderr_path.write_text(
+                f"Action execution failed: {exc}\n", encoding="utf-8"
+            )
             status = "failed"
 
-        stdout_path.write_text(stdout_text, encoding="utf-8")
-        stderr_path.write_text(stderr_text, encoding="utf-8")
         service.state_store.add_job(
             {
                 "job_id": job_id,
@@ -1599,7 +1708,7 @@ async def cockpit_execute_action(payload: CockpitActionExecuteRequest):
 
 
 @router.get("/action/jobs/{job_id}", response_model=CockpitActionJobStatusResponse)
-async def cockpit_get_action_job(job_id: str):
+async def cockpit_get_action_job(job_id: str, tail: int = 0):
     """Return persisted status for a queued cockpit action."""
     try:
         service = CockpitService.get_instance()
@@ -1610,7 +1719,9 @@ async def cockpit_get_action_job(job_id: str):
         ) from exc
 
     try:
-        result = await asyncio.to_thread(_serialize_action_job_status, service, job_id)
+        result = await asyncio.to_thread(
+            _serialize_action_job_status, service, job_id, tail=tail
+        )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
