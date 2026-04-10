@@ -25,6 +25,8 @@ from typing import Any, Optional
 
 from dateutil import parser as dtparser
 
+from app.services.extraction_run_observability import ExtractionRunObserver
+
 logger = logging.getLogger(__name__)
 
 
@@ -1736,6 +1738,7 @@ def run_multipass_extraction(
     skip_narrative: bool = False,
     parser_backend: str | None = None,
     strict_parser: bool = False,
+    observer: ExtractionRunObserver | None = None,
 ) -> MultipassResult:
     """
     Orchestrate all 4 passes and return a MultipassResult.
@@ -1764,6 +1767,8 @@ def run_multipass_extraction(
     )
 
     # Extract structured document
+    if observer is not None:
+        observer.emit("parser", "running", "Loading document parser output.")
     try:
         structured_doc = extract_structured(
             pdf_path,
@@ -1772,6 +1777,19 @@ def run_multipass_extraction(
         )
     except Exception as e:
         logger.error("docling_extract failed for %s: %s", pdf_path, e)
+        if observer is not None:
+            observer.emit(
+                "parser",
+                "blocked" if strict_parser else "failed",
+                (
+                    "Strict parser mode blocked fallback."
+                    if strict_parser
+                    else f"Parser failed: {e}"
+                ),
+                warning_code="strict_mode_blocked_fallback" if strict_parser else None,
+                error_code="parser_failed",
+                details={"parser_backend": parser_backend, "error": str(e)},
+            )
         null_payload["_structured_extraction"] = {
             "parser_id": parser_backend or "auto",
             "page_count": 0,
@@ -1781,6 +1799,17 @@ def run_multipass_extraction(
         }
         return MultipassResult(
             status="failed", payload=null_payload, sections=[], error=str(e)
+        )
+    if observer is not None:
+        observer.emit(
+            "parser",
+            "succeeded",
+            f"Parsed document with {structured_doc.extraction_method}.",
+            details={
+                "actual_method": structured_doc.extraction_method,
+                "page_count": structured_doc.page_count,
+                "table_count": len(structured_doc.tables),
+            },
         )
 
     # Pass 1: Classify — use title + first page only (not arbitrary 1500 chars).
@@ -1793,10 +1822,19 @@ def run_multipass_extraction(
     first_page_text = " ".join(s["text"] for s in first_page_sections)
     title = doc_metadata.get("title", "")
 
+    if observer is not None:
+        observer.emit("pass1_classifier", "running", "Running pass 1 classifier.")
     try:
         pass1 = _run_pass1_classifier(title, first_page_text, llm_client)
     except Exception as e:
         logger.error("Pass 1 failed: %s", e)
+        if observer is not None:
+            observer.emit(
+                "pass1_classifier",
+                "failed",
+                f"Pass 1 failed: {e}",
+                error_code="pass1_failed",
+            )
         return MultipassResult(
             status="failed",
             payload=null_payload,
@@ -1805,12 +1843,22 @@ def run_multipass_extraction(
         )
 
     if pass1.get("classifier_confidence", 0) < 0.60:
+        if observer is not None:
+            observer.emit(
+                "pass1_classifier",
+                "failed",
+                "Classifier confidence below threshold.",
+                error_code="classifier_low_confidence",
+                details={"classifier_confidence": pass1.get("classifier_confidence")},
+            )
         return MultipassResult(
             status="failed",
             payload=null_payload,
             sections=structured_doc.sections,
             error=f"classifier_low_confidence:{pass1.get('classifier_confidence')}",
         )
+    if observer is not None:
+        observer.emit("pass1_classifier", "succeeded", "Pass 1 completed.")
 
     # Table-header scale detection is always authoritative — ASX filings print scale
     # explicitly in column headers ($'000, A$M, etc.) which is more reliable than
@@ -1846,9 +1894,19 @@ def run_multipass_extraction(
         )
 
     # Pass 2: Locate tables
+    if observer is not None:
+        observer.emit("pass2_locator", "running", "Locating statement tables.")
     labelled = _run_pass2_locator(structured_doc.tables)
+    if observer is not None:
+        observer.emit("pass2_locator", "succeeded", "Pass 2 completed.")
 
     # Pass 3a: Extract metrics
+    if observer is not None:
+        observer.emit(
+            "pass3_metric_extraction",
+            "running",
+            "Extracting metric candidates.",
+        )
     pass3a_results = _run_pass3a_metric_extractor(labelled, pass1, llm_client)
 
     # Pass 3b: Extract narrative (skippable for metrics-only runs)
@@ -1870,14 +1928,32 @@ def run_multipass_extraction(
         pass3b_result = _run_pass3b_narrative_extractor(
             structured_doc.sections, llm_client
         )
+    if observer is not None:
+        observer.emit(
+            "pass3_metric_extraction",
+            "succeeded",
+            "Pass 3 completed.",
+        )
 
     # Pass 4: Reconcile
+    if observer is not None:
+        observer.emit(
+            "pass4_reconciliation",
+            "running",
+            "Reconciling extracted fields.",
+        )
     payload = _run_pass4_reconciler(
         pass3a_results,
         pass3b_result,
         pass1,
         sections=structured_doc.sections,
     )
+    if observer is not None:
+        observer.emit(
+            "pass4_reconciliation",
+            "succeeded",
+            "Pass 4 completed.",
+        )
 
     # Derive period_start deterministically — schema column exists but was not populated.
     _pe = parse_period_end(payload.get("period_end"))
@@ -1915,6 +1991,8 @@ def run_multipass_extraction(
         )
 
     # Validate
+    if observer is not None:
+        observer.emit("validation", "running", "Running validation gates.")
     status, error = _validate_gate(payload)
     logger.info(
         "Gate: status=%s, confidence=%.3f, non_null_metrics=%d",
@@ -1922,6 +2000,18 @@ def run_multipass_extraction(
         payload.get("confidence_metrics", 0),
         len([v for v in payload.get("metrics", {}).values() if v is not None]),
     )
+    if observer is not None:
+        observer.emit(
+            "validation",
+            "succeeded" if status in {"ok", "ok_low_confidence"} else "failed",
+            "Validation completed."
+            if status in {"ok", "ok_low_confidence"}
+            else f"Validation failed: {error}",
+            error_code=None
+            if status in {"ok", "ok_low_confidence"}
+            else "validation_failed",
+            details={"extraction_status": status, "error": error},
+        )
 
     return MultipassResult(
         status=status,

@@ -5,9 +5,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
-from app.core.config import PROJECT_ROOT
+from app.core.config import settings
 
-RUN_STATUS_ROOT = PROJECT_ROOT / "reports" / "extraction_review" / "run_status"
+RUN_STATUS_ROOT = (
+    Path(settings.data_root).resolve() / "reports" / "extraction_review" / "run_status"
+)
 MAX_EVENTS = 200
 
 

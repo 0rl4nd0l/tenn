@@ -30,6 +30,10 @@ from app.services.embeddings import (
     upsert_points,
     validate_payload,
 )
+from app.services.extraction_run_observability import (
+    ExtractionRunObserver,
+    initialize_run_status,
+)
 from app.services.announcement_importance import classify_documents_and_materialize
 from app.services.llm import embed_texts, generate_json, get_routing_decision
 from app.services.multipass_extraction import (
@@ -950,25 +954,55 @@ def process_document(
     qdrant_client: Optional[QdrantClient] = None,
     ollama_client: Optional[httpx.Client] = None,
     *,
+    run_id: str | None = None,
     requested_method: str = "auto",
     strict_method: bool = False,
 ):
     db = SessionLocal()
     try:
+        resolved_run_id = str(run_id or uuid.uuid4())
         doc_uuid = _coerce_uuid(document_id)
         doc = db.query(Document).filter(Document.document_id == doc_uuid).first()
         if not doc:
             raise ValueError(f"Document not found: {document_id}")
+        initialize_run_status(
+            run_id=resolved_run_id,
+            document_id=str(doc_uuid),
+            requested_method=requested_method,
+            strict_method=strict_method,
+        )
+        observer = ExtractionRunObserver(
+            run_id=resolved_run_id,
+            document_id=str(doc_uuid),
+            requested_method=requested_method,
+            strict_method=strict_method,
+        )
+        observer.emit("starting", "running", "Extraction run started.")
 
         # --- Structured extraction stage ---
+        observer.emit(
+            "document_load", "running", "Loading document metadata and PDF path."
+        )
         resolved_pdf_path = _resolve_pdf_path(doc.pdf_path)
         doc_metadata = {
             "document_id": str(doc.document_id),
             "ticker": str(doc.ticker or ""),
             "title": str(doc.title or ""),
         }
+        observer.emit(
+            "document_load",
+            "succeeded",
+            "Document metadata loaded.",
+            details={"resolved_pdf_path": resolved_pdf_path},
+        )
         default_model_name = "qwen2.5-32b-instruct"
         if not settings.enable_extraction:
+            observer.emit(
+                "env_check",
+                "blocked",
+                "Extraction disabled in current profile.",
+                warning_code="extraction_disabled",
+            )
             extraction_stage = ExtractionStageResult(
                 status=ExtractionStageStatus.SKIPPED,
                 payload={"status": "skipped_extraction"},
@@ -988,11 +1022,18 @@ def process_document(
                         resolved_pdf_path,
                         dict(doc_metadata),
                         ollama_client,
+                        observer=observer,
                         requested_method=requested_method,
                         strict_method=strict_method,
                     )
             except Exception as exc:
                 error_text = str(exc)
+                observer.emit(
+                    "failed",
+                    "failed",
+                    f"Extraction failed: {error_text}",
+                    error_code="extraction_failed",
+                )
                 extraction_stage = ExtractionStageResult(
                     status=ExtractionStageStatus.FAILED,
                     payload={"error": error_text},
@@ -1125,6 +1166,7 @@ def process_document(
         )
 
         run = ExtractionRun(
+            run_id=uuid.UUID(resolved_run_id),
             document_id=doc.document_id,
             extractor_version=EXTRACTOR_VERSION,
             model_name=extraction_stage.model_name or settings.extract_model,
@@ -1141,6 +1183,33 @@ def process_document(
         }:
             _upsert_financial_rows(db, doc, structured)
         db.commit()  # single atomic commit: ExtractionRun + financial rows together
+        final_summary = {
+            "run_id": resolved_run_id,
+            "document_id": str(doc.document_id),
+            "extraction_status": extraction_stage.status.value,
+            "error": extraction_stage.error,
+            "failure_code": extraction_stage.failure_code,
+        }
+        observer.final_summary(final_summary)
+        if extraction_stage.status in {
+            ExtractionStageStatus.OK,
+            ExtractionStageStatus.OK_LOW_CONFIDENCE,
+            ExtractionStageStatus.SKIPPED,
+        }:
+            observer.emit(
+                "completed",
+                "succeeded",
+                f"Extraction completed with status {extraction_stage.status.value}.",
+                details=final_summary,
+            )
+        else:
+            observer.emit(
+                "failed",
+                "failed",
+                f"Extraction finished with status {extraction_stage.status.value}.",
+                error_code=extraction_stage.failure_code or "extraction_failed",
+                details=final_summary,
+            )
 
         return {
             "ok": True,
