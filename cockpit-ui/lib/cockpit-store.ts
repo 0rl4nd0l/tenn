@@ -7,14 +7,6 @@ export function generateId(): string {
   return Math.random().toString(36).substring(2, 9)
 }
 
-// Available chat models served by llama-server in router mode on port 8001
-export const AVAILABLE_CHAT_MODELS = [
-  {
-    id: 'model:gpt-oss-20b',
-    label: 'GPT-OSS 20B',
-    description: 'Dense 20B — loaded from local SSD cache',
-  },
-] as const
 
 interface CockpitState {
   activeTicker: string
@@ -44,7 +36,7 @@ export const useCockpitStore = create<CockpitState>()(
     (set) => ({
       activeTicker: 'BHP',
       sessionId: generateId(),
-      chatModel: 'model:gpt-oss-20b',
+      chatModel: 'model:qwen3.5-35b-a3b',
       chatCompletionActive: false,
       preferences: {
         webSearchEnabled: true,

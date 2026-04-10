@@ -1,8 +1,15 @@
 'use client'
 
-import { useState } from 'react'
-import { ChevronRight, ChevronDown, Copy, Check } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ChevronRight, ChevronDown, Copy, Check, Maximize2 } from 'lucide-react'
 import type { ChatMessage as ChatMessageType } from '@/lib/cockpit-types'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 interface TerminalMessageProps {
   message: ChatMessageType
@@ -13,7 +20,11 @@ interface TerminalMessageProps {
 
 export function TerminalMessage({ message, isStreaming, onConfirmAction, onCancelAction }: TerminalMessageProps) {
   const [sourcesExpanded, setSourcesExpanded] = useState(false)
+  const [thinkingExpanded, setThinkingExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [rawDumpExpanded, setRawDumpExpanded] = useState(false)
+  const [chartDialogOpen, setChartDialogOpen] = useState(false)
+  const [autoOpenedFilestatsChart, setAutoOpenedFilestatsChart] = useState(false)
 
   const isUser = message.role === 'user'
   const isSystem = message.role === 'system'
@@ -39,6 +50,18 @@ export function TerminalMessage({ message, isStreaming, onConfirmAction, onCance
     const pct = Math.max(0, Math.min(100, numericScore * 100))
     return `[${pct.toFixed(0)}%]`
   }
+
+  const isFilestatsDump = message.content.includes('Company Data Dump:')
+  const hasFilestatsChart = Boolean(message.chart && /filestats/i.test(message.chart.title || ''))
+  const shouldCollapseRawDump = isFilestatsDump && hasFilestatsChart
+  const filestatsPreview = message.content.split('\n').slice(0, 10).join('\n')
+
+  useEffect(() => {
+    if (hasFilestatsChart && !autoOpenedFilestatsChart) {
+      setChartDialogOpen(true)
+      setAutoOpenedFilestatsChart(true)
+    }
+  }, [autoOpenedFilestatsChart, hasFilestatsChart])
 
   // Parse content for code blocks and format
   const formatContent = (content: string) => {
@@ -132,6 +155,35 @@ export function TerminalMessage({ message, isStreaming, onConfirmAction, onCance
   // Assistant message
   return (
     <div className="group mt-2 mb-3 rounded-md border border-transparent px-2 py-1 transition-colors duration-150 hover:border-border/40 hover:bg-white/[0.02]">
+      {/* Thinking trace */}
+      {message.thinking && (message.thinking.assessment || message.thinking.plan) && (
+        <div className="ml-4 mb-1">
+          <button
+            onClick={() => setThinkingExpanded(!thinkingExpanded)}
+            className="flex items-center gap-1 text-sm text-purple-400/70 hover:text-purple-400 transition-colors"
+          >
+            {thinkingExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+            [reasoning]
+          </button>
+          {thinkingExpanded && (
+            <div className="mt-1 pl-4 text-sm text-purple-400/60 space-y-1 border-l border-purple-500/20">
+              {message.thinking.assessment && (
+                <div>
+                  <span className="text-purple-400/80 font-semibold">Assessment: </span>
+                  <span className="whitespace-pre-wrap">{message.thinking.assessment}</span>
+                </div>
+              )}
+              {message.thinking.plan && (
+                <div>
+                  <span className="text-purple-400/80 font-semibold">Plan: </span>
+                  <span className="whitespace-pre-wrap">{message.thinking.plan}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Tool traces */}
       {message.toolTraces && message.toolTraces.length > 0 && (
         <div className="text-sm text-blue-400/70 mb-1">
@@ -146,10 +198,46 @@ export function TerminalMessage({ message, isStreaming, onConfirmAction, onCance
       {/* Main content */}
       <div className="flex items-start gap-2">
         <span className="text-blue-400 shrink-0">{`$`}</span>
-        <div className="text-white text-lg whitespace-pre-wrap break-words leading-relaxed flex-1">
-          {formatContent(message.content)}
-          {isStreaming && <span className="terminal-cursor" />}
-        </div>
+        {shouldCollapseRawDump ? (
+          <div className="flex-1 space-y-2">
+            <div className="rounded-md border border-cyan-500/30 bg-cyan-500/8 p-3">
+              <div className="text-sm uppercase tracking-[0.16em] text-cyan-300/90">Filestats Visual Mode</div>
+              <div className="mt-1 text-sm text-cyan-100/90">
+                Interactive dashboard rendered below. Raw dump is collapsed for readability.
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => setChartDialogOpen(true)}
+                  className="inline-flex items-center gap-1 rounded border border-cyan-400/50 bg-cyan-500/12 px-2 py-1 text-xs text-cyan-100 hover:bg-cyan-500/20 transition-colors"
+                >
+                  <Maximize2 className="h-3 w-3" />
+                  Open dashboard fullscreen
+                </button>
+                <button
+                  onClick={() => setRawDumpExpanded(!rawDumpExpanded)}
+                  className="inline-flex items-center gap-1 rounded border border-cyan-500/40 px-2 py-1 text-xs text-cyan-200 hover:bg-cyan-500/12 transition-colors"
+                >
+                  {rawDumpExpanded ? 'Hide raw dump' : 'Show raw dump'}
+                </button>
+              </div>
+            </div>
+            {rawDumpExpanded && (
+              <div className="rounded-md border border-blue-500/25 bg-black/25 p-2 text-white text-base whitespace-pre-wrap break-words leading-relaxed">
+                {formatContent(message.content)}
+              </div>
+            )}
+            {!rawDumpExpanded && (
+              <div className="rounded-md border border-blue-500/20 bg-blue-500/5 p-2 text-sm text-blue-100/80 whitespace-pre-wrap break-words">
+                {filestatsPreview}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-white text-lg whitespace-pre-wrap break-words leading-relaxed flex-1">
+            {formatContent(message.content)}
+            {isStreaming && <span className="terminal-cursor" />}
+          </div>
+        )}
       </div>
 
       {/* Action Preview */}
@@ -179,6 +267,59 @@ export function TerminalMessage({ message, isStreaming, onConfirmAction, onCance
             </button>
           </div>
         </div>
+      )}
+
+      {message.chart && (
+        hasFilestatsChart ? (
+          <div className="ml-4 mt-3 rounded border border-cyan-500/30 bg-cyan-500/6 p-3">
+            <div className="text-xs uppercase tracking-[0.16em] text-cyan-300/90">Visual dashboard</div>
+            <div className="mt-1 text-sm text-cyan-100/85">
+              Filestats dashboard is opened in fullscreen mode for chart-like readability.
+            </div>
+            <button
+              onClick={() => setChartDialogOpen(true)}
+              className="mt-2 inline-flex items-center gap-1 rounded border border-cyan-400/50 bg-cyan-500/12 px-2 py-1 text-xs text-cyan-100 hover:bg-cyan-500/20 transition-colors"
+            >
+              <Maximize2 className="h-3 w-3" />
+              Re-open fullscreen dashboard
+            </button>
+          </div>
+        ) : (
+          <div className="ml-4 mt-3 overflow-hidden rounded border border-cyan-500/30 bg-cyan-500/5">
+            <div className="border-b border-cyan-500/20 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300/90">
+              {message.chart.title}
+            </div>
+            <iframe
+              title={message.chart.title}
+              srcDoc={message.chart.html}
+              sandbox="allow-scripts allow-same-origin"
+              loading="lazy"
+              className="h-[720px] w-full bg-black"
+            />
+          </div>
+        )
+      )}
+
+      {message.chart && (
+        <Dialog open={chartDialogOpen} onOpenChange={setChartDialogOpen}>
+          <DialogContent className="h-[94vh] w-[97vw] max-w-[97vw] border-cyan-500/30 bg-zinc-950 p-0 text-zinc-100">
+            <DialogHeader className="border-b border-cyan-500/20 px-4 py-3">
+              <DialogTitle className="font-mono text-sm uppercase tracking-[0.14em] text-cyan-200">
+                {message.chart.title}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-cyan-100/70">
+                Interactive dashboard view. Press Esc to close.
+              </DialogDescription>
+            </DialogHeader>
+            <iframe
+              title={`${message.chart.title}-fullscreen`}
+              srcDoc={message.chart.html}
+              sandbox="allow-scripts allow-same-origin"
+              loading="lazy"
+              className="h-[calc(94vh-74px)] w-full bg-black"
+            />
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Sources */}

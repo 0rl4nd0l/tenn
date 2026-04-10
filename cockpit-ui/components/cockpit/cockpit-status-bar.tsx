@@ -2,7 +2,7 @@
 
 import { AlertTriangle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { useCockpitStore, AVAILABLE_CHAT_MODELS } from '@/lib/cockpit-store'
+import { useCockpitStore } from '@/lib/cockpit-store'
 import { useQuery } from '@tanstack/react-query'
 
 interface CockpitStatusBarProps {
@@ -16,6 +16,7 @@ interface ConfigSnapshot {
   maxTokens: number | null
   temperature: number | null
   profile: string | null
+  anthropicKeyConfigured: boolean
 }
 
 function readNumber(value: unknown): number | null {
@@ -39,6 +40,7 @@ function parseConfig(payload: Record<string, unknown> | undefined): ConfigSnapsh
     maxTokens: readNumber(payload?.max_tokens),
     temperature: readNumber(payload?.temperature),
     profile: readString(payload?.profile),
+    anthropicKeyConfigured: payload?.anthropic_key_configured === true,
   }
 }
 
@@ -72,8 +74,9 @@ export function CockpitStatusBar({
   })
 
   const config = parseConfig(configData)
-  const configModel = config.model ?? chatModel
-  const modelLabel = AVAILABLE_CHAT_MODELS.find((m) => m.id === configModel)?.label ?? configModel
+  const activeRuntimeModel = sessionStats.activeModel !== 'local'
+    ? sessionStats.activeModel
+    : (config.model ?? '--')
   const configAuthFailure = configError instanceof Error && /(401|403)/.test(configError.message)
 
   return (
@@ -81,7 +84,10 @@ export function CockpitStatusBar({
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="h-5 text-[10px] font-mono">
-            Model: {modelLabel}
+            Selected: {chatModel}
+          </Badge>
+          <Badge variant="outline" className="h-5 text-[10px] font-mono">
+            Active: {activeRuntimeModel}
           </Badge>
           <Badge variant="outline" className="h-5 text-[10px] font-mono">
             {config.maxTokens ? `max ${config.maxTokens}` : 'max --'}
@@ -91,6 +97,9 @@ export function CockpitStatusBar({
           </Badge>
           <Badge variant="outline" className="h-5 text-[10px] font-mono hidden lg:inline-flex">
             profile: {config.profile ?? '--'}
+          </Badge>
+          <Badge variant={config.anthropicKeyConfigured ? 'default' : 'critical'} className="h-5 text-[10px] font-mono hidden xl:inline-flex">
+            API: {config.anthropicKeyConfigured ? 'set' : 'missing'}
           </Badge>
         </div>
 

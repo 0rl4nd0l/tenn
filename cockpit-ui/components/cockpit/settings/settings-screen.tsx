@@ -61,6 +61,7 @@ interface ConfigState {
     model: string
     endpoint: string
     routingPolicy: string
+    apiKeyConfigured: boolean
     maxTokens: number
     temperature: number
   }
@@ -82,9 +83,10 @@ interface ConfigState {
 
 const DEFAULTS: ConfigState = {
   llm: {
-    model: 'model:gpt-oss-20b',
+    model: 'model:qwen3.5-35b-a3b',
     endpoint: 'http://localhost:8001',
     routingPolicy: 'local-first',
+    apiKeyConfigured: false,
     maxTokens: 4096,
     temperature: 0.7,
   },
@@ -142,6 +144,10 @@ export function SettingsScreen() {
               model: status.llm_model || status.model || prev.llm.model,
               endpoint: status.llm_endpoint || prev.llm.endpoint,
               routingPolicy: status.routing_policy || prev.llm.routingPolicy,
+              apiKeyConfigured:
+                typeof status.anthropic_key_configured === 'boolean'
+                  ? status.anthropic_key_configured
+                  : prev.llm.apiKeyConfigured,
               maxTokens: status.max_tokens || prev.llm.maxTokens,
               temperature: status.temperature ?? prev.llm.temperature,
             },
@@ -269,6 +275,8 @@ export function SettingsScreen() {
           <ConfigRow label="Endpoint" value={config.llm.endpoint} mono />
           <Separator />
           <ConfigRow label="Routing Policy" value={config.llm.routingPolicy} mono />
+          <Separator />
+          <ConfigRow label="Anthropic API Key" value={config.llm.apiKeyConfigured} />
           <Separator />
           <ConfigRow label="Max Tokens" value={config.llm.maxTokens} mono />
           <Separator />

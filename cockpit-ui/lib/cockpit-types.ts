@@ -1,5 +1,15 @@
 // Cockpit Types - Based on modernization plan
 
+export interface ThinkingStep {
+  assessment: string
+  plan: string
+}
+
+export interface RenderedChart {
+  title: string
+  html: string
+}
+
 export interface ChatMessage {
   id: string
   role: 'user' | 'assistant' | 'system'
@@ -11,9 +21,11 @@ export interface ChatMessage {
     costUsd?: number
     source?: 'local' | 'anthropic'
   }
+  thinking?: ThinkingStep
   sources?: Source[]
   toolTraces?: ToolTrace[]
   actionPreview?: ActionPreview
+  chart?: RenderedChart
 }
 
 export interface Source {
@@ -100,6 +112,100 @@ export interface VerificationResult {
   details?: string
 }
 
+export interface ContextDocument {
+  document_id: string
+  ticker?: string | null
+  exchange?: string | null
+  doc_class?: string | null
+  doc_subtype?: string | null
+  published_at?: string | null
+  period_end?: string | null
+  title?: string | null
+  source_url?: string | null
+}
+
+export interface ExtractionReviewSnippet {
+  kind: string
+  status: string
+  image_path?: string | null
+  image_name?: string | null
+  image_url?: string | null
+  ascii_preview?: string | null
+  matched_text?: string | null
+  page_number?: number | null
+  reason?: string | null
+}
+
+export interface ExtractionReviewItem {
+  item_id: string
+  run_id: string
+  document_id: string
+  ticker?: string | null
+  title?: string | null
+  file_path?: string | null
+  metric_name: string
+  extracted_value: string | number | boolean | null
+  period_end?: string | null
+  period_type?: string | null
+  currency?: string | null
+  scale?: string | null
+  page_number?: number | null
+  evidence_reference?: string | null
+  evidence_text?: string | null
+  evidence_summary?: string | null
+  provenance_status?: string | null
+  source_label?: string | null
+  location_ref?: string | null
+  snippet: ExtractionReviewSnippet
+  review_status: 'pending' | 'approved' | 'wrong' | 'abstain'
+  reviewed_at?: string | null
+  expected_value?: string | number | boolean | null
+  reviewer_note?: string | null
+}
+
+export interface ExtractionReviewSession {
+  session_id: string
+  created_at: string
+  updated_at?: string | null
+  document_ids: string[]
+  missing_document_ids?: string[]
+  documents?: Array<{
+    document_id: string
+    ticker?: string | null
+    title?: string | null
+    status?: string | null
+    run_id?: string | null
+    items_count?: number
+    created_at?: string | null
+  }>
+  items: ExtractionReviewItem[]
+  summary?: {
+    total: number
+    approved: number
+    wrong: number
+    abstain: number
+    pending: number
+  }
+}
+
+export interface ExtractionReviewDecisionResponse {
+  session_id: string
+  item: ExtractionReviewItem
+  summary: {
+    total: number
+    approved: number
+    wrong: number
+    abstain: number
+    pending: number
+  }
+}
+
+export interface ExtractionReviewErrorQueue {
+  updated_at?: string | null
+  count: number
+  items: ExtractionReviewItem[]
+}
+
 export interface FinancialData {
   ticker: string
   date: Date
@@ -127,6 +233,7 @@ export interface ChatResponse {
     latency_ms?: number
     cost_usd?: number
     source?: 'local' | 'anthropic'
+    chart?: RenderedChart
   }
   session_id?: string
 }
@@ -160,13 +267,36 @@ export interface RagResult {
   metadata?: Record<string, unknown>
 }
 
+// ── Model Discovery Types ─────────────────────────────────────────────────
+
+export interface ModelInfo {
+  id: string
+  filename: string
+  size_gb: number
+  quantization: string | null
+  available: boolean
+}
+
+export interface ModelGroup {
+  location: string
+  label: string
+  models: ModelInfo[]
+}
+
+export interface AvailableModelsResponse {
+  groups: ModelGroup[]
+  active_model: string | null
+}
+
 // SSE Event Types
-export type SSEEventType = 
+export type SSEEventType =
   | 'chunk'
   | 'status'
+  | 'thinking'
   | 'sources'
   | 'action_preview'
   | 'tool_trace'
+  | 'chart'
   | 'done'
   | 'error'
 

@@ -2,6 +2,15 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
 import { TerminalMessage } from './terminal-message'
 import { TerminalInput } from './terminal-input'
 import { useCockpitStore, generateId } from '@/lib/cockpit-store'
@@ -14,8 +23,30 @@ type FlagState = 'saving' | 'saved'
 type FlagFeedbackResponse = {
   report_id: string
   report_dir: string
+  codex_prompt: string
   analysis_summary?: string | null
 }
+
+async function copyFlagPromptToClipboard(prompt: string): Promise<boolean> {
+  const text = prompt.trim()
+  if (!text) {
+    return false
+  }
+  try {
+    await navigator.clipboard.writeText(text)
+    return true
+  } catch {
+    return false
+  }
+}
+
+const FLAG_NOTE_PRESETS = [
+  'Hallucination',
+  'Wrong ticker context',
+  'Bad calculation',
+  'Unsupported claim',
+  'Missed cited evidence',
+] as const
 
 function serializeMessageForFeedback(message: ChatMessageType) {
   return {
@@ -24,9 +55,11 @@ function serializeMessageForFeedback(message: ChatMessageType) {
     content: message.content,
     timestamp: message.timestamp.toISOString(),
     metadata: message.metadata,
+    thinking: message.thinking,
     sources: message.sources,
     toolTraces: message.toolTraces,
     actionPreview: message.actionPreview,
+    chart: message.chart ? { title: message.chart.title } : undefined,
   }
 }
 
@@ -36,8 +69,12 @@ export function ChatScreen() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingContent, setStreamingContent] = useState('')
   const [streamingStatus, setStreamingStatus] = useState('Connecting to backend stream...')
+  const [streamingStatusStartedAt, setStreamingStatusStartedAt] = useState<number | null>(null)
+  const [streamingClockMs, setStreamingClockMs] = useState<number>(Date.now())
   const [streamingMetadata, setStreamingMetadata] = useState<Partial<ChatMessageType>>({})
   const [flagStates, setFlagStates] = useState<Record<string, FlagState>>({})
+  const [pendingFlagMessage, setPendingFlagMessage] = useState<ChatMessageType | null>(null)
+  const [flagNote, setFlagNote] = useState('')
   const activeStreamRef = useRef<{ close: () => void } | null>(null)
   const statusFallbackTimersRef = useRef<number[]>([])
   const receivedServerStatusRef = useRef(false)
@@ -47,6 +84,7 @@ export function ChatScreen() {
     activeTicker,
     sessionId,
     chatModel,
+    sessionStats,
     preferences,
     addCost,
     setLatency,
@@ -91,9 +129,50 @@ export function ChatScreen() {
     }
   }, [])
 
+  const setStreamingStage = useCallback((nextStage: string) => {
+    setStreamingStatus((prev) => {
+      if (prev !== nextStage) {
+        setStreamingStatusStartedAt(Date.now())
+      }
+      return nextStage
+    })
+  }, [])
+
+  const clearStreamingStage = useCallback(() => {
+    setStreamingStatus('')
+    setStreamingStatusStartedAt(null)
+  }, [])
+
+  useEffect(() => {
+    if (!isStreaming || !streamingStatusStartedAt) {
+      return
+    }
+    const intervalId = window.setInterval(() => {
+      setStreamingClockMs(Date.now())
+    }, 250)
+    return () => window.clearInterval(intervalId)
+  }, [isStreaming, streamingStatusStartedAt])
+
+  const renderStreamingStatus = useCallback((fallback: string) => {
+    const label = (streamingStatus || fallback).trim()
+    if (!label) {
+      return fallback
+    }
+    if (!isStreaming || !streamingStatusStartedAt) {
+      return label
+    }
+    const elapsedMs = Math.max(0, streamingClockMs - streamingStatusStartedAt)
+    return `${label} (${(elapsedMs / 1000).toFixed(1)}s)`
+  }, [isStreaming, streamingClockMs, streamingStatus, streamingStatusStartedAt])
+
   const formatStageLabel = useCallback((rawStage: string): string => {
     const stage = rawStage.trim()
     if (!stage) return 'Working...'
+    if (stage.startsWith('Switching model:')) return stage
+    if (stage.startsWith('Model alias resolved:')) return stage
+    if (stage.startsWith('Model ready:')) return stage
+    if (stage.startsWith('Using selected model:')) return stage.replace('Using selected model:', 'Using model:')
+    if (stage.startsWith('Using active model:')) return stage.replace('Using active model:', 'Using model:')
     if (stage === 'Request accepted') return 'Connected. Preparing tools and request...'
     if (stage === 'Resolving request context') return 'Preparing tools and retrieval context...'
     if (stage === 'Assessing information and planning approach...') return 'Assessing what data is available...'
@@ -121,18 +200,30 @@ export function ChatScreen() {
     setIsStreaming(true)
     setChatCompletionActive(true)
     setStreamingContent('')
-    setStreamingStatus('Connecting to backend stream...')
+    const requestedModel = String(chatModel || '').trim()
+    const activeModel = String(sessionStats.activeModel || '').trim()
+    const hasModelSwitch = requestedModel.length > 0 && activeModel.length > 0 && requestedModel !== activeModel
+
+    setStreamingStage(
+      hasModelSwitch
+        ? `Switching model: ${activeModel} -> ${requestedModel}`
+        : 'Connecting to backend stream...'
+    )
     setStreamingMetadata({})
 
     statusFallbackTimersRef.current = [
       window.setTimeout(() => {
         if (!receivedServerStatusRef.current) {
-          setStreamingStatus('Preparing tools and request context...')
+          setStreamingStage('Waiting for backend status update...')
         }
       }, 900),
       window.setTimeout(() => {
         if (!receivedServerStatusRef.current) {
-          setStreamingStatus('Sending prompt to model...')
+          if (hasModelSwitch) {
+            setStreamingStage(`Waiting for model switch: ${activeModel} -> ${requestedModel}`)
+          } else {
+            setStreamingStage('Waiting for model response...')
+          }
         }
       }, 2200),
     ]
@@ -189,7 +280,8 @@ export function ChatScreen() {
             latencyMs: response.content.latency_ms,
             costUsd: 0,
             source: 'local'
-          }
+          },
+          chart: response.content.chart,
         }
         setMessages(prev => [...prev, systemMessage])
       } catch (err) {
@@ -203,6 +295,7 @@ export function ChatScreen() {
 
     // Normal chat with streaming
     let currentContent = ''
+    let streamFinalized = false
     const currentMetadata: Partial<ChatMessageType> = {
       toolTraces: [],
       sources: []
@@ -228,8 +321,15 @@ export function ChatScreen() {
               if (typeof event.data?.stage === 'string' && event.data.stage.trim().length > 0) {
                 receivedServerStatusRef.current = true
                 clearStatusFallbackTimers()
-                setStreamingStatus(formatStageLabel(event.data.stage))
+                setStreamingStage(formatStageLabel(event.data.stage))
               }
+              break
+            case 'thinking':
+              currentMetadata.thinking = {
+                assessment: event.data.assessment || '',
+                plan: event.data.plan || '',
+              }
+              setStreamingMetadata({ ...currentMetadata })
               break
             case 'tool_trace':
               currentMetadata.toolTraces = [...(currentMetadata.toolTraces || []), {
@@ -272,7 +372,14 @@ export function ChatScreen() {
               setStreamingMetadata({ ...currentMetadata })
               }
               break
+            case 'chart':
+              if (event.data && typeof event.data === 'object') {
+                currentMetadata.chart = event.data as ChatMessageType['chart']
+                setStreamingMetadata({ ...currentMetadata })
+              }
+              break
             case 'done':
+              streamFinalized = true
               const finalText =
                 typeof event.data?.text === 'string' && event.data.text.trim().length > 0
                   ? event.data.text
@@ -288,9 +395,11 @@ export function ChatScreen() {
                   costUsd: event.data.cost_usd || 0,
                   source: event.data.source || 'local'
                 },
+                thinking: currentMetadata.thinking,
                 sources: currentMetadata.sources,
                 toolTraces: currentMetadata.toolTraces,
-                actionPreview: currentMetadata.actionPreview
+                actionPreview: currentMetadata.actionPreview,
+                chart: (event.data?.chart as ChatMessageType['chart']) || currentMetadata.chart,
               }
               
               // Update global stats
@@ -300,7 +409,7 @@ export function ChatScreen() {
               
               setMessages(prev => [...prev, assistantMessage])
               setStreamingContent('')
-              setStreamingStatus('')
+              clearStreamingStage()
               setStreamingMetadata({})
               setIsStreaming(false)
               setChatCompletionActive(false)
@@ -308,6 +417,7 @@ export function ChatScreen() {
               activeStreamRef.current = null
               break
             case 'error':
+              streamFinalized = true
               // Handle error events from backend
               console.error('[Chat] Streaming error event:', event.data)
               const errorMessage = typeof event.data === 'string' ? event.data : 'Chat failed'
@@ -318,7 +428,7 @@ export function ChatScreen() {
                 content: `Error: ${errorMessage}`,
                 timestamp: new Date(),
               }])
-              setStreamingStatus('')
+              clearStreamingStage()
               setIsStreaming(false)
               setChatCompletionActive(false)
               clearStatusFallbackTimers()
@@ -336,14 +446,37 @@ export function ChatScreen() {
             content: `Connection error: ${errorMsg}`,
             timestamp: new Date(),
           }])
-          setStreamingStatus('')
+          clearStreamingStage()
           setIsStreaming(false)
           setChatCompletionActive(false)
           clearStatusFallbackTimers()
           activeStreamRef.current = null
         },
         onEnd: () => {
-          setStreamingStatus('')
+          if (!streamFinalized) {
+            const fallbackText = currentContent.trim()
+            if (fallbackText || currentMetadata.actionPreview) {
+              setMessages(prev => [...prev, {
+                id: generateId(),
+                role: 'assistant',
+                content: fallbackText || 'Response ended before a final message was emitted.',
+                timestamp: new Date(),
+                metadata: { source: 'local' },
+                thinking: currentMetadata.thinking,
+                sources: currentMetadata.sources,
+                toolTraces: currentMetadata.toolTraces,
+                actionPreview: currentMetadata.actionPreview,
+              }])
+            } else {
+              setMessages(prev => [...prev, {
+                id: generateId(),
+                role: 'system',
+                content: 'Chat stream ended before a final response was received.',
+                timestamp: new Date(),
+              }])
+            }
+          }
+          clearStreamingStage()
           setIsStreaming(false)
           setChatCompletionActive(false)
           clearStatusFallbackTimers()
@@ -386,13 +519,13 @@ export function ChatScreen() {
       setIsStreaming(false)
       setChatCompletionActive(false)
       setStreamingContent('')
-      setStreamingStatus('')
+      clearStreamingStage()
       setStreamingMetadata({})
       clearStatusFallbackTimers()
       
       toast.info('Chat cancelled')
     }
-  }, [clearStatusFallbackTimers, setChatCompletionActive])
+  }, [clearStatusFallbackTimers, clearStreamingStage, setChatCompletionActive])
 
   const handleConfirmAction = useCallback(async (actionPreview: ActionPreview | undefined) => {
     if (!actionPreview) return
@@ -427,6 +560,7 @@ export function ChatScreen() {
         content: `Action **${actionPreview.name}** executed successfully.\n\n${result.result}`,
         timestamp: new Date(),
         metadata: { source: 'local' },
+        chart: result.chart,
       }
       setMessages(prev => [...prev, resultMessage])
       toast.success(`Action "${actionPreview.name}" executed`)
@@ -461,9 +595,11 @@ export function ChatScreen() {
     setStreamingContent('')
     setStreamingMetadata({})
     setFlagStates({})
+    setPendingFlagMessage(null)
+    setFlagNote('')
   }, [])
 
-  const handleFlagMessage = useCallback(async (message: ChatMessageType) => {
+  const submitFlagMessage = useCallback(async (message: ChatMessageType, note: string) => {
     if (message.role !== 'assistant') {
       return
     }
@@ -479,6 +615,7 @@ export function ChatScreen() {
         body: JSON.stringify({
           session_id: sessionId,
           ticker: activeTicker,
+          note: note.trim() || undefined,
           flagged_message: serializeMessageForFeedback(message),
           transcript: messages.map(serializeMessageForFeedback),
           frontend_context: {
@@ -501,10 +638,17 @@ export function ChatScreen() {
       }
 
       setFlagStates((prev) => ({ ...prev, [message.id]: 'saved' }))
+      setPendingFlagMessage(null)
+      setFlagNote('')
       const result = payload as FlagFeedbackResponse
+      const copiedPrompt = await copyFlagPromptToClipboard(result.codex_prompt)
       toast.success(result.analysis_summary?.trim()
-        ? `Flag saved: ${result.analysis_summary}`
-        : `Flag saved to ${result.report_dir}`)
+        ? copiedPrompt
+          ? `Flag saved and Codex prompt copied: ${result.analysis_summary}`
+          : `Flag saved: ${result.analysis_summary}`
+        : copiedPrompt
+          ? `Flag saved and Codex prompt copied: ${result.report_dir}`
+          : `Flag saved to ${result.report_dir}`)
     } catch (error) {
       setFlagStates((prev) => {
         const next = { ...prev }
@@ -516,10 +660,101 @@ export function ChatScreen() {
     }
   }, [activeTicker, chatModel, flagStates, messages, preferences, sessionId])
 
+  const handleFlagMessage = useCallback((message: ChatMessageType) => {
+    if (message.role !== 'assistant' || flagStates[message.id]) {
+      return
+    }
+    setPendingFlagMessage(message)
+    setFlagNote('')
+  }, [flagStates])
+
+  const pendingFlagState = pendingFlagMessage ? flagStates[pendingFlagMessage.id] : undefined
+  const isPendingFlagSaving = pendingFlagState === 'saving'
+
+  const closeFlagDialog = useCallback(() => {
+    if (isPendingFlagSaving) {
+      return
+    }
+    setPendingFlagMessage(null)
+    setFlagNote('')
+  }, [isPendingFlagSaving])
+
+  const handleFlagSubmit = useCallback(async () => {
+    if (!pendingFlagMessage) {
+      return
+    }
+    await submitFlagMessage(pendingFlagMessage, flagNote)
+  }, [flagNote, pendingFlagMessage, submitFlagMessage])
+
   if (!hasHydrated) return null
 
   return (
     <div className="flex h-full flex-col terminal-container overflow-hidden">
+      <Dialog open={Boolean(pendingFlagMessage)} onOpenChange={(open) => {
+        if (!open) {
+          closeFlagDialog()
+        }
+      }}>
+        <DialogContent className="border-red-500/30 bg-zinc-950 text-zinc-100 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-mono text-sm text-red-300">Flag response</DialogTitle>
+            <DialogDescription className="text-xs text-zinc-400">
+              Add a short optional note so the saved report explains what was wrong.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              {FLAG_NOTE_PRESETS.map((preset) => {
+                const selected = flagNote === preset
+                return (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setFlagNote(preset)}
+                    disabled={isPendingFlagSaving}
+                    className={selected
+                      ? 'rounded border border-red-400/60 bg-red-500/20 px-2 py-1 font-mono text-[11px] text-red-100 transition-colors disabled:cursor-default disabled:opacity-60'
+                      : 'rounded border border-zinc-700 bg-zinc-900 px-2 py-1 font-mono text-[11px] text-zinc-300 transition-colors hover:bg-zinc-800 disabled:cursor-default disabled:opacity-60'}
+                  >
+                    {preset}
+                  </button>
+                )
+              })}
+            </div>
+            <Textarea
+              value={flagNote}
+              onChange={(event) => setFlagNote(event.target.value.slice(0, 280))}
+              placeholder="Optional note, e.g. wrong ticker context, unsupported claim, bad math"
+              disabled={isPendingFlagSaving}
+              maxLength={280}
+              rows={4}
+              className="border-red-500/20 bg-black/30 font-mono text-sm text-zinc-100 placeholder:text-zinc-500"
+            />
+            <div className="text-right font-mono text-[11px] text-zinc-500">
+              {flagNote.length}/280
+            </div>
+          </div>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={closeFlagDialog}
+              disabled={isPendingFlagSaving}
+              className="rounded border border-zinc-700 bg-zinc-900 px-3 py-2 font-mono text-xs text-zinc-200 transition-colors hover:bg-zinc-800 disabled:cursor-default disabled:opacity-60"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleFlagSubmit()}
+              disabled={isPendingFlagSaving}
+              className="rounded border border-red-500/30 bg-red-500/10 px-3 py-2 font-mono text-xs text-red-200 transition-colors hover:bg-red-500/20 disabled:cursor-default disabled:opacity-60"
+            >
+              {isPendingFlagSaving ? 'Saving...' : 'Save flag'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Terminal header */}
       <div className="flex items-center gap-2 px-4 py-2 border-b border-border/30 bg-black/20 relative z-10">
         <div className="flex gap-1.5">
@@ -554,7 +789,7 @@ export function ChatScreen() {
                 <div className="ml-6 flex items-center">
                   <button
                     type="button"
-                    onClick={() => void handleFlagMessage(msg)}
+                    onClick={() => handleFlagMessage(msg)}
                     disabled={Boolean(flagStates[msg.id])}
                     className="rounded border border-red-500/30 bg-red-500/8 px-2 py-0.5 font-mono text-[11px] text-red-300 transition-colors hover:bg-red-500/15 disabled:cursor-default disabled:opacity-70"
                   >
@@ -573,7 +808,7 @@ export function ChatScreen() {
               {streamingStatus && (
                 <div className="flex items-center gap-2 text-blue-400/70 font-mono text-xs pl-1">
                   <span className="terminal-cursor" />
-                  <span>Stage: {streamingStatus}</span>
+                  <span>Stage: {renderStreamingStatus('Preparing request...')}</span>
                 </div>
               )}
               <TerminalMessage 
@@ -589,9 +824,27 @@ export function ChatScreen() {
             </div>
           )}
           {isStreaming && !streamingContent && (
-            <div className="flex items-center gap-2 text-blue-400/60 font-mono text-sm">
-              <span className="terminal-cursor" />
-              <span>{streamingStatus || 'Preparing request...'}</span>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-blue-400/60 font-mono text-sm">
+                <span className="terminal-cursor" />
+                <span>{renderStreamingStatus('Preparing request...')}</span>
+              </div>
+              {streamingMetadata.thinking && (streamingMetadata.thinking.assessment || streamingMetadata.thinking.plan) && (
+                <div className="ml-4 pl-3 border-l border-purple-500/20 text-sm text-purple-400/60 space-y-1">
+                  {streamingMetadata.thinking.assessment && (
+                    <div>
+                      <span className="text-purple-400/80 font-semibold">Assessment: </span>
+                      <span className="whitespace-pre-wrap">{streamingMetadata.thinking.assessment}</span>
+                    </div>
+                  )}
+                  {streamingMetadata.thinking.plan && (
+                    <div>
+                      <span className="text-purple-400/80 font-semibold">Plan: </span>
+                      <span className="whitespace-pre-wrap">{streamingMetadata.thinking.plan}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

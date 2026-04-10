@@ -72,6 +72,7 @@ const navItems = [
   { href: '/history', icon: History, label: 'History', shortcut: '5' },
   { href: '/settings', icon: Gauge, label: 'Settings', shortcut: '6' },
   { href: '/news', icon: Newspaper, label: 'News', shortcut: '7' },
+  { href: '/intel-ops', icon: Activity, label: 'Intel Pulse', shortcut: '8' },
 ]
 
 function readNumber(value: unknown): number | null {

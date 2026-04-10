@@ -1,11 +1,29 @@
 import type {
+  AvailableModelsResponse,
   ChatResponse,
+  ContextDocument,
+  ExtractionReviewDecisionResponse,
+  ExtractionReviewErrorQueue,
+  ExtractionReviewSession,
   HealthResponse,
   ServiceHealth,
   SystemStatus,
   QueueStatus,
   RestartBackendResponse,
+  RenderedChart,
 } from './cockpit-types'
+
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY || ''
+
+function withApiKey(headers?: HeadersInit): HeadersInit {
+  const merged: Record<string, string> = {
+    ...(headers as Record<string, string> | undefined),
+  }
+  if (API_KEY) {
+    merged['X-API-Key'] = API_KEY
+  }
+  return merged
+}
 
 // ── Error class ────────────────────────────────────────────────────────────
 
@@ -93,7 +111,7 @@ export async function sendChatMessage(params: {
   rag?: boolean
   dbDiagnostics?: boolean
 }): Promise<ChatResponse> {
-  return apiFetch<ChatResponse>("/api/cockpit/chat", {
+  const raw = await apiFetch<any>("/api/cockpit/chat", {
     method: "POST",
     body: JSON.stringify({
       message: params.message,
@@ -107,6 +125,41 @@ export async function sendChatMessage(params: {
       stream: false,
     }),
   })
+
+  if (
+    raw
+    && typeof raw === 'object'
+    && raw.content
+    && typeof raw.content === 'object'
+    && typeof raw.content.answer === 'string'
+  ) {
+    return raw as ChatResponse
+  }
+
+  if (
+    raw
+    && typeof raw === 'object'
+    && raw.type === 'done'
+    && raw.data
+    && typeof raw.data === 'object'
+  ) {
+    return {
+      content: {
+        answer: String(raw.data.text || ''),
+        model: raw.data.model,
+        latency_ms: raw.data.latency_ms,
+        cost_usd: raw.data.cost_usd,
+        source: raw.data.source,
+        chart: raw.data.chart,
+      },
+    }
+  }
+
+  return {
+    content: {
+      answer: typeof raw === 'string' ? raw : JSON.stringify(raw),
+    },
+  }
 }
 
 /** SSE Streaming chat - POST /api/cockpit/chat with streaming */
@@ -169,6 +222,11 @@ export async function streamChat(params: {
   return source
 }
 
+/** Available models – GET /api/cockpit/models */
+export async function fetchAvailableModels(): Promise<AvailableModelsResponse> {
+  return apiFetch<AvailableModelsResponse>("/api/cockpit/models")
+}
+
 /** System config – GET /api/cockpit/config */
 export async function getSystemStatus(): Promise<SystemStatus> {
   return apiFetch<SystemStatus>("/api/cockpit/config")
@@ -191,8 +249,8 @@ export async function executeAction(params: {
   actionId: string
   args: Record<string, unknown>
   sessionId?: string
-}): Promise<{ result: string }> {
-  return apiFetch<{ result: string }>("/api/cockpit/action/execute", {
+}): Promise<{ result: string; chart?: RenderedChart }> {
+  return apiFetch<{ result: string; chart?: RenderedChart }>("/api/cockpit/action/execute", {
     method: "POST",
     body: JSON.stringify({
       action_id: params.actionId,
@@ -244,4 +302,61 @@ export async function fetchFinancials(ticker: string): Promise<unknown[]> {
 /** Documents list – GET /api/cockpit/docs */
 export async function listDocuments(): Promise<unknown[]> {
   return apiFetch<unknown[]>("/api/cockpit/docs")
+}
+
+export async function getTickerDocuments(ticker: string, docsLimit: number = 10): Promise<ContextDocument[]> {
+  const payload = await apiFetch<{ docs?: ContextDocument[] }>(
+    `/api/context/ticker?ticker=${encodeURIComponent(ticker)}&docs_limit=${docsLimit}&financials_limit=1&announcements_limit=1&failures_limit=5&low_confidence_limit=5`
+  )
+  return Array.isArray(payload.docs) ? payload.docs : []
+}
+
+export async function processDocument(documentId: string): Promise<Record<string, unknown>> {
+  return apiFetch<Record<string, unknown>>(
+    `/api/process/document/${encodeURIComponent(documentId)}`,
+    {
+      method: 'POST',
+      headers: withApiKey(),
+    },
+    900_000,
+  )
+}
+
+export async function createExtractionReviewSession(documentIds: string[]): Promise<ExtractionReviewSession> {
+  return apiFetch<ExtractionReviewSession>(
+    '/api/extraction-review/session',
+    {
+      method: 'POST',
+      headers: withApiKey(),
+      body: JSON.stringify({ document_ids: documentIds }),
+    },
+    120_000,
+  )
+}
+
+export async function submitExtractionReviewDecision(params: {
+  sessionId: string
+  itemId: string
+  status: 'approved' | 'wrong' | 'abstain'
+  expectedValue?: string | null
+  reviewerNote?: string | null
+}): Promise<ExtractionReviewDecisionResponse> {
+  return apiFetch<ExtractionReviewDecisionResponse>(
+    `/api/extraction-review/session/${encodeURIComponent(params.sessionId)}/decision`,
+    {
+      method: 'POST',
+      headers: withApiKey(),
+      body: JSON.stringify({
+        item_id: params.itemId,
+        status: params.status,
+        expected_value: params.expectedValue ?? null,
+        reviewer_note: params.reviewerNote ?? null,
+      }),
+    },
+    120_000,
+  )
+}
+
+export async function getExtractionReviewErrors(limit: number = 200): Promise<ExtractionReviewErrorQueue> {
+  return apiFetch<ExtractionReviewErrorQueue>(`/api/extraction-review/errors?limit=${limit}`)
 }
