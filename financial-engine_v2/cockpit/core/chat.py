@@ -390,6 +390,17 @@ class ChatController:
                 except Exception as exc:
                     logger.warning("ReflectionService init failed: %s", exc)
 
+                extraction_ctrl = None
+                try:
+                    from cockpit.core.agent.extraction_controller import ExtractionController
+
+                    extraction_ctrl = ExtractionController(
+                        pipeline_fn=lambda doc_id, ticker: "",
+                        max_concurrent=4,
+                    )
+                except Exception as exc:
+                    logger.warning("ExtractionController init failed: %s", exc)
+
                 # HybridRouter exposes chat() so it can serve as AgentLoop's llm_client.
                 self._agent_loop = AgentLoop(
                     llm_client=hybrid_router,
@@ -406,6 +417,7 @@ class ChatController:
                         thesis_service=thesis_svc,
                         risk_gate=risk_gate_svc,
                         reflection_service=reflection_svc,
+                        extraction_controller=extraction_ctrl,
                     ),
                     system_instruction_builder=lambda: self._build_system_instruction(
                         ResponseMode.FAST,
@@ -3676,6 +3688,14 @@ class ChatController:
             suffix = " " if index < len(text.split()) - 1 else ""
             on_chunk(token + suffix)
 
+    # Mapping from web UI mode strings to ResponseMode values used as
+    # soft fallback when keyword classification returns FAST.
+    _UI_MODE_MAP: dict[str, ResponseMode] = {
+        "strategy": ResponseMode.DEEP_ANALYSIS,
+        "deep_analysis": ResponseMode.DEEP_ANALYSIS,
+        "verification": ResponseMode.VERIFICATION,
+    }
+
     def build_chat_response(
         self,
         message: str,
@@ -3688,6 +3708,7 @@ class ChatController:
         on_thinking=None,
         analysis_mode: str | None = None,
         context_profile: str | None = None,
+        ui_mode: str | None = None,
     ) -> ChatResponse:
         article_text_request = self._try_article_text_request(message)
         if article_text_request is not None:
@@ -3768,15 +3789,25 @@ class ChatController:
                 mode=ResponseMode.ACTION,
             )
 
-        # --- Conversational ingest shortcut: "ingest <ticker>" means ticker backfill ---
+        # --- Conversational ingest shortcut: "ingest <ticker>" or bare "ingest" with session ticker ---
         ingest_ticker_match = re.fullmatch(
             r"\s*ingest\s+([A-Za-z]{2,5})\s*[?!.]*\s*", effective_message
         )
+        ingest_ticker: str | None = None
         if ingest_ticker_match:
             ingest_ticker = ingest_ticker_match.group(1).upper()
             if ingest_ticker in self.TICKER_STOPWORDS:
-                ingest_ticker_match = None
-        if ingest_ticker_match:
+                ingest_ticker = None
+        elif re.fullmatch(r"\s*ingest\s*[?!.]*\s*", effective_message):
+            # Bare "ingest" — inherit active session ticker
+            ingest_ticker = ticker or self.last_ticker
+            if not ingest_ticker:
+                return ChatResponse(
+                    text='Which ticker do you want to ingest? e.g. "ingest BHP"',
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+        if ingest_ticker:
             args = {
                 "ticker": ingest_ticker,
                 "years": 3,
@@ -3966,6 +3997,10 @@ class ChatController:
             mode = ResponseMode.ACTION
         else:
             mode = self.classify_request(effective_message, enable_web=enable_web)
+            # Soft fallback: when keywords are ambiguous (FAST), honour
+            # the UI-selected mode if it maps to a known ResponseMode.
+            if mode == ResponseMode.FAST and ui_mode:
+                mode = self._UI_MODE_MAP.get(ui_mode, mode)
 
         effective_profile = context_profile or os.environ.get(
             "COCKPIT_CONTEXT_PROFILE", "balanced"

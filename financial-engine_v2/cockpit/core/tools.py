@@ -818,14 +818,23 @@ class ToolRouter:
         if not financials or len(financials) < 1:
             return ""
 
+        def _num(val: object) -> float | None:
+            """Coerce a value to float, returning None on failure."""
+            if val is None:
+                return None
+            try:
+                return float(val)
+            except (TypeError, ValueError):
+                return None
+
         latest = financials[0]
         prior = financials[1] if len(financials) > 1 else {}
 
         parts = []
 
         # Revenue trend
-        rev = latest.get("revenue")
-        rev_prior = prior.get("revenue")
+        rev = _num(latest.get("revenue"))
+        rev_prior = _num(prior.get("revenue"))
         if rev is not None:
             if rev_prior and rev_prior != 0:
                 rev_yoy = (rev - rev_prior) / abs(rev_prior) * 100
@@ -837,21 +846,21 @@ class ToolRouter:
                 parts.append(f"Latest revenue: ${rev:,.0f}.")
 
         # EBIT margin
-        ebit = latest.get("ebit")
+        ebit = _num(latest.get("ebit"))
         if ebit is not None and rev and rev != 0:
             margin = ebit / rev * 100
             parts.append(f"EBIT margin: {margin:.1f}%.")
 
         # FCF signal
-        ocf = latest.get("operating_cf")
-        capex = latest.get("capex")
+        ocf = _num(latest.get("operating_cf"))
+        capex = _num(latest.get("capex"))
         if ocf is not None and capex is not None:
             fcf = ocf - abs(capex)
             signal = "positive" if fcf > 0 else "negative"
             parts.append(f"Free cash flow is {signal} at ${fcf:,.0f}.")
 
         # Net debt
-        net_debt = latest.get("net_debt")
+        net_debt = _num(latest.get("net_debt"))
         if net_debt is not None:
             if net_debt < 0:
                 parts.append(f"Balance sheet is net cash (${abs(net_debt):,.0f}).")
@@ -859,7 +868,7 @@ class ToolRouter:
                 parts.append(f"Net debt: ${net_debt:,.0f}.")
 
         # EBIT trend
-        ebit_prior = prior.get("ebit")
+        ebit_prior = _num(prior.get("ebit"))
         if ebit is not None and ebit_prior is not None and ebit_prior != 0:
             ebit_yoy = (ebit - ebit_prior) / abs(ebit_prior) * 100
             direction = "improved" if ebit_yoy > 0 else "deteriorated"

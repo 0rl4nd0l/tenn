@@ -600,7 +600,7 @@ class ToolExecutor:
         since_hours = int(args.get("since_hours", 24))
         ticker = str(args.get("ticker", "")).strip().upper() or None
         if self._alert_reader is None:
-            return {"ok": True, "alerts": [], "message": "alert reader not available"}
+            return {"ok": False, "error": "alert reader not available"}
         return self._alert_reader.get(since_hours=since_hours, ticker=ticker)
 
     def _exec_scan_watchlist(self, args: dict[str, Any]) -> dict[str, Any]:
@@ -893,12 +893,7 @@ class ToolExecutor:
         if not ticker:
             return {"ok": False, "error": "ticker is required"}
         if self._thesis_service is None:
-            return {
-                "ok": True,
-                "ticker": ticker,
-                "theses": [],
-                "message": "thesis service not available",
-            }
+            return {"ok": False, "error": "thesis service not available"}
         return {
             "ok": True,
             "ticker": ticker,
@@ -915,11 +910,7 @@ class ToolExecutor:
 
     def _exec_review_open_decisions(self, args: dict[str, Any]) -> dict[str, Any]:  # noqa: ARG002
         if self._reflection_service is None:
-            return {
-                "ok": True,
-                "decisions": [],
-                "message": "reflection service not available",
-            }
+            return {"ok": False, "error": "reflection service not available"}
         return {
             "ok": True,
             "decisions": self._reflection_service.review_open_decisions(),

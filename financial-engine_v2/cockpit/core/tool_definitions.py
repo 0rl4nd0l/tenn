@@ -220,7 +220,7 @@ _READ_ONLY_TOOLS: list[dict[str, Any]] = [
                     "default": 10,
                 },
             },
-            "required": [],
+            "required": ["ticker"],
         },
         "mutating": False,
     },

@@ -1494,11 +1494,19 @@ def _build_action_env(repo_root: Path) -> dict[str, str]:
     """Ensure action subprocesses can import backend/cockpit modules."""
     env = os.environ.copy()
     existing = env.get("PYTHONPATH", "")
+    shared_scripts_root = str(
+        os.getenv("COCKPIT_SHARED_SCRIPTS_ROOT") or ""
+    ).strip()
     candidates = [
         str((repo_root / "backend").resolve()),
         str((repo_root / "cockpit").resolve()),
+        str((repo_root.parent / "scripts").resolve()),
+        str((repo_root / "scripts").resolve()),
+        shared_scripts_root,
         "/app",
         "/app/cockpit",
+        "/scripts",
+        "/workspace/scripts",
     ]
     merged = [p for p in candidates if p]
     if existing:
@@ -1723,6 +1731,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 model=payload.model,
                 rag=payload.rag,
                 db_diagnostics=payload.db_diagnostics,
+                ui_mode=payload.mode,
             )
             rendered_chart = _build_filestats_chart_from_chat_response(response)
             return {
@@ -1781,6 +1790,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     model=payload.model,
                     rag=payload.rag,
                     db_diagnostics=payload.db_diagnostics,
+                    ui_mode=payload.mode,
                 )
 
                 # After streaming finishes, send metadata and final state

@@ -218,7 +218,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=DEFAULT_ENV_FILE_NAMES,
         extra="ignore",
-        protected_namespaces=("settings_", "model_"),
+        protected_namespaces=("settings_",),
     )
 
     app_env: str = "dev"
