@@ -188,7 +188,9 @@ Runtime note:
 - `POST /api/backfill/ticker/{ticker}`
   - enqueue or run ticker backfill
 - `POST /api/process/document/{document_id}`
-  - process one already-downloaded document
+  - process one document by `document_id`
+  - intended for re-processing an already-downloaded document
+  - if the local file is missing and the row still has empty `pdf_sha256`, the backend first runs the canonical PDF download path, then proceeds with extraction
 - `POST /api/process/ticker/{ticker}`
   - process downloaded-but-unextracted documents for a ticker
 

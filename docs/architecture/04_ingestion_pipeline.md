@@ -13,12 +13,31 @@ The pipeline proceeds in a fixed sequence. Each stage consumes the output of the
 | **Discover** | Fetch announcement metadata (ticker, date range) from ASX (and optionally MarketIndex fallback). Produces a list of discovered documents (source URL, title, published_at, etc.). | `pipeline.discover_and_insert_documents` → ASXProvider / MarketIndexProvider |
 | **Persist** | Normalize source URLs, deduplicate by `source_url`, insert new rows into `documents`. Only newly inserted document IDs are returned for downstream stages. | `pipeline.insert_discovered_documents` |
 | **Download PDF** | For each new document, fetch the PDF from `source_url`, validate PDF signature, optionally resolve via HTML if the URL returns HTML. Write file to disk and set `doc.pdf_path`, `doc.pdf_sha256`. | `pipeline.download_pdf_for_document` |
-| **Extract text** | Read the PDF from disk and extract raw text. | `pipeline.process_document` → `extract_text_from_pdf` |
-| **Chunk** | Split extracted text into fixed-size chunks (e.g. `max_chars=4500`) for embedding. | `pipeline.process_document` → `simple_chunk` |
+| **Pre-extraction gate** | Check document metadata before GPU extraction. Clearly administrative ASX announcements are skipped by title only, without opening the PDF. If the PDF is missing locally and the row is still pending download (`pdf_sha256` empty), `process_document()` first runs the canonical download path before continuing. | `pipeline.process_document` → `classify_title_extraction_skip`; `download_pdf_for_document` |
+| **Extract text / structure** | Read the PDF from disk and run the structured extraction path for documents that pass the title gate. | `pipeline.process_document` → `run_method_isolated_extraction` |
+| **Chunk** | Chunk extracted prose sections for embedding. | `pipeline.process_document` → `chunk_prose_sections` |
 | **Embed** | Compute embeddings for each chunk via the configured llama.cpp/OpenAI-compatible embedding runtime. Batched; optional in-memory cache by text SHA256. | `pipeline.process_document` → `_embed_chunks` → `embed_texts`/`embed_texts_batched` |
 | **Upsert** | Write vectors to Qdrant with deterministic point IDs and payload (document_id, ticker, chunk_index, etc.). Optionally run LLM extraction and upsert financial/risk rows. | `pipeline.process_document` → `upsert_points`; `_upsert_financial_rows` |
 
 Discovery and persist are done once per backfill run; download → extract → chunk → embed → upsert are done per document (for each `new_document_id` returned from persist). The per-document loop is implemented in `pipeline._download_and_process_document_ids`: when `max_workers` is 1 (default), documents are processed sequentially; when `max_workers` > 1 (e.g. `BACKFILL_CONCURRENCY` or script `--concurrency`), multiple documents are processed in parallel with shared HTTP and Qdrant clients for the run.
+
+### Title-only administrative skip gate
+
+Before GPU extraction starts, `process_document()` now runs a lightweight title classifier that skips clearly non-financial administrative filings such as:
+
+- substantial holder / substantial holding forms
+- director's interest notices
+- cessation / quotation / issue of securities notices
+- unquoted securities notices
+
+Design constraints:
+
+- The gate is title-only. It does not read the PDF or perform semantic extraction.
+- The gate is a narrow skip list, not an allow list.
+- Structural financial classifications such as `annual`, `half_year`, and `4C`/`4D`/`4E` always proceed to extraction.
+- If a document does not match a known administrative pattern, it continues through the normal extraction path.
+
+This preserves the contract requirement to avoid dropping legitimate financial documents while preventing obvious administrative paperwork from consuming 3 to 5 minute GPU extraction slots.
 
 ---
 
@@ -31,6 +50,7 @@ Discovery and persist are done once per backfill run; download → extract → c
 
 - **Download**
   - There is no “skip if file already exists” in the current implementation. Download is only invoked for **new** document IDs (those just inserted in the same run). Re-running a backfill does not re-download for documents that were already in the DB (they are not in `new_document_ids`). If `download_pdf_for_document` or `process_document` is called again for the same document (e.g. via a single-document task), the PDF is overwritten and processing repeats.
+  - Single-document processing now has one additional repair path: if `process_document()` is called for a row whose PDF is missing locally but `pdf_sha256` is still empty, it treats that row as pending download and invokes `download_pdf_for_document()` before extraction. This uses the same canonical downloader and does not introduce an alternate fetch path.
 
 - **Extract → Chunk → Embed → Upsert**
   - **Qdrant:** Point IDs are deterministic (see below). Re-running embedding and upsert for the same document overwrites the same points, so the vector store state is idempotent with respect to that document.
@@ -86,8 +106,10 @@ So: **all ingestion logic lives in the backend** (`pipeline.py`, `pipeline_servi
 | **MarketIndex 403** | HTTP 403 when fetching a MarketIndex URL. | **Skip and continue:** Document marked (e.g. `pdf_sha256 = "blocked_marketindex_403"`), skipped_download incremented, pipeline continues. |
 | **Download not a PDF** | Response does not start with `%PDF` and no PDF link could be resolved from HTML. | **Fail for that document:** `ValueError` raised; error recorded in the run result; pipeline continues with next document (sync/orchestrator catches and appends to `errors`). |
 | **Network / HTTP errors** | Timeouts, connection errors, 5xx, etc. on download or provider calls. | **Fail for that document:** Exception (e.g. `httpx.HTTPStatusError`) caught; DB rollback for that document; error appended to result; pipeline continues. |
+| **Local PDF missing but row still pending download** | `process_document()` is called directly for a document with no local file and empty `pdf_sha256`. | **Recover inline:** `process_document()` attempts the canonical `download_pdf_for_document()` first, then continues extraction if the download succeeds. If download fails, the run is recorded as failed for that document. |
 | **Text extraction failure** | PDF corrupted or unreadable; extractor returns empty or fails. | **Fail for that document:** Can raise or surface as extraction failure; `process_document` may still write an `ExtractionRun` with status `"failed"`. Extraction failure taxonomy (e.g. `ocr_or_text_unavailable`, `parser_timeout`, `corrupted_pdf`) is used for classification; pipeline continues with next document. |
 | **Ollama / LLM extraction failure** | Ollama unreachable or returns invalid JSON. | **Non-fatal for process_document:** Extraction status set to `"failed"` and stored in `ExtractionRun`; financial/risk upsert is skipped for that doc. Embedding and Qdrant upsert may already have succeeded. Pipeline continues. |
+| **Administrative title matched by pre-extraction gate** | Title matches a known non-financial administrative announcement pattern. | **Skip and continue:** `process_document` records `status="skipped_extraction"` with `failure_code="non_financial_admin_title"` and does not invoke GPU extraction. |
 | **Qdrant dimension / distance mismatch** | Collection exists with wrong vector size or distance (e.g. not COSINE). | **Fail fast:** `ensure_collection` / validation raises `RuntimeError`. No automatic repair; collection must be recreated or fixed externally. |
 | **Qdrant unavailable** | Connection or server error when upserting. | **Fail for that document:** Exception propagates; that document’s processing fails and error is recorded; pipeline continues with next document if in a loop. |
 

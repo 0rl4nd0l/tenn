@@ -14,15 +14,37 @@ works across local, worker, and scripted runs.
 - absolute paths are preserved
 - canonical stored paths are built from ticker/date/title/document_id
 
+Before extraction starts, `pipeline.process_document()` also checks whether the
+resolved file exists. If it does not exist and the document row still has an empty
+`pdf_sha256`, the backend treats that row as pending download and runs the canonical
+`download_pdf_for_document()` path before attempting structured extraction. This is
+not a fallback extractor or alternate source of truth; it is the normal downloader
+invoked slightly later in the same backend-owned pipeline.
+
 ## 2. Current extraction stack
 
 The backend no longer uses a single-pass flat-text extraction path as its main flow.
 The live path is:
 
-1. `docling_extract.extract_structured()`
-2. `multipass_extraction.run_multipass_extraction()`
-3. prose chunking via `structured_chunking.chunk_prose_sections()`
-4. metric persistence through the pipeline upsert path
+1. title-only pre-extraction gate in `pipeline.process_document()`
+2. `docling_extract.extract_structured()`
+3. `multipass_extraction.run_multipass_extraction()`
+4. prose chunking via `structured_chunking.chunk_prose_sections()`
+5. metric persistence through the pipeline upsert path
+
+### Pre-extraction title gate
+
+The backend now avoids GPU extraction for clearly administrative ASX filings by checking the document title before any PDF parsing or LLM work.
+
+Current behavior:
+
+- known non-financial admin titles are marked `skipped_extraction`
+- examples include substantial holder forms, director-interest forms, and securities cessation / quotation notices
+- the gate is intentionally a narrow skip list, not an allow list
+- structurally financial documents (`annual`, `half_year`, `4C`, `4D`, `4E`) are never skipped by this gate
+- titles that do not match a known administrative pattern continue through the normal extraction path
+
+This guard exists to save GPU time during backfills without increasing the risk of silently dropping legitimate financial documents.
 
 ### Structured extraction
 

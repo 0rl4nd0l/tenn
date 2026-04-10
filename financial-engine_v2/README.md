@@ -50,6 +50,10 @@ If this README conflicts with those setup docs, the `docs/setup/*` files are the
 Detailed API inventory:
 - `../docs/architecture/19_backend_api_surface.md`
 
+Document processing note:
+- `POST /api/process/document/{document_id}` is primarily the single-document reprocessing endpoint.
+- If the document row is still pending download (`pdf_sha256` empty) and the local PDF is missing, the backend now runs the canonical PDF download first, then continues extraction.
+
 ## Current Verified Local State (2026-03-18)
 - `LOCAL_BACKEND_PROFILE=isolated ./scripts/run_local_backend.sh` starts a safe local API with embeddings/Qdrant/extraction disabled and `/chat` returning a degraded-but-stable response instead of a `500`.
 - `LOCAL_BACKEND_PROFILE=full ./scripts/run_local_backend.sh` is now verified working locally against:
