@@ -354,10 +354,22 @@ def _run_docling_with_timeout(
 
 def _run_docling(pdf_path: str) -> StructuredDocument:
     from docling.document_converter import DocumentConverter, PdfFormatOption
-    from docling.datamodel.pipeline_options import PdfPipelineOptions
+    from docling.datamodel.pipeline_options import PdfPipelineOptions, AcceleratorDevice, AcceleratorOptions
+    import torch
+
+    # Enable GPU if available
+    device = AcceleratorDevice.AUTO
+    if torch.cuda.is_available():
+        device = AcceleratorDevice.CUDA
+        logger.info("Docling using GPU (CUDA) for %s", pdf_path)
+    else:
+        logger.info("Docling using CPU for %s", pdf_path)
 
     # Disable OCR: ASX PDFs are native-text; no OCR needed.
-    pipeline_options = PdfPipelineOptions(do_ocr=False)
+    pipeline_options = PdfPipelineOptions(
+        do_ocr=False,
+        accelerator_options=AcceleratorOptions(device=device)
+    )
     converter = DocumentConverter(
         format_options={"pdf": PdfFormatOption(pipeline_options=pipeline_options)}
     )
@@ -414,10 +426,14 @@ def _run_docling(pdf_path: str) -> StructuredDocument:
         )
 
     page_count = len(set(s["page"] for s in sections)) or len(tables)
+
+    import torch
+    method = "docling_gpu" if torch.cuda.is_available() else "docling_cpu"
+
     return StructuredDocument(
         tables=tables,
         sections=sections,
-        extraction_method="docling",
+        extraction_method=method,
         page_count=page_count,
         docling_version=DOCLING_VERSION,
     )

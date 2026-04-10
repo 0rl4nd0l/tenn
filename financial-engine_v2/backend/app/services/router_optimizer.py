@@ -847,9 +847,15 @@ def optimize(
     )
     primary = _build_candidate(preferred_role, preferred_role, roles)
 
+    from app.services.router_state import is_extraction_active
+
+    extraction_active = is_extraction_active()
     gpu_hot = (
-        router_state.gpu_utilization is not None
-        and router_state.gpu_utilization >= int(config["gpu_overload_threshold"])
+        (
+            router_state.gpu_utilization is not None
+            and router_state.gpu_utilization >= int(config["gpu_overload_threshold"])
+        )
+        or extraction_active
     )
     gpu_queue_depth = int(router_state.queue_depths.get("llm_gpu", 0)) + int(
         router_state.active_tasks.get("llm_gpu", 0)

@@ -721,7 +721,13 @@ def _static_decision(
             role_name = "deep_reasoning"
             deferred = True
 
-    gpu_hot = gpu_utilization is not None and gpu_utilization >= int(config.gpu_overload_threshold)
+    from app.services.router_state import is_extraction_active
+
+    extraction_active = is_extraction_active()
+    gpu_hot = (
+        (gpu_utilization is not None and gpu_utilization >= int(config.gpu_overload_threshold))
+        or extraction_active
+    )
     if gpu_hot and task_type == "reasoning" and role_name != "router":
         role_name = "router"
     role = dict(roles[role_name])
