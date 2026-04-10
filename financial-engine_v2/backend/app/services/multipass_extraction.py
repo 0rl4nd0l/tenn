@@ -1748,7 +1748,7 @@ def run_multipass_extraction(
     narrative fields.  Also respects env var EXTRACTION_SKIP_NARRATIVE=1.
     Useful for backfill runs and eval harness where only metrics matter.
     """
-    from app.services.docling_extract import extract_structured
+    from app.services.docling_extract import ExtractionTimeoutError, extract_structured
 
     null_payload = {m: None for m in METRIC_FIELDS}
     null_payload.update(
@@ -1776,17 +1776,14 @@ def run_multipass_extraction(
             strict_backend=strict_parser,
         )
     except Exception as e:
-        logger.error("docling_extract failed for %s: %s", pdf_path, e)
+        # If Docling fails, we must report PARSER_ERROR so Manual Review is triggered.
+        is_parser_error = isinstance(e, ExtractionTimeoutError) or "docling" in str(e).lower()
+        logger.error("docling_extract failed for %s (parser_error=%s): %s", pdf_path, is_parser_error, e)
         if observer is not None:
             observer.emit(
                 "parser",
-                "blocked" if strict_parser else "failed",
-                (
-                    "Strict parser mode blocked fallback."
-                    if strict_parser
-                    else f"Parser failed: {e}"
-                ),
-                warning_code="strict_mode_blocked_fallback" if strict_parser else None,
+                "blocked" if is_parser_error else "failed",
+                f"Parser failed: {e}",
                 error_code="parser_failed",
                 details={"parser_backend": parser_backend, "error": str(e)},
             )
@@ -1798,7 +1795,10 @@ def run_multipass_extraction(
             "warnings": [],
         }
         return MultipassResult(
-            status="failed", payload=null_payload, sections=[], error=str(e)
+            status="parser_error" if is_parser_error else "failed",
+            payload=null_payload,
+            sections=[],
+            error=str(e),
         )
     if observer is not None:
         observer.emit(

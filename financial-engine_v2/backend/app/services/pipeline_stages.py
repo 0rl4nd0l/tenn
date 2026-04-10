@@ -12,6 +12,7 @@ class ExtractionStageStatus(str, Enum):
     OK = "ok"
     OK_LOW_CONFIDENCE = "ok_low_confidence"
     FAILED = "failed"
+    PARSER_ERROR = "parser_error"
 
 
 @dataclass(frozen=True)
@@ -145,6 +146,8 @@ def _coerce_status(value: Any) -> ExtractionStageStatus:
         return ExtractionStageStatus.FAILED
     if text == ExtractionStageStatus.SKIPPED.value:
         return ExtractionStageStatus.SKIPPED
+    if text == ExtractionStageStatus.PARSER_ERROR.value:
+        return ExtractionStageStatus.PARSER_ERROR
     return ExtractionStageStatus.FAILED
 
 

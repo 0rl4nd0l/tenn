@@ -31,8 +31,13 @@ except importlib.metadata.PackageNotFoundError:
     DOCLING_VERSION = "unknown"
 
 DOCLING_TIMEOUT_SECONDS = 120
-DOCLING_TIMEOUT_SECONDS_PER_PAGE = 4
-DOCLING_TIMEOUT_MAX = 300
+DOCLING_TIMEOUT_SECONDS_PER_PAGE = 6
+DOCLING_TIMEOUT_MAX = 600
+
+
+class ExtractionTimeoutError(Exception):
+    """Raised when Docling extraction exceeds the time budget."""
+    pass
 
 
 @dataclass
@@ -313,23 +318,17 @@ def extract_structured(
             result = _run_docling_with_timeout(pdf_path, timeout=timeout)
             _save_cache(cache_path, result)
             if _has_garbled_tables(result, pdf_path):
-                if strict_backend:
-                    raise RuntimeError(
-                        f"docling strict backend rejected garbled output for {pdf_path}"
-                    )
-                result = _extract_pymupdf(pdf_path)
-                _save_cache(Path(pdf_path + ".pymupdf.json"), result)
-                return result
+                # Strict: reject garbled output for docling backend
+                raise RuntimeError(
+                    f"docling strict backend rejected garbled output for {pdf_path}"
+                )
             return result
+        except (TimeoutError, ExtractionTimeoutError) as te:
+            logger.error("docling timeout for %s: %s", pdf_path, te)
+            raise ExtractionTimeoutError(str(te)) from te
         except Exception as e:
-            if strict_backend:
-                raise RuntimeError(f"docling strict backend failed: {e}") from e
-            logger.warning(
-                "docling failed (%s), falling back to PyMuPDF: %s", type(e).__name__, e
-            )
-            result = _extract_pymupdf(pdf_path)
-            _save_cache(Path(pdf_path + ".pymupdf.json"), result)
-            return result
+            logger.error("docling failed for %s: %s", pdf_path, e)
+            raise RuntimeError(f"docling failed: {e}") from e
     else:
         logger.info("PyMuPDF extraction: %s", pdf_path)
         result = _extract_pymupdf(pdf_path)
@@ -362,7 +361,19 @@ def _run_docling(pdf_path: str) -> StructuredDocument:
     converter = DocumentConverter(
         format_options={"pdf": PdfFormatOption(pipeline_options=pipeline_options)}
     )
-    result = converter.convert(pdf_path)
+    try:
+        result = converter.convert(pdf_path)
+    except RuntimeError as e:
+        if "Pipeline StandardPdfPipeline failed" in str(e):
+            # If the cause was a signal (TimeoutError from _run_docling_with_timeout),
+            # re-raise it so the handler can catch it.
+            logger.error("Docling pipeline failed for %s: %s", pdf_path, e)
+            raise
+        raise
+    except Exception as e:
+        logger.error("Docling convert failed for %s: %s", pdf_path, e)
+        raise
+
     doc = result.document
 
     tables: list[DoclingTable] = []

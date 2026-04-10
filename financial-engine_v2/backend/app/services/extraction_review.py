@@ -500,7 +500,7 @@ def _latest_review_run(db: Session, document_id: str) -> ExtractionRun | None:
     run = (
         db.query(ExtractionRun)
         .filter(ExtractionRun.document_id == document_id)
-        .filter(ExtractionRun.status.in_(["ok", "ok_low_confidence"]))
+        .filter(ExtractionRun.status.in_(["ok", "ok_low_confidence", "parser_error"]))
         .order_by(ExtractionRun.created_at.desc())
         .first()
     )
@@ -614,7 +614,9 @@ def build_review_item(
         return None
 
     value = metrics.get(metric)
-    if value is None:
+    # If the parser failed, we still want to show the item so the human can manually extract.
+    # Otherwise, if the value is None, we skip it.
+    if value is None and run.status != "parser_error":
         return None
 
     period_end = str(payload.get("period_end") or "").strip() or None

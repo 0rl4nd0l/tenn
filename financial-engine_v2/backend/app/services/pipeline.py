@@ -287,9 +287,19 @@ def classify_extraction_failure(
 
     if any(
         token in text
-        for token in ("timeout", "timed out", "deadline exceeded", "took too long")
+        for token in ("timeout", "timed out", "deadline exceeded", "took too long", "extractiontimeouterror")
     ):
         return "parser_timeout"
+
+    if any(
+        token in text
+        for token in (
+            "docling failed",
+            "docling strict backend rejected",
+            "pipeline standardpdfpipeline failed",
+        )
+    ):
+        return "parser_error"
 
     if any(
         token in text
@@ -1066,6 +1076,8 @@ def process_document(
                     status = ExtractionStageStatus.OK_LOW_CONFIDENCE
                 elif raw_status == ExtractionStageStatus.SKIPPED.value:
                     status = ExtractionStageStatus.SKIPPED
+                elif raw_status == ExtractionStageStatus.PARSER_ERROR.value:
+                    status = ExtractionStageStatus.PARSER_ERROR
                 else:
                     status = ExtractionStageStatus.FAILED
 
@@ -1078,7 +1090,7 @@ def process_document(
                     else None
                 )
                 failure_code: Optional[str] = None
-                if status == ExtractionStageStatus.FAILED:
+                if status in {ExtractionStageStatus.FAILED, ExtractionStageStatus.PARSER_ERROR}:
                     failure_code = classify_extraction_failure(error, payload)
 
                 method_provenance = payload.get("_method_provenance")
