@@ -13,6 +13,7 @@ import pytest
 
 from app.core.config import settings
 from app.services.llamacpp_runtime import (
+    _resolve_model_id,
     resolve_extraction_runtime_config,
     resolve_llm_runtime_config,
 )
@@ -145,3 +146,56 @@ class TestLlmRoutingWithExtractionComponent:
         metadata = {"component": "chat", "task_type": "coding"}
         url, _ = _resolve_runtime_from_metadata(decision, metadata)
         assert url == "http://127.0.0.1:8001"
+
+
+class TestResolveModelId:
+    def test_maps_broken_alias_to_usable_extract_model_stem(self):
+        models_payload = {
+            "data": [
+                {
+                    "id": "model:qwen2.5-14b-instruct",
+                    "status": {"value": "unloaded"},
+                },
+                {
+                    "id": "qwen2.5-14b-instruct-q4_k_m",
+                    "status": {
+                        "value": "unloaded",
+                        "args": [
+                            "--model",
+                            "/mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf",
+                        ],
+                    },
+                },
+            ]
+        }
+
+        resolved = _resolve_model_id(models_payload, "qwen2.5-14b-instruct")
+
+        assert resolved == "qwen2.5-14b-instruct-q4_k_m"
+
+    def test_preserves_exact_requested_model_when_registry_entry_is_usable(self):
+        models_payload = {
+            "data": [
+                {
+                    "id": "model:qwen2.5-14b-instruct",
+                    "status": {
+                        "value": "loaded",
+                    },
+                },
+            ]
+        }
+
+        resolved = _resolve_model_id(models_payload, "model:qwen2.5-14b-instruct")
+
+        assert resolved == "model:qwen2.5-14b-instruct"
+
+    def test_preserves_requested_model_when_registry_has_no_usable_match(self):
+        models_payload = {
+            "data": [
+                {"id": "model:gpt-oss-20b", "status": {"value": "loaded"}},
+            ]
+        }
+
+        resolved = _resolve_model_id(models_payload, "nonexistent-model")
+
+        assert resolved == "nonexistent-model"

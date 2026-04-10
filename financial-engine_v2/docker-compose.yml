@@ -53,8 +53,8 @@ services:
       - ./scripts:/scripts
       - ../reports:/workspace-reports
       - ${TENN_MODELS_NVME_DIR:-/mnt/nvme/tenn/models}:/models/nvme:ro
-      - ${TENN_LLMFIT_MODELS_DIR:-/home/l4nd0/.cache/llmfit/models}:/models/ssd:ro
-      - ${TENN_COLD_MODELS_DIR:-/home/l4nd0/cold_storage/models}:/models/hdd:ro
+      - ${TENN_LLMFIT_MODELS_DIR:-/mnt/ssd/log/ssd_data/l4nd0_cache/.cache/llmfit/models}:/models/ssd:ro
+      - ${TENN_COLD_MODELS_DIR:-/mnt/hdd-cold/tenn/models}:/models/hdd:ro
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_started }

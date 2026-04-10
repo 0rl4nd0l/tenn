@@ -1,2 +1,4 @@
 # Dev-only dependencies (not required for production runtime)
 import-linter>=2.1
+mlflow-skinny>=2.22.0,<3.0
+duckdb>=1.4.0,<2.0

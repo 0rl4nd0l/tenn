@@ -58,7 +58,10 @@ from app.services.extraction_gold_eval import (
     RealGoldFixture,
     evaluate_real_gold_fixture,
 )
-from app.services.multipass_extraction import run_multipass_extraction
+from app.services.method_isolated_extraction import (
+    normalize_extraction_method,
+    run_method_isolated_extraction,
+)
 from app.services.ollama import probe_ollama_embeddings
 from app.services.rag import query_news_chunks, query_rag
 from app.services.router_state import extraction_activity
@@ -123,6 +126,8 @@ class RealGoldDocument:
 class RealGoldEvalRequest(BaseModel):
     limit: int = 0
     tolerance: float = 0.01
+    method: str = "auto"
+    strict_method: bool = False
 
 
 def _discover_local_llamacpp_api_key() -> str:
@@ -303,7 +308,7 @@ def _build_real_gold_fixture(
 
 
 def _evaluate_real_gold_document(
-    doc: RealGoldDocument, *, tolerance: float
+    doc: RealGoldDocument, *, tolerance: float, method: str, strict_method: bool
 ) -> dict[str, Any]:
     _persist_local_llm_api_key()
     source_path = _resolve_real_gold_source_path(doc.source_file)
@@ -316,10 +321,12 @@ def _evaluate_real_gold_document(
     extraction_error = None
     try:
         with extraction_activity():
-            extraction_result = run_multipass_extraction(
+            extraction_result = run_method_isolated_extraction(
                 str(source_path),
                 metadata,
-                llm_client=None,
+                None,
+                requested_method=method,
+                strict_method=strict_method,
                 skip_narrative=True,
             )
         payload = (
@@ -360,6 +367,8 @@ def _evaluate_real_gold_document(
 
     evaluation_payload = dict(payload)
     evaluation_payload["metrics"] = normalized_metrics
+    method_provenance = payload.get("_method_provenance")
+    method_provenance = method_provenance if isinstance(method_provenance, dict) else {}
 
     evaluation = evaluate_real_gold_fixture(
         _build_real_gold_fixture(doc, tolerance),
@@ -406,6 +415,7 @@ def _evaluate_real_gold_document(
         "trust_triggers": evaluation.trust_triggers,
         "trust_matches_expected": evaluation.trust_matches_expected,
         "mismatch_reasons": mismatch_reasons,
+        "method_provenance": method_provenance,
     }
 
 
@@ -457,15 +467,24 @@ def _summarize_real_gold_results(results: list[dict[str, Any]]) -> dict[str, Any
 
 def _run_real_gold_eval_sync(body: RealGoldEvalRequest) -> dict[str, Any]:
     try:
+        method = normalize_extraction_method(body.method)
         gold_docs = _load_real_gold_dataset(REAL_GOLD_DATASET_DIR)
         if body.limit > 0:
             gold_docs = gold_docs[: body.limit]
         tolerance = max(float(body.tolerance), 0.0)
         results = [
-            _evaluate_real_gold_document(doc, tolerance=tolerance) for doc in gold_docs
+            _evaluate_real_gold_document(
+                doc,
+                tolerance=tolerance,
+                method=method,
+                strict_method=body.strict_method,
+            )
+            for doc in gold_docs
         ]
         return {
             "dataset_dir": str(REAL_GOLD_DATASET_DIR),
+            "requested_method": method,
+            "strict_method": body.strict_method,
             "summary": _summarize_real_gold_results(results),
             "documents": results,
         }

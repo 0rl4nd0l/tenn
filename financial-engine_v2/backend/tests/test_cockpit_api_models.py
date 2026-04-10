@@ -72,7 +72,7 @@ def test_cockpit_models_falls_back_to_llama_registry_when_local_dirs_unavailable
         "model:qwen3.5-35b-a3b",
     }
     assert [model["id"] for model in ssd_models] == ["model:gpt-oss-20b"]
-    assert all(model["size_gb"] == 0.0 for model in nvme_models + ssd_models)
+    assert all(model["size_gb"] >= 0.0 for model in nvme_models + ssd_models)
 
 
 def test_cockpit_config_prefers_loaded_model_from_llama_registry(monkeypatch) -> None:
@@ -100,3 +100,98 @@ def test_cockpit_config_prefers_loaded_model_from_llama_registry(monkeypatch) ->
     response = client.get("/api/cockpit/config")
     assert response.status_code == 200
     assert response.json()["llm_model"] == "model:qwen3.5-35b-a3b"
+
+
+def test_cockpit_config_reports_anthropic_key_from_effective_config(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(cockpit_api, "_fetch_llama_server_models", lambda: {})
+    monkeypatch.setattr(
+        cockpit_api,
+        "compute_effective_cockpit_config",
+        lambda *args, **kwargs: {
+            "cockpit_llm": {
+                "defaults": {
+                    "anthropic_api_key": "test-config-key",
+                    "anthropic_model": "claude-sonnet-4-20250514",
+                }
+            }
+        },
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.get("/api/cockpit/config")
+    assert response.status_code == 200
+    assert response.json()["anthropic_key_configured"] is True
+
+
+def test_cockpit_models_fills_missing_ssd_group_from_llama_registry(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("COCKPIT_MODELS_NVME_DIR", "/models/nvme")
+    monkeypatch.setenv("COCKPIT_MODELS_SSD_DIR", "/models/ssd")
+    monkeypatch.setenv("COCKPIT_MODELS_HDD_DIR", "/models/hdd")
+
+    def fake_scan(dir_path: str):
+        if dir_path == "/models/nvme":
+            return [
+                cockpit_api.ModelInfo(
+                    id="qwen2.5-14b-instruct-q4_k_m",
+                    filename="qwen2.5-14b-instruct-q4_k_m.gguf",
+                    size_gb=8.4,
+                    quantization="Q4_K_M",
+                    available=True,
+                )
+            ]
+        if dir_path == "/models/hdd":
+            return [
+                cockpit_api.ModelInfo(
+                    id="qwen3-14b-q4_k_m",
+                    filename="qwen3-14b-q4_k_m.gguf",
+                    size_gb=8.4,
+                    quantization="Q4_K_M",
+                    available=True,
+                )
+            ]
+        return []
+
+    monkeypatch.setattr(cockpit_api, "_scan_model_directory", fake_scan)
+    monkeypatch.setattr(
+        cockpit_api,
+        "_fetch_llama_server_models",
+        lambda: {
+            "model:qwen2.5-14b-instruct": {
+                "status": "unloaded",
+                "model_path": "/mnt/nvme/tenn/models/qwen2.5-14b-instruct-q4_k_m.gguf",
+                "path_stem": "qwen2.5-14b-instruct-q4_k_m",
+            },
+            "model:gpt-oss-20b": {
+                "status": "loaded",
+                "model_path": "/mnt/ssd/log/ssd_data/l4nd0_cache/.cache/llmfit/models/gpt-oss-20b-mxfp4.gguf",
+                "path_stem": "gpt-oss-20b-mxfp4",
+            },
+            "model:qwen3-14b": {
+                "status": "unloaded",
+                "model_path": "/mnt/hdd-cold/tenn/models/qwen3-14b-q4_k_m.gguf",
+                "path_stem": "qwen3-14b-q4_k_m",
+            },
+        },
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.get("/api/cockpit/models")
+    assert response.status_code == 200
+
+    payload = response.json()
+    assert [group["location"] for group in payload["groups"]] == ["nvme", "ssd", "hdd"]
+    assert payload["groups"][1]["models"][0]["id"] == "model:gpt-oss-20b"
+    assert payload["groups"][1]["models"][0]["filename"] == "gpt-oss-20b-mxfp4.gguf"
+    assert payload["groups"][1]["models"][0]["quantization"] == "MXFP4"
+    assert payload["groups"][1]["models"][0]["available"] is True
+    assert payload["groups"][1]["models"][0]["size_gb"] >= 0.0

@@ -382,11 +382,11 @@ export async function GET(): Promise<Response> {
   const [gpu, host] = await Promise.all([probeHostGpu(), probeHostResources()])
   const services = Array.isArray(payload.services)
     ? payload.services
-        .filter((service): service is Record<string, unknown> => typeof service === 'object' && service !== null)
+        .filter((service: unknown): service is Record<string, unknown> => typeof service === 'object' && service !== null)
         .map(normalizeService)
     : []
   const mergedServices = [
-    ...services.filter((service) => service.name !== 'gpu' && service.name !== 'host'),
+    ...services.filter((service: ServiceHealth) => service.name !== 'gpu' && service.name !== 'host'),
     gpu,
     host,
   ]

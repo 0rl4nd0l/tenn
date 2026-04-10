@@ -18,6 +18,14 @@ load_env_file() {
   fi
 }
 
+preserve_nonempty_secret() {
+  local name="$1"
+  local previous_value="$2"
+  if [[ -n "${previous_value}" && -z "${!name-}" ]]; then
+    export "${name}=${previous_value}"
+  fi
+}
+
 remember_env_override() {
   local name="$1"
   if [[ -n "${!name+x}" ]]; then
@@ -154,7 +162,15 @@ ANALYZER_MAX_AGE_SECONDS_VALUE="$(remember_env_value ANALYZER_MAX_AGE_SECONDS)"
 MARKETINDEX_ANNOUNCEMENTS_FILE_VALUE="$(remember_env_value MARKETINDEX_ANNOUNCEMENTS_FILE)"
 
 load_env_file "${ROOT_DIR}/.env"
+ANTHROPIC_API_KEY_AFTER_DOTENV="${ANTHROPIC_API_KEY-}"
+OPENAI_API_KEY_AFTER_DOTENV="${OPENAI_API_KEY-}"
+LLM_API_KEY_AFTER_DOTENV="${LLM_API_KEY-}"
+EMBEDDING_API_KEY_AFTER_DOTENV="${EMBEDDING_API_KEY-}"
 load_env_file "${ROOT_DIR}/.env.local"
+preserve_nonempty_secret "ANTHROPIC_API_KEY" "${ANTHROPIC_API_KEY_AFTER_DOTENV}"
+preserve_nonempty_secret "OPENAI_API_KEY" "${OPENAI_API_KEY_AFTER_DOTENV}"
+preserve_nonempty_secret "LLM_API_KEY" "${LLM_API_KEY_AFTER_DOTENV}"
+preserve_nonempty_secret "EMBEDDING_API_KEY" "${EMBEDDING_API_KEY_AFTER_DOTENV}"
 
 if [[ "${DATA_ROOT_PRESET}" == "1" ]]; then
   export "DATA_ROOT=${DATA_ROOT_VALUE}"

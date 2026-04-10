@@ -1,4 +1,5 @@
 """Tests for /api/context/ticker and /api/context/verification endpoints."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -7,12 +8,18 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi import HTTPException
 
-from app.api.context import get_ticker_context, get_verification_context, _validate_ticker
+from app.api.context import (
+    get_company_dump,
+    get_ticker_context,
+    get_verification_context,
+    _validate_ticker,
+)
 
 
 # ---------------------------------------------------------------------------
 # Ticker validation
 # ---------------------------------------------------------------------------
+
 
 class TestValidateTicker:
     def test_valid_ticker(self):
@@ -44,6 +51,7 @@ class TestValidateTicker:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _mock_db_session(query_results: dict[str, list[dict[str, Any]]] | None = None):
     """Create a mock DB session that returns results based on SQL table name."""
@@ -96,23 +104,45 @@ def _mock_db_session_with_error(failing_table: str):
 # GET /api/context/ticker
 # ---------------------------------------------------------------------------
 
+
 class TestGetTickerContext:
     def test_valid_ticker_with_data(self):
-        db = _mock_db_session({
-            "documents": [
-                {"document_id": "abc-123", "ticker": "BHP", "doc_class": "results",
-                 "doc_subtype": None, "published_at": "2026-01-15", "title": "Q1 Results",
-                 "source_url": "https://example.com", "pdf_path": "/path/to/pdf", "pdf_sha256": "abc123"},
-            ],
-            "asx_periodic_financials": [
-                {"ticker": "BHP", "period_end": "2025-12-31", "period_type": "annual",
-                 "revenue": "50000", "ebit": "20000", "np_attributable": "15000",
-                 "operating_cf": "25000", "investing_cf": "-10000", "financing_cf": "-5000",
-                 "capex": "-8000", "cash_end": "12000", "net_debt": "3000",
-                 "shares_outstanding": "5000000", "confidence_metrics": 0.95,
-                 "source_document_id": "doc-1"},
-            ],
-        })
+        db = _mock_db_session(
+            {
+                "documents": [
+                    {
+                        "document_id": "abc-123",
+                        "ticker": "BHP",
+                        "doc_class": "results",
+                        "doc_subtype": None,
+                        "published_at": "2026-01-15",
+                        "title": "Q1 Results",
+                        "source_url": "https://example.com",
+                        "pdf_path": "/path/to/pdf",
+                        "pdf_sha256": "abc123",
+                    },
+                ],
+                "asx_periodic_financials": [
+                    {
+                        "ticker": "BHP",
+                        "period_end": "2025-12-31",
+                        "period_type": "annual",
+                        "revenue": "50000",
+                        "ebit": "20000",
+                        "np_attributable": "15000",
+                        "operating_cf": "25000",
+                        "investing_cf": "-10000",
+                        "financing_cf": "-5000",
+                        "capex": "-8000",
+                        "cash_end": "12000",
+                        "net_debt": "3000",
+                        "shares_outstanding": "5000000",
+                        "confidence_metrics": 0.95,
+                        "source_document_id": "doc-1",
+                    },
+                ],
+            }
+        )
         result = get_ticker_context(ticker="BHP", db=db)
         assert result["ticker"] == "BHP"
         assert len(result["docs"]) == 1
@@ -156,7 +186,9 @@ class TestGetTickerContext:
         def fake_execute(sql_text, params=None):
             sql_str = str(sql_text)
             if "cockpit_announcement_context" in sql_str:
-                raise OperationalError("mock", {}, Exception("no such table: cockpit_announcement_context"))
+                raise OperationalError(
+                    "mock", {}, Exception("no such table: cockpit_announcement_context")
+                )
             result_mock = MagicMock()
             result_mock.__iter__ = lambda self: iter([])
             return result_mock
@@ -176,14 +208,136 @@ class TestGetTickerContext:
     def test_low_confidence_threshold_default_is_04(self):
         """Verify the default threshold matches DbReader's 0.4, not 0.7."""
         import inspect
+
         sig = inspect.signature(get_ticker_context)
         default = sig.parameters["low_confidence_threshold"].default
         assert default.default == 0.4
 
 
 # ---------------------------------------------------------------------------
+# GET /api/context/company_dump
+# ---------------------------------------------------------------------------
+
+
+class TestGetCompanyDump:
+    def test_company_dump_success(self):
+        db = _mock_db_session({})
+        base_context = {
+            "ticker": "BHP",
+            "docs": [
+                {
+                    "document_id": "doc-1",
+                    "title": "Interim",
+                    "published_at": "2026-01-01",
+                }
+            ],
+            "financials": [{"period_end": "2025-12-31", "revenue": "100.0"}],
+            "latest_financial_snapshot": {"period_end": "2025-12-31"},
+            "announcement_context": [{"title": "Announcement"}],
+            "extraction_failures": [],
+            "low_confidence_financials": [],
+            "errors": [],
+        }
+        with (
+            patch("app.api.context.get_ticker_context", return_value=base_context),
+            patch(
+                "app.api.context._run_query",
+                return_value=(
+                    [
+                        {
+                            "document_id": "doc-1",
+                            "ticker": "BHP",
+                            "published_at": "2026-01-01",
+                            "title": "Interim",
+                            "risk_summary": "Demand softening",
+                            "risk_bullets": ["cost inflation"],
+                            "guidance_summary": "Maintained guidance",
+                            "material_changes": "None",
+                            "confidence_narrative": 0.8,
+                            "updated_at": "2026-01-02",
+                        }
+                    ],
+                    None,
+                ),
+            ),
+            patch(
+                "app.api.context._load_price_context_1y",
+                return_value=(
+                    {"price": 45.2},
+                    [{"timestamp": "2026-01-01T00:00:00Z", "close": 45.2}],
+                    {
+                        "points": 1,
+                        "coverage_start": "2026-01-01",
+                        "coverage_end": "2026-01-01",
+                        "last_close": 45.2,
+                        "first_close": 45.2,
+                        "one_year_return_pct": 0.0,
+                        "high_close": 45.2,
+                        "low_close": 45.2,
+                    },
+                    None,
+                ),
+            ),
+            patch(
+                "app.api.context._load_company_memory",
+                return_value=({"entries": [{"entry_id": 1}], "change_log": []}, None),
+            ),
+            patch(
+                "app.api.context._load_market_memory",
+                return_value=({"items": [{"entry_id": 2}]}, None),
+            ),
+        ):
+            result = get_company_dump(ticker="BHP", db=db)
+
+        assert result["ticker"] == "BHP"
+        assert result["summary"]["doc_count"] == 1
+        assert result["summary"]["financial_period_count"] == 1
+        assert result["summary"]["price_points_1y"] == 1
+        assert result["summary"]["company_memory_entry_count"] == 1
+        assert result["summary"]["market_memory_item_count"] == 1
+        assert result["errors"] == []
+        assert result["backend_version"] == "1.1"
+
+    def test_company_dump_captures_partial_failures(self):
+        db = _mock_db_session({})
+        base_context = {
+            "ticker": "BHP",
+            "docs": [],
+            "financials": [],
+            "latest_financial_snapshot": None,
+            "announcement_context": [],
+            "extraction_failures": [],
+            "low_confidence_financials": [],
+            "errors": ["docs: table locked"],
+        }
+        with (
+            patch("app.api.context.get_ticker_context", return_value=base_context),
+            patch("app.api.context._run_query", return_value=([], None)),
+            patch(
+                "app.api.context._load_price_context_1y",
+                return_value=({}, [], {"points": 0}, "provider unavailable"),
+            ),
+            patch(
+                "app.api.context._load_company_memory",
+                return_value=({"entries": [], "change_log": []}, "sqlite busy"),
+            ),
+            patch(
+                "app.api.context._load_market_memory",
+                return_value=({"items": []}, None),
+            ),
+        ):
+            result = get_company_dump(ticker="BHP", db=db)
+
+        assert any("docs:" in err for err in result["errors"])
+        assert any("price_history_1y:" in err for err in result["errors"])
+        assert any("company_memory:" in err for err in result["errors"])
+        assert result["summary"]["price_points_1y"] == 0
+
+
+# ---------------------------------------------------------------------------
 # GET /api/context/verification
 # ---------------------------------------------------------------------------
+
 
 class TestGetVerificationContext:
     def test_with_ticker(self):
@@ -210,6 +364,7 @@ class TestGetVerificationContext:
 
     def test_default_threshold_is_04(self):
         import inspect
+
         sig = inspect.signature(get_verification_context)
         default = sig.parameters["low_confidence_threshold"].default
         assert default.default == 0.4

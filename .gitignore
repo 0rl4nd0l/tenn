@@ -1,4 +1,5 @@
 data/
+!financial-engine_v2/data/
 .superpowers/
 *.png
 TUI EVIDENCE/
@@ -12,6 +13,7 @@ __pycache__/
 *.pyd
 .pytest_cache/
 .ruff_cache/
+mlruns/
 .venv/
 .venv_main/
 .venv_docling/
@@ -57,7 +59,10 @@ financial-engine_v2/scripts/broad_test_results/
 asx_data/
 backups/
 models/*.gguf
-financial-engine_v2/data/
+financial-engine_v2/data/*
+!financial-engine_v2/data/extraction_gold_real/
+financial-engine_v2/data/extraction_gold_real/*
+!financial-engine_v2/data/extraction_gold_real/README.md
 
 # Cloned repos (not submodules)
 deer-flow/

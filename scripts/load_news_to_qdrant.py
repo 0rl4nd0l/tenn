@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Sync news chunks from SQLite to Qdrant collection `news_chunks`."""
+
 from __future__ import annotations
 
 import argparse
@@ -22,7 +23,9 @@ if str(BACKEND_ROOT) not in sys.path:
 
 # Marker file records the model used to build the news_chunks collection.
 # Must match on every subsequent sync to prevent dimension corruption.
-NEWS_CHUNKS_MODEL_FILE = REPO_ROOT / "financial-engine_v2" / "reports" / "news_chunks_embedding_model.txt"
+NEWS_CHUNKS_MODEL_FILE = (
+    REPO_ROOT / "financial-engine_v2" / "reports" / "news_chunks_embedding_model.txt"
+)
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +52,10 @@ def _iter_chunks(
 
     if since_hours is not None and int(since_hours) > 0:
         cutoff = (
-            dt.datetime.now(tz=dt.timezone.utc) - dt.timedelta(hours=int(since_hours))
-        ).isoformat().replace("+00:00", "Z")
+            (dt.datetime.now(tz=dt.timezone.utc) - dt.timedelta(hours=int(since_hours)))
+            .isoformat()
+            .replace("+00:00", "Z")
+        )
         where_clauses.append("a.published_at_utc >= ?")
         params.append(cutoff)
 
@@ -133,7 +138,9 @@ def _iter_chunks(
     return out
 
 
-def _build_chunk_payload(art: Dict[str, Any], idx: int, chunk_text: str = "") -> Dict[str, Any]:
+def _build_chunk_payload(
+    art: Dict[str, Any], idx: int, chunk_text: str = ""
+) -> Dict[str, Any]:
     """Build the Qdrant point payload for one chunk of a news article.
 
     Uses `primary_ticker` (from article_relevance) when available.
@@ -143,12 +150,19 @@ def _build_chunk_payload(art: Dict[str, Any], idx: int, chunk_text: str = "") ->
     if not primary_ticker:
         tickers = art.get("tickers") or []
         primary_ticker = tickers[0] if len(tickers) == 1 else ""
+    linked_tickers = list(
+        dict.fromkeys(
+            str(t).strip().upper() for t in (art.get("tickers") or []) if str(t).strip()
+        )
+    )
     return {
         "corpus": "news",
         "article_id": art["article_id"],
         "chunk_id": f"news:{art['article_id']}:{idx}",
         "provider": art["provider"],
         "ticker": primary_ticker,
+        "tickers": linked_tickers,
+        "primary_ticker": primary_ticker,
         "published_at": art["published_at"],
         "language": art["language"],
         "title": art["title"],
@@ -158,7 +172,9 @@ def _build_chunk_payload(art: Dict[str, Any], idx: int, chunk_text: str = "") ->
     }
 
 
-def _split_chunks(text: str, max_chars: int = 1200, overlap_words: int = 60) -> List[str]:
+def _split_chunks(
+    text: str, max_chars: int = 1200, overlap_words: int = 60
+) -> List[str]:
     """Simple character-level chunker with word-boundary overlap."""
     if len(text) <= max_chars:
         return [text]
@@ -215,19 +231,29 @@ def sync_news_to_qdrant(
     # --- Preflight: log resolved configuration before any writes ---
     logger.info(
         "news_chunks_sync preflight: collection=%s qdrant_url=%s embed_model=%s ollama_url=%s",
-        collection, qdrant_url, embed_model, ollama_url,
+        collection,
+        qdrant_url,
+        embed_model,
+        ollama_url,
     )
 
     # Check stored model marker — refuse to write if it conflicts with a populated collection.
     stored_model: Optional[str] = None
     if NEWS_CHUNKS_MODEL_FILE.exists():
         try:
-            stored_model = NEWS_CHUNKS_MODEL_FILE.read_text(encoding="utf-8").strip() or None
+            stored_model = (
+                NEWS_CHUNKS_MODEL_FILE.read_text(encoding="utf-8").strip() or None
+            )
         except OSError as exc:
-            logger.warning("news_chunks_sync: unable to read model marker %s: %s", NEWS_CHUNKS_MODEL_FILE, exc)
+            logger.warning(
+                "news_chunks_sync: unable to read model marker %s: %s",
+                NEWS_CHUNKS_MODEL_FILE,
+                exc,
+            )
     if stored_model and stored_model != embed_model:
         # Only block if the collection already has vectors.
         from app.services.embeddings import get_qdrant_collection_vector_config
+
         try:
             existing_cols = [c.name for c in client.get_collections().collections]
             if collection in existing_cols:
@@ -242,7 +268,9 @@ def sync_news_to_qdrant(
         except RuntimeError:
             raise
         except Exception as exc:
-            logger.warning("news_chunks_sync: preflight model-marker check failed: %s", exc)
+            logger.warning(
+                "news_chunks_sync: preflight model-marker check failed: %s", exc
+            )
 
     # Determine vector dimension by embedding a probe text.
     probe_vec = ollama_embed(ollama_url, embed_model, ["probe"])[0]
@@ -254,6 +282,7 @@ def sync_news_to_qdrant(
         existing_cols = [c.name for c in client.get_collections().collections]
         if collection in existing_cols:
             from app.services.embeddings import get_qdrant_collection_vector_config
+
             cfg = get_qdrant_collection_vector_config(client, collection)
             existing_dim = cfg.get("actual_dim")
             existing_points = int(cfg.get("points_count") or 0)
@@ -265,12 +294,18 @@ def sync_news_to_qdrant(
                 )
             logger.info(
                 "news_chunks_sync: collection '%s' exists dim=%s points=%d — probe_dim=%d match=%s",
-                collection, existing_dim, existing_points, dim, existing_dim == dim,
+                collection,
+                existing_dim,
+                existing_points,
+                dim,
+                existing_dim == dim,
             )
     except RuntimeError:
         raise
     except Exception as exc:
-        logger.warning("news_chunks_sync: preflight collection-dimension check failed: %s", exc)
+        logger.warning(
+            "news_chunks_sync: preflight collection-dimension check failed: %s", exc
+        )
 
     ensure_collection(client, collection, dim)
 
@@ -317,6 +352,7 @@ def sync_news_to_qdrant(
     memos_dispatched = 0
     try:
         from app.tasks.news_tasks import extract_news_memo_task  # noqa: E402
+
         for art in articles:
             memo_payload = {
                 "source_id": f"news:{art['article_id']}",
@@ -328,22 +364,40 @@ def sync_news_to_qdrant(
                 extract_news_memo_task.delay(memo_payload)
                 memos_dispatched += 1
             except Exception as memo_exc:
-                logger.debug("news_chunks_sync: memo dispatch failed for %s: %s", art["article_id"], memo_exc)
-        logger.info("news_chunks_sync: dispatched %d memo extraction tasks", memos_dispatched)
+                logger.debug(
+                    "news_chunks_sync: memo dispatch failed for %s: %s",
+                    art["article_id"],
+                    memo_exc,
+                )
+        logger.info(
+            "news_chunks_sync: dispatched %d memo extraction tasks", memos_dispatched
+        )
     except ImportError:
-        logger.info("news_chunks_sync: news memo extraction not available (app.tasks.news_tasks not importable)")
+        logger.info(
+            "news_chunks_sync: news memo extraction not available (app.tasks.news_tasks not importable)"
+        )
     except Exception as exc:
-        logger.warning("news_chunks_sync: memo extraction dispatch setup failed: %s", exc)
+        logger.warning(
+            "news_chunks_sync: memo extraction dispatch setup failed: %s", exc
+        )
 
     # Write model marker after successful sync so future runs can verify consistency.
     try:
         NEWS_CHUNKS_MODEL_FILE.parent.mkdir(parents=True, exist_ok=True)
         NEWS_CHUNKS_MODEL_FILE.write_text(embed_model, encoding="utf-8")
-        logger.info("news_chunks_sync: wrote model marker %s → '%s'", NEWS_CHUNKS_MODEL_FILE, embed_model)
+        logger.info(
+            "news_chunks_sync: wrote model marker %s → '%s'",
+            NEWS_CHUNKS_MODEL_FILE,
+            embed_model,
+        )
     except OSError as exc:
         logger.warning("news_chunks_sync: unable to write model marker: %s", exc)
 
-    stats = {"articles": len(articles), "chunks": total_chunks, "upserted": total_upserted}
+    stats = {
+        "articles": len(articles),
+        "chunks": total_chunks,
+        "upserted": total_upserted,
+    }
     logger.info("news_chunks_sync complete: %s", stats)
     return stats
 
@@ -354,11 +408,24 @@ def main() -> int:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
     ap = argparse.ArgumentParser(description="Sync news chunks from SQLite to Qdrant.")
-    ap.add_argument("--db-path", default=str(DEFAULT_NEWS_ARTICLES_DB), help="news_articles SQLite path")
-    ap.add_argument("--qdrant-url", default="http://localhost:6333", help="Qdrant service URL")
-    ap.add_argument("--collection", default="news_chunks", help="Qdrant collection name")
+    ap.add_argument(
+        "--db-path",
+        default=str(DEFAULT_NEWS_ARTICLES_DB),
+        help="news_articles SQLite path",
+    )
+    ap.add_argument(
+        "--qdrant-url", default="http://localhost:6333", help="Qdrant service URL"
+    )
+    ap.add_argument(
+        "--collection", default="news_chunks", help="Qdrant collection name"
+    )
     ap.add_argument("--batch-size", type=int, default=64, help="Upsert batch size")
-    ap.add_argument("--since-hours", type=int, default=0, help="Only sync articles from the last N hours (0 = all)")
+    ap.add_argument(
+        "--since-hours",
+        type=int,
+        default=0,
+        help="Only sync articles from the last N hours (0 = all)",
+    )
     args = ap.parse_args()
     since = int(args.since_hours) if int(args.since_hours) > 0 else None
     stats = sync_news_to_qdrant(
@@ -369,6 +436,7 @@ def main() -> int:
         since_hours=since,
     )
     import json
+
     print(json.dumps(stats, indent=2))
     return 0
 
