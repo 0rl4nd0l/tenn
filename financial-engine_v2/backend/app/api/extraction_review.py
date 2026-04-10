@@ -17,6 +17,7 @@ from app.services.extraction_review import (
     load_review_session,
     submit_review_decision,
 )
+from app.services.extraction_run_observability import get_run_status
 
 router = APIRouter(tags=["extraction_review"])
 
@@ -94,6 +95,16 @@ def review_decision(
 @router.get("/errors")
 def error_queue(limit: int = Query(default=200, ge=1, le=500)) -> dict[str, Any]:
     return get_error_queue(limit=limit)
+
+
+@router.get("/run/{run_id}")
+def run_status(
+    run_id: str, limit: int = Query(default=120, ge=1, le=500)
+) -> dict[str, Any]:
+    try:
+        return get_run_status(run_id, limit=limit)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get("/snippets/{image_name}")

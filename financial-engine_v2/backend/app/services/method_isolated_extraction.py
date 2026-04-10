@@ -5,6 +5,7 @@ import os
 from typing import Any, Literal
 
 from app.core.config import settings
+from app.services.extraction_run_observability import ExtractionRunObserver
 from app.services.llamacpp_runtime import resolve_extraction_runtime_config
 from app.services.multipass_extraction import MultipassResult, run_multipass_extraction
 
@@ -93,6 +94,7 @@ def run_method_isolated_extraction(
     requested_method: str = "auto",
     strict_method: bool = False,
     skip_narrative: bool = False,
+    observer: ExtractionRunObserver | None = None,
 ) -> MultipassResult:
     normalized_method = normalize_extraction_method(requested_method)
     parser_backend: str | None = None
@@ -119,6 +121,20 @@ def run_method_isolated_extraction(
         model_id=model_id,
         runtime_id=runtime_id,
     )
+    if observer is not None:
+        observer.set_actual_method(
+            normalized_method if normalized_method != "auto" else parser_backend
+        )
+        observer.emit(
+            "env_check",
+            "succeeded",
+            "Extraction environment ready.",
+            details={
+                "parser_backend": parser_backend,
+                "runtime_id": runtime_id,
+                "model_id": model_id,
+            },
+        )
 
     result = run_multipass_extraction(
         pdf_path,
@@ -127,6 +143,7 @@ def run_method_isolated_extraction(
         skip_narrative=skip_narrative,
         parser_backend=parser_backend,
         strict_parser=strict_method and parser_backend in {"docling", "pymupdf"},
+        observer=observer,
     )
 
     payload = dict(result.payload) if isinstance(result.payload, dict) else {}
@@ -153,5 +170,7 @@ def run_method_isolated_extraction(
         }
     )
     payload["_method_provenance"] = provenance
+    if observer is not None:
+        observer.set_actual_method(actual_method)
 
     return replace(result, payload=payload)

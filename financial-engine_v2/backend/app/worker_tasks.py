@@ -40,6 +40,7 @@ def download_pdf(document_id: str):
 def process_document(
     prev=None,
     document_id: str | None = None,
+    run_id: str | None = None,
     requested_method: str = "auto",
     strict_method: bool = False,
 ):
@@ -49,6 +50,7 @@ def process_document(
         return {"error": "missing document_id"}
     return process_document_sync(
         document_id,
+        run_id=run_id,
         requested_method=requested_method,
         strict_method=strict_method,
     )

@@ -1,5 +1,6 @@
 import base64
 import logging
+import uuid
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -29,6 +30,7 @@ from app.services.openbb_staging import (
     persist_price_snapshot,
 )
 from app.services.pipeline_service import PipelineJobSpec, run_pipeline_sync
+from app.services.extraction_run_observability import initialize_run_status
 from app.services.source_registry import ingest_book
 
 router = APIRouter()
@@ -447,26 +449,38 @@ def process_single_document(
 
     requested_method = payload.method if payload is not None else "auto"
     strict_method = payload.strict_method if payload is not None else False
+    run_id = str(uuid.uuid4())
+    initialize_run_status(
+        run_id=run_id,
+        document_id=document_id,
+        requested_method=requested_method,
+        strict_method=strict_method,
+        details={"trigger": "api_process_document"},
+    )
     if settings.task_mode.lower() == "sync":
         result = process_document(
             document_id,
+            run_id=run_id,
             requested_method=requested_method,
             strict_method=strict_method,
         )
         return {"mode": "sync", "document_id": document_id, **(result or {})}
-    celery.send_task(
+    task = celery.send_task(
         "process_document",
         args=[{"document_id": document_id}, document_id],
         kwargs={
+            "run_id": run_id,
             "requested_method": requested_method,
             "strict_method": strict_method,
         },
-        queue="ingest",
-        routing_key="ingest",
+        queue="llm_gpu",
+        routing_key="llm_gpu",
     )
     return {
         "mode": "celery",
         "enqueued": 1,
+        "run_id": run_id,
+        "task_id": str(getattr(task, "id", "") or "") or None,
         "document_id": document_id,
         "requested_method": requested_method,
         "strict_method": strict_method,
@@ -519,8 +533,8 @@ def process_unextracted_for_ticker(ticker: str, limit: int = Query(default=50, l
             celery.send_task(
                 "process_document",
                 args=[{"document_id": str(doc.document_id)}, str(doc.document_id)],
-                queue="ingest",
-                routing_key="ingest",
+                queue="llm_gpu",
+                routing_key="llm_gpu",
             )
         return {"mode": "celery", "ticker": ticker.upper(), "queued": len(unextracted)}
     finally:
