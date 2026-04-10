@@ -259,6 +259,104 @@ def test_process_document_fails_loudly_when_pdf_missing_under_active_root(
     assert session.commits == 1
 
 
+def test_process_document_downloads_pending_pdf_before_extraction(
+    monkeypatch, tmp_path
+) -> None:
+    doc_id = uuid.uuid4()
+    docs_root = tmp_path / "runtime-data" / "asx" / "docs"
+    downloaded_pdf = docs_root / "WTC" / "2026-02-25_wtc-1h26.pdf"
+
+    class DummyDoc:
+        document_id = doc_id
+        ticker = "WTC"
+        doc_class = "announcement"
+        doc_subtype = "periodic"
+        title = "WTC 1H26 Appendix 4D and Financial Report"
+        pdf_path = "/data/asx/docs/WTC/2026-02-25_wtc-1h26.pdf"
+        source_url = "https://example.com/wtc.pdf"
+        pdf_sha256 = ""
+
+    doc = DummyDoc()
+
+    class DummyQuery:
+        def filter(self, *args, **kwargs):
+            return self
+
+        def first(self):
+            return doc
+
+    class DummySession:
+        def __init__(self):
+            self.added: list[object] = []
+
+        def query(self, _model):
+            return DummyQuery()
+
+        def add(self, obj):
+            self.added.append(obj)
+
+        def commit(self):
+            pass
+
+        def rollback(self):
+            pass
+
+        def close(self):
+            pass
+
+    session = DummySession()
+    download_calls: list[str] = []
+    monkeypatch.setattr(pipeline, "SessionLocal", lambda: session)
+    monkeypatch.setattr(pipeline.settings, "docs_root", str(docs_root), raising=False)
+    monkeypatch.setattr(
+        pipeline.settings,
+        "data_root",
+        str(tmp_path / "runtime-data"),
+        raising=False,
+    )
+    monkeypatch.setattr(pipeline.settings, "database_url", "sqlite:////tmp/test.db", raising=False)
+    monkeypatch.setattr(pipeline.settings, "enable_extraction", True, raising=False)
+    monkeypatch.setattr(pipeline.settings, "enable_embeddings", False, raising=False)
+    monkeypatch.setattr(pipeline.settings, "enable_qdrant", False, raising=False)
+
+    from app.services import extraction_run_observability
+    from app.services import method_isolated_extraction
+
+    monkeypatch.setattr(
+        extraction_run_observability, "RUN_STATUS_ROOT", tmp_path / "run_status"
+    )
+
+    def fake_download_pdf_for_document(db, document_id, http_client=None):
+        download_calls.append(str(document_id))
+        downloaded_pdf.parent.mkdir(parents=True, exist_ok=True)
+        downloaded_pdf.write_bytes(b"%PDF-1.4\n")
+        doc.pdf_path = str(downloaded_pdf)
+        doc.pdf_sha256 = "sha-wtc"
+        return {"document_id": str(document_id), "bytes": downloaded_pdf.stat().st_size}
+
+    monkeypatch.setattr(
+        pipeline, "download_pdf_for_document", fake_download_pdf_for_document
+    )
+    monkeypatch.setattr(
+        method_isolated_extraction,
+        "run_method_isolated_extraction",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            status="skipped",
+            payload={"status": "skipped_after_download"},
+            sections=[],
+            error=None,
+        ),
+    )
+
+    result = pipeline.process_document(str(doc_id))
+
+    assert result["extraction_status"] == "skipped"
+    assert download_calls == [str(doc_id)]
+    assert doc.pdf_path == str(downloaded_pdf)
+    run = next(obj for obj in session.added if isinstance(obj, ExtractionRun))
+    assert run.status == "skipped"
+
+
 def test_process_document_skips_non_financial_admin_titles_before_extraction(
     monkeypatch, tmp_path
 ) -> None:

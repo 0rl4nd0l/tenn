@@ -565,6 +565,61 @@ def _build_missing_pdf_error(doc, *, resolved_pdf_path: str) -> str:
     )
 
 
+def _pending_pdf_download(doc) -> bool:
+    marker = str(getattr(doc, "pdf_sha256", "") or "").strip()
+    return not marker
+
+
+def _download_pending_pdf_for_processing(
+    db,
+    doc,
+    observer: ExtractionRunObserver,
+    *,
+    resolved_pdf_path: str,
+) -> tuple[str, str | None]:
+    if resolved_pdf_path and Path(resolved_pdf_path).exists():
+        return resolved_pdf_path, None
+    if not _pending_pdf_download(doc):
+        return resolved_pdf_path, None
+
+    observer.emit(
+        "document_download",
+        "running",
+        "PDF missing locally; downloading pending source PDF before extraction.",
+        details={
+            "stored_pdf_path": str(doc.pdf_path or "").strip(),
+            "source_url": str(doc.source_url or "").strip(),
+        },
+    )
+    try:
+        download_pdf_for_document(db, str(doc.document_id))
+    except Exception as exc:
+        error_text = str(exc)
+        observer.emit(
+            "document_download",
+            "failed",
+            f"Automatic PDF download failed: {error_text}",
+            error_code=classify_extraction_failure(error_text, None),
+            details={
+                "stored_pdf_path": str(doc.pdf_path or "").strip(),
+                "source_url": str(doc.source_url or "").strip(),
+            },
+        )
+        return resolved_pdf_path, error_text
+
+    refreshed_pdf_path = _resolve_pdf_path(doc.pdf_path)
+    observer.emit(
+        "document_download",
+        "succeeded",
+        "Pending source PDF downloaded before extraction.",
+        details={
+            "stored_pdf_path": str(doc.pdf_path or "").strip(),
+            "resolved_pdf_path": refreshed_pdf_path,
+        },
+    )
+    return refreshed_pdf_path, None
+
+
 def _normalize_source_url(url: str | None) -> str:
     text = str(url or "").strip()
     if not text:
@@ -1130,11 +1185,25 @@ def process_document(
                     failure_code=skip_reason,
                 )
             else:
+                auto_download_error: str | None = None
+                if not resolved_pdf_path or not Path(resolved_pdf_path).exists():
+                    resolved_pdf_path, auto_download_error = (
+                        _download_pending_pdf_for_processing(
+                            db,
+                            doc,
+                            observer,
+                            resolved_pdf_path=resolved_pdf_path,
+                        )
+                    )
                 if not resolved_pdf_path or not Path(resolved_pdf_path).exists():
                     error_text = _build_missing_pdf_error(
                         doc,
                         resolved_pdf_path=resolved_pdf_path,
                     )
+                    if auto_download_error:
+                        error_text = (
+                            f"{error_text} automatic_download_error={auto_download_error}"
+                        )
                     extraction_stage = ExtractionStageResult(
                         status=ExtractionStageStatus.FAILED,
                         payload={"error": error_text},
