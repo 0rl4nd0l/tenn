@@ -14,9 +14,13 @@ import json
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 
 from app.services.multipass_extraction import METRIC_FIELDS
+from app.services.provenance import (
+    from_extraction_payload,
+    validate_provenance_collection,
+)
 
 
 class MetricEvalStatus(str, Enum):
@@ -63,6 +67,7 @@ class FixtureEvaluation:
     context_ok: bool
     context_mismatches: list[str]
     metrics: list[MetricEvaluation]
+    provenance_summary: dict[str, Any]
 
     @property
     def overall_score(self) -> float:
@@ -150,6 +155,7 @@ def evaluate_fixture(
     """Evaluate one fixture against one extracted metric payload."""
 
     extracted_payload = extracted_payload or {}
+    provenance_summary = _build_provenance_summary(extracted_payload)
     context_mismatches = _validate_context(fixture.context, extracted_payload)
 
     # If we cannot trust extracted context, mark every metric as quarantine.
@@ -172,6 +178,7 @@ def evaluate_fixture(
             context_ok=False,
             context_mismatches=context_mismatches,
             metrics=quarantine_statuses,
+            provenance_summary=provenance_summary,
         )
 
     evaluated: list[MetricEvaluation] = []
@@ -241,6 +248,7 @@ def evaluate_fixture(
         context_ok=True,
         context_mismatches=[],
         metrics=evaluated,
+        provenance_summary=provenance_summary,
     )
 
 
@@ -307,6 +315,9 @@ def build_fixture_scorecard(
     period_summary = _build_context_summary(fixtures, fixture_payloads, "period_end")
     currency_summary = _build_context_summary(fixtures, fixture_payloads, "currency")
     scale_summary = _build_context_summary(fixtures, fixture_payloads, "scale")
+    provenance_summary = summarize_provenance_summaries(
+        evaluation.provenance_summary for evaluation in evaluations
+    )
 
     return {
         "total_fixture_count": len(fixtures),
@@ -319,6 +330,7 @@ def build_fixture_scorecard(
         "period_correctness_summary": period_summary,
         "currency_correctness_summary": currency_summary,
         "scale_correctness_summary": scale_summary,
+        "provenance_summary": provenance_summary,
         "fixture_summaries": fixture_summaries,
         "status_summary": {
             "correct": status_counts["correct"],
@@ -327,6 +339,59 @@ def build_fixture_scorecard(
             "abstain": status_counts["abstain"],
             "quarantine": status_counts["quarantine"],
         },
+    }
+
+
+def summarize_provenance_summaries(
+    summaries: Iterable[dict[str, Any]],
+) -> dict[str, Any]:
+    aggregated_status_counts: dict[str, int] = {}
+    available_fixture_count = 0
+    clean_fixture_count = 0
+    fixture_with_issues_count = 0
+    unavailable_fixture_count = 0
+    record_count = 0
+    issue_count = 0
+    error_count = 0
+    warning_count = 0
+
+    for summary in summaries:
+        if summary.get("available"):
+            available_fixture_count += 1
+            if summary.get("issue_count", 0):
+                fixture_with_issues_count += 1
+            else:
+                clean_fixture_count += 1
+        else:
+            unavailable_fixture_count += 1
+
+        record_count += int(summary.get("record_count", 0))
+        issue_count += int(summary.get("issue_count", 0))
+        error_count += int(summary.get("error_count", 0))
+        warning_count += int(summary.get("warning_count", 0))
+
+        status_counts = summary.get("status_counts", {})
+        if isinstance(status_counts, dict):
+            for status, count in status_counts.items():
+                aggregated_status_counts[str(status)] = aggregated_status_counts.get(
+                    str(status), 0
+                ) + int(count)
+
+    aggregate_status = "unavailable"
+    if available_fixture_count:
+        aggregate_status = "issues_detected" if issue_count else "clean"
+
+    return {
+        "status": aggregate_status,
+        "available_fixture_count": available_fixture_count,
+        "clean_fixture_count": clean_fixture_count,
+        "fixture_with_issues_count": fixture_with_issues_count,
+        "unavailable_fixture_count": unavailable_fixture_count,
+        "record_count": record_count,
+        "issue_count": issue_count,
+        "error_count": error_count,
+        "warning_count": warning_count,
+        "status_counts": dict(sorted(aggregated_status_counts.items())),
     }
 
 
@@ -364,6 +429,7 @@ def _summarize_fixture_eval(evaluation: FixtureEvaluation) -> dict[str, Any]:
         elif metric_eval.status == MetricEvalStatus.QUARANTINE:
             status_counts["quarantine_count"] += 1
 
+    provenance = evaluation.provenance_summary
     return {
         "fixture_id": evaluation.fixture_id,
         "context_ok": evaluation.context_ok,
@@ -371,6 +437,81 @@ def _summarize_fixture_eval(evaluation: FixtureEvaluation) -> dict[str, Any]:
         "metric_count": metric_count,
         **status_counts,
         "overall_score": evaluation.overall_score,
+        "provenance_available": provenance["available"],
+        "provenance_status": provenance["status"],
+        "provenance_record_count": provenance["record_count"],
+        "provenance_issue_count": provenance["issue_count"],
+        "provenance_error_count": provenance["error_count"],
+        "provenance_warning_count": provenance["warning_count"],
+        "provenance_status_counts": provenance["status_counts"],
+        "provenance_issues": provenance["issues"],
+    }
+
+
+def _build_provenance_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
+    provenance = payload.get("provenance")
+    if not isinstance(provenance, Mapping):
+        return {
+            "available": False,
+            "status": "unavailable",
+            "ok": True,
+            "record_count": 0,
+            "issue_count": 0,
+            "error_count": 0,
+            "warning_count": 0,
+            "status_counts": {},
+            "issues": [],
+            "metric_summaries": [],
+        }
+
+    metric_names = [str(metric_name) for metric_name in provenance]
+    records = from_extraction_payload(
+        payload,
+        source_document_id=str_or_none(payload.get("source_document_id")),
+    )
+    validation = validate_provenance_collection(records)
+
+    status_counts: dict[str, int] = {}
+    metric_summaries: list[dict[str, Any]] = []
+    for metric_name, record, result in zip(
+        metric_names,
+        records,
+        validation["record_results"],
+        strict=False,
+    ):
+        status_counts[record.provenance_status] = (
+            status_counts.get(record.provenance_status, 0) + 1
+        )
+        metric_summaries.append(
+            {
+                "metric": metric_name,
+                "provenance_status": record.provenance_status,
+                "ok": result["ok"],
+                "issue_codes": [issue["code"] for issue in result["issues"]],
+                "error_count": result["error_count"],
+                "warning_count": result["warning_count"],
+            }
+        )
+
+    issues: list[dict[str, Any]] = []
+    for issue in validation["issues"]:
+        indexed_issue = dict(issue)
+        index = issue.get("record_index")
+        if isinstance(index, int) and 0 <= index < len(metric_names):
+            indexed_issue["metric"] = metric_names[index]
+        issues.append(indexed_issue)
+
+    return {
+        "available": True,
+        "status": "issues_detected" if issues else "clean",
+        "ok": validation["ok"],
+        "record_count": validation["record_count"],
+        "issue_count": len(issues),
+        "error_count": validation["error_count"],
+        "warning_count": validation["warning_count"],
+        "status_counts": dict(sorted(status_counts.items())),
+        "issues": issues,
+        "metric_summaries": metric_summaries,
     }
 
 

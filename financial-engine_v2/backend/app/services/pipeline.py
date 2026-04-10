@@ -974,15 +974,15 @@ def process_document(
                 failure_code="disabled",
             )
         else:
-            from app.services.router_state import set_extraction_active
+            from app.services.router_state import extraction_activity
 
-            set_extraction_active(True)
             try:
-                multipass_result = run_multipass_extraction(
-                    resolved_pdf_path,
-                    dict(doc_metadata),
-                    ollama_client,
-                )
+                with extraction_activity():
+                    multipass_result = run_multipass_extraction(
+                        resolved_pdf_path,
+                        dict(doc_metadata),
+                        ollama_client,
+                    )
             except Exception as exc:
                 error_text = str(exc)
                 extraction_stage = ExtractionStageResult(
@@ -1041,8 +1041,6 @@ def process_document(
                     model_name=default_model_name,
                     failure_code=failure_code,
                 )
-            finally:
-                set_extraction_active(False)
 
         sections_for_chunks = extraction_stage.sections
         structured = extraction_stage.payload

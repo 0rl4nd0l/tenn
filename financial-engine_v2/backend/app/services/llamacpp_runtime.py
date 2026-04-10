@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from pathlib import Path
 from typing import Any, Optional
 
 import httpx
@@ -175,7 +176,9 @@ def _build_runtime_headers(
     if raw_header:
         name, sep, value = raw_header.partition(":")
         if not sep or not name.strip() or not value.strip():
-            raise RuntimeError("LLM_AUTH_HEADER must be formatted as 'Header-Name: value'")
+            raise RuntimeError(
+                "LLM_AUTH_HEADER must be formatted as 'Header-Name: value'"
+            )
         headers[name.strip()] = value.strip()
 
     return headers
@@ -188,7 +191,11 @@ def build_llm_headers() -> dict[str, str]:
 def build_embedding_headers() -> dict[str, str]:
     headers = _build_runtime_headers(
         api_key_env_names=("LLM_API_KEY",),
-        legacy_api_key_env_names=("EMBEDDING_API_KEY", "OLLAMA_API_KEY", "OPENAI_API_KEY"),
+        legacy_api_key_env_names=(
+            "EMBEDDING_API_KEY",
+            "OLLAMA_API_KEY",
+            "OPENAI_API_KEY",
+        ),
     )
     headers["Content-Type"] = "application/json"
     return headers
@@ -281,29 +288,43 @@ def _message_content_to_text(content: Any) -> str:
 
 def _parse_json_text(text: str) -> Any:
     import re as _re
+
     raw = _message_content_to_text(text).strip()
     if not raw:
         raise ValueError("Empty response from llama.cpp")
 
     stripped = _strip_code_fences(raw)
     # Strip JS-style line comments (// ...) that code-oriented models emit.
-    stripped = _re.sub(r'//[^\n]*', '', stripped)
+    stripped = _re.sub(r"//[^\n]*", "", stripped)
     # Also try with thousands separators removed (e.g. 1,969,907 → 1969907).
     # The regex strips commas that sit between digits without touching JSON's
     # structural commas (which are always followed by whitespace or a quote).
-    cleaned = _re.sub(r'(?<=\d),(?=\d)', '', stripped)
+    cleaned = _re.sub(r"(?<=\d),(?=\d)", "", stripped)
     # Also try with accounting parentheses converted to negatives: (5,590) → -5,590.
     # Then apply thousands-separator removal to get valid JSON numbers.
-    acc = _re.sub(r'\((\d[\d,.]*)\)', lambda m: '-' + m.group(1), stripped)
-    acc_cleaned = _re.sub(r'(?<=\d),(?=\d)', '', acc)
+    acc = _re.sub(r"\((\d[\d,.]*)\)", lambda m: "-" + m.group(1), stripped)
+    acc_cleaned = _re.sub(r"(?<=\d),(?=\d)", "", acc)
+
     # Fix garbled PDF artifacts in LLM output:
     # 1. Strip control chars (0x00-0x1F except \t \n \r) that break JSON strings
     # 2. Fix invalid JSON escape sequences (e.g. \P, \S from garbled font CMap)
     def _sanitize(s: str) -> str:
-        s = _re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', s)
-        return _re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', s)
+        s = _re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", s)
+        return _re.sub(r'\\(?!["\\/bfnrtu])', r"\\\\", s)
+
     sanitized = _sanitize(acc_cleaned)
-    candidates = [raw, stripped, _extract_first_json_value(stripped), cleaned, _extract_first_json_value(cleaned), acc, acc_cleaned, _extract_first_json_value(acc_cleaned), sanitized, _extract_first_json_value(sanitized)]
+    candidates = [
+        raw,
+        stripped,
+        _extract_first_json_value(stripped),
+        cleaned,
+        _extract_first_json_value(cleaned),
+        acc,
+        acc_cleaned,
+        _extract_first_json_value(acc_cleaned),
+        sanitized,
+        _extract_first_json_value(sanitized),
+    ]
     seen = set()
     for candidate in candidates:
         value = str(candidate or "").strip()
@@ -317,23 +338,95 @@ def _parse_json_text(text: str) -> Any:
     raise ValueError(f"No valid JSON found in llama.cpp response: {raw[:400]}")
 
 
+def _extract_model_path(status_obj: dict[str, Any] | None) -> str:
+    if not isinstance(status_obj, dict):
+        return ""
+    args_list = status_obj.get("args") or []
+    for index, arg in enumerate(args_list):
+        if arg == "--model" and index + 1 < len(args_list):
+            return str(args_list[index + 1] or "").strip()
+
+    preset_text = str(status_obj.get("preset") or "")
+    for line in preset_text.splitlines():
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        if key.strip().lower() == "model":
+            return value.strip()
+    return ""
+
+
+def _is_usable_registry_entry(info: dict[str, str]) -> bool:
+    return bool(info.get("model_path")) or info.get("status") == "loaded"
+
+
+def _model_alias_tokens(model_id: str, info: dict[str, str]) -> set[str]:
+    tokens = {str(model_id or "").strip().lower()}
+    path_stem = str(info.get("path_stem") or "").strip().lower()
+    if path_stem:
+        tokens.add(path_stem)
+    if model_id.startswith("model:"):
+        tokens.add(model_id.split(":", 1)[1].strip().lower())
+    return {token for token in tokens if token}
+
+
+def _matches_requested_model(
+    requested: str,
+    model_id: str,
+    info: dict[str, str],
+) -> bool:
+    requested_norm = str(requested or "").strip().lower()
+    if not requested_norm:
+        return False
+
+    requested_tokens = {requested_norm}
+    if requested_norm.startswith("model:"):
+        requested_tokens.add(requested_norm.split(":", 1)[1].strip())
+
+    for token in _model_alias_tokens(model_id, info):
+        if any(req == token for req in requested_tokens):
+            return True
+        if any(
+            req.startswith(token) or token.startswith(req) for req in requested_tokens
+        ):
+            return True
+    return False
+
+
 def _resolve_model_id(models_payload: dict[str, Any], requested_model: str) -> str:
     data = models_payload.get("data")
-    available_models: list[str] = []
+    registry: dict[str, dict[str, str]] = {}
     if isinstance(data, list):
         for row in data:
             if not isinstance(row, dict):
                 continue
             model_id = str(row.get("id") or "").strip()
-            if model_id:
-                available_models.append(model_id)
-    if not available_models:
+            if not model_id:
+                continue
+            status_obj = row.get("status") or {}
+            model_path = _extract_model_path(status_obj)
+            registry[model_id] = {
+                "status": str(status_obj.get("value", "unknown") or "unknown").strip(),
+                "model_path": model_path,
+                "path_stem": Path(model_path).stem if model_path else "",
+            }
+    if not registry:
         raise RuntimeError("llama.cpp /v1/models returned no model ids")
 
     requested = str(requested_model or "").strip()
-    if requested and requested in available_models:
+    exact = registry.get(requested)
+    if exact and _is_usable_registry_entry(exact):
         return requested
-    return available_models[0]
+
+    for model_id, model_info in registry.items():
+        if _is_usable_registry_entry(model_info) and _matches_requested_model(
+            requested,
+            model_id,
+            model_info,
+        ):
+            return model_id
+
+    return requested
 
 
 def generate_json_llamacpp(
@@ -401,7 +494,9 @@ def generate_json_llamacpp(
                 f"llama.cpp server unreachable at {chat_url}: {exc}"
             ) from exc
         except Exception as exc:
-            raise RuntimeError(f"llama.cpp JSON generation failed at {chat_url}: {exc}") from exc
+            raise RuntimeError(
+                f"llama.cpp JSON generation failed at {chat_url}: {exc}"
+            ) from exc
         choices = data.get("choices")
         if not isinstance(choices, list) or not choices:
             raise RuntimeError(f"Bad llama.cpp response: {data}")

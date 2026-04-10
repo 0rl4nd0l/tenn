@@ -1,15 +1,17 @@
 import errno
 import json
 import logging
+import os
 import socket
 import subprocess
 import time
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
 import httpx
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
@@ -31,7 +33,9 @@ from app.models.extractions import ExtractionRun
 from app.api.analysis import router as analysis_router
 from app.api.context import router as context_router
 from app.api.commentary import router as commentary_router
+from app.api.extraction_review import router as extraction_review_router
 from app.routes.chat import router as chat_router
+
 try:
     from app.routes.cockpit_api import router as cockpit_api_router
 except ImportError:
@@ -49,8 +53,15 @@ from app.services.llamacpp_runtime import (
     resolve_extraction_runtime_config,
     resolve_llm_runtime_config,
 )
+from app.services.extraction_eval import FixtureContext
+from app.services.extraction_gold_eval import (
+    RealGoldFixture,
+    evaluate_real_gold_fixture,
+)
+from app.services.multipass_extraction import run_multipass_extraction
 from app.services.ollama import probe_ollama_embeddings
 from app.services.rag import query_news_chunks, query_rag
+from app.services.router_state import extraction_activity
 
 
 app = FastAPI(title="Financial Engine v2")
@@ -61,6 +72,11 @@ app.include_router(analysis_router, prefix="/api", tags=["analysis"])
 app.include_router(research_router, prefix="/research", tags=["research"])
 app.include_router(context_router, prefix="/api/context", tags=["context"])
 app.include_router(commentary_router, prefix="/api/commentary", tags=["commentary"])
+app.include_router(
+    extraction_review_router,
+    prefix="/api/extraction-review",
+    tags=["extraction_review"],
+)
 if cockpit_api_router is not None:
     app.include_router(cockpit_api_router, prefix="/api/cockpit", tags=["cockpit"])
 
@@ -79,6 +95,396 @@ class RagQueryRequest(BaseModel):
 
 class CapabilityProposalApplyRequest(BaseModel):
     proposal_id: str
+
+
+REAL_GOLD_DATASET_DIR = PROJECT_ROOT / "data" / "extraction_gold_real"
+REAL_GOLD_SUPPORTED_METRICS = ("revenue", "operating_cash_flow", "net_debt")
+REAL_GOLD_METRIC_KEY_MAP = {
+    "revenue": "revenue",
+    "operating_cash_flow": "operating_cf",
+    "net_debt": "net_debt",
+}
+REAL_GOLD_CONTEXT_FIELDS = ("period_type", "period_end", "currency", "scale")
+DEFAULT_LOCAL_LLAMACPP_API_KEY = "local-openai-key"
+
+
+@dataclass(frozen=True)
+class RealGoldDocument:
+    document_id: str
+    source_file: str
+    period_type: str
+    period_end: str
+    currency: str
+    scale: str
+    metrics: dict[str, float | None]
+    expected_trust: str
+
+
+class RealGoldEvalRequest(BaseModel):
+    limit: int = 0
+    tolerance: float = 0.01
+
+
+def _discover_local_llamacpp_api_key() -> str:
+    try:
+        proc = subprocess.run(
+            ["ps", "aux"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except Exception:
+        return ""
+
+    for line in proc.stdout.splitlines():
+        if "llama-server" not in line or "--api-key" not in line:
+            continue
+        _, _, tail = line.partition("--api-key")
+        candidate = tail.strip().split(maxsplit=1)[0]
+        if candidate:
+            return candidate
+    return ""
+
+
+def _persist_local_llm_api_key() -> str:
+    existing = str(os.environ.get("LLM_API_KEY") or "").strip()
+    if existing:
+        return existing
+
+    detected = _discover_local_llamacpp_api_key()
+    if not detected:
+        detected = DEFAULT_LOCAL_LLAMACPP_API_KEY
+
+    os.environ["LLM_API_KEY"] = detected
+    return detected
+
+
+def _load_real_gold_document(path: Path) -> RealGoldDocument:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"gold file must be a JSON object: {path}")
+
+    missing = [
+        key
+        for key in (
+            "document_id",
+            "source_file",
+            "period_type",
+            "period_end",
+            "currency",
+            "scale",
+            "metrics",
+            "expected_trust",
+        )
+        if key not in payload
+    ]
+    if missing:
+        raise ValueError(f"missing required fields in {path}: {', '.join(missing)}")
+
+    metrics_raw = payload.get("metrics")
+    if not isinstance(metrics_raw, dict):
+        raise ValueError(f"metrics must be an object in {path}")
+
+    metrics: dict[str, float | None] = {}
+    for metric_name, metric_value in metrics_raw.items():
+        if metric_name not in REAL_GOLD_SUPPORTED_METRICS:
+            raise ValueError(
+                f"unsupported metric '{metric_name}' in {path}; "
+                f"supported={REAL_GOLD_SUPPORTED_METRICS}"
+            )
+        if metric_value is None:
+            metrics[metric_name] = None
+        elif isinstance(metric_value, bool) or not isinstance(
+            metric_value, (int, float)
+        ):
+            raise ValueError(
+                f"metric '{metric_name}' must be numeric or null in {path}"
+            )
+        else:
+            metrics[metric_name] = float(metric_value)
+
+    expected_trust = str(payload.get("expected_trust") or "").strip().lower()
+    if expected_trust not in {"trusted", "abstain", "quarantine"}:
+        raise ValueError(f"invalid expected_trust '{expected_trust}' in {path}")
+
+    period_type = str(payload.get("period_type") or "").strip().upper()
+    if period_type not in {"A", "H", "Q"}:
+        raise ValueError(f"period_type must be one of A/H/Q in {path}")
+
+    currency = str(payload.get("currency") or "").strip().upper()
+    if not currency:
+        raise ValueError(f"currency must be non-empty in {path}")
+
+    scale = str(payload.get("scale") or "").strip().lower()
+    if scale not in {"units", "thousands", "millions"}:
+        raise ValueError(f"scale must be units|thousands|millions in {path}")
+
+    return RealGoldDocument(
+        document_id=str(payload.get("document_id")),
+        source_file=str(payload.get("source_file")),
+        period_type=period_type,
+        period_end=str(payload.get("period_end")),
+        currency=currency,
+        scale=scale,
+        metrics=metrics,
+        expected_trust=expected_trust,
+    )
+
+
+def _load_real_gold_dataset(dataset_dir: Path) -> list[RealGoldDocument]:
+    if not dataset_dir.exists():
+        raise FileNotFoundError(f"dataset directory not found: {dataset_dir}")
+
+    docs = [
+        _load_real_gold_document(path) for path in sorted(dataset_dir.glob("*.json"))
+    ]
+    if not docs:
+        raise ValueError(f"no dataset files found in {dataset_dir}")
+    return docs
+
+
+def _resolve_real_gold_source_path(source_file: str) -> Path:
+    candidate = Path(source_file)
+    if candidate.is_absolute():
+        if candidate.exists():
+            return candidate
+        raise FileNotFoundError(f"source file does not exist: {candidate}")
+
+    for base in (PROJECT_ROOT, PROJECT_ROOT.parent):
+        resolved = base / candidate
+        if resolved.exists():
+            return resolved
+
+    raise FileNotFoundError(
+        f"could not resolve source_file '{source_file}' relative to {PROJECT_ROOT}"
+    )
+
+
+def _extract_ticker_from_source_path(source_path: Path) -> str:
+    parts = list(source_path.parts)
+    if "docs" in parts:
+        idx = parts.index("docs")
+        if idx + 1 < len(parts):
+            return parts[idx + 1]
+    return "UNKNOWN"
+
+
+def _normalize_real_gold_context(field: str, value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    if field in {"period_type", "currency"}:
+        return text.upper()
+    if field == "scale":
+        return text.lower()
+    if field == "period_end":
+        return text[:10]
+    return text
+
+
+def _build_real_gold_fixture(
+    doc: RealGoldDocument, tolerance: float
+) -> RealGoldFixture:
+    return RealGoldFixture(
+        document_id=doc.document_id,
+        context=FixtureContext(
+            period_end=doc.period_end,
+            period_type=doc.period_type,
+            currency=doc.currency,
+            scale=doc.scale,
+        ),
+        metrics=dict(doc.metrics),
+        tolerances={metric: tolerance for metric in doc.metrics},
+        expected_trust=doc.expected_trust,
+    )
+
+
+def _evaluate_real_gold_document(
+    doc: RealGoldDocument, *, tolerance: float
+) -> dict[str, Any]:
+    _persist_local_llm_api_key()
+    source_path = _resolve_real_gold_source_path(doc.source_file)
+    metadata = {
+        "document_id": doc.document_id,
+        "ticker": _extract_ticker_from_source_path(source_path),
+        "title": source_path.name,
+    }
+
+    extraction_error = None
+    try:
+        with extraction_activity():
+            extraction_result = run_multipass_extraction(
+                str(source_path),
+                metadata,
+                llm_client=None,
+                skip_narrative=True,
+            )
+        payload = (
+            extraction_result.payload
+            if isinstance(extraction_result.payload, dict)
+            else {}
+        )
+        extraction_status = str(getattr(extraction_result, "status", "failed"))
+        extraction_error = getattr(extraction_result, "error", None)
+    except Exception as exc:  # noqa: BLE001
+        payload = {}
+        extraction_status = "failed"
+        extraction_error = str(exc)
+
+    expected_context = {
+        "period_type": doc.period_type,
+        "period_end": doc.period_end,
+        "currency": doc.currency,
+        "scale": doc.scale,
+    }
+    actual_context: dict[str, str | None] = {}
+    context_mismatches: list[str] = []
+    for field in REAL_GOLD_CONTEXT_FIELDS:
+        expected_value = _normalize_real_gold_context(field, expected_context[field])
+        actual_value = _normalize_real_gold_context(field, payload.get(field))
+        actual_context[field] = actual_value
+        if expected_value != actual_value:
+            context_mismatches.append(
+                f"{field}: expected={expected_value!r} actual={actual_value!r}"
+            )
+
+    normalized_metrics: dict[str, Any] = {}
+    raw_metrics = (
+        payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
+    )
+    for metric_name, source_metric_key in REAL_GOLD_METRIC_KEY_MAP.items():
+        normalized_metrics[metric_name] = raw_metrics.get(source_metric_key)
+
+    evaluation_payload = dict(payload)
+    evaluation_payload["metrics"] = normalized_metrics
+
+    evaluation = evaluate_real_gold_fixture(
+        _build_real_gold_fixture(doc, tolerance),
+        evaluation_payload,
+    )
+    metric_results: dict[str, dict[str, Any]] = {}
+    for metric in evaluation.metrics:
+        metric_results[metric.metric] = {
+            "status": metric.status.value,
+            "expected": metric.expected,
+            "actual": metric.actual,
+            "reason": metric.reason,
+            "source_metric_key": REAL_GOLD_METRIC_KEY_MAP.get(
+                metric.metric, metric.metric
+            ),
+        }
+
+    mismatch_reasons: list[str] = [*context_mismatches]
+    for metric_name, result in metric_results.items():
+        if result["status"] != "correct":
+            mismatch_reasons.append(f"metric:{metric_name}:{result['reason']}")
+    if evaluation.trust_matches_expected is False:
+        mismatch_reasons.append(
+            f"trust: expected={doc.expected_trust} actual={evaluation.trust.value}"
+        )
+    if extraction_error:
+        mismatch_reasons.append(f"extraction_error:{extraction_error}")
+
+    return {
+        "document_id": doc.document_id,
+        "source_file": doc.source_file,
+        "source_path": str(source_path),
+        "period_type": doc.period_type,
+        "period_end": doc.period_end,
+        "expected_trust": doc.expected_trust,
+        "extraction_status": extraction_status,
+        "extraction_error": extraction_error,
+        "context_correct": evaluation.context_ok,
+        "context_expected": expected_context,
+        "context_actual": actual_context,
+        "context_mismatches": context_mismatches,
+        "metric_results": metric_results,
+        "trust_outcome": evaluation.trust.value,
+        "trust_triggers": evaluation.trust_triggers,
+        "trust_matches_expected": evaluation.trust_matches_expected,
+        "mismatch_reasons": mismatch_reasons,
+    }
+
+
+def _summarize_real_gold_results(results: list[dict[str, Any]]) -> dict[str, Any]:
+    trust_distribution = {"trusted": 0, "abstain": 0, "quarantine": 0}
+    metric_status_counts = {"correct": 0, "wrong": 0, "missing": 0, "abstain": 0}
+    per_metric_failure_counts: dict[str, dict[str, int]] = {
+        metric: {"wrong": 0, "missing": 0, "abstain": 0}
+        for metric in REAL_GOLD_SUPPORTED_METRICS
+    }
+
+    total_metric_checks = 0
+    context_correct_count = 0
+    trust_match_count = 0
+
+    for result in results:
+        trust = str(result.get("trust_outcome") or "abstain")
+        trust_distribution[trust] = trust_distribution.get(trust, 0) + 1
+        if result.get("context_correct"):
+            context_correct_count += 1
+        if result.get("trust_matches_expected"):
+            trust_match_count += 1
+
+        for metric_name, metric_result in (result.get("metric_results") or {}).items():
+            status = str(metric_result.get("status") or "missing")
+            total_metric_checks += 1
+            metric_status_counts[status] = metric_status_counts.get(status, 0) + 1
+            if status in {"wrong", "missing", "abstain"}:
+                per_metric_failure_counts.setdefault(
+                    metric_name, {"wrong": 0, "missing": 0, "abstain": 0}
+                )
+                per_metric_failure_counts[metric_name][status] += 1
+
+    correct_count = metric_status_counts.get("correct", 0)
+    accuracy = (correct_count / total_metric_checks) if total_metric_checks else 0.0
+    return {
+        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "total_documents": len(results),
+        "context_correct_documents": context_correct_count,
+        "context_accuracy": (context_correct_count / len(results) if results else 0.0),
+        "total_metric_checks": total_metric_checks,
+        "metric_status_counts": metric_status_counts,
+        "total_accuracy": accuracy,
+        "trust_distribution": trust_distribution,
+        "trust_matches_expected": trust_match_count,
+        "per_metric_failure_counts": per_metric_failure_counts,
+    }
+
+
+def _run_real_gold_eval_sync(body: RealGoldEvalRequest) -> dict[str, Any]:
+    try:
+        gold_docs = _load_real_gold_dataset(REAL_GOLD_DATASET_DIR)
+        if body.limit > 0:
+            gold_docs = gold_docs[: body.limit]
+        tolerance = max(float(body.tolerance), 0.0)
+        results = [
+            _evaluate_real_gold_document(doc, tolerance=tolerance) for doc in gold_docs
+        ]
+        return {
+            "dataset_dir": str(REAL_GOLD_DATASET_DIR),
+            "summary": _summarize_real_gold_results(results),
+            "documents": results,
+        }
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(
+            status_code=500,
+            detail=f"real gold eval failed: {exc}",
+        ) from exc
+
+
+@app.post("/api/extraction-eval/real-gold", dependencies=[Depends(require_api_key)])
+async def run_real_gold_eval(body: RealGoldEvalRequest):
+    # Keep this handler on the main event-loop thread. The extraction stack uses
+    # signal-based docling timeouts and other main-thread-sensitive code paths,
+    # so FastAPI's worker-thread execution for sync handlers can terminate the
+    # request unexpectedly under real corpus loads.
+    return _run_real_gold_eval_sync(body)
 
 
 @app.post("/rag/query", dependencies=[Depends(require_api_key)])
@@ -112,7 +518,9 @@ def rag_query(body: RagQueryRequest):
                 detail="hybrid source not yet implemented via /rag/query — use /chat",
             )
         else:
-            raise HTTPException(status_code=400, detail=f"unknown source: {body.source}")
+            raise HTTPException(
+                status_code=400, detail=f"unknown source: {body.source}"
+            )
     except HTTPException:
         raise
     except ValueError as exc:
@@ -169,16 +577,23 @@ def _log_architecture_runtime_assertion() -> None:
 
 def _log_runtime_feature_warnings() -> None:
     if not settings.enable_embeddings:
-        logger.warning("WARNING: embeddings disabled - RAG functionality will be limited")
+        logger.warning(
+            "WARNING: embeddings disabled - RAG functionality will be limited"
+        )
     if not settings.enable_extraction:
-        logger.warning("WARNING: extraction disabled - ingestion outputs will be limited")
+        logger.warning(
+            "WARNING: extraction disabled - ingestion outputs will be limited"
+        )
 
 
 def _log_session_memory_startup_status() -> None:
     if not bool(getattr(settings, "enable_session_memory", True)):
-        logger.info("session_memory: session memory disabled (ENABLE_SESSION_MEMORY=false)")
+        logger.info(
+            "session_memory: session memory disabled (ENABLE_SESSION_MEMORY=false)"
+        )
         return
     from app.services.session_memory import _log_startup_status
+
     _log_startup_status()
 
 
@@ -261,13 +676,10 @@ def validate_backends(llamacpp_base_url: str, ollama_base_url: str) -> None:
     ollama_url = str(ollama_base_url or "").strip().rstrip("/")
     if not llama_url:
         raise RuntimeError("llama.cpp base URL must be configured.")
-    if (
-        ollama_url
-        and (
+    if ollama_url and (
         llama_url == ollama_url
         or llama_url.startswith(ollama_url)
         or ollama_url.startswith(llama_url)
-        )
     ):
         raise RuntimeError("Potential backend overlap detected")
     try:
@@ -333,7 +745,11 @@ def _read_stored_embedding_model() -> str | None:
     try:
         stored = RUNTIME_EMBEDDING_MODEL_FILE.read_text(encoding="utf-8").strip()
     except OSError as exc:
-        logger.warning("Unable to read stored embedding model marker %s: %s", RUNTIME_EMBEDDING_MODEL_FILE, exc)
+        logger.warning(
+            "Unable to read stored embedding model marker %s: %s",
+            RUNTIME_EMBEDDING_MODEL_FILE,
+            exc,
+        )
         return None
     return stored or None
 
@@ -451,7 +867,9 @@ def _validate_qdrant_on_startup() -> None:
         logger.warning("WARNING: qdrant startup validation skipped: %s", exc)
         return
 
-    existing_collection, points_count = _qdrant_collection_state(client, settings.qdrant_collection)
+    existing_collection, points_count = _qdrant_collection_state(
+        client, settings.qdrant_collection
+    )
     snapshot = _get_embedding_state_snapshot(client=client)
     _validate_embedding_model_on_startup(client=client)
     vectors = embed_texts(
@@ -472,7 +890,9 @@ def _validate_qdrant_on_startup() -> None:
     actual_dim = None
     actual_distance = None
     if existing_collection:
-        collection_config = get_qdrant_collection_vector_config(client, settings.qdrant_collection)
+        collection_config = get_qdrant_collection_vector_config(
+            client, settings.qdrant_collection
+        )
         actual_dim = collection_config.get("actual_dim")
         actual_distance = collection_config.get("actual_distance")
         points_count = int(collection_config.get("points_count") or 0)
@@ -488,7 +908,9 @@ def _validate_qdrant_on_startup() -> None:
             "stored_embed_model": snapshot.get("stored_model"),
             "expected_dim": expected_dim,
             "actual_dim": actual_dim,
-            "actual_distance": str(actual_distance) if actual_distance is not None else None,
+            "actual_distance": str(actual_distance)
+            if actual_distance is not None
+            else None,
         },
     )
     if not existing_collection:
@@ -530,7 +952,9 @@ def _system_status_snapshot() -> dict[str, object]:
     try:
         db = SessionLocal()
         try:
-            document_count_estimate = int(db.query(func.count(Document.document_id)).scalar() or 0)
+            document_count_estimate = int(
+                db.query(func.count(Document.document_id)).scalar() or 0
+            )
             latest_document = db.query(func.max(Document.ingested_at)).scalar()
             latest_extraction = db.query(func.max(ExtractionRun.created_at)).scalar()
         finally:
@@ -543,13 +967,17 @@ def _system_status_snapshot() -> dict[str, object]:
         for value in (latest_document, latest_extraction)
         if isinstance(value, datetime)
     ]
-    last_ingestion_activity = max(last_ingestion_candidates) if last_ingestion_candidates else None
+    last_ingestion_activity = (
+        max(last_ingestion_candidates) if last_ingestion_candidates else None
+    )
 
     try:
         client = verify_qdrant()
         qdrant_connected = True
         collections = client.get_collections()
-        collections_present = sorted(collection.name for collection in collections.collections)
+        collections_present = sorted(
+            collection.name for collection in collections.collections
+        )
     except Exception as exc:
         logger.warning("Qdrant status probe failed: %s", exc)
 
@@ -562,7 +990,9 @@ def _system_status_snapshot() -> dict[str, object]:
     }
 
 
-def _probe_llamacpp_runtime(base_url: str, expected_model: str, *, timeout: float = 5.0) -> dict[str, object]:
+def _probe_llamacpp_runtime(
+    base_url: str, expected_model: str, *, timeout: float = 5.0
+) -> dict[str, object]:
     normalized_url = str(base_url or "").strip().rstrip("/")
     expected = str(expected_model or "").strip()
     result: dict[str, object] = {
@@ -590,7 +1020,8 @@ def _probe_llamacpp_runtime(base_url: str, expected_model: str, *, timeout: floa
         result["reachable"] = True
         result["loaded_models"] = loaded_models
         result["model_available"] = bool(
-            expected and any(expected.lower() in model.lower() for model in loaded_models)
+            expected
+            and any(expected.lower() in model.lower() for model in loaded_models)
         )
         return result
     except Exception as exc:
@@ -598,7 +1029,9 @@ def _probe_llamacpp_runtime(base_url: str, expected_model: str, *, timeout: floa
         return result
 
 
-def _probe_embedding_runtime(base_url: str, expected_model: str, *, timeout: float = 5.0) -> dict[str, object]:
+def _probe_embedding_runtime(
+    base_url: str, expected_model: str, *, timeout: float = 5.0
+) -> dict[str, object]:
     normalized_url = str(base_url or "").strip().rstrip("/")
     expected = str(expected_model or "").strip()
     result: dict[str, object] = {
@@ -641,7 +1074,11 @@ def _probe_embedding_runtime(base_url: str, expected_model: str, *, timeout: flo
 
 
 def _database_state_snapshot() -> dict[str, object]:
-    result: dict[str, object] = {"reachable": False, "document_count": 0, "extraction_count": 0}
+    result: dict[str, object] = {
+        "reachable": False,
+        "document_count": 0,
+        "extraction_count": 0,
+    }
     try:
         document_count, extraction_count = _count_db_embedding_rows()
         result["reachable"] = True
@@ -652,7 +1089,9 @@ def _database_state_snapshot() -> dict[str, object]:
     return result
 
 
-def _feature_snapshot(name: str, *, configured: bool, blockers: list[str], details: dict[str, object]) -> dict[str, object]:
+def _feature_snapshot(
+    name: str, *, configured: bool, blockers: list[str], details: dict[str, object]
+) -> dict[str, object]:
     status = "available" if configured and not blockers else "blocked"
     if not configured:
         status = "disabled"
@@ -700,7 +1139,9 @@ def _write_access_state(state: dict[str, bool]) -> dict[str, bool]:
     normalized = {
         "web_enabled": bool(state.get("web_enabled", False)),
         "rag_enabled": bool(state.get("rag_enabled", False)),
-        "db_diagnostic_query_enabled": bool(state.get("db_diagnostic_query_enabled", False)),
+        "db_diagnostic_query_enabled": bool(
+            state.get("db_diagnostic_query_enabled", False)
+        ),
     }
     COCKPIT_ACCESS_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
     COCKPIT_ACCESS_STATE_FILE.write_text(
@@ -758,12 +1199,16 @@ def _system_capabilities_snapshot() -> dict[str, object]:
     embedding_snapshot = _get_embedding_state_snapshot()
     embedding_consistent = (
         not embedding_snapshot.get("stored_model")
-        or embedding_snapshot.get("stored_model") == embedding_snapshot.get("configured_model")
+        or embedding_snapshot.get("stored_model")
+        == embedding_snapshot.get("configured_model")
         or int(embedding_snapshot.get("qdrant_points_count") or 0) == 0
     )
 
     ingestion_blockers: list[str] = []
-    if str(settings.task_mode).strip().lower() == "celery" and not redis_state["reachable"]:
+    if (
+        str(settings.task_mode).strip().lower() == "celery"
+        and not redis_state["reachable"]
+    ):
         ingestion_blockers.append("celery_broker_unreachable")
     extraction_blockers: list[str] = []
     if bool(settings.enable_extraction) and not extraction_runtime.get("reachable"):
@@ -841,7 +1286,9 @@ def _system_capabilities_snapshot() -> dict[str, object]:
                 details={
                     "configured_model": embedding_snapshot.get("configured_model"),
                     "stored_model": embedding_snapshot.get("stored_model"),
-                    "qdrant_points_count": embedding_snapshot.get("qdrant_points_count"),
+                    "qdrant_points_count": embedding_snapshot.get(
+                        "qdrant_points_count"
+                    ),
                 },
             )
         )
@@ -861,47 +1308,52 @@ def _system_capabilities_snapshot() -> dict[str, object]:
         )
 
     overall_status = "ready"
-    if any(feature["status"] == "blocked" for feature in {
-        "ingestion": _feature_snapshot(
-            "ingestion",
-            configured=True,
-            blockers=ingestion_blockers,
-            details={
-                "task_mode": str(settings.task_mode),
-                "last_activity": system_status.get("last_ingestion_activity"),
-            },
-        ),
-        "extraction": _feature_snapshot(
-            "extraction",
-            configured=bool(settings.enable_extraction),
-            blockers=extraction_blockers,
-            details={
-                "runtime_url": extraction_url,
-                "model": extraction_model,
-            },
-        ),
-        "embeddings": _feature_snapshot(
-            "embeddings",
-            configured=bool(settings.enable_embeddings),
-            blockers=embeddings_blockers,
-            details={
-                "runtime_url": embedding_url,
-                "model": embedding_model,
-                "stored_model": embedding_snapshot.get("stored_model"),
-                "qdrant_points_count": embedding_snapshot.get("qdrant_points_count"),
-            },
-        ),
-        "rag": _feature_snapshot(
-            "rag",
-            configured=bool(settings.enable_embeddings and settings.enable_qdrant),
-            blockers=rag_blockers,
-            details={
-                "collection": str(settings.qdrant_collection),
-                "document_count": db_state.get("document_count"),
-                "last_activity": system_status.get("last_ingestion_activity"),
-            },
-        ),
-    }.values()):
+    if any(
+        feature["status"] == "blocked"
+        for feature in {
+            "ingestion": _feature_snapshot(
+                "ingestion",
+                configured=True,
+                blockers=ingestion_blockers,
+                details={
+                    "task_mode": str(settings.task_mode),
+                    "last_activity": system_status.get("last_ingestion_activity"),
+                },
+            ),
+            "extraction": _feature_snapshot(
+                "extraction",
+                configured=bool(settings.enable_extraction),
+                blockers=extraction_blockers,
+                details={
+                    "runtime_url": extraction_url,
+                    "model": extraction_model,
+                },
+            ),
+            "embeddings": _feature_snapshot(
+                "embeddings",
+                configured=bool(settings.enable_embeddings),
+                blockers=embeddings_blockers,
+                details={
+                    "runtime_url": embedding_url,
+                    "model": embedding_model,
+                    "stored_model": embedding_snapshot.get("stored_model"),
+                    "qdrant_points_count": embedding_snapshot.get(
+                        "qdrant_points_count"
+                    ),
+                },
+            ),
+            "rag": _feature_snapshot(
+                "rag",
+                configured=bool(settings.enable_embeddings and settings.enable_qdrant),
+                blockers=rag_blockers,
+                details={
+                    "collection": str(settings.qdrant_collection),
+                    "document_count": db_state.get("document_count"),
+                    "last_activity": system_status.get("last_ingestion_activity"),
+                },
+            ),
+        }.values()
+    ):
         overall_status = "degraded"
 
     features = {
@@ -994,7 +1446,9 @@ def _start_extraction_runtime_via_backend() -> dict[str, object]:
     extraction_url, extraction_model = resolve_extraction_runtime_config()
     for _ in range(20):
         try:
-            probe = _probe_llamacpp_runtime(extraction_url, extraction_model, timeout=2.0)
+            probe = _probe_llamacpp_runtime(
+                extraction_url, extraction_model, timeout=2.0
+            )
         except Exception as exc:
             probe = {"reachable": False, "error": str(exc)}
         if probe.get("reachable"):
@@ -1035,8 +1489,16 @@ def _apply_capability_proposal(proposal_id: str) -> dict[str, object]:
             "disable_web_access": ("web_enabled", False, "Web access disabled."),
             "enable_rag_access": ("rag_enabled", True, "RAG access enabled."),
             "disable_rag_access": ("rag_enabled", False, "RAG access disabled."),
-            "enable_dbdiag_access": ("db_diagnostic_query_enabled", True, "DB diagnostics enabled."),
-            "disable_dbdiag_access": ("db_diagnostic_query_enabled", False, "DB diagnostics disabled."),
+            "enable_dbdiag_access": (
+                "db_diagnostic_query_enabled",
+                True,
+                "DB diagnostics enabled.",
+            ),
+            "disable_dbdiag_access": (
+                "db_diagnostic_query_enabled",
+                False,
+                "DB diagnostics disabled.",
+            ),
         }
         key, enabled, message = mapping[normalized]
         state[key] = enabled
@@ -1048,7 +1510,9 @@ def _apply_capability_proposal(proposal_id: str) -> dict[str, object]:
             "message": message,
             "access": written,
         }
-    raise HTTPException(status_code=404, detail=f"unknown or unsupported proposal: {normalized}")
+    raise HTTPException(
+        status_code=404, detail=f"unknown or unsupported proposal: {normalized}"
+    )
 
 
 @app.get("/api/system/status", dependencies=[Depends(require_api_key)])

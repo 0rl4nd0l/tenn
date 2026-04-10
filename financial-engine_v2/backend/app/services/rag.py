@@ -40,6 +40,15 @@ _FINANCIAL_INTENT_KEYWORDS: dict[str, tuple[str, ...]] = {
 }
 _FINANCIAL_TITLE_MARKERS = ("appendix", "results", "financial")
 _ASX_DOCS_COLLECTION = "asx_docs"
+_NEWS_ROUNDUP_TITLE_MARKERS = (
+    "market news",
+    "market update",
+    "morning wrap",
+    "lunch wrap",
+    "closing bell",
+    "latest nasdaq news",
+    "financial, business & stock market news",
+)
 
 
 def _build_qdrant_client() -> QdrantClient:
@@ -65,6 +74,85 @@ def _build_query_filter(ticker: Optional[str]) -> Optional[qmodels.Filter]:
 
 def _supports_ticker_filter(collection_name: str) -> bool:
     return str(collection_name or "").strip() == _ASX_DOCS_COLLECTION
+
+
+def _build_news_ticker_filter(ticker: Optional[str]) -> Optional[qmodels.Filter]:
+    symbol = (ticker or "").strip().upper()
+    if not symbol:
+        return None
+    return qmodels.Filter(
+        should=[
+            qmodels.FieldCondition(
+                key="ticker",
+                match=qmodels.MatchValue(value=symbol),
+            ),
+            qmodels.FieldCondition(
+                key="tickers",
+                match=qmodels.MatchValue(value=symbol),
+            ),
+        ]
+    )
+
+
+def _title_mentions_ticker(title: str, ticker: str) -> bool:
+    symbol = str(ticker or "").strip().upper()
+    if not symbol:
+        return False
+    return bool(re.search(rf"\b{re.escape(symbol)}\b", str(title or ""), re.IGNORECASE))
+
+
+def _is_roundup_title(title: str) -> bool:
+    lower = str(title or "").strip().lower()
+    return any(marker in lower for marker in _NEWS_ROUNDUP_TITLE_MARKERS)
+
+
+def _normalize_news_results(
+    hits: list[Any],
+    *,
+    ticker: Optional[str],
+    top_k: int,
+) -> list[dict[str, Any]]:
+    by_article: dict[str, dict[str, Any]] = {}
+    normalized_ticker = (ticker or "").strip().upper()
+
+    for hit in hits:
+        payload = dict(getattr(hit, "payload", None) or {})
+        score = float(getattr(hit, "score", 0.0) or 0.0)
+        article_id = str(payload.get("article_id") or payload.get("chunk_id") or "")
+        title = str(payload.get("title") or "")
+        rank_score = score
+        if normalized_ticker:
+            if _title_mentions_ticker(title, normalized_ticker):
+                rank_score += 0.18
+            elif _is_roundup_title(title):
+                rank_score -= 0.08
+
+        candidate = {"score": score, "payload": payload}
+        published_at = str(payload.get("published_at") or "")
+        existing = by_article.get(article_id)
+        if existing is None:
+            by_article[article_id] = {
+                "result": candidate,
+                "rank_score": rank_score,
+                "published_at": published_at,
+            }
+            continue
+        if rank_score > existing["rank_score"] or (
+            math.isclose(rank_score, existing["rank_score"])
+            and published_at > existing["published_at"]
+        ):
+            by_article[article_id] = {
+                "result": candidate,
+                "rank_score": rank_score,
+                "published_at": published_at,
+            }
+
+    ranked = sorted(
+        by_article.values(),
+        key=lambda row: (row["rank_score"], row["published_at"]),
+        reverse=True,
+    )
+    return [row["result"] for row in ranked[: int(max(1, top_k))]]
 
 
 def extract_ticker(query: str) -> str | None:
@@ -107,7 +195,11 @@ def _search_points(
         "query_vector": query_vector,
         "limit": limit,
     }
-    query_filter = _build_query_filter(ticker) if _supports_ticker_filter(settings.qdrant_collection) else None
+    query_filter = (
+        _build_query_filter(ticker)
+        if _supports_ticker_filter(settings.qdrant_collection)
+        else None
+    )
     if query_filter is not None:
         search_kwargs["query_filter"] = query_filter
 
@@ -169,7 +261,9 @@ def _build_research_context(
     ticker: str | None = None,
     financial_intents: list[str] | None = None,
 ) -> dict[str, Any]:
-    resolved_ticker = str(ticker or "").strip().upper() or _effective_ticker(query, None)
+    resolved_ticker = str(ticker or "").strip().upper() or _effective_ticker(
+        query, None
+    )
     resolved_financial_intents = (
         list(financial_intents)
         if financial_intents is not None
@@ -184,7 +278,9 @@ def _build_research_context(
     builder = ResearchContextBuilder(commentary_weight_max=0.25)
     return builder.build(
         frameworks=retrieval.get("frameworks") or [],
-        methodology_chunks=retrieval.get("methodology_chunks") or retrieval.get("chunks") or [],
+        methodology_chunks=retrieval.get("methodology_chunks")
+        or retrieval.get("chunks")
+        or [],
         evidence_chunks=evidence_hits,
         commentary_chunks=retrieval.get("commentary_chunks") or [],
         commentary_memos=retrieval.get("commentary_memos") or [],
@@ -222,30 +318,48 @@ def query_news_chunks(
         return {"results": []}
     vec = vectors[0]
 
-    must_filters: list[qmodels.FieldCondition] = []
+    must_filters: list[Any] = []
     if language:
-        must_filters.append(qmodels.FieldCondition(key="language", match=qmodels.MatchValue(value=language)))
+        must_filters.append(
+            qmodels.FieldCondition(
+                key="language", match=qmodels.MatchValue(value=language)
+            )
+        )
     if provider:
-        must_filters.append(qmodels.FieldCondition(key="provider", match=qmodels.MatchValue(value=provider)))
-    if ticker:
-        must_filters.append(qmodels.FieldCondition(key="ticker", match=qmodels.MatchValue(value=ticker.strip().upper())))
+        must_filters.append(
+            qmodels.FieldCondition(
+                key="provider", match=qmodels.MatchValue(value=provider)
+            )
+        )
+    news_ticker_filter = _build_news_ticker_filter(ticker)
+    if news_ticker_filter is not None:
+        must_filters.append(news_ticker_filter)
     if date_from:
-        must_filters.append(qmodels.FieldCondition(key="published_at", range=qmodels.Range(gte=date_from)))
+        must_filters.append(
+            qmodels.FieldCondition(
+                key="published_at", range=qmodels.Range(gte=date_from)
+            )
+        )
     if date_to:
-        must_filters.append(qmodels.FieldCondition(key="published_at", range=qmodels.Range(lte=date_to)))
+        must_filters.append(
+            qmodels.FieldCondition(key="published_at", range=qmodels.Range(lte=date_to))
+        )
 
     query_filter = qmodels.Filter(must=must_filters) if must_filters else None
 
     client = _build_qdrant_client()
+    candidate_limit = int(max(1, top_k))
+    if ticker:
+        candidate_limit = min(max(candidate_limit * 4, 12), 64)
     hits = client.search(
         collection_name="news_chunks",
         query_vector=vec,
-        limit=int(max(1, top_k)),
+        limit=candidate_limit,
         query_filter=query_filter,
         with_payload=True,
     )
 
-    results = [{"score": float(h.score), "payload": h.payload} for h in hits]
+    results = _normalize_news_results(hits, ticker=ticker, top_k=top_k)
     return {"results": results}
 
 
@@ -276,7 +390,9 @@ def query_rag(
     resolved_ticker = _effective_ticker(q, ticker)
     financial_intents = _detect_financial_intents(q)
     intent_detected = financial_intents[0] if financial_intents else None
-    filter_applied = bool(resolved_ticker and _supports_ticker_filter(settings.qdrant_collection))
+    filter_applied = bool(
+        resolved_ticker and _supports_ticker_filter(settings.qdrant_collection)
+    )
     embed_decision = get_routing_decision(q, embed_metadata)
     vectors = embed_texts(
         [q],
@@ -425,9 +541,7 @@ def query_rag(
         scores = [float(p.score or 0.0) for p in points]
         n = len(scores)
         mean_s = sum(scores) / n if n else 0.0
-        variance = (
-            sum((s - mean_s) ** 2 for s in scores) / n if n else 0.0
-        )
+        variance = sum((s - mean_s) ** 2 for s in scores) / n if n else 0.0
         result["debug"] = {
             "embedding_norm": math.sqrt(sum(x * x for x in query_vector)),
             "score_distribution": {
@@ -443,11 +557,7 @@ def query_rag(
             "fallback_used": used_ticker_fallback,
             "skipped_invalid_payloads": skipped_invalid_payloads,
             "top_payload_keys": sorted(
-                set(
-                    key
-                    for p in points
-                    for key in (p.payload or {}).keys()
-                )
+                set(key for p in points for key in (p.payload or {}).keys())
             ),
             "collection_dimension": len(query_vector),
         }

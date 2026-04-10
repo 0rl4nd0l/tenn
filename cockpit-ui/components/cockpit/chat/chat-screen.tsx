@@ -18,13 +18,21 @@ import { streamChat, sendChatMessage, executeAction, restartBackend } from '@/li
 import type { ChatMessage as ChatMessageType, ActionPreview } from '@/lib/cockpit-types'
 import { toast } from 'sonner'
 
-type FlagState = 'saving' | 'saved'
+type FeedbackKind = 'good' | 'poor'
 
-type FlagFeedbackResponse = {
+type FeedbackState = 'saving-good' | 'saved-good' | 'saving-poor' | 'saved-poor'
+
+type FeedbackCaptureResponse = {
   report_id: string
+  feedback_type: FeedbackKind
   report_dir: string
-  codex_prompt: string
+  codex_prompt?: string | null
   analysis_summary?: string | null
+}
+
+type PendingFeedback = {
+  kind: FeedbackKind
+  message: ChatMessageType
 }
 
 async function copyFlagPromptToClipboard(prompt: string): Promise<boolean> {
@@ -40,13 +48,46 @@ async function copyFlagPromptToClipboard(prompt: string): Promise<boolean> {
   }
 }
 
-const FLAG_NOTE_PRESETS = [
-  'Hallucination',
-  'Wrong ticker context',
-  'Bad calculation',
-  'Unsupported claim',
-  'Missed cited evidence',
-] as const
+const FEEDBACK_NOTE_PRESETS: Record<FeedbackKind, readonly string[]> = {
+  good: [
+    'Well grounded',
+    'Correct ticker context',
+    'Good reasoning',
+    'Useful synthesis',
+    'Strong evidence use',
+  ],
+  poor: [
+    'Hallucination',
+    'Wrong ticker context',
+    'Bad calculation',
+    'Unsupported claim',
+    'Missed cited evidence',
+  ],
+}
+
+function buildFeedbackState(kind: FeedbackKind, status: 'saving' | 'saved'): FeedbackState {
+  return `${status}-${kind}` as FeedbackState
+}
+
+function isSavingFeedbackState(state: FeedbackState | undefined): boolean {
+  return state === 'saving-good' || state === 'saving-poor'
+}
+
+function getFeedbackButtonLabel(kind: FeedbackKind, state: FeedbackState | undefined): string {
+  if (kind === 'good') {
+    if (state === 'saving-good') return '[saving good...]'
+    if (state === 'saved-good') return '[saved good]'
+    if (state === 'saving-poor') return '[rating poor...]'
+    if (state === 'saved-poor') return '[rated poor]'
+    return '[good response]'
+  }
+
+  if (state === 'saving-poor') return '[flagging...]'
+  if (state === 'saved-poor') return '[flagged]'
+  if (state === 'saving-good') return '[saving good...]'
+  if (state === 'saved-good') return '[rated good]'
+  return '[flag response]'
+}
 
 function serializeMessageForFeedback(message: ChatMessageType) {
   return {
@@ -72,9 +113,9 @@ export function ChatScreen() {
   const [streamingStatusStartedAt, setStreamingStatusStartedAt] = useState<number | null>(null)
   const [streamingClockMs, setStreamingClockMs] = useState<number>(Date.now())
   const [streamingMetadata, setStreamingMetadata] = useState<Partial<ChatMessageType>>({})
-  const [flagStates, setFlagStates] = useState<Record<string, FlagState>>({})
-  const [pendingFlagMessage, setPendingFlagMessage] = useState<ChatMessageType | null>(null)
-  const [flagNote, setFlagNote] = useState('')
+  const [feedbackStates, setFeedbackStates] = useState<Record<string, FeedbackState>>({})
+  const [pendingFeedback, setPendingFeedback] = useState<PendingFeedback | null>(null)
+  const [feedbackNote, setFeedbackNote] = useState('')
   const activeStreamRef = useRef<{ close: () => void } | null>(null)
   const statusFallbackTimersRef = useRef<number[]>([])
   const receivedServerStatusRef = useRef(false)
@@ -594,20 +635,20 @@ export function ChatScreen() {
     setMessages([])
     setStreamingContent('')
     setStreamingMetadata({})
-    setFlagStates({})
-    setPendingFlagMessage(null)
-    setFlagNote('')
+    setFeedbackStates({})
+    setPendingFeedback(null)
+    setFeedbackNote('')
   }, [])
 
-  const submitFlagMessage = useCallback(async (message: ChatMessageType, note: string) => {
+  const submitFeedbackMessage = useCallback(async (message: ChatMessageType, note: string, feedbackType: FeedbackKind) => {
     if (message.role !== 'assistant') {
       return
     }
-    if (flagStates[message.id]) {
+    if (feedbackStates[message.id]) {
       return
     }
 
-    setFlagStates((prev) => ({ ...prev, [message.id]: 'saving' }))
+    setFeedbackStates((prev) => ({ ...prev, [message.id]: buildFeedbackState(feedbackType, 'saving') }))
     try {
       const response = await fetch('/api/cockpit/feedback/flag', {
         method: 'POST',
@@ -615,6 +656,7 @@ export function ChatScreen() {
         body: JSON.stringify({
           session_id: sessionId,
           ticker: activeTicker,
+          feedback_type: feedbackType,
           note: note.trim() || undefined,
           flagged_message: serializeMessageForFeedback(message),
           transcript: messages.map(serializeMessageForFeedback),
@@ -629,7 +671,7 @@ export function ChatScreen() {
         }),
       })
 
-      const payload = (await response.json().catch(() => null)) as FlagFeedbackResponse | { detail?: string } | null
+      const payload = (await response.json().catch(() => null)) as FeedbackCaptureResponse | { detail?: string } | null
       if (!response.ok) {
         const detail = payload && typeof payload === 'object' && 'detail' in payload
           ? String(payload.detail || '')
@@ -637,83 +679,105 @@ export function ChatScreen() {
         throw new Error(detail || `HTTP ${response.status}`)
       }
 
-      setFlagStates((prev) => ({ ...prev, [message.id]: 'saved' }))
-      setPendingFlagMessage(null)
-      setFlagNote('')
-      const result = payload as FlagFeedbackResponse
-      const copiedPrompt = await copyFlagPromptToClipboard(result.codex_prompt)
-      toast.success(result.analysis_summary?.trim()
-        ? copiedPrompt
-          ? `Flag saved and Codex prompt copied: ${result.analysis_summary}`
-          : `Flag saved: ${result.analysis_summary}`
-        : copiedPrompt
-          ? `Flag saved and Codex prompt copied: ${result.report_dir}`
-          : `Flag saved to ${result.report_dir}`)
+      setFeedbackStates((prev) => ({ ...prev, [message.id]: buildFeedbackState(feedbackType, 'saved') }))
+      setPendingFeedback(null)
+      setFeedbackNote('')
+      const result = payload as FeedbackCaptureResponse
+
+      if (feedbackType === 'good') {
+        toast.success(result.analysis_summary?.trim()
+          ? `Good response saved: ${result.analysis_summary}`
+          : `Good response saved to ${result.report_dir}`)
+      } else {
+        const copiedPrompt = result.codex_prompt?.trim()
+          ? await copyFlagPromptToClipboard(result.codex_prompt)
+          : false
+        toast.success(result.analysis_summary?.trim()
+          ? copiedPrompt
+            ? `Flag saved and Codex prompt copied: ${result.analysis_summary}`
+            : `Flag saved: ${result.analysis_summary}`
+          : copiedPrompt
+            ? `Flag saved and Codex prompt copied: ${result.report_dir}`
+            : `Flag saved to ${result.report_dir}`)
+      }
     } catch (error) {
-      setFlagStates((prev) => {
+      setFeedbackStates((prev) => {
         const next = { ...prev }
         delete next[message.id]
         return next
       })
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      toast.error(`Failed to flag response: ${errorMessage}`)
+      toast.error(`Failed to save feedback: ${errorMessage}`)
     }
-  }, [activeTicker, chatModel, flagStates, messages, preferences, sessionId])
+  }, [activeTicker, chatModel, feedbackStates, messages, preferences, sessionId])
 
-  const handleFlagMessage = useCallback((message: ChatMessageType) => {
-    if (message.role !== 'assistant' || flagStates[message.id]) {
+  const handleFeedbackMessage = useCallback((message: ChatMessageType, kind: FeedbackKind) => {
+    if (message.role !== 'assistant' || feedbackStates[message.id]) {
       return
     }
-    setPendingFlagMessage(message)
-    setFlagNote('')
-  }, [flagStates])
+    setPendingFeedback({ message, kind })
+    setFeedbackNote('')
+  }, [feedbackStates])
 
-  const pendingFlagState = pendingFlagMessage ? flagStates[pendingFlagMessage.id] : undefined
-  const isPendingFlagSaving = pendingFlagState === 'saving'
+  const pendingFeedbackState = pendingFeedback ? feedbackStates[pendingFeedback.message.id] : undefined
+  const isPendingFeedbackSaving = isSavingFeedbackState(pendingFeedbackState)
+  const pendingFeedbackKind = pendingFeedback?.kind ?? 'poor'
+  const isPendingGoodFeedback = pendingFeedbackKind === 'good'
+  const pendingFeedbackPresets = FEEDBACK_NOTE_PRESETS[pendingFeedbackKind]
 
-  const closeFlagDialog = useCallback(() => {
-    if (isPendingFlagSaving) {
+  const closeFeedbackDialog = useCallback(() => {
+    if (isPendingFeedbackSaving) {
       return
     }
-    setPendingFlagMessage(null)
-    setFlagNote('')
-  }, [isPendingFlagSaving])
+    setPendingFeedback(null)
+    setFeedbackNote('')
+  }, [isPendingFeedbackSaving])
 
-  const handleFlagSubmit = useCallback(async () => {
-    if (!pendingFlagMessage) {
+  const handleFeedbackSubmit = useCallback(async () => {
+    if (!pendingFeedback) {
       return
     }
-    await submitFlagMessage(pendingFlagMessage, flagNote)
-  }, [flagNote, pendingFlagMessage, submitFlagMessage])
+    await submitFeedbackMessage(pendingFeedback.message, feedbackNote, pendingFeedback.kind)
+  }, [feedbackNote, pendingFeedback, submitFeedbackMessage])
 
   if (!hasHydrated) return null
 
   return (
     <div className="flex h-full flex-col terminal-container overflow-hidden">
-      <Dialog open={Boolean(pendingFlagMessage)} onOpenChange={(open) => {
+      <Dialog open={Boolean(pendingFeedback)} onOpenChange={(open) => {
         if (!open) {
-          closeFlagDialog()
+          closeFeedbackDialog()
         }
       }}>
-        <DialogContent className="border-red-500/30 bg-zinc-950 text-zinc-100 sm:max-w-md">
+        <DialogContent className={isPendingGoodFeedback
+          ? 'border-emerald-500/30 bg-zinc-950 text-zinc-100 sm:max-w-md'
+          : 'border-red-500/30 bg-zinc-950 text-zinc-100 sm:max-w-md'}>
           <DialogHeader>
-            <DialogTitle className="font-mono text-sm text-red-300">Flag response</DialogTitle>
+            <DialogTitle className={isPendingGoodFeedback
+              ? 'font-mono text-sm text-emerald-300'
+              : 'font-mono text-sm text-red-300'}>
+              {isPendingGoodFeedback ? 'Save good response' : 'Flag response'}
+            </DialogTitle>
             <DialogDescription className="text-xs text-zinc-400">
-              Add a short optional note so the saved report explains what was wrong.
+              {isPendingGoodFeedback
+                ? 'Add a short optional note so the saved example explains what worked.'
+                : 'Add a short optional note so the saved report explains what was wrong.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
             <div className="flex flex-wrap gap-2">
-              {FLAG_NOTE_PRESETS.map((preset) => {
-                const selected = flagNote === preset
+              {pendingFeedbackPresets.map((preset) => {
+                const selected = feedbackNote === preset
                 return (
                   <button
                     key={preset}
                     type="button"
-                    onClick={() => setFlagNote(preset)}
-                    disabled={isPendingFlagSaving}
+                    onClick={() => setFeedbackNote(preset)}
+                    disabled={isPendingFeedbackSaving}
                     className={selected
-                      ? 'rounded border border-red-400/60 bg-red-500/20 px-2 py-1 font-mono text-[11px] text-red-100 transition-colors disabled:cursor-default disabled:opacity-60'
+                      ? isPendingGoodFeedback
+                        ? 'rounded border border-emerald-400/60 bg-emerald-500/20 px-2 py-1 font-mono text-[11px] text-emerald-100 transition-colors disabled:cursor-default disabled:opacity-60'
+                        : 'rounded border border-red-400/60 bg-red-500/20 px-2 py-1 font-mono text-[11px] text-red-100 transition-colors disabled:cursor-default disabled:opacity-60'
                       : 'rounded border border-zinc-700 bg-zinc-900 px-2 py-1 font-mono text-[11px] text-zinc-300 transition-colors hover:bg-zinc-800 disabled:cursor-default disabled:opacity-60'}
                   >
                     {preset}
@@ -722,34 +786,40 @@ export function ChatScreen() {
               })}
             </div>
             <Textarea
-              value={flagNote}
-              onChange={(event) => setFlagNote(event.target.value.slice(0, 280))}
-              placeholder="Optional note, e.g. wrong ticker context, unsupported claim, bad math"
-              disabled={isPendingFlagSaving}
+              value={feedbackNote}
+              onChange={(event) => setFeedbackNote(event.target.value.slice(0, 280))}
+              placeholder={isPendingGoodFeedback
+                ? 'Optional note, e.g. well grounded, strong evidence use, helpful synthesis'
+                : 'Optional note, e.g. wrong ticker context, unsupported claim, bad math'}
+              disabled={isPendingFeedbackSaving}
               maxLength={280}
               rows={4}
-              className="border-red-500/20 bg-black/30 font-mono text-sm text-zinc-100 placeholder:text-zinc-500"
+              className={isPendingGoodFeedback
+                ? 'border-emerald-500/20 bg-black/30 font-mono text-sm text-zinc-100 placeholder:text-zinc-500'
+                : 'border-red-500/20 bg-black/30 font-mono text-sm text-zinc-100 placeholder:text-zinc-500'}
             />
             <div className="text-right font-mono text-[11px] text-zinc-500">
-              {flagNote.length}/280
+              {feedbackNote.length}/280
             </div>
           </div>
           <DialogFooter>
             <button
               type="button"
-              onClick={closeFlagDialog}
-              disabled={isPendingFlagSaving}
+              onClick={closeFeedbackDialog}
+              disabled={isPendingFeedbackSaving}
               className="rounded border border-zinc-700 bg-zinc-900 px-3 py-2 font-mono text-xs text-zinc-200 transition-colors hover:bg-zinc-800 disabled:cursor-default disabled:opacity-60"
             >
               Cancel
             </button>
             <button
               type="button"
-              onClick={() => void handleFlagSubmit()}
-              disabled={isPendingFlagSaving}
-              className="rounded border border-red-500/30 bg-red-500/10 px-3 py-2 font-mono text-xs text-red-200 transition-colors hover:bg-red-500/20 disabled:cursor-default disabled:opacity-60"
+              onClick={() => void handleFeedbackSubmit()}
+              disabled={isPendingFeedbackSaving}
+              className={isPendingGoodFeedback
+                ? 'rounded border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 font-mono text-xs text-emerald-200 transition-colors hover:bg-emerald-500/20 disabled:cursor-default disabled:opacity-60'
+                : 'rounded border border-red-500/30 bg-red-500/10 px-3 py-2 font-mono text-xs text-red-200 transition-colors hover:bg-red-500/20 disabled:cursor-default disabled:opacity-60'}
             >
-              {isPendingFlagSaving ? 'Saving...' : 'Save flag'}
+              {isPendingFeedbackSaving ? 'Saving...' : isPendingGoodFeedback ? 'Save good feedback' : 'Save flag'}
             </button>
           </DialogFooter>
         </DialogContent>
@@ -786,18 +856,22 @@ export function ChatScreen() {
                 onCancelAction={handleCancelAction}
               />
               {msg.role === 'assistant' && (
-                <div className="ml-6 flex items-center">
+                <div className="ml-6 flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => handleFlagMessage(msg)}
-                    disabled={Boolean(flagStates[msg.id])}
+                    onClick={() => handleFeedbackMessage(msg, 'good')}
+                    disabled={Boolean(feedbackStates[msg.id])}
+                    className="rounded border border-emerald-500/30 bg-emerald-500/8 px-2 py-0.5 font-mono text-[11px] text-emerald-300 transition-colors hover:bg-emerald-500/15 disabled:cursor-default disabled:opacity-70"
+                  >
+                    {getFeedbackButtonLabel('good', feedbackStates[msg.id])}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFeedbackMessage(msg, 'poor')}
+                    disabled={Boolean(feedbackStates[msg.id])}
                     className="rounded border border-red-500/30 bg-red-500/8 px-2 py-0.5 font-mono text-[11px] text-red-300 transition-colors hover:bg-red-500/15 disabled:cursor-default disabled:opacity-70"
                   >
-                    {flagStates[msg.id] === 'saving'
-                      ? '[flagging...]'
-                      : flagStates[msg.id] === 'saved'
-                        ? '[flagged]'
-                        : '[flag response]'}
+                    {getFeedbackButtonLabel('poor', feedbackStates[msg.id])}
                   </button>
                 </div>
               )}

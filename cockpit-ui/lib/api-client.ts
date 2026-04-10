@@ -11,6 +11,8 @@ import type {
   QueueStatus,
   RestartBackendResponse,
   RenderedChart,
+  IntelPulseResponse,
+  IntelPulseMatrixResponse,
 } from './cockpit-types'
 
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY || ''
@@ -360,3 +362,17 @@ export async function submitExtractionReviewDecision(params: {
 export async function getExtractionReviewErrors(limit: number = 200): Promise<ExtractionReviewErrorQueue> {
   return apiFetch<ExtractionReviewErrorQueue>(`/api/extraction-review/errors?limit=${limit}`)
 }
+
+/** Intel Pulse – GET /api/cockpit/pulse */
+export async function getIntelPulse(ticker?: string): Promise<IntelPulseResponse> {
+  const url = ticker ? `/api/cockpit/pulse?ticker=${encodeURIComponent(ticker)}` : "/api/cockpit/pulse"
+  return apiFetch<IntelPulseResponse>(url)
+}
+
+/** Diagnostic Matrix – GET /api/cockpit/matrix */
+export async function getDiagnosticMatrix(stage: string, ticker?: string): Promise<IntelPulseMatrixResponse> {
+  const base = `/api/cockpit/matrix?stage=${encodeURIComponent(stage)}`
+  const url = ticker ? `${base}&ticker=${encodeURIComponent(ticker)}` : base
+  return apiFetch<IntelPulseMatrixResponse>(url)
+}
+

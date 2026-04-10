@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import logging
 import os
 from collections import Counter
 from pathlib import Path
@@ -14,6 +15,8 @@ from app.services.source_registry import RESEARCH_MEMORY_ROOT
 DEFAULT_COMMENTARY_MEMOS_PATH = RESEARCH_MEMORY_ROOT / "commentary_memos.jsonl"
 DEFAULT_LLAMACPP_URL = os.getenv("LLAMACPP_URL", "http://127.0.0.1:8001").rstrip("/")
 DEFAULT_LLAMACPP_MODEL = os.getenv("LLAMACPP_MODEL", "model.gguf").strip()
+
+logger = logging.getLogger(__name__)
 
 MULTIPASS_WINDOW_SIZE = 12_000
 MULTIPASS_OVERLAP = 3_000
@@ -99,7 +102,9 @@ class CommentaryMemoExtractor:
         self.llm_fn = llm_fn or generate_json
         self.llm_url = str(llm_url or DEFAULT_LLAMACPP_URL).rstrip("/")
         self.llm_model = str(llm_model or DEFAULT_LLAMACPP_MODEL).strip()
-        self.memos_path = Path(memos_path or DEFAULT_COMMENTARY_MEMOS_PATH).expanduser().resolve()
+        self.memos_path = (
+            Path(memos_path or DEFAULT_COMMENTARY_MEMOS_PATH).expanduser().resolve()
+        )
 
     def _call_llm(
         self,
@@ -304,6 +309,9 @@ class CommentaryMemoExtractor:
         speaker: str,
         source_type: str,
         published_at: str | None = None,
+        route_signals: bool = True,
+        company_memory_store=None,
+        market_memory_store=None,
     ) -> dict[str, Any]:
         memo = self.extract(
             source_id=source_id,
@@ -312,4 +320,55 @@ class CommentaryMemoExtractor:
             source_type=source_type,
             published_at=published_at,
         )
-        return self.upsert(memo)
+        stored = self.upsert(memo)
+        if route_signals:
+            try:
+                from app.services.memory_signal_router import (
+                    route_signals,
+                    signals_from_commentary_memo,
+                )
+
+                route_signals(
+                    signals_from_commentary_memo(stored),
+                    company_memory_store=company_memory_store,
+                    market_memory_store=market_memory_store,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "commentary memo signal routing failed for %s: %s",
+                    source_id,
+                    exc,
+                )
+        return stored
+
+    def extract_store_and_route(
+        self,
+        *,
+        source_id: str,
+        transcript_text: str,
+        speaker: str,
+        source_type: str,
+        published_at: str | None = None,
+        company_memory_store=None,
+        market_memory_store=None,
+    ) -> dict[str, Any]:
+        from app.services.memory_signal_router import (
+            route_signals,
+            signals_from_commentary_memo,
+        )
+
+        memo = self.extract_and_store(
+            source_id=source_id,
+            transcript_text=transcript_text,
+            speaker=speaker,
+            source_type=source_type,
+            published_at=published_at,
+            route_signals=False,
+        )
+        signals = signals_from_commentary_memo(memo)
+        routing = route_signals(
+            signals,
+            company_memory_store=company_memory_store,
+            market_memory_store=market_memory_store,
+        )
+        return {"memo": memo, "signals": signals, "routing": routing}

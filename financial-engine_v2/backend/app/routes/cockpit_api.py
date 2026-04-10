@@ -7,10 +7,12 @@ import logging
 import os
 import subprocess
 import sys
+import threading
 import time
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, AsyncGenerator
+from typing import Any, AsyncGenerator, Literal
 from urllib.parse import urlparse
 
 import httpx
@@ -22,6 +24,11 @@ from app.core.config import PROJECT_ROOT, settings
 from app.core.db import SessionLocal
 from app.models.documents import Document
 from app.services.cockpit_service import CockpitService
+from cockpit.core.config import (
+    compute_effective_cockpit_config,
+    effective_anthropic_api_key,
+    load_env,
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -49,6 +56,7 @@ class AggregatedHealthResponse(BaseModel):
 class CockpitConfigResponse(BaseModel):
     llm_model: str | None = None
     llm_endpoint: str | None = None
+    anthropic_key_configured: bool = False
     extract_model: str | None = None
     embed_model: str | None = None
     routing_policy: str | None = None
@@ -84,6 +92,50 @@ class QueueStatusResponse(BaseModel):
     active: int = 0
     completed: int = 0
     failed: int = 0
+
+
+class IntelPulseStats(BaseModel):
+    document_count: int = 0
+    extraction_count: int = 0
+    signal_count: int = 0
+    memory_count: int = 0
+    population_index: float = 0.0
+    trust_score_avg: float = 0.0
+    quarantine_rate: float = 0.0
+
+
+class IntelPulseStageHealth(BaseModel):
+    id: str
+    label: str
+    health: float
+    status: str
+
+
+class IntelPulseFailure(BaseModel):
+    id: str
+    entity: str
+    type: str
+    message: str
+    confidence: float
+    timestamp: str
+
+
+class IntelPulseResponse(BaseModel):
+    stats: IntelPulseStats
+    pipeline: list[IntelPulseStageHealth]
+    failures: list[IntelPulseFailure] | None = None
+
+
+class IntelPulseEntityMetric(BaseModel):
+    entity: str
+    metrics: dict[
+        str, str
+    ]  # metric_name -> status (populated, abstain, failed, sparse)
+
+
+class IntelPulseMatrixResponse(BaseModel):
+    stage: str
+    entities: list[IntelPulseEntityMetric]
 
 
 # ---------------------------------------------------------------------------
@@ -366,6 +418,8 @@ def cockpit_config() -> CockpitConfigResponse:
     """Return system configuration for the cockpit settings screen."""
     from app.services.llamacpp_runtime import resolve_llm_runtime_config
 
+    load_env(PROJECT_ROOT)
+
     llm_endpoint: str | None = None
     llm_model: str | None = None
     try:
@@ -382,11 +436,31 @@ def cockpit_config() -> CockpitConfigResponse:
             llm_model = model_id
             break
 
-    import os
+    config_path_value = str(
+        os.getenv("COCKPIT_CONFIG") or "config/cockpit.yaml"
+    ).strip()
+    config_path = Path(config_path_value)
+    if not config_path.is_absolute():
+        config_path = (PROJECT_ROOT / config_path).resolve()
+
+    effective_cfg = compute_effective_cockpit_config(
+        PROJECT_ROOT,
+        str(config_path),
+        profile=str(os.getenv("COCKPIT_PROFILE") or "default").strip() or "default",
+        read_only=False,
+        no_web=False,
+    )
+    cockpit_llm = (
+        effective_cfg.get("cockpit_llm")
+        if isinstance(effective_cfg.get("cockpit_llm"), dict)
+        else {}
+    )
+    anthropic_key_configured = bool(effective_anthropic_api_key(cockpit_llm))
 
     return CockpitConfigResponse(
         llm_model=llm_model,
         llm_endpoint=llm_endpoint,
+        anthropic_key_configured=anthropic_key_configured,
         extract_model=str(settings.extract_model or "").strip() or None,
         embed_model=str(settings.embed_model or "").strip() or None,
         routing_policy="adaptive",
@@ -606,8 +680,15 @@ def _fetch_llama_server_models() -> dict[str, dict[str, Any]]:
     llamacpp_url = str(settings.llamacpp_url or "").strip().rstrip("/")
     if not llamacpp_url:
         return {}
+    headers: dict[str, str] = {}
+    api_key = (
+        str(os.getenv("LLM_API_KEY") or "").strip()
+        or str(os.getenv("LLAMACPP_API_KEY") or "").strip()
+    )
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
     try:
-        resp = httpx.get(f"{llamacpp_url}/v1/models", timeout=3.0)
+        resp = httpx.get(f"{llamacpp_url}/v1/models", headers=headers, timeout=3.0)
         resp.raise_for_status()
         data = resp.json()
     except Exception:
@@ -696,8 +777,20 @@ def cockpit_available_models() -> AvailableModelsResponse:
                 )
             )
 
+    server_groups = _build_server_model_groups(server_models) if server_models else []
     if not groups:
-        groups = _build_server_model_groups(server_models)
+        groups = server_groups
+    elif server_groups:
+        local_by_location = {group.location: group for group in groups}
+        server_by_location = {group.location: group for group in server_groups}
+        merged_groups: list[ModelGroup] = []
+        for loc in _MODEL_LOCATIONS:
+            group = local_by_location.get(loc["location"]) or server_by_location.get(
+                loc["location"]
+            )
+            if group is not None:
+                merged_groups.append(group)
+        groups = merged_groups
 
     return AvailableModelsResponse(
         groups=groups,
@@ -799,6 +892,30 @@ def cockpit_docs():
         db.close()
 
 
+@router.get("/pulse", response_model=IntelPulseResponse)
+def cockpit_intel_pulse(ticker: str | None = None) -> IntelPulseResponse:
+    """Return system population and quality metrics for Intel Pulse."""
+    try:
+        service = CockpitService.get_instance()
+        return service.get_intel_pulse_stats(ticker)
+    except Exception as exc:
+        logger.exception("Failed to fetch intel pulse stats")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get("/matrix", response_model=IntelPulseMatrixResponse)
+def cockpit_intel_matrix(
+    stage: str, ticker: str | None = None
+) -> IntelPulseMatrixResponse:
+    """Return diagnostic density matrix for Intel Pulse."""
+    try:
+        service = CockpitService.get_instance()
+        return service.get_diagnostic_matrix(stage, ticker)
+    except Exception as exc:
+        logger.exception("Failed to fetch diagnostic matrix")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 class CockpitChatRequest(BaseModel):
     message: str
     mode: str = "analysis"
@@ -815,19 +932,37 @@ class CockpitActionExecuteRequest(BaseModel):
     action_id: str
     args: dict[str, Any] = Field(default_factory=dict)
     session_id: str | None = None
+    wait: bool = True
 
 
 class CockpitActionExecuteResponse(BaseModel):
     ok: bool = True
     action_id: str
-    result: str
+    result: str = ""
     exit_code: int = 0
+    job_id: str | None = None
+    status: str | None = None
+    queued: bool = False
     chart: dict[str, str] | None = None
+
+
+class CockpitActionJobStatusResponse(BaseModel):
+    ok: bool = True
+    job_id: str
+    action_id: str
+    status: str
+    started_at: str | None = None
+    ended_at: str | None = None
+    exit_code: int | None = None
+    stdout_path: str | None = None
+    stderr_path: str | None = None
+    result: str | None = None
 
 
 class CockpitFeedbackFlagRequest(BaseModel):
     session_id: str | None = None
     ticker: str | None = None
+    feedback_type: Literal["good", "poor"] = "poor"
     note: str | None = None
     flagged_message: dict[str, Any] = Field(default_factory=dict)
     transcript: list[dict[str, Any]] = Field(default_factory=list)
@@ -837,11 +972,42 @@ class CockpitFeedbackFlagRequest(BaseModel):
 class CockpitFeedbackFlagResponse(BaseModel):
     ok: bool = True
     report_id: str
+    feedback_type: Literal["good", "poor"]
     report_dir: str
     bundle_path: str
     summary_path: str
     analysis_path: str | None = None
+    read_api_path: str
+    codex_prompt: str
     analysis_summary: str | None = None
+
+
+class CockpitFlaggedReportListItem(BaseModel):
+    report_id: str
+    feedback_type: Literal["good", "poor"]
+    session_id: str
+    ticker: str | None = None
+    saved_at: str | None = None
+    note: str | None = None
+    flagged_response_excerpt: str | None = None
+    read_api_path: str
+
+
+class CockpitFlaggedReportListResponse(BaseModel):
+    items: list[CockpitFlaggedReportListItem] = Field(default_factory=list)
+
+
+class CockpitFlaggedReportResponse(BaseModel):
+    report_id: str
+    feedback_type: Literal["good", "poor"]
+    report_dir: str
+    bundle_path: str
+    summary_path: str
+    analysis_path: str | None = None
+    read_api_path: str
+    bundle: dict[str, Any] = Field(default_factory=dict)
+    summary_markdown: str = ""
+    analysis: dict[str, Any] | None = None
 
 
 def _coerce_float(raw: Any) -> float | None:
@@ -859,6 +1025,174 @@ def _coerce_int(raw: Any) -> int | None:
     if value is None:
         return None
     return int(value)
+
+
+def _clip_action_output(value: str | None, limit: int = 12000) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    return text[:limit]
+
+
+def _read_job_output(path: str | None, limit: int = 12000) -> str:
+    raw_path = str(path or "").strip()
+    if not raw_path:
+        return ""
+    try:
+        return _clip_action_output(Path(raw_path).read_text(encoding="utf-8"), limit)
+    except OSError:
+        return ""
+
+
+def _run_action_subprocess(
+    *,
+    normalized_command: list[str],
+    repo_root: Path,
+    action_env: dict[str, str],
+    timeout_seconds: int,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        normalized_command,
+        cwd=str(repo_root),
+        capture_output=True,
+        text=True,
+        timeout=timeout_seconds,
+        check=False,
+        env=action_env,
+    )
+
+
+def _serialize_action_job_status(
+    service: CockpitService, job_id: str
+) -> dict[str, Any]:
+    job = service.state_store.get_job(job_id)
+    if job is None:
+        raise FileNotFoundError(job_id)
+
+    result_text = ""
+    if str(job.get("status") or "") == "success":
+        result_text = _read_job_output(job.get("stdout_path"))
+    elif str(job.get("status") or "") == "failed":
+        result_text = _read_job_output(job.get("stderr_path")) or _read_job_output(
+            job.get("stdout_path")
+        )
+
+    return {
+        "ok": True,
+        "job_id": str(job.get("job_id") or job_id),
+        "action_id": str(job.get("action_id") or ""),
+        "status": str(job.get("status") or "unknown"),
+        "started_at": job.get("started_at"),
+        "ended_at": job.get("ended_at"),
+        "exit_code": job.get("exit_code"),
+        "stdout_path": job.get("stdout_path"),
+        "stderr_path": job.get("stderr_path"),
+        "result": result_text or None,
+    }
+
+
+def _launch_action_job(
+    *,
+    service: CockpitService,
+    action_id: str,
+    args: dict[str, Any],
+    normalized_command: list[str],
+    action_env: dict[str, str],
+    timeout_seconds: int,
+) -> dict[str, Any]:
+    job_id = uuid.uuid4().hex
+    logs_dir = Path(service.artifact_store.logs_dir)
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    stdout_path = logs_dir / f"{job_id}.out.log"
+    stderr_path = logs_dir / f"{job_id}.err.log"
+    started_at = datetime.now(timezone.utc).isoformat()
+
+    service.state_store.add_job(
+        {
+            "job_id": job_id,
+            "action_id": action_id,
+            "args": args,
+            "started_at": started_at,
+            "ended_at": None,
+            "status": "queued",
+            "exit_code": None,
+            "stdout_path": str(stdout_path),
+            "stderr_path": str(stderr_path),
+            "artifacts": [],
+        }
+    )
+
+    def _worker() -> None:
+        service.state_store.add_job(
+            {
+                "job_id": job_id,
+                "action_id": action_id,
+                "args": args,
+                "started_at": started_at,
+                "ended_at": None,
+                "status": "running",
+                "exit_code": None,
+                "stdout_path": str(stdout_path),
+                "stderr_path": str(stderr_path),
+                "artifacts": [],
+            }
+        )
+
+        stdout_text = ""
+        stderr_text = ""
+        exit_code: int | None = None
+        status = "failed"
+        try:
+            proc = _run_action_subprocess(
+                normalized_command=normalized_command,
+                repo_root=Path(service.repo_root),
+                action_env=action_env,
+                timeout_seconds=timeout_seconds,
+            )
+            stdout_text = proc.stdout or ""
+            stderr_text = proc.stderr or ""
+            exit_code = proc.returncode
+            status = "success" if proc.returncode == 0 else "failed"
+        except subprocess.TimeoutExpired:
+            exit_code = 124
+            stderr_text = f"Action timed out after {timeout_seconds}s: {action_id}\n"
+            status = "failed"
+        except Exception as exc:
+            stderr_text = f"Action execution failed: {exc}\n"
+            status = "failed"
+
+        stdout_path.write_text(stdout_text, encoding="utf-8")
+        stderr_path.write_text(stderr_text, encoding="utf-8")
+        service.state_store.add_job(
+            {
+                "job_id": job_id,
+                "action_id": action_id,
+                "args": args,
+                "started_at": started_at,
+                "ended_at": datetime.now(timezone.utc).isoformat(),
+                "status": status,
+                "exit_code": exit_code,
+                "stdout_path": str(stdout_path),
+                "stderr_path": str(stderr_path),
+                "artifacts": [],
+            }
+        )
+
+    thread = threading.Thread(
+        target=_worker,
+        daemon=True,
+        name=f"cockpit-action-{job_id[:8]}",
+    )
+    thread.start()
+    return {
+        "ok": True,
+        "action_id": action_id,
+        "result": f"Queued action {action_id}",
+        "exit_code": 0,
+        "job_id": job_id,
+        "status": "queued",
+        "queued": True,
+    }
 
 
 def _resolve_chart_csv_path(repo_root: Path, raw_path: str) -> Path:
@@ -996,6 +1330,60 @@ def _build_candlestick_chart_response(
     )
 
 
+def _build_filestats_chart_from_chat_response(
+    response: Any,
+) -> dict[str, str] | None:
+    try:
+        from cockpit.core.plotly_html import build_filestats_dashboard_html
+    except Exception as exc:
+        logger.debug("Filestats dashboard builder unavailable: %s", exc)
+        return None
+
+    evidence = getattr(response, "evidence", None)
+    if not isinstance(evidence, list):
+        return None
+
+    for item in evidence:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("type") or "") != "company_dump":
+            continue
+        details = item.get("details")
+        if not isinstance(details, dict):
+            continue
+
+        backend = details.get("backend")
+        if not isinstance(backend, dict):
+            continue
+
+        ticker = (
+            str(details.get("ticker") or backend.get("ticker") or "UNKNOWN")
+            .strip()
+            .upper()
+        )
+        cockpit_local_memory = details.get("cockpit_local_memory")
+        if not isinstance(cockpit_local_memory, dict):
+            cockpit_local_memory = {}
+
+        payload = {
+            **backend,
+            "ticker": ticker,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "cockpit_local_memory": cockpit_local_memory,
+        }
+        try:
+            html = build_filestats_dashboard_html(payload)
+        except Exception as exc:
+            logger.warning("Failed to build filestats dashboard HTML: %s", exc)
+            return None
+        return {
+            "title": f"{ticker} filestats dashboard",
+            "html": html,
+        }
+
+    return None
+
+
 class CockpitActionPreviewRequest(BaseModel):
     action_id: str
     args: dict[str, Any] = Field(default_factory=dict)
@@ -1063,11 +1451,31 @@ def _normalize_action_command(command: list[str], repo_root: Path) -> list[str]:
     if len(normalized) > 1:
         raw_script = normalized[1]
         script_path = Path(raw_script)
+        if script_path.is_absolute() and not script_path.exists():
+            shared_root_override = str(
+                os.getenv("COCKPIT_SHARED_SCRIPTS_ROOT") or ""
+            ).strip()
+            candidate_roots = [
+                Path(shared_root_override) if shared_root_override else None,
+                Path("/workspace/scripts"),
+                Path("/workspace-scripts"),
+            ]
+            for root in candidate_roots:
+                if root is None:
+                    continue
+                candidate = (root / script_path.name).resolve()
+                if candidate.exists():
+                    normalized[1] = str(candidate)
+                    script_path = candidate
+                    break
+
         if not script_path.is_absolute():
             candidates: list[Path] = [
                 (repo_root / script_path).resolve(),
                 (Path("/app") / script_path).resolve(),
                 (Path("/scripts") / script_path.name).resolve(),
+                (Path("/workspace/scripts") / script_path.name).resolve(),
+                (Path("/workspace-scripts") / script_path.name).resolve(),
             ]
             if raw_script.startswith("../scripts/"):
                 candidates.append(
@@ -1134,19 +1542,25 @@ async def cockpit_execute_action(payload: CockpitActionExecuteRequest):
     )
     action_env = _build_action_env(Path(service.repo_root))
 
-    def _run_action() -> subprocess.CompletedProcess[str]:
-        return subprocess.run(
-            normalized_command,
-            cwd=str(service.repo_root),
-            capture_output=True,
-            text=True,
-            timeout=timeout_seconds,
-            check=False,
-            env=action_env,
+    if not payload.wait:
+        queued = _launch_action_job(
+            service=service,
+            action_id=action_id,
+            args=args,
+            normalized_command=normalized_command,
+            action_env=action_env,
+            timeout_seconds=timeout_seconds,
         )
+        return CockpitActionExecuteResponse(**queued)
 
     try:
-        proc = await asyncio.to_thread(_run_action)
+        proc = await asyncio.to_thread(
+            _run_action_subprocess,
+            normalized_command=normalized_command,
+            repo_root=Path(service.repo_root),
+            action_env=action_env,
+            timeout_seconds=timeout_seconds,
+        )
     except subprocess.TimeoutExpired as exc:
         raise HTTPException(
             status_code=504,
@@ -1172,7 +1586,33 @@ async def cockpit_execute_action(payload: CockpitActionExecuteRequest):
         action_id=action_id,
         result=output[:12000],
         exit_code=proc.returncode,
+        status="success",
     )
+
+
+@router.get("/action/jobs/{job_id}", response_model=CockpitActionJobStatusResponse)
+async def cockpit_get_action_job(job_id: str):
+    """Return persisted status for a queued cockpit action."""
+    try:
+        service = CockpitService.get_instance()
+    except Exception as exc:
+        logger.exception("Failed to initialize CockpitService for action job read")
+        raise HTTPException(
+            status_code=500, detail=f"Service initialization failed: {str(exc)}"
+        ) from exc
+
+    try:
+        result = await asyncio.to_thread(_serialize_action_job_status, service, job_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Cockpit action job read failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Action job read failed: {str(exc)}",
+        ) from exc
+
+    return CockpitActionJobStatusResponse(**result)
 
 
 @router.post("/feedback/flag", response_model=CockpitFeedbackFlagResponse)
@@ -1191,6 +1631,7 @@ async def cockpit_flag_feedback(payload: CockpitFeedbackFlagRequest):
             service.flag_chat_feedback,
             session_id=payload.session_id,
             ticker=payload.ticker,
+            feedback_type=payload.feedback_type,
             note=payload.note,
             flagged_message=payload.flagged_message,
             transcript=payload.transcript,
@@ -1204,6 +1645,56 @@ async def cockpit_flag_feedback(payload: CockpitFeedbackFlagRequest):
         ) from exc
 
     return CockpitFeedbackFlagResponse(**result)
+
+
+@router.get("/feedback/flags", response_model=CockpitFlaggedReportListResponse)
+async def cockpit_list_flagged_feedback(limit: int = 25):
+    """List recent flagged cockpit chat reports."""
+    try:
+        service = CockpitService.get_instance()
+    except Exception as exc:
+        logger.exception("Failed to initialize CockpitService for feedback listing")
+        raise HTTPException(
+            status_code=500, detail=f"Service initialization failed: {str(exc)}"
+        ) from exc
+
+    try:
+        items = await asyncio.to_thread(service.list_flagged_reports, limit)
+    except Exception as exc:
+        logger.exception("Cockpit feedback listing failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Feedback listing failed: {str(exc)}",
+        ) from exc
+
+    return CockpitFlaggedReportListResponse(items=items)
+
+
+@router.get("/feedback/flags/{report_id}", response_model=CockpitFlaggedReportResponse)
+async def cockpit_get_flagged_feedback(report_id: str):
+    """Return one flagged cockpit chat report by report_id."""
+    try:
+        service = CockpitService.get_instance()
+    except Exception as exc:
+        logger.exception("Failed to initialize CockpitService for feedback read")
+        raise HTTPException(
+            status_code=500, detail=f"Service initialization failed: {str(exc)}"
+        ) from exc
+
+    try:
+        result = await asyncio.to_thread(service.get_flagged_report, report_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Cockpit feedback read failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Feedback read failed: {str(exc)}",
+        ) from exc
+
+    return CockpitFlaggedReportResponse(**result)
 
 
 @router.post("/chat")
@@ -1223,7 +1714,8 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
     if not payload.stream:
         # Blocking implementation if requested (rare for this UI)
         try:
-            response = service.chat_stream(
+            response = await asyncio.to_thread(
+                service.chat_stream,
                 message=payload.message,
                 ticker=payload.ticker,
                 session_id=payload.session_id,
@@ -1232,6 +1724,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 rag=payload.rag,
                 db_diagnostics=payload.db_diagnostics,
             )
+            rendered_chart = _build_filestats_chart_from_chat_response(response)
             return {
                 "type": "done",
                 "data": {
@@ -1246,6 +1739,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     if response.routing_metadata
                     else 0,
                     "action_preview": response.action_preview,
+                    "chart": rendered_chart,
                 },
             }
         except Exception as exc:
@@ -1319,6 +1813,10 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                         {"type": "action_preview", "data": response.action_preview}
                     )
 
+                rendered_chart = _build_filestats_chart_from_chat_response(response)
+                if rendered_chart:
+                    await queue.put({"type": "chart", "data": rendered_chart})
+
                 # Final 'done' event with metrics
                 meta = response.routing_metadata or {}
                 await queue.put(
@@ -1330,6 +1828,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                             "latency_ms": meta.get("latency_ms", 0),
                             "cost_usd": meta.get("cost_usd", 0),
                             "source": meta.get("source", "local"),
+                            "chart": rendered_chart,
                         },
                     }
                 )

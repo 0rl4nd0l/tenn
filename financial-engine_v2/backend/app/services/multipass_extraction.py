@@ -10,6 +10,7 @@ Passes:
 
 Entry point: run_multipass_extraction(pdf_path, doc_metadata, llm_client)
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -37,7 +38,9 @@ def parse_period_end(s: str | None) -> date | None:
         return None
 
 
-def _derive_period_start(period_end: date | None, period_type: str | None) -> date | None:
+def _derive_period_start(
+    period_end: date | None, period_type: str | None
+) -> date | None:
     """
     Derive period_start deterministically from period_end and period_type.
 
@@ -48,22 +51,37 @@ def _derive_period_start(period_end: date | None, period_type: str | None) -> da
     Returns None when either input is absent or period_type is unrecognised.
     """
     from dateutil.relativedelta import relativedelta
+
     if period_end is None or period_type not in ("A", "H", "Q"):
         return None
     months = {"A": 12, "H": 6, "Q": 3}[period_type]
     return period_end - relativedelta(months=months) + timedelta(days=1)
 
+
 EXTRACTOR_VERSION = "docling_multipass_v1"
 
 # All 10 metric field names — used by Guard A and _upsert_financial_rows
 METRIC_FIELDS = [
-    "revenue", "ebit", "np_attributable",
-    "operating_cf", "investing_cf", "financing_cf",
-    "capex", "cash_end", "net_debt", "shares_outstanding",
+    "revenue",
+    "ebit",
+    "np_attributable",
+    "operating_cf",
+    "investing_cf",
+    "financing_cf",
+    "capex",
+    "cash_end",
+    "net_debt",
+    "shares_outstanding",
 ]
 
 # Source priority for reconciliation (index 0 = highest priority)
-SOURCE_PRIORITY = ["income_statement", "cashflow_statement", "balance_sheet", "share_capital", "highlights"]
+SOURCE_PRIORITY = [
+    "income_statement",
+    "cashflow_statement",
+    "balance_sheet",
+    "share_capital",
+    "highlights",
+]
 
 SCALE_MULTIPLIERS = {
     "thousands": 1_000,
@@ -76,9 +94,9 @@ SCALE_MULTIPLIERS = {
 
 @dataclass
 class MultipassResult:
-    status: str            # "ok" | "ok_low_confidence" | "failed"
-    payload: dict          # matches _upsert_financial_rows contract
-    sections: list[dict]   # prose sections for Qdrant chunking
+    status: str  # "ok" | "ok_low_confidence" | "failed"
+    payload: dict  # matches _upsert_financial_rows contract
+    sections: list[dict]  # prose sections for Qdrant chunking
     error: Optional[str] = None
 
 
@@ -94,6 +112,13 @@ _SCALE_PATTERNS: list[tuple[str, str]] = [
     # Millions: spelled-out, $'000,000, compact $M / A$M notation (common in AU mining)
     (r"\$A?'?000,000|\bmillions?\b|A?\$[Mm]\b|\$m\b", "millions"),
     (r"\bbillions?\b", "billions"),
+]
+
+_CURRENCY_PATTERNS: list[tuple[str, str]] = [
+    # AUD markers: A$, $A, AUD, Australian dollar(s)
+    (r"\b(?:A\$|\$A|AUD|AUSTRALIAN\s+DOLLARS?)\b", "AUD"),
+    # USD markers: US$, $US, USD, United States dollar(s)
+    (r"\b(?:US\$|\$US|USD|UNITED\s+STATES\s+DOLLARS?)\b", "USD"),
 ]
 
 
@@ -120,6 +145,37 @@ def _detect_scale_from_tables(tables) -> str:
             if _re.search(pattern, combined, _re.IGNORECASE):
                 return scale
     return "unknown"
+
+
+def _detect_currency_from_tables(tables) -> str | None:
+    """
+    Detect a dominant document currency from table headers/captions/body rows.
+
+    Returns a 3-letter currency code when one currency has clear evidence,
+    otherwise returns None.
+    """
+    hits: dict[str, int] = {}
+    for table in tables[:20]:
+        surfaces: list[str] = []
+        if table.headers:
+            surfaces.append(" ".join(str(h) for h in table.headers))
+        if getattr(table, "caption", None):
+            surfaces.append(str(table.caption))
+        for row in (table.rows or [])[:8]:
+            surfaces.append(" ".join(str(cell) for cell in row))
+
+        combined = " ".join(surfaces)
+        for pattern, currency in _CURRENCY_PATTERNS:
+            matches = _re.findall(pattern, combined, _re.IGNORECASE)
+            if matches:
+                hits[currency] = hits.get(currency, 0) + len(matches)
+
+    if not hits:
+        return None
+    ranked = sorted(hits.items(), key=lambda item: item[1], reverse=True)
+    if len(ranked) > 1 and ranked[0][1] == ranked[1][1]:
+        return None
+    return ranked[0][0]
 
 
 # ---------------------------------------------------------------------------
@@ -184,23 +240,34 @@ def _run_pass1_classifier(
 
 _TABLE_KEYWORDS: dict[str, list[str]] = {
     "cashflow_statement": [
-        "cash flow", "cash from operations", "operating activities",
-        "financing activities", "investing activities", "net cash", "cash at end",
+        "cash flow",
+        "cash from operations",
+        "operating activities",
+        "financing activities",
+        "investing activities",
+        "net cash",
+        "cash at end",
         "cash generated from operations",  # BHP-style formal CF statement row label
     ],
     "income_statement": [
-        "revenue", "profit", "earnings before", "ebit", "net profit",
-        "profit after tax", "income statement", "statement of profit",
-        "profit before taxation",    # formal income statement row (not in summaries)
-        "income tax expense",        # formal income statement row
-        "income tax",                # "Income tax (expense)/benefit" — handles parenthetical variants
-        "from operations",           # "PROFIT/(LOSS) FROM OPERATIONS" — consolidated IS row
-        "finance costs",             # formal IS row — absent from segment breakdowns
+        "revenue",
+        "profit",
+        "earnings before",
+        "ebit",
+        "net profit",
+        "profit after tax",
+        "income statement",
+        "statement of profit",
+        "profit before taxation",  # formal income statement row (not in summaries)
+        "income tax expense",  # formal income statement row
+        "income tax",  # "Income tax (expense)/benefit" — handles parenthetical variants
+        "from operations",  # "PROFIT/(LOSS) FROM OPERATIONS" — consolidated IS row
+        "finance costs",  # formal IS row — absent from segment breakdowns
         "depreciation and amortisation",  # formal IS expense row — absent from segment tables
-        "other comprehensive",       # OCI section — only in full IS, never in EBITDA recons
-        "operating income",          # banking: ANZ uses "Operating income" not "Revenue"
-        "net interest income",       # banking: core revenue line in consolidated IS
-        "operating expenses",        # formal IS row — distinguishes full IS from segment recons
+        "other comprehensive",  # OCI section — only in full IS, never in EBITDA recons
+        "operating income",  # banking: ANZ uses "Operating income" not "Revenue"
+        "net interest income",  # banking: core revenue line in consolidated IS
+        "operating expenses",  # formal IS row — distinguishes full IS from segment recons
         # These keywords also appear in CF statements but do NOT cause cross-contamination:
         # each table is scored independently per statement type. A CF table may score 3
         # for income_statement, but the real IS scores 7+ because it has BOTH the P&L
@@ -208,19 +275,32 @@ _TABLE_KEYWORDS: dict[str, list[str]] = {
         # MIN (pg14), BHP (pg44), RMS (pg20), SEG (pg12) all correctly selected.
     ],
     "balance_sheet": [
-        "total assets", "current assets", "shareholders equity", "net assets",
-        "total liabilities", "balance sheet", "statement of financial position",
-        "non-current assets",       # formal balance sheet section
-        "total equity",             # formal balance sheet row
+        "total assets",
+        "current assets",
+        "shareholders equity",
+        "net assets",
+        "total liabilities",
+        "balance sheet",
+        "statement of financial position",
+        "non-current assets",  # formal balance sheet section
+        "total equity",  # formal balance sheet row
     ],
     "share_capital": [
-        "ordinary shares", "number of shares", "shares on issue", "shares issued",
-        "share capital", "shares at end",
-        "weighted average number of shares",   # EPS note table
-        "basic earnings per ordinary share",   # EPS note table
+        "ordinary shares",
+        "number of shares",
+        "shares on issue",
+        "shares issued",
+        "share capital",
+        "shares at end",
+        "weighted average number of shares",  # EPS note table
+        "basic earnings per ordinary share",  # EPS note table
     ],
     "highlights": [
-        "highlights", "key metrics", "summary", "at a glance", "key financials",
+        "highlights",
+        "key metrics",
+        "summary",
+        "at a glance",
+        "key financials",
         "key information",  # Appendix 4D "Key Information" table (has EBIT, EBITDA labeled)
         "results for announcement",  # Appendix 4D summary tables — header bonus from _STATEMENT_HEADERS can fire
     ],
@@ -231,7 +311,9 @@ _TABLE_KEYWORDS: dict[str, list[str]] = {
 _STATEMENT_HEADERS: dict[str, list[str]] = {
     "cashflow_statement": ["statement of cash flows", "cash flow statement"],
     "income_statement": [
-        "income statement", "statement of profit", "statement of comprehensive income",
+        "income statement",
+        "statement of profit",
+        "statement of comprehensive income",
     ],
     "balance_sheet": ["balance sheet", "statement of financial position"],
     "share_capital": ["number of shares", "weighted average"],
@@ -254,13 +336,18 @@ _CF_MERGE_THRESHOLD = 2
 # flows" or "cash flows from" in its header row, which never appears in a real
 # income statement or balance sheet.
 _CF_DISQUALIFY_PHRASES = [
-    "cash flow", "statement of cash flows", "cash flows from", "appendix 5b",
+    "cash flow",
+    "statement of cash flows",
+    "cash flows from",
+    "appendix 5b",
 ]
 
 # Segment breakdown tables (e.g. "Operating segments" in notes) should not claim
 # the income_statement slot — they are divisional splits, not the consolidated IS.
 _SEGMENT_DISQUALIFY_PHRASES = [
-    "operating segments", "segment reporting", "reportable segments",
+    "operating segments",
+    "segment reporting",
+    "reportable segments",
 ]
 
 
@@ -405,8 +492,7 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
             + " ".join(str(h) for h in table.headers).lower()
             + " "
             + " ".join(
-                " ".join(str(c) for c in row)
-                for row in table.rows[:10] if row
+                " ".join(str(c) for c in row) for row in table.rows[:10] if row
             ).lower()
         )
         for label, keywords in _TABLE_KEYWORDS.items():
@@ -545,7 +631,13 @@ Example — cashflow_statement in $A'000, period ending Dec 2025:
 """
 
 _METRIC_SCHEMA_BY_TABLE = {
-    "cashflow_statement": ["operating_cf", "investing_cf", "financing_cf", "cash_end", "capex"],
+    "cashflow_statement": [
+        "operating_cf",
+        "investing_cf",
+        "financing_cf",
+        "cash_end",
+        "capex",
+    ],
     "income_statement": ["revenue", "ebit", "np_attributable"],
     # total_debt is an internal capture metric: not in METRIC_FIELDS, not stored in DB.
     # Pass 4 uses it to derive net_debt = total_debt - cash_end when net_debt is null.
@@ -553,6 +645,27 @@ _METRIC_SCHEMA_BY_TABLE = {
     "share_capital": ["shares_outstanding"],
     "highlights": METRIC_FIELDS,  # highlights may have any metric
 }
+
+_RETRY_KEY_METRICS_BY_TABLE: dict[str, list[str]] = {
+    "cashflow_statement": ["operating_cf", "cash_end"],
+    "income_statement": ["revenue"],
+    "balance_sheet": ["net_debt", "total_debt"],
+    "share_capital": ["shares_outstanding"],
+}
+
+
+def _needs_full_table_retry(table_type: str, extracted: dict[str, Any]) -> bool:
+    """
+    Decide whether a filtered-table extraction should be retried on full rows.
+
+    Retry when table-specific key metrics are all null after filtered extraction.
+    """
+    key_metrics = _RETRY_KEY_METRICS_BY_TABLE.get(table_type)
+    if key_metrics:
+        return all(extracted.get(metric) is None for metric in key_metrics)
+
+    metrics = _METRIC_SCHEMA_BY_TABLE.get(table_type, METRIC_FIELDS)
+    return all(extracted.get(metric) is None for metric in metrics)
 
 
 # ---------------------------------------------------------------------------
@@ -562,25 +675,69 @@ _METRIC_SCHEMA_BY_TABLE = {
 
 _ROW_KEYWORDS_BY_TABLE: dict[str, list[str]] = {
     "cashflow_statement": [
-        "receipt", "payment", "net cash", "operating", "investing", "financing",
-        "property plant", "capital expenditure", "cash and cash equivalent",
-        "cash at end", "cash at the end", "net increase", "net decrease",
-        "beginning", "end of", "exchange rate",
+        "receipt",
+        "payment",
+        "net cash",
+        "operating",
+        "investing",
+        "financing",
+        "property plant",
+        "capital expenditure",
+        "cash and cash equivalent",
+        "cash at end",
+        "cash at the end",
+        "net increase",
+        "net decrease",
+        "beginning",
+        "end of",
+        "exchange rate",
         # Appendix 5B section totals and key items
-        "subtotal", "exploration", "development", "staff cost",
-        "production", "related body corporate",
+        "subtotal",
+        "exploration",
+        "development",
+        "staff cost",
+        "production",
+        "related body corporate",
     ],
     "income_statement": [
-        "revenue", "sales", "income", "profit", "loss", "ebit", "earnings before",
-        "operations", "operating", "income tax", "attributable", "equity holder",
-        "owners of", "non-controlling", "comprehensive", "net profit", "net loss",
+        "revenue",
+        "sales",
+        "income",
+        "profit",
+        "loss",
+        "ebit",
+        "earnings before",
+        "operations",
+        "operating",
+        "income tax",
+        "attributable",
+        "equity holder",
+        "owners of",
+        "non-controlling",
+        "comprehensive",
+        "net profit",
+        "net loss",
     ],
     "balance_sheet": [
-        "cash and cash equivalent", "borrowing", "interest bearing",
-        "loan", "notes payable", "bond", "financial debt", "lease liab",
-        "net asset", "total equity", "share capital", "issued capital",
-        "ordinary share", "shares on issue", "total asset", "total liab",
-        "net debt", "current", "non-current",
+        "cash and cash equivalent",
+        "borrowing",
+        "interest bearing",
+        "loan",
+        "notes payable",
+        "bond",
+        "financial debt",
+        "lease liab",
+        "net asset",
+        "total equity",
+        "share capital",
+        "issued capital",
+        "ordinary share",
+        "shares on issue",
+        "total asset",
+        "total liab",
+        "net debt",
+        "current",
+        "non-current",
     ],
 }
 
@@ -604,7 +761,10 @@ def _is_section_header(row: list[str]) -> bool:
 def _is_total_row(row: list[str]) -> bool:
     """Check if a row is a total/subtotal line."""
     label = str(row[0]).strip().lower() if row else ""
-    return any(kw in label for kw in ("total", "net cash", "net operating", "net increase", "net decrease"))
+    return any(
+        kw in label
+        for kw in ("total", "net cash", "net operating", "net increase", "net decrease")
+    )
 
 
 def _row_matches_keywords(row: list[str], keywords: list[str]) -> bool:
@@ -657,7 +817,9 @@ def _filter_table_rows(table, table_type: str) -> list[list[str]]:
         if i in keep:
             if omitted_count > 0:
                 ncols = len(row)
-                marker = [f"[... {omitted_count} rows omitted ...]"] + [""] * (ncols - 1)
+                marker = [f"[... {omitted_count} rows omitted ...]"] + [""] * (
+                    ncols - 1
+                )
                 filtered.append(marker)
                 omitted_count = 0
             filtered.append(row)
@@ -666,7 +828,9 @@ def _filter_table_rows(table, table_type: str) -> list[list[str]]:
 
     if omitted_count > 0:
         ncols = len(rows[-1]) if rows else 1
-        filtered.append([f"[... {omitted_count} rows omitted ...]"] + [""] * (ncols - 1))
+        filtered.append(
+            [f"[... {omitted_count} rows omitted ...]"] + [""] * (ncols - 1)
+        )
 
     original_count = len(rows)
     filtered_count = len([r for r in filtered if not str(r[0]).startswith("[...")])
@@ -678,18 +842,26 @@ def _filter_table_rows(table, table_type: str) -> list[list[str]]:
         if reduction > 0.80:
             logger.warning(
                 "Filter too aggressive for %s: %d → %d rows (%.0f%% reduction) — using full table",
-                table_type, original_count, filtered_count, reduction * 100,
+                table_type,
+                original_count,
+                filtered_count,
+                reduction * 100,
             )
             return rows
         logger.info(
             "Filtered %s: %d → %d rows (%.0f%% reduction)",
-            table_type, original_count, filtered_count, reduction * 100,
+            table_type,
+            original_count,
+            filtered_count,
+            reduction * 100,
         )
 
     return filtered
 
 
-def _table_to_markdown(table, max_rows: int = 30, *, rows_override: list[list[str]] | None = None) -> str:
+def _table_to_markdown(
+    table, max_rows: int = 30, *, rows_override: list[list[str]] | None = None
+) -> str:
     """Convert DoclingTable rows to markdown string.
 
     max_rows caps body rows sent to the LLM (default 30 for single tables;
@@ -740,119 +912,177 @@ def _extract_single_table(
     filter_enabled = os.environ.get("EXTRACTION_FILTER_ROWS", "1") != "0"
     if filter_enabled:
         filtered_rows = _filter_table_rows(table, table_type)
-        markdown = _table_to_markdown(table, max_rows=row_cap, rows_override=filtered_rows)
+        markdown = _table_to_markdown(
+            table,
+            max_rows=row_cap,
+            rows_override=filtered_rows,
+        )
     else:
+        filtered_rows = None
         markdown = _table_to_markdown(table, max_rows=row_cap)
     if not markdown:
         return None
 
-    prompt = _PASS3A_PROMPT.format(
-        period_type=pass1_result.get("report_type", "?"),
-        period_end=pass1_result.get("period_end", "?"),
-        currency=pass1_result.get("currency", "AUD"),
-        scale=scale,
-        table_type=table_type,
-        table_markdown=markdown,
-        metric_list=", ".join(metrics),
-        metric_schema=metric_schema,
-    )
+    def _build_prompt(table_markdown: str) -> str:
+        return _PASS3A_PROMPT.format(
+            period_type=pass1_result.get("report_type", "?"),
+            period_end=pass1_result.get("period_end", "?"),
+            currency=pass1_result.get("currency", "AUD"),
+            scale=scale,
+            table_type=table_type,
+            table_markdown=table_markdown,
+            metric_list=", ".join(metrics),
+            metric_schema=metric_schema,
+        )
+
+    def _build_output(raw_payload: dict[str, Any]) -> dict[str, Any]:
+        # shares_outstanding is always an absolute count — the prompt instructs the LLM
+        # to output the absolute number (e.g. 5057000000 not 5057 when the table says
+        # "5,057 (Million)"). No post-hoc scale multiplication needed.
+        _COUNT_METRICS = {"shares_outstanding"}
+        extracted = {
+            "_source": table_type,
+            "_page_number": getattr(table, "page_number", None),
+        }
+        for metric_name in metrics:
+            val = raw_payload.get(metric_name)
+            if val is not None:
+                try:
+                    raw_float = float(val)
+                    effective_multiplier = (
+                        1 if metric_name in _COUNT_METRICS else multiplier
+                    )
+                    scaled = raw_float * effective_multiplier
+                    if (
+                        effective_multiplier > 1
+                        and abs(scaled) > SANITY_CAP
+                        and abs(raw_float) <= SANITY_CAP
+                    ):
+                        logger.warning(
+                            "LLM pre-scaled %s for %s: raw=%s, scaled=%s exceeds cap — using raw value",
+                            metric_name,
+                            table_type,
+                            raw_float,
+                            scaled,
+                        )
+                        scaled = raw_float
+                    extracted[metric_name] = scaled
+                except (TypeError, ValueError):
+                    extracted[metric_name] = None
+            else:
+                extracted[metric_name] = None
+
+        _MIN_PLAUSIBLE_SHARES = 1_000_000
+        shares_val = extracted.get("shares_outstanding")
+        if shares_val is not None and 0 < abs(shares_val) < _MIN_PLAUSIBLE_SHARES:
+            header_caption_text = (
+                (table.caption or "").lower()
+                + " "
+                + " ".join(str(h) for h in table.headers).lower()
+            )
+            body_text = " ".join(
+                " ".join(str(c) for c in row) for row in table.rows[:15] if row
+            ).lower()
+            full_text = header_caption_text + " " + body_text
+            if _re.search(r"'000|thousands|\bno\.\s*'?000", full_text, _re.IGNORECASE):
+                extracted["shares_outstanding"] = shares_val * 1_000
+                logger.info(
+                    "shares_outstanding scaled ×1000: %.0f → %.0f (table text has '000 indicator)",
+                    shares_val,
+                    extracted["shares_outstanding"],
+                )
+            elif _re.search(r"\bmillion|\bm\b", full_text, _re.IGNORECASE):
+                extracted["shares_outstanding"] = shares_val * 1_000_000
+                logger.info(
+                    "shares_outstanding scaled ×1M: %.0f → %.0f (table text has million indicator)",
+                    shares_val,
+                    extracted["shares_outstanding"],
+                )
+            elif scale in ("thousands", "millions"):
+                doc_mult = SCALE_MULTIPLIERS.get(scale, 1)
+                extracted["shares_outstanding"] = shares_val * doc_mult
+                logger.info(
+                    "shares_outstanding scaled ×%d (doc-level scale=%s): %.0f → %.0f",
+                    doc_mult,
+                    scale,
+                    shares_val,
+                    extracted["shares_outstanding"],
+                )
+
+        extracted["row_refs"] = raw_payload.get("row_refs", {})
+        extracted["period_col"] = raw_payload.get("period_col")
+        return extracted
+
+    prompt = _build_prompt(markdown)
 
     try:
         raw = _llm_json_call(prompt, llm_client, max_tokens=2048)
     except Exception as e:
-        logger.warning("Pass 3a failed for %s: %s — retrying with truncated table", table_type, e)
+        logger.warning(
+            "Pass 3a failed for %s: %s — retrying with truncated table", table_type, e
+        )
         try:
-            truncated_prompt = _PASS3A_PROMPT.format(
-                period_type=pass1_result.get("report_type", "?"),
-                period_end=pass1_result.get("period_end", "?"),
-                currency=pass1_result.get("currency", "AUD"),
-                scale=scale,
-                table_type=table_type,
-                table_markdown=_table_to_markdown_truncated(table, max_rows=20),
-                metric_list=", ".join(metrics),
-                metric_schema=metric_schema,
+            truncated_prompt = _build_prompt(
+                _table_to_markdown_truncated(table, max_rows=20)
             )
             raw = _llm_json_call(truncated_prompt, llm_client, max_tokens=1024)
         except Exception as e2:
             logger.error("Pass 3a retry also failed for %s: %s", table_type, e2)
             return None
 
-    # Apply scale multiplier to monetary values only.
-    # shares_outstanding is always an absolute count — the prompt instructs the LLM
-    # to output the absolute number (e.g. 5057000000 not 5057 when the table says
-    # "5,057 (Million)"). No post-hoc scale multiplication needed.
-    _COUNT_METRICS = {"shares_outstanding"}
-    out = {"_source": table_type, "_page_number": getattr(table, "page_number", None)}
-    for m in metrics:
-        val = raw.get(m)
-        if val is not None:
-            try:
-                raw_float = float(val)
-                effective_multiplier = 1 if m in _COUNT_METRICS else multiplier
-                scaled = raw_float * effective_multiplier
-                if effective_multiplier > 1 and abs(scaled) > SANITY_CAP and abs(raw_float) <= SANITY_CAP:
-                    logger.warning(
-                        "LLM pre-scaled %s for %s: raw=%s, scaled=%s exceeds cap — using raw value",
-                        m, table_type, raw_float, scaled,
-                    )
-                    scaled = raw_float
-                out[m] = scaled
-            except (TypeError, ValueError):
-                out[m] = None
-        else:
-            out[m] = None
-    # shares_outstanding sanity check: if the LLM returned a value that is
-    # suspiciously small (< 1M — virtually no ASX company has < 1M shares on
-    # issue), check whether the table's headers/caption indicate a count-scale
-    # factor ('000, million, etc.) and apply it.  This catches the common LLM
-    # failure of returning the raw table value (e.g. 280,875) without converting
-    # from the table's count-unit (e.g. '000s → 280,875,000).
-    _MIN_PLAUSIBLE_SHARES = 1_000_000
-    shares_val = out.get("shares_outstanding")
-    if shares_val is not None and 0 < abs(shares_val) < _MIN_PLAUSIBLE_SHARES:
-        header_caption_text = (
-            (table.caption or "").lower()
-            + " "
-            + " ".join(str(h) for h in table.headers).lower()
+    selected_raw = raw
+    out = _build_output(raw)
+
+    used_filtered_rows = bool(
+        filter_enabled and filtered_rows is not None and filtered_rows != table.rows
+    )
+    if used_filtered_rows and _needs_full_table_retry(table_type, out):
+        logger.info(
+            "Pass3a %s: filtered extraction missed key metrics; retrying full table",
+            table_type,
         )
-        # Also check body rows for scale indicators (e.g. SEG share capital
-        # table has "No. '000s" in a row label, not in the column headers).
-        body_text = " ".join(
-            " ".join(str(c) for c in row)
-            for row in table.rows[:15] if row
-        ).lower()
-        full_text = header_caption_text + " " + body_text
-        if _re.search(r"'000|thousands|\bno\.\s*'?000", full_text, _re.IGNORECASE):
-            out["shares_outstanding"] = shares_val * 1_000
-            logger.info(
-                "shares_outstanding scaled ×1000: %.0f → %.0f (table text has '000 indicator)",
-                shares_val, out["shares_outstanding"],
-            )
-        elif _re.search(r"\bmillion|\bm\b", full_text, _re.IGNORECASE):
-            out["shares_outstanding"] = shares_val * 1_000_000
-            logger.info(
-                "shares_outstanding scaled ×1M: %.0f → %.0f (table text has million indicator)",
-                shares_val, out["shares_outstanding"],
-            )
-        elif scale in ("thousands", "millions"):
-            doc_mult = SCALE_MULTIPLIERS.get(scale, 1)
-            out["shares_outstanding"] = shares_val * doc_mult
-            logger.info(
-                "shares_outstanding scaled ×%d (doc-level scale=%s): %.0f → %.0f",
-                doc_mult, scale, shares_val, out["shares_outstanding"],
-            )
+        full_markdown = _table_to_markdown(table, max_rows=row_cap)
+        if full_markdown and full_markdown != markdown:
+            try:
+                full_raw = _llm_json_call(
+                    _build_prompt(full_markdown),
+                    llm_client,
+                    max_tokens=2048,
+                )
+                full_out = _build_output(full_raw)
+                full_count = sum(1 for m in metrics if full_out.get(m) is not None)
+                current_count = sum(1 for m in metrics if out.get(m) is not None)
+                if full_count > current_count or not _needs_full_table_retry(
+                    table_type,
+                    full_out,
+                ):
+                    out = full_out
+                    selected_raw = full_raw
+                    logger.info(
+                        "Pass3a %s: full-table retry improved extraction (%d → %d non-null)",
+                        table_type,
+                        current_count,
+                        full_count,
+                    )
+            except Exception as retry_err:
+                logger.warning(
+                    "Pass3a %s: full-table retry failed: %s",
+                    table_type,
+                    retry_err,
+                )
 
     # Compute confidence from observable results rather than relying on the
     # model's self-reported value (which is typically 0.0 regardless of quality).
     # Use fraction of expected metrics that were extracted as the signal.
     n_extracted = sum(1 for m in metrics if out.get(m) is not None)
     computed_conf = n_extracted / max(len(metrics), 1)
-    model_conf = float(raw.get("pass3_confidence", 0.0))
+    try:
+        model_conf = float(selected_raw.get("pass3_confidence", 0.0))
+    except (TypeError, ValueError):
+        model_conf = 0.0
     # Take max so a model that correctly reports high confidence is rewarded,
     # but a model that reports 0 doesn't drag down an otherwise complete extraction.
     out["pass3_confidence"] = max(computed_conf, model_conf)
-    out["row_refs"] = raw.get("row_refs", {})
-    out["period_col"] = raw.get("period_col")
     logger.info(
         "Pass3a %s: extracted %d metrics, confidence=%.2f",
         table_type,
@@ -910,7 +1140,12 @@ def _run_pass3a_metric_extractor(
             future_to_table_type = {
                 pool.submit(
                     _extract_single_table,
-                    table_type, table, pass1_result, scale, multiplier, llm_client,
+                    table_type,
+                    table,
+                    pass1_result,
+                    scale,
+                    multiplier,
+                    llm_client,
                 ): table_type
                 for table_type, table in eligible
             }
@@ -928,11 +1163,19 @@ def _run_pass3a_metric_extractor(
         results = [results_by_type[tt] for tt, _ in eligible if tt in results_by_type]
     else:
         if len(eligible) > 1:
-            logger.info("Pass 3a: extracting %d tables sequentially (EXTRACTION_PARALLEL=0)", len(eligible))
+            logger.info(
+                "Pass 3a: extracting %d tables sequentially (EXTRACTION_PARALLEL=0)",
+                len(eligible),
+            )
         results = []
         for table_type, table in eligible:
             out = _extract_single_table(
-                table_type, table, pass1_result, scale, multiplier, llm_client,
+                table_type,
+                table,
+                pass1_result,
+                scale,
+                multiplier,
+                llm_client,
             )
             if out is not None:
                 results.append(out)
@@ -994,8 +1237,10 @@ def _run_pass3b_narrative_extractor(sections: list[dict], llm_client) -> dict:
     Returns dict with narrative fields. All fields null on failure.
     """
     null_result = {
-        "risk_summary": None, "risk_bullets": None,
-        "guidance_summary": None, "material_changes": None,
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
         "confidence_narrative": 0.0,
     }
 
@@ -1065,8 +1310,7 @@ def _extract_shares_from_prose(sections: list[dict]) -> tuple[float | None, str]
     """
     # Filter to sections likely to mention share capital
     candidates = [
-        s for s in sections
-        if s.get("text") and _SHARE_NOTE_RE.search(s["text"])
+        s for s in sections if s.get("text") and _SHARE_NOTE_RE.search(s["text"])
     ]
     # Also scan all sections if no note-specific candidates found
     if not candidates:
@@ -1092,7 +1336,9 @@ def _extract_shares_from_prose(sections: list[dict]) -> tuple[float | None, str]
                     continue
                 provenance = f"prose_note:page_{page}:{match.group(0)[:60]}"
                 logger.info(
-                    "shares_outstanding from prose: %.0f (page %s)", value, page,
+                    "shares_outstanding from prose: %.0f (page %s)",
+                    value,
+                    page,
                 )
                 return value, provenance
 
@@ -1102,6 +1348,91 @@ def _extract_shares_from_prose(sections: list[dict]) -> tuple[float | None, str]
 # ---------------------------------------------------------------------------
 # Pass 4 — Reconciler (deterministic)
 # ---------------------------------------------------------------------------
+
+_STRONG_TOTAL_DEBT_ROW_REFS = (
+    "borrowings",
+    "interest bearing liabilities",
+    "interest-bearing liabilities",
+    "interest bearing borrowings",
+    "interest-bearing borrowings",
+    "interest bearing debt",
+    "interest-bearing debt",
+    "financial debt",
+    "bank debt",
+    "bank loans",
+    "loan",
+    "loans",
+    "notes payable",
+    "senior notes",
+    "bond",
+    "bonds",
+    "debt facility",
+    "debt facilities",
+)
+
+_WEAK_TOTAL_DEBT_ROW_REFS = (
+    "total liabilities",
+    "total liab",
+    "current liabilities",
+    "non-current liabilities",
+    "lease liability",
+    "lease liabilities",
+    "lease liab",
+)
+
+
+def _normalise_evidence_row_ref(row_ref: str | None) -> str:
+    return " ".join(str(row_ref or "").strip().lower().split())
+
+
+def _is_explicit_net_debt_evidence(row_ref: str | None) -> bool:
+    label = _normalise_evidence_row_ref(row_ref)
+    return bool(label) and "net" in label and "debt" in label
+
+
+def _is_strong_total_debt_evidence(row_ref: str | None, value: Any) -> bool:
+    label = _normalise_evidence_row_ref(row_ref)
+    if not label or label == "unknown":
+        return False
+    try:
+        numeric_value = float(value)
+    except (TypeError, ValueError):
+        return False
+    if numeric_value < 0:
+        return False
+    if any(weak in label for weak in _WEAK_TOTAL_DEBT_ROW_REFS):
+        return False
+    return any(strong in label for strong in _STRONG_TOTAL_DEBT_ROW_REFS)
+
+
+def _select_explicit_net_debt_candidate(pass3a_results: list[dict]) -> dict | None:
+    candidates: list[tuple[int, int, dict]] = []
+    for extraction in pass3a_results:
+        value = extraction.get("net_debt")
+        if value is None:
+            continue
+        row_ref = extraction.get("row_refs", {}).get("net_debt")
+        if not _is_explicit_net_debt_evidence(row_ref):
+            logger.info(
+                "Rejecting net_debt from %s due to non-explicit row_ref=%r",
+                extraction.get("_source", "unknown"),
+                row_ref,
+            )
+            continue
+        source = extraction.get("_source", "unknown")
+        preference_group = 0 if source != "balance_sheet" else 1
+        source_rank = (
+            SOURCE_PRIORITY.index(source)
+            if source in SOURCE_PRIORITY
+            else len(SOURCE_PRIORITY)
+        )
+        candidates.append((preference_group, source_rank, extraction))
+
+    if not candidates:
+        return None
+
+    return min(candidates, key=lambda item: (item[0], item[1]))[2]
+
 
 def _run_pass4_reconciler(
     pass3a_results: list[dict],
@@ -1118,13 +1449,18 @@ def _run_pass4_reconciler(
     """
     merged_metrics: dict[str, Any] = {m: None for m in METRIC_FIELDS}
     provenance: dict[str, str] = {}
-    source_stats: dict[str, tuple[float, int]] = {}  # {source: (confidence, n_contributed)}
+    source_stats: dict[
+        str, tuple[float, int]
+    ] = {}  # {source: (confidence, n_contributed)}
 
     # Sort by priority
     ordered = sorted(
         pass3a_results,
-        key=lambda r: SOURCE_PRIORITY.index(r.get("_source", "highlights"))
-        if r.get("_source") in SOURCE_PRIORITY else len(SOURCE_PRIORITY),
+        key=lambda r: (
+            SOURCE_PRIORITY.index(r.get("_source", "highlights"))
+            if r.get("_source") in SOURCE_PRIORITY
+            else len(SOURCE_PRIORITY)
+        ),
     )
 
     # Lower priority first — higher priority overwrites
@@ -1135,12 +1471,27 @@ def _run_pass4_reconciler(
         page = extraction.get("_page_number")
         page_tag = f"page_{page}" if page is not None else "page_?"
         for m in METRIC_FIELDS:
+            if m == "net_debt":
+                continue
             if m in extraction and extraction[m] is not None:
                 merged_metrics[m] = extraction[m]
                 row_ref = extraction.get("row_refs", {}).get(m, "unknown")
                 provenance[m] = f"{source}:{page_tag}:{row_ref}"
                 contributed += 1
         source_stats[source] = (conf, contributed)
+
+    explicit_net_debt = _select_explicit_net_debt_candidate(pass3a_results)
+    if explicit_net_debt is not None:
+        source = explicit_net_debt.get("_source", "unknown")
+        page = explicit_net_debt.get("_page_number")
+        page_tag = f"page_{page}" if page is not None else "page_?"
+        row_ref = explicit_net_debt.get("row_refs", {}).get("net_debt", "unknown")
+        merged_metrics["net_debt"] = explicit_net_debt["net_debt"]
+        provenance["net_debt"] = f"{source}:{page_tag}:{row_ref}"
+        conf, contributed = source_stats.get(
+            source, (explicit_net_debt.get("pass3_confidence", 0.5), 0)
+        )
+        source_stats[source] = (conf, contributed + 1)
 
     # B4: derive net_debt from balance sheet total_debt when not directly extracted.
     # total_debt is an internal capture field (not in METRIC_FIELDS) so it survives
@@ -1151,8 +1502,13 @@ def _run_pass4_reconciler(
         )
         if bs_result is not None:
             total_debt = bs_result.get("total_debt")
+            total_debt_row_ref = bs_result.get("row_refs", {}).get("total_debt")
             cash_end = merged_metrics.get("cash_end")
-            if total_debt is not None and cash_end is not None:
+            if (
+                total_debt is not None
+                and cash_end is not None
+                and _is_strong_total_debt_evidence(total_debt_row_ref, total_debt)
+            ):
                 merged_metrics["net_debt"] = total_debt - cash_end
                 provenance["net_debt"] = (
                     f"derived:balance_sheet:total_debt({total_debt:.0f})"
@@ -1160,7 +1516,15 @@ def _run_pass4_reconciler(
                 )
                 logger.info(
                     "net_debt derived from balance sheet: %.0f - %.0f = %.0f",
-                    total_debt, cash_end, merged_metrics["net_debt"],
+                    total_debt,
+                    cash_end,
+                    merged_metrics["net_debt"],
+                )
+            elif total_debt is not None and cash_end is not None:
+                logger.info(
+                    "Skipping net_debt derivation from weak debt evidence row_ref=%r value=%r",
+                    total_debt_row_ref,
+                    total_debt,
                 )
 
     # Prose fallback: shares_outstanding from note sections when tables yield null.
@@ -1176,7 +1540,8 @@ def _run_pass4_reconciler(
     total_weight = sum(n for _, n in source_stats.values())
     metric_confidence = (
         sum(c * n for c, n in source_stats.values()) / max(total_weight, 1)
-        if source_stats else 0.0
+        if source_stats
+        else 0.0
     )
 
     logger.info(
@@ -1205,20 +1570,20 @@ def _run_pass4_reconciler(
 # small-cap companies.
 _SCALE_VALIDATION_THRESHOLDS: dict[str, dict[str, float]] = {
     "A": {  # Annual reports
-        "revenue": 1_000_000,           # $1M — any ASX-listed company exceeds this
-        "ebit": 100_000,                # $100K
-        "np_attributable": 100_000,     # $100K
-        "operating_cf": 100_000,        # $100K
+        "revenue": 1_000_000,  # $1M — any ASX-listed company exceeds this
+        "ebit": 100_000,  # $100K
+        "np_attributable": 100_000,  # $100K
+        "operating_cf": 100_000,  # $100K
     },
     "H": {  # Half-year
-        "revenue": 500_000,             # $500K
-        "ebit": 50_000,                 # $50K
-        "np_attributable": 50_000,      # $50K
-        "operating_cf": 50_000,         # $50K
+        "revenue": 500_000,  # $500K
+        "ebit": 50_000,  # $50K
+        "np_attributable": 50_000,  # $50K
+        "operating_cf": 50_000,  # $50K
     },
     "Q": {  # Quarterly
-        "revenue": 100_000,             # $100K
-        "ebit": 10_000,                 # $10K
+        "revenue": 100_000,  # $100K
+        "ebit": 10_000,  # $10K
     },
 }
 
@@ -1240,7 +1605,9 @@ def _validate_scale(payload: dict) -> str:
     """
     metrics = payload.get("metrics", {})
     period_type = payload.get("period_type", "A")
-    thresholds = _SCALE_VALIDATION_THRESHOLDS.get(period_type, _SCALE_VALIDATION_THRESHOLDS["A"])
+    thresholds = _SCALE_VALIDATION_THRESHOLDS.get(
+        period_type, _SCALE_VALIDATION_THRESHOLDS["A"]
+    )
 
     # Check for over-scaled values
     for m, v in metrics.items():
@@ -1248,7 +1615,10 @@ def _validate_scale(payload: dict) -> str:
             logger.warning(
                 "scale_validation: SUSPECT_OVERSCALED — %s=%s exceeds $500B cap "
                 "(period_type=%s, period_end=%s)",
-                m, v, period_type, payload.get("period_end"),
+                m,
+                v,
+                period_type,
+                payload.get("period_end"),
             )
             return "suspect_overscaled"
 
@@ -1309,7 +1679,10 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
         return "failed", "validation_gate:invalid_period_end"
 
     if payload.get("period_type") not in ("A", "H", "Q"):
-        return "failed", f"validation_gate:invalid_period_type:{payload.get('period_type')}"
+        return (
+            "failed",
+            f"validation_gate:invalid_period_type:{payload.get('period_type')}",
+        )
 
     if payload.get("scale") == "unknown":
         return "failed", "validation_gate:scale_unknown"
@@ -1354,6 +1727,7 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
 # Main entry point
 # ---------------------------------------------------------------------------
 
+
 def run_multipass_extraction(
     pdf_path: str,
     doc_metadata: dict,
@@ -1372,18 +1746,29 @@ def run_multipass_extraction(
     from app.services.docling_extract import extract_structured
 
     null_payload = {m: None for m in METRIC_FIELDS}
-    null_payload.update({
-        "period_type": None, "period_end": None, "period_start": None, "confidence_metrics": 0.0,
-        "risk_summary": None, "risk_bullets": None, "guidance_summary": None,
-        "material_changes": None, "confidence_narrative": 0.0, "provenance": {},
-    })
+    null_payload.update(
+        {
+            "period_type": None,
+            "period_end": None,
+            "period_start": None,
+            "confidence_metrics": 0.0,
+            "risk_summary": None,
+            "risk_bullets": None,
+            "guidance_summary": None,
+            "material_changes": None,
+            "confidence_narrative": 0.0,
+            "provenance": {},
+        }
+    )
 
     # Extract structured document
     try:
         structured_doc = extract_structured(pdf_path)
     except Exception as e:
         logger.error("docling_extract failed for %s: %s", pdf_path, e)
-        return MultipassResult(status="failed", payload=null_payload, sections=[], error=str(e))
+        return MultipassResult(
+            status="failed", payload=null_payload, sections=[], error=str(e)
+        )
 
     # Pass 1: Classify — use title + first page only (not arbitrary 1500 chars).
     # ASX filings have all classification info (period, type, currency, scale)
@@ -1399,12 +1784,17 @@ def run_multipass_extraction(
         pass1 = _run_pass1_classifier(title, first_page_text, llm_client)
     except Exception as e:
         logger.error("Pass 1 failed: %s", e)
-        return MultipassResult(status="failed", payload=null_payload,
-                               sections=structured_doc.sections, error=f"pass1:{e}")
+        return MultipassResult(
+            status="failed",
+            payload=null_payload,
+            sections=structured_doc.sections,
+            error=f"pass1:{e}",
+        )
 
     if pass1.get("classifier_confidence", 0) < 0.60:
         return MultipassResult(
-            status="failed", payload=null_payload,
+            status="failed",
+            payload=null_payload,
             sections=structured_doc.sections,
             error=f"classifier_low_confidence:{pass1.get('classifier_confidence')}",
         )
@@ -1417,11 +1807,23 @@ def run_multipass_extraction(
         if pass1.get("scale", "unknown") not in (detected, "unknown", None, ""):
             logger.info(
                 "scale from table headers (%s) overrides Pass 1 (%s)",
-                detected, pass1.get("scale"),
+                detected,
+                pass1.get("scale"),
             )
         pass1["scale"] = detected
     elif pass1.get("scale", "unknown") in ("unknown", None, ""):
         logger.warning("scale unknown from both table headers and Pass 1 classifier")
+
+    detected_currency = _detect_currency_from_tables(structured_doc.tables)
+    if detected_currency:
+        classifier_currency = str(pass1.get("currency") or "").strip().upper()
+        if classifier_currency != detected_currency:
+            logger.info(
+                "currency from table headers (%s) overrides Pass 1 (%s)",
+                detected_currency,
+                classifier_currency or "<empty>",
+            )
+            pass1["currency"] = detected_currency
 
     _currency = pass1.get("currency", "AUD") or "AUD"
     if _currency.upper() != "AUD":
@@ -1439,19 +1841,28 @@ def run_multipass_extraction(
     # Pass 3b: Extract narrative (skippable for metrics-only runs)
     _skip = skip_narrative or os.environ.get("EXTRACTION_SKIP_NARRATIVE", "") == "1"
     if _skip:
-        logger.info("Pass 3b skipped (skip_narrative=%s, env=%s)",
-                     skip_narrative, os.environ.get("EXTRACTION_SKIP_NARRATIVE", ""))
+        logger.info(
+            "Pass 3b skipped (skip_narrative=%s, env=%s)",
+            skip_narrative,
+            os.environ.get("EXTRACTION_SKIP_NARRATIVE", ""),
+        )
         pass3b_result = {
-            "risk_summary": None, "risk_bullets": None,
-            "guidance_summary": None, "material_changes": None,
+            "risk_summary": None,
+            "risk_bullets": None,
+            "guidance_summary": None,
+            "material_changes": None,
             "confidence_narrative": 0.0,
         }
     else:
-        pass3b_result = _run_pass3b_narrative_extractor(structured_doc.sections, llm_client)
+        pass3b_result = _run_pass3b_narrative_extractor(
+            structured_doc.sections, llm_client
+        )
 
     # Pass 4: Reconcile
     payload = _run_pass4_reconciler(
-        pass3a_results, pass3b_result, pass1,
+        pass3a_results,
+        pass3b_result,
+        pass1,
         sections=structured_doc.sections,
     )
 
@@ -1502,6 +1913,7 @@ def run_multipass_extraction(
 # LLM helper
 # ---------------------------------------------------------------------------
 
+
 def _llm_json_call(prompt: str, llm_client, max_tokens: int = 512) -> dict:
     """
     Call the LLM with JSON mode enforced. Returns parsed dict.
@@ -1516,6 +1928,7 @@ def _llm_json_call(prompt: str, llm_client, max_tokens: int = 512) -> dict:
     # Anthropic SDK path
     try:
         import anthropic as _anthropic
+
         if isinstance(llm_client, _anthropic.Anthropic):
             model = getattr(llm_client, "_extraction_model", "claude-opus-4-6")
             msg = llm_client.messages.create(
@@ -1540,6 +1953,7 @@ def _llm_json_call(prompt: str, llm_client, max_tokens: int = 512) -> dict:
 
     # OpenAI-compatible path (llamacpp / Ollama)
     from app.services.llm import generate_json
+
     metadata = {"task_type": "reasoning", "component": "multipass_extraction"}
     result = generate_json(prompt, metadata=metadata, client=llm_client)
     if not isinstance(result, dict):

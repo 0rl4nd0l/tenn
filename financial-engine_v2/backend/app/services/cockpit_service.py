@@ -9,6 +9,15 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
+from urllib.parse import urlparse
+
+import httpx
+from sqlalchemy import func
+from app.core.db import SessionLocal
+from app.models.documents import Document
+from app.models.extractions import ExtractionRun
+from app.models.companies import Company
+from app.services.query_orchestrator import QueryOrchestrator
 
 # Import cockpit core logic
 from cockpit.core.actions import ActionRegistry
@@ -29,6 +38,8 @@ from cockpit.storage.artifacts import ArtifactStore
 
 logger = logging.getLogger(__name__)
 
+_FLAG_REPORT_ID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,128}$")
+
 _SENSITIVE_KEY_RE = re.compile(
     r"(api[_-]?key|auth|authorization|token|secret|cookie|password|private[_-]?key)",
     re.IGNORECASE,
@@ -47,9 +58,14 @@ def _clip_text(value: Any, limit: int = 4000) -> str:
     return text[: limit - 1] + "..."
 
 
+def _normalize_feedback_type(raw: Any) -> str:
+    return "good" if str(raw or "").strip().lower() == "good" else "poor"
+
+
 def _sanitize_payload(value: Any, *, key: str | None = None) -> Any:
     if key and _SENSITIVE_KEY_RE.search(key):
         return "***REDACTED***"
+
     if isinstance(value, dict):
         return {
             str(item_key): _sanitize_payload(item_value, key=str(item_key))
@@ -106,15 +122,35 @@ def _extract_tool_calls(evidence: list[dict[str, Any]] | None) -> list[dict[str,
 def _render_flagged_summary(
     bundle: dict[str, Any], analysis: dict[str, Any] | None
 ) -> str:
+    feedback_type = _normalize_feedback_type(bundle.get("feedback_type"))
     flagged = bundle.get("flagged_message") or {}
-    lines = ["# Flagged Cockpit Chat", ""]
+    request = (bundle.get("backend_turn") or {}).get("request") or {}
+    routing = (bundle.get("backend_turn") or {}).get("routing_metadata") or {}
+    title = (
+        "# Positive Cockpit Feedback"
+        if feedback_type == "good"
+        else "# Flagged Cockpit Chat"
+    )
+    response_heading = (
+        "Saved Response" if feedback_type == "good" else "Flagged Response"
+    )
+    lines = [title, ""]
     lines.append(f"- Report ID: `{bundle.get('report_id')}`")
-    lines.append(f"- Session ID: `{bundle.get('session_id') or 'global-main'}`")
     lines.append(f"- Saved At: `{bundle.get('saved_at')}`")
+    lines.append(f"- Feedback Type: `{feedback_type}`")
+    lines.append(f"- Session ID: `{bundle.get('session_id') or 'global-main'}`")
+    if bundle.get("ticker"):
+        lines.append(f"- Ticker: `{bundle.get('ticker')}`")
+    note = str(bundle.get("note") or "").strip()
+    if note:
+        lines.append(f"- Note: {note}")
+    model_name = str(routing.get("model") or "").strip()
+    if model_name:
+        lines.append(f"- Model: `{model_name}`")
+    lines.extend(["", "## Request", "", _clip_text(request.get("message"), 1200), ""])
     lines.extend(
         [
-            "",
-            "## Flagged Response",
+            f"## {response_heading}",
             "",
             _clip_text(flagged.get("content"), 2400),
             "",
@@ -124,7 +160,148 @@ def _render_flagged_summary(
         summary = str(analysis.get("summary") or "").strip()
         if summary:
             lines.extend(["## Analysis", "", summary, ""])
+        failure_modes = analysis.get("likely_failure_modes")
+        if isinstance(failure_modes, list) and failure_modes:
+            lines.append("## Likely Failure Modes")
+            lines.append("")
+            for item in failure_modes[:8]:
+                lines.append(f"- {item}")
+            lines.append("")
     return "\n".join(lines).strip() + "\n"
+
+
+def _build_codex_flag_prompt(
+    *,
+    bundle: dict[str, Any],
+    analysis: dict[str, Any] | None,
+    report_dir: Path,
+    bundle_path: Path,
+    summary_path: Path,
+    read_api_path: str,
+) -> str:
+    feedback_type = _normalize_feedback_type(bundle.get("feedback_type"))
+    flagged = bundle.get("flagged_message") or {}
+    note = str(bundle.get("note") or "").strip()
+    flagged_text = _clip_text(flagged.get("content"), 1200).strip()
+    analysis_summary = str((analysis or {}).get("summary") or "").strip()
+    if feedback_type == "good":
+        prompt_lines = [
+            "Review this positively rated cockpit response and capture what worked well.",
+            "",
+            f"Feedback ID: {bundle.get('report_id')}",
+            f"Feedback directory: {report_dir}",
+            f"Read API: {read_api_path}",
+            f"Bundle: {bundle_path}",
+            f"Summary: {summary_path}",
+        ]
+    else:
+        prompt_lines = [
+            "Investigate this flagged cockpit response and fix the underlying bug.",
+            "",
+            f"Flag ID: {bundle.get('report_id')}",
+            f"Flag directory: {report_dir}",
+            f"Read API: {read_api_path}",
+            f"Bundle: {bundle_path}",
+            f"Summary: {summary_path}",
+        ]
+    if note:
+        prompt_lines.extend(["", f"User note: {note}"])
+    if flagged_text:
+        prompt_lines.extend(["", "Saved response:", flagged_text])
+    if analysis_summary:
+        prompt_lines.extend(["", f"Saved analysis summary: {analysis_summary}"])
+    if feedback_type == "good":
+        prompt_lines.extend(
+            [
+                "",
+                "Check the saved message, transcript, backend_turn, and analysis output.",
+                "Identify the routing, prompting, or evidence patterns worth preserving for future training or tuning.",
+            ]
+        )
+    else:
+        prompt_lines.extend(
+            [
+                "",
+                "Check the flagged message, transcript, backend_turn, and analysis output.",
+                "Identify the root cause in code, implement the minimal safe fix, and verify it.",
+            ]
+        )
+    return "\n".join(prompt_lines).strip()
+
+
+def _write_flagged_report_files(
+    *,
+    bundle_path: Path,
+    summary_path: Path,
+    analysis_path: Path,
+    bundle: dict[str, Any],
+    analysis: dict[str, Any] | None,
+) -> None:
+    bundle_path.write_text(json.dumps(bundle, indent=2, default=str), encoding="utf-8")
+    summary_path.write_text(
+        _render_flagged_summary(bundle, analysis),
+        encoding="utf-8",
+    )
+    if analysis is not None:
+        analysis_path.write_text(
+            json.dumps(analysis, indent=2, default=str),
+            encoding="utf-8",
+        )
+
+
+class _BackendFinancialTruthProvider:
+    def __init__(self, backend_api_client: BackendApiClient) -> None:
+        self._client = backend_api_client
+
+    def retrieve(
+        self,
+        *,
+        query: str,
+        entities: dict[str, Any],
+        intent: str,
+    ) -> dict[str, Any]:
+        ticker = str(entities.get("primary_ticker") or "").strip().upper()
+        if not ticker:
+            return {
+                "source": "financial_truth",
+                "status": "no_entity",
+                "items": [],
+                "query": query,
+                "intent": intent,
+            }
+        try:
+            payload = self._client.get_ticker_context(
+                ticker,
+                docs_limit=8,
+                financials_limit=8,
+                announcements_limit=8,
+            )
+        except Exception as exc:
+            return {
+                "source": "financial_truth",
+                "status": "error",
+                "items": [],
+                "ticker": ticker,
+                "error": str(exc),
+                "query": query,
+                "intent": intent,
+            }
+
+        errors = payload.get("errors") or []
+        status = "partial_error" if errors else "ok"
+        return {
+            "source": "financial_truth",
+            "status": status,
+            "ticker": ticker,
+            "items": payload.get("financials") or [],
+            "docs": payload.get("docs") or [],
+            "financials": payload.get("financials") or [],
+            "latest_financial_snapshot": payload.get("latest_financial_snapshot") or {},
+            "announcement_context": payload.get("announcement_context") or [],
+            "errors": errors,
+            "query": query,
+            "intent": intent,
+        }
 
 
 def _env_flag(name: str, default: bool = False) -> bool:
@@ -219,6 +396,11 @@ class CockpitService:
             llm_model,
             api_key=str(llm_cfg.get("llamacpp_api_key") or ""),
         )
+        self._preload_preferred_model_async(
+            preferred_model=llm_model,
+            api_key=str(llm_cfg.get("llamacpp_api_key") or ""),
+            llm_provider=llm_provider,
+        )
 
         self.action_registry = ActionRegistry(
             repo_root=repo_root,
@@ -231,6 +413,11 @@ class CockpitService:
             self.backend_api_client = BackendApiClient(
                 base_url=backend_api_url,
                 api_key=str(backend_cfg.get("api_key") or "").strip(),
+            )
+            self.query_orchestrator = QueryOrchestrator(
+                financial_truth_provider=_BackendFinancialTruthProvider(
+                    self.backend_api_client
+                )
             )
 
         rag_cfg = cfg.get("rag") if isinstance(cfg.get("rag"), dict) else {}
@@ -300,6 +487,116 @@ class CockpitService:
 
         logger.info("CockpitService initialized successfully (config=%s)", config_path)
 
+    def _preload_preferred_model_async(
+        self,
+        *,
+        preferred_model: str,
+        api_key: str,
+        llm_provider: str,
+    ) -> None:
+        model_id = str(preferred_model or "").strip()
+        if llm_provider != "llamacpp" or not model_id:
+            return
+
+        thread = threading.Thread(
+            target=self._preload_preferred_model,
+            kwargs={"preferred_model": model_id, "api_key": api_key},
+            daemon=True,
+            name="cockpit-model-preload",
+        )
+        thread.start()
+
+    def _preload_preferred_model(self, *, preferred_model: str, api_key: str) -> None:
+        base_url = str(getattr(self.llm_client, "base_url", "") or "").strip()
+        if not base_url:
+            return
+
+        try:
+            from app.services.router_state import is_extraction_active
+
+            if is_extraction_active():
+                logger.info(
+                    "Skipping preferred model preload during active extraction: %s",
+                    preferred_model,
+                )
+                return
+        except Exception:
+            pass
+
+        parsed = urlparse(base_url)
+        host = str(parsed.hostname or "127.0.0.1")
+        if parsed.port is not None:
+            port = parsed.port
+        else:
+            port = 443 if parsed.scheme == "https" else 80
+
+        headers: dict[str, str] = {}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+
+        try:
+            response = httpx.get(
+                f"{base_url}/v1/models",
+                headers=headers,
+                timeout=5.0,
+            )
+            response.raise_for_status()
+            payload = response.json() if response.content else {}
+        except Exception as exc:
+            logger.debug("Model preload skipped: llama.cpp unavailable (%s)", exc)
+            return
+
+        model_rows = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(model_rows, list):
+            return
+
+        # Only router mode exposes rich status dicts and supports /models/load.
+        if not any(isinstance(row.get("status"), dict) for row in model_rows):
+            return
+
+        loaded_model = ""
+        for row in model_rows:
+            status = row.get("status")
+            if isinstance(status, dict) and str(status.get("value") or "") == "loaded":
+                loaded_model = str(row.get("id") or "").strip()
+                break
+
+        if loaded_model == preferred_model:
+            return
+
+        try:
+            from cockpit.integrations.llamacpp_manager import load_model_api
+
+            logger.info(
+                "Preloading preferred model at startup: %s (current=%s)",
+                preferred_model,
+                loaded_model or "none",
+            )
+            ok = load_model_api(
+                host=host,
+                port=str(port),
+                model_name=preferred_model,
+                api_key=api_key,
+                timeout=300.0,
+                on_status=lambda msg: logger.info("model preload: %s", msg),
+            )
+            if ok:
+                llm_client = getattr(self, "llm_client", None)
+                if llm_client is not None and hasattr(llm_client, "switch_model"):
+                    llm_client.switch_model(preferred_model)
+                elif llm_client is not None:
+                    llm_client.model = preferred_model
+            else:
+                logger.info(
+                    "Preferred model preload did not complete (best effort): %s",
+                    preferred_model,
+                )
+        except Exception:
+            logger.exception(
+                "Failed preloading preferred model",
+                extra={"preferred_model": preferred_model, "host": host, "port": port},
+            )
+
     @classmethod
     def get_instance(cls) -> CockpitService:
         if cls._instance is None:
@@ -332,12 +629,18 @@ class CockpitService:
         text = str(content or "").strip()
         if not text:
             return
-        self.state_store.add_chat_message(
-            thread_id,
-            role,
-            text,
-            datetime.now(timezone.utc).isoformat(),
-        )
+        try:
+            self.state_store.add_chat_message(
+                thread_id,
+                role,
+                text,
+                datetime.now(timezone.utc).isoformat(),
+            )
+        except Exception:
+            logger.exception(
+                "Failed to persist chat message",
+                extra={"thread_id": thread_id, "role": role},
+            )
 
     def _remember_turn_diagnostics(
         self, thread_id: str, payload: dict[str, Any]
@@ -363,30 +666,38 @@ class CockpitService:
         return items[-1]
 
     def _analyze_flagged_bundle(self, bundle: dict[str, Any]) -> dict[str, Any] | None:
-        review_input = _sanitize_payload(
-            {
-                "session_id": bundle.get("session_id"),
-                "ticker": bundle.get("ticker"),
-                "request": (
-                    (bundle.get("backend_turn") or {}).get("request") or {}
-                ).get("message"),
-                "flagged_response": (
-                    (bundle.get("flagged_message") or {}).get("content")
-                ),
-                "thinking": (
-                    (bundle.get("backend_turn") or {}).get("thinking_events") or []
-                )[:4],
-                "status_events": (
-                    (bundle.get("backend_turn") or {}).get("status_events") or []
-                )[:12],
-                "tool_traces": (
-                    (bundle.get("backend_turn") or {}).get("tool_traces") or []
-                )[:12],
-                "tool_calls": (
-                    (bundle.get("backend_turn") or {}).get("tool_calls") or []
-                )[:6],
-            }
-        )
+        if _normalize_feedback_type(bundle.get("feedback_type")) == "good":
+            return None
+        review_input = {
+            "session_id": bundle.get("session_id"),
+            "ticker": bundle.get("ticker"),
+            "frontend_note": bundle.get("note"),
+            "request": ((bundle.get("backend_turn") or {}).get("request") or {}).get(
+                "message"
+            ),
+            "flagged_response": ((bundle.get("flagged_message") or {}).get("content")),
+            "thinking": (
+                (bundle.get("backend_turn") or {}).get("thinking_events") or []
+            )[:4],
+            "status_events": (
+                (bundle.get("backend_turn") or {}).get("status_events") or []
+            )[:12],
+            "tool_traces": (
+                (bundle.get("backend_turn") or {}).get("tool_traces") or []
+            )[:12],
+            "tool_calls": ((bundle.get("backend_turn") or {}).get("tool_calls") or [])[
+                :6
+            ],
+            "routing_metadata": (bundle.get("backend_turn") or {}).get(
+                "routing_metadata"
+            )
+            or {},
+            "recent_transcript": (bundle.get("frontend_snapshot") or {}).get(
+                "transcript"
+            )
+            or [],
+        }
+        review_input = _sanitize_payload(review_input)
         prompt = (
             "You are reviewing a flagged cockpit chat turn. Return JSON only with keys "
             '"summary", "likely_failure_modes", "evidence", and "recommended_follow_up". '
@@ -401,35 +712,207 @@ class CockpitService:
         except Exception as exc:
             logger.warning("Flagged chat analysis unavailable: %s", exc)
             return {"status": "llm_unavailable", "error": str(exc)}
+
         parsed = _json_object_or_none(raw)
         if parsed is not None:
             parsed.setdefault("status", "ok")
             return parsed
-        return {"status": "unparsed", "raw": _clip_text(raw, 3000)}
+        return {
+            "status": "unparsed",
+            "raw": _clip_text(raw, 3000),
+        }
+
+    def _finalize_flagged_report_async(
+        self,
+        *,
+        report_id: str,
+        bundle: dict[str, Any],
+        bundle_path: Path,
+        summary_path: Path,
+        analysis_path: Path,
+    ) -> None:
+        try:
+            analysis = self._analyze_flagged_bundle(bundle)
+            sanitized_analysis = (
+                _sanitize_payload(analysis) if analysis is not None else None
+            )
+            _write_flagged_report_files(
+                bundle_path=bundle_path,
+                summary_path=summary_path,
+                analysis_path=analysis_path,
+                bundle=bundle,
+                analysis=sanitized_analysis,
+            )
+        except Exception:
+            logger.exception(
+                "Background flagged chat analysis failed",
+                extra={"report_id": report_id},
+            )
+
+    def _schedule_flagged_report_analysis(
+        self,
+        *,
+        report_id: str,
+        bundle: dict[str, Any],
+        bundle_path: Path,
+        summary_path: Path,
+        analysis_path: Path,
+    ) -> None:
+        worker = threading.Thread(
+            target=self._finalize_flagged_report_async,
+            kwargs={
+                "report_id": report_id,
+                "bundle": bundle,
+                "bundle_path": bundle_path,
+                "summary_path": summary_path,
+                "analysis_path": analysis_path,
+            },
+            name=f"flagged-chat-analysis-{report_id}",
+            daemon=True,
+        )
+        worker.start()
+
+    def _flagged_reports_root(self) -> Path:
+        return (self.repo_root / "reports" / "cockpit" / "flagged_sessions").resolve()
+
+    def _build_flag_read_api_path(self, report_id: str) -> str:
+        return f"/api/cockpit/feedback/flags/{report_id}"
+
+    def _resolve_flag_report_dir(self, report_id: str) -> Path:
+        normalized = str(report_id or "").strip()
+        if not _FLAG_REPORT_ID_RE.match(normalized):
+            raise ValueError("Invalid report_id")
+        root = self._flagged_reports_root()
+        for candidate in root.glob(f"*/{normalized}"):
+            if candidate.is_dir():
+                return candidate.resolve()
+        raise FileNotFoundError(normalized)
+
+    def list_flagged_reports(self, limit: int = 25) -> list[dict[str, Any]]:
+        root = self._flagged_reports_root()
+        if not root.exists():
+            return []
+
+        rows: list[tuple[float, dict[str, Any]]] = []
+        max_items = max(1, min(int(limit or 25), 100))
+        for session_dir in root.iterdir():
+            if not session_dir.is_dir():
+                continue
+            for report_dir in session_dir.iterdir():
+                if not report_dir.is_dir():
+                    continue
+                bundle_path = report_dir / "bundle.json"
+                if not bundle_path.exists():
+                    continue
+                try:
+                    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError):
+                    logger.warning("Unreadable flagged bundle: %s", bundle_path)
+                    continue
+                saved_at = str(bundle.get("saved_at") or "")
+                flagged_message = bundle.get("flagged_message") or {}
+                rows.append(
+                    (
+                        report_dir.stat().st_mtime,
+                        {
+                            "report_id": str(
+                                bundle.get("report_id") or report_dir.name
+                            ),
+                            "feedback_type": _normalize_feedback_type(
+                                bundle.get("feedback_type")
+                            ),
+                            "session_id": str(
+                                bundle.get("session_id") or session_dir.name
+                            ),
+                            "ticker": bundle.get("ticker"),
+                            "saved_at": saved_at or None,
+                            "note": bundle.get("note"),
+                            "flagged_response_excerpt": _clip_text(
+                                flagged_message.get("content"), 280
+                            ).strip()
+                            or None,
+                            "read_api_path": self._build_flag_read_api_path(
+                                str(bundle.get("report_id") or report_dir.name)
+                            ),
+                        },
+                    )
+                )
+        rows.sort(key=lambda item: item[0], reverse=True)
+        return [item[1] for item in rows[:max_items]]
+
+    def get_flagged_report(self, report_id: str) -> dict[str, Any]:
+        report_dir = self._resolve_flag_report_dir(report_id)
+        bundle_path = report_dir / "bundle.json"
+        summary_path = report_dir / "summary.md"
+        analysis_path = report_dir / "analysis.json"
+
+        if not bundle_path.exists():
+            raise FileNotFoundError(f"Missing bundle.json for {report_id}")
+
+        bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+        summary_markdown = (
+            summary_path.read_text(encoding="utf-8") if summary_path.exists() else ""
+        )
+        analysis = None
+        if analysis_path.exists():
+            try:
+                analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                logger.warning("Unreadable flagged analysis: %s", analysis_path)
+
+        return {
+            "report_id": str(bundle.get("report_id") or report_id),
+            "feedback_type": _normalize_feedback_type(bundle.get("feedback_type")),
+            "report_dir": str(report_dir),
+            "bundle_path": str(bundle_path),
+            "summary_path": str(summary_path),
+            "analysis_path": str(analysis_path) if analysis_path.exists() else None,
+            "read_api_path": self._build_flag_read_api_path(
+                str(bundle.get("report_id") or report_id)
+            ),
+            "bundle": bundle,
+            "summary_markdown": summary_markdown,
+            "analysis": analysis,
+        }
 
     def flag_chat_feedback(
         self,
         *,
         session_id: str | None,
         ticker: str | None,
+        feedback_type: str = "poor",
         flagged_message: dict[str, Any],
         transcript: list[dict[str, Any]] | None = None,
         frontend_context: dict[str, Any] | None = None,
         note: str | None = None,
     ) -> dict[str, Any]:
+        normalized_feedback_type = _normalize_feedback_type(feedback_type)
         thread_id = self._resolve_thread_id(session_id)
         matched_turn = self._resolve_turn_diagnostics(thread_id, flagged_message) or {}
-        persisted_history = self.state_store.get_chat_messages(thread_id, limit=200)
-        report_id = f"flag_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
-        report_dir = (
-            self.repo_root / f"reports/cockpit/flagged_sessions/{thread_id}/{report_id}"
-        ).resolve()
+        persisted_history: list[dict[str, Any]] = []
+        if self.state_store is not None:
+            try:
+                persisted_history = self.state_store.get_chat_messages(
+                    thread_id, limit=200
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to read persisted chat history",
+                    extra={"thread_id": thread_id},
+                )
+
+        report_prefix = "good" if normalized_feedback_type == "good" else "flag"
+        report_id = f"{report_prefix}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
+        report_rel_dir = f"reports/cockpit/flagged_sessions/{thread_id}/{report_id}"
+        report_dir = (self.repo_root / report_rel_dir).resolve()
         report_dir.mkdir(parents=True, exist_ok=True)
+
         bundle = {
             "report_id": report_id,
             "saved_at": _now_iso(),
             "session_id": thread_id,
             "ticker": str(ticker or "").strip().upper() or None,
+            "feedback_type": normalized_feedback_type,
             "note": str(note or "").strip() or None,
             "flagged_message": flagged_message
             if isinstance(flagged_message, dict)
@@ -447,30 +930,225 @@ class CockpitService:
                 **matched_turn,
                 "tool_calls": _extract_tool_calls(matched_turn.get("evidence")),
             },
+            "backend_runtime": {
+                "thread_id": thread_id,
+                "llm_model": str(getattr(self.llm_client, "model", "") or ""),
+                "llm_base_url": str(getattr(self.llm_client, "base_url", "") or ""),
+                "backend_api_configured": self.backend_api_client is not None,
+                "query_orchestrator_enabled": self.query_orchestrator is not None,
+            },
         }
         sanitized_bundle = _sanitize_payload(bundle)
-        analysis = _sanitize_payload(self._analyze_flagged_bundle(bundle) or {})
+
         bundle_path = report_dir / "bundle.json"
         summary_path = report_dir / "summary.md"
         analysis_path = report_dir / "analysis.json"
-        bundle_path.write_text(
-            json.dumps(sanitized_bundle, indent=2, default=str), encoding="utf-8"
+
+        _write_flagged_report_files(
+            bundle_path=bundle_path,
+            summary_path=summary_path,
+            analysis_path=analysis_path,
+            bundle=sanitized_bundle,
+            analysis=None,
         )
-        summary_path.write_text(
-            _render_flagged_summary(sanitized_bundle, analysis), encoding="utf-8"
+        read_api_path = self._build_flag_read_api_path(report_id)
+        codex_prompt = _build_codex_flag_prompt(
+            bundle=sanitized_bundle,
+            analysis=None,
+            report_dir=report_dir,
+            bundle_path=bundle_path,
+            summary_path=summary_path,
+            read_api_path=read_api_path,
         )
-        analysis_path.write_text(
-            json.dumps(analysis, indent=2, default=str), encoding="utf-8"
-        )
+        if normalized_feedback_type != "good":
+            self._schedule_flagged_report_analysis(
+                report_id=report_id,
+                bundle=sanitized_bundle,
+                bundle_path=bundle_path,
+                summary_path=summary_path,
+                analysis_path=analysis_path,
+            )
+
         return {
             "ok": True,
             "report_id": report_id,
+            "feedback_type": normalized_feedback_type,
             "report_dir": str(report_dir),
             "bundle_path": str(bundle_path),
             "summary_path": str(summary_path),
             "analysis_path": str(analysis_path),
-            "analysis_summary": str(analysis.get("summary") or "").strip() or None,
+            "read_api_path": read_api_path,
+            "codex_prompt": codex_prompt,
+            "analysis_summary": None,
         }
+
+    def get_intel_pulse_stats(self, ticker: str | None = None) -> dict[str, Any]:
+        """Fetch real data population and quality metrics for Intel Pulse."""
+        db = SessionLocal()
+        try:
+            doc_query = db.query(func.count(Document.document_id))
+            ext_query = db.query(func.count(ExtractionRun.run_id))
+
+            if ticker:
+                doc_query = doc_query.filter(Document.ticker == ticker)
+                # Join ExtractionRun with Document to filter by ticker
+                ext_query = ext_query.join(
+                    Document, ExtractionRun.document_id == Document.document_id
+                ).filter(Document.ticker == ticker)
+
+            doc_count = doc_query.scalar() or 0
+            ext_count = ext_query.scalar() or 0
+
+            # For signal and memory counts, we'd query those models.
+            # Assuming they exist or using placeholders if not yet fully implemented in DB.
+            signal_count = 0
+            memory_count = 0
+
+            # Calculate quality metrics from ExtractionRun
+            quality_query = db.query(
+                func.avg(ExtractionRun.confidence_overall),
+                func.count(ExtractionRun.run_id).filter(
+                    ExtractionRun.status == "failed"
+                ),
+            )
+            if ticker:
+                quality_query = quality_query.join(
+                    Document, ExtractionRun.document_id == Document.document_id
+                ).filter(Document.ticker == ticker)
+
+            avg_confidence, failed_count = quality_query.one()
+            avg_confidence = float(avg_confidence or 0.0)
+            quarantine_rate = (failed_count / ext_count * 100) if ext_count > 0 else 0.0
+
+            # population_index is a heuristic based on expected fields vs populated
+            population_index = (
+                (ext_count / (doc_count * 5) * 100) if doc_count > 0 else 0.0
+            )
+            population_index = min(population_index, 100.0)
+
+            return {
+                "stats": {
+                    "document_count": doc_count,
+                    "extraction_count": ext_count,
+                    "signal_count": signal_count,
+                    "memory_count": memory_count,
+                    "population_index": round(population_index, 1),
+                    "trust_score_avg": round(avg_confidence, 2),
+                    "quarantine_rate": round(quarantine_rate, 1),
+                },
+                "pipeline": [
+                    {
+                        "id": "overview",
+                        "label": "PULSE_HOME",
+                        "health": 100,
+                        "status": "nominal",
+                    },
+                    {
+                        "id": "extraction",
+                        "label": "EXTRACTION",
+                        "health": round(100 - quarantine_rate, 1),
+                        "status": "nominal" if quarantine_rate < 5 else "degraded",
+                    },
+                    {
+                        "id": "evaluation",
+                        "label": "EVALUATION",
+                        "health": round(avg_confidence * 100, 1),
+                        "status": "nominal" if avg_confidence > 0.8 else "degraded",
+                    },
+                    {
+                        "id": "signals",
+                        "label": "SIGNALS",
+                        "health": 0,
+                        "status": "sparse",
+                    },
+                    {
+                        "id": "memory",
+                        "label": "MEMORY",
+                        "health": 0,
+                        "status": "sparse",
+                    },
+                    {
+                        "id": "failures",
+                        "label": "FAILURES",
+                        "health": round(quarantine_rate, 1),
+                        "status": "critical" if quarantine_rate > 10 else "nominal",
+                    },
+                ],
+                "failures": self._get_recent_failures(db, ticker),
+            }
+        finally:
+            db.close()
+
+    def _get_recent_failures(
+        self, db, ticker: str | None = None
+    ) -> list[dict[str, Any]]:
+        query = db.query(ExtractionRun).filter(ExtractionRun.status == "failed")
+        if ticker:
+            query = query.join(
+                Document, ExtractionRun.document_id == Document.document_id
+            ).filter(Document.ticker == ticker)
+
+        failures = query.order_by(ExtractionRun.created_at.desc()).limit(10).all()
+        return [
+            {
+                "id": str(f.run_id)[:8],
+                "entity": ticker
+                or "SYSTEM",  # We'd need to fetch ticker if not provided
+                "type": "EXTRACTION_FAIL",
+                "message": f.error or "Unknown extraction error",
+                "confidence": float(f.confidence_overall or 0.0),
+                "timestamp": f.created_at.strftime("%H:%M:%S")
+                if f.created_at
+                else "--",
+            }
+            for f in failures
+        ]
+
+    def get_diagnostic_matrix(
+        self, stage: str, ticker: str | None = None
+    ) -> dict[str, Any]:
+        """Build the density matrix for companies vs metrics."""
+        db = SessionLocal()
+        try:
+            # Get list of companies
+            if ticker:
+                companies = [ticker.upper()]
+            else:
+                companies = [c.ticker for c in db.query(Company.ticker).limit(10).all()]
+
+            # For each company, check extraction status for key metrics
+            # This is a simplified version; real Tenn uses a metrics registry
+            metrics = ["REVENUE", "EBITDA", "NET_DEBT", "EPS", "CAPEX"]
+
+            entities = []
+            for comp in companies:
+                entity_metrics = {}
+                # Query extractions for this company
+                extractions = (
+                    db.query(ExtractionRun.structured_json)
+                    .join(Document, ExtractionRun.document_id == Document.document_id)
+                    .filter(Document.ticker == comp)
+                    .filter(ExtractionRun.status == "success")
+                    .all()
+                )
+
+                # Combine all successful extractions to check coverage
+                all_keys = set()
+                for (sj,) in extractions:
+                    if sj and isinstance(sj, dict):
+                        all_keys.update(sj.keys())
+
+                for m in metrics:
+                    if m in all_keys:
+                        entity_metrics[m] = "populated"
+                    else:
+                        entity_metrics[m] = "sparse"
+
+                entities.append({"entity": comp, "metrics": entity_metrics})
+
+            return {"stage": stage, "entities": entities}
+        finally:
+            db.close()
 
     def chat_stream(
         self,
@@ -486,19 +1164,53 @@ class CockpitService:
         db_diagnostics: bool | None = None,
     ) -> ChatResponse:
         """Run a chat turn and return the full response, while optionally streaming chunks."""
-        thread_id = self._resolve_thread_id(session_id)
-        controller = self._build_chat_controller(thread_id)
+        requested_model = str(model or "").strip()
+        llm_client = getattr(self, "llm_client", None)
+        current_model = str(getattr(llm_client, "model", "") or "").strip()
+
         status_events: list[dict[str, Any]] = []
         thinking_events: list[dict[str, Any]] = []
-
-        def _capture_chunk(chunk: str) -> None:
-            if on_chunk is not None:
-                on_chunk(chunk)
 
         def _capture_status(stage: str) -> None:
             status_events.append({"stage": str(stage or ""), "at": _now_iso()})
             if on_status is not None:
                 on_status(stage)
+
+        if requested_model and llm_client is not None:
+            if requested_model != current_model:
+                _capture_status(
+                    f"Switching model: {current_model or 'unknown'} -> {requested_model}"
+                )
+                logger.info(
+                    "Switching LLM model: %s -> %s",
+                    current_model or "unknown",
+                    requested_model,
+                )
+                try:
+                    llm_client.switch_model(requested_model)
+                except Exception as exc:
+                    _capture_status(f"Model switch failed: {exc}")
+                    raise
+
+                resolved_model = str(getattr(llm_client, "model", "") or "").strip()
+                if resolved_model and resolved_model != requested_model:
+                    _capture_status(
+                        f"Model alias resolved: {requested_model} -> {resolved_model}"
+                    )
+                _capture_status(f"Model ready: {resolved_model or requested_model}")
+            else:
+                _capture_status(f"Using selected model: {current_model}")
+        elif requested_model:
+            _capture_status(f"Requested model: {requested_model}")
+        elif current_model:
+            _capture_status(f"Using active model: {current_model}")
+
+        thread_id = self._resolve_thread_id(session_id)
+        controller = self._build_chat_controller(thread_id)
+
+        def _capture_chunk(chunk: str) -> None:
+            if on_chunk is not None:
+                on_chunk(chunk)
 
         def _capture_thinking(assessment: str, plan: str) -> None:
             thinking_events.append(
@@ -525,6 +1237,10 @@ class CockpitService:
             on_thinking=_capture_thinking,
         )
         meta = dict(getattr(response, "routing_metadata", None) or {})
+        llm_client = getattr(self, "llm_client", None)
+        current_model = str(getattr(llm_client, "model", "") or "").strip()
+        if current_model and not str(meta.get("model") or "").strip():
+            meta["model"] = current_model
         meta.setdefault("source", "local")
         meta.setdefault("latency_ms", 0)
         meta.setdefault("cost_usd", 0.0)
@@ -537,10 +1253,21 @@ class CockpitService:
                 "thread_id": thread_id,
                 "session_id": thread_id,
                 "ticker": str(ticker or "").strip().upper() or None,
-                "request": {"message": message, "ticker": ticker},
+                "request": {
+                    "message": message,
+                    "ticker": ticker,
+                    "enable_web": bool(enable_web) if enable_web is not None else False,
+                    "requested_model": str(model or "").strip() or None,
+                    "rag": bool(rag) if rag is not None else True,
+                    "db_diagnostics": bool(db_diagnostics)
+                    if db_diagnostics is not None
+                    else False,
+                },
                 "status_events": status_events,
                 "thinking_events": thinking_events,
                 "response_text": response.text,
+                "prompt": getattr(response, "prompt", None),
+                "action_preview": response.action_preview,
                 "tool_traces": list(getattr(response, "tool_traces", None) or []),
                 "evidence": list(response.evidence or []),
                 "routing_metadata": meta,

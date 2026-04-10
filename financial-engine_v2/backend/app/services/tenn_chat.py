@@ -450,15 +450,27 @@ def chat_with_tenn(
 
     supporting_evidence = _normalize_supporting_evidence(llm_payload.get("supporting_evidence"))
 
+    result: dict[str, Any] = {
+        "answer": answer,
+        "insights": insights,
+        "supporting_evidence": supporting_evidence,
+        "confidence": confidence,
+        "sources": sources,
+    }
+
     if session_memory_enabled:
         retrieved_chunk_ids = [
             str(row.get("chunk_id") or "")
             for row in context_rows
             if str(row.get("chunk_id") or "").strip()
         ]
-        record_turn(
-            normalized_session_id,  # type: ignore[arg-type]
-            _build_turn_payload(
+        # Build the turn payload now but do NOT record it yet.
+        # The route layer will score quality first, then call record_turn() with
+        # the metrics included.  This is surfaced via the private "_pending_turn"
+        # key so that no call site outside routes/chat.py depends on it.
+        result["_pending_turn"] = {
+            "session_id": normalized_session_id,
+            "payload": _build_turn_payload(
                 session_id=normalized_session_id,  # type: ignore[arg-type]
                 query=normalized_query,
                 answer=answer,
@@ -467,12 +479,6 @@ def chat_with_tenn(
                 sources=sources,
                 retrieved_chunk_ids=retrieved_chunk_ids or None,
             ),
-        )
+        }
 
-    return {
-        "answer": answer,
-        "insights": insights,
-        "supporting_evidence": supporting_evidence,
-        "confidence": confidence,
-        "sources": sources,
-    }
+    return result

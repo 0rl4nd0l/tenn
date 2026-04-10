@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Any, Callable
@@ -13,6 +14,8 @@ from app.services.source_registry import RESEARCH_MEMORY_ROOT
 DEFAULT_NEWS_MEMOS_PATH = RESEARCH_MEMORY_ROOT / "news_memos.jsonl"
 DEFAULT_LLAMACPP_URL = os.getenv("LLAMACPP_URL", "http://127.0.0.1:8001").rstrip("/")
 DEFAULT_LLAMACPP_MODEL = os.getenv("LLAMACPP_MODEL", "model.gguf").strip()
+
+logger = logging.getLogger(__name__)
 
 VALID_SENTIMENTS = frozenset({"bullish", "bearish", "neutral", "mixed"})
 VALID_IMPACT_MAGNITUDES = frozenset({"material", "moderate", "minor"})
@@ -82,7 +85,9 @@ class NewsMemoExtractor:
         self.llm_fn = llm_fn or generate_json
         self.llm_url = str(llm_url or DEFAULT_LLAMACPP_URL).rstrip("/")
         self.llm_model = str(llm_model or DEFAULT_LLAMACPP_MODEL).strip()
-        self.memos_path = Path(memos_path or DEFAULT_NEWS_MEMOS_PATH).expanduser().resolve()
+        self.memos_path = (
+            Path(memos_path or DEFAULT_NEWS_MEMOS_PATH).expanduser().resolve()
+        )
 
     def _call_llm(
         self,
@@ -144,7 +149,9 @@ class NewsMemoExtractor:
             "provider": str(provider or "").strip(),
             "key_events": _normalize_list(payload.get("key_events")),
             "sentiment": _normalize_sentiment(payload.get("sentiment")),
-            "impact_magnitude": _normalize_impact_magnitude(payload.get("impact_magnitude")),
+            "impact_magnitude": _normalize_impact_magnitude(
+                payload.get("impact_magnitude")
+            ),
             "tickers": _normalize_list(payload.get("tickers"), uppercase=True),
             "claims": _normalize_list(payload.get("claims")),
             "risks": _normalize_list(payload.get("risks")),
@@ -201,6 +208,9 @@ class NewsMemoExtractor:
         article_text: str,
         provider: str,
         published_at: str | None = None,
+        route_signals: bool = True,
+        company_memory_store=None,
+        market_memory_store=None,
     ) -> dict[str, Any]:
         memo = self.extract(
             source_id=source_id,
@@ -208,4 +218,53 @@ class NewsMemoExtractor:
             provider=provider,
             published_at=published_at,
         )
-        return self.upsert(memo)
+        stored = self.upsert(memo)
+        if route_signals:
+            try:
+                from app.services.memory_signal_router import (
+                    route_signals,
+                    signals_from_news_memo,
+                )
+
+                route_signals(
+                    signals_from_news_memo(stored),
+                    company_memory_store=company_memory_store,
+                    market_memory_store=market_memory_store,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "news memo signal routing failed for %s: %s",
+                    source_id,
+                    exc,
+                )
+        return stored
+
+    def extract_store_and_route(
+        self,
+        *,
+        source_id: str,
+        article_text: str,
+        provider: str,
+        published_at: str | None = None,
+        company_memory_store=None,
+        market_memory_store=None,
+    ) -> dict[str, Any]:
+        from app.services.memory_signal_router import (
+            route_signals,
+            signals_from_news_memo,
+        )
+
+        memo = self.extract_and_store(
+            source_id=source_id,
+            article_text=article_text,
+            provider=provider,
+            published_at=published_at,
+            route_signals=False,
+        )
+        signals = signals_from_news_memo(memo)
+        routing = route_signals(
+            signals,
+            company_memory_store=company_memory_store,
+            market_memory_store=market_memory_store,
+        )
+        return {"memo": memo, "signals": signals, "routing": routing}

@@ -217,6 +217,48 @@ export interface FinancialData {
   auditConfidence?: number
 }
 
+export interface IntelPulseStats {
+  document_count: number
+  extraction_count: number
+  signal_count: number
+  memory_count: number
+  population_index: number
+  trust_score_avg: number
+  quarantine_rate: number
+}
+
+export interface IntelPulseStageHealth {
+  id: string
+  label: string
+  health: number
+  status: string
+}
+
+export interface IntelPulseFailure {
+  id: string
+  entity: string
+  type: string
+  message: string
+  confidence: number
+  timestamp: string
+}
+
+export interface IntelPulseResponse {
+  stats: IntelPulseStats
+  pipeline: IntelPulseStageHealth[]
+  failures: IntelPulseFailure[]
+}
+
+export interface IntelPulseEntityMetric {
+  entity: string
+  metrics: Record<string, 'populated' | 'abstain' | 'failed' | 'sparse'>
+}
+
+export interface IntelPulseMatrixResponse {
+  stage: string
+  entities: IntelPulseEntityMetric[]
+}
+
 // ── API Response Types ────────────────────────────────────────────────────
 
 export interface HealthResponse {

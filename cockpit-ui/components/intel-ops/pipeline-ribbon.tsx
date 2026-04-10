@@ -3,25 +3,32 @@
 import React from 'react'
 import { Database, ShieldCheck, Zap, Brain, LayoutPanelLeft, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { IntelPulseStageHealth } from '@/lib/cockpit-types'
 
 interface PipelineRibbonProps {
   activeStage: string
   onStageSelect: (stage: string) => void
+  pipeline?: IntelPulseStageHealth[]
 }
 
-const stages = [
-  { id: 'overview', label: 'PULSE_HOME', icon: LayoutPanelLeft, health: 98, color: 'text-primary' },
-  { id: 'extraction', label: 'EXTRACTION', icon: Database, health: 94, color: 'text-[oklch(0.69_0.22_145)]' },
-  { id: 'evaluation', label: 'EVALUATION', icon: ShieldCheck, health: 88, color: 'text-[oklch(0.7_0.15_195)]' },
-  { id: 'signals', label: 'SIGNALS', icon: Zap, health: 76, color: 'text-[oklch(0.78_0.17_80)]' },
-  { id: 'memory', label: 'MEMORY', icon: Brain, health: 92, color: 'text-[oklch(0.65_0.15_240)]' },
-  { id: 'failures', label: 'FAILURES', icon: AlertCircle, health: 3.4, color: 'text-destructive', isFailure: true },
+const defaultStages = [
+  { id: 'overview', label: 'PULSE_HOME', icon: LayoutPanelLeft, health: 100, color: 'text-primary' },
+  { id: 'extraction', label: 'EXTRACTION', icon: Database, health: 0, color: 'text-[oklch(0.69_0.22_145)]' },
+  { id: 'evaluation', label: 'EVALUATION', icon: ShieldCheck, health: 0, color: 'text-[oklch(0.7_0.15_195)]' },
+  { id: 'signals', label: 'SIGNALS', icon: Zap, health: 0, color: 'text-[oklch(0.78_0.17_80)]' },
+  { id: 'memory', label: 'MEMORY', icon: Brain, health: 0, color: 'text-[oklch(0.65_0.15_240)]' },
+  { id: 'failures', label: 'FAILURES', icon: AlertCircle, health: 0, color: 'text-destructive', isFailure: true },
 ]
 
-export function PipelineRibbon({ activeStage, onStageSelect }: PipelineRibbonProps) {
+export function PipelineRibbon({ activeStage, onStageSelect, pipeline }: PipelineRibbonProps) {
+  const displayStages = defaultStages.map(s => {
+    const real = pipeline?.find(p => p.id === s.id)
+    return real ? { ...s, health: real.health } : s
+  })
+
   return (
     <div className="flex items-stretch gap-1 overflow-x-auto no-scrollbar py-1">
-      {stages.map((stage, idx) => {
+      {displayStages.map((stage, idx) => {
         const isActive = activeStage === stage.id
         const Icon = stage.icon
         
@@ -60,7 +67,7 @@ export function PipelineRibbon({ activeStage, onStageSelect }: PipelineRibbonPro
               )}
             </button>
             
-            {idx < stages.length - 1 && (
+            {idx < displayStages.length - 1 && (
               <div className="flex items-center text-muted-foreground/30 px-0.5">
                 <div className="h-px w-3 bg-current" />
               </div>
