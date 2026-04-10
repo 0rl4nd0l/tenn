@@ -3768,6 +3768,44 @@ class ChatController:
                 mode=ResponseMode.ACTION,
             )
 
+        # --- Conversational ingest shortcut: "ingest <ticker>" means ticker backfill ---
+        ingest_ticker_match = re.fullmatch(
+            r"\s*ingest\s+([A-Za-z]{2,5})\s*[?!.]*\s*", effective_message
+        )
+        if ingest_ticker_match:
+            ingest_ticker = ingest_ticker_match.group(1).upper()
+            if ingest_ticker in self.TICKER_STOPWORDS:
+                ingest_ticker_match = None
+        if ingest_ticker_match:
+            args = {
+                "ticker": ingest_ticker,
+                "years": 3,
+                "process_documents": True,
+            }
+            action_preview: dict[str, Any] = {
+                "action_id": "single_ticker_announcement_backfill",
+                "args": args,
+            }
+            if self.action_registry:
+                try:
+                    preview = self.action_registry.preview(
+                        "single_ticker_announcement_backfill", args
+                    )
+                    action_preview["command"] = preview.command
+                    action_preview["impact"] = preview.estimated_impact
+                    action_preview["timeout_seconds"] = preview.timeout_seconds
+                except Exception:
+                    pass
+            return ChatResponse(
+                text=(
+                    f"Preparing to ingest announcements for {ingest_ticker}. "
+                    "Use /confirm to execute."
+                ),
+                evidence=[],
+                action_preview=action_preview,
+                mode=ResponseMode.ACTION,
+            )
+
         # --- Chart intent short-circuit (before general action detection) ---
         if self.detect_chart_intent(effective_message):
             from cockpit.core.chart_args import prepare_chart_action_args

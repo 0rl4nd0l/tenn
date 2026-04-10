@@ -7,6 +7,7 @@ error dict before the action proposal is built.
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 import pytest
@@ -73,6 +74,26 @@ class TestNoExtractionController:
         # No validation: proposal is built regardless of ticker value.
         assert result["ok"] is True
         assert result["type"] == "action_proposal"
+
+    def test_announcement_ingest_preview_normalizes_today_alias(self):
+        executor = _make_executor(extraction_controller=None)
+        executor._actions.get.return_value = ActionSpec(
+            id="daily_announcement_ingest",
+            label="Daily announcement ingest",
+            command_template=["python", "daily.py"],
+            arg_schema={"date": str},
+            is_mutating=True,
+            requires_confirmation=True,
+            expected_outputs=[],
+            timeout_seconds=7200,
+        )
+
+        result = executor.execute("run_announcement_ingest", {"date": "today"})
+
+        assert result["ok"] is True
+        assert result["arguments"]["date"] == datetime.now(timezone.utc).strftime(
+            "%Y-%m-%d"
+        )
 
 
 # ---------------------------------------------------------------------------

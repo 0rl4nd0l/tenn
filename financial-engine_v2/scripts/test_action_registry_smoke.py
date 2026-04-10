@@ -2,6 +2,7 @@ import os
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -95,6 +96,15 @@ class TestActionRegistrySmoke(unittest.TestCase):
         preview = reg.preview("full_history", {"ticker": "BHP", "years": 1})
         self.assertEqual(preview.action_id, "full_history")
         self.assertTrue(preview.command)
+
+    def test_daily_announcement_ingest_normalizes_today_alias(self):
+        reg = ActionRegistry(repo_root=ROOT, confirm_required=True)
+        preview = reg.preview("daily_announcement_ingest", {"date": "today"})
+        idx = preview.command.index("--date")
+        self.assertEqual(
+            preview.command[idx + 1],
+            datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        )
 
     def test_update_ticker_financials_supports_no_process_documents_flag(self):
         reg = ActionRegistry(repo_root=ROOT, confirm_required=True)

@@ -5,6 +5,17 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 
 ---
 
+## L065 — Verify the active Cockpit surface before applying UI-specific guidance
+
+**Date:** 2026-04-10
+**Subsystem:** `financial-engine_v2/cockpit`, `cockpit-ui`
+**Symptom:** A cockpit issue reported from the web UI was initially treated as if it were a Textual/TUI problem, which risks searching the wrong files and proposing irrelevant fixes.
+**Root cause:** I relied on the subsystem name instead of first confirming which Cockpit surface was active.
+**Fix:** Confirm the active surface first, then use the matching workflow and files (`cockpit-ui` / web API for web issues, Textual-only files for TUI issues).
+**Rule:** Any Cockpit UI task must start by confirming the active surface (`cockpit-ui` web app vs Textual TUI) before selecting files, skills, or remediation steps. Do not assume the UI technology from subsystem name alone.
+
+---
+
 ## L001 — Margin formula: _pct_change is not _ratio
 
 **Date:** 2026-03-24

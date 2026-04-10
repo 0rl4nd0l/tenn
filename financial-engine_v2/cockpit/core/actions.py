@@ -1059,6 +1059,7 @@ class ActionRegistry:
 
     def _normalize_args(self, spec: ActionSpec, args: dict[str, Any]) -> dict[str, Any]:
         out: dict[str, Any] = {}
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         for key, value_type in spec.arg_schema.items():
             value = args.get(key)
             if value is None:
@@ -1080,10 +1081,13 @@ class ActionRegistry:
                         f"Arg '{key}' must be a number, got {value!r}"
                     ) from exc
             else:
-                out[key] = str(value)
+                text_value = str(value).strip()
+                if key == "date" and text_value.lower() == "today":
+                    out[key] = today
+                else:
+                    out[key] = text_value
 
         ts = uuid.uuid4().hex[:8]
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
         if not out.get("ticker") and spec.id in TICKER_REQUIRED_ACTION_IDS:
             raise ValueError(

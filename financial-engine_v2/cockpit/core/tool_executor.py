@@ -11,6 +11,7 @@ import json
 import logging
 import re
 from dataclasses import asdict
+from datetime import datetime, timezone
 from typing import Any
 
 from cockpit.core.actions import ActionRegistry
@@ -1039,7 +1040,10 @@ class ToolExecutor:
         action_args: dict[str, Any] = {}
         for agent_key, action_key in remap.items():
             if agent_key in args:
-                action_args[action_key] = args[agent_key]
+                value = args[agent_key]
+                if action_key == "date" and str(value).strip().lower() == "today":
+                    value = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                action_args[action_key] = value
 
         return {
             "tool": tool_name,

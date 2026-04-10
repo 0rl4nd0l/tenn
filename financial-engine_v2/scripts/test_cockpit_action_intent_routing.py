@@ -2,6 +2,7 @@
 import os
 import sys
 import unittest
+from types import SimpleNamespace
 from pathlib import Path
 
 
@@ -34,11 +35,15 @@ class CockpitActionIntentRoutingTests(unittest.TestCase):
 
     def test_news_ingestion_phrase_routes_to_daily_news_ingest(self):
         c = self._controller()
-        self.assertEqual(c.detect_action_intent("run news ingestion"), "daily_news_ingest")
+        self.assertEqual(
+            c.detect_action_intent("run news ingestion"), "daily_news_ingest"
+        )
 
     def test_news_ingestion_common_typo_routes_to_daily_news_ingest(self):
         c = self._controller()
-        self.assertEqual(c.detect_action_intent("run news ingewstion"), "daily_news_ingest")
+        self.assertEqual(
+            c.detect_action_intent("run news ingewstion"), "daily_news_ingest"
+        )
 
     def test_pull_news_phrase_does_not_route_to_announcements_update(self):
         c = self._controller()
@@ -46,11 +51,45 @@ class CockpitActionIntentRoutingTests(unittest.TestCase):
 
     def test_load_news_qdrant_phrase_routes_to_action(self):
         c = self._controller()
-        self.assertEqual(c.detect_action_intent("load news to qdrant"), "load_news_to_qdrant")
+        self.assertEqual(
+            c.detect_action_intent("load news to qdrant"), "load_news_to_qdrant"
+        )
 
     def test_sync_news_chunks_phrase_routes_to_load_news_qdrant(self):
         c = self._controller()
-        self.assertEqual(c.detect_action_intent("sync news chunks to qdrant"), "load_news_to_qdrant")
+        self.assertEqual(
+            c.detect_action_intent("sync news chunks to qdrant"), "load_news_to_qdrant"
+        )
+
+    def test_ingest_ticker_shortcut_routes_to_single_ticker_backfill(self):
+        os.environ["COCKPIT_AGENT_MODE"] = "keyword"
+
+        class _FakeActionRegistry:
+            @staticmethod
+            def preview(action_id: str, args: dict[str, object]) -> SimpleNamespace:
+                return SimpleNamespace(
+                    command=[
+                        "python",
+                        "scripts/full_history_ticker_sync.py",
+                        "--ticker",
+                        str(args["ticker"]),
+                    ],
+                    estimated_impact="mutates local data and reports",
+                    timeout_seconds=14400,
+                )
+
+        controller = ChatController(
+            ollama_client=None,
+            tool_router=None,
+            action_registry=_FakeActionRegistry(),
+        )
+
+        response = controller.build_chat_response("ingest eos")
+
+        self.assertEqual(
+            response.action_preview["action_id"], "single_ticker_announcement_backfill"
+        )
+        self.assertEqual(response.action_preview["args"]["ticker"], "EOS")
 
 
 class CockpitLoadNewsQdrantActionTests(unittest.TestCase):
@@ -80,7 +119,11 @@ class CockpitLoadNewsQdrantActionTests(unittest.TestCase):
     def test_load_news_to_qdrant_since_hours_defaults_to_zero(self):
         command = self.registry.build_command("load_news_to_qdrant", {})
         idx = command.index("--since-hours")
-        self.assertEqual(command[idx + 1], "0", "since_hours must default to 0 (sync all) for load_news_to_qdrant")
+        self.assertEqual(
+            command[idx + 1],
+            "0",
+            "since_hours must default to 0 (sync all) for load_news_to_qdrant",
+        )
 
 
 if __name__ == "__main__":
