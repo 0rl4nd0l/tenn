@@ -95,6 +95,60 @@ def test_normalize_database_url_aligns_with_runtime(monkeypatch, runtime_in_dock
 
     assert config._normalize_database_url(url) == expected
 
+
+def test_align_local_runtime_paths_uses_shell_data_root_for_local_sqlite(monkeypatch):
+    runtime = SimpleNamespace(
+        data_root="/repo/data",
+        database_url="sqlite:////mnt/nvme/tenn/runtime-data/fe_local.db",
+        docs_root="/mnt/nvme/tenn/runtime-data/asx/docs",
+        marketindex_announcements_file="/mnt/nvme/tenn/runtime-data/raw/marketindex_announcements.json",
+        importance_output_root="/mnt/nvme/tenn/runtime-data/asx/importance",
+    )
+
+    monkeypatch.setenv("DATA_ROOT", "/repo/data")
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.delenv("DOCS_ROOT", raising=False)
+    monkeypatch.delenv("MARKETINDEX_ANNOUNCEMENTS_FILE", raising=False)
+    monkeypatch.delenv("IMPORTANCE_OUTPUT_ROOT", raising=False)
+
+    config._align_local_runtime_paths(runtime)
+
+    assert runtime.database_url == "sqlite:////repo/data/fe_local.db"
+    assert runtime.docs_root == "/repo/data/asx/docs"
+    assert (
+        runtime.marketindex_announcements_file
+        == "/repo/data/raw/marketindex_announcements.json"
+    )
+    assert runtime.importance_output_root == "/repo/data/asx/importance"
+
+
+def test_align_local_runtime_paths_preserves_explicit_shell_overrides(monkeypatch):
+    runtime = SimpleNamespace(
+        data_root="/repo/data",
+        database_url="sqlite:////mnt/nvme/tenn/runtime-data/fe_local.db",
+        docs_root="/mnt/nvme/tenn/runtime-data/asx/docs",
+        marketindex_announcements_file="/mnt/nvme/tenn/runtime-data/raw/marketindex_announcements.json",
+        importance_output_root="/mnt/nvme/tenn/runtime-data/asx/importance",
+    )
+
+    monkeypatch.setenv("DATA_ROOT", "/repo/data")
+    monkeypatch.setenv("DATABASE_URL", "sqlite:////override/fe_local.db")
+    monkeypatch.setenv("DOCS_ROOT", "/override/docs")
+    monkeypatch.setenv(
+        "MARKETINDEX_ANNOUNCEMENTS_FILE", "/override/raw/marketindex_announcements.json"
+    )
+    monkeypatch.setenv("IMPORTANCE_OUTPUT_ROOT", "/override/asx/importance")
+
+    config._align_local_runtime_paths(runtime)
+
+    assert runtime.database_url == "sqlite:////mnt/nvme/tenn/runtime-data/fe_local.db"
+    assert runtime.docs_root == "/mnt/nvme/tenn/runtime-data/asx/docs"
+    assert (
+        runtime.marketindex_announcements_file
+        == "/mnt/nvme/tenn/runtime-data/raw/marketindex_announcements.json"
+    )
+    assert runtime.importance_output_root == "/mnt/nvme/tenn/runtime-data/asx/importance"
+
 @pytest.mark.parametrize(
     ("runtime_in_docker", "host_network", "url", "default_db", "expected"),
     [

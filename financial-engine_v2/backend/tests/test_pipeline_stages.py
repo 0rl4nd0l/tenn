@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import json
 import uuid
 from types import SimpleNamespace
 
 from app.models.extractions import ExtractionRun
+from app.services.announcement_importance import classify_title_extraction_skip
 from app.services import pipeline
 from app.services.pipeline_stages import (
     DocumentProcessResult,
@@ -17,6 +19,29 @@ from app.services.pipeline_stages import (
     run_embedding_stage,
     run_extraction_stage,
 )
+
+
+def test_classify_title_extraction_skip_matches_admin_titles() -> None:
+    result = classify_title_extraction_skip(
+        title="Notice of cessation of securities",
+        doc_class="quarterly",
+        doc_subtype="other",
+    )
+
+    assert result["skip_extraction"] is True
+    assert result["reason"] == "non_financial_admin_title"
+    assert "cessation of securities" in result["matched_keywords"]
+
+
+def test_classify_title_extraction_skip_preserves_structural_financial_docs() -> None:
+    result = classify_title_extraction_skip(
+        title="Appendix 4C Quarterly Cash Flow Report",
+        doc_class="quarterly",
+        doc_subtype="4C",
+    )
+
+    assert result["skip_extraction"] is False
+    assert result["matched_keywords"] == []
 
 
 def test_run_extraction_stage_disabled_returns_structured_status() -> None:
@@ -56,6 +81,28 @@ def test_run_extraction_stage_failed_classifies_error() -> None:
     assert "timeout" in str(result.error).lower()
 
 
+def test_classify_extraction_failure_detects_missing_pdf_file() -> None:
+    failure_code = pipeline.classify_extraction_failure(
+        "[Errno 2] No such file or directory: '/data/asx/docs/WTC/sample.pdf'"
+    )
+
+    assert failure_code == "missing_pdf_file"
+
+
+def test_resolve_pdf_path_repairs_legacy_absolute_data_root(
+    monkeypatch, tmp_path
+) -> None:
+    docs_root = tmp_path / "runtime-data" / "asx" / "docs"
+    pdf_path = docs_root / "WTC" / "sample.pdf"
+    pdf_path.parent.mkdir(parents=True)
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+    monkeypatch.setattr(pipeline.settings, "docs_root", str(docs_root), raising=False)
+
+    resolved = pipeline._resolve_pdf_path("/data/asx/docs/WTC/sample.pdf")
+
+    assert resolved == str(pdf_path.resolve())
+
+
 def test_attach_reproducibility_metadata_is_additive() -> None:
     payload = {"metrics": {"revenue": 1000}, "confidence_metrics": 0.9}
     merged = attach_reproducibility_metadata(
@@ -67,7 +114,9 @@ def test_attach_reproducibility_metadata_is_additive() -> None:
     assert merged["_reproducibility"]["extractor_version"] == "docling_multipass_v1"
 
 
-def test_process_document_records_reproducibility_metadata(monkeypatch) -> None:
+def test_process_document_records_reproducibility_metadata(
+    monkeypatch, tmp_path
+) -> None:
     doc_id = uuid.uuid4()
 
     class DummyDoc:
@@ -112,6 +161,12 @@ def test_process_document_records_reproducibility_metadata(monkeypatch) -> None:
     monkeypatch.setattr(pipeline.settings, "enable_embeddings", False, raising=False)
     monkeypatch.setattr(pipeline.settings, "enable_qdrant", False, raising=False)
 
+    from app.services import extraction_run_observability
+
+    monkeypatch.setattr(
+        extraction_run_observability, "RUN_STATUS_ROOT", tmp_path / "run_status"
+    )
+
     result = pipeline.process_document(str(doc_id))
 
     assert result["extraction_status"] == "skipped"
@@ -121,6 +176,168 @@ def test_process_document_records_reproducibility_metadata(monkeypatch) -> None:
     assert repro["status"] == "skipped"
     assert repro["failure_code"] == "disabled"
     assert repro["document_id"] == str(doc_id)
+
+
+def test_process_document_fails_loudly_when_pdf_missing_under_active_root(
+    monkeypatch, tmp_path
+) -> None:
+    doc_id = uuid.uuid4()
+    docs_root = tmp_path / "runtime-data" / "asx" / "docs"
+
+    class DummyDoc:
+        document_id = doc_id
+        ticker = "WTC"
+        doc_class = "announcement"
+        doc_subtype = "periodic"
+        title = "WTC 1H26 Appendix 4D and Financial Report"
+        pdf_path = "/data/asx/docs/WTC/2026-02-25_wtc-1h26.pdf"
+        source_url = "https://example.com/wtc.pdf"
+        pdf_sha256 = "sha-wtc"
+
+    class DummyQuery:
+        def filter(self, *args, **kwargs):
+            return self
+
+        def first(self):
+            return DummyDoc()
+
+    class DummySession:
+        def __init__(self):
+            self.added: list[object] = []
+            self.commits = 0
+
+        def query(self, _model):
+            return DummyQuery()
+
+        def add(self, obj):
+            self.added.append(obj)
+
+        def commit(self):
+            self.commits += 1
+
+        def rollback(self):
+            pass
+
+        def close(self):
+            pass
+
+    session = DummySession()
+    monkeypatch.setattr(pipeline, "SessionLocal", lambda: session)
+    monkeypatch.setattr(pipeline.settings, "docs_root", str(docs_root), raising=False)
+    monkeypatch.setattr(
+        pipeline.settings,
+        "data_root",
+        str(tmp_path / "runtime-data"),
+        raising=False,
+    )
+    monkeypatch.setattr(pipeline.settings, "database_url", "sqlite:////tmp/test.db", raising=False)
+    monkeypatch.setattr(pipeline.settings, "enable_extraction", True, raising=False)
+    monkeypatch.setattr(pipeline.settings, "enable_embeddings", False, raising=False)
+    monkeypatch.setattr(pipeline.settings, "enable_qdrant", False, raising=False)
+
+    from app.services import extraction_run_observability
+    from app.services import method_isolated_extraction
+
+    monkeypatch.setattr(
+        extraction_run_observability, "RUN_STATUS_ROOT", tmp_path / "run_status"
+    )
+    monkeypatch.setattr(
+        method_isolated_extraction,
+        "run_method_isolated_extraction",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("extraction should not run when PDF is missing")
+        ),
+    )
+
+    result = pipeline.process_document(str(doc_id))
+
+    assert result["extraction_status"] == "failed"
+    run = next(obj for obj in session.added if isinstance(obj, ExtractionRun))
+    assert run.status == "failed"
+    assert "stored_pdf_path=/data/asx/docs/WTC/2026-02-25_wtc-1h26.pdf" in run.error
+    assert f"docs_root={docs_root.resolve()}" in run.error
+    assert session.commits == 1
+
+
+def test_process_document_skips_non_financial_admin_titles_before_extraction(
+    monkeypatch, tmp_path
+) -> None:
+    doc_id = uuid.uuid4()
+
+    class DummyDoc:
+        document_id = doc_id
+        ticker = "EOS"
+        doc_class = "quarterly"
+        doc_subtype = "other"
+        title = "Notice of cessation of securities"
+        pdf_path = "/tmp/eos-admin.pdf"
+        source_url = "https://example.com/eos-admin.pdf"
+        pdf_sha256 = "sha-admin"
+
+    class DummyQuery:
+        def filter(self, *args, **kwargs):
+            return self
+
+        def first(self):
+            return DummyDoc()
+
+    class DummySession:
+        def __init__(self):
+            self.added: list[object] = []
+
+        def query(self, _model):
+            return DummyQuery()
+
+        def add(self, obj):
+            self.added.append(obj)
+
+        def commit(self):
+            pass
+
+        def rollback(self):
+            pass
+
+        def close(self):
+            pass
+
+    session = DummySession()
+    monkeypatch.setattr(pipeline, "SessionLocal", lambda: session)
+    monkeypatch.setattr(pipeline.settings, "enable_extraction", True, raising=False)
+    monkeypatch.setattr(pipeline.settings, "enable_embeddings", False, raising=False)
+    monkeypatch.setattr(pipeline.settings, "enable_qdrant", False, raising=False)
+
+    from app.services import extraction_run_observability
+    from app.services import method_isolated_extraction
+
+    monkeypatch.setattr(
+        extraction_run_observability, "RUN_STATUS_ROOT", tmp_path / "run_status"
+    )
+    monkeypatch.setattr(
+        method_isolated_extraction,
+        "run_method_isolated_extraction",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("GPU extraction should not run for admin titles")
+        ),
+    )
+
+    result = pipeline.process_document(str(doc_id))
+
+    assert result["extraction_status"] == "skipped"
+    run = next(obj for obj in session.added if isinstance(obj, ExtractionRun))
+    assert run.structured_json is not None
+    assert run.structured_json["skip_reason"] == "non_financial_admin_title"
+    assert "cessation of securities" in run.structured_json["matched_keywords"]
+    repro = run.structured_json["_reproducibility"]
+    assert repro["status"] == "skipped"
+    assert repro["failure_code"] == "non_financial_admin_title"
+
+    run_status_path = tmp_path / "run_status" / f"{result['run_id']}.json"
+    run_status = json.loads(run_status_path.read_text(encoding="utf-8"))
+    assert "extraction_skipped_non_financial_title" in run_status["warning_codes"]
+    assert not any(
+        code.startswith("missing_stage_event:")
+        for code in run_status["warning_codes"]
+    )
 
 
 def test_build_reproducibility_metadata_counts_non_null_metrics() -> None:
@@ -190,9 +407,11 @@ def test_run_embedding_stage_skips_when_embeddings_disabled() -> None:
 
 
 def test_process_document_records_reproducibility_for_ok_low_confidence(
-    monkeypatch,
+    monkeypatch, tmp_path
 ) -> None:
     doc_id = uuid.uuid4()
+    pdf_file = tmp_path / "test-low.pdf"
+    pdf_file.write_bytes(b"%PDF-1.4\n")
 
     class DummyDoc:
         document_id = doc_id
@@ -200,7 +419,7 @@ def test_process_document_records_reproducibility_for_ok_low_confidence(
         doc_class = "announcement"
         doc_subtype = "periodic"
         title = "Low confidence doc"
-        pdf_path = "/tmp/test-low.pdf"
+        pdf_path = str(pdf_file)
         source_url = "https://example.com/test-low.pdf"
         pdf_sha256 = "sha-low"
 
@@ -232,9 +451,11 @@ def test_process_document_records_reproducibility_for_ok_low_confidence(
 
     session = DummySession()
     monkeypatch.setattr(pipeline, "SessionLocal", lambda: session)
+    from app.services import method_isolated_extraction
+
     monkeypatch.setattr(
-        pipeline,
-        "run_multipass_extraction",
+        method_isolated_extraction,
+        "run_method_isolated_extraction",
         lambda *_args, **_kwargs: SimpleNamespace(
             status="ok_low_confidence",
             payload={
@@ -262,6 +483,12 @@ def test_process_document_records_reproducibility_for_ok_low_confidence(
     monkeypatch.setattr(pipeline.settings, "enable_embeddings", False, raising=False)
     monkeypatch.setattr(pipeline.settings, "enable_qdrant", False, raising=False)
 
+    from app.services import extraction_run_observability
+
+    monkeypatch.setattr(
+        extraction_run_observability, "RUN_STATUS_ROOT", tmp_path / "run_status"
+    )
+
     result = pipeline.process_document(str(doc_id))
 
     assert result["extraction_status"] == "ok_low_confidence"
@@ -274,9 +501,11 @@ def test_process_document_records_reproducibility_for_ok_low_confidence(
 
 
 def test_process_document_records_reproducibility_for_failed_extraction(
-    monkeypatch,
+    monkeypatch, tmp_path
 ) -> None:
     doc_id = uuid.uuid4()
+    pdf_file = tmp_path / "test-failed.pdf"
+    pdf_file.write_bytes(b"%PDF-1.4\n")
 
     class DummyDoc:
         document_id = doc_id
@@ -284,7 +513,7 @@ def test_process_document_records_reproducibility_for_failed_extraction(
         doc_class = "announcement"
         doc_subtype = "periodic"
         title = "Failed extraction doc"
-        pdf_path = "/tmp/test-failed.pdf"
+        pdf_path = str(pdf_file)
         source_url = "https://example.com/test-failed.pdf"
         pdf_sha256 = "sha-failed"
 
@@ -316,9 +545,11 @@ def test_process_document_records_reproducibility_for_failed_extraction(
 
     session = DummySession()
     monkeypatch.setattr(pipeline, "SessionLocal", lambda: session)
+    from app.services import method_isolated_extraction
+
     monkeypatch.setattr(
-        pipeline,
-        "run_multipass_extraction",
+        method_isolated_extraction,
+        "run_method_isolated_extraction",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(TimeoutError("parser timeout")),
     )
     monkeypatch.setattr(
@@ -332,6 +563,12 @@ def test_process_document_records_reproducibility_for_failed_extraction(
     monkeypatch.setattr(pipeline.settings, "enable_embeddings", False, raising=False)
     monkeypatch.setattr(pipeline.settings, "enable_qdrant", False, raising=False)
 
+    from app.services import extraction_run_observability
+
+    monkeypatch.setattr(
+        extraction_run_observability, "RUN_STATUS_ROOT", tmp_path / "run_status"
+    )
+
     result = pipeline.process_document(str(doc_id))
 
     assert result["extraction_status"] == "failed"
@@ -340,6 +577,15 @@ def test_process_document_records_reproducibility_for_failed_extraction(
     repro = run.structured_json["_reproducibility"]
     assert repro["status"] == "failed"
     assert repro["failure_code"] == "parser_timeout"
+
+    run_status_path = tmp_path / "run_status" / f"{result['run_id']}.json"
+    run_status = json.loads(run_status_path.read_text(encoding="utf-8"))
+    assert "parser_timeout" in run_status["error_codes"]
+    assert "embedding_skipped" not in run_status["warning_codes"]
+    assert not any(
+        code.startswith("missing_stage_event:")
+        for code in run_status["warning_codes"]
+    )
 
 
 def test_normalize_document_process_result_accepts_mapping() -> None:

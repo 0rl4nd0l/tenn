@@ -154,6 +154,34 @@ def _normalize_database_url(url: str) -> str:
     return _sqlite_url(p)
 
 
+def _is_local_sqlite_url(url: str) -> bool:
+    text = str(url or "").strip()
+    return text.lower().startswith("sqlite:///")
+
+
+def _align_local_runtime_paths(current_settings: "Settings") -> None:
+    """Keep local sqlite/docs/artifact paths aligned with an explicit DATA_ROOT."""
+    if not _shell_override_present("DATA_ROOT"):
+        return
+
+    data_root = Path(current_settings.data_root).expanduser().resolve()
+    if not _shell_override_present("DATABASE_URL") and _is_local_sqlite_url(
+        current_settings.database_url
+    ):
+        current_settings.database_url = _sqlite_url(data_root / "fe_local.db")
+
+    if not _shell_override_present("DOCS_ROOT"):
+        current_settings.docs_root = str(data_root / "asx" / "docs")
+
+    if not _shell_override_present("MARKETINDEX_ANNOUNCEMENTS_FILE"):
+        current_settings.marketindex_announcements_file = str(
+            data_root / "raw" / "marketindex_announcements.json"
+        )
+
+    if not _shell_override_present("IMPORTANCE_OUTPUT_ROOT"):
+        current_settings.importance_output_root = str(data_root / "asx" / "importance")
+
+
 def _default_redis_base_url() -> str:
     host = "redis" if is_running_in_docker() else "127.0.0.1"
     return f"redis://{host}:6379"
@@ -309,6 +337,7 @@ if (
     )
 ):
     settings.importance_output_root = str(Path(settings.data_root) / "asx" / "importance")
+_align_local_runtime_paths(settings)
 settings.database_url = _normalize_database_url(settings.database_url)
 settings.qdrant_url = _normalize_base_url(
     _normalize_qdrant_url(settings.qdrant_url),

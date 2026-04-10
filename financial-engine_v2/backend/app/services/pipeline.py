@@ -34,7 +34,10 @@ from app.services.extraction_run_observability import (
     ExtractionRunObserver,
     initialize_run_status,
 )
-from app.services.announcement_importance import classify_documents_and_materialize
+from app.services.announcement_importance import (
+    classify_documents_and_materialize,
+    classify_title_extraction_skip,
+)
 from app.services.llm import embed_texts, generate_json, get_routing_decision
 from app.services.multipass_extraction import (
     run_multipass_extraction,
@@ -47,6 +50,7 @@ from app.services.docling_extract import StructuredDocument
 from app.services.pipeline_stages import (
     DocumentProcessResult,
     DownloadProcessAggregate,
+    EmbeddingStageStatus,
     ExtractionStageResult,
     ExtractionStageStatus,
     attach_reproducibility_metadata,
@@ -254,6 +258,7 @@ def _embed_chunks(
 
 EXTRACTION_FAILURE_TAXONOMY = (
     "ocr_or_text_unavailable",
+    "missing_pdf_file",
     "parser_timeout",
     "llm_invalid_json",
     "provider_network",
@@ -287,7 +292,24 @@ def classify_extraction_failure(
 
     if any(
         token in text
-        for token in ("timeout", "timed out", "deadline exceeded", "took too long", "extractiontimeouterror")
+        for token in (
+            "no such file or directory",
+            "filenotfounderror",
+            "cannot find the file",
+            "cannot find the path",
+        )
+    ):
+        return "missing_pdf_file"
+
+    if any(
+        token in text
+        for token in (
+            "timeout",
+            "timed out",
+            "deadline exceeded",
+            "took too long",
+            "extractiontimeouterror",
+        )
     ):
         return "parser_timeout"
 
@@ -492,15 +514,55 @@ def _coerce_risk_bullets(value):
     return [as_text] if as_text else None
 
 
+def _remap_legacy_pdf_path(path: Path) -> Path | None:
+    docs_root = Path(settings.docs_root).expanduser().resolve()
+    parts = path.parts
+    for idx in range(len(parts) - 1):
+        if parts[idx : idx + 2] == ("asx", "docs"):
+            suffix = parts[idx + 2 :]
+            if not suffix:
+                return None
+            return docs_root.joinpath(*suffix).resolve()
+    return None
+
+
 def _resolve_pdf_path(value: str | None) -> str:
-    """Resolve pdf_path to an absolute path. Relative paths are resolved under settings.docs_root so worker and API share the same layout."""
+    """Resolve pdf_path to an absolute path under the active docs root when possible."""
     raw = str(value or "").strip()
     if not raw:
         return raw
+    docs_root = Path(settings.docs_root).expanduser().resolve()
     path = Path(raw).expanduser()
     if path.is_absolute():
+        if path.exists():
+            return str(path.resolve())
+        remapped = _remap_legacy_pdf_path(path)
+        if remapped is not None and remapped.exists():
+            return str(remapped)
         return str(path)
-    return str((Path(settings.docs_root) / path).resolve())
+    return str((docs_root / path).resolve())
+
+
+def _repair_document_pdf_path_if_needed(db, doc, resolved_pdf_path: str) -> str:
+    resolved = str(resolved_pdf_path or "").strip()
+    if not resolved or resolved == str(doc.pdf_path or "").strip():
+        return resolved
+    doc.pdf_path = resolved
+    db.commit()
+    return resolved
+
+
+def _build_missing_pdf_error(doc, *, resolved_pdf_path: str) -> str:
+    return (
+        "PDF file not found for extraction. "
+        f"document_id={doc.document_id} "
+        f"ticker={str(doc.ticker or '').strip().upper()} "
+        f"stored_pdf_path={str(doc.pdf_path or '').strip()} "
+        f"resolved_pdf_path={resolved_pdf_path} "
+        f"docs_root={Path(settings.docs_root).expanduser().resolve()} "
+        f"data_root={Path(settings.data_root).expanduser().resolve()} "
+        f"database_url={settings.database_url}"
+    )
 
 
 def _normalize_source_url(url: str | None) -> str:
@@ -899,6 +961,7 @@ def _upsert_financial_rows(db, doc, structured):
     period_type = structured.get("period_type")
     period_end = parse_period_end(structured.get("period_end"))
     metrics = structured.get("metrics") or {}
+    financial_rows_written = 0
 
     if period_type in ("Q", "H", "A") and period_end:
         row = (
@@ -938,6 +1001,7 @@ def _upsert_financial_rows(db, doc, structured):
         row.confidence_metrics = _coerce_float(structured.get("confidence_metrics"))
         row.period_start = parse_period_end(structured.get("period_start"))
         row.currency = structured.get("currency") or None
+        financial_rows_written = 1
 
     risk_note = (
         db.query(ASXRiskNote).filter(ASXRiskNote.document_id == doc.document_id).first()
@@ -957,6 +1021,7 @@ def _upsert_financial_rows(db, doc, structured):
     )
     # NOTE: caller is responsible for db.commit() — do not commit here so that
     # ExtractionRun and financial rows are written in a single atomic transaction.
+    return financial_rows_written
 
 
 def process_document(
@@ -1006,6 +1071,16 @@ def process_document(
             details={"resolved_pdf_path": resolved_pdf_path},
         )
         default_model_name = "qwen2.5-32b-instruct"
+        if resolved_pdf_path and resolved_pdf_path != str(doc.pdf_path or "").strip():
+            resolved_pdf_path = _repair_document_pdf_path_if_needed(
+                db, doc, resolved_pdf_path
+            )
+            observer.emit(
+                "document_load",
+                "running",
+                "Document PDF path repaired to active docs root.",
+                details={"stored_pdf_path": doc.pdf_path},
+            )
         if not settings.enable_extraction:
             observer.emit(
                 "env_check",
@@ -1021,126 +1096,282 @@ def process_document(
                 failure_code="disabled",
             )
         else:
-            from app.services.router_state import extraction_activity
-            from app.services.method_isolated_extraction import (
-                run_method_isolated_extraction,
+            title_skip = classify_title_extraction_skip(
+                title=doc.title,
+                doc_class=doc.doc_class,
+                doc_subtype=doc.doc_subtype,
             )
-
-            try:
-                with extraction_activity():
-                    multipass_result = run_method_isolated_extraction(
-                        resolved_pdf_path,
-                        dict(doc_metadata),
-                        ollama_client,
-                        observer=observer,
-                        requested_method=requested_method,
-                        strict_method=strict_method,
-                    )
-            except Exception as exc:
-                error_text = str(exc)
+            if bool(title_skip.get("skip_extraction")):
+                matched_keywords = list(title_skip.get("matched_keywords") or [])
+                skip_reason = (
+                    str(title_skip.get("reason") or "").strip()
+                    or "non_financial_admin_title"
+                )
                 observer.emit(
-                    "failed",
-                    "failed",
-                    f"Extraction failed: {error_text}",
-                    error_code="extraction_failed",
+                    "document_gate",
+                    "skipped",
+                    "Skipping extraction for non-financial administrative announcement.",
+                    warning_code="extraction_skipped_non_financial_title",
+                    details={
+                        "skip_reason": skip_reason,
+                        "matched_keywords": matched_keywords,
+                        "title": str(doc.title or "").strip(),
+                    },
                 )
                 extraction_stage = ExtractionStageResult(
-                    status=ExtractionStageStatus.FAILED,
-                    payload={"error": error_text},
+                    status=ExtractionStageStatus.SKIPPED,
+                    payload={
+                        "status": "skipped_extraction",
+                        "skip_reason": skip_reason,
+                        "matched_keywords": matched_keywords,
+                    },
                     sections=[],
-                    error=error_text,
-                    confidence=None,
-                    model_name=default_model_name,
-                    failure_code=classify_extraction_failure(error_text, None),
+                    model_name=None,
+                    failure_code=skip_reason,
                 )
             else:
-                raw_payload = getattr(multipass_result, "payload", None)
-                if isinstance(raw_payload, dict):
-                    payload = raw_payload
-                elif isinstance(raw_payload, Mapping):
-                    payload = dict(raw_payload)
+                if not resolved_pdf_path or not Path(resolved_pdf_path).exists():
+                    error_text = _build_missing_pdf_error(
+                        doc,
+                        resolved_pdf_path=resolved_pdf_path,
+                    )
+                    extraction_stage = ExtractionStageResult(
+                        status=ExtractionStageStatus.FAILED,
+                        payload={"error": error_text},
+                        sections=[],
+                        error=error_text,
+                        confidence=None,
+                        model_name=default_model_name,
+                        failure_code="missing_pdf_file",
+                    )
+                    observer.emit(
+                        "document_load",
+                        "failed",
+                        error_text,
+                        error_code="missing_pdf_file",
+                        details={
+                            "stored_pdf_path": str(doc.pdf_path or "").strip(),
+                            "resolved_pdf_path": resolved_pdf_path,
+                            "docs_root": str(
+                                Path(settings.docs_root).expanduser().resolve()
+                            ),
+                            "data_root": str(
+                                Path(settings.data_root).expanduser().resolve()
+                            ),
+                            "database_url": settings.database_url,
+                        },
+                    )
                 else:
-                    payload = {}
-                if not payload:
-                    payload = {"error": "invalid_multipass_payload"}
+                    from app.services.router_state import extraction_activity
+                    from app.services.method_isolated_extraction import (
+                        run_method_isolated_extraction,
+                    )
 
-                raw_sections = getattr(multipass_result, "sections", None)
-                sections = list(raw_sections) if isinstance(raw_sections, list) else []
+                    try:
+                        with extraction_activity(
+                            metadata={
+                                "run_id": resolved_run_id,
+                                "document_id": str(doc.document_id),
+                                "requested_method": requested_method,
+                                "strict_method": strict_method,
+                                "ticker": str(doc.ticker or "").strip().upper(),
+                                "title": str(doc.title or "").strip(),
+                            }
+                        ):
+                            multipass_result = run_method_isolated_extraction(
+                                resolved_pdf_path,
+                                dict(doc_metadata),
+                                ollama_client,
+                                observer=observer,
+                                requested_method=requested_method,
+                                strict_method=strict_method,
+                            )
+                    except Exception as exc:
+                        error_text = str(exc)
+                        observer.emit(
+                            "failed",
+                            "failed",
+                            f"Extraction failed: {error_text}",
+                            error_code="extraction_failed",
+                        )
+                        extraction_stage = ExtractionStageResult(
+                            status=ExtractionStageStatus.FAILED,
+                            payload={"error": error_text},
+                            sections=[],
+                            error=error_text,
+                            confidence=None,
+                            model_name=default_model_name,
+                            failure_code=classify_extraction_failure(error_text, None),
+                        )
+                    else:
+                        raw_payload = getattr(multipass_result, "payload", None)
+                        if isinstance(raw_payload, dict):
+                            payload = raw_payload
+                        elif isinstance(raw_payload, Mapping):
+                            payload = dict(raw_payload)
+                        else:
+                            payload = {}
+                        if not payload:
+                            payload = {"error": "invalid_multipass_payload"}
 
-                raw_status = (
-                    str(getattr(multipass_result, "status", "")).strip().lower()
-                )
-                if raw_status == ExtractionStageStatus.OK.value:
-                    status = ExtractionStageStatus.OK
-                elif raw_status == ExtractionStageStatus.OK_LOW_CONFIDENCE.value:
-                    status = ExtractionStageStatus.OK_LOW_CONFIDENCE
-                elif raw_status == ExtractionStageStatus.SKIPPED.value:
-                    status = ExtractionStageStatus.SKIPPED
-                elif raw_status == ExtractionStageStatus.PARSER_ERROR.value:
-                    status = ExtractionStageStatus.PARSER_ERROR
-                else:
-                    status = ExtractionStageStatus.FAILED
+                        raw_sections = getattr(multipass_result, "sections", None)
+                        sections = (
+                            list(raw_sections) if isinstance(raw_sections, list) else []
+                        )
 
-                error = getattr(multipass_result, "error", None)
-                raw_confidence = payload.get("confidence_metrics")
-                confidence = (
-                    float(raw_confidence)
-                    if isinstance(raw_confidence, (int, float))
-                    and not isinstance(raw_confidence, bool)
-                    else None
-                )
-                failure_code: Optional[str] = None
-                if status in {ExtractionStageStatus.FAILED, ExtractionStageStatus.PARSER_ERROR}:
-                    failure_code = classify_extraction_failure(error, payload)
+                        raw_status = (
+                            str(getattr(multipass_result, "status", "")).strip().lower()
+                        )
+                        if raw_status == ExtractionStageStatus.OK.value:
+                            status = ExtractionStageStatus.OK
+                        elif raw_status == ExtractionStageStatus.OK_LOW_CONFIDENCE.value:
+                            status = ExtractionStageStatus.OK_LOW_CONFIDENCE
+                        elif raw_status == ExtractionStageStatus.SKIPPED.value:
+                            status = ExtractionStageStatus.SKIPPED
+                        elif raw_status == ExtractionStageStatus.PARSER_ERROR.value:
+                            status = ExtractionStageStatus.PARSER_ERROR
+                        else:
+                            status = ExtractionStageStatus.FAILED
 
-                method_provenance = payload.get("_method_provenance")
-                model_name = default_model_name
-                if isinstance(method_provenance, Mapping):
-                    method_model = str(method_provenance.get("model_id") or "").strip()
-                    if method_model:
-                        model_name = method_model
+                        error = getattr(multipass_result, "error", None)
+                        raw_confidence = payload.get("confidence_metrics")
+                        confidence = (
+                            float(raw_confidence)
+                            if isinstance(raw_confidence, (int, float))
+                            and not isinstance(raw_confidence, bool)
+                            else None
+                        )
+                        failure_code: Optional[str] = None
+                        if status in {
+                            ExtractionStageStatus.FAILED,
+                            ExtractionStageStatus.PARSER_ERROR,
+                        }:
+                            failure_code = classify_extraction_failure(error, payload)
 
-                extraction_stage = ExtractionStageResult(
-                    status=status,
-                    payload=payload,
-                    sections=sections,
-                    error=error,
-                    confidence=confidence,
-                    model_name=model_name,
-                    failure_code=failure_code,
-                )
+                        method_provenance = payload.get("_method_provenance")
+                        model_name = default_model_name
+                        if isinstance(method_provenance, Mapping):
+                            method_model = str(
+                                method_provenance.get("model_id") or ""
+                            ).strip()
+                            if method_model:
+                                model_name = method_model
 
-        sections_for_chunks = extraction_stage.sections
+                        extraction_stage = ExtractionStageResult(
+                            status=status,
+                            payload=payload,
+                            sections=sections,
+                            error=error,
+                            confidence=confidence,
+                            model_name=model_name,
+                            failure_code=failure_code,
+                        )
+
         structured = extraction_stage.payload
         confidence = extraction_stage.confidence
-
-        # --- Use structured sections for prose chunking (not raw text) ---
-        _doc_for_chunks = StructuredDocument(sections=sections_for_chunks)
-        chunks = chunk_prose_sections(_doc_for_chunks)
-        embedding_stage = run_embedding_stage(
-            chunks=chunks,
-            doc=doc,
-            enable_embeddings=settings.enable_embeddings,
-            enable_qdrant=settings.enable_qdrant,
-            qdrant_client=qdrant_client,
-            qdrant_url=settings.qdrant_url,
-            qdrant_collection=settings.qdrant_collection,
-            ollama_client=ollama_client,
-            embed_chunks=_embed_chunks,
-            qdrant_client_factory=lambda url: QdrantClient(url=url),
-            ensure_collection_fn=ensure_collection,
-            delete_points_for_document_fn=delete_points_for_document,
-            upsert_points_fn=upsert_points,
-            validate_payload_fn=validate_payload,
-            log_rejected_payload_fn=log_rejected_payload,
-            logger_obj=logger,
+        metrics_payload = (
+            structured.get("metrics")
+            if isinstance(structured.get("metrics"), Mapping)
+            else {}
         )
+        reviewable_metrics_count = sum(
+            1 for value in metrics_payload.values() if value is not None
+        )
+        chunks_created = 0
+        chunks_skipped = 0
+        invalid_payloads = 0
+        written_points = 0
+        skipped_invalid_vectors = 0
+        if extraction_stage.status in {
+            ExtractionStageStatus.OK,
+            ExtractionStageStatus.OK_LOW_CONFIDENCE,
+        }:
+            sections_for_chunks = extraction_stage.sections
+            # Use structured sections for prose chunking, not raw parser text.
+            _doc_for_chunks = StructuredDocument(sections=sections_for_chunks)
+            observer.emit(
+                "chunking", "running", "Chunking extracted sections for embeddings."
+            )
+            try:
+                chunks = chunk_prose_sections(_doc_for_chunks)
+            except Exception as exc:
+                observer.emit(
+                    "chunking",
+                    "failed",
+                    f"Chunking failed: {exc}",
+                    error_code="chunking_failed",
+                )
+                raise
+            observer.emit(
+                "chunking",
+                "succeeded",
+                "Chunking completed.",
+                details={"chunks_created": len(chunks)},
+            )
+            observer.emit("embedding", "running", "Writing chunks to vector storage.")
+            embedding_stage = run_embedding_stage(
+                chunks=chunks,
+                doc=doc,
+                enable_embeddings=settings.enable_embeddings,
+                enable_qdrant=settings.enable_qdrant,
+                qdrant_client=qdrant_client,
+                qdrant_url=settings.qdrant_url,
+                qdrant_collection=settings.qdrant_collection,
+                ollama_client=ollama_client,
+                embed_chunks=_embed_chunks,
+                qdrant_client_factory=lambda url: QdrantClient(url=url),
+                ensure_collection_fn=ensure_collection,
+                delete_points_for_document_fn=delete_points_for_document,
+                upsert_points_fn=upsert_points,
+                validate_payload_fn=validate_payload,
+                log_rejected_payload_fn=log_rejected_payload,
+                logger_obj=logger,
+            )
+            observer.emit(
+                "embedding",
+                "blocked"
+                if embedding_stage.status == EmbeddingStageStatus.SKIPPED
+                else "succeeded",
+                "Embedding skipped in current profile."
+                if embedding_stage.status == EmbeddingStageStatus.SKIPPED
+                else "Embedding completed.",
+                warning_code="embedding_skipped"
+                if embedding_stage.status == EmbeddingStageStatus.SKIPPED
+                else None,
+                details={
+                    "chunks_created": embedding_stage.chunks_created,
+                    "chunks_skipped": embedding_stage.chunks_skipped,
+                    "invalid_payloads": embedding_stage.invalid_payloads,
+                    "written_points": embedding_stage.written_points,
+                    "skipped_invalid_vectors": embedding_stage.skipped_invalid_vectors,
+                },
+            )
 
-        chunks_created = embedding_stage.chunks_created
-        chunks_skipped = embedding_stage.chunks_skipped
-        invalid_payloads = embedding_stage.invalid_payloads
-        written_points = embedding_stage.written_points
-        skipped_invalid_vectors = embedding_stage.skipped_invalid_vectors
+            chunks_created = embedding_stage.chunks_created
+            chunks_skipped = embedding_stage.chunks_skipped
+            invalid_payloads = embedding_stage.invalid_payloads
+            written_points = embedding_stage.written_points
+            skipped_invalid_vectors = embedding_stage.skipped_invalid_vectors
+        else:
+            observer.emit(
+                "chunking",
+                "skipped",
+                "Chunking skipped because extraction did not produce persistable sections.",
+                details={"extraction_status": extraction_stage.status.value},
+            )
+            observer.emit(
+                "embedding",
+                "skipped",
+                "Embedding skipped because extraction did not produce chunks.",
+                details={
+                    "extraction_status": extraction_stage.status.value,
+                    "chunks_created": 0,
+                    "chunks_skipped": 0,
+                    "invalid_payloads": 0,
+                    "written_points": 0,
+                    "skipped_invalid_vectors": 0,
+                },
+            )
 
         logger.info(
             "document_ingestion_result",
@@ -1188,19 +1419,45 @@ def process_document(
             error=extraction_stage.error,
             structured_json=_json_safe(structured_with_repro),
         )
-        db.add(run)
-        if extraction_stage.status in {
-            ExtractionStageStatus.OK,
-            ExtractionStageStatus.OK_LOW_CONFIDENCE,
-        }:
-            _upsert_financial_rows(db, doc, structured)
-        db.commit()  # single atomic commit: ExtractionRun + financial rows together
+        financial_rows_written = 0
+        observer.emit("persistence", "running", "Persisting extraction outputs.")
+        try:
+            db.add(run)
+            if extraction_stage.status in {
+                ExtractionStageStatus.OK,
+                ExtractionStageStatus.OK_LOW_CONFIDENCE,
+            }:
+                financial_rows_written = _upsert_financial_rows(db, doc, structured)
+            db.commit()  # single atomic commit: ExtractionRun + financial rows together
+        except Exception as exc:
+            db.rollback()
+            observer.emit(
+                "persistence",
+                "failed",
+                f"Persistence failed: {exc}",
+                error_code="persistence_failed",
+            )
+            raise
+        observer.emit(
+            "persistence",
+            "succeeded",
+            "Persistence completed.",
+            details={
+                "persisted": True,
+                "financial_rows_written": financial_rows_written,
+                "reviewable_metrics_count": reviewable_metrics_count,
+            },
+        )
         final_summary = {
             "run_id": resolved_run_id,
             "document_id": str(doc.document_id),
             "extraction_status": extraction_stage.status.value,
             "error": extraction_stage.error,
             "failure_code": extraction_stage.failure_code,
+            "persisted": True,
+            "reviewable_metrics_count": reviewable_metrics_count,
+            "financial_rows_written": financial_rows_written,
+            "written_points": written_points,
         }
         observer.final_summary(final_summary)
         if extraction_stage.status in {
