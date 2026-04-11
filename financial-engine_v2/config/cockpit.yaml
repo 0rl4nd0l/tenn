@@ -1,7 +1,7 @@
 llm:
   provider: llamacpp
   llamacpp_url: http://127.0.0.1:8001
-  model: model:qwen3.5-35b-a3b
+  model: model:qwen3.5-35b-a3b-apex
   timeout_seconds: 300
 
 paths:
