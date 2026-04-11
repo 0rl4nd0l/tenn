@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { Activity, Globe, Database, Search, Play, Eye, RefreshCw, Terminal, Cpu, ExternalLink, CalendarRange, Layers3 } from 'lucide-react'
+import { Activity, Globe, Database, Search, Play, Eye, RefreshCw, Terminal, Cpu, ExternalLink, CalendarRange, Layers3, Flame, MemoryStick } from 'lucide-react'
 import { GpuActivityDialog, getGpuProcesses, getGpuSummary } from '@/components/cockpit/gpu-activity-dialog'
 import { HostActivityDialog, getHostSummary } from '@/components/cockpit/host-activity-dialog'
 import { checkHealth, restartBackend, executeAction, getActionJob, getSystemStatus, loadCockpitModel, previewAction, startActionJob } from '@/lib/api-client'
@@ -733,6 +733,100 @@ export function OperationsScreen() {
             </div>
           </CardContent>
         </Card>
+
+        {/* GPU Activity Breakdown — auto-visible when GPU is active */}
+        {(() => {
+          const gpus = Array.isArray(gpuHealth?.details?.gpus)
+            ? (gpuHealth!.details!.gpus as Array<Record<string, unknown>>)
+            : []
+          const firstGpu = gpus[0]
+          const utilPct = typeof firstGpu?.util_percent === 'number' ? firstGpu.util_percent : null
+          const memUsed = typeof firstGpu?.mem_used_mib === 'number' ? Math.round(firstGpu.mem_used_mib as number) : null
+          const memTotal = typeof firstGpu?.mem_total_mib === 'number' ? Math.round(firstGpu.mem_total_mib as number) : null
+          const showPanel = (utilPct !== null && utilPct > 0) || gpuProcesses.length > 0
+
+          if (!showPanel) return null
+
+          return (
+            <Card className={cn(
+              'border-l-4',
+              utilPct !== null && utilPct >= 90
+                ? 'border-l-red-500 bg-red-500/5'
+                : utilPct !== null && utilPct >= 50
+                  ? 'border-l-yellow-500 bg-yellow-500/5'
+                  : 'border-l-green-500 bg-green-500/5'
+            )}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Flame className={cn(
+                    'h-4 w-4',
+                    utilPct !== null && utilPct >= 90 ? 'text-red-500' :
+                    utilPct !== null && utilPct >= 50 ? 'text-yellow-500' : 'text-green-500'
+                  )} />
+                  GPU Activity
+                  {utilPct !== null && (
+                    <Badge
+                      variant={utilPct >= 90 ? 'destructive' : 'outline'}
+                      className="text-xs tabular-nums font-mono ml-auto"
+                    >
+                      {Math.round(utilPct)}% util
+                    </Badge>
+                  )}
+                  {memUsed !== null && memTotal !== null && (
+                    <Badge variant="outline" className="text-xs tabular-nums font-mono gap-1">
+                      <MemoryStick className="h-3 w-3" />
+                      {memUsed}/{memTotal} MiB
+                    </Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {gpuProcesses.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    GPU is active but no compute processes were reported by nvidia-smi.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {gpuProcesses.map((proc, idx) => {
+                      const taskLabel = typeof proc.task_label === 'string' ? proc.task_label : 'GPU task'
+                      const processName = typeof proc.process_name === 'string' ? proc.process_name : 'process'
+                      const command = typeof proc.command === 'string' ? proc.command : null
+                      const pid = typeof proc.pid === 'number' ? proc.pid : null
+                      const procMem = typeof proc.used_gpu_memory_mib === 'number'
+                        ? `${Math.round(proc.used_gpu_memory_mib as number)} MiB`
+                        : null
+
+                      return (
+                        <div
+                          key={`${pid ?? idx}`}
+                          className="rounded-md border border-border/60 bg-background/60 p-2.5 font-mono text-xs"
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge variant="secondary" className="text-[10px] uppercase tracking-wider">
+                              {taskLabel}
+                            </Badge>
+                            <span className="text-foreground font-medium">{processName}</span>
+                            {pid !== null && (
+                              <span className="text-muted-foreground">PID {pid}</span>
+                            )}
+                            {procMem && (
+                              <span className="text-muted-foreground ml-auto tabular-nums">{procMem}</span>
+                            )}
+                          </div>
+                          {command && (
+                            <p className="text-[11px] text-muted-foreground/70 break-all line-clamp-2">
+                              {command}
+                            </p>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )
+        })()}
 
         <Card>
           <CardHeader>
