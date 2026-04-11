@@ -11,6 +11,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SWEEP_SCRIPT = REPO_ROOT / "scripts" / "asx_enrichment_sweep_action.py"
+NARRATIVE_POLICY_VALUES = ("full", "selective", "metrics_only")
 
 
 def _parse_date(raw: str | None) -> datetime:
@@ -50,6 +51,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.set_defaults(download_existing_missing=True)
     parser.add_argument("--process-documents", action="store_true")
+    parser.add_argument(
+        "--narrative-policy",
+        choices=NARRATIVE_POLICY_VALUES,
+        default="full",
+        help="Narrative extraction policy when --process-documents is enabled.",
+    )
     parser.add_argument("--request-delay-ms", type=int, default=700)
     parser.add_argument("--request-jitter-ms", type=int, default=900)
     parser.add_argument("--failure-backoff-ms", type=int, default=2500)
@@ -107,6 +114,7 @@ def main() -> None:
                 "ticker_universe_file": args.ticker_universe_file,
                 "download_existing_missing": bool(args.download_existing_missing),
                 "process_documents": bool(args.process_documents),
+                "narrative_policy": args.narrative_policy,
                 "request_delay_ms": args.request_delay_ms,
                 "request_jitter_ms": args.request_jitter_ms,
                 "failure_backoff_ms": args.failure_backoff_ms,
@@ -143,6 +151,7 @@ def main() -> None:
             "ticker_universe_file": args.ticker_universe_file,
             "download_existing_missing": bool(args.download_existing_missing),
             "process_documents": bool(args.process_documents),
+            "narrative_policy": args.narrative_policy,
             "request_delay_ms": args.request_delay_ms,
             "request_jitter_ms": args.request_jitter_ms,
             "failure_backoff_ms": args.failure_backoff_ms,
@@ -197,6 +206,7 @@ def main() -> None:
             cmd.append("--download-existing-missing")
         if args.process_documents:
             cmd.append("--process-documents")
+            cmd.extend(["--narrative-policy", args.narrative_policy])
 
         print(f"[chunked] chunk={index}/{len(chunk_ends)} end={chunk_end.strftime('%Y-%m-%d')}", flush=True)
         completed = subprocess.run(cmd, cwd=str(REPO_ROOT), check=False)
