@@ -11,6 +11,42 @@ class _FakeAgentLoop:
     def __init__(self) -> None:
         self.calls: list[dict] = []
 
+    def run(
+        self,
+        message,
+        ticker=None,
+        conversation_history=None,
+        on_chunk=None,
+        on_status=None,
+        on_thinking=None,
+    ):
+        self.calls.append(
+            {
+                "mode": "run",
+                "message": message,
+                "kwargs": {
+                    "ticker": ticker,
+                    "conversation_history": conversation_history,
+                    "on_chunk": on_chunk,
+                    "on_status": on_status,
+                    "on_thinking": on_thinking,
+                },
+            }
+        )
+        return SimpleNamespace(
+            text="Agent API answer.",
+            evidence=[],
+            action_preview=None,
+            mode="agent",
+            routing_metadata={
+                "source": "api",
+                "model": "claude-sonnet-test",
+                "latency_ms": 12,
+                "cost_usd": 0.01,
+            },
+            tool_traces=[],
+        )
+
     def synthesize_final_answer(self, evidence, **kwargs):
         self.calls.append({"mode": "sync", "evidence": evidence, "kwargs": kwargs})
         return kwargs["draft_answer"]
@@ -393,6 +429,47 @@ def test_document_grounded_queries_prefer_local_context_even_with_orchestrator_e
             "details": ctrl.tool_router.gather_local_context.return_value.payload,
         }
     ]
+
+
+def test_cloud_prefix_bypasses_local_document_grounding_and_uses_agent_loop() -> None:
+    ctrl = _controller(_result("mixed", ("financial_truth", "company_memory")))
+    ctrl.tool_router.gather_local_context.return_value = SimpleNamespace(
+        payload={
+            "ticker": "BHP",
+            "docs": [
+                {
+                    "title": "Quarterly Activities Report",
+                    "doc_class": "quarterly",
+                    "published_at": "2026-01-20T00:00:00Z",
+                }
+            ],
+            "doc_snippets": [
+                {
+                    "title": "Quarterly Activities Report",
+                    "excerpt": "The release highlighted operational performance across iron ore and copper.",
+                }
+            ],
+            "financials": [
+                {
+                    "ticker": "BHP",
+                    "period_end": "2025-12-31",
+                    "period_type": "HY",
+                    "revenue": 55000,
+                }
+            ],
+            "price": {},
+            "price_state": {},
+            "sources": {},
+        }
+    )
+
+    response = ctrl.build_chat_response("/cloud What does the document say about BHP?")
+
+    assert response.text == "Agent API answer."
+    assert response.routing_metadata["source"] == "api"
+    assert ctrl.tool_router.gather_local_context.call_count == 0
+    assert ctrl._agent_loop.calls[0]["mode"] == "run"
+    assert ctrl._agent_loop.calls[0]["message"] == "/cloud What does the document say about BHP?"
 
 
 def test_local_context_replaces_invented_financial_table_when_financials_missing() -> (

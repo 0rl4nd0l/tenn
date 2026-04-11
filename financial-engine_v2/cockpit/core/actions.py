@@ -321,6 +321,7 @@ class ActionRegistry:
                     "process_documents": bool,
                     "skip_download": bool,
                     "download_existing_missing": bool,
+                    "narrative_policy": str,
                     "no_historical_fallback": bool,
                 },
                 is_mutating=True,
@@ -344,6 +345,8 @@ class ActionRegistry:
                     "{fallback_max_tickers}",
                     "--ticker-universe-file",
                     "{ticker_universe_file}",
+                    "--narrative-policy",
+                    "{narrative_policy}",
                     "--request-delay-ms",
                     "{request_delay_ms}",
                     "--request-jitter-ms",
@@ -635,6 +638,8 @@ class ActionRegistry:
                     "{fallback_max_tickers}",
                     "--ticker-universe-file",
                     "{ticker_universe_file}",
+                    "--narrative-policy",
+                    "{narrative_policy}",
                     "--request-delay-ms",
                     "{request_delay_ms}",
                     "--request-jitter-ms",
@@ -1119,6 +1124,7 @@ class ActionRegistry:
         out.setdefault("failure_backoff_ms", 2500)
         out.setdefault("max_consecutive_failures", 50)
         out.setdefault("download_existing_missing", True)
+        out.setdefault("narrative_policy", "full")
         out.setdefault("low_confidence_threshold", 0.40)
         out.setdefault("only_unsorted", True)
         out.setdefault("max_tickers", 0)
@@ -1143,6 +1149,10 @@ class ActionRegistry:
             out["process_documents"] = self._to_bool(
                 args.get("process_documents"), default=True
             )
+        if spec.id == "universe_announcement_enrichment_backfill" and "chunk_days" not in args:
+            out["chunk_days"] = 365
+        if spec.id == "universe_announcement_enrichment_backfill" and "narrative_policy" not in args:
+            out["narrative_policy"] = "selective"
 
         out.setdefault("report_path", f"reports/cockpit_{spec.id}_{ts}.json")
         if spec.id == "update_ticker_financials":

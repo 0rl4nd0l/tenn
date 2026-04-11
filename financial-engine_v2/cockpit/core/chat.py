@@ -40,6 +40,7 @@ from cockpit.core.backend_proposals import (
     build_backend_access_proposal_request,
     build_backend_runtime_remediation_request,
 )
+from cockpit.core.agent_loop import parse_backend_prefix
 from cockpit.core.sources import SourcesFormatter
 
 
@@ -68,6 +69,15 @@ class _ContextResult:
 
     payload: dict[str, Any]
     ok: bool = True
+
+
+def _apply_backend_prefix(message: str, force_backend: str | None) -> str:
+    text = str(message or "").strip()
+    if force_backend == "api":
+        return f"/cloud {text}" if text else "/cloud"
+    if force_backend == "local":
+        return f"/local {text}" if text else "/local"
+    return message
 
 
 ACTION_KEYWORDS = {
@@ -3722,6 +3732,7 @@ class ChatController:
             message, prior_ticker
         )
         effective_message = rewritten_confirmation or message
+        forced_backend, effective_message = parse_backend_prefix(effective_message)
 
         # --- Greeting short-circuit: don't invoke the full analyst pipeline ---
         if self._GREETING_RE.match(effective_message):
@@ -3953,7 +3964,7 @@ class ChatController:
                         self._query_requires_document_grounding(effective_message)
                         or not has_orchestrated_evidence
                     )
-                    if not prefer_local_context:
+                    if forced_backend != "api" and not prefer_local_context:
                         orchestrated_response = self._build_orchestrated_response(
                             orchestration_result=orchestration_result,
                             message=effective_message,
@@ -3975,12 +3986,12 @@ class ChatController:
             # ------------------------------------------------------------------ #
             agent_mode = os.environ.get("COCKPIT_AGENT_MODE", "structured")
             if (
-                not prefer_local_context
+                (forced_backend == "api" or not prefer_local_context)
                 and agent_mode == "structured"
                 and self._agent_loop is not None
             ):
                 return self._run_agent_loop(
-                    effective_message,
+                    _apply_backend_prefix(effective_message, forced_backend),
                     enable_web,
                     prior_ticker,
                     on_chunk,

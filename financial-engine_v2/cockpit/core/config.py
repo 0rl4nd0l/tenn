@@ -49,7 +49,7 @@ def load_env(repo_root: Path | None = None) -> None:
 DEFAULT_BACKEND_URL = "http://localhost:8000"
 DEFAULT_OLLAMA_URL = "http://localhost:11434"
 DEFAULT_LLAMACPP_URL = "http://localhost:8001"
-DEFAULT_LLAMACPP_MODEL = "model:gpt-oss-20b"
+DEFAULT_LLAMACPP_MODEL = "model:qwen3.5-35b-a3b-apex"
 
 
 DEFAULT_CONFIG = {

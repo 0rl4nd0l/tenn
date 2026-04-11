@@ -1688,8 +1688,8 @@ class CockpitApp(App):
                 try:
                     return self.chat_controller.build_chat_response(
                         message,
-                        self.config["web"].get("enabled_default", False),
-                        self.last_detected_ticker,
+                        enable_web=self.config["web"].get("enabled_default", False),
+                        prior_ticker=self.last_detected_ticker,
                         on_chunk=_on_chunk,
                         **_analysis_mode_kw,
                     )
@@ -1702,8 +1702,8 @@ class CockpitApp(App):
                         try:
                             return self.chat_controller.build_chat_response(
                                 message,
-                                self.config["web"].get("enabled_default", False),
-                                self.last_detected_ticker,
+                                enable_web=self.config["web"].get("enabled_default", False),
+                                prior_ticker=self.last_detected_ticker,
                                 on_chunk=_on_chunk,
                             )
                         except TypeError:
@@ -1711,8 +1711,8 @@ class CockpitApp(App):
                     # on_chunk not accepted — bare call (oldest signature)
                     return self.chat_controller.build_chat_response(
                         message,
-                        self.config["web"].get("enabled_default", False),
-                        self.last_detected_ticker,
+                        enable_web=self.config["web"].get("enabled_default", False),
+                        prior_ticker=self.last_detected_ticker,
                     )
 
             response = await asyncio.to_thread(_build_response)
