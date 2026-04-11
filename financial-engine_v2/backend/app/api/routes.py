@@ -31,6 +31,7 @@ from app.services.openbb_staging import (
 )
 from app.services.pipeline_service import PipelineJobSpec, run_pipeline_sync
 from app.services.extraction_run_observability import initialize_run_status
+from app.services.multipass_extraction import EXTRACTOR_VERSION
 from app.services.source_registry import ingest_book
 
 router = APIRouter()
@@ -442,8 +443,9 @@ def process_single_document(
     """Trigger extraction (and embedding) for a single already-downloaded document.
 
     Useful for re-processing a document without re-running discovery or download.
-    The pipeline skips re-extraction if a successful ExtractionRun already exists
-    for the current EXTRACTOR_VERSION.
+    Each call creates a new ``ExtractionRun`` (new ``run_id``); there is no
+    server-side skip when a prior run exists — use this endpoint intentionally
+    for retries and extractor upgrades.
     """
     from app.services.pipeline import process_document
 
@@ -491,21 +493,30 @@ def process_single_document(
 def process_unextracted_for_ticker(ticker: str, limit: int = Query(default=50, le=500)):
     """Process all downloaded-but-unextracted documents for a ticker.
 
-    Identifies documents where pdf_sha256 is populated but no ExtractionRun exists,
-    and triggers process_document for each. Useful to recover from the state where
-    backfill ran without process_documents=true.
+    Selects documents with a populated ``pdf_sha256`` that have no terminal
+    successful extraction run for the current ``EXTRACTOR_VERSION`` (statuses
+    ``ok``, ``ok_low_confidence``, or ``skipped``). Failed or parser-error runs
+    are eligible for retry. Useful when backfill ran with ``process_documents=false``.
     """
     from app.services.pipeline import process_document
 
     db = SessionLocal()
     try:
-        extracted_doc_ids = db.query(ExtractionRun.document_id)
+        handled_statuses = ("ok", "ok_low_confidence", "skipped")
+        already_extracted = (
+            db.query(ExtractionRun.document_id)
+            .filter(
+                ExtractionRun.extractor_version == EXTRACTOR_VERSION,
+                ExtractionRun.status.in_(handled_statuses),
+            )
+            .distinct()
+        )
         unextracted = (
             db.query(Document)
             .filter(
                 Document.ticker == ticker.upper(),
                 Document.pdf_sha256 != "",
-                ~Document.document_id.in_(extracted_doc_ids),
+                ~Document.document_id.in_(already_extracted),
             )
             .limit(limit)
             .all()

@@ -21,6 +21,8 @@ EXTRACTION_ACTION_IDS: frozenset[str] = frozenset({
     "asx_enrichment_sweep",
     "asx_enrichment_chunked",
     "universe_announcement_enrichment_backfill",
+    "daily_announcement_ingest",
+    "single_ticker_announcement_backfill",
 })
 
 # Actions where extraction only runs when process_documents=True (not default).
@@ -30,6 +32,8 @@ _CONDITIONAL_EXTRACTION_IDS: frozenset[str] = frozenset({
     "asx_enrichment_sweep",
     "asx_enrichment_chunked",
     "universe_announcement_enrichment_backfill",
+    "daily_announcement_ingest",
+    "single_ticker_announcement_backfill",
 })
 
 
@@ -263,16 +267,16 @@ def build_runtime_remediation_request(
 # Actions that cannot safely run concurrently with each other.
 # Each group is a set of mutually-exclusive action IDs.
 _CONFLICT_GROUPS: list[set[str]] = [
-    # Heavy ASX enrichment / full-history jobs all touch the same DB rows.
+    # Heavy ASX announcement ingest / enrichment — same documents table and PDF dirs.
     {
         "full_history",
         "resume_pending",
         "asx_enrichment_sweep",
         "asx_enrichment_chunked",
         "rebuild_ticker_financials",
-    },
-    # Daily marketindex and market-wide ingest share the announcements table.
-    {
+        "universe_announcement_enrichment_backfill",
+        "daily_announcement_ingest",
+        "single_ticker_announcement_backfill",
         "daily_marketindex",
         "daily_asx_marketwide",
     },

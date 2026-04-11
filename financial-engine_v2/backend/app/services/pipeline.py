@@ -63,6 +63,66 @@ from app.services.storage import ensure_dir, sha256_file, write_bytes
 
 logger = logging.getLogger(__name__)
 
+
+# ── Job-tracker bridge ─────────────────────────────────────────────────────
+# Bridges ExtractionRunObserver events into the unified ops job-status layer.
+# Purely additive — never raises; extraction proceeds regardless of tracker state.
+
+
+_OBSERVER_STAGE_TO_PHASE = {
+    "queued": "queued",
+    "starting": "starting",
+    "document_load": "document_load",
+    "parser": "parser",
+    "pass1_classifier": "pass1_classifier",
+    "pass2_locator": "pass2_locator",
+    "pass3a_metrics": "pass3a_metrics",
+    "pass3b_narrative": "pass3b_narrative",
+    "pass4_reconciliation": "pass4_reconciliation",
+    "validation": "validation",
+    "chunking": "chunking",
+    "embedding": "embedding",
+    "persistence": "persistence",
+    "completed": "completed",
+}
+
+
+def _bridge_observer_to_tracker(
+    observer: ExtractionRunObserver, tracker_job_id: str
+) -> None:
+    """Wrap observer.emit to also forward events to the ops JobTracker.
+
+    The original emit behaviour is fully preserved.  Tracker failures
+    are logged at WARNING level and never propagate.
+    """
+    from app.services.job_tracker import get_tracker
+
+    original_emit = observer.emit
+
+    def bridged_emit(stage, status, message, **kwargs):
+        result = original_emit(stage, status, message, **kwargs)
+        try:
+            tracker = get_tracker()
+            if tracker is None:
+                return result
+            phase = _OBSERVER_STAGE_TO_PHASE.get(stage, stage)
+            if status == "running":
+                tracker.change_phase(tracker_job_id, phase, message)
+            elif status == "succeeded" and stage == "completed":
+                tracker.complete_job(tracker_job_id, summary=message)
+            elif status in ("failed", "blocked"):
+                tracker.fail_job(tracker_job_id, message)
+            elif status == "succeeded":
+                tracker.change_phase(tracker_job_id, phase, message)
+        except Exception:
+            logger.warning(
+                "ops tracker bridge error (non-fatal)", exc_info=True
+            )
+        return result
+
+    observer.emit = bridged_emit
+
+
 # Process-local in-memory embedding cache (key: SHA256(text), value: embedding vector).
 # Only used when settings.enable_embedding_cache is True.
 _embedding_cache: dict[str, list[float]] = {}
@@ -706,6 +766,7 @@ def insert_discovered_documents(db, discovered_docs):
     duplicate_in_batch = 0
     duplicate_existing = 0
     skipped_missing_source_url = 0
+    skipped_quarantine = 0
     prepared = []
     seen_source_urls: set[str] = set()
 
@@ -757,6 +818,20 @@ def insert_discovered_documents(db, discovered_docs):
             )
             continue
         seen_source_urls.add(source_url)
+        q_reason = _match_document_quarantine_reason(
+            ticker=ticker,
+            title=getattr(discovered_doc, "title", ""),
+            source_url=source_url,
+        )
+        if q_reason:
+            skipped_quarantine += 1
+            logger.info(
+                "quarantined at insert ticker=%s title=%s reason=%s",
+                ticker,
+                str(getattr(discovered_doc, "title", "") or "").strip()[:160],
+                q_reason,
+            )
+            continue
         prepared.append((discovered_doc, ticker, source_url))
 
     source_urls = [row[2] for row in prepared]
@@ -884,6 +959,7 @@ def insert_discovered_documents(db, discovered_docs):
         "duplicate_in_batch": duplicate_in_batch,
         "duplicate_existing": duplicate_existing,
         "skipped_missing_source_url": skipped_missing_source_url,
+        "skipped_quarantine": skipped_quarantine,
     }
 
 
@@ -931,34 +1007,14 @@ def discover_and_insert_documents(db, ticker, years=5):
             if item.source_url not in discovered_by_url:
                 discovered.append(item)
 
-    discovered_before_quarantine = len(discovered)
-    quarantined_count = 0
-    if discovered:
-        retained = []
-        for item in discovered:
-            reason = _match_document_quarantine_reason(
-                ticker=str(getattr(item, "ticker", "") or ticker),
-                title=getattr(item, "title", ""),
-                source_url=getattr(item, "source_url", ""),
-            )
-            if reason:
-                quarantined_count += 1
-                logger.info(
-                    "quarantined discovered document ticker=%s title=%s reason=%s",
-                    ticker,
-                    str(getattr(item, "title", "") or "").strip()[:160],
-                    reason,
-                )
-                continue
-            retained.append(item)
-        discovered = retained
-
+    discovered_total = len(discovered)
     inserted_payload = insert_discovered_documents(db, discovered)
+    quarantined_count = int(inserted_payload.get("skipped_quarantine", 0) or 0)
     discovered_document_ids = _load_discovered_document_ids(db, discovered)
     return {
         "ticker": ticker,
-        "found": discovered_before_quarantine,
-        "eligible_found": len(discovered),
+        "found": discovered_total,
+        "eligible_found": max(0, discovered_total - quarantined_count),
         "quarantined": quarantined_count,
         "inserted": inserted_payload["inserted"],
         "new_document_ids": discovered_document_ids,
@@ -1087,6 +1143,7 @@ def process_document(
     run_id: str | None = None,
     requested_method: str = "auto",
     strict_method: bool = False,
+    skip_narrative: bool = False,
 ):
     db = SessionLocal()
     try:
@@ -1107,6 +1164,26 @@ def process_document(
             requested_method=requested_method,
             strict_method=strict_method,
         )
+        # Bridge observer events into the ops job-status layer
+        try:
+            from app.services.job_tracker import get_tracker
+
+            _ops_tracker = get_tracker()
+            if _ops_tracker is not None:
+                _ops_handle = _ops_tracker.create_job(
+                    job_type="extraction",
+                    job_family="pipeline",
+                    title=f"Extract {doc.ticker or ''} {(doc.title or '')[:60]}",
+                    trigger_source="api",
+                    entity_scope="document",
+                    ticker=doc.ticker,
+                    job_id=resolved_run_id,
+                    metadata={"document_id": str(doc_uuid)},
+                )
+                _ops_tracker.start_job(_ops_handle.job_id)
+                _bridge_observer_to_tracker(observer, _ops_handle.job_id)
+        except Exception:
+            logger.warning("ops tracker init for extraction failed (non-fatal)", exc_info=True)
         observer.emit("starting", "running", "Extraction run started.")
 
         # --- Structured extraction stage ---
@@ -1243,6 +1320,7 @@ def process_document(
                                 "document_id": str(doc.document_id),
                                 "requested_method": requested_method,
                                 "strict_method": strict_method,
+                                "skip_narrative": bool(skip_narrative),
                                 "ticker": str(doc.ticker or "").strip().upper(),
                                 "title": str(doc.title or "").strip(),
                             }
@@ -1254,6 +1332,7 @@ def process_document(
                                 observer=observer,
                                 requested_method=requested_method,
                                 strict_method=strict_method,
+                                skip_narrative=skip_narrative,
                             )
                     except Exception as exc:
                         error_text = str(exc)
@@ -1719,8 +1798,28 @@ def backfill_ticker_sync(
     ticker, years=5, process_documents=True, max_workers: Optional[int] = None
 ):
     db = SessionLocal()
+    _ops_job_id = None
     try:
         ticker_upper = ticker.upper() if ticker else ""
+        # Register backfill job with ops tracker
+        try:
+            from app.services.job_tracker import get_tracker
+
+            _ops_tracker = get_tracker()
+            if _ops_tracker is not None:
+                _ops_handle = _ops_tracker.create_job(
+                    job_type="backfill",
+                    job_family="pipeline",
+                    title=f"Backfill {ticker_upper} ({years}y)",
+                    trigger_source="api",
+                    entity_scope="ticker",
+                    ticker=ticker_upper,
+                    metadata={"years": years, "process_documents": process_documents},
+                )
+                _ops_tracker.start_job(_ops_handle.job_id)
+                _ops_job_id = _ops_handle.job_id
+        except Exception:
+            logger.warning("ops tracker init for backfill failed (non-fatal)", exc_info=True)
         existing_doc_count = (
             db.query(Document).filter(Document.ticker == ticker_upper).count()
         )
@@ -1772,7 +1871,7 @@ def backfill_ticker_sync(
             except Exception as exc:
                 importance_classification = {"error": str(exc)}
 
-        return {
+        result = {
             "ticker": discovery["ticker"],
             "found": discovery["found"],
             "eligible_found": discovery.get("eligible_found", discovery["found"]),
@@ -1790,5 +1889,25 @@ def backfill_ticker_sync(
             "invalid_payloads": int(ingestion_metrics.get("invalid_payloads", 0) or 0),
             "written_points": int(ingestion_metrics.get("written_points", 0) or 0),
         }
+        # Complete ops job
+        if _ops_job_id:
+            try:
+                from app.services.job_tracker import get_tracker
+
+                _t = get_tracker()
+                if _t is not None:
+                    summary = f"Backfill {ticker_upper}: {processed} processed, {len(errors)} errors"
+                    if errors:
+                        _t.fail_job(_ops_job_id, summary)
+                    else:
+                        _t.record_progress(
+                            _ops_job_id,
+                            current=processed,
+                            total=len(doc_ids),
+                        )
+                        _t.complete_job(_ops_job_id, summary=summary)
+            except Exception:
+                logger.warning("ops tracker completion for backfill failed (non-fatal)", exc_info=True)
+        return result
     finally:
         db.close()

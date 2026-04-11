@@ -25,6 +25,12 @@ class ActionRuntimeGuardTests(unittest.TestCase):
         self.assertIn("full_history", overlaps)
         self.assertIn("resume_pending", overlaps)
         self.assertIn("asx_enrichment_sweep", overlaps)
+        self.assertIn("daily_announcement_ingest", overlaps)
+        self.assertIn("single_ticker_announcement_backfill", overlaps)
+        self.assertIn("daily_marketindex", overlaps)
+
+    def test_daily_marketindex_conflicts_with_full_history(self) -> None:
+        self.assertIn("full_history", conflicting_action_ids("daily_marketindex"))
 
     def test_find_conflicting_job_ignores_stale_rows(self) -> None:
         now = datetime(2026, 2, 23, 12, 0, tzinfo=timezone.utc)
