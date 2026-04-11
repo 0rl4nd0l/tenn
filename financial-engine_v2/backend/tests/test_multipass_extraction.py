@@ -101,6 +101,78 @@ def test_pass2_higher_score_wins_on_conflict():
     assert result["cashflow_statement"] is strong
 
 
+def test_pass2_prefers_share_count_table_over_equity_statement():
+    """share_capital should prefer explicit period-end share counts over US$ equity tables."""
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    equity_statement = DoclingTable(
+        page_number=20,
+        caption="",
+        rows=[
+            ["", "SHAREHOLDERS' EQUITY.CONTRIBUTED EQUITY US$M", "TOTAL EQUITY US$M"],
+            ["At 1 January 2025", "7,824", "10,728"],
+            ["Shares issued under Employee Share and Option Plan and held in trust", "55", "55"],
+            ["Dividends paid on ordinary shares", "(479)", "(479)"],
+        ],
+        headers=["", "SHAREHOLDERS' EQUITY.CONTRIBUTED EQUITY US$M", "TOTAL EQUITY US$M"],
+    )
+    share_count_table = DoclingTable(
+        page_number=32,
+        caption="",
+        rows=[
+            ["", "30JUNE2025.NUMBEROF SHARES MILLIONS", "30JUNE2025.US$M"],
+            ["Issued ordinary shares, fully paid at 1 January", "1,505", "7,824"],
+            ["Issued ordinary shares, fullypaidat30June", "1,510", "8,338"],
+            ["Shares notified to the Australian Securities Exchange", "1,510", "8,339"],
+        ],
+        headers=["", "30JUNE2025.NUMBEROF SHARES MILLIONS", "30JUNE2025.US$M"],
+    )
+
+    result = _run_pass2_locator([equity_statement, share_count_table])
+
+    assert result["share_capital"] is share_count_table
+
+
+def test_pass2_share_capital_prefers_period_end_count_over_weighted_average():
+    """Weighted-average EPS denominator tables must lose to period-end share-count tables."""
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    weighted_average = DoclingTable(
+        page_number=33,
+        caption="",
+        rows=[
+            ["", "30JUNE 2025 NUMBEROF SHARES MILLIONS", "30JUNE 2024 NUMBEROF SHARES MILLIONS"],
+            [
+                "Weighted average numberofordinary shares onissue and used as the denominator in calculating basic earnings per share",
+                "1,508",
+                "1,498",
+            ],
+            [
+                "Weighted average numberofordinary shares used as the denominator in calculating diluted earnings per share",
+                "1,523",
+                "1,509",
+            ],
+        ],
+        headers=["", "30JUNE 2025 NUMBEROF SHARES MILLIONS", "30JUNE 2024 NUMBEROF SHARES MILLIONS"],
+    )
+    period_end_count = DoclingTable(
+        page_number=32,
+        caption="",
+        rows=[
+            ["", "30JUNE2025.NUMBEROF SHARES MILLIONS", "30JUNE2025.US$M"],
+            ["Issued ordinary shares, fully paid at 1 January", "1,505", "7,824"],
+            ["Issued ordinary shares, fullypaidat30June", "1,510", "8,338"],
+        ],
+        headers=["", "30JUNE2025.NUMBEROF SHARES MILLIONS", "30JUNE2025.US$M"],
+    )
+
+    result = _run_pass2_locator([weighted_average, period_end_count])
+
+    assert result["share_capital"] is period_end_count
+
+
 def test_pass2_selects_point_in_time_net_debt_note_table():
     """Point-in-time tables with an explicit net debt row should get a dedicated slot."""
     from app.services.multipass_extraction import _run_pass2_locator
@@ -1755,6 +1827,51 @@ def test_pass3a_shares_scaling_doc_level_fallback():
         f"Expected 280,875,000 (×1000 from doc-level scale fallback), "
         f"got {results[0]['shares_outstanding']}"
     )
+
+
+def test_pass3a_shares_outstanding_rejects_equity_dollar_table():
+    """Dollar-denominated equity movement tables must not fabricate share counts."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=27,
+        caption="",
+        rows=[
+            ["Telstra Group.", "Share capital.$m", "Total equity.$m"],
+            ["Balance at 30 June 2025", "16,792", "17,733"],
+            ["Additional shares purchased", "74", "74"],
+            ["Balance at 31 December 2025", "16,940", "17,865"],
+        ],
+        headers=["Telstra Group.", "Share capital.$m", "Total equity.$m"],
+    )
+    labelled = {
+        "cashflow_statement": None,
+        "income_statement": None,
+        "balance_sheet": None,
+        "share_capital": table,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "millions",
+    }
+
+    mock_raw = {
+        "shares_outstanding": 1694,
+        "pass3_confidence": 0.8,
+        "row_refs": {"shares_outstanding": "Balance at 31 December 2025"},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert results[0]["shares_outstanding"] is None
 
 
 def test_pass3a_shares_no_scaling_when_absolute():

@@ -587,6 +587,70 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
             return False
         return any(_re.search(r"\d", str(cell or "")) for cell in row[1:])
 
+    def _share_capital_rank(table: DoclingTable) -> tuple[int, int]:
+        header_text = _normalize_locator_text(table.caption) + " " + _normalize_locator_text(
+            " ".join(str(h) for h in table.headers)
+        )
+        compact_header_text = _normalize_filter_text(header_text)
+        row_labels = [
+            _normalize_locator_text(row[0])
+            for row in table.rows
+            if isinstance(row, (list, tuple)) and row
+        ]
+        compact_row_labels = [_normalize_filter_text(label) for label in row_labels]
+
+        explicit_count_header = int(
+            "numberofshares" in compact_header_text
+            or "sharesonissue" in compact_header_text
+            or "ordinaryshares" in compact_header_text
+        )
+        explicit_period_end_row = int(
+            any(
+                (
+                    "issuedordinaryshares" in label
+                    or "sharesnotifiedtotheaustralianstockexchange" in label
+                    or "sharesnotifiedtotheaustraliansecuritiesexchange" in label
+                    or "sharesonissue" in label
+                )
+                and any(
+                    marker in label
+                    for marker in ("at30june", "at31december", "at30september")
+                )
+                for label in compact_row_labels
+            )
+        )
+        weighted_average_only = int(
+            compact_row_labels
+            and all("weightedaverage" in label or not label for label in compact_row_labels[1:])
+        )
+        dollar_only_headers = int(
+            any("usm" in _normalize_filter_text(h) for h in table.headers)
+            and not explicit_count_header
+        )
+
+        rank = (
+            explicit_count_header * 100
+            + explicit_period_end_row * 50
+            - weighted_average_only * 80
+            - dollar_only_headers * 20
+        )
+        return rank, len(row_labels)
+
+    if pools["share_capital"]:
+        _winner_score, _winner_not_toc, winner_table = max(
+            pools["share_capital"],
+            key=lambda item: (
+                _share_capital_rank(item[2])[0],
+                item[0],
+                item[1],
+                _share_capital_rank(item[2])[1],
+                -item[2].page_number,
+            ),
+        )
+        share_rank, share_len = _share_capital_rank(winner_table)
+        if share_rank > 0:
+            labelled["share_capital"] = winner_table
+
     def _is_formula_style_net_debt_table(table: DoclingTable) -> bool:
         row_payloads = [
             (row, _normalize_locator_text(" ".join(str(cell) for cell in row)))
@@ -1117,6 +1181,38 @@ def _extract_single_table(
 
         _MIN_PLAUSIBLE_SHARES = 1_000_000
         shares_val = extracted.get("shares_outstanding")
+        if shares_val is not None:
+            share_surfaces = [
+                table.caption or "",
+                " ".join(str(h) for h in table.headers),
+                " ".join(str(row[0]) for row in table.rows if row),
+            ]
+            compact_share_text = _normalize_filter_text(" ".join(share_surfaces))
+            has_share_count_evidence = any(
+                marker in compact_share_text
+                for marker in (
+                    "numberofshares",
+                    "sharesonissue",
+                    "issuedordinaryshares",
+                    "ordinarysharesfullypaid",
+                    "fullypaidordinaryshares",
+                    "sharesnotifiedtotheaustralianstockexchange",
+                    "sharesnotifiedtotheaustraliansecuritiesexchange",
+                )
+            )
+            row_labels = [
+                _normalize_filter_text(row[0]) for row in table.rows if row
+            ]
+            weighted_average_only = bool(row_labels) and all(
+                "weightedaverage" in label or not label for label in row_labels[1:]
+            )
+            if weighted_average_only or not has_share_count_evidence:
+                logger.info(
+                    "Nulling shares_outstanding from %s due to weak count evidence",
+                    table_type,
+                )
+                extracted["shares_outstanding"] = None
+                shares_val = None
         if shares_val is not None and 0 < abs(shares_val) < _MIN_PLAUSIBLE_SHARES:
             header_caption_text = (
                 (table.caption or "").lower()
