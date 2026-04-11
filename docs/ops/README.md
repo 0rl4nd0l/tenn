@@ -23,6 +23,10 @@ Scope note:
 5. `05_compose_phase1_host_gpu_blueprint.md`
 6. `06_production_hardening_acceptance_suite.md`
 
+## Cockpit / control plane
+
+- `cockpit_operator_observability.md` — link-only table: API liveness, `/api/cockpit/health`, extraction activity, GPU guard, RAG stability, embed/baseline pointers (with `LOCAL_BACKEND_PROFILE` note).
+
 ## Commentary / RAG ops
 
 - `commentary_staging_to_qdrant.md` — staged hot-source transcripts: approve/reject, CLI promotion, definition of done for indexing.

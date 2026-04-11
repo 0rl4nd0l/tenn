@@ -13,6 +13,7 @@
 **Active engine:** `financial-engine_v2/`
 **Canonical entrypoint:** `financial-engine_v2/scripts/run_local_backend.sh`
 **Health endpoint:** `http://127.0.0.1:8000/api/health`
+**Cockpit aggregated health (backend):** `http://127.0.0.1:8000/api/cockpit/health` — see `docs/architecture/21_cockpit_client_contract.md` and link-only `docs/ops/cockpit_operator_observability.md`.
 **Primary user entrypoint:** `cockpit start new` → `http://127.0.0.1:8081`
 
 Legacy root launcher scripts are archived under `scripts/archive/legacy_root_20260218/`.
@@ -182,6 +183,7 @@ Config: `.mcp.json` (repo root). Full docs: [mcp-servers.md](mcp-servers.md).
 - Shared-router mutex: when extraction is active on the shared `:8001` llama.cpp router, cockpit chat must route to the configured API backend. If no API backend is configured, local chat is blocked fail-fast instead of contending with extraction for GPU VRAM.
 - Cockpit cloud-fallback availability is resolved from the effective Cockpit runtime config (env plus `config/cockpit_llm.yaml` defaults), not from raw `ANTHROPIC_API_KEY` checks alone. Preferred-model preload is best-effort and skips active extraction windows.
 - Live router user service is `llama-cpp-router.service`; legacy `llama-cpp-qwen25.service` should remain disabled on hosts where it still exists.
+- `llama-cpp-router.service` now launches from `/mnt/sdb2/home/l4nd0/tenn/scripts/run_llama_server.sh` and includes `RequiresMountsFor=/mnt/sdb2/home/l4nd0/tenn` so user-service startup does not race the mounted workspace path.
 - 2026-04-08 cleanup: removed the stale `/tmp/llama-server-8001.log` orphan log and pruned disposable npm/OpenCode/Cursor caches; `/` now has roughly `53G` free.
 - OpenClaw config source of truth: `~/.openclaw/openclaw.json` (host-local, not in repo).
 - After committing `scripts/load_news_to_qdrant.py`, re-run the loader to refresh Qdrant with relevance-ordered primary tickers: `python scripts/load_news_to_qdrant.py`.

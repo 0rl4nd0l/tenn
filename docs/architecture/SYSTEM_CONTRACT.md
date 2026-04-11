@@ -82,6 +82,8 @@ Cockpit MUST NOT:
 
 When `backend_api_client` is configured, backend failure returns empty data with error signal — no silent DbReader fallback.
 
+**See also:** [21_cockpit_client_contract.md](21_cockpit_client_contract.md) — Cockpit addendum (HTTP surfaces, liveness vs `/api/cockpit/health`, consumer patterns, conformance matrix).
+
 ---
 
 ## 1.3 Retrieval Boundary (CRITICAL)

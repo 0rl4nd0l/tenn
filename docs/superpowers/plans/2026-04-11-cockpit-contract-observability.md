@@ -153,3 +153,4 @@ Doc-only change: ruff/pytest only if adjacent code was touched; otherwise **peer
 |-------|--------|
 | status | active |
 | last_updated | 2026-04-11 |
+| units_1_4_docs | implemented in repo (2026-04-11) — verify matrix when cockpit routes change |
