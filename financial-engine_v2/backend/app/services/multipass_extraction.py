@@ -80,6 +80,7 @@ METRIC_FIELDS = [
 SOURCE_PRIORITY = [
     "income_statement",
     "cashflow_statement",
+    "net_debt_note",
     "balance_sheet",
     "share_capital",
     "highlights",
@@ -308,6 +309,22 @@ _TABLE_KEYWORDS: dict[str, list[str]] = {
     ],
 }
 
+_POINT_IN_TIME_TABLE_MARKERS = ("as at", "at 31", "at 30", "at year end")
+_NET_DEBT_DETAIL_DEBT_MARKERS = (
+    "interest bearing liabilities",
+    "borrowings",
+    "gross debt",
+    "debt facilities",
+)
+_NET_DEBT_DETAIL_CASH_MARKERS = ("cash and cash equivalents",)
+_NET_DEBT_DETAIL_ADJUSTMENT_MARKERS = (
+    "derivative",
+    "net debt management",
+    "index linked freight",
+    "index-linked freight",
+    "lease liabil",
+)
+
 # High-confidence header phrases — matching any grants a large bonus score so
 # these tables win decisively over footnote/note tables with incidental keyword matches.
 _STATEMENT_HEADERS: dict[str, list[str]] = {
@@ -421,6 +438,7 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
     from app.services.docling_extract import DoclingTable
 
     labelled: dict[str, Any] = {k: None for k in _TABLE_KEYWORDS}
+    labelled["net_debt_note"] = None
     labelled["unmatched"] = []
     # share_capital is handled via _TABLE_KEYWORDS and pools above
 
@@ -553,6 +571,111 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
         if len(cf_candidates) > 1:
             labelled["cashflow_statement"] = _merge_cf_tables(cf_candidates)
 
+    def _normalize_locator_text(value: Any) -> str:
+        text = str(value or "").strip().lower()
+        if not text:
+            return ""
+        text = _re.sub(r"\([^)]*\)", " ", text)
+        # Preserve calendar digits so "At 31 December" / "At 30 June" markers
+        # survive point-in-time detection while still stripping footnote markers.
+        text = _re.sub(r"[¹²³⁴⁵]", " ", text)
+        text = _re.sub(r"[^a-z0-9]+", " ", text)
+        return " ".join(text.split())
+
+    def _row_has_numeric_payload(row: Any) -> bool:
+        if not isinstance(row, (list, tuple)) or len(row) <= 1:
+            return False
+        return any(_re.search(r"\d", str(cell or "")) for cell in row[1:])
+
+    def _is_formula_style_net_debt_table(table: DoclingTable) -> bool:
+        row_payloads = [
+            (row, _normalize_locator_text(" ".join(str(cell) for cell in row)))
+            for row in table.rows
+            if row
+        ]
+        has_debt_component = any(
+            marker in row_text
+            and _row_has_numeric_payload(row)
+            for row, row_text in row_payloads
+            for marker in _NET_DEBT_DETAIL_DEBT_MARKERS
+        )
+        has_cash_component = any(
+            marker in row_text
+            and _row_has_numeric_payload(row)
+            for row, row_text in row_payloads
+            for marker in _NET_DEBT_DETAIL_CASH_MARKERS
+        )
+        has_adjustment_component = any(
+            marker in row_text
+            and _row_has_numeric_payload(row)
+            for row, row_text in row_payloads
+            for marker in _NET_DEBT_DETAIL_ADJUSTMENT_MARKERS
+        )
+        has_net_debt_row = any(
+            _normalize_locator_text(row[0]) == "net debt" and _row_has_numeric_payload(row)
+            for row, _row_text in row_payloads
+        )
+        return (
+            has_net_debt_row
+            and has_debt_component
+            and has_cash_component
+            and has_adjustment_component
+        )
+
+    def _is_explicit_point_in_time_net_debt_row(
+        table: DoclingTable, row_index: int
+    ) -> bool:
+        if row_index < 0 or row_index >= len(table.rows):
+            return False
+        row = table.rows[row_index]
+        if not row:
+            return False
+        label = _normalize_locator_text(row[0])
+        if label != "net debt" or not _row_has_numeric_payload(row):
+            return False
+
+        header_text = (
+            _normalize_locator_text(table.caption)
+            + " "
+            + _normalize_locator_text(" ".join(str(h) for h in table.headers))
+        )
+        if any(marker in header_text for marker in _POINT_IN_TIME_TABLE_MARKERS):
+            return True
+
+        start = max(0, row_index - 3)
+        context_rows = [
+            _normalize_locator_text(" ".join(str(cell) for cell in table.rows[idx]))
+            for idx in range(start, row_index)
+        ]
+        if any(
+            any(marker in row_text for marker in _POINT_IN_TIME_TABLE_MARKERS)
+            for row_text in context_rows
+        ):
+            return True
+
+        # Do not treat annual formula-style tables as point-in-time net debt notes
+        # without an "as at" / "at year end" marker. BHP's annual custom note is
+        # explicit, but it is not the canonical point-in-time debt/cash metric this
+        # slot is meant to surface.
+        return False
+
+    net_debt_candidates: list[tuple[int, int, int, DoclingTable]] = []
+    for table in tables:
+        for row_index, _row in enumerate(table.rows):
+            if _is_explicit_point_in_time_net_debt_row(table, row_index):
+                net_debt_candidates.append(
+                    (
+                        1,
+                        -int(table.page_number),
+                        -int(len(table.rows)),
+                        table,
+                    )
+                )
+                break
+
+    if net_debt_candidates:
+        labelled["net_debt_note"] = max(net_debt_candidates)[3]
+
     return labelled
 
 
@@ -616,6 +739,9 @@ Rules:
   extract values ONLY from the column whose header best matches the reporting date {period_end}.
   Never extract from prior-period or comparative columns.
   Set period_col to the exact column header you chose.
+- net_debt: only output when the table has an explicit current-period row labeled "Net debt".
+  Do NOT use "Opening net debt", "Movement in net debt", "Net debt plus total equity",
+  "Net gearing ratio", or similarly derived/context rows.
 - total_debt (balance_sheet only): sum of all financial debt — current + non-current borrowings,
   bonds, notes payable. Exclude AASB 16 / IFRS 16 lease liabilities unless no other financial
   debt exists. Output null if no financial debt is present (e.g. company is debt-free).
@@ -641,6 +767,7 @@ _METRIC_SCHEMA_BY_TABLE = {
         "capex",
     ],
     "income_statement": ["revenue", "ebit", "np_attributable"],
+    "net_debt_note": ["net_debt"],
     # total_debt is an internal capture metric: not in METRIC_FIELDS, not stored in DB.
     # Pass 4 uses it to derive net_debt = total_debt - cash_end when net_debt is null.
     "balance_sheet": ["net_debt", "total_debt", "shares_outstanding"],
@@ -651,6 +778,7 @@ _METRIC_SCHEMA_BY_TABLE = {
 _RETRY_KEY_METRICS_BY_TABLE: dict[str, list[str]] = {
     "cashflow_statement": ["operating_cf", "cash_end"],
     "income_statement": ["revenue"],
+    "net_debt_note": ["net_debt"],
     "balance_sheet": ["net_debt", "total_debt"],
     "share_capital": ["shares_outstanding"],
 }
@@ -744,7 +872,7 @@ _ROW_KEYWORDS_BY_TABLE: dict[str, list[str]] = {
 }
 
 # Tables where filtering should NOT be applied.
-_NO_FILTER_TABLES = {"highlights", "share_capital"}
+_NO_FILTER_TABLES = {"highlights", "share_capital", "net_debt_note"}
 
 # Minimum row count to trigger filtering — small tables are sent in full.
 _FILTER_MIN_ROWS = 20
@@ -968,6 +1096,11 @@ def _extract_single_table(
                             scaled,
                         )
                         scaled = raw_float
+                    if table_type == "net_debt_note" and metric_name == "net_debt":
+                        # Point-in-time net debt note tables often present debt
+                        # as a liability-style negative, while the canonical
+                        # metric stores net debt as a positive magnitude.
+                        scaled = abs(scaled)
                     extracted[metric_name] = scaled
                 except (TypeError, ValueError):
                     extracted[metric_name] = None
@@ -1012,6 +1145,12 @@ def _extract_single_table(
                 )
 
         extracted["row_refs"] = raw_payload.get("row_refs", {})
+        if (
+            table_type == "net_debt_note"
+            and extracted.get("net_debt") is not None
+            and not extracted["row_refs"].get("net_debt")
+        ):
+            extracted["row_refs"]["net_debt"] = "Net debt"
         extracted["period_col"] = raw_payload.get("period_col")
         return extracted
 
@@ -1387,6 +1526,17 @@ def _normalise_evidence_row_ref(row_ref: str | None) -> str:
     return " ".join(str(row_ref or "").strip().lower().split())
 
 
+_EXPLICIT_NET_DEBT_CONFIDENCE_FLOOR = 0.95
+_DERIVED_NET_DEBT_CONFIDENCE_CAP = 0.55
+
+
+def _coerce_confidence(confidence: Any, default: float = 0.5) -> float:
+    try:
+        return max(0.0, min(1.0, float(confidence)))
+    except (TypeError, ValueError):
+        return default
+
+
 def _is_explicit_net_debt_evidence(row_ref: str | None) -> bool:
     label = _normalise_evidence_row_ref(row_ref)
     return bool(label) and "net" in label and "debt" in label
@@ -1436,6 +1586,16 @@ def _select_explicit_net_debt_candidate(pass3a_results: list[dict]) -> dict | No
     return min(candidates, key=lambda item: (item[0], item[1]))[2]
 
 
+def _explicit_net_debt_confidence(extraction: dict) -> float:
+    base_conf = _coerce_confidence(extraction.get("pass3_confidence", 0.5))
+    return max(base_conf, _EXPLICIT_NET_DEBT_CONFIDENCE_FLOOR)
+
+
+def _derived_net_debt_confidence(extraction: dict) -> float:
+    base_conf = _coerce_confidence(extraction.get("pass3_confidence", 0.5))
+    return min(base_conf, _DERIVED_NET_DEBT_CONFIDENCE_CAP)
+
+
 def _run_pass4_reconciler(
     pass3a_results: list[dict],
     pass3b_result: dict,
@@ -1451,9 +1611,8 @@ def _run_pass4_reconciler(
     """
     merged_metrics: dict[str, Any] = {m: None for m in METRIC_FIELDS}
     provenance: dict[str, str] = {}
-    source_stats: dict[
-        str, tuple[float, int]
-    ] = {}  # {source: (confidence, n_contributed)}
+    confidence_weighted_sum = 0.0
+    confidence_weight = 0
 
     # Sort by priority
     ordered = sorted(
@@ -1468,8 +1627,7 @@ def _run_pass4_reconciler(
     # Lower priority first — higher priority overwrites
     for extraction in reversed(ordered):
         source = extraction.get("_source", "unknown")
-        conf = extraction.get("pass3_confidence", 0.5)
-        contributed = 0
+        conf = _coerce_confidence(extraction.get("pass3_confidence", 0.5))
         page = extraction.get("_page_number")
         page_tag = f"page_{page}" if page is not None else "page_?"
         for m in METRIC_FIELDS:
@@ -1479,8 +1637,8 @@ def _run_pass4_reconciler(
                 merged_metrics[m] = extraction[m]
                 row_ref = extraction.get("row_refs", {}).get(m, "unknown")
                 provenance[m] = f"{source}:{page_tag}:{row_ref}"
-                contributed += 1
-        source_stats[source] = (conf, contributed)
+                confidence_weighted_sum += conf
+                confidence_weight += 1
 
     explicit_net_debt = _select_explicit_net_debt_candidate(pass3a_results)
     if explicit_net_debt is not None:
@@ -1490,10 +1648,14 @@ def _run_pass4_reconciler(
         row_ref = explicit_net_debt.get("row_refs", {}).get("net_debt", "unknown")
         merged_metrics["net_debt"] = explicit_net_debt["net_debt"]
         provenance["net_debt"] = f"{source}:{page_tag}:{row_ref}"
-        conf, contributed = source_stats.get(
-            source, (explicit_net_debt.get("pass3_confidence", 0.5), 0)
+        net_debt_conf = _explicit_net_debt_confidence(explicit_net_debt)
+        confidence_weighted_sum += net_debt_conf
+        confidence_weight += 1
+        logger.info(
+            "Using explicit net_debt from %s with boosted confidence %.2f",
+            source,
+            net_debt_conf,
         )
-        source_stats[source] = (conf, contributed + 1)
 
     # B4: derive net_debt from balance sheet total_debt when not directly extracted.
     # total_debt is an internal capture field (not in METRIC_FIELDS) so it survives
@@ -1516,11 +1678,15 @@ def _run_pass4_reconciler(
                     f"derived:balance_sheet:total_debt({total_debt:.0f})"
                     f"-cash_end({cash_end:.0f})"
                 )
+                net_debt_conf = _derived_net_debt_confidence(bs_result)
+                confidence_weighted_sum += net_debt_conf
+                confidence_weight += 1
                 logger.info(
-                    "net_debt derived from balance sheet: %.0f - %.0f = %.0f",
+                    "net_debt derived from balance sheet: %.0f - %.0f = %.0f (confidence=%.2f)",
                     total_debt,
                     cash_end,
                     merged_metrics["net_debt"],
+                    net_debt_conf,
                 )
             elif total_debt is not None and cash_end is not None:
                 logger.info(
@@ -1539,10 +1705,9 @@ def _run_pass4_reconciler(
             provenance["shares_outstanding"] = prose_prov
 
     # Weighted average confidence — each source weighted by metrics contributed
-    total_weight = sum(n for _, n in source_stats.values())
     metric_confidence = (
-        sum(c * n for c, n in source_stats.values()) / max(total_weight, 1)
-        if source_stats
+        confidence_weighted_sum / max(confidence_weight, 1)
+        if confidence_weight
         else 0.0
     )
 
@@ -1777,8 +1942,15 @@ def run_multipass_extraction(
         )
     except Exception as e:
         # If Docling fails, we must report PARSER_ERROR so Manual Review is triggered.
-        is_parser_error = isinstance(e, ExtractionTimeoutError) or "docling" in str(e).lower()
-        logger.error("docling_extract failed for %s (parser_error=%s): %s", pdf_path, is_parser_error, e)
+        is_parser_error = (
+            isinstance(e, ExtractionTimeoutError) or "docling" in str(e).lower()
+        )
+        logger.error(
+            "docling_extract failed for %s (parser_error=%s): %s",
+            pdf_path,
+            is_parser_error,
+            e,
+        )
         if observer is not None:
             observer.emit(
                 "parser",
@@ -1903,11 +2075,23 @@ def run_multipass_extraction(
     # Pass 3a: Extract metrics
     if observer is not None:
         observer.emit(
-            "pass3_metric_extraction",
+            "pass3a_metrics",
             "running",
             "Extracting metric candidates.",
         )
-    pass3a_results = _run_pass3a_metric_extractor(labelled, pass1, llm_client)
+    try:
+        pass3a_results = _run_pass3a_metric_extractor(labelled, pass1, llm_client)
+    except Exception as e:
+        if observer is not None:
+            observer.emit(
+                "pass3a_metrics",
+                "failed",
+                f"Pass 3a failed: {e}",
+                error_code="pass3a_failed",
+            )
+        raise
+    if observer is not None:
+        observer.emit("pass3a_metrics", "succeeded", "Pass 3a completed.")
 
     # Pass 3b: Extract narrative (skippable for metrics-only runs)
     _skip = skip_narrative or os.environ.get("EXTRACTION_SKIP_NARRATIVE", "") == "1"
@@ -1917,6 +2101,12 @@ def run_multipass_extraction(
             skip_narrative,
             os.environ.get("EXTRACTION_SKIP_NARRATIVE", ""),
         )
+        if observer is not None:
+            observer.emit(
+                "pass3b_narrative",
+                "skipped",
+                "Pass 3b skipped for metrics-only extraction.",
+            )
         pass3b_result = {
             "risk_summary": None,
             "risk_bullets": None,
@@ -1925,15 +2115,27 @@ def run_multipass_extraction(
             "confidence_narrative": 0.0,
         }
     else:
-        pass3b_result = _run_pass3b_narrative_extractor(
-            structured_doc.sections, llm_client
-        )
-    if observer is not None:
-        observer.emit(
-            "pass3_metric_extraction",
-            "succeeded",
-            "Pass 3 completed.",
-        )
+        if observer is not None:
+            observer.emit(
+                "pass3b_narrative",
+                "running",
+                "Extracting narrative evidence.",
+            )
+        try:
+            pass3b_result = _run_pass3b_narrative_extractor(
+                structured_doc.sections, llm_client
+            )
+        except Exception as e:
+            if observer is not None:
+                observer.emit(
+                    "pass3b_narrative",
+                    "failed",
+                    f"Pass 3b failed: {e}",
+                    error_code="pass3b_failed",
+                )
+            raise
+        if observer is not None:
+            observer.emit("pass3b_narrative", "succeeded", "Pass 3b completed.")
 
     # Pass 4: Reconcile
     if observer is not None:

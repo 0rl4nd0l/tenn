@@ -23,6 +23,8 @@ ANNOUNCEMENT_TYPES = [
     "other",
 ]
 
+NARRATIVE_POLICY_VALUES = frozenset({"full", "selective", "metrics_only"})
+
 LEGACY_TYPE_DIRS = {
     "quarterly_cashflow_4c",
     "financial_results",
@@ -121,6 +123,40 @@ FINANCIAL_TEXT_MARKERS = {
     "net profit",
 }
 
+SELECTIVE_NARRATIVE_TITLE_KEYWORDS = frozenset(
+    {
+        *TYPE_KEYWORDS["operations_projects"],
+        *TYPE_KEYWORDS["investor_communications"],
+    }
+)
+
+STRUCTURAL_FINANCIAL_CLASSES = frozenset({"annual", "half_year"})
+STRUCTURAL_FINANCIAL_SUBTYPES = frozenset({"4c", "4d", "4e"})
+
+# These titles consistently represent administrative ASX forms rather than
+# periodic financial statements. Keep this list narrow to avoid skipping
+# legitimate financial disclosures.
+PRE_EXTRACTION_SKIP_TITLE_KEYWORDS = frozenset(
+    {
+        *TYPE_KEYWORDS["ownership_and_holders"],
+        "appendix 3x",
+        "appendix 3y",
+        "appendix 3z",
+        "initial director's interest",
+        "initial directors interest",
+        "final director's interest",
+        "final directors interest",
+        "change of director's interest",
+        "change of directors interest",
+        "application for quotation",
+        "quotation of securities",
+        "issue of securities",
+        "cessation of securities",
+        "unquoted securities",
+        "cleansing notice",
+    }
+)
+
 
 def _norm(value: str | None) -> str:
     return (value or "").strip().lower()
@@ -150,6 +186,115 @@ def _date_token(value: Any) -> str:
 
 def _hits(text: str, keywords: set[str]) -> list[str]:
     return [kw for kw in keywords if kw in text]
+
+
+def classify_title_extraction_skip(
+    *,
+    title: str | None,
+    doc_class: str | None,
+    doc_subtype: str | None,
+) -> dict[str, Any]:
+    title_n = _norm(title)
+    class_n = _norm(doc_class)
+    subtype_n = _norm(doc_subtype)
+
+    # Structural financial classifications must always proceed to extraction.
+    if (
+        class_n in STRUCTURAL_FINANCIAL_CLASSES
+        or subtype_n in STRUCTURAL_FINANCIAL_SUBTYPES
+    ):
+        return {
+            "skip_extraction": False,
+            "reason": None,
+            "matched_keywords": [],
+        }
+
+    financial_hits = _hits(title_n, TYPE_KEYWORDS["financial_performance"])
+    if financial_hits:
+        return {
+            "skip_extraction": False,
+            "reason": None,
+            "matched_keywords": [],
+        }
+
+    matched_keywords = _hits(title_n, set(PRE_EXTRACTION_SKIP_TITLE_KEYWORDS))
+    return {
+        "skip_extraction": bool(matched_keywords),
+        "reason": (
+            "non_financial_admin_title" if matched_keywords else None
+        ),
+        "matched_keywords": matched_keywords[:8],
+    }
+
+
+def classify_narrative_extraction_policy(
+    *,
+    title: str | None,
+    doc_class: str | None,
+    doc_subtype: str | None,
+    policy: str = "full",
+) -> dict[str, Any]:
+    normalized_policy = str(policy or "full").strip().lower() or "full"
+    if normalized_policy not in NARRATIVE_POLICY_VALUES:
+        raise ValueError(
+            f"unsupported narrative policy '{policy}'; supported={sorted(NARRATIVE_POLICY_VALUES)}"
+        )
+
+    if normalized_policy == "full":
+        return {
+            "policy": normalized_policy,
+            "extract_narrative": True,
+            "reason": "full_policy",
+            "matched_keywords": [],
+        }
+
+    if normalized_policy == "metrics_only":
+        return {
+            "policy": normalized_policy,
+            "extract_narrative": False,
+            "reason": "metrics_only_policy",
+            "matched_keywords": [],
+        }
+
+    title_n = _norm(title)
+    class_n = _norm(doc_class)
+    subtype_n = _norm(doc_subtype)
+
+    if (
+        class_n in STRUCTURAL_FINANCIAL_CLASSES
+        or subtype_n in STRUCTURAL_FINANCIAL_SUBTYPES
+    ):
+        return {
+            "policy": normalized_policy,
+            "extract_narrative": False,
+            "reason": "metrics_only_financial_doc",
+            "matched_keywords": [],
+        }
+
+    matched_keywords = _hits(title_n, set(SELECTIVE_NARRATIVE_TITLE_KEYWORDS))
+    if matched_keywords:
+        return {
+            "policy": normalized_policy,
+            "extract_narrative": True,
+            "reason": "selective_narrative_title_signal",
+            "matched_keywords": matched_keywords[:8],
+        }
+
+    financial_hits = _hits(title_n, TYPE_KEYWORDS["financial_performance"])
+    if financial_hits:
+        return {
+            "policy": normalized_policy,
+            "extract_narrative": False,
+            "reason": "metrics_only_financial_doc",
+            "matched_keywords": financial_hits[:8],
+        }
+
+    return {
+        "policy": normalized_policy,
+        "extract_narrative": False,
+        "reason": "default_metrics_only",
+        "matched_keywords": [],
+    }
 
 
 def _extract_pdf_excerpt(pdf_path: str, max_pages: int = 2, max_chars: int = 12000) -> str:

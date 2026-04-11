@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any, TypedDict
 
@@ -9,6 +10,8 @@ from app.models.documents import Document
 from app.services.announcement_importance import classify_documents_and_materialize
 from app.services import pipeline as pipeline_core
 from qdrant_client import QdrantClient
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -47,6 +50,27 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
     if int(spec.years) <= 0:
         raise ValueError("years must be > 0")
 
+    # Ops job-status tracking for the backfill (non-fatal if tracker unavailable)
+    _ops_job_id: str | None = None
+    try:
+        from app.services.job_tracker import get_tracker
+
+        _tracker = get_tracker()
+        if _tracker is not None:
+            _handle = _tracker.create_job(
+                job_type="backfill",
+                job_family="celery" if spec.mode == "celery" else "pipeline",
+                title=f"Backfill {ticker} ({spec.years}y)",
+                trigger_source=spec.mode,
+                entity_scope="ticker",
+                ticker=ticker,
+                metadata={"years": spec.years, "process_documents": spec.process_documents},
+            )
+            _tracker.start_job(_handle.job_id)
+            _ops_job_id = _handle.job_id
+    except Exception:
+        logger.warning("ops tracker init for backfill failed (non-fatal)", exc_info=True)
+
     db = SessionLocal()
     try:
         discovery = pipeline_core.discover_and_insert_documents(
@@ -81,8 +105,32 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
         extraction_failed_count = 0
         errors: list[dict[str, Any]] = []
         ingestion_metrics: dict[str, int] = {}
+        total_docs = len(doc_ids)
 
-        for document_id in doc_ids:
+        # Update ops tracker with total document count
+        if _ops_job_id:
+            try:
+                _tracker = get_tracker()
+                if _tracker:
+                    _tracker.store.update_job_run(_ops_job_id, total_items=total_docs)
+                    _tracker.change_phase(_ops_job_id, "processing", f"Processing {total_docs} documents")
+            except Exception:
+                pass
+
+        for idx, document_id in enumerate(doc_ids):
+            # Ops progress
+            if _ops_job_id:
+                try:
+                    _tracker = get_tracker()
+                    if _tracker:
+                        _tracker.record_progress(
+                            _ops_job_id,
+                            current=idx,
+                            total=total_docs,
+                            current_item_label=str(document_id)[:16],
+                        )
+                except Exception:
+                    pass
             try:
                 pipeline_core.download_pdf_for_document(db, document_id)
             except Exception as exc:
@@ -127,7 +175,7 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
             except Exception as exc:
                 importance_classification = {"error": str(exc)}
 
-        return {
+        result = {
             "ticker": discovery["ticker"],
             "found": discovery["found"],
             "inserted": discovery["inserted"],
@@ -146,5 +194,33 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
             "invalid_payloads": int(ingestion_metrics.get("invalid_payloads", 0) or 0),
             "written_points": int(ingestion_metrics.get("written_points", 0) or 0),
         }
+
+        # Ops tracker completion
+        if _ops_job_id:
+            try:
+                _tracker = get_tracker()
+                if _tracker:
+                    _tracker.store.update_job_run(
+                        _ops_job_id,
+                        succeeded_items=processed_ok_count,
+                        failed_items=extraction_failed_count,
+                        skipped_items=skipped_download,
+                        warning_count=len(errors),
+                    )
+                    summary = f"Backfill {ticker}: {processed_ok_count} ok, {extraction_failed_count} failed, {skipped_download} skipped"
+                    _tracker.complete_job(_ops_job_id, summary=summary)
+            except Exception:
+                logger.warning("ops tracker completion for backfill failed (non-fatal)", exc_info=True)
+
+        return result
+    except Exception:
+        if _ops_job_id:
+            try:
+                _tracker = get_tracker()
+                if _tracker:
+                    _tracker.fail_job(_ops_job_id, f"Backfill {ticker} failed")
+            except Exception:
+                pass
+        raise
     finally:
         db.close()

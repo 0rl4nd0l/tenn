@@ -3,15 +3,29 @@ from __future__ import annotations
 import json
 import os
 import re
+import subprocess
 from pathlib import Path
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 import httpx
 
 from app.core.config import settings
 
 DEFAULT_LLM_URL = "http://127.0.0.1:8001"
-DEFAULT_LLM_MODEL = "model:gpt-oss-20b"
+# Align with scripts/run_llama_server.sh default alias (native stack). Opt-in models
+# such as gpt-oss are not defaults — select them explicitly in Cockpit / env.
+DEFAULT_LLM_MODEL = "model:qwen3-30b-a3b-instruct"
+MANUAL_FALLBACK_LLM_ID_MARKERS: tuple[str, ...] = ("gpt-oss",)
+
+
+def is_manual_fallback_llm_model(model_id: str) -> bool:
+    """True for models kept for rare/manual use (e.g. gpt-oss), not the native default path."""
+    norm = str(model_id or "").strip().lower()
+    return any(marker in norm for marker in MANUAL_FALLBACK_LLM_ID_MARKERS)
+
+
+DEFAULT_LOCAL_LLAMACPP_API_KEY = "local-openai-key"
 
 
 class LlamaCppServerUnavailable(RuntimeError):
@@ -152,18 +166,59 @@ def resolve_embedding_runtime_config(
     return resolved_base_url, resolved_model
 
 
+def _is_local_runtime_url(base_url: str | None) -> bool:
+    normalized = _normalize_url(str(base_url or ""))
+    if not normalized:
+        return False
+    try:
+        hostname = str(urlparse(normalized).hostname or "").strip().lower()
+    except Exception:
+        return False
+    return hostname in {"127.0.0.1", "localhost"}
+
+
+def _discover_local_llamacpp_api_key() -> str:
+    try:
+        proc = subprocess.run(
+            ["ps", "aux"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except Exception:
+        return ""
+
+    for line in proc.stdout.splitlines():
+        if "llama-server" not in line or "--api-key" not in line:
+            continue
+        _, _, tail = line.partition("--api-key")
+        candidate = tail.strip().split(maxsplit=1)[0]
+        if candidate:
+            return candidate
+    return ""
+
+
 def _build_runtime_headers(
     *,
     api_key_env_names: tuple[str, ...],
+    runtime_base_url: str | None = None,
     legacy_api_key_env_names: tuple[str, ...] = ("OLLAMA_API_KEY", "OPENAI_API_KEY"),
 ) -> dict[str, str]:
     headers: dict[str, str] = {}
+    is_local_runtime = _is_local_runtime_url(runtime_base_url)
 
     for env_name in api_key_env_names:
         api_key = str(os.getenv(env_name) or "").strip()
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
             break
+
+    if "Authorization" not in headers and is_local_runtime:
+        detected = _discover_local_llamacpp_api_key()
+        headers["Authorization"] = (
+            f"Bearer {detected or DEFAULT_LOCAL_LLAMACPP_API_KEY}"
+        )
 
     if "Authorization" not in headers:
         for legacy_env_name in legacy_api_key_env_names:
@@ -184,13 +239,29 @@ def _build_runtime_headers(
     return headers
 
 
-def build_llm_headers() -> dict[str, str]:
-    return _build_runtime_headers(api_key_env_names=("LLM_API_KEY",))
+def build_llm_headers(*, base_url: str | None = None) -> dict[str, str]:
+    runtime_base_url = base_url
+    if not runtime_base_url:
+        try:
+            runtime_base_url, _ = resolve_llm_runtime_config()
+        except Exception:
+            runtime_base_url = None
+    return _build_runtime_headers(
+        api_key_env_names=("LLM_API_KEY",),
+        runtime_base_url=runtime_base_url,
+    )
 
 
-def build_embedding_headers() -> dict[str, str]:
+def build_embedding_headers(*, base_url: str | None = None) -> dict[str, str]:
+    runtime_base_url = base_url
+    if not runtime_base_url:
+        try:
+            runtime_base_url, _ = resolve_embedding_runtime_config()
+        except Exception:
+            runtime_base_url = None
     headers = _build_runtime_headers(
         api_key_env_names=("LLM_API_KEY",),
+        runtime_base_url=runtime_base_url,
         legacy_api_key_env_names=(
             "EMBEDDING_API_KEY",
             "OLLAMA_API_KEY",
@@ -441,7 +512,7 @@ def generate_json_llamacpp(
         base_url=base_url,
         model=model,
     )
-    headers = build_llm_headers()
+    headers = build_llm_headers(base_url=normalized_base_url)
     own_client = client is None
 
     def _do_generate(http_client: httpx.Client) -> Any:

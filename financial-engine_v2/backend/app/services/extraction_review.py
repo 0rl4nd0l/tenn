@@ -3,14 +3,13 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import subprocess
-import xml.etree.ElementTree as ET
 from functools import lru_cache
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 from uuid import UUID
 
+import fitz
 from sqlalchemy.orm import Session
 
 try:
@@ -34,10 +33,15 @@ REAL_GOLD_REVIEW_DIR = PROJECT_ROOT / "data" / "extraction_gold_real"
 VALID_REVIEW_STATUSES = {"approved", "wrong", "abstain"}
 _PAGE_RE = re.compile(r"page_(\d+)")
 _WHITESPACE_RE = re.compile(r"\s+")
-_XML_CHAR_RE = re.compile(
-    r"[^\u0009\u000A\u000D\u0020-\uD7FF\uE000-\uFFFD\U00010000-\U0010FFFF]"
-)
 _ASCII_CHARS = " .:-=+*#%@"
+
+
+def _row_reference_for_metric(payload: Mapping[str, Any], metric: str) -> str | None:
+    row_refs = payload.get("row_refs")
+    if isinstance(row_refs, Mapping):
+        value = str(row_refs.get(metric) or "").strip()
+        return value or None
+    return None
 
 
 def utc_now_iso() -> str:
@@ -133,72 +137,70 @@ def _normalize_text(value: str | None) -> str:
     return re.sub(r"[^a-z0-9 ]+", "", text).strip()
 
 
-def _sanitize_xml_text(text: str) -> str:
-    return _XML_CHAR_RE.sub("", text)
-
-
 def _parse_bbox_lines(
     pdf_path: Path, *, timeout_seconds: int = 20
 ) -> list[dict[str, Any]]:
-    command = ["pdftotext", "-bbox-layout", str(pdf_path), "-"]
-    proc = subprocess.run(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=False,
-        check=False,
-        timeout=timeout_seconds,
-    )
-    if proc.returncode != 0:
-        stderr = proc.stderr.decode("utf-8", errors="replace").strip()
-        raise RuntimeError(f"pdftotext failed ({proc.returncode}): {stderr[:240]}")
-
-    xml_text = _sanitize_xml_text(proc.stdout.decode("utf-8", errors="replace"))
-    root = ET.fromstring(xml_text)
-
-    def local_name(tag: str) -> str:
-        return tag.split("}", 1)[-1]
-
     lines: list[dict[str, Any]] = []
-    for page_idx, page in enumerate(
-        (node for node in root.iter() if local_name(node.tag) == "page"),
-        start=1,
-    ):
-        line_no_on_page = 0
-        for line in (node for node in page.iter() if local_name(node.tag) == "line"):
-            words = [word for word in line if local_name(word.tag) == "word"]
-            if not words:
-                continue
-            tokens: list[str] = []
-            x0 = y0 = float("inf")
-            x1 = y1 = float("-inf")
-            for word in words:
-                token = "".join(word.itertext()).strip()
-                if not token:
-                    continue
-                tokens.append(token)
-                wx0 = float(word.attrib.get("xMin", "0"))
-                wy0 = float(word.attrib.get("yMin", "0"))
-                wx1 = float(word.attrib.get("xMax", "0"))
-                wy1 = float(word.attrib.get("yMax", "0"))
-                x0 = min(x0, wx0)
-                y0 = min(y0, wy0)
-                x1 = max(x1, wx1)
-                y1 = max(y1, wy1)
-            if not tokens:
-                continue
-            line_no_on_page += 1
-            line_text = " ".join(tokens).strip()
-            if not line_text:
-                continue
-            lines.append(
-                {
-                    "page": page_idx,
-                    "line_no_on_page": line_no_on_page,
-                    "text": line_text,
-                    "bbox": [x0, y0, x1, y1],
-                }
-            )
+    try:
+        with fitz.open(pdf_path) as document:
+            for page_idx, page in enumerate(document, start=1):
+                page_lines: dict[tuple[int, int], dict[str, Any]] = {}
+                words = page.get_text("words", sort=True)
+                for word in words:
+                    if len(word) < 8:
+                        continue
+                    x0, y0, x1, y1, token, block_no, line_no, _word_no = word[:8]
+                    token = str(token or "").strip()
+                    if not token:
+                        continue
+                    key = (int(block_no), int(line_no))
+                    entry = page_lines.get(key)
+                    if entry is None:
+                        entry = {
+                            "tokens": [],
+                            "x0": float(x0),
+                            "y0": float(y0),
+                            "x1": float(x1),
+                            "y1": float(y1),
+                            "sort_y": float(y0),
+                            "sort_x": float(x0),
+                        }
+                        page_lines[key] = entry
+                    entry["tokens"].append(token)
+                    entry["x0"] = min(float(entry["x0"]), float(x0))
+                    entry["y0"] = min(float(entry["y0"]), float(y0))
+                    entry["x1"] = max(float(entry["x1"]), float(x1))
+                    entry["y1"] = max(float(entry["y1"]), float(y1))
+
+                for line_no_on_page, entry in enumerate(
+                    sorted(
+                        page_lines.values(),
+                        key=lambda item: (float(item["sort_y"]), float(item["sort_x"])),
+                    ),
+                    start=1,
+                ):
+                    line_text = " ".join(
+                        str(token) for token in entry["tokens"]
+                    ).strip()
+                    if not line_text:
+                        continue
+                    lines.append(
+                        {
+                            "page": page_idx,
+                            "line_no_on_page": line_no_on_page,
+                            "text": line_text,
+                            "bbox": [
+                                float(entry["x0"]),
+                                float(entry["y0"]),
+                                float(entry["x1"]),
+                                float(entry["y1"]),
+                            ],
+                        }
+                    )
+    except RuntimeError:
+        raise
+    except Exception as exc:
+        raise RuntimeError(f"pymupdf line extraction failed: {exc}") from exc
     return lines
 
 
@@ -266,29 +268,19 @@ def _render_page_image(pdf_path: Path, page_number: int, *, dpi: int = 144) -> P
     out_png = out_prefix.with_suffix(".png")
     if out_png.exists():
         return out_png
-    proc = subprocess.run(
-        [
-            "pdftoppm",
-            "-png",
-            "-singlefile",
-            "-r",
-            str(dpi),
-            "-f",
-            str(page_number),
-            "-l",
-            str(page_number),
-            str(pdf_path),
-            str(out_prefix),
-        ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        check=False,
-    )
-    if proc.returncode != 0:
-        raise RuntimeError(
-            f"pdftoppm failed ({proc.returncode}): {proc.stderr.strip()[:240]}"
-        )
+    scale = float(dpi) / 72.0
+    try:
+        with fitz.open(pdf_path) as document:
+            if page_number < 1 or page_number > len(document):
+                raise RuntimeError(f"page {page_number} out of range for {pdf_path}")
+            page = document.load_page(page_number - 1)
+            pixmap = page.get_pixmap(matrix=fitz.Matrix(scale, scale), alpha=False)
+            _ensure_parent(out_png)
+            pixmap.save(out_png)
+    except RuntimeError:
+        raise
+    except Exception as exc:
+        raise RuntimeError(f"pymupdf page render failed: {exc}") from exc
     return out_png
 
 
@@ -376,6 +368,48 @@ def _snippet_artifact_name(item_id: str, suffix: str) -> Path:
     return SNIPPETS_ROOT / f"{digest}_{suffix}.png"
 
 
+def _text_only_snippet(
+    *,
+    status: str,
+    page_number: int | None,
+    reason: str,
+    evidence_text: str | None,
+    matched_text: str | None = None,
+) -> dict[str, Any]:
+    fallback_text = str(matched_text or evidence_text or "").strip() or None
+    return {
+        "kind": "text_only",
+        "evidence_quality": "missing",
+        "status": status,
+        "image_path": None,
+        "ascii_preview": None,
+        "matched_text": fallback_text,
+        "page_number": page_number,
+        "reason": reason,
+    }
+
+
+def _normalize_evidence_text(value: str | None) -> str | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    if text.lower() == "unknown":
+        return None
+    return text
+
+
+def _evidence_quality_for_snippet(snippet: Mapping[str, Any]) -> str:
+    has_image = bool(snippet.get("image_path") or snippet.get("image_url"))
+    matched_text = _normalize_evidence_text(
+        str(snippet.get("matched_text") or "").strip() or None
+    )
+    if has_image and str(snippet.get("kind") or "") == "line_crop" and matched_text:
+        return "precise"
+    if has_image:
+        return "approximate"
+    return "missing"
+
+
 def build_metric_snippet(
     *,
     item_id: str,
@@ -384,28 +418,22 @@ def build_metric_snippet(
     evidence_text: str | None,
 ) -> dict[str, Any]:
     if pdf_path is None:
-        return {
-            "kind": "text_only",
-            "status": "missing_pdf",
-            "image_path": None,
-            "ascii_preview": None,
-            "matched_text": None,
-            "page_number": page_number,
-            "reason": "PDF unavailable for snippet generation.",
-        }
+        return _text_only_snippet(
+            status="missing_pdf",
+            page_number=page_number,
+            reason="PDF unavailable for snippet generation.",
+            evidence_text=evidence_text,
+        )
 
     try:
         lines = _parse_bbox_lines(pdf_path)
     except Exception as exc:
-        return {
-            "kind": "text_only",
-            "status": "bbox_unavailable",
-            "image_path": None,
-            "ascii_preview": None,
-            "matched_text": None,
-            "page_number": page_number,
-            "reason": str(exc),
-        }
+        return _text_only_snippet(
+            status="bbox_unavailable",
+            page_number=page_number,
+            reason=str(exc),
+            evidence_text=evidence_text,
+        )
 
     matched = _find_best_line(
         lines, page_number=page_number, evidence_text=evidence_text
@@ -429,28 +457,24 @@ def build_metric_snippet(
         )
 
     if page_number is None:
-        return {
-            "kind": "text_only",
-            "status": "missing_page",
-            "image_path": None,
-            "ascii_preview": None,
-            "matched_text": matched_text,
-            "page_number": None,
-            "reason": "No page reference available in provenance.",
-        }
+        return _text_only_snippet(
+            status="missing_page",
+            page_number=None,
+            reason="No page reference available in provenance.",
+            evidence_text=evidence_text,
+            matched_text=matched_text,
+        )
 
     try:
         page_png = _render_page_image(pdf_path, page_number)
     except Exception as exc:
-        return {
-            "kind": "text_only",
-            "status": "render_failed",
-            "image_path": None,
-            "ascii_preview": None,
-            "matched_text": matched_text,
-            "page_number": page_number,
-            "reason": str(exc),
-        }
+        return _text_only_snippet(
+            status="render_failed",
+            page_number=page_number,
+            reason=str(exc),
+            evidence_text=evidence_text,
+            matched_text=matched_text,
+        )
 
     try:
         if bbox is not None:
@@ -462,17 +486,15 @@ def build_metric_snippet(
             image_path = _render_page_preview(page_png, None, out_path)
             kind = "page_preview"
     except Exception as exc:
-        return {
-            "kind": "text_only",
-            "status": "image_failed",
-            "image_path": None,
-            "ascii_preview": None,
-            "matched_text": matched_text,
-            "page_number": page_number,
-            "reason": str(exc),
-        }
+        return _text_only_snippet(
+            status="image_failed",
+            page_number=page_number,
+            reason=str(exc),
+            evidence_text=evidence_text,
+            matched_text=matched_text,
+        )
 
-    return {
+    snippet = {
         "kind": kind,
         "status": "ok",
         "image_path": _project_relative(image_path),
@@ -483,6 +505,28 @@ def build_metric_snippet(
         "page_number": page_number,
         "reason": None,
     }
+    snippet["evidence_quality"] = _evidence_quality_for_snippet(snippet)
+    return snippet
+
+
+def _count_reviewable_metrics(payload: Mapping[str, Any]) -> int:
+    metrics = (
+        payload.get("metrics") if isinstance(payload.get("metrics"), Mapping) else {}
+    )
+    return sum(1 for value in metrics.values() if value is not None)
+
+
+def _review_diagnostic(status: str, metrics_count: int) -> tuple[bool, str]:
+    normalized_status = str(status or "unknown").strip() or "unknown"
+    if metrics_count > 0:
+        return True, "reviewable"
+    if normalized_status in {"ok", "ok_low_confidence"}:
+        return False, "persisted_but_no_metrics"
+    if normalized_status == "parser_error":
+        return True, "reviewable_parser_error"
+    if normalized_status == "failed":
+        return False, "run_not_persisted"
+    return False, normalized_status
 
 
 def _load_error_queue() -> dict[str, Any]:
@@ -639,6 +683,9 @@ def build_review_item(
     page_number = _parse_page_number(record.location_ref)
     item_id = f"{run.run_id}:{metric}"
     pdf_path = _coerce_pdf_path(document, payload)
+    matched_text = str(record.evidence_text or "").strip() or None
+    row_ref = _row_reference_for_metric(payload, metric)
+    period_col = str(payload.get("period_col") or "").strip() or None
     method_provenance = payload.get("_method_provenance")
     method_provenance = (
         dict(method_provenance) if isinstance(method_provenance, Mapping) else {}
@@ -653,7 +700,16 @@ def build_review_item(
         item_id=item_id,
         pdf_path=pdf_path,
         page_number=page_number,
-        evidence_text=record.evidence_text,
+        evidence_text=matched_text,
+    )
+    evidence_quality = str(
+        snippet.get("evidence_quality") or _evidence_quality_for_snippet(snippet)
+    )
+    snippet["evidence_quality"] = evidence_quality
+    method_label = (
+        str(method_provenance.get("actual_method") or "").strip()
+        or str(method_provenance.get("requested_method") or "").strip()
+        or None
     )
     return {
         "item_id": item_id,
@@ -669,9 +725,18 @@ def build_review_item(
         "currency": str(payload.get("currency") or "").strip() or None,
         "scale": str(payload.get("scale") or "").strip() or None,
         "page_number": page_number,
+        "metric_value": value,
+        "matched_text": matched_text,
+        "image_url": snippet.get("image_url"),
+        "image_path": snippet.get("image_path"),
+        "evidence_quality": evidence_quality,
+        "method_provenance": method_label,
+        "row_refs": {metric: row_ref} if row_ref else {},
+        "table_type": record.source_label,
+        "period_col": period_col,
         "confidence_metrics": payload.get("confidence_metrics"),
         "evidence_reference": record.raw_reference,
-        "evidence_text": record.evidence_text,
+        "evidence_text": matched_text,
         "evidence_summary": record.evidence_summary,
         "provenance_status": record.provenance_status,
         "source_label": record.source_label,
@@ -707,10 +772,20 @@ def _append_review_items(
     run: ExtractionRun,
 ) -> None:
     item_count_before = len(items)
+    payload = run.structured_json if isinstance(run.structured_json, Mapping) else {}
     for metric in METRIC_FIELDS:
         item = build_review_item(document, run, metric)
         if item is not None:
             items.append(item)
+
+    metrics_count = _count_reviewable_metrics(payload)
+    review_ready, reason = _review_diagnostic(
+        str(run.status or "unknown"), metrics_count
+    )
+    method_provenance = payload.get("_method_provenance")
+    method_provenance = (
+        dict(method_provenance) if isinstance(method_provenance, Mapping) else {}
+    )
 
     document_summaries.append(
         {
@@ -720,6 +795,12 @@ def _append_review_items(
             "status": str(run.status or "unknown"),
             "run_id": str(run.run_id),
             "items_count": len(items) - item_count_before,
+            "metrics_count": metrics_count,
+            "review_ready": review_ready,
+            "reason": reason,
+            "requested_method": method_provenance.get("requested_method"),
+            "actual_method": method_provenance.get("actual_method"),
+            "strict_method": method_provenance.get("strict_method"),
             "created_at": str(run.created_at),
         }
     )
@@ -811,6 +892,9 @@ def create_review_session(
                         "ticker": str(document.ticker or "").strip(),
                         "title": str(document.title or "").strip() or None,
                         "status": "missing_extraction_run",
+                        "review_ready": False,
+                        "reason": "run_not_found",
+                        "metrics_count": 0,
                     }
                 )
                 continue

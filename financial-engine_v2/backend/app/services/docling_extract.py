@@ -33,6 +33,8 @@ except importlib.metadata.PackageNotFoundError:
 DOCLING_TIMEOUT_SECONDS = 120
 DOCLING_TIMEOUT_SECONDS_PER_PAGE = 6
 DOCLING_TIMEOUT_MAX = 600
+DOCLING_LARGE_PDF_PAGE_THRESHOLD = 200
+DOCLING_LARGE_PDF_SIZE_THRESHOLD_BYTES = 12 * 1024 * 1024
 
 
 class ExtractionTimeoutError(Exception):
@@ -137,6 +139,24 @@ def _compute_docling_timeout(page_count: int) -> int:
     """
     adaptive = page_count * DOCLING_TIMEOUT_SECONDS_PER_PAGE
     return min(DOCLING_TIMEOUT_MAX, max(DOCLING_TIMEOUT_SECONDS, adaptive))
+
+
+def _should_preempt_docling_for_large_pdf(pdf_path: str, page_count: int) -> bool:
+    """
+    Return True when a PDF matches the known large-doc crash profile.
+
+    This stays intentionally narrow: the only confirmed corpus failure is a 238-page,
+    14.8 MB annual report that crashes docling. We require both a high page count
+    and a large file size so the pre-check remains a surgical resilience guard
+    instead of a policy shift away from docling.
+    """
+    if page_count < DOCLING_LARGE_PDF_PAGE_THRESHOLD:
+        return False
+    try:
+        file_size = int(Path(pdf_path).stat().st_size)
+    except OSError:
+        return False
+    return file_size >= DOCLING_LARGE_PDF_SIZE_THRESHOLD_BYTES
 
 
 def _extract_pymupdf(pdf_path: str) -> StructuredDocument:
@@ -309,6 +329,17 @@ def extract_structured(
 
     if chosen == "docling":
         page_count = _get_page_count_fast(pdf_path)
+        if not strict_backend and _should_preempt_docling_for_large_pdf(
+            pdf_path, page_count
+        ):
+            logger.warning(
+                "docling large-pdf precheck triggered for %s (pages=%d) — using PyMuPDF fallback",
+                pdf_path,
+                page_count,
+            )
+            result = _extract_pymupdf(pdf_path)
+            _save_cache(Path(pdf_path + ".pymupdf.json"), result)
+            return result
         timeout = _compute_docling_timeout(page_count)
         if timeout != DOCLING_TIMEOUT_SECONDS:
             logger.info(

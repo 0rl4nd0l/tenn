@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from threading import Lock
-from typing import Any
+from typing import Any, Mapping
 from uuid import uuid4
 
 from app.core.config import settings
@@ -277,6 +277,7 @@ def _collect_queue_depths(client: Any) -> dict[str, int]:
 
 
 _EXTRACTION_ACTIVE_KEY = "tenn:extraction_active"
+_EXTRACTION_ACTIVE_META_KEY = "tenn:extraction_active_meta"
 _EXTRACTION_ACTIVE_TTL = 1800  # 30 min safety TTL — auto-clears if process crashes
 _EXTRACTION_ACTIVE_STATE_FILE = (
     Path(
@@ -314,31 +315,75 @@ def _locked_extraction_activity_file() -> Any:
             fcntl.flock(lock_handle.fileno(), fcntl.LOCK_UN)
 
 
-def _read_file_extraction_tokens(now_ts: float | None = None) -> dict[str, float]:
+def _sanitize_extraction_metadata(
+    metadata: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if not metadata:
+        return {}
+
+    clean: dict[str, Any] = {}
+    for key in (
+        "run_id",
+        "document_id",
+        "requested_method",
+        "ticker",
+        "title",
+    ):
+        value = metadata.get(key)
+        if value is None:
+            continue
+        text = str(value).strip()
+        if text:
+            clean[key] = text
+
+    if "strict_method" in metadata and metadata.get("strict_method") is not None:
+        clean["strict_method"] = bool(metadata.get("strict_method"))
+    return clean
+
+
+def _read_file_extraction_state(
+    now_ts: float | None = None,
+) -> tuple[dict[str, float], dict[str, dict[str, Any]]]:
     now_ts = _now_timestamp() if now_ts is None else now_ts
     if not _EXTRACTION_ACTIVE_STATE_FILE.exists():
-        return {}
+        return {}, {}
     try:
         payload = json.loads(_EXTRACTION_ACTIVE_STATE_FILE.read_text(encoding="utf-8"))
     except Exception:
-        return {}
+        return {}, {}
 
     tokens = payload.get("tokens") if isinstance(payload, dict) else {}
     if not isinstance(tokens, dict):
-        return {}
+        return {}, {}
+    raw_metadata = payload.get("metadata") if isinstance(payload, dict) else {}
+    if not isinstance(raw_metadata, dict):
+        raw_metadata = {}
 
     active: dict[str, float] = {}
+    active_metadata: dict[str, dict[str, Any]] = {}
     for token, raw_expiry in tokens.items():
         try:
             expiry = float(raw_expiry)
         except (TypeError, ValueError):
             continue
         if expiry > now_ts:
-            active[str(token)] = expiry
-    return active
+            token_text = str(token)
+            active[token_text] = expiry
+            meta = raw_metadata.get(token_text)
+            if isinstance(meta, dict):
+                active_metadata[token_text] = _sanitize_extraction_metadata(meta)
+    return active, active_metadata
 
 
-def _write_file_extraction_tokens(tokens: dict[str, float]) -> None:
+def _read_file_extraction_tokens(now_ts: float | None = None) -> dict[str, float]:
+    tokens, _ = _read_file_extraction_state(now_ts)
+    return tokens
+
+
+def _write_file_extraction_tokens(
+    tokens: dict[str, float],
+    metadata: Mapping[str, Mapping[str, Any]] | None = None,
+) -> None:
     if not tokens:
         try:
             _EXTRACTION_ACTIVE_STATE_FILE.unlink()
@@ -347,34 +392,64 @@ def _write_file_extraction_tokens(tokens: dict[str, float]) -> None:
         return
 
     _EXTRACTION_ACTIVE_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    payload = {"tokens": tokens}
+    payload: dict[str, Any] = {"tokens": tokens}
+    if metadata:
+        payload["metadata"] = {
+            str(token): _sanitize_extraction_metadata(entry)
+            for token, entry in metadata.items()
+            if str(token) in tokens and _sanitize_extraction_metadata(entry)
+        }
     _EXTRACTION_ACTIVE_STATE_FILE.write_text(
         json.dumps(payload, sort_keys=True),
         encoding="utf-8",
     )
 
 
-def _register_file_extraction_token(token: str, expiry_ts: float) -> None:
+def _register_file_extraction_token(
+    token: str,
+    expiry_ts: float,
+    metadata: Mapping[str, Any] | None = None,
+) -> None:
     now_ts = _now_timestamp()
     with _locked_extraction_activity_file():
-        tokens = _read_file_extraction_tokens(now_ts)
+        tokens, active_metadata = _read_file_extraction_state(now_ts)
         tokens[str(token)] = float(expiry_ts)
-        _write_file_extraction_tokens(tokens)
+        cleaned_metadata = _sanitize_extraction_metadata(metadata)
+        if cleaned_metadata:
+            active_metadata[str(token)] = cleaned_metadata
+        _write_file_extraction_tokens(tokens, active_metadata)
+
+
+def _write_redis_extraction_token(
+    client: Any,
+    token: str,
+    expiry_ts: float,
+    ttl_seconds: int,
+    metadata: Mapping[str, Any] | None = None,
+) -> None:
+    _redis_extraction_tokens(client, now_ts=_now_timestamp())
+    client.hset(_EXTRACTION_ACTIVE_KEY, token, expiry_ts)
+    client.expire(_EXTRACTION_ACTIVE_KEY, ttl_seconds)
+    cleaned_metadata = _sanitize_extraction_metadata(metadata)
+    if cleaned_metadata:
+        client.hset(_EXTRACTION_ACTIVE_META_KEY, token, json.dumps(cleaned_metadata))
+        client.expire(_EXTRACTION_ACTIVE_META_KEY, ttl_seconds)
 
 
 def _clear_file_extraction_token(token: str) -> None:
     now_ts = _now_timestamp()
     with _locked_extraction_activity_file():
-        tokens = _read_file_extraction_tokens(now_ts)
+        tokens, active_metadata = _read_file_extraction_state(now_ts)
         tokens.pop(str(token), None)
-        _write_file_extraction_tokens(tokens)
+        active_metadata.pop(str(token), None)
+        _write_file_extraction_tokens(tokens, active_metadata)
 
 
 def _file_extraction_active() -> bool:
     now_ts = _now_timestamp()
     with _locked_extraction_activity_file():
-        tokens = _read_file_extraction_tokens(now_ts)
-        _write_file_extraction_tokens(tokens)
+        tokens, active_metadata = _read_file_extraction_state(now_ts)
+        _write_file_extraction_tokens(tokens, active_metadata)
         return bool(tokens)
 
 
@@ -414,15 +489,59 @@ def _redis_extraction_tokens(
     if not active:
         try:
             client.delete(_EXTRACTION_ACTIVE_KEY)
+            client.delete(_EXTRACTION_ACTIVE_META_KEY)
         except Exception:
             pass
     return active
+
+
+def _redis_extraction_metadata(
+    client: Any, active_tokens: Mapping[str, float]
+) -> dict[str, dict[str, Any]]:
+    try:
+        raw_meta = client.hgetall(_EXTRACTION_ACTIVE_META_KEY)
+    except Exception:
+        return {}
+
+    if not isinstance(raw_meta, dict):
+        return {}
+
+    active_token_keys = {str(token) for token in active_tokens}
+    metadata: dict[str, dict[str, Any]] = {}
+    stale_tokens: list[str] = []
+    for raw_token, raw_payload in raw_meta.items():
+        token = _decode_redis_value(raw_token).strip()
+        if not token:
+            continue
+        if token not in active_token_keys:
+            stale_tokens.append(token)
+            continue
+        try:
+            payload = json.loads(_decode_redis_value(raw_payload))
+        except Exception:
+            stale_tokens.append(token)
+            continue
+        if isinstance(payload, dict):
+            metadata[token] = _sanitize_extraction_metadata(payload)
+
+    if stale_tokens:
+        try:
+            client.hdel(_EXTRACTION_ACTIVE_META_KEY, *stale_tokens)
+        except Exception:
+            pass
+    if not active_token_keys:
+        try:
+            client.delete(_EXTRACTION_ACTIVE_META_KEY)
+        except Exception:
+            pass
+    return metadata
 
 
 def register_extraction_activity(
     *,
     redis_url: str | None = None,
     ttl_seconds: int | None = None,
+    metadata: Mapping[str, Any] | None = None,
 ) -> str:
     ttl = max(int(ttl_seconds or _EXTRACTION_ACTIVE_TTL), 1)
     token = uuid4().hex
@@ -430,12 +549,16 @@ def register_extraction_activity(
     client = _build_redis_client(redis_url)
     if client is not None:
         try:
-            _redis_extraction_tokens(client, now_ts=_now_timestamp())
-            client.hset(_EXTRACTION_ACTIVE_KEY, token, expiry_ts)
-            client.expire(_EXTRACTION_ACTIVE_KEY, ttl)
+            _write_redis_extraction_token(
+                client,
+                token,
+                expiry_ts,
+                ttl,
+                metadata=metadata,
+            )
         except Exception:
             pass
-    _register_file_extraction_token(token, expiry_ts)
+    _register_file_extraction_token(token, expiry_ts, metadata=metadata)
     return token
 
 
@@ -447,16 +570,20 @@ def clear_extraction_activity(token: str, *, redis_url: str | None = None) -> No
     if client is not None:
         try:
             client.hdel(_EXTRACTION_ACTIVE_KEY, token)
+            client.hdel(_EXTRACTION_ACTIVE_META_KEY, token)
             if not _redis_extraction_tokens(client, now_ts=_now_timestamp()):
                 client.delete(_EXTRACTION_ACTIVE_KEY)
+                client.delete(_EXTRACTION_ACTIVE_META_KEY)
         except Exception:
             pass
     _clear_file_extraction_token(token)
 
 
 @contextmanager
-def extraction_activity(*, redis_url: str | None = None) -> Any:
-    token = register_extraction_activity(redis_url=redis_url)
+def extraction_activity(
+    *, redis_url: str | None = None, metadata: Mapping[str, Any] | None = None
+) -> Any:
+    token = register_extraction_activity(redis_url=redis_url, metadata=metadata)
     try:
         yield token
     finally:
@@ -498,6 +625,76 @@ def is_extraction_active(*, redis_url: str | None = None) -> bool:
         except Exception:
             pass
     return _file_extraction_active()
+
+
+def get_extraction_activity_snapshot(*, redis_url: str | None = None) -> dict[str, Any]:
+    """Return extraction-activity state for cockpit diagnostics."""
+
+    now_ts = _now_timestamp()
+    client = _build_redis_client(redis_url)
+    if client is not None:
+        try:
+            redis_tokens = _redis_extraction_tokens(client, now_ts=now_ts)
+            if redis_tokens:
+                redis_metadata = _redis_extraction_metadata(client, redis_tokens)
+                latest_expiry = max(redis_tokens.values())
+                return {
+                    "active": True,
+                    "source": "redis",
+                    "token_count": len(redis_tokens),
+                    "expires_at": latest_expiry,
+                    "expires_in_seconds": max(int(latest_expiry - now_ts), 0),
+                    "active_runs": [
+                        {
+                            "token": token,
+                            "expires_at": expiry,
+                            "expires_in_seconds": max(int(expiry - now_ts), 0),
+                            **redis_metadata.get(token, {}),
+                        }
+                        for token, expiry in sorted(
+                            redis_tokens.items(),
+                            key=lambda item: item[1],
+                            reverse=True,
+                        )
+                    ],
+                }
+        except Exception:
+            pass
+
+    with _locked_extraction_activity_file():
+        file_tokens, file_metadata = _read_file_extraction_state(now_ts)
+        _write_file_extraction_tokens(file_tokens, file_metadata)
+    if file_tokens:
+        latest_expiry = max(file_tokens.values())
+        return {
+            "active": True,
+            "source": "file",
+            "token_count": len(file_tokens),
+            "expires_at": latest_expiry,
+            "expires_in_seconds": max(int(latest_expiry - now_ts), 0),
+            "active_runs": [
+                {
+                    "token": token,
+                    "expires_at": expiry,
+                    "expires_in_seconds": max(int(expiry - now_ts), 0),
+                    **file_metadata.get(token, {}),
+                }
+                for token, expiry in sorted(
+                    file_tokens.items(),
+                    key=lambda item: item[1],
+                    reverse=True,
+                )
+            ],
+        }
+
+    return {
+        "active": False,
+        "source": "none",
+        "token_count": 0,
+        "expires_at": None,
+        "expires_in_seconds": 0,
+        "active_runs": [],
+    }
 
 
 def mark_task_started(queue_name: str) -> None:

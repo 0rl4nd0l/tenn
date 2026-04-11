@@ -57,3 +57,54 @@ Placeholder-only schema example:
   "expected_trust": "<trusted|abstain|quarantine>"
 }
 ```
+
+## Local Measurement Workflow
+
+Use the existing eval-only scripts under `scripts/` to measure the current extraction
+pipeline against this corpus without changing runtime architecture:
+
+1. Base eval run
+
+```bash
+financial-engine_v2/.venv/bin/python scripts/run_real_extraction_eval.py \
+  --dataset-dir financial-engine_v2/data/extraction_gold_real \
+  --results-json reports/extraction_real_eval_results.json \
+  --report-path reports/extraction_real_eval_summary.md
+```
+
+2. MLflow-backed local run tracking
+
+```bash
+financial-engine_v2/.venv/bin/python scripts/run_real_extraction_eval_mlflow.py \
+  --dataset-dir financial-engine_v2/data/extraction_gold_real \
+  --results-json reports/extraction_real_eval_results.json \
+  --report-path reports/extraction_real_eval_summary.md \
+  --tracking-dir mlruns \
+  --extractor-label multipass_extraction \
+  --method-label run_multipass_extraction
+```
+
+3. Read-only DuckDB analysis over existing artifacts
+
+```bash
+financial-engine_v2/.venv/bin/python scripts/analyze_real_extraction_eval_duckdb.py \
+  reports/extraction_real_eval_results.json \
+  --summary-path reports/analysis/extraction_real_eval_duckdb_summary.md
+```
+
+Artifacts written by the base eval runner:
+
+- detailed JSON: `reports/extraction_real_eval_results.json`
+- summary JSON: `reports/extraction_real_eval_results_summary.json`
+- summary Markdown: `reports/extraction_real_eval_summary.md`
+- per-document CSV: `reports/extraction_real_eval_results_documents.csv`
+- per-metric CSV: `reports/extraction_real_eval_results_metrics.csv`
+- trust-trigger CSV: `reports/extraction_real_eval_results_trust_triggers.csv`
+
+Intentional non-goals for this lane:
+
+- no backend request-path integration
+- no extraction logic rewiring
+- no canonical DB/schema changes
+- no orchestrator or memory changes
+- no networked tracking service
