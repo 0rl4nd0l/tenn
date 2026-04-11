@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { JobList } from '@/components/cockpit/operations/job-list'
 import { JobDetailPanel } from '@/components/cockpit/operations/job-detail-panel'
+import { GpuWorkloadCard } from '@/components/cockpit/operations/gpu-workload-card'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
@@ -11,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { Activity, Globe, Database, Search, Play, Eye, RefreshCw, Terminal, Cpu, ExternalLink, CalendarRange, Layers3, Flame, MemoryStick } from 'lucide-react'
+import { Activity, Globe, Database, Search, Play, Eye, RefreshCw, Terminal, Cpu, ExternalLink, CalendarRange, Layers3 } from 'lucide-react'
 import { GpuActivityDialog, getGpuProcesses, getGpuSummary } from '@/components/cockpit/gpu-activity-dialog'
 import { HostActivityDialog, getHostSummary } from '@/components/cockpit/host-activity-dialog'
 import { checkHealth, restartBackend, executeAction, getActionJob, getSystemStatus, loadCockpitModel, previewAction, startActionJob } from '@/lib/api-client'
@@ -558,333 +559,21 @@ export function OperationsScreen() {
   return (
     <ScrollArea className="h-full">
       <div className="p-6 space-y-6 max-w-6xl mx-auto">
-        {/* Feature Toggles */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Activity className="h-5 w-5 text-primary" />
-              Feature Toggles
-            </CardTitle>
-            <CardDescription>Enable or disable cockpit features</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Globe className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-sm font-medium">Web Search</p>
-                  <p className="text-xs text-muted-foreground">Enable web search augmentation</p>
-                </div>
-              </div>
-              <Switch 
-                checked={preferences.webSearchEnabled}
-                onCheckedChange={() => togglePreference('webSearchEnabled')}
-              />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-sm font-medium">RAG</p>
-                  <p className="text-xs text-muted-foreground">Enable retrieval augmented generation</p>
-                </div>
-              </div>
-              <Switch 
-                checked={preferences.ragEnabled}
-                onCheckedChange={() => togglePreference('ragEnabled')}
-              />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Database className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-sm font-medium">DB Diagnostics</p>
-                  <p className="text-xs text-muted-foreground">Enable database diagnostic queries</p>
-                </div>
-              </div>
-              <Switch 
-                checked={preferences.dbDiagnosticsEnabled}
-                onCheckedChange={() => togglePreference('dbDiagnosticsEnabled')}
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Operations</h1>
+            <p className="text-muted-foreground">Manage backend actions, ingestion, and system maintenance.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleRestartBackend} disabled={isRestartingBackend}>
+              <RefreshCw className={cn('h-4 w-4 mr-2', isRestartingBackend && 'animate-spin')} />
+              {isRestartingBackend ? 'Restarting...' : 'Restart Backend'}
+            </Button>
+          </div>
+        </div>
 
-        {/* Service Health */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-primary" />
-                  Service Health
-                </CardTitle>
-                <CardDescription>Monitor connected services (auto-refresh every 30s)</CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={fetchHealth}>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleRestartBackend} disabled={isRestartingBackend}>
-                  <RefreshCw className={cn('h-4 w-4 mr-2', isRestartingBackend && 'animate-spin')} />
-                  {isRestartingBackend ? 'Restarting...' : 'Restart Backend'}
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-              <div
-                className="flex items-center justify-between p-3 rounded-lg border border-border bg-card"
-              >
-                <div className="flex items-center gap-3">
-                  <span className={cn(
-                    'h-3 w-3 rounded-full',
-                    getStatusColor(backendHealth.status)
-                  )} />
-                  <div>
-                    <p className="text-sm font-medium">{backendHealth.name}</p>
-                    <p className="text-xs text-muted-foreground font-mono">{backendHealth.endpoint}</p>
-                  </div>
-                  </div>
-                  <div className="text-right">
-                  <Badge variant={getStatusBadgeVariant(backendHealth.status)} className="text-[10px] font-mono">
-                    {formatStatusLabel(backendHealth.status)}
-                  </Badge>
-                  {backendHealth.responseTimeMs && (
-                    <p className="text-[10px] text-muted-foreground font-mono mt-1">
-                      {backendHealth.responseTimeMs}ms
-                    </p>
-                  )}
-                  <p className="text-[10px] text-muted-foreground font-mono mt-1">
-                    {formatClock(backendHealth.lastChecked)}
-                  </p>
-                </div>
-              </div>
-
-              <GpuActivityDialog gpuHealth={gpuHealth}>
-                  <button
-                    type="button"
-                    className="flex items-center justify-between rounded-lg border border-border bg-card p-3 text-left transition-colors hover:border-primary/50 hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className={cn(
-                        'h-3 w-3 rounded-full',
-                        getStatusColor(gpuHealth?.status ?? 'unknown')
-                      )} />
-                      <div>
-                        <p className="text-sm font-medium flex items-center gap-2">
-                          <Cpu className="h-4 w-4 text-primary" />
-                          GPU Activity
-                        </p>
-                        <p className="text-xs text-muted-foreground font-mono break-words">{gpuSummary}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <Badge variant={getStatusBadgeVariant(gpuHealth?.status ?? 'unknown')} className="text-[10px] font-mono">
-                        {formatStatusLabel(gpuHealth?.status ?? 'unknown')}
-                      </Badge>
-                      <p className="mt-1 flex items-center justify-end gap-1 text-[10px] text-muted-foreground font-mono">
-                        details
-                        <ExternalLink className="h-3 w-3" />
-                      </p>
-                      <p className="text-[10px] text-muted-foreground font-mono mt-1">
-                        {gpuProcesses.length} proc{gpuProcesses.length === 1 ? '' : 's'}
-                      </p>
-                    </div>
-                  </button>
-              </GpuActivityDialog>
-
-              <HostActivityDialog hostHealth={hostHealth}>
-                <button
-                  type="button"
-                  className="flex items-center justify-between rounded-lg border border-border bg-card p-3 text-left transition-colors hover:border-primary/50 hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className={cn(
-                      'h-3 w-3 rounded-full',
-                      getStatusColor(hostHealth?.status ?? 'unknown')
-                    )} />
-                    <div>
-                      <p className="text-sm font-medium flex items-center gap-2">
-                        <Cpu className="h-4 w-4 text-primary" />
-                        Host Resources
-                      </p>
-                      <p className="text-xs text-muted-foreground font-mono break-words">{hostSummary}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <Badge variant={getStatusBadgeVariant(hostHealth?.status ?? 'unknown')} className="text-[10px] font-mono">
-                      {formatStatusLabel(hostHealth?.status ?? 'unknown')}
-                    </Badge>
-                    <p className="mt-1 flex items-center justify-end gap-1 text-[10px] text-muted-foreground font-mono">
-                      details
-                      <ExternalLink className="h-3 w-3" />
-                    </p>
-                    <p className="text-[10px] text-muted-foreground font-mono mt-1">
-                      {hostDisks.length} disk{hostDisks.length === 1 ? '' : 's'}
-                    </p>
-                  </div>
-                </button>
-              </HostActivityDialog>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* GPU Activity Breakdown — auto-visible when GPU is active */}
-        {(() => {
-          const gpus = Array.isArray(gpuHealth?.details?.gpus)
-            ? (gpuHealth!.details!.gpus as Array<Record<string, unknown>>)
-            : []
-          const firstGpu = gpus[0]
-          const utilPct = typeof firstGpu?.util_percent === 'number' ? firstGpu.util_percent : null
-          const memUsed = typeof firstGpu?.mem_used_mib === 'number' ? Math.round(firstGpu.mem_used_mib as number) : null
-          const memTotal = typeof firstGpu?.mem_total_mib === 'number' ? Math.round(firstGpu.mem_total_mib as number) : null
-          const showPanel = (utilPct !== null && utilPct > 0) || gpuProcesses.length > 0
-
-          if (!showPanel) return null
-
-          return (
-            <Card className={cn(
-              'border-l-4',
-              utilPct !== null && utilPct >= 90
-                ? 'border-l-red-500 bg-red-500/5'
-                : utilPct !== null && utilPct >= 50
-                  ? 'border-l-yellow-500 bg-yellow-500/5'
-                  : 'border-l-green-500 bg-green-500/5'
-            )}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Flame className={cn(
-                    'h-4 w-4',
-                    utilPct !== null && utilPct >= 90 ? 'text-red-500' :
-                    utilPct !== null && utilPct >= 50 ? 'text-yellow-500' : 'text-green-500'
-                  )} />
-                  GPU Activity
-                  {utilPct !== null && (
-                    <Badge
-                      variant={utilPct >= 90 ? 'destructive' : 'outline'}
-                      className="text-xs tabular-nums font-mono ml-auto"
-                    >
-                      {Math.round(utilPct)}% util
-                    </Badge>
-                  )}
-                  {memUsed !== null && memTotal !== null && (
-                    <Badge variant="outline" className="text-xs tabular-nums font-mono gap-1">
-                      <MemoryStick className="h-3 w-3" />
-                      {memUsed}/{memTotal} MiB
-                    </Badge>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                {gpuProcesses.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    GPU is active but no compute processes were reported by nvidia-smi.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {gpuProcesses.map((proc, idx) => {
-                      const taskLabel = typeof proc.task_label === 'string' ? proc.task_label : 'GPU task'
-                      const processName = typeof proc.process_name === 'string' ? proc.process_name : 'process'
-                      const command = typeof proc.command === 'string' ? proc.command : null
-                      const pid = typeof proc.pid === 'number' ? proc.pid : null
-                      const procMem = typeof proc.used_gpu_memory_mib === 'number'
-                        ? `${Math.round(proc.used_gpu_memory_mib as number)} MiB`
-                        : null
-
-                      return (
-                        <div
-                          key={`${pid ?? idx}`}
-                          className="rounded-md border border-border/60 bg-background/60 p-2.5 font-mono text-xs"
-                        >
-                          <div className="flex items-center gap-2 mb-1">
-                            <Badge variant="secondary" className="text-[10px] uppercase tracking-wider">
-                              {taskLabel}
-                            </Badge>
-                            <span className="text-foreground font-medium">{processName}</span>
-                            {pid !== null && (
-                              <span className="text-muted-foreground">PID {pid}</span>
-                            )}
-                            {procMem && (
-                              <span className="text-muted-foreground ml-auto tabular-nums">{procMem}</span>
-                            )}
-                          </div>
-                          {command && (
-                            <p className="text-[11px] text-muted-foreground/70 break-all line-clamp-2">
-                              {command}
-                            </p>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )
-        })()}
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Cpu className="h-5 w-5 text-primary" />
-              Hardware Status
-            </CardTitle>
-            <CardDescription>Live host CPU, RAM, and storage usage from the Cockpit health probe</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="rounded-lg border border-border bg-card p-4">
-                <p className="text-xs font-medium text-muted-foreground">CPU Load</p>
-                <p className="mt-2 text-2xl font-semibold text-foreground">
-                  {typeof hostCpu?.normalized_load_percent === 'number' ? `${hostCpu.normalized_load_percent}%` : 'n/a'}
-                </p>
-                <p className="mt-1 text-xs font-mono text-muted-foreground">
-                  {typeof hostCpu?.core_count === 'number' ? `${hostCpu.core_count} cores` : 'core count unavailable'}
-                </p>
-                <p className="mt-1 text-xs font-mono text-muted-foreground">
-                  {typeof hostCpu?.load_1m === 'number' ? `1m ${hostCpu.load_1m}` : '1m n/a'}
-                  {typeof hostCpu?.load_5m === 'number' ? ` | 5m ${hostCpu.load_5m}` : ''}
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-border bg-card p-4">
-                <p className="text-xs font-medium text-muted-foreground">RAM Usage</p>
-                <p className="mt-2 text-2xl font-semibold text-foreground">
-                  {typeof hostMemory?.used_percent === 'number' ? `${hostMemory.used_percent}%` : 'n/a'}
-                </p>
-                <p className="mt-1 text-xs font-mono text-muted-foreground">
-                  {typeof hostMemory?.used_gib === 'number' && typeof hostMemory?.total_gib === 'number'
-                    ? `${hostMemory.used_gib} / ${hostMemory.total_gib} GiB`
-                    : 'memory unavailable'}
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-border bg-card p-4">
-                <p className="text-xs font-medium text-muted-foreground">Storage</p>
-                <p className="mt-2 text-2xl font-semibold text-foreground">
-                  {hostDisks.length > 0 && typeof hostDisks[0]?.used_percent === 'number'
-                    ? `${hostDisks[0].used_percent}%`
-                    : 'n/a'}
-                </p>
-                <p className="mt-1 text-xs font-mono text-muted-foreground">
-                  {hostDisks.length > 0 ? `Primary ${String(hostDisks[0]?.mount ?? '/')}` : 'disk data unavailable'}
-                </p>
-                <p className="mt-1 text-xs font-mono text-muted-foreground">
-                  {hostDisks.length > 1 && typeof hostDisks[1]?.used_percent === 'number'
-                    ? `${String(hostDisks[1]?.mount ?? '/home')} ${hostDisks[1].used_percent}%`
-                    : hostDisks.length > 1
-                      ? String(hostDisks[1]?.mount ?? '/home')
-                      : 'additional mounts unavailable'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* GPU Workload — auto-visible when GPU is active, shows driving jobs */}
+        <GpuWorkloadCard gpuHealth={gpuHealth} gpuProcesses={gpuProcesses} />
 
         <Card>
           <CardHeader>

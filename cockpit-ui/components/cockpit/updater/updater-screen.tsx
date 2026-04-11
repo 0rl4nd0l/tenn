@@ -12,10 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { RefreshCw, Download, FileText, CheckCircle2, AlertCircle } from 'lucide-react'
 import { FinancialData } from '@/lib/cockpit-types'
-import { executeAction, fetchFinancials } from '@/lib/api-client'
+import { fetchFinancials, getActionJob, startActionJob } from '@/lib/api-client'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import { useEffect } from 'react'
+
+const JOB_POLL_INTERVAL_MS = 1500
 
 export function UpdaterScreen() {
   const [hasHydrated, setHasHydrated] = useState(false)
@@ -27,6 +29,8 @@ export function UpdaterScreen() {
   const [progress, setProgress] = useState(0)
   const [results, setResults] = useState<FinancialData[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [jobStatusMessage, setJobStatusMessage] = useState<string | null>(null)
+  const [jobId, setJobId] = useState<string | null>(null)
 
   // Wait for hydration to finish to avoid SSR/CSR mismatch with Zustand
   useEffect(() => {
@@ -49,6 +53,8 @@ export function UpdaterScreen() {
     setProgress(0)
     setResults(null)
     setError(null)
+    setJobStatusMessage(null)
+    setJobId(null)
 
     // Indeterminate-style progress: advance to ~90% while waiting
     const progressInterval = setInterval(() => {
@@ -61,11 +67,8 @@ export function UpdaterScreen() {
     try {
       const normalizedTicker = ticker.trim().toUpperCase()
 
-      // 1. Trigger backfill via the cockpit action registry
-      //    Uses POST /api/cockpit/action/execute with action_id
-      //    "single_ticker_announcement_backfill", which runs the full
-      //    headed-browser ticker sync script with correct args.
-      await executeAction({
+      // 1. Start backfill asynchronously and keep polling job status.
+      const queuedJob = await startActionJob({
         actionId: 'single_ticker_announcement_backfill',
         args: {
           ticker: normalizedTicker,
@@ -73,12 +76,44 @@ export function UpdaterScreen() {
           process_documents: processDocuments,
         },
       })
+      setJobId(queuedJob.job_id)
+      setJobStatusMessage('Queued backfill job.')
+      setProgress(8)
+
+      while (true) {
+        const job = await getActionJob(queuedJob.job_id)
+        const stage = String(job.progress_stage || job.status || 'running')
+        const detail = String(job.result || '')
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .at(-1) || ''
+        setJobStatusMessage(detail ? `${stage}: ${detail}` : stage)
+
+        if (typeof job.progress_pct === 'number') {
+          setProgress(Math.max(8, Math.min(95, Math.round(job.progress_pct))))
+        } else {
+          setProgress((prev) => Math.min(95, Math.max(prev, 8) + (prev < 80 ? 4 : 1)))
+        }
+
+        if (job.status === 'success') {
+          break
+        }
+
+        if (job.status === 'failed') {
+          throw new Error(String(job.result || 'Backfill job failed'))
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, JOB_POLL_INTERVAL_MS))
+      }
 
       setProgress(70)
+      setJobStatusMessage('Backfill finished. Fetching financial records...')
 
       // 2. Fetch financial results via GET /api/financials?ticker=...
       const financialsData = await fetchFinancials(normalizedTicker)
       setProgress(100)
+      setJobStatusMessage('Financial records refreshed.')
 
       // Map API response to FinancialData shape
       // GET /api/financials returns a flat JSON array of financial rows
@@ -184,10 +219,15 @@ export function UpdaterScreen() {
             {isLoading && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Fetching data...</span>
+                  <span className="text-muted-foreground">{jobStatusMessage || 'Fetching data...'}</span>
                   <span className="font-mono">{Math.round(progress)}%</span>
                 </div>
                 <Progress value={progress} />
+                {jobId && (
+                  <p className="text-xs font-mono text-muted-foreground">
+                    Job {jobId}
+                  </p>
+                )}
               </div>
             )}
 

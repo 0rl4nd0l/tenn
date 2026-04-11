@@ -13,31 +13,40 @@ interface CockpitState {
   sessionId: string
   chatModel: string
   chatCompletionActive: boolean
+  apiDefaultEnabled: boolean
+  activeSource: 'local' | 'anthropic' | 'unknown'
   preferences: CockpitPreferences
   sessionStats: {
     totalCostUsd: number
     lastLatencyMs: number
     activeModel: string
   }
+  isBackendHealthy: boolean
+  backendError: string | null
 
   // Actions
   setActiveTicker: (ticker: string) => void
   setSessionId: (id: string) => void
   setChatModel: (model: string) => void
   setChatCompletionActive: (active: boolean) => void
+  setApiDefaultEnabled: (enabled: boolean) => void
+  setActiveSource: (source: 'local' | 'anthropic' | 'unknown') => void
   updatePreferences: (prefs: Partial<CockpitPreferences>) => void
   addCost: (cost: number) => void
   setLatency: (latency: number) => void
   setActiveModel: (model: string) => void
+  setBackendStatus: (healthy: boolean, error?: string | null) => void
 }
 
 export const useCockpitStore = create<CockpitState>()(
   persist(
     (set) => ({
-      activeTicker: 'BHP',
+      activeTicker: '',
       sessionId: generateId(),
       chatModel: 'model:qwen3.5-35b-a3b',
       chatCompletionActive: false,
+      apiDefaultEnabled: false,
+      activeSource: 'unknown',
       preferences: {
         webSearchEnabled: true,
         ragEnabled: true,
@@ -50,11 +59,15 @@ export const useCockpitStore = create<CockpitState>()(
         lastLatencyMs: 0,
         activeModel: 'local'
       },
+      isBackendHealthy: true,
+      backendError: null,
       
       setActiveTicker: (ticker) => set({ activeTicker: ticker }),
       setSessionId: (id) => set({ sessionId: id }),
       setChatModel: (model) => set({ chatModel: model }),
       setChatCompletionActive: (active) => set({ chatCompletionActive: active }),
+      setApiDefaultEnabled: (enabled) => set({ apiDefaultEnabled: enabled }),
+      setActiveSource: (source) => set({ activeSource: source }),
       updatePreferences: (prefs) => set((state) => ({ 
         preferences: { ...state.preferences, ...prefs } 
       })),
@@ -67,11 +80,13 @@ export const useCockpitStore = create<CockpitState>()(
       setActiveModel: (model) => set((state) => ({ 
         sessionStats: { ...state.sessionStats, activeModel: model } 
       })),
+      setBackendStatus: (healthy, error = null) => set({ isBackendHealthy: healthy, backendError: error }),
     }),
     {
       name: 'cockpit-storage',
       partialize: (state) => ({
         activeTicker: state.activeTicker,
+        apiDefaultEnabled: state.apiDefaultEnabled,
         preferences: state.preferences,
         sessionId: state.sessionId,
         chatModel: state.chatModel,

@@ -1,3 +1,4 @@
+import { useCockpitStore } from './cockpit-store'
 import type {
   AvailableModelsResponse,
   ChatResponse,
@@ -91,8 +92,17 @@ export async function apiFetch<T>(path: string, options?: RequestInit, timeoutMs
           body = `HTTP ${res.status}`
         }
       }
+
+      // If we got a 5xx, mark as unhealthy
+      if (res.status >= 500) {
+        useCockpitStore.getState().setBackendStatus(false, `Server error: ${res.status}`)
+      }
+
       throw new ApiError(res.status, res.statusText, body)
     }
+
+    // Success! Mark as healthy
+    useCockpitStore.getState().setBackendStatus(true)
 
     if (res.status === 204) {
       return undefined as unknown as T
@@ -101,8 +111,18 @@ export async function apiFetch<T>(path: string, options?: RequestInit, timeoutMs
     return res.json() as Promise<T>
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new ApiError(504, 'Gateway Timeout', `Request timed out after ${Math.round(timeoutMs / 1000)}s`)
+      const errorMsg = `Request timed out after ${Math.round(timeoutMs / 1000)}s`
+      useCockpitStore.getState().setBackendStatus(false, errorMsg)
+      throw new ApiError(504, 'Gateway Timeout', errorMsg)
     }
+
+    // For connection refused / network errors
+    const errorMsg = err instanceof Error ? err.message : 'Network error'
+    // Don't report "Aborted" (manual cancel) as a backend failure
+    if (errorMsg !== 'The user aborted a request.' && errorMsg !== 'signal is aborted without reason') {
+      useCockpitStore.getState().setBackendStatus(false, errorMsg)
+    }
+
     throw err
   } finally {
     clearTimeout(timeoutId)

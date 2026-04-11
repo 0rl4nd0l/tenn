@@ -9,9 +9,16 @@ import { IntelPulseFailure } from '@/lib/cockpit-types'
 interface FailureRegistryProps {
   compact?: boolean
   failures?: IntelPulseFailure[]
+  unavailableMessage?: string | null
+  onFailureSelect?: (failure: IntelPulseFailure) => void
 }
 
-export function FailureRegistry({ compact, failures = [] }: FailureRegistryProps) {
+export function FailureRegistry({
+  compact,
+  failures = [],
+  unavailableMessage,
+  onFailureSelect,
+}: FailureRegistryProps) {
   const displayFailures = failures.length > 0 ? failures : []
 
   return (
@@ -22,21 +29,37 @@ export function FailureRegistry({ compact, failures = [] }: FailureRegistryProps
           <h3 className="text-xs font-mono font-bold tracking-widest uppercase">FAILURE_REGISTRY</h3>
         </div>
         {!compact && (
-          <Button variant="outline" size="sm" className="h-7 text-[10px] font-mono gap-1.5">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-[10px] font-mono gap-1.5"
+            disabled
+            title="Retry wiring is not implemented on this surface yet."
+          >
             <RefreshCw className="h-3 w-3" />
-            RETRY_ALL_FAILED
+            READ_ONLY
           </Button>
         )}
       </div>
 
       <div className="terminal-panel rounded-lg border border-border divide-y divide-border">
-        {displayFailures.length === 0 ? (
+        {unavailableMessage ? (
+          <div className="p-8 text-center text-[10px] font-mono text-destructive whitespace-pre-wrap break-words">
+            [ FAILURE_FEED_UNAVAILABLE ]{'\n'}
+            {unavailableMessage}
+          </div>
+        ) : displayFailures.length === 0 ? (
           <div className="p-8 text-center text-[10px] font-mono text-muted-foreground uppercase">
             [ NO_CRITICAL_FAILURES_DETECTED ]
           </div>
         ) : (
           displayFailures.map((failure) => (
-            <div key={failure.id} className="flex items-center gap-4 p-3 hover:bg-destructive/5 group transition-colors cursor-pointer">
+            <button
+              key={failure.id}
+              type="button"
+              onClick={() => onFailureSelect?.(failure)}
+              className="flex w-full items-center gap-4 p-3 text-left hover:bg-destructive/5 group transition-colors cursor-pointer"
+            >
               <div className={cn(
                 "flex h-8 w-8 items-center justify-center rounded border",
                 failure.type === 'EXTRACTION_FAIL' ? "border-destructive/50 bg-destructive/10 text-destructive" : 
@@ -63,7 +86,7 @@ export function FailureRegistry({ compact, failures = [] }: FailureRegistryProps
               </div>
 
               <ChevronRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-foreground transition-colors" />
-            </div>
+            </button>
           ))
         )}
       </div>

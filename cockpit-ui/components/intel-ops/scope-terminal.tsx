@@ -10,9 +10,29 @@ interface ScopeTerminalProps {
   scope: 'global' | 'company'
   selectedCompany: string | null
   onCompanySelect: (company: string | null) => void
+  streamStatus?: 'live' | 'loading' | 'error'
 }
 
-export function ScopeTerminal({ scope, selectedCompany, onCompanySelect }: ScopeTerminalProps) {
+export function ScopeTerminal({
+  scope,
+  selectedCompany,
+  onCompanySelect,
+  streamStatus = 'live',
+}: ScopeTerminalProps) {
+  const modeLabel = scope === 'company' ? 'COMPANY_SCOPE' : 'GLOBAL_SYSTEM'
+  const streamLabel =
+    streamStatus === 'error'
+      ? 'SYSTEM_PULSE: DEGRADED'
+      : streamStatus === 'loading'
+        ? 'SYSTEM_PULSE: SYNCING'
+        : 'SYSTEM_PULSE: LIVE'
+  const streamDotClass =
+    streamStatus === 'error'
+      ? 'bg-destructive'
+      : streamStatus === 'loading'
+        ? 'bg-[oklch(0.78_0.17_80)]'
+        : 'bg-[oklch(0.69_0.22_145)]'
+
   return (
     <div className="flex items-center gap-4">
       <div className={cn(
@@ -24,8 +44,8 @@ export function ScopeTerminal({ scope, selectedCompany, onCompanySelect }: Scope
           <span className={scope === 'global' ? "text-primary" : "text-muted-foreground"}>MODE:</span>
           <span className={cn(
             "px-1.5 py-0.5 rounded",
-            scope === 'global' ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground"
-          )}>GLOBAL_SYSTEM</span>
+            scope === 'global' ? "bg-primary text-primary-foreground font-bold" : "bg-[oklch(0.7_0.15_195)] text-background font-bold"
+          )}>{modeLabel}</span>
         </div>
         
         <div className="h-4 w-px bg-border mx-2" />
@@ -37,6 +57,8 @@ export function ScopeTerminal({ scope, selectedCompany, onCompanySelect }: Scope
             className="h-8 border-none bg-transparent font-mono text-sm focus-visible:ring-0 p-0 placeholder:text-muted-foreground/50"
             value={selectedCompany || ''}
             onChange={(e) => onCompanySelect(e.target.value)}
+            autoCapitalize="characters"
+            spellCheck={false}
           />
           {selectedCompany && (
             <Button 
@@ -65,8 +87,8 @@ export function ScopeTerminal({ scope, selectedCompany, onCompanySelect }: Scope
       </div>
 
       <div className="flex items-center gap-2 font-mono text-[10px] text-muted-foreground bg-black/20 px-3 py-2 rounded-md border border-border/50 group-data-[collapsible=icon]:hidden">
-        <span className="h-2 w-2 rounded-full bg-[oklch(0.69_0.22_145)] status-dot-running" />
-        SYSTEM_PULSE: ACTIVE
+        <span className={cn("h-2 w-2 rounded-full", streamDotClass, streamStatus === 'live' && "status-dot-running")} />
+        {streamLabel}
       </div>
     </div>
   )

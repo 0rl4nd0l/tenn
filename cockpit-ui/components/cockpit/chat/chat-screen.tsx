@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Dialog,
@@ -13,6 +14,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { TerminalMessage } from './terminal-message'
 import { TerminalInput } from './terminal-input'
+import { modelsLikelyMatch, parseCockpitConfig, resolveRuntimeModel } from '@/lib/cockpit-config'
 import { useCockpitStore, generateId } from '@/lib/cockpit-store'
 import { streamChat, sendChatMessage, executeAction, restartBackend } from '@/lib/api-client'
 import type { ChatMessage as ChatMessageType, ActionPreview } from '@/lib/cockpit-types'
@@ -33,6 +35,19 @@ type FeedbackCaptureResponse = {
 type PendingFeedback = {
   kind: FeedbackKind
   message: ChatMessageType
+}
+
+const BACKEND_PREFIX_RE = /^\s*\/(advisor|cloud|local|ops)\b/i
+
+function applyApiDefaultOverride(message: string, enabled: boolean): string {
+  const trimmed = message.trim()
+  if (!enabled || !trimmed) {
+    return message
+  }
+  if (trimmed.startsWith('/') && !BACKEND_PREFIX_RE.test(trimmed)) {
+    return message
+  }
+  return `/cloud ${trimmed}`
 }
 
 async function copyFlagPromptToClipboard(prompt: string): Promise<boolean> {
@@ -127,11 +142,29 @@ export function ChatScreen() {
     chatModel,
     sessionStats,
     preferences,
+    apiDefaultEnabled,
     addCost,
     setLatency,
     setActiveModel,
+    setActiveSource,
     setChatCompletionActive,
+    setActiveTicker,
   } = useCockpitStore()
+  const { data: configData } = useQuery({
+    queryKey: ['cockpit-config-status'],
+    queryFn: async () => {
+      const response = await fetch('/api/cockpit/config', { cache: 'no-store' })
+      if (!response.ok) {
+        throw new Error(`Config unavailable (${response.status})`)
+      }
+      return (await response.json()) as Record<string, unknown>
+    },
+    refetchInterval: 30000,
+    retry: 1,
+  })
+  const config = parseCockpitConfig(configData)
+  const [tickerDraft, setTickerDraft] = useState('')
+  const [showTickerInput, setShowTickerInput] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Wait for hydration to finish to avoid SSR/CSR mismatch with Zustand
@@ -242,8 +275,12 @@ export function ChatScreen() {
     setChatCompletionActive(true)
     setStreamingContent('')
     const requestedModel = String(chatModel || '').trim()
-    const activeModel = String(sessionStats.activeModel || '').trim()
-    const hasModelSwitch = requestedModel.length > 0 && activeModel.length > 0 && requestedModel !== activeModel
+    const activeModel = resolveRuntimeModel(sessionStats.activeModel, config.model)
+    const hasModelSwitch = (
+      requestedModel.length > 0
+      && activeModel.length > 0
+      && !modelsLikelyMatch(requestedModel, activeModel)
+    )
 
     setStreamingStage(
       hasModelSwitch
@@ -251,6 +288,7 @@ export function ChatScreen() {
         : 'Connecting to backend stream...'
     )
     setStreamingMetadata({})
+    const outboundMessage = applyApiDefaultOverride(content, apiDefaultEnabled)
 
     statusFallbackTimersRef.current = [
       window.setTimeout(() => {
@@ -301,16 +339,16 @@ export function ChatScreen() {
 
       try {
         const response = await sendChatMessage({
-          message: content,
+          message: outboundMessage,
           mode: 'analysis',
-          ticker: activeTicker,
+          ticker: activeTicker || undefined,
           sessionId: sessionId,
           model: chatModel,
           webSearch: preferences.webSearchEnabled,
           rag: preferences.ragEnabled,
           dbDiagnostics: preferences.dbDiagnosticsEnabled,
         })
-        
+
         const systemMessage: ChatMessageType = {
           id: generateId(),
           role: 'assistant',
@@ -319,11 +357,15 @@ export function ChatScreen() {
           metadata: {
             model: response.content.model,
             latencyMs: response.content.latency_ms,
-            costUsd: 0,
-            source: 'local'
+            costUsd: response.content.cost_usd || 0,
+            source: response.content.source || 'local'
           },
           chart: response.content.chart,
         }
+        if (response.content.cost_usd) addCost(response.content.cost_usd)
+        if (response.content.latency_ms) setLatency(response.content.latency_ms)
+        if (response.content.model) setActiveModel(response.content.model)
+        setActiveSource(response.content.source || 'local')
         setMessages(prev => [...prev, systemMessage])
       } catch (err) {
         toast.error('Command failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
@@ -344,9 +386,9 @@ export function ChatScreen() {
 
     try {
       const source = await streamChat({
-        message: content,
+        message: outboundMessage,
         mode: 'analysis',
-        ticker: activeTicker,
+        ticker: activeTicker || undefined,
         sessionId: sessionId,
         model: chatModel,
         webSearch: preferences.webSearchEnabled,
@@ -383,7 +425,15 @@ export function ChatScreen() {
             case 'sources':
               currentMetadata.sources = event.data.items.map((s: any) => ({
                 title: s.title,
-                score: s.score
+                url: s.url,
+                score: s.score,
+                snippet: s.snippet,
+                publishedAt: s.published_at,
+                documentId: s.document_id,
+                sourceId: s.source_id,
+                docType: s.doc_type,
+                path: s.path,
+                kind: s.kind,
               }))
               setStreamingMetadata({ ...currentMetadata })
               break
@@ -447,6 +497,7 @@ export function ChatScreen() {
               if (event.data.cost_usd) addCost(event.data.cost_usd)
               if (event.data.latency_ms) setLatency(event.data.latency_ms)
               if (event.data.model) setActiveModel(event.data.model)
+              setActiveSource(event.data.source || 'local')
               
               setMessages(prev => [...prev, assistantMessage])
               setStreamingContent('')
@@ -833,8 +884,70 @@ export function ChatScreen() {
           <div className="w-3 h-3 rounded-full bg-green-500/80" />
         </div>
         <span className="font-mono text-xs terminal-text-dim ml-2">
-          cockpit@financial-ai ~ /chat ({activeTicker})
+          cockpit@financial-ai ~ /chat
         </span>
+        {/* Ticker context control */}
+        {showTickerInput ? (
+          <form
+            className="flex items-center gap-1 ml-1"
+            onSubmit={(e) => {
+              e.preventDefault()
+              const val = tickerDraft.trim().toUpperCase()
+              if (val && val.length >= 2 && val.length <= 5) {
+                setActiveTicker(val)
+              }
+              setTickerDraft('')
+              setShowTickerInput(false)
+            }}
+          >
+            <input
+              type="text"
+              autoFocus
+              value={tickerDraft}
+              onChange={(e) => setTickerDraft(e.target.value.toUpperCase())}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setTickerDraft('')
+                  setShowTickerInput(false)
+                }
+              }}
+              placeholder="ASX ticker"
+              maxLength={5}
+              className="w-16 bg-transparent border border-border/40 rounded px-1 py-0.5 font-mono text-[11px] text-emerald-400 placeholder:text-muted-foreground/40 focus:outline-none focus:border-emerald-500/50"
+            />
+            <button type="submit" className="font-mono text-[11px] text-emerald-400 hover:text-emerald-300">set</button>
+            <button
+              type="button"
+              onClick={() => { setTickerDraft(''); setShowTickerInput(false) }}
+              className="font-mono text-[11px] text-muted-foreground hover:text-foreground"
+            >
+              esc
+            </button>
+          </form>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowTickerInput(true)}
+            className="font-mono text-[11px] ml-1 px-1.5 py-0.5 rounded border border-border/30 hover:border-border/60 transition-colors"
+            title={activeTicker ? 'Click to change ticker' : 'Click to set ticker'}
+          >
+            {activeTicker ? (
+              <span className="text-emerald-400">{activeTicker}</span>
+            ) : (
+              <span className="text-muted-foreground/60 italic">no ticker</span>
+            )}
+          </button>
+        )}
+        {activeTicker && !showTickerInput && (
+          <button
+            type="button"
+            onClick={() => setActiveTicker('')}
+            className="font-mono text-[10px] text-muted-foreground/50 hover:text-red-400 transition-colors"
+            title="Clear ticker context"
+          >
+            ✕
+          </button>
+        )}
         {isStreaming && (
           <button
             type="button"
@@ -852,6 +965,7 @@ export function ChatScreen() {
             <div key={msg.id} className="space-y-1">
               <TerminalMessage
                 message={msg}
+                showSources={preferences.showSources}
                 onConfirmAction={handleConfirmAction}
                 onCancelAction={handleCancelAction}
               />
@@ -894,6 +1008,7 @@ export function ChatScreen() {
                   ...streamingMetadata
                 }} 
                 isStreaming={true}
+                showSources={preferences.showSources}
               />
             </div>
           )}

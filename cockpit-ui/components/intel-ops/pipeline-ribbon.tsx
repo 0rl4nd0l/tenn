@@ -8,22 +8,29 @@ import { IntelPulseStageHealth } from '@/lib/cockpit-types'
 interface PipelineRibbonProps {
   activeStage: string
   onStageSelect: (stage: string) => void
+  onStageInspect?: (stage: IntelPulseStageHealth | { id: string; label: string; health?: number | null; status: string }) => void
   pipeline?: IntelPulseStageHealth[]
 }
 
 const defaultStages = [
-  { id: 'overview', label: 'PULSE_HOME', icon: LayoutPanelLeft, health: 100, color: 'text-primary' },
-  { id: 'extraction', label: 'EXTRACTION', icon: Database, health: 0, color: 'text-[oklch(0.69_0.22_145)]' },
-  { id: 'evaluation', label: 'EVALUATION', icon: ShieldCheck, health: 0, color: 'text-[oklch(0.7_0.15_195)]' },
-  { id: 'signals', label: 'SIGNALS', icon: Zap, health: 0, color: 'text-[oklch(0.78_0.17_80)]' },
-  { id: 'memory', label: 'MEMORY', icon: Brain, health: 0, color: 'text-[oklch(0.65_0.15_240)]' },
-  { id: 'failures', label: 'FAILURES', icon: AlertCircle, health: 0, color: 'text-destructive', isFailure: true },
+  { id: 'overview', label: 'PULSE_HOME', icon: LayoutPanelLeft, health: null, color: 'text-primary', status: 'unavailable' },
+  { id: 'extraction', label: 'EXTRACTION', icon: Database, health: null, color: 'text-[oklch(0.69_0.22_145)]', status: 'unavailable' },
+  { id: 'evaluation', label: 'EVALUATION', icon: ShieldCheck, health: null, color: 'text-[oklch(0.7_0.15_195)]', status: 'unavailable' },
+  { id: 'signals', label: 'SIGNALS', icon: Zap, health: null, color: 'text-[oklch(0.78_0.17_80)]', status: 'unavailable' },
+  { id: 'memory', label: 'MEMORY', icon: Brain, health: null, color: 'text-[oklch(0.65_0.15_240)]', status: 'unavailable' },
+  { id: 'failures', label: 'FAILURES', icon: AlertCircle, health: null, color: 'text-destructive', status: 'unavailable', isFailure: true },
 ]
 
-export function PipelineRibbon({ activeStage, onStageSelect, pipeline }: PipelineRibbonProps) {
+export function PipelineRibbon({ activeStage, onStageSelect, onStageInspect, pipeline }: PipelineRibbonProps) {
   const displayStages = defaultStages.map(s => {
     const real = pipeline?.find(p => p.id === s.id)
-    return real ? { ...s, health: real.health } : s
+    return real
+      ? {
+          ...s,
+          health: real.status === 'unavailable' ? null : real.health,
+          status: real.status,
+        }
+      : s
   })
 
   return (
@@ -35,7 +42,15 @@ export function PipelineRibbon({ activeStage, onStageSelect, pipeline }: Pipelin
         return (
           <React.Fragment key={stage.id}>
             <button
-              onClick={() => onStageSelect(stage.id)}
+              onClick={() => {
+                onStageSelect(stage.id)
+                onStageInspect?.({
+                  id: stage.id,
+                  label: stage.label,
+                  health: stage.health,
+                  status: stage.status,
+                })
+              }}
               className={cn(
                 "flex-1 min-w-[120px] flex flex-col gap-1 p-2 rounded-md border transition-all duration-200 group relative overflow-hidden",
                 isActive 
@@ -47,11 +62,13 @@ export function PipelineRibbon({ activeStage, onStageSelect, pipeline }: Pipelin
                 <Icon className={cn("h-3 w-3", isActive ? stage.color : "text-muted-foreground")} />
                 <span className={cn(
                   "font-mono text-[9px] px-1 rounded",
-                  stage.isFailure 
+                  stage.health == null
+                    ? "bg-muted/30 text-muted-foreground"
+                    : stage.isFailure 
                     ? "bg-destructive/20 text-destructive" 
                     : "bg-primary/10 text-primary"
                 )}>
-                  {stage.health}%
+                  {stage.health == null ? '--' : `${stage.health}%`}
                 </span>
               </div>
               

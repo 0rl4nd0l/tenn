@@ -144,6 +144,30 @@
   }
 }
 
+.api-default-override-badge {
+  box-shadow: 0 0 0 1px color-mix(in oklch, oklch(0.72 0.16 210) 45%, transparent);
+}
+
+.api-default-override-dot {
+  box-shadow: 0 0 0 1px color-mix(in oklch, white 25%, transparent);
+}
+
+.api-default-override-pulse {
+  animation: api-default-override-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes api-default-override-pulse {
+  0%,
+  100% {
+    background: oklch(0.68 0.18 245);
+    box-shadow: 0 0 0 0 color-mix(in oklch, oklch(0.68 0.18 245) 45%, transparent);
+  }
+  50% {
+    background: oklch(0.74 0.19 150);
+    box-shadow: 0 0 0 6px color-mix(in oklch, oklch(0.74 0.19 150) 18%, transparent);
+  }
+}
+
 /* Terminal styling */
 .terminal-container {
   background: oklch(0.08 0.01 260);

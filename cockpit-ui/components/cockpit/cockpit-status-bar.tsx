@@ -1,47 +1,19 @@
 'use client'
 
+import { useEffect } from 'react'
+import Link from 'next/link'
 import { AlertTriangle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { useCockpitStore } from '@/lib/cockpit-store'
+import { parseCockpitConfig, resolveRuntimeModel } from '@/lib/cockpit-config'
+import { cn } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 interface CockpitStatusBarProps {
   backendHealthy: boolean
   backendLastHealthyAt: Date | null
   backendError: string | null
-}
-
-interface ConfigSnapshot {
-  model: string | null
-  maxTokens: number | null
-  temperature: number | null
-  profile: string | null
-  anthropicKeyConfigured: boolean
-}
-
-function readNumber(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string') {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) ? parsed : null
-  }
-  return null
-}
-
-function readString(value: unknown): string | null {
-  if (typeof value !== 'string') return null
-  const trimmed = value.trim()
-  return trimmed.length > 0 ? trimmed : null
-}
-
-function parseConfig(payload: Record<string, unknown> | undefined): ConfigSnapshot {
-  return {
-    model: readString(payload?.llm_model) ?? readString(payload?.model),
-    maxTokens: readNumber(payload?.max_tokens),
-    temperature: readNumber(payload?.temperature),
-    profile: readString(payload?.profile),
-    anthropicKeyConfigured: payload?.anthropic_key_configured === true,
-  }
 }
 
 function formatClock(time: Date | null): string {
@@ -59,7 +31,13 @@ export function CockpitStatusBar({
   backendLastHealthyAt,
   backendError,
 }: CockpitStatusBarProps) {
-  const { sessionStats, chatModel } = useCockpitStore()
+  const {
+    sessionStats,
+    chatModel,
+    apiDefaultEnabled,
+    activeSource,
+    setApiDefaultEnabled,
+  } = useCockpitStore()
   const { data: configData, error: configError } = useQuery({
     queryKey: ['cockpit-config-status'],
     queryFn: async () => {
@@ -73,11 +51,70 @@ export function CockpitStatusBar({
     retry: 1,
   })
 
-  const config = parseConfig(configData)
-  const activeRuntimeModel = sessionStats.activeModel !== 'local'
-    ? sessionStats.activeModel
-    : (config.model ?? '--')
+  const config = parseCockpitConfig(configData)
+  const apiOverrideAvailable = config.anthropicKeyConfigured
+  const apiOverrideForced = config.extractionActive === true && apiOverrideAvailable
+  const activeRuntimeModel = resolveRuntimeModel(sessionStats.activeModel, config.model) || '--'
   const configAuthFailure = configError instanceof Error && /(401|403)/.test(configError.message)
+  const extractionLabel = config.extractionActive === true
+    ? 'running'
+    : config.extractionActive === false
+      ? 'idle'
+      : '--'
+  const extractionVariant = config.extractionActive === true
+    ? 'default'
+    : config.extractionActive === false
+      ? 'outline'
+      : 'secondary'
+  const extractionTitle = config.extractionActive === true
+    ? `Extraction running${config.extractionSource ? ` via ${config.extractionSource}` : ''}${config.extractionActivityExpiresInSeconds !== null ? `, ttl ${config.extractionActivityExpiresInSeconds}s` : ''}`
+    : config.extractionActive === false
+      ? 'Extraction idle'
+      : 'Extraction status unavailable'
+  const extractionHref = config.extractionActive === true && config.activeRuns.length > 0
+    ? '/verification?attach=active'
+    : null
+  const routeLabel = activeSource === 'anthropic'
+    ? 'Claude API'
+    : activeSource === 'local'
+      ? 'local'
+      : '--'
+  const routeVariant = activeSource === 'anthropic'
+    ? 'default'
+    : activeSource === 'local'
+      ? 'outline'
+      : 'secondary'
+
+  useEffect(() => {
+    if (!apiOverrideAvailable && apiDefaultEnabled) {
+      setApiDefaultEnabled(false)
+    }
+  }, [apiDefaultEnabled, apiOverrideAvailable, setApiDefaultEnabled])
+
+  useEffect(() => {
+    if (apiOverrideForced && !apiDefaultEnabled) {
+      setApiDefaultEnabled(true)
+      toast.success('Extraction is running. Claude API has been pinned as the default chat route.')
+    }
+  }, [apiDefaultEnabled, apiOverrideForced, setApiDefaultEnabled])
+
+  const handleApiOverrideToggle = () => {
+    if (!apiOverrideAvailable) {
+      toast.error('Claude API is not configured for this cockpit session.')
+      return
+    }
+    if (apiOverrideForced && apiDefaultEnabled) {
+      toast.error('Claude API routing is locked while extraction is running.')
+      return
+    }
+    const nextEnabled = !apiDefaultEnabled
+    setApiDefaultEnabled(nextEnabled)
+    toast.success(
+      nextEnabled
+        ? 'Claude API pinned as the default chat route.'
+        : 'Adaptive model routing restored.'
+    )
+  }
 
   return (
     <footer className="shrink-0 border-t border-border bg-card/95 px-4 py-1 text-xs terminal-panel">
@@ -95,12 +132,57 @@ export function CockpitStatusBar({
           <Badge variant="outline" className="h-5 text-[10px] font-mono">
             {config.temperature !== null ? `temp ${config.temperature.toFixed(2)}` : 'temp --'}
           </Badge>
+          <Badge variant={routeVariant} className="h-5 text-[10px] font-mono">
+            Route: {routeLabel}
+          </Badge>
           <Badge variant="outline" className="h-5 text-[10px] font-mono hidden lg:inline-flex">
             profile: {config.profile ?? '--'}
           </Badge>
-          <Badge variant={config.anthropicKeyConfigured ? 'default' : 'critical'} className="h-5 text-[10px] font-mono hidden xl:inline-flex">
-            API: {config.anthropicKeyConfigured ? 'set' : 'missing'}
+          <Badge asChild variant={apiOverrideAvailable ? 'outline' : 'critical'} className="hidden h-5 px-1.5 text-[10px] font-mono xl:inline-flex">
+            <button
+              type="button"
+              onClick={handleApiOverrideToggle}
+              aria-pressed={apiDefaultEnabled}
+              title={
+                apiOverrideForced
+                  ? 'Claude API routing is locked while extraction is running.'
+                  : apiOverrideAvailable
+                  ? apiDefaultEnabled
+                    ? 'Claude API pinned as the default chat route. Click to restore adaptive routing.'
+                    : 'Claude API available. Click to pin cloud routing as the default.'
+                  : 'Claude API key missing for this cockpit session.'
+              }
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-md px-1 py-0.5 transition-colors',
+                apiOverrideAvailable ? 'cursor-pointer hover:bg-[oklch(0.22_0.02_255)]' : 'cursor-not-allowed opacity-80',
+                apiDefaultEnabled && 'border border-[oklch(0.72_0.16_210)]/70 api-default-override-badge'
+              )}
+            >
+              <span
+                aria-hidden="true"
+                className={cn(
+                  'h-2 w-2 rounded-full',
+                  apiDefaultEnabled
+                    ? 'api-default-override-dot api-default-override-pulse'
+                    : apiOverrideAvailable
+                      ? 'bg-[oklch(0.68_0.18_245)]'
+                      : 'bg-destructive'
+                )}
+              />
+              <span>
+                API: {apiOverrideAvailable ? (apiOverrideForced ? 'forced' : apiDefaultEnabled ? 'default' : 'set') : 'missing'}
+              </span>
+            </button>
           </Badge>
+          {extractionHref ? (
+            <Badge asChild variant={extractionVariant} className="h-5 text-[10px] font-mono" title={extractionTitle}>
+              <Link href={extractionHref}>Extract: {extractionLabel}</Link>
+            </Badge>
+          ) : (
+            <Badge variant={extractionVariant} className="h-5 text-[10px] font-mono" title={extractionTitle}>
+              Extract: {extractionLabel}
+            </Badge>
+          )}
         </div>
 
         <div className="flex items-center gap-3">

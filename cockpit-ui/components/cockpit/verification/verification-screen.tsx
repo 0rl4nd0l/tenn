@@ -1,20 +1,19 @@
 'use client'
 
 import Image from 'next/image'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  Activity,
   AlertCircle,
   BarChart3,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   FileImage,
   FileJson,
   FileText,
   Play,
   RefreshCw,
   Search,
-  SkipForward,
   XCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -29,20 +28,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Textarea } from '@/components/ui/textarea'
 import {
   createExtractionReviewSession,
   getExtractionReviewErrors,
+  getExtractionReviewRunStatus,
+  getExtractionReviewRuns,
+  getExtractionReviewSession,
   getTickerDocuments,
   processDocument,
   submitExtractionReviewDecision,
 } from '@/lib/api-client'
 import { useCockpitStore } from '@/lib/cockpit-store'
+import { cn } from '@/lib/utils'
 import type {
   ContextDocument,
+  ExtractionEvidenceQuality,
   ExtractionMethod,
   ExtractionReviewErrorQueue,
   ExtractionReviewItem,
+  ExtractionReviewRunStatusResponse,
+  ExtractionReviewRunSummary,
   ExtractionReviewSession,
   VerificationResult,
 } from '@/lib/cockpit-types'
@@ -110,12 +115,31 @@ type ProcessDocumentResponse = {
   }
 }
 
+type SnippetImageState = {
+  key: string | null
+  status: 'idle' | 'loading' | 'ready' | 'retrying' | 'failed'
+  retryAttempted: boolean
+  message: string | null
+}
+
+type ActiveExtractionMonitorRun = {
+  runId: string
+  documentId: string
+  requestedMethod: string | null
+  strictMethod: boolean | null
+  ticker: string | null
+  title: string | null
+  expiresInSeconds: number | null
+}
+
 const EXTRACTION_METHOD_OPTIONS: Array<{ value: ExtractionMethod; label: string }> = [
   { value: 'auto', label: 'Auto' },
   { value: 'docling', label: 'Docling' },
   { value: 'pymupdf', label: 'PyMuPDF' },
   { value: 'anthropic', label: 'Anthropic' },
 ]
+
+const ACTIVE_RUNS_STORAGE_KEY = 'verification-active-runs-v1'
 
 function escapeHtml(text: string): string {
   return text
@@ -205,6 +229,17 @@ function statusVariant(status: ExtractionReviewItem['review_status']): 'default'
   return 'outline'
 }
 
+function reviewStatusLabel(status: ExtractionReviewItem['review_status']): string {
+  if (status === 'approved') return 'correct'
+  if (status === 'abstain') return 'unsure'
+  return status
+}
+
+function evidenceMethodLabel(item: ExtractionReviewItem | null): string {
+  if (!item) return 'unknown'
+  return formatMethodLabel(item.method_provenance || item.actual_method || item.requested_method)
+}
+
 function summarizeSessionDocuments(session: ExtractionReviewSession | null): string {
   if (!session?.documents || session.documents.length === 0) {
     return 'No review session diagnostics available yet.'
@@ -214,7 +249,9 @@ function summarizeSessionDocuments(session: ExtractionReviewSession | null): str
       const label = doc.title || doc.document_id
       const status = doc.status || 'unknown'
       const count = typeof doc.items_count === 'number' ? doc.items_count : 0
-      return `${label}: ${status}${count > 0 ? ` (${count} item${count === 1 ? '' : 's'})` : ''}`
+      const reason = doc.reason ? `, ${doc.reason}` : ''
+      const metrics = typeof doc.metrics_count === 'number' ? `, metrics ${doc.metrics_count}` : ''
+      return `${label}: ${status}${count > 0 ? ` (${count} item${count === 1 ? '' : 's'})` : ''}${metrics}${reason}`
     })
     .join(' | ')
 }
@@ -227,7 +264,190 @@ function formatMethodLabel(method: string | null | undefined): string {
   return normalized
 }
 
+function formatTimestamp(value: string | null | undefined): string {
+  if (!value) return '-'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
+}
+
+function formatDuration(value: number | null | undefined): string {
+  if (typeof value !== 'number' || Number.isNaN(value)) return '-'
+  if (value >= 1000) return `${(value / 1000).toFixed(1)}s`
+  return `${value}ms`
+}
+
+function normalizeEvidenceText(value: string | null | undefined): string | null {
+  const text = String(value || '').trim()
+  if (!text) return null
+  if (text.toLowerCase() === 'unknown') return null
+  return text
+}
+
+function evidenceQualityForItem(item: ExtractionReviewItem | null): ExtractionEvidenceQuality {
+  if (!item) return 'missing'
+  const explicit = item.evidence_quality || item.snippet.evidence_quality
+  if (explicit === 'precise' || explicit === 'approximate' || explicit === 'missing') {
+    return explicit
+  }
+
+  const hasImage = Boolean(item.image_url || item.image_path || item.snippet.image_url || item.snippet.image_path)
+  const matchedText = normalizeEvidenceText(item.matched_text)
+    || normalizeEvidenceText(item.snippet.matched_text)
+    || normalizeEvidenceText(item.evidence_text)
+
+  if (hasImage && item.snippet.kind === 'line_crop' && matchedText) return 'precise'
+  if (hasImage) return 'approximate'
+  return 'missing'
+}
+
+function evidenceQualityRank(quality: ExtractionEvidenceQuality): number {
+  if (quality === 'precise') return 0
+  if (quality === 'approximate') return 1
+  return 2
+}
+
+function evidenceQualityBadgeVariant(quality: ExtractionEvidenceQuality): 'default' | 'secondary' | 'outline' {
+  if (quality === 'precise') return 'default'
+  if (quality === 'approximate') return 'secondary'
+  return 'outline'
+}
+
+function evidenceQualityLabel(quality: ExtractionEvidenceQuality): string {
+  if (quality === 'precise') return 'precise'
+  if (quality === 'approximate') return 'approximate'
+  return 'missing'
+}
+
+function evidenceQualityHeadline(quality: ExtractionEvidenceQuality): string {
+  if (quality === 'precise') return 'Exact line evidence'
+  if (quality === 'approximate') return 'Exact line unavailable - showing source page/table preview'
+  return 'No visual verification evidence available'
+}
+
+function evidenceQualityBody(quality: ExtractionEvidenceQuality): string {
+  if (quality === 'precise') return 'This metric includes an exact matched line and cropped source evidence.'
+  if (quality === 'approximate') return 'A source image is available, but the exact matched line was not preserved. Verify against the page/table preview.'
+  return 'No snippet image was preserved for visual verification. Use provenance details only.'
+}
+
+function reviewSessionRunIds(session: ExtractionReviewSession | null): string[] {
+  if (!session) return []
+  const explicit = Array.isArray(session.run_ids)
+    ? session.run_ids.filter((runId): runId is string => Boolean(runId))
+    : []
+  const fallback = session.items
+    .map((item) => item.run_id)
+    .filter((runId): runId is string => Boolean(runId))
+  return Array.from(new Set([...explicit, ...fallback]))
+}
+
+function readMonitorString(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+function readMonitorNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  return null
+}
+
+function readMonitorBoolean(value: unknown): boolean | null {
+  if (typeof value === 'boolean') return value
+  return null
+}
+
+function parseActiveExtractionMonitorRuns(payload: Record<string, unknown>): ActiveExtractionMonitorRun[] {
+  const rawRuns = payload.extraction_active_runs
+  if (!Array.isArray(rawRuns)) return []
+
+  return rawRuns.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') return []
+    const run = entry as Record<string, unknown>
+    const runId = readMonitorString(run.run_id)
+    const documentId = readMonitorString(run.document_id)
+    if (!runId || !documentId) return []
+
+    return [{
+      runId,
+      documentId,
+      requestedMethod: readMonitorString(run.requested_method),
+      strictMethod: readMonitorBoolean(run.strict_method),
+      ticker: readMonitorString(run.ticker),
+      title: readMonitorString(run.title),
+      expiresInSeconds: readMonitorNumber(run.expires_in_seconds),
+    }]
+  })
+}
+
+function runStatusVariant(status: string | null | undefined): 'default' | 'secondary' | 'critical' | 'outline' {
+  if (status === 'succeeded') return 'default'
+  if (status === 'failed' || status === 'blocked') return 'critical'
+  if (status === 'running') return 'secondary'
+  return 'outline'
+}
+
+function ExtractionRunStatusCard({
+  documentId,
+  runId,
+  status,
+  title,
+  fallbackMethod,
+}: {
+  documentId: string
+  runId: string
+  status?: ExtractionReviewRunStatusResponse
+  title?: string | null
+  fallbackMethod: string
+}) {
+  const summary = status?.summary
+  const events = status?.events ?? []
+
+  return (
+    <div className="rounded-lg border border-border/60 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium">{title || documentId}</p>
+          <p className="font-mono text-xs text-muted-foreground">run {runId.slice(0, 12)} · doc {documentId.slice(0, 12)}</p>
+        </div>
+        <Badge variant={runStatusVariant(summary?.status)}>{summary?.status || 'pending'}</Badge>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+        <Badge variant="outline">stage {summary?.stage || 'queued'}</Badge>
+        <Badge variant="outline">method {formatMethodLabel(summary?.actual_method || summary?.requested_method || fallbackMethod)}</Badge>
+        <Badge variant="outline">mode {summary?.strict_method ? 'strict' : 'auto'}</Badge>
+        <Badge variant="outline">elapsed {formatDuration(summary?.elapsed_ms)}</Badge>
+        <Badge variant={(summary?.warning_codes?.length ?? 0) > 0 ? 'secondary' : 'outline'}>warnings {summary?.warning_codes?.length ?? 0}</Badge>
+        <Badge variant={(summary?.error_codes?.length ?? 0) > 0 ? 'critical' : 'outline'}>errors {summary?.error_codes?.length ?? 0}</Badge>
+      </div>
+      <p className="mt-3 text-sm text-muted-foreground">{summary?.last_message || 'Waiting for worker status...'}</p>
+      <div className="mt-3 space-y-2">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Event timeline</p>
+        {events.length === 0 ? (
+          <div className="rounded-md border border-dashed border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
+            Waiting for run events...
+          </div>
+        ) : events.map((event, index) => (
+          <div key={`${event.timestamp}-${index}`} className="rounded-md border border-border/60 bg-muted/20 p-3 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant={runStatusVariant(event.status)}>{event.status}</Badge>
+              <Badge variant="outline">{event.stage}</Badge>
+              <span className="text-muted-foreground">{formatDuration(event.elapsed_ms)}</span>
+            </div>
+            <p className="mt-2 text-sm text-foreground">{event.message}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function VerificationScreen() {
+  const searchParams = useSearchParams()
   const [hasHydrated, setHasHydrated] = useState(false)
   const { activeTicker } = useCockpitStore()
 
@@ -246,14 +466,32 @@ export function VerificationScreen() {
   const [reviewError, setReviewError] = useState<string | null>(null)
   const [reviewActionLoading, setReviewActionLoading] = useState(false)
   const [reviewSession, setReviewSession] = useState<ExtractionReviewSession | null>(null)
-  const [reviewIndex, setReviewIndex] = useState(0)
-  const [expectedValue, setExpectedValue] = useState('')
-  const [reviewerNote, setReviewerNote] = useState('')
+  const [selectedReviewItemId, setSelectedReviewItemId] = useState<string | null>(null)
+  const [reviewSessionLoadingMessage, setReviewSessionLoadingMessage] = useState<string | null>(null)
+  const [activeMonitorNotice, setActiveMonitorNotice] = useState<string | null>(null)
+  const [snippetImageState, setSnippetImageState] = useState<SnippetImageState>({
+    key: null,
+    status: 'idle',
+    retryAttempted: false,
+    message: null,
+  })
   const [wrongQueue, setWrongQueue] = useState<ExtractionReviewErrorQueue | null>(null)
+  const [recentRuns, setRecentRuns] = useState<ExtractionReviewRunSummary[]>([])
+  const [recentRunsLoading, setRecentRunsLoading] = useState(false)
+  const [selectedRunId, setSelectedRunId] = useState('')
+  const [activeRunIdsByDocumentId, setActiveRunIdsByDocumentId] = useState<Record<string, string>>({})
+  const [attachedRunMetadataByDocumentId, setAttachedRunMetadataByDocumentId] = useState<Record<string, ActiveExtractionMonitorRun>>({})
+  const [runStatus, setRunStatus] = useState<ExtractionReviewRunStatusResponse | null>(null)
+  const [runStatuses, setRunStatuses] = useState<Record<string, ExtractionReviewRunStatusResponse>>({})
+  const [runStatusLoading, setRunStatusLoading] = useState(false)
   const [goldLimit, setGoldLimit] = useState('10')
   const [goldEvalLoading, setGoldEvalLoading] = useState(false)
   const [goldEvalError, setGoldEvalError] = useState<string | null>(null)
   const [goldEval, setGoldEval] = useState<RealGoldEvalResponse | null>(null)
+  const documentLoadLockRef = useRef(false)
+  const recentRunsLoadLockRef = useRef(false)
+  const reviewActionLockRef = useRef(false)
+  const latestEvidenceKeyRef = useRef<string | null>(null)
 
   useEffect(() => {
     setHasHydrated(true)
@@ -265,8 +503,45 @@ export function VerificationScreen() {
     }
   }, [activeTicker])
 
-  const reviewItems = useMemo(() => reviewSession?.items ?? [], [reviewSession])
-  const currentReviewItem = reviewItems[reviewIndex] ?? null
+  const reviewItems = useMemo(() => {
+    const items = reviewSession?.items ?? []
+    return [...items].sort((left, right) => {
+      const qualityDiff = evidenceQualityRank(evidenceQualityForItem(left)) - evidenceQualityRank(evidenceQualityForItem(right))
+      if (qualityDiff !== 0) return qualityDiff
+      return left.metric_name.localeCompare(right.metric_name)
+    })
+  }, [reviewSession])
+  const currentReviewItem = useMemo(() => {
+    if (reviewItems.length === 0) return null
+    if (!selectedReviewItemId) return reviewItems[0]
+    return reviewItems.find((item) => item.item_id === selectedReviewItemId) ?? reviewItems[0]
+  }, [reviewItems, selectedReviewItemId])
+  const currentReviewIndex = currentReviewItem
+    ? reviewItems.findIndex((item) => item.item_id === currentReviewItem.item_id)
+    : -1
+  const currentEvidenceQuality = evidenceQualityForItem(currentReviewItem)
+  const loadedSessionRunIds = useMemo(() => reviewSessionRunIds(reviewSession), [reviewSession])
+  const hasRunSelectionMismatch = Boolean(
+    reviewSession
+    && selectedRunId
+    && loadedSessionRunIds.length > 0
+    && !loadedSessionRunIds.includes(selectedRunId),
+  )
+  const evidenceSuspendMessage = reviewSessionLoadingMessage
+    || (hasRunSelectionMismatch ? 'Selected run changed. Inspect the selected run to load matching evidence.' : null)
+  const activeRunId = currentReviewItem?.run_id || loadedSessionRunIds[0] || selectedRunId || ''
+  const matchedEvidenceText = normalizeEvidenceText(currentReviewItem?.matched_text)
+    || normalizeEvidenceText(currentReviewItem?.snippet.matched_text)
+    || normalizeEvidenceText(currentReviewItem?.evidence_text)
+  const currentSnippetUrl = currentReviewItem?.image_url || currentReviewItem?.snippet.image_url || null
+  const currentSnippetPath = currentReviewItem?.image_path || currentReviewItem?.snippet.image_path || null
+  const currentEvidenceKey = reviewSession && currentReviewItem
+    ? `${reviewSession.session_id}:${currentReviewItem.item_id}:${currentReviewItem.run_id || 'runless'}`
+    : null
+  const currentSnippetRenderKey = `${currentEvidenceKey || 'no-evidence'}:${snippetImageState.retryAttempted ? 'retry' : 'initial'}`
+  const currentRowRef = currentReviewItem?.row_refs?.[currentReviewItem.metric_name] || null
+  const hasPrevReviewItem = currentReviewIndex > 0
+  const hasNextReviewItem = currentReviewIndex >= 0 && currentReviewIndex < reviewItems.length - 1
   const passedCount = results?.filter((r) => r.passed).length || 0
   const totalCount = results?.length || 0
   const passRate = totalCount > 0 ? (passedCount / totalCount) * 100 : 0
@@ -279,6 +554,291 @@ export function VerificationScreen() {
     }
     return ids
   }, [extraDocumentIds, selectedDocumentId])
+  const selectedRunStatuses = useMemo(
+    () => selectedReviewDocumentIds
+      .map((documentId) => ({
+        documentId,
+        runId: activeRunIdsByDocumentId[documentId],
+        status: runStatuses[documentId],
+      }))
+      .filter((entry) => entry.runId),
+    [activeRunIdsByDocumentId, runStatuses, selectedReviewDocumentIds],
+  )
+  const attachActiveRuns = searchParams.get('attach') === 'active'
+
+  useEffect(() => {
+    if (reviewItems.length === 0) {
+      setSelectedReviewItemId(null)
+      return
+    }
+    if (!selectedReviewItemId || !reviewItems.some((item) => item.item_id === selectedReviewItemId)) {
+      setSelectedReviewItemId(reviewItems[0].item_id)
+    }
+  }, [reviewItems, selectedReviewItemId])
+
+  useEffect(() => {
+    latestEvidenceKeyRef.current = currentEvidenceKey
+  }, [currentEvidenceKey])
+
+  useEffect(() => {
+    if (evidenceSuspendMessage) {
+      setSnippetImageState({
+        key: currentEvidenceKey,
+        status: 'idle',
+        retryAttempted: false,
+        message: evidenceSuspendMessage,
+      })
+      return
+    }
+    if (!currentEvidenceKey || !currentSnippetUrl) {
+      setSnippetImageState({
+        key: currentEvidenceKey,
+        status: 'idle',
+        retryAttempted: false,
+        message: null,
+      })
+      return
+    }
+    setSnippetImageState({
+      key: currentEvidenceKey,
+      status: 'loading',
+      retryAttempted: false,
+      message: null,
+    })
+  }, [currentEvidenceKey, currentSnippetUrl, evidenceSuspendMessage])
+
+  const beginReviewSessionSwap = useCallback((message: string) => {
+    setReviewSessionLoadingMessage(message)
+    setReviewSession(null)
+    setSelectedReviewItemId(null)
+    setRunStatus(null)
+    setSnippetImageState({
+      key: null,
+      status: 'idle',
+      retryAttempted: false,
+      message: message,
+    })
+  }, [])
+
+  const persistActiveRuns = useCallback((value: Record<string, string>) => {
+    setActiveRunIdsByDocumentId(value)
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(ACTIVE_RUNS_STORAGE_KEY, JSON.stringify(value))
+    }
+  }, [])
+
+  const refreshRunStatuses = useCallback(async (runIdsByDocumentId: Record<string, string>) => {
+    const responses = await Promise.all(
+      Object.entries(runIdsByDocumentId).map(async ([documentId, runId]) => {
+        try {
+          return [documentId, await getExtractionReviewRunStatus(runId, 200)] as const
+        } catch {
+          return null
+        }
+      }),
+    )
+    setRunStatuses((current) => {
+      const next = { ...current }
+      for (const entry of responses) {
+        if (!entry) continue
+        next[entry[0]] = entry[1]
+      }
+      return next
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!hasHydrated || typeof window === 'undefined') return
+    try {
+      const raw = window.localStorage.getItem(ACTIVE_RUNS_STORAGE_KEY)
+      if (!raw) return
+      const parsed = JSON.parse(raw)
+      if (parsed && typeof parsed === 'object') {
+        setActiveRunIdsByDocumentId(parsed as Record<string, string>)
+      }
+    } catch {
+      window.localStorage.removeItem(ACTIVE_RUNS_STORAGE_KEY)
+    }
+  }, [hasHydrated])
+
+  useEffect(() => {
+    if (!hasHydrated || !attachActiveRuns) return
+    let cancelled = false
+
+    const attachMonitor = async () => {
+      try {
+        const response = await fetch('/api/cockpit/config', { cache: 'no-store' })
+        if (!response.ok) {
+          throw new Error(`Failed to load active extraction runs (HTTP ${response.status})`)
+        }
+
+        const payload = await response.json() as Record<string, unknown>
+        const activeRuns = parseActiveExtractionMonitorRuns(payload)
+        if (cancelled) return
+
+        if (activeRuns.length === 0) {
+          setAttachedRunMetadataByDocumentId({})
+          setActiveMonitorNotice('No active extraction runs were reported by the backend.')
+          return
+        }
+
+        const runIdsByDocumentId = Object.fromEntries(
+          activeRuns.map((run) => [run.documentId, run.runId]),
+        )
+        const metadataByDocumentId = Object.fromEntries(
+          activeRuns.map((run) => [run.documentId, run]),
+        )
+
+        setAttachedRunMetadataByDocumentId(metadataByDocumentId)
+        persistActiveRuns(runIdsByDocumentId)
+        setSelectedDocumentId(activeRuns[0]?.documentId ?? '')
+        setExtraDocumentIds(activeRuns.slice(1).map((run) => run.documentId).join('\n'))
+        setSelectedRunId(activeRuns[0]?.runId ?? '')
+        setTicker((current) => current.trim() ? current : (activeRuns[0]?.ticker || current))
+        setActiveMonitorNotice(
+          `Attached to ${activeRuns.length} active extraction run${activeRuns.length === 1 ? '' : 's'} from backend state.`,
+        )
+        await refreshRunStatuses(runIdsByDocumentId)
+      } catch (err: unknown) {
+        if (cancelled) return
+        const message = err instanceof Error ? err.message : 'Failed to attach to the active extraction run'
+        setAttachedRunMetadataByDocumentId({})
+        setActiveMonitorNotice(message)
+      }
+    }
+
+    void attachMonitor()
+    return () => {
+      cancelled = true
+    }
+  }, [attachActiveRuns, hasHydrated, persistActiveRuns, refreshRunStatuses])
+
+  useEffect(() => {
+    const activeEntries = Object.entries(activeRunIdsByDocumentId).filter(([documentId, runId]) => {
+      const status = runStatuses[documentId]?.summary?.status
+      return Boolean(runId) && !['succeeded', 'failed', 'blocked'].includes(String(status || ''))
+    })
+    if (activeEntries.length === 0) return
+    let cancelled = false
+
+    const poll = async () => {
+      const responses = await Promise.all(
+        activeEntries.map(async ([documentId, runId]) => {
+          try {
+            return [documentId, await getExtractionReviewRunStatus(runId, 200)] as const
+          } catch {
+            return null
+          }
+        }),
+      )
+      if (cancelled) return
+
+      setRunStatuses((current) => {
+        const next = { ...current }
+        for (const entry of responses) {
+          if (!entry) continue
+          next[entry[0]] = entry[1]
+        }
+        return next
+      })
+    }
+
+    void poll()
+    const interval = window.setInterval(() => {
+      void poll()
+    }, 2500)
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
+  }, [activeRunIdsByDocumentId, runStatuses])
+
+  const moveReviewSelection = useCallback((direction: 'prev' | 'next') => {
+    if (currentReviewIndex < 0) return
+    const delta = direction === 'next' ? 1 : -1
+    const nextItem = reviewItems[currentReviewIndex + delta]
+    if (!nextItem) return
+    setSelectedReviewItemId(nextItem.item_id)
+  }, [currentReviewIndex, reviewItems])
+
+  const handleSnippetImageLoad = useCallback(() => {
+    if (!currentEvidenceKey) return
+    setSnippetImageState((previous) => {
+      if (previous.key !== currentEvidenceKey) return previous
+      return {
+        ...previous,
+        status: 'ready',
+        message: null,
+      }
+    })
+  }, [currentEvidenceKey])
+
+  const handleSnippetImageError = useCallback(() => {
+    if (!currentEvidenceKey) return
+
+    const sessionId = reviewSession?.session_id || null
+    const itemId = currentReviewItem?.item_id || null
+    const fallbackMessage = currentReviewItem?.snippet.reason
+      || (currentEvidenceQuality === 'approximate'
+        ? 'Source page/table preview is unavailable for this session item. Exact line evidence was not preserved, so verify from provenance details only.'
+        : evidenceQualityBody(currentEvidenceQuality))
+
+    let shouldRetry = false
+    setSnippetImageState((previous) => {
+      if (previous.key !== currentEvidenceKey) return previous
+      shouldRetry = !previous.retryAttempted && Boolean(sessionId && itemId)
+      if (!shouldRetry) {
+        return {
+          ...previous,
+          status: 'failed',
+          message: fallbackMessage,
+        }
+      }
+      return {
+        ...previous,
+        status: 'retrying',
+        retryAttempted: true,
+        message: 'Refreshing the current review session once to recover snippet evidence...',
+      }
+    })
+
+    if (!shouldRetry || !sessionId || !itemId) return
+
+    void getExtractionReviewSession(sessionId)
+      .then((session) => {
+        if (latestEvidenceKeyRef.current !== currentEvidenceKey) return
+        setReviewSession(session)
+        setSelectedReviewItemId((current) => (
+          session.items.some((item) => item.item_id === itemId)
+            ? itemId
+            : current
+        ))
+        setSnippetImageState((previous) => {
+          if (previous.key !== currentEvidenceKey) return previous
+          return {
+            ...previous,
+            status: 'loading',
+            message: null,
+          }
+        })
+      })
+      .catch(() => {
+        if (latestEvidenceKeyRef.current !== currentEvidenceKey) return
+        setSnippetImageState((previous) => {
+          if (previous.key !== currentEvidenceKey) return previous
+          return {
+            ...previous,
+            status: 'failed',
+            message: fallbackMessage,
+          }
+        })
+      })
+  }, [
+    currentEvidenceKey,
+    currentEvidenceQuality,
+    currentReviewItem,
+    reviewSession?.session_id,
+  ])
 
   const handleRunVerification = async (broad: boolean = false) => {
     setIsRunning(true)
@@ -308,26 +868,32 @@ export function VerificationScreen() {
   }
 
   const handleLoadDocuments = async () => {
+    if (documentLoadLockRef.current) return
     const cleanTicker = ticker.trim().toUpperCase()
     if (!cleanTicker) {
       setReviewError('Ticker is required to load review documents.')
       return
     }
 
+    documentLoadLockRef.current = true
     setReviewError(null)
     setDocumentsLoading(true)
     try {
       const parsedLimit = Number.parseInt(docsLimit, 10)
       const docs = await getTickerDocuments(cleanTicker, Number.isFinite(parsedLimit) ? parsedLimit : 10)
+      const runsPayload = await getExtractionReviewRuns(cleanTicker, 20)
       setDocuments(docs)
+      setRecentRuns(runsPayload.items)
       const defaultDoc = docs[0]?.document_id ?? ''
-      setSelectedDocumentId((current) => current || defaultDoc)
+      setSelectedDocumentId((current) => docs.some((doc) => doc.document_id === current) ? current : defaultDoc)
+      setSelectedRunId((current) => runsPayload.items.some((run) => run.run_id === current) ? current : (runsPayload.items[0]?.run_id || ''))
       toast.success(`Loaded ${docs.length} document(s) for ${cleanTicker}`)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to load documents'
       setReviewError(message)
       toast.error(message)
     } finally {
+      documentLoadLockRef.current = false
       setDocumentsLoading(false)
     }
   }
@@ -336,11 +902,13 @@ export function VerificationScreen() {
     queuedIds: string[]
     failedRuns: string[]
     runIds: string[]
+    runIdsByDocumentId: Record<string, string>
     results: ProcessDocumentResponse[]
   }> => {
     const queuedIds: string[] = []
     const failedRuns: string[] = []
     const runIds: string[] = []
+    const runIdsByDocumentId: Record<string, string> = {}
     const results: ProcessDocumentResponse[] = []
 
     for (const documentId of selectedReviewDocumentIds) {
@@ -352,6 +920,9 @@ export function VerificationScreen() {
       results.push(result)
       const mode = String(result.mode ?? '')
       const extractionStatus = String(result.extraction_status ?? '')
+      if (result.run_id) {
+        runIdsByDocumentId[documentId] = result.run_id
+      }
       if (mode === 'celery') {
         queuedIds.push(documentId)
         continue
@@ -365,19 +936,26 @@ export function VerificationScreen() {
       }
     }
 
-    return { queuedIds, failedRuns, runIds, results }
+    return { queuedIds, failedRuns, runIds, runIdsByDocumentId, results }
   }
 
   const handleRunExtraction = async () => {
+    if (reviewActionLockRef.current) return
     if (selectedReviewDocumentIds.length === 0) {
       setReviewError('Select one document or enter document IDs first.')
       return
     }
 
+    reviewActionLockRef.current = true
     setReviewError(null)
     setReviewActionLoading(true)
     try {
-      const { queuedIds, failedRuns, results } = await runSelectedDocumentExtractions()
+      const { queuedIds, failedRuns, results, runIdsByDocumentId } = await runSelectedDocumentExtractions()
+      if (Object.keys(runIdsByDocumentId).length > 0) {
+        const next = { ...activeRunIdsByDocumentId, ...runIdsByDocumentId }
+        persistActiveRuns(next)
+        await refreshRunStatuses(runIdsByDocumentId)
+      }
       if (queuedIds.length > 0) {
         const message = `Extraction queued for ${queuedIds.length} document(s). Wait for completion before loading the review session.`
         setReviewError(message)
@@ -399,6 +977,7 @@ export function VerificationScreen() {
       setReviewError(message)
       toast.error(message)
     } finally {
+      reviewActionLockRef.current = false
       setReviewActionLoading(false)
     }
   }
@@ -413,16 +992,79 @@ export function VerificationScreen() {
     }
   }
 
+  const handleLoadRecentRuns = async () => {
+    if (recentRunsLoadLockRef.current) return
+    const cleanTicker = ticker.trim().toUpperCase()
+    if (!cleanTicker) {
+      setReviewError('Ticker is required to inspect recent runs.')
+      return
+    }
+
+    recentRunsLoadLockRef.current = true
+    setRecentRunsLoading(true)
+    setReviewError(null)
+    try {
+      const payload = await getExtractionReviewRuns(cleanTicker, 20)
+      setRecentRuns(payload.items)
+      setSelectedRunId((current) => payload.items.some((run) => run.run_id === current) ? current : (payload.items[0]?.run_id || ''))
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load recent runs'
+      setReviewError(message)
+      toast.error(message)
+    } finally {
+      recentRunsLoadLockRef.current = false
+      setRecentRunsLoading(false)
+    }
+  }
+
+  const handleInspectSelectedRun = async () => {
+    if (reviewActionLockRef.current) return
+    if (!selectedRunId) {
+      setReviewError('Select a recent run first.')
+      return
+    }
+
+    reviewActionLockRef.current = true
+    setReviewError(null)
+    setReviewActionLoading(true)
+    beginReviewSessionSwap(`Loading review session for run ${selectedRunId.slice(0, 12)}...`)
+    try {
+      const session = await createExtractionReviewSession({ runIds: [selectedRunId] })
+      setReviewSession(session)
+      setSelectedReviewItemId(session.items[0]?.item_id ?? null)
+      setReviewSessionLoadingMessage(null)
+      await loadWrongQueue()
+      toast.success(`Loaded historical run ${selectedRunId.slice(0, 12)}`)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to inspect selected run'
+      setReviewError(message)
+      toast.error(message)
+    } finally {
+      setReviewSessionLoadingMessage(null)
+      reviewActionLockRef.current = false
+      setReviewActionLoading(false)
+    }
+  }
+
   const handleLoadReview = async () => {
+    if (reviewActionLockRef.current) return
     if (selectedReviewDocumentIds.length === 0) {
       setReviewError('Select one document or enter document IDs first.')
       return
     }
 
+    reviewActionLockRef.current = true
     setReviewError(null)
     setReviewActionLoading(true)
+    beginReviewSessionSwap('Loading a fresh review session for the selected document set...')
     try {
-      const { queuedIds, failedRuns, runIds } = await runSelectedDocumentExtractions()
+      const { queuedIds, failedRuns, runIds, runIdsByDocumentId } = await runSelectedDocumentExtractions()
+
+      if (Object.keys(runIdsByDocumentId).length > 0) {
+        const next = { ...activeRunIdsByDocumentId, ...runIdsByDocumentId }
+        persistActiveRuns(next)
+        await refreshRunStatuses(runIdsByDocumentId)
+      }
 
       if (queuedIds.length > 0) {
         const message = `Extraction is queued for ${queuedIds.length} document(s). Wait for the worker to finish, then retry loading the review.`
@@ -442,7 +1084,9 @@ export function VerificationScreen() {
       const session = await createExtractionReviewSession({ runIds })
 
       setReviewSession(session)
-      setReviewIndex(0)
+      setSelectedRunId(runIds[0] ?? '')
+      setSelectedReviewItemId(session.items[0]?.item_id ?? null)
+      setReviewSessionLoadingMessage(null)
       await loadWrongQueue()
 
       if (session.items.length > 0) {
@@ -459,6 +1103,8 @@ export function VerificationScreen() {
       setReviewError(message)
       toast.error(message)
     } finally {
+      setReviewSessionLoadingMessage(null)
+      reviewActionLockRef.current = false
       setReviewActionLoading(false)
     }
   }
@@ -511,9 +1157,14 @@ export function VerificationScreen() {
     }
   }
 
-  const handleSubmitReview = useCallback(async (status: 'approved' | 'wrong' | 'abstain') => {
+  const handleSubmitReview = useCallback(async (verdict: 'correct' | 'wrong' | 'unsure') => {
+    if (reviewActionLockRef.current) return
     if (!reviewSession || !currentReviewItem) return
 
+    const status = verdict === 'correct' ? 'approved' : verdict === 'unsure' ? 'abstain' : 'wrong'
+    const nextSelectedItemId = reviewItems[currentReviewIndex + 1]?.item_id ?? currentReviewItem.item_id
+
+    reviewActionLockRef.current = true
     setReviewError(null)
     setReviewActionLoading(true)
     try {
@@ -521,37 +1172,59 @@ export function VerificationScreen() {
         sessionId: reviewSession.session_id,
         itemId: currentReviewItem.item_id,
         status,
-        expectedValue: expectedValue.trim() || null,
-        reviewerNote: reviewerNote.trim() || null,
       })
 
       const nextItems = [...reviewItems]
-      nextItems[reviewIndex] = result.item
+      nextItems[currentReviewIndex] = result.item
       const nextSession: ExtractionReviewSession = {
         ...reviewSession,
         items: nextItems,
         summary: result.summary,
       }
       setReviewSession(nextSession)
+      setSelectedReviewItemId(nextSelectedItemId)
       await loadWrongQueue()
-      toast.success(`${currentReviewItem.metric_name} marked ${status}`)
-      if (reviewIndex < nextItems.length - 1) {
-        setReviewIndex(reviewIndex + 1)
-      }
+      toast.success(`${currentReviewItem.metric_name} marked ${verdict}`)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to save review decision'
       setReviewError(message)
       toast.error(message)
     } finally {
+      reviewActionLockRef.current = false
       setReviewActionLoading(false)
     }
-  }, [currentReviewItem, expectedValue, reviewerNote, reviewIndex, reviewItems, reviewSession])
+  }, [currentReviewIndex, currentReviewItem, reviewItems, reviewSession])
 
   useEffect(() => {
-    if (!currentReviewItem) return
-    setExpectedValue(currentReviewItem.expected_value == null ? '' : String(currentReviewItem.expected_value))
-    setReviewerNote(currentReviewItem.reviewer_note ?? '')
-  }, [currentReviewItem])
+    if (!activeRunId) {
+      setRunStatus(null)
+      return
+    }
+
+    let cancelled = false
+    setRunStatusLoading(true)
+    void getExtractionReviewRunStatus(activeRunId, 200)
+      .then((payload) => {
+        if (!cancelled) {
+          setRunStatus(payload)
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : 'Failed to load run timeline'
+          setReviewError(message)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setRunStatusLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeRunId])
 
   useEffect(() => {
     if (!currentReviewItem) return
@@ -560,28 +1233,29 @@ export function VerificationScreen() {
       const tagName = (event.target as HTMLElement | null)?.tagName?.toLowerCase()
       if (tagName === 'input' || tagName === 'textarea') return
       if (reviewActionLoading) return
+      if (evidenceSuspendMessage) return
 
-      if (event.key === 'a' || event.key === 'A') {
+      if (event.key === 'c' || event.key === 'C') {
         event.preventDefault()
-        void handleSubmitReview('approved')
+        void handleSubmitReview('correct')
       } else if (event.key === 'w' || event.key === 'W') {
         event.preventDefault()
         void handleSubmitReview('wrong')
       } else if (event.key === 'u' || event.key === 'U') {
         event.preventDefault()
-        void handleSubmitReview('abstain')
+        void handleSubmitReview('unsure')
       } else if (event.key === 'ArrowLeft') {
         event.preventDefault()
-        setReviewIndex((value) => Math.max(0, value - 1))
+        moveReviewSelection('prev')
       } else if (event.key === 'ArrowRight') {
         event.preventDefault()
-        setReviewIndex((value) => Math.min(reviewItems.length - 1, value + 1))
+        moveReviewSelection('next')
       }
     }
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [currentReviewItem, handleSubmitReview, reviewActionLoading, reviewItems.length])
+  }, [currentReviewItem, evidenceSuspendMessage, handleSubmitReview, moveReviewSelection, reviewActionLoading])
 
   if (!hasHydrated) return null
 
@@ -664,6 +1338,66 @@ export function VerificationScreen() {
   return (
     <ScrollArea className="h-full">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6">
+        {/* Global Configuration */}
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Activity className="h-5 w-5 text-primary" />
+              Extraction Configuration
+            </CardTitle>
+            <CardDescription>
+              Set the active ticker and extraction parameters for all verification actions.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap items-end gap-6">
+              <Field className="w-[200px]">
+                <FieldLabel>Active Ticker</FieldLabel>
+                <Input
+                  placeholder="e.g. BHP"
+                  value={ticker}
+                  onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                  className="font-mono"
+                />
+              </Field>
+              <Field className="w-[200px]">
+                <FieldLabel>Method / Provider</FieldLabel>
+                <Select value={extractionMethod} onValueChange={(value) => setExtractionMethod(value as ExtractionMethod)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EXTRACTION_METHOD_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field className="w-[160px]">
+                <FieldLabel>Strict Mode</FieldLabel>
+                <div className="flex h-10 items-center gap-3 rounded-md border border-input bg-background px-3">
+                  <Switch checked={strictMethod} onCheckedChange={setStrictMethod} />
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">No fallback</span>
+                </div>
+              </Field>
+              
+              <div className="flex-1" />
+              
+              <div className="flex flex-wrap gap-2 pt-2 md:pt-0">
+                <Badge variant="outline" className="h-7 border-primary/30 font-mono">
+                  {ticker ? `Target: ${ticker}` : 'Broad Mode'}
+                </Badge>
+                <Badge variant="outline" className="h-7 border-primary/30">
+                  {extractionMethod}
+                </Badge>
+                <Badge variant="outline" className={cn("h-7", strictMethod ? "border-orange-500/50 text-orange-500" : "border-primary/30")}>
+                  {strictMethod ? 'Strict' : 'Auto-fallback'}
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -676,16 +1410,6 @@ export function VerificationScreen() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap items-end gap-4">
-              <Field className="w-[220px]">
-                <FieldLabel>Ticker (optional)</FieldLabel>
-                <Input
-                  placeholder="Leave empty for broad check"
-                  value={ticker}
-                  onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                  className="font-mono"
-                />
-              </Field>
-
               <div className="flex gap-2">
                 <Button onClick={() => handleRunVerification(true)} disabled={isRunning}>
                   <Play className="mr-2 h-4 w-4" />
@@ -713,6 +1437,51 @@ export function VerificationScreen() {
             )}
           </CardContent>
         </Card>
+
+        {attachActiveRuns && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Activity className="h-5 w-5 text-primary" />
+                Live Extraction Monitor
+              </CardTitle>
+              <CardDescription>
+                Attached to the extraction run currently reported by the backend.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {activeMonitorNotice && (
+                <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-sm text-muted-foreground">
+                  {activeMonitorNotice}
+                </div>
+              )}
+
+              {selectedRunStatuses.length > 0 ? (
+                <div className="grid gap-4 lg:grid-cols-2">
+                  {selectedRunStatuses.map(({ documentId, runId, status }) => {
+                    if (!runId) return null
+                    return (
+                      <ExtractionRunStatusCard
+                        key={runId}
+                        documentId={documentId}
+                        runId={runId}
+                        status={status}
+                        title={attachedRunMetadataByDocumentId[documentId]?.title || documentId}
+                        fallbackMethod={
+                          attachedRunMetadataByDocumentId[documentId]?.requestedMethod || extractionMethod
+                        }
+                      />
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-3 text-sm text-muted-foreground">
+                  Waiting for backend run metadata...
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {results && (
           <Card>
@@ -804,26 +1573,6 @@ export function VerificationScreen() {
                   placeholder="0 = full corpus"
                   className="font-mono"
                 />
-              </Field>
-              <Field className="w-[180px]">
-                <FieldLabel>Extraction method</FieldLabel>
-                <Select value={extractionMethod} onValueChange={(value) => setExtractionMethod(value as ExtractionMethod)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {EXTRACTION_METHOD_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field className="w-[160px]">
-                <FieldLabel>Strict mode</FieldLabel>
-                <div className="flex h-10 items-center gap-3 rounded-md border border-input px-3">
-                  <Switch checked={strictMethod} onCheckedChange={setStrictMethod} />
-                  <span className="text-sm text-muted-foreground">No fallback</span>
-                </div>
               </Field>
               <div className="flex gap-2">
                 <Button onClick={handleRunGoldEval} disabled={goldEvalLoading}>
@@ -941,13 +1690,9 @@ export function VerificationScreen() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="grid gap-4 md:grid-cols-[220px_120px_1fr_180px_160px]">
+            <div className="grid gap-4 md:grid-cols-[120px_1fr_auto]">
               <Field>
-                <FieldLabel>Ticker</FieldLabel>
-                <Input value={ticker} onChange={(e) => setTicker(e.target.value.toUpperCase())} className="font-mono" />
-              </Field>
-              <Field>
-                <FieldLabel>Docs</FieldLabel>
+                <FieldLabel>Docs limit</FieldLabel>
                 <Input value={docsLimit} onChange={(e) => setDocsLimit(e.target.value)} className="font-mono" />
               </Field>
               <Field>
@@ -958,26 +1703,6 @@ export function VerificationScreen() {
                   placeholder="Comma or space separated document IDs"
                   className="font-mono"
                 />
-              </Field>
-              <Field>
-                <FieldLabel>Extraction method</FieldLabel>
-                <Select value={extractionMethod} onValueChange={(value) => setExtractionMethod(value as ExtractionMethod)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {EXTRACTION_METHOD_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field>
-                <FieldLabel>Strict mode</FieldLabel>
-                <div className="flex h-10 items-center gap-3 rounded-md border border-input px-3">
-                  <Switch checked={strictMethod} onCheckedChange={setStrictMethod} />
-                  <span className="text-sm text-muted-foreground">No fallback</span>
-                </div>
               </Field>
             </div>
 
@@ -1004,6 +1729,41 @@ export function VerificationScreen() {
               </Button>
             </div>
 
+            <div className="grid gap-4 rounded-lg border border-border/60 bg-muted/10 p-4 md:grid-cols-[220px_1fr_auto_auto]">
+              <Field>
+                <FieldLabel>Recent runs</FieldLabel>
+                <Select value={selectedRunId || undefined} onValueChange={setSelectedRunId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={recentRunsLoading ? 'Loading runs...' : 'Select a past run'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {recentRuns.map((run) => (
+                      <SelectItem key={run.run_id} value={run.run_id}>
+                        {`${run.created_at.slice(0, 19)} | ${run.status} | ${run.metrics_count ?? 0} metrics`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                {recentRuns.length === 0 ? (
+                  <span>No historical runs loaded for this ticker yet.</span>
+                ) : recentRuns.slice(0, 4).map((run) => (
+                  <Badge key={run.run_id} variant="outline">
+                    {run.status} {run.metrics_count ?? 0}m {formatMethodLabel(run.actual_method || run.requested_method)}
+                  </Badge>
+                ))}
+              </div>
+              <Button variant="outline" onClick={handleLoadRecentRuns} disabled={recentRunsLoading || reviewActionLoading}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh Runs
+              </Button>
+              <Button variant="outline" onClick={handleInspectSelectedRun} disabled={!selectedRunId || reviewActionLoading}>
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Inspect Selected Run
+              </Button>
+            </div>
+
             {reviewError && (
               <div className="flex items-center gap-3 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
                 <AlertCircle className="h-4 w-4 shrink-0" />
@@ -1014,7 +1774,7 @@ export function VerificationScreen() {
             {reviewActionLoading && (
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                Processing manual review action...
+                {reviewSessionLoadingMessage || (currentReviewItem ? 'Saving review verdict...' : 'Processing manual review action...')}
               </div>
             )}
 
@@ -1063,11 +1823,47 @@ export function VerificationScreen() {
               ))}
             </div>
 
+            {selectedRunStatuses.length > 0 && !attachActiveRuns && (
+              <div className="grid gap-4 lg:grid-cols-2">
+                {selectedRunStatuses.map(({ documentId, runId, status }) => {
+                  if (!runId) return null
+                  const doc = documents.find((entry) => entry.document_id === documentId)
+                  return (
+                    <ExtractionRunStatusCard
+                      key={runId}
+                      documentId={documentId}
+                      runId={runId}
+                      status={status}
+                      title={doc?.title || attachedRunMetadataByDocumentId[documentId]?.title || documentId}
+                      fallbackMethod={extractionMethod}
+                    />
+                  )
+                })}
+              </div>
+            )}
+
             <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
-              The review loader always reprocesses the selected PDFs first using the selected method. It then loads the review session from the explicit run IDs returned by that request, so strict benchmarking never silently falls back to an older auto run.
+              Use <span className="font-medium text-foreground">Run Latest + Load Review</span> to reprocess the selected PDFs with the current method, or <span className="font-medium text-foreground">Inspect Selected Run</span> to open a historical run without rerunning extraction.
             </div>
           </CardContent>
         </Card>
+
+        {reviewSessionLoadingMessage && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Loading Review Session</CardTitle>
+              <CardDescription>
+                The previous evidence view has been cleared so snippet images cannot leak across sessions.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                {reviewSessionLoadingMessage}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {reviewSession && !currentReviewItem && (
           <Card>
@@ -1082,10 +1878,37 @@ export function VerificationScreen() {
                 <Badge variant="outline">total {reviewSession.summary?.total ?? 0}</Badge>
                 <Badge variant="outline">pending {reviewSession.summary?.pending ?? 0}</Badge>
                 <Badge variant="outline">missing docs {reviewSession.missing_document_ids?.length ?? 0}</Badge>
+                <Badge variant="outline">missing runs {reviewSession.missing_run_ids?.length ?? 0}</Badge>
               </div>
               <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground">
                 {summarizeSessionDocuments(reviewSession)}
               </div>
+              {reviewSession.documents && reviewSession.documents.length > 0 && (
+                <div className="rounded-lg border border-border/60">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Document</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Reason</TableHead>
+                        <TableHead>Metrics</TableHead>
+                        <TableHead>Method</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {reviewSession.documents.map((doc) => (
+                        <TableRow key={`${doc.document_id}-${doc.run_id || 'none'}`}>
+                          <TableCell className="text-sm">{doc.title || doc.document_id}</TableCell>
+                          <TableCell><Badge variant={doc.review_ready ? 'default' : 'outline'}>{doc.status || 'unknown'}</Badge></TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{doc.reason || '-'}</TableCell>
+                          <TableCell className="font-mono text-xs">{doc.metrics_count ?? 0}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{formatMethodLabel(doc.actual_method || doc.requested_method)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={handleRunExtraction} disabled={reviewActionLoading}>
                   <Play className="mr-2 h-4 w-4" />
@@ -1100,32 +1923,222 @@ export function VerificationScreen() {
           </Card>
         )}
 
+        {activeRunId && (
+          <Card>
+            <CardHeader>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <CardTitle className="text-lg">Run Timeline</CardTitle>
+                  <CardDescription>
+                    Absolute timestamps and stage timings for run <code>{activeRunId}</code>
+                  </CardDescription>
+                </div>
+                {runStatusLoading && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    Loading timeline...
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {runStatus ? (
+                <>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <Badge variant="outline">status {runStatus.summary.status}</Badge>
+                    <Badge variant="outline">stage {runStatus.summary.stage}</Badge>
+                    <Badge variant="outline">elapsed {formatDuration(runStatus.summary.elapsed_ms)}</Badge>
+                    <Badge variant="outline">queue wait {formatDuration(runStatus.summary.queue_wait_ms)}</Badge>
+                    <Badge variant="outline">warnings {runStatus.summary.warning_codes?.length ?? 0}</Badge>
+                    <Badge variant="outline">errors {runStatus.summary.error_codes?.length ?? 0}</Badge>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-sm">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Queued</p>
+                      <p className="mt-1">{formatTimestamp(runStatus.summary.queued_at)}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-sm">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Worker started</p>
+                      <p className="mt-1">{formatTimestamp(runStatus.summary.worker_started_at || runStatus.summary.started_at)}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-sm">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Updated</p>
+                      <p className="mt-1">{formatTimestamp(runStatus.summary.updated_at)}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-sm">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Completed</p>
+                      <p className="mt-1">{formatTimestamp(runStatus.summary.completed_at)}</p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-border/60">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Stage</TableHead>
+                          <TableHead>Duration</TableHead>
+                          <TableHead>Latest message</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {Object.entries(runStatus.summary.stage_timings_ms || {}).map(([stage, duration]) => (
+                          <TableRow key={stage}>
+                            <TableCell className="font-mono text-xs">{stage}</TableCell>
+                            <TableCell className="font-mono text-xs">{formatDuration(duration)}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {[...runStatus.events].reverse().find((event) => event.stage === stage)?.message || '-'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {((runStatus.summary.warnings?.length ?? 0) > 0 || (runStatus.summary.errors?.length ?? 0) > 0) && (
+                    <div className="grid gap-4 lg:grid-cols-2">
+                      <div className="rounded-lg border border-border/60 bg-muted/20 p-4">
+                        <p className="mb-2 text-sm font-medium">Warnings</p>
+                        <div className="space-y-2 text-xs text-muted-foreground">
+                          {(runStatus.summary.warnings || []).map((warning) => (
+                            <div key={`${warning.stage}-${warning.code}`} className="rounded-md border border-dashed border-border/60 p-2">
+                              <div className="font-mono text-foreground">{warning.code}</div>
+                              <div>{warning.message}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-border/60 bg-muted/20 p-4">
+                        <p className="mb-2 text-sm font-medium">Errors</p>
+                        <div className="space-y-2 text-xs text-muted-foreground">
+                          {(runStatus.summary.errors || []).map((issue) => (
+                            <div key={`${issue.stage}-${issue.code}`} className="rounded-md border border-dashed border-border/60 p-2">
+                              <div className="font-mono text-foreground">{issue.code}</div>
+                              <div>{issue.message}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    {runStatus.events.map((event, index) => (
+                      <details key={`${event.stage}-${event.timestamp}-${index}`} className="rounded-lg border border-border/60 bg-muted/10 p-3">
+                        <summary className="cursor-pointer list-none text-sm">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="outline">{event.stage}</Badge>
+                            <Badge variant={event.status === 'failed' || event.status === 'blocked' ? 'critical' : event.status === 'succeeded' ? 'default' : 'outline'}>
+                              {event.status}
+                            </Badge>
+                            <span className="text-muted-foreground">{formatTimestamp(event.timestamp)}</span>
+                            <span>{event.message}</span>
+                          </div>
+                        </summary>
+                        <pre className="mt-3 overflow-x-auto rounded-md bg-black/20 p-3 text-xs leading-5 text-muted-foreground">
+                          {JSON.stringify(event.details || {}, null, 2)}
+                        </pre>
+                      </details>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground">
+                  Run timeline data is not available for this run yet.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {reviewSession && currentReviewItem && (
           <Card>
             <CardHeader>
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <CardTitle className="text-lg">Review {reviewIndex + 1} of {reviewItems.length}</CardTitle>
+                  <CardTitle className="text-lg">Review {currentReviewIndex + 1} of {reviewItems.length}</CardTitle>
                   <CardDescription>
                     Session {reviewSession.session_id}
                   </CardDescription>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="outline">pending {reviewSession.summary?.pending ?? 0}</Badge>
-                  <Badge variant="default">approved {reviewSession.summary?.approved ?? 0}</Badge>
+                  <Badge variant="default">correct {reviewSession.summary?.approved ?? 0}</Badge>
                   <Badge variant="critical">wrong {reviewSession.summary?.wrong ?? 0}</Badge>
-                  <Badge variant="secondary">skip {reviewSession.summary?.abstain ?? 0}</Badge>
+                  <Badge variant="secondary">unsure {reviewSession.summary?.abstain ?? 0}</Badge>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+              <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
                 <div className="space-y-4">
+                  <div className="rounded-lg border border-border/60">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
+                      <div>
+                        <p className="text-sm font-medium">Extracted metrics</p>
+                        <p className="text-xs text-muted-foreground">Click a metric to inspect its PDF evidence. Use ←/→ to move and C/W/U to record a verdict.</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => moveReviewSelection('prev')}
+                          disabled={!hasPrevReviewItem}
+                        >
+                          Prev
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => moveReviewSelection('next')}
+                          disabled={!hasNextReviewItem}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="max-h-[720px] overflow-y-auto p-2">
+                        {reviewItems.map((item) => {
+                          const isActive = item.item_id === currentReviewItem.item_id
+                          const itemEvidenceQuality = evidenceQualityForItem(item)
+                          return (
+                            <button
+                            key={item.item_id}
+                            type="button"
+                            onClick={() => setSelectedReviewItemId(item.item_id)}
+                            className={`flex w-full flex-col gap-2 rounded-md border px-3 py-3 text-left transition ${isActive ? 'border-primary bg-primary/5' : 'border-transparent hover:border-border/60 hover:bg-muted/20'}`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <p className="text-sm font-medium">{item.metric_name}</p>
+                                <p className="font-mono text-sm text-foreground">{String(item.metric_value ?? item.extracted_value ?? '-')}</p>
+                              </div>
+                              <div className="flex flex-col items-end gap-2">
+                                <Badge variant={evidenceQualityBadgeVariant(itemEvidenceQuality)}>{evidenceQualityLabel(itemEvidenceQuality)}</Badge>
+                                <Badge variant={statusVariant(item.review_status)}>{reviewStatusLabel(item.review_status)}</Badge>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                              <span>{evidenceMethodLabel(item)}</span>
+                              <span>page {item.page_number ?? '?'}</span>
+                              {item.table_type && <span>{item.table_type}</span>}
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div key={currentEvidenceKey || reviewSession.session_id} className="space-y-4">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={statusVariant(currentReviewItem.review_status)}>{currentReviewItem.review_status}</Badge>
+                    <Badge variant={statusVariant(currentReviewItem.review_status)}>{reviewStatusLabel(currentReviewItem.review_status)}</Badge>
                     <Badge variant="outline">{currentReviewItem.metric_name}</Badge>
+                    <Badge variant={evidenceQualityBadgeVariant(currentEvidenceQuality)}>{evidenceQualityLabel(currentEvidenceQuality)}</Badge>
                     <Badge variant="outline">page {currentReviewItem.page_number ?? '?'}</Badge>
-                    <Badge variant="outline">method {formatMethodLabel(currentReviewItem.actual_method || currentReviewItem.requested_method)}</Badge>
+                    <Badge variant="outline">method {evidenceMethodLabel(currentReviewItem)}</Badge>
                     <Badge variant="outline">{currentReviewItem.strict_method ? 'strict' : 'auto'}</Badge>
                     {currentReviewItem.snippet.kind && <Badge variant="outline">{currentReviewItem.snippet.kind}</Badge>}
                   </div>
@@ -1134,11 +2147,11 @@ export function VerificationScreen() {
                     <div className="grid gap-3 md:grid-cols-2">
                       <div>
                         <p className="text-xs uppercase tracking-wide text-muted-foreground">Extracted value</p>
-                        <p className="mt-1 font-mono text-lg">{String(currentReviewItem.extracted_value ?? '-')}</p>
+                        <p className="mt-1 font-mono text-lg">{String(currentReviewItem.metric_value ?? currentReviewItem.extracted_value ?? '-')}</p>
                       </div>
                       <div>
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Gold expected</p>
-                        <p className="mt-1 font-mono text-lg">{String(currentReviewItem.expected_value ?? '-')}</p>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Method / provider</p>
+                        <p className="mt-1 text-sm">{evidenceMethodLabel(currentReviewItem)}</p>
                       </div>
                       <div>
                         <p className="text-xs uppercase tracking-wide text-muted-foreground">Period</p>
@@ -1158,14 +2171,24 @@ export function VerificationScreen() {
                           actual={formatMethodLabel(currentReviewItem.actual_method)} parser={currentReviewItem.parser_id || '-'} fallback={currentReviewItem.fallback_used ? 'yes' : 'no'}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Model / runtime</p>
-                        <p className="mt-1 text-sm">{currentReviewItem.model_id || '-'} @ {currentReviewItem.runtime_id || '-'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Gold record</p>
-                        <p className="mt-1 text-sm">{currentReviewItem.gold_document_id || 'No gold label'} {currentReviewItem.gold_expected_trust ? `(${currentReviewItem.gold_expected_trust})` : ''}</p>
-                      </div>
+                      {currentReviewItem.model_id || currentReviewItem.runtime_id ? (
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-muted-foreground">Model / runtime</p>
+                          <p className="mt-1 text-sm">{currentReviewItem.model_id || '-'} @ {currentReviewItem.runtime_id || '-'}</p>
+                        </div>
+                      ) : null}
+                      {currentReviewItem.period_col ? (
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-muted-foreground">Period column</p>
+                          <p className="mt-1 text-sm">{currentReviewItem.period_col}</p>
+                        </div>
+                      ) : null}
+                      {currentRowRef ? (
+                        <div>
+                          <p className="text-xs uppercase tracking-wide text-muted-foreground">Row reference</p>
+                          <p className="mt-1 text-sm">{currentRowRef}</p>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
 
@@ -1181,34 +2204,112 @@ export function VerificationScreen() {
                       Evidence Snippet
                     </div>
 
-                    {currentReviewItem.snippet.image_url ? (
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <Badge variant={evidenceQualityBadgeVariant(currentEvidenceQuality)}>{evidenceQualityHeadline(currentEvidenceQuality)}</Badge>
+                      <Badge variant="outline">snippet {currentReviewItem.snippet.status}</Badge>
+                      <Badge variant="outline">provenance {currentReviewItem.provenance_status || 'unknown'}</Badge>
+                      {currentReviewItem.error_stage && <Badge variant="outline">error {currentReviewItem.error_stage}</Badge>}
+                      {currentReviewItem.source_label && <Badge variant="outline">source {currentReviewItem.source_label}</Badge>}
+                    </div>
+
+                    <div className="rounded-md border border-border/60 bg-muted/20 p-3 text-sm">
+                      <p className="font-medium">{evidenceQualityHeadline(currentEvidenceQuality)}</p>
+                      <p className="mt-1 text-muted-foreground">{evidenceQualityBody(currentEvidenceQuality)}</p>
+                    </div>
+
+                    {evidenceSuspendMessage ? (
+                      <div className="rounded-md border border-dashed border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground">
+                        {evidenceSuspendMessage}
+                      </div>
+                    ) : currentSnippetUrl ? (
                       <div className="space-y-3">
-                        <Image
-                          src={currentReviewItem.snippet.image_url}
-                          alt={`Snippet for ${currentReviewItem.metric_name}`}
-                          width={900}
-                          height={520}
-                          unoptimized
-                          className="max-h-[360px] w-full rounded-md border border-border/60 bg-black/20 object-contain"
-                        />
-                        <p className="text-xs text-muted-foreground">{currentReviewItem.snippet.image_path}</p>
+                        {currentEvidenceQuality === 'approximate' && (
+                          <div className="grid gap-3 rounded-md border border-border/60 bg-muted/20 p-3 text-sm md:grid-cols-3">
+                            <div>
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Page</p>
+                              <p className="mt-1">{currentReviewItem.page_number ?? '?'}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Table type</p>
+                              <p className="mt-1">{currentReviewItem.table_type || currentReviewItem.source_label || '-'}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Method / provider</p>
+                              <p className="mt-1">{evidenceMethodLabel(currentReviewItem)}</p>
+                            </div>
+                          </div>
+                        )}
+                        <div className="relative overflow-hidden rounded-md border border-border/60 bg-black/20">
+                          <Image
+                            key={currentSnippetRenderKey}
+                            src={currentSnippetUrl}
+                            alt={`Snippet for ${currentReviewItem.metric_name}`}
+                            width={900}
+                            height={520}
+                            unoptimized
+                            onLoad={handleSnippetImageLoad}
+                            onError={handleSnippetImageError}
+                            className={`max-h-[360px] w-full object-contain transition-opacity ${snippetImageState.status === 'ready' ? 'opacity-100' : 'opacity-0'}`}
+                          />
+                          {snippetImageState.status !== 'ready' && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-background/85 px-6 text-center text-sm text-muted-foreground">
+                              <div className="space-y-3">
+                                {(snippetImageState.status === 'loading' || snippetImageState.status === 'retrying') && (
+                                  <div className="mx-auto h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                )}
+                                <p>
+                                  {snippetImageState.message
+                                    || (snippetImageState.status === 'retrying'
+                                      ? 'Refreshing snippet evidence...'
+                                      : 'Loading snippet evidence...')}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">{currentSnippetPath}</p>
                       </div>
                     ) : (
                       <div className="rounded-md border border-dashed border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground">
-                        {currentReviewItem.snippet.reason || 'Image snippet unavailable. Falling back to text evidence.'}
+                        {currentReviewItem.snippet.reason || evidenceQualityHeadline(currentEvidenceQuality)}
                       </div>
                     )}
 
-                    {(currentReviewItem.snippet.matched_text || currentReviewItem.evidence_text) && (
+                    {snippetImageState.status === 'failed' && currentSnippetUrl && !evidenceSuspendMessage && (
+                      <div className="rounded-md border border-dashed border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground">
+                        {snippetImageState.message || currentReviewItem.snippet.reason || evidenceQualityBody(currentEvidenceQuality)}
+                      </div>
+                    )}
+
+                    {matchedEvidenceText && !evidenceSuspendMessage && (
                       <div>
-                        <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">Matched text</p>
+                        <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
+                          {currentEvidenceQuality === 'precise' ? 'Matched source line' : 'Preserved evidence text'}
+                        </p>
                         <pre className="whitespace-pre-wrap rounded-md bg-muted/20 p-3 text-xs leading-5 text-foreground">
-                          {currentReviewItem.snippet.matched_text || currentReviewItem.evidence_text}
+                          {matchedEvidenceText}
                         </pre>
                       </div>
                     )}
 
-                    {currentReviewItem.snippet.ascii_preview && (
+                    {!matchedEvidenceText && !evidenceSuspendMessage && (
+                      <div className="rounded-md border border-dashed border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground">
+                        {currentEvidenceQuality === 'approximate'
+                          ? 'Exact matched text was not preserved for this metric. Review the source preview image above for manual verification.'
+                          : 'No matched text or usable visual evidence is available for this metric.'}
+                      </div>
+                    )}
+
+                    {currentReviewItem.evidence_reference && !evidenceSuspendMessage && (
+                      <div>
+                        <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">Evidence reference</p>
+                        <pre className="whitespace-pre-wrap rounded-md bg-muted/20 p-3 text-xs leading-5 text-muted-foreground">
+                          {currentReviewItem.evidence_reference}
+                        </pre>
+                      </div>
+                    )}
+
+                    {currentReviewItem.snippet.ascii_preview && !evidenceSuspendMessage && (
                       <div>
                         <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">ASCII preview</p>
                         <pre className="overflow-x-auto rounded-md bg-black/30 p-3 font-mono text-[10px] leading-3 text-muted-foreground">
@@ -1216,49 +2317,26 @@ export function VerificationScreen() {
                         </pre>
                       </div>
                     )}
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="rounded-lg border border-border/60 p-4">
-                    <p className="mb-3 text-sm font-medium">Review decision</p>
-                    <div className="space-y-3">
-                      <Field>
-                        <FieldLabel>Correct / expected value</FieldLabel>
-                        <Input value={expectedValue} onChange={(e) => setExpectedValue(e.target.value)} placeholder="Optional corrected value" className="font-mono" />
-                      </Field>
-                      <Field>
-                        <FieldLabel>Reviewer note</FieldLabel>
-                        <Textarea value={reviewerNote} onChange={(e) => setReviewerNote(e.target.value)} placeholder="Why is this wrong or uncertain?" className="min-h-[120px]" />
-                      </Field>
+                    <div className="rounded-lg border border-border/60 p-4">
+                      <p className="mb-3 text-sm font-medium">Verdict</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button onClick={() => void handleSubmitReview('correct')} disabled={reviewActionLoading || Boolean(evidenceSuspendMessage)}>
+                          <CheckCircle2 className="mr-2 h-4 w-4" />
+                          Correct
+                        </Button>
+                        <Button variant="destructive" onClick={() => void handleSubmitReview('wrong')} disabled={reviewActionLoading || Boolean(evidenceSuspendMessage)}>
+                          <XCircle className="mr-2 h-4 w-4" />
+                          Wrong
+                        </Button>
+                        <Button variant="secondary" onClick={() => void handleSubmitReview('unsure')} disabled={reviewActionLoading || Boolean(evidenceSuspendMessage)}>
+                          Unsure
+                        </Button>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" onClick={() => setReviewIndex((value) => Math.max(0, value - 1))} disabled={reviewIndex === 0 || reviewActionLoading}>
-                      <ChevronLeft className="mr-2 h-4 w-4" />
-                      Prev
-                    </Button>
-                    <Button onClick={() => void handleSubmitReview('approved')} disabled={reviewActionLoading}>
-                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                      Approve
-                    </Button>
-                    <Button variant="destructive" onClick={() => void handleSubmitReview('wrong')} disabled={reviewActionLoading}>
-                      <XCircle className="mr-2 h-4 w-4" />
-                      Wrong
-                    </Button>
-                    <Button variant="secondary" onClick={() => void handleSubmitReview('abstain')} disabled={reviewActionLoading}>
-                      <SkipForward className="mr-2 h-4 w-4" />
-                      Skip / Unsure
-                    </Button>
-                    <Button variant="outline" onClick={() => setReviewIndex((value) => Math.min(reviewItems.length - 1, value + 1))} disabled={reviewIndex >= reviewItems.length - 1 || reviewActionLoading}>
-                      Next
-                      <ChevronRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  <div className="rounded-lg border border-border/60 bg-muted/20 p-4 text-xs text-muted-foreground">
-                    Keyboard shortcuts: <span className="font-mono">A</span> approve, <span className="font-mono">W</span> wrong, <span className="font-mono">U</span> skip, <span className="font-mono">←</span>/<span className="font-mono">→</span> navigate.
+                    <div className="rounded-lg border border-border/60 bg-muted/20 p-4 text-xs text-muted-foreground">
+                      Keyboard shortcuts: <span className="font-mono">C</span> correct, <span className="font-mono">W</span> wrong, <span className="font-mono">U</span> unsure.
+                    </div>
                   </div>
                 </div>
               </div>

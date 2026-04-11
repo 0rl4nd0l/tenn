@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Fira_Code, Fira_Sans } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { QueryProvider } from '@/components/query-provider'
+import { OfflineIndicator } from '@/components/cockpit/offline-indicator'
 import './globals.css'
 
 const firaSans = Fira_Sans({
@@ -55,6 +56,7 @@ export default function RootLayout({
       <body className={`${firaSans.variable} ${firaCode.variable} font-sans antialiased`}>
         <QueryProvider>
           {children}
+          <OfflineIndicator />
         </QueryProvider>
         <Analytics />
       </body>

@@ -64,7 +64,7 @@ export function createChatSessionId(): string {
 export function loadChatSession(): PersistedChatSession {
   const fallback: PersistedChatSession = {
     sessionId: createChatSessionId(),
-    activeTicker: 'BHP',
+    activeTicker: '',
     draft: '',
     messages: [],
   }

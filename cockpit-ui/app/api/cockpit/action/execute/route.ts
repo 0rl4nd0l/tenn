@@ -81,7 +81,10 @@ export async function POST(req: Request): Promise<Response> {
   try {
     const requestHeaders = copyRequestHeaders(req.headers)
     const rawBody = await req.text()
-    const parsedBody = JSON.parse(rawBody || '{}') as { action_id?: string }
+    const parsedBody = JSON.parse(rawBody || '{}') as {
+      action_id?: string
+      return_job_handle?: boolean
+    }
     const shouldQueue = parsedBody.action_id !== 'show_candlestick'
     const backendBody = JSON.stringify({
       ...parsedBody,
@@ -98,6 +101,9 @@ export async function POST(req: Request): Promise<Response> {
     if (shouldQueue && upstream.ok) {
       const payload = await upstream.json().catch(() => null) as { queued?: boolean; job_id?: string } | null
       if (payload?.queued && payload.job_id) {
+        if (parsedBody.return_job_handle) {
+          return Response.json(payload)
+        }
         return await pollQueuedAction(payload.job_id, requestHeaders, controller.signal)
       }
       return Response.json(

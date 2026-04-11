@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ChevronRight, ChevronDown, Copy, Check, Maximize2 } from 'lucide-react'
+import { ChevronRight, ChevronDown, Copy, Check, Maximize2, ExternalLink } from 'lucide-react'
 import type { ChatMessage as ChatMessageType } from '@/lib/cockpit-types'
 import {
   Dialog,
@@ -14,12 +14,19 @@ import {
 interface TerminalMessageProps {
   message: ChatMessageType
   isStreaming?: boolean
+  showSources?: boolean
   onConfirmAction?: (actionPreview: ChatMessageType['actionPreview']) => void
   onCancelAction?: (actionPreview: ChatMessageType['actionPreview']) => void
 }
 
-export function TerminalMessage({ message, isStreaming, onConfirmAction, onCancelAction }: TerminalMessageProps) {
-  const [sourcesExpanded, setSourcesExpanded] = useState(false)
+export function TerminalMessage({
+  message,
+  isStreaming,
+  showSources = true,
+  onConfirmAction,
+  onCancelAction
+}: TerminalMessageProps) {
+  const [sourcesExpanded, setSourcesExpanded] = useState(Boolean(showSources))
   const [thinkingExpanded, setThinkingExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
   const [rawDumpExpanded, setRawDumpExpanded] = useState(false)
@@ -51,6 +58,19 @@ export function TerminalMessage({ message, isStreaming, onConfirmAction, onCance
     return `[${pct.toFixed(0)}%]`
   }
 
+  const formatSourceDate = (value: string | undefined): string | null => {
+    if (!value) {
+      return null
+    }
+
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) {
+      return value.slice(0, 10) || value
+    }
+
+    return parsed.toISOString().slice(0, 10)
+  }
+
   const isFilestatsDump = message.content.includes('Company Data Dump:')
   const hasFilestatsChart = Boolean(message.chart && /filestats/i.test(message.chart.title || ''))
   const shouldCollapseRawDump = isFilestatsDump && hasFilestatsChart
@@ -62,6 +82,10 @@ export function TerminalMessage({ message, isStreaming, onConfirmAction, onCance
       setAutoOpenedFilestatsChart(true)
     }
   }, [autoOpenedFilestatsChart, hasFilestatsChart])
+
+  useEffect(() => {
+    setSourcesExpanded(Boolean(showSources))
+  }, [message.id, showSources])
 
   // Parse content for code blocks and format
   const formatContent = (content: string) => {
@@ -325,20 +349,57 @@ export function TerminalMessage({ message, isStreaming, onConfirmAction, onCance
       {/* Sources */}
       {message.sources && message.sources.length > 0 && (
         <div className="ml-4 mt-2">
-          <button 
+          <button
             onClick={() => setSourcesExpanded(!sourcesExpanded)}
-            className="flex items-center gap-1 text-sm text-blue-400/70 hover:text-blue-400 transition-colors"
+            className="flex items-center gap-1 text-sm text-blue-400/80 hover:text-blue-300 transition-colors"
           >
             {sourcesExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-            [{message.sources.length} sources]
+            [{message.sources.length} source{message.sources.length === 1 ? '' : 's'}]
           </button>
           {sourcesExpanded && (
-            <div className="mt-1 pl-4 text-sm text-blue-400/60 space-y-0.5">
+            <div className="mt-2 space-y-2 rounded-md border border-blue-500/15 bg-blue-500/5 px-3 py-2 text-sm">
               {message.sources.map((source, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span className="text-blue-500">{`>`}</span>
-                  <span className="truncate">{source.title}</span>
-                  <span className="text-blue-300">{formatSourceScore(source.score)}</span>
+                <div
+                  key={`${source.sourceId || source.documentId || source.url || source.title}-${i}`}
+                  className="flex items-start gap-2"
+                >
+                  <span className="mt-0.5 text-blue-500">{`>`}</span>
+                  <div className="min-w-0 flex-1">
+                    {source.url ? (
+                      <a
+                        href={source.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex max-w-full items-center gap-1 break-all text-blue-300 underline decoration-blue-500/40 underline-offset-2 hover:text-blue-200"
+                      >
+                        <span>{source.title}</span>
+                        <ExternalLink className="h-3 w-3 shrink-0" />
+                      </a>
+                    ) : (
+                      <div className="break-words text-blue-200">{source.title}</div>
+                    )}
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-blue-200/60">
+                      {source.kind && <span>{source.kind}</span>}
+                      {source.docType && <span>{source.docType}</span>}
+                      {formatSourceDate(source.publishedAt) && (
+                        <span>{formatSourceDate(source.publishedAt)}</span>
+                      )}
+                      {source.documentId && (
+                        <span className="font-mono">doc {source.documentId.slice(0, 12)}</span>
+                      )}
+                    </div>
+                    {source.snippet && (
+                      <p className="mt-1 whitespace-pre-wrap break-words text-blue-100/70">
+                        {source.snippet}
+                      </p>
+                    )}
+                    {!source.url && source.path && (
+                      <p className="mt-1 break-all font-mono text-[11px] text-blue-100/45">
+                        {source.path}
+                      </p>
+                    )}
+                  </div>
+                  <span className="shrink-0 text-blue-300/80">{formatSourceScore(source.score)}</span>
                 </div>
               ))}
             </div>
