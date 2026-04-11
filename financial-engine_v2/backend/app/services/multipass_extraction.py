@@ -897,10 +897,18 @@ def _is_total_row(row: list[str]) -> bool:
     )
 
 
+def _normalize_filter_text(value: str) -> str:
+    """Collapse spacing/punctuation so compacted Docling labels still match."""
+    return _re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
+
+
 def _row_matches_keywords(row: list[str], keywords: list[str]) -> bool:
     """Check if a row label matches any metric-relevant keyword."""
     label = str(row[0]).strip().lower() if row else ""
-    return any(kw in label for kw in keywords)
+    if any(kw in label for kw in keywords):
+        return True
+    compact_label = _normalize_filter_text(label)
+    return any(_normalize_filter_text(kw) in compact_label for kw in keywords)
 
 
 def _filter_table_rows(table, table_type: str) -> list[list[str]]:

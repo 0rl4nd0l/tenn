@@ -2624,6 +2624,30 @@ class TestRowFiltering:
         assert _is_total_row(["Net cash from operating activities", "880", "(656)"])
         assert not _is_total_row(["Receipts from customers", "3,343", "2,368"])
 
+    def test_docling_compacted_cash_end_row_survives_filter(self):
+        rows = [["Item", "30 June 2025 US$M", "30 June 2024 US$M"]]
+        rows.extend([[f"Noise row {i}", str(i), str(i - 1)] for i in range(1, 25)])
+        rows.append(["Netcashflows from operating activities", "1,756", "1,212"])
+        rows.append(["Cashandcashequivalentsat30June", "2,124", "1,445"])
+        table = _make_table_with_rows(rows)
+
+        result = _filter_table_rows(table, "cashflow_statement")
+        labels = [str(r[0]) for r in result]
+
+        assert "Cashandcashequivalentsat30June" in labels
+
+    def test_docling_compacted_share_row_survives_balance_sheet_filter(self):
+        rows = [["Item", "30 June 2025", "31 December 2024"]]
+        rows.extend([[f"Noise row {i}", str(i), str(i - 1)] for i in range(1, 25)])
+        rows.append(["Borrowings", "3,679", "2,664"])
+        rows.append(["Issued ordinary shares, fullypaidat30June", "1,510", "1,502"])
+        table = _make_table_with_rows(rows)
+
+        result = _filter_table_rows(table, "balance_sheet")
+        labels = [str(r[0]) for r in result]
+
+        assert "Issued ordinary shares, fullypaidat30June" in labels
+
     def test_filter_disabled_by_env(self, monkeypatch):
         monkeypatch.setenv("EXTRACTION_FILTER_ROWS", "0")
         rows = [["H", "V"]] + [[f"Row {i}", str(i)] for i in range(25)]
