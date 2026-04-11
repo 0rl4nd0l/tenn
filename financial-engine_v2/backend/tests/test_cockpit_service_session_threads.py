@@ -29,6 +29,7 @@ class _FakeController:
     def __init__(self, text: str) -> None:
         self.text = text
         self.calls: list[dict[str, object]] = []
+        self._hybrid_router = None
 
     def build_chat_response(self, **kwargs):
         self.calls.append(kwargs)
@@ -143,6 +144,41 @@ def test_chat_stream_populates_model_metadata_even_when_controller_omits_it() ->
         "source": "local",
         "latency_ms": 0,
         "cost_usd": 0.0,
+    }
+
+
+def test_chat_stream_uses_last_attempt_route_when_controller_metadata_is_empty() -> None:
+    service = CockpitService.__new__(CockpitService)
+    _prime_service(service)
+    service.state_store = _FakeStateStore()
+    service.llm_client = _FakeLlmClient("model:qwen3.5-35b-a3b")
+    controller = _FakeController(
+        "I encountered an error communicating with the language model: Error code: 529"
+    )
+    controller._hybrid_router = SimpleNamespace(
+        last_attempt_metadata=lambda: {
+            "source": "api",
+            "model": "claude-sonnet-test",
+            "latency_ms": 0,
+            "cost_usd": 0.0,
+            "routing_reason": "force:api",
+        }
+    )
+    service._build_chat_controller = lambda thread_id: controller  # type: ignore[method-assign]
+
+    response = CockpitService.chat_stream(
+        service,
+        message="/cloud tell me about AGL",
+        session_id="session-last-attempt",
+    )
+
+    assert "Error code: 529" in response.text
+    assert response.routing_metadata == {
+        "source": "api",
+        "model": "claude-sonnet-test",
+        "latency_ms": 0,
+        "cost_usd": 0.0,
+        "routing_reason": "force:api",
     }
 
 

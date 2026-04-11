@@ -110,6 +110,7 @@ class HybridRouter:
         self._extraction_active_fn = extraction_active_fn
         self._gpu_preemption_fn = gpu_preemption_fn
         self._log: list[_CostEntry] = []
+        self._last_attempt: dict[str, Any] | None = None
 
         if self._policy == "api_preferred" and self._api is None:
             logger.warning(
@@ -147,6 +148,15 @@ class HybridRouter:
             on_status=on_status,
         )
 
+        model_name = self._resolve_backend_model_name(backend)
+        self._last_attempt = {
+            "source": backend,
+            "model": model_name,
+            "latency_ms": 0,
+            "cost_usd": 0.0,
+            "routing_reason": routing_reason,
+        }
+
         start = time.monotonic()
         if backend == "local":
             response = self._call_local(messages, on_chunk=on_chunk)
@@ -173,6 +183,13 @@ class HybridRouter:
                 routing_reason=routing_reason,
             )
         )
+        self._last_attempt = {
+            "source": backend,
+            "model": result.model,
+            "latency_ms": elapsed_ms,
+            "cost_usd": result.cost_usd,
+            "routing_reason": routing_reason,
+        }
         return result
 
     def cost_log(self) -> list[dict]:
@@ -192,6 +209,10 @@ class HybridRouter:
     def total_cost_usd(self) -> float:
         """Return cumulative API cost in USD (local calls contribute 0.0)."""
         return sum(e.cost_usd for e in self._log)
+
+    def last_attempt_metadata(self) -> dict[str, Any] | None:
+        """Return metadata for the most recent routing attempt, including failures."""
+        return dict(self._last_attempt) if self._last_attempt is not None else None
 
     # ------------------------------------------------------------------
     # Backend selection
@@ -367,6 +388,11 @@ class HybridRouter:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    def _resolve_backend_model_name(self, backend: str) -> str:
+        if backend == "api":
+            return str(getattr(self._api, "model", "api") or "api")
+        return str(getattr(self._local, "model", "local") or "local")
 
     # ------------------------------------------------------------------
     # chat() adapter — allows HybridRouter to be used as llm_client

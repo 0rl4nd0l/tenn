@@ -236,3 +236,29 @@ class TestGpuPreemptionRouting:
         assert result.source == "local"
         mock_llm_client.chat.assert_called_once()
         mock_api_client.chat.assert_not_called()
+
+
+def test_last_attempt_metadata_is_preserved_on_failed_api_call(mock_llm_client):
+    class _FailingApiClient:
+        model = "claude-sonnet"
+
+        def chat(self, prompt, timeout=120.0, prior_messages=None, on_chunk=None):
+            raise RuntimeError("Error code: 529 - overloaded")
+
+    router = HybridRouter(
+        llm_client=mock_llm_client,
+        api_client=_FailingApiClient(),
+        policy="api_only",
+    )
+
+    with pytest.raises(RuntimeError, match="529"):
+        router.complete([{"role": "user", "content": "hi"}])
+
+    assert router.cost_log() == []
+    assert router.last_attempt_metadata() == {
+        "source": "api",
+        "model": "claude-sonnet",
+        "latency_ms": 0,
+        "cost_usd": 0.0,
+        "routing_reason": "policy:api_only",
+    }

@@ -1297,6 +1297,16 @@ class CockpitService:
             on_thinking=_capture_thinking,
         )
         meta = dict(getattr(response, "routing_metadata", None) or {})
+        if not str(meta.get("source") or "").strip():
+            hybrid_router = getattr(controller, "_hybrid_router", None)
+            last_attempt = (
+                hybrid_router.last_attempt_metadata()
+                if hybrid_router is not None
+                and hasattr(hybrid_router, "last_attempt_metadata")
+                else None
+            )
+            if isinstance(last_attempt, dict):
+                meta.update(last_attempt)
         llm_client = getattr(self, "llm_client", None)
         current_model = str(getattr(llm_client, "model", "") or "").strip()
         if current_model and not str(meta.get("model") or "").strip():
