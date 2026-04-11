@@ -1,0 +1,3147 @@
+registry_metadata:
+  generated_on: '2026-04-11'
+  status: SPEC_ONLY
+  execution_mode: EXTEND_EXISTING_DOC_ARTIFACTS_ONLY
+  collision_risk: MEDIUM
+  contract_safe: true
+  contract_scope:
+    target_layer: evaluation_spec_and_registry_docs
+    relevant_rules:
+    - "SYSTEM_CONTRACT \xA73.3 Metric Extraction: do not infer or substitute values"
+    - "SYSTEM_CONTRACT \xA73.5 Normalization: unit/sign normalization only; no fabrication"
+    - "SYSTEM_CONTRACT \xA71.1 and \xA72: backend/runtime authority unchanged"
+    must_not_change:
+    - extractor logic
+    - evaluator scoring logic
+    - canonical truth schema
+    - production wiring
+    safety_rationale: Registry/report update is offline-only and keeps runtime/extractor/evaluator surfaces untouched.
+  audit_observations:
+    existing_registry_report_present_locally: true
+    git_history_for_registry_report: DATA_MISSING
+    runtime_alias_resolver_distinct_from_registry: scripts/metric_ontology_mapper.py
+    extractor_metric_fields_distinct_from_registry: financial-engine_v2/backend/app/services/multipass_extraction.py::METRIC_FIELDS
+    evaluator_metric_set_distinct_from_registry: financial-engine_v2/backend/tests/eval_config.json + financial-engine_v2/data/extraction_gold_real/README.md
+  layer_authority:
+    canonical_evaluator_lane: statement_pass_full metrics
+    primary_normalization_source: statement_pass_full supplemental_metrics
+    discovery_only_surface: exhaustive all_exhaustive_datapoints row_label universe
+  schema_compatibility_preserved: true
+layer_inventory:
+  canonical_lane:
+    documents: 10
+    unique_metric_names: 3
+    datapoints: 22
+    metrics:
+      net_debt:
+        coverage_doc_count: 5
+        coverage_datapoint_count: 5
+      operating_cash_flow:
+        coverage_doc_count: 10
+        coverage_datapoint_count: 10
+      revenue:
+        coverage_doc_count: 7
+        coverage_datapoint_count: 7
+    authoritative_for: Current evaluator-required gold expectations.
+  curated_supplemental_lane_baseline:
+    bundle: docs/extraction_gold_real_enriched.zip
+    unique_raw_metric_names: 85
+    datapoints: 136
+  curated_supplemental_lane_corpus_v2:
+    bundle: docs/extraction_gold_real_statement_pass_full.zip
+    unique_raw_metric_names: 337
+    datapoints: 539
+    delta_vs_baseline:
+      raw_metric_names_added: 252
+      datapoints_added: 403
+    authoritative_for: Evaluator-oriented supplemental normalization and expansion planning.
+  exhaustive_discovery_surface:
+    bundle: docs/extraction_gold_real_exhaustive_run/
+    unique_row_labels: 2999
+    datapoints: 18652
+    authoritative_for: Discovery/filtering only; not a normalization authority.
+registry_entries:
+- raw_metric_name:
+  - revenue
+  normalized_metric_type: revenue
+  source_layer: canonical
+  inclusion_decision: KEEP
+  statement_family: profitability
+  form_type: A+H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: READY_NOW
+  coverage_doc_count: 7
+  coverage_datapoint_count: 7
+  ambiguity_notes: Existing canonical evaluator lane; retained unchanged.
+  holdout_reason: null
+- raw_metric_name:
+  - operating_cash_flow
+  normalized_metric_type: operating_cash_flow
+  source_layer: canonical
+  inclusion_decision: KEEP
+  statement_family: cash_flow
+  form_type: A+H+Q
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: READY_NOW
+  coverage_doc_count: 10
+  coverage_datapoint_count: 10
+  ambiguity_notes: Existing canonical evaluator lane; retained unchanged.
+  holdout_reason: null
+- raw_metric_name:
+  - net_debt
+  normalized_metric_type: net_debt
+  source_layer: canonical
+  inclusion_decision: KEEP
+  statement_family: balance_sheet
+  form_type: A+H
+  period_scope: point_in_time
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: READY_AFTER_EXTRACTION_STABILIZES
+  coverage_doc_count: 5
+  coverage_datapoint_count: 5
+  ambiguity_notes: Existing canonical evaluator lane remains unchanged, but net-debt-adjacent expansion stays blocked until
+    base extraction stabilizes.
+  holdout_reason: Do not prioritize net_debt variants until base net_debt extraction is fixed.
+- raw_metric_name:
+  - diluted_earnings_per_share_cents
+  - diluted_earnings_per_share_us_cents
+  normalized_metric_type: diluted_earnings_per_share
+  source_layer: curated_supplemental
+  inclusion_decision: KEEP
+  statement_family: per_share
+  form_type: A+H
+  period_scope: period_flow
+  unit: mixed_cents_per_share
+  underlying_flag: false
+  evaluator_ready_status: READY_NOW
+  coverage_doc_count: 7
+  coverage_datapoint_count: 7
+  ambiguity_notes: Concept is reusable, but raw inputs mix US-cent and local-cent labels; evaluator promotion must stay currency-aware.
+  holdout_reason: null
+- raw_metric_name:
+  - profit_before_income_tax
+  - profit_before_income_tax_expense
+  - profit_before_tax_for_half_year
+  - profit_before_taxation
+  normalized_metric_type: profit_before_taxation
+  source_layer: curated_supplemental
+  inclusion_decision: KEEP
+  statement_family: profitability
+  form_type: A+H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: READY_NOW
+  coverage_doc_count: 7
+  coverage_datapoint_count: 7
+  ambiguity_notes: Reusable pre-tax profit family spanning several common statement labels.
+  holdout_reason: null
+- raw_metric_name:
+  - finance_costs
+  - financial_expenses
+  normalized_metric_type: finance_costs
+  source_layer: curated_supplemental
+  inclusion_decision: KEEP
+  statement_family: profitability
+  form_type: A+H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: READY_NOW
+  coverage_doc_count: 6
+  coverage_datapoint_count: 6
+  ambiguity_notes: Statement finance-cost family is reusable and distinct from financing cash outflow lines.
+  holdout_reason: null
+- raw_metric_name:
+  - finance_income
+  - financial_income
+  normalized_metric_type: finance_income
+  source_layer: curated_supplemental
+  inclusion_decision: KEEP
+  statement_family: profitability
+  form_type: A+H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: READY_NOW
+  coverage_doc_count: 6
+  coverage_datapoint_count: 6
+  ambiguity_notes: Statement finance-income family is reusable and distinct from cash-receipts variants.
+  holdout_reason: null
+- raw_metric_name:
+  - income_tax_expense
+  - taxation_expense
+  - total_taxation_expense
+  normalized_metric_type: income_tax_expense
+  source_layer: curated_supplemental
+  inclusion_decision: KEEP
+  statement_family: profitability
+  form_type: A+H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: READY_NOW
+  coverage_doc_count: 5
+  coverage_datapoint_count: 7
+  ambiguity_notes: Explicit statement tax-expense family; keep separate from tax paid/refunded cash lines.
+  holdout_reason: null
+- raw_metric_name:
+  - basic_earnings_per_share_cents
+  - basic_earnings_per_share_us_cents
+  normalized_metric_type: basic_earnings_per_share
+  source_layer: curated_supplemental
+  inclusion_decision: KEEP
+  statement_family: per_share
+  form_type: A+H
+  period_scope: period_flow
+  unit: mixed_cents_per_share
+  underlying_flag: false
+  evaluator_ready_status: READY_NOW
+  coverage_doc_count: 5
+  coverage_datapoint_count: 5
+  ambiguity_notes: Concept is reusable, but raw inputs mix US-cent and local-cent labels; evaluator promotion must stay currency-aware.
+  holdout_reason: null
+- raw_metric_name:
+  - interest_received_statement
+  normalized_metric_type: interest_received_statement
+  source_layer: curated_supplemental
+  inclusion_decision: KEEP
+  statement_family: profitability
+  form_type: A+H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: READY_NOW
+  coverage_doc_count: 5
+  coverage_datapoint_count: 5
+  ambiguity_notes: Explicit statement line; keep separate from 5B interest-received cash lines.
+  holdout_reason: null
+- raw_metric_name:
+  - net_assets
+  normalized_metric_type: net_assets
+  source_layer: curated_supplemental
+  inclusion_decision: KEEP
+  statement_family: balance_sheet
+  form_type: A+H
+  period_scope: point_in_time
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: READY_NOW
+  coverage_doc_count: 5
+  coverage_datapoint_count: 5
+  ambiguity_notes: Clean point-in-time balance-sheet family with stable labels across multiple filings.
+  holdout_reason: null
+- raw_metric_name:
+  - other_income
+  normalized_metric_type: other_income
+  source_layer: curated_supplemental
+  inclusion_decision: KEEP
+  statement_family: profitability
+  form_type: A+H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: READY_NOW
+  coverage_doc_count: 5
+  coverage_datapoint_count: 5
+  ambiguity_notes: Explicit other-income family with stable reuse across result documents.
+  holdout_reason: null
+- raw_metric_name:
+  - underlying_ebitda
+  normalized_metric_type: underlying_ebitda
+  source_layer: curated_supplemental
+  inclusion_decision: KEEP
+  statement_family: profitability
+  form_type: A+H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: true
+  evaluator_ready_status: READY_NOW
+  coverage_doc_count: 5
+  coverage_datapoint_count: 5
+  ambiguity_notes: Clear cross-document non-IFRS EBITDA family in annual and half-year result documents.
+  holdout_reason: null
+- raw_metric_name:
+  - depreciation_and_amortisation
+  - depreciation_of_property_plant_and_equipment_and_amortisation_of_intangible_assets
+  normalized_metric_type: depreciation_and_amortisation
+  source_layer: curated_supplemental
+  inclusion_decision: KEEP
+  statement_family: profitability
+  form_type: A+H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: READY_NOW
+  coverage_doc_count: 4
+  coverage_datapoint_count: 4
+  ambiguity_notes: Reusable D&A family; keep impairment-heavy variants out of the ready lane.
+  holdout_reason: null
+- raw_metric_name:
+  - free_cash_flow
+  normalized_metric_type: free_cash_flow
+  source_layer: curated_supplemental
+  inclusion_decision: KEEP
+  statement_family: cash_flow
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: READY_NOW
+  coverage_doc_count: 4
+  coverage_datapoint_count: 4
+  ambiguity_notes: Cross-document reusable and already explicit in curated results documents; preferred over raw capex variants.
+  holdout_reason: null
+- raw_metric_name:
+  - interest_paid_statement
+  normalized_metric_type: interest_paid_statement
+  source_layer: curated_supplemental
+  inclusion_decision: KEEP
+  statement_family: profitability
+  form_type: A+H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: READY_NOW
+  coverage_doc_count: 3
+  coverage_datapoint_count: 3
+  ambiguity_notes: Explicit statement line; keep separate from 5B finance-cost cash lines.
+  holdout_reason: null
+- raw_metric_name:
+  - net_finance_costs
+  normalized_metric_type: net_finance_costs
+  source_layer: curated_supplemental
+  inclusion_decision: KEEP
+  statement_family: profitability
+  form_type: A+H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: READY_NOW
+  coverage_doc_count: 3
+  coverage_datapoint_count: 3
+  ambiguity_notes: Explicit net finance cost line, reusable where present.
+  holdout_reason: null
+- raw_metric_name:
+  - cash_and_cash_equivalents
+  - cash_and_cash_equivalents_balance_sheet
+  - cash_and_cash_equivalents_total
+  normalized_metric_type: cash_and_cash_equivalents_balance_sheet
+  source_layer: curated_supplemental
+  inclusion_decision: SUPPORT_ONLY
+  statement_family: balance_sheet
+  form_type: A+H
+  period_scope: point_in_time
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: SUPPORT_ONLY
+  coverage_doc_count: 7
+  coverage_datapoint_count: 7
+  ambiguity_notes: Useful support family for residual net-debt diagnosis; keep separate from 5B end-of-period cash lines.
+  holdout_reason: Support family only; do not mix balance-sheet cash with 5B roll-forward cash labels.
+- raw_metric_name:
+  - borrowings_current
+  - interest_bearing_liabilities_current
+  normalized_metric_type: borrowings_current
+  source_layer: curated_supplemental
+  inclusion_decision: SUPPORT_ONLY
+  statement_family: balance_sheet
+  form_type: A+H
+  period_scope: point_in_time
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: SUPPORT_ONLY
+  coverage_doc_count: 6
+  coverage_datapoint_count: 6
+  ambiguity_notes: Useful support family for net-debt diagnosis and balance-sheet reconciliation.
+  holdout_reason: Support family only; do not prioritize evaluator expansion ahead of the core ready lane.
+- raw_metric_name:
+  - borrowings_non_current
+  - interest_bearing_liabilities_non_current
+  normalized_metric_type: borrowings_non_current
+  source_layer: curated_supplemental
+  inclusion_decision: SUPPORT_ONLY
+  statement_family: balance_sheet
+  form_type: A+H
+  period_scope: point_in_time
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: SUPPORT_ONLY
+  coverage_doc_count: 6
+  coverage_datapoint_count: 6
+  ambiguity_notes: Useful support family for net-debt diagnosis and balance-sheet reconciliation.
+  holdout_reason: Support family only; do not prioritize evaluator expansion ahead of the core ready lane.
+- raw_metric_name:
+  - property_plant_and_equipment
+  normalized_metric_type: property_plant_and_equipment
+  source_layer: curated_supplemental
+  inclusion_decision: SUPPORT_ONLY
+  statement_family: balance_sheet
+  form_type: A
+  period_scope: point_in_time
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: SUPPORT_ONLY
+  coverage_doc_count: 4
+  coverage_datapoint_count: 4
+  ambiguity_notes: Useful support family for capex and asset-base context.
+  holdout_reason: Support family only.
+- raw_metric_name:
+  - total_assets
+  - total_assets_balance_sheet
+  normalized_metric_type: total_assets
+  source_layer: curated_supplemental
+  inclusion_decision: SUPPORT_ONLY
+  statement_family: balance_sheet
+  form_type: A+H
+  period_scope: point_in_time
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: SUPPORT_ONLY
+  coverage_doc_count: 4
+  coverage_datapoint_count: 4
+  ambiguity_notes: Benchmark guidance identifies total_assets as a sensible next candidate family, but this registry keeps
+    it in support-only status.
+  holdout_reason: High-value support family; evaluator expansion can follow after the current ready lane.
+- raw_metric_name:
+  - current_assets_total
+  - total_current_assets
+  normalized_metric_type: total_current_assets
+  source_layer: curated_supplemental
+  inclusion_decision: SUPPORT_ONLY
+  statement_family: balance_sheet
+  form_type: A+H
+  period_scope: point_in_time
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: SUPPORT_ONLY
+  coverage_doc_count: 4
+  coverage_datapoint_count: 4
+  ambiguity_notes: Useful support family for balance-sheet structure analysis.
+  holdout_reason: Support family only.
+- raw_metric_name:
+  - total_liabilities
+  - total_liabilities_balance_sheet
+  normalized_metric_type: total_liabilities
+  source_layer: curated_supplemental
+  inclusion_decision: SUPPORT_ONLY
+  statement_family: balance_sheet
+  form_type: A+H
+  period_scope: point_in_time
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: SUPPORT_ONLY
+  coverage_doc_count: 4
+  coverage_datapoint_count: 4
+  ambiguity_notes: Useful support family for balance-sheet diagnostics and net-assets reconciliation.
+  holdout_reason: Support family only.
+- raw_metric_name:
+  - non_current_assets_total
+  - total_non_current_assets
+  normalized_metric_type: total_non_current_assets
+  source_layer: curated_supplemental
+  inclusion_decision: SUPPORT_ONLY
+  statement_family: balance_sheet
+  form_type: A+H
+  period_scope: point_in_time
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: SUPPORT_ONLY
+  coverage_doc_count: 4
+  coverage_datapoint_count: 4
+  ambiguity_notes: Useful support family for balance-sheet structure analysis.
+  holdout_reason: Support family only.
+- raw_metric_name:
+  - trade_and_other_payables_current
+  normalized_metric_type: trade_and_other_payables_current
+  source_layer: curated_supplemental
+  inclusion_decision: SUPPORT_ONLY
+  statement_family: balance_sheet
+  form_type: A+H
+  period_scope: point_in_time
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: SUPPORT_ONLY
+  coverage_doc_count: 4
+  coverage_datapoint_count: 4
+  ambiguity_notes: Useful balance-sheet support family for liability diagnostics.
+  holdout_reason: Support family only.
+- raw_metric_name:
+  - shareholders_equity
+  - total_equity
+  normalized_metric_type: total_equity
+  source_layer: curated_supplemental
+  inclusion_decision: SUPPORT_ONLY
+  statement_family: balance_sheet
+  form_type: A+H
+  period_scope: point_in_time
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: SUPPORT_ONLY
+  coverage_doc_count: 3
+  coverage_datapoint_count: 4
+  ambiguity_notes: Benchmark guidance identifies total_equity as a sensible next candidate family, but attributable-vs-group
+    variants remain separate.
+  holdout_reason: High-value support family; keep parent-attributable variants out of the ready lane for now.
+- raw_metric_name:
+  - inventories_current
+  normalized_metric_type: inventories_current
+  source_layer: curated_supplemental
+  inclusion_decision: SUPPORT_ONLY
+  statement_family: balance_sheet
+  form_type: A+H
+  period_scope: point_in_time
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: SUPPORT_ONLY
+  coverage_doc_count: 3
+  coverage_datapoint_count: 3
+  ambiguity_notes: Useful support family for working-capital diagnostics.
+  holdout_reason: Support family only.
+- raw_metric_name:
+  - cash_and_cash_equivalents_at_beginning_of_half_year
+  - cash_and_cash_equivalents_end_of_period
+  - cash_and_cash_equivalents_net_of_overdrafts_at_beginning_of_year
+  - cash_and_cash_equivalents_net_of_overdrafts_at_end_of_year
+  - closing_cash_and_cash_equivalents_less_overdrafts
+  - effects_of_exchange_rate_changes_on_cash_and_cash_equivalents
+  - foreign_currency_exchange_rate_changes_on_cash_and_cash_equivalents
+  - net_decrease_in_cash_and_cash_equivalents
+  - net_increase_in_cash_and_cash_equivalents
+  - net_increase_in_cash_and_cash_equivalents_statement
+  - net_movement_in_cash_and_cash_equivalents
+  - opening_cash_and_cash_equivalents_less_overdrafts
+  - restricted_cash_and_cash_equivalents
+  normalized_metric_type: cash_rollforward_and_cash_position_variants
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: cash_flow
+  form_type: A+H+Q
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 9
+  coverage_datapoint_count: 22
+  ambiguity_notes: Cash roll-forward labels span result documents and 5B roll-forwards with different semantics.
+  holdout_reason: Keep as supplemental only; do not mix with balance-sheet cash support families.
+- raw_metric_name:
+  - borrowings_total
+  - contributed_equity
+  - lease_liabilities_current
+  - lease_liabilities_non_current
+  - lease_liabilities_total
+  - net_cash_from_financing_activities
+  - payment_of_principal_portion_of_lease_liabilities
+  - proceeds_from_additional_borrowings
+  - proceeds_from_additional_borrowings_net_issue_costs
+  - proceeds_from_borrowings
+  - proceeds_from_interest_bearing_liabilities
+  - proceeds_from_issue_of_equity_to_non_controlling_interests
+  - proceeds_from_sale_of_assets
+  - proceeds_received_from_borrowings
+  - purchase_of_treasury_shares
+  - receipts_from_associate_on_repayment_of_loans
+  - repayment_of_borrowings
+  - repayment_of_borrowings_and_associated_derivatives
+  - repayment_of_interest_bearing_liabilities
+  - repayment_of_lease_liabilities_asset_financing_arrangements
+  - reserves
+  - retained_earnings
+  - retained_profits
+  - share_buy_back
+  - share_capital
+  - share_capital_balance_sheet
+  - transaction_costs_relating_to_borrowings
+  - treasury_shares_held_in_trust
+  normalized_metric_type: financing_structure_and_equity_movements
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: A+H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: READY_AFTER_EXTRACTION_STABILIZES
+  coverage_doc_count: 7
+  coverage_datapoint_count: 37
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Net-debt-adjacent family stays blocked until base net_debt extraction stabilizes.
+- raw_metric_name:
+  - banco_santander_loan_facilities_drawn
+  - banco_santander_loan_facilities_total
+  - caixabank_loan_facility_drawn
+  - caixabank_loan_facility_total
+  - cronimet_offtake_advance_facility_drawn
+  - cronimet_offtake_advance_facility_total
+  - cronimet_working_capital_facility_drawn
+  - cronimet_working_capital_facility_total
+  - net_funding_of_equity_accounted_units
+  - net_investment_and_funding_of_equity_accounted_investments
+  - total_available_funding
+  - total_financing_facilities
+  - total_financing_facilities_drawn
+  - unsecured_oaktree_pre_royalty_loan_drawn
+  - unsecured_oaktree_pre_royalty_loan_total
+  normalized_metric_type: financing_facilities_and_liquidity
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: cash_flow
+  form_type: A+Q
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 7
+  coverage_datapoint_count: 19
+  ambiguity_notes: 5B facility, drawn, and runway lines are useful for filing review but are form-specific.
+  holdout_reason: Too form-specific for evaluator expansion.
+- raw_metric_name:
+  - attributable_profit
+  - profit_after_income_tax
+  - profit_after_income_tax_attributable_to_ordinary_equity_holders
+  - profit_after_tax
+  - profit_after_tax_attributable_to_owners
+  - profit_after_tax_for_year
+  - profit_after_taxation_from_continuing_operations
+  - profit_attributable_to_equity_holders_of_parent
+  - profit_for_period_attributable_to_equity_holders
+  - statutory_net_profit_after_tax
+  normalized_metric_type: profit_after_tax_family
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: profitability
+  form_type: A+H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 7
+  coverage_datapoint_count: 14
+  ambiguity_notes: Raw PAT labels mix group profit, parent-attributable profit, and continuing-operations wording.
+  holdout_reason: Ambiguous parent/group semantics keep this family out of the ready lane.
+- raw_metric_name:
+  - distributions_paid_to_unitholder
+  - dividends_and_distributions_paid
+  - dividends_paid_statement
+  - dividends_paid_to_equity_holders_of_telstra_entity
+  - dividends_paid_to_holders_of_non_controlling_interests
+  - dividends_paid_to_non_controlling_interests
+  - equity_dividends_paid_to_owners_of_rio_tinto
+  normalized_metric_type: dividends_paid_and_equity_returns
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: A+H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 7
+  coverage_datapoint_count: 11
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - acquisition_costs_paid
+  - acquisitions_of_subsidiaries_joint_ventures_and_associates
+  - disposals_of_subsidiaries_joint_ventures_joint_operations_and_associates
+  - investments
+  - investments_accounted_for_using_the_equity_method
+  - investments_in_equity_accounted_units
+  - loss_from_equity_accounted_investments_related_impairments_and_expenses
+  - net_cash_used_in_investing_activities
+  - net_cash_used_in_investing_activities_statement
+  - other_investing
+  - other_investing_cash_flows
+  - profit_loss_from_equity_accounted_investments_related_impairments_and_expenses
+  - purchase_of_non_controlling_interest
+  - purchases_of_financial_assets
+  - sales_of_financial_assets
+  normalized_metric_type: investing_cash_flow_and_investment_activity
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: cash_flow
+  form_type: A+H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 6
+  coverage_datapoint_count: 23
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - current_tax_assets
+  - current_tax_payable
+  - current_tax_receivables
+  - deferred_tax_assets
+  - deferred_tax_liabilities
+  - income_taxes_paid
+  - income_taxes_refunded
+  - net_income_tax_and_royalty_related_taxation_paid
+  - net_income_tax_and_royalty_related_taxation_refunded
+  - profit_after_tax_attributable_to_non_controlling_interests
+  - royalty_related_taxation_net_of_income_tax_benefit
+  - share_of_profit_after_tax_of_equity_accounted_units
+  - tax_paid
+  normalized_metric_type: tax_cash_flow_and_tax_positions
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: cash_flow
+  form_type: A+H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 6
+  coverage_datapoint_count: 22
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - capital_and_exploration_expenditure
+  - capital_expenditure
+  - capital_expenditure_before_investments
+  - equipment_costs
+  - exploration_and_evaluation_expenditure
+  - exploration_expenditure
+  - payments_for_equipment_subsequently_financed
+  - payments_for_exploration_and_evaluation_assets
+  - payments_for_mine_development_expenditure
+  - payments_for_property_plant_and_equipment
+  - proceeds_from_disposal_of_interests_in_petroleum_exploration_permits
+  - proceeds_from_disposal_of_property_plant_and_equipment
+  - proceeds_from_sale_of_property_plant_and_equipment
+  - purchases_of_property_plant_and_equipment
+  - sales_of_property_plant_and_equipment_and_intangible_assets
+  - total_capital_expenditure_including_investments
+  normalized_metric_type: capital_expenditure_and_investment_activity
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: cash_flow
+  form_type: A+H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 6
+  coverage_datapoint_count: 21
+  ambiguity_notes: Raw capex labels mix capex, exploration, investment, and PPE purchase concepts.
+  holdout_reason: Hold until definition differences are reviewed family-by-family; do not collapse into evaluator targets
+    yet.
+- raw_metric_name:
+  - dividend_per_share_us_cents
+  - dividends_from_equity_accounted_units
+  - dividends_per_ordinary_share_determined_us_cents
+  - interim_dividend_per_share_au_cents
+  - interim_dividend_per_share_cents
+  - ordinary_dividend_per_share_us_cents
+  normalized_metric_type: dividend_per_share_family
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: per_share
+  form_type: A+H
+  period_scope: period_flow
+  unit: mixed
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 6
+  coverage_datapoint_count: 8
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - ebit
+  - operating_profit
+  - profit_before_finance_items_and_taxation
+  - profit_from_operations
+  normalized_metric_type: operating_profit_ebit_family
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: profitability
+  form_type: A+H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 6
+  coverage_datapoint_count: 8
+  ambiguity_notes: EBIT-like lines are economically useful but mix operating profit, EBIT, and profit-from-operations phrasing.
+  holdout_reason: Hold until a cleaner EBIT/statutory/underlying split is defined.
+- raw_metric_name:
+  - cash_receipts_from_customers
+  - goods_and_services_purchased
+  - labour
+  - other_operating_payments
+  - payments_to_suppliers_and_employees
+  - receipts_from_customers
+  - subcontractors
+  normalized_metric_type: operating_receipts_and_outgoings_5b
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: cash_flow
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 3
+  coverage_datapoint_count: 8
+  ambiguity_notes: 5B cash receipt/outgoing lines are valuable for quarterly review but not cross-form evaluator targets.
+  holdout_reason: Too form-specific for evaluator expansion.
+- raw_metric_name:
+  - administration_and_corporate_costs_current_quarter
+  - administration_and_corporate_costs_year_to_date
+  normalized_metric_type: administration_and_corporate_costs
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: Q
+  period_scope: mixed_quarter_and_ytd
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 3
+  coverage_datapoint_count: 6
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - bank_balances_current_quarter
+  - bank_balances_previous_quarter
+  normalized_metric_type: bank_balances
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: Q
+  period_scope: current_quarter
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 3
+  coverage_datapoint_count: 6
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - net_cash_from_investing_activities_current_quarter
+  - net_cash_from_investing_activities_year_to_date
+  normalized_metric_type: net_cash_from_investing_activities
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: cash_flow
+  form_type: Q
+  period_scope: mixed_quarter_and_ytd
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 3
+  coverage_datapoint_count: 6
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - cash_and_cash_equivalents_at_beginning_of_period_current_quarter
+  - cash_and_cash_equivalents_at_beginning_of_period_year_to_date
+  normalized_metric_type: cash_and_cash_equivalents_at_beginning_of_period
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: cash_flow
+  form_type: Q
+  period_scope: mixed_quarter_and_ytd
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 3
+  coverage_datapoint_count: 5
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - dividends_received_statement
+  normalized_metric_type: dividends_received_and_equity_returns
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: A+H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 3
+  coverage_datapoint_count: 3
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - estimated_quarters_of_funding_available
+  normalized_metric_type: estimated_quarters_of_funding_available
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: Q
+  period_scope: period_flow
+  unit: quarters
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 3
+  coverage_datapoint_count: 3
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - other_expenses
+  normalized_metric_type: other_expenses
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: profitability
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 3
+  coverage_datapoint_count: 3
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - related_party_payments_current_quarter
+  normalized_metric_type: related_party_payments
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: Q
+  period_scope: current_quarter
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 3
+  coverage_datapoint_count: 3
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - total_relevant_outgoings
+  - total_relevant_outgoings_current_quarter
+  normalized_metric_type: total_relevant_outgoings
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: Q
+  period_scope: current_quarter
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 3
+  coverage_datapoint_count: 3
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - underlying_roce_pct
+  normalized_metric_type: underlying_roce_pct
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: ratio
+  form_type: A
+  period_scope: period_flow
+  unit: percent
+  underlying_flag: true
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 3
+  coverage_datapoint_count: 3
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - interest_received_current_quarter
+  - interest_received_year_to_date
+  normalized_metric_type: interest_received
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: Q
+  period_scope: mixed_quarter_and_ytd
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 2
+  coverage_datapoint_count: 4
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - staff_costs_current_quarter
+  - staff_costs_year_to_date
+  normalized_metric_type: staff_costs
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: Q
+  period_scope: mixed_quarter_and_ytd
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 2
+  coverage_datapoint_count: 4
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - net_cash_from_financing_activities_current_quarter
+  - net_cash_from_financing_activities_year_to_date
+  normalized_metric_type: net_cash_from_financing_activities
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: cash_flow
+  form_type: Q
+  period_scope: mixed_quarter_and_ytd
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 2
+  coverage_datapoint_count: 3
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - amortisation_of_discount_on_provisions
+  normalized_metric_type: amortisation_of_discount_on_provisions
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - attributable_to_non_controlling_interests
+  normalized_metric_type: attributable_to_non_controlling_interests
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - cash_flows_before_financing_activities
+  normalized_metric_type: cash_flows_before_financing_activities
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: cash_flow
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - cash_flows_from_consolidated_operations
+  normalized_metric_type: cash_flows_from_consolidated_operations
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: cash_flow
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - cash_flows_from_operations
+  normalized_metric_type: cash_flows_from_operations
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: cash_flow
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - cash_generated_from_operations
+  normalized_metric_type: cash_generated_from_operations
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: cash_flow
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - change_in_inventories
+  normalized_metric_type: change_in_inventories
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - change_in_receivables_and_other_assets
+  normalized_metric_type: change_in_receivables_and_other_assets
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - change_in_trade_and_other_payables
+  normalized_metric_type: change_in_trade_and_other_payables
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - current_liabilities_total
+  normalized_metric_type: current_liabilities_total
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: A
+  period_scope: point_in_time
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - expenses_excluding_net_finance_costs
+  normalized_metric_type: expenses_excluding_net_finance_costs
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: profitability
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - gearing_ratio_pct
+  normalized_metric_type: gearing_ratio_pct
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: ratio
+  form_type: A+H
+  period_scope: period_flow
+  unit: percent
+  underlying_flag: false
+  evaluator_ready_status: READY_AFTER_EXTRACTION_STABILIZES
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Net-debt-adjacent family stays blocked until base net_debt extraction stabilizes.
+- raw_metric_name:
+  - intangible_assets
+  normalized_metric_type: intangible_assets
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - inventories_non_current
+  normalized_metric_type: inventories_non_current
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - net_cash_from_operating_activities_year_to_date
+  normalized_metric_type: net_cash_from_operating_activities
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: cash_flow
+  form_type: Q
+  period_scope: year_to_date
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - net_interest_paid
+  normalized_metric_type: net_interest_paid
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - net_tangible_assets_per_share_usd
+  normalized_metric_type: net_tangible_assets_per_share_usd
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: A
+  period_scope: period_flow
+  unit: usd_per_share
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - non_controlling_interests_balance_sheet
+  normalized_metric_type: non_controlling_interests_balance_sheet
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: A
+  period_scope: point_in_time
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - non_current_liabilities_total
+  normalized_metric_type: non_current_liabilities_total
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: A
+  period_scope: point_in_time
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - other_financial_assets_current
+  normalized_metric_type: other_financial_assets_current
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - other_financial_assets_non_current
+  normalized_metric_type: other_financial_assets_non_current
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - other_financing_cash_flows
+  normalized_metric_type: other_financing_cash_flows
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: cash_flow
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - provisions_current
+  normalized_metric_type: provisions_current
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - provisions_non_current
+  normalized_metric_type: provisions_non_current
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - total_comprehensive_income
+  normalized_metric_type: total_comprehensive_income
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - total_current_liabilities
+  normalized_metric_type: total_current_liabilities
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: H
+  period_scope: point_in_time
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - total_equity_attributable_to_bhp_shareholders
+  normalized_metric_type: total_equity_attributable_to_bhp_shareholders
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - total_equity_attributable_to_owners_of_rio_tinto
+  normalized_metric_type: total_equity_attributable_to_owners_of_rio_tinto
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - total_interest_bearing_liabilities
+  normalized_metric_type: total_interest_bearing_liabilities
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: A
+  period_scope: point_in_time
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: READY_AFTER_EXTRACTION_STABILIZES
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Net-debt-adjacent family stays blocked until base net_debt extraction stabilizes.
+- raw_metric_name:
+  - total_non_current_liabilities
+  normalized_metric_type: total_non_current_liabilities
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: H
+  period_scope: point_in_time
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - trade_and_other_receivables_current
+  normalized_metric_type: trade_and_other_receivables_current
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - trade_and_other_receivables_non_current
+  normalized_metric_type: trade_and_other_receivables_non_current
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - underlying_attributable_profit
+  normalized_metric_type: underlying_attributable_profit
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: profitability
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: true
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - underlying_earnings_per_share_us_cents
+  normalized_metric_type: underlying_earnings_per_share_us_cents
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: per_share
+  form_type: A
+  period_scope: period_flow
+  unit: us_cents_per_share
+  underlying_flag: true
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 2
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - diesel_fuel_tax_credits_current_quarter
+  - diesel_fuel_tax_credits_year_to_date
+  normalized_metric_type: diesel_fuel_tax_credits
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: Q
+  period_scope: mixed_quarter_and_ytd
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - effect_of_movement_in_exchange_rates_on_cash_held_current_quarter
+  - effect_of_movement_in_exchange_rates_on_cash_held_year_to_date
+  normalized_metric_type: effect_of_movement_in_exchange_rates_on_cash_held
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: cash_flow
+  form_type: Q
+  period_scope: mixed_quarter_and_ytd
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - erc_increase_and_security_deposits_current_quarter
+  - erc_increase_and_security_deposits_year_to_date
+  normalized_metric_type: erc_increase_and_security_deposits
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: Q
+  period_scope: mixed_quarter_and_ytd
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - exploration_and_evaluation_payments_current_quarter
+  - exploration_and_evaluation_payments_year_to_date
+  normalized_metric_type: exploration_and_evaluation_payments
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: Q
+  period_scope: mixed_quarter_and_ytd
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - interest_and_other_costs_of_finance_paid_current_quarter
+  - interest_and_other_costs_of_finance_paid_year_to_date
+  normalized_metric_type: interest_and_other_costs_of_finance_paid
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: profitability
+  form_type: Q
+  period_scope: mixed_quarter_and_ytd
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - joint_venture_receipts_current_quarter
+  - joint_venture_receipts_year_to_date
+  normalized_metric_type: joint_venture_receipts
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: Q
+  period_scope: mixed_quarter_and_ytd
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - payments_development_current_quarter
+  - payments_development_year_to_date
+  normalized_metric_type: payments_development
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: Q
+  period_scope: mixed_quarter_and_ytd
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - payments_for_exploration_and_evaluation_current_quarter
+  - payments_for_exploration_and_evaluation_year_to_date
+  normalized_metric_type: payments_for_exploration_and_evaluation
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: Q
+  period_scope: mixed_quarter_and_ytd
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - payments_production_current_quarter
+  - payments_production_year_to_date
+  normalized_metric_type: payments_production
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: Q
+  period_scope: mixed_quarter_and_ytd
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - proceeds_from_issues_of_equity_securities_current_quarter
+  - proceeds_from_issues_of_equity_securities_year_to_date
+  normalized_metric_type: proceeds_from_issues_of_equity_securities
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: Q
+  period_scope: mixed_quarter_and_ytd
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - receipts_from_customers_current_quarter
+  - receipts_from_customers_year_to_date
+  normalized_metric_type: receipts_from_customers
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: Q
+  period_scope: mixed_quarter_and_ytd
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 2
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - adjusted_return_on_equity_pct
+  normalized_metric_type: adjusted_return_on_equity_pct
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: H
+  period_scope: period_flow
+  unit: percent
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - amortisation_and_impairment_of_intangibles
+  normalized_metric_type: amortisation_and_impairment_of_intangibles
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - amount_drawn_at_quarter_end
+  normalized_metric_type: amount_drawn
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: Q
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - amounts_advanced_to_other_parties
+  normalized_metric_type: amounts_advanced_to_other_parties
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - assets_classified_as_held_for_sale
+  normalized_metric_type: assets_classified_as_held_for_sale
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - change_in_value_of_closing_stock
+  normalized_metric_type: change_in_value_of_closing_stock
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - claims_and_other_insurance_service_expenses_paid
+  normalized_metric_type: claims_and_other_insurance_service_expenses_paid
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: insurance
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - combined_operating_ratio_pct
+  normalized_metric_type: combined_operating_ratio_pct
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: ratio
+  form_type: H
+  period_scope: period_flow
+  unit: percent
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - contract_liabilities_and_other_revenue_received_in_advance_current
+  normalized_metric_type: contract_liabilities_and_other_revenue_received_in_advance_current
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - debt_servicing_ratio_x
+  normalized_metric_type: debt_servicing_ratio_x
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: ratio
+  form_type: H
+  period_scope: period_flow
+  unit: times
+  underlying_flag: false
+  evaluator_ready_status: READY_AFTER_EXTRACTION_STABILIZES
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Net-debt-adjacent family stays blocked until base net_debt extraction stabilizes.
+- raw_metric_name:
+  - debt_to_total_capital_pct
+  normalized_metric_type: debt_to_total_capital_pct
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: ratio
+  form_type: H
+  period_scope: period_flow
+  unit: percent
+  underlying_flag: false
+  evaluator_ready_status: READY_AFTER_EXTRACTION_STABILIZES
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Net-debt-adjacent family stays blocked until base net_debt extraction stabilizes.
+- raw_metric_name:
+  - deferred_contract_costs_current
+  normalized_metric_type: deferred_contract_costs_current
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - depreciation_of_right_of_use_assets
+  normalized_metric_type: depreciation_of_right_of_use_assets
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - derivative_financial_instruments_assets
+  normalized_metric_type: derivative_financial_instruments_assets
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - ebitda
+  normalized_metric_type: ebitda
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: profitability
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - ebitda_after_leases
+  normalized_metric_type: ebitda_after_leases
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: profitability
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - employee_benefits_current
+  normalized_metric_type: employee_benefits_current
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - employee_benefits_expense
+  normalized_metric_type: employee_benefits_expense
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - equity_attributable_to_owners_of_mineral_resources_limited
+  normalized_metric_type: equity_attributable_to_owners_of_mineral_resources_limited
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - equity_available_to_telstra_entity_shareholders
+  normalized_metric_type: equity_available_to_telstra_entity_shareholders
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - expense_ratio_pct
+  normalized_metric_type: expense_ratio_pct
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: ratio
+  form_type: H
+  period_scope: period_flow
+  unit: percent
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - finance_costs_paid
+  normalized_metric_type: finance_costs_paid
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: profitability
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - financing_and_other_costs
+  normalized_metric_type: financing_and_other_costs
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: cash_flow
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - funds_received_in_advance_of_share_issue_current_quarter
+  normalized_metric_type: funds_received_in_advance_of_share_issue
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: Q
+  period_scope: current_quarter
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - gain_on_sale_of_entities_and_businesses
+  normalized_metric_type: gain_on_sale_of_entities_and_businesses
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - government_grants_received_for_operating_activities
+  normalized_metric_type: government_grants_received_for_operating_activities
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - gross_debt
+  normalized_metric_type: gross_debt
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: ratio
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: READY_AFTER_EXTRACTION_STABILIZES
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Net-debt-adjacent family stays blocked until base net_debt extraction stabilizes.
+- raw_metric_name:
+  - gross_written_premium
+  normalized_metric_type: gross_written_premium
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: insurance
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - impairment_charges
+  normalized_metric_type: impairment_charges
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - insurance_contract_liabilities
+  normalized_metric_type: insurance_contract_liabilities
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - insurance_finance_expenses
+  normalized_metric_type: insurance_finance_expenses
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: insurance
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - insurance_operating_result
+  normalized_metric_type: insurance_operating_result
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: insurance
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - insurance_profit
+  normalized_metric_type: insurance_profit
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: insurance
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - insurance_service_expenses
+  normalized_metric_type: insurance_service_expenses
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: insurance
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - insurance_service_result
+  normalized_metric_type: insurance_service_result
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: insurance
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Insurance-specific QBE line; valuable for sector review but not cross-corpus normalization priority.
+  holdout_reason: Too sector-specific for evaluator expansion.
+- raw_metric_name:
+  - interest_and_other_finance_costs_paid
+  normalized_metric_type: interest_and_other_finance_costs_paid
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: profitability
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - investment_expenses_policyholders_funds
+  normalized_metric_type: investment_expenses_policyholders_funds
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: insurance
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - investment_expenses_shareholders_funds
+  normalized_metric_type: investment_expenses_shareholders_funds
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: insurance
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - investment_in_subsidiaries_operations_and_joint_operations_net_of_cash
+  normalized_metric_type: investment_in_subsidiaries_operations_and_joint_operations_net_of_cash
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - investment_income_policyholders_funds
+  normalized_metric_type: investment_income_policyholders_funds
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: insurance
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - investment_income_shareholders_funds
+  normalized_metric_type: investment_income_shareholders_funds
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: insurance
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - lease_liability_associated_with_index_linked_freight_contracts
+  normalized_metric_type: lease_liability_associated_with_index_linked_freight_contracts
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - lease_repayments_current_quarter
+  normalized_metric_type: lease_repayments
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: Q
+  period_scope: current_quarter
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - liquidity
+  normalized_metric_type: liquidity
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: H
+  period_scope: point_in_time
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - net_cash_generated_from_operations
+  normalized_metric_type: net_cash_generated_from_operations
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: cash_flow
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - net_cash_management_related_instruments
+  normalized_metric_type: net_cash_management_related_instruments
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: ratio
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: READY_AFTER_EXTRACTION_STABILIZES
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Net-debt-adjacent family stays blocked until base net_debt extraction stabilizes.
+- raw_metric_name:
+  - net_claims_ratio_pct
+  normalized_metric_type: net_claims_ratio_pct
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: ratio
+  form_type: H
+  period_scope: period_flow
+  unit: percent
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - net_debt_management_related_instruments
+  normalized_metric_type: net_debt_management_related_instruments
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: ratio
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: READY_AFTER_EXTRACTION_STABILIZES
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Net-debt-adjacent family stays blocked until base net_debt extraction stabilizes.
+- raw_metric_name:
+  - net_impairment_losses_on_financial_assets
+  normalized_metric_type: net_impairment_losses_on_financial_assets
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - net_investment_income_statutory
+  normalized_metric_type: net_investment_income_statutory
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: insurance
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - net_payments_for_purchase_of_growth_assets
+  normalized_metric_type: net_payments_for_purchase_of_growth_assets
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - net_payments_for_purchase_of_interest_bearing_financial_assets
+  normalized_metric_type: net_payments_for_purchase_of_interest_bearing_financial_assets
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - non_controlling_interests
+  normalized_metric_type: non_controlling_interests
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - operating_cash_flow_less_investing_cash_flows
+  normalized_metric_type: operating_cash_flow_less_investing_cash_flows
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: cash_flow
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - other_receivables
+  normalized_metric_type: other_receivables
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - payments_for_intangible_assets
+  normalized_metric_type: payments_for_intangible_assets
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - premium_received
+  normalized_metric_type: premium_received
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: insurance
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - proceeds_from_exercise_of_options_current_quarter
+  normalized_metric_type: proceeds_from_exercise_of_options
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: Q
+  period_scope: current_quarter
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - proceeds_from_issue_of_convertible_debt_current_quarter
+  normalized_metric_type: proceeds_from_issue_of_convertible_debt
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: Q
+  period_scope: current_quarter
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - proceeds_of_debt_related_instruments
+  normalized_metric_type: proceeds_of_debt_related_instruments
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - purchase_of_shares_by_esop_trusts
+  normalized_metric_type: purchase_of_shares_by_esop_trusts
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - raw_materials_and_consumables
+  normalized_metric_type: raw_materials_and_consumables
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - receipt_of_contingent_consideration_relating_to_dilution_of_interest_in_controlled_entities
+  normalized_metric_type: receipt_of_contingent_consideration_relating_to_dilution_of_interest_in_controlled_entities
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - reinsurance_contract_assets
+  normalized_metric_type: reinsurance_contract_assets
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - reinsurance_expenses
+  normalized_metric_type: reinsurance_expenses
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: insurance
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - reinsurance_finance_income
+  normalized_metric_type: reinsurance_finance_income
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: insurance
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - reinsurance_income
+  normalized_metric_type: reinsurance_income
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: insurance
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - reinsurance_premium_paid_net_of_ceding_commissions_received
+  normalized_metric_type: reinsurance_premium_paid_net_of_ceding_commissions_received
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: insurance
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - reinsurance_recoveries_received
+  normalized_metric_type: reinsurance_recoveries_received
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: insurance
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - repayment_of_borrowings_current_quarter
+  normalized_metric_type: repayment_of_borrowings
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: Q
+  period_scope: current_quarter
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - repurchase_of_capital_notes
+  normalized_metric_type: repurchase_of_capital_notes
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - settlements_of_cash_management_related_instruments
+  normalized_metric_type: settlements_of_cash_management_related_instruments
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: cash_flow
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - share_of_net_loss_of_associates
+  normalized_metric_type: share_of_net_loss_of_associates
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - share_of_net_profit_loss_from_joint_ventures_and_associated_entities
+  normalized_metric_type: share_of_net_profit_loss_from_joint_ventures_and_associated_entities
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: profitability
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - total_derivatives_included_in_net_debt
+  normalized_metric_type: total_derivatives_included_in_net_debt
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: ratio
+  form_type: A
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: READY_AFTER_EXTRACTION_STABILIZES
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Net-debt-adjacent family stays blocked until base net_debt extraction stabilizes.
+- raw_metric_name:
+  - total_income_excluding_finance_income
+  normalized_metric_type: total_income_excluding_finance_income
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: profitability
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - trade_and_other_receivables_and_contract_assets_current
+  normalized_metric_type: trade_and_other_receivables_and_contract_assets_current
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - transaction_costs_related_to_convertible_debt_current_quarter
+  normalized_metric_type: transaction_costs_related_to_convertible_debt
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: Q
+  period_scope: current_quarter
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - transaction_costs_related_to_equity_issues_current_quarter
+  normalized_metric_type: transaction_costs_related_to_equity_issues
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: balance_sheet
+  form_type: Q
+  period_scope: current_quarter
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: TOO_FORM_SPECIFIC
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Form-specific or sector-specific supplemental family; retain for review only.
+- raw_metric_name:
+  - transactions_costs_and_payment_to_acquire_an_additional_interest_in_controlled_entities
+  normalized_metric_type: transactions_costs_and_payment_to_acquire_an_additional_interest_in_controlled_entities
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - transport_and_freight
+  normalized_metric_type: transport_and_freight
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: supplemental_other
+  form_type: H
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - unused_financing_facilities_available_at_quarter_end
+  normalized_metric_type: unused_financing_facilities_available
+  source_layer: curated_supplemental
+  inclusion_decision: HOLD
+  statement_family: cash_flow
+  form_type: Q
+  period_scope: period_flow
+  unit: currency
+  underlying_flag: false
+  evaluator_ready_status: AMBIGUOUS
+  coverage_doc_count: 1
+  coverage_datapoint_count: 1
+  ambiguity_notes: Curated supplemental family retained for reference only; not promoted into the evaluator-ready lane.
+  holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+- raw_metric_name:
+  - unlabelled_row
+  - Total
+  - Other
+  - to
+  - period
+  - interests
+  - activities
+  - sources
+  - movements
+  - t
+  normalized_metric_type: discovery_noise_layout_residue
+  source_layer: exhaustive_discovery
+  inclusion_decision: IGNORE
+  statement_family: discovery_noise
+  form_type: A+H+Q
+  period_scope: discovery_only
+  unit: mixed
+  underlying_flag: null
+  evaluator_ready_status: IGNORE
+  coverage_doc_count: 10
+  coverage_datapoint_count: 741
+  ambiguity_notes: Single-token or structural residue from exhaustive row parsing; not economically meaningful metric candidates.
+  holdout_reason: Discovery-only ignore filter. Do not promote raw exhaustive labels into the normalization registry without
+    curated review.
+- raw_metric_name:
+  - ppmMo subtotal
+  - g/tAu subtotal
+  - g/tAg subtotal
+  - ROD subtotal
+  - '% subtotal'
+  - '%VM subtotal'
+  - Total revenue from other subtotal
+  - FINANCIAL ASSETS MEASURED AT FAIR VALUE subtotal
+  normalized_metric_type: discovery_noise_table_subtotals
+  source_layer: exhaustive_discovery
+  inclusion_decision: IGNORE
+  statement_family: discovery_noise
+  form_type: A+H+Q
+  period_scope: discovery_only
+  unit: mixed
+  underlying_flag: null
+  evaluator_ready_status: IGNORE
+  coverage_doc_count: 6
+  coverage_datapoint_count: 561
+  ambiguity_notes: Exhaustive subtotal and grade labels that reflect layout structure rather than reusable evaluator metrics.
+  holdout_reason: Discovery-only ignore filter. Do not promote raw exhaustive labels into the normalization registry without
+    curated review.
+- raw_metric_name:
+  - Australia
+  - "MINERAL RESOURCES LIMITED \u2013 HALF-YEAR REPORT"
+  - Product group operations
+  - Potash
+  - International
+  - Summary financial performance subtotal
+  normalized_metric_type: discovery_noise_boilerplate_headers
+  source_layer: exhaustive_discovery
+  inclusion_decision: IGNORE
+  statement_family: discovery_noise
+  form_type: A+H+Q
+  period_scope: discovery_only
+  unit: mixed
+  underlying_flag: null
+  evaluator_ready_status: IGNORE
+  coverage_doc_count: 7
+  coverage_datapoint_count: 358
+  ambiguity_notes: Boilerplate headings, geography headers, and section titles from the exhaustive discovery surface.
+  holdout_reason: Discovery-only ignore filter. Do not promote raw exhaustive labels into the normalization registry without
+    curated review.
+- raw_metric_name:
+  - FY2024
+  - FY2025
+  - 8 Nov 24
+  - 8 Nov 23
+  - 22 Nov 22
+  - 31 Oct 24
+  - Aug 25
+  - Aug 26
+  normalized_metric_type: discovery_noise_date_fragments
+  source_layer: exhaustive_discovery
+  inclusion_decision: IGNORE
+  statement_family: discovery_noise
+  form_type: A+H+Q
+  period_scope: discovery_only
+  unit: mixed
+  underlying_flag: null
+  evaluator_ready_status: IGNORE
+  coverage_doc_count: 1
+  coverage_datapoint_count: 408
+  ambiguity_notes: Axis markers and date fragments from tables/charts in the exhaustive discovery surface.
+  holdout_reason: Discovery-only ignore filter. Do not promote raw exhaustive labels into the normalization registry without
+    curated review.
+expansion_shortlist:
+  tier_1_ready_candidates:
+  - normalized_metric_type: underlying_ebitda
+    coverage_doc_count: 5
+    coverage_datapoint_count: 5
+    why_ranked_here: Clear cross-document non-IFRS EBITDA family in annual and half-year result documents.
+  - normalized_metric_type: net_assets
+    coverage_doc_count: 5
+    coverage_datapoint_count: 5
+    why_ranked_here: Clean point-in-time balance-sheet family with stable labels across multiple filings.
+  - normalized_metric_type: free_cash_flow
+    coverage_doc_count: 4
+    coverage_datapoint_count: 4
+    why_ranked_here: Cross-document reusable and already explicit in curated results documents; preferred over raw capex variants.
+  - normalized_metric_type: profit_before_taxation
+    coverage_doc_count: 7
+    coverage_datapoint_count: 7
+    why_ranked_here: Reusable pre-tax profit family spanning several common statement labels.
+  - normalized_metric_type: basic_earnings_per_share
+    coverage_doc_count: 5
+    coverage_datapoint_count: 5
+    why_ranked_here: Concept is reusable, but raw inputs mix US-cent and local-cent labels; evaluator promotion must stay
+      currency-aware.
+  - normalized_metric_type: diluted_earnings_per_share
+    coverage_doc_count: 7
+    coverage_datapoint_count: 7
+    why_ranked_here: Concept is reusable, but raw inputs mix US-cent and local-cent labels; evaluator promotion must stay
+      currency-aware.
+  - normalized_metric_type: finance_income
+    coverage_doc_count: 6
+    coverage_datapoint_count: 6
+    why_ranked_here: Statement finance-income family is reusable and distinct from cash-receipts variants.
+  - normalized_metric_type: finance_costs
+    coverage_doc_count: 6
+    coverage_datapoint_count: 6
+    why_ranked_here: Statement finance-cost family is reusable and distinct from financing cash outflow lines.
+  - normalized_metric_type: net_finance_costs
+    coverage_doc_count: 3
+    coverage_datapoint_count: 3
+    why_ranked_here: Explicit net finance cost line, reusable where present.
+  tier_2_support_families:
+  - normalized_metric_type: total_assets
+    coverage_doc_count: 4
+    coverage_datapoint_count: 4
+    why_ranked_here: Benchmark guidance identifies total_assets as a sensible next candidate family, but this registry keeps
+      it in support-only status.
+  - normalized_metric_type: total_equity
+    coverage_doc_count: 3
+    coverage_datapoint_count: 4
+    why_ranked_here: Benchmark guidance identifies total_equity as a sensible next candidate family, but attributable-vs-group
+      variants remain separate.
+  - normalized_metric_type: total_liabilities
+    coverage_doc_count: 4
+    coverage_datapoint_count: 4
+    why_ranked_here: Useful support family for balance-sheet diagnostics and net-assets reconciliation.
+  - normalized_metric_type: cash_and_cash_equivalents_balance_sheet
+    coverage_doc_count: 7
+    coverage_datapoint_count: 7
+    why_ranked_here: Useful support family for residual net-debt diagnosis; keep separate from 5B end-of-period cash lines.
+  - normalized_metric_type: borrowings_current
+    coverage_doc_count: 6
+    coverage_datapoint_count: 6
+    why_ranked_here: Useful support family for net-debt diagnosis and balance-sheet reconciliation.
+  - normalized_metric_type: borrowings_non_current
+    coverage_doc_count: 6
+    coverage_datapoint_count: 6
+    why_ranked_here: Useful support family for net-debt diagnosis and balance-sheet reconciliation.
+  - normalized_metric_type: total_current_assets
+    coverage_doc_count: 4
+    coverage_datapoint_count: 4
+    why_ranked_here: Useful support family for balance-sheet structure analysis.
+  - normalized_metric_type: total_non_current_assets
+    coverage_doc_count: 4
+    coverage_datapoint_count: 4
+    why_ranked_here: Useful support family for balance-sheet structure analysis.
+  - normalized_metric_type: property_plant_and_equipment
+    coverage_doc_count: 4
+    coverage_datapoint_count: 4
+    why_ranked_here: Useful support family for capex and asset-base context.
+  - normalized_metric_type: trade_and_other_payables_current
+    coverage_doc_count: 4
+    coverage_datapoint_count: 4
+    why_ranked_here: Useful balance-sheet support family for liability diagnostics.
+  - normalized_metric_type: inventories_current
+    coverage_doc_count: 3
+    coverage_datapoint_count: 3
+    why_ranked_here: Useful support family for working-capital diagnostics.
+  hold_examples:
+  - normalized_metric_type: profit_after_tax_family
+    coverage_doc_count: 7
+    coverage_datapoint_count: 14
+    holdout_reason: Ambiguous parent/group semantics keep this family out of the ready lane.
+  - normalized_metric_type: capital_expenditure_and_investment_activity
+    coverage_doc_count: 6
+    coverage_datapoint_count: 21
+    holdout_reason: Hold until definition differences are reviewed family-by-family; do not collapse into evaluator targets
+      yet.
+  - normalized_metric_type: operating_profit_ebit_family
+    coverage_doc_count: 6
+    coverage_datapoint_count: 8
+    holdout_reason: Hold until a cleaner EBIT/statutory/underlying split is defined.
+  - normalized_metric_type: financing_facilities_and_liquidity
+    coverage_doc_count: 7
+    coverage_datapoint_count: 19
+    holdout_reason: Too form-specific for evaluator expansion.
+  - normalized_metric_type: cash_rollforward_and_cash_position_variants
+    coverage_doc_count: 9
+    coverage_datapoint_count: 22
+    holdout_reason: Keep as supplemental only; do not mix with balance-sheet cash support families.
+  - normalized_metric_type: operating_receipts_and_outgoings_5b
+    coverage_doc_count: 3
+    coverage_datapoint_count: 8
+    holdout_reason: Too form-specific for evaluator expansion.
+  - normalized_metric_type: insurance_service_result
+    coverage_doc_count: 1
+    coverage_datapoint_count: 1
+    holdout_reason: Too sector-specific for evaluator expansion.
+  - normalized_metric_type: ebitda_after_leases
+    coverage_doc_count: 1
+    coverage_datapoint_count: 1
+    holdout_reason: Family definition or label semantics are not yet clean enough for evaluator expansion.
+  ignore_examples:
+  - normalized_metric_type: discovery_noise_layout_residue
+    coverage_doc_count: 10
+    coverage_datapoint_count: 741
+    holdout_reason: Discovery-only ignore filter. Do not promote raw exhaustive labels into the normalization registry without
+      curated review.
+  - normalized_metric_type: discovery_noise_table_subtotals
+    coverage_doc_count: 6
+    coverage_datapoint_count: 561
+    holdout_reason: Discovery-only ignore filter. Do not promote raw exhaustive labels into the normalization registry without
+      curated review.
+  - normalized_metric_type: discovery_noise_boilerplate_headers
+    coverage_doc_count: 7
+    coverage_datapoint_count: 358
+    holdout_reason: Discovery-only ignore filter. Do not promote raw exhaustive labels into the normalization registry without
+      curated review.
+  - normalized_metric_type: discovery_noise_date_fragments
+    coverage_doc_count: 1
+    coverage_datapoint_count: 408
+    holdout_reason: Discovery-only ignore filter. Do not promote raw exhaustive labels into the normalization registry without
+      curated review.
