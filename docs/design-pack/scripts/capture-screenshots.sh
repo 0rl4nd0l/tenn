@@ -3,19 +3,26 @@
 #
 # Prerequisites:
 #   - cockpit-ui dev server running on localhost:3000
-#   - npx playwright install chromium  (one-time setup)
+#   - pnpm add -D playwright (in cockpit-ui/)
+#   - npx playwright install chromium (one-time setup)
 #
 # Usage:
 #   bash docs/design-pack/scripts/capture-screenshots.sh [base_url]
 #
 # Output: docs/design-pack/screenshots/*.png
+#
+# Notes:
+#   - Uses waitUntil:'load' not 'networkidle' because the cockpit UI has
+#     always-on health polling (every 3s) that prevents network idle.
+#   - If routes fail to compile, check for stale cockpit-ui/styles/globals.css
+#     (it contains @import 'tailwindcss' which Turbopack tries to resolve
+#     from the wrong directory).
 
 set -euo pipefail
 
 BASE_URL="${1:-http://localhost:3000}"
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-OUT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)/screenshots"
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+OUT_DIR="${REPO_ROOT}/docs/design-pack/screenshots"
 
 mkdir -p "$OUT_DIR"
 
@@ -32,28 +39,30 @@ if ! curl -sf "${BASE_URL}" > /dev/null 2>&1; then
   exit 1
 fi
 
-# Routes to capture
-ROUTES=(
-  "/:chat"
-  "/operations:operations"
-  "/updater:updater"
-  "/verification:verification"
-  "/history:history"
-  "/settings:settings"
-  "/news:news"
-  "/intel-ops:intel-pulse"
-  "/boot:boot"
-)
+# Phase 1: Warm all routes (triggers Turbopack compilation on first visit)
+echo "Phase 1: Warming routes..."
+ROUTES="/ /operations /updater /verification /history /settings /news /intel-ops /boot"
+for route in $ROUTES; do
+  name=$(echo "$route" | sed 's|^/||; s|^$|home|; s|/|-|g')
+  start=$(date +%s)
+  code=$(curl -sf -o /dev/null -w "%{http_code}" --max-time 300 "${BASE_URL}${route}" 2>/dev/null || echo "000")
+  elapsed=$(( $(date +%s) - start ))
+  echo "  ${name} -> HTTP ${code} (${elapsed}s)"
+done
+echo ""
 
-# Generate the Playwright script
-PLAYWRIGHT_SCRIPT=$(mktemp /tmp/capture-XXXXXX.mjs)
+# Phase 2: Capture with Playwright (run from cockpit-ui for node_modules access)
+echo "Phase 2: Capturing screenshots..."
+cd "${REPO_ROOT}/cockpit-ui"
 
-cat > "$PLAYWRIGHT_SCRIPT" << 'PLAYWRIGHT_EOF'
-import { chromium } from 'playwright';
+node -e "
+const { chromium } = require('playwright');
+const { mkdirSync } = require('fs');
+const { resolve } = require('path');
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
-const OUT_DIR = process.env.OUT_DIR || './screenshots';
-const TIMESTAMP = process.env.TIMESTAMP || 'latest';
+const BASE_URL = '${BASE_URL}';
+const OUT = resolve('${OUT_DIR}');
+mkdirSync(OUT, { recursive: true });
 
 const routes = [
   { path: '/',              name: 'chat' },
@@ -67,92 +76,66 @@ const routes = [
   { path: '/boot',          name: 'boot' },
 ];
 
-const viewports = [
-  { width: 1920, height: 1080, suffix: 'desktop' },
-  { width: 1280, height: 800,  suffix: 'laptop' },
-];
-
-async function main() {
+(async () => {
   const browser = await chromium.launch({ headless: true });
+  let ok = 0;
 
-  for (const vp of viewports) {
-    const context = await browser.newContext({
-      viewport: { width: vp.width, height: vp.height },
+  for (const vp of [
+    { w: 1920, h: 1080, s: 'desktop' },
+    { w: 1280, h: 800,  s: 'laptop' },
+  ]) {
+    const ctx = await browser.newContext({
+      viewport: { width: vp.w, height: vp.h },
       colorScheme: 'dark',
-      deviceScaleFactor: 2,  // Retina quality
+      deviceScaleFactor: 2,
     });
-    const page = await context.newPage();
-
-    for (const route of routes) {
-      const url = `${BASE_URL}${route.path}`;
-      console.log(`  Capturing ${route.name} (${vp.suffix}) ...`);
-
+    const page = await ctx.newPage();
+    for (const r of routes) {
       try {
-        await page.goto(url, { waitUntil: 'networkidle', timeout: 15000 });
-        // Wait for animations to settle
-        await page.waitForTimeout(1500);
-
-        const filename = `${route.name}_${vp.suffix}_${TIMESTAMP}.png`;
-        await page.screenshot({
-          path: `${OUT_DIR}/${filename}`,
-          fullPage: false,
-        });
-        console.log(`    -> ${filename}`);
-      } catch (err) {
-        console.error(`    FAILED: ${err.message}`);
+        await page.goto(BASE_URL + r.path, { waitUntil: 'load', timeout: 30000 });
+        await page.waitForTimeout(3000);
+        const f = r.name + '_' + vp.s + '.png';
+        await page.screenshot({ path: resolve(OUT, f), fullPage: false });
+        console.log('  ' + f + ' OK');
+        ok++;
+      } catch (e) {
+        console.log('  ' + r.name + '_' + vp.s + ' FAILED: ' + e.message.split('\n')[0]);
       }
     }
-
-    await context.close();
+    await ctx.close();
   }
 
-  // Also capture sidebar expanded and collapsed
-  console.log('\n  Capturing sidebar states...');
-  const ctx = await browser.newContext({
+  // Sidebar states
+  console.log('  Capturing sidebar states...');
+  const ctx2 = await browser.newContext({
     viewport: { width: 1920, height: 1080 },
     colorScheme: 'dark',
     deviceScaleFactor: 2,
   });
-  const page = await ctx.newPage();
-
+  const pg = await ctx2.newPage();
   try {
-    await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle', timeout: 15000 });
-    await page.waitForTimeout(1500);
-    await page.screenshot({
-      path: `${OUT_DIR}/sidebar_expanded_${TIMESTAMP}.png`,
-      fullPage: false,
-    });
-
-    // Click the sidebar trigger to collapse
-    const trigger = page.locator('[data-sidebar="trigger"]').first();
-    if (await trigger.isVisible()) {
-      await trigger.click();
-      await page.waitForTimeout(500);
-      await page.screenshot({
-        path: `${OUT_DIR}/sidebar_collapsed_${TIMESTAMP}.png`,
-        fullPage: false,
-      });
+    await pg.goto(BASE_URL + '/', { waitUntil: 'load', timeout: 30000 });
+    await pg.waitForTimeout(3000);
+    await pg.screenshot({ path: resolve(OUT, 'sidebar_expanded.png') });
+    console.log('  sidebar_expanded.png OK');
+    ok++;
+    const btn = pg.locator('button[data-sidebar=\"trigger\"]').first();
+    if (await btn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await btn.click();
+      await pg.waitForTimeout(800);
+      await pg.screenshot({ path: resolve(OUT, 'sidebar_collapsed.png') });
+      console.log('  sidebar_collapsed.png OK');
+      ok++;
     }
-  } catch (err) {
-    console.error(`  Sidebar capture failed: ${err.message}`);
+  } catch(e) {
+    console.log('  sidebar FAILED: ' + e.message.split('\n')[0]);
   }
 
   await browser.close();
-  console.log('\nDone! Screenshots saved to:', OUT_DIR);
-}
-
-main().catch(console.error);
-PLAYWRIGHT_EOF
-
-echo "Running Playwright screenshot capture..."
-BASE_URL="$BASE_URL" OUT_DIR="$OUT_DIR" TIMESTAMP="$TIMESTAMP" \
-  npx --yes playwright test --config=/dev/null 2>/dev/null || \
-  node "$PLAYWRIGHT_SCRIPT" 2>&1
-
-rm -f "$PLAYWRIGHT_SCRIPT"
+  console.log('\nDone! ' + ok + ' screenshots captured to ' + OUT);
+})();
+" 2>&1
 
 echo ""
 echo "=== Screenshot manifest ==="
-ls -la "$OUT_DIR"/*.png 2>/dev/null || echo "(no screenshots captured)"
-echo ""
-echo "To view: open $OUT_DIR in a file browser or image viewer"
+ls -lh "$OUT_DIR"/*.png 2>/dev/null || echo "(no screenshots captured)"

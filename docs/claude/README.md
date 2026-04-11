@@ -42,6 +42,7 @@ When in doubt, prefer the source file. When a conflict exists between a doc here
 | [introduction-plan.md](introduction-plan.md) | Staged plan to introduce missing pieces safely |
 | [extraction_quality_assessment.md](extraction_quality_assessment.md) | Evidence-based quality assessment of multipass extraction pipeline (2026-03-24) |
 | [../architecture/17_analysis_modules.md](../architecture/17_analysis_modules.md) | Phase 3 analysis modules: 7 modules, orchestrator, sentiment RAG wiring, context loader |
+| [../design-pack/README.md](../design-pack/README.md) | UI/UX design pack — colors, typography, components, screen catalog, screenshots for agent consumption |
 
 ---
 
