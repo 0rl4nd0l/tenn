@@ -148,11 +148,11 @@ See [docs/architecture/20_chat_learning_loop.md](../docs/architecture/20_chat_le
 
 - `documents` — one row per PDF, SHA256, source URL
 - `extraction_runs` — one per document extraction attempt, stores `extractor_version` and `prompt_hash`
-- `asx_periodic_financials` — structured financial metrics extracted by LLM
-- `asx_risk_notes` — risk/guidance summaries
+- `asx_periodic_financials` — structured financial metrics extracted by LLM (`created_at` = first persist, `updated_at` = last upsert)
+- `asx_risk_notes` — risk/guidance summaries (same timestamp semantics)
 - `openbb_snapshots` — market data staging
 
-Migrations: `backend/app/alembic/versions/`
+Migrations: `backend/app/alembic/versions/` (Postgres). Legacy SQLite files without `created_at` on the two ASX tables: run `python scripts/ensure_sqlite_asx_created_at_columns.py <db path>` once; idempotent.
 
 ---
 

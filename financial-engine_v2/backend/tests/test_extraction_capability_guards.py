@@ -75,6 +75,16 @@ def test_asx_periodic_financials_model_has_cashflow_columns():
     )
 
 
+def test_asx_structured_models_have_created_at():
+    """created_at must exist for parity with extraction_runs monitoring queries."""
+    from sqlalchemy import inspect as sa_inspect
+    from app.models.asx_financials import ASXPeriodicFinancial, ASXRiskNote
+
+    for model in (ASXPeriodicFinancial, ASXRiskNote):
+        names = {col.key for col in sa_inspect(model).mapper.columns}
+        assert "created_at" in names, f"{model.__name__} must declare created_at"
+
+
 # ---------------------------------------------------------------------------
 # Guard C — Pipeline upsert field list includes all cash-flow fields
 # ---------------------------------------------------------------------------

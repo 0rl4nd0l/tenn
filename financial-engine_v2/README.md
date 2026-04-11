@@ -25,6 +25,7 @@ If this README conflicts with those setup docs, the `docs/setup/*` files are the
 - Qdrant upsert with real vectors
 - LLM JSON extraction via routed OpenAI-compatible generation runtime
 - Postgres tables: `documents`, `extraction_runs`, `asx_periodic_financials`, `asx_risk_notes`
+- Structured ASX tables (`asx_periodic_financials`, `asx_risk_notes`) store `created_at` (first time a row was persisted) and `updated_at` (last upsert). On Postgres, run `alembic upgrade head` so revision `0008_asx_structured_created_at` is applied. SQLite databases that were created before that column exists can be patched once with `python scripts/ensure_sqlite_asx_created_at_columns.py /path/to/fe_local.db` (or `FE_SQLITE_PATH=...`).
 - API endpoints:
   - GET `/api/health`
   - GET `/api/docs?ticker=BHP`

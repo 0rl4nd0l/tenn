@@ -25,6 +25,9 @@ class ASXPeriodicFinancial(Base):
     currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
     source_document_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     confidence_metrics: Mapped[float | None] = mapped_column(Float, nullable=True)
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 class ASXRiskNote(Base):
     __tablename__ = "asx_risk_notes"
@@ -34,4 +37,7 @@ class ASXRiskNote(Base):
     guidance_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     material_changes: Mapped[str | None] = mapped_column(Text, nullable=True)
     confidence_narrative: Mapped[float | None] = mapped_column(Float, nullable=True)
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
