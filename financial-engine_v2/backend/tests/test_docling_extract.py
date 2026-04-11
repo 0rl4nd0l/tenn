@@ -107,6 +107,88 @@ def test_extract_structured_uses_pymupdf_fallback_when_docling_fails(
     assert loaded == fallback_doc
 
 
+def test_extract_structured_preempts_docling_for_large_pdf(tmp_path, monkeypatch):
+    pdf_path = tmp_path / "report.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4 test")
+    pdf_path.touch()
+    os.truncate(
+        pdf_path,
+        docling_extract.DOCLING_LARGE_PDF_SIZE_THRESHOLD_BYTES + 1024,
+    )
+
+    fallback_doc = StructuredDocument(
+        tables=[],
+        sections=[{"heading": False, "text": "Fallback text", "page": 1}],
+        extraction_method="pymupdf",
+        page_count=238,
+    )
+
+    monkeypatch.setattr(
+        docling_extract,
+        "_get_page_count_fast",
+        lambda path: docling_extract.DOCLING_LARGE_PDF_PAGE_THRESHOLD,
+    )
+    monkeypatch.setattr(
+        docling_extract,
+        "_run_docling_with_timeout",
+        lambda path, timeout=120: (_ for _ in ()).throw(
+            AssertionError("docling should not run after large-pdf precheck")
+        ),
+    )
+    monkeypatch.setattr(docling_extract, "_extract_pymupdf", lambda path: fallback_doc)
+
+    loaded = docling_extract.extract_structured(str(pdf_path), backend="docling")
+
+    assert loaded == fallback_doc
+
+
+def test_extract_structured_strict_docling_bypasses_large_pdf_precheck(
+    tmp_path, monkeypatch
+):
+    pdf_path = tmp_path / "report.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4 test")
+    pdf_path.touch()
+    os.truncate(
+        pdf_path,
+        docling_extract.DOCLING_LARGE_PDF_SIZE_THRESHOLD_BYTES + 1024,
+    )
+
+    extracted_doc = StructuredDocument(
+        tables=[],
+        sections=[{"heading": False, "text": "Docling text", "page": 1}],
+        extraction_method="docling",
+        page_count=238,
+        docling_version=docling_extract.DOCLING_VERSION,
+    )
+
+    monkeypatch.setattr(docling_extract, "validate_docling_environment", lambda: None)
+    monkeypatch.setattr(
+        docling_extract,
+        "_get_page_count_fast",
+        lambda path: docling_extract.DOCLING_LARGE_PDF_PAGE_THRESHOLD,
+    )
+    monkeypatch.setattr(
+        docling_extract,
+        "_run_docling_with_timeout",
+        lambda path, timeout=120: extracted_doc,
+    )
+    monkeypatch.setattr(
+        docling_extract,
+        "_extract_pymupdf",
+        lambda path: (_ for _ in ()).throw(
+            AssertionError("strict docling should not preempt to pymupdf")
+        ),
+    )
+
+    loaded = docling_extract.extract_structured(
+        str(pdf_path),
+        backend="docling",
+        strict_backend=True,
+    )
+
+    assert loaded == extracted_doc
+
+
 def test_extract_structured_strict_docling_does_not_fallback(tmp_path, monkeypatch):
     pdf_path = tmp_path / "report.pdf"
     pdf_path.write_bytes(b"%PDF-1.4 test")

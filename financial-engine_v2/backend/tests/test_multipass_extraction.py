@@ -101,6 +101,175 @@ def test_pass2_higher_score_wins_on_conflict():
     assert result["cashflow_statement"] is strong
 
 
+def test_pass2_selects_point_in_time_net_debt_note_table():
+    """Point-in-time tables with an explicit net debt row should get a dedicated slot."""
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    year_end_summary = DoclingTable(
+        page_number=1,
+        caption="Year ended 30 June 2021",
+        rows=[
+            ["Year ended 30 June", "2021", "2020"],
+            ["Revenue", "100", "90"],
+            ["Net debt", "4,121", "12,044"],
+        ],
+        headers=["Year ended 30 June", "2021", "2020"],
+    )
+    point_in_time_note = DoclingTable(
+        page_number=5,
+        caption="",
+        rows=[
+            ["Table A", "As at 31 Dec 2025", "As at 30 Jun 2025"],
+            ["Borrowings", "(15,730)", "(14,896)"],
+            ["Cash and cash equivalents", "1,436", "1,012"],
+            ["Net debt", "(16,800)", "(16,445)"],
+        ],
+        headers=["Table A", "As at 31 Dec 2025", "As at 30 Jun 2025"],
+    )
+
+    result = _run_pass2_locator([year_end_summary, point_in_time_note])
+
+    assert result["net_debt_note"] is point_in_time_note
+
+
+def test_pass2_selects_net_debt_note_from_preceding_at_31_december_row():
+    """Point-in-time markers in preceding rows must survive locator normalization."""
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    rio_style_summary = DoclingTable(
+        page_number=1,
+        caption="",
+        rows=[
+            ["Year ended 31 December", "2024", "2023", "Change"],
+            [
+                "Net cash generated from operating activities (US$ millions)",
+                "15,599",
+                "15,160",
+                "3%",
+            ],
+            ["", "At 31 December 2024", "At 31 December 2023", ""],
+            ["Net debt¹ (US$ millions)", "5,491", "4,231", "30%"],
+        ],
+        headers=["Year ended 31 December", "2024", "2023", "Change"],
+    )
+
+    result = _run_pass2_locator([rio_style_summary])
+
+    assert result["net_debt_note"] is rio_style_summary
+
+
+def test_pass2_selects_net_debt_note_from_at_year_end_header():
+    """Year-end point-in-time headers should populate the dedicated net debt slot."""
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    rio_2023_style = DoclingTable(
+        page_number=1,
+        caption="",
+        rows=[
+            ["At year end", "2023", "2022", "Change"],
+            ["Revenue", "54,041", "55,554", "(3)%"],
+            ["Net debt", "4,231", "4,188", "1%"],
+        ],
+        headers=["At year end", "2023", "2022", "Change"],
+    )
+
+    result = _run_pass2_locator([rio_2023_style])
+
+    assert result["net_debt_note"] is rio_2023_style
+
+
+def test_pass2_rejects_year_end_net_debt_summary_from_note_slot():
+    """Year-end performance summaries must not populate the explicit net-debt note slot."""
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    year_end_summary = DoclingTable(
+        page_number=1,
+        caption="Year ended 30 June 2021",
+        rows=[
+            ["Year ended 30 June", "2021", "2020"],
+            ["Net operating cash flow", "27,234", "15,706"],
+            ["Net debt", "4,121", "12,044"],
+        ],
+        headers=["Year ended 30 June", "2021", "2020"],
+    )
+
+    result = _run_pass2_locator([year_end_summary])
+
+    assert result["net_debt_note"] is None
+
+
+def test_pass2_rejects_formula_style_year_end_net_debt_note_without_as_at_marker():
+    """Year-ended formula tables must not populate the point-in-time net-debt slot."""
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    year_end_summary = DoclingTable(
+        page_number=3,
+        caption="",
+        rows=[
+            ["Year ended 30 June", "2021", "2020"],
+            ["Net operating cash flow", "27,234", "15,706"],
+            ["Net debt", "4,121", "12,044"],
+        ],
+        headers=["Year ended 30 June", "2021", "2020"],
+    )
+    bhp_style_note = DoclingTable(
+        page_number=66,
+        caption="",
+        rows=[
+            ["Year ended 30 June", "2021 US$M", "2020 US$M Restated"],
+            ["Interest bearing liabilities - Current", "2,628", "5,012"],
+            ["Interest bearing liabilities - Non current", "18,355", "22,036"],
+            ["Total interest bearing liabilities", "20,983", "27,048"],
+            ["Borrowing", "17,087", "23,605"],
+            ["Lease liabilities", "3,896", "3,443"],
+            [
+                "Less: Lease liability associated with index-linked freight contracts",
+                "1,025",
+                "1,160",
+            ],
+            ["Less: Cash and cash equivalents", "15,246", "13,426"],
+            ["Less: Net debt management related instruments", "557", "433"],
+            ["Less: Total derivatives included in net debt", "591", "418"],
+            ["Net debt", "4,121", "12,044"],
+        ],
+        headers=["Year ended 30 June", "2021 US$M", "2020 US$M Restated"],
+    )
+
+    result = _run_pass2_locator([year_end_summary, bhp_style_note])
+
+    assert result["net_debt_note"] is None
+
+
+def test_pass2_rejects_glossary_definition_from_net_debt_note_slot():
+    """Glossary prose must not be mistaken for a formula-style net debt note."""
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    glossary = DoclingTable(
+        page_number=50,
+        caption="",
+        rows=[
+            ["GLOSSARY", ""],
+            ["Mineral Reserve", "A Mineral Reserve is the economically mineable part."],
+            [
+                "Net debt",
+                "Gross debt less cash and cash equivalents. Includes finance lease liabilities.",
+            ],
+            ["NPAT only", "Statutory Net Profit after Tax"],
+        ],
+        headers=["GLOSSARY", ""],
+    )
+
+    result = _run_pass2_locator([glossary])
+
+    assert result["net_debt_note"] is None
+
+
 # ---------------------------------------------------------------------------
 # Pass 3a — Scale normalisation and negative values
 # ---------------------------------------------------------------------------
@@ -190,6 +359,55 @@ def test_pass3a_negative_values_preserved():
         results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
 
     assert results[0]["investing_cf"] == -412_000
+
+
+def test_pass3a_extracts_net_debt_note():
+    """The dedicated note slot should request and return only explicit net_debt."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=45,
+        caption="",
+        rows=[
+            ["Table A", "As at 31 Dec 2025", "As at 30 Jun 2025"],
+            ["Borrowings", "(15,730)", "(14,896)"],
+            ["Cash and cash equivalents", "1,436", "1,012"],
+            ["Net debt", "(16,800)", "(16,445)"],
+        ],
+        headers=["Table A", "As at 31 Dec 2025", "As at 30 Jun 2025"],
+    )
+    labelled = {
+        "cashflow_statement": None,
+        "income_statement": None,
+        "net_debt_note": table,
+        "balance_sheet": None,
+        "share_capital": None,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "millions",
+    }
+
+    mock_raw = {
+        "net_debt": -16800,
+        "pass3_confidence": 0.9,
+        "row_refs": {},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert len(results) == 1
+    assert results[0]["_source"] == "net_debt_note"
+    assert results[0]["net_debt"] == 16_800_000_000
+    assert results[0]["row_refs"]["net_debt"] == "Net debt"
 
 
 # ---------------------------------------------------------------------------
@@ -687,6 +905,12 @@ def test_pass4_reconciler_derives_net_debt_from_total_debt():
     assert "derived:balance_sheet" in payload["provenance"].get("net_debt", ""), (
         "provenance must record that net_debt was derived"
     )
+    assert payload["confidence_metrics"] == pytest.approx(
+        round((0.9 + 0.9 + 0.55) / 3, 3)
+    ), (
+        "Derived net_debt must contribute discounted confidence instead of inheriting "
+        "the balance-sheet pass3 confidence."
+    )
 
 
 def test_pass4_reconciler_skips_derivation_when_net_debt_already_extracted():
@@ -796,6 +1020,9 @@ def test_pass4_preserves_explicit_summary_net_debt():
 
     assert payload["metrics"]["net_debt"] == 12_924_000_000
     assert payload["provenance"]["net_debt"] == "highlights:page_1:Net debt"
+    assert payload["confidence_metrics"] == pytest.approx(0.95), (
+        "An explicit labelled Net debt row must carry high confidence."
+    )
 
 
 def test_pass4_rejects_total_liabilities_as_total_debt():

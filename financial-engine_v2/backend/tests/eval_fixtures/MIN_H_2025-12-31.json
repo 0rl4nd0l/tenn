@@ -1,5 +1,5 @@
 {
-  "_source": "Hand-verified from ASX Appendix 4D + Half-year Financial Report (Mineral Resources Limited, half year ended 31 December 2025, filed 20 February 2026). All values AUD, scale=millions confirmed from '$M' column headers. Revenue verified from Appendix 4D page 1 ('Revenues from ordinary activities = 3,052') and income statement page 14 ('REVENUE = 3,052'). EBIT: 'PROFIT/(LOSS) FROM OPERATIONS = 1,031' (IS row 13, page 14) — before finance costs. np_attributable: 'Equity holders of the parent = 495' (IS row 27, page 14) — excludes 78M NCI. Cash-flow values verified from statement of cash flows page 17. capex: 'Payments for property, plant and equipment = (333)' (CF page 17). cash_end: 'Cash and cash equivalents at the end of the half-year = 638' (CF page 17). Shares outstanding verified from share capital note page 32 ('Balance at 31 December 2025 = 196,478,902' net of treasury shares). net_debt derived: total borrowings current (369) + non-current (5,147) = 5,516 minus cash_end (638) = 4,878 (Borrowings note page 30). Arithmetic cross-check: 412 (start) + 880 (ops) - 527 (investing) - 126 (financing) - 1 (FX) = 638 (cash_end).",
+  "_source": "Hand-verified from ASX Appendix 4D + Half-year Financial Report (Mineral Resources Limited, half year ended 31 December 2025, filed 20 February 2026). All values AUD, scale=millions confirmed from '$M' column headers. Revenue verified from Appendix 4D page 1 ('Revenues from ordinary activities = 3,052') and income statement page 14 ('REVENUE = 3,052'). EBIT: 'PROFIT/(LOSS) FROM OPERATIONS = 1,031' (IS row 13, page 14) — before finance costs. np_attributable: 'Equity holders of the parent = 495' (IS row 27, page 14) — excludes 78M NCI. Cash-flow values verified from statement of cash flows page 17. capex: 'Payments for property, plant and equipment = (333)' (CF page 17). cash_end: 'Cash and cash equivalents at the end of the half-year = 638' (CF page 17). Shares outstanding verified from share capital note page 32 ('Balance at 31 December 2025 = 196,478,902' net of treasury shares). net_debt expectation reviewed 2026-04-11: the filing does not state a numeric net debt value explicitly. Borrowings and cash are explicit, but 4,878 is derived from components and is therefore out of scope under the explicit-only extraction contract. Arithmetic cross-check: 412 (start) + 880 (ops) - 527 (investing) - 126 (financing) - 1 (FX) = 638 (cash_end).",
   "ticker": "MIN",
   "pdf_path": "data/asx/docs/MIN/financial_performance/2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb.pdf",
   "document_id": "min_2025h1_appendix4d",
@@ -17,9 +17,9 @@
     "capex": -333000000.0,
     "cash_end": 638000000.0,
     "shares_outstanding": 196478902.0,
-    "net_debt": 4878000000.0
+    "net_debt": null
   },
-  "expected_nulls": [],
+  "expected_nulls": ["net_debt"],
   "tolerances": {
     "revenue": 0.005,
     "ebit": 0.02,
@@ -29,8 +29,10 @@
     "financing_cf": 0.01,
     "capex": 0.02,
     "cash_end": 0.001,
-    "shares_outstanding": 0.01,
-    "net_debt": 0.05
+    "shares_outstanding": 0.01
+  },
+  "notes": {
+    "net_debt": "Gold review completed 2026-04-11. The only parsed table hit for 'Net debt' is a glossary definition on page 50, not a numeric metric row. The filing provides explicit borrowings (369 current + 5,147 non-current) and cash (638), so 4,878 is derivable, but non-5B derivation is not allowed under the explicit-only contract. Expected null."
   },
   "config": {
     "min_accuracy_overall": 0.80

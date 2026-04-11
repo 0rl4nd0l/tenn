@@ -561,6 +561,43 @@ def test_flag_chat_feedback_persists_before_background_analysis(tmp_path) -> Non
     assert scheduled["analysis_path"] == analysis_path
 
 
+def test_cockpit_workspace_root_env_overrides_flagged_reports_root(
+    tmp_path, monkeypatch
+) -> None:
+    """COCKPIT_WORKSPACE_ROOT env var must route flagged reports to the workspace volume."""
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    monkeypatch.setenv("COCKPIT_WORKSPACE_ROOT", str(workspace))
+
+    service = CockpitService.__new__(CockpitService)
+    service.repo_root = tmp_path / "app"  # simulates /app inside Docker
+    (service.repo_root).mkdir()
+    service.state_store = None
+    service.backend_api_client = None
+    service.query_orchestrator = None
+    service.llm_client = SimpleNamespace(
+        model="model:test", base_url="http://127.0.0.1:8001"
+    )
+    service._resolve_thread_id = lambda sid: sid or "global-main"
+    service._resolve_turn_diagnostics = lambda tid, fm: {}
+    service._schedule_flagged_report_analysis = lambda **kw: None
+
+    result = service.flag_chat_feedback(
+        session_id="env-test",
+        ticker="TST",
+        feedback_type="poor",
+        flagged_message={"id": "a1", "role": "assistant", "content": "bad"},
+    )
+
+    bundle_path = Path(result["bundle_path"])
+    assert bundle_path.exists()
+    # Must be under workspace, not under repo_root (/app)
+    assert str(workspace) in str(bundle_path)
+    assert str(service.repo_root) not in str(bundle_path)
+    flagged_root = workspace / "reports" / "cockpit" / "flagged_sessions"
+    assert flagged_root.exists()
+
+
 def test_good_chat_feedback_persists_without_background_analysis(tmp_path) -> None:
     service = CockpitService.__new__(CockpitService)
     service.repo_root = tmp_path

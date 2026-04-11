@@ -3,6 +3,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 from uuid import uuid4
 
+import fitz
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -36,6 +37,7 @@ def test_build_review_item_includes_provenance_and_snippet(
         "build_metric_snippet",
         lambda **_: {
             "kind": "line_crop",
+            "evidence_quality": "precise",
             "status": "ok",
             "image_path": "reports/extraction_review/snippets/test.png",
             "ascii_preview": "preview",
@@ -73,8 +75,12 @@ def test_build_review_item_includes_provenance_and_snippet(
     assert item["metric_name"] == "revenue"
     assert item["document_id"] == "doc-123"
     assert item["page_number"] == 7
+    assert item["metric_value"] == 12345.0
+    assert item["matched_text"] == "Revenue from contracts with customers"
+    assert item["evidence_quality"] == "precise"
     assert item["provenance_status"] == "precise"
     assert item["snippet"]["kind"] == "line_crop"
+    assert item["snippet"]["evidence_quality"] == "precise"
 
 
 def test_build_review_item_includes_method_provenance_and_gold_expected(
@@ -108,6 +114,7 @@ def test_build_review_item_includes_method_provenance_and_gold_expected(
         "build_metric_snippet",
         lambda **_: {
             "kind": "text_only",
+            "evidence_quality": "missing",
             "status": "ok",
             "image_path": None,
             "ascii_preview": None,
@@ -153,10 +160,66 @@ def test_build_review_item_includes_method_provenance_and_gold_expected(
     assert item is not None
     assert item["requested_method"] == "docling"
     assert item["actual_method"] == "docling"
+    assert item["method_provenance"] == "docling"
     assert item["strict_method"] is True
     assert item["gold_document_id"] == "gold-qbe"
     assert item["gold_expected_trust"] == "trusted"
     assert item["expected_value"] == 10875000000
+
+
+def test_build_review_item_exposes_optional_visual_verification_fields(
+    monkeypatch, tmp_path
+) -> None:
+    pdf_path = tmp_path / "sample.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+
+    monkeypatch.setattr(
+        review,
+        "build_metric_snippet",
+        lambda **_: {
+            "kind": "line_crop",
+            "evidence_quality": "precise",
+            "status": "ok",
+            "image_path": "reports/extraction_review/snippets/test.png",
+            "image_url": "/api/extraction-review/snippets/test.png",
+            "ascii_preview": None,
+            "matched_text": "Net cash from operating activities",
+            "page_number": 3,
+            "reason": None,
+        },
+    )
+
+    document = SimpleNamespace(
+        document_id="doc-123",
+        ticker="BHP",
+        title="Quarterly Report",
+        pdf_path=str(pdf_path),
+    )
+    run = SimpleNamespace(
+        run_id="run-456",
+        structured_json={
+            "period_end": "2024-09-30",
+            "period_type": "Q",
+            "period_col": "Sep 2024",
+            "metrics": {"operating_cf": 321.0},
+            "row_refs": {"operating_cf": "Net cash from operating activities"},
+            "provenance": {
+                "operating_cf": "cashflow_statement:page_3:Net cash from operating activities"
+            },
+            "_reproducibility": {"resolved_pdf_path": str(pdf_path)},
+            "_method_provenance": {"actual_method": "docling"},
+        },
+    )
+
+    item = review.build_review_item(document, run, "operating_cf")
+
+    assert item is not None
+    assert item["image_url"] == "/api/extraction-review/snippets/test.png"
+    assert item["image_path"] == "reports/extraction_review/snippets/test.png"
+    assert item["evidence_quality"] == "precise"
+    assert item["row_refs"] == {"operating_cf": "Net cash from operating activities"}
+    assert item["table_type"] == "cashflow_statement"
+    assert item["period_col"] == "Sep 2024"
 
 
 def test_build_metric_snippet_returns_text_fallback_when_bbox_unavailable(
@@ -181,8 +244,157 @@ def test_build_metric_snippet_returns_text_fallback_when_bbox_unavailable(
     )
 
     assert snippet["kind"] == "text_only"
+    assert snippet["evidence_quality"] == "missing"
     assert snippet["status"] == "bbox_unavailable"
+    assert snippet["matched_text"] == "Revenue"
     assert "pdftotext unavailable" in snippet["reason"]
+
+
+def test_build_review_item_marks_page_preview_only_as_approximate(
+    monkeypatch, tmp_path
+) -> None:
+    pdf_path = tmp_path / "sample.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+
+    monkeypatch.setattr(
+        review,
+        "build_metric_snippet",
+        lambda **_: {
+            "kind": "page_preview",
+            "evidence_quality": "approximate",
+            "status": "ok",
+            "image_path": "reports/extraction_review/snippets/page.png",
+            "image_url": "/api/extraction-review/snippets/page.png",
+            "ascii_preview": None,
+            "matched_text": "unknown",
+            "page_number": 11,
+            "reason": None,
+        },
+    )
+
+    document = SimpleNamespace(
+        document_id="doc-123",
+        ticker="BHP",
+        title="Quarterly Report",
+        pdf_path=str(pdf_path),
+    )
+    run = SimpleNamespace(
+        run_id="run-789",
+        structured_json={
+            "period_end": "2024-09-30",
+            "period_type": "Q",
+            "metrics": {"cash": 500.0},
+            "provenance": {"cash": "balance_sheet:page_11:unknown"},
+            "_reproducibility": {"resolved_pdf_path": str(pdf_path)},
+            "_method_provenance": {"actual_method": "docling"},
+        },
+    )
+
+    item = review.build_review_item(document, run, "cash")
+
+    assert item is not None
+    assert item["image_url"] == "/api/extraction-review/snippets/page.png"
+    assert item["evidence_quality"] == "approximate"
+    assert item["snippet"]["evidence_quality"] == "approximate"
+
+
+def test_evidence_quality_for_snippet_marks_page_preview_as_approximate() -> None:
+    snippet = {
+        "kind": "page_preview",
+        "image_path": "reports/extraction_review/snippets/page.png",
+        "matched_text": "unknown",
+    }
+
+    assert review._evidence_quality_for_snippet(snippet) == "approximate"
+
+
+def test_evidence_quality_for_snippet_marks_line_crop_as_precise() -> None:
+    snippet = {
+        "kind": "line_crop",
+        "image_url": "/api/extraction-review/snippets/line.png",
+        "matched_text": "Revenue from contracts with customers",
+    }
+
+    assert review._evidence_quality_for_snippet(snippet) == "precise"
+
+
+def test_evidence_quality_for_snippet_marks_missing_image_as_missing() -> None:
+    snippet = {
+        "kind": "text_only",
+        "image_path": None,
+        "image_url": None,
+        "matched_text": "Revenue",
+    }
+
+    assert review._evidence_quality_for_snippet(snippet) == "missing"
+
+
+def test_create_review_session_returns_diagnostics_for_zero_metric_run(
+    monkeypatch, tmp_path
+) -> None:
+    session = _make_session()
+    pdf_path = tmp_path / "sample.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+    doc_id = uuid4()
+    run_id = uuid4()
+
+    try:
+        session.add(
+            Document(
+                document_id=doc_id,
+                ticker="BHP",
+                exchange="ASX",
+                doc_class="annual",
+                doc_subtype="report",
+                published_at=None,
+                period_end=None,
+                title="Annual Report",
+                source_url=f"https://example.com/{doc_id}",
+                pdf_path=str(pdf_path),
+                pdf_sha256="abc123",
+            )
+        )
+        session.add(
+            ExtractionRun(
+                run_id=run_id,
+                document_id=doc_id,
+                extractor_version="v1",
+                model_name="qwen-test",
+                prompt_hash="hash-1",
+                status="ok",
+                confidence_overall=0.7,
+                structured_json={
+                    "period_end": "2024-06-30",
+                    "period_type": "A",
+                    "currency": "AUD",
+                    "scale": "millions",
+                    "confidence_metrics": 0.7,
+                    "metrics": {"revenue": None, "ebit": None},
+                    "provenance": {},
+                    "_reproducibility": {"resolved_pdf_path": str(pdf_path)},
+                    "_method_provenance": {
+                        "requested_method": "docling",
+                        "actual_method": "docling",
+                        "strict_method": True,
+                    },
+                },
+            )
+        )
+        session.commit()
+
+        review_session = review.create_review_session(
+            session,
+            [],
+            run_ids=[str(run_id)],
+        )
+
+        assert review_session["items"] == []
+        assert review_session["documents"][0]["review_ready"] is False
+        assert review_session["documents"][0]["reason"] == "persisted_but_no_metrics"
+        assert review_session["documents"][0]["metrics_count"] == 0
+        assert review_session["documents"][0]["requested_method"] == "docling"
+    finally:
+        session.close()
 
 
 @pytest.mark.skipif(Image is None, reason="Pillow not installed")
@@ -219,9 +431,39 @@ def test_build_metric_snippet_creates_line_crop_with_ascii_preview(
     )
 
     assert snippet["kind"] == "line_crop"
+    assert snippet["evidence_quality"] == "precise"
     assert snippet["status"] == "ok"
     assert snippet["image_path"]
     assert snippet["ascii_preview"]
+
+
+@pytest.mark.skipif(Image is None, reason="Pillow not installed")
+def test_build_metric_snippet_renders_real_pdf_without_poppler(
+    monkeypatch, tmp_path
+) -> None:
+    pdf_path = tmp_path / "sample.pdf"
+    document = fitz.open()
+    page = document.new_page(width=595, height=842)
+    page.insert_text((72, 120), "Revenue from contracts with customers", fontsize=14)
+    document.save(pdf_path)
+    document.close()
+
+    monkeypatch.setattr(review, "SNIPPETS_ROOT", tmp_path / "snippets")
+    snippet = review.build_metric_snippet(
+        item_id="run-1:revenue",
+        pdf_path=pdf_path,
+        page_number=1,
+        evidence_text="Revenue from contracts with customers",
+    )
+
+    assert snippet["status"] == "ok"
+    assert snippet["kind"] == "line_crop"
+    assert snippet["evidence_quality"] == "precise"
+    assert snippet["image_path"]
+    assert snippet["image_url"]
+    assert snippet["matched_text"]
+    output_path = review.PROJECT_ROOT / str(snippet["image_path"])
+    assert output_path.exists()
 
 
 def test_submit_review_decision_updates_wrong_queue_snapshot(

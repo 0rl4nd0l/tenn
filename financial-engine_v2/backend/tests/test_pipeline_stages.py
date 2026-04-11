@@ -5,7 +5,10 @@ import uuid
 from types import SimpleNamespace
 
 from app.models.extractions import ExtractionRun
-from app.services.announcement_importance import classify_title_extraction_skip
+from app.services.announcement_importance import (
+    classify_narrative_extraction_policy,
+    classify_title_extraction_skip,
+)
 from app.services import pipeline
 from app.services.pipeline_stages import (
     DocumentProcessResult,
@@ -42,6 +45,31 @@ def test_classify_title_extraction_skip_preserves_structural_financial_docs() ->
 
     assert result["skip_extraction"] is False
     assert result["matched_keywords"] == []
+
+
+def test_classify_narrative_extraction_policy_selects_ops_titles() -> None:
+    result = classify_narrative_extraction_policy(
+        title="Quarterly Activities and Trading Update",
+        doc_class="quarterly",
+        doc_subtype="other",
+        policy="selective",
+    )
+
+    assert result["extract_narrative"] is True
+    assert result["reason"] == "selective_narrative_title_signal"
+    assert "trading update" in result["matched_keywords"]
+
+
+def test_classify_narrative_extraction_policy_keeps_financial_docs_metrics_only() -> None:
+    result = classify_narrative_extraction_policy(
+        title="Appendix 4C Quarterly Cash Flow Report",
+        doc_class="quarterly",
+        doc_subtype="4C",
+        policy="selective",
+    )
+
+    assert result["extract_narrative"] is False
+    assert result["reason"] == "metrics_only_financial_doc"
 
 
 def test_run_extraction_stage_disabled_returns_structured_status() -> None:
@@ -337,22 +365,29 @@ def test_process_document_downloads_pending_pdf_before_extraction(
     monkeypatch.setattr(
         pipeline, "download_pdf_for_document", fake_download_pdf_for_document
     )
-    monkeypatch.setattr(
-        method_isolated_extraction,
-        "run_method_isolated_extraction",
-        lambda *_args, **_kwargs: SimpleNamespace(
+    captured_kwargs: dict[str, object] = {}
+
+    def _fake_run_method_isolated_extraction(*_args, **kwargs):
+        captured_kwargs.update(kwargs)
+        return SimpleNamespace(
             status="skipped",
             payload={"status": "skipped_after_download"},
             sections=[],
             error=None,
-        ),
+        )
+
+    monkeypatch.setattr(
+        method_isolated_extraction,
+        "run_method_isolated_extraction",
+        _fake_run_method_isolated_extraction,
     )
 
-    result = pipeline.process_document(str(doc_id))
+    result = pipeline.process_document(str(doc_id), skip_narrative=True)
 
     assert result["extraction_status"] == "skipped"
     assert download_calls == [str(doc_id)]
     assert doc.pdf_path == str(downloaded_pdf)
+    assert captured_kwargs["skip_narrative"] is True
     run = next(obj for obj in session.added if isinstance(obj, ExtractionRun))
     assert run.status == "skipped"
 
