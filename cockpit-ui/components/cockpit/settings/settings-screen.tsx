@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Cpu, Server, ToggleLeft, Info, GitBranch, FolderOpen, Loader2, HardDrive } from 'lucide-react'
+import { Cpu, Server, ToggleLeft, Info, GitBranch, FolderOpen, Loader2, HardDrive, ArrowRightLeft } from 'lucide-react'
 import { useCockpitStore } from '@/lib/cockpit-store'
-import { fetchAvailableModels } from '@/lib/api-client'
+import { fetchAvailableModels, loadCockpitModel } from '@/lib/api-client'
 import type { ModelGroup } from '@/lib/cockpit-types'
 
 interface ConfigSectionProps {
@@ -113,6 +114,8 @@ export function SettingsScreen() {
   const [loading, setLoading] = useState(true)
   const [backendOnline, setBackendOnline] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [switching, setSwitching] = useState(false)
+  const [switchResult, setSwitchResult] = useState<{ ok: boolean; message: string } | null>(null)
 
   useEffect(() => {
     async function fetchConfig() {
@@ -234,43 +237,85 @@ export function SettingsScreen() {
         <ConfigSection title="LLM Configuration" icon={<Cpu className="h-5 w-5 text-primary" />}>
           <div className="flex items-center justify-between py-2">
             <span className="text-sm text-muted-foreground">Chat Model</span>
-            <Select value={chatModel} onValueChange={setChatModel}>
-              <SelectTrigger className="w-[340px] h-8 text-sm font-mono">
-                <SelectValue placeholder="Select a model..." />
-              </SelectTrigger>
-              <SelectContent>
-                {modelGroups.length > 0 ? (
-                  modelGroups.map((group) => (
-                    <div key={group.location}>
-                      <div className="flex items-center gap-1.5 px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        <HardDrive className="h-3 w-3" />
-                        {group.label}
+            <div className="flex items-center gap-2">
+              <Select value={chatModel} onValueChange={(value) => {
+                setChatModel(value)
+                setSwitchResult(null)
+              }}>
+                <SelectTrigger className="w-[300px] h-8 text-sm font-mono">
+                  <SelectValue placeholder="Select a model..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {modelGroups.length > 0 ? (
+                    modelGroups.map((group) => (
+                      <div key={group.location}>
+                        <div className="flex items-center gap-1.5 px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                          <HardDrive className="h-3 w-3" />
+                          {group.label}
+                        </div>
+                        {group.models.map((m) => (
+                          <SelectItem
+                            key={`${group.location}:${m.id}`}
+                            value={m.id}
+                            disabled={!m.available}
+                          >
+                            <div className="flex items-center justify-between w-full gap-3">
+                              <span className="font-mono text-sm truncate">{m.id}</span>
+                              <span className="text-xs text-muted-foreground shrink-0">
+                                {m.size_gb > 0 ? `${m.size_gb}G` : ''}{m.quantization ? `${m.size_gb > 0 ? ' ' : ''}${m.quantization}` : ''}
+                                {!m.available ? ' (cold)' : ''}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
                       </div>
-                      {group.models.map((m) => (
-                        <SelectItem
-                          key={`${group.location}:${m.id}`}
-                          value={m.id}
-                          disabled={!m.available}
-                        >
-                          <div className="flex items-center justify-between w-full gap-3">
-                            <span className="font-mono text-sm truncate">{m.id}</span>
-                            <span className="text-xs text-muted-foreground shrink-0">
-                              {m.size_gb > 0 ? `${m.size_gb}G` : ''}{m.quantization ? `${m.size_gb > 0 ? ' ' : ''}${m.quantization}` : ''}
-                              {!m.available ? ' (cold)' : ''}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </div>
-                  ))
+                    ))
+                  ) : (
+                    <SelectItem value={chatModel}>
+                      <span className="font-mono text-sm">{chatModel}</span>
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="default"
+                size="sm"
+                className="h-8 gap-1.5 shrink-0"
+                disabled={switching || !backendOnline}
+                onClick={async () => {
+                  setSwitching(true)
+                  setSwitchResult(null)
+                  try {
+                    const result = await loadCockpitModel(chatModel)
+                    setSwitchResult({ ok: result.ok, message: result.message })
+                  } catch (err: unknown) {
+                    setSwitchResult({
+                      ok: false,
+                      message: err instanceof Error ? err.message : 'Switch failed',
+                    })
+                  } finally {
+                    setSwitching(false)
+                  }
+                }}
+              >
+                {switching ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  <SelectItem value={chatModel}>
-                    <span className="font-mono text-sm">{chatModel}</span>
-                  </SelectItem>
+                  <ArrowRightLeft className="h-3.5 w-3.5" />
                 )}
-              </SelectContent>
-            </Select>
+                Switch
+              </Button>
+            </div>
           </div>
+          {switchResult && (
+            <div className={`text-xs px-3 py-1.5 rounded ${
+              switchResult.ok
+                ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                : 'bg-destructive/10 text-destructive border border-destructive/20'
+            }`}>
+              {switchResult.message}
+            </div>
+          )}
           <Separator />
           <ConfigRow label="Endpoint" value={config.llm.endpoint} mono />
           <Separator />
