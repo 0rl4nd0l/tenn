@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Financial Cockpit — Color Swatch Reference</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Fira Sans', sans-serif;
+    background: oklch(0.10 0.02 260);
+    color: oklch(0.93 0.01 260);
+    padding: 2rem;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: oklch(0.7 0.15 195);
+  }
+
+  h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 2rem 0 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: oklch(0.67 0.02 260);
+    border-bottom: 1px solid oklch(0.25 0.02 260);
+    padding-bottom: 0.5rem;
+  }
+
+  .subtitle {
+    font-family: 'Fira Code', monospace;
+    font-size: 0.8rem;
+    color: oklch(0.67 0.02 260);
+    margin-bottom: 2rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+  }
+
+  .swatch {
+    border: 1px solid oklch(0.33 0.02 260);
+    border-radius: 8px;
+    overflow: hidden;
+    background: oklch(0.14 0.02 260);
+  }
+
+  .swatch-color {
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.7rem;
+    font-weight: 500;
+  }
+
+  .swatch-info {
+    padding: 8px 12px;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.7rem;
+    line-height: 1.6;
+  }
+
+  .swatch-name {
+    font-family: 'Fira Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.8rem;
+    margin-bottom: 2px;
+  }
+
+  .swatch-token {
+    color: oklch(0.67 0.02 260);
+  }
+
+  .swatch-value {
+    color: oklch(0.7 0.15 195);
+  }
+
+  .swatch-use {
+    color: oklch(0.55 0.02 260);
+    font-family: 'Fira Sans', sans-serif;
+    font-style: italic;
+    font-size: 0.7rem;
+    margin-top: 4px;
+  }
+
+  .text-on-dark { color: oklch(0.93 0.01 260); }
+  .text-on-light { color: oklch(0.15 0.02 260); }
+
+  .font-demo {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .font-card {
+    border: 1px solid oklch(0.33 0.02 260);
+    border-radius: 8px;
+    padding: 1.5rem;
+    background: oklch(0.14 0.02 260);
+    min-width: 300px;
+    flex: 1;
+  }
+
+  .font-card h3 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: oklch(0.7 0.15 195);
+    margin-bottom: 1rem;
+  }
+
+  .font-sample-sans {
+    font-family: 'Fira Sans', sans-serif;
+    margin-bottom: 0.5rem;
+  }
+
+  .font-sample-mono {
+    font-family: 'Fira Code', monospace;
+    margin-bottom: 0.5rem;
+  }
+
+  .terminal-demo {
+    background: oklch(0.08 0.01 260);
+    border: 1px solid oklch(0.25 0.02 260);
+    border-radius: 8px;
+    padding: 1.5rem;
+    font-family: 'Fira Code', monospace;
+    position: relative;
+    overflow: hidden;
+    margin-top: 1rem;
+  }
+
+  .terminal-demo::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      oklch(0 0 0 / 0.03) 2px, oklch(0 0 0 / 0.03) 4px
+    );
+    pointer-events: none;
+  }
+
+  .terminal-demo::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 0%, oklch(0 0 0 / 0.15) 100%);
+    pointer-events: none;
+  }
+
+  .terminal-demo .prompt { color: oklch(0.7 0.18 240); }
+  .terminal-demo .text { color: oklch(0.95 0 0); }
+  .terminal-demo .dim { color: oklch(0.65 0.15 240); }
+  .terminal-demo .cursor {
+    display: inline-block;
+    width: 0.6em;
+    height: 1.2em;
+    background: oklch(0.95 0 0);
+    animation: blink 1s step-end infinite;
+    vertical-align: text-bottom;
+    margin-left: 2px;
+  }
+
+  @keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+
+  .status-demo {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+  }
+
+  .status-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.8rem;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .dot-pulse {
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
+
+  .spacing-demo {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+  }
+
+  .spacing-box {
+    border: 1px dashed oklch(0.33 0.02 260);
+    background: oklch(0.19 0.02 260);
+    font-family: 'Fira Code', monospace;
+    font-size: 0.7rem;
+    color: oklch(0.67 0.02 260);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .radius-demo {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+  }
+
+  .radius-box {
+    width: 80px;
+    height: 48px;
+    border: 1px solid oklch(0.7 0.15 195);
+    background: oklch(0.19 0.02 260);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.65rem;
+    color: oklch(0.67 0.02 260);
+  }
+</style>
+</head>
+<body>
+
+<h1>Financial Cockpit — Design System Swatch</h1>
+<div class="subtitle">oklch color space | Fira Sans + Fira Code | dark-mode only</div>
+
+<!-- BACKGROUNDS -->
+<h2>Backgrounds & Surfaces</h2>
+<div class="grid">
+  <div class="swatch">
+    <div class="swatch-color text-on-dark" style="background: oklch(0.08 0.01 260)">Aa</div>
+    <div class="swatch-info">
+      <div class="swatch-name">Terminal BG</div>
+      <div class="swatch-value">oklch(0.08 0.01 260)</div>
+      <div class="swatch-token">.terminal-container</div>
+      <div class="swatch-use">Chat terminal background</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color text-on-dark" style="background: oklch(0.13 0.02 260)">Aa</div>
+    <div class="swatch-info">
+      <div class="swatch-name">Sidebar</div>
+      <div class="swatch-value">oklch(0.13 0.02 260)</div>
+      <div class="swatch-token">--sidebar</div>
+      <div class="swatch-use">Sidebar background</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color text-on-dark" style="background: oklch(0.14 0.02 260)">Aa</div>
+    <div class="swatch-info">
+      <div class="swatch-name">Background</div>
+      <div class="swatch-value">oklch(0.14 0.02 260)</div>
+      <div class="swatch-token">--background</div>
+      <div class="swatch-use">Page background</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color text-on-dark" style="background: oklch(0.19 0.02 260)">Aa</div>
+    <div class="swatch-info">
+      <div class="swatch-name">Card</div>
+      <div class="swatch-value">oklch(0.19 0.02 260)</div>
+      <div class="swatch-token">--card</div>
+      <div class="swatch-use">Card surfaces, popovers</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color text-on-dark" style="background: oklch(0.2 0.02 260)">Aa</div>
+    <div class="swatch-info">
+      <div class="swatch-name">Input</div>
+      <div class="swatch-value">oklch(0.2 0.02 260)</div>
+      <div class="swatch-token">--input</div>
+      <div class="swatch-use">Input backgrounds</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color text-on-dark" style="background: oklch(0.22 0.02 260)">Aa</div>
+    <div class="swatch-info">
+      <div class="swatch-name">Secondary</div>
+      <div class="swatch-value">oklch(0.22 0.02 260)</div>
+      <div class="swatch-token">--secondary</div>
+      <div class="swatch-use">Secondary surfaces</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color text-on-dark" style="background: oklch(0.25 0.02 260)">Aa</div>
+    <div class="swatch-info">
+      <div class="swatch-name">Muted</div>
+      <div class="swatch-value">oklch(0.25 0.02 260)</div>
+      <div class="swatch-token">--muted</div>
+      <div class="swatch-use">Muted backgrounds, hover</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color text-on-dark" style="background: oklch(0.33 0.02 260)">Aa</div>
+    <div class="swatch-info">
+      <div class="swatch-name">Border</div>
+      <div class="swatch-value">oklch(0.33 0.02 260)</div>
+      <div class="swatch-token">--border</div>
+      <div class="swatch-use">Borders, dividers</div>
+    </div>
+  </div>
+</div>
+
+<!-- TEXT -->
+<h2>Text & Foreground</h2>
+<div class="grid">
+  <div class="swatch">
+    <div class="swatch-color text-on-dark" style="background: oklch(0.14 0.02 260)">
+      <span style="color: oklch(0.93 0.01 260); font-size: 1.2rem;">Aa</span>
+    </div>
+    <div class="swatch-info">
+      <div class="swatch-name">Foreground</div>
+      <div class="swatch-value">oklch(0.93 0.01 260)</div>
+      <div class="swatch-token">--foreground</div>
+      <div class="swatch-use">Primary text</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color text-on-dark" style="background: oklch(0.14 0.02 260)">
+      <span style="color: oklch(0.88 0.01 260); font-size: 1.2rem;">Aa</span>
+    </div>
+    <div class="swatch-info">
+      <div class="swatch-name">Secondary FG</div>
+      <div class="swatch-value">oklch(0.88 0.01 260)</div>
+      <div class="swatch-token">--secondary-foreground</div>
+      <div class="swatch-use">Secondary text</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color text-on-dark" style="background: oklch(0.14 0.02 260)">
+      <span style="color: oklch(0.67 0.02 260); font-size: 1.2rem;">Aa</span>
+    </div>
+    <div class="swatch-info">
+      <div class="swatch-name">Muted FG</div>
+      <div class="swatch-value">oklch(0.67 0.02 260)</div>
+      <div class="swatch-token">--muted-foreground</div>
+      <div class="swatch-use">Labels, metadata text</div>
+    </div>
+  </div>
+</div>
+
+<!-- ACCENT & STATUS -->
+<h2>Accent & Status Colors</h2>
+<div class="grid">
+  <div class="swatch">
+    <div class="swatch-color text-on-light" style="background: oklch(0.7 0.15 195)">Aa</div>
+    <div class="swatch-info">
+      <div class="swatch-name">Primary (Cyan)</div>
+      <div class="swatch-value">oklch(0.7 0.15 195)</div>
+      <div class="swatch-token">--primary</div>
+      <div class="swatch-use">Accent, links, focus rings</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color text-on-light" style="background: oklch(0.69 0.22 145)">Aa</div>
+    <div class="swatch-info">
+      <div class="swatch-name">Success (Green)</div>
+      <div class="swatch-value">oklch(0.69 0.22 145)</div>
+      <div class="swatch-token">--success</div>
+      <div class="swatch-use">Healthy, running, positive</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color text-on-light" style="background: oklch(0.78 0.17 80)">Aa</div>
+    <div class="swatch-info">
+      <div class="swatch-name">Warning (Amber)</div>
+      <div class="swatch-value">oklch(0.78 0.17 80)</div>
+      <div class="swatch-token">--warning</div>
+      <div class="swatch-use">Degraded, caution, abstain</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color text-on-dark" style="background: oklch(0.58 0.22 25)">Aa</div>
+    <div class="swatch-info">
+      <div class="swatch-name">Destructive (Red)</div>
+      <div class="swatch-value">oklch(0.58 0.22 25)</div>
+      <div class="swatch-token">--destructive</div>
+      <div class="swatch-use">Error, failure, critical</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color text-on-dark" style="background: oklch(0.65 0.15 240)">Aa</div>
+    <div class="swatch-info">
+      <div class="swatch-name">Info (Purple)</div>
+      <div class="swatch-value">oklch(0.65 0.15 240)</div>
+      <div class="swatch-token">--info</div>
+      <div class="swatch-use">Informational, insights</div>
+    </div>
+  </div>
+</div>
+
+<!-- CHART COLORS -->
+<h2>Chart Palette</h2>
+<div class="grid">
+  <div class="swatch">
+    <div class="swatch-color text-on-light" style="background: oklch(0.7 0.15 195)">1</div>
+    <div class="swatch-info">
+      <div class="swatch-name">Chart 1 — Cyan</div>
+      <div class="swatch-value">oklch(0.7 0.15 195)</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color text-on-light" style="background: oklch(0.69 0.22 145)">2</div>
+    <div class="swatch-info">
+      <div class="swatch-name">Chart 2 — Green</div>
+      <div class="swatch-value">oklch(0.69 0.22 145)</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color text-on-light" style="background: oklch(0.78 0.17 80)">3</div>
+    <div class="swatch-info">
+      <div class="swatch-name">Chart 3 — Amber</div>
+      <div class="swatch-value">oklch(0.78 0.17 80)</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color text-on-dark" style="background: oklch(0.6 0.18 280)">4</div>
+    <div class="swatch-info">
+      <div class="swatch-name">Chart 4 — Purple</div>
+      <div class="swatch-value">oklch(0.6 0.18 280)</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color text-on-dark" style="background: oklch(0.55 0.2 25)">5</div>
+    <div class="swatch-info">
+      <div class="swatch-name">Chart 5 — Red</div>
+      <div class="swatch-value">oklch(0.55 0.2 25)</div>
+    </div>
+  </div>
+</div>
+
+<!-- TERMINAL -->
+<h2>Terminal Colors</h2>
+<div class="grid">
+  <div class="swatch">
+    <div class="swatch-color" style="background: oklch(0.08 0.01 260)">
+      <span style="color: oklch(0.95 0 0)">Terminal text</span>
+    </div>
+    <div class="swatch-info">
+      <div class="swatch-name">.terminal-text</div>
+      <div class="swatch-value">oklch(0.95 0 0)</div>
+      <div class="swatch-use">Standard terminal output</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background: oklch(0.08 0.01 260)">
+      <span style="color: oklch(0.65 0.15 240); text-shadow: 0 0 6px oklch(0.65 0.15 240 / 0.3)">Dim text</span>
+    </div>
+    <div class="swatch-info">
+      <div class="swatch-name">.terminal-text-dim</div>
+      <div class="swatch-value">oklch(0.65 0.15 240)</div>
+      <div class="swatch-use">Metadata, timestamps</div>
+    </div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background: oklch(0.08 0.01 260)">
+      <span style="color: oklch(0.7 0.18 240); text-shadow: 0 0 8px oklch(0.7 0.18 240 / 0.4)">$ prompt</span>
+    </div>
+    <div class="swatch-info">
+      <div class="swatch-name">.terminal-prompt</div>
+      <div class="swatch-value">oklch(0.7 0.18 240)</div>
+      <div class="swatch-use">Input prompt indicator</div>
+    </div>
+  </div>
+</div>
+
+<!-- TERMINAL DEMO -->
+<h2>Terminal Effect Demo</h2>
+<div class="terminal-demo">
+  <div style="position: relative; z-index: 2; line-height: 1.75;">
+    <div><span class="prompt">cockpit $</span> <span class="text">analyze BHP.AX --depth full</span></div>
+    <div><span class="dim">[2026-04-11 14:23:01] model: qwen3:30b-a3b | latency: 342ms</span></div>
+    <div><span class="text">BHP Group reported revenue of $27.2B for H1 FY2026...</span></div>
+    <div><span class="dim">[sources: 3 documents, relevance: 0.89-0.94]</span></div>
+    <div><span class="prompt">cockpit $</span> <span class="cursor"></span></div>
+  </div>
+</div>
+
+<!-- STATUS INDICATORS -->
+<h2>Status Indicator Patterns</h2>
+<div class="status-demo">
+  <div class="status-item">
+    <div class="dot dot-pulse" style="background: oklch(0.69 0.22 145)"></div>
+    <span>Backend: RUNNING</span>
+  </div>
+  <div class="status-item">
+    <div class="dot" style="background: oklch(0.58 0.22 25)"></div>
+    <span>Backend: DOWN</span>
+  </div>
+  <div class="status-item">
+    <div class="dot dot-pulse" style="background: oklch(0.7 0.18 205)"></div>
+    <span>GPU: VISIBLE</span>
+  </div>
+  <div class="status-item">
+    <div class="dot" style="background: oklch(0.7 0.05 250)"></div>
+    <span>GPU: UNKNOWN</span>
+  </div>
+  <div class="status-item">
+    <div class="dot" style="background: oklch(0.78 0.17 80)"></div>
+    <span>Degraded</span>
+  </div>
+</div>
+
+<!-- TYPOGRAPHY -->
+<h2>Typography</h2>
+<div class="font-demo">
+  <div class="font-card">
+    <h3>Fira Sans (UI Text)</h3>
+    <div class="font-sample-sans" style="font-weight: 400; font-size: 1rem;">Regular 400 — The quick brown fox</div>
+    <div class="font-sample-sans" style="font-weight: 500; font-size: 1rem;">Medium 500 — The quick brown fox</div>
+    <div class="font-sample-sans" style="font-weight: 600; font-size: 1rem;">Semibold 600 — The quick brown fox</div>
+    <div class="font-sample-sans" style="font-weight: 700; font-size: 1rem;">Bold 700 — The quick brown fox</div>
+  </div>
+  <div class="font-card">
+    <h3>Fira Code (Data & Terminal)</h3>
+    <div class="font-sample-mono" style="font-weight: 400; font-size: 1rem;">Regular 400 — $27,234,891.00</div>
+    <div class="font-sample-mono" style="font-weight: 500; font-size: 1rem;">Medium 500 — model: qwen3:30b-a3b</div>
+    <div class="font-sample-mono" style="font-weight: 600; font-size: 0.8rem;">Semibold 600 (11px) — max_tokens: 4096</div>
+    <div class="font-sample-mono" style="font-weight: 400; font-size: 0.7rem; color: oklch(0.67 0.02 260);">Regular (10px muted) — keyboard shortcut</div>
+  </div>
+</div>
+
+<!-- BORDER RADIUS -->
+<h2>Border Radius</h2>
+<div class="radius-demo">
+  <div class="radius-box" style="border-radius: 4px;">sm (4px)</div>
+  <div class="radius-box" style="border-radius: 6px;">md (6px)</div>
+  <div class="radius-box" style="border-radius: 8px;">lg (8px)</div>
+  <div class="radius-box" style="border-radius: 12px;">xl (12px)</div>
+  <div class="radius-box" style="border-radius: 50%; width: 48px;">full</div>
+</div>
+
+<!-- DIAGNOSTIC MATRIX DEMO -->
+<h2>Diagnostic Matrix States</h2>
+<div class="grid" style="grid-template-columns: repeat(4, 120px); gap: 8px; margin-top: 1rem;">
+  <div style="background: oklch(0.69 0.22 145 / 0.2); border: 1px solid oklch(0.69 0.22 145 / 0.4); border-radius: 4px; padding: 12px; text-align: center;">
+    <div style="font-family: 'Fira Code'; font-size: 0.75rem; color: oklch(0.69 0.22 145);">Populated</div>
+  </div>
+  <div style="background: oklch(0.78 0.17 80 / 0.15); border: 1px solid oklch(0.78 0.17 80 / 0.4); border-radius: 4px; padding: 12px; text-align: center;">
+    <div style="font-family: 'Fira Code'; font-size: 0.75rem; color: oklch(0.78 0.17 80);">Abstain</div>
+  </div>
+  <div style="background: oklch(0.58 0.22 25 / 0.15); border: 1px solid oklch(0.58 0.22 25 / 0.4); border-radius: 4px; padding: 12px; text-align: center;">
+    <div style="font-family: 'Fira Code'; font-size: 0.75rem; color: oklch(0.58 0.22 25);">Failed</div>
+  </div>
+  <div style="background: oklch(0.33 0.02 260 / 0.3); border: 1px solid oklch(0.33 0.02 260 / 0.6); border-radius: 4px; padding: 12px; text-align: center;">
+    <div style="font-family: 'Fira Code'; font-size: 0.75rem; color: oklch(0.5 0.02 260);">Sparse</div>
+  </div>
+</div>
+
+<div style="margin-top: 3rem; padding-top: 1rem; border-top: 1px solid oklch(0.25 0.02 260); font-family: 'Fira Code'; font-size: 0.7rem; color: oklch(0.5 0.02 260);">
+  Generated from cockpit-ui/app/globals.css | Open this file in a browser to see live colors with correct oklch rendering
+</div>
+
+</body>
+</html>

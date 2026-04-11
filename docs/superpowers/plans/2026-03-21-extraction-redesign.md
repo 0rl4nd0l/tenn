@@ -1326,6 +1326,35 @@ git commit -m "test(extraction): unit tests for all 4 passes — table locator, 
 **We're replacing only one logical block in `process_document()`** — the section from `text = extract_text_from_pdf(...)` through `_upsert_financial_rows(...)`. Everything else (Qdrant embed path, ExtractionRun write, error handling structure) stays. This is minimal-diff discipline: change only what must change.
 
 **The `EXTRACTOR_VERSION` import path changes** — it used to come from `extraction.py` (now deleted). It's now defined in `multipass_extraction.py`. The import at the top of `pipeline.py` must be updated.
+
+### Implementation addendum: pre-extraction administrative title gate
+
+Live backend behavior now includes a title-only skip gate in `pipeline.process_document()` before `run_method_isolated_extraction()`.
+
+Purpose:
+
+- prevent clearly administrative ASX paperwork from consuming GPU extraction time during backfills
+- preserve the normal extraction path for everything else
+
+Rules:
+
+- use a narrow skip list of known non-financial administrative announcement titles
+- do not use an allow list of "approved" financial titles
+- do not read the PDF to make the skip decision
+- never skip structurally financial documents such as `annual`, `half_year`, `4C`, `4D`, or `4E`
+
+Examples of skipped titles:
+
+- substantial holder / substantial holding notices
+- director's interest notices
+- cessation of securities
+- unquoted securities
+
+Operational result:
+
+- matched documents are recorded as `skipped_extraction`
+- GPU extraction is not invoked
+- downstream chunking / embedding / persistence behavior remains unchanged for documents that still proceed
 `─────────────────────────────────────────────────`
 
 - [ ] **Step 1: Update imports in `pipeline.py`**

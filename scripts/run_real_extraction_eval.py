@@ -8,6 +8,7 @@ It does not modify extraction logic, pipeline stages, or database schema.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import os
 import subprocess
@@ -121,6 +122,17 @@ def _parse_args() -> argparse.Namespace:
         type=float,
         default=0.01,
         help="Relative numeric tolerance for metric comparisons.",
+    )
+    parser.add_argument("--extractor-label", default="multipass_extraction")
+    parser.add_argument("--provider-label", default=None)
+    parser.add_argument("--method-label", default="run_multipass_extraction")
+    parser.add_argument("--model-label", default=None)
+    parser.add_argument("--config-label", default=None)
+    parser.add_argument(
+        "--parser-backend",
+        default=None,
+        choices=["docling", "pymupdf"],
+        help="Override the PDF parser backend (default: auto/docling).",
     )
     return parser.parse_args()
 
@@ -333,6 +345,7 @@ def _evaluate_document(
     doc: GoldDocument,
     *,
     tolerance: float,
+    parser_backend: str | None = None,
 ) -> dict[str, Any]:
     _persist_local_llm_api_key()
     source_path = _resolve_source_path(doc.source_file)
@@ -350,6 +363,7 @@ def _evaluate_document(
             metadata,
             llm_client=None,
             skip_narrative=True,
+            parser_backend=parser_backend,
         )
         payload = (
             extraction_result.payload
@@ -392,6 +406,12 @@ def _evaluate_document(
             "source_metric_key": extraction_key,
         }
 
+    metric_status_counts = {"correct": 0, "wrong": 0, "missing": 0, "abstain": 0}
+    for metric_result in metric_results.values():
+        status = str(metric_result.get("status") or "")
+        if status in metric_status_counts:
+            metric_status_counts[status] += 1
+
     trust_outcome, trust_triggers = _derive_trust(context_ok, metric_results)
     trust_matches_expected = trust_outcome == doc.expected_trust
 
@@ -411,6 +431,8 @@ def _evaluate_document(
         "document_id": doc.document_id,
         "source_file": doc.source_file,
         "source_path": str(source_path),
+        "ticker": ticker,
+        "source_basename": source_path.name,
         "period_type": doc.period_type,
         "period_end": doc.period_end,
         "expected_trust": doc.expected_trust,
@@ -421,6 +443,16 @@ def _evaluate_document(
         "context_actual": actual_context,
         "context_mismatches": context_mismatches,
         "metric_results": metric_results,
+        "metric_status_counts": metric_status_counts,
+        "correct_metric_count": metric_status_counts["correct"],
+        "wrong_metric_count": metric_status_counts["wrong"],
+        "missing_metric_count": metric_status_counts["missing"],
+        "abstained_metric_count": metric_status_counts["abstain"],
+        "failed_metric_count": (
+            metric_status_counts["wrong"]
+            + metric_status_counts["missing"]
+            + metric_status_counts["abstain"]
+        ),
         "trust_outcome": trust_outcome,
         "trust_triggers": trust_triggers,
         "trust_matches_expected": trust_matches_expected,
@@ -438,14 +470,23 @@ def _summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
     total_metric_checks = 0
     context_correct_count = 0
     trust_match_count = 0
+    context_mismatch_field_count = 0
+    failed_document_count = 0
+    trust_trigger_counts: dict[str, int] = {}
 
     for result in results:
         trust = result["trust_outcome"]
         trust_distribution[trust] = trust_distribution.get(trust, 0) + 1
         if result["context_correct"]:
             context_correct_count += 1
+        else:
+            context_mismatch_field_count += len(result.get("context_mismatches", []))
         if result["trust_matches_expected"]:
             trust_match_count += 1
+        if result.get("failed_metric_count", 0) > 0 or not result["context_correct"]:
+            failed_document_count += 1
+        for trigger in result.get("trust_triggers", []):
+            trust_trigger_counts[trigger] = trust_trigger_counts.get(trigger, 0) + 1
 
         for metric_name, metric_result in result["metric_results"].items():
             status = metric_result["status"]
@@ -465,13 +506,22 @@ def _summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "total_documents": len(results),
+        "failed_documents": failed_document_count,
         "context_correct_documents": context_correct_count,
+        "context_mismatch_documents": len(results) - context_correct_count,
+        "context_mismatch_fields": context_mismatch_field_count,
         "context_accuracy": (context_correct_count / len(results) if results else 0.0),
         "total_metric_checks": total_metric_checks,
         "metric_status_counts": metric_status_counts,
+        "correct_count": metric_status_counts.get("correct", 0),
+        "wrong_count": metric_status_counts.get("wrong", 0),
+        "missing_count": metric_status_counts.get("missing", 0),
+        "abstained_count": metric_status_counts.get("abstain", 0),
         "total_accuracy": accuracy,
         "trust_distribution": trust_distribution,
         "trust_matches_expected": trust_match_count,
+        "trust_mismatches_expected": len(results) - trust_match_count,
+        "trust_trigger_counts": dict(sorted(trust_trigger_counts.items())),
         "per_metric_failure_counts": per_metric_failure_counts,
     }
 
@@ -481,6 +531,7 @@ def _build_report_markdown(
     results: list[dict[str, Any]],
     *,
     dataset_dir: Path,
+    artifact_paths: dict[str, str],
 ) -> str:
     lines: list[str] = []
     lines.append("# Extraction Real Eval Summary")
@@ -507,12 +558,30 @@ def _build_report_markdown(
         f"{summary['trust_matches_expected']}/{summary['total_documents']}"
     )
     lines.append("")
+    lines.append("## Artifact Outputs")
+    lines.append("")
+    lines.append("| Artifact | Path |")
+    lines.append("| --- | --- |")
+    for artifact_name, artifact_path in sorted(artifact_paths.items()):
+        lines.append(f"| {artifact_name} | `{artifact_path}` |")
+    lines.append("")
     lines.append("## Trust Distribution")
     lines.append("")
     lines.append("| Trust outcome | Count |")
     lines.append("| --- | ---: |")
     for trust in ("trusted", "abstain", "quarantine"):
         lines.append(f"| {trust} | {summary['trust_distribution'].get(trust, 0)} |")
+    lines.append("")
+    lines.append("## Trust Trigger Summary")
+    lines.append("")
+    lines.append("| Trigger | Count |")
+    lines.append("| --- | ---: |")
+    trust_trigger_counts = summary.get("trust_trigger_counts", {})
+    if trust_trigger_counts:
+        for trigger, count in trust_trigger_counts.items():
+            lines.append(f"| {trigger} | {count} |")
+    else:
+        lines.append("| - | 0 |")
     lines.append("")
     lines.append("## Per-Metric Failure Counts")
     lines.append("")
@@ -527,12 +596,31 @@ def _build_report_markdown(
             f"| {metric} | {counts['wrong']} | {counts['missing']} | {counts['abstain']} |"
         )
     lines.append("")
+    lines.append("## Most Failed Documents")
+    lines.append("")
+    lines.append("| Document | Ticker | Period | Trust | Failed metrics | Context mismatches |")
+    lines.append("| --- | --- | --- | --- | ---: | ---: |")
+    ranked_results = sorted(
+        results,
+        key=lambda item: (
+            -int(item.get("failed_metric_count", 0)),
+            -len(item.get("context_mismatches", [])),
+            str(item.get("document_id") or ""),
+        ),
+    )
+    for result in ranked_results:
+        lines.append(
+            f"| {result['document_id']} | {result.get('ticker') or '-'} | "
+            f"{result['period_type']} {result['period_end']} | {result['trust_outcome']} | "
+            f"{result.get('failed_metric_count', 0)} | {len(result.get('context_mismatches', []))} |"
+        )
+    lines.append("")
     lines.append("## Per-Document Breakdown")
     lines.append("")
     lines.append(
-        "| Document | Period | Context | Trust (actual / expected) | Metric statuses | Mismatch reasons |"
+        "| Document | Ticker | Period | Context | Trust (actual / expected) | Metric statuses | Mismatch reasons |"
     )
-    lines.append("| --- | --- | --- | --- | --- | --- |")
+    lines.append("| --- | --- | --- | --- | --- | --- | --- |")
     for result in results:
         period = f"{result['period_type']} {result['period_end']}"
         context = "ok" if result["context_correct"] else "mismatch"
@@ -545,11 +633,118 @@ def _build_report_markdown(
             "; ".join(result["mismatch_reasons"]) if result["mismatch_reasons"] else "-"
         )
         lines.append(
-            f"| {result['document_id']} | {period} | {context} | {trust} | "
+            f"| {result['document_id']} | {result.get('ticker') or '-'} | {period} | "
+            f"{context} | {trust} | "
             f"{metric_statuses} | {mismatch} |"
         )
 
     return "\n".join(lines).rstrip() + "\n"
+
+
+def _artifact_paths(results_json: Path, report_path: Path) -> dict[str, Path]:
+    base_name = results_json.stem
+    return {
+        "results_json": results_json,
+        "summary_markdown": report_path,
+        "summary_json": results_json.with_name(f"{base_name}_summary.json"),
+        "documents_csv": results_json.with_name(f"{base_name}_documents.csv"),
+        "metrics_csv": results_json.with_name(f"{base_name}_metrics.csv"),
+        "trust_triggers_csv": results_json.with_name(f"{base_name}_trust_triggers.csv"),
+    }
+
+
+def _document_rollup_rows(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for result in sorted(results, key=lambda item: str(item.get("document_id") or "")):
+        rows.append(
+            {
+                "document_id": result.get("document_id"),
+                "ticker": result.get("ticker"),
+                "period_type": result.get("period_type"),
+                "period_end": result.get("period_end"),
+                "trust_outcome": result.get("trust_outcome"),
+                "expected_trust": result.get("expected_trust"),
+                "trust_matches_expected": result.get("trust_matches_expected"),
+                "context_correct": result.get("context_correct"),
+                "context_mismatch_count": len(result.get("context_mismatches", [])),
+                "correct_metric_count": result.get("correct_metric_count", 0),
+                "wrong_metric_count": result.get("wrong_metric_count", 0),
+                "missing_metric_count": result.get("missing_metric_count", 0),
+                "abstained_metric_count": result.get("abstained_metric_count", 0),
+                "failed_metric_count": result.get("failed_metric_count", 0),
+                "extraction_status": result.get("extraction_status"),
+                "extraction_error": result.get("extraction_error"),
+                "source_file": result.get("source_file"),
+                "source_path": result.get("source_path"),
+            }
+        )
+    return rows
+
+
+def _metric_rollup_rows(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for result in sorted(results, key=lambda item: str(item.get("document_id") or "")):
+        for metric_name in sorted(result.get("metric_results", {})):
+            metric_result = result["metric_results"][metric_name]
+            rows.append(
+                {
+                    "document_id": result.get("document_id"),
+                    "ticker": result.get("ticker"),
+                    "period_type": result.get("period_type"),
+                    "period_end": result.get("period_end"),
+                    "trust_outcome": result.get("trust_outcome"),
+                    "expected_trust": result.get("expected_trust"),
+                    "metric_name": metric_name,
+                    "status": metric_result.get("status"),
+                    "expected": metric_result.get("expected"),
+                    "actual": metric_result.get("actual"),
+                    "reason": metric_result.get("reason"),
+                    "source_metric_key": metric_result.get("source_metric_key"),
+                }
+            )
+    return rows
+
+
+def _trust_trigger_rows(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for result in sorted(results, key=lambda item: str(item.get("document_id") or "")):
+        triggers = result.get("trust_triggers") or []
+        if not triggers:
+            rows.append(
+                {
+                    "document_id": result.get("document_id"),
+                    "ticker": result.get("ticker"),
+                    "period_type": result.get("period_type"),
+                    "period_end": result.get("period_end"),
+                    "trust_outcome": result.get("trust_outcome"),
+                    "trigger": "",
+                }
+            )
+            continue
+        for trigger in sorted(str(item) for item in triggers):
+            rows.append(
+                {
+                    "document_id": result.get("document_id"),
+                    "ticker": result.get("ticker"),
+                    "period_type": result.get("period_type"),
+                    "period_end": result.get("period_end"),
+                    "trust_outcome": result.get("trust_outcome"),
+                    "trigger": trigger,
+                }
+            )
+    return rows
+
+
+def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not rows:
+        path.write_text("", encoding="utf-8")
+        return
+    fieldnames = list(rows[0].keys())
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
 
 
 def main() -> int:
@@ -557,6 +752,18 @@ def main() -> int:
     dataset_dir = args.dataset_dir
     report_path = args.report_path
     results_json = args.results_json
+    artifact_paths = _artifact_paths(results_json, report_path)
+    run_metadata = {
+        "dataset_dir": str(dataset_dir),
+        "extractor_label": args.extractor_label,
+        "provider_label": args.provider_label,
+        "method_label": args.method_label,
+        "model_label": args.model_label,
+        "config_label": args.config_label,
+        "parser_backend": args.parser_backend,
+        "tolerance": max(float(args.tolerance), 0.0),
+        "limit": args.limit,
+    }
 
     gold_docs = _load_dataset(dataset_dir)
     if args.limit > 0:
@@ -568,14 +775,25 @@ def main() -> int:
         results.append(
             _evaluate_document(
                 doc,
-                tolerance=max(float(args.tolerance), 0.0),
+                tolerance=run_metadata["tolerance"],
+                parser_backend=args.parser_backend,
             )
         )
 
     summary = _summarize(results)
+    summary_json = artifact_paths["summary_json"]
+    documents_csv = artifact_paths["documents_csv"]
+    metrics_csv = artifact_paths["metrics_csv"]
+    trust_triggers_csv = artifact_paths["trust_triggers_csv"]
+    output_artifact_paths = {
+        key: str(path)
+        for key, path in artifact_paths.items()
+    }
     output_payload = {
         "dataset_dir": str(dataset_dir),
+        "run_metadata": run_metadata,
         "summary": summary,
+        "artifact_paths": output_artifact_paths,
         "documents": results,
     }
 
@@ -585,9 +803,32 @@ def main() -> int:
         encoding="utf-8",
     )
 
+    summary_json.parent.mkdir(parents=True, exist_ok=True)
+    summary_json.write_text(
+        json.dumps(
+            {
+                "dataset_dir": str(dataset_dir),
+                "run_metadata": run_metadata,
+                "summary": summary,
+                "artifact_paths": output_artifact_paths,
+            },
+            indent=2,
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    _write_csv(documents_csv, _document_rollup_rows(results))
+    _write_csv(metrics_csv, _metric_rollup_rows(results))
+    _write_csv(trust_triggers_csv, _trust_trigger_rows(results))
+
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(
-        _build_report_markdown(summary, results, dataset_dir=dataset_dir),
+        _build_report_markdown(
+            summary,
+            results,
+            dataset_dir=dataset_dir,
+            artifact_paths=output_artifact_paths,
+        ),
         encoding="utf-8",
     )
 
@@ -618,7 +859,11 @@ def main() -> int:
         f"quarantine={summary['trust_distribution'].get('quarantine', 0)}"
     )
     print(f"- Wrote detailed JSON: {results_json}")
+    print(f"- Wrote summary JSON: {summary_json}")
     print(f"- Wrote markdown report: {report_path}")
+    print(f"- Wrote per-document CSV: {documents_csv}")
+    print(f"- Wrote per-metric CSV: {metrics_csv}")
+    print(f"- Wrote trust-trigger CSV: {trust_triggers_csv}")
 
     return 0
 

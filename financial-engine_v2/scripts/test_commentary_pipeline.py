@@ -777,7 +777,10 @@ def test_embedding_runtime_defaults_to_local_llamacpp_when_env_missing(monkeypat
     monkeypatch.setattr(llamacpp_runtime.settings, "embed_model", "")
     monkeypatch.setattr(llamacpp_runtime.settings, "ollama_url", "")
 
-    assert resolve_llamacpp_embedding_config() == ("http://127.0.0.1:8001", "model:gpt-oss-20b")
+    assert resolve_llamacpp_embedding_config() == (
+        "http://127.0.0.1:8001",
+        "model:qwen3-30b-a3b-instruct",
+    )
 
 
 def test_embedding_runtime_prefers_non_cpu_model_for_local_cpu_routing(monkeypatch) -> None:

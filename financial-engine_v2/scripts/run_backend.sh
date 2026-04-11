@@ -14,6 +14,14 @@ if [[ "${DRY_RUN:-0}" == "1" ]]; then
 fi
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TENN_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+PYTHON_BIN="$(command -v python3 2>/dev/null || command -v python 2>/dev/null)"
+if [[ -z "${PYTHON_BIN}" ]]; then
+  log ERROR "python3 or python required for Tenn storage guard"
+  exit 1
+fi
+"${PYTHON_BIN}" "${TENN_REPO}/scripts/storage_guard.py" || exit 1
+
 ENV_FILE="${ROOT_DIR}/config/system.env"
 
 if [[ -f "${ENV_FILE}" ]]; then

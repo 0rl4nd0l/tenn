@@ -81,6 +81,21 @@ Under `cockpit-ui/app/api/cockpit/` (non-exhaustive; glob the directory if route
 
 Client-side helpers may live under `cockpit-ui/lib/` (e.g. `api-client.ts`).
 
+### 6.1 Active model and switch-state UX
+
+The web Cockpit UI may show both:
+
+- a **selected model** (operator preference / requested model id), and
+- an **active runtime model** (what the backend/router currently reports as loaded).
+
+For correctness:
+
+- the **active runtime model** shown in the UI **SHOULD** come from a backend-backed runtime snapshot such as `GET /api/cockpit/config` and not from stale client-only placeholders,
+- client-side fallback values like `local` are presentation defaults only and **MUST NOT** be treated as authoritative runtime state,
+- "switching" / "waiting for model switch" UI states **SHOULD** be based on backend-backed runtime identity and normalized model aliases, not on raw string inequality between a selected alias and a resolved runtime display name.
+
+This keeps the UI aligned with SYSTEM_CONTRACT §1.2: Cockpit presents backend authority; it does not invent an independent model-truth state.
+
 ---
 
 ## 7. Streaming and chat tests
@@ -115,6 +130,7 @@ Each row maps a **contract obligation** to **implementation** and an explicit **
 | C7 | News context SQLite fallback when Qdrant/backend path fails | `financial-engine_v2/cockpit/core/tools.py` (`news_context`) | Logs fallback; not a second ranked retrieval engine — resilience only | **intentional deviation** — documented fallback; tighten if contract interpretation changes |
 | C8 | No independent merge/rank as authority | Cockpit does not replace backend hybrid retriever for `/api/chat` | N/A | **conform** (scope: Cockpit client; backend owns `/chat` RAG) |
 | C9 | Orchestration (subprocess actions, UI) without owning ingestion truth | `financial-engine_v2/cockpit/core/actions.py` runs scripts (e.g. ticker sync, loaders) | Actions invoke repo scripts; backend remains authority for persisted truth | **conform** |
+| C10 | Web UI active-model/switch UX reflects backend authority rather than stale client state | `cockpit-ui/components/cockpit/chat/chat-screen.tsx`, `cockpit-ui/components/cockpit/cockpit-status-bar.tsx`, `cockpit-ui/lib/cockpit-config.ts` | UI should compare normalized backend-backed runtime identity before showing switch-wait states | **conform** |
 
 ---
 

@@ -61,7 +61,7 @@ class CockpitActionIntentRoutingTests(unittest.TestCase):
             c.detect_action_intent("sync news chunks to qdrant"), "load_news_to_qdrant"
         )
 
-    def test_ingest_ticker_shortcut_routes_to_single_ticker_backfill(self):
+    def _make_controller_with_fake_registry(self) -> ChatController:
         os.environ["COCKPIT_AGENT_MODE"] = "keyword"
 
         class _FakeActionRegistry:
@@ -78,11 +78,14 @@ class CockpitActionIntentRoutingTests(unittest.TestCase):
                     timeout_seconds=14400,
                 )
 
-        controller = ChatController(
+        return ChatController(
             ollama_client=None,
             tool_router=None,
             action_registry=_FakeActionRegistry(),
         )
+
+    def test_ingest_ticker_shortcut_routes_to_single_ticker_backfill(self):
+        controller = self._make_controller_with_fake_registry()
 
         response = controller.build_chat_response("ingest eos")
 
@@ -90,6 +93,26 @@ class CockpitActionIntentRoutingTests(unittest.TestCase):
             response.action_preview["action_id"], "single_ticker_announcement_backfill"
         )
         self.assertEqual(response.action_preview["args"]["ticker"], "EOS")
+
+    def test_bare_ingest_with_session_ticker_uses_session_context(self):
+        controller = self._make_controller_with_fake_registry()
+        controller.last_ticker = "BHP"
+
+        response = controller.build_chat_response("ingest")
+
+        self.assertEqual(
+            response.action_preview["action_id"], "single_ticker_announcement_backfill"
+        )
+        self.assertEqual(response.action_preview["args"]["ticker"], "BHP")
+
+    def test_bare_ingest_without_ticker_prompts_user(self):
+        controller = self._make_controller_with_fake_registry()
+        controller.last_ticker = None
+
+        response = controller.build_chat_response("ingest")
+
+        self.assertIn("Which ticker", response.text)
+        self.assertIsNone(response.action_preview)
 
 
 class CockpitLoadNewsQdrantActionTests(unittest.TestCase):

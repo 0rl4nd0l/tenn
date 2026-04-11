@@ -4,6 +4,14 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+TENN_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+PYTHON_BIN="$(command -v python3 2>/dev/null || command -v python 2>/dev/null)"
+if [[ -z "${PYTHON_BIN}" ]]; then
+  echo "ERROR: python3 or python required for Tenn storage guard" >&2
+  exit 1
+fi
+"${PYTHON_BIN}" "${TENN_REPO}/scripts/storage_guard.py" || exit 1
+
 PROFILE="${LOCAL_BACKEND_PROFILE:-isolated}"
 RUNTIME_DB_FALLBACK="/tmp/financial-engine_v2-fe_local_runtime.db"
 

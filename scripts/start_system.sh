@@ -2,6 +2,13 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PYTHON_BIN="$(command -v python3 2>/dev/null || command -v python 2>/dev/null)"
+if [[ -z "${PYTHON_BIN}" ]]; then
+  echo "ERROR: python3 or python required for Tenn storage guard" >&2
+  exit 1
+fi
+"${PYTHON_BIN}" "${ROOT_DIR}/scripts/storage_guard.py" || exit 1
+
 VENV_BIN="${ROOT_DIR}/financial-engine_v2/.venv/bin"
 if [[ -d "${VENV_BIN}" ]]; then
   export PATH="${VENV_BIN}:${PATH}"

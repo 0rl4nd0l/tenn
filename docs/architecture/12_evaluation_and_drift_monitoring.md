@@ -198,10 +198,20 @@ financial-engine_v2/.venv/bin/python scripts/run_real_extraction_eval.py \
   --report-path reports/extraction_real_eval_summary.md
 ```
 
+### Parser backend and published benchmarks
+
+Optional: pass `--parser-backend` (for example `docling` or `pymupdf`; see `scripts/run_real_extraction_eval.py --help` for the full set) to compare PDF parser stacks under the same LLM and gold corpus without changing application code.
+
+Recorded example: docling vs pymupdf on the 10-document real-gold corpus, including commands, environment audit notes, and comparative DuckDB output — [reports/benchmark_2026-04-10/BENCHMARK_REPORT.md](../../reports/benchmark_2026-04-10/BENCHMARK_REPORT.md).
+
 Artifacts:
 
 - JSON results: `reports/extraction_real_eval_results.json`
+- Summary JSON: `reports/extraction_real_eval_results_summary.json`
 - Markdown summary: `reports/extraction_real_eval_summary.md`
+- Per-document CSV: `reports/extraction_real_eval_results_documents.csv`
+- Per-metric CSV: `reports/extraction_real_eval_results_metrics.csv`
+- Trust-trigger CSV: `reports/extraction_real_eval_results_trust_triggers.csv`
 
 ### Local MLflow tracking
 
@@ -222,7 +232,7 @@ Properties:
 - File-backed only (`mlruns/` in the repo root)
 - No remote tracking server
 - No backend runtime instrumentation
-- Logs params, summary metrics, per-metric accuracy when available, and eval artifacts
+- Logs corpus path/fingerprint when available, summary metrics, per-metric accuracy, trust-trigger counts, and eval artifacts
 
 If you already have eval artifacts and only want to register them in MLflow without rerunning extraction:
 
@@ -244,10 +254,15 @@ financial-engine_v2/.venv/bin/python scripts/analyze_real_extraction_eval_duckdb
   --summary-path reports/analysis/extraction_real_eval_duckdb_summary.md
 ```
 
+Pass **multiple** result JSON paths (space-separated) to compare two or more runs in one analysis (for example docling vs pymupdf artifacts); see the benchmark report linked in [Parser backend and published benchmarks](#parser-backend-and-published-benchmarks).
+
 The script is intentionally read-only and answers questions such as:
 
 - which metrics fail most
-- which documents end in `abstain` or `quarantine`
+- which documents fail most
+- wrong vs missing vs abstained vs quarantine distribution
+- failure clusters by ticker and period type when that metadata is available
+- trust-trigger summaries
 - what failure patterns appear by period type or trust outcome
 
 It reads eval JSON artifacts only and writes an optional local markdown summary.

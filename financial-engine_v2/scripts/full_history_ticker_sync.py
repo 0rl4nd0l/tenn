@@ -21,6 +21,7 @@ ROOT_SCRIPTS = REPO_ROOT.parent / "scripts"
 if str(ROOT_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(ROOT_SCRIPTS))
 
+from app.core.config import settings  # noqa: E402
 from app.core.db import SessionLocal  # noqa: E402
 from app.models import Document  # noqa: E402
 from app.providers.universe import ASX20  # noqa: E402
@@ -77,6 +78,19 @@ def _load_tickers_from_file(path: Path):
 
 def _utc_now():
     return datetime.now(timezone.utc).isoformat()
+
+
+def _build_child_backend_env() -> dict[str, str]:
+    """Keep child scripts on the same backend runtime config as the parent process."""
+    env = os.environ.copy()
+    existing_pythonpath = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = (
+        f"backend{os.pathsep}{existing_pythonpath}" if existing_pythonpath else "backend"
+    )
+    env.setdefault("DATABASE_URL", str(settings.database_url))
+    env.setdefault("DATA_ROOT", str(settings.data_root))
+    env.setdefault("DOCS_ROOT", str(settings.docs_root))
+    return env
 
 
 def _document_count_for_ticker(ticker: str) -> int:
@@ -447,10 +461,7 @@ def main():
         if args.process_documents:
             resume_cmd.append("--process-documents")
 
-        env = os.environ.copy()
-        existing_pythonpath = env.get("PYTHONPATH", "")
-        env["PYTHONPATH"] = f"backend{os.pathsep}{existing_pythonpath}" if existing_pythonpath else "backend"
-        env.setdefault("DATABASE_URL", "sqlite:///./data/fe_local.db")
+        env = _build_child_backend_env()
 
         print(f"[resume] running: {' '.join(resume_cmd)}", flush=True)
         completed = subprocess.run(resume_cmd, cwd=str(REPO_ROOT), env=env, check=False)
@@ -479,10 +490,7 @@ def main():
             "--out-json",
             str(taxonomy_path),
         ]
-        env = os.environ.copy()
-        existing_pythonpath = env.get("PYTHONPATH", "")
-        env["PYTHONPATH"] = f"backend{os.pathsep}{existing_pythonpath}" if existing_pythonpath else "backend"
-        env.setdefault("DATABASE_URL", "sqlite:///./data/fe_local.db")
+        env = _build_child_backend_env()
 
         print(f"[post] running: {' '.join(audit_cmd)}", flush=True)
         audit_run = subprocess.run(audit_cmd, cwd=str(REPO_ROOT), env=env, check=False)

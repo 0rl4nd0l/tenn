@@ -41,32 +41,56 @@ def _parse_args() -> argparse.Namespace:
 
 def _load_rows(
     paths: list[Path],
-) -> tuple[list[tuple[Any, ...]], list[tuple[Any, ...]]]:
+) -> tuple[list[tuple[Any, ...]], list[tuple[Any, ...]], list[tuple[Any, ...]]]:
     document_rows: list[tuple[Any, ...]] = []
     metric_rows: list[tuple[Any, ...]] = []
-    for path in paths:
+    trigger_rows: list[tuple[Any, ...]] = []
+    for index, path in enumerate(paths, start=1):
         payload = json.loads(path.read_text(encoding="utf-8"))
-        run_id = path.stem
+        summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+        run_stamp = summary.get("generated_at") or f"run{index}"
+        run_id = f"{path.stem}:{run_stamp}"
         for document in payload.get("documents", []):
+            metric_results = (
+                document.get("metric_results")
+                if isinstance(document.get("metric_results"), dict)
+                else {}
+            )
+            wrong_count = 0
+            missing_count = 0
+            abstain_count = 0
+            for metric_result in metric_results.values():
+                status = str(metric_result.get("status") or "")
+                if status == "wrong":
+                    wrong_count += 1
+                elif status == "missing":
+                    missing_count += 1
+                elif status == "abstain":
+                    abstain_count += 1
             document_rows.append(
                 (
                     run_id,
                     document.get("document_id"),
+                    document.get("ticker"),
                     document.get("period_type"),
                     document.get("period_end"),
                     document.get("trust_outcome"),
                     document.get("expected_trust"),
                     bool(document.get("context_correct")),
                     document.get("extraction_status"),
+                    wrong_count,
+                    missing_count,
+                    abstain_count,
+                    wrong_count + missing_count + abstain_count,
+                    len(document.get("context_mismatches") or []),
                 )
             )
-            for metric_name, metric_result in document.get(
-                "metric_results", {}
-            ).items():
+            for metric_name, metric_result in metric_results.items():
                 metric_rows.append(
                     (
                         run_id,
                         document.get("document_id"),
+                        document.get("ticker"),
                         document.get("period_type"),
                         document.get("trust_outcome"),
                         metric_name,
@@ -74,7 +98,18 @@ def _load_rows(
                         metric_result.get("reason"),
                     )
                 )
-    return document_rows, metric_rows
+            for trigger in document.get("trust_triggers") or []:
+                trigger_rows.append(
+                    (
+                        run_id,
+                        document.get("document_id"),
+                        document.get("ticker"),
+                        document.get("period_type"),
+                        document.get("trust_outcome"),
+                        trigger,
+                    )
+                )
+    return document_rows, metric_rows, trigger_rows
 
 
 def _markdown_table(headers: list[str], rows: list[tuple[Any, ...]]) -> str:
@@ -87,27 +122,49 @@ def _markdown_table(headers: list[str], rows: list[tuple[Any, ...]]) -> str:
 def main() -> int:
     args = _parse_args()
     duckdb = _require_duckdb()
-    document_rows, metric_rows = _load_rows(args.results_json)
+    document_rows, metric_rows, trigger_rows = _load_rows(args.results_json)
 
     con = duckdb.connect(database=":memory:")
     con.execute(
-        "create table documents (run_id varchar, document_id varchar, period_type varchar, period_end varchar, trust_outcome varchar, expected_trust varchar, context_correct boolean, extraction_status varchar)"
+        "create table documents (run_id varchar, document_id varchar, ticker varchar, period_type varchar, period_end varchar, trust_outcome varchar, expected_trust varchar, context_correct boolean, extraction_status varchar, wrong_count integer, missing_count integer, abstain_count integer, failed_metric_count integer, context_mismatch_count integer)"
     )
     con.execute(
-        "create table metrics (run_id varchar, document_id varchar, period_type varchar, trust_outcome varchar, metric_name varchar, status varchar, reason varchar)"
+        "create table metrics (run_id varchar, document_id varchar, ticker varchar, period_type varchar, trust_outcome varchar, metric_name varchar, status varchar, reason varchar)"
+    )
+    con.execute(
+        "create table trust_triggers (run_id varchar, document_id varchar, ticker varchar, period_type varchar, trust_outcome varchar, trigger varchar)"
     )
     if document_rows:
         con.executemany(
-            "insert into documents values (?, ?, ?, ?, ?, ?, ?, ?)", document_rows
+            "insert into documents values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            document_rows,
         )
     if metric_rows:
-        con.executemany("insert into metrics values (?, ?, ?, ?, ?, ?, ?)", metric_rows)
+        con.executemany(
+            "insert into metrics values (?, ?, ?, ?, ?, ?, ?, ?)", metric_rows
+        )
+    if trigger_rows:
+        con.executemany(
+            "insert into trust_triggers values (?, ?, ?, ?, ?, ?)", trigger_rows
+        )
 
     failure_rows = con.execute(
         "select metric_name, status, count(*) as failures from metrics where status <> 'correct' group by 1, 2 order by failures desc, metric_name, status"
     ).fetchall()
+    metric_distribution_rows = con.execute(
+        "select status, count(*) as count from metrics group by 1 order by count desc, status"
+    ).fetchall()
+    trust_distribution_rows = con.execute(
+        "select trust_outcome, count(*) as count from documents group by 1 order by count desc, trust_outcome"
+    ).fetchall()
     concern_rows = con.execute(
-        "select d.document_id, d.period_type, d.trust_outcome, d.expected_trust, coalesce(string_agg(distinct case when m.status <> 'correct' then m.metric_name || ':' || m.status end, ', ' order by case when m.status <> 'correct' then m.metric_name || ':' || m.status end), '-') as failures from documents d left join metrics m on d.run_id = m.run_id and d.document_id = m.document_id where d.trust_outcome in ('abstain', 'quarantine') or exists (select 1 from metrics mx where mx.run_id = d.run_id and mx.document_id = d.document_id and mx.status <> 'correct') group by 1, 2, 3, 4 order by d.trust_outcome desc, d.document_id"
+        "select d.document_id, coalesce(d.ticker, '-'), d.period_type, d.trust_outcome, d.expected_trust, d.failed_metric_count, d.context_mismatch_count, coalesce(string_agg(distinct case when m.status <> 'correct' then m.metric_name || ':' || m.status end, ', ' order by case when m.status <> 'correct' then m.metric_name || ':' || m.status end), '-') as failures from documents d left join metrics m on d.run_id = m.run_id and d.document_id = m.document_id where d.trust_outcome in ('abstain', 'quarantine') or d.failed_metric_count > 0 group by 1, 2, 3, 4, 5, 6, 7 order by d.failed_metric_count desc, d.context_mismatch_count desc, d.document_id"
+    ).fetchall()
+    cluster_rows = con.execute(
+        "select coalesce(ticker, '-'), period_type, trust_outcome, count(*) as documents, sum(failed_metric_count) as failed_metrics from documents group by 1, 2, 3 order by failed_metrics desc, documents desc, 1, 2, 3"
+    ).fetchall()
+    trigger_summary_rows = con.execute(
+        "select trigger, count(*) as count from trust_triggers group by 1 order by count desc, trigger"
     ).fetchall()
     pattern_rows = con.execute(
         "select period_type, trust_outcome, status, count(*) as count from metrics group by 1, 2, 3 order by period_type, trust_outcome, status"
@@ -126,11 +183,36 @@ def main() -> int:
             ["metric", "status", "failures"], failure_rows or [("-", "-", 0)]
         ),
         "",
-        "## Abstain Or Quarantine Documents",
+        "## Metric Outcome Distribution",
         "",
         _markdown_table(
-            ["document", "period", "trust", "expected", "failures"],
-            concern_rows or [("-", "-", "-", "-", "-")],
+            ["status", "count"], metric_distribution_rows or [("-", 0)]
+        ),
+        "",
+        "## Document Trust Distribution",
+        "",
+        _markdown_table(
+            ["trust", "count"], trust_distribution_rows or [("-", 0)]
+        ),
+        "",
+        "## Most Failed Documents",
+        "",
+        _markdown_table(
+            ["document", "ticker", "period", "trust", "expected", "failed_metrics", "context_mismatches", "failures"],
+            concern_rows or [("-", "-", "-", "-", "-", 0, 0, "-")],
+        ),
+        "",
+        "## Failure Clusters By Ticker And Form",
+        "",
+        _markdown_table(
+            ["ticker", "period", "trust", "documents", "failed_metrics"],
+            cluster_rows or [("-", "-", "-", 0, 0)],
+        ),
+        "",
+        "## Trust Trigger Summary",
+        "",
+        _markdown_table(
+            ["trigger", "count"], trigger_summary_rows or [("-", 0)]
         ),
         "",
         "## Failure Patterns By Period And Trust",

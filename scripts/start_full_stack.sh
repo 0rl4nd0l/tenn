@@ -12,6 +12,13 @@ fi
 # shellcheck disable=SC1090
 source "${CONFIG_FILE}"
 
+PYTHON_BIN="$(command -v python3 2>/dev/null || command -v python 2>/dev/null)"
+if [[ -z "${PYTHON_BIN}" ]]; then
+  echo "ERROR: python3 or python required for Tenn storage guard" >&2
+  exit 1
+fi
+"${PYTHON_BIN}" "${REPO_ROOT}/scripts/storage_guard.py" || exit 1
+
 echo "🔍 Running preflight checks..."
 
 command -v docker >/dev/null || { echo "ERROR: docker missing"; exit 1; }

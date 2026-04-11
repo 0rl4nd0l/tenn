@@ -2,14 +2,15 @@
 Description=llama.cpp server (router mode)
 After=network-online.target
 Wants=network-online.target
+RequiresMountsFor=/mnt/sdb2 /mnt/nvme /mnt/sdb2/home/l4nd0/tenn
 StartLimitBurst=3
 StartLimitIntervalSec=120
 
 [Service]
 Type=simple
 EnvironmentFile=-%h/.config/tenn/llama-server.env
-WorkingDirectory=/home/l4nd0/tenn
-ExecStart=/home/l4nd0/tenn/scripts/run_llama_server.sh
+WorkingDirectory=/mnt/sdb2/home/l4nd0/tenn
+ExecStart=/mnt/sdb2/home/l4nd0/tenn/scripts/run_llama_server.sh
 Restart=on-failure
 RestartSec=15
 MemoryMax=12G

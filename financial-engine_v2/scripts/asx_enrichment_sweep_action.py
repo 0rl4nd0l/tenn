@@ -23,7 +23,11 @@ from app.core.db import SessionLocal  # noqa: E402
 from app.providers.asx_provider import ASXProvider  # noqa: E402
 from app.providers.universe import ASX20  # noqa: E402
 from app.models.documents import Document  # noqa: E402
-from app.services.announcement_importance import classify_documents_and_materialize  # noqa: E402
+from app.services.announcement_importance import (  # noqa: E402
+    NARRATIVE_POLICY_VALUES,
+    classify_documents_and_materialize,
+    classify_narrative_extraction_policy,
+)
 from app.services.pipeline import download_pdf_for_document, insert_discovered_documents, process_document  # noqa: E402
 
 
@@ -135,6 +139,12 @@ def parse_args() -> argparse.Namespace:
         help="Run extraction/financial parsing after successful download.",
     )
     parser.add_argument(
+        "--narrative-policy",
+        choices=sorted(NARRATIVE_POLICY_VALUES),
+        default="full",
+        help="Narrative extraction policy when --process-documents is enabled.",
+    )
+    parser.add_argument(
         "--with-embeddings",
         action="store_true",
         help="Keep embeddings enabled during --process-documents (default sweep behavior disables embeddings).",
@@ -192,6 +202,12 @@ def _load_tickers_from_file(path: Path) -> list[str]:
     return tickers
 
 
+def _calendar_year_bounds(target_day: datetime) -> tuple[datetime, datetime]:
+    year_start = datetime(target_day.year, 1, 1, tzinfo=timezone.utc)
+    year_end = datetime(target_day.year, 12, 31, 23, 59, 59, 999999, tzinfo=timezone.utc)
+    return year_start, year_end
+
+
 def _build_ticker_universe(db, limit: int, universe_file: Path | None = None) -> list[str]:
     universe: list[str] = []
     seen: set[str] = set()
@@ -229,6 +245,7 @@ def _discover_historical_by_ticker(
     failure_backoff_ms: int = 0,
     max_consecutive_failures: int = 0,
     skip_tickers: set[str] | None = None,
+    year_cache: dict[tuple[str, int], list] | None = None,
 ) -> tuple[list, int, int, int]:
     start = target_day.replace(hour=0, minute=0, second=0, microsecond=0)
     end = target_day.replace(hour=23, minute=59, second=59, microsecond=999999)
@@ -244,7 +261,19 @@ def _discover_historical_by_ticker(
             continue
         attempted += 1
         try:
-            rows = provider.discover(ticker=ticker, start=start, end=end)
+            cache_key = (ticker, target_day.year)
+            if year_cache is not None and cache_key in year_cache:
+                year_rows = year_cache[cache_key]
+            else:
+                year_start, year_end = _calendar_year_bounds(target_day)
+                year_rows = provider.discover(ticker=ticker, start=year_start, end=year_end)
+                if year_cache is not None:
+                    year_cache[cache_key] = year_rows
+            rows = [
+                row
+                for row in year_rows
+                if row.published_at is None or (start <= row.published_at <= end)
+            ]
             consecutive_failures = 0
         except Exception:
             failed += 1
@@ -338,6 +367,7 @@ def main() -> None:
                 "skip_download": bool(args.skip_download),
                 "download_existing_missing": bool(args.download_existing_missing),
                 "process_documents": bool(args.process_documents),
+                "narrative_policy": args.narrative_policy,
                 "with_embeddings": bool(args.with_embeddings),
                 "report": str(args.report),
                 "database_url": getattr(settings, "database_url", None),
@@ -372,6 +402,7 @@ def main() -> None:
             "skip_download": args.skip_download,
             "download_existing_missing": args.download_existing_missing,
             "process_documents": args.process_documents,
+            "narrative_policy": args.narrative_policy,
             "with_embeddings": args.with_embeddings,
         },
         "totals": {
@@ -383,6 +414,8 @@ def main() -> None:
             "downloaded": 0,
             "processed": 0,
             "process_errors": 0,
+            "narrative_selected": 0,
+            "narrative_skipped": 0,
             "skipped_download": 0,
             "errors": 0,
             "classified": 0,
@@ -410,6 +443,7 @@ def main() -> None:
         if args.process_documents and not args.with_embeddings:
             settings.enable_embeddings = False
             settings.enable_qdrant = False
+        historical_year_cache: dict[tuple[str, int], list] = {}
         for day_offset in range(args.days_back):
             target_day = (end_day - timedelta(days=day_offset)).replace(hour=0, minute=0, second=0, microsecond=0)
             summary["totals"]["days_attempted"] = int(summary["totals"]["days_attempted"]) + 1
@@ -423,6 +457,8 @@ def main() -> None:
                 "downloaded": 0,
                 "processed": 0,
                 "process_errors": 0,
+                "narrative_selected": 0,
+                "narrative_skipped": 0,
                 "skipped_download": 0,
                 "fallback_used": False,
                 "fallback_tickers_attempted": 0,
@@ -451,6 +487,7 @@ def main() -> None:
                     failure_backoff_ms=args.failure_backoff_ms,
                     max_consecutive_failures=args.max_consecutive_failures,
                     skip_tickers=completed,
+                    year_cache=historical_year_cache,
                 )
                 day_report["discovery_mode"] = "historical_ticker"
                 day_report["fallback_used"] = True
@@ -476,6 +513,7 @@ def main() -> None:
                         failure_backoff_ms=args.failure_backoff_ms,
                         max_consecutive_failures=args.max_consecutive_failures,
                         skip_tickers=completed,
+                        year_cache=historical_year_cache,
                     )
                     day_report["discovery_mode"] = "daily_all_then_historical_ticker"
                     day_report["fallback_used"] = True
@@ -491,16 +529,32 @@ def main() -> None:
             summary["totals"]["inserted"] = int(summary["totals"]["inserted"]) + int(inserted["inserted"])
 
             process_document_ids = list(new_document_ids)
-            if args.download_existing_missing and discovered:
-                discovered_urls = list({d.source_url for d in discovered if d.source_url})
-                if discovered_urls:
-                    rows = (
-                        db.query(Document.document_id, Document.pdf_path, Document.pdf_sha256)
-                        .filter(Document.source_url.in_(discovered_urls))
-                        .all()
+            process_doc_metadata: dict[str, dict[str, str]] = {}
+            discovered_urls = list({d.source_url for d in discovered if d.source_url})
+            discovered_rows = []
+            if discovered_urls:
+                discovered_rows = (
+                    db.query(
+                        Document.document_id,
+                        Document.title,
+                        Document.doc_class,
+                        Document.doc_subtype,
+                        Document.pdf_path,
+                        Document.pdf_sha256,
                     )
+                    .filter(Document.source_url.in_(discovered_urls))
+                    .all()
+                )
+                for row in discovered_rows:
+                    process_doc_metadata[str(row.document_id)] = {
+                        "title": str(row.title or ""),
+                        "doc_class": str(row.doc_class or ""),
+                        "doc_subtype": str(row.doc_subtype or ""),
+                    }
+            if args.download_existing_missing and discovered:
+                if discovered_rows:
                     new_id_set = {str(x) for x in new_document_ids}
-                    for doc_id, pdf_path, pdf_sha256 in rows:
+                    for doc_id, _title, _doc_class, _doc_subtype, pdf_path, pdf_sha256 in discovered_rows:
                         doc_id_s = str(doc_id)
                         if doc_id_s in new_id_set:
                             continue
@@ -533,7 +587,25 @@ def main() -> None:
                         summary["totals"]["processed"] = int(summary["totals"]["processed"]) + 1
                         if args.process_documents:
                             try:
-                                result = process_document(document_id)
+                                narrative_policy = classify_narrative_extraction_policy(
+                                    title=process_doc_metadata.get(document_id, {}).get("title"),
+                                    doc_class=process_doc_metadata.get(document_id, {}).get("doc_class"),
+                                    doc_subtype=process_doc_metadata.get(document_id, {}).get("doc_subtype"),
+                                    policy=args.narrative_policy,
+                                )
+                                skip_narrative = not bool(
+                                    narrative_policy.get("extract_narrative")
+                                )
+                                if skip_narrative:
+                                    day_report["narrative_skipped"] = int(day_report["narrative_skipped"]) + 1
+                                    summary["totals"]["narrative_skipped"] = int(summary["totals"]["narrative_skipped"]) + 1
+                                else:
+                                    day_report["narrative_selected"] = int(day_report["narrative_selected"]) + 1
+                                    summary["totals"]["narrative_selected"] = int(summary["totals"]["narrative_selected"]) + 1
+                                result = process_document(
+                                    document_id,
+                                    skip_narrative=skip_narrative,
+                                )
                                 if str(result.get("extraction_status", "")).lower() == "failed":
                                     day_report["process_errors"] = int(day_report["process_errors"]) + 1
                                     summary["totals"]["process_errors"] = int(summary["totals"]["process_errors"]) + 1
@@ -629,6 +701,8 @@ def main() -> None:
                 f"found={day_report['found']} inserted={day_report['inserted']} "
                 f"recovered={day_report['existing_missing_recovered']} "
                 f"downloaded={day_report['downloaded']} processed={day_report['processed']} "
+                f"narrative_selected={day_report['narrative_selected']} "
+                f"narrative_skipped={day_report['narrative_skipped']} "
                 f"process_errors={day_report['process_errors']} errors={len(day_report['errors'])}",
                 flush=True,
             )
@@ -662,6 +736,8 @@ def main() -> None:
         f"inserted={summary['totals']['inserted']} "
         f"downloaded={summary['totals']['downloaded']} "
         f"processed={summary['totals']['processed']} "
+        f"narrative_selected={summary['totals']['narrative_selected']} "
+        f"narrative_skipped={summary['totals']['narrative_skipped']} "
         f"process_errors={summary['totals']['process_errors']} "
         f"classified={summary['totals']['classified']} "
         f"errors={summary['totals']['errors']} "

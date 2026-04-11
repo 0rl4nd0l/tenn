@@ -104,6 +104,42 @@ class CockpitResponseModeTests(unittest.TestCase):
         self.assertEqual(llm.prompts, [])
         self.assertIsNotNone(response.action_preview)
 
+    def test_ui_mode_upgrades_fast_to_deep_analysis(self) -> None:
+        """When keywords return FAST but the UI says 'strategy', use DEEP_ANALYSIS."""
+        router = _ToolRouterStub()
+        llm = _OllamaStub()
+        controller = ChatController(llm, router, _ActionRegistryStub())
+
+        response = controller.build_chat_response(
+            "tell me about CSL", enable_web=False, ui_mode="strategy"
+        )
+
+        self.assertEqual(response.mode, ResponseMode.DEEP_ANALYSIS)
+
+    def test_ui_mode_does_not_override_keyword_signal(self) -> None:
+        """Keywords win over ui_mode — 'verify' should stay VERIFICATION even with ui_mode='analysis'."""
+        router = _ToolRouterStub()
+        llm = _OllamaStub()
+        controller = ChatController(llm, router, _ActionRegistryStub())
+
+        response = controller.build_chat_response(
+            "verify latest BHP status", enable_web=False, ui_mode="analysis"
+        )
+
+        self.assertEqual(response.mode, ResponseMode.VERIFICATION)
+
+    def test_ui_mode_ignored_when_none(self) -> None:
+        """No ui_mode means classify_request is the sole authority."""
+        router = _ToolRouterStub()
+        llm = _OllamaStub()
+        controller = ChatController(llm, router, _ActionRegistryStub())
+
+        response = controller.build_chat_response(
+            "hello there", enable_web=False, ui_mode=None
+        )
+
+        self.assertEqual(response.mode, ResponseMode.FAST)
+
 
 if __name__ == "__main__":
     unittest.main()
