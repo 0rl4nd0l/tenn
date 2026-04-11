@@ -64,8 +64,10 @@ class _FakeControllerWithMode:
 class _FakeLlmClient:
     def __init__(self, model: str) -> None:
         self.model = model
+        self.switch_calls: list[str] = []
 
     def switch_model(self, new_model: str) -> None:
+        self.switch_calls.append(new_model)
         self.model = new_model
 
 
@@ -204,6 +206,39 @@ def test_chat_stream_emits_model_switch_status_events() -> None:
     assert service.llm_client.model == "model:qwen3.5-35b-a3b"
     assert statuses[0] == "Switching model: model:gpt-oss-20b -> model:qwen3.5-35b-a3b"
     assert "Model ready: model:qwen3.5-35b-a3b" in statuses
+
+
+def test_chat_stream_skips_local_model_switch_when_turn_will_route_to_api() -> None:
+    service = CockpitService.__new__(CockpitService)
+    _prime_service(service)
+    service.state_store = _FakeStateStore()
+    service.llm_client = _FakeLlmClient("model:gpt-oss-20b")
+    controller = _FakeController("API-routed answer.")
+    controller._hybrid_router = SimpleNamespace(
+        preview_route=lambda force_backend=None: {
+            "source": "api",
+            "model": "claude-sonnet-test",
+            "routing_reason": "extraction_active",
+        }
+    )
+    service._build_chat_controller = lambda thread_id: controller  # type: ignore[method-assign]
+
+    statuses: list[str] = []
+    response = CockpitService.chat_stream(
+        service,
+        message="market update today?",
+        session_id="session-preview-api",
+        model="model:qwen3.5-35b-a3b",
+        on_status=statuses.append,
+    )
+
+    assert response.text == "API-routed answer."
+    assert service.llm_client.model == "model:gpt-oss-20b"
+    assert service.llm_client.switch_calls == []
+    assert statuses[0] == (
+        "Skipping local model switch; this turn will route to api (extraction_active)"
+    )
+    assert statuses[1] == "Requested model: model:qwen3.5-35b-a3b"
 
 
 def test_chat_stream_records_response_mode_in_turn_diagnostics() -> None:

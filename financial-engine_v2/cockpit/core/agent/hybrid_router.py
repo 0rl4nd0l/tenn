@@ -214,6 +214,24 @@ class HybridRouter:
         """Return metadata for the most recent routing attempt, including failures."""
         return dict(self._last_attempt) if self._last_attempt is not None else None
 
+    def preview_route(
+        self,
+        *,
+        force_backend: str | None = None,
+    ) -> dict[str, Any]:
+        """Return the backend that would be selected for the next call.
+
+        This is used by callers that need to avoid mutating the local llama.cpp
+        runtime before the extraction/GPU safety checks have had a chance to
+        redirect the turn to the API backend.
+        """
+        backend, routing_reason = self._select_backend(force_backend, on_status=None)
+        return {
+            "source": backend,
+            "model": self._resolve_backend_model_name(backend),
+            "routing_reason": routing_reason,
+        }
+
     # ------------------------------------------------------------------
     # Backend selection
     # ------------------------------------------------------------------

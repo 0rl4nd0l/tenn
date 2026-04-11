@@ -80,6 +80,22 @@ def mock_api_client():
 class TestExtractionAwareRouting:
     """HybridRouter routes chat to API when GPU extraction is active."""
 
+    def test_preview_route_reports_api_when_extraction_active(
+        self, mock_llm_client, mock_api_client
+    ):
+        router = HybridRouter(
+            llm_client=mock_llm_client,
+            api_client=mock_api_client,
+            policy="local_preferred",
+            extraction_active_fn=lambda: True,
+        )
+
+        assert router.preview_route() == {
+            "source": "api",
+            "model": "claude-sonnet",
+            "routing_reason": "extraction_active",
+        }
+
     def test_routes_to_api_when_extraction_active(
         self, mock_llm_client, mock_api_client
     ):

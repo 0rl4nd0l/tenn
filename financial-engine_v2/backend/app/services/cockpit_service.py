@@ -23,6 +23,7 @@ from app.services.query_orchestrator import QueryOrchestrator
 
 # Import cockpit core logic
 from cockpit.core.actions import ActionRegistry
+from cockpit.core.agent_loop import parse_backend_prefix
 from cockpit.core.chat import ChatController, ChatResponse
 from cockpit.core.config import RuntimeFlags, apply_runtime_flags, load_config, load_env
 from cockpit.core.tools import ToolRouter
@@ -1373,7 +1374,47 @@ class CockpitService:
             if on_status is not None:
                 on_status(stage)
 
-        if requested_model and llm_client is not None:
+        thread_id = self._resolve_thread_id(session_id)
+        controller = self._build_chat_controller(thread_id)
+
+        forced_backend, _effective_message = parse_backend_prefix(message)
+        route_preview: dict[str, Any] | None = None
+        hybrid_router = getattr(controller, "_hybrid_router", None)
+        if hybrid_router is not None and hasattr(hybrid_router, "preview_route"):
+            try:
+                route_preview = hybrid_router.preview_route(
+                    force_backend=forced_backend
+                )
+            except RuntimeError as exc:
+                _capture_status(str(exc))
+                raise
+            except Exception:
+                logger.exception("Failed to preview HybridRouter route before model switch")
+
+        should_switch_local_model = (
+            requested_model
+            and llm_client is not None
+            and requested_model != current_model
+            and (
+                route_preview is None
+                or str(route_preview.get("source") or "").strip() == "local"
+            )
+        )
+
+        if (
+            requested_model
+            and llm_client is not None
+            and requested_model != current_model
+            and not should_switch_local_model
+        ):
+            route_reason = str(route_preview.get("routing_reason") or "").strip()
+            route_source = str(route_preview.get("source") or "").strip() or "api"
+            suffix = f" ({route_reason})" if route_reason else ""
+            _capture_status(
+                f"Skipping local model switch; this turn will route to {route_source}{suffix}"
+            )
+
+        if should_switch_local_model:
             if requested_model != current_model:
                 _capture_status(
                     f"Switching model: {current_model or 'unknown'} -> {requested_model}"
@@ -1401,9 +1442,6 @@ class CockpitService:
             _capture_status(f"Requested model: {requested_model}")
         elif current_model:
             _capture_status(f"Using active model: {current_model}")
-
-        thread_id = self._resolve_thread_id(session_id)
-        controller = self._build_chat_controller(thread_id)
 
         def _capture_chunk(chunk: str) -> None:
             if on_chunk is not None:
