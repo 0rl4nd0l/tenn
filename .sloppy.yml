@@ -1,0 +1,78 @@
+
+
+# ──────────────────────────────────────────────
+# .sloppy.yml — Complete configuration reference
+# ──────────────────────────────────────────────
+
+# ── Operational ───────────────────────────────
+mode: fix                          # scan | fix
+agent: codex                       # claude | codex
+timeout: 30m                        # e.g. 30m, 2h, 5h50m, 90s
+max-cost: "$5.00"                   # max API spend per run
+max-passes: 10                      # max scan/fix iterations
+min-passes: 2                       # consecutive clean passes to confirm clean
+max-chains: 3                       # max self-continuations (6h each)
+model: ""                           # override AI model (e.g. claude-sonnet-4-5-20250929)
+github-models-model: openai/gpt-4o-mini  # model for free scan tier
+scan-scope: auto                    # auto | pr | full
+scan-provider: github-models        # github-models (free) | agent (uses fix-mode provider)
+verbose: false                      # stream agent output to logs
+max-turns: 30                       # max agent turns per invocation
+max-issues-per-pass: 0              # 0 = unlimited
+output-file: ""                     # path for full issues JSON export
+parallel-agents: 1                  # 1-8, uses git worktrees
+plugins: true                       # enable/disable plugin system
+custom-prompt: ""                   # inline custom prompt text
+custom-prompt-file: ""              # path to prompt file
+
+# ── Filtering ─────────────────────────────────
+strictness: high                    # low | medium | high
+min-severity: low                   # critical | high | medium | low
+                                    #   Only report/fix issues at or above this level
+                                    #   Example: "high" → only critical + high issues
+fail-below: 0                       # fail action if score drops below this (0 = disabled)
+test-command: "npm run test:ci"     # override auto-detected test runner
+
+fix-types:                          # which issue types to scan/fix
+  - security
+  - bugs
+  - types
+  - lint
+  - dead-code
+  - stubs
+  - duplicates
+  - coverage
+
+ignore:                             # glob patterns to exclude
+  - "**/*.test.ts"
+  - "vendor/"
+  - "generated/"
+
+rules:                              # per-type severity overrides
+  lint: medium                      #   critical | high | medium | low
+  dead-code: off                    #   'off' disables the type entirely
+
+     # high | medium | low (PII, financial, public data)
+
+# ── Technology Context ────────────────────────
+framework: next.js                  # helps AI understand framework-specific patterns
+runtime: node-20                    # runtime version hint
+
+
+
+# ── False Positive Suppressions ───────────────
+# Patterns matching issue descriptions or file paths are suppressed.
+allow:
+  - pattern: "eval\\("
+    reason: "Used in build-time template engine, not user input"
+  - pattern: "dangerouslySetInnerHTML"
+    reason: "Content is sanitized by DOMPurify upstream"
+
+
+
+ignore:
+  - "archives/"
+  - "reports/"
+  - "gold/"
+  - "scripts/archive/"
+  - "**/__pycache__/"

@@ -1,0 +1,143 @@
+name: Sloppy Scan
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      scan_provider:
+        description: "Scan provider"
+        required: true
+        default: "github-models"
+        type: choice
+        options:
+          - github-models
+          - agent
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      models: read
+    env:
+      SLOPPY_SCAN_PROVIDER: ${{ github.event_name == 'workflow_dispatch' && inputs.scan_provider || 'github-models' }}
+      CODEX_MODEL: gpt-5.2-codex
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Normalize OpenAI API key
+        if: ${{ env.SLOPPY_SCAN_PROVIDER == 'agent' }}
+        shell: bash
+        env:
+          OPENAI_API_KEY_RAW: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set -euo pipefail
+          raw="${OPENAI_API_KEY_RAW:-}"
+          cleaned="$(printf '%s' "$raw" | tr -d '\r\n')"
+          if [[ -z "$cleaned" ]]; then
+            echo "::error::OPENAI_API_KEY secret is empty."
+            exit 1
+          fi
+          echo "::add-mask::$cleaned"
+          {
+            echo "OPENAI_API_KEY_CLEAN=$cleaned"
+            echo "OPENAI_API_KEY_LEN=${#cleaned}"
+          } >> "$GITHUB_ENV"
+
+      - name: Codex CLI compatibility shim
+        shell: bash
+        run: |
+          mkdir -p .github/bin
+          cat > .github/bin/codex <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          args=()
+          has_model=0
+          for arg in "$@"; do
+            if [[ "$arg" == "--quiet" ]]; then
+              continue
+            fi
+            if [[ "$arg" == "--model" ]]; then
+              has_model=1
+            fi
+            args+=("$arg")
+          done
+          if [[ "$has_model" -eq 0 ]]; then
+            args+=("--model" "${CODEX_MODEL:-gpt-5.2-codex}")
+          fi
+
+          npm_root="$(npm root -g 2>/dev/null || true)"
+          for candidate in \
+            "$npm_root/@openai/codex/bin/codex.js" \
+            "$npm_root/@openai/codex/dist/cli.js" \
+            "$npm_root/@openai/codex/cli.js"; do
+            if [[ -f "$candidate" ]]; then
+              exec node "$candidate" "${args[@]}"
+            fi
+          done
+
+          exec npx -y @openai/codex "${args[@]}"
+          EOF
+          chmod +x .github/bin/codex
+          echo "$PWD/.github/bin" >> "$GITHUB_PATH"
+
+      - name: Codex preflight (agent provider only)
+        if: ${{ env.SLOPPY_SCAN_PROVIDER == 'agent' }}
+        shell: bash
+        env:
+          OPENAI_API_KEY: ${{ env.OPENAI_API_KEY_CLEAN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+            echo "::error::OPENAI_API_KEY is not set."
+            exit 1
+          fi
+          if [[ "${OPENAI_API_KEY_LEN:-0}" -lt 20 ]]; then
+            echo "::error::OPENAI_API_KEY appears too short (len=${OPENAI_API_KEY_LEN:-0})."
+            exit 1
+          fi
+
+          tmp_home="$(mktemp -d)"
+          code="$(
+            curl -sS -o "$tmp_home/openai_models.json" -w "%{http_code}" \
+              -H "Authorization: Bearer $OPENAI_API_KEY" \
+              https://api.openai.com/v1/models
+          )"
+          if [[ "$code" != "200" ]]; then
+            echo "::error::OpenAI API auth preflight failed (HTTP $code)."
+            sed -n '1,120p' "$tmp_home/openai_models.json"
+            exit 1
+          fi
+
+          codex --version
+
+          mkdir -p "$tmp_home/.codex"
+          set +e
+          HOME="$tmp_home" CODEX_HOME="$tmp_home/.codex" \
+            timeout 120s codex exec --full-auto --skip-git-repo-check "Reply with exactly: codex-ok" \
+            >"$tmp_home/out.txt" 2>"$tmp_home/err.txt"
+          ec=$?
+          set -e
+
+          echo "preflight_exit=$ec"
+          if [[ "$ec" -ne 0 ]]; then
+            echo "---- codex preflight stderr ----"
+            sed -n '1,220p' "$tmp_home/err.txt"
+            exit "$ec"
+          fi
+
+          echo "---- codex preflight output ----"
+          sed -n '1,60p' "$tmp_home/out.txt"
+
+      - name: Run Sloppy (scan mode)
+        uses: braedonsaunders/sloppy@main
+        with:
+          mode: scan
+          scan-scope: auto
+          scan-provider: ${{ env.SLOPPY_SCAN_PROVIDER }}
+          agent: codex
+          model: ${{ env.CODEX_MODEL }}
+        env:
+          OPENAI_API_KEY: ${{ env.OPENAI_API_KEY_CLEAN }}
