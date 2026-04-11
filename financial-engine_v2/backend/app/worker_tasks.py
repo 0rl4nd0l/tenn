@@ -29,9 +29,40 @@ def backfill_ticker(
 
 @celery.task(name="download_pdf")
 def download_pdf(document_id: str):
+    from app.services.job_tracker import get_tracker
+
+    tracker = get_tracker()
+    job_id = None
+    if tracker is not None:
+        try:
+            handle = tracker.create_job(
+                job_type="download",
+                job_family="celery",
+                title=f"Download PDF {document_id[:12]}",
+                trigger_source="celery",
+                entity_scope="document",
+                metadata={"document_id": document_id},
+            )
+            tracker.start_job(handle.job_id)
+            job_id = handle.job_id
+        except Exception:
+            pass
     db = SessionLocal()
     try:
-        return download_pdf_for_document(db, document_id)
+        result = download_pdf_for_document(db, document_id)
+        if tracker and job_id:
+            try:
+                tracker.complete_job(job_id, summary="PDF downloaded")
+            except Exception:
+                pass
+        return result
+    except Exception as exc:
+        if tracker and job_id:
+            try:
+                tracker.fail_job(job_id, str(exc))
+            except Exception:
+                pass
+        raise
     finally:
         db.close()
 

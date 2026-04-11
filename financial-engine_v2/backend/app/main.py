@@ -40,6 +40,10 @@ try:
     from app.routes.cockpit_api import router as cockpit_api_router
 except ImportError:
     cockpit_api_router = None
+try:
+    from app.routes.ops_api import router as ops_api_router
+except ImportError:
+    ops_api_router = None
 from app.routes.research import router as research_router
 from app.services.embeddings import (
     get_qdrant_collection_vector_config,
@@ -82,6 +86,8 @@ app.include_router(
 )
 if cockpit_api_router is not None:
     app.include_router(cockpit_api_router, prefix="/api/cockpit", tags=["cockpit"])
+if ops_api_router is not None:
+    app.include_router(ops_api_router, prefix="/api/ops", tags=["ops"])
 
 
 class RagQueryRequest(BaseModel):
@@ -320,7 +326,15 @@ def _evaluate_real_gold_document(
 
     extraction_error = None
     try:
-        with extraction_activity():
+        with extraction_activity(
+            metadata={
+                "document_id": doc.document_id,
+                "requested_method": method,
+                "strict_method": strict_method,
+                "ticker": metadata["ticker"],
+                "title": metadata["title"],
+            }
+        ):
             extraction_result = run_method_isolated_extraction(
                 str(source_path),
                 metadata,
@@ -1592,6 +1606,7 @@ def startup():
     Path(settings.docs_root).mkdir(parents=True, exist_ok=True)
     if settings.auto_create_tables:
         Base.metadata.create_all(bind=engine)
+    _init_ops_tracker()
     _log_runtime_config()
     _log_resolved_models()
     _log_runtime_feature_warnings()
@@ -1599,3 +1614,18 @@ def startup():
     _log_redis_startup_status()
     _validate_qdrant_on_startup()
     _log_architecture_runtime_assertion()
+
+
+def _init_ops_tracker() -> None:
+    """Initialize the operational job-status tracker (SQLite at DATA_ROOT/ops/ops.db)."""
+    try:
+        from app.services.ops_store import OpsStore
+        from app.services.job_tracker import init_tracker
+
+        ops_db_path = Path(settings.data_root) / "ops" / "ops.db"
+        store = OpsStore(ops_db_path)
+        store.cleanup(max_age_days=90)
+        tracker = init_tracker(store)
+        logger.info("Ops tracker initialized: %s", ops_db_path)
+    except Exception:
+        logger.warning("Ops tracker initialization failed — job tracking disabled", exc_info=True)

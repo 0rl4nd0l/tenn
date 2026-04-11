@@ -5,6 +5,8 @@ import type {
   ExtractionMethod,
   ExtractionReviewDecisionResponse,
   ExtractionReviewErrorQueue,
+  ExtractionReviewRunListResponse,
+  ExtractionReviewRunStatusResponse,
   ExtractionReviewSession,
   HealthResponse,
   ServiceHealth,
@@ -14,6 +16,7 @@ import type {
   RenderedChart,
   IntelPulseResponse,
   IntelPulseMatrixResponse,
+  ModelLoadResponse,
 } from './cockpit-types'
 
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY || ''
@@ -41,9 +44,29 @@ export class ApiError extends Error {
   }
 }
 
+export type ActionJobHandle = {
+  action_id: string
+  job_id: string
+  status: string
+  queued: boolean
+  result?: string
+}
+
+export type ActionJobStatus = {
+  job_id: string
+  action_id: string
+  status: string
+  started_at?: string | null
+  ended_at?: string | null
+  exit_code?: number | null
+  result?: string | null
+  progress_stage?: string | null
+  progress_pct?: number | null
+}
+
 // ── Base fetch helper ──────────────────────────────────────────────────────
 
-async function apiFetch<T>(path: string, options?: RequestInit, timeoutMs: number = 120_000): Promise<T> {
+export async function apiFetch<T>(path: string, options?: RequestInit, timeoutMs: number = 120_000): Promise<T> {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
@@ -230,6 +253,15 @@ export async function fetchAvailableModels(): Promise<AvailableModelsResponse> {
   return apiFetch<AvailableModelsResponse>("/api/cockpit/models")
 }
 
+export async function loadCockpitModel(modelId?: string): Promise<ModelLoadResponse> {
+  return apiFetch<ModelLoadResponse>("/api/cockpit/models/load", {
+    method: "POST",
+    body: JSON.stringify({
+      model_id: modelId ?? null,
+    }),
+  }, 360_000)
+}
+
 /** System config – GET /api/cockpit/config */
 export async function getSystemStatus(): Promise<SystemStatus> {
   return apiFetch<SystemStatus>("/api/cockpit/config")
@@ -261,6 +293,27 @@ export async function executeAction(params: {
       session_id: params.sessionId,
     }),
   }, 900_000)
+}
+
+/** Start a long-running action and return its queued job handle immediately. */
+export async function startActionJob(params: {
+  actionId: string
+  args: Record<string, unknown>
+  sessionId?: string
+}): Promise<ActionJobHandle> {
+  return apiFetch<ActionJobHandle>("/api/cockpit/action/execute", {
+    method: "POST",
+    body: JSON.stringify({
+      action_id: params.actionId,
+      args: params.args,
+      session_id: params.sessionId,
+      return_job_handle: true,
+    }),
+  }, 120_000)
+}
+
+export async function getActionJob(jobId: string): Promise<ActionJobStatus> {
+  return apiFetch<ActionJobStatus>(`/api/cockpit/action/jobs/${encodeURIComponent(jobId)}`)
 }
 
 /** Action preview – POST /api/cockpit/action/preview */
@@ -351,6 +404,12 @@ export async function createExtractionReviewSession(params: {
   )
 }
 
+export async function getExtractionReviewSession(sessionId: string): Promise<ExtractionReviewSession> {
+  return apiFetch<ExtractionReviewSession>(
+    `/api/extraction-review/session/${encodeURIComponent(sessionId)}`,
+  )
+}
+
 export async function submitExtractionReviewDecision(params: {
   sessionId: string
   itemId: string
@@ -378,15 +437,33 @@ export async function getExtractionReviewErrors(limit: number = 200): Promise<Ex
   return apiFetch<ExtractionReviewErrorQueue>(`/api/extraction-review/errors?limit=${limit}`)
 }
 
+export async function getExtractionReviewRuns(ticker?: string, limit: number = 50): Promise<ExtractionReviewRunListResponse> {
+  const params = new URLSearchParams({ limit: String(limit) })
+  if (ticker?.trim()) {
+    params.set('ticker', ticker.trim().toUpperCase())
+  }
+  return apiFetch<ExtractionReviewRunListResponse>(`/api/extraction-review/runs?${params.toString()}`)
+}
+
+export async function getExtractionReviewRunStatus(runId: string, limit: number = 200): Promise<ExtractionReviewRunStatusResponse> {
+  return apiFetch<ExtractionReviewRunStatusResponse>(
+    `/api/extraction-review/run/${encodeURIComponent(runId)}?limit=${limit}`
+  )
+}
+
 /** Intel Pulse – GET /api/cockpit/pulse */
 export async function getIntelPulse(ticker?: string): Promise<IntelPulseResponse> {
-  const url = ticker ? `/api/cockpit/pulse?ticker=${encodeURIComponent(ticker)}` : "/api/cockpit/pulse"
+  const normalizedTicker = ticker?.trim().toUpperCase()
+  const url = normalizedTicker
+    ? `/api/cockpit/pulse?ticker=${encodeURIComponent(normalizedTicker)}`
+    : "/api/cockpit/pulse"
   return apiFetch<IntelPulseResponse>(url)
 }
 
 /** Diagnostic Matrix – GET /api/cockpit/matrix */
 export async function getDiagnosticMatrix(stage: string, ticker?: string): Promise<IntelPulseMatrixResponse> {
   const base = `/api/cockpit/matrix?stage=${encodeURIComponent(stage)}`
-  const url = ticker ? `${base}&ticker=${encodeURIComponent(ticker)}` : base
+  const normalizedTicker = ticker?.trim().toUpperCase()
+  const url = normalizedTicker ? `${base}&ticker=${encodeURIComponent(normalizedTicker)}` : base
   return apiFetch<IntelPulseMatrixResponse>(url)
 }
