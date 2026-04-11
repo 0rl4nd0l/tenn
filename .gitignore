@@ -87,3 +87,7 @@ cockpit-ui/test-results/
 
 # Process output
 nohup.out
+
+# Evaluation output archives / large local artifacts
+docs/extraction_gold_real_*.zip
+docs/extraction_gold_real_exhaustive_run/
