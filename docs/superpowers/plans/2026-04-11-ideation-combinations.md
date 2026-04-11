@@ -90,6 +90,8 @@
 
 # Program Beta — Cockpit contract + operator observability
 
+**Implementation plan:** `docs/superpowers/plans/2026-04-11-cockpit-contract-observability.md` (requirements: `docs/brainstorms/2026-04-11-cockpit-contract-observability-requirements.md`).
+
 **SYSTEM_CONTRACT:** §1.2 Cockpit role, §1.3 retrieval boundary  
 **Signals:** `financial-engine_v2/cockpit/integrations/backend_api.py`, `financial-engine_v2/backend/app/routes/cockpit_api.py`, `cockpit-ui/app/api/cockpit/`, `financial-engine_v2/backend/app/services/router_state.py`, `scripts/gpu_process_guard.sh`, `financial-engine_v2/scripts/evaluate_rag_stability.py`
 
