@@ -578,6 +578,64 @@ export function OperationsScreen() {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
+              <Cpu className="h-5 w-5 text-primary" />
+              Hardware Status
+            </CardTitle>
+            <CardDescription>Live host CPU, RAM, and storage usage from the Cockpit health probe</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="rounded-lg border border-border bg-card p-4">
+                <p className="text-xs font-medium text-muted-foreground">CPU Load</p>
+                <p className="mt-2 text-2xl font-semibold text-foreground">
+                  {typeof hostCpu?.normalized_load_percent === 'number' ? `${hostCpu.normalized_load_percent}%` : 'n/a'}
+                </p>
+                <p className="mt-1 text-xs font-mono text-muted-foreground">
+                  {typeof hostCpu?.core_count === 'number' ? `${hostCpu.core_count} cores` : 'core count unavailable'}
+                </p>
+                <p className="mt-1 text-xs font-mono text-muted-foreground">
+                  {typeof hostCpu?.load_1m === 'number' ? `1m ${hostCpu.load_1m}` : '1m n/a'}
+                  {typeof hostCpu?.load_5m === 'number' ? ` | 5m ${hostCpu.load_5m}` : ''}
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-border bg-card p-4">
+                <p className="text-xs font-medium text-muted-foreground">RAM Usage</p>
+                <p className="mt-2 text-2xl font-semibold text-foreground">
+                  {typeof hostMemory?.used_percent === 'number' ? `${hostMemory.used_percent}%` : 'n/a'}
+                </p>
+                <p className="mt-1 text-xs font-mono text-muted-foreground">
+                  {typeof hostMemory?.used_gib === 'number' && typeof hostMemory?.total_gib === 'number'
+                    ? `${hostMemory.used_gib} / ${hostMemory.total_gib} GiB`
+                    : 'memory unavailable'}
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-border bg-card p-4">
+                <p className="text-xs font-medium text-muted-foreground">Storage</p>
+                <p className="mt-2 text-2xl font-semibold text-foreground">
+                  {hostDisks.length > 0 && typeof hostDisks[0]?.used_percent === 'number'
+                    ? `${hostDisks[0].used_percent}%`
+                    : 'n/a'}
+                </p>
+                <p className="mt-1 text-xs font-mono text-muted-foreground">
+                  {hostDisks.length > 0 ? `Primary ${String(hostDisks[0]?.mount ?? '/')}` : 'disk data unavailable'}
+                </p>
+                <p className="mt-1 text-xs font-mono text-muted-foreground">
+                  {hostDisks.length > 1 && typeof hostDisks[1]?.used_percent === 'number'
+                    ? `${String(hostDisks[1]?.mount ?? '/home')} ${hostDisks[1].used_percent}%`
+                    : hostDisks.length > 1
+                      ? String(hostDisks[1]?.mount ?? '/home')
+                      : 'additional mounts unavailable'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
               <Layers3 className="h-5 w-5 text-primary" />
               ASX Universe Announcement Backfill
             </CardTitle>
