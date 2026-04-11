@@ -33,6 +33,12 @@ export interface Source {
   url?: string
   score: number
   snippet?: string
+  publishedAt?: string
+  documentId?: string
+  sourceId?: string
+  docType?: string
+  path?: string
+  kind?: 'rag' | 'document' | 'news' | 'web' | 'context'
 }
 
 export interface ToolTrace {
@@ -126,8 +132,11 @@ export interface ContextDocument {
 
 export type ExtractionMethod = 'auto' | 'docling' | 'pymupdf' | 'anthropic'
 
+export type ExtractionEvidenceQuality = 'precise' | 'approximate' | 'missing'
+
 export interface ExtractionReviewSnippet {
   kind: string
+  evidence_quality?: ExtractionEvidenceQuality | null
   status: string
   image_path?: string | null
   image_name?: string | null
@@ -136,6 +145,22 @@ export interface ExtractionReviewSnippet {
   matched_text?: string | null
   page_number?: number | null
   reason?: string | null
+}
+
+export interface ExtractionReviewDocumentSummary {
+  document_id: string
+  ticker?: string | null
+  title?: string | null
+  status?: string | null
+  run_id?: string | null
+  requested_method?: ExtractionMethod | null
+  actual_method?: string | null
+  strict_method?: boolean | null
+  items_count?: number
+  metrics_count?: number
+  review_ready?: boolean
+  reason?: string | null
+  created_at?: string | null
 }
 
 export interface ExtractionReviewItem {
@@ -152,6 +177,15 @@ export interface ExtractionReviewItem {
   currency?: string | null
   scale?: string | null
   page_number?: number | null
+  metric_value?: string | number | boolean | null
+  matched_text?: string | null
+  image_url?: string | null
+  image_path?: string | null
+  evidence_quality?: ExtractionEvidenceQuality | null
+  method_provenance?: string | null
+  row_refs?: Record<string, string> | null
+  table_type?: string | null
+  period_col?: string | null
   evidence_reference?: string | null
   evidence_text?: string | null
   evidence_summary?: string | null
@@ -180,20 +214,17 @@ export interface ExtractionReviewSession {
   session_id: string
   created_at: string
   updated_at?: string | null
+  session_status?: string | null
+  diagnostics?: {
+    code?: string | null
+    message?: string | null
+    [key: string]: unknown
+  } | null
   document_ids: string[]
+  run_ids?: string[]
   missing_document_ids?: string[]
-  documents?: Array<{
-    document_id: string
-    ticker?: string | null
-    title?: string | null
-    status?: string | null
-    run_id?: string | null
-    requested_method?: ExtractionMethod | null
-    actual_method?: string | null
-    strict_method?: boolean | null
-    items_count?: number
-    created_at?: string | null
-  }>
+  missing_run_ids?: string[]
+  documents?: ExtractionReviewDocumentSummary[]
   items: ExtractionReviewItem[]
   summary?: {
     total: number
@@ -222,6 +253,83 @@ export interface ExtractionReviewErrorQueue {
   items: ExtractionReviewItem[]
 }
 
+export interface ExtractionReviewRunSummary {
+  run_id: string
+  document_id: string
+  ticker?: string | null
+  title?: string | null
+  published_at?: string | null
+  status: string
+  created_at: string
+  confidence_overall?: number | null
+  model_name?: string | null
+  extractor_version?: string | null
+  requested_method?: ExtractionMethod | null
+  actual_method?: string | null
+  strict_method?: boolean | null
+  error?: string | null
+  metrics_count?: number
+}
+
+export interface ExtractionReviewRunListResponse {
+  ticker?: string | null
+  count: number
+  items: ExtractionReviewRunSummary[]
+}
+
+export interface ExtractionReviewRunWarning {
+  stage: string
+  code: string
+  message: string
+  timestamp: string
+  details?: Record<string, unknown>
+}
+
+export interface ExtractionReviewRunStatusSummary {
+  run_id: string
+  document_id: string
+  requested_method?: string | null
+  actual_method?: string | null
+  strict_method?: boolean
+  stage: string
+  status: string
+  queued_at?: string | null
+  worker_started_at?: string | null
+  started_at?: string | null
+  updated_at?: string | null
+  completed_at?: string | null
+  elapsed_ms?: number
+  queue_wait_ms?: number
+  last_message?: string
+  warning_codes?: string[]
+  error_codes?: string[]
+  warnings?: ExtractionReviewRunWarning[]
+  errors?: ExtractionReviewRunWarning[]
+  stage_timings_ms?: Record<string, number>
+  final_summary?: Record<string, unknown> | null
+}
+
+export interface ExtractionReviewRunEvent {
+  run_id: string
+  document_id: string
+  requested_method?: string | null
+  actual_method?: string | null
+  strict_method?: boolean
+  stage: string
+  status: string
+  timestamp: string
+  elapsed_ms?: number
+  message: string
+  warning_code?: string | null
+  error_code?: string | null
+  details?: Record<string, unknown>
+}
+
+export interface ExtractionReviewRunStatusResponse {
+  summary: ExtractionReviewRunStatusSummary
+  events: ExtractionReviewRunEvent[]
+}
+
 export interface FinancialData {
   ticker: string
   date: Date
@@ -235,12 +343,20 @@ export interface FinancialData {
 
 export interface IntelPulseStats {
   document_count: number
+  /** Rows sampled for population/trust (max 24 recent periodic rows). */
   extraction_count: number
+  recent_financial_rows_sampled: number
+  periodic_financial_rows_total: number
+  extraction_runs_total: number
+  /** Reserved until a single canonical vector/signal counter is wired. */
   signal_count: number
+  /** Reserved until cockpit memory counters are exposed via this API. */
   memory_count: number
   population_index: number
   trust_score_avg: number
+  /** Legacy alias; same value as extraction_failure_rate_pct. */
   quarantine_rate: number
+  extraction_failure_rate_pct: number
 }
 
 export interface IntelPulseStageHealth {
@@ -263,6 +379,8 @@ export interface IntelPulseResponse {
   stats: IntelPulseStats
   pipeline: IntelPulseStageHealth[]
   failures: IntelPulseFailure[]
+  /** ISO8601 UTC when the payload was built. */
+  generated_at: string
 }
 
 export interface IntelPulseEntityMetric {
@@ -301,6 +419,23 @@ export interface SystemStatus {
   services?: ServiceHealth[]
   version?: string
   uptime?: number
+  anthropic_key_configured?: boolean
+  llm_model?: string | null
+  llm_endpoint?: string | null
+  extract_model?: string | null
+  embed_model?: string | null
+  routing_policy?: string | null
+  backend_url?: string | null
+  profile?: string | null
+  features?: {
+    web_search?: boolean
+    rag?: boolean
+    extraction?: boolean
+    session_memory?: boolean
+  }
+  python_version?: string | null
+  git_branch?: string | null
+  data_root?: string | null
 }
 
 export interface QueueStatus {
@@ -316,6 +451,15 @@ export interface RestartBackendResponse {
   error?: string
   stopped?: boolean
   pid?: string | null
+}
+
+export interface ModelLoadResponse {
+  ok: boolean
+  requested_model: string
+  resolved_model?: string | null
+  runtime_url?: string | null
+  already_loaded?: boolean
+  message: string
 }
 
 export interface RagResult {

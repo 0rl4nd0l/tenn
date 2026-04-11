@@ -4,7 +4,9 @@ import asyncio
 import csv
 import json
 import logging
+import math
 import os
+import re
 import subprocess
 import sys
 import threading
@@ -19,12 +21,17 @@ from urllib.parse import urlparse
 import httpx
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.config import PROJECT_ROOT, settings
 from app.core.db import SessionLocal
 from app.models.documents import Document
 from app.services.cockpit_service import CockpitService
+from app.services.llamacpp_runtime import (
+    is_manual_fallback_llm_model,
+    resolve_extraction_runtime_config,
+)
+from app.services.router_state import get_extraction_activity_snapshot
 from cockpit.core.config import (
     compute_effective_cockpit_config,
     effective_anthropic_api_key,
@@ -55,9 +62,24 @@ class AggregatedHealthResponse(BaseModel):
 
 
 class CockpitConfigResponse(BaseModel):
+    class ExtractionActivityRun(BaseModel):
+        token: str
+        run_id: str | None = None
+        document_id: str | None = None
+        requested_method: str | None = None
+        strict_method: bool | None = None
+        ticker: str | None = None
+        title: str | None = None
+        expires_at: float | None = None
+        expires_in_seconds: int | None = None
+
     llm_model: str | None = None
     llm_endpoint: str | None = None
     anthropic_key_configured: bool = False
+    extraction_active: bool = False
+    extraction_activity_source: str | None = None
+    extraction_activity_expires_in_seconds: int | None = None
+    extraction_active_runs: list[ExtractionActivityRun] = Field(default_factory=list)
     extract_model: str | None = None
     embed_model: str | None = None
     routing_policy: str | None = None
@@ -75,6 +97,7 @@ class ModelInfo(BaseModel):
     size_gb: float
     quantization: str | None = None
     available: bool = True
+    manual_fallback: bool = False
 
 
 class ModelGroup(BaseModel):
@@ -83,9 +106,69 @@ class ModelGroup(BaseModel):
     models: list[ModelInfo] = Field(default_factory=list)
 
 
+def _pick_preferred_loaded_model_id(server_models: dict[str, dict[str, Any]]) -> str | None:
+    """Prefer native stack models over manual-fallback IDs (e.g. gpt-oss) when several are loaded."""
+    loaded = sorted(
+        mid
+        for mid, inf in server_models.items()
+        if str(inf.get("status") or "") == "loaded"
+    )
+    if not loaded:
+        return None
+    primary = [m for m in loaded if not is_manual_fallback_llm_model(m)]
+    return primary[0] if primary else loaded[0]
+
+
+def _hoist_manual_fallback_model_groups(groups: list[ModelGroup]) -> list[ModelGroup]:
+    """Move opt-in / fallback models into a dedicated trailing group for the settings UI."""
+    bucket: list[ModelInfo] = []
+    out: list[ModelGroup] = []
+    for g in groups:
+        kept: list[ModelInfo] = []
+        for m in g.models:
+            is_fb = is_manual_fallback_llm_model(f"{m.id} {m.filename}")
+            entry = ModelInfo(
+                id=m.id,
+                filename=m.filename,
+                size_gb=m.size_gb,
+                quantization=m.quantization,
+                available=m.available,
+                manual_fallback=is_fb,
+            )
+            if is_fb:
+                bucket.append(entry)
+            else:
+                kept.append(entry)
+        if kept:
+            out.append(ModelGroup(location=g.location, label=g.label, models=kept))
+    if bucket:
+        out.append(
+            ModelGroup(
+                location="manual_fallback",
+                label="Manual fallback (opt-in)",
+                models=bucket,
+            )
+        )
+    return out
+
+
 class AvailableModelsResponse(BaseModel):
     groups: list[ModelGroup] = Field(default_factory=list)
     active_model: str | None = None
+
+
+class ModelLoadRequest(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+    model_id: str | None = None
+
+
+class ModelLoadResponse(BaseModel):
+    ok: bool
+    requested_model: str
+    resolved_model: str | None = None
+    runtime_url: str | None = None
+    already_loaded: bool = False
+    message: str
 
 
 class QueueStatusResponse(BaseModel):
@@ -137,6 +220,254 @@ class IntelPulseEntityMetric(BaseModel):
 class IntelPulseMatrixResponse(BaseModel):
     stage: str
     entities: list[IntelPulseEntityMetric]
+
+
+# ---------------------------------------------------------------------------
+# Helper: normalize chat sources for cockpit UI
+# ---------------------------------------------------------------------------
+
+
+def _safe_source_score(value: Any) -> float:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    return numeric if math.isfinite(numeric) else 0.0
+
+
+def _clean_source_text(value: Any, *, max_chars: int = 280) -> str | None:
+    text = re.sub(r"\s+", " ", str(value or "").strip())
+    if not text:
+        return None
+    if len(text) <= max_chars:
+        return text
+    return text[: max_chars - 3].rstrip() + "..."
+
+
+def _normalize_source_item(
+    raw: dict[str, Any],
+    *,
+    default_title: str = "Source",
+    kind: str = "context",
+) -> dict[str, Any] | None:
+    if not isinstance(raw, dict):
+        return None
+
+    title = str(
+        raw.get("title")
+        or raw.get("source_name")
+        or raw.get("source")
+        or raw.get("file")
+        or raw.get("document_id")
+        or default_title
+    ).strip()
+    url = str(raw.get("url") or raw.get("source_url") or "").strip()
+    document_id = str(raw.get("document_id") or raw.get("source_document_id") or "").strip()
+    source_id = str(raw.get("source_id") or raw.get("chunk_id") or "").strip()
+    path = str(raw.get("path") or raw.get("pdf_path") or raw.get("file") or "").strip()
+    doc_type = str(
+        raw.get("doc_type")
+        or raw.get("doc_class")
+        or raw.get("source_corpus")
+        or raw.get("corpus")
+        or ""
+    ).strip()
+    published_at = str(raw.get("published_at") or "").strip()
+    snippet = _clean_source_text(
+        raw.get("snippet")
+        or raw.get("text")
+        or raw.get("excerpt")
+        or raw.get("content")
+        or raw.get("claim")
+    )
+
+    if not title and not url and not snippet and not document_id and not path:
+        return None
+
+    return {
+        "title": title or default_title,
+        "score": _safe_source_score(
+            raw.get("score") or raw.get("final_score") or raw.get("semantic_score")
+        ),
+        "url": url or None,
+        "snippet": snippet,
+        "published_at": published_at or None,
+        "document_id": document_id or None,
+        "source_id": source_id or None,
+        "doc_type": doc_type or None,
+        "path": path or None,
+        "kind": kind,
+    }
+
+
+def _append_source_item(
+    items: list[dict[str, Any]],
+    seen: set[str],
+    raw: dict[str, Any],
+    *,
+    default_title: str = "Source",
+    kind: str = "context",
+    limit: int = 10,
+) -> None:
+    if len(items) >= limit:
+        return
+
+    item = _normalize_source_item(raw, default_title=default_title, kind=kind)
+    if item is None:
+        return
+
+    dedupe_key = next(
+        (
+            str(candidate).strip().lower()
+            for candidate in (
+                item.get("url"),
+                item.get("source_id"),
+                item.get("document_id"),
+                item.get("title"),
+            )
+            if str(candidate or "").strip()
+        ),
+        "",
+    )
+    if not dedupe_key or dedupe_key in seen:
+        return
+
+    seen.add(dedupe_key)
+    items.append(item)
+
+
+def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    for ev in evidence or []:
+        if not isinstance(ev, dict):
+            continue
+        ev_type = str(ev.get("type") or "").strip().lower()
+        details = ev.get("details") if isinstance(ev.get("details"), dict) else {}
+
+        if ev_type == "local_context":
+            qual_context = (
+                details.get("qual_context") if isinstance(details.get("qual_context"), dict) else {}
+            )
+            for hit in qual_context.get("hits", []) if isinstance(qual_context.get("hits"), list) else []:
+                if isinstance(hit, dict):
+                    _append_source_item(
+                        items,
+                        seen,
+                        hit,
+                        default_title="Context source",
+                        kind="rag",
+                    )
+
+            for row in details.get("docs", []) if isinstance(details.get("docs"), list) else []:
+                if isinstance(row, dict):
+                    _append_source_item(
+                        items,
+                        seen,
+                        row,
+                        default_title="Document",
+                        kind="document",
+                    )
+
+            for row in details.get("doc_snippets", []) if isinstance(details.get("doc_snippets"), list) else []:
+                if isinstance(row, dict):
+                    _append_source_item(
+                        items,
+                        seen,
+                        row,
+                        default_title="Document excerpt",
+                        kind="document",
+                    )
+
+            for row in details.get("web_facts", []) if isinstance(details.get("web_facts"), list) else []:
+                if isinstance(row, dict):
+                    _append_source_item(
+                        items,
+                        seen,
+                        row,
+                        default_title="Web fact",
+                        kind="web",
+                    )
+
+        elif ev_type == "company_dump":
+            backend = details.get("backend") if isinstance(details.get("backend"), dict) else {}
+            for row in backend.get("docs", []) if isinstance(backend.get("docs"), list) else []:
+                if isinstance(row, dict):
+                    _append_source_item(
+                        items,
+                        seen,
+                        row,
+                        default_title="Company document",
+                        kind="document",
+                    )
+
+            for row in backend.get("announcement_context", []) if isinstance(backend.get("announcement_context"), list) else []:
+                if isinstance(row, dict):
+                    _append_source_item(
+                        items,
+                        seen,
+                        row,
+                        default_title="Announcement excerpt",
+                        kind="document",
+                    )
+
+        elif ev_type == "news_search":
+            for row in details.get("hits", []) if isinstance(details.get("hits"), list) else []:
+                if isinstance(row, dict):
+                    _append_source_item(
+                        items,
+                        seen,
+                        row,
+                        default_title="News source",
+                        kind="news",
+                    )
+
+        elif ev_type in {"news_summary", "article_request"}:
+            _append_source_item(
+                items,
+                seen,
+                details,
+                default_title="News source",
+                kind="news",
+            )
+
+        elif ev_type == "web":
+            pages = details.get("pages") if isinstance(details.get("pages"), list) else []
+            facts = details.get("facts") if isinstance(details.get("facts"), list) else []
+            if pages:
+                for row in pages:
+                    if isinstance(row, dict):
+                        _append_source_item(
+                            items,
+                            seen,
+                            row,
+                            default_title="Web source",
+                            kind="web",
+                        )
+            elif facts:
+                for row in facts:
+                    if isinstance(row, dict):
+                        _append_source_item(
+                            items,
+                            seen,
+                            row,
+                            default_title="Web source",
+                            kind="web",
+                        )
+            else:
+                _append_source_item(
+                    items,
+                    seen,
+                    details,
+                    default_title="Web source",
+                    kind="web",
+                )
+
+        if len(items) >= 10:
+            break
+
+    return items
 
 
 # ---------------------------------------------------------------------------
@@ -432,10 +763,9 @@ def cockpit_config() -> CockpitConfigResponse:
         llm_model = None
 
     server_models = _fetch_llama_server_models()
-    for model_id, info in server_models.items():
-        if info.get("status") == "loaded":
-            llm_model = model_id
-            break
+    preferred_loaded = _pick_preferred_loaded_model_id(server_models)
+    if preferred_loaded:
+        llm_model = preferred_loaded
 
     config_path_value = str(
         os.getenv("COCKPIT_CONFIG") or "config/cockpit.yaml"
@@ -457,11 +787,44 @@ def cockpit_config() -> CockpitConfigResponse:
         else {}
     )
     anthropic_key_configured = bool(effective_anthropic_api_key(cockpit_llm))
+    extraction_activity = get_extraction_activity_snapshot()
 
     return CockpitConfigResponse(
         llm_model=llm_model,
         llm_endpoint=llm_endpoint,
         anthropic_key_configured=anthropic_key_configured,
+        extraction_active=bool(extraction_activity.get("active")),
+        extraction_activity_source=str(extraction_activity.get("source") or "none"),
+        extraction_activity_expires_in_seconds=int(
+            extraction_activity.get("expires_in_seconds") or 0
+        ),
+        extraction_active_runs=[
+            CockpitConfigResponse.ExtractionActivityRun(
+                token=str(run.get("token") or "").strip(),
+                run_id=str(run.get("run_id") or "").strip() or None,
+                document_id=str(run.get("document_id") or "").strip() or None,
+                requested_method=str(run.get("requested_method") or "").strip() or None,
+                strict_method=(
+                    bool(run.get("strict_method"))
+                    if run.get("strict_method") is not None
+                    else None
+                ),
+                ticker=str(run.get("ticker") or "").strip() or None,
+                title=str(run.get("title") or "").strip() or None,
+                expires_at=(
+                    float(run.get("expires_at"))
+                    if run.get("expires_at") is not None
+                    else None
+                ),
+                expires_in_seconds=(
+                    int(run.get("expires_in_seconds"))
+                    if run.get("expires_in_seconds") is not None
+                    else None
+                ),
+            )
+            for run in (extraction_activity.get("active_runs") or [])
+            if str(run.get("token") or "").strip()
+        ],
         extract_model=str(settings.extract_model or "").strip() or None,
         embed_model=str(settings.embed_model or "").strip() or None,
         routing_policy="adaptive",
@@ -678,12 +1041,18 @@ _MODEL_LOCATIONS: list[dict[str, str]] = [
 
 def _fetch_llama_server_models() -> dict[str, dict[str, Any]]:
     """Query llama-server /v1/models and return {model_id: {status, path_stem}}."""
-    llamacpp_url = str(settings.llamacpp_url or "").strip().rstrip("/")
+    return _fetch_runtime_models()
+
+
+def _fetch_runtime_models(base_url: str | None = None) -> dict[str, dict[str, Any]]:
+    """Query a llama.cpp runtime /v1/models and return {model_id: {status, path_stem}}."""
+    llamacpp_url = str(base_url or settings.llamacpp_url or "").strip().rstrip("/")
     if not llamacpp_url:
         return {}
     headers: dict[str, str] = {}
     api_key = (
         str(os.getenv("LLM_API_KEY") or "").strip()
+        or str(os.getenv("LLAMA_SERVER_API_KEY") or "").strip()
         or str(os.getenv("LLAMACPP_API_KEY") or "").strip()
     )
     if api_key:
@@ -711,6 +1080,33 @@ def _fetch_llama_server_models() -> dict[str, dict[str, Any]]:
     return result
 
 
+def _normalize_model_identifier(value: str | None) -> str:
+    return str(value or "").strip().removeprefix("model:").lower()
+
+
+def _find_matching_runtime_model(
+    runtime_models: dict[str, dict[str, Any]],
+    requested_model: str,
+) -> str | None:
+    requested_norm = _normalize_model_identifier(requested_model)
+    if not requested_norm:
+        return None
+
+    preferred_match: str | None = None
+    for model_id, info in runtime_models.items():
+        model_norm = _normalize_model_identifier(model_id)
+        path_stem = str(info.get("path_stem") or "").strip()
+        stem_norm = _normalize_model_identifier(path_stem)
+        if requested_norm not in model_norm and requested_norm not in stem_norm:
+            continue
+        if str(model_id).startswith("model:"):
+            return model_id
+        if preferred_match is None:
+            preferred_match = model_id
+
+    return preferred_match
+
+
 @router.get("/models", response_model=AvailableModelsResponse)
 def cockpit_available_models() -> AvailableModelsResponse:
     """Return all discoverable GGUF models grouped by storage location.
@@ -723,10 +1119,8 @@ def cockpit_available_models() -> AvailableModelsResponse:
 
     # Build filename_stem → preferred server model ID lookup
     stem_to_server_id: dict[str, str] = {}
-    active_model: str | None = None
+    active_model = _pick_preferred_loaded_model_id(server_models)
     for model_id, info in server_models.items():
-        if info["status"] == "loaded":
-            active_model = model_id
         stem = info.get("path_stem", "")
         if stem:
             # Prefer model:alias form over bare filename stems
@@ -793,9 +1187,103 @@ def cockpit_available_models() -> AvailableModelsResponse:
                 merged_groups.append(group)
         groups = merged_groups
 
+    groups = _hoist_manual_fallback_model_groups(groups)
+
     return AvailableModelsResponse(
         groups=groups,
         active_model=active_model,
+    )
+
+
+@router.post("/models/load", response_model=ModelLoadResponse)
+def cockpit_load_model(payload: ModelLoadRequest) -> ModelLoadResponse:
+    from cockpit.integrations.llamacpp_manager import load_model_api
+
+    runtime_url, default_model = resolve_extraction_runtime_config(model=payload.model_id)
+    requested_model = str(payload.model_id or default_model or "").strip()
+    if not requested_model:
+        raise HTTPException(status_code=400, detail="model_id is required")
+
+    runtime_models = _fetch_runtime_models(runtime_url)
+    matched_model = _find_matching_runtime_model(runtime_models, requested_model)
+    resolved_model = matched_model or requested_model
+
+    if runtime_models and matched_model is None:
+        available_models = sorted(runtime_models.keys())
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "message": f"Model '{requested_model}' is not available on the configured extraction runtime.",
+                "requested_model": requested_model,
+                "runtime_url": runtime_url,
+                "available_models": available_models,
+            },
+        )
+
+    if any(
+        info.get("status") == "loaded"
+        and (
+            _normalize_model_identifier(resolved_model)
+            in _normalize_model_identifier(model_id)
+            or _normalize_model_identifier(resolved_model)
+            in _normalize_model_identifier(str(info.get("path_stem") or ""))
+        )
+        for model_id, info in runtime_models.items()
+    ):
+        return ModelLoadResponse(
+            ok=True,
+            requested_model=requested_model,
+            resolved_model=resolved_model,
+            runtime_url=runtime_url,
+            already_loaded=True,
+            message=f"Model '{resolved_model}' is already loaded.",
+        )
+
+    parsed = urlparse(runtime_url)
+    host = str(parsed.hostname or "").strip()
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    if not host:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Configured extraction runtime URL is invalid: {runtime_url}",
+        )
+
+    api_key = (
+        str(os.getenv("LLM_API_KEY") or "").strip()
+        or str(os.getenv("LLAMA_SERVER_API_KEY") or "").strip()
+        or str(os.getenv("LLAMACPP_API_KEY") or "").strip()
+        or "local-openai-key"
+    )
+
+    status_messages: list[str] = []
+    ok = load_model_api(
+        host=host,
+        port=str(port),
+        model_name=resolved_model,
+        api_key=api_key,
+        timeout=300.0,
+        on_status=status_messages.append,
+    )
+    if not ok:
+        detail = status_messages[-1] if status_messages else f"Failed to load model '{resolved_model}'."
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": detail,
+                "requested_model": requested_model,
+                "resolved_model": resolved_model,
+                "runtime_url": runtime_url,
+                "status_messages": status_messages,
+            },
+        )
+
+    return ModelLoadResponse(
+        ok=True,
+        requested_model=requested_model,
+        resolved_model=resolved_model,
+        runtime_url=runtime_url,
+        already_loaded=False,
+        message=status_messages[-1] if status_messages else f"Model '{resolved_model}' loaded.",
     )
 
 
@@ -1858,6 +2346,9 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     "cost_usd": response.routing_metadata.get("cost_usd")
                     if response.routing_metadata
                     else 0,
+                    "source": response.routing_metadata.get("source")
+                    if response.routing_metadata
+                    else "local",
                     "action_preview": response.action_preview,
                     "chart": rendered_chart,
                 },
@@ -1910,22 +2401,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                         await queue.put({"type": "tool_trace", "data": trace})
 
                 if response.evidence:
-                    # Filter/format sources for the UI
-                    sources = []
-                    for ev in response.evidence:
-                        if ev.get("type") == "local_context":
-                            details = ev.get("details", {})
-                            for hit in details.get("qual_context", {}).get("hits", []):
-                                sources.append(
-                                    {
-                                        "title": hit.get("title")
-                                        or hit.get("file")
-                                        or "Source",
-                                        "score": hit.get("score")
-                                        or hit.get("final_score")
-                                        or 0.0,
-                                    }
-                                )
+                    sources = _build_ui_sources(response.evidence)
                     if sources:
                         await queue.put({"type": "sources", "data": {"items": sources}})
 

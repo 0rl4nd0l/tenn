@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import threading
+import uuid
 from types import SimpleNamespace
 from pathlib import Path
 
@@ -271,3 +272,360 @@ def test_preload_preferred_model_skips_during_active_extraction(monkeypatch) -> 
     )
 
     assert called["load"] is False
+
+
+def test_get_diagnostic_matrix_uses_canonical_financial_rows(monkeypatch) -> None:
+    service = CockpitService.__new__(CockpitService)
+
+    doc_a = uuid.uuid4()
+    rows = [
+        SimpleNamespace(
+            revenue=128_458_000,
+            ebit=None,
+            net_debt=None,
+            np_attributable=-73_500_000,
+            shares_outstanding=467_479_000,
+            capex=-14_026_000,
+            confidence_metrics=0.852,
+            source_document_id=doc_a,
+        )
+    ]
+
+    class _FinancialRowsQuery:
+        def filter(self, *args, **kwargs):
+            return self
+
+        def order_by(self, *args, **kwargs):
+            return self
+
+        def limit(self, *args, **kwargs):
+            return self
+
+        def all(self):
+            return rows
+
+    class _FailedDocQuery:
+        def filter(self, *args, **kwargs):
+            return self
+
+        def distinct(self):
+            return self
+
+        def all(self):
+            return []
+
+    class _FakeDb:
+        def query(self, *args, **kwargs):
+            target = args[0] if args else None
+            if target is not None and getattr(target, "__name__", None) == "ASXPeriodicFinancial":
+                return _FinancialRowsQuery()
+            return _FailedDocQuery()
+
+        def close(self) -> None:
+            return None
+
+    monkeypatch.setattr("app.services.cockpit_service.SessionLocal", lambda: _FakeDb())
+
+    result = CockpitService.get_diagnostic_matrix(service, "extraction", "EOS")
+
+    assert result == {
+        "stage": "extraction",
+        "entities": [
+            {
+                "entity": "EOS",
+                "metrics": {
+                    "REVENUE": "populated",
+                    "EBIT": "sparse",
+                    "NET_DEBT": "sparse",
+                    "EPS": "populated",
+                    "CAPEX": "populated",
+                },
+            }
+        ],
+    }
+
+
+def test_get_diagnostic_matrix_marks_low_confidence_evaluation_rows_abstain(
+    monkeypatch,
+) -> None:
+    service = CockpitService.__new__(CockpitService)
+
+    doc_b = uuid.uuid4()
+    rows = [
+        SimpleNamespace(
+            revenue=44_070_000,
+            ebit=None,
+            net_debt=None,
+            np_attributable=46_786_000,
+            shares_outstanding=467_309_000,
+            capex=-6_165_000,
+            confidence_metrics=0.7,
+            source_document_id=doc_b,
+        )
+    ]
+
+    class _FinancialRowsQuery:
+        def filter(self, *args, **kwargs):
+            return self
+
+        def order_by(self, *args, **kwargs):
+            return self
+
+        def limit(self, *args, **kwargs):
+            return self
+
+        def all(self):
+            return rows
+
+    class _FailedDocQuery:
+        def filter(self, *args, **kwargs):
+            return self
+
+        def distinct(self):
+            return self
+
+        def all(self):
+            return []
+
+    class _FakeDb:
+        def query(self, *args, **kwargs):
+            target = args[0] if args else None
+            if target is not None and getattr(target, "__name__", None) == "ASXPeriodicFinancial":
+                return _FinancialRowsQuery()
+            return _FailedDocQuery()
+
+        def close(self) -> None:
+            return None
+
+    monkeypatch.setattr("app.services.cockpit_service.SessionLocal", lambda: _FakeDb())
+
+    result = CockpitService.get_diagnostic_matrix(service, "evaluation", "EOS")
+
+    assert result["entities"][0]["metrics"]["REVENUE"] == "abstain"
+    assert result["entities"][0]["metrics"]["CAPEX"] == "abstain"
+    assert result["entities"][0]["metrics"]["EPS"] == "abstain"
+
+
+def test_get_diagnostic_matrix_marks_failed_when_source_document_extraction_failed(
+    monkeypatch,
+) -> None:
+    service = CockpitService.__new__(CockpitService)
+    doc_id = uuid.uuid4()
+    rows = [
+        SimpleNamespace(
+            revenue=None,
+            ebit=None,
+            net_debt=None,
+            np_attributable=None,
+            shares_outstanding=None,
+            capex=None,
+            confidence_metrics=None,
+            source_document_id=doc_id,
+        )
+    ]
+
+    class _FinancialRowsQuery:
+        def filter(self, *args, **kwargs):
+            return self
+
+        def order_by(self, *args, **kwargs):
+            return self
+
+        def limit(self, *args, **kwargs):
+            return self
+
+        def all(self):
+            return rows
+
+    class _FailedDocQuery:
+        def filter(self, *args, **kwargs):
+            return self
+
+        def distinct(self):
+            return self
+
+        def all(self):
+            return [(doc_id,)]
+
+    class _FakeDb:
+        def query(self, *args, **kwargs):
+            target = args[0] if args else None
+            if target is not None and getattr(target, "__name__", None) == "ASXPeriodicFinancial":
+                return _FinancialRowsQuery()
+            return _FailedDocQuery()
+
+        def close(self) -> None:
+            return None
+
+    monkeypatch.setattr("app.services.cockpit_service.SessionLocal", lambda: _FakeDb())
+
+    result = CockpitService.get_diagnostic_matrix(service, "extraction", "EOS")
+
+    assert result["entities"][0]["metrics"]["REVENUE"] == "failed"
+
+
+def test_get_intel_pulse_stats_uses_canonical_financial_rows(monkeypatch) -> None:
+    service = CockpitService.__new__(CockpitService)
+
+    documents_count = 4
+    failed_runs_count = 1
+    financial_rows = [
+        SimpleNamespace(
+            revenue=128_458_000,
+            ebit=None,
+            np_attributable=-73_500_000,
+            operating_cf=-24_185_000,
+            investing_cf=131_287_000,
+            financing_cf=-53_016_000,
+            capex=-14_026_000,
+            cash_end=106_916_000,
+            net_debt=None,
+            shares_outstanding=467_479_000,
+            total_equity=None,
+            interest_expense=None,
+            confidence_metrics=0.852,
+            period_end="2025-12-31",
+            source_document_id=uuid.uuid4(),
+        ),
+        SimpleNamespace(
+            revenue=44_070_000,
+            ebit=None,
+            np_attributable=46_786_000,
+            operating_cf=-9_213_000,
+            investing_cf=97_919_000,
+            financing_cf=-50_793_000,
+            capex=-6_165_000,
+            cash_end=90_289_000,
+            net_debt=None,
+            shares_outstanding=467_309_000,
+            total_equity=None,
+            interest_expense=None,
+            confidence_metrics=0.889,
+            period_end="2025-06-30",
+            source_document_id=uuid.uuid4(),
+        ),
+    ]
+
+    class _ScalarQuery:
+        def __init__(self, value):
+            self.value = value
+
+        def filter(self, *args, **kwargs):
+            return self
+
+        def join(self, *args, **kwargs):
+            return self
+
+        def scalar(self):
+            return self.value
+
+    class _RowsQuery:
+        def filter(self, *args, **kwargs):
+            return self
+
+        def order_by(self, *args, **kwargs):
+            return self
+
+        def limit(self, *args, **kwargs):
+            return self
+
+        def all(self):
+            return financial_rows
+
+    class _CountQuery:
+        def filter(self, *args, **kwargs):
+            return self
+
+        def join(self, *args, **kwargs):
+            return self
+
+        def count(self):
+            return failed_runs_count
+
+        def order_by(self, *args, **kwargs):
+            return self
+
+        def limit(self, *args, **kwargs):
+            return self
+
+        def all(self):
+            return [
+                SimpleNamespace(
+                    run_id="deadbeefcafebabe",
+                    confidence_overall=0.0,
+                    error="classifier_low_confidence:0.0",
+                    created_at=None,
+                )
+            ]
+
+    class _JoinedFailureQuery:
+        def join(self, *args, **kwargs):
+            return self
+
+        def filter(self, *args, **kwargs):
+            return self
+
+        def order_by(self, *args, **kwargs):
+            return self
+
+        def limit(self, *args, **kwargs):
+            return self
+
+        def all(self):
+            return [
+                (
+                    SimpleNamespace(
+                        run_id="deadbeefcafebabe",
+                        confidence_overall=0.0,
+                        error="classifier_low_confidence:0.0",
+                        created_at=None,
+                    ),
+                    "EOS",
+                )
+            ]
+
+    class _FakeDb:
+        def __init__(self) -> None:
+            # db.query order: document count, (financial rows), (failure query), runs count, periodic count
+            self._scalars = iter(
+                [documents_count, 42, len(financial_rows)]
+            )
+
+        def query(self, *args, **kwargs):
+            if len(args) >= 2:
+                return _JoinedFailureQuery()
+            target = args[0] if args else None
+            if getattr(target, "name", None) == "count":
+                return _ScalarQuery(next(self._scalars))
+            if target is not None and getattr(target, "__name__", None) == "ASXPeriodicFinancial":
+                return _RowsQuery()
+            return _CountQuery()
+
+        def close(self) -> None:
+            return None
+
+    monkeypatch.setattr(
+        "app.services.cockpit_service.SessionLocal",
+        lambda: _FakeDb(),
+    )
+
+    result = CockpitService.get_intel_pulse_stats(service, "EOS")
+
+    assert result["stats"]["document_count"] == documents_count
+    assert result["stats"]["extraction_count"] == len(financial_rows)
+    assert result["stats"]["recent_financial_rows_sampled"] == len(financial_rows)
+    assert result["stats"]["periodic_financial_rows_total"] == len(financial_rows)
+    assert result["stats"]["extraction_runs_total"] == 42
+    assert result["stats"]["trust_score_avg"] == 0.87
+    assert result["stats"]["quarantine_rate"] == 25.0
+    assert result["stats"]["extraction_failure_rate_pct"] == 25.0
+    assert result["stats"]["population_index"] == 66.7
+    assert result["pipeline"][0]["id"] == "overview"
+    assert result["pipeline"][0]["health"] == 76.9
+    assert result["pipeline"][0]["status"] == "degraded"
+    assert result["pipeline"][1]["id"] == "extraction"
+    assert result["pipeline"][1]["health"] == 66.7
+    assert result["pipeline"][3]["status"] == "unavailable"
+    assert result["pipeline"][4]["status"] == "unavailable"
+    assert result["pipeline"][5]["health"] == 75.0
+    assert "generated_at" in result

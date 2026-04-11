@@ -10,13 +10,23 @@ interface DiagnosticMatrixProps {
   stage: string
   _scope: 'global' | 'company'
   company: string | null
+  onCellSelect?: (payload: {
+    stage: string
+    entity: string
+    metric: string
+    state: 'populated' | 'abstain' | 'failed' | 'sparse'
+  }) => void
 }
 
-export function DiagnosticMatrix({ stage, _scope, company }: DiagnosticMatrixProps) {
-  const { data, isLoading } = useQuery({
+export function DiagnosticMatrix({ stage, _scope, company, onCellSelect }: DiagnosticMatrixProps) {
+  void _scope
+
+  const { data, isLoading, error } = useQuery({
     queryKey: ['diagnostic-matrix', stage, company],
     queryFn: () => getDiagnosticMatrix(stage, company || undefined),
-    refetchInterval: 60000,
+    staleTime: 10_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
   })
 
   const metrics = data?.entities[0] ? Object.keys(data.entities[0].metrics) : []
@@ -40,6 +50,11 @@ export function DiagnosticMatrix({ stage, _scope, company }: DiagnosticMatrixPro
         {isLoading ? (
           <div className="p-12 text-center text-[10px] font-mono text-muted-foreground animate-pulse">
             [ LOADING_MATRIX_DATA... ]
+          </div>
+        ) : error ? (
+          <div className="p-12 text-center text-[10px] font-mono text-destructive whitespace-pre-wrap break-words">
+            [ MATRIX_QUERY_ERROR ]{'\n'}
+            {error instanceof Error ? error.message : 'Unknown matrix query failure'}
           </div>
         ) : displayEntities.length === 0 ? (
           <div className="p-12 text-center text-[10px] font-mono text-muted-foreground">
@@ -71,13 +86,17 @@ export function DiagnosticMatrix({ stage, _scope, company }: DiagnosticMatrixPro
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className={cn(
-                                "h-6 w-full rounded-sm transition-all hover:scale-105 cursor-crosshair",
+                              <button
+                                type="button"
+                                onClick={() => onCellSelect?.({ stage, entity: ent.entity, metric, state })}
+                                className={cn(
+                                  "h-6 w-full rounded-sm transition-all hover:scale-105 cursor-crosshair",
                                 state === 'populated' && "bg-primary/40 border border-primary/60",
                                 state === 'abstain' && "bg-[oklch(0.78_0.17_80/0.4)] border border-[oklch(0.78_0.17_80/0.6)]",
                                 state === 'failed' && "bg-destructive/40 border border-destructive/60",
                                 state === 'sparse' && "bg-muted/40 border border-border"
-                              )} />
+                                )}
+                              />
                             </TooltipTrigger>
                             <TooltipContent className="font-mono text-xs p-2 bg-background border-border">
                               <div className="text-primary font-bold mb-1">{ent.entity}::{metric}</div>

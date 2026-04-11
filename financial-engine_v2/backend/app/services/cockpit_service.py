@@ -6,6 +6,7 @@ import os
 import re
 import threading
 import uuid
+from uuid import UUID
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
@@ -14,6 +15,7 @@ from urllib.parse import urlparse
 import httpx
 from sqlalchemy import func
 from app.core.db import SessionLocal
+from app.models.asx_financials import ASXPeriodicFinancial
 from app.models.documents import Document
 from app.models.extractions import ExtractionRun
 from app.models.companies import Company
@@ -49,6 +51,65 @@ _BEARER_TOKEN_RE = re.compile(r"Bearer\s+[A-Za-z0-9._\-+/=]+", re.IGNORECASE)
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+# Recent ASXPeriodicFinancial rows used for population / trust metrics (not total table size).
+_PULSE_FINANCIAL_SAMPLE_LIMIT = 24
+
+
+def _diluted_eps_value(row: ASXPeriodicFinancial) -> float | None:
+    """EPS proxy: np_attributable / shares_outstanding when both are present."""
+    np_ = row.np_attributable
+    sh = row.shares_outstanding
+    if np_ is None or sh is None:
+        return None
+    try:
+        denom = float(sh)
+        if denom == 0:
+            return None
+        return float(np_) / denom
+    except (TypeError, ValueError):
+        return None
+
+
+def _matrix_cell_state(
+    financial_rows: list[ASXPeriodicFinancial],
+    field: str,
+    stage: str,
+    failed_doc_ids: set[UUID],
+) -> str:
+    """Classify one matrix cell: populated | abstain | failed | sparse."""
+    if field == "__eps__":
+        populated_rows = [r for r in financial_rows if _diluted_eps_value(r) is not None]
+
+        def is_null(r: ASXPeriodicFinancial) -> bool:
+            return _diluted_eps_value(r) is None
+
+    else:
+        populated_rows = [
+            r for r in financial_rows if getattr(r, field, None) is not None
+        ]
+
+        def is_null(r: ASXPeriodicFinancial) -> bool:
+            return getattr(r, field, None) is None
+
+    if populated_rows:
+        if stage == "evaluation":
+            high_confidence_rows = [
+                r
+                for r in populated_rows
+                if float(r.confidence_metrics or 0.0) >= 0.85
+            ]
+            return "populated" if high_confidence_rows else "abstain"
+        return "populated"
+
+    if not financial_rows:
+        return "sparse"
+
+    null_rows = [r for r in financial_rows if is_null(r)]
+    if any(r.source_document_id in failed_doc_ids for r in null_rows):
+        return "failed"
+    return "sparse"
 
 
 def _clip_text(value: Any, limit: int = 4000) -> str:
@@ -816,7 +877,9 @@ class CockpitService:
         worker.start()
 
     def _flagged_reports_root(self) -> Path:
-        return (self.repo_root / "reports" / "cockpit" / "flagged_sessions").resolve()
+        workspace = os.getenv("COCKPIT_WORKSPACE_ROOT", "").strip()
+        base = Path(workspace) if workspace else self.repo_root
+        return (base / "reports" / "cockpit" / "flagged_sessions").resolve()
 
     def _build_flag_read_api_path(self, report_id: str) -> str:
         return f"/api/cockpit/feedback/flags/{report_id}"
@@ -961,8 +1024,7 @@ class CockpitService:
 
         report_prefix = "good" if normalized_feedback_type == "good" else "flag"
         report_id = f"{report_prefix}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
-        report_rel_dir = f"reports/cockpit/flagged_sessions/{thread_id}/{report_id}"
-        report_dir = (self.repo_root / report_rel_dir).resolve()
+        report_dir = (self._flagged_reports_root() / thread_id / report_id).resolve()
         report_dir.mkdir(parents=True, exist_ok=True)
 
         bundle = {
@@ -1043,71 +1105,122 @@ class CockpitService:
         }
 
     def get_intel_pulse_stats(self, ticker: str | None = None) -> dict[str, Any]:
-        """Fetch real data population and quality metrics for Intel Pulse."""
+        """Fetch Intel Pulse summary stats from canonical backend stores."""
+        normalized_ticker = ticker.strip().upper() if ticker and ticker.strip() else None
         db = SessionLocal()
         try:
             doc_query = db.query(func.count(Document.document_id))
-            ext_query = db.query(func.count(ExtractionRun.run_id))
+            financial_query = db.query(ASXPeriodicFinancial)
+            failure_query = db.query(ExtractionRun).filter(ExtractionRun.status == "failed")
+            runs_total_query = db.query(func.count(ExtractionRun.run_id))
+            periodic_total_query = db.query(func.count(ASXPeriodicFinancial.ticker))
 
-            if ticker:
-                doc_query = doc_query.filter(Document.ticker == ticker)
-                # Join ExtractionRun with Document to filter by ticker
-                ext_query = ext_query.join(
+            if normalized_ticker:
+                doc_query = doc_query.filter(Document.ticker == normalized_ticker)
+                financial_query = financial_query.filter(
+                    ASXPeriodicFinancial.ticker == normalized_ticker
+                )
+                failure_query = failure_query.join(
                     Document, ExtractionRun.document_id == Document.document_id
-                ).filter(Document.ticker == ticker)
+                ).filter(Document.ticker == normalized_ticker)
+                runs_total_query = runs_total_query.join(
+                    Document, ExtractionRun.document_id == Document.document_id
+                ).filter(Document.ticker == normalized_ticker)
+                periodic_total_query = periodic_total_query.filter(
+                    ASXPeriodicFinancial.ticker == normalized_ticker
+                )
 
-            doc_count = doc_query.scalar() or 0
-            ext_count = ext_query.scalar() or 0
+            doc_count = int(doc_query.scalar() or 0)
+            periodic_financial_rows_total = int(periodic_total_query.scalar() or 0)
+            extraction_runs_total = int(runs_total_query.scalar() or 0)
 
-            # For signal and memory counts, we'd query those models.
-            # Assuming they exist or using placeholders if not yet fully implemented in DB.
+            financial_rows = financial_query.order_by(
+                ASXPeriodicFinancial.period_end.desc()
+            ).limit(_PULSE_FINANCIAL_SAMPLE_LIMIT).all()
+            financial_count = len(financial_rows)
+            failed_count = int(failure_query.count() or 0)
+
+            # signal_count / memory_count stay 0 until a single canonical counter is wired
+            # (Qdrant commentary/asx_docs vs cockpit memory). See IntelPulseStats field docs.
             signal_count = 0
             memory_count = 0
 
-            # Calculate quality metrics from ExtractionRun
-            quality_query = db.query(
-                func.avg(ExtractionRun.confidence_overall),
-                func.count(ExtractionRun.run_id).filter(
-                    ExtractionRun.status == "failed"
-                ),
+            confidence_values = [
+                float(row.confidence_metrics or 0.0)
+                for row in financial_rows
+                if row.confidence_metrics is not None
+            ]
+            avg_confidence = (
+                sum(confidence_values) / len(confidence_values)
+                if confidence_values
+                else 0.0
             )
-            if ticker:
-                quality_query = quality_query.join(
-                    Document, ExtractionRun.document_id == Document.document_id
-                ).filter(Document.ticker == ticker)
 
-            avg_confidence, failed_count = quality_query.one()
-            avg_confidence = float(avg_confidence or 0.0)
-            quarantine_rate = (failed_count / ext_count * 100) if ext_count > 0 else 0.0
-
-            # population_index is a heuristic based on expected fields vs populated
+            metric_fields = [
+                "revenue",
+                "ebit",
+                "np_attributable",
+                "operating_cf",
+                "investing_cf",
+                "financing_cf",
+                "capex",
+                "cash_end",
+                "net_debt",
+                "shares_outstanding",
+                "total_equity",
+                "interest_expense",
+            ]
+            populated_metrics = sum(
+                1
+                for row in financial_rows
+                for field in metric_fields
+                if getattr(row, field, None) is not None
+            )
+            total_metric_slots = len(financial_rows) * len(metric_fields)
             population_index = (
-                (ext_count / (doc_count * 5) * 100) if doc_count > 0 else 0.0
+                (populated_metrics / total_metric_slots) * 100
+                if total_metric_slots > 0
+                else 0.0
             )
-            population_index = min(population_index, 100.0)
+            extraction_failure_rate_pct = (
+                (failed_count / doc_count) * 100 if doc_count > 0 else 0.0
+            )
+            quarantine_rate = extraction_failure_rate_pct
+
+            overview_health = round((population_index + avg_confidence * 100) / 2, 1)
+            overview_status = (
+                "nominal"
+                if extraction_failure_rate_pct <= 10.0 and overview_health >= 50.0
+                else "degraded"
+            )
+            failure_stage_health = round(max(0.0, 100.0 - extraction_failure_rate_pct), 1)
 
             return {
                 "stats": {
                     "document_count": doc_count,
-                    "extraction_count": ext_count,
+                    "extraction_count": financial_count,
+                    "recent_financial_rows_sampled": financial_count,
+                    "periodic_financial_rows_total": periodic_financial_rows_total,
+                    "extraction_runs_total": extraction_runs_total,
                     "signal_count": signal_count,
                     "memory_count": memory_count,
                     "population_index": round(population_index, 1),
                     "trust_score_avg": round(avg_confidence, 2),
                     "quarantine_rate": round(quarantine_rate, 1),
+                    "extraction_failure_rate_pct": round(extraction_failure_rate_pct, 1),
                 },
                 "pipeline": [
                     {
                         "id": "overview",
                         "label": "PULSE_HOME",
-                        "health": 100,
-                        "status": "nominal",
+                        "health": overview_health,
+                        "status": overview_status,
                     },
                     {
                         "id": "extraction",
                         "label": "EXTRACTION",
-                        "health": round(100 - quarantine_rate, 1),
-                        "status": "nominal" if quarantine_rate < 5 else "degraded",
+                        "health": round(population_index, 1),
+                        "status": "nominal" if population_index >= 60 else "degraded",
                     },
                     {
                         "id": "evaluation",
@@ -1119,22 +1232,25 @@ class CockpitService:
                         "id": "signals",
                         "label": "SIGNALS",
                         "health": 0,
-                        "status": "sparse",
+                        "status": "unavailable",
                     },
                     {
                         "id": "memory",
                         "label": "MEMORY",
                         "health": 0,
-                        "status": "sparse",
+                        "status": "unavailable",
                     },
                     {
                         "id": "failures",
                         "label": "FAILURES",
-                        "health": round(quarantine_rate, 1),
-                        "status": "critical" if quarantine_rate > 10 else "nominal",
+                        "health": failure_stage_health,
+                        "status": (
+                            "critical" if extraction_failure_rate_pct > 10 else "nominal"
+                        ),
                     },
                 ],
-                "failures": self._get_recent_failures(db, ticker),
+                "failures": self._get_recent_failures(db, normalized_ticker),
+                "generated_at": _now_iso(),
             }
         finally:
             db.close()
@@ -1142,68 +1258,88 @@ class CockpitService:
     def _get_recent_failures(
         self, db, ticker: str | None = None
     ) -> list[dict[str, Any]]:
-        query = db.query(ExtractionRun).filter(ExtractionRun.status == "failed")
-        if ticker:
-            query = query.join(
-                Document, ExtractionRun.document_id == Document.document_id
-            ).filter(Document.ticker == ticker)
+        normalized_ticker = ticker.strip().upper() if ticker and ticker.strip() else None
+        query = (
+            db.query(ExtractionRun, Document.ticker)
+            .join(Document, ExtractionRun.document_id == Document.document_id)
+            .filter(ExtractionRun.status == "failed")
+        )
+        if normalized_ticker:
+            query = query.filter(Document.ticker == normalized_ticker)
 
-        failures = query.order_by(ExtractionRun.created_at.desc()).limit(10).all()
-        return [
-            {
-                "id": str(f.run_id)[:8],
-                "entity": ticker
-                or "SYSTEM",  # We'd need to fetch ticker if not provided
-                "type": "EXTRACTION_FAIL",
-                "message": f.error or "Unknown extraction error",
-                "confidence": float(f.confidence_overall or 0.0),
-                "timestamp": f.created_at.strftime("%H:%M:%S")
-                if f.created_at
-                else "--",
-            }
-            for f in failures
-        ]
+        rows = query.order_by(ExtractionRun.created_at.desc()).limit(10).all()
+        out: list[dict[str, Any]] = []
+        for run, tick in rows:
+            ts = "--"
+            if run.created_at is not None:
+                ts = run.created_at.isoformat()
+            out.append(
+                {
+                    "id": str(run.run_id)[:8],
+                    "entity": str(tick or "UNKNOWN").strip().upper() or "UNKNOWN",
+                    "type": "EXTRACTION_FAIL",
+                    "message": run.error or "Unknown extraction error",
+                    "confidence": float(run.confidence_overall or 0.0),
+                    "timestamp": ts,
+                }
+            )
+        return out
 
     def get_diagnostic_matrix(
         self, stage: str, ticker: str | None = None
     ) -> dict[str, Any]:
-        """Build the density matrix for companies vs metrics."""
+        """Build the density matrix from canonical financial rows."""
         db = SessionLocal()
         try:
-            # Get list of companies
             if ticker:
-                companies = [ticker.upper()]
+                companies = [ticker.strip().upper()]
             else:
-                companies = [c.ticker for c in db.query(Company.ticker).limit(10).all()]
+                companies = [
+                    row.ticker
+                    for row in db.query(Company.ticker)
+                    .order_by(Company.ticker.asc())
+                    .limit(10)
+                    .all()
+                ]
 
-            # For each company, check extraction status for key metrics
-            # This is a simplified version; real Tenn uses a metrics registry
-            metrics = ["REVENUE", "EBITDA", "NET_DEBT", "EPS", "CAPEX"]
+            # Canonical columns only (EBIT from `ebit`; EPS derived from NP / shares).
+            metric_specs: list[tuple[str, str]] = [
+                ("REVENUE", "revenue"),
+                ("EBIT", "ebit"),
+                ("NET_DEBT", "net_debt"),
+                ("EPS", "__eps__"),
+                ("CAPEX", "capex"),
+            ]
 
-            entities = []
+            stage_l = stage.lower()
+            entities: list[dict[str, Any]] = []
             for comp in companies:
-                entity_metrics = {}
-                # Query extractions for this company
-                extractions = (
-                    db.query(ExtractionRun.structured_json)
-                    .join(Document, ExtractionRun.document_id == Document.document_id)
-                    .filter(Document.ticker == comp)
-                    .filter(ExtractionRun.status == "success")
+                financial_rows = (
+                    db.query(ASXPeriodicFinancial)
+                    .filter(ASXPeriodicFinancial.ticker == comp)
+                    .order_by(ASXPeriodicFinancial.period_end.desc())
+                    .limit(12)
                     .all()
                 )
+                doc_ids = {r.source_document_id for r in financial_rows}
+                failed_doc_ids: set[UUID] = set()
+                if doc_ids:
+                    failed_doc_ids = {
+                        row[0]
+                        for row in db.query(ExtractionRun.document_id)
+                        .filter(
+                            ExtractionRun.document_id.in_(doc_ids),
+                            ExtractionRun.status == "failed",
+                        )
+                        .distinct()
+                        .all()
+                    }
 
-                # Combine all successful extractions to check coverage
-                all_keys = set()
-                for (sj,) in extractions:
-                    if sj and isinstance(sj, dict):
-                        all_keys.update(sj.keys())
-
-                for m in metrics:
-                    if m in all_keys:
-                        entity_metrics[m] = "populated"
-                    else:
-                        entity_metrics[m] = "sparse"
-
+                entity_metrics: dict[str, str] = {}
+                for label, field in metric_specs:
+                    entity_metrics[label] = _matrix_cell_state(
+                        financial_rows, field, stage_l, failed_doc_ids
+                    )
                 entities.append({"entity": comp, "metrics": entity_metrics})
 
             return {"stage": stage, "entities": entities}
@@ -1222,6 +1358,7 @@ class CockpitService:
         model: str | None = None,
         rag: bool | None = None,
         db_diagnostics: bool | None = None,
+        ui_mode: str | None = None,
     ) -> ChatResponse:
         """Run a chat turn and return the full response, while optionally streaming chunks."""
         requested_model = str(model or "").strip()
@@ -1295,6 +1432,7 @@ class CockpitService:
             on_chunk=_capture_chunk,
             on_status=_capture_status,
             on_thinking=_capture_thinking,
+            ui_mode=ui_mode,
         )
         meta = dict(getattr(response, "routing_metadata", None) or {})
         if not str(meta.get("source") or "").strip():
@@ -1332,6 +1470,7 @@ class CockpitService:
                     "db_diagnostics": bool(db_diagnostics)
                     if db_diagnostics is not None
                     else False,
+                    "ui_mode": ui_mode,
                 },
                 "status_events": status_events,
                 "thinking_events": thinking_events,
