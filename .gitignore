@@ -74,3 +74,16 @@ node_modules/
 *.gguf
 package-lock.json
 10
+
+# Build artifacts
+cockpit-ui/tsconfig.tsbuildinfo
+
+# Test artifacts
+cockpit-ui/playwright-report/
+cockpit-ui/test-results/
+
+# Tool state
+.serena/
+
+# Process output
+nohup.out
