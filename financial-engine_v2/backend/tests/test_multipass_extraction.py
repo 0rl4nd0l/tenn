@@ -173,6 +173,35 @@ def test_pass2_share_capital_prefers_period_end_count_over_weighted_average():
     assert result["share_capital"] is period_end_count
 
 
+def test_pass2_share_capital_selects_stapled_security_count_table():
+    """Stapled-security note tables must populate the share_capital slot."""
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    stapled_security_note = DoclingTable(
+        page_number=40,
+        caption="Note 14 Contributed equity",
+        rows=[
+            [
+                "",
+                "For the 6 months to 31 Dec 2025 No. of securities",
+                "For the 12 months to 30 Jun 2025 No. of securities",
+            ],
+            ["Opening balance", "1,075,565,246", "1,075,565,246"],
+            ["Closing balance", "1,075,565,246", "1,075,565,246"],
+        ],
+        headers=[
+            "",
+            "For the 6 months to 31 Dec 2025 No. of securities",
+            "For the 12 months to 30 Jun 2025 No. of securities",
+        ],
+    )
+
+    result = _run_pass2_locator([stapled_security_note])
+
+    assert result["share_capital"] is stapled_security_note
+
+
 def test_pass2_selects_point_in_time_net_debt_note_table():
     """Point-in-time tables with an explicit net debt row should get a dedicated slot."""
     from app.services.multipass_extraction import _run_pass2_locator
@@ -1920,6 +1949,149 @@ def test_pass3a_shares_no_scaling_when_absolute():
     assert results[0]["shares_outstanding"] == 196_478_902, (
         f"Absolute count must not be scaled; got {results[0]['shares_outstanding']}"
     )
+
+
+def test_pass3a_shares_outstanding_accepts_stapled_security_counts():
+    """Securities/unit count tables should count as valid share-count evidence."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=40,
+        caption="Note 14 Contributed equity",
+        rows=[
+            [
+                "",
+                "For the 6 months to 31 Dec 2025 No. of securities",
+                "For the 12 months to 30 Jun 2025 No. of securities",
+            ],
+            ["Closing balance", "1,075,565,246", "1,075,565,246"],
+        ],
+        headers=[
+            "",
+            "For the 6 months to 31 Dec 2025 No. of securities",
+            "For the 12 months to 30 Jun 2025 No. of securities",
+        ],
+    )
+    labelled = {
+        "cashflow_statement": None,
+        "income_statement": None,
+        "balance_sheet": None,
+        "share_capital": table,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "millions",
+    }
+
+    mock_raw = {
+        "shares_outstanding": 1075565246,
+        "pass3_confidence": 0.9,
+        "row_refs": {"shares_outstanding": "Closing balance"},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert results[0]["shares_outstanding"] == 1_075_565_246
+
+
+def test_pass3a_infers_total_debt_row_ref_from_balance_sheet_rows():
+    """Balance-sheet debt extraction should preserve strong provenance even when the model omits it."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=17,
+        caption="Statement of financial position",
+        rows=[
+            ["Cash and cash equivalents", "74.7", "65.3"],
+            ["Interest bearing liabilities", "782.8", "907.1"],
+            ["Interest bearing liabilities", "3,808.6", "3,813.0"],
+            ["Total liabilities", "5,261.1", "5,475.5"],
+        ],
+        headers=["", "31 Dec 2025 $m", "30 Jun 2025 $m"],
+    )
+    labelled = {
+        "cashflow_statement": None,
+        "income_statement": None,
+        "balance_sheet": table,
+        "share_capital": None,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "millions",
+    }
+
+    mock_raw = {
+        "net_debt": None,
+        "total_debt": 4591.4,
+        "shares_outstanding": None,
+        "pass3_confidence": 0.8,
+        "row_refs": {},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert results[0]["row_refs"]["total_debt"] == "Interest bearing liabilities"
+
+
+def test_pass3a_prefers_strong_total_debt_row_ref_from_model_list():
+    """Mixed model row_ref lists should keep the strongest debt label only."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=17,
+        caption="Statement of financial position",
+        rows=[
+            ["Interest bearing liabilities", "782.8", "907.1"],
+            ["Lease liabilities", "11.8", "31.5"],
+        ],
+        headers=["", "31 Dec 2025 $m", "30 Jun 2025 $m"],
+    )
+    labelled = {
+        "cashflow_statement": None,
+        "income_statement": None,
+        "balance_sheet": table,
+        "share_capital": None,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "millions",
+    }
+
+    mock_raw = {
+        "net_debt": None,
+        "total_debt": 4591.4,
+        "shares_outstanding": None,
+        "pass3_confidence": 0.8,
+        "row_refs": {"total_debt": ["Interest bearing liabilities", "Lease liabilities"]},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert results[0]["row_refs"]["total_debt"] == "Interest bearing liabilities"
 
 
 # ---------------------------------------------------------------------------

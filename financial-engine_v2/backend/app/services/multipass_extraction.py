@@ -291,8 +291,17 @@ _TABLE_KEYWORDS: dict[str, list[str]] = {
     "share_capital": [
         "ordinary shares",
         "number of shares",
+        "number of securities",
+        "number of units",
+        "no. of securities",
+        "no of securities",
+        "no. of units",
+        "no of units",
         "shares on issue",
+        "securities on issue",
+        "units on issue",
         "shares issued",
+        "stapled securities",
         "share capital",
         "shares at end",
         "weighted average number of shares",  # EPS note table
@@ -335,7 +344,14 @@ _STATEMENT_HEADERS: dict[str, list[str]] = {
         "statement of comprehensive income",
     ],
     "balance_sheet": ["balance sheet", "statement of financial position"],
-    "share_capital": ["number of shares", "weighted average"],
+    "share_capital": [
+        "number of shares",
+        "number of securities",
+        "number of units",
+        "no. of securities",
+        "no. of units",
+        "weighted average",
+    ],
     "highlights": ["appendix 4d", "results for announcement"],
 }
 _HEADER_BONUS = 10
@@ -601,7 +617,14 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
 
         explicit_count_header = int(
             "numberofshares" in compact_header_text
+            or "numberofsecurities" in compact_header_text
+            or "numberofunits" in compact_header_text
+            or "noofsecurities" in compact_header_text
+            or "noofunits" in compact_header_text
             or "sharesonissue" in compact_header_text
+            or "securitiesonissue" in compact_header_text
+            or "unitsonissue" in compact_header_text
+            or "stapledsecurities" in compact_header_text
             or "ordinaryshares" in compact_header_text
         )
         explicit_period_end_row = int(
@@ -611,6 +634,9 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
                     or "sharesnotifiedtotheaustralianstockexchange" in label
                     or "sharesnotifiedtotheaustraliansecuritiesexchange" in label
                     or "sharesonissue" in label
+                    or "securitiesonissue" in label
+                    or "unitsonissue" in label
+                    or "stapledsecurities" in label
                 )
                 and any(
                     marker in label
@@ -791,7 +817,8 @@ Rules:
   "development"), SUM them and output the total as capex.
 - shares_outstanding: extract the PERIOD-END total ordinary shares on issue (count, not dollar amount).
   Correct labels: "Ordinary shares", "Shares on issue", "Number of shares on issue",
-  "Fully paid ordinary shares", "Total ordinary shares".
+  "Fully paid ordinary shares", "Total ordinary shares", "Number of securities",
+  "Securities on issue", "Stapled securities", "Number of units", or "Units on issue".
   DO NOT use: "Weighted average number of shares", "Diluted shares", or "Basic earnings per share" denominators.
   DO NOT extract from columns labeled "$", "$m", "$M", or any dollar-denominated header — those are
   dollar values of share capital, not share counts. If the only available data is dollar-denominated, return null.
@@ -1192,7 +1219,14 @@ def _extract_single_table(
                 marker in compact_share_text
                 for marker in (
                     "numberofshares",
+                    "numberofsecurities",
+                    "numberofunits",
+                    "noofsecurities",
+                    "noofunits",
                     "sharesonissue",
+                    "securitiesonissue",
+                    "unitsonissue",
+                    "stapledsecurities",
                     "issuedordinaryshares",
                     "ordinarysharesfullypaid",
                     "fullypaidordinaryshares",
@@ -1249,6 +1283,22 @@ def _extract_single_table(
                 )
 
         extracted["row_refs"] = raw_payload.get("row_refs", {})
+        if table_type == "balance_sheet" and extracted["row_refs"].get("total_debt"):
+            preferred_total_debt_ref = _select_preferred_evidence_row_ref(
+                extracted["row_refs"].get("total_debt"),
+                strong_markers=_STRONG_TOTAL_DEBT_ROW_REFS,
+                weak_markers=_WEAK_TOTAL_DEBT_ROW_REFS,
+            )
+            if preferred_total_debt_ref:
+                extracted["row_refs"]["total_debt"] = preferred_total_debt_ref
+        if (
+            table_type == "balance_sheet"
+            and extracted.get("total_debt") is not None
+            and not extracted["row_refs"].get("total_debt")
+        ):
+            inferred_total_debt_ref = _infer_total_debt_row_ref(table)
+            if inferred_total_debt_ref:
+                extracted["row_refs"]["total_debt"] = inferred_total_debt_ref
         if (
             table_type == "net_debt_note"
             and extracted.get("net_debt") is not None
@@ -1630,6 +1680,49 @@ def _normalise_evidence_row_ref(row_ref: str | None) -> str:
     return " ".join(str(row_ref or "").strip().lower().split())
 
 
+def _select_preferred_evidence_row_ref(
+    row_ref: Any,
+    *,
+    strong_markers: tuple[str, ...],
+    weak_markers: tuple[str, ...] = (),
+) -> str | None:
+    if isinstance(row_ref, (list, tuple, set)):
+        candidates = [str(item or "").strip() for item in row_ref]
+    else:
+        candidates = [str(row_ref or "").strip()]
+
+    best_candidate: str | None = None
+    best_rank = len(strong_markers)
+    for candidate in candidates:
+        normalized = _normalise_evidence_row_ref(candidate)
+        if not normalized:
+            continue
+        if any(weak in normalized for weak in weak_markers):
+            continue
+        for rank, marker in enumerate(strong_markers):
+            if marker in normalized and rank < best_rank:
+                best_candidate = candidate
+                best_rank = rank
+                break
+    return best_candidate
+
+
+def _infer_total_debt_row_ref(table) -> str | None:
+    """Recover strong debt evidence when the model omits total_debt row refs."""
+    for row in getattr(table, "rows", []) or []:
+        if not row or not any(_re.search(r"\d", str(cell or "")) for cell in row[1:]):
+            continue
+        label = str(row[0] or "").strip()
+        preferred = _select_preferred_evidence_row_ref(
+            label,
+            strong_markers=_STRONG_TOTAL_DEBT_ROW_REFS,
+            weak_markers=_WEAK_TOTAL_DEBT_ROW_REFS,
+        )
+        if preferred:
+            return preferred
+    return None
+
+
 _EXPLICIT_NET_DEBT_CONFIDENCE_FLOOR = 0.95
 _DERIVED_NET_DEBT_CONFIDENCE_CAP = 0.55
 
@@ -1647,7 +1740,12 @@ def _is_explicit_net_debt_evidence(row_ref: str | None) -> bool:
 
 
 def _is_strong_total_debt_evidence(row_ref: str | None, value: Any) -> bool:
-    label = _normalise_evidence_row_ref(row_ref)
+    preferred = _select_preferred_evidence_row_ref(
+        row_ref,
+        strong_markers=_STRONG_TOTAL_DEBT_ROW_REFS,
+        weak_markers=_WEAK_TOTAL_DEBT_ROW_REFS,
+    )
+    label = _normalise_evidence_row_ref(preferred)
     if not label or label == "unknown":
         return False
     try:
@@ -1656,9 +1754,7 @@ def _is_strong_total_debt_evidence(row_ref: str | None, value: Any) -> bool:
         return False
     if numeric_value < 0:
         return False
-    if any(weak in label for weak in _WEAK_TOTAL_DEBT_ROW_REFS):
-        return False
-    return any(strong in label for strong in _STRONG_TOTAL_DEBT_ROW_REFS)
+    return True
 
 
 def _select_explicit_net_debt_candidate(pass3a_results: list[dict]) -> dict | None:
