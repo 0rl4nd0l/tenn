@@ -137,6 +137,21 @@ def _(m, _msg):
     return f"/watch add {m.group(2).upper()}"
 
 
+_YOUTUBE_URL_PATTERN = re.compile(
+    r"(https?://(?:www\.)?(?:youtube\.com/watch\?[^\s]*v=[A-Za-z0-9_\-]{11}[^\s]*|youtu\.be/[A-Za-z0-9_\-]{11}[^\s]*))"
+)
+
+
+@_rule(
+    r"https?://(?:www\.)?(?:youtube\.com/watch\?[^\s]*v=[A-Za-z0-9_\-]{11}[^\s]*|youtu\.be/[A-Za-z0-9_\-]{11}[^\s]*)",
+    flags=0,
+)
+def _(m, msg):
+    url_match = _YOUTUBE_URL_PATTERN.search(msg)
+    url = url_match.group(1) if url_match else m.group(0)
+    return f"/ingest {url}"
+
+
 @_rule(r"\b(show|list)\s+(pending\s+)?transcripts?\b")
 def _(m, _msg):
     return "/review list"
