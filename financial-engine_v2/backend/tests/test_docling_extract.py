@@ -79,6 +79,115 @@ def test_extract_structured_reextracts_when_cache_is_corrupt(tmp_path, monkeypat
     assert docling_extract._load_cache(cache_path) == extracted_doc
 
 
+def test_extract_structured_reextracts_when_docling_cache_is_truncated(
+    tmp_path, monkeypatch
+):
+    pdf_path = tmp_path / "report.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4 test")
+
+    stale_doc = StructuredDocument(
+        tables=[
+            DoclingTable(
+                page_number=10,
+                caption="Cached table",
+                rows=[["Metric", "Value"], ["Revenue", "100"]],
+                headers=["Metric", "Value"],
+            )
+        ],
+        sections=[{"heading": True, "text": "Cached heading", "page": 2}],
+        extraction_method="docling",
+        page_count=6,
+        docling_version=docling_extract.DOCLING_VERSION,
+    )
+    cache_path = Path(str(pdf_path) + ".docling.json")
+    docling_extract._save_cache(cache_path, stale_doc)
+    pdf_mtime = pdf_path.stat().st_mtime
+    os.utime(cache_path, (pdf_mtime + 5, pdf_mtime + 5))
+
+    extracted_doc = StructuredDocument(
+        tables=[
+            DoclingTable(
+                page_number=21,
+                caption="Fresh cash flow",
+                rows=[["Metric", "Value"], ["Cash", "2124"]],
+                headers=["Metric", "Value"],
+            )
+        ],
+        sections=[{"heading": False, "text": "Fresh body", "page": 38}],
+        extraction_method="docling",
+        page_count=38,
+        source_pdf_page_count=38,
+        docling_version=docling_extract.DOCLING_VERSION,
+    )
+    calls: list[str] = []
+
+    def fake_run(
+        path: str, timeout: int = docling_extract.DOCLING_TIMEOUT_SECONDS
+    ) -> StructuredDocument:
+        calls.append(path)
+        return extracted_doc
+
+    monkeypatch.setattr(docling_extract, "_run_docling_with_timeout", fake_run)
+    monkeypatch.setattr(docling_extract, "_get_page_count_fast", lambda path: 38)
+
+    loaded = docling_extract.extract_structured(str(pdf_path), backend="docling")
+
+    assert loaded == extracted_doc
+    assert calls == [str(pdf_path)]
+    assert docling_extract._load_cache(cache_path) == extracted_doc
+
+
+def test_extract_structured_reextracts_when_cache_pdf_page_metadata_mismatches(
+    tmp_path, monkeypatch
+):
+    pdf_path = tmp_path / "report.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4 test")
+
+    stale_doc = StructuredDocument(
+        tables=[
+            DoclingTable(
+                page_number=38,
+                caption="Cached table",
+                rows=[["Metric", "Value"], ["Revenue", "100"]],
+                headers=["Metric", "Value"],
+            )
+        ],
+        sections=[{"heading": True, "text": "Cached heading", "page": 38}],
+        extraction_method="docling",
+        page_count=38,
+        source_pdf_page_count=41,
+        docling_version=docling_extract.DOCLING_VERSION,
+    )
+    cache_path = Path(str(pdf_path) + ".docling.json")
+    docling_extract._save_cache(cache_path, stale_doc)
+    pdf_mtime = pdf_path.stat().st_mtime
+    os.utime(cache_path, (pdf_mtime + 5, pdf_mtime + 5))
+
+    extracted_doc = StructuredDocument(
+        tables=[],
+        sections=[{"heading": False, "text": "Fresh body", "page": 38}],
+        extraction_method="docling",
+        page_count=38,
+        source_pdf_page_count=38,
+        docling_version=docling_extract.DOCLING_VERSION,
+    )
+    calls: list[str] = []
+
+    def fake_run(
+        path: str, timeout: int = docling_extract.DOCLING_TIMEOUT_SECONDS
+    ) -> StructuredDocument:
+        calls.append(path)
+        return extracted_doc
+
+    monkeypatch.setattr(docling_extract, "_run_docling_with_timeout", fake_run)
+    monkeypatch.setattr(docling_extract, "_get_page_count_fast", lambda path: 38)
+
+    loaded = docling_extract.extract_structured(str(pdf_path), backend="docling")
+
+    assert loaded == extracted_doc
+    assert calls == [str(pdf_path)]
+
+
 def test_extract_structured_uses_pymupdf_fallback_when_docling_fails(
     tmp_path, monkeypatch
 ):

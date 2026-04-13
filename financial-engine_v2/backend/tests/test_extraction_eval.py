@@ -15,6 +15,7 @@ import datetime
 import json
 import logging
 import math
+import time
 import warnings
 from pathlib import Path
 from unittest.mock import patch, MagicMock
@@ -87,6 +88,41 @@ def _write_eval_log(
     }
     path = results_dir / f"eval_{ts}.json"
     path.write_text(json.dumps(log, indent=2), encoding="utf-8")
+
+
+def _write_eval_progress(
+    progress_path: Path,
+    *,
+    run_id: str,
+    model_label: str,
+    completed_fixtures: int,
+    total_fixtures: int,
+    fixture_statuses: dict[str, dict],
+    current_fixture: str | None = None,
+) -> None:
+    progress_path.parent.mkdir(exist_ok=True)
+    payload = {
+        "run_id": run_id,
+        "model": model_label,
+        "completed_fixtures": completed_fixtures,
+        "total_fixtures": total_fixtures,
+        "current_fixture": current_fixture,
+        "fixture_statuses": fixture_statuses,
+        "updated_at": datetime.datetime.now(datetime.timezone.utc).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        ),
+    }
+    progress_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def _emit_live_eval_progress(request: pytest.FixtureRequest | None, message: str) -> None:
+    reporter = None
+    if request is not None:
+        reporter = request.config.pluginmanager.getplugin("terminalreporter")
+    if reporter is not None:
+        reporter.write_line(message)
+    else:
+        print(message, flush=True)
 
 
 # ---------------------------------------------------------------------------
@@ -225,12 +261,37 @@ def test_structural_fixture_with_only_expected_nulls_produces_valid_accuracy():
     )
 
 
+def test_write_eval_progress_creates_incremental_status_file(tmp_path):
+    progress_path = tmp_path / "eval_progress.json"
+    fixture_statuses = {
+        "QBE": {"status": "running"},
+        "TLS": {"status": "pending"},
+    }
+
+    _write_eval_progress(
+        progress_path,
+        run_id="eval-test-run",
+        model_label="llamacpp:http://127.0.0.1:8001",
+        completed_fixtures=1,
+        total_fixtures=2,
+        fixture_statuses=fixture_statuses,
+        current_fixture="TLS",
+    )
+
+    payload = json.loads(progress_path.read_text(encoding="utf-8"))
+    assert payload["run_id"] == "eval-test-run"
+    assert payload["completed_fixtures"] == 1
+    assert payload["total_fixtures"] == 2
+    assert payload["current_fixture"] == "TLS"
+    assert payload["fixture_statuses"] == fixture_statuses
+
+
 # ---------------------------------------------------------------------------
 # Live eval mode: accuracy regression gate (requires real LLM + fixtures)
 # ---------------------------------------------------------------------------
 
 @pytest.mark.live_eval
-def test_live_eval_accuracy_against_fixtures():
+def test_live_eval_accuracy_against_fixtures(request: pytest.FixtureRequest):
     """
     Run the full pipeline against each fixture and assert accuracy >= thresholds.
     Requires: llamacpp on port 8001, eval_fixtures/*.json with pdf_filename present.
@@ -248,6 +309,9 @@ def test_live_eval_accuracy_against_fixtures():
     per_metric_results: dict[str, list[bool]] = {}
     overall_results: list[bool] = []
     per_fixture_data: dict[str, dict] = {}
+    run_id = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
+    progress_path = Path(__file__).parent / "eval_results" / f"eval_progress_{run_id}.json"
+    fixture_statuses: dict[str, dict] = {}
 
     import os
     force_llamacpp = os.getenv("EVAL_FORCE_LLAMACPP", "").lower() in ("1", "true")
@@ -269,9 +333,23 @@ def test_live_eval_accuracy_against_fixtures():
         llm_client = httpx.Client(base_url=base_url, timeout=60.0, headers=headers)
         model_label = f"llamacpp:{extraction_url}"
 
+    _write_eval_progress(
+        progress_path,
+        run_id=run_id,
+        model_label=model_label,
+        completed_fixtures=0,
+        total_fixtures=len(fixtures),
+        fixture_statuses=fixture_statuses,
+        current_fixture=None,
+    )
+    _emit_live_eval_progress(
+        request,
+        f"[live-eval] start run_id={run_id} fixtures={len(fixtures)} model={model_label} progress={progress_path.name}",
+    )
+
     fixture_failures: list[str] = []
 
-    for fixture in fixtures:
+    for fixture_index, fixture in enumerate(fixtures, start=1):
         root = Path(__file__).parent.parent.parent
         if "pdf_path" in fixture:
             pdf_path = str(root / fixture["pdf_path"])
@@ -285,11 +363,30 @@ def test_live_eval_accuracy_against_fixtures():
             "ticker": fixture["ticker"],
             "title": fixture.get("pdf_filename", ""),
         }
+        label = fixture.get("ticker", fixture.get("document_id", "?"))
+        fixture_statuses[label] = {
+            "status": "running",
+            "index": fixture_index,
+            "document_id": fixture["document_id"],
+        }
+        _write_eval_progress(
+            progress_path,
+            run_id=run_id,
+            model_label=model_label,
+            completed_fixtures=fixture_index - 1,
+            total_fixtures=len(fixtures),
+            fixture_statuses=fixture_statuses,
+            current_fixture=label,
+        )
+        _emit_live_eval_progress(
+            request,
+            f"[live-eval] [{fixture_index}/{len(fixtures)}] start {label} ({fixture['document_id']})",
+        )
+        fixture_started_at = time.perf_counter()
         result = run_multipass_extraction(pdf_path, doc_metadata, llm_client)
 
         # If extraction failed, mark all metrics as failures and skip comparison.
         if result.status == "failed":
-            label = fixture.get("ticker", fixture.get("document_id", "?"))
             logger.error(
                 "Extraction failed for %s: %s — marking all metrics as failures",
                 label,
@@ -314,6 +411,27 @@ def test_live_eval_accuracy_against_fixtures():
                 "accuracy": 0.0,
                 "metric_count": num_metrics,
             }
+            fixture_statuses[label] = {
+                "status": "failed",
+                "index": fixture_index,
+                "document_id": fixture["document_id"],
+                "elapsed_s": round(time.perf_counter() - fixture_started_at, 2),
+                "accuracy": 0.0,
+                "error": result.error,
+            }
+            _write_eval_progress(
+                progress_path,
+                run_id=run_id,
+                model_label=model_label,
+                completed_fixtures=fixture_index,
+                total_fixtures=len(fixtures),
+                fixture_statuses=fixture_statuses,
+                current_fixture=None,
+            )
+            _emit_live_eval_progress(
+                request,
+                f"[live-eval] [{fixture_index}/{len(fixtures)}] done {label} status=failed elapsed={fixture_statuses[label]['elapsed_s']:.2f}s",
+            )
             if fixture_min_acc > 0.0:
                 fixture_failures.append(
                     f"{label}: FAILED (extraction error) < {fixture_min_acc:.1%}"
@@ -369,11 +487,30 @@ def test_live_eval_accuracy_against_fixtures():
 
         # Per-fixture accuracy gate
         fixture_acc = sum(fixture_results) / len(fixture_results) if fixture_results else 0
-        label = fixture.get("ticker", fixture.get("document_id", "?"))
         per_fixture_data[label] = {
             "accuracy": round(fixture_acc, 4),
             "metric_count": len(fixture_results),
         }
+        fixture_statuses[label] = {
+            "status": result.status,
+            "index": fixture_index,
+            "document_id": fixture["document_id"],
+            "elapsed_s": round(time.perf_counter() - fixture_started_at, 2),
+            "accuracy": round(fixture_acc, 4),
+        }
+        _write_eval_progress(
+            progress_path,
+            run_id=run_id,
+            model_label=model_label,
+            completed_fixtures=fixture_index,
+            total_fixtures=len(fixtures),
+            fixture_statuses=fixture_statuses,
+            current_fixture=None,
+        )
+        _emit_live_eval_progress(
+            request,
+            f"[live-eval] [{fixture_index}/{len(fixtures)}] done {label} status={result.status} accuracy={fixture_acc:.4f} elapsed={fixture_statuses[label]['elapsed_s']:.2f}s",
+        )
         if fixture_acc < fixture_min_acc:
             fixture_failures.append(
                 f"{label}: {fixture_acc:.1%} < {fixture_min_acc:.1%}"

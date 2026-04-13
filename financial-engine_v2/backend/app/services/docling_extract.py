@@ -35,6 +35,7 @@ DOCLING_TIMEOUT_SECONDS_PER_PAGE = 6
 DOCLING_TIMEOUT_MAX = 600
 DOCLING_LARGE_PDF_PAGE_THRESHOLD = 200
 DOCLING_LARGE_PDF_SIZE_THRESHOLD_BYTES = 12 * 1024 * 1024
+DOCLING_CACHE_PAGE_GAP_TOLERANCE = 2
 
 
 class ExtractionTimeoutError(Exception):
@@ -60,6 +61,7 @@ class StructuredDocument:
     sections: list[dict] = field(default_factory=list)  # [{heading, text, page}]
     extraction_method: str = "docling"  # "docling" | "pymupdf_fallback"
     page_count: int = 0
+    source_pdf_page_count: int = 0
     docling_version: str = (
         ""  # populated at extraction time; used for cache invalidation
     )
@@ -139,6 +141,65 @@ def _compute_docling_timeout(page_count: int) -> int:
     """
     adaptive = page_count * DOCLING_TIMEOUT_SECONDS_PER_PAGE
     return min(DOCLING_TIMEOUT_MAX, max(DOCLING_TIMEOUT_SECONDS, adaptive))
+
+
+def _observed_page_numbers(doc: StructuredDocument) -> list[int]:
+    pages = {
+        int(page)
+        for page in (
+            [t.page_number for t in doc.tables]
+            + [s.get("page", 0) for s in doc.sections if isinstance(s, dict)]
+        )
+        if isinstance(page, int) and page > 0
+    }
+    return sorted(pages)
+
+
+def _docling_cache_looks_stale(
+    cached: StructuredDocument,
+    *,
+    pdf_path: str,
+    actual_pdf_page_count: int,
+) -> bool:
+    """Reject obviously partial docling caches before trusting them."""
+    if actual_pdf_page_count <= 0:
+        return False
+
+    cached_source_page_count = int(cached.source_pdf_page_count or 0)
+    if (
+        cached_source_page_count > 0
+        and cached_source_page_count != actual_pdf_page_count
+    ):
+        logger.warning(
+            "Docling cache page-count metadata mismatch for %s: cached=%d actual=%d",
+            pdf_path,
+            cached_source_page_count,
+            actual_pdf_page_count,
+        )
+        return True
+
+    observed_pages = _observed_page_numbers(cached)
+    observed_max_page = observed_pages[-1] if observed_pages else 0
+    cached_page_count = int(cached.page_count or 0)
+    page_count_gap = actual_pdf_page_count - cached_page_count
+    observed_gap = actual_pdf_page_count - observed_max_page
+
+    if (
+        cached_page_count > 0
+        and observed_max_page > 0
+        and page_count_gap > DOCLING_CACHE_PAGE_GAP_TOLERANCE
+        and observed_gap > DOCLING_CACHE_PAGE_GAP_TOLERANCE
+    ):
+        logger.warning(
+            "Docling cache coverage stale for %s: cached_page_count=%d observed_max_page=%d actual=%d",
+            pdf_path,
+            cached_page_count,
+            observed_max_page,
+            actual_pdf_page_count,
+        )
+        return True
+
+    return False
 
 
 def _should_preempt_docling_for_large_pdf(pdf_path: str, page_count: int) -> bool:
@@ -304,12 +365,21 @@ def extract_structured(
     cache_suffix = ".docling.json" if chosen == "docling" else ".pymupdf.json"
     cache_path = Path(pdf_path + cache_suffix)
     pdf_mtime = os.path.getmtime(pdf_path)
+    actual_pdf_page_count = _get_page_count_fast(pdf_path)
 
     if cache_path.exists() and cache_path.stat().st_mtime > pdf_mtime:
         try:
             cached = _load_cache(cache_path)
             # For docling cache, validate version; pymupdf cache is always valid
             if chosen != "docling" or cached.docling_version == DOCLING_VERSION:
+                if chosen == "docling" and _docling_cache_looks_stale(
+                    cached,
+                    pdf_path=pdf_path,
+                    actual_pdf_page_count=actual_pdf_page_count,
+                ):
+                    raise RuntimeError(
+                        f"stale docling cache coverage for {pdf_path}"
+                    )
                 if chosen == "docling" and _has_garbled_tables(cached, pdf_path):
                     if strict_backend:
                         raise RuntimeError(
@@ -326,9 +396,15 @@ def extract_structured(
                 return cached
         except Exception as e:
             logger.warning("Cache corrupt, re-extracting: %s", e)
+            try:
+                cache_path.unlink(missing_ok=True)
+            except OSError as unlink_error:
+                logger.warning(
+                    "Failed to delete stale cache %s: %s", cache_path, unlink_error
+                )
 
     if chosen == "docling":
-        page_count = _get_page_count_fast(pdf_path)
+        page_count = actual_pdf_page_count
         if not strict_backend and _should_preempt_docling_for_large_pdf(
             pdf_path, page_count
         ):
@@ -456,16 +532,16 @@ def _run_docling(pdf_path: str) -> StructuredDocument:
             }
         )
 
-    page_count = len(set(s["page"] for s in sections)) or len(tables)
-
     import torch
     method = "docling_gpu" if torch.cuda.is_available() else "docling_cpu"
+    page_count = _get_page_count_fast(pdf_path)
 
     return StructuredDocument(
         tables=tables,
         sections=sections,
         extraction_method=method,
         page_count=page_count,
+        source_pdf_page_count=page_count,
         docling_version=DOCLING_VERSION,
     )
 
@@ -506,6 +582,7 @@ def _pymupdf_fallback(pdf_path: str) -> StructuredDocument:
         sections=sections,
         extraction_method="pymupdf_fallback",
         page_count=page_count,
+        source_pdf_page_count=page_count,
         docling_version=DOCLING_VERSION,
     )
 
@@ -534,6 +611,7 @@ def _save_cache(cache_path: Path, doc: StructuredDocument) -> None:
     data = {
         "extraction_method": doc.extraction_method,
         "page_count": doc.page_count,
+        "source_pdf_page_count": doc.source_pdf_page_count,
         "docling_version": doc.docling_version,
         "tables": [
             {
@@ -565,5 +643,6 @@ def _load_cache(cache_path: Path) -> StructuredDocument:
         sections=data.get("sections", []),
         extraction_method=data.get("extraction_method", "docling"),
         page_count=data.get("page_count", 0),
+        source_pdf_page_count=data.get("source_pdf_page_count", 0),
         docling_version=data.get("docling_version", ""),
     )
