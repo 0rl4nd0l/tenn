@@ -27,6 +27,11 @@ class TestValidateSourceId:
         assert _validate_source_id("abc-123") == "abc-123"
         assert _validate_source_id("my_source_001") == "my_source_001"
 
+    def test_valid_colon_source_id(self):
+        # build_source_id produces "type:slug:hex16" — colons must be accepted
+        sid = "youtube_transcript:my-video-title:a3f9bc12ef34cd56"
+        assert _validate_source_id(sid) == sid
+
     def test_empty_raises_400(self):
         with pytest.raises(HTTPException) as exc_info:
             _validate_source_id("")
@@ -38,6 +43,11 @@ class TestValidateSourceId:
         assert exc_info.value.status_code == 400
 
     def test_too_long_raises_400(self):
+        # 192 is the current max — 193 must fail, 200 must also fail
+        with pytest.raises(HTTPException) as exc_info:
+            _validate_source_id("a" * 193)
+        assert exc_info.value.status_code == 400
+
         with pytest.raises(HTTPException) as exc_info:
             _validate_source_id("a" * 200)
         assert exc_info.value.status_code == 400
@@ -214,3 +224,99 @@ class TestPurgeExpiredTranscripts:
             result = purge_expired_transcripts(max_age_days=7)
         assert result["count"] == 0
         assert result["purged"] == []
+
+
+# ---------------------------------------------------------------------------
+# POST /api/commentary/ingest-url
+# ---------------------------------------------------------------------------
+
+from app.api.commentary import IngestUrlRequest, ingest_url  # noqa: E402
+
+
+class TestIngestUrl:
+    def _make_video(self):
+        from app.services.youtube_transcript_fetcher import YoutubeVideo
+
+        return YoutubeVideo(
+            video_id="abc123",
+            title="Test Video",
+            channel_name="Test Channel",
+            published_at="2026-04-12T00:00:00Z",
+            webpage_url="https://www.youtube.com/watch?v=abc123",
+        )
+
+    def test_missing_url_raises_422(self):
+        with pytest.raises(HTTPException) as exc_info:
+            ingest_url(IngestUrlRequest(url=""))
+        assert exc_info.value.status_code == 422
+
+    def test_non_youtube_url_raises_422(self):
+        with pytest.raises(HTTPException) as exc_info:
+            ingest_url(IngestUrlRequest(url="https://example.com/not-youtube"))
+        assert exc_info.value.status_code == 422
+
+    def test_metadata_fetch_failure_raises_502(self, monkeypatch):
+        import app.api.commentary as mod
+
+        monkeypatch.setattr(
+            mod,
+            "fetch_video_metadata",
+            lambda url: (_ for _ in ()).throw(RuntimeError("yt-dlp failed")),
+        )
+        with pytest.raises(HTTPException) as exc_info:
+            ingest_url(IngestUrlRequest(url="https://youtu.be/abc123abcde"))
+        assert exc_info.value.status_code == 502
+
+    def test_transcript_unavailable_raises_422(self, monkeypatch):
+        import app.api.commentary as mod
+        from app.services.youtube_transcript_fetcher import TranscriptUnavailableError
+
+        monkeypatch.setattr(mod, "fetch_video_metadata", lambda url: self._make_video())
+        monkeypatch.setattr(
+            mod,
+            "_default_fetch_transcript",
+            lambda v: (_ for _ in ()).throw(TranscriptUnavailableError("no transcript")),
+        )
+        with pytest.raises(HTTPException) as exc_info:
+            ingest_url(IngestUrlRequest(url="https://youtu.be/abc123abcde"))
+        assert exc_info.value.status_code == 422
+
+    def test_successful_ingest_returns_staging_result(self, monkeypatch):
+        import app.api.commentary as mod
+
+        monkeypatch.setattr(mod, "fetch_video_metadata", lambda url: self._make_video())
+        monkeypatch.setattr(
+            mod, "_default_fetch_transcript", lambda v: "This is the transcript text."
+        )
+        monkeypatch.setattr(
+            mod,
+            "ingest_transcript",
+            lambda **kwargs: {
+                "ok": True,
+                "source_id": "youtube_transcript:test-video:abc123",
+                "staged": True,
+                "chunks_staged": 1,
+                "chunks_indexed": 0,
+                "collection": "commentary_chunks",
+            },
+        )
+        result = ingest_url(IngestUrlRequest(url="https://youtu.be/abc123abcde"))
+        assert result["ok"] is True
+        assert result["source_id"] == "youtube_transcript:test-video:abc123"
+        assert result["staged"] is True
+        assert result["video_title"] == "Test Video"
+        assert result["channel"] == "Test Channel"
+
+    def test_empty_transcript_raises_422(self, monkeypatch):
+        import app.api.commentary as mod
+
+        monkeypatch.setattr(mod, "fetch_video_metadata", lambda url: self._make_video())
+        monkeypatch.setattr(mod, "_default_fetch_transcript", lambda v: "This is the transcript text.")
+        monkeypatch.setattr(
+            mod,
+            "ingest_transcript",
+            lambda **kwargs: (_ for _ in ()).throw(ValueError("transcript_text is required")),
+        )
+        with pytest.raises(HTTPException) as exc_info:
+            ingest_url(IngestUrlRequest(url="https://youtu.be/abc123abcde"))
+        assert exc_info.value.status_code == 422

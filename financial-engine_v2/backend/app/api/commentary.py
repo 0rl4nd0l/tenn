@@ -14,15 +14,22 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 
 from app.api.routes import require_api_key
+from app.services.commentary_ingest import ingest_transcript
 from app.services.embeddings import upsert_points, verify_qdrant
+from app.services.youtube_transcript_fetcher import (
+    TranscriptUnavailableError,
+    _default_fetch_transcript,  # private module-level fetcher; patched directly in tests
+    fetch_video_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["commentary"])
 
-_SOURCE_ID_RE = re.compile(r"^[a-zA-Z0-9_\-]{1,128}$")
+_SOURCE_ID_RE = re.compile(r"^[a-zA-Z0-9_\-:]{1,192}$")
 STAGED_CHUNKS_DIR = Path("~/.tenn/memory/staged_chunks").expanduser()
 STAGED_CHUNKS_INDEX = STAGED_CHUNKS_DIR / "index.json"
 
@@ -200,3 +207,63 @@ def purge_expired_transcripts(
         _save_index(index)
 
     return {"purged": purged, "count": len(purged)}
+
+
+# ---------------------------------------------------------------------------
+# POST /api/commentary/ingest-url
+# ---------------------------------------------------------------------------
+
+_YOUTUBE_URL_RE = re.compile(
+    r"^https?://(?:www\.)?(?:youtube\.com/watch\?[^\s]*v=|youtu\.be/)[A-Za-z0-9_\-]{11}"
+)
+
+
+class IngestUrlRequest(BaseModel):
+    url: str
+
+
+@router.post(
+    "/ingest-url",
+    dependencies=[Depends(require_api_key)],
+)
+def ingest_url(body: IngestUrlRequest) -> dict[str, Any]:
+    url = str(body.url or "").strip()
+    if not url:
+        raise HTTPException(status_code=422, detail="url is required")
+    if not _YOUTUBE_URL_RE.search(url):
+        raise HTTPException(
+            status_code=422, detail="url must be a YouTube watch or short URL"
+        )
+
+    try:
+        video = fetch_video_metadata(url)
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=502, detail=f"metadata fetch failed: {exc}"
+        ) from exc
+
+    try:
+        transcript_text = _default_fetch_transcript(video)
+    except TranscriptUnavailableError as exc:
+        raise HTTPException(
+            status_code=422, detail=f"transcript unavailable: {exc}"
+        ) from exc
+
+    try:
+        result = ingest_transcript(
+            transcript_text=transcript_text,
+            source_name=video.title,
+            source_type="youtube_transcript",
+            speaker=video.channel_name,
+            published_at=video.published_at,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=f"transcript processing failed: {exc}") from exc
+
+    return {
+        **result,
+        "video_title": video.title,
+        "channel": video.channel_name,
+        "published_at": video.published_at,
+        "webpage_url": video.webpage_url,
+    }
