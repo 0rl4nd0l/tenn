@@ -2285,9 +2285,18 @@ class CockpitApp(App):
 
     def _handle_ingest_command(self, url: str, log) -> str:  # noqa: ARG002 — reserved for future streaming progress
         """Handle /ingest <url> — fetch and stage a YouTube transcript by URL."""
+        from urllib.parse import urlparse
+
         url = str(url or "").strip()
         if not url:
             return "Usage: /ingest <youtube-url>"
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https") or parsed.netloc not in (
+            "youtube.com",
+            "www.youtube.com",
+            "youtu.be",
+        ):
+            return "Usage: /ingest <youtube-url>  (must be a YouTube URL)"
         if not self._backend_client:
             return "Ingest requires the backend to be running. Start it and reconnect."
         try:
