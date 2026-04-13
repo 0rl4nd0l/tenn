@@ -523,5 +523,55 @@ class TestBuildChatResponseSlashDispatch(SlashCommandTestBase):
         self.controller.ollama_client.chat.assert_not_called()
 
 
+class TestIngestCommand:
+    """Tests for /ingest <url> command dispatch."""
+
+    def _make_app(self, backend_result=None, backend_raises=None):
+        from cockpit.ui.app import CockpitApp
+
+        app = object.__new__(CockpitApp)
+
+        class StubClient:
+            def ingest_url(self, url):
+                if backend_raises:
+                    raise backend_raises
+                return backend_result or {
+                    "ok": True,
+                    "source_id": "youtube_transcript:test:abc123",
+                    "staged": True,
+                    "chunks_staged": 5,
+                    "video_title": "Test Video",
+                    "channel": "Test Channel",
+                }
+
+        app._backend_client = StubClient()
+        return app
+
+    def test_ingest_url_success_returns_staged_message(self):
+        app = self._make_app()
+        result = app._handle_ingest_command("https://youtu.be/abc123", log=None)
+        assert "Test Video" in result
+        assert "5 chunks staged" in result
+        assert "/review approve" in result
+
+    def test_ingest_url_empty_returns_usage(self):
+        app = self._make_app()
+        result = app._handle_ingest_command("", log=None)
+        assert "Usage" in result
+
+    def test_ingest_url_backend_error_returns_error_message(self):
+        app = self._make_app(backend_raises=Exception("502 upstream"))
+        result = app._handle_ingest_command("https://youtu.be/abc123", log=None)
+        assert "failed" in result.lower()
+
+    def test_ingest_no_backend_returns_not_available(self):
+        from cockpit.ui.app import CockpitApp
+
+        app = object.__new__(CockpitApp)
+        app._backend_client = None
+        result = app._handle_ingest_command("https://youtu.be/abc123", log=None)
+        assert "backend" in result.lower()
+
+
 if __name__ == "__main__":
     unittest.main()

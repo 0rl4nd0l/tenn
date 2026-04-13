@@ -1179,6 +1179,15 @@ class CockpitApp(App):
             )
             return
 
+        # Handle /ingest <url> — single YouTube URL transcript ingest
+        if stripped.startswith("/ingest"):
+            url = stripped[len("/ingest") :].strip()
+            now_iso = datetime.now(timezone.utc).isoformat()
+            reply = self._handle_ingest_command(url, log)
+            self._append_log(log, f"assistant: {reply}")
+            self.state_store.add_chat_message(self.thread_id, "assistant", reply, now_iso)
+            return
+
         # Handle /strategy commands
         if stripped.startswith("/strategy"):
             from cockpit.core.strategy import StrategyService
@@ -2273,6 +2282,29 @@ class CockpitApp(App):
                 else "No expired items."
             )
         return "Usage: /review list|approve|reject|approve-all|expired [source_id]"
+
+    def _handle_ingest_command(self, url: str, log) -> str:
+        """Handle /ingest <url> — fetch and stage a YouTube transcript by URL."""
+        url = str(url or "").strip()
+        if not url:
+            return "Usage: /ingest <youtube-url>"
+        if not self._backend_client:
+            return "Ingest requires the backend to be running. Start it and reconnect."
+        try:
+            result = self._backend_client.ingest_url(url)
+        except Exception as exc:
+            return f"Ingest failed: {exc}"
+        title = result.get("video_title") or result.get("source_id") or url
+        channel = result.get("channel", "")
+        chunks = result.get("chunks_staged", result.get("chunks_indexed", 0))
+        source_id = result.get("source_id", "")
+        staged = result.get("staged", False)
+        if staged:
+            return (
+                f'Staged "{title}" ({channel}) — {chunks} chunks staged.\n'
+                f"Run: /review approve {source_id}"
+            )
+        return f'Ingested "{title}" ({channel}) — {chunks} chunks indexed directly.'
 
     def _get_snapshot_data(self, ticker: str) -> tuple[dict | None, list]:
         """Get latest financial snapshot + docs via backend API."""
