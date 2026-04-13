@@ -481,6 +481,21 @@ class BackendApiClient:
             response.raise_for_status()
             return response.json() if response.content else {"purged": [], "count": 0}
 
+    def ingest_url(
+        self,
+        url: str,
+        *,
+        timeout: float = 60.0,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}/api/commentary/ingest-url"
+        headers: dict[str, str] = {}
+        if self.api_key:
+            headers["X-API-Key"] = self.api_key
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.post(url, json={"url": url}, headers=headers)
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
     @staticmethod
     def _normalize_base_url(raw: str) -> str:
         value = (raw or "").strip()
