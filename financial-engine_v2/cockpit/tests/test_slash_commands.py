@@ -523,7 +523,7 @@ class TestBuildChatResponseSlashDispatch(SlashCommandTestBase):
         self.controller.ollama_client.chat.assert_not_called()
 
 
-class TestIngestCommand:
+class TestIngestCommand(unittest.TestCase):
     """Tests for /ingest <url> command dispatch."""
 
     def _make_app(self, backend_result=None, backend_raises=None):

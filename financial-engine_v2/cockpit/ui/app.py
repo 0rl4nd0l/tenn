@@ -2283,7 +2283,7 @@ class CockpitApp(App):
             )
         return "Usage: /review list|approve|reject|approve-all|expired [source_id]"
 
-    def _handle_ingest_command(self, url: str, log) -> str:
+    def _handle_ingest_command(self, url: str, log) -> str:  # noqa: ARG002 — reserved for future streaming progress
         """Handle /ingest <url> — fetch and stage a YouTube transcript by URL."""
         url = str(url or "").strip()
         if not url:
@@ -2296,15 +2296,16 @@ class CockpitApp(App):
             return f"Ingest failed: {exc}"
         title = result.get("video_title") or result.get("source_id") or url
         channel = result.get("channel", "")
+        channel_part = f" ({channel})" if channel else ""
         chunks = result.get("chunks_staged", result.get("chunks_indexed", 0))
         source_id = result.get("source_id", "")
         staged = result.get("staged", False)
         if staged:
             return (
-                f'Staged "{title}" ({channel}) — {chunks} chunks staged.\n'
+                f'Staged "{title}"{channel_part} — {chunks} chunks staged.\n'
                 f"Run: /review approve {source_id}"
             )
-        return f'Ingested "{title}" ({channel}) — {chunks} chunks indexed directly.'
+        return f'Ingested "{title}"{channel_part} — {chunks} chunks indexed directly.'
 
     def _get_snapshot_data(self, ticker: str) -> tuple[dict | None, list]:
         """Get latest financial snapshot + docs via backend API."""
