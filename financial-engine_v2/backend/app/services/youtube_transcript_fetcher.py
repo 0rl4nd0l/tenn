@@ -50,6 +50,48 @@ def _iso_from_timestamp(value: Any) -> str:
     return "1970-01-01T00:00:00Z"
 
 
+def fetch_video_metadata(url: str) -> YoutubeVideo:
+    """Resolve a single YouTube URL to a YoutubeVideo using yt-dlp.
+
+    Raises RuntimeError if yt-dlp is unavailable, returns no info,
+    or the video_id cannot be resolved.
+    """
+    try:
+        import yt_dlp  # type: ignore
+    except ImportError as exc:
+        raise RuntimeError("yt-dlp is required for single-URL ingestion") from exc
+
+    options = {
+        "quiet": True,
+        "skip_download": True,
+        "extract_flat": False,
+    }
+    with yt_dlp.YoutubeDL(options) as ydl:
+        info = ydl.extract_info(str(url or "").strip(), download=False)
+
+    if not info:
+        raise RuntimeError(f"yt-dlp returned no metadata for URL: {url}")
+
+    video_id = str(info.get("id") or "").strip()
+    if not video_id:
+        raise RuntimeError(f"yt-dlp could not resolve video_id from URL: {url}")
+
+    title = str(info.get("title") or video_id).strip() or video_id
+    channel = str(info.get("channel") or info.get("uploader") or "").strip()
+    webpage_url = str(info.get("webpage_url") or url).strip()
+    published_at = _iso_from_timestamp(
+        info.get("release_timestamp") or info.get("timestamp") or info.get("upload_date")
+    )
+
+    return YoutubeVideo(
+        video_id=video_id,
+        title=title,
+        channel_name=channel,
+        published_at=published_at,
+        webpage_url=webpage_url,
+    )
+
+
 def _youtube_videos_url(channel_id: str) -> str:
     return f"https://www.youtube.com/channel/{channel_id}/videos"
 
