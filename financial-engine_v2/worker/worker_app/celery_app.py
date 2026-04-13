@@ -30,6 +30,16 @@ celery.conf.update(
         "sync_news_qdrant": {
             "task": "sync_news_qdrant",
             "schedule": crontab(minute=0, hour="*/2"),
+            # since_hours must exceed the fetch window (36h) so articles
+            # scraped by run_daily_news_pipeline are not excluded by the
+            # published_at_utc filter.  48h provides headroom.
+            "kwargs": {"since_hours": 48},
+        },
+        # Rebuild news.sqlite chunk store after daily fetch so the SQLite
+        # fallback path in cockpit get_news_context stays current.
+        "build_news_chunks": {
+            "task": "build_news_chunks",
+            "schedule": crontab(hour=7, minute=0),
         },
         "watchlist_research_scan": {
             "task": "watchlist_research_scan",

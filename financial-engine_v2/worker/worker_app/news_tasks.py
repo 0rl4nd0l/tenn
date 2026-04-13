@@ -37,6 +37,32 @@ def run_daily_news_pipeline(since_hours: int = 36, providers: str = "newspaper4k
     return {"exit_code": result}
 
 
+@celery.task(name="build_news_chunks")
+def build_news_chunks_task(
+    lane: str = "high_precision",
+    embed_backend: str = "hash",
+    hash_dim: int = 384,
+) -> dict:
+    """Rebuild news.sqlite chunk store from news_articles.sqlite.
+
+    Uses hash-based pseudo-embeddings by default (no Ollama required).
+    The output feeds the cockpit SQLite fallback path in get_news_context.
+    """
+    from pathlib import Path
+
+    from news_pipeline.chunk_builder import build_news_chunks
+    from news_pipeline.cli_common import DEFAULT_NEWS_ARTICLES_DB, DEFAULT_NEWS_CONTEXT_DB
+
+    stats = build_news_chunks(
+        from_db=Path(DEFAULT_NEWS_ARTICLES_DB),
+        to_db=Path(DEFAULT_NEWS_CONTEXT_DB),
+        lane=lane,
+        embed_backend=embed_backend,
+        hash_dim=hash_dim,
+    )
+    return stats
+
+
 @celery.task(name="sync_news_qdrant")
 def sync_news_qdrant(
     db_path: str = "",
