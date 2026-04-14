@@ -28,6 +28,12 @@ from app.services.extraction_eval import (
     MetricEvalStatus,
     evaluate_fixture,
 )
+from app.services.llamacpp_runtime import (
+    _resolve_model_id,
+    build_llm_headers,
+    resolve_extraction_runtime_config,
+    verify_llm_models,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -213,6 +219,48 @@ def _select_seg_failure_debug_capture(
     return {
         "selected_pass3a_outputs": selected_pass3a_outputs,
         "selected_provenance": selected_provenance,
+    }
+
+
+def _validate_extraction_runtime_preflight(*, timeout: float = 30.0) -> dict[str, object]:
+    extraction_url, requested_model = resolve_extraction_runtime_config()
+    headers = build_llm_headers(base_url=extraction_url)
+    try:
+        models_payload = verify_llm_models(
+            extraction_url,
+            headers=headers,
+            timeout=timeout,
+        )
+    except Exception as exc:
+        raise RuntimeError(
+            "live eval preflight failed: could not verify extraction runtime "
+            f"{extraction_url}/v1/models: {exc}"
+        ) from exc
+
+    data = models_payload.get("data")
+    available_model_ids = sorted(
+        str(row.get("id") or "").strip()
+        for row in data
+        if isinstance(data, list)
+        and isinstance(row, dict)
+        and str(row.get("id") or "").strip()
+    )
+    resolved_model = _resolve_model_id(models_payload, requested_model)
+    if resolved_model not in available_model_ids:
+        available_display = ", ".join(available_model_ids) if available_model_ids else "<none>"
+        raise RuntimeError(
+            "live eval preflight failed: extraction runtime "
+            f"{extraction_url} does not expose requested extraction model "
+            f"{requested_model!r}; available model ids: {available_display}. "
+            "Likely wrong runtime on :8001; start the canonical router instead of a "
+            "single-model llama-server."
+        )
+
+    return {
+        "base_url": extraction_url,
+        "requested_model": requested_model,
+        "resolved_model": resolved_model,
+        "headers": headers,
     }
 
 
@@ -541,6 +589,74 @@ def test_seg_failure_debug_capture_filters_to_balance_sheet_and_share_capital():
     assert "revenue" not in capture["selected_provenance"]
 
 
+def test_extraction_runtime_preflight_accepts_router_extraction_model(monkeypatch):
+    monkeypatch.setattr(
+        "test_extraction_eval.resolve_extraction_runtime_config",
+        lambda: ("http://127.0.0.1:8001", "qwen2.5-14b-instruct"),
+    )
+    monkeypatch.setattr(
+        "test_extraction_eval.build_llm_headers",
+        lambda *, base_url=None: {"Authorization": "Bearer local-openai-key"},
+    )
+    monkeypatch.setattr(
+        "test_extraction_eval.verify_llm_models",
+        lambda *args, **kwargs: {
+            "data": [
+                {
+                    "id": "model:qwen2.5-14b-instruct",
+                    "status": {
+                        "value": "unloaded",
+                        "args": [
+                            "--model",
+                            "/mnt/nvme/tenn/models/qwen2.5-14b-instruct.gguf",
+                        ],
+                    },
+                }
+            ]
+        },
+    )
+
+    preflight = _validate_extraction_runtime_preflight()
+
+    assert preflight["base_url"] == "http://127.0.0.1:8001"
+    assert preflight["requested_model"] == "qwen2.5-14b-instruct"
+    assert preflight["resolved_model"] == "model:qwen2.5-14b-instruct"
+    assert preflight["headers"]["Authorization"] == "Bearer local-openai-key"
+
+
+def test_extraction_runtime_preflight_fails_for_wrong_single_model_runtime(
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        "test_extraction_eval.resolve_extraction_runtime_config",
+        lambda: ("http://127.0.0.1:8001", "qwen2.5-14b-instruct"),
+    )
+    monkeypatch.setattr(
+        "test_extraction_eval.build_llm_headers",
+        lambda *, base_url=None: {"Authorization": "Bearer local-openai-key"},
+    )
+    monkeypatch.setattr(
+        "test_extraction_eval.verify_llm_models",
+        lambda *args, **kwargs: {
+            "data": [
+                {
+                    "id": "model:gpt-oss-20b",
+                    "status": {
+                        "value": "loaded",
+                        "args": [
+                            "--model",
+                            "/mnt/ssd/models/gpt-oss-20b-mxfp4.gguf",
+                        ],
+                    },
+                }
+            ]
+        },
+    )
+
+    with pytest.raises(RuntimeError, match="Likely wrong runtime on :8001"):
+        _validate_extraction_runtime_preflight()
+
+
 # ---------------------------------------------------------------------------
 # Live eval mode: accuracy regression gate (requires real LLM + fixtures)
 # ---------------------------------------------------------------------------
@@ -579,14 +695,19 @@ def test_live_eval_accuracy_against_fixtures(request: pytest.FixtureRequest):
         llm_client._extraction_model = eval_model
         model_label = f"anthropic:{eval_model}"
     else:
-        headers = {}
-        api_key = os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY") or ""
-        if api_key:
-            headers["Authorization"] = f"Bearer {api_key}"
-        extraction_url = os.getenv("EXTRACTION_LLAMACPP_URL") or os.getenv("LLAMACPP_URL") or "http://127.0.0.1:8001"
+        preflight = _validate_extraction_runtime_preflight()
+        extraction_url = str(preflight["base_url"])
+        headers = dict(preflight["headers"])
         base_url = extraction_url.rstrip("/") + "/v1"
         llm_client = httpx.Client(base_url=base_url, timeout=60.0, headers=headers)
         model_label = f"llamacpp:{extraction_url}"
+        _emit_live_eval_progress(
+            request,
+            "[live-eval] preflight "
+            f"runtime={extraction_url} "
+            f"requested_model={preflight['requested_model']} "
+            f"resolved_model={preflight['resolved_model']}",
+        )
 
     _write_eval_progress(
         progress_path,
