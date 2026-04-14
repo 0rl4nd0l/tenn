@@ -62,6 +62,7 @@ from app.services.extraction_gold_eval import (
     RealGoldFixture,
     evaluate_real_gold_fixture,
 )
+from app.services.extraction_review import create_review_session_from_payload
 from app.services.method_isolated_extraction import (
     normalize_extraction_method,
     run_method_isolated_extraction,
@@ -409,6 +410,36 @@ def _evaluate_real_gold_document(
         + metric_status_counts["abstain"]
     )
 
+    review_session_id: str | None = None
+    review_item_count = 0
+    review_reason: str | None = None
+    if payload and (
+        failed_metric_count > 0 or str(extraction_status or "") == "parser_error"
+    ):
+        try:
+            review_session = create_review_session_from_payload(
+                document_id=doc.document_id,
+                ticker=metadata["ticker"],
+                title=metadata["title"],
+                pdf_path=doc.source_file,
+                status=extraction_status,
+                payload=payload,
+                diagnostics={
+                    "code": "real_gold_eval",
+                    "message": "Generated from /api/extraction-eval/real-gold.",
+                    "expected_trust": doc.expected_trust,
+                },
+            )
+            review_session_id = str(review_session.get("session_id") or "").strip() or None
+            review_item_count = len(review_session.get("items") or [])
+            documents = review_session.get("documents")
+            if isinstance(documents, list) and documents:
+                review_reason = (
+                    str(documents[0].get("reason") or "").strip() or None
+                )
+        except Exception as exc:  # noqa: BLE001
+            review_reason = f"review_session_failed:{exc}"
+
     mismatch_reasons: list[str] = [*context_mismatches]
     for metric_name, result in metric_results.items():
         if result["status"] != "correct":
@@ -445,6 +476,9 @@ def _evaluate_real_gold_document(
         "trust_outcome": evaluation.trust.value,
         "trust_triggers": evaluation.trust_triggers,
         "trust_matches_expected": evaluation.trust_matches_expected,
+        "review_session_id": review_session_id,
+        "review_item_count": review_item_count,
+        "review_reason": review_reason,
         "mismatch_reasons": mismatch_reasons,
         "method_provenance": method_provenance,
     }

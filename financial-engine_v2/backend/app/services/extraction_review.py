@@ -6,6 +6,7 @@ import re
 from functools import lru_cache
 from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Mapping, Sequence
 from uuid import UUID
 
@@ -31,6 +32,10 @@ ERROR_QUEUE_PATH = REVIEW_ROOT / "wrong_metric_queue.json"
 REAL_GOLD_REVIEW_DIR = PROJECT_ROOT / "data" / "extraction_gold_real"
 
 VALID_REVIEW_STATUSES = {"approved", "wrong", "abstain"}
+_GOLD_METRIC_ALIASES = {
+    "operating_cf": "operating_cash_flow",
+    "operating_cash_flow": "operating_cf",
+}
 _PAGE_RE = re.compile(r"page_(\d+)")
 _WHITESPACE_RE = re.compile(r"\s+")
 _ASCII_CHARS = " .:-=+*#%@"
@@ -100,6 +105,13 @@ def _gold_payload_for_document(
     for candidate in candidates:
         if candidate and candidate in records:
             return records[candidate]
+    return None
+
+
+def _gold_metric_value(gold_metrics: Mapping[str, Any], metric: str) -> Any:
+    for key in (metric, _GOLD_METRIC_ALIASES.get(metric)):
+        if key and key in gold_metrics:
+            return gold_metrics.get(key)
     return None
 
 
@@ -695,7 +707,7 @@ def build_review_item(
         gold_payload.get("metrics") if isinstance(gold_payload, Mapping) else {}
     )
     gold_metrics = gold_metrics if isinstance(gold_metrics, Mapping) else {}
-    gold_expected_value = gold_metrics.get(metric)
+    gold_expected_value = _gold_metric_value(gold_metrics, metric)
     snippet = build_metric_snippet(
         item_id=item_id,
         pdf_path=pdf_path,
@@ -925,6 +937,77 @@ def create_review_session(
         "missing_run_ids": _clean_requested_ids(missing_run_ids),
         "documents": document_summaries,
         "items": items,
+        "summary": _item_summary(items),
+    }
+    save_review_session(session)
+    return session
+
+
+def create_review_session_from_payload(
+    *,
+    document_id: str,
+    ticker: str | None,
+    title: str | None,
+    pdf_path: str | None,
+    status: str,
+    payload: Mapping[str, Any],
+    run_id: str | None = None,
+    created_at: str | None = None,
+    diagnostics: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    resolved_document_id = str(document_id or "").strip()
+    if not resolved_document_id:
+        raise ValueError("document_id is required")
+
+    resolved_payload = dict(payload) if isinstance(payload, Mapping) else {}
+    resolved_run_id = str(run_id or "").strip()
+    if not resolved_run_id:
+        suffix = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        resolved_run_id = f"real-gold-{resolved_document_id}-{suffix}"
+
+    synthetic_document = SimpleNamespace(
+        document_id=resolved_document_id,
+        ticker=str(ticker or "").strip() or None,
+        title=str(title or "").strip() or None,
+        pdf_path=str(pdf_path or "").strip() or None,
+    )
+    synthetic_run = SimpleNamespace(
+        run_id=resolved_run_id,
+        structured_json=resolved_payload,
+        status=str(status or "unknown").strip() or "unknown",
+        created_at=str(created_at or utc_now_iso()),
+    )
+
+    items: list[dict[str, Any]] = []
+    document_summaries: list[dict[str, Any]] = []
+    _append_review_items(
+        items,
+        document_summaries,
+        document=synthetic_document,
+        run=synthetic_run,
+    )
+
+    digest = hashlib.sha1(
+        f"{resolved_document_id}|{resolved_run_id}".encode("utf-8")
+    ).hexdigest()[:10]
+    session = {
+        "session_id": f"real-gold-review-{digest}",
+        "created_at": utc_now_iso(),
+        "session_status": "real_gold_eval",
+        "document_ids": [resolved_document_id],
+        "run_ids": [resolved_run_id],
+        "missing_document_ids": [],
+        "missing_run_ids": [],
+        "documents": document_summaries,
+        "items": items,
+        "diagnostics": (
+            dict(diagnostics)
+            if isinstance(diagnostics, Mapping)
+            else {
+                "code": "real_gold_eval",
+                "message": "Generated from /api/extraction-eval/real-gold.",
+            }
+        ),
         "summary": _item_summary(items),
     }
     save_review_session(session)

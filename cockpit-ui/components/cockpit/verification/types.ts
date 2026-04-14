@@ -9,12 +9,16 @@ export type RealGoldEvalMetricResult = {
 
 export type RealGoldEvalDocument = {
   document_id: string
+  ticker?: string
   extraction_status: string
   extraction_error?: string | null
   context_correct: boolean
   trust_outcome: 'trusted' | 'abstain' | 'quarantine'
   expected_trust: string
   mismatch_reasons: string[]
+  review_session_id?: string | null
+  review_item_count?: number
+  review_reason?: string | null
   metric_results: Record<string, RealGoldEvalMetricResult>
   method_provenance?: {
     requested_method?: ExtractionMethod

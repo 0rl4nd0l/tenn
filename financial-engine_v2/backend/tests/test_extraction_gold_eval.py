@@ -454,6 +454,81 @@ def test_real_gold_eval_endpoint_passes_method_selection(monkeypatch, tmp_path):
     assert result["documents"][0]["method_provenance"]["actual_method"] == "docling"
 
 
+def test_real_gold_eval_endpoint_attaches_backend_review_session_for_flagged_metrics(
+    monkeypatch, tmp_path
+):
+    pdf_path = tmp_path / "sample.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+
+    gold_doc = main_app.RealGoldDocument(
+        document_id="qbe_h_2025-06-30",
+        source_file="sample.pdf",
+        period_type="H",
+        period_end="2025-06-30",
+        currency="USD",
+        scale="millions",
+        metrics={"revenue": 10875.0, "net_debt": 123.0},
+        expected_trust="abstain",
+    )
+
+    captured: dict[str, object] = {}
+
+    monkeypatch.setattr(main_app, "_load_real_gold_dataset", lambda _path: [gold_doc])
+    monkeypatch.setattr(
+        main_app, "_resolve_real_gold_source_path", lambda _path: pdf_path
+    )
+    monkeypatch.setattr(
+        main_app, "_persist_local_llm_api_key", lambda: "local-openai-key"
+    )
+    monkeypatch.setattr(
+        main_app,
+        "run_method_isolated_extraction",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            status="ok_low_confidence",
+            error=None,
+            payload={
+                "period_type": "H",
+                "period_end": "2025-06-30",
+                "currency": "USD",
+                "scale": "millions",
+                "metrics": {"revenue": 10875.0},
+                "_method_provenance": {
+                    "requested_method": "docling",
+                    "actual_method": "docling",
+                    "strict_method": True,
+                },
+            },
+        ),
+    )
+
+    def fake_create_review_session_from_payload(**kwargs):
+        captured.update(kwargs)
+        return {
+            "session_id": "real-gold-review-123",
+            "documents": [{"reason": "reviewable"}],
+            "items": [{"item_id": "item-1"}],
+        }
+
+    monkeypatch.setattr(
+        main_app,
+        "create_review_session_from_payload",
+        fake_create_review_session_from_payload,
+    )
+
+    result = main_app._run_real_gold_eval_sync(
+        main_app.RealGoldEvalRequest(method="docling", strict_method=True)
+    )
+
+    document = result["documents"][0]
+    assert document["failed_metric_count"] == 1
+    assert document["review_session_id"] == "real-gold-review-123"
+    assert document["review_item_count"] == 1
+    assert document["review_reason"] == "reviewable"
+    assert captured["document_id"] == "qbe_h_2025-06-30"
+    assert captured["status"] == "ok_low_confidence"
+    assert captured["payload"]["metrics"] == {"revenue": 10875.0}
+
+
 def test_real_gold_eval_route_is_async():
     assert inspect.iscoroutinefunction(main_app.run_real_gold_eval)
 

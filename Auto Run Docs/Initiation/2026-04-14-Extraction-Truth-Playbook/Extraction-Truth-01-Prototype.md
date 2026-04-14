@@ -19,10 +19,13 @@ This phase delivers a backend-first extraction prototype that can be executed en
   - Completed 2026-04-14: aligned the runner with backend authority by making `scripts/run_real_extraction_eval.py` post to `/api/extraction-eval/real-gold` and persist the existing `reports/extraction_real_eval_*` artifacts from the backend response instead of re-running a separate local evaluator.
   - Validation 2026-04-14: `financial-engine_v2/.venv/bin/python -m ruff check financial-engine_v2/backend/app/main.py scripts/run_real_extraction_eval.py scripts/test_run_real_extraction_eval.py financial-engine_v2/backend/tests/test_extraction_gold_eval.py` passed, and `financial-engine_v2/.venv/bin/pytest -q financial-engine_v2/backend/tests/test_extraction_gold_eval.py scripts/test_run_real_extraction_eval.py` passed (`18 passed`).
 
-- [ ] Make flagged metrics reviewable from backend truth in the same prototype loop:
+- [x] Make flagged metrics reviewable from backend truth in the same prototype loop:
   - Reuse the extraction review service and existing `/api/extraction-review/*` surfaces before adding anything new.
   - Fill only the missing backend or UI glue required to load a review session for the evaluated runs, show provenance and snippet evidence, and persist review decisions or wrong-queue exports through backend-managed files.
   - If a display surface is missing data, add it to the backend response or typed client contract instead of deriving it inside Cockpit.
+  - Completed 2026-04-14: `/api/extraction-eval/real-gold` now creates backend-owned review sessions for flagged real-gold documents and returns `review_session_id`/review metadata so Cockpit can open the existing `/api/extraction-review/session/{session_id}` flow without inventing a parallel review path.
+  - Completed 2026-04-14: the Cockpit real-gold tab now exposes an `Open Review` action for flagged documents, which switches back into the review tab and loads backend-provided provenance/snippet evidence from the saved session.
+  - Validation 2026-04-14: `financial-engine_v2/.venv/bin/python -m ruff check financial-engine_v2/backend/app/main.py financial-engine_v2/backend/app/services/extraction_review.py financial-engine_v2/backend/tests/test_extraction_gold_eval.py financial-engine_v2/backend/tests/test_extraction_review_service.py` passed, `financial-engine_v2/.venv/bin/pytest -q financial-engine_v2/backend/tests/test_extraction_gold_eval.py financial-engine_v2/backend/tests/test_extraction_review_service.py` passed (`29 passed`), `pnpm build` passed in `cockpit-ui/`, and `pnpm exec playwright test tests/verification.spec.ts --reporter=line` passed (`9 passed`).
 
 - [ ] Add targeted automated coverage for the prototype path:
   - Extend backend tests around the real-gold endpoint, extraction review session lifecycle, and any new error handling or response fields.

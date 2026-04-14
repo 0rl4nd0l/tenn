@@ -222,6 +222,131 @@ def test_build_review_item_exposes_optional_visual_verification_fields(
     assert item["period_col"] == "Sep 2024"
 
 
+def test_build_review_item_maps_real_gold_operating_cash_flow_alias(
+    monkeypatch, tmp_path
+) -> None:
+    pdf_path = tmp_path / "sample.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+
+    gold_dir = tmp_path / "gold"
+    gold_dir.mkdir()
+    (gold_dir / "gold.json").write_text(
+        """
+        {
+          "document_id": "gold-qbe",
+          "source_file": "data/asx/docs/QBE/report.pdf",
+          "period_type": "H",
+          "period_end": "2025-06-30",
+          "currency": "USD",
+          "scale": "millions",
+          "metrics": {"operating_cash_flow": 1756000000},
+          "expected_trust": "trusted"
+        }
+        """.strip(),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(review, "REAL_GOLD_REVIEW_DIR", gold_dir)
+    review._load_real_gold_by_source.cache_clear()
+    monkeypatch.setattr(
+        review,
+        "build_metric_snippet",
+        lambda **_: {
+            "kind": "line_crop",
+            "evidence_quality": "precise",
+            "status": "ok",
+            "image_path": None,
+            "ascii_preview": None,
+            "matched_text": "Net cash from operating activities",
+            "page_number": 3,
+            "reason": None,
+        },
+    )
+
+    document = SimpleNamespace(
+        document_id="doc-123",
+        ticker="QBE",
+        title="Half Year Report",
+        pdf_path="data/asx/docs/QBE/report.pdf",
+    )
+    run = SimpleNamespace(
+        run_id="run-456",
+        status="ok_low_confidence",
+        structured_json={
+            "period_end": "2025-06-30",
+            "period_type": "H",
+            "metrics": {"operating_cf": 1756.0},
+            "provenance": {
+                "operating_cf": "cashflow_statement:page_3:Net cash from operating activities"
+            },
+            "_reproducibility": {"resolved_pdf_path": str(pdf_path)},
+        },
+    )
+
+    item = review.build_review_item(document, run, "operating_cf")
+
+    assert item is not None
+    assert item["gold_document_id"] == "gold-qbe"
+    assert item["expected_value"] == 1756000000
+
+
+def test_create_review_session_from_payload_reuses_existing_review_schema(
+    monkeypatch, tmp_path
+) -> None:
+    pdf_path = tmp_path / "sample.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+    monkeypatch.setattr(review, "SESSIONS_ROOT", tmp_path / "sessions")
+
+    monkeypatch.setattr(
+        review,
+        "build_metric_snippet",
+        lambda **_: {
+            "kind": "line_crop",
+            "evidence_quality": "precise",
+            "status": "ok",
+            "image_path": "reports/extraction_review/snippets/test.png",
+            "image_url": "/api/extraction-review/snippets/test.png",
+            "ascii_preview": "preview",
+            "matched_text": "Revenue from contracts with customers",
+            "page_number": 7,
+            "reason": None,
+        },
+    )
+
+    session = review.create_review_session_from_payload(
+        document_id="gold-doc-1",
+        ticker="QBE",
+        title="QBE Report",
+        pdf_path=str(pdf_path),
+        status="ok_low_confidence",
+        payload={
+            "period_end": "2025-06-30",
+            "period_type": "H",
+            "currency": "USD",
+            "scale": "millions",
+            "confidence_metrics": 0.42,
+            "metrics": {"revenue": 10875.0},
+            "provenance": {
+                "revenue": "income_statement:page_7:Revenue from contracts with customers"
+            },
+            "_method_provenance": {
+                "requested_method": "docling",
+                "actual_method": "docling",
+                "strict_method": True,
+            },
+        },
+        run_id="real-gold-qbe-review",
+    )
+
+    assert session["session_status"] == "real_gold_eval"
+    assert session["diagnostics"]["code"] == "real_gold_eval"
+    assert session["document_ids"] == ["gold-doc-1"]
+    assert session["run_ids"] == ["real-gold-qbe-review"]
+    assert session["summary"]["total"] == 1
+    assert session["items"][0]["run_id"] == "real-gold-qbe-review"
+    assert session["items"][0]["image_url"] == "/api/extraction-review/snippets/test.png"
+
+
 def test_build_metric_snippet_returns_text_fallback_when_bbox_unavailable(
     monkeypatch, tmp_path
 ) -> None:

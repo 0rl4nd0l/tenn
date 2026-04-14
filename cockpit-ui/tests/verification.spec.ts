@@ -198,11 +198,15 @@ function buildMockState() {
     documents: [
       {
         document_id: 'doc-1234567890abcdef',
+        ticker: 'BHP',
         extraction_status: 'ok',
         context_correct: true,
         trust_outcome: 'trusted',
         expected_trust: 'trusted',
         mismatch_reasons: [],
+        review_session_id: null,
+        review_item_count: 0,
+        review_reason: null,
         metric_results: {
           revenue_total: { status: 'exact', expected: 1000000, actual: 1000000, reason: '' },
         },
@@ -214,11 +218,15 @@ function buildMockState() {
       },
       {
         document_id: 'doc-9876543210fedcba',
+        ticker: 'BHP',
         extraction_status: 'ok_low_confidence',
         context_correct: true,
         trust_outcome: 'trusted',
         expected_trust: 'trusted',
         mismatch_reasons: ['net_debt mismatch'],
+        review_session_id: 'session-1234567890abcdef',
+        review_item_count: 2,
+        review_reason: 'reviewable',
         metric_results: {
           net_debt: { status: 'mismatch', expected: 300000, actual: 250000, reason: 'source mismatch' },
         },
@@ -431,7 +439,7 @@ async function loadReviewSession(page: Page) {
   await page.getByPlaceholder('e.g. BHP').fill('BHP')
   await page.getByRole('button', { name: 'Load Docs' }).click()
   await expect(page.getByText('BHP Quarterly Report')).toBeVisible()
-  await page.getByRole('button', { name: 'Run Latest + Load Review' }).click()
+  await page.getByRole('button', { name: 'Latest + Review' }).click()
   await expect(page.getByText('Review 1 of 2')).toBeVisible()
 }
 
@@ -507,5 +515,8 @@ test.describe('Verification screen', () => {
     await page.getByRole('button', { name: 'Run Gold Set' }).click()
     await expect(page.getByText('Metric Accuracy')).toBeVisible()
     await expect(page.getByText('75.0%')).toBeVisible()
+    await page.getByRole('button', { name: /Open Review/ }).click()
+    await expect(page.getByText('Manual Extraction Review')).toBeVisible()
+    await expect(page.getByText('Review 1 of 2')).toBeVisible()
   })
 })

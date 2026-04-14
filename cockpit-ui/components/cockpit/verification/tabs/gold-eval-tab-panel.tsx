@@ -20,6 +20,7 @@ type GoldEvalTabPanelProps = {
   onGoldLimitChange: (value: string) => void
   onRunGoldEval: () => void
   onExportGoldEvalJson: () => void
+  onOpenReviewSession: (sessionId: string) => void
 }
 
 export function GoldEvalTabPanel({
@@ -31,6 +32,7 @@ export function GoldEvalTabPanel({
   onGoldLimitChange,
   onRunGoldEval,
   onExportGoldEvalJson,
+  onOpenReviewSession,
 }: GoldEvalTabPanelProps) {
   const summary = goldEval?.summary ?? null
 
@@ -122,6 +124,7 @@ export function GoldEvalTabPanel({
                     <TableHead>Method</TableHead>
                     <TableHead>Metric statuses</TableHead>
                     <TableHead>Mismatch reasons</TableHead>
+                    <TableHead>Review</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -150,6 +153,19 @@ export function GoldEvalTabPanel({
                         <TableCell className="text-xs text-muted-foreground">{metricStatuses || '-'}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {doc.mismatch_reasons.length > 0 ? doc.mismatch_reasons.join('; ') : '-'}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {doc.review_session_id ? (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => onOpenReviewSession(doc.review_session_id!)}
+                            >
+                              Open Review{doc.review_item_count ? ` (${doc.review_item_count})` : ''}
+                            </Button>
+                          ) : (
+                            doc.review_reason || 'No flagged metric review session'
+                          )}
                         </TableCell>
                       </TableRow>
                     )

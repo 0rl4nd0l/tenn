@@ -702,6 +702,37 @@ export function VerificationScreen() {
     }
   }, [extractionMethod, goldLimit, strictMethod])
 
+  const handleOpenGoldEvalReviewSession = useCallback(async (sessionId: string) => {
+    if (reviewActionLockRef.current) return
+    if (!sessionId.trim()) {
+      setGoldEvalError('Selected gold-eval document does not expose a backend review session.')
+      return
+    }
+
+    reviewActionLockRef.current = true
+    setReviewError(null)
+    setReviewActionLoading(true)
+    beginReviewSessionSwap(`Loading backend review session ${sessionId}...`)
+    try {
+      const session = await getExtractionReviewSession(sessionId)
+      setReviewSession(session)
+      setSelectedRunId(session.run_ids?.[0] || '')
+      setSelectedReviewItemId(session.items[0]?.item_id ?? null)
+      setReviewSessionLoadingMessage(null)
+      updateTab('review')
+      await loadWrongQueue()
+      toast.success(`Loaded backend review session for ${session.document_ids[0] || 'gold-eval document'}`)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load backend review session'
+      setReviewError(message)
+      toast.error(message)
+    } finally {
+      setReviewSessionLoadingMessage(null)
+      reviewActionLockRef.current = false
+      setReviewActionLoading(false)
+    }
+  }, [beginReviewSessionSwap, loadWrongQueue, updateTab])
+
   const handleSubmitReview = useCallback(async (verdict: 'correct' | 'wrong' | 'unsure') => {
     if (reviewActionLockRef.current) return
     if (!reviewSession || !currentReviewItem) return
@@ -986,6 +1017,7 @@ export function VerificationScreen() {
               onGoldLimitChange={setGoldLimit}
               onRunGoldEval={() => void handleRunGoldEval()}
               onExportGoldEvalJson={handleExportGoldEvalJson}
+              onOpenReviewSession={(sessionId) => void handleOpenGoldEvalReviewSession(sessionId)}
             />
           </div>
         </ScrollArea>
