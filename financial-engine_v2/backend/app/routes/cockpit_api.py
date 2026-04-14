@@ -464,6 +464,42 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                     kind="web",
                 )
 
+        elif ev.get("tool") and not ev.get("type"):
+            # Agent loop evidence format: {tool, arguments, result}
+            # Handle search_news and gather_local_context tool results.
+            tool_name = str(ev.get("tool") or "")
+            result = ev.get("result") or {}
+            if isinstance(result, dict):
+                if tool_name == "search_news":
+                    for hit in result.get("hits") or []:
+                        if isinstance(hit, dict):
+                            _append_source_item(
+                                items,
+                                seen,
+                                hit,
+                                default_title="News article",
+                                kind="news",
+                            )
+                elif tool_name in ("gather_local_context", "query_ticker_data"):
+                    for hit in result.get("hits") or result.get("rag_hits") or []:
+                        if isinstance(hit, dict):
+                            _append_source_item(
+                                items,
+                                seen,
+                                hit,
+                                default_title="Context source",
+                                kind="rag",
+                            )
+                    for row in result.get("docs") or []:
+                        if isinstance(row, dict):
+                            _append_source_item(
+                                items,
+                                seen,
+                                row,
+                                default_title="Document",
+                                kind="document",
+                            )
+
         if len(items) >= 10:
             break
 

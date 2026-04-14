@@ -275,6 +275,58 @@ class TestSearchNewsTickerInference:
         assert len(result["hits"][0]["snippet"]) <= 280
         assert "text" not in result["hits"][0]
 
+    def test_search_news_adds_freshness_warning_for_stale_articles(self):
+        """Articles older than 2 days should include a freshness_warning."""
+        executor = _make_executor()
+        # Simulate articles published 7 days ago
+        old_date = datetime(2026, 4, 7, 7, 0, 0, tzinfo=timezone.utc).isoformat().replace("+00:00", "Z")
+        executor._router.get_news_context.return_value = {
+            "ok": True,
+            "hits": [
+                {
+                    "title": "ASX rallied last week",
+                    "url": "https://example.com/asx",
+                    "published_at": old_date,
+                    "score": 0.7,
+                    "text": "Markets moved.",
+                }
+            ],
+            "error": None,
+            "_source": "qdrant",
+        }
+
+        result = executor.execute("search_news", {"query": "ASX news today", "limit": 5})
+
+        assert result["ok"] is True
+        assert "freshness_warning" in result
+        assert "historical context" in result["freshness_warning"]
+        assert "2026-04-07" in result["freshness_warning"]
+
+    def test_search_news_no_freshness_warning_for_recent_articles(self):
+        """Articles published today or yesterday should not get a staleness warning."""
+        executor = _make_executor()
+        # Simulate articles published today
+        today_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        executor._router.get_news_context.return_value = {
+            "ok": True,
+            "hits": [
+                {
+                    "title": "Breaking: ASX up today",
+                    "url": "https://example.com/today",
+                    "published_at": today_iso,
+                    "score": 0.8,
+                    "text": "Markets are up today.",
+                }
+            ],
+            "error": None,
+            "_source": "qdrant",
+        }
+
+        result = executor.execute("search_news", {"query": "ASX news", "limit": 5})
+
+        assert result["ok"] is True
+        assert "freshness_warning" not in result
+
 
 # ---------------------------------------------------------------------------
 # ExtractionController.validate() unit tests

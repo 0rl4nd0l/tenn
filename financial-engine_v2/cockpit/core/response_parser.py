@@ -76,6 +76,56 @@ def _repair_json(text: str) -> str:
     return repaired
 
 
+def _try_split_multi_json(text: str) -> list[dict] | None:
+    """Split a string containing multiple concatenated JSON objects.
+
+    LLMs sometimes emit a thinking block followed by a response block as two
+    separate JSON objects in a single completion::
+
+        {"type":"thinking","assessment":"...","plan":"..."}
+
+        {"type":"response","content":"actual answer"}
+
+    ``json.loads`` rejects this because it is not a single valid JSON value.
+    This function uses a simple brace-depth scanner to find object boundaries
+    and returns a list of successfully parsed dicts, or None if fewer than 2
+    objects are found (the single-object case is already handled by the caller).
+    """
+    objects: list[dict] = []
+    depth = 0
+    start: int | None = None
+    in_string = False
+    escape_next = False
+
+    for i, ch in enumerate(text):
+        if escape_next:
+            escape_next = False
+            continue
+        if ch == "\\":
+            if in_string:
+                escape_next = True
+            continue
+        if ch == '"' and not escape_next:
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == "{":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0 and start is not None:
+                candidate = text[start : i + 1]
+                parsed = _try_parse_json(candidate)
+                if parsed is not None:
+                    objects.append(parsed)
+                start = None
+
+    return objects if len(objects) >= 2 else None
+
+
 def _try_parse_json(text: str) -> dict | None:
     """Attempt to parse *text* as JSON, returning None on failure."""
     try:
@@ -151,6 +201,39 @@ def parse_llm_response(raw: str) -> ParsedResponse:
     if obj is not None:
         logger.debug("Parsed LLM response after JSON repair")
         return _build_from_dict(obj, raw)
+
+    # Attempt 3: multi-object split (thinking + response in one completion)
+    multi = _try_split_multi_json(cleaned)
+    if multi is not None:
+        # Prefer the last "response"-typed object; carry thinking metadata.
+        thinking_obj: dict | None = None
+        response_obj: dict | None = None
+        for obj in multi:
+            inferred = obj.get("type") or _infer_type(obj)
+            if inferred == "thinking":
+                thinking_obj = obj
+            elif inferred == "response":
+                response_obj = obj
+        # If we found a response block, use it.
+        if response_obj is not None:
+            result = _build_from_dict(response_obj, raw)
+            if thinking_obj is not None:
+                result.assessment = thinking_obj.get("assessment")
+                result.plan = thinking_obj.get("plan")
+            logger.info(
+                "Parsed multi-object LLM response (%d objects); "
+                "extracted type=%s",
+                len(multi),
+                result.type,
+            )
+            return result
+        # No response block — fall through to the last object.
+        logger.info(
+            "Parsed multi-object LLM response (%d objects); "
+            "using last object",
+            len(multi),
+        )
+        return _build_from_dict(multi[-1], raw)
 
     # Fallback: plain text
     logger.warning(

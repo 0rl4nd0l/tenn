@@ -369,7 +369,34 @@ class ToolExecutor:
                 }
             )
 
-        return {
+        # Annotate staleness so the model can caveat responses about "today".
+        freshness_warning: str | None = None
+        if compact_hits:
+            most_recent_str = max(
+                (h.get("published_at") or "" for h in compact_hits),
+                default="",
+            )
+            if most_recent_str:
+                try:
+                    most_recent_dt = datetime.fromisoformat(
+                        most_recent_str.replace("Z", "+00:00")
+                    )
+                    now = datetime.now(timezone.utc)
+                    age_days = (now - most_recent_dt).days
+                    today_str = now.strftime("%Y-%m-%d")
+                    article_date_str = most_recent_dt.strftime("%Y-%m-%d")
+                    if age_days >= 2:
+                        freshness_warning = (
+                            f"Most recent article is {age_days} day(s) old "
+                            f"(published {article_date_str}). "
+                            f"Today is {today_str}. "
+                            "Treat these results as historical context, not current news. "
+                            "Do not present them as today's events."
+                        )
+                except (ValueError, TypeError):
+                    pass
+
+        out: dict[str, Any] = {
             "ok": bool(result.get("ok", hit_count > 0)),
             "query": query,
             "ticker": ticker,
@@ -378,6 +405,9 @@ class ToolExecutor:
             "_source": result.get("_source"),
             "error": error_text or None,
         }
+        if freshness_warning:
+            out["freshness_warning"] = freshness_warning
+        return out
 
     @staticmethod
     def _infer_news_ticker(query: str) -> str | None:
