@@ -2397,7 +2397,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
 
     async def event_generator() -> AsyncGenerator[str, None]:
         queue = asyncio.Queue()
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         def on_chunk(chunk: str):
             # This runs in the LLM thread (from ChatController)
@@ -2498,4 +2498,12 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
 
         yield "event: end\ndata: {}\n\n"
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "X-Accel-Buffering": "no",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        },
+    )
