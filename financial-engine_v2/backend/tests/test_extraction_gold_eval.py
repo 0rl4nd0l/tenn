@@ -314,9 +314,13 @@ def test_real_gold_eval_endpoint_runs_current_multipass_logic(monkeypatch, tmp_p
     result = main_app._run_real_gold_eval_sync(main_app.RealGoldEvalRequest())
 
     assert result["summary"]["total_documents"] == 1
+    assert result["summary"]["failed_documents"] == 0
     assert result["summary"]["total_accuracy"] == 1.0
     assert result["summary"]["trust_distribution"]["trusted"] == 1
     assert result["documents"][0]["extraction_status"] == "ok_low_confidence"
+    assert result["documents"][0]["ticker"] == "UNKNOWN"
+    assert result["documents"][0]["correct_metric_count"] == 3
+    assert result["documents"][0]["failed_metric_count"] == 0
     assert result["documents"][0]["trust_outcome"] == "trusted"
     assert result["documents"][0]["mismatch_reasons"] == []
 
@@ -452,3 +456,45 @@ def test_real_gold_eval_endpoint_passes_method_selection(monkeypatch, tmp_path):
 
 def test_real_gold_eval_route_is_async():
     assert inspect.iscoroutinefunction(main_app.run_real_gold_eval)
+
+
+def test_real_gold_eval_summary_rolls_up_failure_and_trigger_fields():
+    summary = main_app._summarize_real_gold_results(
+        [
+            {
+                "context_correct": True,
+                "context_mismatches": [],
+                "failed_metric_count": 1,
+                "trust_matches_expected": False,
+                "trust_outcome": "abstain",
+                "trust_triggers": ["net_debt:missing"],
+                "metric_results": {
+                    "net_debt": {"status": "missing"},
+                    "revenue": {"status": "correct"},
+                },
+            },
+            {
+                "context_correct": False,
+                "context_mismatches": ["currency"],
+                "failed_metric_count": 0,
+                "trust_matches_expected": True,
+                "trust_outcome": "quarantine",
+                "trust_triggers": ["context_mismatch:currency"],
+                "metric_results": {
+                    "revenue": {"status": "correct"},
+                },
+            },
+        ]
+    )
+
+    assert summary["failed_documents"] == 2
+    assert summary["context_mismatch_documents"] == 1
+    assert summary["context_mismatch_fields"] == 1
+    assert summary["missing_count"] == 1
+    assert summary["correct_count"] == 2
+    assert summary["trust_matches_expected"] == 1
+    assert summary["trust_mismatches_expected"] == 1
+    assert summary["trust_trigger_counts"] == {
+        "context_mismatch:currency": 1,
+        "net_debt:missing": 1,
+    }

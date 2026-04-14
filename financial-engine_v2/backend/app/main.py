@@ -389,6 +389,7 @@ def _evaluate_real_gold_document(
         evaluation_payload,
     )
     metric_results: dict[str, dict[str, Any]] = {}
+    metric_status_counts = {"correct": 0, "wrong": 0, "missing": 0, "abstain": 0}
     for metric in evaluation.metrics:
         metric_results[metric.metric] = {
             "status": metric.status.value,
@@ -399,6 +400,14 @@ def _evaluate_real_gold_document(
                 metric.metric, metric.metric
             ),
         }
+        if metric.status.value in metric_status_counts:
+            metric_status_counts[metric.status.value] += 1
+
+    failed_metric_count = (
+        metric_status_counts["wrong"]
+        + metric_status_counts["missing"]
+        + metric_status_counts["abstain"]
+    )
 
     mismatch_reasons: list[str] = [*context_mismatches]
     for metric_name, result in metric_results.items():
@@ -415,6 +424,8 @@ def _evaluate_real_gold_document(
         "document_id": doc.document_id,
         "source_file": doc.source_file,
         "source_path": str(source_path),
+        "source_basename": source_path.name,
+        "ticker": metadata["ticker"],
         "period_type": doc.period_type,
         "period_end": doc.period_end,
         "expected_trust": doc.expected_trust,
@@ -425,6 +436,12 @@ def _evaluate_real_gold_document(
         "context_actual": actual_context,
         "context_mismatches": context_mismatches,
         "metric_results": metric_results,
+        "metric_status_counts": metric_status_counts,
+        "correct_metric_count": metric_status_counts["correct"],
+        "wrong_metric_count": metric_status_counts["wrong"],
+        "missing_metric_count": metric_status_counts["missing"],
+        "abstained_metric_count": metric_status_counts["abstain"],
+        "failed_metric_count": failed_metric_count,
         "trust_outcome": evaluation.trust.value,
         "trust_triggers": evaluation.trust_triggers,
         "trust_matches_expected": evaluation.trust_matches_expected,
@@ -444,14 +461,25 @@ def _summarize_real_gold_results(results: list[dict[str, Any]]) -> dict[str, Any
     total_metric_checks = 0
     context_correct_count = 0
     trust_match_count = 0
+    context_mismatch_field_count = 0
+    failed_document_count = 0
+    trust_trigger_counts: dict[str, int] = {}
 
     for result in results:
         trust = str(result.get("trust_outcome") or "abstain")
         trust_distribution[trust] = trust_distribution.get(trust, 0) + 1
         if result.get("context_correct"):
             context_correct_count += 1
+        else:
+            context_mismatch_field_count += len(result.get("context_mismatches", []))
         if result.get("trust_matches_expected"):
             trust_match_count += 1
+        if result.get("failed_metric_count", 0) > 0 or not result.get(
+            "context_correct", False
+        ):
+            failed_document_count += 1
+        for trigger in result.get("trust_triggers", []):
+            trust_trigger_counts[trigger] = trust_trigger_counts.get(trigger, 0) + 1
 
         for metric_name, metric_result in (result.get("metric_results") or {}).items():
             status = str(metric_result.get("status") or "missing")
@@ -468,13 +496,22 @@ def _summarize_real_gold_results(results: list[dict[str, Any]]) -> dict[str, Any
     return {
         "generated_at": datetime.utcnow().isoformat() + "Z",
         "total_documents": len(results),
+        "failed_documents": failed_document_count,
         "context_correct_documents": context_correct_count,
+        "context_mismatch_documents": len(results) - context_correct_count,
+        "context_mismatch_fields": context_mismatch_field_count,
         "context_accuracy": (context_correct_count / len(results) if results else 0.0),
         "total_metric_checks": total_metric_checks,
         "metric_status_counts": metric_status_counts,
+        "correct_count": metric_status_counts.get("correct", 0),
+        "wrong_count": metric_status_counts.get("wrong", 0),
+        "missing_count": metric_status_counts.get("missing", 0),
+        "abstained_count": metric_status_counts.get("abstain", 0),
         "total_accuracy": accuracy,
         "trust_distribution": trust_distribution,
         "trust_matches_expected": trust_match_count,
+        "trust_mismatches_expected": len(results) - trust_match_count,
+        "trust_trigger_counts": dict(sorted(trust_trigger_counts.items())),
         "per_metric_failure_counts": per_metric_failure_counts,
     }
 

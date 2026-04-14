@@ -1,8 +1,9 @@
 import importlib.util
-import os
+import json
 import sys
 import tempfile
 import unittest
+from argparse import Namespace
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
@@ -20,78 +21,204 @@ sys.modules[spec.name] = mod
 spec.loader.exec_module(mod)
 
 
-class TestPersistLocalLlmApiKey(unittest.TestCase):
-    def test_preserves_existing_llm_api_key(self):
-        with mock.patch.dict(os.environ, {"LLM_API_KEY": "configured-key"}, clear=True):
-            with mock.patch.object(mod, "_discover_local_llamacpp_api_key") as detect:
-                self.assertEqual(mod._persist_local_llm_api_key(), "configured-key")
-                self.assertEqual(os.environ["LLM_API_KEY"], "configured-key")
-                detect.assert_not_called()
+class _FakeResponse:
+    def __init__(self, payload: dict):
+        self._payload = payload
 
-    def test_ignores_openai_api_key_and_uses_detected_local_key(self):
-        with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "openai-key"}, clear=True):
-            with mock.patch.object(
-                mod,
-                "_discover_local_llamacpp_api_key",
-                return_value="detected-key",
-            ) as detect:
-                self.assertEqual(mod._persist_local_llm_api_key(), "detected-key")
-                self.assertEqual(os.environ["LLM_API_KEY"], "detected-key")
-                detect.assert_called_once_with()
+    def __enter__(self):
+        return self
 
-    def test_ignores_openai_api_key_and_falls_back_to_default_local_key(self):
-        with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "openai-key"}, clear=True):
-            with mock.patch.object(
-                mod, "_discover_local_llamacpp_api_key", return_value=""
-            ):
-                self.assertEqual(
-                    mod._persist_local_llm_api_key(),
-                    mod.DEFAULT_LOCAL_LLAMACPP_API_KEY,
-                )
-                self.assertEqual(
-                    os.environ["LLM_API_KEY"],
-                    mod.DEFAULT_LOCAL_LLAMACPP_API_KEY,
-                )
+    def __exit__(self, exc_type, exc, tb):
+        return False
 
-    def test_uses_detected_local_llama_server_key(self):
-        with mock.patch.dict(os.environ, {}, clear=True):
-            with mock.patch.object(
-                mod,
-                "_discover_local_llamacpp_api_key",
-                return_value="detected-key",
-            ):
-                self.assertEqual(mod._persist_local_llm_api_key(), "detected-key")
-                self.assertEqual(os.environ["LLM_API_KEY"], "detected-key")
-
-    def test_falls_back_to_default_local_key(self):
-        with mock.patch.dict(os.environ, {}, clear=True):
-            with mock.patch.object(
-                mod, "_discover_local_llamacpp_api_key", return_value=""
-            ):
-                self.assertEqual(
-                    mod._persist_local_llm_api_key(),
-                    mod.DEFAULT_LOCAL_LLAMACPP_API_KEY,
-                )
-                self.assertEqual(
-                    os.environ["LLM_API_KEY"],
-                    mod.DEFAULT_LOCAL_LLAMACPP_API_KEY,
-                )
+    def read(self):
+        return json.dumps(self._payload).encode("utf-8")
 
 
-class TestDiscoverLocalLlamaCppApiKey(unittest.TestCase):
-    def test_parses_api_key_from_llama_server_process(self):
-        proc = SimpleNamespace(
-            stdout=(
-                "user 123 0.0 0.0 llama-server --host 0.0.0.0 --port 8001 "
-                "--api-key local-openai-key --parallel 1\n"
-            )
+class _FakeHttpError(mod.urlerror.HTTPError):
+    def __init__(self, code: int, payload: dict):
+        super().__init__(
+            url="http://127.0.0.1:8000/api/extraction-eval/real-gold",
+            code=code,
+            msg="error",
+            hdrs=None,
+            fp=None,
         )
-        with mock.patch.object(mod.subprocess, "run", return_value=proc):
-            self.assertEqual(mod._discover_local_llamacpp_api_key(), "local-openai-key")
+        self._payload = payload
 
-    def test_returns_empty_string_when_process_scan_fails(self):
-        with mock.patch.object(mod.subprocess, "run", side_effect=TimeoutError):
-            self.assertEqual(mod._discover_local_llamacpp_api_key(), "")
+    def read(self):
+        return json.dumps(self._payload).encode("utf-8")
+
+
+def _sample_eval_response() -> dict:
+    return {
+        "dataset_dir": str(mod.DEFAULT_DATASET_DIR),
+        "requested_method": "docling",
+        "strict_method": False,
+        "summary": {
+            "generated_at": "2026-04-14T00:00:00Z",
+            "total_documents": 1,
+            "failed_documents": 1,
+            "context_correct_documents": 1,
+            "context_mismatch_documents": 0,
+            "context_mismatch_fields": 0,
+            "context_accuracy": 1.0,
+            "total_metric_checks": 1,
+            "metric_status_counts": {
+                "correct": 0,
+                "wrong": 0,
+                "missing": 1,
+                "abstain": 0,
+            },
+            "correct_count": 0,
+            "wrong_count": 0,
+            "missing_count": 1,
+            "abstained_count": 0,
+            "total_accuracy": 0.0,
+            "trust_distribution": {
+                "trusted": 0,
+                "abstain": 1,
+                "quarantine": 0,
+            },
+            "trust_matches_expected": 1,
+            "trust_mismatches_expected": 0,
+            "trust_trigger_counts": {"net_debt:missing": 1},
+            "per_metric_failure_counts": {
+                "revenue": {"wrong": 0, "missing": 0, "abstain": 0},
+                "operating_cash_flow": {"wrong": 0, "missing": 0, "abstain": 0},
+                "net_debt": {"wrong": 0, "missing": 1, "abstain": 0},
+            },
+        },
+        "documents": [
+            {
+                "document_id": "doc_a",
+                "source_file": "financial-engine_v2/data/extraction_gold_real/doc_a.pdf",
+                "source_path": "/tmp/doc_a.pdf",
+                "source_basename": "doc_a.pdf",
+                "ticker": "QBE",
+                "period_type": "H",
+                "period_end": "2025-06-30",
+                "expected_trust": "abstain",
+                "extraction_status": "ok",
+                "extraction_error": None,
+                "context_correct": True,
+                "context_expected": {
+                    "period_type": "H",
+                    "period_end": "2025-06-30",
+                    "currency": "AUD",
+                    "scale": "millions",
+                },
+                "context_actual": {
+                    "period_type": "H",
+                    "period_end": "2025-06-30",
+                    "currency": "AUD",
+                    "scale": "millions",
+                },
+                "context_mismatches": [],
+                "metric_results": {
+                    "net_debt": {
+                        "status": "missing",
+                        "expected": 123.0,
+                        "actual": None,
+                        "reason": "extractor returned null for required metric",
+                        "source_metric_key": "net_debt",
+                    }
+                },
+                "metric_status_counts": {
+                    "correct": 0,
+                    "wrong": 0,
+                    "missing": 1,
+                    "abstain": 0,
+                },
+                "correct_metric_count": 0,
+                "wrong_metric_count": 0,
+                "missing_metric_count": 1,
+                "abstained_metric_count": 0,
+                "failed_metric_count": 1,
+                "trust_outcome": "abstain",
+                "trust_triggers": ["net_debt:missing"],
+                "trust_matches_expected": True,
+                "mismatch_reasons": [
+                    "metric:net_debt:extractor returned null for required metric"
+                ],
+                "method_provenance": {
+                    "requested_method": "docling",
+                    "actual_method": "docling",
+                    "strict_method": False,
+                },
+            }
+        ],
+    }
+
+
+class TestBackendRequestHelpers(unittest.TestCase):
+    def test_resolve_backend_api_key_prefers_arg_then_settings_then_env(self):
+        with mock.patch.object(
+            mod, "settings", SimpleNamespace(local_api_key="settings-key")
+        ):
+            with mock.patch.dict(
+                mod.os.environ,
+                {"LOCAL_API_KEY": "env-key", "BACKEND_API_KEY": "other-env-key"},
+                clear=True,
+            ):
+                self.assertEqual(mod._resolve_backend_api_key("cli-key"), "cli-key")
+                self.assertEqual(mod._resolve_backend_api_key(None), "settings-key")
+
+    def test_request_real_gold_eval_posts_expected_body_and_header(self):
+        captured = {}
+
+        def fake_urlopen(request, timeout):
+            captured["request"] = request
+            captured["timeout"] = timeout
+            return _FakeResponse(_sample_eval_response())
+
+        with mock.patch.object(mod.urlrequest, "urlopen", side_effect=fake_urlopen):
+            payload = mod._request_real_gold_eval(
+                backend_url="http://127.0.0.1:8000",
+                api_key="secret",
+                limit=2,
+                tolerance=0.05,
+                method="docling",
+                strict_method=True,
+                timeout_seconds=90.0,
+            )
+
+        self.assertEqual(payload["requested_method"], "docling")
+        self.assertEqual(captured["timeout"], 90.0)
+        self.assertEqual(
+            captured["request"].full_url,
+            "http://127.0.0.1:8000/api/extraction-eval/real-gold",
+        )
+        self.assertEqual(captured["request"].headers["X-api-key"], "secret")
+        self.assertEqual(
+            json.loads(captured["request"].data.decode("utf-8")),
+            {
+                "limit": 2,
+                "tolerance": 0.05,
+                "method": "docling",
+                "strict_method": True,
+            },
+        )
+
+    def test_request_real_gold_eval_surfaces_backend_detail(self):
+        with mock.patch.object(
+            mod.urlrequest,
+            "urlopen",
+            side_effect=_FakeHttpError(500, {"detail": "real gold eval failed: boom"}),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "backend real-gold eval failed \\(HTTP 500\\): real gold eval failed: boom",
+            ):
+                mod._request_real_gold_eval(
+                    backend_url="http://127.0.0.1:8000",
+                    api_key=None,
+                    limit=0,
+                    tolerance=0.01,
+                    method="auto",
+                    strict_method=False,
+                    timeout_seconds=10.0,
+                )
 
 
 class TestEvalArtifacts(unittest.TestCase):
@@ -118,47 +245,6 @@ class TestEvalArtifacts(unittest.TestCase):
             Path("/tmp/extraction_real_eval_results_trust_triggers.csv"),
         )
 
-    def test_summarize_includes_failure_and_trigger_counts(self):
-        summary = mod._summarize(
-            [
-                {
-                    "trust_outcome": "abstain",
-                    "context_correct": True,
-                    "trust_matches_expected": False,
-                    "trust_triggers": ["net_debt:missing"],
-                    "context_mismatches": [],
-                    "failed_metric_count": 1,
-                    "metric_results": {
-                        "net_debt": {"status": "missing"},
-                        "revenue": {"status": "correct"},
-                    },
-                },
-                {
-                    "trust_outcome": "quarantine",
-                    "context_correct": False,
-                    "trust_matches_expected": True,
-                    "trust_triggers": ["context_mismatch"],
-                    "context_mismatches": ["currency"],
-                    "failed_metric_count": 0,
-                    "metric_results": {
-                        "operating_cash_flow": {"status": "correct"},
-                    },
-                },
-            ]
-        )
-
-        self.assertEqual(summary["failed_documents"], 2)
-        self.assertEqual(summary["context_mismatch_documents"], 1)
-        self.assertEqual(summary["context_mismatch_fields"], 1)
-        self.assertEqual(summary["trust_distribution"]["abstain"], 1)
-        self.assertEqual(summary["trust_distribution"]["quarantine"], 1)
-        self.assertEqual(summary["missing_count"], 1)
-        self.assertEqual(summary["correct_count"], 2)
-        self.assertEqual(summary["trust_matches_expected"], 1)
-        self.assertEqual(summary["trust_mismatches_expected"], 1)
-        self.assertEqual(summary["trust_trigger_counts"]["context_mismatch"], 1)
-        self.assertEqual(summary["trust_trigger_counts"]["net_debt:missing"], 1)
-
     def test_write_csv_emits_header_and_rows(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "rows.csv"
@@ -174,6 +260,62 @@ class TestEvalArtifacts(unittest.TestCase):
             self.assertEqual(contents[0], "document_id,failed_metric_count")
             self.assertIn("doc_a,2", contents[1:])
             self.assertIn("doc_b,0", contents[1:])
+
+    def test_main_persists_backend_artifacts(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report_path = Path(tmpdir) / "extraction_real_eval_summary.md"
+            results_json = Path(tmpdir) / "extraction_real_eval_results.json"
+            args = Namespace(
+                dataset_dir=mod.DEFAULT_DATASET_DIR,
+                report_path=report_path,
+                results_json=results_json,
+                limit=1,
+                tolerance=0.01,
+                extractor_label="backend_real_gold_eval",
+                provider_label="backend_api",
+                method_label="/api/extraction-eval/real-gold",
+                model_label=None,
+                config_label=None,
+                parser_backend="docling",
+                strict_method=False,
+                backend_url="http://127.0.0.1:8000",
+                api_key=None,
+                timeout_seconds=60.0,
+            )
+
+            with mock.patch.object(mod, "_parse_args", return_value=args):
+                with mock.patch.object(
+                    mod,
+                    "_request_real_gold_eval",
+                    return_value=_sample_eval_response(),
+                ):
+                    exit_code = mod.main()
+            self.assertEqual(exit_code, 0)
+            persisted = json.loads(results_json.read_text(encoding="utf-8"))
+            self.assertEqual(persisted["requested_method"], "docling")
+            self.assertEqual(persisted["summary"]["failed_documents"], 1)
+            self.assertEqual(persisted["documents"][0]["ticker"], "QBE")
+
+            summary_json = results_json.with_name(
+                "extraction_real_eval_results_summary.json"
+            )
+            metrics_csv = results_json.with_name(
+                "extraction_real_eval_results_metrics.csv"
+            )
+            documents_csv = results_json.with_name(
+                "extraction_real_eval_results_documents.csv"
+            )
+            trust_triggers_csv = results_json.with_name(
+                "extraction_real_eval_results_trust_triggers.csv"
+            )
+
+            self.assertTrue(summary_json.exists())
+            self.assertTrue(metrics_csv.exists())
+            self.assertTrue(documents_csv.exists())
+            self.assertTrue(trust_triggers_csv.exists())
+            report_text = report_path.read_text(encoding="utf-8")
+            self.assertIn("# Extraction Real Eval Summary", report_text)
+            self.assertIn("net_debt:missing", report_text)
 
 
 if __name__ == "__main__":
