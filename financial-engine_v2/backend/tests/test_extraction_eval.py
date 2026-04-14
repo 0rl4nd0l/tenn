@@ -22,6 +22,13 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
+from app.services.extraction_eval import (
+    ExtractionFixture,
+    FixtureContext,
+    MetricEvalStatus,
+    evaluate_fixture,
+)
+
 logger = logging.getLogger(__name__)
 
 FIXTURES_DIR = Path(__file__).parent / "eval_fixtures"
@@ -52,6 +59,161 @@ def metric_matches(extracted: float | None, expected: float | None,
     if expected == 0:
         return abs(extracted) < 1  # near-zero
     return abs((extracted - expected) / expected) <= tolerance
+
+
+def _fixture_to_model(fixture: dict) -> ExtractionFixture:
+    return ExtractionFixture(
+        fixture_id=str(fixture.get("document_id") or fixture.get("ticker") or "?"),
+        context=FixtureContext(
+            period_end=fixture.get("period_end"),
+            period_type=fixture.get("period_type"),
+            currency=fixture.get("currency"),
+            scale=fixture.get("scale"),
+        ),
+        metrics={
+            str(metric): float(value)
+            for metric, value in fixture.get("metrics", {}).items()
+            if value is not None
+        },
+        expected_nulls=[
+            str(metric) for metric in fixture.get("expected_nulls", []) if metric
+        ],
+        optional_metrics=[],
+        tolerances={
+            str(metric): float(value)
+            for metric, value in fixture.get("tolerances", {}).items()
+        },
+    )
+
+
+def _context_detail(
+    fixture: dict,
+    extracted_payload: dict[str, object],
+) -> dict[str, dict[str, object]]:
+    detail: dict[str, dict[str, object]] = {}
+    for field in ("period_end", "currency", "scale"):
+        expected = fixture.get(field)
+        actual = extracted_payload.get(field)
+        detail[field] = {
+            "expected": expected,
+            "actual": actual,
+            "matched": (
+                expected is None
+                or (
+                    actual is not None
+                    and str(expected).strip().lower() == str(actual).strip().lower()
+                )
+            ),
+        }
+    return detail
+
+
+def _metric_outcome_class(status: MetricEvalStatus) -> str:
+    if status in (MetricEvalStatus.ABSTAIN, MetricEvalStatus.QUARANTINE):
+        return "abstained"
+    return status.value
+
+
+def _derive_trust_detail(metric_results: list[dict], context_mismatches: list[str]) -> tuple[str, list[str]]:
+    if context_mismatches:
+        return "quarantine", [
+            f"context_mismatch:{field}" for field in context_mismatches
+        ]
+
+    triggers = [
+        f"{metric_result['metric_name']}:{metric_result['metric_status']}"
+        for metric_result in metric_results
+        if metric_result["metric_status"] != MetricEvalStatus.CORRECT.value
+    ]
+    if triggers:
+        return "abstain", triggers
+    return "trusted", []
+
+
+def _serialize_metric_results(
+    fixture_eval,
+    extracted_payload: dict[str, object],
+) -> list[dict[str, object]]:
+    provenance = extracted_payload.get("provenance")
+    provenance_map = provenance if isinstance(provenance, dict) else {}
+    metric_results: list[dict[str, object]] = []
+    for metric_eval in fixture_eval.metrics:
+        metric_results.append(
+            {
+                "metric_name": metric_eval.metric,
+                "metric_status": metric_eval.status.value,
+                "expected_value_presence": metric_eval.expected is not None,
+                "actual_value_presence": metric_eval.actual is not None,
+                "expected_value": metric_eval.expected,
+                "actual_value": metric_eval.actual,
+                "outcome_class": _metric_outcome_class(metric_eval.status),
+                "tolerance": metric_eval.tolerance,
+                "reason": metric_eval.reason,
+                "context_mismatch_flags": list(fixture_eval.context_mismatches),
+                "provenance": provenance_map.get(metric_eval.metric),
+            }
+        )
+    return metric_results
+
+
+def _build_fixture_result_detail(
+    fixture: dict,
+    extracted_payload: dict[str, object],
+) -> dict[str, object]:
+    fixture_eval = evaluate_fixture(
+        _fixture_to_model(fixture),
+        extracted_payload.get("metrics", {})
+        if isinstance(extracted_payload.get("metrics", {}), dict)
+        else {},
+        extracted_payload,
+    )
+    metric_results = _serialize_metric_results(fixture_eval, extracted_payload)
+    trust_outcome, trust_triggers = _derive_trust_detail(
+        metric_results,
+        fixture_eval.context_mismatches,
+    )
+    failed_metrics = [
+        metric_result["metric_name"]
+        for metric_result in metric_results
+        if metric_result["metric_status"] != MetricEvalStatus.CORRECT.value
+    ]
+    return {
+        "context_ok": fixture_eval.context_ok,
+        "context_mismatches": list(fixture_eval.context_mismatches),
+        "context_detail": _context_detail(fixture, extracted_payload),
+        "trust_outcome": trust_outcome,
+        "trust_triggers": trust_triggers,
+        "metric_results": metric_results,
+        "failed_metrics": failed_metrics,
+        "provenance_summary": fixture_eval.provenance_summary,
+    }
+
+
+def _select_seg_failure_debug_capture(
+    *,
+    extracted_payload: dict[str, object],
+    pass3a_results: list[dict[str, object]] | None,
+) -> dict[str, object]:
+    selected_sources = {"balance_sheet", "share_capital"}
+    selected_pass3a_outputs: dict[str, dict[str, object]] = {}
+    for item in pass3a_results or []:
+        source = str(item.get("_source") or "").strip()
+        if source in selected_sources:
+            selected_pass3a_outputs[source] = dict(item)
+
+    provenance = extracted_payload.get("provenance")
+    provenance_map = provenance if isinstance(provenance, dict) else {}
+    selected_provenance = {
+        metric: value
+        for metric, value in provenance_map.items()
+        if isinstance(value, str)
+        and any(value.startswith(f"{source}:") for source in selected_sources)
+    }
+
+    return {
+        "selected_pass3a_outputs": selected_pass3a_outputs,
+        "selected_provenance": selected_provenance,
+    }
 
 
 def _write_eval_log(
@@ -286,6 +448,99 @@ def test_write_eval_progress_creates_incremental_status_file(tmp_path):
     assert payload["fixture_statuses"] == fixture_statuses
 
 
+def test_fixture_result_detail_includes_metric_outcomes_and_context():
+    fixture = {
+        "document_id": "seg_h_fy2026_appendix4d",
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "thousands",
+        "metrics": {
+            "revenue": 73_671_000,
+            "shares_outstanding": 280_874_770,
+        },
+        "expected_nulls": [],
+        "tolerances": {
+            "revenue": 0.01,
+            "shares_outstanding": 0.001,
+        },
+    }
+    payload = {
+        "period_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "scale": "thousands",
+        "metrics": {
+            "revenue": 73_671_000,
+            "shares_outstanding": 280_875,
+        },
+        "provenance": {
+            "revenue": "income_statement:page_12:Revenue from continuing operations",
+            "shares_outstanding": "share_capital:page_24:Balance at the end of the period",
+        },
+    }
+
+    detail = _build_fixture_result_detail(fixture, payload)
+
+    assert detail["context_ok"] is True
+    assert detail["trust_outcome"] == "abstain"
+    assert detail["trust_triggers"] == ["shares_outstanding:wrong"]
+    assert detail["failed_metrics"] == ["shares_outstanding"]
+    assert detail["context_detail"]["currency"]["matched"] is True
+
+    by_metric = {
+        item["metric_name"]: item for item in detail["metric_results"]
+    }
+    assert by_metric["revenue"]["outcome_class"] == "correct"
+    assert by_metric["shares_outstanding"]["metric_status"] == "wrong"
+    assert by_metric["shares_outstanding"]["expected_value_presence"] is True
+    assert by_metric["shares_outstanding"]["actual_value_presence"] is True
+    assert (
+        by_metric["shares_outstanding"]["provenance"]
+        == "share_capital:page_24:Balance at the end of the period"
+    )
+
+
+def test_seg_failure_debug_capture_filters_to_balance_sheet_and_share_capital():
+    payload = {
+        "provenance": {
+            "shares_outstanding": "share_capital:page_24:Balance at the end of the period",
+            "net_debt": "derived:balance_sheet:total_debt(13240)-cash_end(26716)",
+            "revenue": "income_statement:page_12:Revenue from continuing operations",
+        }
+    }
+    pass3a_results = [
+        {
+            "_source": "income_statement",
+            "revenue": 73_671_000,
+            "row_refs": {"revenue": "Revenue from continuing operations"},
+        },
+        {
+            "_source": "share_capital",
+            "shares_outstanding": 280_875,
+            "row_refs": {"shares_outstanding": "Balance at the end of the period"},
+        },
+        {
+            "_source": "balance_sheet",
+            "total_debt": 13_240,
+            "row_refs": {"total_debt": "Borrowings"},
+        },
+    ]
+
+    capture = _select_seg_failure_debug_capture(
+        extracted_payload=payload,
+        pass3a_results=pass3a_results,
+    )
+
+    assert set(capture["selected_pass3a_outputs"]) == {
+        "balance_sheet",
+        "share_capital",
+    }
+    assert "income_statement" not in capture["selected_pass3a_outputs"]
+    assert "shares_outstanding" in capture["selected_provenance"]
+    assert "revenue" not in capture["selected_provenance"]
+
+
 # ---------------------------------------------------------------------------
 # Live eval mode: accuracy regression gate (requires real LLM + fixtures)
 # ---------------------------------------------------------------------------
@@ -383,7 +638,13 @@ def test_live_eval_accuracy_against_fixtures(request: pytest.FixtureRequest):
             f"[live-eval] [{fixture_index}/{len(fixtures)}] start {label} ({fixture['document_id']})",
         )
         fixture_started_at = time.perf_counter()
-        result = run_multipass_extraction(pdf_path, doc_metadata, llm_client)
+        seg_debug_capture: dict[str, object] | None = {} if label == "SEG" else None
+        result = run_multipass_extraction(
+            pdf_path,
+            doc_metadata,
+            llm_client,
+            debug_capture=seg_debug_capture,
+        )
 
         # If extraction failed, mark all metrics as failures and skip comparison.
         if result.status == "failed":
@@ -407,10 +668,22 @@ def test_live_eval_accuracy_against_fixtures(request: pytest.FixtureRequest):
                         per_metric_results.setdefault(null_metric, []).append(False)
                 fixture_results_failed = [False] * num_metrics
                 overall_results.extend(fixture_results_failed)
+            extracted_payload = result.payload if isinstance(result.payload, dict) else {}
+            result_detail = _build_fixture_result_detail(fixture, extracted_payload)
             per_fixture_data[label] = {
                 "accuracy": 0.0,
                 "metric_count": num_metrics,
+                **result_detail,
             }
+            if label == "SEG":
+                per_fixture_data[label]["seg_failure_debug"] = (
+                    _select_seg_failure_debug_capture(
+                        extracted_payload=extracted_payload,
+                        pass3a_results=seg_debug_capture.get("pass3a_results")
+                        if isinstance(seg_debug_capture, dict)
+                        else None,
+                    )
+                )
             fixture_statuses[label] = {
                 "status": "failed",
                 "index": fixture_index,
@@ -418,7 +691,12 @@ def test_live_eval_accuracy_against_fixtures(request: pytest.FixtureRequest):
                 "elapsed_s": round(time.perf_counter() - fixture_started_at, 2),
                 "accuracy": 0.0,
                 "error": result.error,
+                "evaluation": result_detail,
             }
+            if label == "SEG":
+                fixture_statuses[label]["seg_failure_debug"] = per_fixture_data[label][
+                    "seg_failure_debug"
+                ]
             _write_eval_progress(
                 progress_path,
                 run_id=run_id,
@@ -487,17 +765,32 @@ def test_live_eval_accuracy_against_fixtures(request: pytest.FixtureRequest):
 
         # Per-fixture accuracy gate
         fixture_acc = sum(fixture_results) / len(fixture_results) if fixture_results else 0
+        result_detail = _build_fixture_result_detail(fixture, result.payload)
         per_fixture_data[label] = {
             "accuracy": round(fixture_acc, 4),
             "metric_count": len(fixture_results),
+            **result_detail,
         }
+        seg_failed = label == "SEG" and fixture_acc < fixture_min_acc
+        if seg_failed:
+            per_fixture_data[label]["seg_failure_debug"] = _select_seg_failure_debug_capture(
+                extracted_payload=result.payload,
+                pass3a_results=seg_debug_capture.get("pass3a_results")
+                if isinstance(seg_debug_capture, dict)
+                else None,
+            )
         fixture_statuses[label] = {
             "status": result.status,
             "index": fixture_index,
             "document_id": fixture["document_id"],
             "elapsed_s": round(time.perf_counter() - fixture_started_at, 2),
             "accuracy": round(fixture_acc, 4),
+            "evaluation": result_detail,
         }
+        if seg_failed:
+            fixture_statuses[label]["seg_failure_debug"] = per_fixture_data[label][
+                "seg_failure_debug"
+            ]
         _write_eval_progress(
             progress_path,
             run_id=run_id,

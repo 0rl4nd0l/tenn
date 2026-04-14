@@ -2104,6 +2104,7 @@ def run_multipass_extraction(
     parser_backend: str | None = None,
     strict_parser: bool = False,
     observer: ExtractionRunObserver | None = None,
+    debug_capture: dict[str, Any] | None = None,
 ) -> MultipassResult:
     """
     Orchestrate all 4 passes and return a MultipassResult.
@@ -2290,6 +2291,8 @@ def run_multipass_extraction(
                 error_code="pass3a_failed",
             )
         raise
+    if debug_capture is not None:
+        debug_capture["pass3a_results"] = json.loads(json.dumps(pass3a_results))
     if observer is not None:
         observer.emit("pass3a_metrics", "succeeded", "Pass 3a completed.")
 

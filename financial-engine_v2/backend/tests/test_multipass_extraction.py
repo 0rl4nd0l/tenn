@@ -2431,6 +2431,9 @@ def _mock_structured_doc():
     from app.services.docling_extract import DoclingTable
 
     class _FakeDoc:
+        extraction_method = "docling"
+        page_count = 1
+        docling_version = "test"
         sections = [{"text": "Some prose about risk.", "page": 1}]
         tables = [
             DoclingTable(
@@ -2640,6 +2643,43 @@ def test_skip_narrative_false_still_calls_pass3b():
         "Pass 3b LLM call must be made when skip_narrative=False"
     )
     assert result.payload.get("risk_summary") == "Commodity price risk exposure"
+
+
+def test_debug_capture_collects_pass3a_results_without_changing_payload_shape():
+    """Optional debug capture should retain raw pass3a outputs for the caller only."""
+    from app.services.multipass_extraction import run_multipass_extraction
+
+    debug_capture = {}
+
+    def mock_llm(prompt, llm_client, max_tokens=512):
+        if "classifier" in prompt.lower() or "report_type" in prompt.lower():
+            return _pass1_response()
+        if "narrative" in prompt.lower() or "risk" in prompt.lower():
+            return _pass3b_response()
+        return _pass3a_response()
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_mock_structured_doc(),
+    ):
+        with patch(
+            "app.services.multipass_extraction._llm_json_call", side_effect=mock_llm
+        ):
+            result = run_multipass_extraction(
+                "/fake/path.pdf",
+                {"document_id": "d5", "ticker": "TST", "title": "Test"},
+                llm_client=None,
+                debug_capture=debug_capture,
+            )
+
+    assert result.status in ("ok", "ok_low_confidence")
+    assert "_debug_capture" not in result.payload
+    assert "pass3a_results" in debug_capture
+    assert len(debug_capture["pass3a_results"]) == 1
+    captured = debug_capture["pass3a_results"][0]
+    assert captured["_source"] == "income_statement"
+    assert captured["revenue"] == 500_000_000
+    assert 0.0 <= captured["pass3_confidence"] <= 1.0
 
 
 def test_validation_gate_accepts_null_narrative_fields():
