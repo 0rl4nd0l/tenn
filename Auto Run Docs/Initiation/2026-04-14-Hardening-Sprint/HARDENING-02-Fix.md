@@ -76,14 +76,15 @@ This phase consumes the audit report produced in Phase 01 (`docs/claude/audit/20
   - All must pass
   - **Completed 2026-04-15**: Created `test_tool_executor.py` with all 5 required tests. 5/5 pass. 32 existing regression tests still green.
 
-- [ ] Fix `_build_ui_sources` gaps (if any confirmed in audit):
+- [x] Fix `_build_ui_sources` gaps (if any confirmed in audit):
   - Work on: `financial-engine_v2/backend/app/routes/cockpit_api.py` (the `_build_ui_sources` function only)
   - For each tool confirmed in the audit as producing evidence but not handled in the agent-evidence branch: add an `elif tool_name == "..."` branch with the correct key extraction
   - Ensure every new branch follows the same pattern as existing ones (no mutation, use `_append_source_item`)
   - Do not touch any code outside `_build_ui_sources` and its helper `_append_source_item`
   - After fix: run `python -m ruff check financial-engine_v2/backend/app/routes/cockpit_api.py`
+  - **Completed 2026-04-15**: `_build_ui_sources` now maps agent-format evidence for `search_announcements`, `get_financials`, `recall_dossier`, `deep_research`, `search_web`, `fetch_url`, `get_data_quality`, `run_analysis`, `get_price`, `get_price_on_date`, `get_price_range`, `search_social`, and `get_watchlist_alerts`. Validation: `financial-engine_v2/.venv/bin/python -m ruff check financial-engine_v2/backend/app/routes/cockpit_api.py`.
 
-- [ ] Write regression tests for `_build_ui_sources`:
+- [x] Write regression tests for `_build_ui_sources`:
   - File: `financial-engine_v2/backend/tests/test_build_ui_sources.py` (create if missing)
   - Required test cases (import `_build_ui_sources` directly from `app.routes.cockpit_api`):
     - `test_orchestrator_format_local_context`: evidence in `{type:"local_context", details:{hits:[...]}}` format → sources extracted
@@ -94,6 +95,7 @@ This phase consumes the audit report produced in Phase 01 (`docs/claude/audit/20
     - One test for each new tool branch added in this phase
   - Run: `pytest financial-engine_v2/backend/tests/test_build_ui_sources.py -v`
   - All must pass
+  - **Completed 2026-04-15**: Added `financial-engine_v2/backend/tests/test_build_ui_sources.py` with the 5 required baseline cases plus 13 branch-specific regression tests covering every new agent-evidence mapping added above. Validation: `financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/backend/tests/test_build_ui_sources.py -v` → 18/18 passing.
 
 - [ ] Fix temporal anchoring vulnerabilities (if any confirmed in audit):
   - If tenn_chat system prompt does not inject current date: add it

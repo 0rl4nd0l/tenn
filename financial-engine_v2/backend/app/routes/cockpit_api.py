@@ -586,6 +586,25 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                                 default_title="News article",
                                 kind="news",
                             )
+                elif tool_name == "search_announcements":
+                    for row in result.get("documents") or []:
+                        if isinstance(row, dict):
+                            _append_source_item(
+                                items,
+                                seen,
+                                row,
+                                default_title="Announcement document",
+                                kind="document",
+                            )
+                    for row in result.get("context") or []:
+                        if isinstance(row, dict):
+                            _append_source_item(
+                                items,
+                                seen,
+                                row,
+                                default_title="Announcement excerpt",
+                                kind="document",
+                            )
                 elif tool_name in ("gather_local_context", "query_ticker_data"):
                     for hit in result.get("hits") or result.get("rag_hits") or []:
                         if isinstance(hit, dict):
@@ -604,6 +623,227 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                                 row,
                                 default_title="Document",
                                 kind="document",
+                            )
+                elif tool_name == "get_financials":
+                    for row in result.get("financials") or []:
+                        if isinstance(row, dict):
+                            _append_source_item(
+                                items,
+                                seen,
+                                {
+                                    **row,
+                                    "title": (
+                                        f"{row.get('ticker') or 'Financials'} "
+                                        f"{row.get('period_type') or ''} "
+                                        f"{row.get('period_end') or ''}"
+                                    ).strip(),
+                                    "document_id": row.get("source_document_id"),
+                                    "published_at": row.get("period_end"),
+                                    "doc_type": row.get("period_type"),
+                                    "snippet": result.get("narrative") or None,
+                                },
+                                default_title="Financial period",
+                                kind="document",
+                            )
+                elif tool_name == "recall_dossier":
+                    for row in result.get("findings") or []:
+                        if isinstance(row, dict):
+                            _append_source_item(
+                                items,
+                                seen,
+                                {
+                                    **row,
+                                    "title": (
+                                        str(row.get("source") or "").strip()
+                                        or str(row.get("category") or "").strip()
+                                        or "Dossier finding"
+                                    ),
+                                    "url": row.get("source_url"),
+                                    "snippet": row.get("finding_with_age") or row.get("finding"),
+                                    "published_at": row.get("ts"),
+                                    "score": row.get("confidence"),
+                                },
+                                default_title="Dossier finding",
+                                kind="context",
+                            )
+                elif tool_name == "deep_research":
+                    research = result.get("research")
+                    if isinstance(research, dict):
+                        _append_source_item(
+                            items,
+                            seen,
+                            {
+                                "title": "Deep research brief",
+                                "source_id": f"deep_research:{result.get('ticker') or ''}",
+                                "snippet": research.get("summary"),
+                                "score": research.get("confidence"),
+                            },
+                            default_title="Deep research brief",
+                            kind="context",
+                        )
+                elif tool_name == "search_web":
+                    for row in result.get("results") or result.get("pages") or []:
+                        if isinstance(row, dict):
+                            _append_source_item(
+                                items,
+                                seen,
+                                row,
+                                default_title="Web result",
+                                kind="web",
+                            )
+                elif tool_name == "fetch_url":
+                    _append_source_item(
+                        items,
+                        seen,
+                        result,
+                        default_title="Fetched page",
+                        kind="web",
+                    )
+                elif tool_name == "get_data_quality":
+                    for row in result.get("recent_failures") or []:
+                        if isinstance(row, dict):
+                            _append_source_item(
+                                items,
+                                seen,
+                                row,
+                                default_title="Extraction failure",
+                                kind="document",
+                            )
+                    for row in result.get("recent_low_conf_rows") or []:
+                        if isinstance(row, dict):
+                            _append_source_item(
+                                items,
+                                seen,
+                                {
+                                    **row,
+                                    "title": (
+                                        f"{row.get('ticker') or 'Low-confidence'} "
+                                        f"{row.get('period_type') or ''} "
+                                        f"{row.get('period_end') or ''}"
+                                    ).strip(),
+                                    "document_id": row.get("source_document_id"),
+                                    "published_at": row.get("period_end"),
+                                    "score": row.get("confidence_metrics"),
+                                    "snippet": (
+                                        f"Confidence {row.get('confidence_metrics')}"
+                                        if row.get("confidence_metrics") is not None
+                                        else None
+                                    ),
+                                },
+                                default_title="Low-confidence financial",
+                                kind="context",
+                            )
+                elif tool_name == "run_analysis":
+                    for row in result.get("modules") or []:
+                        if not isinstance(row, dict):
+                            continue
+                        metrics = row.get("metrics") if isinstance(row.get("metrics"), dict) else {}
+                        metric_bits = [
+                            f"{key}: {value}"
+                            for key, value in metrics.items()
+                            if value not in (None, "")
+                        ]
+                        snippet = str(row.get("narrative") or "").strip()
+                        if not snippet and metric_bits:
+                            snippet = ", ".join(metric_bits)
+                        _append_source_item(
+                            items,
+                            seen,
+                            {
+                                "title": f"{row.get('module') or 'Analysis'} analysis",
+                                "source_id": (
+                                    f"analysis:{result.get('ticker') or ''}:{row.get('module') or ''}"
+                                ),
+                                "snippet": snippet or None,
+                                "score": 1.0 if row.get("status") == "complete" else 0.0,
+                            },
+                            default_title="Analysis result",
+                            kind="context",
+                        )
+                elif tool_name == "get_price":
+                    price = result.get("price") if isinstance(result.get("price"), dict) else {}
+                    current = price.get("current") if isinstance(price.get("current"), dict) else {}
+                    _append_source_item(
+                        items,
+                        seen,
+                        {
+                            "title": f"{result.get('ticker') or 'Ticker'} price data",
+                            "source_id": (
+                                f"price:{result.get('ticker') or ''}:{price.get('range') or ''}:{price.get('interval') or ''}"
+                            ),
+                            "snippet": (
+                                f"Provider: {price.get('provider') or 'unknown'}. "
+                                f"Market time: {current.get('market_time') or 'unknown'}."
+                            ),
+                        },
+                        default_title="Price data",
+                        kind="context",
+                    )
+                elif tool_name == "get_price_on_date":
+                    _append_source_item(
+                        items,
+                        seen,
+                        {
+                            "title": (
+                                f"{result.get('ticker') or 'Ticker'} price on "
+                                f"{result.get('date') or 'requested date'}"
+                            ),
+                            "source_id": (
+                                f"price_on_date:{result.get('ticker') or ''}:{result.get('date') or ''}"
+                            ),
+                            "snippet": (
+                                f"Open {result.get('open')}, high {result.get('high')}, "
+                                f"low {result.get('low')}, close {result.get('close')}."
+                            ),
+                        },
+                        default_title="Historical price",
+                        kind="context",
+                    )
+                elif tool_name == "get_price_range":
+                    _append_source_item(
+                        items,
+                        seen,
+                        {
+                            "title": (
+                                f"{result.get('ticker') or 'Ticker'} price range "
+                                f"{result.get('start_date') or ''} to {result.get('end_date') or ''}"
+                            ).strip(),
+                            "source_id": (
+                                f"price_range:{result.get('ticker') or ''}:{result.get('start_date') or ''}:{result.get('end_date') or ''}"
+                            ),
+                            "snippet": f"{result.get('data_points') or 0} price observations returned.",
+                        },
+                        default_title="Price range",
+                        kind="context",
+                    )
+                elif tool_name == "search_social":
+                    for row in result.get("stories") or result.get("results") or []:
+                        if isinstance(row, dict):
+                            _append_source_item(
+                                items,
+                                seen,
+                                row,
+                                default_title="Social result",
+                                kind="web",
+                            )
+                elif tool_name == "get_watchlist_alerts":
+                    for row in result.get("alerts") or []:
+                        if isinstance(row, dict):
+                            _append_source_item(
+                                items,
+                                seen,
+                                {
+                                    **row,
+                                    "title": (
+                                        f"{row.get('ticker') or 'Watchlist'} "
+                                        f"{row.get('type') or 'alert'}"
+                                    ).strip(),
+                                    "source_id": row.get("id"),
+                                    "snippet": row.get("message"),
+                                    "published_at": row.get("ts"),
+                                },
+                                default_title="Watchlist alert",
+                                kind="context",
                             )
 
         if len(items) >= 10:

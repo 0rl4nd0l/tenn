@@ -16,6 +16,17 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 
 ---
 
+## L066 — UI source rendering must accept every agent evidence shape it depends on
+
+**Date:** 2026-04-15
+**Subsystem:** `financial-engine_v2/backend/app/routes/cockpit_api.py`
+**Symptom:** The Sources panel rendered empty even when the agent had gathered real announcement, dossier, web, analysis, price, or alert evidence.
+**Root cause:** `_build_ui_sources` only knew how to read a few agent-loop tool payloads and silently dropped the rest because it assumed a narrower evidence-shape contract than the tool executor actually produced.
+**Fix:** Added explicit `_build_ui_sources` branches for every audited agent evidence payload and pinned them with regression tests in `backend/tests/test_build_ui_sources.py`.
+**Rule:** Any new read-only tool that contributes user-visible evidence must either emit an existing `_build_ui_sources` shape or add a matching branch plus regression test in the same change. Do not rely on the Sources panel to infer unseen payload shapes.
+
+---
+
 ## L001 — Margin formula: _pct_change is not _ratio
 
 **Date:** 2026-03-24
