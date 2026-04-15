@@ -301,6 +301,7 @@ class CockpitApp(App):
         self._history_idx: int = -1
         self.active_job_task: asyncio.Task[None] | None = None
         self.active_job_id: str | None = None
+        self.active_job_backend_managed = False
         self.active_log_target: str = "chat-log"
         self._model_status_timer = None
         self._last_chat_inference_line: str | None = None
@@ -2019,6 +2020,129 @@ class CockpitApp(App):
                 self._write_log(log_target, "Action cancelled")
                 return
 
+        if preview.guard_message:
+            self._write_log(log_target, f"Guard: {preview.guard_message}")
+        if self._backend_client is not None:
+            self._write_log(log_target, f"Executing via backend: {' '.join(preview.command)}")
+            try:
+                backend_result = await asyncio.to_thread(
+                    self._backend_client.start_action_job,
+                    action_id,
+                    args,
+                    session_id=self.thread_id,
+                    timeout=30.0,
+                )
+            except Exception as exc:
+                self._write_log(log_target, f"Backend action queue failed: {exc}")
+                return
+
+            backend_job_id = str(backend_result.get("job_id") or "").strip()
+            queued = bool(backend_result.get("queued"))
+            status = str(backend_result.get("status") or "").strip().lower()
+            result_text = str(backend_result.get("result") or "").strip()
+            exit_code = backend_result.get("exit_code")
+
+            if result_text:
+                self._write_log(log_target, result_text)
+
+            if backend_job_id and (queued or status in {"queued", "running"}):
+                self._write_log(log_target, f"Job queued: {backend_job_id}")
+                self.active_job_id = backend_job_id
+                self.active_log_target = log_target
+                self.active_job_backend_managed = True
+
+                async def _poll_backend_action_job() -> None:
+                    last_status: str | None = None
+                    last_progress: tuple[str | None, float | None] | None = None
+                    last_output_line: str | None = None
+                    terminal_statuses = {"success", "failed", "cancelled", "canceled", "stopped"}
+                    try:
+                        while True:
+                            job = await asyncio.to_thread(
+                                lambda: self._backend_client.get_action_job(
+                                    backend_job_id,
+                                    tail=8,
+                                ),
+                            )
+                            current_status = str(job.get("status") or "").strip().lower()
+                            progress_stage = str(job.get("progress_stage") or "").strip() or None
+                            progress_pct = job.get("progress_pct")
+                            try:
+                                progress_value = (
+                                    float(progress_pct)
+                                    if progress_pct is not None
+                                    else None
+                                )
+                            except Exception:
+                                progress_value = None
+                            current_progress = (progress_stage, progress_value)
+                            if current_status != last_status:
+                                if current_status == "running":
+                                    self._write_log(log_target, f"Job started: {backend_job_id}")
+                                last_status = current_status
+
+                            progress_line = self._format_backend_action_progress(
+                                progress_stage, progress_pct
+                            )
+                            if progress_line and current_progress != last_progress:
+                                self._write_log(log_target, progress_line)
+                                last_progress = current_progress
+
+                            output_line = self._extract_latest_output_line(job.get("result"))
+                            if output_line and output_line != last_output_line:
+                                self._write_log(log_target, output_line)
+                                last_output_line = output_line
+
+                            if current_status in terminal_statuses:
+                                exit_code = job.get("exit_code")
+                                self._write_log(
+                                    log_target,
+                                    f"Completed with status={current_status} exit={exit_code}",
+                                )
+                                result_block = str(job.get("result") or "").strip()
+                                if result_block and result_block != last_output_line:
+                                    self._write_log(log_target, result_block)
+                                break
+
+                            await asyncio.sleep(1.5)
+                    except asyncio.CancelledError:
+                        raise
+                    except Exception as exc:
+                        self._write_log(log_target, f"Backend action monitor error: {exc}")
+                    finally:
+                        if self.active_job_id == backend_job_id:
+                            self.active_job_id = None
+                        self.active_job_backend_managed = False
+                        self.active_job_task = None
+
+                self.active_job_task = asyncio.create_task(_poll_backend_action_job())
+                return
+
+            if self._is_terminal_backend_job_status(status):
+                completed_status = status or "success"
+                self._write_log(
+                    log_target,
+                    f"Completed with status={completed_status} exit={exit_code or 0}",
+                )
+                if result_text:
+                    self._write_log(log_target, result_text)
+                return
+
+            if backend_job_id:
+                self._write_log(log_target, f"Job queued: {backend_job_id}")
+                self.active_job_id = backend_job_id
+                self.active_log_target = log_target
+                self.active_job_backend_managed = True
+                return
+
+            self._write_log(
+                log_target,
+                f"Completed with status={status or 'success'} exit={exit_code or 0}",
+            )
+            if result_text:
+                self._write_log(log_target, result_text)
+            return
+
         job = JobRun(
             job_id=uuid.uuid4().hex,
             action_id=action_id,
@@ -2041,12 +2165,11 @@ class CockpitApp(App):
             }
         )
 
-        if preview.guard_message:
-            self._write_log(log_target, f"Guard: {preview.guard_message}")
         self._write_log(log_target, f"Executing: {' '.join(preview.command)}")
         self._write_log(log_target, f"Job queued: {job.job_id}")
         self.active_job_id = job.job_id
         self.active_log_target = log_target
+        self.active_job_backend_managed = False
         last_ticker: str | None = None
         last_day: str | None = None
         last_critical_line: str | None = None
@@ -2136,6 +2259,7 @@ class CockpitApp(App):
                 self._write_log(log_target, f"Action runner error: {exc}")
             finally:
                 self.active_job_id = None
+                self.active_job_backend_managed = False
                 self.active_job_task = None
 
         self.active_job_task = asyncio.create_task(_run_and_finalize())
@@ -2145,6 +2269,28 @@ class CockpitApp(App):
             self._write_log(log_target, "No running action to cancel.")
             self.active_job_task = None
             self.active_job_id = None
+            self.active_job_backend_managed = False
+            return
+
+        if self.active_job_backend_managed and self._backend_client is not None:
+            job_id = self.active_job_id or "unknown"
+            try:
+                result = await asyncio.to_thread(
+                    self._backend_client.stop_action_job,
+                    job_id,
+                )
+            except Exception as exc:
+                self._write_log(
+                    log_target,
+                    f"Backend stop request failed: {exc} (job_id={job_id})",
+                )
+                return
+
+            status = str(result.get("status") or "requested")
+            self._write_log(
+                log_target,
+                f"Cancel request sent: {status} (job_id={job_id})",
+            )
             return
 
         status = await self.job_runner.cancel_active()
@@ -2168,6 +2314,39 @@ class CockpitApp(App):
             return await asyncio.wait_for(future, timeout=3600)
         except asyncio.TimeoutError:
             return False
+
+    @staticmethod
+    def _format_backend_action_progress(
+        stage: str | None, pct: float | int | None
+    ) -> str | None:
+        clean_stage = str(stage or "").strip()
+        if pct is None and not clean_stage:
+            return None
+
+        clean_pct: str | None = None
+        if pct is not None:
+            try:
+                clean_pct = f"{float(pct):.0f}%"
+            except Exception:
+                clean_pct = str(pct).strip() or None
+
+        if clean_stage and clean_pct:
+            return f"[progress] {clean_stage} ({clean_pct})"
+        if clean_stage:
+            return f"[progress] {clean_stage}"
+        if clean_pct:
+            return f"[progress] {clean_pct}"
+        return None
+
+    @staticmethod
+    def _extract_latest_output_line(text: str | None) -> str | None:
+        lines = [line.strip() for line in str(text or "").splitlines() if line.strip()]
+        return lines[-1] if lines else None
+
+    @staticmethod
+    def _is_terminal_backend_job_status(status: str) -> bool:
+        normalized = str(status or "").strip().lower()
+        return normalized in {"success", "failed", "cancelled", "canceled", "stopped"}
 
     def _handle_review_command(self, sub: str, arg: str, log) -> str:
         """Handle /review subcommands — backend API when configured, local service otherwise."""

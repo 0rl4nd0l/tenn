@@ -29,6 +29,25 @@ class BackendApiClient:
             response.raise_for_status()
             return response.json() if response.content else {}
 
+    def _ops_post(
+        self,
+        path: str,
+        *,
+        json: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+        timeout: float = 15.0,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}{path}"
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.post(
+                url,
+                params=params,
+                json=json,
+                headers=self._api_key_headers(),
+            )
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
     def health(self, timeout: float = 5.0) -> dict[str, Any]:
         url = f"{self.base_url}/api/health"
         with httpx.Client(timeout=timeout, follow_redirects=True) as client:
@@ -101,6 +120,62 @@ class BackendApiClient:
                 }
             except Exception as exc:
                 return {"ok": False, "url": self.base_url, "error": str(exc)}
+
+    def queue_action_job(
+        self,
+        action_id: str,
+        args: dict[str, Any],
+        *,
+        session_id: str | None = None,
+        timeout: float = 120.0,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "action_id": str(action_id or "").strip(),
+            "args": args,
+            "wait": False,
+        }
+        if session_id is not None:
+            payload["session_id"] = str(session_id or "").strip() or None
+        return self._ops_post(
+            "/api/cockpit/action/execute",
+            json=payload,
+            timeout=timeout,
+        )
+
+    def get_action_job(
+        self,
+        job_id: str,
+        *,
+        tail: int = 0,
+        timeout: float = 15.0,
+    ) -> dict[str, Any]:
+        params: dict[str, Any] | None = {"tail": tail} if tail else None
+        return self._ops_get(
+            f"/api/cockpit/action/jobs/{str(job_id or '').strip()}",
+            params=params,
+            timeout=timeout,
+        )
+
+    def stop_action_job(self, job_id: str, timeout: float = 15.0) -> dict[str, Any]:
+        return self._ops_post(
+            f"/api/cockpit/action/jobs/{str(job_id or '').strip()}/stop",
+            timeout=timeout,
+        )
+
+    def start_action_job(
+        self,
+        action_id: str,
+        args: dict[str, Any] | None = None,
+        *,
+        session_id: str | None = None,
+        timeout: float = 120.0,
+    ) -> dict[str, Any]:
+        return self.queue_action_job(
+            action_id,
+            args or {},
+            session_id=session_id,
+            timeout=timeout,
+        )
 
     def get_price(
         self,

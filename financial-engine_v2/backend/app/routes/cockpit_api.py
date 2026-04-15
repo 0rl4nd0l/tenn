@@ -12,6 +12,7 @@ import sys
 import threading
 import time
 import uuid
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from collections.abc import Callable
@@ -40,6 +41,111 @@ from cockpit.core.config import (
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class QueuedActionJobRuntime:
+    job_id: str
+    action_id: str
+    started_at: str
+    stop_event: threading.Event = field(default_factory=threading.Event)
+    process: subprocess.Popen[str] | None = None
+    terminal_status: str | None = None
+    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
+
+    def set_process(self, proc: subprocess.Popen[str] | None) -> None:
+        with self._lock:
+            self.process = proc
+
+    def get_process(self) -> subprocess.Popen[str] | None:
+        with self._lock:
+            return self.process
+
+    def record_terminal(self, status: str) -> bool:
+        with self._lock:
+            if self.terminal_status is not None:
+                return False
+            self.terminal_status = status
+            return True
+
+
+_queued_action_jobs: dict[str, QueuedActionJobRuntime] = {}
+_queued_action_jobs_lock = threading.Lock()
+
+
+def _register_queued_action_job(runtime: QueuedActionJobRuntime) -> None:
+    with _queued_action_jobs_lock:
+        _queued_action_jobs[runtime.job_id] = runtime
+
+
+def _get_queued_action_job(job_id: str) -> QueuedActionJobRuntime | None:
+    with _queued_action_jobs_lock:
+        return _queued_action_jobs.get(job_id)
+
+
+def _forget_queued_action_job(job_id: str) -> None:
+    with _queued_action_jobs_lock:
+        _queued_action_jobs.pop(job_id, None)
+
+
+def _get_backend_job_tracker() -> Any | None:
+    try:
+        from app.services.job_tracker import get_tracker
+
+        return get_tracker()
+    except Exception as exc:
+        logger.debug("Backend job tracker unavailable: %s", exc)
+        return None
+
+
+def _best_effort_tracker_call(method: str, *args: Any, **kwargs: Any) -> None:
+    tracker = _get_backend_job_tracker()
+    if tracker is None:
+        return
+    try:
+        getattr(tracker, method)(*args, **kwargs)
+    except Exception as exc:
+        logger.debug("Backend tracker %s failed for %s: %s", method, kwargs.get("job_id"), exc)
+
+
+def _action_job_ticker(args: dict[str, Any]) -> str | None:
+    raw = str(args.get("ticker") or args.get("tickers") or "").strip()
+    if not raw:
+        return None
+    return raw.split(",")[0].strip().upper() or None
+
+
+def _persist_action_job_row(
+    service: CockpitService,
+    *,
+    job_id: str,
+    action_id: str,
+    args: dict[str, Any],
+    started_at: str,
+    status: str,
+    stdout_path: Path,
+    stderr_path: Path,
+    exit_code: int | None = None,
+    ended_at: str | None = None,
+) -> None:
+    service.state_store.add_job(
+        {
+            "job_id": job_id,
+            "action_id": action_id,
+            "args": args,
+            "started_at": started_at,
+            "ended_at": ended_at,
+            "status": status,
+            "exit_code": exit_code,
+            "stdout_path": str(stdout_path),
+            "stderr_path": str(stderr_path),
+            "artifacts": [],
+        }
+    )
+
+_ACTION_JOB_PROCS: dict[str, subprocess.Popen[str]] = {}
+_ACTION_JOB_PROC_LOCK = threading.Lock()
+_ACTION_JOB_CANCEL_REQUESTS: set[str] = set()
 
 
 # ---------------------------------------------------------------------------
@@ -1596,6 +1702,7 @@ def _run_action_subprocess(
 
 def _run_action_subprocess_streaming(
     *,
+    job_id: str,
     normalized_command: list[str],
     repo_root: Path,
     action_env: dict[str, str],
@@ -1637,6 +1744,8 @@ def _run_action_subprocess_streaming(
             bufsize=1,
             env=action_env,
         )
+        with _ACTION_JOB_PROC_LOCK:
+            _ACTION_JOB_PROCS[job_id] = proc
         t_out = threading.Thread(
             target=_pump, args=(proc.stdout, out_f, on_stdout_line), daemon=True
         )
@@ -1653,10 +1762,14 @@ def _run_action_subprocess_streaming(
             proc.wait(timeout=5)
             t_out.join(timeout=2)
             t_err.join(timeout=2)
+            with _ACTION_JOB_PROC_LOCK:
+                _ACTION_JOB_PROCS.pop(job_id, None)
             return 124, "", f"Action timed out after {timeout_seconds}s\n"
 
         t_out.join(timeout=5)
         t_err.join(timeout=5)
+        with _ACTION_JOB_PROC_LOCK:
+            _ACTION_JOB_PROCS.pop(job_id, None)
 
     stdout_text = stdout_path.read_text(encoding="utf-8", errors="replace")
     stderr_text = stderr_path.read_text(encoding="utf-8", errors="replace")
@@ -1728,12 +1841,55 @@ def _launch_action_job(
     action_env: dict[str, str],
     timeout_seconds: int,
 ) -> dict[str, Any]:
+    from app.services.job_tracker import get_tracker
+
     job_id = uuid.uuid4().hex
     logs_dir = Path(service.artifact_store.logs_dir)
     logs_dir.mkdir(parents=True, exist_ok=True)
     stdout_path = logs_dir / f"{job_id}.out.log"
     stderr_path = logs_dir / f"{job_id}.err.log"
     started_at = datetime.now(timezone.utc).isoformat()
+    tracker = get_tracker()
+    ticker = str(args.get("ticker") or "").strip().upper() or None
+    tickers = str(args.get("tickers") or "").strip().upper()
+    entity_scope = tickers or action_id
+    if not ticker and tickers and "," not in tickers:
+        ticker = tickers
+    action_label = action_id
+    try:
+        action_label = str(service.action_registry.get(action_id).label or action_id)
+    except Exception:
+        action_label = action_id
+
+    if tracker is not None:
+        try:
+            tracker.create_job(
+                job_id=job_id,
+                job_type=action_id,
+                job_family="cockpit_action",
+                title=action_label,
+                trigger_source="cockpit",
+                entity_scope=entity_scope,
+                ticker=ticker,
+                metadata={"args": args},
+            )
+            tracker.add_artifact(
+                job_id,
+                artifact_type="log",
+                artifact_label="stdout log",
+                artifact_path=str(stdout_path),
+            )
+            tracker.add_artifact(
+                job_id,
+                artifact_type="log",
+                artifact_label="stderr log",
+                artifact_path=str(stderr_path),
+            )
+        except Exception:
+            logger.warning(
+                "ops tracker init for cockpit action failed (non-fatal)",
+                exc_info=True,
+            )
 
     service.state_store.add_job(
         {
@@ -1753,6 +1909,14 @@ def _launch_action_job(
     def _worker() -> None:
         from app.services.progress_parser import parse_progress_line
 
+        if tracker is not None:
+            try:
+                tracker.start_job(job_id)
+            except Exception:
+                logger.warning(
+                    "ops tracker start for cockpit action failed (non-fatal)",
+                    exc_info=True,
+                )
         service.state_store.add_job(
             {
                 "job_id": job_id,
@@ -1781,11 +1945,32 @@ def _launch_action_job(
                 service.state_store.update_job_progress(
                     job_id, info.stage, info.pct
                 )
+                if tracker is not None:
+                    try:
+                        tracker.change_phase(
+                            job_id, info.stage, message=info.detail or info.stage
+                        )
+                        if info.current is not None and info.total is not None:
+                            tracker.record_progress(
+                                job_id,
+                                current=info.current,
+                                total=info.total,
+                                message=info.detail
+                                or f"{info.current}/{info.total}",
+                            )
+                    except Exception:
+                        logger.warning(
+                            "ops tracker progress for cockpit action failed (non-fatal)",
+                            exc_info=True,
+                        )
 
         exit_code: int | None = None
         status = "failed"
+        stdout_text = ""
+        stderr_text = ""
         try:
-            exit_code, _, _ = _run_action_subprocess_streaming(
+            exit_code, stdout_text, stderr_text = _run_action_subprocess_streaming(
+                job_id=job_id,
                 normalized_command=normalized_command,
                 repo_root=Path(service.repo_root),
                 action_env=action_env,
@@ -1794,11 +1979,18 @@ def _launch_action_job(
                 stderr_path=stderr_path,
                 on_stdout_line=_on_stdout_line,
             )
-            status = "success" if exit_code == 0 else "failed"
+            with _ACTION_JOB_PROC_LOCK:
+                was_cancelled = job_id in _ACTION_JOB_CANCEL_REQUESTS
+                if was_cancelled:
+                    _ACTION_JOB_CANCEL_REQUESTS.discard(job_id)
+            status = (
+                "cancelled" if was_cancelled else "success" if exit_code == 0 else "failed"
+            )
         except Exception as exc:
             stderr_path.write_text(
                 f"Action execution failed: {exc}\n", encoding="utf-8"
             )
+            stderr_text = f"Action execution failed: {exc}\n"
             status = "failed"
 
         service.state_store.add_job(
@@ -1815,6 +2007,31 @@ def _launch_action_job(
                 "artifacts": [],
             }
         )
+        if tracker is not None:
+            try:
+                if status == "success":
+                    tracker.complete_job(
+                        job_id,
+                        summary=_clip_action_output(
+                            stdout_text or f"Action {action_id} completed successfully",
+                            4000,
+                        ),
+                    )
+                elif status == "cancelled":
+                    tracker.cancel_job(job_id, reason="Cockpit action cancelled")
+                else:
+                    tracker.fail_job(
+                        job_id,
+                        _clip_action_output(
+                            stderr_text or stdout_text or f"Action {action_id} failed",
+                            4000,
+                        ),
+                    )
+            except Exception:
+                logger.warning(
+                    "ops tracker finalize for cockpit action failed (non-fatal)",
+                    exc_info=True,
+                )
 
     thread = threading.Thread(
         target=_worker,
@@ -2261,6 +2478,46 @@ async def cockpit_get_action_job(job_id: str, tail: int = 0):
         ) from exc
 
     return CockpitActionJobStatusResponse(**result)
+
+
+@router.post("/action/jobs/{job_id}/stop")
+async def cockpit_stop_action_job(job_id: str):
+    """Stop a running queued cockpit action job."""
+    try:
+        service = CockpitService.get_instance()
+    except Exception as exc:
+        logger.exception("Failed to initialize CockpitService for action stop")
+        raise HTTPException(
+            status_code=500, detail=f"Service initialization failed: {str(exc)}"
+        ) from exc
+
+    with _ACTION_JOB_PROC_LOCK:
+        proc = _ACTION_JOB_PROCS.get(job_id)
+        if proc is not None:
+            _ACTION_JOB_CANCEL_REQUESTS.add(job_id)
+
+    if proc is not None:
+        try:
+            proc.terminate()
+        except Exception as exc:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to stop action job: {str(exc)}",
+            ) from exc
+        return {"ok": True, "job_id": job_id, "status": "cancelling"}
+
+    job = service.state_store.get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"Action job not found: {job_id}")
+
+    status = str(job.get("status") or "unknown")
+    if status in {"success", "failed", "cancelled"}:
+        return {"ok": True, "job_id": job_id, "status": status}
+
+    raise HTTPException(
+        status_code=409,
+        detail=f"Action job is not currently stoppable: {job_id}",
+    )
 
 
 @router.post("/feedback/flag", response_model=CockpitFeedbackFlagResponse)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import httpx
 import respx
 
@@ -95,3 +96,115 @@ def test_get_ops_job_artifacts_returns_empty_payload_for_empty_response() -> Non
     assert result == {}
     request = route.calls[0].request
     assert str(request.url) == f"{BASE}/api/ops/jobs/job-123/artifacts"
+
+
+@respx.mock
+def test_start_action_job_posts_wait_false_and_api_key() -> None:
+    route = respx.post(f"{BASE}/api/cockpit/action/execute").mock(
+        return_value=httpx.Response(
+            200,
+            json={"ok": True, "job_id": "job-123", "queued": True, "status": "queued"},
+        )
+    )
+    client = BackendApiClient(BASE, api_key="secret")
+
+    result = client.start_action_job(
+        "daily_news_ingest",
+        {"tickers": "BHP"},
+        session_id="global-main",
+    )
+
+    assert result["job_id"] == "job-123"
+    request = route.calls[0].request
+    assert request.headers.get("x-api-key") == "secret"
+    assert request.content
+    assert json.loads(request.content.decode("utf-8")) == {
+        "action_id": "daily_news_ingest",
+        "args": {"tickers": "BHP"},
+        "wait": False,
+        "session_id": "global-main",
+    }
+
+
+@respx.mock
+def test_get_action_job_sends_tail_query_param() -> None:
+    route = respx.get(f"{BASE}/api/cockpit/action/jobs/job-123").mock(
+        return_value=httpx.Response(200, json={"job_id": "job-123", "status": "running"})
+    )
+    client = BackendApiClient(BASE)
+
+    result = client.get_action_job("job-123", tail=25)
+
+    assert result == {"job_id": "job-123", "status": "running"}
+    request = route.calls[0].request
+    assert str(request.url.copy_with(query=None)) == f"{BASE}/api/cockpit/action/jobs/job-123"
+    assert dict(request.url.params) == {"tail": "25"}
+
+
+@respx.mock
+def test_stop_action_job_posts_stop_endpoint() -> None:
+    route = respx.post(f"{BASE}/api/cockpit/action/jobs/job-123/stop").mock(
+        return_value=httpx.Response(200, json={"ok": True, "job_id": "job-123", "status": "cancelling"})
+    )
+    client = BackendApiClient(BASE, api_key="secret")
+
+    result = client.stop_action_job("job-123")
+
+    assert result["status"] == "cancelling"
+    request = route.calls[0].request
+    assert request.headers.get("x-api-key") == "secret"
+    assert str(request.url) == f"{BASE}/api/cockpit/action/jobs/job-123/stop"
+
+
+@respx.mock
+def test_queue_action_job_posts_wait_false_payload() -> None:
+    route = respx.post(f"{BASE}/api/cockpit/action/execute").mock(
+        return_value=httpx.Response(200, json={"queued": True, "job_id": "job-1"})
+    )
+    client = BackendApiClient(BASE, api_key="secret")
+
+    result = client.queue_action_job(
+        "daily_news_ingest",
+        {"tickers": "BHP"},
+        session_id="session-1",
+    )
+
+    assert result == {"queued": True, "job_id": "job-1"}
+    request = route.calls[0].request
+    assert str(request.url) == f"{BASE}/api/cockpit/action/execute"
+    assert request.headers.get("x-api-key") == "secret"
+    assert json.loads(request.content.decode("utf-8")) == {
+        "action_id": "daily_news_ingest",
+        "args": {"tickers": "BHP"},
+        "wait": False,
+        "session_id": "session-1",
+    }
+
+
+@respx.mock
+def test_get_action_job_uses_tail_param() -> None:
+    route = respx.get(f"{BASE}/api/cockpit/action/jobs/job-123").mock(
+        return_value=httpx.Response(200, json={"job_id": "job-123", "status": "running"})
+    )
+    client = BackendApiClient(BASE)
+
+    result = client.get_action_job("job-123", tail=5)
+
+    assert result == {"job_id": "job-123", "status": "running"}
+    request = route.calls[0].request
+    assert str(request.url.copy_with(query=None)) == f"{BASE}/api/cockpit/action/jobs/job-123"
+    assert dict(request.url.params) == {"tail": "5"}
+
+
+@respx.mock
+def test_stop_action_job_posts_stop_route() -> None:
+    route = respx.post(f"{BASE}/api/cockpit/action/jobs/job-123/stop").mock(
+        return_value=httpx.Response(200, json={"status": "stopping"})
+    )
+    client = BackendApiClient(BASE)
+
+    result = client.stop_action_job("job-123")
+
+    assert result == {"status": "stopping"}
+    request = route.calls[0].request
+    assert str(request.url) == f"{BASE}/api/cockpit/action/jobs/job-123/stop"

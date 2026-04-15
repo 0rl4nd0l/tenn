@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+import app.routes.cockpit_api as cockpit_api_module
 from app.routes.cockpit_api import router
 from app.services.cockpit_service import CockpitService
 
@@ -290,3 +291,130 @@ def test_cockpit_action_job_status_reads_persisted_job(
     assert payload["job_id"] == "job-123"
     assert payload["status"] == "success"
     assert payload["result"] == "completed successfully"
+
+
+def test_launch_action_job_registers_ops_tracker_events(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    class FakeStateStore:
+        def __init__(self) -> None:
+            self.rows: list[dict[str, object]] = []
+
+        def add_job(self, payload: dict[str, object]) -> None:
+            self.rows.append(payload)
+
+        def update_job_progress(
+            self, job_id: str, stage: str, pct: float | None = None
+        ) -> None:
+            self.rows.append(
+                {"job_id": job_id, "progress_stage": stage, "progress_pct": pct}
+            )
+
+    class FakeTracker:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, tuple[object, ...], dict[str, object]]] = []
+
+        def create_job(self, *args, **kwargs):
+            self.calls.append(("create_job", args, kwargs))
+
+        def add_artifact(self, *args, **kwargs):
+            self.calls.append(("add_artifact", args, kwargs))
+
+        def start_job(self, *args, **kwargs):
+            self.calls.append(("start_job", args, kwargs))
+
+        def change_phase(self, *args, **kwargs):
+            self.calls.append(("change_phase", args, kwargs))
+
+        def record_progress(self, *args, **kwargs):
+            self.calls.append(("record_progress", args, kwargs))
+
+        def complete_job(self, *args, **kwargs):
+            self.calls.append(("complete_job", args, kwargs))
+
+        def fail_job(self, *args, **kwargs):
+            self.calls.append(("fail_job", args, kwargs))
+
+        def cancel_job(self, *args, **kwargs):
+            self.calls.append(("cancel_job", args, kwargs))
+
+    class ImmediateThread:
+        def __init__(self, *, target, daemon=None, name=None):
+            self._target = target
+
+        def start(self) -> None:
+            self._target()
+
+    fake_tracker = FakeTracker()
+    fake_service = SimpleNamespace(
+        repo_root=tmp_path,
+        action_registry=SimpleNamespace(
+            get=lambda action_id: SimpleNamespace(label="Daily News Ingest")
+        ),
+        state_store=FakeStateStore(),
+        artifact_store=SimpleNamespace(logs_dir=tmp_path / "logs"),
+    )
+
+    monkeypatch.setattr("app.services.job_tracker.get_tracker", lambda: fake_tracker)
+    monkeypatch.setattr(
+        cockpit_api_module,
+        "_run_action_subprocess_streaming",
+        lambda **kwargs: (0, "[progress] ticker_index=1/2\n", ""),
+    )
+    monkeypatch.setattr(cockpit_api_module.threading, "Thread", ImmediateThread)
+
+    queued = cockpit_api_module._launch_action_job(
+        service=fake_service,
+        action_id="daily_news_ingest",
+        args={"tickers": "BHP"},
+        normalized_command=["python", "scripts/fetch_daily_news.py"],
+        action_env={},
+        timeout_seconds=120,
+    )
+
+    assert queued["queued"] is True
+    assert queued["job_id"]
+    create_calls = [call for call in fake_tracker.calls if call[0] == "create_job"]
+    assert create_calls
+    assert create_calls[0][2]["job_id"] == queued["job_id"]
+    assert create_calls[0][2]["job_type"] == "daily_news_ingest"
+    assert any(call[0] == "start_job" for call in fake_tracker.calls)
+    assert any(call[0] == "complete_job" for call in fake_tracker.calls)
+    assert sum(1 for call in fake_tracker.calls if call[0] == "add_artifact") == 2
+
+
+def test_cockpit_action_job_stop_terminates_registered_process(
+    monkeypatch,
+) -> None:
+    class DummyProc:
+        def __init__(self) -> None:
+            self.terminated = False
+
+        def terminate(self) -> None:
+            self.terminated = True
+
+    dummy_proc = DummyProc()
+    cockpit_api_module._ACTION_JOB_PROCS["job-123"] = dummy_proc
+    fake_service = SimpleNamespace(
+        state_store=SimpleNamespace(get_job=lambda job_id: {"job_id": job_id, "status": "running"})
+    )
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    try:
+        response = client.post("/api/cockpit/action/jobs/job-123/stop")
+    finally:
+        cockpit_api_module._ACTION_JOB_PROCS.pop("job-123", None)
+        cockpit_api_module._ACTION_JOB_CANCEL_REQUESTS.discard("job-123")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["job_id"] == "job-123"
+    assert payload["status"] == "cancelling"
+    assert dummy_proc.terminated is True
