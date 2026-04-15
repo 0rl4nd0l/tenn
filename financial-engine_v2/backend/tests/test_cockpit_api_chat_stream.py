@@ -271,11 +271,13 @@ def test_cockpit_feedback_flag_route_returns_saved_artifact_info(monkeypatch) ->
             assert kwargs["session_id"] == "session-123"
             assert kwargs["ticker"] == "BHP"
             assert kwargs["feedback_type"] == "poor"
+            assert kwargs["capture_kind"] == "chat_feedback"
             assert kwargs["flagged_message"]["content"] == "Bad answer"
             return {
                 "ok": True,
                 "report_id": "flag_20260409_abc123",
                 "feedback_type": "poor",
+                "capture_kind": "chat_feedback",
                 "report_dir": "/tmp/reports/cockpit/flagged_sessions/session-123/flag_20260409_abc123",
                 "bundle_path": "/tmp/reports/cockpit/flagged_sessions/session-123/flag_20260409_abc123/bundle.json",
                 "summary_path": "/tmp/reports/cockpit/flagged_sessions/session-123/flag_20260409_abc123/summary.md",
@@ -346,6 +348,7 @@ def test_cockpit_feedback_flag_route_returns_saved_artifact_info(monkeypatch) ->
     assert payload["ok"] is True
     assert payload["report_id"] == "flag_20260409_abc123"
     assert payload["feedback_type"] == "poor"
+    assert payload["capture_kind"] == "chat_feedback"
     assert (
         payload["read_api_path"] == "/api/cockpit/feedback/flags/flag_20260409_abc123"
     )
@@ -365,6 +368,7 @@ def test_cockpit_feedback_flag_list_route_returns_recent_flags(monkeypatch) -> N
                 {
                     "report_id": "flag_20260409_abc123",
                     "feedback_type": "poor",
+                    "capture_kind": "chat_feedback",
                     "session_id": "session-123",
                     "ticker": "BHP",
                     "saved_at": "2026-04-09T07:31:00Z",
@@ -393,6 +397,7 @@ def test_cockpit_feedback_flag_list_route_returns_recent_flags(monkeypatch) -> N
     assert len(payload["items"]) == 1
     assert payload["items"][0]["report_id"] == "flag_20260409_abc123"
     assert payload["items"][0]["feedback_type"] == "poor"
+    assert payload["items"][0]["capture_kind"] == "chat_feedback"
 
 
 def test_cockpit_feedback_flag_read_route_returns_flag_payload(monkeypatch) -> None:
@@ -402,6 +407,7 @@ def test_cockpit_feedback_flag_read_route_returns_flag_payload(monkeypatch) -> N
             return {
                 "report_id": "flag_20260409_abc123",
                 "feedback_type": "poor",
+                "capture_kind": "chat_feedback",
                 "report_dir": "/tmp/reports/cockpit/flagged_sessions/session-123/flag_20260409_abc123",
                 "bundle_path": "/tmp/reports/cockpit/flagged_sessions/session-123/flag_20260409_abc123/bundle.json",
                 "summary_path": "/tmp/reports/cockpit/flagged_sessions/session-123/flag_20260409_abc123/summary.md",
@@ -430,6 +436,7 @@ def test_cockpit_feedback_flag_read_route_returns_flag_payload(monkeypatch) -> N
     payload = response.json()
     assert payload["report_id"] == "flag_20260409_abc123"
     assert payload["feedback_type"] == "poor"
+    assert payload["capture_kind"] == "chat_feedback"
     assert payload["bundle"]["ticker"] == "BHP"
 
 
@@ -437,10 +444,12 @@ def test_cockpit_feedback_flag_route_supports_good_feedback(monkeypatch) -> None
     class FakeService:
         def flag_chat_feedback(self, **kwargs):
             assert kwargs["feedback_type"] == "good"
+            assert kwargs["capture_kind"] == "chat_feedback"
             return {
                 "ok": True,
                 "report_id": "good_20260410_abc123",
                 "feedback_type": "good",
+                "capture_kind": "chat_feedback",
                 "report_dir": "/tmp/reports/cockpit/flagged_sessions/session-123/good_20260410_abc123",
                 "bundle_path": "/tmp/reports/cockpit/flagged_sessions/session-123/good_20260410_abc123/bundle.json",
                 "summary_path": "/tmp/reports/cockpit/flagged_sessions/session-123/good_20260410_abc123/summary.md",
@@ -481,6 +490,65 @@ def test_cockpit_feedback_flag_route_supports_good_feedback(monkeypatch) -> None
     payload = response.json()
     assert payload["report_id"] == "good_20260410_abc123"
     assert payload["feedback_type"] == "good"
+    assert payload["capture_kind"] == "chat_feedback"
+
+
+def test_cockpit_feedback_flag_route_supports_ui_issue_capture(monkeypatch) -> None:
+    class FakeService:
+        def flag_chat_feedback(self, **kwargs):
+            assert kwargs["feedback_type"] == "poor"
+            assert kwargs["capture_kind"] == "ui_issue"
+            assert kwargs["flagged_message"]["content"] == "Toolbar button overlaps status bar"
+            assert kwargs["screenshot"]["filename"] == "ui-screenshot.png"
+            return {
+                "ok": True,
+                "report_id": "ui_issue_20260415_deadbeef",
+                "feedback_type": "poor",
+                "capture_kind": "ui_issue",
+                "report_dir": "/tmp/reports/cockpit/flagged_sessions/session-123/ui_issue_20260415_deadbeef",
+                "bundle_path": "/tmp/reports/cockpit/flagged_sessions/session-123/ui_issue_20260415_deadbeef/bundle.json",
+                "summary_path": "/tmp/reports/cockpit/flagged_sessions/session-123/ui_issue_20260415_deadbeef/summary.md",
+                "analysis_path": "/tmp/reports/cockpit/flagged_sessions/session-123/ui_issue_20260415_deadbeef/analysis.json",
+                "read_api_path": "/api/cockpit/feedback/flags/ui_issue_20260415_deadbeef",
+                "codex_prompt": "Investigate this cockpit UI issue and implement the minimal safe fix.",
+                "analysis_summary": None,
+            }
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/feedback/flag",
+        json={
+            "session_id": "session-123",
+            "ticker": "BHP",
+            "capture_kind": "ui_issue",
+            "note": "Happens after resizing the window",
+            "flagged_message": {
+                "id": "ui-issue-1",
+                "role": "system",
+                "content": "Toolbar button overlaps status bar",
+            },
+            "frontend_context": {"source": "cockpit-ui-issue-capture", "pathname": "/verification"},
+            "screenshot": {
+                "data_url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9p0NvwAAAABJRU5ErkJggg==",
+                "mime_type": "image/png",
+                "filename": "ui-screenshot.png",
+                "width": 1,
+                "height": 1,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["report_id"] == "ui_issue_20260415_deadbeef"
+    assert payload["capture_kind"] == "ui_issue"
 
 
 def test_flag_chat_feedback_persists_before_background_analysis(tmp_path) -> None:
@@ -648,3 +716,55 @@ def test_good_chat_feedback_persists_without_background_analysis(tmp_path) -> No
     assert bundle["backend_turn"]["response_prompt"] == "good prompt excerpt"
     assert result["report_id"].startswith("good_")
     assert scheduled == {}
+
+
+def test_ui_issue_capture_persists_screenshot_artifact(tmp_path) -> None:
+    service = CockpitService.__new__(CockpitService)
+    service.repo_root = tmp_path
+    service.state_store = None
+    service.backend_api_client = None
+    service.query_orchestrator = None
+    service.llm_client = SimpleNamespace(
+        model="model:test", base_url="http://127.0.0.1:8001"
+    )
+    service._resolve_thread_id = lambda session_id: session_id or "global-main"
+    service._resolve_turn_diagnostics = lambda thread_id, flagged_message: {}
+    scheduled: dict[str, object] = {}
+    service._schedule_flagged_report_analysis = lambda **kwargs: scheduled.update(kwargs)
+
+    result = service.flag_chat_feedback(
+        session_id="session-ui",
+        ticker="BHP",
+        feedback_type="poor",
+        capture_kind="ui_issue",
+        note="Toolbar overlap after resize",
+        flagged_message={
+            "id": "ui-issue-1",
+            "role": "system",
+            "content": "Toolbar button overlaps status bar",
+        },
+        frontend_context={"source": "cockpit-ui-issue-capture", "pathname": "/verification"},
+        screenshot={
+            "data_url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9p0NvwAAAABJRU5ErkJggg==",
+            "mime_type": "image/png",
+            "filename": "ui-screenshot.png",
+            "width": 1,
+            "height": 1,
+            "captured_at": "2026-04-15T07:31:00Z",
+        },
+    )
+
+    bundle = json.loads(Path(result["bundle_path"]).read_text(encoding="utf-8"))
+    assert result["capture_kind"] == "ui_issue"
+    assert result["report_id"].startswith("ui_issue_")
+    assert scheduled == {}
+    assert bundle["capture_kind"] == "ui_issue"
+    assert bundle["attachments"][0]["kind"] == "screenshot"
+    assert bundle["attachments"][0]["relative_path"] == "ui-screenshot.png"
+    assert "data_url" not in json.dumps(bundle)
+    screenshot_path = Path(bundle["attachments"][0]["absolute_path"])
+    assert screenshot_path.exists()
+    assert screenshot_path.read_bytes().startswith(b"\x89PNG")
+    summary = Path(result["summary_path"]).read_text(encoding="utf-8")
+    assert "# Cockpit UI Issue" in summary
+    assert "ui-screenshot.png" in summary

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import binascii
 import json
 import logging
 import os
@@ -124,6 +126,10 @@ def _normalize_feedback_type(raw: Any) -> str:
     return "good" if str(raw or "").strip().lower() == "good" else "poor"
 
 
+def _normalize_capture_kind(raw: Any) -> str:
+    return "ui_issue" if str(raw or "").strip().lower() == "ui_issue" else "chat_feedback"
+
+
 def _sanitize_payload(value: Any, *, key: str | None = None) -> Any:
     if key and _SENSITIVE_KEY_RE.search(key):
         return "***REDACTED***"
@@ -226,30 +232,55 @@ def _render_flagged_summary(
     bundle: dict[str, Any], analysis: dict[str, Any] | None
 ) -> str:
     feedback_type = _normalize_feedback_type(bundle.get("feedback_type"))
+    capture_kind = _normalize_capture_kind(bundle.get("capture_kind"))
     flagged = bundle.get("flagged_message") or {}
     request = (bundle.get("backend_turn") or {}).get("request") or {}
     routing = (bundle.get("backend_turn") or {}).get("routing_metadata") or {}
-    title = (
-        "# Positive Cockpit Feedback"
-        if feedback_type == "good"
-        else "# Flagged Cockpit Chat"
-    )
-    response_heading = (
-        "Saved Response" if feedback_type == "good" else "Flagged Response"
-    )
+    frontend_context = (bundle.get("frontend_snapshot") or {}).get("context") or {}
+    attachments = bundle.get("attachments") if isinstance(bundle.get("attachments"), list) else []
+    if capture_kind == "ui_issue":
+        title = "# Cockpit UI Issue"
+        response_heading = "Issue Description"
+    else:
+        title = (
+            "# Positive Cockpit Feedback"
+            if feedback_type == "good"
+            else "# Flagged Cockpit Chat"
+        )
+        response_heading = (
+            "Saved Response" if feedback_type == "good" else "Flagged Response"
+        )
     lines = [title, ""]
     lines.append(f"- Report ID: `{bundle.get('report_id')}`")
     lines.append(f"- Saved At: `{bundle.get('saved_at')}`")
+    lines.append(f"- Capture Kind: `{capture_kind}`")
     lines.append(f"- Feedback Type: `{feedback_type}`")
     lines.append(f"- Session ID: `{bundle.get('session_id') or 'global-main'}`")
     if bundle.get("ticker"):
         lines.append(f"- Ticker: `{bundle.get('ticker')}`")
+    route_path = str(frontend_context.get("pathname") or "").strip()
+    if route_path:
+        lines.append(f"- Route: `{route_path}`")
+    page_title = str(frontend_context.get("page_title") or "").strip()
+    if page_title:
+        lines.append(f"- Page Title: `{page_title}`")
     note = str(bundle.get("note") or "").strip()
     if note:
         lines.append(f"- Note: {note}")
     model_name = str(routing.get("model") or "").strip()
     if model_name:
         lines.append(f"- Model: `{model_name}`")
+    for attachment in attachments:
+        if not isinstance(attachment, dict):
+            continue
+        if str(attachment.get("kind") or "") != "screenshot":
+            continue
+        relative_path = str(attachment.get("relative_path") or "").strip()
+        absolute_path = str(attachment.get("absolute_path") or "").strip()
+        screenshot_label = relative_path or absolute_path
+        if screenshot_label:
+            lines.append(f"- Screenshot: `{screenshot_label}`")
+        break
     lines.extend(["", "## Request", "", _clip_text(request.get("message"), 1200), ""])
     lines.extend(
         [
@@ -283,11 +314,37 @@ def _build_codex_flag_prompt(
     read_api_path: str,
 ) -> str:
     feedback_type = _normalize_feedback_type(bundle.get("feedback_type"))
+    capture_kind = _normalize_capture_kind(bundle.get("capture_kind"))
     flagged = bundle.get("flagged_message") or {}
     note = str(bundle.get("note") or "").strip()
     flagged_text = _clip_text(flagged.get("content"), 1200).strip()
     analysis_summary = str((analysis or {}).get("summary") or "").strip()
-    if feedback_type == "good":
+    attachments = bundle.get("attachments") if isinstance(bundle.get("attachments"), list) else []
+    screenshot_path = ""
+    for attachment in attachments:
+        if not isinstance(attachment, dict):
+            continue
+        if str(attachment.get("kind") or "") != "screenshot":
+            continue
+        absolute_path = str(attachment.get("absolute_path") or "").strip()
+        relative_path = str(attachment.get("relative_path") or "").strip()
+        if absolute_path:
+            screenshot_path = absolute_path
+        elif relative_path:
+            screenshot_path = str((report_dir / relative_path).resolve())
+        break
+
+    if capture_kind == "ui_issue":
+        prompt_lines = [
+            "Investigate this cockpit UI issue and implement the minimal safe fix.",
+            "",
+            f"Issue ID: {bundle.get('report_id')}",
+            f"Issue directory: {report_dir}",
+            f"Read API: {read_api_path}",
+            f"Bundle: {bundle_path}",
+            f"Summary: {summary_path}",
+        ]
+    elif feedback_type == "good":
         prompt_lines = [
             "Review this positively rated cockpit response and capture what worked well.",
             "",
@@ -311,9 +368,19 @@ def _build_codex_flag_prompt(
         prompt_lines.extend(["", f"User note: {note}"])
     if flagged_text:
         prompt_lines.extend(["", "Saved response:", flagged_text])
+    if screenshot_path:
+        prompt_lines.extend(["", f"Screenshot: {screenshot_path}"])
     if analysis_summary:
         prompt_lines.extend(["", f"Saved analysis summary: {analysis_summary}"])
-    if feedback_type == "good":
+    if capture_kind == "ui_issue":
+        prompt_lines.extend(
+            [
+                "",
+                "Check the saved screenshot, frontend context, backend runtime snapshot, and summary.",
+                "Use the artifact directory on disk as the source of truth for reproduction details.",
+            ]
+        )
+    elif feedback_type == "good":
         prompt_lines.extend(
             [
                 "",
@@ -330,6 +397,62 @@ def _build_codex_flag_prompt(
             ]
         )
     return "\n".join(prompt_lines).strip()
+
+
+def _persist_feedback_screenshot(
+    *,
+    report_dir: Path,
+    screenshot: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not isinstance(screenshot, dict):
+        return None
+
+    data_url = str(screenshot.get("data_url") or "").strip()
+    if not data_url:
+        return None
+
+    match = re.match(
+        r"^data:(image/(?:png|jpeg));base64,(?P<data>[A-Za-z0-9+/=\s]+)$",
+        data_url,
+        re.IGNORECASE | re.DOTALL,
+    )
+    if match is None:
+        raise ValueError("Screenshot must be a base64 data URL (png or jpeg)")
+
+    mime_type = str(match.group(1) or "").strip().lower()
+    encoded = re.sub(r"\s+", "", str(match.group("data") or ""))
+    try:
+        blob = base64.b64decode(encoded, validate=True)
+    except (ValueError, binascii.Error) as exc:
+        raise ValueError("Screenshot payload is not valid base64") from exc
+
+    if not blob:
+        raise ValueError("Screenshot payload is empty")
+    if len(blob) > 10 * 1024 * 1024:
+        raise ValueError("Screenshot payload exceeds 10MB limit")
+
+    suffix = ".jpg" if mime_type == "image/jpeg" else ".png"
+    filename = str(screenshot.get("filename") or "").strip() or f"ui-screenshot{suffix}"
+    filename = Path(filename).name
+    if not filename.lower().endswith(suffix):
+        filename = f"{Path(filename).stem}{suffix}"
+
+    output_path = (report_dir / filename).resolve()
+    output_path.write_bytes(blob)
+
+    width = screenshot.get("width")
+    height = screenshot.get("height")
+    return {
+        "kind": "screenshot",
+        "filename": filename,
+        "mime_type": mime_type,
+        "relative_path": filename,
+        "absolute_path": str(output_path),
+        "byte_size": len(blob),
+        "width": int(width) if isinstance(width, (int, float)) else None,
+        "height": int(height) if isinstance(height, (int, float)) else None,
+        "captured_at": str(screenshot.get("captured_at") or "").strip() or None,
+    }
 
 
 def _write_flagged_report_files(
@@ -928,6 +1051,9 @@ class CockpitService:
                             "feedback_type": _normalize_feedback_type(
                                 bundle.get("feedback_type")
                             ),
+                            "capture_kind": _normalize_capture_kind(
+                                bundle.get("capture_kind")
+                            ),
                             "session_id": str(
                                 bundle.get("session_id") or session_dir.name
                             ),
@@ -970,6 +1096,7 @@ class CockpitService:
         return {
             "report_id": str(bundle.get("report_id") or report_id),
             "feedback_type": _normalize_feedback_type(bundle.get("feedback_type")),
+            "capture_kind": _normalize_capture_kind(bundle.get("capture_kind")),
             "report_dir": str(report_dir),
             "bundle_path": str(bundle_path),
             "summary_path": str(summary_path),
@@ -988,12 +1115,15 @@ class CockpitService:
         session_id: str | None,
         ticker: str | None,
         feedback_type: str = "poor",
+        capture_kind: str = "chat_feedback",
         flagged_message: dict[str, Any],
         transcript: list[dict[str, Any]] | None = None,
         frontend_context: dict[str, Any] | None = None,
+        screenshot: dict[str, Any] | None = None,
         note: str | None = None,
     ) -> dict[str, Any]:
         normalized_feedback_type = _normalize_feedback_type(feedback_type)
+        normalized_capture_kind = _normalize_capture_kind(capture_kind)
         thread_id = self._resolve_thread_id(session_id)
         resolved_turn = self._resolve_turn_diagnostics(thread_id, flagged_message) or {}
         matched_turn = resolved_turn if isinstance(resolved_turn, dict) else {}
@@ -1023,10 +1153,17 @@ class CockpitService:
                     extra={"thread_id": thread_id},
                 )
 
-        report_prefix = "good" if normalized_feedback_type == "good" else "flag"
+        if normalized_capture_kind == "ui_issue":
+            report_prefix = "ui_issue"
+        else:
+            report_prefix = "good" if normalized_feedback_type == "good" else "flag"
         report_id = f"{report_prefix}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
         report_dir = (self._flagged_reports_root() / thread_id / report_id).resolve()
         report_dir.mkdir(parents=True, exist_ok=True)
+        screenshot_attachment = _persist_feedback_screenshot(
+            report_dir=report_dir,
+            screenshot=screenshot,
+        )
 
         bundle = {
             "report_id": report_id,
@@ -1034,10 +1171,12 @@ class CockpitService:
             "session_id": thread_id,
             "ticker": str(ticker or "").strip().upper() or None,
             "feedback_type": normalized_feedback_type,
+            "capture_kind": normalized_capture_kind,
             "note": str(note or "").strip() or None,
             "flagged_message": flagged_message
             if isinstance(flagged_message, dict)
             else {},
+            "attachments": [screenshot_attachment] if screenshot_attachment else [],
             "frontend_snapshot": {
                 "transcript": [
                     item for item in (transcript or []) if isinstance(item, dict)
@@ -1083,7 +1222,10 @@ class CockpitService:
             summary_path=summary_path,
             read_api_path=read_api_path,
         )
-        if normalized_feedback_type != "good":
+        if (
+            normalized_capture_kind == "chat_feedback"
+            and normalized_feedback_type != "good"
+        ):
             self._schedule_flagged_report_analysis(
                 report_id=report_id,
                 bundle=sanitized_bundle,
@@ -1096,6 +1238,7 @@ class CockpitService:
             "ok": True,
             "report_id": report_id,
             "feedback_type": normalized_feedback_type,
+            "capture_kind": normalized_capture_kind,
             "report_dir": str(report_dir),
             "bundle_path": str(bundle_path),
             "summary_path": str(summary_path),

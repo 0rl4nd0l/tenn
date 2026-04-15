@@ -1490,16 +1490,19 @@ class CockpitFeedbackFlagRequest(BaseModel):
     session_id: str | None = None
     ticker: str | None = None
     feedback_type: Literal["good", "poor"] = "poor"
+    capture_kind: Literal["chat_feedback", "ui_issue"] = "chat_feedback"
     note: str | None = None
     flagged_message: dict[str, Any] = Field(default_factory=dict)
     transcript: list[dict[str, Any]] = Field(default_factory=list)
     frontend_context: dict[str, Any] = Field(default_factory=dict)
+    screenshot: dict[str, Any] | None = None
 
 
 class CockpitFeedbackFlagResponse(BaseModel):
     ok: bool = True
     report_id: str
     feedback_type: Literal["good", "poor"]
+    capture_kind: Literal["chat_feedback", "ui_issue"] = "chat_feedback"
     report_dir: str
     bundle_path: str
     summary_path: str
@@ -1512,6 +1515,7 @@ class CockpitFeedbackFlagResponse(BaseModel):
 class CockpitFlaggedReportListItem(BaseModel):
     report_id: str
     feedback_type: Literal["good", "poor"]
+    capture_kind: Literal["chat_feedback", "ui_issue"] = "chat_feedback"
     session_id: str
     ticker: str | None = None
     saved_at: str | None = None
@@ -1527,6 +1531,7 @@ class CockpitFlaggedReportListResponse(BaseModel):
 class CockpitFlaggedReportResponse(BaseModel):
     report_id: str
     feedback_type: Literal["good", "poor"]
+    capture_kind: Literal["chat_feedback", "ui_issue"] = "chat_feedback"
     report_dir: str
     bundle_path: str
     summary_path: str
@@ -2275,10 +2280,12 @@ async def cockpit_flag_feedback(payload: CockpitFeedbackFlagRequest):
             session_id=payload.session_id,
             ticker=payload.ticker,
             feedback_type=payload.feedback_type,
+            capture_kind=payload.capture_kind,
             note=payload.note,
             flagged_message=payload.flagged_message,
             transcript=payload.transcript,
             frontend_context=payload.frontend_context,
+            screenshot=payload.screenshot,
         )
     except Exception as exc:
         logger.exception("Cockpit feedback capture failed")
