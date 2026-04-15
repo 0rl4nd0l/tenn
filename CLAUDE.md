@@ -76,6 +76,16 @@ This project overrides the following global rules:
 - Prefer editing existing files over creating new ones.
 - No placeholders in production code. Track incomplete items explicitly.
 
+### No Speculative Features
+
+Implement exactly what was asked. Do not add:
+- Error handling for conditions that cannot occur
+- Configurability that was not requested
+- Abstractions for code used in exactly one place
+- "Future-proofing" that has no current requirement
+
+If simpler code solves the problem in half the lines, write the simpler version.
+
 ### Source-Grounded Reasoning
 
 - Prefer Confirmed evidence over Inferred. Mark Speculative claims clearly.
