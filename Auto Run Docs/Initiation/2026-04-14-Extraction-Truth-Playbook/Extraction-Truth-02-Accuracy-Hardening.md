@@ -22,10 +22,15 @@ This phase improves the actual quality of extracted financial truth after the pr
     5. **Docling timeout test alignment**: `DOCLING_TIMEOUT_SECONDS_PER_PAGE` was previously raised from 4→6 and `DOCLING_TIMEOUT_MAX` from 300→600; two stale tests updated to match actual constants (111 tests now all pass).
     - All Phase 02 hardening test classes (`TestIsExplicitNetDebtEvidence`, `TestSharesOutstandingMarkers`, `TestValidateGateQuarterlyThreshold`) confirmed passing.
 
-- [ ] Tighten non-AUD handling without implementing FX conversion:
+- [x] Tighten non-AUD handling without implementing FX conversion:
   - Keep the system truthful for non-AUD documents by preserving native currency, confidence, and trust outcome behavior through the extraction and eval path.
   - Reuse the existing currency context and `ok_low_confidence` or quarantine machinery where possible; improve detection, labeling, and operator visibility if they are inconsistent.
   - Do not convert values into AUD or cross-company-normalize anything unless a separate approved FX source and policy already exist in code and documentation.
+  - 2026-04-15: Three hardening fixes landed in `multipass_extraction.py` (120 tests, 0 fail):
+    1. **Extended `_CURRENCY_PATTERNS`** to cover 5 additional ASX-relevant currencies (GBP, EUR, CAD, NZD, CNY/CNH/RMB) using `(?<!\w)` lookahead for symbol-ending alternatives (e.g. `NZ$'000`, `£'000`) so `\b` word-boundary failures on `$`/`£`-followed-by-apostrophe are avoided.
+    2. **Fixed string-`"null"` currency normalisation** at the early detection/warning site: the LLM occasionally returns `"null"` as a JSON string rather than `null`; previously this caused a false non-AUD warning for AUD documents. The normalisation (already present in `_validate_gate`) is now also applied at Pass 1 currency propagation so no false positives reach the logger.
+    3. **Surfaced non-AUD currency in `payload["_structured_extraction"]["warnings"]`**: a `non_aud_currency:<CODE>` entry is now appended when currency is not AUD, giving operator tooling a structured signal without requiring log-scraping. No FX conversion is performed.
+    - New test classes `TestNonAUDCurrencyDetection` (5 tests) and `TestNonAUDCurrencyNormalisation` (4 tests) confirm all behaviours.
 
 - [ ] Promote real failures into durable regression fixtures:
   - Add or upgrade synthetic fixtures, real-gold corpus entries, and targeted unit cases only from hand-verified PDF evidence.

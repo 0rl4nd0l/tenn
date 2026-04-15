@@ -122,6 +122,18 @@ _CURRENCY_PATTERNS: list[tuple[str, str]] = [
     (r"\b(?:A\$|\$A|AUD|AUSTRALIAN\s+DOLLARS?)\b", "AUD"),
     # USD markers: US$, $US, USD, United States dollar(s)
     (r"\b(?:US\$|\$US|USD|UNITED\s+STATES\s+DOLLARS?)\b", "USD"),
+    # GBP markers: £ (symbol may precede scale like £'000), GBP, British pound(s), sterling.
+    # (?<!\w) avoids matching mid-word; symbol alternatives don't need a trailing \b since £
+    # is itself non-word and ASX column headers use e.g. "£'000" or "£M".
+    (r"(?:(?<!\w)£|\b(?:GBP|BRITISH\s+POUNDS?|STERLING)\b)", "GBP"),
+    # EUR markers: € (similar to £), EUR, euro(s)
+    (r"(?:(?<!\w)€|\b(?:EUR|EUROS?)\b)", "EUR"),
+    # CAD markers: CA$, $CA (may appear as "CA$'000" or "CA$M"), CAD, Canadian dollar(s)
+    (r"(?:(?<!\w)(?:CA\$|\$CA)|\b(?:CAD|CANADIAN\s+DOLLARS?)\b)", "CAD"),
+    # NZD markers: NZ$, $NZ (may appear as "NZ$'000" or "NZ$M"), NZD, New Zealand dollar(s)
+    (r"(?:(?<!\w)(?:NZ\$|\$NZ)|\b(?:NZD|NEW\s+ZEALAND\s+DOLLARS?)\b)", "NZD"),
+    # CNY/CNH markers: CNY, CNH, RMB, yuan, renminbi (all word-bounded; no symbol in use)
+    (r"\b(?:CNY|CNH|RMB|YUAN|RENMINBI)\b", "CNY"),
 ]
 
 
@@ -2315,8 +2327,12 @@ def run_multipass_extraction(
             )
             pass1["currency"] = detected_currency
 
-    _currency = pass1.get("currency", "AUD") or "AUD"
-    if _currency.upper() != "AUD":
+    _raw_pass1_currency = pass1.get("currency") or ""
+    if not _raw_pass1_currency or str(_raw_pass1_currency).strip().lower() == "null":
+        _raw_pass1_currency = "AUD"
+    _currency = str(_raw_pass1_currency).upper()
+    pass1["currency"] = _currency  # normalise in-place so propagation is consistent
+    if _currency != "AUD":
         logger.warning(
             "non-AUD currency detected: %s — values stored as-is (no FX conversion applied)",
             _currency,
@@ -2435,8 +2451,17 @@ def run_multipass_extraction(
 
     # Propagate scale and currency from Pass 1 into payload so _validate_gate
     # can inspect them and so _upsert_financial_rows stores the correct currency.
+    # pass1["currency"] was already normalised (string "null" → "AUD") at detection time.
     payload["scale"] = pass1.get("scale", "unknown") or "unknown"
-    payload["currency"] = pass1.get("currency", "AUD") or "AUD"
+    payload["currency"] = pass1.get("currency") or "AUD"
+
+    # Surface non-AUD currency as a structured warning for operator visibility.
+    # Values are stored in native currency with no FX conversion; downstream
+    # consumers must not compare them directly with AUD-denominated peers.
+    if payload["currency"] != "AUD":
+        payload["_structured_extraction"]["warnings"].append(
+            f"non_aud_currency:{payload['currency']} — values in native currency, no FX conversion"
+        )
 
     # Scale validation — detect obviously wrong multiplier application
     scale_validation = _validate_scale(payload)
