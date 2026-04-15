@@ -390,6 +390,18 @@ class CockpitApp(App):
             ),
         }
 
+    def get_recent_observable_jobs(self, limit: int = 20) -> list[dict[str, Any]]:
+        """Return backend-owned ops jobs when available, else local cockpit jobs."""
+        if self._backend_client is not None:
+            try:
+                result = self._backend_client.list_ops_jobs(limit=limit)
+                items = result.get("items")
+                if isinstance(items, list):
+                    return items
+            except Exception:
+                logger.debug("backend ops job read failed; falling back to local jobs", exc_info=True)
+        return self.state_store.list_jobs(limit=limit)
+
     def set_llm_profile(self, profile: str) -> str:
         """LLM profile is fixed in config/cockpit_llm.yaml (no runtime override)."""
         _ = profile
@@ -2533,18 +2545,18 @@ class CockpitApp(App):
                 effective_ticker = extract_ticker_from_payload(latest_export_payload)
             payload["last_detected_ticker"] = effective_ticker
         elif "ops" in screen_key or "operation" in screen_key:
-            payload["recent_jobs"] = self.state_store.list_jobs(limit=20)
+            payload["recent_jobs"] = self.get_recent_observable_jobs(limit=20)
         elif "updater" in screen_key:
-            payload["recent_jobs"] = self.state_store.list_jobs(limit=20)
+            payload["recent_jobs"] = self.get_recent_observable_jobs(limit=20)
         elif "verification" in screen_key:
             payload["last_verification"] = self.last_verification_payload
         elif "history" in screen_key:
-            payload["recent_jobs"] = self.state_store.list_jobs(limit=100)
+            payload["recent_jobs"] = self.get_recent_observable_jobs(limit=100)
             payload["recent_exports"] = self.state_store.list_exports(limit=100)
         elif "settings" in screen_key:
             payload["settings"] = self.config
         else:
-            payload["recent_jobs"] = self.state_store.list_jobs(limit=20)
+            payload["recent_jobs"] = self.get_recent_observable_jobs(limit=20)
 
         sanitized_payload = self._sanitize_export_payload(payload)
         text_blob = json.dumps(sanitized_payload, indent=2, default=str)

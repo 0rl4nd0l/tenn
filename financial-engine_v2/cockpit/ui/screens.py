@@ -25,6 +25,69 @@ from cockpit.core.plotly_html import build_verification_dashboard_html
 from cockpit.ui.help_modal import HelpScreen
 
 
+def _backend_ops_scope(job: dict[str, Any]) -> str:
+    ticker = str(job.get("ticker") or "").strip().upper()
+    if ticker:
+        return ticker
+    entity_scope = str(job.get("entity_scope") or "").strip()
+    if entity_scope:
+        return entity_scope
+    job_family = str(job.get("job_family") or "").strip()
+    if job_family:
+        return job_family
+    return "-"
+
+
+def _backend_ops_detail(job: dict[str, Any]) -> str:
+    title = str(job.get("title") or "").strip()
+    summary = str(job.get("summary") or "").strip()
+    parts: list[str] = []
+    if title:
+        parts.append(title)
+    if summary and summary != title:
+        parts.append(summary)
+    counts: list[str] = []
+    succeeded = int(job.get("succeeded_items") or 0)
+    total = int(job.get("total_items") or 0)
+    if total:
+        counts.append(f"{succeeded}/{total}")
+    failed = int(job.get("failed_items") or 0)
+    if failed:
+        counts.append(f"failed={failed}")
+    warnings = int(job.get("warning_count") or 0)
+    if warnings:
+        counts.append(f"warn={warnings}")
+    errors = int(job.get("error_count") or 0)
+    if errors:
+        counts.append(f"err={errors}")
+    elapsed_ms = int(job.get("elapsed_ms") or 0)
+    if elapsed_ms:
+        counts.append(f"{elapsed_ms}ms")
+    if counts:
+        parts.append(f"({' '.join(counts)})")
+    return " ".join(parts) if parts else "-"
+
+
+def _backend_ops_tail_line(job: dict[str, Any]) -> str:
+    pieces = [
+        str(job.get("job_id") or "-"),
+        str(job.get("status") or "-"),
+    ]
+    phase = str(job.get("phase") or "").strip()
+    if phase:
+        pieces.append(f"phase={phase}")
+    scope = _backend_ops_scope(job)
+    if scope and scope != "-":
+        pieces.append(f"scope={scope}")
+    detail = _backend_ops_detail(job)
+    if detail and detail != "-":
+        pieces.append(detail)
+    trigger_source = str(job.get("trigger_source") or "").strip()
+    if trigger_source:
+        pieces.append(f"src={trigger_source}")
+    return " | ".join(pieces)
+
+
 class TickerInputScreen(ModalScreen[str]):
     """Modal that prompts the user for a ticker before running a ticker-specific action."""
 
@@ -434,10 +497,21 @@ class OperationsScreen(Screen):
             self.app.action_show_chat()
             return
         if event.button.id == "ops-tail":
-            for job in self.app.state_store.list_jobs(limit=3):
-                log.write(
-                    f"{job['job_id']} {job['status']} out={job.get('stdout_path')}"
-                )
+            try:
+                jobs = await asyncio.to_thread(self.app.get_recent_observable_jobs, 3)
+            except Exception as exc:
+                log.write(f"Failed to load recent jobs: {exc}")
+                return
+            if not jobs:
+                log.write("No recent jobs recorded.")
+                return
+            for job in jobs:
+                if "title" in job or "job_family" in job:
+                    log.write(_backend_ops_tail_line(job))
+                else:
+                    log.write(
+                        f"{job['job_id']} {job['status']} out={job.get('stdout_path')}"
+                    )
             return
         if event.button.id == "ops-kill-action":
             await self.app.cancel_active_action(log_target="ops-log")
@@ -1076,32 +1150,56 @@ class HistoryScreen(Screen):
         yield Label("Run & Export History")
         yield Button("Refresh", id="hist-refresh")
         table = DataTable(id="hist-table")
-        table.add_columns("Kind", "ID/Thread", "Status", "When", "Path")
+        table.add_columns(
+            "Kind",
+            "ID/Thread",
+            "Status",
+            "Phase",
+            "Ticker/Scope",
+            "When",
+            "Summary / Artifact",
+        )
         yield table
 
-    def on_mount(self) -> None:
-        self._refresh()
+    async def on_mount(self) -> None:
+        await self._refresh()
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "hist-refresh":
-            self._refresh()
+            await self._refresh()
 
-    def _refresh(self) -> None:
+    async def _refresh(self) -> None:
         table = self.query_one("#hist-table", DataTable)
         table.clear()
-        for job in self.app.state_store.list_jobs(limit=40):
-            table.add_row(
-                "job",
-                job["job_id"],
-                job["status"],
-                job["started_at"],
-                job.get("stdout_path") or "",
-            )
+        jobs = await asyncio.to_thread(self.app.get_recent_observable_jobs, 40)
+        for job in jobs:
+            if "title" in job or "job_family" in job:
+                table.add_row(
+                    "ops",
+                    str(job.get("job_id") or ""),
+                    str(job.get("status") or ""),
+                    str(job.get("phase") or ""),
+                    _backend_ops_scope(job),
+                    str(job.get("started_at") or job.get("queued_at") or ""),
+                    _backend_ops_detail(job),
+                )
+            else:
+                table.add_row(
+                    "job",
+                    job["job_id"],
+                    job["status"],
+                    "",
+                    job.get("ticker") or job.get("entity_scope") or "",
+                    job["started_at"],
+                    job.get("stdout_path") or "",
+                )
         for export in self.app.state_store.list_exports(limit=40):
             table.add_row(
                 "analysis",
                 export["thread_id"],
                 "saved",
+                "",
+                "",
                 export["created_at"],
                 export["markdown_path"],
             )

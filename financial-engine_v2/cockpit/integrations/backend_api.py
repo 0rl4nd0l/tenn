@@ -10,6 +10,25 @@ class BackendApiClient:
         self.base_url = self._normalize_base_url(base_url)
         self.api_key = str(api_key or "").strip()
 
+    def _api_key_headers(self) -> dict[str, str]:
+        headers: dict[str, str] = {}
+        if self.api_key:
+            headers["X-API-Key"] = self.api_key
+        return headers
+
+    def _ops_get(
+        self,
+        path: str,
+        *,
+        params: dict[str, Any] | None = None,
+        timeout: float = 15.0,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}{path}"
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.get(url, params=params, headers=self._api_key_headers())
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
     def health(self, timeout: float = 5.0) -> dict[str, Any]:
         url = f"{self.base_url}/api/health"
         with httpx.Client(timeout=timeout, follow_redirects=True) as client:
@@ -422,6 +441,59 @@ class BackendApiClient:
             response = client.get(url, params=params)
             response.raise_for_status()
             return response.json() if response.content else {}
+
+    # ------------------------------------------------------------------
+    # Ops endpoints
+    # ------------------------------------------------------------------
+
+    def list_ops_jobs(
+        self,
+        status: str | None = None,
+        job_type: str | None = None,
+        ticker: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+        timeout: float = 15.0,
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {"limit": limit, "offset": offset}
+        if status is not None:
+            params["status"] = str(status).strip()
+        if job_type is not None:
+            params["job_type"] = str(job_type).strip()
+        if ticker is not None:
+            params["ticker"] = str(ticker).strip().upper()
+        return self._ops_get("/api/ops/jobs", params=params, timeout=timeout)
+
+    def list_active_ops_jobs(self, timeout: float = 15.0) -> dict[str, Any]:
+        return self._ops_get("/api/ops/jobs/active", timeout=timeout)
+
+    def get_ops_job(self, job_id: str, timeout: float = 15.0) -> dict[str, Any]:
+        return self._ops_get(
+            f"/api/ops/jobs/{str(job_id or '').strip()}",
+            timeout=timeout,
+        )
+
+    def get_ops_job_events(
+        self,
+        job_id: str,
+        limit: int = 200,
+        timeout: float = 15.0,
+    ) -> dict[str, Any]:
+        return self._ops_get(
+            f"/api/ops/jobs/{str(job_id or '').strip()}/events",
+            params={"limit": limit},
+            timeout=timeout,
+        )
+
+    def get_ops_job_artifacts(
+        self,
+        job_id: str,
+        timeout: float = 15.0,
+    ) -> dict[str, Any]:
+        return self._ops_get(
+            f"/api/ops/jobs/{str(job_id or '').strip()}/artifacts",
+            timeout=timeout,
+        )
 
     # ------------------------------------------------------------------
     # Commentary endpoints (Stage A — backend-authority migration)
