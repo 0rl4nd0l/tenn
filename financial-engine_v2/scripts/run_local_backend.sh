@@ -334,6 +334,7 @@ echo "[startup] OLLAMA_NUM_GPU=${OLLAMA_NUM_GPU:-<unset>}"
 
 # Warn if port is already occupied (e.g. Docker backend running)
 BACKEND_PORT="${PORT:-8000}"
+UVICORN_WORKERS="${UVICORN_WORKERS:-1}"
 if ss -tlnp 2>/dev/null | grep -q ":${BACKEND_PORT} " 2>/dev/null; then
   echo ""
   echo "⚠  WARNING: port ${BACKEND_PORT} is already in use."
@@ -347,4 +348,4 @@ if [[ -z "${OPENVIKING_CONFIG_FILE:-}" ]]; then
   export OPENVIKING_CONFIG_FILE="${HOME}/.openviking/backend.ov.conf"
 fi
 
-exec python -m uvicorn app.main:app --host 0.0.0.0 --port "${BACKEND_PORT}"
+exec python -m uvicorn app.main:app --host 0.0.0.0 --port "${BACKEND_PORT}" --workers "${UVICORN_WORKERS}"
