@@ -105,7 +105,7 @@ This phase consumes the audit report produced in Phase 01 (`docs/claude/audit/20
   - If any Celery task calls the LLM with context that includes date fields but no declared current date: add the same injection
   - After each fix: run `python -m ruff check` on the changed file
 
-- [ ] Write regression tests for temporal anchoring:
+- [x] Write regression tests for temporal anchoring:
   - File: `financial-engine_v2/backend/tests/test_temporal_anchoring.py` (create if missing)
   - Required test cases:
     - `test_tenn_chat_system_prompt_contains_today`: call the function that builds the system prompt → assert "Today" or current ISO date appears in the result
@@ -113,6 +113,7 @@ This phase consumes the audit report produced in Phase 01 (`docs/claude/audit/20
   - Run: `pytest financial-engine_v2/backend/tests/test_temporal_anchoring.py -v`
   - All must pass
 
+  - **Completed 2026-04-15**: Added `financial-engine_v2/backend/tests/test_temporal_anchoring.py` with focused coverage for the Tenn chat system-prompt UTC date anchor and the stale-news `freshness_warning` emitted through `ToolExecutor.search_news`. Validation: `financial-engine_v2/.venv/bin/python -m pytest financial-engine_v2/backend/tests/test_temporal_anchoring.py -v` and `financial-engine_v2/.venv/bin/python -m ruff check financial-engine_v2/backend/tests/test_temporal_anchoring.py`.
 - [ ] Fix extraction pipeline vulnerabilities (if any confirmed in audit):
   - For each confirmed finding in the Celery tasks / extraction layer:
     - Identify whether the failure mode is: (a) LLM returns bad JSON → unhandled, (b) key missing from LLM response → silent default, or (c) result processed as success when it should be failed
