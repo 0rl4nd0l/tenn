@@ -54,7 +54,7 @@ This phase consumes the audit report produced in Phase 01 (`docs/claude/audit/20
   - All must pass
   - **Completed 2026-04-15**: Created `test_agent_loop.py` with `TestAgentLoopRegressions` class covering all 4 required cases. Note: `test_tool_result_non_dict` verifies the result is *wrapped* (not skipped) since `_execute_tool` wraps non-dict via `{"result": value}` — evidence entry is present with wrapped content. All 4 tests pass.
 
-- [ ] Fix `tool_executor.py` and `tools.py` vulnerabilities (if any confirmed in audit):
+- [x] Fix `tool_executor.py` and `tools.py` vulnerabilities (if any confirmed in audit):
   - `search_news` handler (`_exec_search_news`) lives in: `financial-engine_v2/cockpit/core/tool_executor.py` (line ~292)
   - `gather_local_context` lives in: `financial-engine_v2/cockpit/core/tools.py`
   - Common fixes to implement if confirmed:
@@ -62,8 +62,9 @@ This phase consumes the audit report produced in Phase 01 (`docs/claude/audit/20
     - For any tool handler that calls an HTTP endpoint: ensure the error branch always returns a dict with at minimum `{"error": "...", "hits": [], "docs": []}` so callers don't KeyError on missing keys
     - If `gather_local_context` and cloud path return different key shapes, add a normalization layer so `_build_ui_sources` sees a consistent shape regardless of routing
   - After each fix: run `python -m ruff check financial-engine_v2/cockpit/core/tool_executor.py financial-engine_v2/cockpit/core/tools.py`
+  - **Completed 2026-04-15**: Confirmed vulnerability: `_exec_search_news` 0-hit path emitted no `freshness_warning` (audit §1, HIGH). Added `else` branch after `if compact_hits:` block that injects today's date and corpus-absence caveat. HTTP error path already safe (outer `execute()` try/except — audit §Safe). `tools.py` has no confirmed vulnerability. Ruff clean.
 
-- [ ] Write regression tests for tool_executor.py / tools.py:
+- [x] Write regression tests for tool_executor.py / tools.py:
   - File: `financial-engine_v2/cockpit/tests/test_tool_executor.py` (extend if exists; see also `test_tool_executor_extraction.py` and `test_tool_executor_silent_degradation.py` for existing patterns)
   - Required test cases:
     - `test_exec_search_news_zero_hits_has_freshness_key`: mock backend returns `{"hits": []}` → result dict still contains `freshness_warning` key (even if empty/None)
@@ -73,6 +74,7 @@ This phase consumes the audit report produced in Phase 01 (`docs/claude/audit/20
     - `test_known_bug_regression_empty_sources`: the exact evidence shape that caused Bug 2 (agent-mode `{tool:"search_news", result:{hits:[...]}}`) → `_build_ui_sources` returns non-empty list
   - Run tests: `pytest financial-engine_v2/cockpit/tests/test_tool_executor_extraction.py financial-engine_v2/cockpit/tests/test_tool_executor_silent_degradation.py -v`
   - All must pass
+  - **Completed 2026-04-15**: Created `test_tool_executor.py` with all 5 required tests. 5/5 pass. 32 existing regression tests still green.
 
 - [ ] Fix `_build_ui_sources` gaps (if any confirmed in audit):
   - Work on: `financial-engine_v2/backend/app/routes/cockpit_api.py` (the `_build_ui_sources` function only)

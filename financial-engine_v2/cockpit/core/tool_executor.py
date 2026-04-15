@@ -395,6 +395,15 @@ class ToolExecutor:
                         )
                 except (ValueError, TypeError):
                     pass
+        else:
+            # 0-hit path: inject today's date so the LLM cannot conflate corpus
+            # absence with confirmed factual absence of news.
+            today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            freshness_warning = (
+                f"No articles were returned. Today is {today_str}. "
+                "The absence of results may reflect a stale or limited corpus — "
+                "do not present this as confirmation that no news exists on this topic."
+            )
 
         out: dict[str, Any] = {
             "ok": bool(result.get("ok", hit_count > 0)),
