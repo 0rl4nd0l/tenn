@@ -347,6 +347,70 @@ def test_create_review_session_from_payload_reuses_existing_review_schema(
     assert session["items"][0]["image_url"] == "/api/extraction-review/snippets/test.png"
 
 
+def test_create_review_session_from_payload_persists_round_trip_session(
+    monkeypatch, tmp_path
+) -> None:
+    pdf_path = tmp_path / "sample.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+    sessions_root = tmp_path / "sessions"
+    monkeypatch.setattr(review, "SESSIONS_ROOT", sessions_root)
+
+    monkeypatch.setattr(
+        review,
+        "build_metric_snippet",
+        lambda **_: {
+            "kind": "line_crop",
+            "evidence_quality": "precise",
+            "status": "ok",
+            "image_path": "reports/extraction_review/snippets/test.png",
+            "image_url": "/api/extraction-review/snippets/test.png",
+            "ascii_preview": "preview",
+            "matched_text": "Revenue from contracts with customers",
+            "page_number": 7,
+            "reason": None,
+        },
+    )
+
+    session = review.create_review_session_from_payload(
+        document_id="gold-doc-2",
+        ticker="QBE",
+        title="QBE Report",
+        pdf_path=str(pdf_path),
+        status="ok_low_confidence",
+        payload={
+            "period_end": "2025-06-30",
+            "period_type": "H",
+            "currency": "USD",
+            "scale": "millions",
+            "confidence_metrics": 0.42,
+            "metrics": {"revenue": 10875.0},
+            "provenance": {
+                "revenue": "income_statement:page_7:Revenue from contracts with customers"
+            },
+        },
+        run_id="real-gold-qbe-roundtrip",
+        diagnostics={
+            "code": "real_gold_eval",
+            "message": "Generated from /api/extraction-eval/real-gold.",
+            "expected_trust": "trusted",
+        },
+    )
+
+    loaded = review.load_review_session(session["session_id"])
+
+    assert loaded["session_id"] == session["session_id"]
+    assert loaded["session_status"] == "real_gold_eval"
+    assert loaded["diagnostics"]["expected_trust"] == "trusted"
+    assert loaded["run_ids"] == ["real-gold-qbe-roundtrip"]
+    assert loaded["summary"]["total"] == 1
+    assert loaded["documents"][0]["review_ready"] is True
+    assert loaded["documents"][0]["reason"] == "reviewable"
+    assert loaded["items"][0]["metric_name"] == "revenue"
+    assert (
+        sessions_root / f"{session['session_id']}.json"
+    ).exists()
+
+
 def test_build_metric_snippet_returns_text_fallback_when_bbox_unavailable(
     monkeypatch, tmp_path
 ) -> None:

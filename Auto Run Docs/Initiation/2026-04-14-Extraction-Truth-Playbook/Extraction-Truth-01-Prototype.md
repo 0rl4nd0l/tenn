@@ -27,10 +27,12 @@ This phase delivers a backend-first extraction prototype that can be executed en
   - Completed 2026-04-14: the Cockpit real-gold tab now exposes an `Open Review` action for flagged documents, which switches back into the review tab and loads backend-provided provenance/snippet evidence from the saved session.
   - Validation 2026-04-14: `financial-engine_v2/.venv/bin/python -m ruff check financial-engine_v2/backend/app/main.py financial-engine_v2/backend/app/services/extraction_review.py financial-engine_v2/backend/tests/test_extraction_gold_eval.py financial-engine_v2/backend/tests/test_extraction_review_service.py` passed, `financial-engine_v2/.venv/bin/pytest -q financial-engine_v2/backend/tests/test_extraction_gold_eval.py financial-engine_v2/backend/tests/test_extraction_review_service.py` passed (`29 passed`), `pnpm build` passed in `cockpit-ui/`, and `pnpm exec playwright test tests/verification.spec.ts --reporter=line` passed (`9 passed`).
 
-- [ ] Add targeted automated coverage for the prototype path:
+- [x] Add targeted automated coverage for the prototype path:
   - Extend backend tests around the real-gold endpoint, extraction review session lifecycle, and any new error handling or response fields.
   - Extend Cockpit or `cockpit-ui` verification tests only if the prototype path changes those surfaces.
   - Search for existing test patterns first in `financial-engine_v2/backend/tests/test_extraction_gold_eval.py`, `test_extraction_review_service.py`, `test_cockpit_api_models.py`, and `cockpit-ui/tests/verification.spec.ts` before creating new test scaffolding.
+  - Completed 2026-04-15: added backend coverage for real-gold review-session failure reporting and persisted review-session round-trip loading, plus verification UI coverage that real-gold rows without backend review sessions surface the fallback reason while only reviewable rows expose `Open Review`.
+  - Validation 2026-04-15: `financial-engine_v2/.venv/bin/python -m ruff check financial-engine_v2/backend/tests/test_extraction_gold_eval.py financial-engine_v2/backend/tests/test_extraction_review_service.py` passed; `financial-engine_v2/.venv/bin/python -m pytest -q financial-engine_v2/backend/tests/test_extraction_gold_eval.py financial-engine_v2/backend/tests/test_extraction_review_service.py` passed (`31 passed`); `pnpm exec playwright test tests/verification.spec.ts --reporter=line` passed (`9 passed`).
 
 - [ ] Run the prototype end to end and prove it works:
   - Use the canonical boot path: `financial-engine_v2/scripts/run_local_backend.sh`, then verify `curl -sS http://127.0.0.1:8000/api/health`.

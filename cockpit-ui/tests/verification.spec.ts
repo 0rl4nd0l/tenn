@@ -515,6 +515,8 @@ test.describe('Verification screen', () => {
     await page.getByRole('button', { name: 'Run Gold Set' }).click()
     await expect(page.getByText('Metric Accuracy')).toBeVisible()
     await expect(page.getByText('75.0%')).toBeVisible()
+    await expect(page.getByText('No flagged metric review session')).toBeVisible()
+    await expect(page.getByRole('button', { name: /Open Review/ })).toHaveCount(1)
     await page.getByRole('button', { name: /Open Review/ }).click()
     await expect(page.getByText('Manual Extraction Review')).toBeVisible()
     await expect(page.getByText('Review 1 of 2')).toBeVisible()

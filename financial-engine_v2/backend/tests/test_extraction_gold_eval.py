@@ -529,6 +529,73 @@ def test_real_gold_eval_endpoint_attaches_backend_review_session_for_flagged_met
     assert captured["payload"]["metrics"] == {"revenue": 10875.0}
 
 
+def test_real_gold_eval_endpoint_reports_review_session_failures(
+    monkeypatch, tmp_path
+):
+    pdf_path = tmp_path / "sample.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+
+    gold_doc = main_app.RealGoldDocument(
+        document_id="qbe_h_2025-06-30",
+        source_file="sample.pdf",
+        period_type="H",
+        period_end="2025-06-30",
+        currency="USD",
+        scale="millions",
+        metrics={"revenue": 10875.0, "net_debt": 123.0},
+        expected_trust="abstain",
+    )
+
+    monkeypatch.setattr(main_app, "_load_real_gold_dataset", lambda _path: [gold_doc])
+    monkeypatch.setattr(
+        main_app, "_resolve_real_gold_source_path", lambda _path: pdf_path
+    )
+    monkeypatch.setattr(
+        main_app, "_persist_local_llm_api_key", lambda: "local-openai-key"
+    )
+    monkeypatch.setattr(
+        main_app,
+        "run_method_isolated_extraction",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            status="ok_low_confidence",
+            error=None,
+            payload={
+                "period_type": "H",
+                "period_end": "2025-06-30",
+                "currency": "USD",
+                "scale": "millions",
+                "metrics": {"revenue": 10875.0},
+                "_method_provenance": {
+                    "requested_method": "docling",
+                    "actual_method": "docling",
+                    "strict_method": True,
+                },
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        main_app,
+        "create_review_session_from_payload",
+        lambda **_kwargs: (_ for _ in ()).throw(
+            RuntimeError("unable to persist session")
+        ),
+    )
+
+    result = main_app._run_real_gold_eval_sync(
+        main_app.RealGoldEvalRequest(method="docling", strict_method=True)
+    )
+
+    document = result["documents"][0]
+    assert document["failed_metric_count"] == 1
+    assert document["review_session_id"] is None
+    assert document["review_item_count"] == 0
+    assert document["review_reason"] == "review_session_failed:unable to persist session"
+    assert document["trust_outcome"] == "abstain"
+    assert any(
+        reason.startswith("metric:net_debt:") for reason in document["mismatch_reasons"]
+    )
+
+
 def test_real_gold_eval_route_is_async():
     assert inspect.iscoroutinefunction(main_app.run_real_gold_eval)
 
