@@ -4,6 +4,7 @@ import inspect
 import json
 import logging
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
@@ -19,6 +20,10 @@ logger = logging.getLogger(__name__)
 
 VALID_SENTIMENTS = frozenset({"bullish", "bearish", "neutral", "mixed"})
 VALID_IMPACT_MAGNITUDES = frozenset({"material", "moderate", "minor"})
+
+
+def _today_iso_utc() -> str:
+    return datetime.now(timezone.utc).date().isoformat()
 
 
 def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
@@ -45,9 +50,19 @@ def load_news_memos(path: str | Path | None = None) -> list[dict[str, Any]]:
     return rows
 
 
-def _normalize_list(value: Any, *, uppercase: bool = False) -> list[str]:
+def _normalize_list(
+    value: Any, *, uppercase: bool = False, field_name: str = ""
+) -> list[str]:
     if value in (None, ""):
         return []
+    if not isinstance(value, list):
+        logger.warning(
+            "news_memo_extractor: _normalize_list coerced non-list value for field %r "
+            "(type=%s, value=%r) — LLM may have returned malformed JSON",
+            field_name or "<unknown>",
+            type(value).__name__,
+            value,
+        )
     items = value if isinstance(value, list) else [value]
     normalized: list[str] = []
     seen: set[str] = set()
@@ -124,8 +139,10 @@ class NewsMemoExtractor:
         provider: str,
         published_at: str | None,
     ) -> str:
+        today_iso = _today_iso_utc()
         return (
             "You are a financial news analyst. Extract structured data from the following news article.\n"
+            f"Today's date is {today_iso}. Treat the published date and any dates in the article as historical context.\n"
             "Return only valid JSON with this schema:\n"
             '{"key_events":[],"sentiment":"bullish|bearish|neutral|mixed",'
             '"impact_magnitude":"material|moderate|minor",'
@@ -144,17 +161,31 @@ class NewsMemoExtractor:
         published_at: str | None,
     ) -> dict[str, Any]:
         payload = dict(raw_memo or {})
+        key_events = _normalize_list(payload.get("key_events"), field_name="key_events")
+        tickers = _normalize_list(
+            payload.get("tickers"), uppercase=True, field_name="tickers"
+        )
+        claims = _normalize_list(payload.get("claims"), field_name="claims")
+        risks = _normalize_list(payload.get("risks"), field_name="risks")
+        sentiment = _normalize_sentiment(payload.get("sentiment"))
+        impact_magnitude = _normalize_impact_magnitude(payload.get("impact_magnitude"))
+        if not any([key_events, tickers, claims, risks, sentiment, impact_magnitude]):
+            logger.warning(
+                "news_memo_extractor: all extracted fields are empty for source_id=%r "
+                "provider=%r — LLM may have returned garbage or failed silently; "
+                "document will be stored as an empty memo and will not be re-extracted",
+                str(source_id or "").strip(),
+                str(provider or "").strip(),
+            )
         return {
             "source_id": str(source_id or "").strip(),
             "provider": str(provider or "").strip(),
-            "key_events": _normalize_list(payload.get("key_events")),
-            "sentiment": _normalize_sentiment(payload.get("sentiment")),
-            "impact_magnitude": _normalize_impact_magnitude(
-                payload.get("impact_magnitude")
-            ),
-            "tickers": _normalize_list(payload.get("tickers"), uppercase=True),
-            "claims": _normalize_list(payload.get("claims")),
-            "risks": _normalize_list(payload.get("risks")),
+            "key_events": key_events,
+            "sentiment": sentiment,
+            "impact_magnitude": impact_magnitude,
+            "tickers": tickers,
+            "claims": claims,
+            "risks": risks,
             "published_at": str(published_at or "").strip(),
         }
 

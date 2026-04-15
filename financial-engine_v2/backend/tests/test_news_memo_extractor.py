@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -73,6 +74,23 @@ def test_extract_valid_schema(tmp_memos_path: Path) -> None:
 
     # LLM was called exactly once
     assert len(llm_fn.calls) == 1  # type: ignore[attr-defined]
+
+
+def test_extract_prompt_includes_current_date_anchor(tmp_memos_path: Path) -> None:
+    llm_fn = _make_llm_fn(GOOD_LLM_RESPONSE)
+    extractor = NewsMemoExtractor(llm_fn=llm_fn, memos_path=tmp_memos_path)
+
+    extractor.extract(
+        source_id="news-anchored",
+        article_text="Company XYZ announced a major acquisition today...",
+        provider="newspaper4k",
+        published_at="2026-03-30",
+    )
+
+    prompt = llm_fn.calls[0]["prompt"]  # type: ignore[attr-defined]
+    today_iso = datetime.now(timezone.utc).date().isoformat()
+    assert today_iso in prompt
+    assert "historical context" in prompt.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -208,3 +226,71 @@ def test_normalize_impact_magnitude_valid() -> None:
 def test_normalize_impact_magnitude_invalid() -> None:
     assert _normalize_impact_magnitude("huge") == ""
     assert _normalize_impact_magnitude(None) == ""
+
+
+# ---------------------------------------------------------------------------
+# Regression: malformed LLM JSON emits a warning (LATENT-1)
+# ---------------------------------------------------------------------------
+
+
+def test_normalize_list_warns_on_non_list_value(caplog: pytest.LogCaptureFixture) -> None:
+    """_normalize_list must emit a WARNING when coercing a non-list, non-null value.
+
+    Regression for audit finding LATENT-1: garbage LLM JSON was silently coerced
+    to a list, making it impossible to distinguish from a legitimate empty result.
+    """
+    import logging
+
+    with caplog.at_level(logging.WARNING, logger="app.services.news_memo_extractor"):
+        result = _normalize_list("not a list", field_name="key_events")
+
+    assert result == ["not a list"]
+    assert any("coerced non-list" in record.message for record in caplog.records), (
+        "Expected a WARNING about non-list coercion, got: "
+        + str([r.message for r in caplog.records])
+    )
+    assert any("key_events" in record.message for record in caplog.records)
+
+
+# ---------------------------------------------------------------------------
+# Regression: all-empty extraction emits a warning (LATENT-2)
+# ---------------------------------------------------------------------------
+
+
+def test_empty_extraction_emits_warning(
+    tmp_memos_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """NewsMemoExtractor must emit a WARNING when all extracted fields are empty.
+
+    Regression for audit finding LATENT-2: an empty memo was written to disk
+    silently, preventing re-extraction and making garbage indistinguishable from
+    a legitimate 'no events' article.
+    """
+    import logging
+
+    empty_response: dict[str, Any] = {
+        "key_events": [],
+        "sentiment": "",
+        "impact_magnitude": "",
+        "tickers": [],
+        "claims": [],
+        "risks": [],
+    }
+    extractor = NewsMemoExtractor(
+        llm_fn=_make_llm_fn(empty_response),
+        memos_path=tmp_memos_path,
+    )
+    with caplog.at_level(logging.WARNING, logger="app.services.news_memo_extractor"):
+        extractor.extract(
+            source_id="test-src-001",
+            article_text="Some article text.",
+            provider="TestProvider",
+            published_at="2026-04-15",
+        )
+
+    assert any(
+        "all extracted fields are empty" in record.message for record in caplog.records
+    ), (
+        "Expected a WARNING about all-empty extraction, got: "
+        + str([r.message for r in caplog.records])
+    )

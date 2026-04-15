@@ -689,3 +689,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The route was implemented as a synchronous FastAPI handler (`def`), so FastAPI executed it in an AnyIO worker thread. The extraction stack contains main-thread-sensitive behavior (for example docling timeout handling via `signal.signal`/`SIGALRM`, plus other extraction/runtime interactions that are stable in the main thread but not inside the worker-thread route context). The direct Python invocation ran on the main thread and therefore did not reproduce the failure.
 **Fix:** Moved the gold-eval body into `_run_real_gold_eval_sync(...)` and changed the public FastAPI route to `async def run_real_gold_eval(...)` that calls the sync helper directly on the main event-loop thread. Added a regression test that the route remains async while the helper retains the tested synchronous behavior.
 **Rule:** Any backend endpoint that runs the real extraction pipeline directly must not be implemented as a plain sync FastAPI handler unless the full extraction path is proven worker-thread-safe. When in doubt, keep the route `async def` and call the extraction logic on the main thread, or move the work to an explicit background job model rather than relying on FastAPI’s sync threadpool.
+
+---
+
+## L065 — Silent empty-memo ambiguity: LLM garbage vs legitimate no-events must be distinguishable in logs
+
+**Date:** 2026-04-15
+**Subsystem:** `financial-engine_v2/backend/app/services/news_memo_extractor.py`, `commentary_memo_extractor.py`
+**Symptom:** When the LLM returned malformed JSON, `_normalize_list` silently coerced the bad value to `[]`. The resulting memo was identical to a memo for an article that legitimately contained no events. No warning was emitted; the document was written to disk as if extraction succeeded and would never be re-extracted.
+**Root cause:** `_normalize_list` used a type-coercion gate that treated `None`, `""`, and non-list values identically — all produced `[]`. There was no observer at the `_normalize_memo` site to detect when every field came back empty.
+**Fix:** (1) `_normalize_list` now emits a `WARNING` with the field name, type, and raw value when it coerces a non-list, non-null value. (2) `_normalize_memo` in both extractors now emits a `WARNING` when all list and scalar fields are empty after normalization.
+**Rule:** Any normalization function that coerces unexpected input to a valid empty value must log a warning at the coercion site, including the field name and raw value. The caller must also warn when the *combination* of normalized fields is entirely empty — silent empty state is never acceptable for stored extraction artifacts.

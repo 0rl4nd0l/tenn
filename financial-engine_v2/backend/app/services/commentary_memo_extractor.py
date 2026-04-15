@@ -46,9 +46,19 @@ def load_commentary_memos(path: str | Path | None = None) -> list[dict[str, Any]
     return rows
 
 
-def _normalize_list(value: Any, *, uppercase: bool = False) -> list[str]:
+def _normalize_list(
+    value: Any, *, uppercase: bool = False, field_name: str = ""
+) -> list[str]:
     if value in (None, ""):
         return []
+    if not isinstance(value, list):
+        logger.warning(
+            "commentary_memo_extractor: _normalize_list coerced non-list value for "
+            "field %r (type=%s, value=%r) — LLM may have returned malformed JSON",
+            field_name or "<unknown>",
+            type(value).__name__,
+            value,
+        )
     items = value if isinstance(value, list) else [value]
     normalized: list[str] = []
     seen = set()
@@ -161,15 +171,32 @@ class CommentaryMemoExtractor:
     ) -> dict[str, Any]:
         payload = dict(raw_memo or {})
         normalized_speaker = str(payload.get("speaker") or speaker or "").strip()
+        claims = _normalize_list(payload.get("claims"), field_name="claims")
+        catalysts = _normalize_list(payload.get("catalysts"), field_name="catalysts")
+        risks = _normalize_list(payload.get("risks"), field_name="risks")
+        tickers = _normalize_list(
+            payload.get("tickers"), uppercase=True, field_name="tickers"
+        )
+        sentiment = str(payload.get("sentiment") or "").strip().lower()
+        time_horizon = str(payload.get("time_horizon") or "").strip()
+        if not any([claims, catalysts, risks, tickers, sentiment, time_horizon]):
+            logger.warning(
+                "commentary_memo_extractor: all extracted fields are empty for "
+                "source_id=%r speaker=%r — LLM may have returned garbage or failed "
+                "silently; document will be stored as an empty memo and will not be "
+                "re-extracted",
+                str(source_id or "").strip(),
+                normalized_speaker,
+            )
         return {
             "source_id": str(source_id or "").strip(),
             "speaker": normalized_speaker,
-            "claims": _normalize_list(payload.get("claims")),
-            "catalysts": _normalize_list(payload.get("catalysts")),
-            "risks": _normalize_list(payload.get("risks")),
-            "sentiment": str(payload.get("sentiment") or "").strip().lower(),
-            "time_horizon": str(payload.get("time_horizon") or "").strip(),
-            "tickers": _normalize_list(payload.get("tickers"), uppercase=True),
+            "claims": claims,
+            "catalysts": catalysts,
+            "risks": risks,
+            "sentiment": sentiment,
+            "time_horizon": time_horizon,
+            "tickers": tickers,
             "source_type": str(source_type or "").strip(),
             "published_at": str(published_at or "").strip(),
         }
