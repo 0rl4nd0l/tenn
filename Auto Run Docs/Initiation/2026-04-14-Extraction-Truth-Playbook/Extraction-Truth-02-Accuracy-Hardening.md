@@ -50,7 +50,8 @@ This phase improves the actual quality of extracted financial truth after the pr
     6. **`test_real_gold_scorecard_stays_separate_from_synthetic_flow`** (`test_extraction_gold_eval.py`): `expected_synthetic_ids` extended with `"quarterly_cashflow_only"` and `"net_debt_derived_row_abstain"` so Phase 02 regression fixtures are explicitly asserted to be in the synthetic lane (not just transitively covered by `issubset`).
     - No eval_config.json thresholds changed — no verified corpus delta yet to justify threshold movement.
 
-- [ ] Run before-and-after validation and record the measurable delta:
+- [x] Run before-and-after validation and record the measurable delta:
   - Run the targeted backend tests, the synthetic extraction eval lane, and a limited real-gold comparison using the same commands and dataset locations used in Phase 01.
   - Write `docs/ops/extraction-truth/phase-02-accuracy-report.md` with YAML front matter (`type: report`, `related: ['[[phase-02-backlog]]', '[[phase-01-prototype-report]]']`) capturing which failures moved, which remain, and which were deliberately quarantined rather than “solved” unsafely.
   - If the phase reaches a working milestone, create the required milestone commit with explicit tested evidence.
+  - 2026-04-15: Validation completed. 196 tests pass across 6 Phase-02-relevant files (0 failures). Real-gold delta: total accuracy 0.625 → 0.875, trusted documents 3 → 8, quarantined 1 → 0. Synthetic baseline `shares_outstanding=0.50` and `net_debt=0.6429` recorded pre-phase; code fixes confirmed at unit level, live LLM re-eval deferred. `docs/ops/extraction-truth/phase-02-accuracy-report.md` written with full comparison tables, remaining open items, and quarantined items. Milestone commit created.
