@@ -77,7 +77,7 @@ export function UpdaterScreen() {
         },
       })
       setJobId(queuedJob.job_id)
-      setJobStatusMessage('Queued backfill job.')
+      setJobStatusMessage('Queued backend ops job.')
       setProgress(8)
 
       while (true) {
@@ -108,7 +108,7 @@ export function UpdaterScreen() {
       }
 
       setProgress(70)
-      setJobStatusMessage('Backfill finished. Fetching financial records...')
+      setJobStatusMessage('Backend ops job finished. Fetching financial records...')
 
       // 2. Fetch financial results via GET /api/financials?ticker=...
       const financialsData = await fetchFinancials(normalizedTicker)
@@ -219,14 +219,25 @@ export function UpdaterScreen() {
             {isLoading && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{jobStatusMessage || 'Fetching data...'}</span>
+                  <span className="text-muted-foreground">
+                    {jobStatusMessage || 'Tracking backend ops job...'}
+                  </span>
                   <span className="font-mono">{Math.round(progress)}%</span>
                 </div>
                 <Progress value={progress} />
                 {jobId && (
-                  <p className="text-xs font-mono text-muted-foreground">
-                    Job {jobId}
-                  </p>
+                  <div className="rounded-md border border-border/60 bg-muted/30 px-3 py-2">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                      Backend ops job
+                    </p>
+                    <p className="mt-1 break-all font-mono text-xs text-foreground">{jobId}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      This fetch is tracked by the backend ops system while results remain below.
+                    </p>
+                    <a href="/operations" className="mt-2 inline-block text-xs text-primary underline-offset-4 hover:underline">
+                      Open Operations to inspect the live job timeline
+                    </a>
+                  </div>
                 )}
               </div>
             )}

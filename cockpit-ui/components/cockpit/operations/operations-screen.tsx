@@ -11,11 +11,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
-import { Activity, Globe, Database, Search, Play, Eye, RefreshCw, Terminal, Cpu, ExternalLink, CalendarRange, Layers3 } from 'lucide-react'
-import { GpuActivityDialog, getGpuProcesses, getGpuSummary } from '@/components/cockpit/gpu-activity-dialog'
-import { HostActivityDialog, getHostSummary } from '@/components/cockpit/host-activity-dialog'
-import { checkHealth, restartBackend, executeAction, getActionJob, getSystemStatus, loadCockpitModel, previewAction, startActionJob } from '@/lib/api-client'
+import { Play, Eye, RefreshCw, Terminal, Cpu, CalendarRange, Layers3 } from 'lucide-react'
+import { getGpuProcesses, getGpuSummary } from '@/components/cockpit/gpu-activity-dialog'
+import { getHostSummary } from '@/components/cockpit/host-activity-dialog'
+import { checkHealth, executeAction, restartBackend, getActionJob, getSystemStatus, loadCockpitModel, previewAction, startActionJob } from '@/lib/api-client'
 import type { CockpitPreferences, ServiceHealth } from '@/lib/cockpit-types'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import { cn } from '@/lib/utils'
@@ -143,6 +142,10 @@ function normalizeModelId(value: string | null | undefined): string {
     .toLowerCase()
 }
 
+function actionUsesQueuedJob(actionId: string): boolean {
+  return actionId !== 'show_candlestick'
+}
+
 export function OperationsScreen() {
   const [hasHydrated, setHasHydrated] = useState(false)
   const { activeTicker, preferences, updatePreferences, setApiDefaultEnabled } = useCockpitStore()
@@ -238,6 +241,16 @@ export function OperationsScreen() {
     setActionLog(prev => [...prev, ...lines])
   }, [])
 
+  const focusBackendOpsJob = useCallback((jobId: string, actionLabel: string, scopeLabel: string) => {
+    setSelectedOpsJobId(jobId)
+    appendActionLog([
+      `[${formatLogTimestamp()}] Tracking backend ops job: ${jobId}`,
+      `  Action: ${actionLabel}`,
+      `  Scope: ${scopeLabel}`,
+      '  Open the Job Status panel for live progress and job details.',
+    ])
+  }, [appendActionLog])
+
   const handleRestartBackend = useCallback(async () => {
     setIsRestartingBackend(true)
     appendActionLog([
@@ -301,7 +314,8 @@ export function OperationsScreen() {
       `  Scope: all ASX tickers`,
       `  Years: ${yearsLabel}`,
       `  Process documents: ${universeProcessDocuments ? 'yes' : 'no'}`,
-      `  Dispatch: cockpit action registry`,
+      `  Dispatch: backend ops queue`,
+      '  Open the Job Status panel for live progress and job details.',
     ])
 
     try {
@@ -370,9 +384,10 @@ export function OperationsScreen() {
         args,
       })
       setUniverseJobId(queuedJob.job_id)
+      focusBackendOpsJob(queuedJob.job_id, 'ASX Universe Announcement Backfill', 'all ASX tickers')
       let lastJobUpdate = ''
       appendActionLog([
-        `[${formatLogTimestamp()}] Queued: ${queuedJob.job_id}`,
+        `[${formatLogTimestamp()}] Queued backend ops job: ${queuedJob.job_id}`,
       ])
 
       while (true) {
@@ -415,7 +430,7 @@ export function OperationsScreen() {
     } finally {
       setIsUniverseRunning(false)
     }
-  }, [appendActionLog, setApiDefaultEnabled, universeBackfillYears, universeProcessDocuments])
+  }, [appendActionLog, focusBackendOpsJob, setApiDefaultEnabled, universeBackfillYears, universeProcessDocuments])
 
   if (!hasHydrated) return null
 
@@ -481,6 +496,7 @@ export function OperationsScreen() {
         `[${formatLogTimestamp()}] Executing: ${action.label}`,
         `  Ticker: ${ticker}`,
         `  Endpoint: ${endpoint.method} ${endpoint.path}`,
+        '  Check the Job Status panel if the backend fans this into document work.',
       ])
 
       try {
@@ -523,24 +539,66 @@ export function OperationsScreen() {
         setIsRunning(false)
       }
     } else {
-      // Cockpit action registry path (subprocess dispatch)
+      // Cockpit actions prefer the backend ops panel when they run as queued jobs.
       const args = buildActionArgs(action.id, ticker)
+      const usesQueuedJob = actionUsesQueuedJob(action.id)
 
       appendActionLog([
         `[${formatLogTimestamp()}] Executing: ${action.label}`,
         ticker ? `  Ticker: ${ticker}` : '  Scope: market-wide',
-        `  Dispatch: cockpit action registry`,
-      ])
+        usesQueuedJob ? '  Dispatch: backend ops queue' : '  Dispatch: synchronous action execution',
+        usesQueuedJob ? '  Open the Job Status panel for live progress and job details.' : '',
+      ].filter(Boolean))
 
       try {
-        const result = await executeAction({ actionId: action.id, args })
-        const elapsed = ((performance.now() - start) / 1000).toFixed(1)
-        appendActionLog([
-          `[${formatLogTimestamp()}] Completed: ${action.label}`,
-          `  Duration: ${elapsed}s`,
-          `  Output: ${(result.result || '').slice(0, 300)}`,
-          ''
-        ])
+        if (usesQueuedJob) {
+          const queuedJob = await startActionJob({ actionId: action.id, args })
+          focusBackendOpsJob(queuedJob.job_id, action.label, ticker || 'market-wide')
+          appendActionLog([
+            `[${formatLogTimestamp()}] Queued backend ops job: ${queuedJob.job_id}`,
+          ])
+
+          let lastJobUpdate = ''
+          while (true) {
+            const job = await getActionJob(queuedJob.job_id)
+            const stage = String(job.progress_stage || job.status || 'running')
+            const detail = String(job.result || '')
+              .split('\n')
+              .map((line) => line.trim())
+              .filter(Boolean)
+              .at(-1) || ''
+            const updateLine = `[${formatLogTimestamp()}] ${detail ? `${stage}: ${detail}` : stage}`
+
+            if (updateLine !== lastJobUpdate) {
+              appendActionLog([updateLine])
+              lastJobUpdate = updateLine
+            }
+
+            if (job.status === 'success') {
+              appendActionLog([
+                `[${formatLogTimestamp()}] Completed: ${action.label}`,
+                `  Job: ${queuedJob.job_id}`,
+                '',
+              ])
+              break
+            }
+
+            if (job.status === 'failed') {
+              throw new Error(String(job.result || `Job ${queuedJob.job_id} failed`))
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, JOB_POLL_INTERVAL_MS))
+          }
+        } else {
+          const result = await executeAction({ actionId: action.id, args })
+          const elapsed = ((performance.now() - start) / 1000).toFixed(1)
+          appendActionLog([
+            `[${formatLogTimestamp()}] Completed: ${action.label}`,
+            `  Duration: ${elapsed}s`,
+            `  Output: ${(result.result || '').slice(0, 300)}`,
+            '',
+          ])
+        }
       } catch (err: unknown) {
         const elapsed = ((performance.now() - start) / 1000).toFixed(1)
         const message = err instanceof Error ? err.message : 'Unknown error'
@@ -687,9 +745,11 @@ export function OperationsScreen() {
                 {isUniverseRunning ? 'Running Backfill...' : 'Run Backfill'}
               </Button>
               {universeJobId ? (
-                <Badge variant="outline" className="font-mono">
-                  Job {universeJobId}
-                </Badge>
+                <button type="button" onClick={() => setSelectedOpsJobId(universeJobId)}>
+                  <Badge variant="outline" className="font-mono">
+                    Backend ops job {universeJobId}
+                  </Badge>
+                </button>
               ) : null}
             </div>
           </CardContent>
@@ -702,7 +762,7 @@ export function OperationsScreen() {
               <Terminal className="h-5 w-5 text-primary" />
               Action Executor
             </CardTitle>
-            <CardDescription>Run cockpit actions directly</CardDescription>
+            <CardDescription>Run cockpit actions and follow queued work in the backend ops panel</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex gap-3">
