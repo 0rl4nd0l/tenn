@@ -346,6 +346,33 @@ def test_pass2_rejects_formula_style_year_end_net_debt_note_without_as_at_marker
     assert result["net_debt_note"] is None
 
 
+def test_pass2_selects_current_noncurrent_net_debt_note_without_as_at_marker():
+    """Current/non-current stock layouts are explicit enough for the note slot."""
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    bhp_2025_style = DoclingTable(
+        page_number=158,
+        caption="For personal use only",
+        rows=[
+            ["US$M", "2025", "", "", "2024"],
+            ["", "Current", "", "Non-current", ""],
+            ["Interest bearing liabilities", "", "", "", ""],
+            ["Bank loans", "40", "", "3,691", ""],
+            ["Notes and debentures", "1,316", "", "16,337", ""],
+            ["Total interest bearing liabilities", "2,018", "", "22,478", ""],
+            ["Less: Total cash and cash equivalents", "11,894", "", "-", ""],
+            ["Less: Total derivatives included in net debt", "(47)", "", "(608)", ""],
+            ["Net debt", "", "", "12,924", ""],
+        ],
+        headers=["US$M", "2025", "", "", "2024"],
+    )
+
+    result = _run_pass2_locator([bhp_2025_style])
+
+    assert result["net_debt_note"] is bhp_2025_style
+
+
 def test_pass2_rejects_glossary_definition_from_net_debt_note_slot():
     """Glossary prose must not be mistaken for a formula-style net debt note."""
     from app.services.multipass_extraction import _run_pass2_locator
@@ -1218,6 +1245,49 @@ def test_pass4_ambiguous_balance_sheet_net_debt_abstains():
         "confidence_narrative": 0.5,
     }
     pass1 = {"report_type": "A", "period_end": "2023-12-31", "currency": "AUD"}
+
+    payload = _run_pass4_reconciler(pass3a, pass3b, pass1)
+
+    assert payload["metrics"]["net_debt"] is None
+    assert "net_debt" not in payload["provenance"]
+
+
+def test_pass4_skips_derivation_when_document_only_has_glossary_net_debt_reference():
+    """A glossary-only net-debt mention must not authorize derived debt output."""
+    from app.services.multipass_extraction import _run_pass4_reconciler
+
+    pass3a = [
+        {
+            "_source": "cashflow_statement",
+            "_page_number": 17,
+            "cash_end": 638_000_000,
+            "pass3_confidence": 0.9,
+            "row_refs": {
+                "cash_end": "Cash and cash equivalents at the end of the half-year"
+            },
+        },
+        {
+            "_source": "balance_sheet",
+            "_page_number": 15,
+            "net_debt": None,
+            "total_debt": 5_516_000_000,
+            "pass3_confidence": 0.7,
+            "row_refs": {"total_debt": "Borrowings"},
+        },
+    ]
+    pass3b = {
+        "risk_summary": None,
+        "risk_bullets": None,
+        "guidance_summary": None,
+        "material_changes": None,
+        "confidence_narrative": 0.5,
+    }
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2025-12-31",
+        "currency": "AUD",
+        "_block_derived_net_debt": True,
+    }
 
     payload = _run_pass4_reconciler(pass3a, pass3b, pass1)
 

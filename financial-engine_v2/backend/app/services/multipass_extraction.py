@@ -724,6 +724,33 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
             and has_adjustment_component
         )
 
+    def _table_has_point_in_time_stock_layout(table: DoclingTable) -> bool:
+        """Detect current/non-current stock layouts that imply point-in-time debt."""
+        header_text = (
+            _normalize_locator_text(table.caption)
+            + " "
+            + _normalize_locator_text(" ".join(str(h) for h in table.headers))
+        )
+        if "carrying amount" in header_text or (
+            "current" in header_text and "non current" in header_text
+        ):
+            return True
+
+        for row in table.rows[:3]:
+            cells = [
+                _normalize_locator_text(cell)
+                for cell in row
+                if str(cell or "").strip()
+            ]
+            if not cells:
+                continue
+            cell_text = " ".join(cells)
+            if "carrying amount" in cell_text:
+                return True
+            if "current" in cells and "non current" in cells:
+                return True
+        return False
+
     def _is_explicit_point_in_time_net_debt_row(
         table: DoclingTable, row_index: int
     ) -> bool:
@@ -742,6 +769,8 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
             + _normalize_locator_text(" ".join(str(h) for h in table.headers))
         )
         if any(marker in header_text for marker in _POINT_IN_TIME_TABLE_MARKERS):
+            return True
+        if _table_has_point_in_time_stock_layout(table):
             return True
 
         start = max(0, row_index - 3)
@@ -1824,6 +1853,20 @@ def _is_strong_total_debt_evidence(row_ref: str | None, value: Any) -> bool:
     return True
 
 
+def _document_has_nonnumeric_net_debt_reference(tables: list[Any]) -> bool:
+    """Detect glossary/definition-only net-debt mentions that should not enable derivation."""
+    for table in tables:
+        for row in getattr(table, "rows", []) or []:
+            if not row:
+                continue
+            label = _normalise_evidence_row_ref(row[0])
+            if label != "net debt":
+                continue
+            if not any(_re.search(r"\d", str(cell or "")) for cell in row[1:]):
+                return True
+    return False
+
+
 def _select_explicit_net_debt_candidate(pass3a_results: list[dict]) -> dict | None:
     candidates: list[tuple[int, int, dict]] = []
     for extraction in pass3a_results:
@@ -1928,39 +1971,44 @@ def _run_pass4_reconciler(
     # total_debt is an internal capture field (not in METRIC_FIELDS) so it survives
     # only in the raw pass3a extraction dict, not in merged_metrics.
     if merged_metrics.get("net_debt") is None:
-        bs_result = next(
-            (r for r in pass3a_results if r.get("_source") == "balance_sheet"), None
-        )
-        if bs_result is not None:
-            total_debt = bs_result.get("total_debt")
-            total_debt_row_ref = bs_result.get("row_refs", {}).get("total_debt")
-            cash_end = merged_metrics.get("cash_end")
-            if (
-                total_debt is not None
-                and cash_end is not None
-                and _is_strong_total_debt_evidence(total_debt_row_ref, total_debt)
-            ):
-                merged_metrics["net_debt"] = total_debt - cash_end
-                provenance["net_debt"] = (
-                    f"derived:balance_sheet:total_debt({total_debt:.0f})"
-                    f"-cash_end({cash_end:.0f})"
-                )
-                net_debt_conf = _derived_net_debt_confidence(bs_result)
-                confidence_weighted_sum += net_debt_conf
-                confidence_weight += 1
-                logger.info(
-                    "net_debt derived from balance sheet: %.0f - %.0f = %.0f (confidence=%.2f)",
-                    total_debt,
-                    cash_end,
-                    merged_metrics["net_debt"],
-                    net_debt_conf,
-                )
-            elif total_debt is not None and cash_end is not None:
-                logger.info(
-                    "Skipping net_debt derivation from weak debt evidence row_ref=%r value=%r",
-                    total_debt_row_ref,
-                    total_debt,
-                )
+        if pass1_result.get("_block_derived_net_debt"):
+            logger.info(
+                "Skipping net_debt derivation due to non-numeric net debt reference in source tables"
+            )
+        else:
+            bs_result = next(
+                (r for r in pass3a_results if r.get("_source") == "balance_sheet"), None
+            )
+            if bs_result is not None:
+                total_debt = bs_result.get("total_debt")
+                total_debt_row_ref = bs_result.get("row_refs", {}).get("total_debt")
+                cash_end = merged_metrics.get("cash_end")
+                if (
+                    total_debt is not None
+                    and cash_end is not None
+                    and _is_strong_total_debt_evidence(total_debt_row_ref, total_debt)
+                ):
+                    merged_metrics["net_debt"] = total_debt - cash_end
+                    provenance["net_debt"] = (
+                        f"derived:balance_sheet:total_debt({total_debt:.0f})"
+                        f"-cash_end({cash_end:.0f})"
+                    )
+                    net_debt_conf = _derived_net_debt_confidence(bs_result)
+                    confidence_weighted_sum += net_debt_conf
+                    confidence_weight += 1
+                    logger.info(
+                        "net_debt derived from balance sheet: %.0f - %.0f = %.0f (confidence=%.2f)",
+                        total_debt,
+                        cash_end,
+                        merged_metrics["net_debt"],
+                        net_debt_conf,
+                    )
+                elif total_debt is not None and cash_end is not None:
+                    logger.info(
+                        "Skipping net_debt derivation from weak debt evidence row_ref=%r value=%r",
+                        total_debt_row_ref,
+                        total_debt,
+                    )
 
     # Prose fallback: shares_outstanding from note sections when tables yield null.
     # Banking filings (ANZ, WBC) often report share counts in prose Note 13/14
@@ -2347,6 +2395,10 @@ def run_multipass_extraction(
     if observer is not None:
         observer.emit("pass2_locator", "running", "Locating statement tables.")
     labelled = _run_pass2_locator(structured_doc.tables)
+    pass1["_block_derived_net_debt"] = bool(
+        labelled.get("net_debt_note") is None
+        and _document_has_nonnumeric_net_debt_reference(structured_doc.tables)
+    )
     if observer is not None:
         observer.emit("pass2_locator", "succeeded", "Pass 2 completed.")
 
