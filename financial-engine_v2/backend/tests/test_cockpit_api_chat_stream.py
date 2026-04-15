@@ -743,7 +743,14 @@ def test_ui_issue_capture_persists_screenshot_artifact(tmp_path) -> None:
             "role": "system",
             "content": "Toolbar button overlaps status bar",
         },
-        frontend_context={"source": "cockpit-ui-issue-capture", "pathname": "/verification"},
+        frontend_context={
+            "source": "cockpit-ui-issue-capture",
+            "pathname": "/verification",
+            "debug_bundle": {
+                "console": [{"level": "error", "message": "boom"}],
+                "network": [{"url": "/api/cockpit/health", "status": 200}],
+            },
+        },
         screenshot={
             "data_url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9p0NvwAAAABJRU5ErkJggg==",
             "mime_type": "image/png",
@@ -761,10 +768,18 @@ def test_ui_issue_capture_persists_screenshot_artifact(tmp_path) -> None:
     assert bundle["capture_kind"] == "ui_issue"
     assert bundle["attachments"][0]["kind"] == "screenshot"
     assert bundle["attachments"][0]["relative_path"] == "ui-screenshot.png"
+    assert bundle["attachments"][1]["kind"] == "browser_debug"
+    assert bundle["attachments"][1]["relative_path"] == "browser-debug.json"
     assert "data_url" not in json.dumps(bundle)
+    assert "debug_bundle" not in json.dumps(bundle)
     screenshot_path = Path(bundle["attachments"][0]["absolute_path"])
     assert screenshot_path.exists()
     assert screenshot_path.read_bytes().startswith(b"\x89PNG")
+    debug_path = Path(bundle["attachments"][1]["absolute_path"])
+    assert debug_path.exists()
+    debug_bundle = json.loads(debug_path.read_text(encoding="utf-8"))
+    assert debug_bundle["console"][0]["message"] == "boom"
     summary = Path(result["summary_path"]).read_text(encoding="utf-8")
     assert "# Cockpit UI Issue" in summary
     assert "ui-screenshot.png" in summary
+    assert "browser-debug.json" in summary

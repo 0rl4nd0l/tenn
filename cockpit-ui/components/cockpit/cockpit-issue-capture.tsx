@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
+import { getBrowserDebugSnapshot } from '@/lib/browser-debug'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import type { ServiceHealth } from '@/lib/cockpit-types'
 
@@ -167,6 +168,7 @@ export function CockpitIssueCapture({
     setSaveState('saving')
     const descriptionText = description.trim()
     const issueText = descriptionText || `UI issue on ${pageTitle}`
+    const debugBundle = getBrowserDebugSnapshot()
     try {
       const response = await fetch('/api/cockpit/feedback/flag', {
         method: 'POST',
@@ -211,6 +213,7 @@ export function CockpitIssueCapture({
               language: navigator.language,
               timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             },
+            debug_bundle: debugBundle,
             clientTimestamp: new Date().toISOString(),
           },
           screenshot: {

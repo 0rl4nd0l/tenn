@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { CockpitSidebar } from './cockpit-sidebar'
 import { CockpitStatusBar } from './cockpit-status-bar'
@@ -8,6 +8,7 @@ import { CockpitIssueCapture } from './cockpit-issue-capture'
 import { checkHealth, isBackendHealthy as getBackendHealthy } from '@/lib/api-client'
 import type { ServiceHealth } from '@/lib/cockpit-types'
 import { useCockpitStore } from '@/lib/cockpit-store'
+import { installBrowserDebugCollector } from '@/lib/browser-debug'
 import { Separator } from '@/components/ui/separator'
 
 interface CockpitLayoutProps {
@@ -22,6 +23,10 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
   const [gpuHealth, setGpuHealth] = useState<ServiceHealth | null>(null)
   const captureRootRef = useRef<HTMLDivElement>(null)
   const { activeTicker, sessionStats, chatCompletionActive } = useCockpitStore()
+
+  useEffect(() => {
+    installBrowserDebugCollector()
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -83,14 +88,16 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
               </span>
             </div>
             <div className="ml-auto">
-              <CockpitIssueCapture
-                captureRootRef={captureRootRef}
-                pageTitle={title}
-                backendHealthy={backendHealthy}
-                backendLastHealthyAt={backendLastHealthyAt}
-                backendError={backendError}
-                gpuHealth={gpuHealth}
-              />
+              <Suspense>
+                <CockpitIssueCapture
+                  captureRootRef={captureRootRef}
+                  pageTitle={title}
+                  backendHealthy={backendHealthy}
+                  backendLastHealthyAt={backendLastHealthyAt}
+                  backendError={backendError}
+                  gpuHealth={gpuHealth}
+                />
+              </Suspense>
             </div>
           </header>
           <main className="flex-1 overflow-hidden">

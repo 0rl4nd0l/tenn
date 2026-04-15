@@ -281,6 +281,17 @@ def _render_flagged_summary(
         if screenshot_label:
             lines.append(f"- Screenshot: `{screenshot_label}`")
         break
+    for attachment in attachments:
+        if not isinstance(attachment, dict):
+            continue
+        if str(attachment.get("kind") or "") != "browser_debug":
+            continue
+        debug_label = str(
+            attachment.get("relative_path") or attachment.get("absolute_path") or ""
+        ).strip()
+        if debug_label:
+            lines.append(f"- Browser Debug: `{debug_label}`")
+        break
     lines.extend(["", "## Request", "", _clip_text(request.get("message"), 1200), ""])
     lines.extend(
         [
@@ -333,6 +344,19 @@ def _build_codex_flag_prompt(
         elif relative_path:
             screenshot_path = str((report_dir / relative_path).resolve())
         break
+    debug_path = ""
+    for attachment in attachments:
+        if not isinstance(attachment, dict):
+            continue
+        if str(attachment.get("kind") or "") != "browser_debug":
+            continue
+        absolute_path = str(attachment.get("absolute_path") or "").strip()
+        relative_path = str(attachment.get("relative_path") or "").strip()
+        if absolute_path:
+            debug_path = absolute_path
+        elif relative_path:
+            debug_path = str((report_dir / relative_path).resolve())
+        break
 
     if capture_kind == "ui_issue":
         prompt_lines = [
@@ -370,6 +394,8 @@ def _build_codex_flag_prompt(
         prompt_lines.extend(["", "Saved response:", flagged_text])
     if screenshot_path:
         prompt_lines.extend(["", f"Screenshot: {screenshot_path}"])
+    if debug_path:
+        prompt_lines.extend(["", f"Browser debug: {debug_path}"])
     if analysis_summary:
         prompt_lines.extend(["", f"Saved analysis summary: {analysis_summary}"])
     if capture_kind == "ui_issue":
@@ -453,6 +479,34 @@ def _persist_feedback_screenshot(
         "height": int(height) if isinstance(height, (int, float)) else None,
         "captured_at": str(screenshot.get("captured_at") or "").strip() or None,
     }
+
+
+def _persist_browser_debug_bundle(
+    *,
+    report_dir: Path,
+    frontend_context: dict[str, Any] | None,
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    context_payload = dict(frontend_context) if isinstance(frontend_context, dict) else {}
+    debug_bundle = context_payload.pop("debug_bundle", None)
+    if debug_bundle is None:
+        return context_payload, None
+
+    sanitized_debug_bundle = _sanitize_payload(debug_bundle)
+    debug_path = (report_dir / "browser-debug.json").resolve()
+    debug_path.write_text(
+        json.dumps(sanitized_debug_bundle, indent=2, default=str),
+        encoding="utf-8",
+    )
+    return (
+        context_payload,
+        {
+            "kind": "browser_debug",
+            "filename": "browser-debug.json",
+            "mime_type": "application/json",
+            "relative_path": "browser-debug.json",
+            "absolute_path": str(debug_path),
+        },
+    )
 
 
 def _write_flagged_report_files(
@@ -1164,6 +1218,15 @@ class CockpitService:
             report_dir=report_dir,
             screenshot=screenshot,
         )
+        frontend_context_payload, debug_attachment = _persist_browser_debug_bundle(
+            report_dir=report_dir,
+            frontend_context=frontend_context,
+        )
+        attachments = [
+            attachment
+            for attachment in (screenshot_attachment, debug_attachment)
+            if attachment is not None
+        ]
 
         bundle = {
             "report_id": report_id,
@@ -1176,14 +1239,12 @@ class CockpitService:
             "flagged_message": flagged_message
             if isinstance(flagged_message, dict)
             else {},
-            "attachments": [screenshot_attachment] if screenshot_attachment else [],
+            "attachments": attachments,
             "frontend_snapshot": {
                 "transcript": [
                     item for item in (transcript or []) if isinstance(item, dict)
                 ][-200:],
-                "context": frontend_context
-                if isinstance(frontend_context, dict)
-                else {},
+                "context": frontend_context_payload,
             },
             "persisted_history": persisted_history,
             "backend_turn": {
