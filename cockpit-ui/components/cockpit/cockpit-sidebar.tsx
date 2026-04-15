@@ -188,6 +188,16 @@ export function CockpitSidebar({
       }
 
   const gpuSummary = useMemo(() => getGpuSummary(gpuHealth), [gpuHealth])
+  const configFieldCount = [
+    configSummary.model,
+    configSummary.maxTokens,
+    configSummary.temperature,
+    configSummary.routingPolicy,
+    configSummary.profile,
+  ].filter((value) => value !== null).length
+  const configStatusLabel = lastConfigSyncAt
+    ? (configFieldCount === 5 ? 'synced' : 'partial')
+    : 'pending'
 
   const gpuHealthy = gpuHealth?.status === 'healthy'
   const gpuProcesses = useMemo(() => getGpuProcesses(gpuHealth), [gpuHealth])
@@ -289,7 +299,7 @@ export function CockpitSidebar({
                   </button>
               </GpuActivityDialog>
               <div className="text-[11px] text-muted-foreground/90 pl-4 font-mono">
-                config sync: {formatClock(lastConfigSyncAt)}
+                config status: {configStatusLabel} {lastConfigSyncAt ? `• ${formatClock(lastConfigSyncAt)}` : ''}
               </div>
 
               <div className="mt-2 space-y-1 rounded border border-sidebar-border/80 bg-black/20 px-2 py-1.5">
@@ -304,7 +314,7 @@ export function CockpitSidebar({
                   {configSummary.temperature?.toFixed(2) ?? '--'}
                 </div>
                 <div className="text-[11px] text-muted-foreground font-mono">
-                  route: {configSummary.routingPolicy ?? '--'} | profile: {configSummary.profile ?? '--'}
+                  routing: {configSummary.routingPolicy ?? '--'} | profile: {configSummary.profile ?? '--'}
                 </div>
               </div>
 

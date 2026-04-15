@@ -276,18 +276,21 @@ export function TerminalMessage({
           <div className="terminal-text text-[10px]">
             args: {JSON.stringify(message.actionPreview.args)}
           </div>
+          <div className="terminal-text-dim mt-1 text-[10px]">
+            Click a button or type <code>yes</code>/<code>no</code>.
+          </div>
           <div className="flex gap-2 mt-2">
             <button
               className="px-2 py-0.5 text-xs bg-green-500/20 text-green-400 border border-green-500/30 rounded hover:bg-green-500/30 transition-colors"
               onClick={() => onConfirmAction?.(message.actionPreview)}
             >
-              [Y] Confirm
+              Confirm
             </button>
             <button
               className="px-2 py-0.5 text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded hover:bg-red-500/30 transition-colors"
               onClick={() => onCancelAction?.(message.actionPreview)}
             >
-              [N] Cancel
+              Cancel
             </button>
           </div>
         </div>

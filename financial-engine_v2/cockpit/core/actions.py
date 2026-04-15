@@ -1215,7 +1215,10 @@ class ActionRegistry:
         out.setdefault("providers", "newspaper4k")
         if spec.id == "load_news_to_qdrant":
             out.setdefault("since_hours", 0)
-        out.setdefault("since_hours", 36)
+        elif spec.id == "daily_news_ingest":
+            out.setdefault("since_hours", 24)
+        else:
+            out.setdefault("since_hours", 36)
         out.setdefault(
             "news_runs_root",
             str(self.workspace_root / "reports" / "qual_context" / "news_runs"),

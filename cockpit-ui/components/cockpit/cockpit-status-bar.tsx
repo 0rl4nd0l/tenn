@@ -133,7 +133,7 @@ export function CockpitStatusBar({
             {config.temperature !== null ? `temp ${config.temperature.toFixed(2)}` : 'temp --'}
           </Badge>
           <Badge variant={routeVariant} className="h-5 text-[10px] font-mono">
-            Route: {routeLabel}
+            Source: {routeLabel}
           </Badge>
           <Badge variant="outline" className="h-5 text-[10px] font-mono hidden lg:inline-flex">
             profile: {config.profile ?? '--'}

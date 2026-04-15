@@ -38,6 +38,28 @@ type PendingFeedback = {
 }
 
 const BACKEND_PREFIX_RE = /^\s*\/(advisor|cloud|local|ops)\b/i
+const ACTION_CONFIRM_INPUTS = new Set([
+  '/confirm',
+  'confirm',
+  'yes',
+  'y',
+  'yeah',
+  'yep',
+  'sure',
+  'ok',
+  'okay',
+  'go ahead',
+  'proceed',
+])
+const ACTION_CANCEL_INPUTS = new Set([
+  '/cancel',
+  'cancel',
+  'no',
+  'n',
+  'nope',
+  'skip',
+  'stop',
+])
 
 function applyApiDefaultOverride(message: string, enabled: boolean): string {
   const trimmed = message.trim()
@@ -48,6 +70,39 @@ function applyApiDefaultOverride(message: string, enabled: boolean): string {
     return message
   }
   return `/cloud ${trimmed}`
+}
+
+function resolvePendingActionIntent(message: string): 'confirm' | 'cancel' | null {
+  const normalized = message.trim().toLowerCase()
+  if (!normalized) return null
+  if (ACTION_CONFIRM_INPUTS.has(normalized)) return 'confirm'
+  if (ACTION_CANCEL_INPUTS.has(normalized)) return 'cancel'
+  return null
+}
+
+function sanitizeActionMessage(content: string, actionPreview?: ActionPreview): string {
+  if (!actionPreview) {
+    return content
+  }
+
+  const lines = content
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .filter((line) => !line.trimStart().startsWith('Command:'))
+    .map((line) =>
+      line.replace(
+        /Use \/confirm to execute or \/cancel to skip\./g,
+        'Confirm below or type yes/no.'
+      )
+    )
+    .map((line) =>
+      line.replace(
+        /^Action candidate detected:\s*.+?\.\s*$/i,
+        `Action ready: ${actionPreview.name}.`
+      )
+    )
+
+  return lines.join('\n').trim()
 }
 
 async function copyFlagPromptToClipboard(prompt: string): Promise<boolean> {
@@ -131,6 +186,7 @@ export function ChatScreen() {
   const [feedbackStates, setFeedbackStates] = useState<Record<string, FeedbackState>>({})
   const [pendingFeedback, setPendingFeedback] = useState<PendingFeedback | null>(null)
   const [feedbackNote, setFeedbackNote] = useState('')
+  const [pendingActionPreview, setPendingActionPreview] = useState<ActionPreview | null>(null)
   const activeStreamRef = useRef<{ close: () => void } | null>(null)
   const statusFallbackTimersRef = useRef<number[]>([])
   const receivedServerStatusRef = useRef(false)
@@ -261,6 +317,9 @@ export function ChatScreen() {
   }, [])
 
   const handleSend = async (content: string) => {
+    const pendingActionIntent = pendingActionPreview
+      ? resolvePendingActionIntent(content)
+      : null
     const userMessage: ChatMessageType = {
       id: generateId(),
       role: 'user',
@@ -268,6 +327,17 @@ export function ChatScreen() {
       timestamp: new Date(),
     }
     setMessages(prev => [...prev, userMessage])
+
+    if (pendingActionPreview && pendingActionIntent === 'confirm') {
+      await handleConfirmAction(pendingActionPreview)
+      return
+    }
+    if (pendingActionPreview && pendingActionIntent === 'cancel') {
+      handleCancelAction(pendingActionPreview)
+      return
+    }
+
+    setPendingActionPreview(null)
 
     clearStatusFallbackTimers()
     receivedServerStatusRef.current = false
@@ -475,10 +545,15 @@ export function ChatScreen() {
                 typeof event.data?.text === 'string' && event.data.text.trim().length > 0
                   ? event.data.text
                   : currentContent
+              const normalizedActionPreview = currentMetadata.actionPreview
+              const sanitizedFinalText = sanitizeActionMessage(
+                finalText,
+                normalizedActionPreview,
+              )
               const assistantMessage: ChatMessageType = {
                 id: generateId(),
                 role: 'assistant',
-                content: finalText,
+                content: sanitizedFinalText,
                 timestamp: new Date(),
                 metadata: {
                   model: event.data.model,
@@ -488,8 +563,8 @@ export function ChatScreen() {
                 },
                 thinking: currentMetadata.thinking,
                 sources: currentMetadata.sources,
-                toolTraces: currentMetadata.toolTraces,
-                actionPreview: currentMetadata.actionPreview,
+                toolTraces: normalizedActionPreview ? [] : currentMetadata.toolTraces,
+                actionPreview: normalizedActionPreview,
                 chart: (event.data?.chart as ChatMessageType['chart']) || currentMetadata.chart,
               }
               
@@ -498,7 +573,8 @@ export function ChatScreen() {
               if (event.data.latency_ms) setLatency(event.data.latency_ms)
               if (event.data.model) setActiveModel(event.data.model)
               setActiveSource(event.data.source || 'local')
-              
+              setPendingActionPreview(normalizedActionPreview ?? null)
+
               setMessages(prev => [...prev, assistantMessage])
               setStreamingContent('')
               clearStreamingStage()
@@ -548,17 +624,22 @@ export function ChatScreen() {
           if (!streamFinalized) {
             const fallbackText = currentContent.trim()
             if (fallbackText || currentMetadata.actionPreview) {
+              const normalizedActionPreview = currentMetadata.actionPreview
               setMessages(prev => [...prev, {
                 id: generateId(),
                 role: 'assistant',
-                content: fallbackText || 'Response ended before a final message was emitted.',
+                content: sanitizeActionMessage(
+                  fallbackText || 'Response ended before a final message was emitted.',
+                  normalizedActionPreview,
+                ),
                 timestamp: new Date(),
                 metadata: { source: 'local' },
                 thinking: currentMetadata.thinking,
                 sources: currentMetadata.sources,
-                toolTraces: currentMetadata.toolTraces,
-                actionPreview: currentMetadata.actionPreview,
+                toolTraces: normalizedActionPreview ? [] : currentMetadata.toolTraces,
+                actionPreview: normalizedActionPreview,
               }])
+              setPendingActionPreview(normalizedActionPreview ?? null)
             } else {
               setMessages(prev => [...prev, {
                 id: generateId(),
@@ -640,6 +721,7 @@ export function ChatScreen() {
     }
 
     actionInFlightRef.current = true
+    setPendingActionPreview(null)
     try {
       const result = await executeAction({
         actionId,
@@ -673,6 +755,7 @@ export function ChatScreen() {
 
   const handleCancelAction = useCallback((actionPreview: ActionPreview | undefined) => {
     if (!actionPreview) return
+    setPendingActionPreview(null)
     const cancelMessage: ChatMessageType = {
       id: generateId(),
       role: 'system',

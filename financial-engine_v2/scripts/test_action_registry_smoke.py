@@ -90,6 +90,8 @@ class TestActionRegistrySmoke(unittest.TestCase):
         preview = reg.preview("daily_news_ingest", {})
         self.assertIn("newspaper4k", preview.command)
         self.assertNotIn("eodhd,gdelt", preview.command)
+        idx = preview.command.index("--since-hours")
+        self.assertEqual(preview.command[idx + 1], "24")
 
     def test_build_preview_does_not_crash(self):
         reg = ActionRegistry(repo_root=ROOT, confirm_required=True)
