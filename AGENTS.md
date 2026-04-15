@@ -1,7 +1,10 @@
 # AGENTS.md instructions for /home/l4nd0/tenn
+<!-- Last updated: 2026-04-15 -->
+
+> **Note for Claude Code:** The skills listed in this file use `.codex/skills/` paths that are only accessible to the Codex agent. If you are Claude Code, ignore the skills block and use your own skills in `.claude/skills/` instead. All other repo context below applies to both agents equally.
 
 <INSTRUCTIONS>
-## Skills
+## Skills (Codex-only — paths under `.codex/skills/`)
 A skill is a set of local instructions to follow that is stored in a `SKILL.md` file. Below is the list of skills that can be used. Each entry includes a name, description, and file path so you can open the source for full instructions when using a specific skill.
 ### Available skills
 - architecture-check: Validate proposed backend, RAG, vector store, and embedding changes against mandatory architecture rules before implementation. Use for architecture compliance checks or before editing sensitive retrieval surfaces. (file: /home/l4nd0/tenn/.codex/skills/architecture-check/SKILL.md)
@@ -66,27 +69,31 @@ Before any change, Codex agents MUST:
 
 This repo uses two agent systems in parallel:
 - **Claude Code** (primary) — claude-sonnet-4-6, skills in `.claude/skills/`
-- **Codex** (this agent) — gpt-5.4, skills in `.codex/skills/`
+- **Codex** (this agent) — skills in `.codex/skills/`
 
 They share the same codebase. To see Claude's current progress, decisions, and feedback:
-- **Claude's memory index:** `/home/l4nd0/.claude/projects/-home-l4nd0-tenn/memory/MEMORY.md`
+- **Claude's memory index:** `/home/l4nd0/.claude/projects/-mnt-sdb2-home-l4nd0-tenn/memory/MEMORY.md`
 - **Codex's memory:** `~/.codex/memories/` (Codex reads and writes here)
 - **Specs:** `docs/superpowers/specs/`
 - **Plans:** `docs/superpowers/plans/`
 
 **Before acting on any task:** Read Claude's memory index to avoid duplicating completed work.
 
-## Current Sprint State (as of 2026-03-21)
+## Current Sprint State
 
-| Item | Status | Location |
-|------|--------|----------|
-| Extraction redesign spec | ✅ Complete, reviewer-approved | `docs/superpowers/specs/2026-03-21-extraction-redesign.md` |
-| Extraction redesign plan | ✅ Complete, reviewer-approved | `docs/superpowers/plans/2026-03-21-extraction-redesign.md` |
-| Implementation (8 tasks) | 🔲 Not started | See plan |
-| Guard E fix (cashflow layout modules) | 🔲 Blocked on `git merge main` | See project memory |
-| Eval ground truth fixtures | 🔲 Not started | `backend/tests/eval_fixtures/` |
+> **This section is a snapshot.** Always cross-reference `docs/claude/STATE.md` for current workstream status before acting.
 
-**Sprint goal:** Replace single-pass LLM extraction (PyMuPDF flat text → `build_prompt()` → `generate_json()`) with 4-pass docling multi-pass pipeline (`docling_extract.py` → `multipass_extraction.py` → `_upsert_financial_rows()`).
+Active workstreams as of 2026-04-14:
+
+| Workstream | Status | Notes |
+|------------|--------|-------|
+| extraction-quality | `[ in-progress ]` | 88.64% excl. AZJ; MIN/TLS shares_outstanding open; Docling default |
+| extraction-truth | `[ in-progress ]` | Backend real-gold eval + UI review session handoff shipped |
+| cockpit-routing | `[ in-progress ]` | Shared-router mutex, API fallback, follow-up/intent routing |
+| docs-governance | `[ in-progress ]` | Contract addendum shipped; conformance matrix ongoing |
+| extraction-hardening | `[ in-progress ]` | FX conversion not yet built; AZJ unsolvable (threshold=0.0) |
+
+Completed sprint goals (multipass extraction pipeline is **live** — Docling default, 4-pass LLM extraction, `multipass_extraction.py` → `_upsert_financial_rows()`). See `docs/claude/STATE.md` for full history.
 
 ## Key File Locations
 
@@ -94,7 +101,7 @@ They share the same codebase. To see Claude's current progress, decisions, and f
 |------|------|
 | Extraction spec | `docs/superpowers/specs/2026-03-21-extraction-redesign.md` |
 | Extraction plan | `docs/superpowers/plans/2026-03-21-extraction-redesign.md` |
-| Claude memory index | `/home/l4nd0/.claude/projects/-home-l4nd0-tenn/memory/MEMORY.md` |
+| Claude memory index | `/home/l4nd0/.claude/projects/-mnt-sdb2-home-l4nd0-tenn/memory/MEMORY.md` |
 | Capability guards | `financial-engine_v2/backend/tests/test_extraction_capability_guards.py` |
 | Current extraction | `financial-engine_v2/backend/app/services/extraction.py` |
 | Pipeline | `financial-engine_v2/backend/app/services/pipeline.py` |

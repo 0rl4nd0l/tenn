@@ -121,10 +121,13 @@ Setup: see `docs/setup/environment.md` → Session memory setup section.
 
 ## Current Branch Context
 
-Branch: `cloud/session-20260319`
-Last milestone commits: `19495865` (session_memory domain isolation), `aed254f0` (OpenViking Phase 1-3)
+> **This snapshot was last updated 2026-03-24.** Branch and milestone data below are stale — always run `git branch --show-current` and `git log --oneline -10` to get current state before acting on branch-specific details.
 
-> This state snapshot reflects 2026-03-24. Re-verify with `git status` before acting.
+Snapshot branch (stale): `cloud/session-20260319`
+Current active branch (as of 2026-04-15): `plan/ideation-combinations-2026-04-11`
+
+Last milestone commits (snapshot): `19495865` (session_memory domain isolation), `aed254f0` (OpenViking Phase 1-3)
+For current milestones, see `docs/claude/STATE.md`.
 
 ---
 

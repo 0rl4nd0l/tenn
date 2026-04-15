@@ -1,6 +1,6 @@
 # Gap Analysis
 
-As of 2026-03-20 audit. Source: deep inventory of `/home/l4nd0/tenn`.
+As of 2026-03-20 audit (partially updated 2026-04-15 to reflect shipped items). Source: deep inventory of `/home/l4nd0/tenn`.
 
 ## Source Trace
 - Full repository audit (2026-03-20)
@@ -34,8 +34,8 @@ As of 2026-03-20 audit. Source: deep inventory of `/home/l4nd0/tenn`.
 | Pre-commit hooks | **Present** | `.git/hooks/pre-commit` — ruff on staged Python files | — | — |
 | Pre-push hooks | **Present** | `.git/hooks/pre-push` — ruff + pytest + markdown hygiene | — | — |
 | Claude Code automation hooks | **Present** | `.claude/settings.json` — SessionStart context, PostToolUse ruff+chmod, Stop diff summary | — | — |
-| MCP server configuration | **Present** | `.mcp.json` at repo root; launchers in `scripts/mcp/`; documented in `docs/claude/mcp-servers.md` | Activate GitHub (needs PAT) and Tenn (needs `.venv-autodev`) servers | Medium |
-| Automated lint enforcement (CI) | **Partial** | `ruff.toml` + `pytest.ini` exist; no `.github/workflows/` found; pre-push hook covers fast gates | Add CI if GitHub Actions is adopted | Low |
+| MCP server configuration | **Present** | `.mcp.json` at repo root; launchers in `scripts/mcp/`; documented in `docs/claude/mcp-servers.md`. Default enables qdrant, redis, tenn only. GitHub (needs PAT) and playwright are opt-in — see `current-state.md` MCP table | — | — |
+| Automated lint enforcement (CI) | **Present** | `.github/workflows/ci.yml` shipped at `3a168c71` — ruff + pytest, `live_eval` excluded; pre-push hook also covers fast gates | — | — |
 | Explicit failure model doc (Claude-readable) | **Present** | `docs/architecture/10_failure_model.md` read and summarized in `docs/claude/runbook.md` (Failure Model section) | — | — |
 | Vector baseline comparison thresholds | **Present** | Gate conditions confirmed from `scripts/validate_financial_metrics_gates.py`: zero duplicates, zero conflicts, zero empty_currency; documented in `domain-financial-pipeline.md` | — | — |
 | `commentary_chunks_v2` fallback policy | **Present** | Confirmed: collection is config-driven via `settings.qdrant_collection`; not automatic code fallback; documented in `domain-financial-pipeline.md` | — | — |

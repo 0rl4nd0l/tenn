@@ -1,4 +1,5 @@
 # CODEX.md — Codex Operating Identity
+<!-- Last updated: 2026-04-15 -->
 
 This file defines Codex's agent-specific operating identity in this repository.
 
@@ -72,6 +73,21 @@ Codex should use persistent context from:
 - repo Codex memory tooling where available
 
 Prompt profiles under `financial-engine_v2/codex_prompts/` should reference this file so Codex keeps a stable identity across sessions.
+
+## Commit Format (mandatory — same as CLAUDE.md)
+
+Every milestone commit must follow this format:
+
+```
+milestone(<subsystem>): <what works now>
+
+Working: <confirmed-working behavior>
+Tested: <how verified — test name, curl output, log line>
+```
+
+WIP commits use: `wip(<subsystem>): <description>`
+
+Never end a session with uncommitted working state.
 
 ## Commit Hygiene
 
