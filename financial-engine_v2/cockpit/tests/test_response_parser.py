@@ -133,3 +133,79 @@ class TestEdgeCases:
         raw = '{"type": "response", "content": "test"}'
         parsed = parse_llm_response(raw)
         assert parsed.raw == raw
+
+
+# ---------------------------------------------------------------------------
+# Regression tests — mapped to confirmed vulnerabilities in
+# docs/claude/audit/2026-04-14-silent-failure-audit.md
+# ---------------------------------------------------------------------------
+
+
+class TestRegressions:
+    def test_multi_json_three_objects(self):
+        """thinking + tool_call + response in one completion → response wins, thinking preserved.
+
+        Regression for Latent Risk 7: third-object (tool_call) in multi-object completion
+        must be silently skipped without disrupting response/thinking extraction.
+        """
+        raw = (
+            '{"type":"thinking","assessment":"need data","plan":"call tool"}'
+            '{"type":"tool_call","tool":"query_ticker_data","arguments":{"ticker":"BHP"}}'
+            '{"type":"response","content":"BHP is trading at $42."}'
+        )
+        parsed = parse_llm_response(raw)
+        assert parsed.type == "response"
+        assert parsed.content == "BHP is trading at $42."
+        assert parsed.assessment == "need data"
+        assert parsed.plan == "call tool"
+
+    def test_multi_json_no_response_block(self):
+        """Two thinking objects, no response block → last object is used as fallback."""
+        raw = (
+            '{"type":"thinking","assessment":"step one","plan":"do a"}'
+            '{"type":"thinking","assessment":"step two","plan":"do b"}'
+        )
+        parsed = parse_llm_response(raw)
+        # Last object (step two) used when no response block present
+        assert parsed.type == "thinking"
+        assert parsed.assessment == "step two"
+        assert parsed.plan == "do b"
+
+    def test_invalid_type_field(self):
+        """type present but not in VALID_TYPES → _infer_type fallback returns 'response'.
+
+        Regression: _build_from_dict must call _infer_type when type is unrecognised,
+        not silently keep the invalid type string.
+        """
+        raw = '{"type": "unknown_xyz", "content": "hi there"}'
+        parsed = parse_llm_response(raw)
+        assert parsed.type == "response"
+        assert parsed.content == "hi there"
+
+    def test_repair_trailing_comma_in_nested(self):
+        """Trailing comma inside a nested object → repaired and parsed correctly."""
+        raw = '{"type": "response", "content": {"key": "value",}}'
+        parsed = parse_llm_response(raw)
+        assert parsed.type == "response"
+        # content is the nested dict parsed from JSON
+        assert parsed.content == {"key": "value"}
+
+    def test_parse_llm_response_known_bug_regression(self):
+        """Exact raw string from Bug 1 (two concatenated JSON objects) → response content returned.
+
+        Regression: without multi-object splitting, parse_llm_response would return
+        the raw JSON string as plain text instead of the structured response content.
+        """
+        raw = (
+            '{"type": "thinking", "assessment": "The user just typed h", '
+            '"plan": "Ask for clarification"}\n\n'
+            '{"type": "response", "content": "Looks like an accidental keystroke!"}'
+        )
+        parsed = parse_llm_response(raw)
+        # Must NOT return raw JSON as plain text
+        assert parsed.type == "response"
+        assert parsed.content == "Looks like an accidental keystroke!"
+        # Thinking metadata must be preserved (not raw JSON leak)
+        assert "{" not in (parsed.content or ""), (
+            "Raw JSON leaked into content — multi-object split not working"
+        )

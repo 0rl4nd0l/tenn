@@ -69,7 +69,12 @@ def _repair_json(text: str) -> str:
 
     Handles:
     - Trailing commas before } or ]
-    - Single quotes used instead of double quotes (simple cases)
+
+    Limitation: does NOT repair unterminated strings or mismatched delimiters
+    caused by LLM truncation (context window overflow).  Such inputs fall
+    through to the plain-text fallback.  Multi-object strings (two or more
+    concatenated JSON objects) are intentionally left untouched here —
+    Attempt 3 (_try_split_multi_json) handles those.
     """
     # Strip trailing commas before closing braces/brackets
     repaired = re.sub(r",\s*([}\]])", r"\1", text)
@@ -214,6 +219,12 @@ def parse_llm_response(raw: str) -> ParsedResponse:
                 thinking_obj = obj
             elif inferred == "response":
                 response_obj = obj
+            else:
+                logger.debug(
+                    "_try_split_multi_json: skipping %r-typed object "
+                    "in multi-object completion (not thinking or response)",
+                    inferred,
+                )
         # If we found a response block, use it.
         if response_obj is not None:
             result = _build_from_dict(response_obj, raw)
