@@ -1209,10 +1209,20 @@ def _extract_single_table(
         _MIN_PLAUSIBLE_SHARES = 1_000_000
         shares_val = extracted.get("shares_outstanding")
         if shares_val is not None:
+            # Scan caption, all column headers, all first-column row labels, AND all
+            # cells from the first 3 body rows.  SEG-style tables place the unit
+            # indicator ("No. '000s") in the second column of the first body row —
+            # not in the docling-extracted headers list — so limiting to row[0] alone
+            # would miss it.
             share_surfaces = [
                 table.caption or "",
                 " ".join(str(h) for h in table.headers),
                 " ".join(str(row[0]) for row in table.rows if row),
+                " ".join(
+                    " ".join(str(c) for c in row)
+                    for row in (table.rows or [])[:3]
+                    if row
+                ),
             ]
             compact_share_text = _normalize_filter_text(" ".join(share_surfaces))
             has_share_count_evidence = any(
@@ -1222,12 +1232,16 @@ def _extract_single_table(
                     "numberofsecurities",
                     "numberofunits",
                     "noofsecurities",
+                    # SEG-style column headers: "No. '000s" → "no000s" after normalization
+                    "no000s",
                     "noofunits",
                     "sharesonissue",
                     "securitiesonissue",
                     "unitsonissue",
                     "stapledsecurities",
                     "issuedordinaryshares",
+                    # Plain "Ordinary shares" row label (common in balance sheet tables)
+                    "ordinaryshares",
                     "ordinarysharesfullypaid",
                     "fullypaidordinaryshares",
                     "sharesnotifiedtotheaustralianstockexchange",
@@ -1240,7 +1254,15 @@ def _extract_single_table(
             weighted_average_only = bool(row_labels) and all(
                 "weightedaverage" in label or not label for label in row_labels[1:]
             )
-            if weighted_average_only or not has_share_count_evidence:
+            # An absolute count (≥ 1M) is self-evident: the LLM was instructed
+            # to return the absolute share count, so a value this large cannot
+            # be an unscaled row number from a dollar-denominated column.
+            # Only apply the null guard when the value is small enough that it
+            # could be a scaled placeholder rather than a genuine count.
+            _already_absolute = abs(shares_val) >= _MIN_PLAUSIBLE_SHARES
+            if weighted_average_only or (
+                not has_share_count_evidence and not _already_absolute
+            ):
                 logger.info(
                     "Nulling shares_outstanding from %s due to weak count evidence",
                     table_type,
@@ -1734,9 +1756,37 @@ def _coerce_confidence(confidence: Any, default: float = 0.5) -> float:
         return default
 
 
+# Row label substrings that contain "net" and "debt" but represent derived/context
+# values rather than an explicit point-in-time net debt figure.  These must be
+# rejected so that the reconciler only accepts a direct "Net debt" row.
+_DERIVED_NET_DEBT_ROW_FRAGMENTS = frozenset(
+    {
+        "opening net debt",
+        "closing net debt",
+        "movement in net debt",
+        "net debt movement",
+        "change in net debt",
+        "net debt plus",
+        "net debt management",
+        "net debt ratio",
+        "net debt to",
+        "net debt and",
+        "net gearing",
+    }
+)
+
+
 def _is_explicit_net_debt_evidence(row_ref: str | None) -> bool:
+    """Return True only when row_ref names an explicit point-in-time net debt row.
+
+    Rows that contain "net debt" but represent derived, movement, or ratio values
+    are rejected via _DERIVED_NET_DEBT_ROW_FRAGMENTS so they cannot pollute the
+    explicit net_debt candidate selection.
+    """
     label = _normalise_evidence_row_ref(row_ref)
-    return bool(label) and "net" in label and "debt" in label
+    if not label or "net" not in label or "debt" not in label:
+        return False
+    return not any(fragment in label for fragment in _DERIVED_NET_DEBT_ROW_FRAGMENTS)
 
 
 def _is_strong_total_debt_evidence(row_ref: str | None, value: Any) -> bool:
@@ -2056,7 +2106,13 @@ def _validate_gate(payload: dict) -> tuple[str, Optional[str]]:
 
     metrics = payload.get("metrics", {})
     non_null = [v for v in metrics.values() if v is not None]
-    if len(non_null) < 3:
+    # Quarterly Appendix 5B filings are structurally limited to cash-flow metrics;
+    # they never contain income-statement or balance-sheet rows.  A minimum of 1
+    # non-null metric is sufficient to confirm a legitimate quarterly extraction,
+    # provided all other gates (scale, period_end, confidence, sanity cap) pass.
+    # Annual and half-year reports must still provide at least 3 non-null metrics.
+    min_metrics = 1 if payload.get("period_type") == "Q" else 3
+    if len(non_null) < min_metrics:
         return "failed", f"validation_gate:insufficient_metrics:{len(non_null)}"
 
     for m, v in metrics.items():

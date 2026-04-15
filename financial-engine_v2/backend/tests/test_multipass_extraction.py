@@ -1280,16 +1280,16 @@ def test_compute_docling_timeout_scales():
     """Mid-sized PDFs must scale proportionally when above the floor."""
     from app.services.docling_extract import _compute_docling_timeout
 
-    # 50 pages × 4 = 200s — above floor, below cap
-    assert _compute_docling_timeout(50) == 200
+    # 50 pages × 6 = 300s — above floor (120s), below cap (600s)
+    assert _compute_docling_timeout(50) == 300
 
 
 def test_compute_docling_timeout_cap():
-    """Very large PDFs must not exceed the 300s ceiling."""
+    """Very large PDFs must not exceed the 600s ceiling."""
     from app.services.docling_extract import _compute_docling_timeout
 
-    # 100 pages × 4 = 400s — exceeds cap
-    assert _compute_docling_timeout(100) == 300
+    # 100 pages × 6 = 600s — hits cap
+    assert _compute_docling_timeout(100) == 600
 
 
 # ---------------------------------------------------------------------------
@@ -3051,3 +3051,273 @@ def test_pass3a_retries_full_table_when_filtered_output_misses_key_metric():
     assert len(results) == 1
     assert mock_llm.call_count == 2, "Expected filtered extraction + full-table retry"
     assert results[0]["revenue"] == 1200
+
+
+# ---------------------------------------------------------------------------
+# Phase 02 Hardening — net debt explicit evidence filter
+# ---------------------------------------------------------------------------
+
+
+class TestIsExplicitNetDebtEvidence:
+    """_is_explicit_net_debt_evidence must accept direct net debt rows and reject
+    derived/movement/ratio rows that contain 'net debt' but are not the point-in-time
+    figure we want to store."""
+
+    def _check(self, row_ref: str) -> bool:
+        from app.services.multipass_extraction import _is_explicit_net_debt_evidence
+
+        return _is_explicit_net_debt_evidence(row_ref)
+
+    def test_accepts_plain_net_debt(self) -> None:
+        assert self._check("Net debt") is True
+
+    def test_accepts_net_debt_with_footnote(self) -> None:
+        """Row refs from ASX summaries often have footnote markers like '¹'."""
+        assert self._check("Net debt¹") is True
+
+    def test_accepts_net_debt_parenthetical(self) -> None:
+        assert self._check("Net debt (US$ millions)") is True
+
+    def test_rejects_opening_net_debt(self) -> None:
+        assert self._check("Opening net debt") is False
+
+    def test_rejects_closing_net_debt(self) -> None:
+        assert self._check("Closing net debt") is False
+
+    def test_rejects_movement_in_net_debt(self) -> None:
+        assert self._check("Movement in net debt") is False
+
+    def test_rejects_net_debt_movement(self) -> None:
+        assert self._check("Net debt movement") is False
+
+    def test_rejects_change_in_net_debt(self) -> None:
+        assert self._check("Change in net debt") is False
+
+    def test_rejects_net_debt_plus_total_equity(self) -> None:
+        assert self._check("Net debt plus total equity") is False
+
+    def test_rejects_net_debt_management(self) -> None:
+        assert self._check("Net debt management") is False
+
+    def test_rejects_net_debt_ratio(self) -> None:
+        assert self._check("Net debt ratio") is False
+
+    def test_rejects_net_debt_to_ebitda(self) -> None:
+        assert self._check("Net debt to EBITDA") is False
+
+    def test_rejects_net_gearing(self) -> None:
+        """Net gearing contains 'net' but not 'debt' — also rejected."""
+        assert self._check("Net gearing ratio") is False
+
+    def test_rejects_none(self) -> None:
+        assert self._check(None) is False
+
+    def test_rejects_empty_string(self) -> None:
+        assert self._check("") is False
+
+
+# ---------------------------------------------------------------------------
+# Phase 02 Hardening — shares_outstanding marker coverage
+# ---------------------------------------------------------------------------
+
+
+class TestSharesOutstandingMarkers:
+    """shares_outstanding post-processing must recognise SEG-style 'No. \u2019000s'
+    column headers and plain 'Ordinary shares' row labels as valid share-count
+    evidence, preventing them from being nulled by has_share_count_evidence=False."""
+
+    def _extract_shares(self, table):
+        from unittest.mock import patch
+
+        from app.services.multipass_extraction import _run_pass3a_metric_extractor
+        from app.services.docling_extract import DoclingTable
+
+        labelled = {
+            "cashflow_statement": None,
+            "income_statement": None,
+            "balance_sheet": None,
+            "highlights": None,
+            "share_capital": table,
+            "net_debt_note": None,
+            "unmatched": [],
+        }
+        pass1 = {
+            "report_type": "H",
+            "period_end": "2025-12-31",
+            "currency": "AUD",
+            "scale": "millions",
+        }
+        mock_raw = {
+            "shares_outstanding": 196,  # LLM returns un-scaled value
+            "period_col": "Dec 2025",
+            "pass3_confidence": 0.88,
+            "row_refs": {"shares_outstanding": "Ordinary shares"},
+        }
+        with patch(
+            "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+        ):
+            results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+        return results
+
+    def test_seg_no_000s_column_header_not_nulled(self) -> None:
+        """A table with 'No. \u2019000s' column header must not be nulled by weak-evidence check."""
+        from app.services.docling_extract import DoclingTable
+
+        seg_table = DoclingTable(
+            page_number=12,
+            caption="",
+            rows=[
+                ["", "No. \u2019000s"],
+                ["Ordinary shares", "196,478"],
+            ],
+            headers=["", "No. \u2019000s"],
+        )
+        results = self._extract_shares(seg_table)
+        assert len(results) == 1
+        shares = results[0].get("shares_outstanding")
+        assert shares is not None, (
+            "shares_outstanding must not be nulled for SEG-style No.\u2019000s column"
+        )
+
+    def test_plain_ordinary_shares_row_not_nulled(self) -> None:
+        """A table with a plain 'Ordinary shares' row label must pass has_share_count_evidence."""
+        from app.services.docling_extract import DoclingTable
+
+        ordinary_table = DoclingTable(
+            page_number=5,
+            caption="Share Capital",
+            rows=[
+                ["", "Dec 2025", "Jun 2025"],
+                ["Ordinary shares", "1,234", "1,200"],
+            ],
+            headers=["", "Dec 2025", "Jun 2025"],
+        )
+        results = self._extract_shares(ordinary_table)
+        assert len(results) == 1
+        shares = results[0].get("shares_outstanding")
+        assert shares is not None, (
+            "shares_outstanding must not be nulled for plain 'Ordinary shares' row label"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Phase 02 Hardening — quarterly validation gate minimum metric threshold
+# ---------------------------------------------------------------------------
+
+
+class TestValidateGateQuarterlyThreshold:
+    """Quarterly Appendix 5B documents are structurally limited to cash-flow metrics.
+    The validation gate must accept Q documents with as few as 1 non-null metric,
+    while still requiring at least 3 non-null metrics for A and H documents."""
+
+    def _make_q_payload(self, non_null_count: int) -> dict:
+        """Build a minimal Q payload with exactly non_null_count non-null metrics."""
+        cf_metrics = ["operating_cf", "cash_end", "investing_cf", "financing_cf", "capex"]
+        metrics: dict = {
+            "revenue": None,
+            "ebit": None,
+            "np_attributable": None,
+            "operating_cf": None,
+            "investing_cf": None,
+            "financing_cf": None,
+            "capex": None,
+            "cash_end": None,
+            "net_debt": None,
+            "shares_outstanding": None,
+        }
+        for metric in cf_metrics[:non_null_count]:
+            metrics[metric] = 1_000_000
+        return {
+            "period_end": "2025-09-30",
+            "period_type": "Q",
+            "scale": "thousands",
+            "currency": "AUD",
+            "metrics": metrics,
+            "confidence_metrics": 0.80,
+        }
+
+    def test_quarterly_accepts_one_cashflow_metric(self) -> None:
+        """Q doc with 1 non-null metric (operating_cf only) must pass the gate."""
+        from app.services.multipass_extraction import _validate_gate
+
+        status, error = _validate_gate(self._make_q_payload(1))
+        assert status in ("ok", "ok_low_confidence"), (
+            f"Q doc with 1 metric must pass gate; got status={status!r}, error={error!r}"
+        )
+
+    def test_quarterly_accepts_two_cashflow_metrics(self) -> None:
+        """Q doc with 2 non-null metrics (GRE-style: operating_cf + cash_end) must pass."""
+        from app.services.multipass_extraction import _validate_gate
+
+        status, error = _validate_gate(self._make_q_payload(2))
+        assert status in ("ok", "ok_low_confidence"), (
+            f"Q doc with 2 metrics must pass gate; got status={status!r}, error={error!r}"
+        )
+
+    def test_quarterly_rejects_zero_metrics(self) -> None:
+        """Q doc with 0 non-null metrics must still be rejected."""
+        from app.services.multipass_extraction import _validate_gate
+
+        status, error = _validate_gate(self._make_q_payload(0))
+        assert status == "failed", (
+            f"Q doc with 0 metrics must be rejected; got status={status!r}"
+        )
+        assert error is not None and "insufficient_metrics" in error
+
+    def test_annual_still_requires_three_metrics(self) -> None:
+        """A (annual) document with 2 non-null metrics must still be rejected."""
+        from app.services.multipass_extraction import _validate_gate
+
+        payload = {
+            "period_end": "2025-06-30",
+            "period_type": "A",
+            "scale": "millions",
+            "currency": "AUD",
+            "metrics": {
+                "revenue": None,
+                "ebit": None,
+                "np_attributable": None,
+                "operating_cf": 5_000_000_000,
+                "investing_cf": None,
+                "financing_cf": None,
+                "capex": None,
+                "cash_end": 1_000_000_000,
+                "net_debt": None,
+                "shares_outstanding": None,
+            },
+            "confidence_metrics": 0.85,
+        }
+        status, error = _validate_gate(payload)
+        assert status == "failed", (
+            f"Annual doc with 2 metrics must still be rejected; got status={status!r}"
+        )
+        assert error is not None and "insufficient_metrics" in error
+
+    def test_half_year_still_requires_three_metrics(self) -> None:
+        """H (half-year) document with 2 non-null metrics must still be rejected."""
+        from app.services.multipass_extraction import _validate_gate
+
+        payload = {
+            "period_end": "2025-12-31",
+            "period_type": "H",
+            "scale": "thousands",
+            "currency": "AUD",
+            "metrics": {
+                "revenue": None,
+                "ebit": None,
+                "np_attributable": None,
+                "operating_cf": 90_000_000,
+                "investing_cf": None,
+                "financing_cf": None,
+                "capex": None,
+                "cash_end": 50_000_000,
+                "net_debt": None,
+                "shares_outstanding": None,
+            },
+            "confidence_metrics": 0.85,
+        }
+        status, error = _validate_gate(payload)
+        assert status == "failed", (
+            f"Half-year doc with 2 metrics must still be rejected; got status={status!r}"
+        )
+        assert error is not None and "insufficient_metrics" in error

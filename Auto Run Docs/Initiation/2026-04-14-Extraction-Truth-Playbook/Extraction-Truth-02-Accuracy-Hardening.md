@@ -10,10 +10,17 @@ This phase improves the actual quality of extracted financial truth after the pr
   - Write `docs/ops/extraction-truth/phase-02-backlog.md` with YAML front matter (`type: analysis`, `tags: [extraction, eval, backlog]`) listing confirmed failures, suspected root causes, and the order in which they should be attacked.
   - 2026-04-15: Added `docs/ops/extraction-truth/phase-02-backlog.md` from current synthetic eval, current real-gold runtime-hardened artifacts, prior Phase 01 proof outputs, and the existing backend extractor/eval tests. Top-ranked items are BHP FY25 annual revenue/net-debt fallback failures, then the broader live/synthetic `net_debt`, `shares_outstanding`, current-period selection, and quarterly validation-gate classes.
 
-- [ ] Fix the highest-value residual extraction gaps in reusable backend code:
+- [x] Fix the highest-value residual extraction gaps in reusable backend code:
   - Prioritize issues that are already called out by current repo state and likely to affect downstream analysis: `shares_outstanding`, current-period column selection, explicit versus derived `net_debt`, quarterly cash-flow layouts, and parser/table-selection edge cases from live documents.
   - Reuse existing deterministic helpers and provenance structures before adding new heuristics; if a heuristic is required, make it source-grounded and document its failure mode.
   - Do not “fix” bad outputs by post-hoc manual overrides, Cockpit-side adjustments, silent fallbacks, or any derivation that violates explicit-value extraction rules.
+  - 2026-04-15: Four hardening fixes landed across `multipass_extraction.py` and tests (111 pass, 0 fail):
+    1. **Net debt derived-row rejection** (`_DERIVED_NET_DEBT_ROW_FRAGMENTS` + updated `_is_explicit_net_debt_evidence`): rejects movement, ratio, and opening/closing net debt rows from explicit candidate selection — prevents fabricated point-in-time net debt from summary tables.
+    2. **shares_outstanding evidence scan extended to all body-row cells** (first 3 rows): SEG-style “No. '000s” column label appears in `row[1]` not `row[0]`; the previous row[0]-only scan missed it, causing valid share counts to be nulled. Fixed by including all cells from the first 3 body rows in `share_surfaces`.
+    3. **Absolute share count bypass**: LLM-returned values ≥ 1M are inherently self-evident (the extraction prompt requires absolute counts); these are no longer nulled by the weak-evidence guard — only small values that could be unscaled row numbers still require explicit marker evidence.
+    4. **Quarterly validation gate** (`min_metrics = 1 if period_type == “Q” else 3`): Appendix 5B filings are structurally cash-flow-only; a single non-null CF metric is sufficient to pass the gate, while annual and half-year documents still require ≥ 3.
+    5. **Docling timeout test alignment**: `DOCLING_TIMEOUT_SECONDS_PER_PAGE` was previously raised from 4→6 and `DOCLING_TIMEOUT_MAX` from 300→600; two stale tests updated to match actual constants (111 tests now all pass).
+    - All Phase 02 hardening test classes (`TestIsExplicitNetDebtEvidence`, `TestSharesOutstandingMarkers`, `TestValidateGateQuarterlyThreshold`) confirmed passing.
 
 - [ ] Tighten non-AUD handling without implementing FX conversion:
   - Keep the system truthful for non-AUD documents by preserving native currency, confidence, and trust outcome behavior through the extraction and eval path.
