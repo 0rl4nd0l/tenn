@@ -3115,6 +3115,32 @@ class TestIsExplicitNetDebtEvidence:
     def test_rejects_empty_string(self) -> None:
         assert self._check("") is False
 
+    # --- Phase 02 regression: mining-sector movement and reconciliation labels ---
+
+    def test_rejects_increase_decrease_in_net_debt(self) -> None:
+        """'Increase/(decrease) in net debt' is a cash-flow movement row, not a balance."""
+        assert self._check("Increase/(decrease) in net debt") is False
+
+    def test_rejects_decrease_increase_in_net_debt(self) -> None:
+        """'Decrease/(increase) in net debt' is the sign-reversed movement variant."""
+        assert self._check("Decrease/(increase) in net debt") is False
+
+    def test_rejects_net_debt_beginning_of_period(self) -> None:
+        """'Net debt: beginning of period' is the reconciliation opening balance, not the close."""
+        assert self._check("Net debt: beginning of period") is False
+
+    def test_rejects_net_debt_beginning_of_year(self) -> None:
+        """'Net debt: beginning of year' is another opening-balance label used in annual reports."""
+        assert self._check("Net debt: beginning of year") is False
+
+    def test_accepts_net_debt_including_lease_liabilities(self) -> None:
+        """'Net debt including lease liabilities' is an explicit point-in-time balance."""
+        assert self._check("Net debt including lease liabilities") is True
+
+    def test_accepts_net_debt_position(self) -> None:
+        """'Net debt position' is a period-end balance label, not a movement."""
+        assert self._check("Net debt position") is True
+
 
 # ---------------------------------------------------------------------------
 # Phase 02 Hardening — shares_outstanding marker coverage
@@ -3197,6 +3223,62 @@ class TestSharesOutstandingMarkers:
         shares = results[0].get("shares_outstanding")
         assert shares is not None, (
             "shares_outstanding must not be nulled for plain 'Ordinary shares' row label"
+        )
+
+    def test_absolute_count_bypasses_evidence_check(self) -> None:
+        """LLM-returned value >= 1M bypasses the weak-evidence null guard.
+
+        The extraction prompt instructs the LLM to return absolute counts, so a value
+        this large cannot be an unscaled row number from a dollar-denominated column.
+        A table with no recognisable marker labels but a large absolute value must
+        still produce a non-null shares_outstanding.
+        """
+        from unittest.mock import patch
+
+        from app.services.multipass_extraction import _run_pass3a_metric_extractor
+        from app.services.docling_extract import DoclingTable
+
+        # Table with no recognisable share-count marker (generic label + numeric col)
+        generic_table = DoclingTable(
+            page_number=8,
+            caption="Selected data",
+            rows=[
+                ["Item", "Dec 2025"],
+                ["Count", "5,057"],
+            ],
+            headers=["Item", "Dec 2025"],
+        )
+        labelled = {
+            "cashflow_statement": None,
+            "income_statement": None,
+            "balance_sheet": None,
+            "highlights": None,
+            "share_capital": generic_table,
+            "net_debt_note": None,
+            "unmatched": [],
+        }
+        pass1 = {
+            "report_type": "A",
+            "period_end": "2025-12-31",
+            "currency": "AUD",
+            "scale": "millions",
+        }
+        # LLM returns an absolute count (5_057_000_000 >> 1M threshold)
+        mock_raw = {
+            "shares_outstanding": 5_057_000_000,
+            "period_col": "Dec 2025",
+            "pass3_confidence": 0.85,
+            "row_refs": {"shares_outstanding": "Count"},
+        }
+        with patch(
+            "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+        ):
+            results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+        assert len(results) == 1
+        shares = results[0].get("shares_outstanding")
+        assert shares is not None, (
+            "Large absolute LLM-returned share count must bypass the weak-evidence null guard"
         )
 
 

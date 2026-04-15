@@ -54,6 +54,9 @@ def test_load_fixtures_discover_new_scaffold_files():
     assert "shares_fallback_disagreement" in fixture_ids
     assert "statutory_underlying_wrong_value" in fixture_ids
     assert "wrong_current_period_column" in fixture_ids
+    # Phase 02 regression fixtures
+    assert "quarterly_cashflow_only" in fixture_ids
+    assert "net_debt_derived_row_abstain" in fixture_ids
 
 
 def test_metric_statuses_include_correct_wrong_missing_abstain():
@@ -254,6 +257,12 @@ def _build_extended_payloads() -> dict[str, dict]:
     # Current-period boundary fixture remains in-context but wrong by value.
     payloads["wrong_current_period_column"]["metrics"]["revenue"] = 900_000
 
+    # Phase 02 regression fixtures: correct payloads (no override needed).
+    # quarterly_cashflow_only: operating_cf matches; revenue/ebit/np_attributable absent
+    # (expected_nulls) — extracted None matches expected None → all correct.
+    # net_debt_derived_row_abstain: revenue + operating_cf match; net_debt absent
+    # (expected_null) — extracted None matches expected None → all correct.
+
     return payloads
 
 
@@ -262,29 +271,29 @@ def test_scorecard_helper_includes_status_totals_and_context_summaries():
 
     scorecard = build_fixture_scorecard(FIXTURES_DIR, payloads)
 
-    assert scorecard["total_fixture_count"] == 14
-    assert scorecard["total_metric_expectations"] == 26
-    assert scorecard["correct_count"] == 8
+    assert scorecard["total_fixture_count"] == 16
+    assert scorecard["total_metric_expectations"] == 33
+    assert scorecard["correct_count"] == 15
     assert scorecard["wrong_count"] == 7
     assert scorecard["missing_count"] == 1
     assert scorecard["abstained_count"] == 4
     assert scorecard["quarantined_count"] == 6
 
     assert scorecard["period_correctness_summary"] == {
-        "expected_count": 14,
-        "matched_count": 13,
+        "expected_count": 16,
+        "matched_count": 15,
         "mismatched_count": 1,
         "missing_count": 0,
     }
     assert scorecard["currency_correctness_summary"] == {
-        "expected_count": 14,
-        "matched_count": 11,
+        "expected_count": 16,
+        "matched_count": 13,
         "mismatched_count": 3,
         "missing_count": 0,
     }
     assert scorecard["scale_correctness_summary"] == {
-        "expected_count": 14,
-        "matched_count": 13,
+        "expected_count": 16,
+        "matched_count": 15,
         "mismatched_count": 1,
         "missing_count": 0,
     }
@@ -301,9 +310,11 @@ def test_scorecard_per_fixture_entries_are_stable_and_complete():
         "currency_mismatch",
         "missing_metric",
         "mixed_status",
+        "net_debt_derived_row_abstain",
         "optional_abstain",
         "period_mismatch",
         "quarantine_context_conflict",
+        "quarterly_cashflow_only",
         "scale_mismatch",
         "scoring_mix",
         "shares_fallback_disagreement",
@@ -342,6 +353,17 @@ def test_scorecard_per_fixture_entries_are_stable_and_complete():
     wrong_current = by_fixture["wrong_current_period_column"]
     assert wrong_current["context_ok"] is True
     assert wrong_current["wrong_count"] == 1
+
+    # Phase 02 regression fixtures
+    net_debt_derived = by_fixture["net_debt_derived_row_abstain"]
+    assert net_debt_derived["metric_count"] == 3
+    assert net_debt_derived["correct_count"] == 3
+    assert net_debt_derived["context_ok"] is True
+
+    quarterly_cf = by_fixture["quarterly_cashflow_only"]
+    assert quarterly_cf["metric_count"] == 4
+    assert quarterly_cf["correct_count"] == 4
+    assert quarterly_cf["context_ok"] is True
 
 
 def test_scorecard_includes_provenance_diagnostics_when_available():

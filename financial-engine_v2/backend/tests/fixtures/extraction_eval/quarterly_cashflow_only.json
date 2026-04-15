@@ -1,0 +1,15 @@
+{
+  "fixture_id": "quarterly_cashflow_only",
+  "period_type": "Q",
+  "period_end": "2024-12-31",
+  "currency": "AUD",
+  "scale": "thousands",
+  "metrics": {
+    "operating_cf": -450000
+  },
+  "expected_nulls": ["revenue", "ebit", "np_attributable"],
+  "optional_metrics": [],
+  "tolerances": {
+    "operating_cf": 0.01
+  }
+}

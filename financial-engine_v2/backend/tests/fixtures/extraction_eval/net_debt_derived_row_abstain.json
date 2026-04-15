@@ -1,0 +1,17 @@
+{
+  "fixture_id": "net_debt_derived_row_abstain",
+  "period_type": "H",
+  "period_end": "2025-06-30",
+  "currency": "AUD",
+  "scale": "millions",
+  "metrics": {
+    "revenue": 3052000,
+    "operating_cf": 880000
+  },
+  "expected_nulls": ["net_debt"],
+  "optional_metrics": [],
+  "tolerances": {
+    "revenue": 0.02,
+    "operating_cf": 0.02
+  }
+}

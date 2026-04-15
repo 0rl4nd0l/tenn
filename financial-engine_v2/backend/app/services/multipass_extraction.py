@@ -1784,6 +1784,11 @@ _DERIVED_NET_DEBT_ROW_FRAGMENTS = frozenset(
         "net debt to",
         "net debt and",
         "net gearing",
+        # Reconciliation opening-balance labels common in mining-sector annual reports
+        "net debt: beginning",
+        # Movement labels using increase/decrease notation (ASX resources sector)
+        "/(decrease) in net debt",
+        "/(increase) in net debt",
     }
 )
 

@@ -32,10 +32,11 @@ This phase improves the actual quality of extracted financial truth after the pr
     3. **Surfaced non-AUD currency in `payload["_structured_extraction"]["warnings"]`**: a `non_aud_currency:<CODE>` entry is now appended when currency is not AUD, giving operator tooling a structured signal without requiring log-scraping. No FX conversion is performed.
     - New test classes `TestNonAUDCurrencyDetection` (5 tests) and `TestNonAUDCurrencyNormalisation` (4 tests) confirm all behaviours.
 
-- [ ] Promote real failures into durable regression fixtures:
+- [x] Promote real failures into durable regression fixtures:
   - Add or upgrade synthetic fixtures, real-gold corpus entries, and targeted unit cases only from hand-verified PDF evidence.
   - Expand coverage across diverse ASX formats instead of overfitting to one company pattern; include at least one new case if Phase 01 exposed a repeated failure not already represented.
   - When creating structured notes about new fixtures, store them in `docs/ops/extraction-truth/fixtures/` with YAML front matter and wiki-links back to `[[phase-02-backlog]]`.
+  - 2026-04-15: Two new synthetic eval fixtures added (`quarterly_cashflow_only`, `net_debt_derived_row_abstain`) plus 7 new unit cases in `TestIsExplicitNetDebtEvidence` and 1 in `TestSharesOutstandingMarkers`. `_DERIVED_NET_DEBT_ROW_FRAGMENTS` extended with 3 mining-sector movement patterns (`net debt: beginning`, `/(decrease) in net debt`, `/(increase) in net debt`). Eval harness counts updated (16 fixtures, 33 metric expectations). All 163 extraction tests pass. Fixture notes in `docs/ops/extraction-truth/fixtures/phase-02-new-fixtures.md`.
 
 - [ ] Add or refine the test and eval gates for the hardened behavior:
   - Keep unit tests, synthetic eval, and real-gold eval as separate lanes; do not collapse them into a single score.
