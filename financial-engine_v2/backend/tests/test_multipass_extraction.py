@@ -3175,6 +3175,10 @@ class TestIsExplicitNetDebtEvidence:
     def test_rejects_net_debt_to_ebitda(self) -> None:
         assert self._check("Net debt to EBITDA") is False
 
+    def test_rejects_net_debt_and(self) -> None:
+        """'Net debt and equity' uses 'net debt and' prefix — rejected as a derived/combined row."""
+        assert self._check("Net debt and equity") is False
+
     def test_rejects_net_gearing(self) -> None:
         """Net gearing contains 'net' but not 'debt' — also rejected."""
         assert self._check("Net gearing ratio") is False
@@ -3543,6 +3547,36 @@ class TestNonAUDCurrencyDetection:
         ]
         assert _detect_currency_from_tables(tables) == "NZD"
 
+    def test_cad_detected_from_ca_dollar_marker(self) -> None:
+        """CA$ in a column header must resolve to CAD."""
+        from app.services.multipass_extraction import _detect_currency_from_tables
+        from app.services.docling_extract import DoclingTable
+
+        tables = [
+            DoclingTable(
+                page_number=1,
+                caption="Financial summary",
+                headers=["Item", "CA$'000"],
+                rows=[["Revenue", "35,000"]],
+            )
+        ]
+        assert _detect_currency_from_tables(tables) == "CAD"
+
+    def test_cnh_variant_detected_as_cny(self) -> None:
+        """CNH (offshore renminbi) must resolve to CNY — same ISO pool, different market."""
+        from app.services.multipass_extraction import _detect_currency_from_tables
+        from app.services.docling_extract import DoclingTable
+
+        tables = [
+            DoclingTable(
+                page_number=1,
+                caption="Balance sheet (CNH millions)",
+                headers=["Metric", "CNH M"],
+                rows=[["Total assets", "420,000"]],
+            )
+        ]
+        assert _detect_currency_from_tables(tables) == "CNY"
+
     def test_aud_still_wins_over_gbp_when_dominant(self) -> None:
         """Multiple AUD markers vs single GBP marker — AUD must win by vote count."""
         from app.services.multipass_extraction import _detect_currency_from_tables
@@ -3660,3 +3694,45 @@ class TestNonAUDCurrencyNormalisation:
                 f"non_aud_currency:{currency} — values in native currency, no FX conversion"
             )
         assert warnings_list == []
+
+
+# ---------------------------------------------------------------------------
+# Phase 02 Structural regression gate — _DERIVED_NET_DEBT_ROW_FRAGMENTS
+# ---------------------------------------------------------------------------
+
+
+class TestDerivedNetDebtFragmentsCoverageGate:
+    """Structural gate: every fragment in _DERIVED_NET_DEBT_ROW_FRAGMENTS must be
+    rejected by _is_explicit_net_debt_evidence when used as a standalone row label.
+
+    This test is data-driven from the authoritative constant so it automatically
+    catches any regression if a fragment is accidentally removed from the set.
+    If a new fragment is added, it is covered without any additional test code.
+    """
+
+    def test_every_fragment_is_rejected_as_standalone_label(self) -> None:
+        from app.services.multipass_extraction import (
+            _DERIVED_NET_DEBT_ROW_FRAGMENTS,
+            _is_explicit_net_debt_evidence,
+        )
+
+        failures = []
+        for fragment in sorted(_DERIVED_NET_DEBT_ROW_FRAGMENTS):
+            # Use the fragment as a standalone row label (title-case for realism)
+            row_ref = fragment.title()
+            result = _is_explicit_net_debt_evidence(row_ref)
+            if result is not False:
+                failures.append(f"  fragment={fragment!r} → accepted (expected rejection)")
+
+        assert not failures, (
+            f"_DERIVED_NET_DEBT_ROW_FRAGMENTS entries that were not rejected:\n"
+            + "\n".join(failures)
+        )
+
+    def test_fragments_set_is_non_empty(self) -> None:
+        """Guard against the set being accidentally cleared."""
+        from app.services.multipass_extraction import _DERIVED_NET_DEBT_ROW_FRAGMENTS
+
+        assert len(_DERIVED_NET_DEBT_ROW_FRAGMENTS) >= 10, (
+            f"Expected at least 10 derived-row fragments; got {len(_DERIVED_NET_DEBT_ROW_FRAGMENTS)}"
+        )

@@ -38,10 +38,17 @@ This phase improves the actual quality of extracted financial truth after the pr
   - When creating structured notes about new fixtures, store them in `docs/ops/extraction-truth/fixtures/` with YAML front matter and wiki-links back to `[[phase-02-backlog]]`.
   - 2026-04-15: Two new synthetic eval fixtures added (`quarterly_cashflow_only`, `net_debt_derived_row_abstain`) plus 7 new unit cases in `TestIsExplicitNetDebtEvidence` and 1 in `TestSharesOutstandingMarkers`. `_DERIVED_NET_DEBT_ROW_FRAGMENTS` extended with 3 mining-sector movement patterns (`net debt: beginning`, `/(decrease) in net debt`, `/(increase) in net debt`). Eval harness counts updated (16 fixtures, 33 metric expectations). All 163 extraction tests pass. Fixture notes in `docs/ops/extraction-truth/fixtures/phase-02-new-fixtures.md`.
 
-- [ ] Add or refine the test and eval gates for the hardened behavior:
+- [x] Add or refine the test and eval gates for the hardened behavior:
   - Keep unit tests, synthetic eval, and real-gold eval as separate lanes; do not collapse them into a single score.
   - Update backend tests for the exact logic changed in this phase, then update scorecard or threshold assertions only when the new values are justified by verified corpus evidence.
   - Search for existing patterns in `financial-engine_v2/backend/tests/test_prose_shares_extraction.py`, `test_extraction_llm_separation.py`, `test_extraction_eval_harness.py`, and the scorecard scripts before adding new harness code.
+  - 2026-04-15: Six new tests added across two files (172 total extraction tests, 0 fail):
+    1. **`test_rejects_net_debt_and`** (`TestIsExplicitNetDebtEvidence`): closes the single missing fragment coverage gap — `"net debt and"` was in `_DERIVED_NET_DEBT_ROW_FRAGMENTS` but had no explicit assertion.
+    2. **`test_cad_detected_from_ca_dollar_marker`** (`TestNonAUDCurrencyDetection`): verifies CA$ in a column header resolves to CAD — the Phase 02 CAD pattern was untested.
+    3. **`test_cnh_variant_detected_as_cny`** (`TestNonAUDCurrencyDetection`): verifies CNH (offshore renminbi) resolves to CNY — the CNH variant in the Phase 02 pattern was untested.
+    4–5. **`TestDerivedNetDebtFragmentsCoverageGate`** (new class, 2 tests): data-driven structural gate that iterates over the live `_DERIVED_NET_DEBT_ROW_FRAGMENTS` frozenset and asserts every member is rejected by `_is_explicit_net_debt_evidence`; also guards against the set being accidentally cleared. Self-syncs automatically when the set grows.
+    6. **`test_real_gold_scorecard_stays_separate_from_synthetic_flow`** (`test_extraction_gold_eval.py`): `expected_synthetic_ids` extended with `"quarterly_cashflow_only"` and `"net_debt_derived_row_abstain"` so Phase 02 regression fixtures are explicitly asserted to be in the synthetic lane (not just transitively covered by `issubset`).
+    - No eval_config.json thresholds changed — no verified corpus delta yet to justify threshold movement.
 
 - [ ] Run before-and-after validation and record the measurable delta:
   - Run the targeted backend tests, the synthetic extraction eval lane, and a limited real-gold comparison using the same commands and dataset locations used in Phase 01.

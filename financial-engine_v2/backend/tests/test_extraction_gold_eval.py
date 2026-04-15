@@ -233,6 +233,9 @@ def test_real_gold_scorecard_stays_separate_from_synthetic_flow():
         "shares_fallback_disagreement",
         "statutory_underlying_wrong_value",
         "wrong_current_period_column",
+        # Phase 02 regression fixtures
+        "quarterly_cashflow_only",
+        "net_debt_derived_row_abstain",
     }
     assert expected_synthetic_ids.issubset(synthetic_fixture_ids)
     assert "trusted_count" not in synthetic_scorecard
