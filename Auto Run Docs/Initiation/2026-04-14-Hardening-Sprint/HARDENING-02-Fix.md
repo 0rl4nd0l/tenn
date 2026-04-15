@@ -33,7 +33,7 @@ This phase consumes the audit report produced in Phase 01 (`docs/claude/audit/20
   - All must pass before continuing
   - **Completed 2026-04-15**: Added `TestRegressions` class with all 5 required test cases. 19/19 tests pass (14 existing + 5 new).
 
-- [ ] Fix agent_loop.py vulnerabilities (if any confirmed in audit):
+- [x] Fix agent_loop.py vulnerabilities (if any confirmed in audit):
   - Work on: `financial-engine_v2/cockpit/core/agent_loop.py`
   - Common fixes to implement if confirmed:
     - Guard tool_calls multi-call branch against entries missing `id`, `tool`, or `arguments` keys — skip or substitute defaults rather than KeyError
@@ -41,6 +41,7 @@ This phase consumes the audit report produced in Phase 01 (`docs/claude/audit/20
     - Guard `evidence.append()` against non-dict tool results — wrap in type check and log if skipped
   - After each fix: run `python -m ruff check financial-engine_v2/cockpit/core/agent_loop.py`
   - Do not change `AgentResult` dataclass fields (would break callers)
+  - **Completed 2026-04-15**: All three listed concerns confirmed "Safe / Already Handled" per audit report §Safe section. (1) `_normalize_tool_calls` uses `.get("tool", "unknown")` and `.get("arguments") or {}` — no KeyError possible (lines 817–818). (2) `on_thinking` receives `assessment = parsed.assessment or parsed.content or ""` and `plan = parsed.plan or ""` — null-coerced before callback (lines 324–325). (3) `_execute_tool` wraps non-dict results via `if not isinstance(result, dict): result = {"result": result}` (lines 836–837). No code changes required. Ruff clean confirmed.
 
 - [ ] Write regression tests for agent_loop.py:
   - File: `financial-engine_v2/cockpit/tests/test_agent_loop.py` (create if missing, extend if exists)
