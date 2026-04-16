@@ -11,10 +11,11 @@ import json
 import logging
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from app.api.routes import require_api_key
 from app.services.job_tracker import get_tracker
 
 logger = logging.getLogger(__name__)
@@ -87,6 +88,38 @@ class JobArtifactListResponse(BaseModel):
     items: list[JobArtifactResponse]
 
 
+class ExternalJobStartRequest(BaseModel):
+    job_type: str
+    job_family: str
+    title: str
+    trigger_source: str | None = None
+    entity_scope: str | None = None
+    ticker: str | None = None
+    total_items: int = Field(default=0, ge=0)
+    metadata: dict[str, Any] | None = None
+    job_id: str | None = None
+    start: bool = True
+    phase: str | None = None
+    phase_message: str | None = None
+
+
+class ExternalJobPhaseRequest(BaseModel):
+    phase: str
+    message: str = ""
+
+
+class ExternalJobCompletionRequest(BaseModel):
+    summary: str | None = None
+
+
+class ExternalJobFailureRequest(BaseModel):
+    error: str
+
+
+class ExternalJobCancellationRequest(BaseModel):
+    reason: str = ""
+
+
 # ── Helpers ────────────────────────────────────────────────────────────────
 
 
@@ -101,6 +134,106 @@ def _require_tracker():
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────
+
+
+@router.post(
+    "/jobs/external/start",
+    response_model=JobRunResponse,
+    dependencies=[Depends(require_api_key)],
+)
+def start_external_job(body: ExternalJobStartRequest):
+    tracker = _require_tracker()
+    handle = tracker.create_job(
+        job_id=body.job_id,
+        job_type=body.job_type,
+        job_family=body.job_family,
+        title=body.title,
+        trigger_source=body.trigger_source,
+        entity_scope=body.entity_scope,
+        ticker=body.ticker,
+        total_items=body.total_items,
+        metadata=body.metadata,
+    )
+    if body.start:
+        tracker.start_job(handle.job_id)
+    if body.phase:
+        tracker.change_phase(
+            handle.job_id,
+            body.phase,
+            message=body.phase_message or f"Phase: {body.phase}",
+        )
+    run = tracker.store.get_job_run(handle.job_id)
+    if run is None:
+        raise HTTPException(status_code=500, detail="Failed to create external job")
+    return run
+
+
+@router.post(
+    "/jobs/{job_id}/external/phase",
+    response_model=JobRunResponse,
+    dependencies=[Depends(require_api_key)],
+)
+def set_external_job_phase(job_id: str, body: ExternalJobPhaseRequest):
+    tracker = _require_tracker()
+    run = tracker.store.get_job_run(job_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail=f"Job not found: {job_id}")
+    tracker.change_phase(job_id, body.phase, message=body.message)
+    updated = tracker.store.get_job_run(job_id)
+    if updated is None:
+        raise HTTPException(status_code=500, detail="Failed to update job phase")
+    return updated
+
+
+@router.post(
+    "/jobs/{job_id}/external/complete",
+    response_model=JobRunResponse,
+    dependencies=[Depends(require_api_key)],
+)
+def complete_external_job(job_id: str, body: ExternalJobCompletionRequest):
+    tracker = _require_tracker()
+    run = tracker.store.get_job_run(job_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail=f"Job not found: {job_id}")
+    tracker.complete_job(job_id, summary=body.summary)
+    updated = tracker.store.get_job_run(job_id)
+    if updated is None:
+        raise HTTPException(status_code=500, detail="Failed to complete job")
+    return updated
+
+
+@router.post(
+    "/jobs/{job_id}/external/fail",
+    response_model=JobRunResponse,
+    dependencies=[Depends(require_api_key)],
+)
+def fail_external_job(job_id: str, body: ExternalJobFailureRequest):
+    tracker = _require_tracker()
+    run = tracker.store.get_job_run(job_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail=f"Job not found: {job_id}")
+    tracker.fail_job(job_id, body.error)
+    updated = tracker.store.get_job_run(job_id)
+    if updated is None:
+        raise HTTPException(status_code=500, detail="Failed to fail job")
+    return updated
+
+
+@router.post(
+    "/jobs/{job_id}/external/cancel",
+    response_model=JobRunResponse,
+    dependencies=[Depends(require_api_key)],
+)
+def cancel_external_job(job_id: str, body: ExternalJobCancellationRequest):
+    tracker = _require_tracker()
+    run = tracker.store.get_job_run(job_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail=f"Job not found: {job_id}")
+    tracker.cancel_job(job_id, reason=body.reason)
+    updated = tracker.store.get_job_run(job_id)
+    if updated is None:
+        raise HTTPException(status_code=500, detail="Failed to cancel job")
+    return updated
 
 
 @router.get("/jobs", response_model=JobListResponse)

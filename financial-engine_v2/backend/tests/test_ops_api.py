@@ -242,3 +242,68 @@ def test_stream_endpoint_responds(client):
     assert len(tracker._subscribers) == 1
     tracker.unsubscribe(q)
     assert len(tracker._subscribers) == 0
+
+
+# ── POST /api/ops/jobs/external/* ──────────────────────────────────────────
+
+
+def test_start_external_job_creates_running_job(client):
+    c, _ = client
+    resp = c.post(
+        "/api/ops/jobs/external/start",
+        json={
+            "job_type": "codex_agent",
+            "job_family": "agent_dev",
+            "title": "Local Codex interactive session",
+            "trigger_source": "codex",
+            "entity_scope": "/tmp/workspace",
+            "phase": "interactive",
+            "phase_message": "Local Codex interactive session started",
+            "metadata": {"provider": "openai", "model": "qwen2.5-coder-14b"},
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["job_type"] == "codex_agent"
+    assert body["job_family"] == "agent_dev"
+    assert body["status"] == "running"
+    assert body["phase"] == "interactive"
+    assert body["trigger_source"] == "codex"
+
+
+def test_external_job_phase_and_complete(client):
+    c, _ = client
+    create = c.post(
+        "/api/ops/jobs/external/start",
+        json={
+            "job_type": "codex_agent",
+            "job_family": "agent_dev",
+            "title": "Local Codex prompt run",
+            "start": True,
+        },
+    )
+    job_id = create.json()["job_id"]
+
+    phase = c.post(
+        f"/api/ops/jobs/{job_id}/external/phase",
+        json={"phase": "running_turn", "message": "Processing prompt"},
+    )
+    assert phase.status_code == 200
+    assert phase.json()["phase"] == "running_turn"
+
+    complete = c.post(
+        f"/api/ops/jobs/{job_id}/external/complete",
+        json={"summary": "Local Codex prompt run completed"},
+    )
+    assert complete.status_code == 200
+    assert complete.json()["status"] == "succeeded"
+    assert complete.json()["summary"] == "Local Codex prompt run completed"
+
+
+def test_external_job_fail_missing_job_returns_404(client):
+    c, _ = client
+    resp = c.post(
+        "/api/ops/jobs/missing-job/external/fail",
+        json={"error": "boom"},
+    )
+    assert resp.status_code == 404

@@ -700,3 +700,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** `_normalize_list` used a type-coercion gate that treated `None`, `""`, and non-list values identically — all produced `[]`. There was no observer at the `_normalize_memo` site to detect when every field came back empty.
 **Fix:** (1) `_normalize_list` now emits a `WARNING` with the field name, type, and raw value when it coerces a non-list, non-null value. (2) `_normalize_memo` in both extractors now emits a `WARNING` when all list and scalar fields are empty after normalization.
 **Rule:** Any normalization function that coerces unexpected input to a valid empty value must log a warning at the coercion site, including the field name and raw value. The caller must also warn when the *combination* of normalized fields is entirely empty — silent empty state is never acceptable for stored extraction artifacts.
+
+---
+
+## L066 — Frontend job visibility starts with backend ops registration, not UI wiring
+
+**Date:** 2026-04-16
+**Subsystem:** `backend/app/routes/ops_api.py`, `scripts/local_codex_agent.py`, `cockpit-ui/components/cockpit/operations/*`
+**Symptom:** A Codex agent session was actively running work, but Cockpit’s frontend showed nothing in the job panel even after prior UI-focused observability work.
+**Root cause:** The frontend ops panel only renders backend `OpsStore.job_runs` via `/api/ops/*`. The local Codex agent launcher (`start_local_codex.sh` -> `local_codex_agent.py`) never created a backend ops job, so there was no authoritative row for the frontend to fetch or stream.
+**Fix:** Added backend-authoritative external job registration endpoints under `/api/ops/jobs/external/*` and wired `local_codex_agent.py` to create, phase-update, complete, and fail a `codex_agent` / `agent_dev` job around each session.
+**Rule:** Before changing Cockpit job UI, verify that the underlying workload actually creates a backend ops row. If a process starts outside backend orchestration, the first fix is backend-authoritative registration, not more frontend state or polling.

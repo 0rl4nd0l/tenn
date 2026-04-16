@@ -25,6 +25,7 @@ DEFAULT_OLLAMA_MODEL = "qwen2.5-coder:14b"
 DEFAULT_OPENAI_MODEL = "qwen2.5-coder-14b"
 DEFAULT_OPENAI_BASE_URL = "http://127.0.0.1:8001/v1"
 DEFAULT_LOCAL_OPENAI_API_KEY = "local-openai-key"
+DEFAULT_OPS_BASE_URL = "http://127.0.0.1:8000"
 PREFERRED_MODEL_FALLBACKS = (
     "qwen2.5-coder-14b",
     "qwen2.5-coder:14b",
@@ -97,6 +98,16 @@ def parse_args() -> argparse.Namespace:
     )
     ap.add_argument("--base-url", default="", help="Inference server base URL.")
     ap.add_argument("--api-key", default="", help="API key for openai-compatible providers.")
+    ap.add_argument(
+        "--ops-base-url",
+        default=os.environ.get("LOCAL_CODEX_OPS_BASE_URL", os.environ.get("BACKEND_BASE_URL", DEFAULT_OPS_BASE_URL)),
+        help="Backend base URL used to register Codex activity in Tenn ops.",
+    )
+    ap.add_argument(
+        "--ops-api-key",
+        default=os.environ.get("LOCAL_CODEX_OPS_API_KEY", os.environ.get("LOCAL_API_KEY", os.environ.get("BACKEND_API_KEY", ""))),
+        help="Optional backend API key for the Tenn ops registration endpoints.",
+    )
     ap.add_argument("--ollama-url", default="http://127.0.0.1:11434", help=argparse.SUPPRESS)
     ap.add_argument("--workspace", default=".", help="Workspace root for tool commands.")
     ap.add_argument("--temperature", type=float, default=0.1, help="Sampling temperature.")
@@ -175,6 +186,119 @@ def _auth_headers(api_key: str) -> dict[str, str]:
     if not token:
         return {}
     return {"Authorization": f"Bearer {token}"}
+
+
+def _ops_headers(api_key: str) -> dict[str, str]:
+    token = api_key.strip()
+    if not token:
+        return {}
+    return {"X-API-Key": token}
+
+
+def _post_ops_event(
+    base_url: str,
+    path: str,
+    payload: dict[str, Any],
+    api_key: str,
+    timeout_seconds: float = 3.0,
+) -> dict[str, Any]:
+    return post_json(
+        f"{base_url.rstrip('/')}{path}",
+        payload,
+        timeout_seconds=timeout_seconds,
+        headers=_ops_headers(api_key),
+    )
+
+
+def start_ops_job(cfg: argparse.Namespace, workspace: Path) -> str | None:
+    base_url = str(getattr(cfg, "ops_base_url", "") or "").strip()
+    if not base_url:
+        return None
+
+    mode = "single_turn" if cfg.prompt.strip() else "interactive"
+    payload = {
+        "job_type": "codex_agent",
+        "job_family": "agent_dev",
+        "title": "Local Codex prompt run" if mode == "single_turn" else "Local Codex interactive session",
+        "trigger_source": "codex",
+        "entity_scope": str(workspace),
+        "metadata": {
+            "provider": cfg.provider,
+            "model": cfg.model,
+            "workspace": str(workspace),
+            "mode": mode,
+        },
+        "phase": mode,
+        "phase_message": f"Local Codex {mode.replace('_', ' ')} started",
+    }
+    try:
+        run = _post_ops_event(
+            base_url,
+            "/api/ops/jobs/external/start",
+            payload,
+            api_key=str(getattr(cfg, "ops_api_key", "") or ""),
+        )
+    except Exception as exc:
+        print(f"[local-codex] warning: could not register ops job: {exc}", file=sys.stderr)
+        return None
+    job_id = str(run.get("job_id") or "").strip()
+    return job_id or None
+
+
+def set_ops_phase(
+    cfg: argparse.Namespace,
+    job_id: str | None,
+    phase: str,
+    message: str,
+) -> None:
+    if not job_id:
+        return
+    base_url = str(getattr(cfg, "ops_base_url", "") or "").strip()
+    if not base_url:
+        return
+    try:
+        _post_ops_event(
+            base_url,
+            f"/api/ops/jobs/{job_id}/external/phase",
+            {"phase": phase, "message": message},
+            api_key=str(getattr(cfg, "ops_api_key", "") or ""),
+        )
+    except Exception as exc:
+        print(f"[local-codex] warning: could not update ops phase: {exc}", file=sys.stderr)
+
+
+def complete_ops_job(cfg: argparse.Namespace, job_id: str | None, summary: str) -> None:
+    if not job_id:
+        return
+    base_url = str(getattr(cfg, "ops_base_url", "") or "").strip()
+    if not base_url:
+        return
+    try:
+        _post_ops_event(
+            base_url,
+            f"/api/ops/jobs/{job_id}/external/complete",
+            {"summary": summary},
+            api_key=str(getattr(cfg, "ops_api_key", "") or ""),
+        )
+    except Exception as exc:
+        print(f"[local-codex] warning: could not complete ops job: {exc}", file=sys.stderr)
+
+
+def fail_ops_job(cfg: argparse.Namespace, job_id: str | None, error_message: str) -> None:
+    if not job_id:
+        return
+    base_url = str(getattr(cfg, "ops_base_url", "") or "").strip()
+    if not base_url:
+        return
+    try:
+        _post_ops_event(
+            base_url,
+            f"/api/ops/jobs/{job_id}/external/fail",
+            {"error": error_message},
+            api_key=str(getattr(cfg, "ops_api_key", "") or ""),
+        )
+    except Exception as exc:
+        print(f"[local-codex] warning: could not fail ops job: {exc}", file=sys.stderr)
 
 
 def extract_available_models(payload: dict[str, Any]) -> set[str]:
@@ -637,7 +761,7 @@ def run_turn(
     return "Stopped after max tool steps. Re-run with a narrower prompt or higher --max-tool-steps."
 
 
-def interactive_loop(cfg: argparse.Namespace, workspace: Path) -> int:
+def interactive_loop(cfg: argparse.Namespace, workspace: Path, job_id: str | None = None) -> int:
     print(f"Local Codex agent started | provider={cfg.provider} | model={cfg.model} | workspace={workspace}")
     print("Commands: /exit, /help")
     messages: list[dict[str, str]] = [{"role": "system", "content": SYSTEM_PROMPT}]
@@ -656,10 +780,13 @@ def interactive_loop(cfg: argparse.Namespace, workspace: Path) -> int:
             continue
 
         try:
+            set_ops_phase(cfg, job_id, "running_turn", "Processing interactive Codex prompt")
             answer = run_turn(prompt, messages, cfg, workspace)
         except Exception as exc:
+            set_ops_phase(cfg, job_id, "interactive", "Waiting for next prompt after error")
             print(f"\nAgent error> {exc}")
             continue
+        set_ops_phase(cfg, job_id, "interactive", "Waiting for next prompt")
         print(f"\nAgent> {answer}")
 
 
@@ -678,17 +805,28 @@ def main() -> int:
         )
         cfg.model = selected_model
 
+    job_id = start_ops_job(cfg, workspace)
+
     if cfg.prompt.strip():
         messages: list[dict[str, str]] = [{"role": "system", "content": SYSTEM_PROMPT}]
         try:
+            set_ops_phase(cfg, job_id, "running_turn", "Processing single-turn Codex prompt")
             answer = run_turn(cfg.prompt, messages, cfg, workspace)
         except Exception as exc:
+            fail_ops_job(cfg, job_id, str(exc))
             print(f"error: {exc}", file=sys.stderr)
             return 1
         print(answer)
+        complete_ops_job(cfg, job_id, "Local Codex prompt run completed")
         return 0
 
-    return interactive_loop(cfg, workspace)
+    try:
+        code = interactive_loop(cfg, workspace, job_id=job_id)
+    except Exception as exc:
+        fail_ops_job(cfg, job_id, str(exc))
+        raise
+    complete_ops_job(cfg, job_id, "Local Codex interactive session closed")
+    return code
 
 
 if __name__ == "__main__":
