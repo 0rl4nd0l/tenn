@@ -138,3 +138,65 @@ class TestAgentLoopRegressions:
         assert len(result.evidence) == 2
         tools_in_evidence = {e["tool"] for e in result.evidence}
         assert tools_in_evidence == {"search_news", "gather_local_context"}
+
+    def test_followup_news_explanation_requires_current_turn_tooling(self):
+        """News/event follow-ups must not answer directly from prior session text alone."""
+        responses = [
+            json.dumps(
+                {
+                    "type": "thinking",
+                    "assessment": "The user wants more detail on earlier broker upgrades.",
+                    "plan": "I can explain them.",
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "response",
+                    "content": "Ampol was upgraded because margins improved.",
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "tool_call",
+                    "tool": "search_news",
+                    "arguments": {"query": "broker upgrades today"},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "response",
+                    "content": "The available news only lists broker upgrades and downgrades; it does not verify company-specific catalysts.",
+                }
+            ),
+        ]
+        executor = MagicMock(
+            return_value={
+                "hits": [
+                    {
+                        "title": "Broker moves round-up",
+                        "published_at": "2026-04-16T07:00:00Z",
+                        "url": "https://example.com/broker-moves",
+                    }
+                ]
+            }
+        )
+        loop = AgentLoop(llm_client=_make_llm(responses), tool_executor=executor)
+
+        result = loop.run(
+            "explain the upgrades",
+            conversation_history=[
+                {
+                    "role": "assistant",
+                    "content": "Upgrades included ALD, IRE, ABB, and MIN.",
+                }
+            ],
+        )
+
+        assert result is not None
+        assert result.tool_calls_made == 1
+        assert result.evidence[0]["tool"] == "search_news"
+        executor.assert_called_once_with(
+            "search_news",
+            {"query": "broker upgrades today"},
+        )
+        assert "does not verify company-specific catalysts" in result.text
