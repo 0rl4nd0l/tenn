@@ -1346,6 +1346,7 @@ def _extract_single_table(
                 )
 
         extracted["row_refs"] = raw_payload.get("row_refs", {})
+        extracted["period_col"] = raw_payload.get("period_col")
         if table_type == "balance_sheet" and extracted["row_refs"].get("total_debt"):
             preferred_total_debt_ref = _select_preferred_evidence_row_ref(
                 extracted["row_refs"].get("total_debt"),
@@ -1362,13 +1363,28 @@ def _extract_single_table(
             inferred_total_debt_ref = _infer_total_debt_row_ref(table)
             if inferred_total_debt_ref:
                 extracted["row_refs"]["total_debt"] = inferred_total_debt_ref
+        if table_type == "net_debt_note" and extracted.get("net_debt") is None:
+            recovered = _recover_explicit_net_debt_from_table(
+                table,
+                period_end=pass1_result.get("period_end"),
+            )
+            if recovered is not None:
+                raw_value, row_ref, period_col = recovered
+                extracted["net_debt"] = abs(raw_value * multiplier)
+                extracted["row_refs"]["net_debt"] = row_ref
+                extracted["period_col"] = period_col
+                logger.info(
+                    "Recovered explicit net_debt deterministically from page %s row=%r period_col=%r",
+                    getattr(table, "page_number", "?"),
+                    row_ref,
+                    period_col,
+                )
         if (
             table_type == "net_debt_note"
             and extracted.get("net_debt") is not None
             and not extracted["row_refs"].get("net_debt")
         ):
             extracted["row_refs"]["net_debt"] = "Net debt"
-        extracted["period_col"] = raw_payload.get("period_col")
         return extracted
 
     prompt = _build_prompt(markdown)
@@ -1783,6 +1799,157 @@ def _infer_total_debt_row_ref(table) -> str | None:
         )
         if preferred:
             return preferred
+    return None
+
+
+def _parse_table_numeric_cell(cell: Any) -> float | None:
+    """Parse a table cell into a numeric value, preserving accounting negatives."""
+    text = str(cell or "").strip()
+    if not text or text in {"-", "−", "–", "—"}:
+        return None
+
+    negative = False
+    if text.startswith("(") and text.endswith(")"):
+        negative = True
+        text = text[1:-1].strip()
+
+    text = (
+        text.replace(",", "")
+        .replace("A$", "")
+        .replace("US$", "")
+        .replace("$", "")
+        .replace("AUD", "")
+        .replace("USD", "")
+        .replace("−", "-")
+        .replace("–", "-")
+        .replace("—", "-")
+        .strip()
+    )
+    if not text or not _re.search(r"\d", text):
+        return None
+    try:
+        value = float(text)
+    except ValueError:
+        return None
+    return -value if negative else value
+
+
+def _forward_fill_header_row(row: list[Any], width: int) -> list[str]:
+    filled = [""] * width
+    carry = ""
+    for idx in range(width):
+        cell = row[idx] if idx < len(row) else ""
+        text = str(cell or "").strip()
+        if text:
+            carry = text
+            filled[idx] = text
+        elif idx > 0 and carry:
+            filled[idx] = carry
+    return filled
+
+
+def _net_debt_column_contexts(table: Any) -> dict[int, str]:
+    """Build per-column header context for deterministic net_debt note recovery."""
+    header_rows: list[list[Any]] = []
+    if getattr(table, "headers", None):
+        header_rows.append(list(table.headers))
+    for row in (getattr(table, "rows", []) or [])[:2]:
+        header_rows.append(list(row))
+
+    width = max((len(row) for row in header_rows), default=0)
+    if width <= 1:
+        return {}
+
+    column_parts: dict[int, list[str]] = {idx: [] for idx in range(1, width)}
+    for row in header_rows:
+        filled = _forward_fill_header_row(row, width)
+        for idx in range(1, width):
+            part = filled[idx].strip()
+            if part and part not in column_parts[idx]:
+                column_parts[idx].append(part)
+    return {idx: " ".join(parts) for idx, parts in column_parts.items()}
+
+
+def _net_debt_period_match_score(context: str, period_end: str | None) -> int:
+    period = parse_period_end(period_end)
+    if period is None:
+        return 0
+
+    context_lower = context.lower()
+    exact_patterns = (
+        rf"\b{period.day}\s+{period.strftime('%b').lower()}\s+{period.year}\b",
+        rf"\b{period.day}\s+{period.strftime('%B').lower()}\s+{period.year}\b",
+        rf"\b{period.strftime('%b').lower()}\s+{period.day},?\s+{period.year}\b",
+        rf"\b{period.strftime('%B').lower()}\s+{period.day},?\s+{period.year}\b",
+    )
+    if any(_re.search(pattern, context_lower) for pattern in exact_patterns):
+        return 100
+    if (
+        str(period.year) in context_lower
+        and (
+            period.strftime("%b").lower() in context_lower
+            or period.strftime("%B").lower() in context_lower
+        )
+    ):
+        return 50
+    if _re.search(rf"\b{period.year}\b", context_lower):
+        return 10
+    return 0
+
+
+def _recover_explicit_net_debt_from_table(
+    table: Any, *, period_end: str | None
+) -> tuple[float, str, str | None] | None:
+    """Recover an explicit Net debt row from the selected note table when the LLM abstains."""
+    rows = getattr(table, "rows", []) or []
+    if not rows:
+        return None
+
+    contexts = _net_debt_column_contexts(table)
+    for row in rows:
+        if not row:
+            continue
+        if _normalise_evidence_row_ref(row[0]) != "net debt":
+            continue
+
+        numeric_candidates: list[tuple[int, int, float, str]] = []
+        for col_idx in range(1, len(row)):
+            value = _parse_table_numeric_cell(row[col_idx])
+            if value is None:
+                continue
+            context = contexts.get(col_idx, "").strip()
+            score = _net_debt_period_match_score(context, period_end)
+            numeric_candidates.append((score, col_idx, value, context))
+
+        if not numeric_candidates:
+            return None
+        if len(numeric_candidates) == 1:
+            _score, _col_idx, value, context = numeric_candidates[0]
+            return value, "Net debt", context or None
+
+        best_score = max(candidate[0] for candidate in numeric_candidates)
+        best_candidates = [
+            candidate for candidate in numeric_candidates if candidate[0] == best_score
+        ]
+        if best_score > 0 and len(best_candidates) == 1:
+            _score, _col_idx, value, context = best_candidates[0]
+            return value, "Net debt", context or None
+
+        logger.info(
+            "Abstaining deterministic net_debt_note fallback on page %s due to ambiguous candidates: %s",
+            getattr(table, "page_number", "?"),
+            [
+                {
+                    "score": score,
+                    "column": col_idx,
+                    "value": value,
+                    "context": context,
+                }
+                for score, col_idx, value, context in numeric_candidates
+            ],
+        )
+        return None
+
     return None
 
 
@@ -2396,8 +2563,7 @@ def run_multipass_extraction(
         observer.emit("pass2_locator", "running", "Locating statement tables.")
     labelled = _run_pass2_locator(structured_doc.tables)
     pass1["_block_derived_net_debt"] = bool(
-        labelled.get("net_debt_note") is None
-        and _document_has_nonnumeric_net_debt_reference(structured_doc.tables)
+        _document_has_nonnumeric_net_debt_reference(structured_doc.tables)
     )
     if observer is not None:
         observer.emit("pass2_locator", "succeeded", "Pass 2 completed.")

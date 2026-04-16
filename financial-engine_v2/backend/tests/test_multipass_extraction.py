@@ -538,6 +538,58 @@ def test_pass3a_extracts_net_debt_note():
     assert results[0]["row_refs"]["net_debt"] == "Net debt"
 
 
+def test_pass3a_recovers_net_debt_note_from_selected_table_when_llm_abstains():
+    """Selected net_debt_note tables should recover an explicit row deterministically."""
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=158,
+        caption="For personal use only",
+        rows=[
+            ["US$M", "2025", "", "", "2024"],
+            ["", "Current", "", "Non-current", ""],
+            ["Interest bearing liabilities", "", "", "", ""],
+            ["Total interest bearing liabilities", "2,018", "", "22,478", ""],
+            ["Less: Total cash and cash equivalents", "11,894", "", "-", ""],
+            ["Less: Total derivatives included in net debt", "(47)", "", "(608)", ""],
+            ["Net debt", "", "", "12,924", ""],
+        ],
+        headers=["US$M", "2025", "", "", "2024"],
+    )
+    labelled = {
+        "cashflow_statement": None,
+        "income_statement": None,
+        "net_debt_note": table,
+        "balance_sheet": None,
+        "share_capital": None,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "A",
+        "period_end": "2025-06-30",
+        "currency": "USD",
+        "scale": "millions",
+    }
+
+    mock_raw = {
+        "net_debt": None,
+        "pass3_confidence": 0.4,
+        "row_refs": {},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert len(results) == 1
+    assert results[0]["net_debt"] == 12_924_000_000
+    assert results[0]["row_refs"]["net_debt"] == "Net debt"
+    assert results[0]["period_col"] == "2025 Non-current"
+
+
 # ---------------------------------------------------------------------------
 # Pass 3b — Narrative extractor
 # ---------------------------------------------------------------------------
@@ -2750,6 +2802,94 @@ def test_debug_capture_collects_pass3a_results_without_changing_payload_shape():
     assert captured["_source"] == "income_statement"
     assert captured["revenue"] == 500_000_000
     assert 0.0 <= captured["pass3_confidence"] <= 1.0
+
+
+def test_run_multipass_blocks_derived_net_debt_even_when_note_slot_is_selected():
+    """Glossary-only Net debt mentions must block derivation regardless of locator output."""
+    from app.services.multipass_extraction import run_multipass_extraction
+    from app.services.docling_extract import DoclingTable
+
+    class _FakeDoc:
+        extraction_method = "docling"
+        page_count = 2
+        docling_version = "test"
+        sections = [{"text": "Half year report", "page": 1}]
+        tables = [
+            DoclingTable(
+                page_number=1,
+                caption="",
+                rows=[
+                    ["GLOSSARY", ""],
+                    [
+                        "Net debt",
+                        "Gross debt less cash and cash equivalents. Includes finance lease liabilities.",
+                    ],
+                ],
+                headers=["Term", "Definition"],
+            ),
+            DoclingTable(
+                page_number=2,
+                caption="",
+                rows=[
+                    ["Table A", "As at 31 Dec 2025", "As at 30 Jun 2025"],
+                    ["Borrowings", "(15,730)", "(14,896)"],
+                    ["Cash and cash equivalents", "1,436", "1,012"],
+                    ["Net debt", "(16,800)", "(16,445)"],
+                ],
+                headers=["Table A", "As at 31 Dec 2025", "As at 30 Jun 2025"],
+            ),
+        ]
+
+    note_table = _FakeDoc.tables[1]
+    labelled = {
+        "cashflow_statement": None,
+        "income_statement": note_table,
+        "net_debt_note": note_table,
+        "balance_sheet": None,
+        "share_capital": None,
+        "highlights": None,
+        "unmatched": [],
+    }
+
+    def _capture_pass3a(_labelled, pass1, llm_client):
+        assert pass1["_block_derived_net_debt"] is True
+        return [
+            {
+                "_source": "income_statement",
+                "_page_number": 2,
+                "revenue": 500_000_000,
+                "ebit": 80_000_000,
+                "np_attributable": 55_000_000,
+                "pass3_confidence": 0.88,
+                "row_refs": {
+                    "revenue": "Revenue",
+                    "ebit": "EBIT",
+                    "np_attributable": "Net profit",
+                },
+            }
+        ]
+
+    with patch(
+        "app.services.docling_extract.extract_structured",
+        return_value=_FakeDoc(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass1_classifier",
+        return_value=_pass1_response(),
+    ), patch(
+        "app.services.multipass_extraction._run_pass2_locator",
+        return_value=labelled,
+    ), patch(
+        "app.services.multipass_extraction._run_pass3a_metric_extractor",
+        side_effect=_capture_pass3a,
+    ):
+        result = run_multipass_extraction(
+            "/fake/path.pdf",
+            {"document_id": "min-test", "ticker": "MIN", "title": "MIN Half Year"},
+            llm_client=None,
+            skip_narrative=True,
+        )
+
+    assert result.status in ("ok", "ok_low_confidence")
 
 
 def test_validation_gate_accepts_null_narrative_fields():
