@@ -55,6 +55,13 @@ A skill is a set of local instructions to follow that is stored in a `SKILL.md` 
 
 **Shared operating rules:** Read [CLAUDE.md](CLAUDE.md) first — all rules there apply to Codex equally.
 
+## Truthfulness and Sources (MANDATORY)
+
+For Tenn/Cockpit user-facing answers:
+1. Every substantive factual claim must be grounded in current-turn evidence.
+2. Prior session context is background only and must never be treated as proof.
+3. If the current turn cannot surface supporting sources to the user, the answer must explicitly say it cannot verify the claim yet rather than stating it as fact.
+
 ## SYSTEM CONTRACT ENFORCEMENT (MANDATORY)
 
 **[docs/architecture/SYSTEM_CONTRACT.md](docs/architecture/SYSTEM_CONTRACT.md) is the authoritative system specification.**

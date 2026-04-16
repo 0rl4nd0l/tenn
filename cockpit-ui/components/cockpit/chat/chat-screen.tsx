@@ -430,6 +430,7 @@ export function ChatScreen() {
             costUsd: response.content.cost_usd || 0,
             source: response.content.source || 'local'
           },
+          sources: response.content.sources,
           chart: response.content.chart,
         }
         if (response.content.cost_usd) addCost(response.content.cost_usd)
@@ -921,19 +922,19 @@ export function ChatScreen() {
             </div>
             <Textarea
               value={feedbackNote}
-              onChange={(event) => setFeedbackNote(event.target.value.slice(0, 280))}
+              onChange={(event) => setFeedbackNote(event.target.value.slice(0, 2000))}
               placeholder={isPendingGoodFeedback
                 ? 'Optional note, e.g. well grounded, strong evidence use, helpful synthesis'
                 : 'Optional note, e.g. wrong ticker context, unsupported claim, bad math'}
               disabled={isPendingFeedbackSaving}
-              maxLength={280}
+              maxLength={2000}
               rows={4}
               className={isPendingGoodFeedback
                 ? 'border-emerald-500/20 bg-black/30 font-mono text-sm text-zinc-100 placeholder:text-zinc-500'
                 : 'border-red-500/20 bg-black/30 font-mono text-sm text-zinc-100 placeholder:text-zinc-500'}
             />
             <div className="text-right font-mono text-[11px] text-zinc-500">
-              {feedbackNote.length}/280
+              {feedbackNote.length}/2000
             </div>
           </div>
           <DialogFooter>

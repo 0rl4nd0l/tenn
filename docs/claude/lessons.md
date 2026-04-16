@@ -711,3 +711,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The frontend ops panel only renders backend `OpsStore.job_runs` via `/api/ops/*`. The local Codex agent launcher (`start_local_codex.sh` -> `local_codex_agent.py`) never created a backend ops job, so there was no authoritative row for the frontend to fetch or stream.
 **Fix:** Added backend-authoritative external job registration endpoints under `/api/ops/jobs/external/*` and wired `local_codex_agent.py` to create, phase-update, complete, and fail a `codex_agent` / `agent_dev` job around each session.
 **Rule:** Before changing Cockpit job UI, verify that the underlying workload actually creates a backend ops row. If a process starts outside backend orchestration, the first fix is backend-authoritative registration, not more frontend state or polling.
+
+---
+
+## L067 — Source dropdown coverage is a truth contract, not a presentation nice-to-have
+
+**Date:** 2026-04-16
+**Subsystem:** `financial-engine_v2/cockpit/core/*`, `backend/app/routes/cockpit_api.py`, `backend/app/services/tenn_chat.py`
+**Symptom:** Cockpit could emit substantive market or company claims even when the current turn had no renderable source items for the UI Sources dropdown. The user saw factual-looking answers but no inspectable provenance.
+**Root cause:** Prompt wording said "don't fabricate," but the runtime still failed open: direct-answer and synthesis paths could return substantive text without checking whether the current turn produced user-visible source entries.
+**Fix:** Hardened prompts and runtime guards so substantive answers without current-turn, user-visible source support are converted into explicit non-verification responses instead of being shown as fact. Prior session context is now treated as background only.
+**Rule:** In Tenn/Cockpit, source visibility is part of correctness. If the current turn cannot surface supporting sources for a substantive factual answer, the system must refuse to verify rather than answer from memory, prior context, or draft text.

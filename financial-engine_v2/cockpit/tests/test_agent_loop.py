@@ -200,3 +200,43 @@ class TestAgentLoopRegressions:
             {"query": "broker upgrades today"},
         )
         assert "does not verify company-specific catalysts" in result.text
+
+    def test_substantive_financial_question_requires_current_turn_tooling(self):
+        """Direct substantive answers without current-turn evidence must be redirected into tooling."""
+        responses = [
+            json.dumps(
+                {
+                    "type": "thinking",
+                    "assessment": "The user wants BHP revenue.",
+                    "plan": "I can answer directly.",
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "response",
+                    "content": "BHP revenue was $55bn.",
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "tool_call",
+                    "tool": "get_financials",
+                    "arguments": {"ticker": "BHP"},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "response",
+                    "content": "I found current financials for BHP and can answer from them.",
+                }
+            ),
+        ]
+        executor = MagicMock(return_value={"financials": [{"ticker": "BHP", "revenue": 55_000_000_000}]})
+        loop = AgentLoop(llm_client=_make_llm(responses), tool_executor=executor)
+
+        result = loop.run("What is BHP revenue?", ticker="BHP")
+
+        assert result is not None
+        assert result.tool_calls_made == 1
+        executor.assert_called_once_with("get_financials", {"ticker": "BHP"})
+        assert "I found current financials" in result.text

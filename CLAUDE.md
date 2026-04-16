@@ -91,6 +91,8 @@ If simpler code solves the problem in half the lines, write the simpler version.
 - Prefer Confirmed evidence over Inferred. Mark Speculative claims clearly.
 - Do not invent data lineage, extraction outputs, or evaluation results.
 - When docs conflict, surface the conflict; do not silently pick one.
+- For Tenn/Cockpit user-facing answers, every substantive factual claim must be supported by current-turn evidence that can be surfaced to the user as sources. Prior session context is background only, never proof.
+- If current-turn evidence cannot support the claim or cannot be surfaced as user-visible sources, the correct behavior is to say the claim is unverified or cannot yet be confirmed.
 
 ### Verification Before Done
 

@@ -852,6 +852,59 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
     return items
 
 
+_NON_SUBSTANTIVE_CHAT_MESSAGE_RE = re.compile(
+    r"^\s*(?:"
+    r"/[a-z_][\w-]*.*|"
+    r"hi|hello|hey|yo|sup|"
+    r"thanks|thank you|"
+    r"ok(?:ay)?|yes|no|sure|cool|continue|go on|"
+    r"help(?: me)?|"
+    r"what can you do\??|"
+    r"show sources|show source|sources\??"
+    r")\s*$",
+    re.IGNORECASE,
+)
+_EXPLICIT_UNVERIFIED_RESPONSE_RE = re.compile(
+    r"\b(?:cannot|can't|can not|do not|don't|won't)\s+"
+    r"(?:verify|confirm|substantiate|make factual claims)\b|"
+    r"\bnot enough (?:evidence|sources|current evidence|retrieved context|information)\b|"
+    r"\bunable to verify\b",
+    re.IGNORECASE,
+)
+_SOURCE_CONTRACT_REFUSAL = (
+    "I can't verify that from current evidence, and I won't make factual claims unless "
+    "the supporting sources can be shown in the Sources dropdown. Please narrow the "
+    "question or ask me to fetch the relevant news, announcements, financials, or price data first."
+)
+
+
+def _message_requires_visible_sources(message: str) -> bool:
+    text = str(message or "").strip()
+    if not text:
+        return False
+    return _NON_SUBSTANTIVE_CHAT_MESSAGE_RE.fullmatch(text) is None
+
+
+def _enforce_visible_source_contract(message: str, response: Any) -> list[dict[str, Any]]:
+    sources = _build_ui_sources(getattr(response, "evidence", None) or [])
+    text = str(getattr(response, "text", "") or "").strip()
+
+    if not text or getattr(response, "action_preview", None) is not None:
+        return sources
+    if not _message_requires_visible_sources(message):
+        return sources
+    if sources:
+        return sources
+    if _EXPLICIT_UNVERIFIED_RESPONSE_RE.search(text):
+        return sources
+
+    meta = dict(getattr(response, "routing_metadata", None) or {})
+    meta["grounding_guard"] = "missing_visible_sources"
+    response.routing_metadata = meta
+    response.text = _SOURCE_CONTRACT_REFUSAL
+    return []
+
+
 # ---------------------------------------------------------------------------
 # Helper: probe a single HTTP endpoint
 # ---------------------------------------------------------------------------
@@ -2872,6 +2925,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 db_diagnostics=payload.db_diagnostics,
                 ui_mode=payload.mode,
             )
+            sources = _enforce_visible_source_contract(payload.message, response)
             rendered_chart = _build_filestats_chart_from_chat_response(response)
             return {
                 "type": "done",
@@ -2891,6 +2945,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     else "local",
                     "action_preview": response.action_preview,
                     "chart": rendered_chart,
+                    "sources": sources,
                 },
             }
         except Exception as exc:
@@ -2934,16 +2989,15 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     db_diagnostics=payload.db_diagnostics,
                     ui_mode=payload.mode,
                 )
+                sources = _enforce_visible_source_contract(payload.message, response)
 
                 # After streaming finishes, send metadata and final state
                 if response.tool_traces:
                     for trace in response.tool_traces:
                         await queue.put({"type": "tool_trace", "data": trace})
 
-                if response.evidence:
-                    sources = _build_ui_sources(response.evidence)
-                    if sources:
-                        await queue.put({"type": "sources", "data": {"items": sources}})
+                if sources:
+                    await queue.put({"type": "sources", "data": {"items": sources}})
 
                 if response.action_preview:
                     await queue.put(
@@ -2966,6 +3020,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                             "cost_usd": meta.get("cost_usd", 0),
                             "source": meta.get("source", "local"),
                             "chart": rendered_chart,
+                            "sources": sources,
                         },
                     }
                 )

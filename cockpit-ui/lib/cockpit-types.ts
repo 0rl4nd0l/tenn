@@ -410,6 +410,7 @@ export interface ChatResponse {
     cost_usd?: number
     source?: 'local' | 'anthropic'
     chart?: RenderedChart
+    sources?: Source[]
   }
   session_id?: string
 }

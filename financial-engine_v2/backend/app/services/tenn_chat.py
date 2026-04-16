@@ -4,6 +4,7 @@ import json
 import logging
 import math
 import re
+from datetime import datetime, timezone
 from typing import Any
 
 from app.core.config import settings
@@ -19,6 +20,12 @@ logger = logging.getLogger(__name__)
 _CHAT_LLM_TIMEOUT_SECONDS = 90.0
 _SMALL_TALK_RE = re.compile(
     r"^(hi|hello|hey|yo|sup|thanks|thank you|good (morning|afternoon|evening)|how are you)[\s!,.?]*$",
+    re.IGNORECASE,
+)
+_UNVERIFIED_ANSWER_RE = re.compile(
+    r"\b(?:cannot|can't|can not|do not|don't)\s+(?:verify|confirm|substantiate)\b|"
+    r"\bnot enough (?:evidence|context|information)\b|"
+    r"\bunable to verify\b",
     re.IGNORECASE,
 )
 
@@ -50,6 +57,10 @@ def _safe_float(value: Any, default: float) -> float:
 
 def _is_small_talk_query(query: str) -> bool:
     return bool(_SMALL_TALK_RE.match(str(query or "").strip()))
+
+
+def _today_iso_utc() -> str:
+    return datetime.now(timezone.utc).date().isoformat()
 
 
 def _filter_news_by_ticker(chunks: list[dict[str, Any]], ticker: str | None) -> list[dict[str, Any]]:
@@ -246,6 +257,7 @@ def _build_prompt(
     *,
     prior_turns: list[dict[str, Any]] | None = None,
 ) -> str:
+    today_iso = _today_iso_utc()
     context_json = json.dumps(context_rows, ensure_ascii=False, indent=2)
     session_block = ""
     if prior_turns:
@@ -253,11 +265,14 @@ def _build_prompt(
     return (
         "You are Tenn, a financial research assistant.\n\n"
         "Use ONLY the provided context. Do not rely on prior knowledge or assumptions.\n\n"
+        f"Today's date is {today_iso}. Treat any dates in retrieved content as historical context.\n\n"
         "Temporal and uncertainty rules — follow strictly:\n"
         "- Prefer evidence from more recent sources. Use `published_at` to judge recency.\n"
         "- If sources conflict or contradict, acknowledge the conflict explicitly in your answer.\n"
         "- If the most relevant article is more than 7 days old, note the staleness and reduce confidence.\n"
         "- Do not extrapolate from incomplete or partial evidence. State what is unknown.\n"
+        "- Every factual claim in `answer` or `insights` must be backed by the provided context.\n"
+        "- If a claim cannot be verified from the provided context, say you cannot verify it.\n"
         "- Uncertainty is correct. Set `confidence` to reflect actual evidence quality, not to appear helpful.\n"
         "  A confidence of 0.2 is a valid, honest answer when evidence is sparse or stale.\n\n"
         f"{session_block}"
@@ -265,6 +280,7 @@ def _build_prompt(
         "Then provide:\n"
         "- Key insights (each must be directly supported by a specific context item)\n"
         "- Supporting evidence (cite `source_name` and `published_at` for each item)\n"
+        "- Do not include any claim unless it can be tied to a supporting evidence item\n"
         "- Confidence (0-1): reflect evidence quality, recency, and completeness\n\n"
         "Return ONLY valid JSON — no prose before or after:\n"
         '{"answer":"","insights":[],"supporting_evidence":[],"confidence":0.0}\n\n'
@@ -436,6 +452,16 @@ def chat_with_tenn(
         }
         for row in context_rows
     ]
+    if answer and not sources and not _UNVERIFIED_ANSWER_RE.search(answer):
+        logger.warning(
+            "chat_missing_sources_guard query=%s",
+            normalized_query[:120],
+        )
+        answer = (
+            "I cannot verify that from the current retrieved evidence, so I will not make "
+            "factual claims without supporting sources."
+        )
+        confidence = 0.0
     if not answer:
         logger.warning(
             "chat_empty_answer_fallback query=%s sources=%d",

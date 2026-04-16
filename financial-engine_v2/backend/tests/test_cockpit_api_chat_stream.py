@@ -30,19 +30,143 @@ def test_cockpit_chat_stream_emits_only_status_plain_text_chunks_and_done(
             **kwargs,
         ):
             if on_chunk is not None:
-                on_chunk("Recent BHP news ")
-                on_chunk("is mixed.")
+                on_chunk("Hello ")
+                on_chunk("there.")
             if on_status is not None:
                 on_status("Resolving request context")
             if on_thinking is not None:
                 on_thinking("internal assessment", "internal plan")
             return SimpleNamespace(
-                text="Recent BHP news is mixed, with coverage focused on operations and commodity outlook.",
+                text="Hello there.",
                 evidence=[],
                 action_preview=None,
                 routing_metadata={
                     "model": "gpt-oss-20b",
                     "latency_ms": 1234,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "hello", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    chunk_events = [event for event in data_events if event.get("type") == "chunk"]
+    assert [event["data"]["text"] for event in chunk_events] == [
+        "Hello ",
+        "there.",
+    ]
+    assert all('{"type"' not in event["data"]["text"] for event in chunk_events)
+    assert not [event for event in data_events if event.get("type") == "thinking"]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    assert done_events, body
+    assert done_events[-1]["data"]["text"] == "Hello there."
+
+
+def test_cockpit_chat_stream_blocks_substantive_answer_without_sources(monkeypatch) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="BHP revenue grew sharply and broker sentiment improved.",
+                evidence=[],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 321,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "tell me about BHP", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    assert done_events
+    assert "can't verify that from current evidence" in done_events[-1]["data"]["text"].lower()
+    assert not [event for event in data_events if event.get("type") == "sources"]
+
+
+def test_cockpit_chat_stream_emits_sources_when_evidence_is_renderable(monkeypatch) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="BHP news is mixed.",
+                evidence=[
+                    {
+                        "tool": "search_news",
+                        "result": {
+                            "hits": [
+                                {
+                                    "title": "BHP update",
+                                    "url": "https://example.com/bhp-update",
+                                    "published_at": "2026-04-16T07:00:00Z",
+                                    "snippet": "BHP released an update.",
+                                }
+                            ]
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 123,
                     "cost_usd": 0.0,
                     "source": "local",
                 },
@@ -70,19 +194,10 @@ def test_cockpit_chat_stream_emits_only_status_plain_text_chunks_and_done(
         for line in body.splitlines()
         if line.startswith("data: ")
     ]
-    chunk_events = [event for event in data_events if event.get("type") == "chunk"]
-    assert [event["data"]["text"] for event in chunk_events] == [
-        "Recent BHP news ",
-        "is mixed.",
-    ]
-    assert all('{"type"' not in event["data"]["text"] for event in chunk_events)
-    assert not [event for event in data_events if event.get("type") == "thinking"]
-    done_events = [event for event in data_events if event.get("type") == "done"]
-    assert done_events, body
-    assert (
-        done_events[-1]["data"]["text"]
-        == "Recent BHP news is mixed, with coverage focused on operations and commodity outlook."
-    )
+    source_events = [event for event in data_events if event.get("type") == "sources"]
+    assert source_events
+    items = source_events[-1]["data"]["items"]
+    assert items[0]["url"] == "https://example.com/bhp-update"
 
 
 def test_cockpit_chat_stream_done_event_preserves_model_metadata(monkeypatch) -> None:
@@ -140,7 +255,7 @@ def test_cockpit_chat_non_stream_uses_to_thread(monkeypatch) -> None:
     class FakeService:
         def chat_stream(self, **kwargs):
             return SimpleNamespace(
-                text="Plain response.",
+                text="Hello there.",
                 evidence=[],
                 action_preview=None,
                 routing_metadata={
@@ -169,12 +284,12 @@ def test_cockpit_chat_non_stream_uses_to_thread(monkeypatch) -> None:
 
     response = client.post(
         "/api/cockpit/chat",
-        json={"message": "tell me about BHP", "stream": False},
+        json={"message": "hello", "stream": False},
     )
 
     assert response.status_code == 200
     assert called["used"] is True
-    assert response.json()["data"]["text"] == "Plain response."
+    assert response.json()["data"]["text"] == "Hello there."
 
 
 def test_cockpit_chat_stream_emits_filestats_chart_event(monkeypatch) -> None:

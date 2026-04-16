@@ -269,6 +269,26 @@ class TestBuildPromptTemporalGuidance(unittest.TestCase):
         p = self._build_prompt("revenue?", rows)
         self.assertIn("BHP revenue rose 10%", p)
 
+    def test_prompt_includes_current_date_anchor(self):
+        from datetime import datetime, timezone
+
+        today_iso = datetime.now(timezone.utc).date().isoformat()
+        p = self._prompt()
+        self.assertIn(today_iso, p)
+        self.assertIn("historical context", p.lower())
+
+    def test_prompt_requires_verifiable_claims(self):
+        p = self._prompt()
+        lower = p.lower()
+        self.assertIn("cannot be verified", lower)
+        self.assertIn("backed by the provided context", lower)
+
+    def test_prompt_requires_claims_to_map_to_supporting_evidence(self):
+        p = self._prompt()
+        lower = p.lower()
+        self.assertIn("supporting evidence", lower)
+        self.assertIn("do not include any claim", lower)
+
 
 # ---------------------------------------------------------------------------
 # D. Retrieval failure logging

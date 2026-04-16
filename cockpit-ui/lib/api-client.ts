@@ -116,6 +116,14 @@ export async function apiFetch<T>(path: string, options?: RequestInit, timeoutMs
       throw new ApiError(504, 'Gateway Timeout', errorMsg)
     }
 
+    if (err instanceof ApiError) {
+      // Only mark as offline for 5xx errors
+      if (err.status >= 500) {
+        useCockpitStore.getState().setBackendStatus(false, err.message)
+      }
+      throw err
+    }
+
     // For connection refused / network errors
     const errorMsg = err instanceof Error ? err.message : 'Network error'
     // Don't report "Aborted" (manual cancel) as a backend failure
@@ -197,6 +205,20 @@ export async function sendChatMessage(params: {
         cost_usd: raw.data.cost_usd,
         source: raw.data.source,
         chart: raw.data.chart,
+        sources: Array.isArray(raw.data.sources)
+          ? raw.data.sources.map((s: any) => ({
+              title: s.title,
+              url: s.url,
+              score: s.score,
+              snippet: s.snippet,
+              publishedAt: s.published_at,
+              documentId: s.document_id,
+              sourceId: s.source_id,
+              docType: s.doc_type,
+              path: s.path,
+              kind: s.kind,
+            }))
+          : undefined,
       },
     }
   }
