@@ -3,6 +3,8 @@ import { Fira_Code, Fira_Sans } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { QueryProvider } from '@/components/query-provider'
 import { OfflineIndicator } from '@/components/cockpit/offline-indicator'
+import { ThemeProvider } from '@/components/theme-provider'
+import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
 const firaSans = Fira_Sans({
@@ -54,10 +56,13 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${firaSans.variable} ${firaCode.variable} font-sans antialiased`}>
-        <QueryProvider>
-          {children}
-          <OfflineIndicator />
-        </QueryProvider>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          <QueryProvider>
+            {children}
+            <OfflineIndicator />
+            <Toaster />
+          </QueryProvider>
+        </ThemeProvider>
         <Analytics />
       </body>
     </html>
