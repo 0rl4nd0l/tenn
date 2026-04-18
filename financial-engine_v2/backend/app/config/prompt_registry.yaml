@@ -1,0 +1,23 @@
+# prompt_registry.yaml — prompt bundle variants for extraction-eval matrix runs.
+#
+# Phase 1: stub only. The canonical "default" bundle is registered in
+#   app.services.multipass_extraction at import time directly from the
+#   module-level prompt constants — it is NOT loaded from this file, so the
+#   historical extraction_runs.prompt_hash stays pinned to its current value.
+#
+# Phase 3 (deferred): a loader will register the bundles below under ids
+# distinct from "default", for use by the matrix runner and the
+# prompt_variant_id field on POST /api/extraction-eval/real-gold.
+#
+# Schema (when populated):
+#   bundles:
+#     - id: "<unique_id>"
+#       description: "<short note>"
+#       pass1: |
+#         <pass1 classifier prompt template>
+#       pass3a: |
+#         <pass3a metric extractor prompt template>
+#       pass3b: |
+#         <pass3b narrative extractor prompt template>
+
+bundles: []

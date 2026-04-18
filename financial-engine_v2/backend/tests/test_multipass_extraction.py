@@ -769,6 +769,29 @@ def test_currency_detection_returns_none_when_signals_tie():
     assert _detect_currency_from_tables(tables) is None
 
 
+def test_currency_detection_ignores_foreign_note_body_markers():
+    """Foreign note-body mentions must not override filing currency when headers stay generic."""
+    from app.services.multipass_extraction import _detect_currency_from_tables
+    from app.services.docling_extract import DoclingTable
+
+    tables = [
+        DoclingTable(
+            page_number=1,
+            caption="Financial highlights",
+            headers=["Metric", "$m"],
+            rows=[["Revenue", "11,641"], ["Operating cash flow", "3,637"]],
+        ),
+        DoclingTable(
+            page_number=24,
+            caption="Table B",
+            headers=["Telstra Group", "31 December 2024"],
+            rows=[["12-year €700 million Euro bond", "1,147"]],
+        ),
+    ]
+
+    assert _detect_currency_from_tables(tables) is None
+
+
 def test_pass3a_applies_corrected_scale_multiplier():
     """When scale='thousands' (whether set by table-header override or Pass 1),
     Pass 3a must multiply raw values by 1000 (thousands), not 1_000_000 (millions)."""
@@ -816,6 +839,47 @@ def test_pass3a_applies_corrected_scale_multiplier():
     assert results[0]["operating_cf"] == 3_241_000, (
         f"Expected thousands multiplier (3_241_000), got {results[0]['operating_cf']}"
     )
+
+
+def test_pass3a_captures_table_markdown_for_review():
+    """Pass 3a results must retain the markdown used for extraction review surfaces."""
+    from unittest.mock import patch
+    from app.services.multipass_extraction import _run_pass3a_metric_extractor
+    from app.services.docling_extract import DoclingTable
+
+    table = DoclingTable(
+        page_number=2,
+        caption="Cash Flow Statement",
+        rows=[["", "H1 2025 $'000"], ["Net cash from operations", "3,241"]],
+        headers=["", "H1 2025 $'000"],
+    )
+    labelled = {
+        "cashflow_statement": table,
+        "income_statement": None,
+        "balance_sheet": None,
+        "highlights": None,
+        "unmatched": [],
+    }
+    pass1 = {
+        "report_type": "H",
+        "period_end": "2024-12-31",
+        "currency": "AUD",
+        "scale": "thousands",
+    }
+    mock_raw = {
+        "operating_cf": 3241,
+        "thinking": "Found the operating cash flow row in the current period column.",
+        "row_refs": {"operating_cf": "Net cash from operations"},
+    }
+
+    with patch(
+        "app.services.multipass_extraction._llm_json_call", return_value=mock_raw
+    ):
+        results = _run_pass3a_metric_extractor(labelled, pass1, llm_client=None)
+
+    assert len(results) == 1
+    assert "Net cash from operations" in results[0]["_markdown"]
+    assert results[0]["_thinking"] == mock_raw["thinking"]
 
 
 def test_pass4_higher_priority_source_wins():
@@ -1013,7 +1077,7 @@ def test_pass3a_prompt_includes_period_end_for_column_selection():
 
     captured_prompts = []
 
-    def capture_llm_call(prompt, llm_client, max_tokens=512):
+    def capture_llm_call(prompt, llm_client, max_tokens=512, **kwargs):
         captured_prompts.append(prompt)
         return mock_raw
 
@@ -2293,6 +2357,39 @@ def test_pass2_cf_disqualification_blocks_5b_from_balance_sheet():
     )
 
 
+def test_pass2_cross_guarantee_note_cannot_claim_income_statement():
+    """Closed-group deed notes must not beat the real consolidated income statement."""
+    from app.services.multipass_extraction import _run_pass2_locator
+    from app.services.docling_extract import DoclingTable
+
+    consolidated_table = DoclingTable(
+        page_number=122,
+        caption="Consolidated statement of comprehensive income",
+        headers=["Year ended 30 June", "2025 US$M", "2024 US$M"],
+        rows=[
+            ["Revenue", "51,262", "55,658"],
+            ["Profit before taxation", "15,123", "14,500"],
+            ["Income tax expense", "(4,000)", "(3,900)"],
+        ],
+    )
+    closed_group_note = DoclingTable(
+        page_number=179,
+        caption="",
+        headers=["Consolidated Statement of Comprehensive Income and Retained Earnings"],
+        rows=[
+            ["36 Deed of Cross Guarantee", ""],
+            ["Revenue", "28,032"],
+            ["Profit before taxation", "7,100"],
+        ],
+    )
+
+    labelled = _run_pass2_locator([closed_group_note, consolidated_table])
+
+    assert labelled["income_statement"] is consolidated_table, (
+        "Closed-group deed note must not win the canonical income_statement slot"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Redundant table skipping
 # ---------------------------------------------------------------------------
@@ -2618,7 +2715,7 @@ def test_skip_narrative_param_skips_pass3b_llm_call():
 
     call_log = []
 
-    def mock_llm(prompt, llm_client, max_tokens=512):
+    def mock_llm(prompt, llm_client, max_tokens=512, **kwargs):
         call_log.append(prompt)
         # Return pass1 on first call, pass3a on subsequent
         if "classifier" in prompt.lower() or "report_type" in prompt.lower():
@@ -2657,7 +2754,7 @@ def test_skip_narrative_env_var_skips_pass3b():
 
     call_log = []
 
-    def mock_llm(prompt, llm_client, max_tokens=512):
+    def mock_llm(prompt, llm_client, max_tokens=512, **kwargs):
         call_log.append(prompt)
         if "classifier" in prompt.lower() or "report_type" in prompt.lower():
             return _pass1_response()
@@ -2692,7 +2789,7 @@ def test_skip_narrative_produces_valid_pipeline_output():
         METRIC_FIELDS,
     )
 
-    def mock_llm(prompt, llm_client, max_tokens=512):
+    def mock_llm(prompt, llm_client, max_tokens=512, **kwargs):
         if "classifier" in prompt.lower() or "report_type" in prompt.lower():
             return _pass1_response()
         return _pass3a_response()
@@ -2732,7 +2829,7 @@ def test_skip_narrative_false_still_calls_pass3b():
 
     call_log = []
 
-    def mock_llm(prompt, llm_client, max_tokens=512):
+    def mock_llm(prompt, llm_client, max_tokens=512, **kwargs):
         call_log.append(prompt)
         if "classifier" in prompt.lower() or "report_type" in prompt.lower():
             return _pass1_response()
@@ -2773,7 +2870,7 @@ def test_debug_capture_collects_pass3a_results_without_changing_payload_shape():
 
     debug_capture = {}
 
-    def mock_llm(prompt, llm_client, max_tokens=512):
+    def mock_llm(prompt, llm_client, max_tokens=512, **kwargs):
         if "classifier" in prompt.lower() or "report_type" in prompt.lower():
             return _pass1_response()
         if "narrative" in prompt.lower() or "risk" in prompt.lower():
@@ -2851,7 +2948,7 @@ def test_run_multipass_blocks_derived_net_debt_even_when_note_slot_is_selected()
         "unmatched": [],
     }
 
-    def _capture_pass3a(_labelled, pass1, llm_client):
+    def _capture_pass3a(_labelled, pass1, llm_client, **kwargs):
         assert pass1["_block_derived_net_debt"] is True
         return [
             {

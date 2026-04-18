@@ -135,6 +135,14 @@ class RealGoldEvalRequest(BaseModel):
     tolerance: float = 0.01
     method: str = "auto"
     strict_method: bool = False
+    # Optional prompt-bundle id to resolve via prompt_registry.resolve().
+    # When None, the canonical "default" bundle is used (the same one that
+    # pins extraction_runs.prompt_hash to its historical value).
+    prompt_variant_id: str | None = None
+    # Optional llama.cpp model id to pin for every LLM call in this run
+    # (e.g. "qwen2.5-14b-instruct" vs "qwen3-30b-a3b-instruct"). When None,
+    # the configured extraction default is used.
+    model_override: str | None = None
 
 
 def _discover_local_llamacpp_api_key() -> str:
@@ -315,7 +323,13 @@ def _build_real_gold_fixture(
 
 
 def _evaluate_real_gold_document(
-    doc: RealGoldDocument, *, tolerance: float, method: str, strict_method: bool
+    doc: RealGoldDocument,
+    *,
+    tolerance: float,
+    method: str,
+    strict_method: bool,
+    prompt_variant_id: str | None = None,
+    model_override: str | None = None,
 ) -> dict[str, Any]:
     _persist_local_llm_api_key()
     source_path = _resolve_real_gold_source_path(doc.source_file)
@@ -343,6 +357,8 @@ def _evaluate_real_gold_document(
                 requested_method=method,
                 strict_method=strict_method,
                 skip_narrative=True,
+                prompt_bundle_id=prompt_variant_id,
+                model_override=model_override,
             )
         payload = (
             extraction_result.payload
@@ -563,6 +579,8 @@ def _run_real_gold_eval_sync(body: RealGoldEvalRequest) -> dict[str, Any]:
                 tolerance=tolerance,
                 method=method,
                 strict_method=body.strict_method,
+                prompt_variant_id=body.prompt_variant_id,
+                model_override=body.model_override,
             )
             for doc in gold_docs
         ]
@@ -570,6 +588,8 @@ def _run_real_gold_eval_sync(body: RealGoldEvalRequest) -> dict[str, Any]:
             "dataset_dir": str(REAL_GOLD_DATASET_DIR),
             "requested_method": method,
             "strict_method": body.strict_method,
+            "prompt_variant_id": body.prompt_variant_id,
+            "model_override": body.model_override,
             "summary": _summarize_real_gold_results(results),
             "documents": results,
         }

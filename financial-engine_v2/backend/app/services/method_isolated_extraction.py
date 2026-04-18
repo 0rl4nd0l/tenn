@@ -95,6 +95,8 @@ def run_method_isolated_extraction(
     strict_method: bool = False,
     skip_narrative: bool = False,
     observer: ExtractionRunObserver | None = None,
+    prompt_bundle_id: str | None = None,
+    model_override: str | None = None,
 ) -> MultipassResult:
     normalized_method = normalize_extraction_method(requested_method)
     parser_backend: str | None = None
@@ -144,6 +146,8 @@ def run_method_isolated_extraction(
         parser_backend=parser_backend,
         strict_parser=strict_method and parser_backend in {"docling", "pymupdf"},
         observer=observer,
+        prompt_bundle_id=prompt_bundle_id,
+        model_override=model_override,
     )
 
     payload = dict(result.payload) if isinstance(result.payload, dict) else {}

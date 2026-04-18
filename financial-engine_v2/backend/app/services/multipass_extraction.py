@@ -13,7 +13,6 @@ Entry point: run_multipass_extraction(pdf_path, doc_metadata, llm_client)
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
 import os
@@ -26,6 +25,7 @@ from typing import Any, Optional
 from dateutil import parser as dtparser
 
 from app.services.extraction_run_observability import ExtractionRunObserver
+from app.services.prompt_registry import PromptBundle, register_bundle, resolve
 
 logger = logging.getLogger(__name__)
 
@@ -259,16 +259,20 @@ def _run_pass1_classifier(
     title: str,
     first_page_text: str,
     llm_client,
+    *,
+    prompt_bundle: PromptBundle | None = None,
+    model_override: str | None = None,
 ) -> dict:
     """
     Pass 1: classify document type, period, currency, and scale.
     Returns dict with keys: report_type, period_end, currency, scale, classifier_confidence.
     """
-    prompt = _PASS1_PROMPT.format(
+    bundle = prompt_bundle or resolve("default")
+    prompt = bundle.pass1.format(
         title=(title or "")[:200],
         first_page_text=(first_page_text or "")[:2000],  # first page, capped for safety
     )
-    result = _llm_json_call(prompt, llm_client, max_tokens=256)
+    result = _llm_json_call(prompt, llm_client, max_tokens=256, model_override=model_override)
     # Normalise
     result.setdefault("report_type", None)
     result.setdefault("period_end", None)
@@ -1213,6 +1217,9 @@ def _extract_single_table(
     scale: str,
     multiplier: float,
     llm_client,
+    *,
+    prompt_bundle: PromptBundle | None = None,
+    model_override: str | None = None,
 ) -> dict | None:
     """Extract metrics from a single labelled table via one LLM call.
 
@@ -1220,6 +1227,7 @@ def _extract_single_table(
     This function is safe to call from multiple threads — it uses only
     thread-local variables and thread-safe LLM/routing infrastructure.
     """
+    bundle = prompt_bundle or resolve("default")
     metrics = _METRIC_SCHEMA_BY_TABLE.get(table_type, METRIC_FIELDS)
     metric_schema = "\n".join(f'  "{m}": "number|null",' for m in metrics)
     # Cash flow tables need a higher row cap:
@@ -1250,7 +1258,7 @@ def _extract_single_table(
         return None
 
     def _build_prompt(table_markdown: str) -> str:
-        return _PASS3A_PROMPT.format(
+        return bundle.pass3a.format(
             period_type=pass1_result.get("report_type", "?"),
             period_end=pass1_result.get("period_end", "?"),
             currency=pass1_result.get("currency", "AUD"),
@@ -1457,7 +1465,7 @@ def _extract_single_table(
     selected_markdown = markdown
 
     try:
-        raw = _llm_json_call(prompt, llm_client, max_tokens=2048)
+        raw = _llm_json_call(prompt, llm_client, max_tokens=2048, model_override=model_override)
     except Exception as e:
         logger.warning(
             "Pass 3a failed for %s: %s — retrying with truncated table", table_type, e
@@ -1465,7 +1473,9 @@ def _extract_single_table(
         try:
             truncated_markdown = _table_to_markdown_truncated(table, max_rows=20)
             truncated_prompt = _build_prompt(truncated_markdown)
-            raw = _llm_json_call(truncated_prompt, llm_client, max_tokens=1024)
+            raw = _llm_json_call(
+                truncated_prompt, llm_client, max_tokens=1024, model_override=model_override
+            )
             selected_markdown = truncated_markdown
         except Exception as e2:
             logger.error("Pass 3a retry also failed for %s: %s", table_type, e2)
@@ -1489,6 +1499,7 @@ def _extract_single_table(
                     _build_prompt(full_markdown),
                     llm_client,
                     max_tokens=2048,
+                    model_override=model_override,
                 )
                 full_out = _build_output(full_raw, table_markdown=full_markdown)
                 full_count = sum(1 for m in metrics if full_out.get(m) is not None)
@@ -1537,6 +1548,9 @@ def _run_pass3a_metric_extractor(
     labelled_tables: dict[str, Any],
     pass1_result: dict,
     llm_client,
+    *,
+    prompt_bundle: PromptBundle | None = None,
+    model_override: str | None = None,
 ) -> list[dict]:
     """
     Pass 3a: one LLM call per labelled table. Returns list of extraction dicts,
@@ -1545,6 +1559,7 @@ def _run_pass3a_metric_extractor(
     By default, table extractions run in parallel (I/O-bound HTTP calls).
     Set EXTRACTION_PARALLEL=0 to disable parallelism and run sequentially.
     """
+    bundle = prompt_bundle or resolve("default")
     scale = pass1_result.get("scale", "unknown")
     multiplier = SCALE_MULTIPLIERS.get(scale, 1)
 
@@ -1587,6 +1602,8 @@ def _run_pass3a_metric_extractor(
                     scale,
                     multiplier,
                     llm_client,
+                    prompt_bundle=bundle,
+                    model_override=model_override,
                 ): table_type
                 for table_type, table in eligible
             }
@@ -1617,6 +1634,8 @@ def _run_pass3a_metric_extractor(
                 scale,
                 multiplier,
                 llm_client,
+                prompt_bundle=bundle,
+                model_override=model_override,
             )
             if out is not None:
                 results.append(out)
@@ -1664,15 +1683,35 @@ Document text (first 4000 chars of prose):
 {prose_text}
 """
 
+# Register the canonical "default" prompt bundle with the registry. The live
+# extraction path resolves this bundle; the matrix runner can register
+# additional variants under different ids for comparative evaluation.
+register_bundle(
+    PromptBundle(
+        id="default",
+        pass1=_PASS1_PROMPT,
+        pass3a=_PASS3A_PROMPT,
+        pass3b=_PASS3B_PROMPT,
+        description="Canonical multipass prompts (pass1 classifier, pass3a metrics, pass3b narrative).",
+    )
+)
+
 # Stable fingerprint of all extraction prompt templates.
 # Changes when any prompt is edited — use this in ExtractionRun.prompt_hash
 # so stale cached extractions can be detected if prompts are updated.
-PROMPT_HASH: str = hashlib.sha256(
-    (_PASS1_PROMPT + _PASS3A_PROMPT + _PASS3B_PROMPT).encode()
-).hexdigest()[:16]
+#
+# Derived via the registry so prompt bundle variants can share the same
+# hashing formula and remain linkable to historical extraction_runs rows.
+PROMPT_HASH: str = resolve("default").compute_hash()
 
 
-def _run_pass3b_narrative_extractor(sections: list[dict], llm_client) -> dict:
+def _run_pass3b_narrative_extractor(
+    sections: list[dict],
+    llm_client,
+    *,
+    prompt_bundle: PromptBundle | None = None,
+    model_override: str | None = None,
+) -> dict:
     """
     Pass 3b: extract risk/guidance narrative from prose sections.
     Returns dict with narrative fields. All fields null on failure.
@@ -1689,9 +1728,10 @@ def _run_pass3b_narrative_extractor(sections: list[dict], llm_client) -> dict:
     if not prose:
         return null_result
 
-    prompt = _PASS3B_PROMPT.format(prose_text=prose)
+    bundle = prompt_bundle or resolve("default")
+    prompt = bundle.pass3b.format(prose_text=prose)
     try:
-        raw = _llm_json_call(prompt, llm_client, max_tokens=512)
+        raw = _llm_json_call(prompt, llm_client, max_tokens=512, model_override=model_override)
         return {
             "risk_summary": raw.get("risk_summary"),
             "risk_bullets": raw.get("risk_bullets"),
@@ -2482,6 +2522,8 @@ def run_multipass_extraction(
     strict_parser: bool = False,
     observer: ExtractionRunObserver | None = None,
     debug_capture: dict[str, Any] | None = None,
+    prompt_bundle_id: str | None = None,
+    model_override: str | None = None,
 ) -> MultipassResult:
     """
     Orchestrate all 4 passes and return a MultipassResult.
@@ -2490,8 +2532,17 @@ def run_multipass_extraction(
     skip_narrative: when True, skip the Pass 3b LLM call and use null
     narrative fields.  Also respects env var EXTRACTION_SKIP_NARRATIVE=1.
     Useful for backfill runs and eval harness where only metrics matter.
+
+    prompt_bundle_id: optional id of a registered PromptBundle (default: the
+    canonical "default" bundle that pins ``extraction_runs.prompt_hash`` to
+    the historical value). Unknown ids raise KeyError — see prompt_registry.
+
+    model_override: optional model id to pin for every LLM call in this run
+    (e.g. matrix runner comparing ``qwen2.5-14b-instruct`` vs another model).
     """
     from app.services.docling_extract import ExtractionTimeoutError, extract_structured
+
+    bundle = resolve(prompt_bundle_id)
 
     null_payload = {m: None for m in METRIC_FIELDS}
     null_payload.update(
@@ -2575,7 +2626,13 @@ def run_multipass_extraction(
     if observer is not None:
         observer.emit("pass1_classifier", "running", "Running pass 1 classifier.")
     try:
-        pass1 = _run_pass1_classifier(title, first_page_text, llm_client)
+        pass1 = _run_pass1_classifier(
+            title,
+            first_page_text,
+            llm_client,
+            prompt_bundle=bundle,
+            model_override=model_override,
+        )
     except Exception as e:
         logger.error("Pass 1 failed: %s", e)
         if observer is not None:
@@ -2665,7 +2722,13 @@ def run_multipass_extraction(
             "Extracting metric candidates.",
         )
     try:
-        pass3a_results = _run_pass3a_metric_extractor(labelled, pass1, llm_client)
+        pass3a_results = _run_pass3a_metric_extractor(
+            labelled,
+            pass1,
+            llm_client,
+            prompt_bundle=bundle,
+            model_override=model_override,
+        )
     except Exception as e:
         if observer is not None:
             observer.emit(
@@ -2710,7 +2773,10 @@ def run_multipass_extraction(
             )
         try:
             pass3b_result = _run_pass3b_narrative_extractor(
-                structured_doc.sections, llm_client
+                structured_doc.sections,
+                llm_client,
+                prompt_bundle=bundle,
+                model_override=model_override,
             )
         except Exception as e:
             if observer is not None:
@@ -2824,7 +2890,13 @@ def run_multipass_extraction(
 # ---------------------------------------------------------------------------
 
 
-def _llm_json_call(prompt: str, llm_client, max_tokens: int = 512) -> dict:
+def _llm_json_call(
+    prompt: str,
+    llm_client,
+    max_tokens: int = 512,
+    *,
+    model_override: str | None = None,
+) -> dict:
     """
     Call the LLM with JSON mode enforced. Returns parsed dict.
     Raises on invalid JSON or connection failure.
@@ -2832,6 +2904,10 @@ def _llm_json_call(prompt: str, llm_client, max_tokens: int = 512) -> dict:
     llm_client may be:
     - httpx.Client pointing at an OpenAI-compatible endpoint (llamacpp / Ollama)
     - anthropic.Anthropic instance — uses Claude directly via the Anthropic SDK
+
+    ``model_override`` pins a specific model for this call (e.g. matrix runner
+    comparing ``qwen2.5-14b-instruct`` against ``qwen3-30b-a3b-instruct``). When
+    ``None``, the configured extraction default is used.
     """
     import json as _json
 
@@ -2840,7 +2916,9 @@ def _llm_json_call(prompt: str, llm_client, max_tokens: int = 512) -> dict:
         import anthropic as _anthropic
 
         if isinstance(llm_client, _anthropic.Anthropic):
-            model = getattr(llm_client, "_extraction_model", "claude-opus-4-6")
+            model = model_override or getattr(
+                llm_client, "_extraction_model", "claude-opus-4-6"
+            )
             msg = llm_client.messages.create(
                 model=model,
                 max_tokens=max_tokens,
@@ -2864,7 +2942,13 @@ def _llm_json_call(prompt: str, llm_client, max_tokens: int = 512) -> dict:
     # OpenAI-compatible path (llamacpp / Ollama)
     from app.services.llm import generate_json
 
-    metadata = {"task_type": "reasoning", "component": "multipass_extraction"}
+    metadata: dict[str, Any] = {
+        "task_type": "reasoning",
+        "component": "multipass_extraction",
+    }
+    if model_override:
+        # Honoured by _resolve_runtime_from_metadata in app.services.llm.
+        metadata["requested_model"] = model_override
     result = generate_json(prompt, metadata=metadata, client=llm_client)
     if not isinstance(result, dict):
         raise ValueError(f"LLM returned non-dict: {type(result)}")
