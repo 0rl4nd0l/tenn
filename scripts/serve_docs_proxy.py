@@ -43,6 +43,12 @@ class RepoDocsProxyHandler(SimpleHTTPRequestHandler):
             return
         super().do_HEAD()
 
+    def do_POST(self) -> None:  # noqa: N802 - stdlib signature
+        if self.path.startswith("/api/"):
+            self._proxy_request()
+            return
+        self.send_error(405, "POST is only supported for proxied /api/* routes")
+
     def log_message(self, format: str, *args) -> None:
         super().log_message(format, *args)
 
@@ -68,8 +74,11 @@ class RepoDocsProxyHandler(SimpleHTTPRequestHandler):
 
     def _proxy_request(self, *, head_only: bool = False) -> None:
         target = f"{self.backend_base}{self.path}"
+        content_length = int(self.headers.get("Content-Length", "0") or "0")
+        body = self.rfile.read(content_length) if content_length > 0 else None
         request = Request(
             target,
+            data=body,
             method=self.command,
             headers=self._copy_request_headers(),
         )

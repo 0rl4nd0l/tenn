@@ -131,7 +131,7 @@
 
       .field-grid {
         display: grid;
-        grid-template-columns: 1.05fr 0.95fr auto;
+        grid-template-columns: 1.1fr 0.7fr 0.9fr auto;
         gap: 12px;
         align-items: end;
         margin-top: 14px;
@@ -170,6 +170,44 @@
         font-weight: 600;
         cursor: pointer;
         transition: transform 0.18s, border-color 0.18s;
+      }
+
+      .action-btn {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: rgba(99, 102, 241, 0.12);
+        color: var(--text-primary);
+        padding: 8px 10px;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.18s, border-color 0.18s, background 0.18s;
+      }
+
+      .action-btn:hover {
+        transform: translateY(-1px);
+        border-color: var(--accent-3);
+      }
+
+      .action-btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+        transform: none;
+      }
+
+      .item-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .item-note {
+        margin-top: 8px;
+        color: var(--text-secondary);
+        font-size: 12px;
+        line-height: 1.5;
       }
 
       .load-btn:hover,
@@ -727,6 +765,10 @@
               <label for="ticker-input">Ticker</label>
               <input id="ticker-input" type="text" value="BHP" maxlength="12" />
             </div>
+            <div class="field">
+              <label for="api-key-input">API Key (optional)</label>
+              <input id="api-key-input" type="password" value="" placeholder="Needed only for rerun actions" />
+            </div>
             <button class="load-btn" type="submit" id="load-button">Load Map</button>
           </form>
           <div class="quick-row">
@@ -1066,10 +1108,12 @@
           this.abortController = null;
           this.data = null;
           this.selectedSurface = "financials";
+          this.activeRerunDocumentId = null;
 
           this.form = document.getElementById("load-form");
           this.backendInput = document.getElementById("backend-base");
           this.tickerInput = document.getElementById("ticker-input");
+          this.apiKeyInput = document.getElementById("api-key-input");
           this.loadButton = document.getElementById("load-button");
           this.statusPill = document.getElementById("status-pill");
           this.statusCopy = document.getElementById("status-copy");
@@ -1115,6 +1159,18 @@
             });
           });
 
+          this.detailContent.addEventListener("click", (event) => {
+            const target = event.target.closest("[data-rerun-document-id]");
+            if (!(target instanceof HTMLElement)) {
+              return;
+            }
+            const documentId = String(target.dataset.rerunDocumentId || "").trim();
+            if (!documentId || target.hasAttribute("disabled")) {
+              return;
+            }
+            this.rerunFailedDocument(documentId);
+          });
+
           this.surfaceNodes.forEach((node) => {
             node.addEventListener("click", () => {
               this.selectedSurface = node.dataset.surface;
@@ -1129,6 +1185,10 @@
         getBackendBase() {
           const raw = (this.backendInput.value || "").trim();
           return raw.replace(/\/+$/, "");
+        }
+
+        getApiKey() {
+          return String(this.apiKeyInput?.value || "").trim();
         }
 
         normalizeTicker(rawTicker) {
@@ -1149,6 +1209,22 @@
           const url = new URL("/api/context/company_dump", this.getBackendBase());
           url.searchParams.set("ticker", ticker);
           return url;
+        }
+
+        buildDocumentProcessUrl(documentId) {
+          return new URL(`/api/process/document/${encodeURIComponent(documentId)}`, this.getBackendBase());
+        }
+
+        buildRequestHeaders(withJsonBody = false) {
+          const headers = { Accept: "application/json" };
+          if (withJsonBody) {
+            headers["Content-Type"] = "application/json";
+          }
+          const apiKey = this.getApiKey();
+          if (apiKey) {
+            headers["X-API-Key"] = apiKey;
+          }
+          return headers;
         }
 
         pickDefaultSurface(data) {
@@ -1178,8 +1254,9 @@
           window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
         }
 
-        async loadTicker(rawTicker) {
+        async loadTicker(rawTicker, options = {}) {
           const ticker = this.normalizeTicker(rawTicker);
+          const preferredSurface = String(options.preferredSurface || "").trim();
           if (!ticker) {
             this.setStatus("error", "Enter a ticker before loading the map.");
             return;
@@ -1215,7 +1292,10 @@
 
             const data = await response.json();
             this.data = data;
-            this.selectedSurface = this.pickDefaultSurface(data);
+            this.selectedSurface =
+              preferredSurface && SURFACE_META[preferredSurface]
+                ? preferredSurface
+                : this.pickDefaultSurface(data);
             this.tickerInput.value = ticker;
             window.localStorage.setItem("tennTickerMap.backend", backendBase);
             this.updateUrl(ticker);
@@ -1240,6 +1320,74 @@
           } finally {
             this.loadButton.disabled = false;
             this.loadButton.textContent = "Load Map";
+          }
+        }
+
+        async rerunFailedDocument(documentId) {
+          const normalizedDocumentId = String(documentId || "").trim();
+          const ticker = this.normalizeTicker(this.data?.ticker || this.tickerInput.value);
+          if (!normalizedDocumentId || !ticker) {
+            return;
+          }
+
+          this.activeRerunDocumentId = normalizedDocumentId;
+          this.renderDetail();
+          this.setStatus(
+            "loading",
+            `Re-running extraction for ${ticker} document ${normalizedDocumentId.slice(0, 12)}...`
+          );
+
+          try {
+            const response = await fetch(this.buildDocumentProcessUrl(normalizedDocumentId), {
+              method: "POST",
+              headers: this.buildRequestHeaders(true),
+              body: JSON.stringify({ method: "auto", strict_method: false }),
+            });
+
+            let payload = null;
+            const contentType = String(response.headers.get("content-type") || "");
+            if (contentType.includes("application/json")) {
+              payload = await response.json();
+            } else {
+              const text = await response.text();
+              payload = text ? { detail: text } : null;
+            }
+
+            if (!response.ok) {
+              const detail =
+                payload && typeof payload === "object"
+                  ? String(payload.detail || payload.error || `HTTP ${response.status}`)
+                  : `HTTP ${response.status}`;
+              throw new Error(detail);
+            }
+
+            const mode = String(payload?.mode || "").trim() || "unknown";
+            const runId = String(payload?.run_id || "").trim();
+            const statusSuffix =
+              mode === "celery"
+                ? "Queued on the backend worker. Refreshing the company bundle now."
+                : "Completed through the backend. Refreshing the company bundle now.";
+            this.setStatus(
+              "loading",
+              `Extraction rerun accepted for ${ticker}.${runId ? ` Run ID ${runId}.` : ""} ${statusSuffix}`
+            );
+
+            await this.loadTicker(ticker, { preferredSurface: "extraction_failures" });
+            this.setStatus(
+              "ok",
+              `Refreshed ${ticker} after re-running extraction for document ${normalizedDocumentId.slice(0, 12)}.`
+            );
+          } catch (error) {
+            this.setStatus(
+              "error",
+              `Could not rerun extraction for ${ticker}. ${error?.message || "Unknown error"}.`
+            );
+            this.renderDetail();
+          } finally {
+            this.activeRerunDocumentId = null;
+            if (this.selectedSurface === "extraction_failures") {
+              this.renderDetail();
+            }
           }
         }
 
@@ -1811,7 +1959,11 @@
               <div class="list">
                 ${failures
                   .map(
-                    (failure) => `
+                    (failure) => {
+                      const documentId = String(failure.document_id || "").trim();
+                      const canRerun = Boolean(documentId);
+                      const isRunning = canRerun && this.activeRerunDocumentId === documentId;
+                      return `
                       <div class="item">
                         <div class="item-top">
                           <div class="item-title">${escapeHtml(failure.title || failure.document_id || "Extraction failure")}</div>
@@ -1819,10 +1971,32 @@
                         </div>
                         <div class="excerpt">${escapeHtml(failure.error || "No error message")}</div>
                         <div class="item-meta">Run ID: ${escapeHtml(failure.run_id || "-")}</div>
+                        <div class="item-meta">Document ID: ${escapeHtml(documentId || "-")}</div>
+                        <div class="item-actions">
+                          <button
+                            class="action-btn"
+                            type="button"
+                            data-rerun-document-id="${escapeHtml(documentId)}"
+                            ${canRerun ? "" : "disabled"}
+                            ${isRunning ? "disabled" : ""}
+                          >
+                            ${isRunning ? "Re-running..." : "Re-run extraction"}
+                          </button>
+                        </div>
+                        ${
+                          !canRerun
+                            ? `<div class="item-note">This failure row does not expose a document ID, so the backend rerun route cannot target it.</div>`
+                            : ""
+                        }
                       </div>
-                    `
+                    `;
+                    }
                   )
                   .join("")}
+              </div>
+              <div class="item-note">
+                The rerun action calls the existing backend endpoint <code>POST /api/process/document/{document_id}</code>.
+                If your backend enforces <code>X-API-Key</code>, fill the optional API key field above before retrying.
               </div>
             </div>
           `;
