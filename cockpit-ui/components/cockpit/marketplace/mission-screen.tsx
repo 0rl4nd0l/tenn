@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Loader2, Play, RefreshCw, Store } from 'lucide-react'
+import { AlertTriangle, Loader2, Play, RefreshCw, Store } from 'lucide-react'
 
 import {
   createMarketplaceMission,
@@ -97,6 +97,7 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const desktopSessionMissing = browserHealth?.status === 'desktop_session_missing'
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -219,6 +220,21 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
             error ? 'border-destructive/50 bg-destructive/10 text-destructive' : 'border-primary/50 bg-primary/10 text-primary'
           }`}>
             {error || notice}
+          </div>
+        )}
+
+        {desktopSessionMissing && (
+          <div className="flex items-start gap-3 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div className="space-y-1">
+              <p className="font-medium">Launch Browser needs a graphical desktop session.</p>
+              {browserHealth?.detail && <p>{browserHealth.detail}</p>}
+              <p className="text-xs text-destructive/80">
+                Start <span className="font-mono">marketplace_browser_helper.py</span> from a
+                desktop login on this machine, or launch Chrome manually with remote debugging on
+                port 9222, then refresh.
+              </p>
+            </div>
           </div>
         )}
 

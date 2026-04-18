@@ -149,4 +149,48 @@ describe('MarketplaceMissionScreen', () => {
     })
     expect(screen.getByText(/browser launch request sent/i)).toBeInTheDocument()
   })
+
+  it('shows a desktop-session warning before launch when the backend reports desktop_session_missing', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            status: 'desktop_session_missing',
+            cdp_url: 'http://127.0.0.1:9222',
+            browser_family: 'chrome',
+            profile_path: '/tmp/profile',
+            logged_in: false,
+            challenge_detected: false,
+            last_checked_at: '2026-04-18T10:00:00Z',
+            detail: 'No graphical desktop session is available for a local Marketplace browser profile in this shell.',
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [] }),
+        }),
+    )
+
+    render(<MarketplaceMissionScreen apiKey="" />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/launch browser needs a graphical desktop session/i)).toBeInTheDocument()
+    })
+    expect(
+      screen.getAllByText(/no graphical desktop session is available for a local marketplace browser profile in this shell/i).length,
+    ).toBeGreaterThan(0)
+    expect(
+      screen.getByText(/marketplace_browser_helper\.py/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/launch chrome manually with remote debugging on port 9222, then refresh/i),
+    ).toBeInTheDocument()
+  })
 })

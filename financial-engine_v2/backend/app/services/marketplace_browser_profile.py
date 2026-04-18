@@ -1,0 +1,239 @@
+from __future__ import annotations
+
+import asyncio
+import json
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
+
+from app.services.facebook_marketplace_inspector import (
+    DEFAULT_MARKETPLACE_CDP_URL,
+    DEFAULT_MARKETPLACE_TIMEOUT_MS,
+    _browser_unavailable_detail,
+    _has_graphical_desktop_session,
+    _is_local_cdp_url,
+)
+
+
+DEFAULT_MARKETPLACE_HOME_URL = "https://www.facebook.com/marketplace/"
+DEFAULT_PROFILE_ROOT = Path.home() / ".tenn" / "browser_profiles"
+DEFAULT_MARKETPLACE_HELPER_URL = "http://127.0.0.1:9233"
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _browser_family(version_payload: dict[str, object]) -> str:
+    browser_text = str(version_payload.get("Browser") or "").lower()
+    if "brave" in browser_text:
+        return "brave"
+    return "chrome"
+
+
+def _profile_path(browser_family: str) -> str:
+    return str((DEFAULT_PROFILE_ROOT / f"facebook-marketplace-{browser_family}").resolve())
+
+
+def _fetch_cdp_version(cdp_url: str, timeout_seconds: float = 1.5) -> dict[str, object] | None:
+    version_url = f"{cdp_url.rstrip('/')}/json/version"
+    try:
+        with urlopen(version_url, timeout=timeout_seconds) as response:  # noqa: S310
+            payload = json.loads(response.read().decode("utf-8"))
+    except (OSError, URLError, ValueError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _helper_base_url() -> str:
+    return (
+        str(os.environ.get("MARKETPLACE_BROWSER_HELPER_URL") or DEFAULT_MARKETPLACE_HELPER_URL)
+        .strip()
+        .rstrip("/")
+    )
+
+
+def _helper_headers() -> dict[str, str]:
+    headers: dict[str, str] = {}
+    token = str(os.environ.get("MARKETPLACE_BROWSER_HELPER_TOKEN") or "").strip()
+    if token:
+        headers["X-Marketplace-Helper-Token"] = token
+    return headers
+
+
+def _fetch_helper_health(timeout_seconds: float = 1.5) -> dict[str, object] | None:
+    base_url = _helper_base_url()
+    if not base_url:
+        return None
+    request = Request(
+        f"{base_url}/health",
+        headers=_helper_headers(),
+        method="GET",
+    )
+    try:
+        with urlopen(request, timeout=timeout_seconds) as response:  # noqa: S310
+            payload = json.loads(response.read().decode("utf-8"))
+    except HTTPError:
+        return None
+    except (OSError, URLError, ValueError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+async def _check_browser_health_async(
+    *,
+    cdp_url: str,
+    timeout_ms: int,
+) -> dict[str, object]:
+    last_checked_at = _now_iso()
+    version_payload = _fetch_cdp_version(cdp_url, timeout_seconds=max(timeout_ms / 1000, 1.5))
+    if version_payload is None:
+        helper_health = None
+        if _is_local_cdp_url(cdp_url):
+            helper_health = _fetch_helper_health(
+                timeout_seconds=max(min(timeout_ms / 1000, 2.0), 0.5)
+            )
+        if helper_health and bool(helper_health.get("display_available")):
+            helper_family = str(helper_health.get("browser_family") or "chrome").strip() or "chrome"
+            return {
+                "status": "browser_not_running",
+                "cdp_url": cdp_url,
+                "browser_family": helper_family,
+                "profile_path": str(helper_health.get("profile_path") or _profile_path(helper_family)),
+                "logged_in": False,
+                "challenge_detected": False,
+                "last_checked_at": last_checked_at,
+                "detail": str(
+                    helper_health.get("detail")
+                    or "Marketplace desktop helper is ready to launch the browser."
+                ).strip(),
+            }
+        status = "browser_not_running"
+        detail = "No browser is listening on the configured remote debugging port."
+        if _is_local_cdp_url(cdp_url) and not _has_graphical_desktop_session():
+            status = "desktop_session_missing"
+            detail = (
+                "No graphical desktop session is available for a local Marketplace browser "
+                "profile in this shell."
+            )
+        return {
+            "status": status,
+            "cdp_url": cdp_url,
+            "browser_family": "chrome",
+            "profile_path": _profile_path("chrome"),
+            "logged_in": False,
+            "challenge_detected": False,
+            "last_checked_at": last_checked_at,
+            "detail": detail,
+        }
+
+    family = _browser_family(version_payload)
+
+    try:
+        from playwright.async_api import async_playwright
+    except Exception:
+        return {
+            "status": "browser_unavailable",
+            "cdp_url": cdp_url,
+            "browser_family": family,
+            "profile_path": _profile_path(family),
+            "logged_in": False,
+            "challenge_detected": False,
+            "last_checked_at": last_checked_at,
+            "detail": _browser_unavailable_detail(cdp_url),
+        }
+
+    async with async_playwright() as playwright:
+        try:
+            browser = await playwright.chromium.connect_over_cdp(cdp_url)
+        except Exception:
+            return {
+                "status": "browser_unavailable",
+                "cdp_url": cdp_url,
+                "browser_family": family,
+                "profile_path": _profile_path(family),
+                "logged_in": False,
+                "challenge_detected": False,
+                "last_checked_at": last_checked_at,
+                "detail": _browser_unavailable_detail(cdp_url),
+            }
+
+        context = browser.contexts[0] if browser.contexts else await browser.new_context()
+        page = None
+        created_page = False
+        try:
+            try:
+                page = await context.new_page()
+                created_page = True
+            except Exception:
+                page = context.pages[0] if context.pages else await context.new_page()
+                created_page = page not in context.pages[:-1]
+
+            page.set_default_timeout(timeout_ms)
+            await page.goto(DEFAULT_MARKETPLACE_HOME_URL, wait_until="domcontentloaded")
+            await page.wait_for_timeout(1_000)
+            evaluated = await page.evaluate(
+                """
+                () => {
+                  const text = (document.body?.innerText || '').toLowerCase()
+                  const challengeDetected =
+                    /confirm (it'?s )?you|challenge|checkpoint|security check|suspended/i.test(text) ||
+                    /checkpoint|challenge/i.test(window.location.href || '')
+                  const loginRequired =
+                    !!document.querySelector('input[name="email"], form[action*="login"], #loginbutton') ||
+                    /log in to continue|see marketplace listings|facebook login/i.test(text)
+                  return {
+                    challengeDetected,
+                    loginRequired,
+                    finalUrl: window.location.href || '',
+                  }
+                }
+                """
+            )
+            challenge_detected = bool(evaluated.get("challengeDetected"))
+            login_required = bool(evaluated.get("loginRequired"))
+
+            if challenge_detected:
+                status = "challenge_detected"
+                detail = "The browser session hit a Facebook checkpoint or challenge page."
+            elif login_required:
+                status = "login_required"
+                detail = "The browser session is not logged into Facebook Marketplace."
+            else:
+                status = "ready"
+                detail = "Marketplace browser profile is ready."
+
+            return {
+                "status": status,
+                "cdp_url": cdp_url,
+                "browser_family": family,
+                "profile_path": _profile_path(family),
+                "logged_in": status == "ready",
+                "challenge_detected": challenge_detected,
+                "last_checked_at": last_checked_at,
+                "detail": detail,
+                "final_url": str(evaluated.get("finalUrl") or DEFAULT_MARKETPLACE_HOME_URL),
+            }
+        finally:
+            if created_page and page is not None:
+                try:
+                    await page.close()
+                except Exception:
+                    pass
+
+
+def check_marketplace_browser_health(
+    *,
+    cdp_url: str | None = None,
+    timeout_ms: int | None = None,
+) -> dict[str, object]:
+    resolved_cdp_url = str(cdp_url or "").strip() or DEFAULT_MARKETPLACE_CDP_URL
+    resolved_timeout = int(timeout_ms or DEFAULT_MARKETPLACE_TIMEOUT_MS)
+    return asyncio.run(
+        _check_browser_health_async(
+            cdp_url=resolved_cdp_url,
+            timeout_ms=resolved_timeout,
+        )
+    )
