@@ -830,9 +830,21 @@ Table (markdown):
 Extract ONLY these metrics relevant to {table_type}:
 {metric_list}
 
+Required JSON Output Format:
+{{
+  "metrics": {{
+{metric_schema}
+  }},
+  "row_refs": {{
+    "metric_name": "original row label from markdown",
+    ...
+  }}
+}}
+
 Rules:
 - Values in parentheses like (412) mean NEGATIVE: output -412 (raw, not pre-multiplied)
 - Output null if the metric is NOT explicitly labeled in this table — do NOT estimate or derive it
+- row_refs: for every non-null metric, you MUST provide the EXACT row label from the markdown table where you found the value. If you summed multiple rows (e.g. for capex), provide them all as a comma-separated list.
 - revenue: extract the TOP-LINE revenue row — typically labeled "Revenue", "Sales revenue",
   "Total revenue", "Revenue from ordinary activities", "Operating revenue", or "Net revenue".
   DO NOT use: "Other income", "Interest income", "Total income" (which may include non-operating items),
@@ -1206,6 +1218,11 @@ def _extract_single_table(
         )
 
     def _build_output(raw_payload: dict[str, Any]) -> dict[str, Any]:
+        # Support both old flat format and new nested format
+        metrics_payload = raw_payload.get("metrics")
+        if not isinstance(metrics_payload, dict):
+            metrics_payload = raw_payload
+
         # shares_outstanding is always an absolute count — the prompt instructs the LLM
         # to output the absolute number (e.g. 5057000000 not 5057 when the table says
         # "5,057 (Million)"). No post-hoc scale multiplication needed.
@@ -1213,9 +1230,10 @@ def _extract_single_table(
         extracted = {
             "_source": table_type,
             "_page_number": getattr(table, "page_number", None),
+            "row_refs": raw_payload.get("row_refs", {}),
         }
         for metric_name in metrics:
-            val = raw_payload.get(metric_name)
+            val = metrics_payload.get(metric_name)
             if val is not None:
                 try:
                     raw_float = float(val)
@@ -2073,6 +2091,11 @@ def _derived_net_debt_confidence(extraction: dict) -> float:
     return min(base_conf, _DERIVED_NET_DEBT_CONFIDENCE_CAP)
 
 
+_EXTRACTION_RE = re.compile(
+    r"^(?P<label>[a-z_]+):(?P<location>page_[^:]+):(?P<detail>.+)$"
+)
+
+
 def _run_pass4_reconciler(
     pass3a_results: list[dict],
     pass3b_result: dict,
@@ -2088,6 +2111,7 @@ def _run_pass4_reconciler(
     """
     merged_metrics: dict[str, Any] = {m: None for m in METRIC_FIELDS}
     provenance: dict[str, str] = {}
+    row_refs: dict[str, str] = {}
     confidence_weighted_sum = 0.0
     confidence_weight = 0
 
@@ -2113,6 +2137,7 @@ def _run_pass4_reconciler(
             if m in extraction and extraction[m] is not None:
                 merged_metrics[m] = extraction[m]
                 row_ref = extraction.get("row_refs", {}).get(m, "unknown")
+                row_refs[m] = row_ref
                 provenance[m] = f"{source}:{page_tag}:{row_ref}"
                 confidence_weighted_sum += conf
                 confidence_weight += 1
@@ -2124,6 +2149,7 @@ def _run_pass4_reconciler(
         page_tag = f"page_{page}" if page is not None else "page_?"
         row_ref = explicit_net_debt.get("row_refs", {}).get("net_debt", "unknown")
         merged_metrics["net_debt"] = explicit_net_debt["net_debt"]
+        row_refs["net_debt"] = row_ref
         provenance["net_debt"] = f"{source}:{page_tag}:{row_ref}"
         net_debt_conf = _explicit_net_debt_confidence(explicit_net_debt)
         confidence_weighted_sum += net_debt_conf
@@ -2156,9 +2182,10 @@ def _run_pass4_reconciler(
                     and _is_strong_total_debt_evidence(total_debt_row_ref, total_debt)
                 ):
                     merged_metrics["net_debt"] = total_debt - cash_end
+                    row_ref = f"total_debt({total_debt:.0f})-cash_end({cash_end:.0f})"
+                    row_refs["net_debt"] = row_ref
                     provenance["net_debt"] = (
-                        f"derived:balance_sheet:total_debt({total_debt:.0f})"
-                        f"-cash_end({cash_end:.0f})"
+                        f"derived:balance_sheet:{row_ref}"
                     )
                     net_debt_conf = _derived_net_debt_confidence(bs_result)
                     confidence_weighted_sum += net_debt_conf
@@ -2185,6 +2212,10 @@ def _run_pass4_reconciler(
         if prose_shares is not None:
             merged_metrics["shares_outstanding"] = prose_shares
             provenance["shares_outstanding"] = prose_prov
+            # Extract row_ref from prose_prov (e.g., prose_note:page_12:The Company had...)
+            prose_match = _EXTRACTION_RE.match(prose_prov)
+            if prose_match:
+                row_refs["shares_outstanding"] = prose_match.group("detail")
 
     # Weighted average confidence — each source weighted by metrics contributed
     metric_confidence = (
@@ -2202,6 +2233,7 @@ def _run_pass4_reconciler(
         "period_type": pass1_result.get("report_type"),
         "period_end": pass1_result.get("period_end"),
         "metrics": merged_metrics,
+        "row_refs": row_refs,
         "confidence_metrics": round(metric_confidence, 3),
         "provenance": provenance,
         **pass3b_result,  # risk_summary, risk_bullets, guidance_summary, material_changes, confidence_narrative

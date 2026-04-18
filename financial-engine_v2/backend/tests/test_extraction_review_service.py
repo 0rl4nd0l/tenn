@@ -497,11 +497,12 @@ def test_evidence_quality_for_snippet_marks_page_preview_as_approximate() -> Non
     assert review._evidence_quality_for_snippet(snippet) == "approximate"
 
 
-def test_evidence_quality_for_snippet_marks_line_crop_as_precise() -> None:
+def test_evidence_quality_for_snippet_marks_full_page_with_bbox_as_precise() -> None:
     snippet = {
-        "kind": "line_crop",
-        "image_url": "/api/extraction-review/snippets/line.png",
+        "kind": "page_preview",
+        "image_url": "/api/extraction-review/snippets/page.png",
         "matched_text": "Revenue from contracts with customers",
+        "bbox": [10, 10, 100, 20],
     }
 
     assert review._evidence_quality_for_snippet(snippet) == "precise"
@@ -619,11 +620,11 @@ def test_build_metric_snippet_creates_line_crop_with_ascii_preview(
         evidence_text="Revenue from contracts with customers",
     )
 
-    assert snippet["kind"] == "line_crop"
+    assert snippet["kind"] == "page_preview"
     assert snippet["evidence_quality"] == "precise"
     assert snippet["status"] == "ok"
-    assert snippet["image_path"]
-    assert snippet["ascii_preview"]
+    assert snippet["image_name"].endswith("_page_highlight.png")
+    assert snippet["bbox"] == [40.0, 50.0, 180.0, 70.0]
 
 
 @pytest.mark.skipif(Image is None, reason="Pillow not installed")
@@ -646,7 +647,8 @@ def test_build_metric_snippet_renders_real_pdf_without_poppler(
     )
 
     assert snippet["status"] == "ok"
-    assert snippet["kind"] == "line_crop"
+    assert snippet["kind"] == "page_preview"
+    assert snippet["bbox"] is not None
     assert snippet["evidence_quality"] == "precise"
     assert snippet["image_path"]
     assert snippet["image_url"]

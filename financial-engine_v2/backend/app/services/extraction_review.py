@@ -415,7 +415,8 @@ def _evidence_quality_for_snippet(snippet: Mapping[str, Any]) -> str:
     matched_text = _normalize_evidence_text(
         str(snippet.get("matched_text") or "").strip() or None
     )
-    if has_image and str(snippet.get("kind") or "") == "line_crop" and matched_text:
+    has_bbox = snippet.get("bbox") is not None
+    if has_image and has_bbox and matched_text:
         return "precise"
     if has_image:
         return "approximate"
@@ -489,14 +490,11 @@ def build_metric_snippet(
         )
 
     try:
-        if bbox is not None:
-            out_path = _snippet_artifact_name(item_id, "snippet")
-            image_path = _crop_snippet_image(page_png, bbox, out_path)
-            kind = "line_crop"
-        else:
-            out_path = _snippet_artifact_name(item_id, "page")
-            image_path = _render_page_preview(page_png, None, out_path)
-            kind = "page_preview"
+        # We always want the full page preview with highlighting now, rather than a crop.
+        # This provides better context for verification (dates, periods, etc).
+        out_path = _snippet_artifact_name(item_id, "page_highlight")
+        image_path = _render_page_preview(page_png, bbox, out_path)
+        kind = "page_preview"
     except Exception as exc:
         return _text_only_snippet(
             status="image_failed",
@@ -515,6 +513,7 @@ def build_metric_snippet(
         "ascii_preview": _image_to_ascii(image_path),
         "matched_text": matched_text,
         "page_number": page_number,
+        "bbox": bbox,
         "reason": None,
     }
     snippet["evidence_quality"] = _evidence_quality_for_snippet(snippet)
@@ -697,6 +696,11 @@ def build_review_item(
     pdf_path = _coerce_pdf_path(document, payload)
     matched_text = str(record.evidence_text or "").strip() or None
     row_ref = _row_reference_for_metric(payload, metric)
+    
+    # Use row_ref as primary evidence for highlighting if available, 
+    # as it's the most specific anchor in the table.
+    highlight_text = row_ref or matched_text
+    
     period_col = str(payload.get("period_col") or "").strip() or None
     method_provenance = payload.get("_method_provenance")
     method_provenance = (
@@ -712,7 +716,7 @@ def build_review_item(
         item_id=item_id,
         pdf_path=pdf_path,
         page_number=page_number,
-        evidence_text=matched_text,
+        evidence_text=highlight_text,
     )
     evidence_quality = str(
         snippet.get("evidence_quality") or _evidence_quality_for_snippet(snippet)
@@ -748,7 +752,7 @@ def build_review_item(
         "period_col": period_col,
         "confidence_metrics": payload.get("confidence_metrics"),
         "evidence_reference": record.raw_reference,
-        "evidence_text": matched_text,
+        "evidence_text": highlight_text,
         "evidence_summary": record.evidence_summary,
         "provenance_status": record.provenance_status,
         "source_label": record.source_label,
@@ -768,6 +772,7 @@ def build_review_item(
         "gold_expected_trust": gold_payload.get("expected_trust")
         if isinstance(gold_payload, Mapping)
         else None,
+        "bbox": snippet.get("bbox"),
         "snippet": snippet,
         "review_status": "pending",
         "reviewed_at": None,

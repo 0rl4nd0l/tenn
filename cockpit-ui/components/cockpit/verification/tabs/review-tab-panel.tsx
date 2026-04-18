@@ -151,62 +151,69 @@ export function ReviewTabPanel({
             </Field>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={onLoadDocuments} disabled={documentsLoading || reviewActionLoading}>
-              <Search className="mr-2 h-4 w-4" />
-              Load Docs
-            </Button>
-            <Button variant="outline" onClick={onRunExtraction} disabled={reviewActionLoading}>
-              <Play className="mr-2 h-4 w-4" />
-              Run Extraction
-            </Button>
-            <Button onClick={onLoadReview} disabled={reviewActionLoading}>
-              <CheckCircle2 className="mr-2 h-4 w-4" />
-              Run Latest + Load Review
-            </Button>
-            <Button variant="outline" onClick={onRefreshWrongQueue} disabled={reviewActionLoading}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh Wrong Queue
-            </Button>
-            <Button variant="outline" onClick={onExportReviewArtifacts} disabled={!reviewSession && !wrongQueue}>
-              <FileJson className="mr-2 h-4 w-4" />
-              Export Review Artifacts
-            </Button>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex -space-x-px">
+                <Button variant="outline" onClick={onLoadDocuments} disabled={documentsLoading || reviewActionLoading} className="rounded-r-none border-r-0">
+                  <Search className="mr-2 h-4 w-4" />
+                  Load Docs
+                </Button>
+                <Button variant="outline" onClick={onRunExtraction} disabled={reviewActionLoading} className="rounded-none border-x-0">
+                  <Play className="mr-2 h-4 w-4" />
+                  Run
+                </Button>
+                <Button onClick={onLoadReview} disabled={reviewActionLoading} className="rounded-l-none">
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Latest + Review
+                </Button>
+              </div>
+
+              <div className="flex -space-x-px">
+                <Button variant="outline" onClick={onRefreshWrongQueue} disabled={reviewActionLoading} size="sm" className="rounded-r-none border-r-0">
+                  <RefreshCw className="mr-1 h-3.5 w-3.5" />
+                  Queue
+                </Button>
+                <Button variant="outline" onClick={onExportReviewArtifacts} disabled={!reviewSession && !wrongQueue} size="sm" className="rounded-l-none">
+                  <FileJson className="mr-1 h-3.5 w-3.5" />
+                  Export
+                </Button>
+              </div>
+            </div>
           </div>
 
-          <div className="grid gap-4 rounded-lg border border-border/60 bg-muted/10 p-4 md:grid-cols-[220px_1fr_auto_auto]">
+          <div className="grid gap-4 rounded-lg border border-border/40 bg-muted/5 p-3 md:grid-cols-[200px_1fr_auto]">
             <Field>
-              <FieldLabel>Recent runs</FieldLabel>
+              <FieldLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Recent runs</FieldLabel>
               <Select value={selectedRunId || undefined} onValueChange={onSelectedRunIdChange}>
-                <SelectTrigger>
+                <SelectTrigger className="h-8 text-xs">
                   <SelectValue placeholder={recentRunsLoading ? 'Loading runs...' : 'Select a past run'} />
                 </SelectTrigger>
                 <SelectContent>
                   {recentRuns.map((run) => (
-                    <SelectItem key={run.run_id} value={run.run_id}>
-                      {`${run.created_at.slice(0, 19)} | ${run.status} | ${run.metrics_count ?? 0} metrics`}
+                    <SelectItem key={run.run_id} value={run.run_id} className="text-xs">
+                      {`${run.created_at.slice(0, 16)} | ${run.status} | ${run.metrics_count ?? 0}m`}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </Field>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-1.5 pt-5">
               {recentRuns.length === 0 ? (
-                <span>No historical runs loaded for this ticker yet.</span>
-              ) : recentRuns.slice(0, 4).map((run) => (
-                <Badge key={run.run_id} variant="outline">
-                  {run.status} {run.metrics_count ?? 0}m {formatMethodLabel(run.actual_method || run.requested_method)}
+                <span className="text-[10px] text-muted-foreground italic">No historical runs yet.</span>
+              ) : recentRuns.slice(0, 3).map((run) => (
+                <Badge key={run.run_id} variant="outline" className="h-5 rounded-sm px-1.5 text-[9px] font-medium uppercase">
+                  {run.status.slice(0, 3)} {run.metrics_count ?? 0}m {formatMethodLabel(run.actual_method || run.requested_method).slice(0, 10)}
                 </Badge>
               ))}
             </div>
-            <Button variant="outline" onClick={onLoadRecentRuns} disabled={recentRunsLoading || reviewActionLoading}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh Runs
-            </Button>
-            <Button variant="outline" onClick={onInspectSelectedRun} disabled={!selectedRunId || reviewActionLoading}>
-              <Search className="mr-2 h-4 w-4" />
-              Inspect Selected Run
-            </Button>
+            <div className="flex items-center gap-1 pt-5">
+              <Button variant="ghost" onClick={onLoadRecentRuns} disabled={recentRunsLoading || reviewActionLoading} size="icon" className="h-7 w-7">
+                <RefreshCw className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="secondary" onClick={onInspectSelectedRun} disabled={!selectedRunId || reviewActionLoading} size="sm" className="h-7 text-xs">
+                Inspect
+              </Button>
+            </div>
           </div>
 
           {reviewError ? (
@@ -397,10 +404,16 @@ export function ReviewTabPanel({
                       </Button>
                     </div>
                   </div>
-                  <div role="listbox" aria-label="Review items" className="max-h-[720px] overflow-y-auto p-2">
+                  <div role="listbox" aria-label="Review items" className="max-h-[720px] overflow-y-auto p-1.5">
                     {reviewItems.map((item) => {
                       const isActive = item.item_id === currentReviewItem.item_id
-                      const itemEvidenceQuality = evidenceQualityForItem(item)
+                      const status = item.review_status
+                      const statusColor = 
+                        status === 'approved' ? 'bg-emerald-500' : 
+                        status === 'wrong' ? 'bg-rose-500' : 
+                        status === 'abstain' ? 'bg-amber-500' : 
+                        'bg-slate-300 dark:bg-slate-700'
+
                       return (
                         <button
                           key={item.item_id}
@@ -408,23 +421,13 @@ export function ReviewTabPanel({
                           role="option"
                           aria-selected={isActive}
                           onClick={() => onSelectedReviewItemIdChange(item.item_id)}
-                          className={`flex w-full flex-col gap-2 rounded-md border px-3 py-3 text-left transition ${isActive ? 'border-primary bg-primary/5' : 'border-transparent hover:border-border/60 hover:bg-muted/20'}`}
+                          className={`flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2 text-left transition ${isActive ? 'border-primary bg-primary/5 shadow-sm' : 'border-transparent hover:border-border/60 hover:bg-muted/10'}`}
                         >
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <p className="text-sm font-medium">{item.metric_name}</p>
-                              <p className="font-mono text-sm text-foreground">{String(item.metric_value ?? item.extracted_value ?? '-')}</p>
-                            </div>
-                            <div className="flex flex-col items-end gap-2">
-                              <Badge variant={evidenceQualityBadgeVariant(itemEvidenceQuality)}>{evidenceQualityLabel(itemEvidenceQuality)}</Badge>
-                              <Badge variant={statusVariant(item.review_status)}>{reviewStatusLabel(item.review_status)}</Badge>
-                            </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[10px] font-bold uppercase tracking-tight text-muted-foreground">{item.metric_name}</p>
+                            <p className="truncate font-mono text-sm font-bold text-foreground">{String(item.metric_value ?? item.extracted_value ?? '-')}</p>
                           </div>
-                          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                            <span>{evidenceMethodLabel(item)}</span>
-                            <span>page {item.page_number ?? '?'}</span>
-                            {item.table_type ? <span>{item.table_type}</span> : null}
-                          </div>
+                          <div className={`h-2 w-2 shrink-0 rounded-full ${statusColor} shadow-[0_0_8px_rgba(0,0,0,0.1)]`} />
                         </button>
                       )
                     })}
@@ -432,125 +435,56 @@ export function ReviewTabPanel({
                 </div>
               </div>
 
-              <div key={currentSnippetRenderKey} className="space-y-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={statusVariant(currentReviewItem.review_status)}>{reviewStatusLabel(currentReviewItem.review_status)}</Badge>
-                  <Badge variant="outline">{currentReviewItem.metric_name}</Badge>
-                  <Badge variant={evidenceQualityBadgeVariant(currentEvidenceQuality)}>{evidenceQualityLabel(currentEvidenceQuality)}</Badge>
-                  <Badge variant="outline">page {currentReviewItem.page_number ?? '?'}</Badge>
-                  <Badge variant="outline">method {evidenceMethodLabel(currentReviewItem)}</Badge>
-                  <Badge variant="outline">{currentReviewItem.strict_method ? 'strict' : 'auto'}</Badge>
-                  {currentReviewItem.snippet.kind ? <Badge variant="outline">{currentReviewItem.snippet.kind}</Badge> : null}
-                </div>
-
-                <div className="rounded-lg border border-border/60 bg-muted/20 p-4">
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Extracted value</p>
-                      <p className="mt-1 font-mono text-lg">{String(currentReviewItem.metric_value ?? currentReviewItem.extracted_value ?? '-')}</p>
+              <div key={currentSnippetRenderKey} className="flex flex-col gap-6">
+                <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border/40 pb-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant={statusVariant(currentReviewItem.review_status)} className="rounded-sm px-1.5 py-0 text-[10px] font-bold uppercase">{reviewStatusLabel(currentReviewItem.review_status)}</Badge>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Metric Review</p>
                     </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Method / provider</p>
-                      <p className="mt-1 text-sm">{evidenceMethodLabel(currentReviewItem)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Period</p>
-                      <p className="mt-1 font-mono text-lg">{currentReviewItem.period_type || '?'} {currentReviewItem.period_end || '?'}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Document</p>
-                      <p className="mt-1 text-sm">{currentReviewItem.title || currentReviewItem.document_id}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Provenance</p>
-                      <p className="mt-1 text-sm">{currentReviewItem.evidence_summary || currentReviewItem.evidence_reference || 'No provenance summary'}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Method provenance</p>
-                      <p className="mt-1 text-sm">
-                        actual={formatMethodLabel(currentReviewItem.actual_method)} parser={currentReviewItem.parser_id || '-'} fallback={currentReviewItem.fallback_used ? 'yes' : 'no'}
-                      </p>
-                    </div>
-                    {currentReviewItem.model_id || currentReviewItem.runtime_id ? (
-                      <div>
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Model / runtime</p>
-                        <p className="mt-1 text-sm">{currentReviewItem.model_id || '-'} @ {currentReviewItem.runtime_id || '-'}</p>
-                      </div>
-                    ) : null}
-                    {currentReviewItem.period_col ? (
-                      <div>
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Period column</p>
-                        <p className="mt-1 text-sm">{currentReviewItem.period_col}</p>
-                      </div>
-                    ) : null}
-                    {currentRowRef ? (
-                      <div>
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Row reference</p>
-                        <p className="mt-1 text-sm">{currentRowRef}</p>
-                      </div>
-                    ) : null}
+                    <h2 className="text-2xl font-bold tracking-tight">{currentReviewItem.metric_name}</h2>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Extracted Value</p>
+                    <p className="font-mono text-3xl font-black text-primary">{String(currentReviewItem.metric_value ?? currentReviewItem.extracted_value ?? '-')}</p>
                   </div>
                 </div>
 
-                {currentReviewItem.method_warnings && currentReviewItem.method_warnings.length > 0 ? (
-                  <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
-                    Warnings: {currentReviewItem.method_warnings.join('; ')}
-                  </div>
-                ) : null}
-
-                <div className="space-y-3 rounded-lg border border-border/60 p-4">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <FileImage className="h-4 w-4 text-primary" />
-                    Evidence Snippet
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    <Badge variant={evidenceQualityBadgeVariant(currentEvidenceQuality)}>{evidenceQualityHeadline(currentEvidenceQuality)}</Badge>
-                    <Badge variant="outline">snippet {currentReviewItem.snippet.status}</Badge>
-                    <Badge variant="outline">provenance {currentReviewItem.provenance_status || 'unknown'}</Badge>
-                    {currentReviewItem.error_stage ? <Badge variant="outline">error {currentReviewItem.error_stage}</Badge> : null}
-                    {currentReviewItem.source_label ? <Badge variant="outline">source {currentReviewItem.source_label}</Badge> : null}
+                <div className="space-y-4 rounded-xl border border-border/60 bg-muted/5 p-5 shadow-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-tight">
+                      <FileImage className="h-4 w-4 text-primary" />
+                      Visual Evidence
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant={evidenceQualityBadgeVariant(currentEvidenceQuality)} className="rounded-sm px-1.5 py-0 text-[10px] font-bold uppercase">{evidenceQualityLabel(currentEvidenceQuality)}</Badge>
+                      <Badge variant="outline" className="rounded-sm px-1.5 py-0 text-[10px] font-bold uppercase">page {currentReviewItem.page_number ?? '?'}</Badge>
+                      <Badge variant="outline" className="rounded-sm px-1.5 py-0 text-[10px] font-bold uppercase">method {evidenceMethodLabel(currentReviewItem)}</Badge>
+                    </div>
                   </div>
 
-                  <div className="rounded-md border border-border/60 bg-muted/20 p-3 text-sm">
-                    <p className="font-medium">{evidenceQualityHeadline(currentEvidenceQuality)}</p>
-                    <p className="mt-1 text-muted-foreground">{evidenceQualityBody(currentEvidenceQuality)}</p>
+                  <div className="rounded-md border border-border/40 bg-muted/20 p-3 text-xs">
+                    <p className="font-bold text-foreground">{evidenceQualityHeadline(currentEvidenceQuality)}</p>
+                    <p className="mt-0.5 text-muted-foreground">{evidenceQualityBody(currentEvidenceQuality)}</p>
                   </div>
 
                   {evidenceSuspendMessage ? (
-                    <div className="rounded-md border border-dashed border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground">
+                    <div className="rounded-md border border-dashed border-border/40 bg-muted/20 p-4 text-sm text-muted-foreground">
                       {evidenceSuspendMessage}
                     </div>
                   ) : currentSnippetUrl ? (
                     <div className="space-y-3">
-                      {currentEvidenceQuality === 'approximate' ? (
-                        <div className="grid gap-3 rounded-md border border-border/60 bg-muted/20 p-3 text-sm md:grid-cols-3">
-                          <div>
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Page</p>
-                            <p className="mt-1">{currentReviewItem.page_number ?? '?'}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Table type</p>
-                            <p className="mt-1">{currentReviewItem.table_type || currentReviewItem.source_label || '-'}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Method / provider</p>
-                            <p className="mt-1">{evidenceMethodLabel(currentReviewItem)}</p>
-                          </div>
-                        </div>
-                      ) : null}
-
-                      <div className="relative overflow-hidden rounded-md border border-border/60 bg-black/20">
+                      <div className="relative overflow-hidden rounded-md border border-border/60 bg-black/5 shadow-inner">
                         <Image
                           key={currentSnippetRenderKey}
                           src={currentSnippetUrl}
-                          alt={`Snippet for ${currentReviewItem.metric_name}`}
+                          alt={`Evidence for ${currentReviewItem.metric_name}`}
                           width={900}
-                          height={520}
+                          height={1200}
                           unoptimized
                           onLoad={onSnippetImageLoad}
                           onError={onSnippetImageError}
-                          className={`max-h-[360px] w-full object-contain transition-opacity ${snippetImageState.status === 'ready' ? 'opacity-100' : 'opacity-0'}`}
+                          className={`max-h-[800px] w-full object-top transition-opacity duration-300 ${snippetImageState.status === 'ready' ? 'opacity-100' : 'opacity-0'}`}
                         />
                         {snippetImageState.status !== 'ready' ? (
                           <div className="absolute inset-0 flex items-center justify-center bg-background/85 px-6 text-center text-sm text-muted-foreground">
@@ -568,91 +502,96 @@ export function ReviewTabPanel({
                           </div>
                         ) : null}
                       </div>
-
-                      <p className="text-xs text-muted-foreground">{currentSnippetPath}</p>
+                      <p className="font-mono text-[10px] text-muted-foreground">{currentSnippetPath}</p>
                     </div>
                   ) : (
-                    <div className="rounded-md border border-dashed border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground">
+                    <div className="rounded-md border border-dashed border-border/40 bg-muted/20 p-4 text-sm text-muted-foreground">
                       {currentReviewItem.snippet.reason || evidenceQualityHeadline(currentEvidenceQuality)}
                     </div>
                   )}
 
-                  {snippetImageState.status === 'failed' && currentSnippetUrl && !evidenceSuspendMessage ? (
-                    <div className="rounded-md border border-dashed border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground">
-                      {snippetImageState.message || currentReviewItem.snippet.reason || evidenceQualityBody(currentEvidenceQuality)}
-                    </div>
-                  ) : null}
-
                   {matchedEvidenceText && !evidenceSuspendMessage ? (
-                    <div>
-                      <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
+                    <div className="space-y-2 border-t border-border/40 pt-4">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                         {currentEvidenceQuality === 'precise' ? 'Matched source line' : 'Preserved evidence text'}
                       </p>
-                      <pre className="whitespace-pre-wrap rounded-md bg-muted/20 p-3 text-xs leading-5 text-foreground">
+                      <pre className="whitespace-pre-wrap rounded-md bg-muted/20 p-3 font-mono text-xs leading-5 text-foreground">
                         {matchedEvidenceText}
                       </pre>
                     </div>
                   ) : null}
+                </div>
 
-                  {!matchedEvidenceText && !evidenceSuspendMessage ? (
-                    <div className="rounded-md border border-dashed border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground">
-                      {currentEvidenceQuality === 'approximate'
-                        ? 'Exact matched text was not preserved for this metric. Review the source preview image above for manual verification.'
-                        : 'No matched text or usable visual evidence is available for this metric.'}
+                <div className="grid gap-x-6 gap-y-4 rounded-lg border border-border/40 bg-muted/10 p-4 text-[13px] md:grid-cols-2 lg:grid-cols-3">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Period</p>
+                    <p className="font-mono font-medium">{currentReviewItem.period_type || '?'} {currentReviewItem.period_end || '?'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Document</p>
+                    <p className="truncate font-medium" title={currentReviewItem.title || currentReviewItem.document_id}>{currentReviewItem.title || currentReviewItem.document_id}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Method Provenance</p>
+                    <p className="font-mono text-[11px] text-muted-foreground">
+                      {formatMethodLabel(currentReviewItem.actual_method)} | {currentReviewItem.parser_id || '-'}
+                    </p>
+                  </div>
+                  <div className="space-y-1 md:col-span-2 lg:col-span-3">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Provenance Summary</p>
+                    <p className="text-muted-foreground leading-relaxed">{currentReviewItem.evidence_summary || currentReviewItem.evidence_reference || 'No provenance summary'}</p>
+                  </div>
+                </div>
+
+                {currentReviewItem.method_warnings && currentReviewItem.method_warnings.length > 0 ? (
+                  <div className="rounded-lg border border-dashed border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">
+                    <span className="font-bold uppercase tracking-tight mr-2">Warning:</span> {currentReviewItem.method_warnings.join('; ')}
+                  </div>
+                ) : null}
+
+                <div className="sticky bottom-0 z-10 -mx-1 mt-auto border-t border-border/60 bg-background/95 p-4 backdrop-blur-sm shadow-[0_-4px_12px_rgba(0,0,0,0.05)] rounded-b-lg">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <p className="text-sm font-bold">Record Verdict</p>
+                      <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
+                        <span><kbd className="rounded border px-1 font-sans">C</kbd> Correct</span>
+                        <span><kbd className="rounded border px-1 font-sans">W</kbd> Wrong</span>
+                        <span><kbd className="rounded border px-1 font-sans">U</kbd> Unsure</span>
+                      </div>
                     </div>
-                  ) : null}
-
-                  {currentReviewItem.evidence_reference && !evidenceSuspendMessage ? (
-                    <div>
-                      <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">Evidence reference</p>
-                      <pre className="whitespace-pre-wrap rounded-md bg-muted/20 p-3 text-xs leading-5 text-muted-foreground">
-                        {currentReviewItem.evidence_reference}
-                      </pre>
-                    </div>
-                  ) : null}
-
-                  {currentReviewItem.snippet.ascii_preview && !evidenceSuspendMessage ? (
-                    <details className="rounded-md border border-border/60 bg-muted/20 p-3">
-                      <summary className="cursor-pointer text-xs uppercase tracking-wide text-muted-foreground">ASCII preview</summary>
-                      <pre className="mt-3 overflow-x-auto rounded-md bg-black/30 p-3 font-mono text-[10px] leading-3 text-muted-foreground">
-                        {currentReviewItem.snippet.ascii_preview}
-                      </pre>
-                    </details>
-                  ) : null}
-
-                  <div className="rounded-lg border border-border/60 p-4">
-                    <p className="mb-3 text-sm font-medium">Verdict</p>
                     <div className="flex flex-wrap gap-2">
                       <Button
+                        size="lg"
                         onClick={() => onSubmitReview('correct')}
                         aria-label={`Mark ${currentReviewItem.metric_name} as correct`}
                         disabled={reviewActionLoading || Boolean(evidenceSuspendMessage)}
+                        className="bg-emerald-600 hover:bg-emerald-700 h-11 px-6"
                       >
-                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                        <CheckCircle2 className="mr-2 h-5 w-5" />
                         Correct
                       </Button>
                       <Button
+                        size="lg"
                         variant="destructive"
                         onClick={() => onSubmitReview('wrong')}
                         aria-label={`Mark ${currentReviewItem.metric_name} as wrong`}
                         disabled={reviewActionLoading || Boolean(evidenceSuspendMessage)}
+                        className="h-11 px-6"
                       >
-                        <XCircle className="mr-2 h-4 w-4" />
+                        <XCircle className="mr-2 h-5 w-5" />
                         Wrong
                       </Button>
                       <Button
+                        size="lg"
                         variant="secondary"
                         onClick={() => onSubmitReview('unsure')}
                         aria-label={`Mark ${currentReviewItem.metric_name} as unsure`}
                         disabled={reviewActionLoading || Boolean(evidenceSuspendMessage)}
+                        className="h-11 px-6"
                       >
                         Unsure
                       </Button>
                     </div>
-                  </div>
-
-                  <div className="rounded-lg border border-border/60 bg-muted/20 p-4 text-xs text-muted-foreground">
-                    Keyboard shortcuts: <span className="font-mono">C</span> correct, <span className="font-mono">W</span> wrong, <span className="font-mono">U</span> unsure.
                   </div>
                 </div>
               </div>

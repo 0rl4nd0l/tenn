@@ -116,6 +116,8 @@ export interface VerificationResult {
   actual: string | number
   passed: boolean
   details?: string
+  document_id?: string
+  item_id?: string
 }
 
 export interface ContextDocument {
@@ -145,6 +147,7 @@ export interface ExtractionReviewSnippet {
   matched_text?: string | null
   page_number?: number | null
   reason?: string | null
+  bbox?: number[] | null
 }
 
 export interface ExtractionReviewDocumentSummary {
@@ -203,6 +206,7 @@ export interface ExtractionReviewItem {
   method_warnings?: string[] | null
   gold_document_id?: string | null
   gold_expected_trust?: string | null
+  bbox?: number[] | null
   snippet: ExtractionReviewSnippet
   review_status: 'pending' | 'approved' | 'wrong' | 'abstain'
   reviewed_at?: string | null

@@ -63,6 +63,8 @@ export function mapResponseToResults(data: unknown): VerificationResult[] {
       actual: formatRawValue(record.actual ?? record.value),
       passed: typeof record.passed === 'boolean' ? record.passed : (record.status === 'pass' || record.status === 'ok'),
       details: record.details ? String(record.details) : undefined,
+      document_id: record.document_id ? String(record.document_id) : (record.doc_id ? String(record.doc_id) : undefined),
+      item_id: record.item_id ? String(record.item_id) : (record.id ? String(record.id) : undefined),
     }
   })
 }
@@ -198,14 +200,14 @@ export function evidenceQualityLabel(quality: ExtractionEvidenceQuality): string
 }
 
 export function evidenceQualityHeadline(quality: ExtractionEvidenceQuality): string {
-  if (quality === 'precise') return 'Exact line evidence'
-  if (quality === 'approximate') return 'Exact line unavailable - showing source page/table preview'
+  if (quality === 'precise') return 'Source Page with Highlighting'
+  if (quality === 'approximate') return 'Full Source Page'
   return 'No visual verification evidence available'
 }
 
 export function evidenceQualityBody(quality: ExtractionEvidenceQuality): string {
-  if (quality === 'precise') return 'This metric includes an exact matched line and cropped source evidence.'
-  if (quality === 'approximate') return 'A source image is available, but the exact matched line was not preserved. Verify against the page/table preview.'
+  if (quality === 'precise') return 'This metric includes the full source page with the extracted line highlighted.'
+  if (quality === 'approximate') return 'Showing the full source page for context. Verify using the provenance details.'
   return 'No snippet image was preserved for visual verification. Use provenance details only.'
 }
 
