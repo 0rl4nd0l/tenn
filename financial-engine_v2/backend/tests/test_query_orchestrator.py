@@ -187,6 +187,27 @@ def test_resolve_keeps_summary_prompt_fillers_out_of_ticker_list() -> None:
     assert entities["tickers"] == ["BHP"]
 
 
+def test_resolve_rejects_plain_language_false_ticker() -> None:
+    entities = resolve("How are things going?")
+
+    assert entities["primary_ticker"] is None
+    assert entities["tickers"] == []
+
+
+def test_resolve_keeps_document_prompt_from_promoting_say_to_ticker() -> None:
+    entities = resolve("What does the document say about BHP?")
+
+    assert entities["primary_ticker"] == "BHP"
+    assert entities["tickers"] == ["BHP"]
+
+
+def test_resolve_keeps_sector_prompt_tickerless() -> None:
+    entities = resolve("How is the iron ore sector trading right now?")
+
+    assert entities["primary_ticker"] is None
+    assert entities["tickers"] == []
+
+
 def test_financial_fact_answer_input_keeps_only_financial_truth_section() -> None:
     class TruthProvider:
         def retrieve(self, *, query, entities, intent):

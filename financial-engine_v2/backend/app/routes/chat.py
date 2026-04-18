@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from app.services.chat_quality_scorer import score_turn
-from app.services.session_memory import _build_turn_payload, get_relevant_session_context, record_turn
+from app.services.session_memory import _build_turn_payload, get_session_context, record_turn
 from app.services.strategy_controller import (
     apply_change,
     confirm_change,
@@ -77,7 +77,12 @@ def _analysis_response(
         prev_query: str | None = None
         if session_id:
             try:
-                prior = get_relevant_session_context(session_id, message, limit=1)
+                prior = get_session_context(
+                    session_id,
+                    message,
+                    semantic_limit=1,
+                    recent_limit=1,
+                )
                 if prior:
                     prev_query = str(prior[0].get("query") or "").strip() or None
             except Exception as ctx_exc:

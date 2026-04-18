@@ -250,6 +250,7 @@ class NewsMemoExtractor:
             published_at=published_at,
         )
         stored = self.upsert(memo)
+        result = dict(stored)
         if route_signals:
             try:
                 from app.services.memory_signal_router import (
@@ -257,18 +258,23 @@ class NewsMemoExtractor:
                     signals_from_news_memo,
                 )
 
-                route_signals(
+                routing = route_signals(
                     signals_from_news_memo(stored),
                     company_memory_store=company_memory_store,
                     market_memory_store=market_memory_store,
                 )
+                result["signal_routing"] = {"status": "ok", **routing}
             except Exception as exc:
                 logger.warning(
                     "news memo signal routing failed for %s: %s",
                     source_id,
                     exc,
                 )
-        return stored
+                result["signal_routing"] = {
+                    "status": "error",
+                    "error": str(exc),
+                }
+        return result
 
     def extract_store_and_route(
         self,

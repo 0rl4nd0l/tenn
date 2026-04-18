@@ -119,3 +119,15 @@ def test_query_news_chunks_expands_candidate_limit_and_dedupes(monkeypatch) -> N
         "bhp-news",
         "roundup",
     ]
+
+
+def test_extract_ticker_handles_cued_lowercase_query() -> None:
+    assert rag.extract_ticker("tell me about csl news") == "CSL"
+
+
+def test_extract_ticker_rejects_plain_language_false_positive() -> None:
+    assert rag.extract_ticker("How are things going?") is None
+
+
+def test_extract_ticker_rejects_ambiguous_multi_ticker_query() -> None:
+    assert rag.extract_ticker("Compare BHP and RIO news") is None

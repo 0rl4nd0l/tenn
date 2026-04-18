@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -158,6 +159,36 @@ def test_store_rejects_financial_metric_signals(tmp_path: Path) -> None:
             "BHP",
             _signal(type="revenue", statement="Revenue was AUD 55 billion."),
         )
+
+
+def test_company_memory_connect_enables_wal_and_busy_timeout(tmp_path: Path) -> None:
+    store = CompanyMemoryStore(tmp_path / "company_memory.sqlite")
+
+    with store._connect() as conn:
+        journal_mode = str(conn.execute("PRAGMA journal_mode").fetchone()[0]).lower()
+        busy_timeout = int(conn.execute("PRAGMA busy_timeout").fetchone()[0])
+
+    assert journal_mode == "wal"
+    assert busy_timeout >= 5000
+
+
+def test_company_memory_retries_transient_locked_database(tmp_path: Path) -> None:
+    store = CompanyMemoryStore(tmp_path / "company_memory.sqlite")
+    original_connect = store._connect
+    calls = {"count": 0}
+
+    def flaky_connect():
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise sqlite3.OperationalError("database is locked")
+        return original_connect()
+
+    store._connect = flaky_connect  # type: ignore[method-assign]
+
+    result = store.update_company_memory("BHP", _signal())
+
+    assert result["rule"] == "insert"
+    assert calls["count"] >= 2
 
 
 def test_retrieve_filters_out_weak_one_off_signals(tmp_path: Path) -> None:

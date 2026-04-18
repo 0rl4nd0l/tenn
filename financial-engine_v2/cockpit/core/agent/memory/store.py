@@ -9,7 +9,6 @@ Storage layout under root (~/.tenn/memory/ by default):
         <TICKER>.md         — per-ticker agent findings
     daily/
         YYYY-MM-DD.md       — compacted daily summaries
-    memory.db               — SQLite-vec index (managed by MemorySearch)
 """
 from __future__ import annotations
 

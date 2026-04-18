@@ -10,3 +10,5 @@ from pathlib import Path
 
 # Add backend/ to sys.path so `import app` resolves correctly.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+# Add financial-engine_v2/ so shared/* modules resolve consistently as well.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))

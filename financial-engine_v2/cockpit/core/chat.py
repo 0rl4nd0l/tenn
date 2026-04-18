@@ -33,7 +33,7 @@ from cockpit.core.config import effective_anthropic_api_key, load_env
 from cockpit.core.session_memory import (
     _log_startup_status as _ov_log_startup_status,
     build_turn_payload,
-    get_relevant_session_context,
+    get_session_context,
     record_turn,
 )
 from cockpit.core.backend_proposals import (
@@ -42,6 +42,7 @@ from cockpit.core.backend_proposals import (
 )
 from cockpit.core.agent_loop import parse_backend_prefix
 from cockpit.core.sources import SourcesFormatter
+from shared.ticker_inference import COMMON_TICKER_STOPWORDS, detect_primary_ticker
 
 
 class ResponseMode(StrEnum):
@@ -510,7 +511,7 @@ class ChatController:
         logger.info("cockpit.session: session rotated to session_id=%s", new_id)
         return new_id
 
-    TICKER_STOPWORDS = {
+    TICKER_STOPWORDS = COMMON_TICKER_STOPWORDS | {
         "A",
         "AN",
         "AND",
@@ -867,55 +868,8 @@ class ChatController:
     def _detect_ticker(
         self, message: str, prior_ticker: str | None = None
     ) -> str | None:
-        # Prefer explicit ticker-like mentions first, e.g. "$BHP", "ASX:BHP", or "BHP.AX" / "29M.AX".
-        explicit = re.search(
-            r"(?:\bASX:|\$)([A-Za-z]{2,5})\b|([A-Za-z0-9]{2,5})\.AX\b",
-            message,
-            re.IGNORECASE,
-        )
-        if explicit:
-            token = (explicit.group(1) or explicit.group(2)).upper()
-            if token not in self.TICKER_STOPWORDS:
-                return token
-
-        tokens = self._extract_alpha_tokens(message)
-        if not tokens:
-            return prior_ticker
-
-        # Prefer explicit uppercase ticker-like tokens first.
-        for original, upper in tokens:
-            if original.isupper() and upper not in self.TICKER_STOPWORDS:
-                return upper
-
-        stripped = str(message or "").strip()
-        whole_message_token = re.fullmatch(
-            r"([A-Za-z0-9]{2,5})(?:\s+(?:1m|5m|15m|30m|1h|4h|1d|1w|1M))?",
-            stripped,
-            re.IGNORECASE,
-        )
-        if whole_message_token:
-            token = whole_message_token.group(1).upper()
-            if token not in self.TICKER_STOPWORDS:
-                return token
-
-        ticker_cue_patterns = (
-            r"\b(?:about|on|for|vs|versus|compare|chart|price|financials?|announcements?|news|"
-            r"analyse|analyze|analysis|ticker|stock|company|research|show|plot|candlestick|candle|"
-            r"was|history)\s+{token}\b",
-            r"\bprice\s+history\s+{token}\b",
-            r"\b{token}\s+(?:vs|versus|chart|price|financials?|announcements?|news|on|between|"
-            r"close|closing|summary|performance)\b",
-        )
-        for original, upper in tokens:
-            if upper in self.TICKER_STOPWORDS:
-                continue
-            token_pattern = re.escape(original)
-            if any(
-                re.search(pattern.format(token=token_pattern), message, re.IGNORECASE)
-                for pattern in ticker_cue_patterns
-            ):
-                return upper
-        return prior_ticker
+        detected = detect_primary_ticker(message, stopwords=self.TICKER_STOPWORDS)
+        return detected or prior_ticker
 
     def _resolve_ticker_context(
         self,
@@ -2134,7 +2088,7 @@ class ChatController:
         ):
             try:
                 events = self._state_store.list_update_events(
-                    "", ticker=ticker, limit=100
+                    getattr(self, "_thread_id", ""), ticker=ticker, limit=100
                 )
                 if isinstance(events, list):
                     payload["watchlist_history"] = [
@@ -3454,8 +3408,10 @@ class ChatController:
         # OpenViking: fetch semantically relevant prior turns for agent mode.
         # Context source hierarchy: OpenViking (semantic) > StateStore (recency) > Memory (research).
         ov_agent_block = ""
-        prior_ov_turns = get_relevant_session_context(
-            self._ov_session_id, message, limit=3
+        prior_ov_turns = get_session_context(
+            self._ov_session_id,
+            message,
+            semantic_limit=3,
         )
         if prior_ov_turns:
             lines = ["Prior session context:"]
@@ -4245,8 +4201,10 @@ class ChatController:
 
         # OpenViking: fetch semantically relevant prior turns for this query
         ov_context_block = ""
-        prior_ov_turns = get_relevant_session_context(
-            self._ov_session_id, effective_message, limit=3
+        prior_ov_turns = get_session_context(
+            self._ov_session_id,
+            effective_message,
+            semantic_limit=3,
         )
         if prior_ov_turns:
             lines = ["Relevant prior session context:"]

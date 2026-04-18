@@ -74,7 +74,6 @@ A pure filesystem layer that stores agent memory as markdown and JSONL files in 
     <TICKER>.md                # Per-ticker agent research notes
   daily/
     YYYY-MM-DD.md              # Compacted daily summaries
-  memory.db                    # SQLite-vec index (managed by MemorySearch)
 ```
 
 | Tier | File(s) | Read | Write |
@@ -166,18 +165,6 @@ An optional integration with the OpenViking session memory library. When `~/.ope
 **Write:** `record_turn(session_id, payload)` persists each conversation turn. Called after both agent and keyword mode responses.
 
 **Degradation:** When OpenViking is unavailable, all functions return empty results. A single startup log line reports the status.
-
-### 2.7 MemorySearch (SQLite-vec -- semantic search)
-
-**File:** `financial-engine_v2/cockpit/core/agent/memory/search.py`
-**Location:** `~/.tenn/memory/memory.db`
-**Thread safety:** Creates a new connection per operation.
-
-Optional semantic search over memory chunks using `sqlite-vec` with `nomic-embed-text` embeddings (768 dimensions). Companion `memory_chunks_meta` table tracks rowids for reliable deletion (required due to sqlite-vec's vec0 DELETE limitations).
-
-**Availability:** Gracefully degrades to no-op if `sqlite_vec` is not installed.
-
-**Not currently wired into the chat context assembly path.** Available for explicit tool calls and future integration.
 
 ---
 
@@ -286,7 +273,6 @@ Post-response recording (same as agent mode)
 | RAG context | Via tool calls | Yes (pre-loaded in evidence) |
 | Situation memory | No (explicit tool calls only) | No |
 | Alerts | No (explicit tool calls only) | No |
-| MemorySearch (sqlite-vec) | No (not wired) | No (not wired) |
 
 ### 3.4 Token Budget (16K model)
 
@@ -464,9 +450,9 @@ As described in section 5.4, observations extracted from LLM-generated text can 
 
 Dossier recall uses substring matching. For tickers with many findings, relevant entries may not surface if the query terms do not overlap with the stored text. BM25-based retrieval (as used by SituationMemory) or vector search would improve recall quality.
 
-### 7.6 MemorySearch Not Wired
+### 7.6 No Semantic Index For MemoryStore
 
-The `MemorySearch` module (sqlite-vec semantic search) is implemented but not integrated into the chat context assembly path. It is available for explicit tool calls but does not automatically enhance context retrieval.
+`MemoryStore` is currently a pure filesystem layer. Session logs, research notes, durable notes, and daily summaries are stored as markdown/JSONL files only; there is no semantic vector index over those files in the current runtime.
 
 ### 7.7 Session Summary Generation Not Automated
 
@@ -488,7 +474,6 @@ The `pending.jsonl` alert file grows indefinitely. Old alerts are filtered at re
 | `financial-engine_v2/cockpit/core/strategy.py` | Strategy criteria and decisions; context block builder | 235 |
 | `financial-engine_v2/cockpit/core/agent/memory/store.py` | MemoryStore: tiered markdown filesystem (session, research, durable, daily) | 181 |
 | `financial-engine_v2/cockpit/core/agent/memory/compaction.py` | MemoryCompactor: session limit enforcement and archival | 116 |
-| `financial-engine_v2/cockpit/core/agent/memory/search.py` | MemorySearch: optional sqlite-vec semantic search | 221 |
 | `financial-engine_v2/cockpit/core/session_memory.py` | OpenViking integration: semantic session search and turn recording | 159 |
 | `financial-engine_v2/cockpit/core/research/dossier.py` | CompanyDossierService: JSONL per-ticker research memory | 171 |
 | `financial-engine_v2/cockpit/core/research/situation_memory.py` | SituationMemory: BM25-indexed situation-outcome pairs | 149 |

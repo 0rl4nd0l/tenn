@@ -44,6 +44,12 @@ def _days_ago_iso(days: int) -> str:
 
 
 class TestSearchNewsFreshnessWarning:
+    def test_infer_news_ticker_handles_cued_lowercase_query(self) -> None:
+        assert ToolExecutor._infer_news_ticker("tell me about csl news") == "CSL"
+
+    def test_infer_news_ticker_rejects_plain_language_false_positive(self) -> None:
+        assert ToolExecutor._infer_news_ticker("How are things going?") is None
+
     def test_exec_search_news_zero_hits_has_freshness_key(self) -> None:
         """0-hit result must carry a freshness_warning key so the LLM can
         anchor temporally and not present corpus absence as factual absence."""

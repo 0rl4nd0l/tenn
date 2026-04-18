@@ -246,24 +246,28 @@ def _load_market_memory(
 
     try:
         store = MarketMemoryStore(path)
-        retrieved = store.retrieve(
-            query=f"{ticker} filestats",
-            entities={"primary_ticker": ticker},
-            intent="mixed",
+        from app.services.analysis.sector_comparison import get_sector_for_ticker
+
+        sector = get_sector_for_ticker(ticker)
+        sector_items = (
+            [
+                row
+                for row in (store.list_sector_entries(sector, status="active") or [])
+                if isinstance(row, dict)
+            ]
+            if sector
+            else []
         )
-        sector_items = [
+        macro_items = [
             row
-            for row in (retrieved.get("sector_items") or [])
+            for row in (store.list_all_macro_entries(status="active") or [])
             if isinstance(row, dict)
         ]
-        macro_items = [
-            row for row in (retrieved.get("macro_items") or []) if isinstance(row, dict)
-        ]
-        items = [row for row in (retrieved.get("items") or []) if isinstance(row, dict)]
+        items = sector_items + macro_items
         return {
             "status": "ok",
             "path": str(path),
-            "sector": retrieved.get("sector"),
+            "sector": sector,
             "sector_items": sector_items[:limit],
             "macro_items": macro_items[:limit],
             "items": items[:limit],
@@ -528,9 +532,21 @@ def get_company_dump(
         "risk_note_count": len(risk_notes),
         "extraction_failure_count": len(extraction_failures),
         "low_confidence_financial_count": len(low_confidence_financials),
-        "company_memory_entry_count": len(company_memory.get("entries") or []),
-        "company_memory_change_count": len(company_memory.get("change_log") or []),
-        "market_memory_item_count": len(market_memory.get("items") or []),
+        "company_memory_entry_count": int(
+            company_memory.get("entries_total", len(company_memory.get("entries") or []))
+            or 0
+        ),
+        "company_memory_change_count": int(
+            company_memory.get(
+                "change_log_total",
+                len(company_memory.get("change_log") or []),
+            )
+            or 0
+        ),
+        "market_memory_item_count": int(
+            market_memory.get("items_total", len(market_memory.get("items") or []))
+            or 0
+        ),
         "price_points_1y": int(price_summary_1y.get("points") or 0),
         "last_close": price_summary_1y.get("last_close"),
         "high_close_1y": price_summary_1y.get("high_close"),

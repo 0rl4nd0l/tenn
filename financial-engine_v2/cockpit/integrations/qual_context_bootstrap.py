@@ -33,14 +33,13 @@ def build_qual_context_reader(
     context_name: str = "qualitative_context",  # noqa: ARG002 - reserved for future multi-context support
 ) -> QualContextReader:
     cfg = qc_cfg if isinstance(qc_cfg, dict) else {}
-    embed_backend = str(cfg.get("embed_backend") or "ollama").strip().lower() or "ollama"
-    embed_model = str(cfg.get("embed_model") or "nomic-embed-text").strip() or "nomic-embed-text"
 
     reader = QualContextReader(
         repo_root=repo_root,
         backend_api_client=backend_api_client,
-        embed_backend=embed_backend,
-        embed_model=embed_model,
+        # Cockpit uses backend-routed RAG only. Ignore legacy local embedding config.
+        embed_backend="ollama",
+        embed_model="nomic-embed-text",
         corpus_filter=str(cfg.get("corpus_filter") or "news").strip(),
         ticker_match_mode=str(cfg.get("ticker_match_mode") or "soft").strip(),
         top_k=int(cfg.get("top_k") or 8),
@@ -48,4 +47,3 @@ def build_qual_context_reader(
     )
     reader.validate_runtime()
     return reader
-

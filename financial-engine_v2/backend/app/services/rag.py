@@ -18,9 +18,9 @@ from app.services.embeddings import (
 from app.services.llm import embed_texts, get_routing_decision
 from app.services.research_context_builder import ResearchContextBuilder
 from app.services.retrieval_orchestrator import RetrievalOrchestrator
+from shared.ticker_inference import detect_unique_ticker
 
 logger = logging.getLogger(__name__)
-_TICKER_RE = re.compile(r"\b(?:ASX:)?([A-Z]{2,5})\b|\(([A-Z]{2,5})\)")
 _TICKER_STOPWORDS = {
     "ASX",
     "PDF",
@@ -156,15 +156,7 @@ def _normalize_news_results(
 
 
 def extract_ticker(query: str) -> str | None:
-    candidates: list[str] = []
-    for match in _TICKER_RE.finditer(str(query or "")):
-        ticker = next((group for group in match.groups() if group), "").upper()
-        if ticker and ticker not in _TICKER_STOPWORDS:
-            candidates.append(ticker)
-    unique = list(dict.fromkeys(candidates))
-    if len(unique) == 1:
-        return unique[0]
-    return None
+    return detect_unique_ticker(query, stopwords=_TICKER_STOPWORDS)
 
 
 def _effective_ticker(query: str, ticker: Optional[str]) -> str | None:

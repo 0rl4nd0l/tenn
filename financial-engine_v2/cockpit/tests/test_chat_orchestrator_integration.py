@@ -503,3 +503,55 @@ def test_local_context_replaces_invented_financial_table_when_financials_missing
         "Detailed extracted financial metrics are not currently available"
         in response.text
     )
+
+
+def test_collect_cockpit_local_memory_uses_active_thread_for_watchlist_history() -> None:
+    ctrl = ChatController.__new__(ChatController)
+    ctrl._thread_id = "global-main"
+    ctrl._dossier_service = None
+    ctrl._strategy_service = None
+
+    class _StateStore:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, str, int]] = []
+
+        def get_entity_observations(self, ticker: str, limit: int = 200):
+            return []
+
+        def list_update_events(
+            self,
+            thread_id: str,
+            *,
+            ticker: str | None = None,
+            limit: int = 10,
+            status: str | None = None,
+        ):
+            self.calls.append((thread_id, str(ticker), limit))
+            if thread_id != "global-main":
+                return []
+            return [
+                {
+                    "thread_id": thread_id,
+                    "ticker": str(ticker),
+                    "action_id": "watchlist:add",
+                    "status": "applied",
+                    "summary": {"decision": "watchlist"},
+                    "created_at": "2026-04-18T00:00:00Z",
+                }
+            ]
+
+    ctrl._state_store = _StateStore()
+
+    payload = ctrl._collect_cockpit_local_memory("BHP")
+
+    assert ctrl._state_store.calls == [("global-main", "BHP", 100)]
+    assert payload["watchlist_history"] == [
+        {
+            "thread_id": "global-main",
+            "ticker": "BHP",
+            "action_id": "watchlist:add",
+            "status": "applied",
+            "summary": {"decision": "watchlist"},
+            "created_at": "2026-04-18T00:00:00Z",
+        }
+    ]

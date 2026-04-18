@@ -2,9 +2,6 @@ from __future__ import annotations
 
 import re
 
-# Ticker pattern: 2-5 uppercase letters (ASX-style)
-_TICKER_RE = re.compile(r"\b([A-Z]{2,5})\b")
-
 # Patterns ordered from most-specific to least-specific.
 # Each entry: (regex, handler) where handler(match, msg) -> str
 _RULES: list[tuple[re.Pattern[str], object]] = []
@@ -18,12 +15,6 @@ def _rule(pattern: str, flags: int = re.IGNORECASE):
         return fn
 
     return decorator
-
-
-def _extract_ticker(text: str) -> str | None:
-    """Extract an all-caps 2-5 char token from text (first match)."""
-    m = _TICKER_RE.search(text.upper())
-    return m.group(1) if m else None
 
 
 @_rule(r"\b(enable|turn\s+on)\s+sql\s+diagn")

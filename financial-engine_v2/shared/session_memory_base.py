@@ -12,6 +12,11 @@ _FALLBACK_PATHS = (
     Path("~/.openviking/ov.conf").expanduser(),
     Path("/etc/openviking/ov.conf"),
 )
+_DOMAIN_DEFAULT_CONFIG_NAMES = (
+    "backend.ov.conf",
+    "cockpit.ov.conf",
+    "claude-code.ov.conf",
+)
 
 
 class SessionMemoryClient:
@@ -40,6 +45,7 @@ class SessionMemoryClient:
         self._ov_init_attempted: bool = False
         self._ov_init_error: str = ""
         self._status_logged: bool = False
+        self._resolved_config_used: str = ""
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -50,7 +56,18 @@ class SessionMemoryClient:
         env_path = os.environ.get("OPENVIKING_CONFIG_FILE")
         if env_path:
             p = Path(env_path).expanduser()
-            return p if p.exists() else None
+            if p.exists():
+                resolved_env = p.resolve()
+                resolved_component = self._config_path.expanduser().resolve()
+                if resolved_env == resolved_component:
+                    return p
+                if (
+                    self._config_path.exists()
+                    and resolved_env in _known_domain_default_paths()
+                ):
+                    return self._config_path
+                return p
+            return None
         if self._config_path.exists():
             return self._config_path
         for fallback in _FALLBACK_PATHS:
@@ -71,15 +88,21 @@ class SessionMemoryClient:
         if config is None:
             self._ov_init_error = "no config file found"
             return None
-
-        # Ensure OpenViking discovers the component-specific config.
-        os.environ.setdefault("OPENVIKING_CONFIG_FILE", str(config))
+        self._resolved_config_used = str(config)
 
         try:
             from openviking import SyncOpenViking  # type: ignore[import]
 
             ov = SyncOpenViking()
-            ov.initialize()
+            previous_env = os.environ.get("OPENVIKING_CONFIG_FILE")
+            os.environ["OPENVIKING_CONFIG_FILE"] = str(config)
+            try:
+                ov.initialize()
+            finally:
+                if previous_env is None:
+                    os.environ.pop("OPENVIKING_CONFIG_FILE", None)
+                else:
+                    os.environ["OPENVIKING_CONFIG_FILE"] = previous_env
             self._ov_instance = ov
         except Exception as exc:
             self._ov_init_error = f"{type(exc).__name__}: {exc}"
@@ -97,11 +120,10 @@ class SessionMemoryClient:
         ov = self._get_ov()
         prefix = self._component_name
         if ov is not None:
-            config_used = os.environ.get("OPENVIKING_CONFIG_FILE") or str(self._config_path)
             self._logger.info(
                 "%s.session_memory: OpenViking enabled (config: %s)",
                 prefix,
-                config_used,
+                self._resolved_config_used or str(self._config_path),
             )
         elif self._resolve_config_path() is not None:
             self._logger.warning(
@@ -238,6 +260,30 @@ class SessionMemoryClient:
             )
             return []
 
+    def get_session_context(
+        self,
+        session_id: str,
+        query: str,
+        *,
+        semantic_limit: int = 3,
+        recent_limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return semantic session context, falling back to recent turns.
+
+        This is the shared read surface for production chat callers. It keeps
+        semantic recall as the primary path and only uses recency when semantic
+        recall is empty or unusable.
+        """
+        semantic_items = self.get_relevant_session_context(
+            session_id,
+            query,
+            limit=semantic_limit,
+        )
+        if semantic_items:
+            return semantic_items
+        recent_count = recent_limit if recent_limit is not None else semantic_limit
+        return self.get_recent_turns(session_id, limit=max(1, int(recent_count)))
+
     def record_turn(self, session_id: str, payload: dict[str, Any]) -> None:
         """Persist a structured turn record to the session.
 
@@ -278,3 +324,10 @@ def _message_content(msg: Any) -> str:
     if isinstance(msg, dict):
         return str(msg.get("content") or msg.get("text") or "").strip()
     return str(getattr(msg, "content", "") or "").strip()
+
+
+def _known_domain_default_paths() -> set[Path]:
+    return {
+        Path(f"~/.openviking/{name}").expanduser().resolve()
+        for name in _DOMAIN_DEFAULT_CONFIG_NAMES
+    }

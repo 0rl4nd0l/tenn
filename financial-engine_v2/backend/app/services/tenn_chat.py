@@ -11,7 +11,11 @@ from app.core.config import settings
 from app.services.hybrid_retriever import HybridRetriever
 from app.services.llm import generate_json
 from app.services.rag import query_rag
-from app.services.session_memory import _build_turn_payload, get_relevant_session_context, record_turn
+from app.services.session_memory import (
+    _build_turn_payload,
+    get_session_context,
+    record_turn,
+)
 from app.services.source_weighting import apply_weighting_to_chunk
 from app.services.strategy_controller import get_active_strategy_state
 
@@ -342,10 +346,10 @@ def chat_with_tenn(
 
     prior_turns: list[dict[str, Any]] = []
     if session_memory_enabled:
-        prior_turns = get_relevant_session_context(
+        prior_turns = get_session_context(
             normalized_session_id,  # type: ignore[arg-type]
             normalized_query,
-            limit=3,
+            semantic_limit=3,
         )
 
     try:

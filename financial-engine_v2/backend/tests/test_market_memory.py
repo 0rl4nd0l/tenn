@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -181,6 +182,36 @@ def test_store_rejects_financial_metric_signals(tmp_path: Path) -> None:
         )
 
 
+def test_market_memory_connect_enables_wal_and_busy_timeout(tmp_path: Path) -> None:
+    store = MarketMemoryStore(tmp_path / "market_memory.sqlite")
+
+    with store._connect() as conn:
+        journal_mode = str(conn.execute("PRAGMA journal_mode").fetchone()[0]).lower()
+        busy_timeout = int(conn.execute("PRAGMA busy_timeout").fetchone()[0])
+
+    assert journal_mode == "wal"
+    assert busy_timeout >= 5000
+
+
+def test_market_memory_retries_transient_locked_database(tmp_path: Path) -> None:
+    store = MarketMemoryStore(tmp_path / "market_memory.sqlite")
+    original_connect = store._connect
+    calls = {"count": 0}
+
+    def flaky_connect():
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise sqlite3.OperationalError("database is locked")
+        return original_connect()
+
+    store._connect = flaky_connect  # type: ignore[method-assign]
+
+    result = store.update_market_memory(_sector_signal())
+
+    assert result["rule"] == "insert"
+    assert calls["count"] >= 2
+
+
 def test_market_retrieve_filters_low_value_one_off_context(tmp_path: Path) -> None:
     store = MarketMemoryStore(tmp_path / "market_memory.sqlite")
     store.update_market_memory(
@@ -208,6 +239,27 @@ def test_market_retrieve_filters_low_value_one_off_context(tmp_path: Path) -> No
     )
 
     assert [item["statement"] for item in result["items"]] == [
+        "Iron ore supply discipline is improving across the sector."
+    ]
+
+
+def test_market_retrieve_infers_sector_from_tickerless_prompt(tmp_path: Path) -> None:
+    store = MarketMemoryStore(tmp_path / "market_memory.sqlite")
+    store.update_market_memory(
+        _sector_signal(
+            statement="Iron ore supply discipline is improving across the sector.",
+            metadata={"specificity": 0.76, "themes": ["supply"], "theme_key": "supply"},
+        )
+    )
+
+    result = store.retrieve(
+        query="How is the iron ore sector trading right now?",
+        entities={"primary_ticker": None, "tickers": []},
+        intent="market",
+    )
+
+    assert result["sector"] == "Materials"
+    assert [item["statement"] for item in result["sector_items"]] == [
         "Iron ore supply discipline is improving across the sector."
     ]
 

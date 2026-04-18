@@ -5,14 +5,8 @@ from typing import Any
 
 from app.services.company_memory import CompanyMemoryStore
 from app.services.market_memory import MarketMemoryStore
+from app.services.market_sector_inference import infer_sector
 
-_SECTOR_KEYWORDS = {
-    "Materials": ("iron ore", "lithium", "copper", "gold", "bulk commodity"),
-    "Energy": ("oil", "gas", "lng", "coal"),
-    "Financials": ("bank", "banks", "lender", "credit"),
-    "Healthcare": ("healthcare", "medtech", "hospital", "biotech"),
-    "Technology": ("software", "cloud", "data centre", "semiconductor"),
-}
 _MACRO_TOPICS = {
     "China stimulus": ("china stimulus", "beijing stimulus"),
     "China demand": ("china demand", "chinese demand"),
@@ -342,24 +336,7 @@ def _market_signal_type(signal_type: str, *, scope: str) -> str:
 
 
 def _infer_sector(statement: str, tickers: list[str]) -> str | None:
-    lowered = statement.lower()
-    has_market_frame = any(
-        token in lowered for token in ("sector", "industry", "market", "commodity")
-    )
-    for sector, keywords in _SECTOR_KEYWORDS.items():
-        if any(keyword in lowered for keyword in keywords) and (
-            not tickers or has_market_frame
-        ):
-            return sector
-
-    if tickers and has_market_frame:
-        from app.services.analysis.sector_comparison import get_sector_for_ticker
-
-        sectors = {get_sector_for_ticker(ticker) for ticker in tickers}
-        sectors.discard(None)
-        if len(sectors) == 1:
-            return next(iter(sectors))
-    return None
+    return infer_sector(statement, tickers)
 
 
 def _infer_macro_topic(statement: str) -> str | None:

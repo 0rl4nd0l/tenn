@@ -59,6 +59,22 @@ def get_recent_turns(
     return _client.get_recent_turns(session_id, limit=limit)
 
 
+def get_session_context(
+    session_id: str,
+    query: str,
+    *,
+    semantic_limit: int = 3,
+    recent_limit: int | None = None,
+) -> list[dict[str, Any]]:
+    """Return semantic session context, falling back to recent turns."""
+    return _client.get_session_context(
+        session_id,
+        query,
+        semantic_limit=semantic_limit,
+        recent_limit=recent_limit,
+    )
+
+
 def record_turn(session_id: str, payload: dict[str, Any]) -> None:
     """Persist a structured turn record to the session."""
     _client.record_turn(session_id, payload)

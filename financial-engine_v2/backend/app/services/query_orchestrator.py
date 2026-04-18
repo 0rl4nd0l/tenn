@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Any, Iterable, Protocol
 
 from app.services.company_memory import CompanyMemoryStore
 from app.services.market_memory import MarketMemoryStore
+from shared.ticker_inference import COMMON_TICKER_STOPWORDS, detect_tickers
 
 
 QueryIntent = str
@@ -67,63 +68,7 @@ _MARKET_KEYWORDS = (
     "rates",
     "inflation",
 )
-_TICKER_TOKEN_RE = re.compile(r"\b\$?([A-Za-z]{2,5})(?:\.AX)?\b")
-_TICKER_STOPWORDS = {
-    "a",
-    "an",
-    "and",
-    "asx",
-    "are",
-    "buy",
-    "cash",
-    "case",
-    "compare",
-    "debt",
-    "does",
-    "ebit",
-    "for",
-    "from",
-    "give",
-    "growth",
-    "half",
-    "how",
-    "idea",
-    "in",
-    "imply",
-    "into",
-    "iron",
-    "last",
-    "mean",
-    "market",
-    "me",
-    "net",
-    "next",
-    "now",
-    "one",
-    "ore",
-    "outlook",
-    "about",
-    "profit",
-    "rate",
-    "rates",
-    "revenue",
-    "risk",
-    "risks",
-    "sector",
-    "share",
-    "should",
-    "stock",
-    "that",
-    "the",
-    "tell",
-    "thesis",
-    "summarize",
-    "summarise",
-    "summary",
-    "what",
-    "with",
-    "was",
-}
+_TICKER_STOPWORDS = COMMON_TICKER_STOPWORDS
 _QUERY_BUDGETS = {
     "financial_fact": {
         "financial_periods": 2,
@@ -305,13 +250,7 @@ def classify(query: str) -> QueryIntent:
 
 
 def resolve(query: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
-    tickers: list[str] = []
-    for match in _TICKER_TOKEN_RE.findall(query or ""):
-        token = match.upper()
-        if token.lower() in _TICKER_STOPWORDS:
-            continue
-        if token not in tickers:
-            tickers.append(token)
+    tickers = _extract_tickers(query)
     prior_ticker = str((context or {}).get("prior_ticker") or "").strip().upper()
     if not tickers and prior_ticker:
         tickers.append(prior_ticker)
@@ -319,6 +258,10 @@ def resolve(query: str, context: dict[str, Any] | None = None) -> dict[str, Any]
         "primary_ticker": tickers[0] if tickers else None,
         "tickers": tickers,
     }
+
+
+def _extract_tickers(query: str) -> list[str]:
+    return detect_tickers(query, stopwords=_TICKER_STOPWORDS)
 
 
 def build_plan(intent: QueryIntent) -> QueryPlan:

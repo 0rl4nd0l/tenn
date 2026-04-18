@@ -3,13 +3,19 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
+import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, TypeVar
 
 from app.services.source_registry import RESEARCH_MEMORY_ROOT
 
 DEFAULT_COMPANY_MEMORY_PATH = RESEARCH_MEMORY_ROOT / "company_memory.sqlite"
+_SQLITE_TIMEOUT_SECONDS = 5.0
+_SQLITE_BUSY_TIMEOUT_MS = int(_SQLITE_TIMEOUT_SECONDS * 1000)
+_SQLITE_BUSY_RETRIES = 2
+_SQLITE_BUSY_RETRY_SLEEP_SECONDS = 0.05
+_WriteResultT = TypeVar("_WriteResultT")
 
 _FORBIDDEN_SIGNAL_TYPES = {
     "revenue",
@@ -91,6 +97,11 @@ def _normalize_statement(value: str) -> str:
     return " ".join(str(value or "").strip().lower().split())
 
 
+def _is_transient_sqlite_busy(exc: sqlite3.OperationalError) -> bool:
+    message = str(exc).lower()
+    return "locked" in message or "busy" in message
+
+
 class CompanyMemoryStore:
     def __init__(self, path: str | Path | None = None) -> None:
         self.path = Path(path or DEFAULT_COMPANY_MEMORY_PATH).expanduser().resolve()
@@ -98,12 +109,30 @@ class CompanyMemoryStore:
         self._ensure_schema()
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.path)
+        conn = sqlite3.connect(self.path, timeout=_SQLITE_TIMEOUT_SECONDS)
         conn.row_factory = sqlite3.Row
+        conn.execute(f"PRAGMA busy_timeout = {_SQLITE_BUSY_TIMEOUT_MS}")
+        conn.execute("PRAGMA journal_mode = WAL")
         return conn
 
+    def _run_write_transaction(
+        self, operation: Callable[[sqlite3.Connection], _WriteResultT]
+    ) -> _WriteResultT:
+        for attempt in range(_SQLITE_BUSY_RETRIES + 1):
+            try:
+                with self._connect() as conn:
+                    return operation(conn)
+            except sqlite3.OperationalError as exc:
+                if (
+                    not _is_transient_sqlite_busy(exc)
+                    or attempt >= _SQLITE_BUSY_RETRIES
+                ):
+                    raise
+                time.sleep(_SQLITE_BUSY_RETRY_SLEEP_SECONDS)
+        raise RuntimeError("unreachable sqlite retry state")
+
     def _ensure_schema(self) -> None:
-        with self._connect() as conn:
+        def _create(conn: sqlite3.Connection) -> None:
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS company_memory (
@@ -151,6 +180,9 @@ class CompanyMemoryStore:
                     ON change_log(company_id, created_at);
                 """
             )
+            return None
+
+        self._run_write_transaction(_create)
 
     def update_company_memory(
         self, company_id: str, signal: dict[str, Any]
@@ -161,7 +193,7 @@ class CompanyMemoryStore:
         payload = self._normalize_signal(normalized_company, signal)
         now = _utc_now()
 
-        with self._connect() as conn:
+        def _update(conn: sqlite3.Connection) -> dict[str, Any]:
             self._ensure_company_row(conn, normalized_company, now)
 
             if payload["status"] == "expired":
@@ -258,6 +290,8 @@ class CompanyMemoryStore:
             self._sync_company_summary(conn, normalized_company, now)
             entry = self._get_entry_by_id(conn, int(entry_id))
             return {"rule": event_type, "entry": entry}
+
+        return self._run_write_transaction(_update)
 
     def list_entries(
         self, company_id: str, status: str | None = None

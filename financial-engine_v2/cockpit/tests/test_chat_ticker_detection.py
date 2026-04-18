@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import os
 import unittest
+from datetime import datetime as real_datetime
 from unittest.mock import MagicMock
+from zoneinfo import ZoneInfo
 
 from cockpit.core.chat import ChatController, ResponseMode
 
@@ -253,6 +255,29 @@ class ChatTickerDetectionTests(unittest.TestCase):
 
         self.assertEqual(response.mode, ResponseMode.FAST)
         self.assertIn("Tenn", response.text)
+        self.controller._query_orchestrator.orchestrate_query_with_context.assert_not_called()
+
+    def test_runtime_clock_query_shortcircuits_before_orchestrator(self) -> None:
+        self.controller._query_orchestrator = MagicMock()
+
+        with unittest.mock.patch("cockpit.core.chat.datetime") as mock_datetime:
+            mock_datetime.now.return_value = real_datetime(
+                2026,
+                4,
+                18,
+                11,
+                36,
+                tzinfo=ZoneInfo("Australia/Sydney"),
+            )
+
+            response = self.controller.build_chat_response(
+                "what day is it",
+                prior_ticker="BHP",
+            )
+
+        self.assertEqual(response.mode, ResponseMode.FAST)
+        self.assertEqual(response.text, "Today is Saturday, April 18, 2026 (AEST).")
+        self.assertEqual(response.evidence[0]["type"], "runtime_clock")
         self.controller._query_orchestrator.orchestrate_query_with_context.assert_not_called()
 
     def test_ok_rewrites_previous_binary_question_to_explicit_yes(self) -> None:

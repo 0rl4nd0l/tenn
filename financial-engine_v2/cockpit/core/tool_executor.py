@@ -17,31 +17,18 @@ from typing import Any
 from cockpit.core.actions import ActionRegistry
 from cockpit.core.tool_definitions import MUTATING_TOOL_NAMES
 from cockpit.core.tools import ToolRouter
+from shared.ticker_inference import COMMON_TICKER_STOPWORDS, detect_primary_ticker
 
 logger = logging.getLogger(__name__)
 
 # Default max chars for tool result payloads (context window management).
 DEFAULT_MAX_RESULT_CHARS = 2000
 _NEWS_TICKER_STOPWORDS = {
-    "ABOUT",
-    "ALL",
-    "ANNOUNCEMENT",
-    "ANNOUNCEMENTS",
-    "ANY",
-    "ASX",
-    "FOR",
+    *COMMON_TICKER_STOPWORDS,
     "LATEST",
-    "MARKET",
-    "NEWS",
-    "ON",
-    "PRICE",
     "RECENT",
-    "STOCK",
-    "TELL",
-    "THE",
     "THIS",
     "TODAY",
-    "UPDATE",
 }
 
 
@@ -420,54 +407,7 @@ class ToolExecutor:
 
     @staticmethod
     def _infer_news_ticker(query: str) -> str | None:
-        text = str(query or "").strip()
-        if not text:
-            return None
-
-        explicit = re.search(
-            r"(?:\bASX:|\$)([A-Za-z]{2,5})\b|([A-Za-z0-9]{2,5})\.AX\b",
-            text,
-            re.IGNORECASE,
-        )
-        if explicit:
-            token = (explicit.group(1) or explicit.group(2) or "").upper()
-            return token or None
-
-        tokens = [
-            (m.group(0), m.group(0).upper())
-            for m in re.finditer(
-                r"\b(?:[A-Za-z][A-Za-z0-9]{1,4}|[0-9]+[A-Za-z][A-Za-z0-9]{0,3})\b", text
-            )
-        ]
-        if not tokens:
-            return None
-
-        stripped = text.strip()
-        whole_message_token = re.fullmatch(
-            r"([A-Za-z0-9]{2,5})(?:\s+(?:news|announcements?|price|chart|financials?))?",
-            stripped,
-            re.IGNORECASE,
-        )
-        if whole_message_token:
-            token = whole_message_token.group(1).upper()
-            if token not in _NEWS_TICKER_STOPWORDS:
-                return token
-
-        cue_patterns = (
-            r"\b(?:about|on|for|vs|versus|compare|chart|price|financials?|announcements?|news|"
-            r"analyse|analyze|analysis|ticker|stock|company|research|show|plot|candlestick|candle)\s+{token}\b",
-            r"\b{token}\s+(?:vs|versus|chart|price|financials?|announcements?|news)\b",
-        )
-        for original, upper in tokens:
-            if upper in _NEWS_TICKER_STOPWORDS:
-                continue
-            token_pattern = re.escape(original)
-            if any(
-                re.search(pattern.format(token=token_pattern), text, re.IGNORECASE)
-                for pattern in cue_patterns
-            ):
-                return upper
-        return None
+        return detect_primary_ticker(query, stopwords=_NEWS_TICKER_STOPWORDS)
 
     def _exec_search_announcements(self, args: dict[str, Any]) -> dict[str, Any]:
         ticker = str(args.get("ticker", "")).strip().upper()

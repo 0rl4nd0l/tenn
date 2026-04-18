@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -66,10 +67,45 @@ def test_resolve_config_path_returns_component_path_when_exists(
     assert client._resolve_config_path() == cfg
 
 
-def test_resolve_config_path_env_overrides_component_path(
+def test_resolve_config_path_env_override_wins_over_component_path(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    env_cfg = tmp_path / "env.ov.conf"
+    env_cfg = tmp_path / "custom-env.ov.conf"
+    env_cfg.touch()
+    monkeypatch.setenv("OPENVIKING_CONFIG_FILE", str(env_cfg))
+    component_cfg = tmp_path / "component.ov.conf"
+    component_cfg.touch()
+    client = SessionMemoryClient(
+        component_name="test",
+        config_path=component_cfg,
+        operator_action="n/a",
+    )
+    assert client._resolve_config_path() == env_cfg
+
+
+def test_resolve_config_path_ignores_other_domain_default_env_when_component_exists(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
+    openviking_dir = tmp_path / ".openviking"
+    openviking_dir.mkdir(parents=True, exist_ok=True)
+    env_cfg = openviking_dir / "backend.ov.conf"
+    env_cfg.touch()
+    component_cfg = openviking_dir / "cockpit.ov.conf"
+    component_cfg.touch()
+    monkeypatch.setenv("OPENVIKING_CONFIG_FILE", str(env_cfg))
+    client = SessionMemoryClient(
+        component_name="cockpit",
+        config_path=component_cfg,
+        operator_action="n/a",
+    )
+    assert client._resolve_config_path() == component_cfg
+
+
+def test_resolve_config_path_uses_env_when_component_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    env_cfg = tmp_path / "env_only.ov.conf"
     env_cfg.touch()
     monkeypatch.setenv("OPENVIKING_CONFIG_FILE", str(env_cfg))
     client = _make_client(config_exists=False)
@@ -159,6 +195,31 @@ def test_get_ov_returns_instance_on_successful_init(tmp_path: Path) -> None:
 
     assert result is mock_ov
     mock_ov.initialize.assert_called_once()
+
+
+def test_get_ov_restores_env_after_init(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    cfg = tmp_path / "test.ov.conf"
+    cfg.touch()
+    client = SessionMemoryClient(
+        component_name="test",
+        config_path=cfg,
+        operator_action="n/a",
+    )
+    monkeypatch.setenv("OPENVIKING_CONFIG_FILE", "/tmp/original.ov.conf")
+    mock_ov = MagicMock()
+    mock_ov_class = MagicMock(return_value=mock_ov)
+    mock_module = MagicMock()
+    mock_module.SyncOpenViking = mock_ov_class
+
+    def _initialize() -> None:
+        assert os.environ.get("OPENVIKING_CONFIG_FILE") == str(cfg)
+
+    mock_ov.initialize.side_effect = _initialize
+
+    with patch.dict("sys.modules", {"openviking": mock_module}):
+        client._get_ov()
+
+    assert os.environ.get("OPENVIKING_CONFIG_FILE") == "/tmp/original.ov.conf"
 
 
 # ---------------------------------------------------------------------------
@@ -355,6 +416,40 @@ def test_get_recent_turns_returns_empty_when_session_is_none() -> None:
 
     result = client.get_recent_turns("sess1")
     assert result == []
+
+
+# ---------------------------------------------------------------------------
+# Unit: get_session_context
+# ---------------------------------------------------------------------------
+
+
+def test_get_session_context_prefers_semantic_results() -> None:
+    client = _make_client(config_exists=False)
+    semantic = [{"query": "q1"}]
+    client.get_relevant_session_context = MagicMock(return_value=semantic)  # type: ignore[method-assign]
+    client.get_recent_turns = MagicMock(return_value=[{"query": "q2"}])  # type: ignore[method-assign]
+
+    result = client.get_session_context("sess1", "query", semantic_limit=2)
+
+    assert result == semantic
+    client.get_recent_turns.assert_not_called()
+
+
+def test_get_session_context_falls_back_to_recent_turns() -> None:
+    client = _make_client(config_exists=False)
+    recent = [{"query": "recent"}]
+    client.get_relevant_session_context = MagicMock(return_value=[])  # type: ignore[method-assign]
+    client.get_recent_turns = MagicMock(return_value=recent)  # type: ignore[method-assign]
+
+    result = client.get_session_context(
+        "sess1",
+        "query",
+        semantic_limit=2,
+        recent_limit=1,
+    )
+
+    assert result == recent
+    client.get_recent_turns.assert_called_once_with("sess1", limit=1)
 
 
 # ---------------------------------------------------------------------------

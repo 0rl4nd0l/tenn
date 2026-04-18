@@ -3,13 +3,20 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
+import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, TypeVar
 
+from app.services.market_sector_inference import infer_sector
 from app.services.source_registry import RESEARCH_MEMORY_ROOT
 
 DEFAULT_MARKET_MEMORY_PATH = RESEARCH_MEMORY_ROOT / "market_memory.sqlite"
+_SQLITE_TIMEOUT_SECONDS = 5.0
+_SQLITE_BUSY_TIMEOUT_MS = int(_SQLITE_TIMEOUT_SECONDS * 1000)
+_SQLITE_BUSY_RETRIES = 2
+_SQLITE_BUSY_RETRY_SLEEP_SECONDS = 0.05
+_WriteResultT = TypeVar("_WriteResultT")
 
 _FORBIDDEN_SIGNAL_TYPES = {
     "revenue",
@@ -73,6 +80,11 @@ def _normalize_list(values: Any, *, uppercase: bool = False) -> list[str]:
     return normalized
 
 
+def _is_transient_sqlite_busy(exc: sqlite3.OperationalError) -> bool:
+    message = str(exc).lower()
+    return "locked" in message or "busy" in message
+
+
 class MarketMemoryStore:
     def __init__(self, path: str | Path | None = None) -> None:
         self.path = Path(path or DEFAULT_MARKET_MEMORY_PATH).expanduser().resolve()
@@ -80,12 +92,30 @@ class MarketMemoryStore:
         self._ensure_schema()
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.path)
+        conn = sqlite3.connect(self.path, timeout=_SQLITE_TIMEOUT_SECONDS)
         conn.row_factory = sqlite3.Row
+        conn.execute(f"PRAGMA busy_timeout = {_SQLITE_BUSY_TIMEOUT_MS}")
+        conn.execute("PRAGMA journal_mode = WAL")
         return conn
 
+    def _run_write_transaction(
+        self, operation: Callable[[sqlite3.Connection], _WriteResultT]
+    ) -> _WriteResultT:
+        for attempt in range(_SQLITE_BUSY_RETRIES + 1):
+            try:
+                with self._connect() as conn:
+                    return operation(conn)
+            except sqlite3.OperationalError as exc:
+                if (
+                    not _is_transient_sqlite_busy(exc)
+                    or attempt >= _SQLITE_BUSY_RETRIES
+                ):
+                    raise
+                time.sleep(_SQLITE_BUSY_RETRY_SLEEP_SECONDS)
+        raise RuntimeError("unreachable sqlite retry state")
+
     def _ensure_schema(self) -> None:
-        with self._connect() as conn:
+        def _create(conn: sqlite3.Connection) -> None:
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS market_memory (
@@ -151,6 +181,9 @@ class MarketMemoryStore:
                     ON change_log(scope, entity_key, created_at);
                 """
             )
+            return None
+
+        self._run_write_transaction(_create)
 
     def update_market_memory(self, signal: dict[str, Any]) -> dict[str, Any]:
         payload = self._normalize_signal(signal)
@@ -160,7 +193,7 @@ class MarketMemoryStore:
         entity_key = str(payload[key_column])
         now = _utc_now()
 
-        with self._connect() as conn:
+        def _update(conn: sqlite3.Connection) -> dict[str, Any]:
             self._ensure_scope_row(conn, scope, now)
 
             if payload["status"] == "expired":
@@ -312,6 +345,8 @@ class MarketMemoryStore:
             entry = self._get_entry_by_id(conn, table, int(entry_id))
             return {"rule": event_type, "entry": entry}
 
+        return self._run_write_transaction(_update)
+
     def list_sector_entries(
         self, sector: str, status: str | None = None
     ) -> list[dict[str, Any]]:
@@ -321,6 +356,11 @@ class MarketMemoryStore:
         self, macro_topic: str, status: str | None = None
     ) -> list[dict[str, Any]]:
         return self._list_entries("macro_state", "macro_topic", macro_topic, status)
+
+    def list_all_macro_entries(
+        self, status: str | None = None
+    ) -> list[dict[str, Any]]:
+        return self._list_entries("macro_state", None, None, status)
 
     def list_change_log(self) -> list[dict[str, Any]]:
         with self._connect() as conn:
@@ -759,10 +799,7 @@ class MarketMemoryStore:
 
     @staticmethod
     def _resolve_relevant_sector(query: str, entities: dict[str, Any]) -> str | None:
-        from app.services.analysis.sector_comparison import (
-            SECTOR_TICKERS,
-            get_sector_for_ticker,
-        )
+        from app.services.analysis.sector_comparison import get_sector_for_ticker
 
         primary_ticker = str(entities.get("primary_ticker") or "").strip().upper()
         if primary_ticker:
@@ -770,11 +807,7 @@ class MarketMemoryStore:
             if sector:
                 return sector
 
-        lowered = str(query or "").lower()
-        for sector_name in SECTOR_TICKERS:
-            if sector_name.lower() in lowered:
-                return sector_name
-        return None
+        return infer_sector(query, list(entities.get("tickers") or []))
 
 
 def update_market_memory(

@@ -9,6 +9,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.api.context import (
+    _load_market_memory,
     get_company_dump,
     get_ticker_context,
     get_verification_context,
@@ -298,6 +299,54 @@ class TestGetCompanyDump:
         assert result["errors"] == []
         assert result["backend_version"] == "1.1"
 
+    def test_company_dump_summary_prefers_memory_totals_over_sliced_lengths(self):
+        db = _mock_db_session({})
+        base_context = {
+            "ticker": "BHP",
+            "docs": [],
+            "financials": [],
+            "latest_financial_snapshot": None,
+            "announcement_context": [],
+            "extraction_failures": [],
+            "low_confidence_financials": [],
+            "errors": [],
+        }
+        with (
+            patch("app.api.context.get_ticker_context", return_value=base_context),
+            patch("app.api.context._run_query", return_value=([], None)),
+            patch(
+                "app.api.context._load_price_context_1y",
+                return_value=({}, [], {"points": 0}, None),
+            ),
+            patch(
+                "app.api.context._load_company_memory",
+                return_value=(
+                    {
+                        "entries": [{"entry_id": 1}],
+                        "change_log": [{"change_id": 1}],
+                        "entries_total": 7,
+                        "change_log_total": 9,
+                    },
+                    None,
+                ),
+            ),
+            patch(
+                "app.api.context._load_market_memory",
+                return_value=(
+                    {
+                        "items": [{"entry_id": 2}],
+                        "items_total": 11,
+                    },
+                    None,
+                ),
+            ),
+        ):
+            result = get_company_dump(ticker="BHP", db=db)
+
+        assert result["summary"]["company_memory_entry_count"] == 7
+        assert result["summary"]["company_memory_change_count"] == 9
+        assert result["summary"]["market_memory_item_count"] == 11
+
     def test_company_dump_captures_partial_failures(self):
         db = _mock_db_session({})
         base_context = {
@@ -332,6 +381,50 @@ class TestGetCompanyDump:
         assert any("price_history_1y:" in err for err in result["errors"])
         assert any("company_memory:" in err for err in result["errors"])
         assert result["summary"]["price_points_1y"] == 0
+
+
+class TestLoadMarketMemory:
+    def test_load_market_memory_uses_raw_active_rows(self, tmp_path):
+        store_path = tmp_path / "market_memory.sqlite"
+        store_path.touch()
+
+        fake_store = MagicMock()
+        fake_store.list_sector_entries.return_value = [
+            {"entry_id": 1, "statement": "Sector state"}
+        ]
+        fake_store.list_all_macro_entries.return_value = [
+            {"entry_id": 2, "statement": "Macro state"}
+        ]
+        fake_store.retrieve.side_effect = AssertionError("retrieve should not be used")
+
+        with (
+            patch(
+                "app.services.market_memory.DEFAULT_MARKET_MEMORY_PATH",
+                store_path,
+            ),
+            patch(
+                "app.services.market_memory.MarketMemoryStore",
+                return_value=fake_store,
+            ),
+            patch(
+                "app.services.analysis.sector_comparison.get_sector_for_ticker",
+                return_value="Materials",
+            ),
+        ):
+            payload, err = _load_market_memory("BHP", limit=10)
+
+        assert err is None
+        assert payload["status"] == "ok"
+        assert payload["sector"] == "Materials"
+        assert payload["sector_items"] == [{"entry_id": 1, "statement": "Sector state"}]
+        assert payload["macro_items"] == [{"entry_id": 2, "statement": "Macro state"}]
+        assert payload["items"] == [
+            {"entry_id": 1, "statement": "Sector state"},
+            {"entry_id": 2, "statement": "Macro state"},
+        ]
+        assert payload["sector_items_total"] == 1
+        assert payload["macro_items_total"] == 1
+        assert payload["items_total"] == 2
 
 
 # ---------------------------------------------------------------------------
