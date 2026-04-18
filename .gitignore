@@ -58,11 +58,24 @@ financial-engine_v2/scripts/broad_test_results/
 # Large data / models (stored externally)
 asx_data/
 backups/
+models/
+Maestro/
+graphify-out/
+.tmp/
+financial-engine_v2/.venv/
+financial-engine_v2/venv/
+financial-engine_v2/reports/
 models/*.gguf
 financial-engine_v2/data/*
 !financial-engine_v2/data/extraction_gold_real/
 financial-engine_v2/data/extraction_gold_real/*
 !financial-engine_v2/data/extraction_gold_real/README.md
+reports/*
+!reports/daily_marketindex_action_report.json
+!reports/pdf_download_report.json
+!reports/pdf_download_report_archive_check.json
+!reports/pdf_download_report_archive_oldinput.json
+!reports/pdf_download_report_current_oldinput.json
 
 # Cloned repos (not submodules)
 deer-flow/
@@ -77,6 +90,7 @@ package-lock.json
 
 # Build artifacts
 cockpit-ui/tsconfig.tsbuildinfo
+cockpit-ui/.next/
 
 # Test artifacts
 cockpit-ui/playwright-report/

@@ -1,0 +1,22 @@
+# Shared repo-wide tooling excludes.
+# These paths are local runtime data, generated artifacts, caches, models, or side worktrees.
+# Use explicit overrides such as `rg -uu` when you intentionally need to inspect them.
+
+.archives/
+.tmp/
+.venv/
+.venv-autodev/
+.venv-docling-gpu/
+.venv-docling-gpu-repair/
+backups/
+Maestro/
+models/
+graphify-out/
+reports/
+financial-engine_v2/.venv/
+financial-engine_v2/venv/
+financial-engine_v2/data/
+financial-engine_v2/reports/
+cockpit-ui/.next/
+cockpit-ui/node_modules/
+node_modules/
