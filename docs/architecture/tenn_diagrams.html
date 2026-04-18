@@ -162,9 +162,10 @@
       <h1>Two diagrams, two answers.</h1>
       <div class="lede">
         Tenn has one architecture, but two useful ways to look at it. Use the runtime map when
-        you care about deployed services and storage. Use the authority flow when you care about
-        why the backend comes before the agent, how tool-calling interacts with infra, and where
-        chat or memory features actually sit.
+        you care about deployed services and storage. That page now starts with a collapsed
+        six-box architecture spine before drilling into detail. Use the authority flow when you
+        care about why the backend comes before the agent, how tool-calling interacts with infra,
+        and where chat or memory features actually sit.
       </div>
 
       <div class="hero">
@@ -184,6 +185,7 @@
             <li>“Where do writes happen?” -> Both, but especially Authority Flow</li>
             <li>“What ports and storage exist?” -> Runtime Topology</li>
             <li>“Where are chat history and memory features?” -> Both, now surfaced near the top</li>
+            <li>“Why is the repo graph noisy?” -> Use `scripts/build_architecture_graph_scope.py` before graphify</li>
           </ul>
         </section>
       </div>
@@ -193,8 +195,9 @@
           <div class="badge runtime">Runtime Topology</div>
           <h3>Deployed services, storage, and pipeline layers</h3>
           <p>
-            This is the operational map of Tenn: FastAPI, Celery, Redis, Postgres, Qdrant,
-            llama.cpp, ingestion, extraction, API routes, chat runtime, and memory stores.
+            This is the operational map of Tenn. It now opens with the six-box runtime spine,
+            then expands into FastAPI, Celery, Redis, Postgres, Qdrant, llama.cpp, APIs, chat,
+            and memory stores only when you drill down.
           </p>
           <div class="mini-grid">
             <div class="mini">

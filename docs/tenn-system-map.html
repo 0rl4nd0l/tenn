@@ -669,9 +669,10 @@
   <div class="view-banner">
     <div class="view-banner-title">This page is the runtime view.</div>
     <div class="view-banner-copy">
-      Use this page when you want to understand the physical system: FastAPI, Celery, Redis,
-      Postgres, Qdrant, llama.cpp, ingestion, and extraction. If you want the control-flow
-      explanation for why the agent appears after the backend, use the Authority Flow diagram.
+      Use this page when you want the physical system in one pass. It now starts with a collapsed
+      six-box architecture spine, then lets you drill into the deeper runtime inventory below. If
+      you want the control-flow explanation for why the agent appears after the backend, use the
+      Authority Flow diagram.
     </div>
     <div class="view-grid">
       <a class="view-card" href="/docs/architecture/tenn_system_map_frontend.html">
@@ -741,89 +742,110 @@
   </div>
 
   <div class="arch-diagram">
-    <div class="arch-title">System Boundary Map</div>
+    <div class="arch-title">Six-Box Runtime Spine</div>
 
     <div class="layer-row">
       <div class="layer-label">Client</div>
       <div class="layer-arrow">▶</div>
-      <div class="node blue" data-tip="cockpit-tui" data-desc="Textual TUI operator interface — agent loop, tool calls, dossier, strategy">Cockpit TUI</div>
-      <div class="connector">·</div>
-      <div class="node blue" data-tip="cockpit-ui" data-desc="Next.js web UI — chat, health dashboard, sources panel, action confirmation">Cockpit Web UI</div>
+      <div class="node blue" data-tip="cockpit-clients" data-desc="Cockpit is the client surface only: Textual TUI plus Next.js web UI for chat, health, verification, and operations.">Cockpit Clients</div>
     </div>
 
     <div class="layer-row">
-      <div class="layer-label">API Gateway</div>
+      <div class="layer-label">Authority</div>
       <div class="layer-arrow">▶</div>
-      <div class="node green" data-tip="fastapi" data-desc="FastAPI on port 8000. All client requests funnel through here. Authority layer.">FastAPI :8000</div>
-      <div class="connector">→</div>
-      <div class="node green" data-tip="celery" data-desc="Celery workers handle async tasks: backfill, ingest, extract, embed">Celery Worker</div>
-      <div class="connector">→</div>
-      <div class="node green" data-tip="redis" data-desc="Redis on port 6379. Celery broker + task result backend">Redis :6379</div>
+      <div class="node green" data-tip="fastapi" data-desc="FastAPI on port 8000 is the backend authority boundary. All authoritative reads, writes, ingestion orchestration, extraction, and retrieval contracts originate here.">FastAPI Backend :8000</div>
     </div>
 
     <div class="layer-row">
-      <div class="layer-label">Intelligence</div>
+      <div class="layer-label">Async Jobs</div>
       <div class="layer-arrow">▶</div>
-      <div class="node purple" data-tip="llm-router" data-desc="Self-optimizing LLM router. Scores routes by latency (0.4), throughput (0.3), error (0.2), queue (0.1), GPU (0.1). Supports router/extraction/coding roles.">LLM Router</div>
-      <div class="connector">→</div>
-      <div class="node purple" data-tip="llamacpp" data-desc="llama.cpp on port 8001 (router) + 8002 (extraction). Host-native, GPU-accelerated. Primary: Qwen 2.5 14B on M40 24GB.">llama.cpp :8001</div>
-      <div class="connector">+</div>
-      <div class="node purple" data-tip="embeddings" data-desc="Sentence Transformers (CPU, in-process) or Ollama :11434. 768-dim, nomic-embed-text model.">Embeddings</div>
+      <div class="node orange" data-tip="jobs" data-desc="Celery workers execute ingestion, extraction, backfill, and embedding jobs asynchronously, using Redis as the broker and result backend.">Celery + Redis</div>
     </div>
 
     <div class="layer-row">
-      <div class="layer-label">Extraction</div>
+      <div class="layer-label">Inference</div>
       <div class="layer-arrow">▶</div>
-      <div class="node orange" data-tip="extraction" data-desc="3-pass multipass extraction: (1) Structure via Docling/PyMuPDF, (2) Financial metrics via LLM JSON, (3) Risk/guidance via LLM. Single authority: multipass_extraction.py.">Multipass Extractor</div>
-      <div class="connector">→</div>
-      <div class="node orange" data-tip="analysis" data-desc="7 analysis modules: balance_sheet, roic, valuation, sentiment, risk (LLM), catalysts (LLM), moat (LLM). D1=deterministic, D2=LLM synthesis.">Analysis Modules ×7</div>
-      <div class="connector">→</div>
-      <div class="node orange" data-tip="query-orch" data-desc="Query orchestrator classifies requests: financial_truth (→ Postgres) vs company_memory (→ SQLite-vec) vs market_memory (→ SQLite-vec)">Query Orchestrator</div>
+      <div class="node purple" data-tip="inference" data-desc="llama.cpp is the primary inference runtime and routed embeddings or LLM calls flow through the backend. Ollama remains compatibility-only, not a primary architectural pillar.">llama.cpp + Embeddings</div>
     </div>
 
     <div class="layer-row">
-      <div class="layer-label">Storage</div>
+      <div class="layer-label">Data</div>
       <div class="layer-arrow">▶</div>
-      <div class="node teal" data-tip="postgres" data-desc="PostgreSQL :5432. Tables: documents, extraction_runs, asx_periodic_financials, asx_risk_notes, companies, openbb_snapshots. Also cockpit state tables.">PostgreSQL :5432</div>
-      <div class="connector">+</div>
-      <div class="node teal" data-tip="qdrant" data-desc="Qdrant :6333. Collections: asx_docs (768-dim), news_chunks (768-dim), commentary_chunks, company_memory, market_memory. Vector IDs: {doc_id}:{chunk_idx}.">Qdrant :6333</div>
-      <div class="connector">+</div>
-      <div class="node teal" data-tip="sqlite" data-desc="SQLite local: ~/.financial_engine_cockpit/state.db (chat history, jobs, dossier). ~/.tenn/memory/ (JSONL research notes, alerts, situation pairs).">SQLite (local)</div>
+      <div class="node teal" data-tip="data-plane" data-desc="Postgres holds structured truth, Qdrant holds vector retrieval corpora, and SQLite-backed local stores hold chat state and qualitative memory surfaces.">Postgres + Qdrant + SQLite</div>
     </div>
 
     <div class="layer-row">
-      <div class="layer-label">Ingestion</div>
+      <div class="layer-label">Inputs</div>
       <div class="layer-arrow">▶</div>
-      <div class="node yellow" data-tip="asx-provider" data-desc="ASX announcements API (primary) + MarketIndex fallback. Daily ingest of periodic filings (4C/4D/4E/5B), continuous/annual reports.">ASX Provider</div>
-      <div class="connector">+</div>
-      <div class="node yellow" data-tip="news-provider" data-desc="newspaper4k (54 AU sources): AFR, Stockhead, SMH, ABC, MarketIndex. Plus Scrapling/Playwright for JS-gated pages.">News (54 sources)</div>
-      <div class="connector">+</div>
-      <div class="node yellow" data-tip="openbb" data-desc="OpenBB sidecar on :8081. Optional market data: pricing, fundamentals, snapshots.">OpenBB :8081 (opt)</div>
+      <div class="node yellow" data-tip="inputs" data-desc="ASX filings and news are the primary incoming sources. OpenBB remains an optional sidecar for market data rather than a core runtime dependency.">ASX + News + Optional Sidecars</div>
     </div>
   </div>
 
-  <div class="sub-section-title">Core Systems</div>
+  <div class="sub-section-title">Core Architecture</div>
   <div class="overview-grid">
-    <div class="system-card blue" onclick="showSection('pipeline')">
+    <div class="system-card blue" onclick="showSection('overview')">
       <div class="card-header">
-        <div class="card-icon">⚙️</div>
+        <div class="card-icon">🧭</div>
         <div>
-          <div class="card-title">Financial Engine v2</div>
-          <div class="card-subtitle">financial-engine_v2/backend/</div>
+          <div class="card-title">Cockpit Clients</div>
+          <div class="card-subtitle">Textual TUI + Next.js web UI</div>
         </div>
       </div>
-      <p style="font-size:13px; color:var(--text2); line-height:1.5;">Core backend — FastAPI authority layer. Owns all data ingestion, extraction, storage, RAG, and retrieval. Cockpit is a pure client of this system.</p>
+      <p style="font-size:13px; color:var(--text2); line-height:1.5;">Cockpit is the presentation and orchestration surface: chat, verification, health, history, dossier, and operations. It is not a second source of truth.</p>
       <div class="card-tags">
-        <span class="tag blue">FastAPI :8000</span>
-        <span class="tag green">Celery</span>
-        <span class="tag purple">60+ services</span>
-        <span class="tag teal">PostgreSQL</span>
-        <span class="tag teal">Qdrant</span>
+        <span class="tag blue">Textual TUI</span>
+        <span class="tag blue">Next.js UI</span>
+        <span class="tag teal">Chat + dossier</span>
+        <span class="tag purple">Verification</span>
       </div>
       <div class="card-metrics">
-        <div class="metric"><div class="metric-value" style="color:var(--accent)">8</div><div class="metric-label">Route groups</div></div>
-        <div class="metric"><div class="metric-value" style="color:var(--green)">60+</div><div class="metric-label">Services</div></div>
-        <div class="metric"><div class="metric-value" style="color:var(--purple)">7</div><div class="metric-label">Analysis mods</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--accent)">2</div><div class="metric-label">Client surfaces</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--green)">1</div><div class="metric-label">Authority source</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--purple)">0</div><div class="metric-label">Truth stores</div></div>
+      </div>
+    </div>
+
+    <div class="system-card green" onclick="showSection('api')">
+      <div class="card-header">
+        <div class="card-icon">🛡️</div>
+        <div>
+          <div class="card-title">Backend Authority</div>
+          <div class="card-subtitle">FastAPI owns reads, writes, retrieval, extraction</div>
+        </div>
+      </div>
+      <p style="font-size:13px; color:var(--text2); line-height:1.5;">The backend is the only authority for ingestion, structured truth, vector retrieval, and company context APIs. Everything else hangs off this contract boundary.</p>
+      <div class="card-tags">
+        <span class="tag blue">FastAPI :8000</span>
+        <span class="tag green">/api/context/*</span>
+        <span class="tag teal">Retrieval contract</span>
+        <span class="tag orange">Extraction contract</span>
+      </div>
+      <div class="card-metrics">
+        <div class="metric"><div class="metric-value" style="color:var(--accent)">1</div><div class="metric-label">Authority layer</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--green)">8</div><div class="metric-label">Route groups</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--purple)">0</div><div class="metric-label">Client-owned truth</div></div>
+      </div>
+    </div>
+
+    <div class="system-card orange" onclick="showSection('services')">
+      <div class="card-header">
+        <div class="card-icon">⏱️</div>
+        <div>
+          <div class="card-title">Async Jobs</div>
+          <div class="card-subtitle">Celery workers and Redis-backed orchestration</div>
+        </div>
+      </div>
+      <p style="font-size:13px; color:var(--text2); line-height:1.5;">Background work is one plane: ingestion, backfill, extraction, embedding, and other long-running jobs all execute through Celery with Redis as queue and result state.</p>
+      <div class="card-tags">
+        <span class="tag green">Celery worker</span>
+        <span class="tag green">Redis :6379</span>
+        <span class="tag orange">Backfill</span>
+        <span class="tag orange">Extraction</span>
+      </div>
+      <div class="card-metrics">
+        <div class="metric"><div class="metric-value" style="color:var(--orange)">1</div><div class="metric-label">Job plane</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--green)">2</div><div class="metric-label">Core components</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--accent)">N</div><div class="metric-label">Task types</div></div>
       </div>
     </div>
 
@@ -831,90 +853,43 @@
       <div class="card-header">
         <div class="card-icon">🧠</div>
         <div>
-          <div class="card-title">LLM Layer</div>
-          <div class="card-subtitle">llama.cpp + self-optimizing router</div>
+          <div class="card-title">Inference Plane</div>
+          <div class="card-subtitle">llama.cpp primary, embeddings routed through backend</div>
         </div>
       </div>
-      <p style="font-size:13px; color:var(--text2); line-height:1.5;">Qwen 2.5 14B on Tesla M40 (24GB VRAM). Self-optimizing router scores routes by latency, throughput, error rate, queue depth, and GPU headroom.</p>
+      <p style="font-size:13px; color:var(--text2); line-height:1.5;">Inference is a plane, not a pile of boxes: llama.cpp is the primary runtime, embeddings are part of the same routed story, and Ollama remains compatibility-only.</p>
       <div class="card-tags">
         <span class="tag purple">llama.cpp :8001</span>
-        <span class="tag purple">:8002 extraction</span>
-        <span class="tag blue">Qwen 2.5 14B</span>
-        <span class="tag gray">Ollama :11434</span>
+        <span class="tag purple">Router mode</span>
+        <span class="tag blue">Embeddings</span>
+        <span class="tag gray">Ollama compat</span>
       </div>
       <div class="card-metrics">
-        <div class="metric"><div class="metric-value" style="color:var(--purple)">24GB</div><div class="metric-label">VRAM (M40)</div></div>
-        <div class="metric"><div class="metric-value" style="color:var(--accent)">88.6%</div><div class="metric-label">Extraction acc.</div></div>
-        <div class="metric"><div class="metric-value" style="color:var(--green)">5</div><div class="metric-label">Router signals</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--purple)">1</div><div class="metric-label">Primary runtime</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--accent)">1</div><div class="metric-label">Primary port</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--green)">1</div><div class="metric-label">Routing story</div></div>
       </div>
     </div>
 
-    <div class="system-card green" onclick="showSection('sources')">
+    <div class="system-card teal" onclick="showSection('sources')">
       <div class="card-header">
         <div class="card-icon">🗄️</div>
         <div>
-          <div class="card-title">Data + Memory Layer</div>
-          <div class="card-subtitle">PostgreSQL + Qdrant + SQLite</div>
+          <div class="card-title">Data Plane</div>
+          <div class="card-subtitle">Structured truth, vector retrieval, local state</div>
         </div>
       </div>
-      <p style="font-size:13px; color:var(--text2); line-height:1.5;">Three-layer storage: structured metrics in Postgres, vector chunks in Qdrant, and chat or qualitative memory in SQLite-backed stores. Deterministic vector IDs: {doc_id}:{chunk_idx}.</p>
+      <p style="font-size:13px; color:var(--text2); line-height:1.5;">Data is simpler than the repo graph implies: Postgres for structured truth, Qdrant for retrieval corpora, and SQLite-backed state for local chat and qualitative memory surfaces.</p>
       <div class="card-tags">
-        <span class="tag teal">asx_docs 768-dim</span>
-        <span class="tag teal">news_chunks</span>
-        <span class="tag teal">commentary_chunks</span>
+        <span class="tag teal">Postgres</span>
+        <span class="tag teal">Qdrant</span>
+        <span class="tag gray">SQLite local</span>
         <span class="tag green">company_memory</span>
-        <span class="tag green">market_memory</span>
-        <span class="tag gray">chat_history</span>
       </div>
       <div class="card-metrics">
-        <div class="metric"><div class="metric-value" style="color:var(--teal)">5</div><div class="metric-label">PG tables (core)</div></div>
-        <div class="metric"><div class="metric-value" style="color:var(--green)">5</div><div class="metric-label">Qdrant collections</div></div>
-        <div class="metric"><div class="metric-value" style="color:var(--yellow)">768</div><div class="metric-label">Vector dim</div></div>
-      </div>
-    </div>
-
-    <div class="system-card orange" onclick="showSection('pipeline')">
-      <div class="card-header">
-        <div class="card-icon">📄</div>
-        <div>
-          <div class="card-title">Extraction Pipeline</div>
-          <div class="card-subtitle">multipass_extraction.py (single authority)</div>
-        </div>
-      </div>
-      <p style="font-size:13px; color:var(--text2); line-height:1.5;">3-pass architecture: structure (Docling/PyMuPDF) → financial metrics (LLM JSON) → risk/guidance (LLM). Title-classification gate prevents unnecessary LLM calls.</p>
-      <div class="card-tags">
-        <span class="tag orange">Pass 1: Structure</span>
-        <span class="tag orange">Pass 2: Metrics</span>
-        <span class="tag orange">Pass 3: Risk</span>
-        <span class="tag gray">Docling default</span>
-      </div>
-      <div class="card-metrics">
-        <div class="metric"><div class="metric-value" style="color:var(--orange)">3</div><div class="metric-label">Passes</div></div>
-        <div class="metric"><div class="metric-value" style="color:var(--green)">8+</div><div class="metric-label">Eval fixtures</div></div>
-        <div class="metric"><div class="metric-value" style="color:var(--accent)">88.6%</div><div class="metric-label">Accuracy</div></div>
-      </div>
-    </div>
-
-    <div class="system-card teal" onclick="showSection('llm')">
-      <div class="card-header">
-        <div class="card-icon">💬</div>
-        <div>
-          <div class="card-title">Cockpit Chat + Memory</div>
-          <div class="card-subtitle">Agent loop + tool calling + streaming SSE + memory context</div>
-        </div>
-      </div>
-      <p style="font-size:13px; color:var(--text2); line-height:1.5;">Agent loop gathers context from backend, recent chat turns, dossier state, and company or market memory, builds a temporally anchored prompt, executes tools, and streams the result via SSE.</p>
-      <div class="card-tags">
-        <span class="tag teal">10+ tools</span>
-        <span class="tag blue">SSE streaming</span>
-        <span class="tag purple">Memory integration</span>
-        <span class="tag green">Action proposals</span>
-        <span class="tag gray">Dossier state</span>
-      </div>
-      <div class="card-metrics">
-        <div class="metric"><div class="metric-value" style="color:var(--teal)">10+</div><div class="metric-label">Agent tools</div></div>
-        <div class="metric"><div class="metric-value" style="color:var(--accent)">12</div><div class="metric-label">Chat history ctx</div></div>
-        <div class="metric"><div class="metric-value" style="color:var(--purple)">2</div><div class="metric-label">Memory tiers</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--teal)">3</div><div class="metric-label">Store types</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--green)">1</div><div class="metric-label">Truth store</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--yellow)">1</div><div class="metric-label">Vector store</div></div>
       </div>
     </div>
 
@@ -922,21 +897,21 @@
       <div class="card-header">
         <div class="card-icon">📡</div>
         <div>
-          <div class="card-title">Ingestion Layer</div>
-          <div class="card-subtitle">ASX filings + News (54 sources)</div>
+          <div class="card-title">External Inputs</div>
+          <div class="card-subtitle">ASX, news, and optional sidecars</div>
         </div>
       </div>
-      <p style="font-size:13px; color:var(--text2); line-height:1.5;">Daily ASX announcement ingest (4C/4D/4E/5B, continuous, annual). 54 AU news sources via newspaper4k + Scrapling/Playwright for JS-gated pages.</p>
+      <p style="font-size:13px; color:var(--text2); line-height:1.5;">Incoming information is one bucket at top level: ASX filings and news are core, while OpenBB and other sidecars are optional enrichers rather than structural dependencies.</p>
       <div class="card-tags">
-        <span class="tag yellow">ASX primary</span>
-        <span class="tag yellow">MarketIndex fallback</span>
-        <span class="tag orange">54 news sources</span>
-        <span class="tag gray">OpenBB optional</span>
+        <span class="tag yellow">ASX filings</span>
+        <span class="tag yellow">News sources</span>
+        <span class="tag gray">OpenBB opt</span>
+        <span class="tag gray">Provider layer</span>
       </div>
       <div class="card-metrics">
-        <div class="metric"><div class="metric-value" style="color:var(--yellow)">54</div><div class="metric-label">News sources</div></div>
-        <div class="metric"><div class="metric-value" style="color:var(--orange)">Daily</div><div class="metric-label">Ingest cadence</div></div>
-        <div class="metric"><div class="metric-value" style="color:var(--green)">5yr</div><div class="metric-label">Backfill depth</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--yellow)">2</div><div class="metric-label">Core sources</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--accent)">1</div><div class="metric-label">Optional sidecar</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--green)">N</div><div class="metric-label">Provider impls</div></div>
       </div>
     </div>
   </div>
