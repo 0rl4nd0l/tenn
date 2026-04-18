@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tenn Entry</title>
+    <style>
+      :root {
+        --bg-primary: #0a0a0f;
+        --bg-secondary: #13131a;
+        --bg-card: #1f1f2e;
+        --border: #2a2a3a;
+        --text-primary: #e4e4e7;
+        --text-secondary: #a1a1aa;
+        --accent: #6366f1;
+        --accent-2: #22c55e;
+        --accent-3: #38bdf8;
+        --accent-4: #f59e0b;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", sans-serif;
+        color: var(--text-primary);
+        background:
+          radial-gradient(circle at top left, rgba(99,102,241,0.18), transparent 30%),
+          radial-gradient(circle at top right, rgba(34,197,94,0.10), transparent 25%),
+          var(--bg-primary);
+      }
+      .wrap {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 40px 24px 56px;
+      }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        background: rgba(255,255,255,0.02);
+      }
+      h1 {
+        margin: 16px 0 10px;
+        font-size: 42px;
+        line-height: 1.05;
+      }
+      .lede {
+        max-width: 920px;
+        margin-bottom: 28px;
+        color: var(--text-secondary);
+        font-size: 16px;
+        line-height: 1.6;
+      }
+      .hero {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 18px;
+        margin-bottom: 24px;
+      }
+      .panel {
+        background: linear-gradient(180deg, rgba(31,31,46,0.92), rgba(19,19,26,0.98));
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 22px;
+      }
+      .panel h2 {
+        margin: 0 0 10px;
+        font-size: 18px;
+      }
+      .panel p,
+      .panel li {
+        margin: 0;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        font-size: 14px;
+      }
+      .panel ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+      .card {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        text-decoration: none;
+        color: inherit;
+        background: linear-gradient(180deg, rgba(31,31,46,0.95), rgba(19,19,26,0.98));
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        padding: 24px;
+        transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+      }
+      .card:hover {
+        transform: translateY(-3px);
+        border-color: var(--accent-3);
+        box-shadow: 0 16px 40px rgba(0,0,0,0.25);
+      }
+      .badge {
+        display: inline-flex;
+        align-self: flex-start;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .badge.primary { background: rgba(99,102,241,0.12); color: var(--accent); }
+      .badge.runtime { background: rgba(56,189,248,0.12); color: var(--accent-3); }
+      .badge.authority { background: rgba(34,197,94,0.12); color: var(--accent-2); }
+      .badge.graph { background: rgba(245,158,11,0.12); color: var(--accent-4); }
+      .card h3 {
+        margin: 0;
+        font-size: 24px;
+      }
+      .card p {
+        margin: 0;
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
+      .mini-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .mini {
+        border: 1px solid var(--border);
+        background: rgba(255,255,255,0.02);
+        border-radius: 14px;
+        padding: 12px;
+      }
+      .mini strong {
+        display: block;
+        font-size: 13px;
+        margin-bottom: 4px;
+      }
+      .mini span {
+        display: block;
+        font-size: 12px;
+        color: var(--text-secondary);
+        line-height: 1.45;
+      }
+      .cta {
+        margin-top: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      @media (max-width: 1024px) {
+        .hero, .cards, .mini-grid { grid-template-columns: 1fr; }
+        h1 { font-size: 34px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="eyebrow">Tenn Entry Point</div>
+      <h1>Start here.</h1>
+      <div class="lede">
+        This repo root now opens a real landing page instead of a directory listing. Use the
+        diagram hub for architecture understanding, the runtime and authority views for system
+        explanation, and the graph only when you want the larger repo-wide network view.
+      </div>
+
+      <div class="hero">
+        <section class="panel">
+          <h2>Recommended first click</h2>
+          <p>
+            The architecture hub is the main visual entrypoint. It explains which diagram answers
+            which question and links you straight into the right view.
+          </p>
+        </section>
+        <section class="panel">
+          <h2>Quick guide</h2>
+          <ul>
+            <li>Architecture overview: Diagram Hub</li>
+            <li>Services, ports, storage, runtime: Runtime Topology</li>
+            <li>Why backend comes before agent: Authority Flow</li>
+            <li>Actual company financials, docs, and memory in a map: Ticker Map</li>
+            <li>Repo-wide network graph: Interactive Graph</li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="cards">
+        <a class="card" href="/docs/architecture/tenn_diagrams.html">
+          <div class="badge primary">Main Entry</div>
+          <h3>Diagram Hub</h3>
+          <p>
+            The curated architecture starting point. From here you can choose the runtime topology
+            or the authority/delegation flow without guessing which diagram you need.
+          </p>
+          <div class="mini-grid">
+            <div class="mini">
+              <strong>Best for</strong>
+              <span>Starting point, orientation, choosing the right system view.</span>
+            </div>
+            <div class="mini">
+              <strong>Contains</strong>
+              <span>Links to runtime, authority, and chat or memory-aware views.</span>
+            </div>
+          </div>
+          <div class="cta">Open diagram hub -></div>
+        </a>
+
+        <a class="card" href="/docs/tenn-system-map.html">
+          <div class="badge runtime">Runtime</div>
+          <h3>Runtime Topology</h3>
+          <p>
+            Service and storage map covering FastAPI, Celery, Redis, Postgres, Qdrant, llama.cpp,
+            ingestion, extraction, chat runtime, and memory stores.
+          </p>
+          <div class="mini-grid">
+            <div class="mini">
+              <strong>Best for</strong>
+              <span>Ports, storage, runtime ownership, chat and memory storage.</span>
+            </div>
+            <div class="mini">
+              <strong>Not ideal for</strong>
+              <span>Control-flow questions about backend authority versus agent orchestration.</span>
+            </div>
+          </div>
+          <div class="cta">Open runtime topology -></div>
+        </a>
+
+        <a class="card" href="/docs/architecture/tenn_system_map_frontend.html">
+          <div class="badge authority">Authority</div>
+          <h3>Authority + Delegation Flow</h3>
+          <p>
+            Control-flow diagram showing frontend to backend to context assembly to agent runtime,
+            plus read-only and confirmation-gated paths into infrastructure and memory surfaces.
+          </p>
+          <div class="mini-grid">
+            <div class="mini">
+              <strong>Best for</strong>
+              <span>Why backend comes before agent, chat context assembly, tool-calling.</span>
+            </div>
+            <div class="mini">
+              <strong>Contains</strong>
+              <span>Recent turns, dossier, company memory, market memory, commentary evidence.</span>
+            </div>
+          </div>
+          <div class="cta">Open authority flow -></div>
+        </a>
+
+        <a class="card" href="/docs/architecture/tenn_ticker_map.html">
+          <div class="badge runtime">Ticker</div>
+          <h3>Ticker Map</h3>
+          <p>
+            Company-level interactive map driven by the backend company dump. Use it when you
+            want actual financial rows, filings, price context, failures, and memory surfaces
+            for one ticker in a visual layout.
+          </p>
+          <div class="mini-grid">
+            <div class="mini">
+              <strong>Best for</strong>
+              <span>Inspecting one company’s real data in the map.</span>
+            </div>
+            <div class="mini">
+              <strong>Needs</strong>
+              <span>A reachable backend URL, usually via forwarded port 8000.</span>
+            </div>
+          </div>
+          <div class="cta">Open ticker map -></div>
+        </a>
+
+        <a class="card" href="/graphify-out/graph.html">
+          <div class="badge graph">Graph</div>
+          <h3>Interactive Graph</h3>
+          <p>
+            The large repo-wide network view from `graphify-out`. Useful when you want exploration
+            across communities, files, and relationships rather than the curated architecture docs.
+          </p>
+          <div class="mini-grid">
+            <div class="mini">
+              <strong>Best for</strong>
+              <span>Exploratory graph navigation, cross-cutting codebase relationships.</span>
+            </div>
+            <div class="mini">
+              <strong>Note</strong>
+              <span>It is not the best first-stop explanation of the system architecture.</span>
+            </div>
+          </div>
+          <div class="cta">Open interactive graph -></div>
+        </a>
+      </div>
+    </div>
+  </body>
+</html>

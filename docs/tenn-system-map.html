@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tenn System Map</title>
+<title>Tenn Runtime Topology</title>
 <style>
   :root {
     --bg: #0d1117;
@@ -57,6 +57,7 @@
   .logo span { color: var(--accent); }
   .badge { background: var(--accent2); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 600; }
   .header-nav { display: flex; gap: 4px; }
+  .header-links { display: flex; gap: 8px; margin-right: 8px; }
   .nav-btn {
     background: none; border: 1px solid transparent; color: var(--text2);
     padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
@@ -64,6 +65,17 @@
   }
   .nav-btn:hover { border-color: var(--border); color: var(--text); background: var(--surface2); }
   .nav-btn.active { background: var(--surface2); border-color: var(--border); color: var(--accent); }
+  .header-link {
+    text-decoration: none;
+    color: var(--text2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    transition: all 0.15s;
+    background: var(--surface2);
+  }
+  .header-link:hover { color: var(--text); border-color: var(--accent); }
 
   .main { padding: 32px; max-width: 1600px; margin: 0 auto; }
 
@@ -366,6 +378,90 @@
   /* ── Section titles ── */
   .section-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
   .section-subtitle { font-size: 14px; color: var(--text2); margin-bottom: 24px; }
+  .view-banner {
+    background: linear-gradient(180deg, rgba(31,111,235,0.08), rgba(63,185,80,0.05));
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 24px;
+  }
+  .view-banner-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .view-banner-copy { font-size: 13px; color: var(--text2); line-height: 1.55; }
+  .view-grid {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .view-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    transition: all 0.18s;
+  }
+  .view-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .view-card strong { display: block; font-size: 13px; margin-bottom: 6px; }
+  .view-card span { display: block; font-size: 12px; color: var(--text2); line-height: 1.45; }
+  .signal-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin: 0 0 24px;
+  }
+  .signal-card {
+    background: linear-gradient(180deg, rgba(28,33,40,0.95), rgba(22,27,34,0.98));
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .signal-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .signal-copy {
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+  .signal-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .viewable-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin: 0 0 24px;
+  }
+  .viewable-card {
+    background: linear-gradient(180deg, rgba(28,33,40,0.95), rgba(22,27,34,0.98));
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .viewable-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .viewable-copy {
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+  .viewable-meta {
+    font-size: 11px;
+    color: var(--text3);
+    line-height: 1.45;
+  }
   .sub-section { margin-bottom: 32px; }
   .sub-section-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
   .sub-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
@@ -502,6 +598,12 @@
     align-items: center;
     overflow: auto;
   }
+  @media (max-width: 1100px) {
+    .signal-grid,
+    .viewable-grid {
+      grid-template-columns: 1fr;
+    }
+  }
 </style>
 <script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
@@ -531,10 +633,15 @@
 <!-- Header -->
 <div class="header">
   <div class="header-left">
-    <div class="logo">tenn <span>system map</span></div>
+    <div class="logo">tenn <span>runtime map</span></div>
     <div class="badge">v2 · 2026</div>
   </div>
   <div style="display:flex; align-items:center; gap:12px;">
+    <div class="header-links">
+      <a class="header-link" href="/docs/architecture/tenn_diagrams.html">Diagram Hub</a>
+      <a class="header-link" href="/docs/architecture/tenn_system_map_frontend.html">Authority Flow</a>
+      <a class="header-link" href="/docs/architecture/tenn_ticker_map.html">Ticker Map</a>
+    </div>
     <input class="search-bar" type="text" placeholder="Search components..." id="search" />
     <div class="header-nav">
       <button class="nav-btn active" onclick="showSection('overview')">Overview</button>
@@ -556,8 +663,82 @@
 <!-- OVERVIEW -->
 <!-- ══════════════════════════════════════════════════════ -->
 <div class="section active" id="section-overview">
-  <div class="section-title">Tenn System Architecture</div>
-  <div class="section-subtitle">Financial intelligence platform — ingestion, extraction, RAG, chat, and analysis</div>
+  <div class="section-title">Tenn Runtime Topology</div>
+  <div class="section-subtitle">Deployment and service view: what runs, where authority lives, and how the platform is physically composed.</div>
+
+  <div class="view-banner">
+    <div class="view-banner-title">This page is the runtime view.</div>
+    <div class="view-banner-copy">
+      Use this page when you want to understand the physical system: FastAPI, Celery, Redis,
+      Postgres, Qdrant, llama.cpp, ingestion, and extraction. If you want the control-flow
+      explanation for why the agent appears after the backend, use the Authority Flow diagram.
+    </div>
+    <div class="view-grid">
+      <a class="view-card" href="/docs/architecture/tenn_system_map_frontend.html">
+        <strong>Authority + Delegation Flow</strong>
+        <span>Frontend -> backend contract -> agent orchestration -> infra resources. Best for explaining tool-calling and approval-gated actions.</span>
+      </a>
+      <a class="view-card" href="/docs/architecture/tenn_diagrams.html">
+        <strong>Diagram Hub</strong>
+        <span>Open the landing page that compares both diagrams and tells you which one answers which question.</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="signal-grid">
+    <div class="signal-card">
+      <div class="signal-title">Chat Runtime</div>
+      <div class="signal-copy">Cockpit chat is an agent loop with SSE streaming, verification-aware prompts, recent-turn context, and action proposals. It is not just a thin message box.</div>
+      <div class="signal-tags">
+        <span class="tag blue">SSE streaming</span>
+        <span class="tag teal">Agent loop</span>
+        <span class="tag purple">Recent turns</span>
+      </div>
+    </div>
+    <div class="signal-card">
+      <div class="signal-title">Memory Surfaces</div>
+      <div class="signal-copy">The platform keeps chat history, dossier state, company memory, market memory, and commentary memo context across local SQLite state, `~/.tenn/memory`, and vector-backed stores.</div>
+      <div class="signal-tags">
+        <span class="tag gray">SQLite local</span>
+        <span class="tag teal">commentary_chunks</span>
+        <span class="tag green">company_memory</span>
+        <span class="tag green">market_memory</span>
+      </div>
+    </div>
+    <div class="signal-card">
+      <div class="signal-title">Retrieval Routing</div>
+      <div class="signal-copy">Chat requests do not hit one store. Financial truth routes to Postgres, commentary and documents route to Qdrant, and qualitative memory routes to SQLite-backed dossier stores.</div>
+      <div class="signal-tags">
+        <span class="tag teal">Postgres truth</span>
+        <span class="tag teal">Qdrant RAG</span>
+        <span class="tag green">SQLite-vec memory</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sub-section-title">What You Can Actually View For One Company</div>
+  <div class="viewable-grid">
+    <div class="viewable-card">
+      <div class="viewable-title">Structured Financials</div>
+      <div class="viewable-copy">Revenue, EBIT, NPAT, free cash flow, cash flow lines, and balance-sheet rows from extracted multi-period financials.</div>
+      <div class="viewable-meta">Source: `asx_periodic_financials` via `GET /api/context/ticker`</div>
+    </div>
+    <div class="viewable-card">
+      <div class="viewable-title">Filings + Announcements</div>
+      <div class="viewable-copy">ASX announcement records, filing prose, and document chunks backing the financial extraction and evidence chain.</div>
+      <div class="viewable-meta">Source: `documents` + `asx_docs` + announcements bundle</div>
+    </div>
+    <div class="viewable-card">
+      <div class="viewable-title">Written News + Commentary</div>
+      <div class="viewable-copy">News article chunks, commentary memos, and written evidence used for sentiment, catalysts, and narrative context.</div>
+      <div class="viewable-meta">Source: `news_chunks` + `commentary_chunks`</div>
+    </div>
+    <div class="viewable-card">
+      <div class="viewable-title">Dossier + Memory</div>
+      <div class="viewable-copy">Per-company notes, situations, prior findings, market context, and cockpit-local research memory that the agent can assemble into answers.</div>
+      <div class="viewable-meta">Source: `company_memory`, `market_memory`, chat history, `~/.tenn/memory/`</div>
+    </div>
+  </div>
 
   <div class="arch-diagram">
     <div class="arch-title">System Boundary Map</div>
@@ -672,16 +853,18 @@
       <div class="card-header">
         <div class="card-icon">🗄️</div>
         <div>
-          <div class="card-title">Data Layer</div>
+          <div class="card-title">Data + Memory Layer</div>
           <div class="card-subtitle">PostgreSQL + Qdrant + SQLite</div>
         </div>
       </div>
-      <p style="font-size:13px; color:var(--text2); line-height:1.5;">Three-layer storage: structured metrics in Postgres, vector chunks in Qdrant, qualitative memory in SQLite-vec. Deterministic vector IDs: {doc_id}:{chunk_idx}.</p>
+      <p style="font-size:13px; color:var(--text2); line-height:1.5;">Three-layer storage: structured metrics in Postgres, vector chunks in Qdrant, and chat or qualitative memory in SQLite-backed stores. Deterministic vector IDs: {doc_id}:{chunk_idx}.</p>
       <div class="card-tags">
         <span class="tag teal">asx_docs 768-dim</span>
         <span class="tag teal">news_chunks</span>
+        <span class="tag teal">commentary_chunks</span>
         <span class="tag green">company_memory</span>
         <span class="tag green">market_memory</span>
+        <span class="tag gray">chat_history</span>
       </div>
       <div class="card-metrics">
         <div class="metric"><div class="metric-value" style="color:var(--teal)">5</div><div class="metric-label">PG tables (core)</div></div>
@@ -716,21 +899,22 @@
       <div class="card-header">
         <div class="card-icon">💬</div>
         <div>
-          <div class="card-title">Cockpit Chat</div>
-          <div class="card-subtitle">Agent loop + tool calling + streaming SSE</div>
+          <div class="card-title">Cockpit Chat + Memory</div>
+          <div class="card-subtitle">Agent loop + tool calling + streaming SSE + memory context</div>
         </div>
       </div>
-      <p style="font-size:13px; color:var(--text2); line-height:1.5;">Agent loop gathers context from backend, builds system prompt with temporal anchoring, calls LLM with tools, executes tool calls, and streams response via SSE.</p>
+      <p style="font-size:13px; color:var(--text2); line-height:1.5;">Agent loop gathers context from backend, recent chat turns, dossier state, and company or market memory, builds a temporally anchored prompt, executes tools, and streams the result via SSE.</p>
       <div class="card-tags">
         <span class="tag teal">10+ tools</span>
         <span class="tag blue">SSE streaming</span>
         <span class="tag purple">Memory integration</span>
         <span class="tag green">Action proposals</span>
+        <span class="tag gray">Dossier state</span>
       </div>
       <div class="card-metrics">
         <div class="metric"><div class="metric-value" style="color:var(--teal)">10+</div><div class="metric-label">Agent tools</div></div>
         <div class="metric"><div class="metric-value" style="color:var(--accent)">12</div><div class="metric-label">Chat history ctx</div></div>
-        <div class="metric"><div class="metric-value" style="color:var(--purple)">2</div><div class="metric-label">Interfaces (TUI/Web)</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--purple)">2</div><div class="metric-label">Memory tiers</div></div>
       </div>
     </div>
 
@@ -762,8 +946,8 @@
 <!-- TOPOLOGY -->
 <!-- ══════════════════════════════════════════════════════ -->
 <div class="section" id="section-topology">
-  <div class="section-title">Visual Topology</div>
-  <div class="section-subtitle">Interactive end-to-end system architecture map</div>
+  <div class="section-title">Runtime Topology</div>
+  <div class="section-subtitle">Interactive service map of the deployed system and its runtime boundaries</div>
 
   <div class="topology-container">
     <div class="mermaid">
@@ -780,6 +964,13 @@ flowchart LR
     AUTH["Data Authority"]:::be
   end
 
+  subgraph VIEW["Viewable Company Data"]
+    FIN["Financial rows<br/>revenue • EBIT • NPAT • cash flow"]:::view
+    FIL["Filings + announcements<br/>documents • asx_docs"]:::view
+    WRI["News + commentary<br/>news_chunks • commentary_chunks"]:::view
+    MEM["Dossier + memory<br/>company_memory • market_memory"]:::view
+  end
+
   subgraph AG["Agent"]
     LP["AgentLoop"]:::agent
     EX["ToolExecutor"]:::agent
@@ -788,6 +979,7 @@ flowchart LR
   subgraph INFRA["Infrastructure"]
     DB[(Postgres)]:::data
     VS[(Qdrant)]:::data
+    SQL[(SQLite state)]:::data
     LLM[llama.cpp]:::data
     CEL[Celery/Redis]:::data
   end
@@ -795,9 +987,17 @@ flowchart LR
   U --> UI
   UI --> CL
   CL --> API
+  AUTH --> FIN
+  AUTH --> FIL
+  AUTH --> WRI
+  AUTH --> MEM
   API --> LP
   LP --> EX
 
+  FIN --> DB
+  FIL --> VS
+  WRI --> VS
+  MEM --> SQL
   EX -- read-only --> VS
   EX -- read-only --> LLM
   EX -- mutating --> CEL
@@ -810,6 +1010,7 @@ flowchart LR
   classDef be fill:#161b22,stroke:#30363d,stroke-width:2px,color:#fff
   classDef agent fill:#238636,stroke:#3fb950,stroke-width:2px,color:#fff
   classDef data fill:#0d1117,stroke:#21262d,stroke-width:1px,color:#8b949e
+  classDef view fill:#1c2128,stroke:#2dd4bf,stroke-width:2px,color:#fff
   classDef user fill:#bc8cff,stroke:#d2a8ff,stroke-width:2px,color:#fff
     </div>
   </div>
