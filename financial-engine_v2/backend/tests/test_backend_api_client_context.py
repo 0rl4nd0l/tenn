@@ -122,6 +122,116 @@ class TestGetCompanyDump:
                 client.get_company_dump("BHP")
 
 
+class TestMemoryMethods:
+    def test_get_memory_dump(self, client):
+        response_data = {
+            "ticker": "BHP",
+            "company_memory": {"entries": [], "change_log": []},
+            "market_memory": {"items": []},
+            "errors": [],
+        }
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.content = b'{"ticker":"BHP"}'
+        mock_response.json.return_value = response_data
+        mock_response.raise_for_status = MagicMock()
+
+        with patch("httpx.Client") as MockClient:
+            mock_http = MagicMock()
+            MockClient.return_value.__enter__ = MagicMock(return_value=mock_http)
+            MockClient.return_value.__exit__ = MagicMock(return_value=False)
+            mock_http.get.return_value = mock_response
+
+            result = client.get_memory_dump("BHP")
+
+        assert result["ticker"] == "BHP"
+        called = mock_http.get.call_args
+        assert called.kwargs["params"]["ticker"] == "BHP"
+        assert called.kwargs["headers"] == {}
+
+    def test_add_company_memory_note_posts_payload(self, client):
+        mock_response = MagicMock()
+        mock_response.content = b'{"ok": true}'
+        mock_response.json.return_value = {"ok": True, "entry": {"entry_id": 7}}
+        mock_response.raise_for_status = MagicMock()
+
+        with patch("httpx.Client") as MockClient:
+            mock_http = MagicMock()
+            MockClient.return_value.__enter__ = MagicMock(return_value=mock_http)
+            MockClient.return_value.__exit__ = MagicMock(return_value=False)
+            mock_http.post.return_value = mock_response
+
+            result = client.add_company_memory_note(
+                "bhp",
+                "Temporary rail outage is constraining exports.",
+            )
+
+        assert result["entry"]["entry_id"] == 7
+        called = mock_http.post.call_args
+        assert called.args[0].endswith("/api/context/memory/company/add")
+        assert called.kwargs["json"]["ticker"] == "BHP"
+        assert called.kwargs["json"]["type"] == "observed_fact"
+
+    def test_expire_company_memory_entry_posts_payload(self, client):
+        mock_response = MagicMock()
+        mock_response.content = b'{"ok": true}'
+        mock_response.json.return_value = {"ok": True}
+        mock_response.raise_for_status = MagicMock()
+
+        with patch("httpx.Client") as MockClient:
+            mock_http = MagicMock()
+            MockClient.return_value.__enter__ = MagicMock(return_value=mock_http)
+            MockClient.return_value.__exit__ = MagicMock(return_value=False)
+            mock_http.post.return_value = mock_response
+
+            client.expire_company_memory_entry("BHP", 11)
+
+        called = mock_http.post.call_args
+        assert called.args[0].endswith("/api/context/memory/company/expire")
+        assert called.kwargs["json"] == {"ticker": "BHP", "entry_id": 11}
+
+    def test_add_market_memory_note_defaults_to_sector_trend(self, client):
+        mock_response = MagicMock()
+        mock_response.content = b'{"ok": true}'
+        mock_response.json.return_value = {"ok": True, "entry": {"entry_id": 9}}
+        mock_response.raise_for_status = MagicMock()
+
+        with patch("httpx.Client") as MockClient:
+            mock_http = MagicMock()
+            MockClient.return_value.__enter__ = MagicMock(return_value=mock_http)
+            MockClient.return_value.__exit__ = MagicMock(return_value=False)
+            mock_http.post.return_value = mock_response
+
+            client.add_market_memory_note(
+                "BHP",
+                "Iron ore sentiment is improving.",
+            )
+
+        called = mock_http.post.call_args
+        assert called.args[0].endswith("/api/context/memory/market/add")
+        assert called.kwargs["json"]["ticker"] == "BHP"
+        assert called.kwargs["json"]["scope"] == "sector"
+        assert called.kwargs["json"]["type"] == "sector_trend"
+
+    def test_expire_market_memory_entry_posts_payload(self, client):
+        mock_response = MagicMock()
+        mock_response.content = b'{"ok": true}'
+        mock_response.json.return_value = {"ok": True}
+        mock_response.raise_for_status = MagicMock()
+
+        with patch("httpx.Client") as MockClient:
+            mock_http = MagicMock()
+            MockClient.return_value.__enter__ = MagicMock(return_value=mock_http)
+            MockClient.return_value.__exit__ = MagicMock(return_value=False)
+            mock_http.post.return_value = mock_response
+
+            client.expire_market_memory_entry(5, scope="macro")
+
+        called = mock_http.post.call_args
+        assert called.args[0].endswith("/api/context/memory/market/expire")
+        assert called.kwargs["json"] == {"entry_id": 5, "scope": "macro"}
+
+
 # ---------------------------------------------------------------------------
 # approve_transcript
 # ---------------------------------------------------------------------------

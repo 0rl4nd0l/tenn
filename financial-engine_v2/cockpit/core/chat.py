@@ -2804,6 +2804,456 @@ class ChatController:
             )
         return self._build_filestats_response(ticker, compact=True)
 
+    def _format_memory_output(
+        self,
+        ticker: str,
+        backend_dump: dict[str, Any],
+        cockpit_local_memory: dict[str, Any],
+        *,
+        compact: bool,
+    ) -> str:
+        company_memory = backend_dump.get("company_memory") or {}
+        market_memory = backend_dump.get("market_memory") or {}
+        company_entries = [
+            row
+            for row in (company_memory.get("entries") or [])
+            if isinstance(row, dict)
+        ]
+        company_change_log = [
+            row
+            for row in (company_memory.get("change_log") or [])
+            if isinstance(row, dict)
+        ]
+        market_items = [
+            row for row in (market_memory.get("items") or []) if isinstance(row, dict)
+        ]
+        local_agent = [
+            row
+            for row in (cockpit_local_memory.get("agent_memory") or [])
+            if isinstance(row, dict)
+        ]
+        local_dossier = [
+            row
+            for row in (cockpit_local_memory.get("dossier_findings") or [])
+            if isinstance(row, dict)
+        ]
+        local_watchlist = [
+            row
+            for row in (cockpit_local_memory.get("watchlist_history") or [])
+            if isinstance(row, dict)
+        ]
+        local_strategy = [
+            row
+            for row in (cockpit_local_memory.get("strategy_criteria") or [])
+            if isinstance(row, dict)
+        ]
+
+        def _limit(rows: list[dict[str, Any]], max_rows: int) -> tuple[list[dict[str, Any]], int]:
+            if not compact:
+                return rows, 0
+            return self._clip_rows(rows, max_rows=max_rows)
+
+        company_entries_view, company_entries_omitted = _limit(company_entries, 18)
+        company_change_view, company_change_omitted = _limit(company_change_log, 18)
+        market_view, market_omitted = _limit(market_items, 18)
+        local_agent_view, local_agent_omitted = _limit(local_agent, 12)
+        local_dossier_view, local_dossier_omitted = _limit(local_dossier, 12)
+        local_watchlist_view, local_watchlist_omitted = _limit(local_watchlist, 12)
+        local_strategy_view, local_strategy_omitted = _limit(local_strategy, 12)
+
+        lines: list[str] = [f"Memory View: {ticker}"]
+        lines.append(f"Generated: {datetime.now(timezone.utc).isoformat()}")
+        if compact:
+            lines.append(
+                "View: clean (compact). Use `/memory raw <TICKER>` for full rows."
+            )
+        else:
+            lines.append("View: raw (full rows).")
+        lines.append("")
+        lines.append("Summary")
+        lines.append(
+            f"- Backend company memory: {company_memory.get('entries_total', len(company_entries))} entries | Change log: {company_memory.get('change_log_total', len(company_change_log))}"
+        )
+        lines.append(
+            f"- Backend market memory: {market_memory.get('items_total', len(market_items))} items | Sector: {market_memory.get('sector') or '-'}"
+        )
+        lines.append(
+            f"- Cockpit-local memory: agent {len(local_agent)} | dossier {len(local_dossier)} | watchlist history {len(local_watchlist)} | strategy {len(local_strategy)}"
+        )
+        lines.append("")
+
+        lines.append("Backend Company Memory")
+        lines.append(
+            self._format_table(
+                ["ID", "Status", "Type", "Statement", "Confidence", "Materiality", "Source", "Last Seen"],
+                [
+                    [
+                        row.get("entry_id"),
+                        row.get("status"),
+                        row.get("type"),
+                        row.get("statement"),
+                        row.get("confidence"),
+                        row.get("materiality"),
+                        row.get("source"),
+                        row.get("last_seen_at"),
+                    ]
+                    for row in company_entries_view
+                ],
+                max_cell_chars=180,
+            )
+        )
+        if company_entries_omitted > 0:
+            lines.append(
+                f"... {company_entries_omitted} backend company-memory rows omitted in clean view."
+            )
+
+        lines.append("Backend Company Memory Changes")
+        lines.append(
+            self._format_table(
+                ["Change ID", "Entry ID", "Event", "Created", "Details"],
+                [
+                    [
+                        row.get("change_id"),
+                        row.get("entry_id"),
+                        row.get("event_type"),
+                        row.get("created_at"),
+                        row.get("details"),
+                    ]
+                    for row in company_change_view
+                ],
+                max_cell_chars=180,
+            )
+        )
+        if company_change_omitted > 0:
+            lines.append(
+                f"... {company_change_omitted} backend company-memory change rows omitted in clean view."
+            )
+
+        lines.append("Backend Market Memory")
+        lines.append(
+            self._format_table(
+                ["Scope", "Entity", "ID", "Status", "Type", "Statement", "Source", "Last Seen"],
+                [
+                    [
+                        "sector" if row.get("sector") else "macro",
+                        row.get("sector") or row.get("macro_topic"),
+                        row.get("entry_id"),
+                        row.get("status"),
+                        row.get("type"),
+                        row.get("statement"),
+                        row.get("source"),
+                        row.get("last_seen_at"),
+                    ]
+                    for row in market_view
+                ],
+                max_cell_chars=180,
+            )
+        )
+        if market_omitted > 0:
+            lines.append(
+                f"... {market_omitted} backend market-memory rows omitted in clean view."
+            )
+
+        lines.append("Cockpit Local Memory")
+        lines.append(
+            self._format_table(
+                ["Observed At", "Kind", "Observation"],
+                [
+                    [
+                        row.get("created_at") or row.get("observed_at"),
+                        row.get("kind") or row.get("type"),
+                        row.get("observation")
+                        or row.get("content")
+                        or row.get("statement")
+                        or row.get("summary")
+                        or row,
+                    ]
+                    for row in local_agent_view
+                ],
+                max_cell_chars=180,
+            )
+        )
+        if local_agent_omitted > 0:
+            lines.append(
+                f"... {local_agent_omitted} cockpit-local agent-memory rows omitted in clean view."
+            )
+        lines.append("Cockpit Dossier Findings")
+        lines.append(
+            self._format_table(
+                ["Date", "Category", "Finding", "Confidence", "Source"],
+                [
+                    [
+                        str(row.get("ts") or row.get("date") or "")[:10],
+                        row.get("category"),
+                        row.get("finding"),
+                        row.get("confidence"),
+                        row.get("source"),
+                    ]
+                    for row in local_dossier_view
+                ],
+                max_cell_chars=180,
+            )
+        )
+        if local_dossier_omitted > 0:
+            lines.append(
+                f"... {local_dossier_omitted} cockpit-local dossier rows omitted in clean view."
+            )
+        lines.append("Cockpit Watchlist History")
+        lines.append(
+            self._format_table(
+                ["Date", "Action", "Status", "Summary"],
+                [
+                    [
+                        str(row.get("created_at") or row.get("date") or "")[:10],
+                        row.get("action_id") or row.get("action"),
+                        row.get("status"),
+                        row.get("summary") or row.get("summary_json"),
+                    ]
+                    for row in local_watchlist_view
+                ],
+                max_cell_chars=180,
+            )
+        )
+        if local_watchlist_omitted > 0:
+            lines.append(
+                f"... {local_watchlist_omitted} cockpit-local watchlist rows omitted in clean view."
+            )
+        lines.append("Cockpit Strategy Criteria")
+        lines.append(
+            self._format_table(
+                ["ID", "Criterion", "Priority", "Decision"],
+                [
+                    [
+                        row.get("id"),
+                        row.get("criterion"),
+                        row.get("priority"),
+                        row.get("decision"),
+                    ]
+                    for row in local_strategy_view
+                ],
+                max_cell_chars=180,
+            )
+        )
+        if local_strategy_omitted > 0:
+            lines.append(
+                f"... {local_strategy_omitted} cockpit-local strategy rows omitted in clean view."
+            )
+
+        backend_errors = [e for e in (backend_dump.get("errors") or []) if e]
+        local_errors = [e for e in (cockpit_local_memory.get("errors") or []) if e]
+        if backend_errors or local_errors:
+            lines.append("Errors")
+            for item in backend_errors:
+                lines.append(f"- backend: {item}")
+            for item in local_errors:
+                lines.append(f"- cockpit-local: {item}")
+
+        return "\n".join(lines).strip()
+
+    def _build_memory_response(self, ticker: str, *, compact: bool) -> ChatResponse:
+        backend_client = getattr(self.tool_router, "backend_api_client", None)
+        if backend_client is None:
+            return ChatResponse(
+                text="Memory view unavailable: backend API client is not configured.",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        try:
+            backend_dump = backend_client.get_memory_dump(ticker=ticker)
+        except Exception as exc:
+            return ChatResponse(
+                text=f"Memory view failed for {ticker}: {exc}",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        if not isinstance(backend_dump, dict):
+            return ChatResponse(
+                text=f"Memory view failed for {ticker}: backend returned non-object payload.",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        local_memory = self._collect_cockpit_local_memory(ticker)
+        text = self._format_memory_output(
+            ticker,
+            backend_dump,
+            local_memory,
+            compact=compact,
+        )
+        return ChatResponse(
+            text=text,
+            evidence=[
+                {
+                    "type": "memory_dump",
+                    "details": {
+                        "ticker": ticker,
+                        "view_mode": "compact" if compact else "raw",
+                        "backend": backend_dump,
+                        "cockpit_local_memory": local_memory,
+                    },
+                }
+            ],
+            mode=ResponseMode.FAST,
+        )
+
+    def _slash_memory(self, sub: str, rest: str) -> ChatResponse | None:
+        raw = f"{sub} {rest}".strip()
+        tokens = [tok for tok in raw.split() if tok]
+        if not tokens:
+            return ChatResponse(
+                text=(
+                    "Usage: /memory show <TICKER>\n"
+                    "       /memory raw <TICKER>\n"
+                    "       /memory add [company|market] <TICKER> <NOTE>\n"
+                    "       /memory remove company <TICKER> <ENTRY_ID>\n"
+                    "       /memory remove market [sector|macro] <ENTRY_ID>"
+                ),
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        backend_client = getattr(self.tool_router, "backend_api_client", None)
+        if backend_client is None:
+            return ChatResponse(
+                text="Memory management unavailable: backend API client is not configured.",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        action = tokens.pop(0).lower()
+        if action in {"show", "raw"}:
+            compact = action != "raw"
+            if tokens and tokens[0].strip().lower() == "raw":
+                compact = False
+                tokens.pop(0)
+            if len(tokens) != 1:
+                return ChatResponse(
+                    text="Usage: /memory show <TICKER>\n       /memory raw <TICKER>",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+            ticker = tokens[0].strip().upper()
+            if not self._is_valid_dump_ticker(ticker):
+                return ChatResponse(
+                    text="Ticker must be 1-10 alphanumeric characters.",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+            return self._build_memory_response(ticker, compact=compact)
+
+        if action == "add":
+            scope = "company"
+            if tokens and tokens[0].strip().lower() in {"company", "market"}:
+                scope = tokens.pop(0).strip().lower()
+            if len(tokens) < 2:
+                return ChatResponse(
+                    text="Usage: /memory add [company|market] <TICKER> <NOTE>",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+            ticker = tokens.pop(0).strip().upper()
+            if not self._is_valid_dump_ticker(ticker):
+                return ChatResponse(
+                    text="Ticker must be 1-10 alphanumeric characters.",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+            statement = " ".join(tokens).strip()
+            if not statement:
+                return ChatResponse(
+                    text="Memory note must not be empty.",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+            try:
+                if scope == "market":
+                    result = backend_client.add_market_memory_note(ticker, statement)
+                else:
+                    result = backend_client.add_company_memory_note(ticker, statement)
+            except Exception as exc:
+                return ChatResponse(
+                    text=f"Memory add failed for {ticker}: {exc}",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+            entry = result.get("entry") if isinstance(result, dict) else None
+            entry_id = entry.get("entry_id") if isinstance(entry, dict) else None
+            return ChatResponse(
+                text=(
+                    f"Added {scope} memory for {ticker}."
+                    + (f" Entry ID: {entry_id}." if entry_id is not None else "")
+                ),
+                evidence=[{"type": "memory_mutation", "details": result}],
+                mode=ResponseMode.FAST,
+            )
+
+        if action == "remove":
+            scope = "company"
+            if tokens and tokens[0].strip().lower() in {"company", "market"}:
+                scope = tokens.pop(0).strip().lower()
+            try:
+                if scope == "market":
+                    market_scope = "sector"
+                    if tokens and tokens[0].strip().lower() in {"sector", "macro"}:
+                        market_scope = tokens.pop(0).strip().lower()
+                    if len(tokens) != 1:
+                        raise ValueError
+                    entry_id = int(tokens[0])
+                    result = backend_client.expire_market_memory_entry(
+                        entry_id,
+                        scope=market_scope,
+                    )
+                    message = (
+                        f"Expired market memory entry {entry_id} ({market_scope})."
+                    )
+                else:
+                    if len(tokens) != 2:
+                        raise ValueError
+                    ticker = tokens[0].strip().upper()
+                    if not self._is_valid_dump_ticker(ticker):
+                        return ChatResponse(
+                            text="Ticker must be 1-10 alphanumeric characters.",
+                            evidence=[],
+                            mode=ResponseMode.FAST,
+                        )
+                    entry_id = int(tokens[1])
+                    result = backend_client.expire_company_memory_entry(ticker, entry_id)
+                    message = f"Expired company memory entry {entry_id} for {ticker}."
+            except ValueError:
+                return ChatResponse(
+                    text=(
+                        "Usage: /memory remove company <TICKER> <ENTRY_ID>\n"
+                        "       /memory remove market [sector|macro] <ENTRY_ID>"
+                    ),
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+            except Exception as exc:
+                return ChatResponse(
+                    text=f"Memory remove failed: {exc}",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+            return ChatResponse(
+                text=message,
+                evidence=[{"type": "memory_mutation", "details": result}],
+                mode=ResponseMode.FAST,
+            )
+
+        return ChatResponse(
+            text=(
+                "Usage: /memory show <TICKER>\n"
+                "       /memory raw <TICKER>\n"
+                "       /memory add [company|market] <TICKER> <NOTE>\n"
+                "       /memory remove company <TICKER> <ENTRY_ID>\n"
+                "       /memory remove market [sector|macro] <ENTRY_ID>"
+            ),
+            evidence=[],
+            mode=ResponseMode.FAST,
+        )
+
     # -- Watchlist commands --------------------------------------------- #
 
     def _slash_watch(self, sub: str, rest: str) -> ChatResponse | None:
@@ -3281,6 +3731,7 @@ class ChatController:
         "/prompt": _slash_prompt,
         "/access": _slash_access,
         "/filestats": _slash_filestats,
+        "/memory": _slash_memory,
         "/watch": _slash_watch,
         "/strategy": _slash_strategy,
         "/run": _slash_run,

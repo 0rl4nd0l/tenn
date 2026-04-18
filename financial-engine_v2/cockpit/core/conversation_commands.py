@@ -87,6 +87,16 @@ def _(m, _msg):
     return f"/filestats {m.group(1).upper()}"
 
 
+@_rule(r"^([A-Za-z0-9]{1,10})\s+memory\s*$")
+def _(m, _msg):
+    return f"/memory show {m.group(1).upper()}"
+
+
+@_rule(r"\bshow\s+memory\s+for\s+([A-Za-z0-9]{1,10})\b")
+def _(m, _msg):
+    return f"/memory show {m.group(1).upper()}"
+
+
 @_rule(r"\bwhat\s+changed\b")
 def _(_m, _msg):
     return "/changes"

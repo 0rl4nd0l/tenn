@@ -11,6 +11,7 @@ from typing import Any, Callable, TypeVar
 from app.services.source_registry import RESEARCH_MEMORY_ROOT
 
 DEFAULT_COMPANY_MEMORY_PATH = RESEARCH_MEMORY_ROOT / "company_memory.sqlite"
+_MANUAL_SOURCE = "backend_manual"
 _SQLITE_TIMEOUT_SECONDS = 5.0
 _SQLITE_BUSY_TIMEOUT_MS = int(_SQLITE_TIMEOUT_SECONDS * 1000)
 _SQLITE_BUSY_RETRIES = 2
@@ -95,6 +96,10 @@ def _utc_now() -> str:
 
 def _normalize_statement(value: str) -> str:
     return " ".join(str(value or "").strip().lower().split())
+
+
+def _manual_source_id(prefix: str) -> str:
+    return f"{prefix}:{time.time_ns()}"
 
 
 def _is_transient_sqlite_busy(exc: sqlite3.OperationalError) -> bool:
@@ -315,6 +320,94 @@ class CompanyMemoryStore:
                 (normalized_company,),
             ).fetchall()
         return [self._change_row_to_dict(row) for row in rows]
+
+    def add_manual_entry(
+        self,
+        company_id: str,
+        *,
+        signal_type: str,
+        statement: str,
+        confidence: float = 0.0,
+        materiality: float = 0.0,
+        persistence: str = "medium",
+        supersedes: list[Any] | None = None,
+        contradicts: list[Any] | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        payload_metadata = dict(metadata or {})
+        payload_metadata.setdefault("manual", True)
+        return self.update_company_memory(
+            company_id,
+            {
+                "type": signal_type,
+                "statement": statement,
+                "confidence": confidence,
+                "materiality": materiality,
+                "persistence": persistence,
+                "status": "active",
+                "source": _MANUAL_SOURCE,
+                "source_id": _manual_source_id("company-manual"),
+                "supersedes": list(supersedes or []),
+                "contradicts": list(contradicts or []),
+                "metadata": payload_metadata,
+            },
+        )
+
+    def expire_entry(
+        self,
+        company_id: str,
+        entry_id: int,
+        *,
+        reason: str | None = None,
+    ) -> dict[str, Any]:
+        normalized_company = str(company_id or "").strip().upper()
+        if not normalized_company:
+            raise ValueError("company_id is required")
+        if int(entry_id) <= 0:
+            raise ValueError("entry_id must be positive")
+        now = _utc_now()
+        source_id = _manual_source_id("company-expire")
+
+        def _expire(conn: sqlite3.Connection) -> dict[str, Any]:
+            row = conn.execute(
+                """
+                SELECT * FROM memory_entries
+                WHERE company_id = ? AND entry_id = ?
+                LIMIT 1
+                """,
+                (normalized_company, int(entry_id)),
+            ).fetchone()
+            if row is None:
+                raise ValueError(f"company memory entry not found: {entry_id}")
+            existing = self._row_to_dict(row)
+            if str(existing.get("status") or "").strip().lower() != "active":
+                raise ValueError(
+                    f"company memory entry is not active: {int(existing['entry_id'])}"
+                )
+
+            conn.execute(
+                """
+                UPDATE memory_entries
+                SET status = 'expired', closed_at = ?, last_seen_at = ?
+                WHERE entry_id = ?
+                """,
+                (now, now, int(entry_id)),
+            )
+            details = {"source": _MANUAL_SOURCE, "source_id": source_id}
+            if reason:
+                details["reason"] = str(reason).strip()
+            self._insert_change_log(
+                conn,
+                normalized_company,
+                int(entry_id),
+                "expire",
+                details,
+                now,
+            )
+            self._sync_company_summary(conn, normalized_company, now)
+            return {"rule": "expire", "entry": self._get_entry_by_id(conn, int(entry_id))}
+
+        return self._run_write_transaction(_expire)
 
     def retrieve(
         self,
@@ -674,6 +767,46 @@ def update_company_memory(
     path: str | Path | None = None,
 ) -> dict[str, Any]:
     return CompanyMemoryStore(path).update_company_memory(company_id, signal)
+
+
+def add_manual_company_memory_entry(
+    company_id: str,
+    *,
+    signal_type: str,
+    statement: str,
+    confidence: float = 0.0,
+    materiality: float = 0.0,
+    persistence: str = "medium",
+    supersedes: list[Any] | None = None,
+    contradicts: list[Any] | None = None,
+    metadata: dict[str, Any] | None = None,
+    path: str | Path | None = None,
+) -> dict[str, Any]:
+    return CompanyMemoryStore(path).add_manual_entry(
+        company_id,
+        signal_type=signal_type,
+        statement=statement,
+        confidence=confidence,
+        materiality=materiality,
+        persistence=persistence,
+        supersedes=supersedes,
+        contradicts=contradicts,
+        metadata=metadata,
+    )
+
+
+def expire_company_memory_entry(
+    company_id: str,
+    entry_id: int,
+    *,
+    reason: str | None = None,
+    path: str | Path | None = None,
+) -> dict[str, Any]:
+    return CompanyMemoryStore(path).expire_entry(
+        company_id,
+        entry_id,
+        reason=reason,
+    )
 
 
 def _query_terms(query: str) -> set[str]:

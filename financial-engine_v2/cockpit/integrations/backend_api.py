@@ -401,6 +401,116 @@ class BackendApiClient:
             response.raise_for_status()
             return response.json() if response.content else {}
 
+    def get_memory_dump(
+        self,
+        ticker: str,
+        *,
+        company_memory_entries_limit: int | None = None,
+        company_memory_change_limit: int | None = None,
+        market_memory_limit: int | None = None,
+        timeout: float = 20.0,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}/api/context/memory"
+        params: dict[str, Any] = {"ticker": str(ticker or "").strip().upper()}
+        if company_memory_entries_limit is not None:
+            params["company_memory_entries_limit"] = company_memory_entries_limit
+        if company_memory_change_limit is not None:
+            params["company_memory_change_limit"] = company_memory_change_limit
+        if market_memory_limit is not None:
+            params["market_memory_limit"] = market_memory_limit
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.get(
+                url,
+                params=params,
+                headers=self._api_key_headers(),
+            )
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
+    def add_company_memory_note(
+        self,
+        ticker: str,
+        statement: str,
+        *,
+        type_: str = "observed_fact",
+        confidence: float = 0.75,
+        materiality: float = 0.7,
+        persistence: str = "medium",
+        timeout: float = 20.0,
+    ) -> dict[str, Any]:
+        return self._ops_post(
+            "/api/context/memory/company/add",
+            json={
+                "ticker": str(ticker or "").strip().upper(),
+                "statement": str(statement or "").strip(),
+                "type": str(type_ or "").strip().lower(),
+                "confidence": float(confidence),
+                "materiality": float(materiality),
+                "persistence": str(persistence or "").strip().lower(),
+            },
+            timeout=timeout,
+        )
+
+    def expire_company_memory_entry(
+        self,
+        ticker: str,
+        entry_id: int,
+        *,
+        timeout: float = 20.0,
+    ) -> dict[str, Any]:
+        return self._ops_post(
+            "/api/context/memory/company/expire",
+            json={
+                "ticker": str(ticker or "").strip().upper(),
+                "entry_id": int(entry_id),
+            },
+            timeout=timeout,
+        )
+
+    def add_market_memory_note(
+        self,
+        ticker: str,
+        statement: str,
+        *,
+        scope: str = "sector",
+        type_: str | None = None,
+        confidence: float = 0.75,
+        materiality: float = 0.7,
+        persistence: str = "medium",
+        timeout: float = 20.0,
+    ) -> dict[str, Any]:
+        normalized_scope = str(scope or "sector").strip().lower()
+        default_type = "sector_trend" if normalized_scope == "sector" else "macro_theme"
+        return self._ops_post(
+            "/api/context/memory/market/add",
+            json={
+                "ticker": str(ticker or "").strip().upper(),
+                "statement": str(statement or "").strip(),
+                "scope": normalized_scope,
+                "type": str(type_ or default_type).strip().lower(),
+                "confidence": float(confidence),
+                "materiality": float(materiality),
+                "persistence": str(persistence or "").strip().lower(),
+            },
+            timeout=timeout,
+        )
+
+    def expire_market_memory_entry(
+        self,
+        entry_id: int,
+        *,
+        scope: str,
+        timeout: float = 20.0,
+    ) -> dict[str, Any]:
+        return self._ops_post(
+            "/api/context/memory/market/expire",
+            json={
+                "entry_id": int(entry_id),
+                "scope": str(scope or "").strip().lower(),
+            },
+            timeout=timeout,
+        )
+
     def process_document(
         self,
         document_id: str,

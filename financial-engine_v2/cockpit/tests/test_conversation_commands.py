@@ -11,6 +11,14 @@ def test_filestat_singular_maps_to_slash_command() -> None:
     assert derive_conversational_command("bhpt filestat") == "/filestats BHPT"
 
 
+def test_memory_phrase_maps_to_slash_command() -> None:
+    assert derive_conversational_command("bhp memory") == "/memory show BHP"
+
+
+def test_show_memory_phrase_maps_to_slash_command() -> None:
+    assert derive_conversational_command("show memory for rio") == "/memory show RIO"
+
+
 def test_non_command_phrase_returns_none() -> None:
     assert derive_conversational_command("tell me about bhp") is None
 

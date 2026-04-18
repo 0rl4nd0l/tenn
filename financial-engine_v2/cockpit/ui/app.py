@@ -59,6 +59,7 @@ from cockpit.ui.screens import (
     ChatScreen,
     ConfirmActionScreen,
     HistoryScreen,
+    MemoryScreen,
     NewsSearchScreen,
     OperationsScreen,
     SettingsScreen,
@@ -145,9 +146,41 @@ class CockpitApp(App):
     #chat-live-response.-visible {
         display: block;
     }
+    #memory-controls {
+        margin: 0 0 1 0;
+    }
+    #memory-controls Button {
+        min-width: 16;
+    }
+    #memory-note-controls {
+        margin: 0 0 1 0;
+    }
+    #memory-note-scope {
+        width: 18;
+    }
+    #memory-note-type {
+        width: 28;
+    }
+    #memory-note {
+        width: 1fr;
+    }
+    #memory-table {
+        height: 1fr;
+        min-height: 10;
+        border: round $surface;
+    }
+    #memory-summary {
+        height: 1;
+        color: $accent;
+    }
+    #memory-status {
+        min-height: 2;
+        margin: 1 0 0 0;
+    }
     """
     BINDINGS = [
         Binding("c", "show_chat", "Chat"),
+        Binding("m", "show_memory", "Memory"),
         Binding("o", "show_ops", "Ops"),
         Binding("u", "show_updater", "Updater"),
         Binding("v", "show_verification", "Verify"),
@@ -713,6 +746,7 @@ class CockpitApp(App):
         """Install screens and surface startup info. Called by on_mount (normal flow)
         and by CockpitWebApp._on_preboot_launch (deferred web flow)."""
         self.install_screen(ChatScreen(), name="chat")
+        self.install_screen(MemoryScreen(), name="memory")
         self.install_screen(OperationsScreen(), name="ops")
         self.install_screen(UpdaterScreen(), name="updater")
         self.install_screen(VerificationScreen(), name="verification")
@@ -2645,6 +2679,9 @@ class CockpitApp(App):
 
     def action_show_chat(self) -> None:
         self.push_screen("chat")
+
+    def action_show_memory(self) -> None:
+        self.push_screen("memory")
 
     def action_show_ops(self) -> None:
         self.push_screen("ops")

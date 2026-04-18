@@ -151,6 +151,61 @@ def test_expire_macro_entry_updates_existing_state_without_new_insert(
     assert entries[0]["status"] == "expired"
 
 
+def test_add_manual_sector_entry_marks_metadata_and_uses_manual_source(
+    tmp_path: Path,
+) -> None:
+    store = MarketMemoryStore(tmp_path / "market_memory.sqlite")
+
+    result = store.add_manual_entry(
+        scope="sector",
+        signal_type="sector_trend",
+        statement="Smelter availability is tightening.",
+        sector="Materials",
+        linked_tickers=["BHP"],
+        metadata={"operator": "alex"},
+    )
+
+    assert result["rule"] == "insert"
+    entry = store.list_sector_entries("Materials")[0]
+    assert entry["source"] == "backend_manual"
+    assert entry["metadata"]["manual"] is True
+    assert entry["metadata"]["operator"] == "alex"
+    assert entry["linked_tickers"] == ["BHP"]
+
+
+def test_expire_market_entry_soft_expires_by_entry_id(tmp_path: Path) -> None:
+    store = MarketMemoryStore(tmp_path / "market_memory.sqlite")
+    inserted = store.add_manual_entry(
+        scope="macro",
+        signal_type="macro_theme",
+        statement="China policy support is broadening.",
+        macro_topic="China stimulus",
+    )
+
+    result = store.expire_entry(
+        scope="macro",
+        entry_id=inserted["entry"]["entry_id"],
+        reason="cleanup",
+    )
+
+    assert result["rule"] == "expire"
+    entry = store.list_macro_entries("China stimulus")[0]
+    assert entry["status"] == "expired"
+    assert store.list_change_log()[-1]["details"]["reason"] == "cleanup"
+
+
+def test_manual_market_entry_rejects_financial_metric_signals(tmp_path: Path) -> None:
+    store = MarketMemoryStore(tmp_path / "market_memory.sqlite")
+
+    with pytest.raises(ValueError, match="financial"):
+        store.add_manual_entry(
+            scope="sector",
+            signal_type="revenue",
+            statement="Sector revenue is accelerating.",
+            sector="Materials",
+        )
+
+
 def test_retrieve_links_sector_memory_to_company_and_includes_macro_context(
     tmp_path: Path,
 ) -> None:

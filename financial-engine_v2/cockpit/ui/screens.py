@@ -88,6 +88,42 @@ def _backend_ops_tail_line(job: dict[str, Any]) -> str:
     return " | ".join(pieces)
 
 
+_MEMORY_SCOPE_OPTIONS: list[tuple[str, str]] = [
+    ("Company", "company"),
+    ("Sector", "sector"),
+    ("Macro", "macro"),
+]
+
+_MEMORY_DEFAULT_TYPES: dict[str, str] = {
+    "company": "observed_fact",
+    "sector": "sector_trend",
+    "macro": "macro_theme",
+}
+
+
+def _memory_timestamp(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return "-"
+    return text[:19].replace("T", " ")
+
+
+def _memory_change_summary(details: Any) -> str:
+    if not isinstance(details, dict) or not details:
+        return "-"
+
+    parts: list[str] = []
+    for key, value in details.items():
+        if isinstance(value, list):
+            rendered = ", ".join(str(item) for item in value[:4])
+            if len(value) > 4:
+                rendered = f"{rendered}, ..."
+            parts.append(f"{key}=[{rendered}]")
+            continue
+        parts.append(f"{key}={value}")
+    return "; ".join(parts) if parts else "-"
+
+
 class TickerInputScreen(ModalScreen[str]):
     """Modal that prompts the user for a ticker before running a ticker-specific action."""
 
@@ -195,6 +231,7 @@ class ChatScreen(Screen):
         yield Vertical(
             Horizontal(
                 Button("Copy Chat/Output", id="chat-copy-output"),
+                Button("Open Memory", id="chat-open-memory"),
                 Button("Open Operations", id="chat-open-ops"),
                 Button("Help", id="chat-open-help"),
             ),
@@ -291,6 +328,9 @@ class ChatScreen(Screen):
             pass
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "chat-open-memory":
+            self.app.action_show_memory()
+            return
         if event.button.id == "chat-open-ops":
             self.app.action_show_ops()
             return
@@ -1143,6 +1183,385 @@ class VerificationScreen(Screen):
         if self._review_items and self._review_index < len(self._review_items) - 1:
             self._review_index += 1
             self._render_review_item()
+
+
+class MemoryScreen(Screen):
+    BINDINGS = [
+        ("escape", "app.show_chat", "Back"),
+        ("r", "refresh", "Refresh"),
+        ("d", "expire_selected", "Expire"),
+    ]
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._loaded_ticker: str = ""
+        self._memory_rows: list[dict[str, Any]] = []
+        self._memory_payload: dict[str, Any] = {}
+
+    def compose(self) -> ComposeResult:
+        yield Label("Backend Memory")
+        yield Horizontal(
+            Input(value="", id="memory-ticker", placeholder="Ticker (e.g. BHP)"),
+            Button("Load", id="memory-load", variant="primary"),
+            Button("Refresh", id="memory-refresh"),
+            Button("Expire Selected", id="memory-expire", variant="warning"),
+            id="memory-controls",
+        )
+        yield Horizontal(
+            Select(
+                [(label, value) for label, value in _MEMORY_SCOPE_OPTIONS],
+                value="company",
+                id="memory-note-scope",
+                prompt="Scope",
+            ),
+            Input(
+                value="",
+                id="memory-note-type",
+                placeholder="Type (blank uses scope default)",
+            ),
+            Input(value="", id="memory-note", placeholder="Manual note"),
+            Button("Add Note", id="memory-add-note", variant="success"),
+            id="memory-note-controls",
+        )
+        yield Static("No ticker loaded.", id="memory-summary")
+        yield DataTable(id="memory-table")
+        yield Static("", id="memory-status")
+
+    def on_mount(self) -> None:
+        table = self.query_one("#memory-table", DataTable)
+        table.cursor_type = "row"
+        table.add_columns("Source", "ID", "Entity", "Type", "Status", "Seen", "Statement")
+        self.query_one("#memory-ticker", Input).focus()
+
+    def _backend_client(self) -> Any | None:
+        return getattr(self.app, "_backend_client", None)
+
+    def _set_status(self, message: str) -> None:
+        self.query_one("#memory-status", Static).update(str(message or ""))
+
+    def _resolve_ticker(self) -> str:
+        raw = self.query_one("#memory-ticker", Input).value.strip().upper()
+        return raw or self._loaded_ticker
+
+    def _selected_note_scope(self) -> str:
+        value = self.query_one("#memory-note-scope", Select).value
+        if isinstance(value, str) and value in _MEMORY_DEFAULT_TYPES:
+            return value
+        return "company"
+
+    def _selected_row(self) -> dict[str, Any] | None:
+        if not self._memory_rows:
+            return None
+        table = self.query_one("#memory-table", DataTable)
+        try:
+            row_index = int(getattr(table, "cursor_row", 0) or 0)
+        except Exception:
+            row_index = 0
+        if 0 <= row_index < len(self._memory_rows):
+            return self._memory_rows[row_index]
+        return None
+
+    def _build_memory_rows(self, payload: dict[str, Any], ticker: str) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        company_memory = (
+            payload.get("company_memory")
+            if isinstance(payload.get("company_memory"), dict)
+            else {}
+        )
+        market_memory = (
+            payload.get("market_memory")
+            if isinstance(payload.get("market_memory"), dict)
+            else {}
+        )
+        sector_name = str(market_memory.get("sector") or "").strip() or "sector"
+
+        for item in company_memory.get("entries") or []:
+            if not isinstance(item, dict):
+                continue
+            entry_id = int(item.get("entry_id") or 0)
+            status = str(item.get("status") or "-")
+            rows.append(
+                {
+                    "kind": "company",
+                    "display_id": str(entry_id or "-"),
+                    "entry_id": entry_id,
+                    "ticker": ticker,
+                    "scope": "company",
+                    "entity": ticker,
+                    "type": str(item.get("type") or "-"),
+                    "status": status,
+                    "seen_at": _memory_timestamp(
+                        item.get("last_seen_at") or item.get("created_at")
+                    ),
+                    "statement": str(item.get("statement") or "-"),
+                    "removable": status.lower() == "active" and entry_id > 0,
+                }
+            )
+
+        for item in market_memory.get("sector_items") or []:
+            if not isinstance(item, dict):
+                continue
+            entry_id = int(item.get("entry_id") or 0)
+            status = str(item.get("status") or "-")
+            rows.append(
+                {
+                    "kind": "sector",
+                    "display_id": str(entry_id or "-"),
+                    "entry_id": entry_id,
+                    "ticker": ticker,
+                    "scope": "sector",
+                    "entity": str(item.get("sector") or sector_name),
+                    "type": str(item.get("type") or "-"),
+                    "status": status,
+                    "seen_at": _memory_timestamp(
+                        item.get("last_seen_at") or item.get("created_at")
+                    ),
+                    "statement": str(item.get("statement") or "-"),
+                    "removable": status.lower() == "active" and entry_id > 0,
+                }
+            )
+
+        for item in market_memory.get("macro_items") or []:
+            if not isinstance(item, dict):
+                continue
+            entry_id = int(item.get("entry_id") or 0)
+            status = str(item.get("status") or "-")
+            rows.append(
+                {
+                    "kind": "macro",
+                    "display_id": str(entry_id or "-"),
+                    "entry_id": entry_id,
+                    "ticker": ticker,
+                    "scope": "macro",
+                    "entity": str(item.get("macro_topic") or "macro"),
+                    "type": str(item.get("type") or "-"),
+                    "status": status,
+                    "seen_at": _memory_timestamp(
+                        item.get("last_seen_at") or item.get("created_at")
+                    ),
+                    "statement": str(item.get("statement") or "-"),
+                    "removable": status.lower() == "active" and entry_id > 0,
+                }
+            )
+
+        for item in company_memory.get("change_log") or []:
+            if not isinstance(item, dict):
+                continue
+            change_id = int(item.get("change_id") or 0)
+            rows.append(
+                {
+                    "kind": "company-log",
+                    "display_id": f"log:{change_id}" if change_id else "log",
+                    "entry_id": change_id,
+                    "ticker": ticker,
+                    "scope": "company-log",
+                    "entity": ticker,
+                    "type": str(item.get("event_type") or "change"),
+                    "status": "log",
+                    "seen_at": _memory_timestamp(item.get("created_at")),
+                    "statement": _memory_change_summary(item.get("details")),
+                    "removable": False,
+                }
+            )
+        return rows
+
+    def _render_memory_rows(self) -> None:
+        table = self.query_one("#memory-table", DataTable)
+        table.clear()
+        for row in self._memory_rows:
+            table.add_row(
+                row["kind"],
+                row["display_id"],
+                row["entity"],
+                row["type"],
+                row["status"],
+                row["seen_at"],
+                row["statement"],
+            )
+
+    def _render_summary(self, payload: dict[str, Any], ticker: str) -> None:
+        company_memory = (
+            payload.get("company_memory")
+            if isinstance(payload.get("company_memory"), dict)
+            else {}
+        )
+        market_memory = (
+            payload.get("market_memory")
+            if isinstance(payload.get("market_memory"), dict)
+            else {}
+        )
+        summary = (
+            f"{ticker} | company entries: "
+            f"{int(company_memory.get('entries_total', len(company_memory.get('entries') or [])) or 0)}"
+            f" | company changes: "
+            f"{int(company_memory.get('change_log_total', len(company_memory.get('change_log') or [])) or 0)}"
+            f" | market items: "
+            f"{int(market_memory.get('items_total', len(market_memory.get('items') or [])) or 0)}"
+            f" | sector: {market_memory.get('sector') or '-'}"
+        )
+        self.query_one("#memory-summary", Static).update(summary)
+
+    async def _load_memory(
+        self,
+        *,
+        ticker: str | None = None,
+        notice: str | None = None,
+    ) -> None:
+        client = self._backend_client()
+        if client is None:
+            self._set_status("Backend API client not configured.")
+            return
+
+        resolved_ticker = str(ticker or self._resolve_ticker()).strip().upper()
+        if not resolved_ticker:
+            self._set_status("Ticker is required.")
+            return
+
+        self.query_one("#memory-ticker", Input).value = resolved_ticker
+        try:
+            payload = await asyncio.to_thread(
+                client.get_memory_dump,
+                resolved_ticker,
+                company_memory_entries_limit=300,
+                company_memory_change_limit=150,
+                market_memory_limit=150,
+            )
+        except Exception as exc:
+            self._set_status(f"Failed to load memory for {resolved_ticker}: {exc}")
+            return
+
+        payload = payload if isinstance(payload, dict) else {}
+        self._loaded_ticker = resolved_ticker
+        self._memory_payload = payload
+        self._memory_rows = self._build_memory_rows(payload, resolved_ticker)
+        self._render_memory_rows()
+        self._render_summary(payload, resolved_ticker)
+
+        errors = payload.get("errors") if isinstance(payload.get("errors"), list) else []
+        status_parts: list[str] = []
+        if notice:
+            status_parts.append(notice)
+        if errors:
+            status_parts.append("Errors: " + "; ".join(str(err) for err in errors))
+        else:
+            status_parts.append(
+                f"Loaded {len(self._memory_rows)} row(s) for {resolved_ticker}."
+            )
+        self._set_status(" ".join(status_parts))
+
+    async def _add_note(self) -> None:
+        client = self._backend_client()
+        if client is None:
+            self._set_status("Backend API client not configured.")
+            return
+
+        ticker = self._resolve_ticker()
+        if not ticker:
+            self._set_status("Ticker is required before adding a note.")
+            return
+
+        note = self.query_one("#memory-note", Input).value.strip()
+        if not note:
+            self._set_status("Enter a note before submitting.")
+            return
+
+        scope = self._selected_note_scope()
+        raw_type = self.query_one("#memory-note-type", Input).value.strip().lower()
+        try:
+            if scope == "company":
+                result = await asyncio.to_thread(
+                    client.add_company_memory_note,
+                    ticker,
+                    note,
+                    type_=raw_type or _MEMORY_DEFAULT_TYPES["company"],
+                )
+            else:
+                result = await asyncio.to_thread(
+                    client.add_market_memory_note,
+                    ticker,
+                    note,
+                    scope=scope,
+                    type_=raw_type or None,
+                )
+        except Exception as exc:
+            self._set_status(f"Failed to add {scope} note for {ticker}: {exc}")
+            return
+
+        self.query_one("#memory-note", Input).value = ""
+        self.query_one("#memory-note-type", Input).value = ""
+        entry = result.get("entry") if isinstance(result, dict) else {}
+        entry_id = entry.get("entry_id") if isinstance(entry, dict) else None
+        await self._load_memory(
+            ticker=ticker,
+            notice=f"Added {scope} note{f' {entry_id}' if entry_id else ''} for {ticker}.",
+        )
+
+    async def _expire_selected(self) -> None:
+        client = self._backend_client()
+        if client is None:
+            self._set_status("Backend API client not configured.")
+            return
+
+        row = self._selected_row()
+        if row is None:
+            self._set_status("Select a memory row first.")
+            return
+        if not bool(row.get("removable")):
+            self._set_status("Select an active company, sector, or macro memory row.")
+            return
+
+        entry_id = int(row.get("entry_id") or 0)
+        if entry_id <= 0:
+            self._set_status("Selected row does not have a valid entry id.")
+            return
+
+        try:
+            if row.get("scope") == "company":
+                await asyncio.to_thread(
+                    client.expire_company_memory_entry,
+                    str(row.get("ticker") or self._loaded_ticker),
+                    entry_id,
+                )
+            else:
+                await asyncio.to_thread(
+                    client.expire_market_memory_entry,
+                    entry_id,
+                    scope=str(row.get("scope") or ""),
+                )
+        except Exception as exc:
+            self._set_status(f"Failed to expire row {row.get('display_id')}: {exc}")
+            return
+
+        await self._load_memory(
+            ticker=str(row.get("ticker") or self._loaded_ticker),
+            notice=f"Expired {row.get('kind')} row {row.get('display_id')}.",
+        )
+
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "memory-load":
+            await self._load_memory()
+            return
+        if event.button.id == "memory-refresh":
+            await self._load_memory()
+            return
+        if event.button.id == "memory-add-note":
+            await self._add_note()
+            return
+        if event.button.id == "memory-expire":
+            await self._expire_selected()
+
+    async def on_input_submitted(self, event: Input.Submitted) -> None:
+        if event.input.id == "memory-ticker":
+            await self._load_memory()
+            return
+        if event.input.id in {"memory-note", "memory-note-type"}:
+            await self._add_note()
+
+    async def action_refresh(self) -> None:
+        await self._load_memory()
+
+    async def action_expire_selected(self) -> None:
+        await self._expire_selected()
 
 
 class HistoryScreen(Screen):

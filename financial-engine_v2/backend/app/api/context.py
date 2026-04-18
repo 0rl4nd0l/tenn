@@ -10,13 +10,15 @@ import logging
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException, Query, Depends
+from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
+from app.api.routes import require_api_key
 from app.core.config import settings
 from app.core.db import get_db
 from app.providers.market_price_provider import (
@@ -30,6 +32,48 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["context"])
 
 _TICKER_RE = re.compile(r"^[A-Z0-9]{1,10}$")
+
+
+class CompanyMemoryAddRequest(BaseModel):
+    ticker: str
+    type: str
+    statement: str
+    confidence: float = Field(default=0.7, ge=0.0, le=1.0)
+    materiality: float = Field(default=0.7, ge=0.0, le=1.0)
+    persistence: Literal["short", "medium", "long"] = "medium"
+    supersedes: list[int | str] = Field(default_factory=list)
+    contradicts: list[int | str] = Field(default_factory=list)
+    note: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class CompanyMemoryExpireRequest(BaseModel):
+    ticker: str
+    entry_id: int = Field(ge=1)
+    note: str | None = None
+
+
+class MarketMemoryAddRequest(BaseModel):
+    scope: Literal["sector", "macro"]
+    type: str
+    statement: str
+    ticker: str | None = None
+    sector: str | None = None
+    macro_topic: str | None = None
+    linked_tickers: list[str] = Field(default_factory=list)
+    confidence: float = Field(default=0.7, ge=0.0, le=1.0)
+    materiality: float = Field(default=0.7, ge=0.0, le=1.0)
+    persistence: Literal["short", "medium", "long"] = "medium"
+    supersedes: list[int | str] = Field(default_factory=list)
+    contradicts: list[int | str] = Field(default_factory=list)
+    note: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class MarketMemoryExpireRequest(BaseModel):
+    scope: Literal["sector", "macro"]
+    entry_id: int = Field(ge=1)
+    note: str | None = None
 
 
 def _validate_ticker(raw: str) -> str:
@@ -284,6 +328,248 @@ def _load_market_memory(
             "macro_items": [],
             "items": [],
         }, str(exc)
+
+
+def _manual_memory_metadata(
+    metadata: dict[str, Any],
+    *,
+    note: str | None,
+) -> dict[str, Any]:
+    payload = dict(metadata or {})
+    payload.setdefault("manual", True)
+    if note:
+        payload["manual_note"] = str(note).strip()
+    return payload
+
+
+def _memory_error_status(detail: str) -> int:
+    lowered = detail.lower()
+    if "not found" in lowered or "no active" in lowered:
+        return 404
+    return 400
+
+
+def _resolve_market_add_payload(request: MarketMemoryAddRequest) -> dict[str, Any]:
+    ticker = _validate_ticker(request.ticker) if request.ticker else None
+    linked_tickers: list[str] = []
+    if ticker:
+        linked_tickers.append(ticker)
+    for raw in request.linked_tickers:
+        candidate = _validate_ticker(raw)
+        if candidate not in linked_tickers:
+            linked_tickers.append(candidate)
+
+    payload: dict[str, Any] = {
+        "scope": request.scope,
+        "signal_type": request.type,
+        "statement": request.statement,
+        "confidence": request.confidence,
+        "materiality": request.materiality,
+        "persistence": request.persistence,
+        "supersedes": request.supersedes,
+        "contradicts": request.contradicts,
+        "metadata": _manual_memory_metadata(request.metadata, note=request.note),
+    }
+
+    if request.scope == "sector":
+        sector = str(request.sector or "").strip()
+        if not sector and ticker:
+            from app.services.analysis.sector_comparison import get_sector_for_ticker
+
+            sector = str(get_sector_for_ticker(ticker) or "").strip()
+        if not sector:
+            raise ValueError("sector is required for sector market memory entries")
+        payload["sector"] = sector
+        payload["linked_tickers"] = linked_tickers
+        return payload
+
+    macro_topic = str(request.macro_topic or "").strip()
+    if not macro_topic:
+        raise ValueError("macro_topic is required for macro market memory entries")
+    payload["macro_topic"] = macro_topic
+    return payload
+
+
+# ---------------------------------------------------------------------------
+# GET /api/context/memory
+# ---------------------------------------------------------------------------
+
+
+@router.get("/memory")
+def get_memory_context(
+    ticker: str,
+    company_memory_entries_limit: int = Query(default=400, ge=1, le=2000),
+    company_memory_change_limit: int = Query(default=400, ge=1, le=2000),
+    market_memory_limit: int = Query(default=300, ge=1, le=2000),
+) -> dict[str, Any]:
+    ticker = _validate_ticker(ticker)
+    errors: list[str] = []
+
+    company_memory, err = _load_company_memory(
+        ticker,
+        entries_limit=company_memory_entries_limit,
+        change_log_limit=company_memory_change_limit,
+    )
+    if err:
+        errors.append(f"company_memory: {err}")
+
+    market_memory, err = _load_market_memory(ticker, limit=market_memory_limit)
+    if err:
+        errors.append(f"market_memory: {err}")
+
+    return {
+        "ticker": ticker,
+        "summary": {
+            "company_memory_entry_count": int(
+                company_memory.get("entries_total", len(company_memory.get("entries") or []))
+                or 0
+            ),
+            "company_memory_change_count": int(
+                company_memory.get(
+                    "change_log_total",
+                    len(company_memory.get("change_log") or []),
+                )
+                or 0
+            ),
+            "market_memory_item_count": int(
+                market_memory.get("items_total", len(market_memory.get("items") or []))
+                or 0
+            ),
+            "market_memory_sector": market_memory.get("sector"),
+        },
+        "company_memory": company_memory,
+        "market_memory": market_memory,
+        "backend_version": "1.2",
+        "errors": errors,
+    }
+
+
+# ---------------------------------------------------------------------------
+# POST /api/context/memory/*
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/memory/company/add",
+    dependencies=[Depends(require_api_key)],
+)
+def add_company_memory_note(request: CompanyMemoryAddRequest) -> dict[str, Any]:
+    ticker = _validate_ticker(request.ticker)
+    statement = str(request.statement or "").strip()
+    if not statement:
+        raise HTTPException(status_code=400, detail="statement must not be empty")
+
+    try:
+        from app.services.company_memory import add_manual_company_memory_entry
+
+        result = add_manual_company_memory_entry(
+            ticker,
+            signal_type=str(request.type or "").strip().lower(),
+            statement=statement,
+            confidence=float(request.confidence),
+            materiality=float(request.materiality),
+            persistence=str(request.persistence or "medium").strip().lower(),
+            supersedes=request.supersedes,
+            contradicts=request.contradicts,
+            metadata=_manual_memory_metadata(request.metadata, note=request.note),
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=_memory_error_status(str(exc)),
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:
+        logger.exception("manual company memory add failed for %s", ticker)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    return {"ok": True, "ticker": ticker, **result}
+
+
+@router.post(
+    "/memory/company/expire",
+    dependencies=[Depends(require_api_key)],
+)
+def expire_company_memory_note(request: CompanyMemoryExpireRequest) -> dict[str, Any]:
+    ticker = _validate_ticker(request.ticker)
+
+    try:
+        from app.services.company_memory import expire_company_memory_entry
+
+        result = expire_company_memory_entry(
+            ticker,
+            int(request.entry_id),
+            reason=request.note,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=_memory_error_status(str(exc)),
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:
+        logger.exception(
+            "manual company memory expiry failed for %s entry %s",
+            ticker,
+            request.entry_id,
+        )
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    return {"ok": True, "ticker": ticker, **result}
+
+
+@router.post(
+    "/memory/market/add",
+    dependencies=[Depends(require_api_key)],
+)
+def add_market_memory_note(request: MarketMemoryAddRequest) -> dict[str, Any]:
+    statement = str(request.statement or "").strip()
+    if not statement:
+        raise HTTPException(status_code=400, detail="statement must not be empty")
+
+    try:
+        from app.services.market_memory import add_manual_market_memory_entry
+        result = add_manual_market_memory_entry(**_resolve_market_add_payload(request))
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=_memory_error_status(str(exc)),
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:
+        logger.exception("manual market memory add failed for scope %s", request.scope)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    response: dict[str, Any] = {"ok": True, **result}
+    if request.ticker:
+        response["ticker"] = _validate_ticker(request.ticker)
+    return response
+
+
+@router.post(
+    "/memory/market/expire",
+    dependencies=[Depends(require_api_key)],
+)
+def expire_market_memory_note(request: MarketMemoryExpireRequest) -> dict[str, Any]:
+    try:
+        from app.services.market_memory import expire_market_memory_entry
+
+        result = expire_market_memory_entry(
+            scope=request.scope,
+            entry_id=int(request.entry_id),
+            reason=request.note,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=_memory_error_status(str(exc)),
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:
+        logger.exception(
+            "manual market memory expiry failed for %s entry %s",
+            request.scope,
+            request.entry_id,
+        )
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    return {"ok": True, **result}
 
 
 # ---------------------------------------------------------------------------

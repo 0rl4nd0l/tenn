@@ -6,13 +6,26 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastapi import HTTPException
+from fastapi import FastAPI, HTTPException
+from fastapi.testclient import TestClient
+
+import app.core.config as config
 
 from app.api.context import (
     _load_market_memory,
+    CompanyMemoryAddRequest,
+    CompanyMemoryExpireRequest,
+    MarketMemoryAddRequest,
+    MarketMemoryExpireRequest,
+    add_company_memory_note,
+    add_market_memory_note,
+    expire_company_memory_note,
+    expire_market_memory_note,
+    get_memory_context,
     get_company_dump,
     get_ticker_context,
     get_verification_context,
+    router as context_router,
     _validate_ticker,
 )
 
@@ -79,6 +92,12 @@ def _mock_db_session(query_results: dict[str, list[dict[str, Any]]] | None = Non
 
     db.execute = fake_execute
     return db
+
+
+def _context_client() -> TestClient:
+    app = FastAPI()
+    app.include_router(context_router, prefix="/api/context")
+    return TestClient(app)
 
 
 def _mock_db_session_with_error(failing_table: str):
@@ -381,6 +400,262 @@ class TestGetCompanyDump:
         assert any("price_history_1y:" in err for err in result["errors"])
         assert any("company_memory:" in err for err in result["errors"])
         assert result["summary"]["price_points_1y"] == 0
+
+
+class TestGetMemoryContext:
+    def test_memory_context_loads_company_and_market_memory(self):
+        with (
+            patch(
+                "app.api.context._load_company_memory",
+                return_value=(
+                    {
+                        "entries": [{"entry_id": 1}],
+                        "change_log": [{"change_id": 2}],
+                        "entries_total": 3,
+                        "change_log_total": 4,
+                    },
+                    None,
+                ),
+            ),
+            patch(
+                "app.api.context._load_market_memory",
+                return_value=(
+                    {
+                        "sector": "Materials",
+                        "items": [{"entry_id": 7}],
+                        "items_total": 5,
+                    },
+                    None,
+                ),
+            ),
+        ):
+            result = get_memory_context(ticker="BHP")
+
+        assert result["ticker"] == "BHP"
+        assert result["summary"]["company_memory_entry_count"] == 3
+        assert result["summary"]["company_memory_change_count"] == 4
+        assert result["summary"]["market_memory_item_count"] == 5
+        assert result["summary"]["market_memory_sector"] == "Materials"
+        assert result["errors"] == []
+
+
+class TestMemoryMutations:
+    def test_add_company_memory_note_delegates_to_store_helper(self):
+        with patch(
+            "app.services.company_memory.add_manual_company_memory_entry",
+            return_value={"rule": "insert", "entry": {"entry_id": 9}},
+        ) as mocked:
+            result = add_company_memory_note(
+                CompanyMemoryAddRequest(
+                    ticker="BHP",
+                    type="risk",
+                    statement="Operations are stabilising.",
+                    note="operator note",
+                    metadata={"operator": "alex"},
+                    supersedes=[3],
+                )
+            )
+
+        assert result["ok"] is True
+        assert result["entry"]["entry_id"] == 9
+        mocked.assert_called_once()
+        assert mocked.call_args.kwargs["signal_type"] == "risk"
+        assert mocked.call_args.kwargs["metadata"]["manual"] is True
+        assert mocked.call_args.kwargs["metadata"]["manual_note"] == "operator note"
+        assert mocked.call_args.kwargs["metadata"]["operator"] == "alex"
+        assert mocked.call_args.kwargs["supersedes"] == [3]
+
+    def test_expire_company_memory_note_delegates_to_store_helper(self):
+        with patch(
+            "app.services.company_memory.expire_company_memory_entry",
+            return_value={"rule": "expire", "entry": {"entry_id": 5}},
+        ) as mocked:
+            result = expire_company_memory_note(
+                CompanyMemoryExpireRequest(
+                    ticker="BHP",
+                    entry_id=5,
+                    note="cleanup",
+                )
+            )
+
+        assert result["ok"] is True
+        mocked.assert_called_once_with("BHP", 5, reason="cleanup")
+
+    def test_add_market_memory_note_uses_sector_mapping_for_ticker(self):
+        with (
+            patch(
+                "app.services.analysis.sector_comparison.get_sector_for_ticker",
+                return_value="Materials",
+            ),
+            patch(
+                "app.services.market_memory.add_manual_market_memory_entry",
+                return_value={"rule": "insert", "entry": {"entry_id": 11}},
+            ) as mocked,
+        ):
+            result = add_market_memory_note(
+                MarketMemoryAddRequest(
+                    scope="sector",
+                    type="sector_trend",
+                    ticker="BHP",
+                    statement="Iron ore sentiment is improving.",
+                    note="market note",
+                )
+            )
+
+        assert result["ok"] is True
+        assert result["entry"]["entry_id"] == 11
+        assert mocked.call_args.kwargs["scope"] == "sector"
+        assert mocked.call_args.kwargs["sector"] == "Materials"
+        assert mocked.call_args.kwargs["linked_tickers"] == ["BHP"]
+        assert mocked.call_args.kwargs["metadata"]["manual_note"] == "market note"
+
+    def test_expire_market_memory_note_delegates_to_store_helper(self):
+        with patch(
+            "app.services.market_memory.expire_market_memory_entry",
+            return_value={"rule": "expire", "entry": {"entry_id": 6}},
+        ) as mocked:
+            result = expire_market_memory_note(
+                MarketMemoryExpireRequest(entry_id=6, scope="macro", note="cleanup")
+            )
+
+        assert result["ok"] is True
+        mocked.assert_called_once_with(scope="macro", entry_id=6, reason="cleanup")
+
+    def test_mutation_routes_require_api_key_when_configured(self, monkeypatch):
+        monkeypatch.setattr(
+            config.settings,
+            "local_api_key",
+            "local-secret",
+            raising=False,
+        )
+        client = _context_client()
+
+        response = client.post(
+            "/api/context/memory/company/add",
+            json={
+                "ticker": "BHP",
+                "type": "risk",
+                "statement": "Manual note",
+            },
+        )
+
+        assert response.status_code == 401
+        assert response.json()["detail"] == "Invalid or missing API key"
+
+    def test_company_mutation_routes_write_to_backend_store(
+        self,
+        monkeypatch,
+        tmp_path,
+    ):
+        from app.services.company_memory import CompanyMemoryStore
+
+        store_path = tmp_path / "company_memory.sqlite"
+        monkeypatch.setattr(
+            config.settings,
+            "local_api_key",
+            "local-secret",
+            raising=False,
+        )
+        monkeypatch.setattr(
+            "app.services.company_memory.DEFAULT_COMPANY_MEMORY_PATH",
+            store_path,
+        )
+        client = _context_client()
+        headers = {"X-API-Key": "local-secret"}
+
+        add_response = client.post(
+            "/api/context/memory/company/add",
+            headers=headers,
+            json={
+                "ticker": "BHP",
+                "type": "risk",
+                "statement": "Costs remain elevated.",
+                "note": "operator note",
+            },
+        )
+
+        assert add_response.status_code == 200
+        entry_id = add_response.json()["entry"]["entry_id"]
+
+        expire_response = client.post(
+            "/api/context/memory/company/expire",
+            headers=headers,
+            json={"ticker": "BHP", "entry_id": entry_id, "note": "resolved"},
+        )
+
+        assert expire_response.status_code == 200
+        store = CompanyMemoryStore(store_path)
+        entries = store.list_entries("BHP")
+        assert entries[0]["status"] == "expired"
+
+    def test_market_mutation_routes_write_to_backend_store(
+        self,
+        monkeypatch,
+        tmp_path,
+    ):
+        from app.services.market_memory import MarketMemoryStore
+
+        store_path = tmp_path / "market_memory.sqlite"
+        monkeypatch.setattr(
+            config.settings,
+            "local_api_key",
+            "local-secret",
+            raising=False,
+        )
+        monkeypatch.setattr(
+            "app.services.market_memory.DEFAULT_MARKET_MEMORY_PATH",
+            store_path,
+        )
+        client = _context_client()
+        headers = {"X-API-Key": "local-secret"}
+
+        add_response = client.post(
+            "/api/context/memory/market/add",
+            headers=headers,
+            json={
+                "scope": "sector",
+                "type": "sector_trend",
+                "statement": "Iron ore supply discipline is improving.",
+                "sector": "Materials",
+                "linked_tickers": ["BHP"],
+            },
+        )
+
+        assert add_response.status_code == 200
+        entry_id = add_response.json()["entry"]["entry_id"]
+
+        expire_response = client.post(
+            "/api/context/memory/market/expire",
+            headers=headers,
+            json={"scope": "sector", "entry_id": entry_id, "note": "stale"},
+        )
+
+        assert expire_response.status_code == 200
+        store = MarketMemoryStore(store_path)
+        entries = store.list_sector_entries("Materials")
+        assert entries[0]["status"] == "expired"
+
+    def test_company_add_route_preserves_financial_guardrail(self, monkeypatch):
+        monkeypatch.setattr(
+            config.settings,
+            "local_api_key",
+            "local-secret",
+            raising=False,
+        )
+        client = _context_client()
+
+        response = client.post(
+            "/api/context/memory/company/add",
+            headers={"X-API-Key": "local-secret"},
+            json={
+                "ticker": "BHP",
+                "type": "revenue",
+                "statement": "Revenue reached AUD 55 billion.",
+            },
+        )
+
+        assert response.status_code == 400
+        assert "financial" in response.json()["detail"].lower()
 
 
 class TestLoadMarketMemory:

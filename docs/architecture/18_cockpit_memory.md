@@ -16,6 +16,8 @@ All memory is local-only. Nothing leaves the host machine. The storage layers ra
 
 The memory system operates on a **best-effort** principle: every memory read and write is wrapped in exception handlers so that a storage failure never blocks the primary chat response. This is by design -- memory enhances context but is not required for correctness.
 
+Backend-owned qualitative memory remains authoritative. Cockpit may inspect and manage that memory only through backend APIs; it must not edit the backend SQLite stores directly.
+
 ---
 
 ## 2. Storage Layers
@@ -165,6 +167,20 @@ An optional integration with the OpenViking session memory library. When `~/.ope
 **Write:** `record_turn(session_id, payload)` persists each conversation turn. Called after both agent and keyword mode responses.
 
 **Degradation:** When OpenViking is unavailable, all functions return empty results. A single startup log line reports the status.
+
+### 2.7 Memory Management Surfaces (Cockpit client over backend APIs)
+
+There are now two operator-facing memory inspection and management surfaces inside Cockpit:
+
+1. **Chat slash commands**
+   - `/filestats <TICKER>` remains the broad per-ticker dump.
+   - `/memory show <TICKER>` and `/memory raw <TICKER>` provide a memory-focused view.
+   - `/memory add [company|market] <TICKER> <NOTE>` adds a manual qualitative note through the backend.
+   - `/memory remove company <TICKER> <ENTRY_ID>` and `/memory remove market [sector|macro] <ENTRY_ID>` soft-expire backend qualitative memory rows.
+2. **Textual Memory screen**
+   - A dedicated Cockpit screen lets the user load a ticker, inspect company/market memory rows, add a manual note, and expire a selected active row.
+
+These surfaces are clients only. They call backend context/memory endpoints through `BackendApiClient` and do not create a second memory authority.
 
 ---
 

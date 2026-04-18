@@ -12,6 +12,7 @@ from app.services.market_sector_inference import infer_sector
 from app.services.source_registry import RESEARCH_MEMORY_ROOT
 
 DEFAULT_MARKET_MEMORY_PATH = RESEARCH_MEMORY_ROOT / "market_memory.sqlite"
+_MANUAL_SOURCE = "backend_manual"
 _SQLITE_TIMEOUT_SECONDS = 5.0
 _SQLITE_BUSY_TIMEOUT_MS = int(_SQLITE_TIMEOUT_SECONDS * 1000)
 _SQLITE_BUSY_RETRIES = 2
@@ -78,6 +79,10 @@ def _normalize_list(values: Any, *, uppercase: bool = False) -> list[str]:
         seen.add(candidate)
         normalized.append(candidate)
     return normalized
+
+
+def _manual_source_id(prefix: str) -> str:
+    return f"{prefix}:{time.time_ns()}"
 
 
 def _is_transient_sqlite_busy(exc: sqlite3.OperationalError) -> bool:
@@ -368,6 +373,102 @@ class MarketMemoryStore:
                 "SELECT * FROM change_log ORDER BY change_id ASC"
             ).fetchall()
         return [self._change_row_to_dict(row) for row in rows]
+
+    def add_manual_entry(
+        self,
+        *,
+        scope: str,
+        signal_type: str,
+        statement: str,
+        sector: str | None = None,
+        macro_topic: str | None = None,
+        linked_tickers: list[str] | None = None,
+        confidence: float = 0.0,
+        materiality: float = 0.0,
+        persistence: str = "medium",
+        supersedes: list[Any] | None = None,
+        contradicts: list[Any] | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        normalized_scope = str(scope or "").strip().lower()
+        payload_metadata = dict(metadata or {})
+        payload_metadata.setdefault("manual", True)
+        payload = {
+            "scope": normalized_scope,
+            "type": signal_type,
+            "statement": statement,
+            "confidence": confidence,
+            "materiality": materiality,
+            "persistence": persistence,
+            "status": "active",
+            "source": _MANUAL_SOURCE,
+            "source_id": _manual_source_id(f"market-{normalized_scope}-manual"),
+            "supersedes": list(supersedes or []),
+            "contradicts": list(contradicts or []),
+            "metadata": payload_metadata,
+        }
+        if normalized_scope == "sector":
+            payload["sector"] = str(sector or "").strip()
+            payload["linked_tickers"] = list(linked_tickers or [])
+        else:
+            payload["macro_topic"] = str(macro_topic or "").strip()
+        return self.update_market_memory(payload)
+
+    def expire_entry(
+        self,
+        *,
+        scope: str,
+        entry_id: int,
+        reason: str | None = None,
+    ) -> dict[str, Any]:
+        normalized_scope = str(scope or "").strip().lower()
+        if normalized_scope not in {"sector", "macro"}:
+            raise ValueError("market memory scope must be 'sector' or 'macro'")
+        if int(entry_id) <= 0:
+            raise ValueError("entry_id must be positive")
+
+        table = "sector_states" if normalized_scope == "sector" else "macro_state"
+        key_column = "sector" if normalized_scope == "sector" else "macro_topic"
+        now = _utc_now()
+        source_id = _manual_source_id(f"market-{normalized_scope}-expire")
+
+        def _expire(conn: sqlite3.Connection) -> dict[str, Any]:
+            row = conn.execute(
+                f"SELECT * FROM {table} WHERE entry_id = ? LIMIT 1",
+                (int(entry_id),),
+            ).fetchone()
+            if row is None:
+                raise ValueError(f"market memory entry not found: {entry_id}")
+            existing = self._row_to_dict(row)
+            if str(existing.get("status") or "").strip().lower() != "active":
+                raise ValueError(
+                    f"market memory entry is not active: {int(existing['entry_id'])}"
+                )
+
+            conn.execute(
+                f"UPDATE {table} SET status = 'expired', closed_at = ?, last_seen_at = ? WHERE entry_id = ?",
+                (now, now, int(entry_id)),
+            )
+            entity_key = str(existing.get(key_column) or "").strip()
+            details = {"source": _MANUAL_SOURCE, "source_id": source_id}
+            if reason:
+                details["reason"] = str(reason).strip()
+            self._insert_change_log(
+                conn,
+                normalized_scope,
+                entity_key,
+                int(entry_id),
+                "expire",
+                details,
+                now,
+            )
+            self._sync_scope_summary(conn, normalized_scope, now)
+            return {
+                "rule": "expire",
+                "entry": self._get_entry_by_id(conn, table, int(entry_id)),
+            }
+
+        return self._run_write_transaction(_expire)
 
     def retrieve(
         self,
@@ -816,6 +917,52 @@ def update_market_memory(
     path: str | Path | None = None,
 ) -> dict[str, Any]:
     return MarketMemoryStore(path).update_market_memory(signal)
+
+
+def add_manual_market_memory_entry(
+    *,
+    scope: str,
+    signal_type: str,
+    statement: str,
+    sector: str | None = None,
+    macro_topic: str | None = None,
+    linked_tickers: list[str] | None = None,
+    confidence: float = 0.0,
+    materiality: float = 0.0,
+    persistence: str = "medium",
+    supersedes: list[Any] | None = None,
+    contradicts: list[Any] | None = None,
+    metadata: dict[str, Any] | None = None,
+    path: str | Path | None = None,
+) -> dict[str, Any]:
+    return MarketMemoryStore(path).add_manual_entry(
+        scope=scope,
+        signal_type=signal_type,
+        statement=statement,
+        sector=sector,
+        macro_topic=macro_topic,
+        linked_tickers=linked_tickers,
+        confidence=confidence,
+        materiality=materiality,
+        persistence=persistence,
+        supersedes=supersedes,
+        contradicts=contradicts,
+        metadata=metadata,
+    )
+
+
+def expire_market_memory_entry(
+    *,
+    scope: str,
+    entry_id: int,
+    reason: str | None = None,
+    path: str | Path | None = None,
+) -> dict[str, Any]:
+    return MarketMemoryStore(path).expire_entry(
+        scope=scope,
+        entry_id=entry_id,
+        reason=reason,
+    )
 
 
 def _query_terms(query: str) -> set[str]:

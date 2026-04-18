@@ -290,6 +290,122 @@ class TestInfoCommands(SlashCommandTestBase):
         assert resp.evidence[0]["details"]["view_mode"] == "raw"
 
 
+class TestMemoryCommands(SlashCommandTestBase):
+    def test_memory_usage_when_missing_args(self) -> None:
+        resp = self.controller._handle_slash_command("/memory")
+        assert resp is not None
+        assert "Usage: /memory show <TICKER>" in resp.text
+
+    def test_memory_show_fetches_memory_dump(self) -> None:
+        backend = MagicMock()
+        backend.get_memory_dump.return_value = {
+            "ticker": "BHP",
+            "company_memory": {
+                "entries": [
+                    {
+                        "entry_id": 1,
+                        "status": "active",
+                        "type": "risk",
+                        "statement": "Customer concentration remains elevated.",
+                        "confidence": 0.8,
+                        "materiality": 0.7,
+                        "source": "manual",
+                        "last_seen_at": "2026-04-18T00:00:00+00:00",
+                    }
+                ],
+                "change_log": [],
+                "entries_total": 1,
+                "change_log_total": 0,
+            },
+            "market_memory": {
+                "sector": "Materials",
+                "items": [],
+                "items_total": 0,
+            },
+            "errors": [],
+        }
+        self.tool_router.backend_api_client = backend
+
+        resp = self.controller._handle_slash_command("/memory show bhp")
+
+        assert resp is not None
+        assert resp.mode == ResponseMode.FAST
+        assert "Memory View: BHP" in resp.text
+        assert "Backend Company Memory" in resp.text
+        backend.get_memory_dump.assert_called_once_with(ticker="BHP")
+        assert resp.evidence[0]["type"] == "memory_dump"
+
+    def test_memory_raw_mode_hint(self) -> None:
+        backend = MagicMock()
+        backend.get_memory_dump.return_value = {
+            "ticker": "BHP",
+            "company_memory": {"entries": [], "change_log": []},
+            "market_memory": {"items": [], "sector": "Materials"},
+            "errors": [],
+        }
+        self.tool_router.backend_api_client = backend
+
+        resp = self.controller._handle_slash_command("/memory raw bhp")
+
+        assert resp is not None
+        assert "View: raw (full rows)." in resp.text
+        assert resp.evidence[0]["details"]["view_mode"] == "raw"
+
+    def test_memory_add_company(self) -> None:
+        backend = MagicMock()
+        backend.add_company_memory_note.return_value = {
+            "entry": {"entry_id": 7, "statement": "Manual note"}
+        }
+        self.tool_router.backend_api_client = backend
+
+        resp = self.controller._handle_slash_command(
+            "/memory add company bhp Manual note"
+        )
+
+        assert resp is not None
+        assert "Added company memory for BHP. Entry ID: 7." in resp.text
+        backend.add_company_memory_note.assert_called_once_with("BHP", "Manual note")
+
+    def test_memory_add_market(self) -> None:
+        backend = MagicMock()
+        backend.add_market_memory_note.return_value = {
+            "entry": {"entry_id": 9, "statement": "Iron ore market tightening"}
+        }
+        self.tool_router.backend_api_client = backend
+
+        resp = self.controller._handle_slash_command(
+            "/memory add market bhp Iron ore market tightening"
+        )
+
+        assert resp is not None
+        assert "Added market memory for BHP. Entry ID: 9." in resp.text
+        backend.add_market_memory_note.assert_called_once_with(
+            "BHP", "Iron ore market tightening"
+        )
+
+    def test_memory_remove_company(self) -> None:
+        backend = MagicMock()
+        backend.expire_company_memory_entry.return_value = {"ok": True}
+        self.tool_router.backend_api_client = backend
+
+        resp = self.controller._handle_slash_command("/memory remove company bhp 11")
+
+        assert resp is not None
+        assert "Expired company memory entry 11 for BHP." in resp.text
+        backend.expire_company_memory_entry.assert_called_once_with("BHP", 11)
+
+    def test_memory_remove_market(self) -> None:
+        backend = MagicMock()
+        backend.expire_market_memory_entry.return_value = {"ok": True}
+        self.tool_router.backend_api_client = backend
+
+        resp = self.controller._handle_slash_command("/memory remove market macro 5")
+
+        assert resp is not None
+        assert "Expired market memory entry 5 (macro)." in resp.text
+        backend.expire_market_memory_entry.assert_called_once_with(5, scope="macro")
+
+
 class TestWatchlistCommands(SlashCommandTestBase):
     def test_watch_list_empty(self) -> None:
         self.state_store.list_watch_tickers.return_value = []

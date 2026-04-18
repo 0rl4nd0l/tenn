@@ -151,6 +151,50 @@ def test_expire_marks_existing_entry_without_inserting_new_one(tmp_path: Path) -
     assert entries[0]["status"] == "expired"
 
 
+def test_add_manual_entry_marks_metadata_and_uses_manual_source(tmp_path: Path) -> None:
+    store = CompanyMemoryStore(tmp_path / "company_memory.sqlite")
+
+    result = store.add_manual_entry(
+        "BHP",
+        signal_type="risk",
+        statement="Contractor availability remains tight.",
+        metadata={"operator": "alex"},
+    )
+
+    assert result["rule"] == "insert"
+    entry = store.list_entries("BHP")[0]
+    assert entry["source"] == "backend_manual"
+    assert entry["metadata"]["manual"] is True
+    assert entry["metadata"]["operator"] == "alex"
+
+
+def test_expire_entry_soft_expires_by_entry_id(tmp_path: Path) -> None:
+    store = CompanyMemoryStore(tmp_path / "company_memory.sqlite")
+    inserted = store.add_manual_entry(
+        "BHP",
+        signal_type="risk",
+        statement="Manual risk entry.",
+    )
+
+    result = store.expire_entry("BHP", inserted["entry"]["entry_id"], reason="cleanup")
+
+    assert result["rule"] == "expire"
+    entry = store.list_entries("BHP")[0]
+    assert entry["status"] == "expired"
+    assert store.list_change_log("BHP")[-1]["details"]["reason"] == "cleanup"
+
+
+def test_manual_entry_rejects_financial_metric_signals(tmp_path: Path) -> None:
+    store = CompanyMemoryStore(tmp_path / "company_memory.sqlite")
+
+    with pytest.raises(ValueError, match="financial"):
+        store.add_manual_entry(
+            "BHP",
+            signal_type="revenue",
+            statement="Revenue is rising.",
+        )
+
+
 def test_store_rejects_financial_metric_signals(tmp_path: Path) -> None:
     store = CompanyMemoryStore(tmp_path / "company_memory.sqlite")
 
