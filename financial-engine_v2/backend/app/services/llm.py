@@ -214,6 +214,13 @@ def _should_retry_with_fallback(
         return False
     if decision.task_type not in {"reasoning", "coding"}:
         return False
+    # Extraction is pinned to qwen2.5-14b-instruct for JSON grammar compatibility.
+    # The reasoning fallback routes to the router model, which in this deployment
+    # resolves (via llama-server's fuzzy matcher) to a harmony-format APEX GGUF
+    # whose prelude tokens collide with response_format=json_object — turning one
+    # 500 into a parser-500 cascade. Surface the original failure instead.
+    if (metadata or {}).get("component") == "multipass_extraction":
+        return False
     if isinstance(exc, LlamaCppServerUnavailable):
         return True
     if isinstance(exc, (TimeoutError, httpx.TimeoutException)):
