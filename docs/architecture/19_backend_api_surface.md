@@ -201,7 +201,11 @@ Runtime note:
   - accepts optional JSON body fields:
     - `limit`
     - `tolerance`
-  - returns inline JSON summary plus per-document metric/trust results for the verification UI
+    - `method` and `strict_method` — parser backend selection (`auto`, `docling`, `pymupdf`, `anthropic`)
+    - `prompt_variant_id` — bundle id resolved via `app.services.prompt_registry.resolve()`; `None` selects the canonical `"default"` bundle (the one that pins `extraction_runs.prompt_hash` to its historical value)
+    - `model_override` — llama.cpp model id (e.g. `qwen2.5-14b-instruct`); threaded through every LLM call in the run via `metadata.requested_model`, honored by `app.services.llm._resolve_runtime_from_metadata`
+  - returns inline JSON summary plus per-document metric/trust results for the verification UI; response echoes `prompt_variant_id` and `model_override` for audit
+  - batch driver: `financial-engine_v2/scripts/run_prompt_model_matrix.py` enumerates (prompt_variant × model) cells in model-major order to minimize llama.cpp `--models-max 1` VRAM swaps
 - `POST /api/extraction-review/session`
   - builds a manual metric-review session from the latest extracted run(s) for selected document IDs
 - `GET /api/extraction-review/session/{session_id}`

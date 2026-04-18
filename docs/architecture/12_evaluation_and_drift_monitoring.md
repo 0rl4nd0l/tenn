@@ -266,3 +266,37 @@ The script is intentionally read-only and answers questions such as:
 - what failure patterns appear by period type or trust outcome
 
 It reads eval JSON artifacts only and writes an optional local markdown summary.
+
+---
+
+## Prompt registry and prompt×model matrix
+
+The extraction pipeline resolves its prompt text through `app.services.prompt_registry`:
+
+- `PromptBundle(id, pass1, pass3a, pass3b)` is a frozen dataclass with content-addressable `sha256[:16]` hashing.
+- `multipass_extraction` registers the canonical bundle at import time under the id `"default"`.
+- `PROMPT_HASH` is derived from `resolve("default").compute_hash()` and is **byte-identical** to the legacy formula `sha256((_PASS1 + _PASS3A + _PASS3B).encode()).hexdigest()[:16]`. This is an invariant — historical rows in `extraction_runs.prompt_hash` must remain linkable. A regression test in `backend/tests/test_prompt_model_matrix.py` asserts this.
+- `resolve(bundle_id)` raises `KeyError` on an unknown id (fail-fast, per `rules/bug-resolution.md`); there is no silent fallback.
+
+### Matrix runner
+
+`financial-engine_v2/scripts/run_prompt_model_matrix.py` enumerates (prompt_variant × model) cells and POSTs each to `/api/extraction-eval/real-gold`.
+
+Ordering is **model-major**: outer loop over models, inner loop over prompt variants. This matches the llama.cpp router mode (`--models-max 1`), where only one GGUF is in VRAM at a time — keeping the model pinned across successive variants avoids repeated swaps.
+
+Per-cell HTTP payload:
+
+```json
+{
+  "limit": <int>,
+  "tolerance": <float>,
+  "method": "auto|docling|pymupdf|anthropic",
+  "strict_method": false,
+  "prompt_variant_id": "default",
+  "model_override": "qwen2.5-14b-instruct"
+}
+```
+
+`model_override` is threaded through every LLM call via `metadata.requested_model`, which `app.services.llm._resolve_runtime_from_metadata` already honors.
+
+The runner writes an incremental JSON report (one rewrite per completed cell) so a long run is never lost midway. Each report carries `run_metadata` (git branch/commit/dirty + python + timestamp) from `scripts/_run_metadata.build_run_metadata`.
