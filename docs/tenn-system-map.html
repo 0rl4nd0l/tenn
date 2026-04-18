@@ -1,0 +1,1867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tenn System Map</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2128;
+    --border: #30363d;
+    --border2: #21262d;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #656d76;
+    --accent: #58a6ff;
+    --accent2: #1f6feb;
+    --green: #3fb950;
+    --green-dim: #238636;
+    --purple: #bc8cff;
+    --purple-dim: #6e40c9;
+    --orange: #f0883e;
+    --orange-dim: #b36128;
+    --red: #f85149;
+    --yellow: #e3b341;
+    --cyan: #39d353;
+    --teal: #2dd4bf;
+    --teal-dim: #0d9488;
+    --pink: #f778ba;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Layout ── */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  .logo span { color: var(--accent); }
+  .badge { background: var(--accent2); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 600; }
+  .header-nav { display: flex; gap: 4px; }
+  .nav-btn {
+    background: none; border: 1px solid transparent; color: var(--text2);
+    padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
+    transition: all 0.15s;
+  }
+  .nav-btn:hover { border-color: var(--border); color: var(--text); background: var(--surface2); }
+  .nav-btn.active { background: var(--surface2); border-color: var(--border); color: var(--accent); }
+
+  .main { padding: 32px; max-width: 1600px; margin: 0 auto; }
+
+  /* ── Sections ── */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ── System Overview ── */
+  .overview-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .system-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .system-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 12px 12px 0 0;
+  }
+  .system-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .system-card.blue::before { background: var(--accent); }
+  .system-card.green::before { background: var(--green); }
+  .system-card.purple::before { background: var(--purple); }
+  .system-card.orange::before { background: var(--orange); }
+  .system-card.teal::before { background: var(--teal); }
+  .system-card.yellow::before { background: var(--yellow); }
+  .system-card.pink::before { background: var(--pink); }
+
+  .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .card-icon { font-size: 22px; }
+  .card-title { font-size: 15px; font-weight: 600; }
+  .card-subtitle { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .tag {
+    font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500;
+  }
+  .tag.blue { background: rgba(88,166,255,0.1); color: var(--accent); border: 1px solid rgba(88,166,255,0.2); }
+  .tag.green { background: rgba(63,185,80,0.1); color: var(--green); border: 1px solid rgba(63,185,80,0.2); }
+  .tag.purple { background: rgba(188,140,255,0.1); color: var(--purple); border: 1px solid rgba(188,140,255,0.2); }
+  .tag.orange { background: rgba(240,136,62,0.1); color: var(--orange); border: 1px solid rgba(240,136,62,0.2); }
+  .tag.teal { background: rgba(45,212,191,0.1); color: var(--teal); border: 1px solid rgba(45,212,191,0.2); }
+  .tag.yellow { background: rgba(227,179,65,0.1); color: var(--yellow); border: 1px solid rgba(227,179,65,0.2); }
+  .tag.pink { background: rgba(247,120,186,0.1); color: var(--pink); border: 1px solid rgba(247,120,186,0.2); }
+  .tag.red { background: rgba(248,81,73,0.1); color: var(--red); border: 1px solid rgba(248,81,73,0.2); }
+  .tag.gray { background: rgba(139,148,158,0.1); color: var(--text2); border: 1px solid rgba(139,148,158,0.2); }
+
+  .card-metrics { display: flex; gap: 16px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border2); }
+  .metric { text-align: center; }
+  .metric-value { font-size: 18px; font-weight: 700; }
+  .metric-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* ── Data Flow ── */
+  .flow-container { position: relative; }
+  .flow-pipeline {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin: 24px 0;
+    overflow-x: auto;
+    padding-bottom: 12px;
+  }
+  .flow-stage {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0;
+    padding: 20px 16px;
+    min-width: 160px;
+    flex: 1;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .flow-stage:first-child { border-radius: 10px 0 0 10px; }
+  .flow-stage:last-child { border-radius: 0 10px 10px 0; }
+  .flow-stage:not(:first-child) { border-left: none; }
+  .flow-stage:hover { background: var(--surface2); z-index: 1; }
+  .flow-stage.active-stage { background: var(--surface2); border-color: var(--accent); z-index: 1; }
+  .flow-num {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--accent2);
+    color: #fff;
+    font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 10px;
+  }
+  .flow-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .flow-desc { font-size: 11px; color: var(--text2); line-height: 1.4; }
+  .flow-arrow {
+    position: absolute; right: -12px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent);
+    font-size: 18px;
+    z-index: 2;
+    display: none;
+  }
+
+  .stage-detail {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    padding: 24px;
+    margin-top: 16px;
+    display: none;
+  }
+  .stage-detail.open { display: block; }
+  .stage-detail h3 { font-size: 15px; font-weight: 600; margin-bottom: 16px; color: var(--accent); }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .detail-col h4 { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .detail-item { font-size: 12px; color: var(--text); padding: 4px 0; border-bottom: 1px solid var(--border2); display: flex; align-items: center; gap: 6px; }
+  .detail-item:last-child { border-bottom: none; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .dot.green { background: var(--green); }
+  .dot.blue { background: var(--accent); }
+  .dot.purple { background: var(--purple); }
+  .dot.orange { background: var(--orange); }
+  .dot.yellow { background: var(--yellow); }
+  .dot.teal { background: var(--teal); }
+
+  /* ── Services / Ports ── */
+  .services-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .service-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .service-row h3 { font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+  .service-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    background: var(--surface2);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .service-item:last-child { margin-bottom: 0; }
+  .service-item:hover { border: 1px solid var(--border); }
+  .service-port {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px; font-weight: 700;
+    color: var(--accent);
+    background: rgba(88,166,255,0.1);
+    padding: 2px 8px; border-radius: 4px;
+    min-width: 60px; text-align: center;
+  }
+  .service-name { font-size: 13px; font-weight: 600; flex: 1; }
+  .service-role { font-size: 11px; color: var(--text2); }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .status-dot.up { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .status-dot.optional { background: var(--yellow); }
+  .status-dot.host { background: var(--purple); }
+
+  /* ── LLM Tools ── */
+  .tools-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .tool-group {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .tool-group h3 { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .tool-item {
+    padding: 12px;
+    background: var(--surface2);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border-left: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tool-item:last-child { margin-bottom: 0; }
+  .tool-item:hover { background: var(--bg); }
+  .tool-item.blue { border-left-color: var(--accent); }
+  .tool-item.green { border-left-color: var(--green); }
+  .tool-item.purple { border-left-color: var(--purple); }
+  .tool-item.orange { border-left-color: var(--orange); }
+  .tool-item.teal { border-left-color: var(--teal); }
+  .tool-item.yellow { border-left-color: var(--yellow); }
+  .tool-name {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 4px;
+  }
+  .tool-sig { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; color: var(--text3); margin-bottom: 6px; }
+  .tool-desc { font-size: 12px; color: var(--text2); line-height: 1.4; }
+
+  /* ── Data Sources ── */
+  .sources-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .source-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .source-block h3 { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px; }
+  .source-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 12px;
+    background: var(--surface2);
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  .source-item:last-child { margin-bottom: 0; }
+  .source-icon { font-size: 20px; flex-shrink: 0; }
+  .source-name { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+  .source-desc { font-size: 12px; color: var(--text2); line-height: 1.4; }
+  .source-meta { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+  /* ── API Routes ── */
+  .api-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .api-group {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .api-group h3 { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px; }
+  .api-route {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    transition: all 0.15s;
+    cursor: default;
+  }
+  .api-route:hover { background: var(--surface2); }
+  .method {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 10px; font-weight: 700;
+    padding: 2px 6px; border-radius: 4px;
+    min-width: 36px; text-align: center;
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .method.GET { background: rgba(63,185,80,0.15); color: var(--green); }
+  .method.POST { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .method.DELETE { background: rgba(248,81,73,0.15); color: var(--red); }
+  .route-path { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; color: var(--text); }
+  .route-desc { font-size: 11px; color: var(--text2); margin-top: 1px; }
+
+  /* ── Architecture section: visual pipeline ── */
+  .arch-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+  }
+  .arch-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 20px; }
+
+  .layer-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    min-width: 900px;
+  }
+  .layer-label {
+    font-size: 11px; font-weight: 600;
+    color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px;
+    width: 90px; text-align: right; flex-shrink: 0;
+  }
+  .layer-arrow { color: var(--border); font-size: 20px; flex-shrink: 0; }
+  .node {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px; font-weight: 500;
+    white-space: nowrap;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .node:hover { border-color: var(--accent); color: var(--accent); }
+  .node.blue { border-color: rgba(88,166,255,0.4); color: var(--accent); }
+  .node.green { border-color: rgba(63,185,80,0.4); color: var(--green); }
+  .node.purple { border-color: rgba(188,140,255,0.4); color: var(--purple); }
+  .node.orange { border-color: rgba(240,136,62,0.4); color: var(--orange); }
+  .node.teal { border-color: rgba(45,212,191,0.4); color: var(--teal); }
+  .node.yellow { border-color: rgba(227,179,65,0.4); color: var(--yellow); }
+  .node.pink { border-color: rgba(247,120,186,0.4); color: var(--pink); }
+  .connector { color: var(--text3); font-size: 16px; padding: 0 2px; }
+
+  /* ── Section titles ── */
+  .section-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .section-subtitle { font-size: 14px; color: var(--text2); margin-bottom: 24px; }
+  .sub-section { margin-bottom: 32px; }
+  .sub-section-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .sub-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* ── Workstreams ── */
+  .workstream-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .workstream-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .ws-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .ws-name { font-size: 13px; font-weight: 600; }
+  .ws-status {
+    font-size: 11px; font-weight: 600;
+    padding: 2px 8px; border-radius: 20px;
+  }
+  .ws-status.verified { background: rgba(63,185,80,0.15); color: var(--green); }
+  .ws-status.progress { background: rgba(240,136,62,0.15); color: var(--orange); }
+  .ws-milestone { font-size: 12px; color: var(--text2); line-height: 1.5; }
+
+  /* ── Invariants ── */
+  .invariant-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .invariant-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .inv-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: rgba(248,81,73,0.15);
+    color: var(--red);
+    font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .inv-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .inv-desc { font-size: 12px; color: var(--text2); line-height: 1.4; }
+
+  /* ── Tooltip ── */
+  .tooltip {
+    position: fixed;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12px;
+    max-width: 280px;
+    pointer-events: none;
+    z-index: 1000;
+    display: none;
+    line-height: 1.5;
+  }
+  .tooltip.visible { display: block; }
+  .tooltip-title { font-weight: 600; margin-bottom: 4px; }
+  .tooltip-body { color: var(--text2); }
+
+  /* ── Search ── */
+  .search-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    color: var(--text);
+    font-size: 13px;
+    width: 280px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .search-bar:focus { border-color: var(--accent); }
+  .search-bar::placeholder { color: var(--text3); }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+  /* ── Extraction detail ── */
+  .pass-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+  .pass-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .pass-num { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .pass-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+  .pass-outputs { list-style: none; }
+  .pass-outputs li { font-size: 12px; color: var(--text2); padding: 3px 0; border-bottom: 1px solid var(--border2); }
+  .pass-outputs li:last-child { border-bottom: none; }
+  .pass-outputs li::before { content: '→ '; color: var(--accent); }
+
+  /* ── Router detail ── */
+  .router-weights { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .weight-chip {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  .weight-bar { width: 40px; height: 4px; border-radius: 2px; background: var(--border2); overflow: hidden; }
+  .weight-fill { height: 100%; border-radius: 2px; background: var(--accent); }
+
+  /* ── GPU budget ── */
+  .vram-bar {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+  }
+  .vram-title { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 10px; }
+  .vram-track { height: 24px; background: var(--border2); border-radius: 4px; display: flex; overflow: hidden; }
+  .vram-seg { display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; }
+  .vram-labels { display: flex; margin-top: 6px; font-size: 11px; color: var(--text2); gap: 4px; }
+
+  /* ── Topology ── */
+  .topology-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    margin-bottom: 32px;
+    min-height: 600px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: auto;
+  }
+</style>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      primaryColor: '#161b22',
+      primaryTextColor: '#e6edf3',
+      primaryBorderColor: '#30363d',
+      lineColor: '#58a6ff',
+      secondaryColor: '#0d1117',
+      tertiaryColor: '#1c2128',
+      clusterBkg: '#161b22',
+      clusterBorder: '#30363d'
+    }
+  });
+</script>
+</head>
+<body>
+
+<div class="tooltip" id="tooltip">
+  <div class="tooltip-title" id="tt-title"></div>
+  <div class="tooltip-body" id="tt-body"></div>
+</div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo">tenn <span>system map</span></div>
+    <div class="badge">v2 · 2026</div>
+  </div>
+  <div style="display:flex; align-items:center; gap:12px;">
+    <input class="search-bar" type="text" placeholder="Search components..." id="search" />
+    <div class="header-nav">
+      <button class="nav-btn active" onclick="showSection('overview')">Overview</button>
+      <button class="nav-btn" onclick="showSection('topology')">Visual Topology</button>
+      <button class="nav-btn" onclick="showSection('pipeline')">Data Flow</button>
+      <button class="nav-btn" onclick="showSection('services')">Services</button>
+      <button class="nav-btn" onclick="showSection('llm')">LLM & Tools</button>
+      <button class="nav-btn" onclick="showSection('sources')">Data Sources</button>
+      <button class="nav-btn" onclick="showSection('api')">API Routes</button>
+      <button class="nav-btn" onclick="showSection('ops')">Ops & Governance</button>
+    </div>
+
+  </div>
+</div>
+
+<div class="main">
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- OVERVIEW -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section active" id="section-overview">
+  <div class="section-title">Tenn System Architecture</div>
+  <div class="section-subtitle">Financial intelligence platform — ingestion, extraction, RAG, chat, and analysis</div>
+
+  <div class="arch-diagram">
+    <div class="arch-title">System Boundary Map</div>
+
+    <div class="layer-row">
+      <div class="layer-label">Client</div>
+      <div class="layer-arrow">▶</div>
+      <div class="node blue" data-tip="cockpit-tui" data-desc="Textual TUI operator interface — agent loop, tool calls, dossier, strategy">Cockpit TUI</div>
+      <div class="connector">·</div>
+      <div class="node blue" data-tip="cockpit-ui" data-desc="Next.js web UI — chat, health dashboard, sources panel, action confirmation">Cockpit Web UI</div>
+    </div>
+
+    <div class="layer-row">
+      <div class="layer-label">API Gateway</div>
+      <div class="layer-arrow">▶</div>
+      <div class="node green" data-tip="fastapi" data-desc="FastAPI on port 8000. All client requests funnel through here. Authority layer.">FastAPI :8000</div>
+      <div class="connector">→</div>
+      <div class="node green" data-tip="celery" data-desc="Celery workers handle async tasks: backfill, ingest, extract, embed">Celery Worker</div>
+      <div class="connector">→</div>
+      <div class="node green" data-tip="redis" data-desc="Redis on port 6379. Celery broker + task result backend">Redis :6379</div>
+    </div>
+
+    <div class="layer-row">
+      <div class="layer-label">Intelligence</div>
+      <div class="layer-arrow">▶</div>
+      <div class="node purple" data-tip="llm-router" data-desc="Self-optimizing LLM router. Scores routes by latency (0.4), throughput (0.3), error (0.2), queue (0.1), GPU (0.1). Supports router/extraction/coding roles.">LLM Router</div>
+      <div class="connector">→</div>
+      <div class="node purple" data-tip="llamacpp" data-desc="llama.cpp on port 8001 (router) + 8002 (extraction). Host-native, GPU-accelerated. Primary: Qwen 2.5 14B on M40 24GB.">llama.cpp :8001</div>
+      <div class="connector">+</div>
+      <div class="node purple" data-tip="embeddings" data-desc="Sentence Transformers (CPU, in-process) or Ollama :11434. 768-dim, nomic-embed-text model.">Embeddings</div>
+    </div>
+
+    <div class="layer-row">
+      <div class="layer-label">Extraction</div>
+      <div class="layer-arrow">▶</div>
+      <div class="node orange" data-tip="extraction" data-desc="3-pass multipass extraction: (1) Structure via Docling/PyMuPDF, (2) Financial metrics via LLM JSON, (3) Risk/guidance via LLM. Single authority: multipass_extraction.py.">Multipass Extractor</div>
+      <div class="connector">→</div>
+      <div class="node orange" data-tip="analysis" data-desc="7 analysis modules: balance_sheet, roic, valuation, sentiment, risk (LLM), catalysts (LLM), moat (LLM). D1=deterministic, D2=LLM synthesis.">Analysis Modules ×7</div>
+      <div class="connector">→</div>
+      <div class="node orange" data-tip="query-orch" data-desc="Query orchestrator classifies requests: financial_truth (→ Postgres) vs company_memory (→ SQLite-vec) vs market_memory (→ SQLite-vec)">Query Orchestrator</div>
+    </div>
+
+    <div class="layer-row">
+      <div class="layer-label">Storage</div>
+      <div class="layer-arrow">▶</div>
+      <div class="node teal" data-tip="postgres" data-desc="PostgreSQL :5432. Tables: documents, extraction_runs, asx_periodic_financials, asx_risk_notes, companies, openbb_snapshots. Also cockpit state tables.">PostgreSQL :5432</div>
+      <div class="connector">+</div>
+      <div class="node teal" data-tip="qdrant" data-desc="Qdrant :6333. Collections: asx_docs (768-dim), news_chunks (768-dim), commentary_chunks, company_memory, market_memory. Vector IDs: {doc_id}:{chunk_idx}.">Qdrant :6333</div>
+      <div class="connector">+</div>
+      <div class="node teal" data-tip="sqlite" data-desc="SQLite local: ~/.financial_engine_cockpit/state.db (chat history, jobs, dossier). ~/.tenn/memory/ (JSONL research notes, alerts, situation pairs).">SQLite (local)</div>
+    </div>
+
+    <div class="layer-row">
+      <div class="layer-label">Ingestion</div>
+      <div class="layer-arrow">▶</div>
+      <div class="node yellow" data-tip="asx-provider" data-desc="ASX announcements API (primary) + MarketIndex fallback. Daily ingest of periodic filings (4C/4D/4E/5B), continuous/annual reports.">ASX Provider</div>
+      <div class="connector">+</div>
+      <div class="node yellow" data-tip="news-provider" data-desc="newspaper4k (54 AU sources): AFR, Stockhead, SMH, ABC, MarketIndex. Plus Scrapling/Playwright for JS-gated pages.">News (54 sources)</div>
+      <div class="connector">+</div>
+      <div class="node yellow" data-tip="openbb" data-desc="OpenBB sidecar on :8081. Optional market data: pricing, fundamentals, snapshots.">OpenBB :8081 (opt)</div>
+    </div>
+  </div>
+
+  <div class="sub-section-title">Core Systems</div>
+  <div class="overview-grid">
+    <div class="system-card blue" onclick="showSection('pipeline')">
+      <div class="card-header">
+        <div class="card-icon">⚙️</div>
+        <div>
+          <div class="card-title">Financial Engine v2</div>
+          <div class="card-subtitle">financial-engine_v2/backend/</div>
+        </div>
+      </div>
+      <p style="font-size:13px; color:var(--text2); line-height:1.5;">Core backend — FastAPI authority layer. Owns all data ingestion, extraction, storage, RAG, and retrieval. Cockpit is a pure client of this system.</p>
+      <div class="card-tags">
+        <span class="tag blue">FastAPI :8000</span>
+        <span class="tag green">Celery</span>
+        <span class="tag purple">60+ services</span>
+        <span class="tag teal">PostgreSQL</span>
+        <span class="tag teal">Qdrant</span>
+      </div>
+      <div class="card-metrics">
+        <div class="metric"><div class="metric-value" style="color:var(--accent)">8</div><div class="metric-label">Route groups</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--green)">60+</div><div class="metric-label">Services</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--purple)">7</div><div class="metric-label">Analysis mods</div></div>
+      </div>
+    </div>
+
+    <div class="system-card purple" onclick="showSection('llm')">
+      <div class="card-header">
+        <div class="card-icon">🧠</div>
+        <div>
+          <div class="card-title">LLM Layer</div>
+          <div class="card-subtitle">llama.cpp + self-optimizing router</div>
+        </div>
+      </div>
+      <p style="font-size:13px; color:var(--text2); line-height:1.5;">Qwen 2.5 14B on Tesla M40 (24GB VRAM). Self-optimizing router scores routes by latency, throughput, error rate, queue depth, and GPU headroom.</p>
+      <div class="card-tags">
+        <span class="tag purple">llama.cpp :8001</span>
+        <span class="tag purple">:8002 extraction</span>
+        <span class="tag blue">Qwen 2.5 14B</span>
+        <span class="tag gray">Ollama :11434</span>
+      </div>
+      <div class="card-metrics">
+        <div class="metric"><div class="metric-value" style="color:var(--purple)">24GB</div><div class="metric-label">VRAM (M40)</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--accent)">88.6%</div><div class="metric-label">Extraction acc.</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--green)">5</div><div class="metric-label">Router signals</div></div>
+      </div>
+    </div>
+
+    <div class="system-card green" onclick="showSection('sources')">
+      <div class="card-header">
+        <div class="card-icon">🗄️</div>
+        <div>
+          <div class="card-title">Data Layer</div>
+          <div class="card-subtitle">PostgreSQL + Qdrant + SQLite</div>
+        </div>
+      </div>
+      <p style="font-size:13px; color:var(--text2); line-height:1.5;">Three-layer storage: structured metrics in Postgres, vector chunks in Qdrant, qualitative memory in SQLite-vec. Deterministic vector IDs: {doc_id}:{chunk_idx}.</p>
+      <div class="card-tags">
+        <span class="tag teal">asx_docs 768-dim</span>
+        <span class="tag teal">news_chunks</span>
+        <span class="tag green">company_memory</span>
+        <span class="tag green">market_memory</span>
+      </div>
+      <div class="card-metrics">
+        <div class="metric"><div class="metric-value" style="color:var(--teal)">5</div><div class="metric-label">PG tables (core)</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--green)">5</div><div class="metric-label">Qdrant collections</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--yellow)">768</div><div class="metric-label">Vector dim</div></div>
+      </div>
+    </div>
+
+    <div class="system-card orange" onclick="showSection('pipeline')">
+      <div class="card-header">
+        <div class="card-icon">📄</div>
+        <div>
+          <div class="card-title">Extraction Pipeline</div>
+          <div class="card-subtitle">multipass_extraction.py (single authority)</div>
+        </div>
+      </div>
+      <p style="font-size:13px; color:var(--text2); line-height:1.5;">3-pass architecture: structure (Docling/PyMuPDF) → financial metrics (LLM JSON) → risk/guidance (LLM). Title-classification gate prevents unnecessary LLM calls.</p>
+      <div class="card-tags">
+        <span class="tag orange">Pass 1: Structure</span>
+        <span class="tag orange">Pass 2: Metrics</span>
+        <span class="tag orange">Pass 3: Risk</span>
+        <span class="tag gray">Docling default</span>
+      </div>
+      <div class="card-metrics">
+        <div class="metric"><div class="metric-value" style="color:var(--orange)">3</div><div class="metric-label">Passes</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--green)">8+</div><div class="metric-label">Eval fixtures</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--accent)">88.6%</div><div class="metric-label">Accuracy</div></div>
+      </div>
+    </div>
+
+    <div class="system-card teal" onclick="showSection('llm')">
+      <div class="card-header">
+        <div class="card-icon">💬</div>
+        <div>
+          <div class="card-title">Cockpit Chat</div>
+          <div class="card-subtitle">Agent loop + tool calling + streaming SSE</div>
+        </div>
+      </div>
+      <p style="font-size:13px; color:var(--text2); line-height:1.5;">Agent loop gathers context from backend, builds system prompt with temporal anchoring, calls LLM with tools, executes tool calls, and streams response via SSE.</p>
+      <div class="card-tags">
+        <span class="tag teal">10+ tools</span>
+        <span class="tag blue">SSE streaming</span>
+        <span class="tag purple">Memory integration</span>
+        <span class="tag green">Action proposals</span>
+      </div>
+      <div class="card-metrics">
+        <div class="metric"><div class="metric-value" style="color:var(--teal)">10+</div><div class="metric-label">Agent tools</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--accent)">12</div><div class="metric-label">Chat history ctx</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--purple)">2</div><div class="metric-label">Interfaces (TUI/Web)</div></div>
+      </div>
+    </div>
+
+    <div class="system-card yellow" onclick="showSection('sources')">
+      <div class="card-header">
+        <div class="card-icon">📡</div>
+        <div>
+          <div class="card-title">Ingestion Layer</div>
+          <div class="card-subtitle">ASX filings + News (54 sources)</div>
+        </div>
+      </div>
+      <p style="font-size:13px; color:var(--text2); line-height:1.5;">Daily ASX announcement ingest (4C/4D/4E/5B, continuous, annual). 54 AU news sources via newspaper4k + Scrapling/Playwright for JS-gated pages.</p>
+      <div class="card-tags">
+        <span class="tag yellow">ASX primary</span>
+        <span class="tag yellow">MarketIndex fallback</span>
+        <span class="tag orange">54 news sources</span>
+        <span class="tag gray">OpenBB optional</span>
+      </div>
+      <div class="card-metrics">
+        <div class="metric"><div class="metric-value" style="color:var(--yellow)">54</div><div class="metric-label">News sources</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--orange)">Daily</div><div class="metric-label">Ingest cadence</div></div>
+        <div class="metric"><div class="metric-value" style="color:var(--green)">5yr</div><div class="metric-label">Backfill depth</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- TOPOLOGY -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section" id="section-topology">
+  <div class="section-title">Visual Topology</div>
+  <div class="section-subtitle">Interactive end-to-end system architecture map</div>
+
+  <div class="topology-container">
+    <div class="mermaid">
+flowchart LR
+  U[Operator / User]:::user
+
+  subgraph FE["Frontend"]
+    UI["cockpit-ui<br/>(Chat/Ops/News)"]:::fe
+    CL["api-client.ts"]:::fe
+  end
+
+  subgraph BE["Backend"]
+    API["FastAPI Surface"]:::be
+    AUTH["Data Authority"]:::be
+  end
+
+  subgraph AG["Agent"]
+    LP["AgentLoop"]:::agent
+    EX["ToolExecutor"]:::agent
+  end
+
+  subgraph INFRA["Infrastructure"]
+    DB[(Postgres)]:::data
+    VS[(Qdrant)]:::data
+    LLM[llama.cpp]:::data
+    CEL[Celery/Redis]:::data
+  end
+
+  U --> UI
+  UI --> CL
+  CL --> API
+  API --> LP
+  LP --> EX
+
+  EX -- read-only --> VS
+  EX -- read-only --> LLM
+  EX -- mutating --> CEL
+
+  CEL --> DB
+  CEL --> VS
+  AUTH --> DB
+
+  classDef fe fill:#1f6feb,stroke:#58a6ff,stroke-width:2px,color:#fff
+  classDef be fill:#161b22,stroke:#30363d,stroke-width:2px,color:#fff
+  classDef agent fill:#238636,stroke:#3fb950,stroke-width:2px,color:#fff
+  classDef data fill:#0d1117,stroke:#21262d,stroke-width:1px,color:#8b949e
+  classDef user fill:#bc8cff,stroke:#d2a8ff,stroke-width:2px,color:#fff
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- PIPELINE / DATA FLOW -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section" id="section-pipeline">
+  <div class="section-title">Data Flow Pipeline</div>
+  <div class="section-subtitle">End-to-end: discovery → ingestion → extraction → embedding → RAG → chat response</div>
+
+  <div class="flow-pipeline">
+    <div class="flow-stage active-stage" onclick="openStage(0)">
+      <div class="flow-num">1</div>
+      <div class="flow-title">Discovery</div>
+      <div class="flow-desc">ASX/MarketIndex announcement discovery. Deduplicate by source_url.</div>
+    </div>
+    <div class="flow-stage" onclick="openStage(1)">
+      <div class="flow-num">2</div>
+      <div class="flow-title">Persistence</div>
+      <div class="flow-desc">Insert new Document rows. Return new_document_ids.</div>
+    </div>
+    <div class="flow-stage" onclick="openStage(2)">
+      <div class="flow-num">3</div>
+      <div class="flow-title">Download</div>
+      <div class="flow-desc">Fetch PDF, validate, write to docs_root. Set pdf_path + sha256.</div>
+    </div>
+    <div class="flow-stage" onclick="openStage(3)">
+      <div class="flow-num">4</div>
+      <div class="flow-title">Gate</div>
+      <div class="flow-desc">Title classification skip. Whitelist structural filings only.</div>
+    </div>
+    <div class="flow-stage" onclick="openStage(4)">
+      <div class="flow-num">5</div>
+      <div class="flow-title">Extraction</div>
+      <div class="flow-desc">3-pass: structure → metrics → risk/guidance via LLM.</div>
+    </div>
+    <div class="flow-stage" onclick="openStage(5)">
+      <div class="flow-num">6</div>
+      <div class="flow-title">Chunking</div>
+      <div class="flow-desc">Split prose into logical chunks. Deterministic chunk_index.</div>
+    </div>
+    <div class="flow-stage" onclick="openStage(6)">
+      <div class="flow-num">7</div>
+      <div class="flow-title">Embedding</div>
+      <div class="flow-desc">768-dim embeddings via Sentence Transformers or Ollama.</div>
+    </div>
+    <div class="flow-stage" onclick="openStage(7)">
+      <div class="flow-num">8</div>
+      <div class="flow-title">Vector Upsert</div>
+      <div class="flow-desc">Upsert to Qdrant. ID: {doc_id}:{chunk_idx}.</div>
+    </div>
+    <div class="flow-stage" onclick="openStage(8)">
+      <div class="flow-num">9</div>
+      <div class="flow-title">RAG Query</div>
+      <div class="flow-desc">Embed query → cosine search → ranked hits with payloads.</div>
+    </div>
+    <div class="flow-stage" onclick="openStage(9)">
+      <div class="flow-num">10</div>
+      <div class="flow-title">Chat Response</div>
+      <div class="flow-desc">System prompt + tools + RAG context → LLM → SSE stream.</div>
+    </div>
+  </div>
+
+  <!-- Stage detail panels -->
+  <div class="stage-detail open" id="stage-0">
+    <h3>Stage 1: Discovery</h3>
+    <div class="detail-grid">
+      <div class="detail-col">
+        <h4>Sources</h4>
+        <div class="detail-item"><div class="dot yellow"></div>ASX Announcements API (primary)</div>
+        <div class="detail-item"><div class="dot yellow"></div>MarketIndex (fallback)</div>
+        <div class="detail-item"><div class="dot orange"></div>newspaper4k (54 AU sources)</div>
+        <div class="detail-item"><div class="dot orange"></div>Scrapling + Playwright (JS pages)</div>
+      </div>
+      <div class="detail-col">
+        <h4>Data Collected</h4>
+        <div class="detail-item"><div class="dot blue"></div>Ticker symbol</div>
+        <div class="detail-item"><div class="dot blue"></div>Announcement date</div>
+        <div class="detail-item"><div class="dot blue"></div>Source URL</div>
+        <div class="detail-item"><div class="dot blue"></div>Document title</div>
+        <div class="detail-item"><div class="dot blue"></div>doc_class, doc_subtype</div>
+      </div>
+      <div class="detail-col">
+        <h4>Logic</h4>
+        <div class="detail-item"><div class="dot green"></div>Dedup by source_url (unique constraint)</div>
+        <div class="detail-item"><div class="dot green"></div>Return only new_document_ids</div>
+        <div class="detail-item"><div class="dot green"></div>Types: 4C, 4D, 4E, 5B, periodic, annual, continuous</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage-detail" id="stage-1">
+    <h3>Stage 2: Persistence</h3>
+    <div class="detail-grid">
+      <div class="detail-col">
+        <h4>Target</h4>
+        <div class="detail-item"><div class="dot teal"></div>PostgreSQL documents table</div>
+        <div class="detail-item"><div class="dot teal"></div>document_id: canonical UUID (v5 from source_url)</div>
+        <div class="detail-item"><div class="dot teal"></div>Status: DISCOVERED → DOWNLOADED → EXTRACTED</div>
+      </div>
+      <div class="detail-col">
+        <h4>Key Fields</h4>
+        <div class="detail-item"><div class="dot blue"></div>document_id (UUID)</div>
+        <div class="detail-item"><div class="dot blue"></div>ticker, source_url</div>
+        <div class="detail-item"><div class="dot blue"></div>doc_class, doc_subtype</div>
+        <div class="detail-item"><div class="dot blue"></div>published_at, ingested_at</div>
+        <div class="detail-item"><div class="dot blue"></div>pdf_path, pdf_sha256</div>
+      </div>
+      <div class="detail-col">
+        <h4>Method</h4>
+        <div class="detail-item"><div class="dot green"></div>pipeline.insert_discovered_documents()</div>
+        <div class="detail-item"><div class="dot green"></div>ON CONFLICT DO NOTHING</div>
+        <div class="detail-item"><div class="dot green"></div>Returns list of new IDs only</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage-detail" id="stage-2">
+    <h3>Stage 3: PDF Download</h3>
+    <div class="detail-grid">
+      <div class="detail-col">
+        <h4>Process</h4>
+        <div class="detail-item"><div class="dot blue"></div>HTTP fetch of PDF URL</div>
+        <div class="detail-item"><div class="dot blue"></div>Validate content-type, size</div>
+        <div class="detail-item"><div class="dot blue"></div>Write to docs_root filesystem path</div>
+        <div class="detail-item"><div class="dot blue"></div>Compute SHA-256 fingerprint</div>
+      </div>
+      <div class="detail-col">
+        <h4>Updates</h4>
+        <div class="detail-item"><div class="dot green"></div>document.pdf_path</div>
+        <div class="detail-item"><div class="dot green"></div>document.pdf_sha256</div>
+        <div class="detail-item"><div class="dot green"></div>document.status = DOWNLOADED</div>
+      </div>
+      <div class="detail-col">
+        <h4>Method</h4>
+        <div class="detail-item"><div class="dot purple"></div>pipeline.download_pdf_for_document()</div>
+        <div class="detail-item"><div class="dot purple"></div>Celery task: async in worker</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage-detail" id="stage-3">
+    <h3>Stage 4: Extraction Gate</h3>
+    <div class="detail-grid">
+      <div class="detail-col">
+        <h4>SKIP (title match)</h4>
+        <div class="detail-item"><div class="dot red"></div>Substantial holder forms</div>
+        <div class="detail-item"><div class="dot red"></div>Director/officer notices</div>
+        <div class="detail-item"><div class="dot red"></div>Cessation of director notices</div>
+        <div class="detail-item"><div class="dot red"></div>Market sensitive changes only</div>
+      </div>
+      <div class="detail-col">
+        <h4>PROCESS (whitelist)</h4>
+        <div class="detail-item"><div class="dot green"></div>4C / 4D / 4E periodic reports</div>
+        <div class="detail-item"><div class="dot green"></div>5B cash flow statements</div>
+        <div class="detail-item"><div class="dot green"></div>Annual reports + IFRS full accounts</div>
+        <div class="detail-item"><div class="dot green"></div>Half-year / quarter reports</div>
+      </div>
+      <div class="detail-col">
+        <h4>Purpose</h4>
+        <div class="detail-item"><div class="dot purple"></div>Prevent unnecessary LLM calls</div>
+        <div class="detail-item"><div class="dot purple"></div>announcement_importance.py classifier</div>
+        <div class="detail-item"><div class="dot purple"></div>Fail-fast for unextractable docs</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage-detail" id="stage-4">
+    <h3>Stage 5: Multipass Extraction</h3>
+    <div class="pass-grid">
+      <div class="pass-card">
+        <div class="pass-num">Pass 1</div>
+        <div class="pass-title">Structure Extraction</div>
+        <ul class="pass-outputs">
+          <li>Sections (prose blocks)</li>
+          <li>Tables (row/col structure)</li>
+          <li>Metadata (title, date)</li>
+          <li>Method: Docling (default) / PyMuPDF</li>
+        </ul>
+      </div>
+      <div class="pass-card">
+        <div class="pass-num">Pass 2</div>
+        <div class="pass-title">Metric Extraction (LLM)</div>
+        <ul class="pass-outputs">
+          <li>revenue, ebit, np_attributable</li>
+          <li>fcf, total_equity, capex, net_debt</li>
+          <li>balance sheet items</li>
+          <li>cash flow components</li>
+          <li>Confidence scores per metric</li>
+        </ul>
+      </div>
+      <div class="pass-card">
+        <div class="pass-num">Pass 3</div>
+        <div class="pass-title">Risk/Guidance (LLM)</div>
+        <ul class="pass-outputs">
+          <li>risk_summary</li>
+          <li>risk_bullets</li>
+          <li>guidance_summary</li>
+          <li>material_changes</li>
+        </ul>
+      </div>
+    </div>
+    <div style="margin-top:16px; padding:12px; background:var(--bg); border-radius:8px; font-size:12px; color:var(--text2);">
+      <strong style="color:var(--orange);">Safety:</strong> FX handling (denormalize non-AUD, mark fx_converted), confidence threshold gates, generalization requirement — must work across 4D/4E/5B/full IFRS from different companies and sectors.
+    </div>
+  </div>
+
+  <div class="stage-detail" id="stage-5">
+    <h3>Stage 6: Chunking</h3>
+    <div class="detail-grid">
+      <div class="detail-col">
+        <h4>Method</h4>
+        <div class="detail-item"><div class="dot blue"></div>chunk_prose_sections()</div>
+        <div class="detail-item"><div class="dot blue"></div>Split on logical section boundaries</div>
+        <div class="detail-item"><div class="dot blue"></div>Deterministic chunk_index (no randomness)</div>
+      </div>
+      <div class="detail-col">
+        <h4>Output</h4>
+        <div class="detail-item"><div class="dot green"></div>List of (chunk_text, chunk_index) pairs</div>
+        <div class="detail-item"><div class="dot green"></div>Chunk ID format: {document_id}:{chunk_index}</div>
+      </div>
+      <div class="detail-col">
+        <h4>Invariant</h4>
+        <div class="detail-item"><div class="dot red"></div>NEVER use uuid4() for chunk IDs</div>
+        <div class="detail-item"><div class="dot red"></div>IDs must be reproducible from same input</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage-detail" id="stage-6">
+    <h3>Stage 7: Embedding</h3>
+    <div class="detail-grid">
+      <div class="detail-col">
+        <h4>Models</h4>
+        <div class="detail-item"><div class="dot purple"></div>Sentence Transformers (CPU, in-process)</div>
+        <div class="detail-item"><div class="dot purple"></div>Ollama via API (optional, port 11434)</div>
+        <div class="detail-item"><div class="dot purple"></div>Model: nomic-embed-text (768-dim)</div>
+      </div>
+      <div class="detail-col">
+        <h4>Process</h4>
+        <div class="detail-item"><div class="dot blue"></div>embed_texts(chunks) → List[List[float]]</div>
+        <div class="detail-item"><div class="dot blue"></div>Batch processing for efficiency</div>
+        <div class="detail-item"><div class="dot blue"></div>COSINE distance metric</div>
+      </div>
+      <div class="detail-col">
+        <h4>Routing</h4>
+        <div class="detail-item"><div class="dot green"></div>embeddings.py service</div>
+        <div class="detail-item"><div class="dot green"></div>ENABLE_EMBEDDINGS env flag</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage-detail" id="stage-7">
+    <h3>Stage 8: Vector Upsert</h3>
+    <div class="detail-grid">
+      <div class="detail-col">
+        <h4>Target Collections</h4>
+        <div class="detail-item"><div class="dot teal"></div>asx_docs — ASX filing chunks</div>
+        <div class="detail-item"><div class="dot teal"></div>news_chunks — News article chunks</div>
+        <div class="detail-item"><div class="dot teal"></div>commentary_chunks — Memo chunks</div>
+      </div>
+      <div class="detail-col">
+        <h4>Payload Contract</h4>
+        <div class="detail-item"><div class="dot blue"></div>document_id (canonical UUID)</div>
+        <div class="detail-item"><div class="dot blue"></div>ticker</div>
+        <div class="detail-item"><div class="dot blue"></div>doc_class, doc_subtype</div>
+        <div class="detail-item"><div class="dot blue"></div>chunk_index</div>
+        <div class="detail-item"><div class="dot blue"></div>title</div>
+      </div>
+      <div class="detail-col">
+        <h4>Key Rule</h4>
+        <div class="detail-item"><div class="dot red"></div>Point ID = {document_id}:{chunk_index}</div>
+        <div class="detail-item"><div class="dot red"></div>UPSERT (not insert-only)</div>
+        <div class="detail-item"><div class="dot red"></div>768-dim, COSINE — never change</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage-detail" id="stage-8">
+    <h3>Stage 9: RAG Query</h3>
+    <div class="detail-grid">
+      <div class="detail-col">
+        <h4>Endpoint</h4>
+        <div class="detail-item"><div class="dot blue"></div>POST /rag/query</div>
+        <div class="detail-item"><div class="dot blue"></div>source: asx_docs | news | commentary | hybrid</div>
+        <div class="detail-item"><div class="dot blue"></div>GET /api/context/ticker?ticker=XYZ</div>
+      </div>
+      <div class="detail-col">
+        <h4>Process</h4>
+        <div class="detail-item"><div class="dot purple"></div>Embed query text (same model as upsert)</div>
+        <div class="detail-item"><div class="dot purple"></div>Cosine search in Qdrant collection(s)</div>
+        <div class="detail-item"><div class="dot purple"></div>Apply ticker filter if specified</div>
+        <div class="detail-item"><div class="dot purple"></div>Return top_k scored hits</div>
+      </div>
+      <div class="detail-col">
+        <h4>Returns</h4>
+        <div class="detail-item"><div class="dot green"></div>Chunk text + payload</div>
+        <div class="detail-item"><div class="dot green"></div>Similarity score</div>
+        <div class="detail-item"><div class="dot green"></div>Source metadata (ticker, doc, date)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage-detail" id="stage-9">
+    <h3>Stage 10: Chat Response</h3>
+    <div class="detail-grid">
+      <div class="detail-col">
+        <h4>Context Assembly</h4>
+        <div class="detail-item"><div class="dot blue"></div>Recent chat history (limit 12)</div>
+        <div class="detail-item"><div class="dot blue"></div>Company dossier (limit 5)</div>
+        <div class="detail-item"><div class="dot blue"></div>Session summaries (limit 2)</div>
+        <div class="detail-item"><div class="dot blue"></div>Entity observations (limit 8)</div>
+        <div class="detail-item"><div class="dot blue"></div>Temporal anchor (current UTC date)</div>
+      </div>
+      <div class="detail-col">
+        <h4>Agent Loop</h4>
+        <div class="detail-item"><div class="dot purple"></div>Build system prompt with tools</div>
+        <div class="detail-item"><div class="dot purple"></div>Call LLM (local or backend-routed)</div>
+        <div class="detail-item"><div class="dot purple"></div>Parse: direct reply | tool call | action</div>
+        <div class="detail-item"><div class="dot purple"></div>Execute tool → feed result back</div>
+        <div class="detail-item"><div class="dot purple"></div>Repeat until final answer</div>
+      </div>
+      <div class="detail-col">
+        <h4>Output</h4>
+        <div class="detail-item"><div class="dot green"></div>SSE stream: chunk | tool_call | done</div>
+        <div class="detail-item"><div class="dot green"></div>Evidence sources listed</div>
+        <div class="detail-item"><div class="dot green"></div>Action proposals (await /confirm)</div>
+        <div class="detail-item"><div class="dot green"></div>Stored in StateStore chat_messages</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- SERVICES -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section" id="section-services">
+  <div class="section-title">Services & Ports</div>
+  <div class="section-subtitle">Runtime topology — Docker services + host-native processes + GPU budget</div>
+
+  <div class="services-grid">
+    <div class="service-row">
+      <h3>Docker Services</h3>
+      <div class="service-item">
+        <div class="status-dot up"></div>
+        <div class="service-port">:8000</div>
+        <div>
+          <div class="service-name">FastAPI Backend</div>
+          <div class="service-role">Uvicorn · Authority layer · REST + SSE</div>
+        </div>
+      </div>
+      <div class="service-item">
+        <div class="status-dot up"></div>
+        <div class="service-port">:5432</div>
+        <div>
+          <div class="service-name">PostgreSQL</div>
+          <div class="service-role">Primary relational DB · Documents, financials, risk</div>
+        </div>
+      </div>
+      <div class="service-item">
+        <div class="status-dot up"></div>
+        <div class="service-port">:6379</div>
+        <div>
+          <div class="service-name">Redis</div>
+          <div class="service-role">Celery broker + task result backend</div>
+        </div>
+      </div>
+      <div class="service-item">
+        <div class="status-dot up"></div>
+        <div class="service-port">:6333</div>
+        <div>
+          <div class="service-name">Qdrant</div>
+          <div class="service-role">Vector search · gRPC + REST · 768-dim COSINE</div>
+        </div>
+      </div>
+      <div class="service-item">
+        <div class="status-dot up"></div>
+        <div class="service-port">worker</div>
+        <div>
+          <div class="service-name">Celery Worker</div>
+          <div class="service-role">Async task runner · backfill, ingest, extract, embed</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="service-row">
+      <h3>Host-Native Processes</h3>
+      <div class="service-item">
+        <div class="status-dot host"></div>
+        <div class="service-port">:8001</div>
+        <div>
+          <div class="service-name">llama.cpp (Router)</div>
+          <div class="service-role">Primary LLM · Qwen 2.5 14B · systemd --user</div>
+        </div>
+      </div>
+      <div class="service-item">
+        <div class="status-dot host"></div>
+        <div class="service-port">:8002</div>
+        <div>
+          <div class="service-name">llama.cpp (Extraction)</div>
+          <div class="service-role">Dedicated extraction LLM · 10GB VRAM budget</div>
+        </div>
+      </div>
+      <div class="service-item">
+        <div class="status-dot optional"></div>
+        <div class="service-port">:11434</div>
+        <div>
+          <div class="service-name">Ollama</div>
+          <div class="service-role">Optional · embeddings for financial engine backend</div>
+        </div>
+      </div>
+      <div class="service-item">
+        <div class="status-dot optional"></div>
+        <div class="service-port">:8081</div>
+        <div>
+          <div class="service-name">OpenBB Sidecar</div>
+          <div class="service-role">Optional · market data · pricing, fundamentals</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="service-row">
+      <h3>Health Endpoints</h3>
+      <div class="service-item">
+        <div class="service-port" style="background:rgba(63,185,80,0.1);color:var(--green)">GET</div>
+        <div>
+          <div class="service-name">/api/health</div>
+          <div class="service-role">Basic backend liveness</div>
+        </div>
+      </div>
+      <div class="service-item">
+        <div class="service-port" style="background:rgba(63,185,80,0.1);color:var(--green)">GET</div>
+        <div>
+          <div class="service-name">/api/cockpit/health</div>
+          <div class="service-role">Aggregated: backend + llama.cpp + Qdrant + GPU</div>
+        </div>
+      </div>
+      <div class="service-item">
+        <div class="service-port" style="background:rgba(63,185,80,0.1);color:var(--green)">GET</div>
+        <div>
+          <div class="service-name">/api/system/status</div>
+          <div class="service-role">Full backend status snapshot</div>
+        </div>
+      </div>
+      <div class="service-item">
+        <div class="service-port" style="background:rgba(63,185,80,0.1);color:var(--green)">GET</div>
+        <div>
+          <div class="service-name">/api/system/capabilities</div>
+          <div class="service-role">Feature flags + dependency state</div>
+        </div>
+      </div>
+      <div style="font-size:12px; color:var(--text3); margin-top:10px; padding:8px;">
+        <span style="color:var(--green)">●</span> Running (Docker) &nbsp;
+        <span style="color:var(--purple)">●</span> Host-native &nbsp;
+        <span style="color:var(--yellow)">●</span> Optional
+      </div>
+    </div>
+  </div>
+
+  <!-- GPU Budget -->
+  <div class="vram-bar" style="max-width:700px; margin-top:24px;">
+    <div class="vram-title">Tesla M40 GPU — 24GB VRAM Budget</div>
+    <div class="vram-track">
+      <div class="vram-seg" style="width:41.6%; background:var(--purple); opacity:0.8;">Router :8001 — 10GB</div>
+      <div class="vram-seg" style="width:41.6%; background:var(--orange); opacity:0.8;">Extraction :8002 — 10GB</div>
+      <div class="vram-seg" style="width:16.6%; background:var(--teal); opacity:0.6; font-size:10px;">Buffer 4GB</div>
+    </div>
+    <div class="vram-labels">
+      <span>0GB</span>
+      <span style="margin-left:38%;">20GB</span>
+      <span style="margin-left:10%;">24GB</span>
+    </div>
+    <div style="margin-top:8px; font-size:12px; color:var(--text2);">
+      Enforcement: <code style="background:var(--bg); padding:2px 6px; border-radius:4px; font-family:monospace; color:var(--accent);">scripts/gpu_process_guard.sh --check</code> — run before spawning llama-server. Exit 1 = rogue process, Exit 2 = VRAM critical.
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- LLM & TOOLS -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section" id="section-llm">
+  <div class="section-title">LLM Layer & Agent Tools</div>
+  <div class="section-subtitle">What the LLM can do — tool definitions, routing logic, and analysis capabilities</div>
+
+  <!-- Router weights -->
+  <div class="sub-section">
+    <div class="sub-section-title">Self-Optimizing Router (router.py)</div>
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px; max-width:700px;">
+      <div style="font-size:13px; color:var(--text2); margin-bottom:12px;">Routes each request to best llama.cpp instance. Scores weighted by:</div>
+      <div class="router-weights">
+        <div class="weight-chip"><div class="weight-bar"><div class="weight-fill" style="width:100%"></div></div>Latency (0.4)</div>
+        <div class="weight-chip"><div class="weight-bar"><div class="weight-fill" style="width:75%"></div></div>Throughput (0.3)</div>
+        <div class="weight-chip"><div class="weight-bar"><div class="weight-fill" style="width:50%"></div></div>Error rate (0.2)</div>
+        <div class="weight-chip"><div class="weight-bar"><div class="weight-fill" style="width:25%"></div></div>Queue depth (0.1)</div>
+        <div class="weight-chip"><div class="weight-bar"><div class="weight-fill" style="width:25%"></div></div>GPU headroom (0.1)</div>
+      </div>
+      <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
+        <span class="tag purple">router role (:8001)</span>
+        <span class="tag orange">extraction role (:8002)</span>
+        <span class="tag blue">coding role (:8002)</span>
+        <span class="tag teal">reasoning role</span>
+        <span class="tag yellow">deep_reasoning role</span>
+      </div>
+      <div style="margin-top:12px; font-size:12px; color:var(--text2);">
+        Finance task detection: earnings · guidance · capital allocation · balance-sheet · valuation · peer comparison · catalysts · RAG synthesis
+      </div>
+    </div>
+  </div>
+
+  <div class="sub-section">
+    <div class="sub-section-title">Agent Tool Definitions</div>
+    <div class="tools-grid">
+
+      <div class="tool-group">
+        <h3>🔍 Data Retrieval</h3>
+        <div class="tool-item blue">
+          <div class="tool-name">search_asx_documents</div>
+          <div class="tool-sig">(query, ticker=None, top_k=8)</div>
+          <div class="tool-desc">Semantic RAG search over ASX filing chunks in Qdrant asx_docs collection. Returns ranked hits with evidence payloads.</div>
+        </div>
+        <div class="tool-item blue">
+          <div class="tool-name">search_news</div>
+          <div class="tool-sig">(query, days_back=7)</div>
+          <div class="tool-desc">Search news_chunks collection. Relevance-ordered by ticker. Supports recency filtering via days_back.</div>
+        </div>
+        <div class="tool-item blue">
+          <div class="tool-name">get_financials</div>
+          <div class="tool-sig">(ticker)</div>
+          <div class="tool-desc">Returns structured asx_periodic_financials rows — revenue, ebit, NP, FCF, cash flows, balance sheet. Multi-period.</div>
+        </div>
+        <div class="tool-item blue">
+          <div class="tool-name">get_risk_summary</div>
+          <div class="tool-sig">(ticker)</div>
+          <div class="tool-desc">Returns asx_risk_notes — risk bullets, guidance summary, material changes. Per-document.</div>
+        </div>
+        <div class="tool-item teal">
+          <div class="tool-name">search_web</div>
+          <div class="tool-sig">(query)</div>
+          <div class="tool-desc">Internet search fallback when local RAG is insufficient. Returns web results.</div>
+        </div>
+        <div class="tool-item teal">
+          <div class="tool-name">fetch_url</div>
+          <div class="tool-sig">(url, max_chars=8000)</div>
+          <div class="tool-desc">Fetch URL and return markdown-converted content. Used for ad-hoc web research.</div>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <h3>📊 Analysis & Memory</h3>
+        <div class="tool-item orange">
+          <div class="tool-name">analyze_ticker</div>
+          <div class="tool-sig">(ticker, focus="valuation|risk|moat|catalysts")</div>
+          <div class="tool-desc">Runs one of 7 analysis modules. D1 layer is always deterministic. D2 layer adds LLM synthesis for risk, catalysts, moat.</div>
+        </div>
+        <div class="tool-item orange">
+          <div class="tool-name">scan_watchlist</div>
+          <div class="tool-sig">()</div>
+          <div class="tool-desc">Trigger watchlist evaluation. Runs alert conditions across all watched tickers.</div>
+        </div>
+        <div class="tool-item green">
+          <div class="tool-name">retrieve_company_memory</div>
+          <div class="tool-sig">(ticker, query=None)</div>
+          <div class="tool-desc">Access per-ticker dossier (JSONL findings, observations, situations). SQLite-vec backed qualitative store.</div>
+        </div>
+        <div class="tool-item green">
+          <div class="tool-name">retrieve_market_memory</div>
+          <div class="tool-sig">(query=None)</div>
+          <div class="tool-desc">Access sector and macro context. Market-level qualitative memory (SQLite-vec).</div>
+        </div>
+        <div class="tool-item green">
+          <div class="tool-name">save_finding</div>
+          <div class="tool-sig">(ticker, finding, source, confidence)</div>
+          <div class="tool-desc">Persist a new finding to the company dossier. Traceable to source document/URL with confidence level.</div>
+        </div>
+        <div class="tool-item purple">
+          <div class="tool-name">ingest_documents</div>
+          <div class="tool-sig">(ticker, period="recent|bulk")</div>
+          <div class="tool-desc">Trigger document backfill for a ticker. Dispatches Celery task for async processing.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="sub-section">
+    <div class="sub-section-title">Analysis Modules (×7)</div>
+    <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px;">
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px;">
+        <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:6px;">balance_sheet</div>
+        <div style="font-size:11px; color:var(--text2);">D1 only. Health score, leverage, liquidity, solvency signals.</div>
+        <div class="tag green" style="margin-top:8px; display:inline-block;">deterministic</div>
+      </div>
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px;">
+        <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:6px;">roic</div>
+        <div style="font-size:11px; color:var(--text2);">D1 only. ROIC trend, efficiency metrics across periods.</div>
+        <div class="tag green" style="margin-top:8px; display:inline-block;">deterministic</div>
+      </div>
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px;">
+        <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:6px;">valuation</div>
+        <div style="font-size:11px; color:var(--text2);">D1 only. P/E, P/B, DCF-derived signals from price + financials.</div>
+        <div class="tag green" style="margin-top:8px; display:inline-block;">deterministic</div>
+      </div>
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px;">
+        <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:6px;">sentiment</div>
+        <div style="font-size:11px; color:var(--text2);">D1 only. Sentiment score per period from RAG news/commentary.</div>
+        <div class="tag green" style="margin-top:8px; display:inline-block;">deterministic</div>
+      </div>
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px;">
+        <div style="font-size:12px; font-weight:700; color:var(--purple); margin-bottom:6px;">risk</div>
+        <div style="font-size:11px; color:var(--text2);">D1 + D2. Risk classification + LLM narrative synthesis.</div>
+        <div class="tag purple" style="margin-top:8px; display:inline-block;">+ LLM synthesis</div>
+      </div>
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px;">
+        <div style="font-size:12px; font-weight:700; color:var(--purple); margin-bottom:6px;">catalysts</div>
+        <div style="font-size:11px; color:var(--text2);">D1 + D2. Catalyst detection from docs/announcements + LLM narrative.</div>
+        <div class="tag purple" style="margin-top:8px; display:inline-block;">+ LLM synthesis</div>
+      </div>
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px;">
+        <div style="font-size:12px; font-weight:700; color:var(--purple); margin-bottom:6px;">moat</div>
+        <div style="font-size:11px; color:var(--text2);">D1 + D2. Competitive position quality score + LLM narrative.</div>
+        <div class="tag purple" style="margin-top:8px; display:inline-block;">+ LLM synthesis</div>
+      </div>
+      <div style="background:var(--surface2); border:1px dashed var(--border); border-radius:8px; padding:14px; display:flex; align-items:center; justify-content:center;">
+        <div style="font-size:12px; color:var(--text3); text-align:center;">Orchestrator manages all 7 modules with evidence chain per claim</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- DATA SOURCES -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section" id="section-sources">
+  <div class="section-title">Data Sources & Storage</div>
+  <div class="section-subtitle">Where data comes from and where it lives</div>
+
+  <div class="sources-layout">
+    <div class="source-block">
+      <h3>Ingestion Sources</h3>
+      <div class="source-item">
+        <div class="source-icon">📋</div>
+        <div>
+          <div class="source-name">ASX Announcements (Primary)</div>
+          <div class="source-desc">Official ASX announcement API. Periodic filings: 4C, 4D, 4E, 5B. Continuous + annual reports.</div>
+          <div class="source-meta">Frequency: Daily · Types: periodic/continuous/annual · Dedup: by source_url</div>
+        </div>
+      </div>
+      <div class="source-item">
+        <div class="source-icon">📰</div>
+        <div>
+          <div class="source-name">MarketIndex (Fallback)</div>
+          <div class="source-desc">ASX filing fallback provider when primary ASX API fails or is rate-limited.</div>
+          <div class="source-meta">Frequency: On-demand · Role: Provider redundancy</div>
+        </div>
+      </div>
+      <div class="source-item">
+        <div class="source-icon">🗞️</div>
+        <div>
+          <div class="source-name">newspaper4k (54 AU Sources)</div>
+          <div class="source-desc">AFR, Stockhead, MarketIndex, SMH, ABC, The Australian, and 48 more. Full article extraction.</div>
+          <div class="source-meta">Frequency: Daily · Sources: 54 · JS-gated pages: Scrapling/Playwright</div>
+        </div>
+      </div>
+      <div class="source-item">
+        <div class="source-icon">📈</div>
+        <div>
+          <div class="source-name">OpenBB Sidecar (Optional)</div>
+          <div class="source-desc">Market data: pricing, fundamentals, snapshots. Cached in openbb_snapshots Postgres table.</div>
+          <div class="source-meta">Port: 8081 · Optional feature · Real-time data</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="source-block">
+      <h3>Storage Systems</h3>
+      <div class="source-item">
+        <div class="source-icon">🐘</div>
+        <div>
+          <div class="source-name">PostgreSQL :5432</div>
+          <div class="source-desc"><strong>documents</strong> — core records · <strong>asx_periodic_financials</strong> — extracted metrics · <strong>asx_risk_notes</strong> — risk/guidance · <strong>extraction_runs</strong> — execution records · <strong>companies</strong> — metadata</div>
+          <div class="source-meta">Primary key on documents: UUID v5 from source_url · Cockpit state tables also here</div>
+        </div>
+      </div>
+      <div class="source-item">
+        <div class="source-icon">🔷</div>
+        <div>
+          <div class="source-name">Qdrant :6333</div>
+          <div class="source-desc"><strong>asx_docs</strong> (768-dim, COSINE) · <strong>news_chunks</strong> (768-dim) · <strong>commentary_chunks</strong> · <strong>company_memory</strong> (SQLite-vec) · <strong>market_memory</strong></div>
+          <div class="source-meta">Vector IDs: {document_id}:{chunk_index} — deterministic, reproducible</div>
+        </div>
+      </div>
+      <div class="source-item">
+        <div class="source-icon">🗃️</div>
+        <div>
+          <div class="source-name">SQLite (Local Cockpit)</div>
+          <div class="source-desc"><strong>~/.financial_engine_cockpit/state.db</strong> — chat_messages, jobs, analysis_exports, watchlist, entity_observations, preferences · <strong>~/.tenn/memory/</strong> — JSONL research notes, alerts, situations</div>
+          <div class="source-meta">Cockpit-local only · Not replicated to backend · StateStore abstraction</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sub-section-title" style="margin-top:24px;">Qdrant Collections</div>
+  <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px;">
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px;">
+      <div style="font-weight:600; margin-bottom:8px; color:var(--teal);">asx_docs</div>
+      <div style="font-size:12px; color:var(--text2);">ASX filing prose + table chunks. Primary RAG source for financial questions.</div>
+      <div style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;">
+        <span class="tag teal">768-dim</span><span class="tag gray">COSINE</span><span class="tag gray">nomic-embed-text</span>
+      </div>
+    </div>
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px;">
+      <div style="font-weight:600; margin-bottom:8px; color:var(--teal);">news_chunks</div>
+      <div style="font-size:12px; color:var(--text2);">News article chunks. Relevance-ordered by ticker. Supports days_back recency filter.</div>
+      <div style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;">
+        <span class="tag teal">768-dim</span><span class="tag gray">COSINE</span><span class="tag yellow">publish_date payload</span>
+      </div>
+    </div>
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px;">
+      <div style="font-weight:600; margin-bottom:8px; color:var(--teal);">commentary_chunks</div>
+      <div style="font-size:12px; color:var(--text2);">Commentary memos — temporal anchoring applied. news_memo_extractor generated.</div>
+      <div style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;">
+        <span class="tag teal">768-dim</span><span class="tag gray">COSINE</span>
+      </div>
+    </div>
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px;">
+      <div style="font-weight:600; margin-bottom:8px; color:var(--green);">company_memory</div>
+      <div style="font-size:12px; color:var(--text2);">Qualitative per-ticker observations, dossier findings, situations. SQLite-vec backed.</div>
+      <div style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;">
+        <span class="tag green">SQLite-vec</span><span class="tag gray">ticker-keyed</span>
+      </div>
+    </div>
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px;">
+      <div style="font-weight:600; margin-bottom:8px; color:var(--green);">market_memory</div>
+      <div style="font-size:12px; color:var(--text2);">Sector and macro-level qualitative context. Retrieved when query involves market-wide topics.</div>
+      <div style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;">
+        <span class="tag green">SQLite-vec</span><span class="tag gray">sector-keyed</span>
+      </div>
+    </div>
+    <div style="background:var(--surface2); border:1px dashed var(--border); border-radius:8px; padding:16px; display:flex; align-items:center;">
+      <div style="font-size:12px; color:var(--text3);">Query Orchestrator routes: financial_truth → Postgres | company_memory → SQLite-vec | market_memory → SQLite-vec</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- API ROUTES -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section" id="section-api">
+  <div class="section-title">API Routes</div>
+  <div class="section-subtitle">FastAPI endpoint inventory — backend :8000</div>
+
+  <div class="api-grid">
+    <div class="api-group">
+      <h3>Health & Status</h3>
+      <div class="api-route"><span class="method GET">GET</span><div><div class="route-path">/api/health</div><div class="route-desc">Basic backend liveness</div></div></div>
+      <div class="api-route"><span class="method GET">GET</span><div><div class="route-path">/api/cockpit/health</div><div class="route-desc">Aggregated: backend + llama.cpp + Qdrant + GPU</div></div></div>
+      <div class="api-route"><span class="method GET">GET</span><div><div class="route-path">/api/system/status</div><div class="route-desc">Full backend status snapshot</div></div></div>
+      <div class="api-route"><span class="method GET">GET</span><div><div class="route-path">/api/system/capabilities</div><div class="route-desc">Feature flags + dependency state</div></div></div>
+    </div>
+
+    <div class="api-group">
+      <h3>Context Retrieval</h3>
+      <div class="api-route"><span class="method GET">GET</span><div><div class="route-path">/api/context/ticker?ticker=XYZ</div><div class="route-desc">Authoritative bundle: docs, financials, announcements, risk failures</div></div></div>
+      <div class="api-route"><span class="method GET">GET</span><div><div class="route-path">/api/context/verification?ticker=XYZ</div><div class="route-desc">Verification context: extraction failures, low-confidence rows</div></div></div>
+      <div class="api-route"><span class="method GET">GET</span><div><div class="route-path">/api/docs?ticker=...</div><div class="route-desc">Document inventory for ticker</div></div></div>
+      <div class="api-route"><span class="method GET">GET</span><div><div class="route-path">/api/financials?ticker=...</div><div class="route-desc">Structured financial rows (multi-period)</div></div></div>
+      <div class="api-route"><span class="method GET">GET</span><div><div class="route-path">/api/risk?document_id=...</div><div class="route-desc">Risk/guidance notes for document</div></div></div>
+    </div>
+
+    <div class="api-group">
+      <h3>RAG & Chat</h3>
+      <div class="api-route"><span class="method POST">POST</span><div><div class="route-path">/rag/query</div><div class="route-desc">Unified retrieval (source: asx_docs|news|commentary|hybrid)</div></div></div>
+      <div class="api-route"><span class="method POST">POST</span><div><div class="route-path">/chat</div><div class="route-desc">Chat endpoint (analysis|strategy|research mode)</div></div></div>
+      <div class="api-route"><span class="method POST">POST</span><div><div class="route-path">/api/cockpit/chat</div><div class="route-desc">Cockpit chat with SSE streaming response</div></div></div>
+    </div>
+
+    <div class="api-group">
+      <h3>Ingestion & Processing</h3>
+      <div class="api-route"><span class="method POST">POST</span><div><div class="route-path">/api/backfill/ticker/{ticker}?years=5</div><div class="route-desc">Single ticker historical backfill</div></div></div>
+      <div class="api-route"><span class="method POST">POST</span><div><div class="route-path">/api/backfill/asx20</div><div class="route-desc">Backfill all ASX20 companies</div></div></div>
+      <div class="api-route"><span class="method POST">POST</span><div><div class="route-path">/api/ingest/announcements</div><div class="route-desc">Daily announcement ingest run</div></div></div>
+      <div class="api-route"><span class="method POST">POST</span><div><div class="route-path">/api/process/document/{document_id}</div><div class="route-desc">Reprocess single document (extract + embed)</div></div></div>
+    </div>
+
+    <div class="api-group">
+      <h3>Analysis</h3>
+      <div class="api-route"><span class="method POST">POST</span><div><div class="route-path">/api/analysis/{ticker}?module=...</div><div class="route-desc">Run analysis module (balance_sheet|risk|valuation|roic|sentiment|catalysts|moat)</div></div></div>
+      <div class="api-route"><span class="method GET">GET</span><div><div class="route-path">/api/analysis/{ticker}</div><div class="route-desc">Get cached analysis artifact</div></div></div>
+    </div>
+
+    <div class="api-group">
+      <h3>Cockpit Operations</h3>
+      <div class="api-route"><span class="method GET">GET</span><div><div class="route-path">/api/cockpit/config</div><div class="route-desc">Runtime config + extraction_active state</div></div></div>
+      <div class="api-route"><span class="method GET">GET</span><div><div class="route-path">/api/cockpit/models</div><div class="route-desc">Available models (GGUF + Ollama + HF)</div></div></div>
+      <div class="api-route"><span class="method POST">POST</span><div><div class="route-path">/api/cockpit/models/load</div><div class="route-desc">Load model onto llama router</div></div></div>
+      <div class="api-route"><span class="method GET">GET</span><div><div class="route-path">/api/cockpit/queue</div><div class="route-desc">Celery queue status</div></div></div>
+      <div class="api-route"><span class="method POST">POST</span><div><div class="route-path">/api/cockpit/action/execute</div><div class="route-desc">Execute confirmed action proposal</div></div></div>
+      <div class="api-route"><span class="method GET">GET</span><div><div class="route-path">/api/cockpit/action/jobs/{job_id}</div><div class="route-desc">Job status polling</div></div></div>
+    </div>
+
+    <div class="api-group">
+      <h3>Commentary & Transcripts</h3>
+      <div class="api-route"><span class="method GET">GET</span><div><div class="route-path">/api/commentary/transcripts/pending</div><div class="route-desc">List staged transcripts awaiting approval</div></div></div>
+      <div class="api-route"><span class="method POST">POST</span><div><div class="route-path">/api/commentary/transcripts/{id}/approve</div><div class="route-desc">Approve transcript → upsert to Qdrant</div></div></div>
+      <div class="api-route"><span class="method DELETE">DELETE</span><div><div class="route-path">/api/commentary/transcripts/{id}/reject</div><div class="route-desc">Delete staged transcript</div></div></div>
+      <div class="api-route"><span class="method POST">POST</span><div><div class="route-path">/api/commentary/transcripts/purge-expired</div><div class="route-desc">Cleanup expired staged transcripts</div></div></div>
+    </div>
+
+    <div class="api-group">
+      <h3>Feedback & Flags</h3>
+      <div class="api-route"><span class="method POST">POST</span><div><div class="route-path">/api/cockpit/feedback/flag</div><div class="route-desc">Save flagged chat with analysis metadata</div></div></div>
+      <div class="api-route"><span class="method GET">GET</span><div><div class="route-path">/api/cockpit/feedback/flags?limit=10</div><div class="route-desc">List flagged chats</div></div></div>
+      <div class="api-route"><span class="method GET">GET</span><div><div class="route-path">/api/cockpit/feedback/flags/{report_id}</div><div class="route-desc">Read flagged chat detail</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- OPS & GOVERNANCE -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="section" id="section-ops">
+  <div class="section-title">Operations & Governance</div>
+  <div class="section-subtitle">System contract, active workstreams, and operational invariants</div>
+
+  <div class="sub-section">
+    <div class="sub-section-title">System Contract Invariants</div>
+    <div class="invariant-list">
+      <div class="invariant-item">
+        <div class="inv-num">1</div>
+        <div>
+          <div class="inv-title">Backend is sole authority</div>
+          <div class="inv-desc">All data, extraction, RAG, and retrieval lives in the backend. Cockpit is a pure client — no direct Postgres or Qdrant access from Cockpit.</div>
+        </div>
+      </div>
+      <div class="invariant-item">
+        <div class="inv-num">2</div>
+        <div>
+          <div class="inv-title">Pipeline layer ordering</div>
+          <div class="inv-desc">Ingestion → Extraction → Storage → Retrieval → Analysis → Client. No layer skipping. No data shortcuts from client to storage.</div>
+        </div>
+      </div>
+      <div class="invariant-item">
+        <div class="inv-num">3</div>
+        <div>
+          <div class="inv-title">Deterministic vector IDs</div>
+          <div class="inv-desc">Point IDs = {document_id}:{chunk_index}. NEVER uuid4(). IDs must be reproducible from same input for upsert idempotency.</div>
+        </div>
+      </div>
+      <div class="invariant-item">
+        <div class="inv-num">4</div>
+        <div>
+          <div class="inv-title">Single extraction authority</div>
+          <div class="inv-desc">All extraction flows through multipass_extraction.py. No parallel extraction implementations. No bypasses.</div>
+        </div>
+      </div>
+      <div class="invariant-item">
+        <div class="inv-num">5</div>
+        <div>
+          <div class="inv-title">Fail-fast principle</div>
+          <div class="inv-desc">Surface ambiguity immediately. No silent fallbacks. No swallowed exceptions. No default returns that hide failure.</div>
+        </div>
+      </div>
+      <div class="invariant-item">
+        <div class="inv-num">6</div>
+        <div>
+          <div class="inv-title">GPU process guard</div>
+          <div class="inv-desc">Run gpu_process_guard.sh --check before spawning llama-server. Exit 1 = rogue process, Exit 2 = VRAM critical. Resolve before continuing.</div>
+        </div>
+      </div>
+      <div class="invariant-item">
+        <div class="inv-num">7</div>
+        <div>
+          <div class="inv-title">No speculative features</div>
+          <div class="inv-desc">Implement exactly what was asked. No future-proofing, no extra configurability, no abstractions for single-use code, no error handling for impossible conditions.</div>
+        </div>
+      </div>
+      <div class="invariant-item">
+        <div class="inv-num">8</div>
+        <div>
+          <div class="inv-title">Milestone commits mandatory</div>
+          <div class="inv-desc">Every confirmed-working state must be committed. Format: milestone(subsystem): what works. Working: / Tested: fields required. Never end session with uncommitted working state.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sub-section">
+    <div class="sub-section-title">Active Workstreams (as of 2026-04-16)</div>
+    <div class="workstream-grid">
+      <div class="workstream-card">
+        <div class="ws-header">
+          <div class="ws-name">cockpit-observability</div>
+          <div class="ws-status verified">Verified</div>
+        </div>
+        <div class="ws-milestone">Backend ops accepts agent jobs. Codex sessions visible in Operations panel.</div>
+      </div>
+      <div class="workstream-card">
+        <div class="ws-header">
+          <div class="ws-name">temporal-anchoring</div>
+          <div class="ws-status verified">Verified</div>
+        </div>
+        <div class="ws-milestone">Chat + news extraction declare current UTC date. Dates framed as historical context.</div>
+      </div>
+      <div class="workstream-card">
+        <div class="ws-header">
+          <div class="ws-name">extraction-truth</div>
+          <div class="ws-status progress">In Progress</div>
+        </div>
+        <div class="ws-milestone">Phase 02 backlog ranked: BHP FY25, net_debt, shares_outstanding. Review sessions persist.</div>
+      </div>
+      <div class="workstream-card">
+        <div class="ws-header">
+          <div class="ws-name">cockpit-ui</div>
+          <div class="ws-status verified">Verified</div>
+        </div>
+        <div class="ws-milestone">Sources panel renders all evidence types. UI issue capture with browser debug.</div>
+      </div>
+      <div class="workstream-card">
+        <div class="ws-header">
+          <div class="ws-name">extraction-quality</div>
+          <div class="ws-status progress">In Progress</div>
+        </div>
+        <div class="ws-milestone">88.64% accuracy (excl. AZJ). Prose fallback for shares_outstanding. Live eval observability.</div>
+      </div>
+      <div class="workstream-card">
+        <div class="ws-header">
+          <div class="ws-name">memory-orchestration</div>
+          <div class="ws-status verified">Verified</div>
+        </div>
+        <div class="ws-milestone">Query orchestrator routes: financial_truth → Postgres, company/market memory → SQLite-vec.</div>
+      </div>
+      <div class="workstream-card">
+        <div class="ws-header">
+          <div class="ws-name">analysis-modules</div>
+          <div class="ws-status verified">Verified</div>
+        </div>
+        <div class="ws-milestone">7 modules, D1/D2 layers, 48 tests, API endpoints, watchlist scanner.</div>
+      </div>
+      <div class="workstream-card">
+        <div class="ws-header">
+          <div class="ws-name">model-routing</div>
+          <div class="ws-status verified">Verified</div>
+        </div>
+        <div class="ws-milestone">Self-optimizing router: finance task detection + rolling performance summaries.</div>
+      </div>
+      <div class="workstream-card">
+        <div class="ws-header">
+          <div class="ws-name">ideation-combinations</div>
+          <div class="ws-status progress">In Progress</div>
+        </div>
+        <div class="ws-milestone">Current branch: plan/ideation-combinations-2026-04-11. Planning phase.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sub-section">
+    <div class="sub-section-title">Canonical Boot Sequence</div>
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px; font-family:'SF Mono','Fira Code',monospace; font-size:13px; line-height:2;">
+      <div style="color:var(--text3);"># 1. Start Docker services (postgres, redis, qdrant)</div>
+      <div style="color:var(--accent);">bash financial-engine_v2/scripts/run_local_backend.sh</div>
+      <div style="color:var(--text3); margin-top:8px;"># 2. Verify system is up</div>
+      <div style="color:var(--green);">curl -sS http://127.0.0.1:8000/api/health</div>
+      <div style="color:var(--text3); margin-top:8px;"># 3. Check GPU before any LLM ops</div>
+      <div style="color:var(--yellow);">scripts/gpu_process_guard.sh --check</div>
+      <div style="color:var(--text3); margin-top:8px;"># 4. Full aggregated health</div>
+      <div style="color:var(--purple);">curl -sS http://127.0.0.1:8000/api/cockpit/health</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// ── Navigation ──
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('section-' + id).classList.add('active');
+  const btns = document.querySelectorAll('.nav-btn');
+  btns.forEach(b => { if (b.onclick && b.onclick.toString().includes("'" + id + "'")) b.classList.add('active'); });
+  // fallback: match by text
+  btns.forEach(b => {
+    const t = b.textContent.toLowerCase();
+    if ((id === 'overview' && t === 'overview') ||
+        (id === 'pipeline' && t === 'data flow') ||
+        (id === 'services' && t === 'services') ||
+        (id === 'llm' && t === 'llm & tools') ||
+        (id === 'sources' && t === 'data sources') ||
+        (id === 'api' && t === 'api routes') ||
+        (id === 'ops' && t === 'ops & governance')) {
+      b.classList.add('active');
+    }
+  });
+}
+
+// ── Pipeline stage details ──
+function openStage(idx) {
+  document.querySelectorAll('.stage-detail').forEach((d, i) => {
+    d.classList.toggle('open', i === idx);
+  });
+  document.querySelectorAll('.flow-stage').forEach((s, i) => {
+    s.classList.toggle('active-stage', i === idx);
+  });
+}
+
+// ── Tooltip ──
+const tooltip = document.getElementById('tooltip');
+const ttTitle = document.getElementById('tt-title');
+const ttBody = document.getElementById('tt-body');
+
+document.querySelectorAll('[data-tip]').forEach(el => {
+  el.addEventListener('mouseenter', e => {
+    ttTitle.textContent = e.currentTarget.dataset.tip;
+    ttBody.textContent = e.currentTarget.dataset.desc || '';
+    tooltip.classList.add('visible');
+  });
+  el.addEventListener('mousemove', e => {
+    tooltip.style.left = (e.clientX + 16) + 'px';
+    tooltip.style.top = (e.clientY + 12) + 'px';
+  });
+  el.addEventListener('mouseleave', () => {
+    tooltip.classList.remove('visible');
+  });
+});
+
+// ── Search ──
+const search = document.getElementById('search');
+search.addEventListener('input', e => {
+  const q = e.target.value.toLowerCase().trim();
+  if (!q) {
+    document.querySelectorAll('[data-searchable]').forEach(el => el.style.opacity = '1');
+    return;
+  }
+  document.querySelectorAll('[data-searchable]').forEach(el => {
+    const text = el.textContent.toLowerCase();
+    el.style.opacity = text.includes(q) ? '1' : '0.3';
+  });
+});
+
+// ── Fix nav buttons ──
+document.querySelectorAll('.nav-btn').forEach(b => {
+  b.addEventListener('click', function() {
+    document.querySelectorAll('.nav-btn').forEach(x => x.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+</script>
+
+</body>
+</html>

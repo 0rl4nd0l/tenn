@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tenn System Map</title>
+    <style>
+      :root {
+        --bg: #0b1020;
+        --panel: #121a30;
+        --ink: #e8eefc;
+        --muted: #a9b7dc;
+        --accent: #7ee0ff;
+        --accent2: #9cffb8;
+        --warn: #ffd37e;
+        --line: #2a3a66;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "SF Pro Text", sans-serif;
+        color: var(--ink);
+        background: radial-gradient(circle at 20% 0%, #1c2a52, var(--bg) 45%);
+      }
+      .wrap {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      h1 { margin: 0 0 8px; font-size: 28px; }
+      p { margin: 0 0 16px; color: var(--muted); }
+      .legend {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+      .pill {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .card {
+        background: linear-gradient(180deg, #131d37, var(--panel));
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 14px;
+      }
+      .card h2 {
+        margin: 0 0 10px;
+        font-size: 16px;
+        color: var(--accent);
+      }
+      .nodes {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .node {
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--accent2);
+        border-radius: 8px;
+        padding: 8px 10px;
+        background: #0f1730;
+      }
+      .node strong { display: block; font-size: 13px; }
+      .node span { color: var(--muted); font-size: 12px; }
+      .flow {
+        margin-top: 16px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: #0a1021;
+        padding: 24px;
+        min-height: 500px;
+      }
+      @media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+    <script type="module">
+      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'base',
+        themeVariables: {
+          primaryColor: '#121a30',
+          primaryTextColor: '#e8eefc',
+          primaryBorderColor: '#35508a',
+          lineColor: '#5a79bf',
+          secondaryColor: '#0f1730',
+          tertiaryColor: '#0a1021',
+          clusterBkg: '#131d37',
+          clusterBorder: '#2d3b66'
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Tenn System + Subsystem Map</h1>
+      <p>
+        Delegation view of Tenn: frontend modules, backend contracts, agent tool-call
+        runtime, data/inference sources, and confirmation-gated mutating actions.
+      </p>
+
+      <div class="legend">
+        <div class="pill">Blue connections: core data flow</div>
+        <div class="pill">Green connections: tool execution</div>
+        <div class="pill">Yellow connections: mutation confirmation</div>
+      </div>
+
+      <div class="grid">
+        <section class="card">
+          <h2>Frontend Subsystems (`cockpit-ui`)</h2>
+          <div class="nodes">
+            <div class="node"><strong>UX Shell</strong><span>CockpitLayout, Sidebar, Status, Offline indicator</span></div>
+            <div class="node"><strong>Feature Screens</strong><span>Chat, Operations, Verification, Intel Pulse, News, History, Settings</span></div>
+            <div class="node"><strong>Client Integration</strong><span>`api-client.ts` REST + SSE, stores, job stream hooks</span></div>
+            <div class="node"><strong>Route Bridge</strong><span>Next route handlers under `/app/api/cockpit/*`</span></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Agent + Backend Subsystems (`financial-engine_v2`)</h2>
+          <div class="nodes">
+            <div class="node"><strong>Agent Loop Runtime</strong><span>AgentLoop, ResponseParser, ToolExecutor, ToolRouter</span></div>
+            <div class="node"><strong>LLM Tool Surface</strong><span>26 read-only tools + 13 mutating tools (confirmation gated)</span></div>
+            <div class="node"><strong>API Authority</strong><span>`/api/cockpit/*`, `/api/context/*`, `/api/extraction-review/*`, `POST /rag/query`</span></div>
+            <div class="node"><strong>Execution + Storage</strong><span>ActionRegistry, Celery/Redis, Postgres, Qdrant, llama.cpp, optional OpenBB</span></div>
+          </div>
+        </section>
+      </div>
+
+      <div class="flow">
+        <div class="mermaid">
+flowchart LR
+  classDef fe fill:#131d37,stroke:#5a79bf,stroke-width:2px,color:#fff
+  classDef be fill:#121a30,stroke:#35508a,stroke-width:2px,color:#fff
+  classDef agent fill:#0f1730,stroke:#5fc8a5,stroke-width:2px,color:#fff
+  classDef data fill:#0a1021,stroke:#2d3b66,stroke-width:1px,color:#a9b7dc
+  classDef user fill:#1c2a52,stroke:#7ee0ff,stroke-width:2px,color:#fff
+
+  U[Operator / User]:::user
+
+  subgraph FE["Frontend"]
+    UI["cockpit-ui<br/>(Chat/Ops/News)"]:::fe
+    CL["api-client.ts"]:::fe
+  end
+
+  subgraph BE["Backend"]
+    API["FastAPI Surface"]:::be
+    AUTH["Data Authority"]:::be
+  end
+
+  subgraph AG["Agent"]
+    LP["AgentLoop"]:::agent
+    EX["ToolExecutor"]:::agent
+  end
+
+  subgraph IN["Infra"]
+    DB[(Postgres)]:::data
+    VS[(Qdrant)]:::data
+    LLM[llama.cpp]:::data
+    CEL[Celery/Redis]:::data
+  end
+
+  U --> UI
+  UI --> CL
+  CL --> API
+  API --> LP
+  LP --> EX
+  
+  EX -- read-only --> VS
+  EX -- read-only --> LLM
+  EX -- confirm --> CEL
+  
+  CEL --> DB
+  CEL --> VS
+  AUTH --> DB
+        </div>
+      </div>
+    </div>
+  </body>
+    </div>
+  </body>
+</html>
