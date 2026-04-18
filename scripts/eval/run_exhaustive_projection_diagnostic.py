@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -87,11 +88,18 @@ def main() -> int:
     datapoints = load_exhaustive_datapoints(args.exhaustive_jsonl)
     audit_summary = load_exhaustive_audit_summary(args.audit_summary_json)
     canonical_presence = load_canonical_family_presence(args.canonical_fixtures_dir)
+    previous_scorecard_path = args.out_dir / "projection_scorecard.json"
+    previous_scorecard = None
+    if previous_scorecard_path.exists():
+        payload = json.loads(previous_scorecard_path.read_text(encoding="utf-8"))
+        if isinstance(payload, dict):
+            previous_scorecard = payload
 
     scorecard = build_exhaustive_projection_diagnostic(
         datapoints,
         canonical_family_presence_by_document=canonical_presence,
         exhaustive_audit_summary=audit_summary,
+        previous_scorecard=previous_scorecard,
         sample_limit=max(int(args.sample_limit), 1),
     )
     artifact_paths = write_exhaustive_projection_artifacts(scorecard, args.out_dir)

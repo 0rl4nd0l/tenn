@@ -135,6 +135,8 @@ def test_projection_scorecard_counts_and_comparison_are_deterministic(tmp_path):
     assert run_summary["datapoints_processed"] == 7
     assert run_summary["documents_processed"] == 2
     assert run_summary["projected_strong_target_rows"] == 2
+    assert run_summary["projected_medium_target_rows"] == 2
+    assert run_summary["projected_strong_or_medium_target_rows"] == 4
     assert run_summary["projected_supplemental_rows"] == 1
     assert run_summary["unsupported_rows"] == 1
     assert run_summary["family_distribution"] == {
@@ -245,6 +247,26 @@ def test_projection_scorecard_counts_and_comparison_are_deterministic(tmp_path):
         },
     ]
 
+    residual = scorecard["sampled_residual_adjudication"]
+    assert residual["sample_limit_per_bucket"] == 5
+    assert residual["source_buckets"]["weak_rows"]["population_count"] == 1
+    assert residual["source_buckets"]["coherence_rejected_rows"]["population_count"] == 1
+    assert residual["source_buckets"]["collapse_blocked_rows"]["population_count"] == 3
+    assert residual["source_buckets"]["unsupported_rows_near_canonical"][
+        "population_count"
+    ] == 1
+    assert residual["overall_sampled_label_distribution"] == {
+        "ambiguous": 2,
+        "should_project_to_family": 2,
+        "truly_unsupported": 2,
+    }
+
+    freeze = scorecard["bridge_freeze_assessment"]
+    assert freeze["prior_run_available"] is False
+    assert freeze["status"] == "insufficient_baseline"
+    assert freeze["freeze_recommended"] is None
+    assert freeze["coverage_signals"][0]["name"] == "projected_strong_target_rows"
+
     keys = _all_keys(scorecard)
     assert "precision_strict" not in keys
     assert "recall_family" not in keys
@@ -263,3 +285,106 @@ def test_projection_scorecard_counts_and_comparison_are_deterministic(tmp_path):
     assert PROVISIONAL_LABEL in summary_md
     assert CANONICAL_GATE_LABEL in summary_md
     assert "does not implement tuple matching" in summary_md
+    assert "Sampled Residual Adjudication" in summary_md
+    assert "Bridge Freeze Assessment" in summary_md
+
+
+def test_residual_adjudication_and_freeze_rule_can_recommend_freeze():
+    datapoints = [
+        _datapoint(
+            "doc-x",
+            "doc-x__weak_supplemental",
+            "Potash",
+            "10",
+            context_text=(
+                "Underlying EBITDA – Segment | in depreciation, | amortisation and | "
+                "impairments1 | Underlying | EBITDA | Potash"
+            ),
+            raw_scale="millions",
+            unit_type="currency",
+            currency="USD",
+        ),
+        _datapoint(
+            "doc-x",
+            "doc-x__weak_target",
+            "Payments for",
+            "-",
+            context_text=(
+                "Cash flows from operating activities | Receipts from customers | "
+                "Payments for"
+            ),
+            raw_scale="thousands",
+            unit_type="currency",
+            currency="AUD",
+        ),
+        _datapoint(
+            "doc-x",
+            "doc-x__coherence_rejected",
+            "Underlying EBITDA margin",
+            "12%",
+            context_text="Underlying EBITDA margin",
+            unit_type="currency",
+        ),
+        _datapoint(
+            "doc-x",
+            "doc-x__collapse_blocked_target",
+            "Underlying EBIT",
+            "50",
+            raw_scale="millions",
+            unit_type="currency",
+            currency="USD",
+        ),
+        _datapoint(
+            "doc-x",
+            "doc-x__unsupported_near_canonical",
+            "customers",
+            "100",
+            context_text="Revenue from contracts with customers",
+            raw_scale="millions",
+            unit_type="currency",
+            currency="USD",
+        ),
+    ]
+    prior_scorecard = {
+        "run_summary": {
+            "projected_strong_target_rows": 0,
+            "projected_strong_or_medium_target_rows": 1,
+            "auto_collapse_safe_distribution": {"false": 5, "true": 0},
+        },
+        "ambiguity_summary": {
+            "weak_mappings": 2,
+            "coherence_rejected_rows": 1,
+            "collapse_blocked_rows": 3,
+            "unsupported_rows": 2,
+            "supplemental_rows": 0,
+        },
+        "coarse_canonical_comparison": {
+            "documents_with_both_surfaces": 0,
+        },
+        "sampled_residual_adjudication": {
+            "overall_sampled_label_distribution": {
+                "ambiguous": 1,
+                "should_project_to_family": 1,
+            }
+        },
+    }
+
+    scorecard = build_exhaustive_projection_diagnostic(
+        datapoints,
+        previous_scorecard=prior_scorecard,
+        sample_limit=5,
+    )
+
+    residual = scorecard["sampled_residual_adjudication"]
+    labels = residual["overall_sampled_label_distribution"]
+    assert labels["supplemental"] >= 1
+    assert labels["ambiguous"] >= 1
+    assert labels["truly_unsupported"] >= 1
+    assert labels["should_project_to_family"] >= 1
+
+    freeze = scorecard["bridge_freeze_assessment"]
+    assert freeze["prior_run_available"] is True
+    assert freeze["material_coverage_increase"] is False
+    assert freeze["freeze_recommended"] is True
+    assert freeze["status"] == "freeze_bridge_for_now"
+    assert freeze["bucket_or_label_churn_magnitude"] > 0

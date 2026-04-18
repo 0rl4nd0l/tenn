@@ -26,6 +26,7 @@ from app.services.metric_ontology_bridge import (
     EXTRACTOR_TARGET_FAMILIES,
     MappingConfidence,
     OntologyProjection,
+    SUPPLEMENTAL_FAMILIES,
     project,
 )
 
@@ -36,6 +37,21 @@ NON_GOALS = (
     "No tuple-level matcher is implemented.",
     "No precision/recall or production-accuracy metric is computed.",
     "No canonical truth or extractor behavior is replaced.",
+)
+RESIDUAL_ADJUDICATION_LABEL = (
+    "Sampled residual adjudication only. These labels are provisional review aids, "
+    "not matcher outcomes and not truth claims."
+)
+FREEZE_RULE_LABEL = (
+    "Freeze the bridge when the next pass fails to materially increase strong/medium "
+    "target-family coverage and the sampled residual tail is still dominated by "
+    "ambiguous or truly unsupported cases."
+)
+RESIDUAL_SAMPLE_BUCKETS = (
+    "weak_rows",
+    "coherence_rejected_rows",
+    "collapse_blocked_rows",
+    "unsupported_rows_near_canonical",
 )
 
 
@@ -85,6 +101,7 @@ def build_exhaustive_projection_diagnostic(
     *,
     canonical_family_presence_by_document: Mapping[str, Iterable[str]] | None = None,
     exhaustive_audit_summary: Mapping[str, Any] | None = None,
+    previous_scorecard: Mapping[str, Any] | None = None,
     sample_limit: int = 25,
 ) -> dict[str, Any]:
     family_distribution: Counter[str] = Counter()
@@ -108,7 +125,20 @@ def build_exhaustive_projection_diagnostic(
         Counter
     )
     projected_target_totals: Counter[str] = Counter()
+    projected_medium_target_totals: Counter[str] = Counter()
     projected_supported_target_totals: Counter[str] = Counter()
+    residual_bucket_records: dict[
+        str,
+        list[
+            tuple[
+                Mapping[str, Any],
+                OntologyProjection,
+                tuple[str, ...],
+                tuple[str, ...],
+                tuple[str, ...],
+            ]
+        ],
+    ] = defaultdict(list)
 
     strong_signal_blocked_samples: list[dict[str, Any]] = []
     context_dependent_samples: list[dict[str, Any]] = []
@@ -129,6 +159,11 @@ def build_exhaustive_projection_diagnostic(
         documents_seen.add(document_id)
 
         projection = project(datapoint)
+        row_label = str(datapoint.get("row_label") or "")
+        context_text = str(datapoint.get("context_text") or "")
+        row_candidates = _candidate_families(row_label)
+        context_candidates = _candidate_families(context_text)
+        near_candidates = tuple(sorted(set(row_candidates) | set(context_candidates)))
         family_key = projection.canonical_family or "__none__"
         family_distribution[family_key] += 1
         unit_type_distribution[projection.unit_type.value] += 1
@@ -164,6 +199,11 @@ def build_exhaustive_projection_diagnostic(
         ):
             projected_target_row_counts[document_id][projection.canonical_family] += 1
             projected_target_totals[projection.canonical_family] += 1
+        if (
+            projection.canonical_family in EXTRACTOR_TARGET_FAMILIES
+            and projection.mapping_confidence == MappingConfidence.MEDIUM
+        ):
+            projected_medium_target_totals[projection.canonical_family] += 1
 
         if (
             projection.canonical_family in EXTRACTOR_TARGET_FAMILIES
@@ -197,7 +237,7 @@ def build_exhaustive_projection_diagnostic(
                 projection,
             )
 
-        candidate_families = _candidate_families(str(datapoint.get("row_label") or ""))
+        candidate_families = row_candidates
         if len(candidate_families) > 1:
             family_confusion_count += 1
             _append_sample(
@@ -206,6 +246,50 @@ def build_exhaustive_projection_diagnostic(
                 datapoint,
                 projection,
                 extra={"candidate_families": list(candidate_families)},
+            )
+
+        if projection.mapping_confidence == MappingConfidence.WEAK:
+            residual_bucket_records["weak_rows"].append(
+                (
+                    datapoint,
+                    projection,
+                    row_candidates,
+                    context_candidates,
+                    near_candidates,
+                )
+            )
+        if projection.mapping_basis.startswith("rejected_unit_type_conflict"):
+            residual_bucket_records["coherence_rejected_rows"].append(
+                (
+                    datapoint,
+                    projection,
+                    row_candidates,
+                    context_candidates,
+                    near_candidates,
+                )
+            )
+        if projection.canonical_family is not None and not projection.auto_collapse_safe:
+            residual_bucket_records["collapse_blocked_rows"].append(
+                (
+                    datapoint,
+                    projection,
+                    row_candidates,
+                    context_candidates,
+                    near_candidates,
+                )
+            )
+        if (
+            projection.mapping_confidence == MappingConfidence.UNSUPPORTED
+            and near_candidates
+        ):
+            residual_bucket_records["unsupported_rows_near_canonical"].append(
+                (
+                    datapoint,
+                    projection,
+                    row_candidates,
+                    context_candidates,
+                    near_candidates,
+                )
             )
 
     coverage_by_document = []
@@ -235,6 +319,10 @@ def build_exhaustive_projection_diagnostic(
         projected_target_row_counts,
         projected_supported_target_row_counts,
     )
+    residual_adjudication = _build_residual_adjudication(
+        residual_bucket_records,
+        sample_limit=sample_limit,
+    )
 
     audit_metadata = {
         "generated_at_utc": None,
@@ -250,6 +338,42 @@ def build_exhaustive_projection_diagnostic(
         )
         audit_metadata["datapoints"] = exhaustive_audit_summary.get("datapoints")
 
+    run_summary = {
+        "documents_processed": len(documents_seen),
+        "datapoints_processed": int(sum(auto_collapse_distribution.values())),
+        "family_distribution": dict(sorted(family_distribution.items())),
+        "unit_type_distribution": dict(sorted(unit_type_distribution.items())),
+        "confidence_distribution": dict(sorted(confidence_distribution.items())),
+        "auto_collapse_safe_distribution": dict(
+            sorted(auto_collapse_distribution.items())
+        ),
+        "projected_strong_target_rows": int(sum(projected_target_totals.values())),
+        "projected_medium_target_rows": int(sum(projected_medium_target_totals.values())),
+        "projected_strong_or_medium_target_rows": int(
+            sum(projected_target_totals.values()) + sum(projected_medium_target_totals.values())
+        ),
+        "projected_supplemental_rows": supplemental_rows,
+        "unsupported_rows": unsupported_rows,
+    }
+    ambiguity_summary = {
+        "unsupported_rows": unsupported_rows,
+        "weak_mappings": weak_mappings,
+        "medium_mappings": medium_mappings,
+        "supplemental_rows": supplemental_rows,
+        "unit_conflict_rows": unit_conflict_rows,
+        "collapse_blocked_rows": collapse_blocked_rows,
+        "qualifier_blocked_rows": qualifier_blocked_rows,
+        "period_disambiguation_rows": period_disambiguation_rows,
+        "coherence_rejected_rows": coherence_rejected_rows,
+    }
+    freeze_assessment = _build_bridge_freeze_assessment(
+        run_summary=run_summary,
+        ambiguity_summary=ambiguity_summary,
+        coarse_comparison=coarse_comparison,
+        residual_adjudication=residual_adjudication,
+        previous_scorecard=previous_scorecard,
+    )
+
     return {
         "artifact_kind": "exhaustive_projection_diagnostic_scorecard",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -257,30 +381,8 @@ def build_exhaustive_projection_diagnostic(
         "canonical_release_gate": CANONICAL_GATE_LABEL,
         "non_goals": list(NON_GOALS),
         "matcher_like_comparison_performed": False,
-        "run_summary": {
-            "documents_processed": len(documents_seen),
-            "datapoints_processed": int(sum(auto_collapse_distribution.values())),
-            "family_distribution": dict(sorted(family_distribution.items())),
-            "unit_type_distribution": dict(sorted(unit_type_distribution.items())),
-            "confidence_distribution": dict(sorted(confidence_distribution.items())),
-            "auto_collapse_safe_distribution": dict(
-                sorted(auto_collapse_distribution.items())
-            ),
-            "projected_strong_target_rows": int(sum(projected_target_totals.values())),
-            "projected_supplemental_rows": supplemental_rows,
-            "unsupported_rows": unsupported_rows,
-        },
-        "ambiguity_summary": {
-            "unsupported_rows": unsupported_rows,
-            "weak_mappings": weak_mappings,
-            "medium_mappings": medium_mappings,
-            "supplemental_rows": supplemental_rows,
-            "unit_conflict_rows": unit_conflict_rows,
-            "collapse_blocked_rows": collapse_blocked_rows,
-            "qualifier_blocked_rows": qualifier_blocked_rows,
-            "period_disambiguation_rows": period_disambiguation_rows,
-            "coherence_rejected_rows": coherence_rejected_rows,
-        },
+        "run_summary": run_summary,
+        "ambiguity_summary": ambiguity_summary,
         "projected_canonical_like_coverage": {
             "label": (
                 "Counts of strong bridge projections into extractor-target families. "
@@ -316,6 +418,8 @@ def build_exhaustive_projection_diagnostic(
             },
         },
         "coarse_canonical_comparison": coarse_comparison,
+        "sampled_residual_adjudication": residual_adjudication,
+        "bridge_freeze_assessment": freeze_assessment,
         "source_audit": audit_metadata,
     }
 
@@ -330,6 +434,8 @@ def render_exhaustive_projection_markdown(
     coverage = scorecard["projected_canonical_like_coverage"]
     coarse = scorecard["coarse_canonical_comparison"]
     suspicious = scorecard["suspicious_cases"]
+    residual = scorecard["sampled_residual_adjudication"]
+    freeze = scorecard["bridge_freeze_assessment"]
 
     lines: list[str] = [
         "# Exhaustive Projection Diagnostic Summary",
@@ -343,6 +449,8 @@ def render_exhaustive_projection_markdown(
         f"- Datapoints processed: {run_summary['datapoints_processed']}",
         f"- Documents processed: {run_summary['documents_processed']}",
         f"- Projected strong target rows: {run_summary['projected_strong_target_rows']}",
+        f"- Projected medium target rows: {run_summary['projected_medium_target_rows']}",
+        f"- Projected strong/medium target rows: {run_summary['projected_strong_or_medium_target_rows']}",
         f"- Supplemental rows: {run_summary['projected_supplemental_rows']}",
         f"- Unsupported rows: {run_summary['unsupported_rows']}",
         "",
@@ -462,6 +570,87 @@ def render_exhaustive_projection_markdown(
             lines.append("| - | - | - | - | - | - |")
         lines.append("")
 
+    lines.extend(
+        [
+            "## Sampled Residual Adjudication",
+            "",
+            f"- {residual['label']}",
+            "",
+            "| Source bucket | Population | Sampled signatures | Sampled label distribution |",
+            "| --- | ---: | ---: | --- |",
+        ]
+    )
+    for bucket_name in RESIDUAL_SAMPLE_BUCKETS:
+        bucket = residual["source_buckets"][bucket_name]
+        lines.append(
+            "| "
+            f"{bucket_name} | "
+            f"{bucket['population_count']} | "
+            f"{bucket['sampled_signature_count']} | "
+            f"{_format_count_map(bucket['sampled_label_distribution'])} |"
+        )
+
+    lines.extend(
+        [
+            "",
+            f"- Overall sampled label distribution: {_format_count_map(residual['overall_sampled_label_distribution'])}",
+            "",
+        ]
+    )
+    for bucket_name in RESIDUAL_SAMPLE_BUCKETS:
+        bucket = residual["source_buckets"][bucket_name]
+        lines.append(f"### {bucket_name.replace('_', ' ').title()}")
+        lines.append("")
+        lines.append("| Document | Datapoint | Label | Projection | Adjudication | Frequency |")
+        lines.append("| --- | --- | --- | --- | --- | ---: |")
+        samples = bucket["samples"][:5]
+        if samples:
+            for sample in samples:
+                lines.append(
+                    "| "
+                    f"{sample['document_id']} | "
+                    f"{sample['datapoint_id']} | "
+                    f"{sample['row_label'] or '-'} | "
+                    f"{sample['canonical_family'] or '-'} / {sample['mapping_confidence']} | "
+                    f"{sample['adjudication_label']} | "
+                    f"{sample['recurring_signature_count']} |"
+                )
+        else:
+            lines.append("| - | - | - | - | - | - |")
+        lines.append("")
+
+    lines.extend(
+        [
+            "## Bridge Freeze Assessment",
+            "",
+            f"- Rule: {freeze['rule']}",
+            f"- Status: {freeze['status']}",
+            f"- Freeze recommended: {freeze['freeze_recommended']}",
+            f"- Material coverage increase: {freeze['material_coverage_increase']}",
+            f"- Prior run available: {freeze['prior_run_available']}",
+            f"- Rationale: {freeze['rationale']}",
+            "",
+            "| Signal | Current | Prior | Delta |",
+            "| --- | ---: | ---: | ---: |",
+        ]
+    )
+    for signal in freeze["coverage_signals"]:
+        lines.append(
+            "| "
+            f"{signal['name']} | "
+            f"{_format_metric_value(signal['current'])} | "
+            f"{_format_metric_value(signal['prior'])} | "
+            f"{_format_metric_value(signal['delta'])} |"
+        )
+    lines.extend(
+        [
+            "",
+            f"- Bucket/label churn magnitude: {freeze['bucket_or_label_churn_magnitude']}",
+            f"- Non-projectable sampled share: {freeze['non_projectable_sample_share']}",
+            "",
+        ]
+    )
+
     if artifact_paths:
         lines.extend(
             [
@@ -507,6 +696,396 @@ def write_exhaustive_projection_artifacts(
         encoding="utf-8",
     )
     return artifact_paths
+
+
+def _build_residual_adjudication(
+    residual_bucket_records: Mapping[
+        str,
+        list[
+            tuple[
+                Mapping[str, Any],
+                OntologyProjection,
+                tuple[str, ...],
+                tuple[str, ...],
+                tuple[str, ...],
+            ]
+        ],
+    ],
+    *,
+    sample_limit: int,
+) -> dict[str, Any]:
+    source_buckets: dict[str, Any] = {}
+    overall_label_distribution: Counter[str] = Counter()
+
+    for bucket_name in RESIDUAL_SAMPLE_BUCKETS:
+        grouped: dict[tuple[Any, ...], dict[str, Any]] = {}
+        population = 0
+        for datapoint, projection, row_candidates, context_candidates, near_candidates in (
+            residual_bucket_records.get(bucket_name, [])
+        ):
+            population += 1
+            key = (
+                str(datapoint.get("row_label") or ""),
+                str(datapoint.get("context_text") or ""),
+                projection.canonical_family or "",
+                projection.mapping_confidence.value,
+                projection.mapping_basis,
+                projection.unit_type.value,
+                tuple(sorted(near_candidates)),
+            )
+            if key not in grouped:
+                adjudication_label, adjudication_reason = _adjudicate_residual_case(
+                    datapoint,
+                    projection,
+                    row_candidates=row_candidates,
+                    context_candidates=context_candidates,
+                    near_candidates=near_candidates,
+                )
+                grouped[key] = {
+                    "document_id": str(datapoint.get("document_id") or ""),
+                    "datapoint_id": str(datapoint.get("datapoint_id") or ""),
+                    "row_label": str(datapoint.get("row_label") or ""),
+                    "context_text": str(datapoint.get("context_text") or ""),
+                    "raw_value": datapoint.get("raw_value"),
+                    "canonical_family": projection.canonical_family,
+                    "mapping_confidence": projection.mapping_confidence.value,
+                    "mapping_basis": projection.mapping_basis,
+                    "unit_type": projection.unit_type.value,
+                    "auto_collapse_safe": projection.auto_collapse_safe,
+                    "notes": list(projection.notes),
+                    "row_label_candidate_families": list(row_candidates),
+                    "context_candidate_families": list(context_candidates),
+                    "near_canonical_families": list(near_candidates),
+                    "adjudication_label": adjudication_label,
+                    "adjudication_reason": adjudication_reason,
+                    "recurring_signature_count": 0,
+                }
+            grouped[key]["recurring_signature_count"] += 1
+
+        samples = sorted(
+            grouped.values(),
+            key=lambda item: (
+                -int(item["recurring_signature_count"]),
+                str(item["document_id"]),
+                str(item["datapoint_id"]),
+            ),
+        )[:sample_limit]
+        label_distribution = Counter(
+            str(sample["adjudication_label"]) for sample in samples
+        )
+        overall_label_distribution.update(label_distribution)
+        source_buckets[bucket_name] = {
+            "population_count": population,
+            "sampled_signature_count": len(samples),
+            "sampled_label_distribution": dict(sorted(label_distribution.items())),
+            "samples": samples,
+        }
+
+    return {
+        "label": RESIDUAL_ADJUDICATION_LABEL,
+        "sample_limit_per_bucket": sample_limit,
+        "source_buckets": source_buckets,
+        "overall_sampled_label_distribution": dict(
+            sorted(overall_label_distribution.items())
+        ),
+    }
+
+
+def _adjudicate_residual_case(
+    datapoint: Mapping[str, Any],
+    projection: OntologyProjection,
+    *,
+    row_candidates: tuple[str, ...],
+    context_candidates: tuple[str, ...],
+    near_candidates: tuple[str, ...],
+) -> tuple[str, str]:
+    normalized_text = bridge._normalize_label(
+        f"{datapoint.get('row_label') or ''} {datapoint.get('context_text') or ''}"
+    )
+    ratio_markers = ("margin", "contribution", "ratio", "change", "percent")
+
+    if (
+        projection.mapping_confidence == MappingConfidence.SUPPLEMENTAL
+        or projection.canonical_family in SUPPLEMENTAL_FAMILIES
+        or (near_candidates and set(near_candidates).issubset(SUPPLEMENTAL_FAMILIES))
+    ):
+        return (
+            "supplemental",
+            "The row is near a known supplemental family rather than an extractor target.",
+        )
+
+    if projection.mapping_basis.startswith("rejected_unit_type_conflict"):
+        if projection.unit_type.value in {"percentage", "ratio"} or any(
+            marker in normalized_text for marker in ratio_markers
+        ):
+            return (
+                "truly_unsupported",
+                "A family-like phrase exists, but the row resolves as a ratio/percentage variant instead of a canonical value row.",
+            )
+        return (
+            "ambiguous",
+            "A family signal exists, but unit-type coherence blocks a reliable projection.",
+        )
+
+    if projection.mapping_basis.startswith("context_leading_section"):
+        if projection.canonical_family in SUPPLEMENTAL_FAMILIES:
+            return (
+                "supplemental",
+                "The row only borrows a supplemental family from the section header.",
+            )
+        return (
+            "ambiguous",
+            "The family mapping depends on section context rather than direct row-label evidence.",
+        )
+
+    if (
+        projection.canonical_family in EXTRACTOR_TARGET_FAMILIES
+        and projection.mapping_confidence in (MappingConfidence.STRONG, MappingConfidence.MEDIUM)
+    ):
+        return (
+            "should_project_to_family",
+            "The row has a direct alias or narrow fragment signal into an extractor-target family.",
+        )
+
+    if len(near_candidates) > 1:
+        return (
+            "ambiguous",
+            "The text sits near multiple canonical families and is not cleanly attributable to one.",
+        )
+
+    if near_candidates and not row_candidates and context_candidates:
+        return (
+            "truly_unsupported",
+            "Only the surrounding context is canonical; the row itself looks like a component/detail rather than a family row.",
+        )
+
+    if near_candidates and set(near_candidates).issubset(SUPPLEMENTAL_FAMILIES):
+        return (
+            "supplemental",
+            "The closest family signal is supplemental-only.",
+        )
+
+    if near_candidates:
+        return (
+            "ambiguous",
+            "The row is near a canonical family, but the remaining evidence is not stable enough to project confidently.",
+        )
+
+    return (
+        "truly_unsupported",
+        "No stable canonical family signal survives the bridge checks.",
+    )
+
+
+def _build_bridge_freeze_assessment(
+    *,
+    run_summary: Mapping[str, Any],
+    ambiguity_summary: Mapping[str, Any],
+    coarse_comparison: Mapping[str, Any],
+    residual_adjudication: Mapping[str, Any],
+    previous_scorecard: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    current_signals = _extract_freeze_signals(
+        run_summary=run_summary,
+        ambiguity_summary=ambiguity_summary,
+        coarse_comparison=coarse_comparison,
+        residual_adjudication=residual_adjudication,
+    )
+    previous_signals = (
+        _extract_freeze_signals_from_scorecard(previous_scorecard)
+        if previous_scorecard
+        else None
+    )
+
+    coverage_signals = []
+    strong_medium_delta = None
+    strong_delta = None
+    docs_delta = None
+    bucket_churn_magnitude = 0
+    label_churn_detected = False
+
+    if previous_signals is not None:
+        strong_medium_delta = _delta_or_none(
+            current_signals.get("projected_strong_or_medium_target_rows"),
+            previous_signals.get("projected_strong_or_medium_target_rows"),
+        )
+        strong_delta = _delta_or_none(
+            current_signals.get("projected_strong_target_rows"),
+            previous_signals.get("projected_strong_target_rows"),
+        )
+        docs_delta = _delta_or_none(
+            current_signals.get("documents_with_both_surfaces"),
+            previous_signals.get("documents_with_both_surfaces"),
+        )
+        bucket_metrics = (
+            "weak_mappings",
+            "coherence_rejected_rows",
+            "collapse_blocked_rows",
+            "unsupported_rows",
+            "supplemental_rows",
+            "auto_collapse_true_rows",
+            "auto_collapse_false_rows",
+        )
+        for name in bucket_metrics:
+            delta = _delta_or_none(
+                current_signals.get(name),
+                previous_signals.get(name),
+            )
+            bucket_churn_magnitude += abs(int(delta or 0))
+        current_labels = current_signals.get("overall_sampled_label_distribution") or {}
+        previous_labels = previous_signals.get("overall_sampled_label_distribution") or {}
+        label_churn_detected = current_labels != previous_labels
+        bucket_churn_magnitude += _distribution_delta_magnitude(
+            current_labels,
+            previous_labels,
+        )
+
+    coverage_signals.append(
+        {
+            "name": "projected_strong_target_rows",
+            "current": current_signals.get("projected_strong_target_rows"),
+            "prior": None if previous_signals is None else previous_signals.get("projected_strong_target_rows"),
+            "delta": strong_delta,
+        }
+    )
+    coverage_signals.append(
+        {
+            "name": "projected_strong_or_medium_target_rows",
+            "current": current_signals.get("projected_strong_or_medium_target_rows"),
+            "prior": None if previous_signals is None else previous_signals.get("projected_strong_or_medium_target_rows"),
+            "delta": strong_medium_delta,
+        }
+    )
+    coverage_signals.append(
+        {
+            "name": "documents_with_both_surfaces",
+            "current": current_signals.get("documents_with_both_surfaces"),
+            "prior": None if previous_signals is None else previous_signals.get("documents_with_both_surfaces"),
+            "delta": docs_delta,
+        }
+    )
+
+    material_coverage_increase = bool(
+        (strong_medium_delta is not None and strong_medium_delta >= 5)
+        or (strong_delta is not None and strong_delta >= 5)
+        or (docs_delta is not None and docs_delta >= 1)
+    )
+
+    sampled_labels = residual_adjudication.get("overall_sampled_label_distribution", {})
+    total_sampled = sum(int(value) for value in sampled_labels.values())
+    non_projectable = int(sampled_labels.get("ambiguous", 0)) + int(
+        sampled_labels.get("truly_unsupported", 0)
+    )
+    non_projectable_share = (
+        round(non_projectable / total_sampled, 3) if total_sampled else None
+    )
+
+    if previous_signals is None:
+        status = "insufficient_baseline"
+        freeze_recommended = None
+        rationale = (
+            "No prior scorecard was available for the hard-stop comparison, so this run only records the residual adjudication baseline."
+        )
+    elif not material_coverage_increase and (
+        bucket_churn_magnitude > 0
+        or (non_projectable_share is not None and non_projectable_share >= 0.5)
+    ):
+        status = "freeze_bridge_for_now"
+        freeze_recommended = True
+        rationale = (
+            "Coverage did not materially improve versus the prior run, while the sampled residual lane remains mostly non-projectable and/or churn is confined to labels and safety buckets."
+        )
+    else:
+        status = "continue_bridge_passes"
+        freeze_recommended = False
+        rationale = (
+            "Coverage still increased materially, so another bounded bridge pass remains justifiable."
+        )
+
+    return {
+        "rule": FREEZE_RULE_LABEL,
+        "prior_run_available": previous_signals is not None,
+        "status": status,
+        "freeze_recommended": freeze_recommended,
+        "material_coverage_increase": material_coverage_increase,
+        "rationale": rationale,
+        "coverage_signals": coverage_signals,
+        "bucket_or_label_churn_magnitude": bucket_churn_magnitude,
+        "label_churn_detected": label_churn_detected,
+        "non_projectable_sample_share": non_projectable_share,
+    }
+
+
+def _extract_freeze_signals(
+    *,
+    run_summary: Mapping[str, Any],
+    ambiguity_summary: Mapping[str, Any],
+    coarse_comparison: Mapping[str, Any],
+    residual_adjudication: Mapping[str, Any],
+) -> dict[str, Any]:
+    auto_dist = run_summary.get("auto_collapse_safe_distribution", {})
+    return {
+        "projected_strong_target_rows": run_summary.get("projected_strong_target_rows"),
+        "projected_strong_or_medium_target_rows": run_summary.get(
+            "projected_strong_or_medium_target_rows"
+        ),
+        "documents_with_both_surfaces": coarse_comparison.get(
+            "documents_with_both_surfaces"
+        ),
+        "weak_mappings": ambiguity_summary.get("weak_mappings"),
+        "coherence_rejected_rows": ambiguity_summary.get("coherence_rejected_rows"),
+        "collapse_blocked_rows": ambiguity_summary.get("collapse_blocked_rows"),
+        "unsupported_rows": ambiguity_summary.get("unsupported_rows"),
+        "supplemental_rows": ambiguity_summary.get("supplemental_rows"),
+        "auto_collapse_true_rows": auto_dist.get("true"),
+        "auto_collapse_false_rows": auto_dist.get("false"),
+        "overall_sampled_label_distribution": residual_adjudication.get(
+            "overall_sampled_label_distribution", {}
+        ),
+    }
+
+
+def _extract_freeze_signals_from_scorecard(
+    scorecard: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not scorecard:
+        return None
+    run_summary = scorecard.get("run_summary")
+    ambiguity_summary = scorecard.get("ambiguity_summary")
+    coarse_comparison = scorecard.get("coarse_canonical_comparison")
+    residual_adjudication = scorecard.get("sampled_residual_adjudication", {})
+    if not isinstance(run_summary, Mapping) or not isinstance(
+        ambiguity_summary, Mapping
+    ) or not isinstance(coarse_comparison, Mapping):
+        return None
+    return _extract_freeze_signals(
+        run_summary=run_summary,
+        ambiguity_summary=ambiguity_summary,
+        coarse_comparison=coarse_comparison,
+        residual_adjudication=residual_adjudication
+        if isinstance(residual_adjudication, Mapping)
+        else {},
+    )
+
+
+def _delta_or_none(current: Any, prior: Any) -> int | None:
+    if current is None or prior is None:
+        return None
+    return int(current) - int(prior)
+
+
+def _distribution_delta_magnitude(
+    current: Mapping[str, Any],
+    prior: Mapping[str, Any],
+) -> int:
+    keys = set(current) | set(prior)
+    return sum(abs(int(current.get(key, 0)) - int(prior.get(key, 0))) for key in keys)
+
+
+def _format_metric_value(value: Any) -> str:
+    if value is None:
+        return "-"
+    return str(value)
 
 
 def _build_coarse_comparison(
