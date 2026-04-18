@@ -147,6 +147,26 @@ def test_quarterly_fragment_item_1_9_maps_operating_cf_medium() -> None:
 
 
 @pytest.mark.unit
+def test_quarterly_fragment_plain_activities_maps_operating_cf_medium() -> None:
+    p = project(
+        _datapoint(
+            row_label="activities",
+            context_text=(
+                "Cash flows from operating activities | "
+                "Net cash from / (used in) operating | activities"
+            ),
+            raw_value="(450)",
+            raw_scale="thousands",
+            currency="AUD",
+            unit_type="currency",
+        )
+    )
+    assert p.canonical_family == "operating_cf"
+    assert p.mapping_confidence == MappingConfidence.MEDIUM
+    assert p.auto_collapse_safe is False
+
+
+@pytest.mark.unit
 def test_quarterly_fragment_item_3_10_maps_financing_cf_medium() -> None:
     p = project(
         _datapoint(
@@ -183,6 +203,26 @@ def test_quarterly_end_cash_fragment_maps_cash_end_medium() -> None:
     )
     assert p.canonical_family == "cash_end"
     assert p.mapping_confidence == MappingConfidence.MEDIUM
+    assert p.auto_collapse_safe is False
+
+
+@pytest.mark.unit
+def test_quarterly_end_cash_component_stays_unsupported() -> None:
+    p = project(
+        _datapoint(
+            row_label="Bank balances",
+            context_text=(
+                "Consolidated statement of cash flows | "
+                "Cash and cash equivalents at end of | Bank balances"
+            ),
+            raw_value="702",
+            raw_scale="thousands",
+            currency="AUD",
+            unit_type="currency",
+        )
+    )
+    assert p.canonical_family is None
+    assert p.mapping_confidence == MappingConfidence.UNSUPPORTED
     assert p.auto_collapse_safe is False
 
 

@@ -514,30 +514,35 @@ def project(datapoint: Mapping[str, Any]) -> OntologyProjection:
                     if family in SUPPLEMENTAL_FAMILIES
                     else MappingConfidence.MEDIUM
                 )
-            elif _COLLAPSE_BLOCKERS.search(str(row_label or "")) is None:
-                # Last-resort: weak context-only lookup on the leading section
-                # of the context breadcrumb. Only triggers when the row_label
-                # has no qualifier and no alias hit — this is the "Total"
-                # case that needs to borrow family from the section header.
-                section = _leading_section(context_text)
-                if section:
-                    fam_ctx = _match_family_exact(section)
-                    if fam_ctx is None:
-                        fam_ctx, _ = _match_family_contains(section)
-                    if fam_ctx is not None:
-                        family = fam_ctx
-                        basis = "context_leading_section"
-                        confidence = MappingConfidence.WEAK
+            elif normalized_context:
+                fam_fragment, basis_fragment = _match_quarterly_fragment(
+                    normalized_label=normalized,
+                    normalized_context=normalized_context,
+                )
+                if fam_fragment is not None:
+                    family = fam_fragment
+                    basis = basis_fragment or "quarterly_fragment_context"
+                    confidence = MappingConfidence.MEDIUM
 
-    if family is None and normalized and normalized_context:
-        fam_fragment, basis_fragment = _match_quarterly_fragment(
-            normalized_label=normalized,
-            normalized_context=normalized_context,
-        )
-        if fam_fragment is not None:
-            family = fam_fragment
-            basis = basis_fragment or "quarterly_fragment_context"
-            confidence = MappingConfidence.MEDIUM
+    if (
+        family is None
+        and normalized
+        and normalized_context
+        and _COLLAPSE_BLOCKERS.search(str(row_label or "")) is None
+    ):
+        # Last-resort: weak context-only lookup on the leading section of the
+        # context breadcrumb. Kept after the narrow 5B fragment matcher so
+        # obvious quarterly total rows resolve as medium fragment matches
+        # instead of generic weak context borrowing.
+        section = _leading_section(context_text)
+        if section:
+            fam_ctx = _match_family_exact(section)
+            if fam_ctx is None:
+                fam_ctx, _ = _match_family_contains(section)
+            if fam_ctx is not None:
+                family = fam_ctx
+                basis = "context_leading_section"
+                confidence = MappingConfidence.WEAK
 
     if (
         family is None
