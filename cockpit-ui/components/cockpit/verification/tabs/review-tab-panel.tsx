@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { AlertCircle, CheckCircle2, FileImage, FileJson, Play, RefreshCw, Search, XCircle } from 'lucide-react'
+import { AlertCircle, CheckCircle2, FileImage, FileJson, Play, RefreshCw, Search, XCircle, Maximize2, Minimize2 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -122,6 +123,13 @@ export function ReviewTabPanel({
   onSnippetImageError,
   onSubmitReview,
 }: ReviewTabPanelProps) {
+  const [isZoomed, setIsZoomed] = useState(false)
+
+  // Reset zoom when switching items
+  useEffect(() => {
+    setIsZoomed(false)
+  }, [currentSnippetUrl, currentReviewItem?.item_id])
+
   return (
     <div className="space-y-6">
       <Card>
@@ -474,18 +482,35 @@ export function ReviewTabPanel({
                     </div>
                   ) : currentSnippetUrl ? (
                     <div className="space-y-3">
-                      <div className="relative overflow-hidden rounded-md border border-border/60 bg-black/5 shadow-inner">
+                      <div className={`relative overflow-hidden rounded-md border border-border/60 bg-black/5 shadow-inner transition-all duration-200 ${isZoomed ? 'overflow-auto cursor-zoom-out' : 'cursor-zoom-in'}`}
+                           onClick={() => setIsZoomed(!isZoomed)}>
                         <Image
                           key={currentSnippetRenderKey}
                           src={currentSnippetUrl}
                           alt={`Evidence for ${currentReviewItem.metric_name}`}
-                          width={900}
-                          height={1200}
+                          width={1200}
+                          height={1600}
                           unoptimized
                           onLoad={onSnippetImageLoad}
                           onError={onSnippetImageError}
-                          className={`max-h-[800px] w-full object-top transition-opacity duration-300 ${snippetImageState.status === 'ready' ? 'opacity-100' : 'opacity-0'}`}
+                          className={`w-full object-top transition-all duration-300 ${isZoomed ? 'max-h-none w-[180%] max-w-none' : 'max-h-[800px]'} ${snippetImageState.status === 'ready' ? 'opacity-100' : 'opacity-0'}`}
                         />
+                        
+                        <div className="absolute right-4 top-4 z-10">
+                          <Button
+                            variant="secondary"
+                            size="icon"
+                            className="h-8 w-8 rounded-full bg-background/80 shadow-md backdrop-blur-sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setIsZoomed(!isZoomed)
+                            }}
+                            title={isZoomed ? "Zoom out" : "Zoom in"}
+                          >
+                            {isZoomed ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                          </Button>
+                        </div>
+
                         {snippetImageState.status !== 'ready' ? (
                           <div className="absolute inset-0 flex items-center justify-center bg-background/85 px-6 text-center text-sm text-muted-foreground">
                             <div className="space-y-3">
