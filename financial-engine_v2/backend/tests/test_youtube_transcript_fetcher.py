@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from types import SimpleNamespace
+
 import pytest
 from app.services.youtube_transcript_fetcher import YoutubeVideo, fetch_video_metadata
 
@@ -60,8 +63,39 @@ class TestFetchVideoMetadata:
         assert video.video_id == "UNJwgi0aW6s"
         assert video.title == "Short URL Title"
 
+    def test_falls_back_to_yt_dlp_cli_when_python_module_missing(self, monkeypatch):
+        info = _make_ydl_info(video_id="UNJwgi0aW6s", title="CLI Fallback Title")
+        commands = []
+
+        monkeypatch.setitem(__import__("sys").modules, "yt_dlp", None)
+        monkeypatch.setattr(
+            "app.services.youtube_transcript_fetcher.subprocess.run",
+            lambda cmd, **kwargs: commands.append((cmd, kwargs))
+            or SimpleNamespace(
+                returncode=0,
+                stdout=json.dumps(info),
+                stderr="",
+            ),
+        )
+
+        video = fetch_video_metadata("https://youtu.be/UNJwgi0aW6s")
+
+        assert video.video_id == "UNJwgi0aW6s"
+        assert video.title == "CLI Fallback Title"
+        assert commands
+        assert commands[0][0][:3] == ["yt-dlp", "--dump-single-json", "--skip-download"]
+
     def test_yt_dlp_unavailable_raises_runtime_error(self, monkeypatch):
         monkeypatch.setitem(__import__("sys").modules, "yt_dlp", None)
+
+        def _raise_file_not_found(*args, **kwargs):
+            raise FileNotFoundError("yt-dlp")
+
+        monkeypatch.setattr(
+            "app.services.youtube_transcript_fetcher.subprocess.run",
+            _raise_file_not_found,
+        )
+
         with pytest.raises(RuntimeError, match="yt-dlp is required"):
             fetch_video_metadata("https://youtu.be/abc123")
 

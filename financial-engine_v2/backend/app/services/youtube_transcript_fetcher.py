@@ -58,16 +58,37 @@ def fetch_video_metadata(url: str) -> YoutubeVideo:
     """
     try:
         import yt_dlp  # type: ignore
-    except ImportError as exc:
-        raise RuntimeError("yt-dlp is required for single-URL ingestion") from exc
-
-    options = {
-        "quiet": True,
-        "skip_download": True,
-        "extract_flat": False,
-    }
-    with yt_dlp.YoutubeDL(options) as ydl:
-        info = ydl.extract_info(str(url or "").strip(), download=False)
+    except ImportError:
+        cmd = [
+            "yt-dlp",
+            "--dump-single-json",
+            "--skip-download",
+            str(url or "").strip(),
+        ]
+        try:
+            completed = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        except FileNotFoundError as exc:
+            raise RuntimeError("yt-dlp is required for single-URL ingestion") from exc
+        if completed.returncode != 0:
+            message = completed.stderr.strip() or completed.stdout.strip() or "yt-dlp failed"
+            raise RuntimeError(message)
+        try:
+            info = json.loads(completed.stdout)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(f"yt-dlp returned invalid metadata for URL: {url}") from exc
+    else:
+        options = {
+            "quiet": True,
+            "skip_download": True,
+            "extract_flat": False,
+        }
+        with yt_dlp.YoutubeDL(options) as ydl:
+            info = ydl.extract_info(str(url or "").strip(), download=False)
 
     if not info:
         raise RuntimeError(f"yt-dlp returned no metadata for URL: {url}")

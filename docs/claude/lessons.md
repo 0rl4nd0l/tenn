@@ -27,6 +27,17 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 
 ---
 
+## L067 — Runtime imports must be declared in backend requirements, not just present in a local venv
+
+**Date:** 2026-04-18
+**Subsystem:** `financial-engine_v2/backend/app/services/youtube_transcript_fetcher.py`, `financial-engine_v2/backend/requirements.txt`
+**Symptom:** `POST /api/commentary/ingest-url` failed in some runtime environments with `metadata fetch failed: yt-dlp is required for single-URL ingestion` even though the feature worked in the developer shell.
+**Root cause:** The backend image installs only `backend/requirements.txt`, but that file did not declare `yt-dlp` or `youtube-transcript-api`. The local `.venv` happened to have both packages already, which masked the packaging gap during development.
+**Fix:** Added the missing backend runtime dependencies to `financial-engine_v2/backend/requirements.txt` and extended the single-URL metadata helper to match the monitored-channel path by falling back to the `yt-dlp` CLI when the Python module is absent.
+**Rule:** Any backend code path that imports an external package must be verified against `financial-engine_v2/backend/requirements.txt` and the backend Dockerfile install path in the same change. Do not treat a package being present in a local venv as evidence that production and containerized runtimes have the dependency.
+
+---
+
 ## L001 — Margin formula: _pct_change is not _ratio
 
 **Date:** 2026-03-24
