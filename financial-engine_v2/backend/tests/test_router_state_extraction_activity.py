@@ -80,6 +80,7 @@ def test_extraction_activity_snapshot_preserves_file_metadata(
         assert active_run["strict_method"] is True
         assert active_run["ticker"] == "BHP"
         assert active_run["title"] == "Quarterly Activities"
+        assert active_run["started_at"]
 
 
 def test_is_extraction_active_prunes_expired_file_tokens(monkeypatch, tmp_path) -> None:

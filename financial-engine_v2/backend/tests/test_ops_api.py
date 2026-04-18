@@ -6,19 +6,31 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.routes.ops_api import router
+from app.routes import ops_api
 from app.services.job_tracker import JobTracker, init_tracker
 from app.services.ops_store import OpsStore
 
 
 @pytest.fixture()
-def client(tmp_path):
+def client(tmp_path, monkeypatch):
     """Create a test client with an initialized ops tracker."""
     store = OpsStore(tmp_path / "ops.db")
     tracker = init_tracker(store)
+    monkeypatch.setattr(
+        ops_api,
+        "get_extraction_activity_snapshot",
+        lambda: {
+            "active": False,
+            "source": "none",
+            "token_count": 0,
+            "expires_at": None,
+            "expires_in_seconds": 0,
+            "active_runs": [],
+        },
+    )
 
     app = FastAPI()
-    app.include_router(router, prefix="/api/ops")
+    app.include_router(ops_api.router, prefix="/api/ops")
 
     with TestClient(app) as c:
         yield c, tracker
@@ -145,6 +157,78 @@ def test_list_active_jobs(client):
     assert statuses <= {"running", "pending"}
 
 
+def test_list_jobs_includes_synthetic_active_extraction(client, monkeypatch):
+    c, _ = client
+    monkeypatch.setattr(
+        ops_api,
+        "get_extraction_activity_snapshot",
+        lambda: {
+            "active": True,
+            "source": "file",
+            "token_count": 1,
+            "expires_at": None,
+            "expires_in_seconds": 0,
+            "active_runs": [
+                {
+                    "token": "tok-123",
+                    "document_id": "doc-456",
+                    "requested_method": "docling",
+                    "ticker": "BHP",
+                    "title": "Quarterly Activities",
+                    "started_at": "2026-04-18T10:15:00+00:00",
+                }
+            ],
+        },
+    )
+
+    resp = c.get("/api/ops/jobs")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    job = body["items"][0]
+    assert job["job_id"] == "extraction-activity:tok-123"
+    assert job["job_type"] == "extraction"
+    assert job["job_family"] == "external_activity"
+    assert job["status"] == "running"
+    assert job["ticker"] == "BHP"
+    assert job["phase"] == "docling"
+    assert job["metadata"]["synthetic"] is True
+    assert job["metadata"]["document_id"] == "doc-456"
+
+
+def test_list_active_jobs_includes_synthetic_active_extraction(client, monkeypatch):
+    c, _ = client
+    monkeypatch.setattr(
+        ops_api,
+        "get_extraction_activity_snapshot",
+        lambda: {
+            "active": True,
+            "source": "redis",
+            "token_count": 1,
+            "expires_at": None,
+            "expires_in_seconds": 0,
+            "active_runs": [
+                {
+                    "run_id": "run-abc",
+                    "token": "tok-abc",
+                    "document_id": "doc-abc",
+                    "requested_method": "pymupdf",
+                    "ticker": "MIN",
+                    "title": "Annual Report",
+                    "started_at": "2026-04-18T11:00:00+00:00",
+                }
+            ],
+        },
+    )
+
+    resp = c.get("/api/ops/jobs/active")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["items"][0]["job_id"] == "run-abc"
+    assert body["items"][0]["status"] == "running"
+
+
 # ── GET /api/ops/jobs/{job_id} ─────────────────────────────────────────────
 
 
@@ -162,6 +246,46 @@ def test_get_job_found(client):
     assert body["job_id"] == h.job_id
     assert body["title"] == "Single job"
     assert body["ticker"] == "BHP"
+
+
+def test_get_job_and_events_for_synthetic_active_extraction(client, monkeypatch):
+    c, _ = client
+    monkeypatch.setattr(
+        ops_api,
+        "get_extraction_activity_snapshot",
+        lambda: {
+            "active": True,
+            "source": "file",
+            "token_count": 1,
+            "expires_at": None,
+            "expires_in_seconds": 0,
+            "active_runs": [
+                {
+                    "token": "tok-789",
+                    "document_id": "doc-789",
+                    "requested_method": "docling",
+                    "ticker": "TLS",
+                    "title": "Half Year Results",
+                    "started_at": "2026-04-18T12:00:00+00:00",
+                }
+            ],
+        },
+    )
+
+    job_resp = c.get("/api/ops/jobs/extraction-activity:tok-789")
+    assert job_resp.status_code == 200
+    assert job_resp.json()["title"] == "TLS | Half Year Results"
+
+    events_resp = c.get("/api/ops/jobs/extraction-activity:tok-789/events")
+    assert events_resp.status_code == 200
+    events = events_resp.json()["items"]
+    assert len(events) == 1
+    assert events[0]["event_type"] == "job.started"
+    assert "docling" in events[0]["message"]
+
+    artifacts_resp = c.get("/api/ops/jobs/extraction-activity:tok-789/artifacts")
+    assert artifacts_resp.status_code == 200
+    assert artifacts_resp.json()["items"] == []
 
 
 def test_get_job_not_found(client):

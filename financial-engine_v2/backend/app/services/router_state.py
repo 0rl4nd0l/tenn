@@ -328,6 +328,7 @@ def _sanitize_extraction_metadata(
         "requested_method",
         "ticker",
         "title",
+        "started_at",
     ):
         value = metadata.get(key)
         if value is None:
@@ -546,6 +547,11 @@ def register_extraction_activity(
     ttl = max(int(ttl_seconds or _EXTRACTION_ACTIVE_TTL), 1)
     token = uuid4().hex
     expiry_ts = _now_timestamp() + ttl
+    activity_metadata = dict(metadata or {})
+    activity_metadata.setdefault(
+        "started_at",
+        _utc_now().replace(microsecond=0).isoformat(),
+    )
     client = _build_redis_client(redis_url)
     if client is not None:
         try:
@@ -554,11 +560,15 @@ def register_extraction_activity(
                 token,
                 expiry_ts,
                 ttl,
-                metadata=metadata,
+                metadata=activity_metadata,
             )
         except Exception:
             pass
-    _register_file_extraction_token(token, expiry_ts, metadata=metadata)
+    _register_file_extraction_token(
+        token,
+        expiry_ts,
+        metadata=activity_metadata,
+    )
     return token
 
 

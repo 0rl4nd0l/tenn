@@ -17,6 +17,8 @@ interface JobListProps {
   selectedJobId: string | null
 }
 
+const JOB_REFRESH_INTERVAL_MS = 10_000
+
 const STATUS_CONFIG: Record<string, {
   variant: 'default' | 'secondary' | 'destructive' | 'outline'
   icon: typeof Clock
@@ -82,6 +84,11 @@ export function JobList({ onSelectJob, selectedJobId }: JobListProps) {
 
   useEffect(() => {
     fetchJobs()
+  }, [fetchJobs])
+
+  useEffect(() => {
+    const interval = window.setInterval(fetchJobs, JOB_REFRESH_INTERVAL_MS)
+    return () => window.clearInterval(interval)
   }, [fetchJobs])
 
   // Refresh when active jobs change
