@@ -186,7 +186,7 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
   async function handleStatus(missionId: string, status: string) {
     setError(null)
     try {
-      await updateMarketplaceMission(apiKey, missionId, status)
+      await updateMarketplaceMission(apiKey, missionId, { status })
       await load()
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : 'Mission update failed')
@@ -356,11 +356,11 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Proxy</span>
-                      <span className="text-[10px] font-mono">{browserHealth.proxy_connected ? 'Connected' : 'Disconnected'}</span>
+                      <span className="text-xs text-muted-foreground">Logged In</span>
+                      <span className="text-[10px] font-mono">{browserHealth.logged_in ? 'Yes' : 'No'}</span>
                     </div>
-                    {browserHealth.last_browser_error && (
-                      <p className="text-[10px] text-destructive italic">{browserHealth.last_browser_error}</p>
+                    {browserHealth.detail && (
+                      <p className="text-[10px] text-destructive italic">{browserHealth.detail}</p>
                     )}
                   </div>
                 ) : (
@@ -381,14 +381,14 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                     {scanJobs.slice(0, 10).map((job) => (
                       <div key={job.job_id} className="space-y-1 border-b border-border/50 pb-2 last:border-0 last:pb-0">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-medium truncate max-w-[120px]">{job.mission_name}</span>
+                          <span className="text-[10px] font-medium truncate max-w-[120px]">{job.action_id}</span>
                           <Badge variant={scanBadgeVariant(job.status)} className="text-[9px] px-1 h-4">
                             {job.status}
                           </Badge>
                         </div>
                         <div className="flex items-center justify-between text-[9px] text-muted-foreground font-mono">
                           <span>{formatClock(job.started_at)}</span>
-                          {job.items_found !== null && <span>{job.items_found} items</span>}
+                          {job.progress_stage && <span>{job.progress_stage}</span>}
                         </div>
                       </div>
                     ))}

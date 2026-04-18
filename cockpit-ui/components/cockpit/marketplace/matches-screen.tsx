@@ -199,10 +199,6 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                     </div>
                   )}
                   <div className="flex flex-wrap items-center gap-4 text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-muted-foreground">Ticker:</span>
-                      <span className="font-mono font-medium">{match.ticker}</span>
-                    </div>
                     {match.price && (
                       <div className="flex items-center gap-1.5">
                         <span className="text-muted-foreground">Price:</span>

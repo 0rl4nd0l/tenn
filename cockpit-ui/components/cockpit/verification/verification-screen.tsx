@@ -180,12 +180,6 @@ export function VerificationScreen() {
     }
   }, [ticker])
 
-  useEffect(() => {
-    // Initial global load for discovery - we pass empty string to ensure global fetch
-    void handleLoadRecentRuns('')
-    void loadWrongQueue()
-  }, [handleLoadRecentRuns, loadWrongQueue])
-
   const handleSelectHistoryTicker = useCallback((historyTicker: string) => {
     setTicker(historyTicker)
     // Switching ticker should trigger a document load for that company
@@ -587,6 +581,12 @@ export function VerificationScreen() {
       setReviewError(message)
     }
   }, [])
+
+  useEffect(() => {
+    // Initial global load for discovery - we pass empty string to ensure global fetch
+    void handleLoadRecentRuns('')
+    void loadWrongQueue()
+  }, [handleLoadRecentRuns, loadWrongQueue])
 
   const handleInspectSelectedRun = useCallback(async () => {
     if (reviewActionLockRef.current) return
