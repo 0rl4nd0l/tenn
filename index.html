@@ -60,6 +60,111 @@
         gap: 18px;
         margin-bottom: 24px;
       }
+      .snapshot {
+        margin-bottom: 24px;
+        padding: 24px;
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        background:
+          linear-gradient(180deg, rgba(31,31,46,0.96), rgba(19,19,26,0.98));
+      }
+      .snapshot-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+      .snapshot-title {
+        margin: 0;
+        font-size: 24px;
+      }
+      .snapshot-copy {
+        max-width: 620px;
+        color: var(--text-secondary);
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      .snapshot-grid {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 18px;
+      }
+      .snapshot-panel {
+        border: 1px solid var(--border);
+        background: rgba(255,255,255,0.02);
+        border-radius: 18px;
+        padding: 18px;
+      }
+      .snapshot-panel h2 {
+        margin: 0 0 8px;
+        font-size: 16px;
+      }
+      .snapshot-panel p {
+        margin: 0 0 14px;
+        color: var(--text-secondary);
+        line-height: 1.55;
+        font-size: 13px;
+      }
+      .spine {
+        display: grid;
+        gap: 10px;
+      }
+      .spine-row {
+        display: grid;
+        grid-template-columns: 96px 20px minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+      }
+      .spine-label {
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+      }
+      .spine-arrow {
+        text-align: center;
+        color: var(--text-secondary);
+        font-size: 14px;
+      }
+      .spine-node {
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        padding: 12px 14px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .spine-node.client { background: rgba(99,102,241,0.12); color: #c7d2fe; }
+      .spine-node.authority { background: rgba(34,197,94,0.12); color: #bbf7d0; }
+      .spine-node.jobs { background: rgba(245,158,11,0.12); color: #fde68a; }
+      .spine-node.inference { background: rgba(168,85,247,0.13); color: #e9d5ff; }
+      .spine-node.data { background: rgba(56,189,248,0.12); color: #bae6fd; }
+      .spine-node.inputs { background: rgba(250,204,21,0.10); color: #fef08a; }
+      .surface-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .surface {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px;
+        background: rgba(255,255,255,0.02);
+      }
+      .surface strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 13px;
+      }
+      .surface span {
+        display: block;
+        color: var(--text-secondary);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .surface-wide {
+        grid-column: 1 / -1;
+      }
       .panel {
         background: linear-gradient(180deg, rgba(31,31,46,0.92), rgba(19,19,26,0.98));
         border: 1px solid var(--border);
@@ -155,7 +260,11 @@
         font-weight: 600;
       }
       @media (max-width: 1024px) {
-        .hero, .cards, .mini-grid { grid-template-columns: 1fr; }
+        .hero, .snapshot-grid, .cards, .mini-grid, .surface-grid { grid-template-columns: 1fr; }
+        .snapshot-header { display: block; }
+        .snapshot-copy { margin-top: 8px; }
+        .spine-row { grid-template-columns: 1fr; gap: 6px; }
+        .spine-arrow { display: none; }
         h1 { font-size: 34px; }
       }
     </style>
@@ -165,22 +274,23 @@
       <div class="eyebrow">Tenn Entry Point</div>
       <h1>Start here.</h1>
       <div class="lede">
-        This repo root now opens a real landing page instead of a directory listing. Use the
-        diagram hub for architecture understanding, the runtime and authority views for system
-        explanation, and the graph only when you want the larger repo-wide network view.
+        This repo root now opens with an actual architecture snapshot instead of just a launcher.
+        Use the runtime and authority views for the full diagrams, the ticker map for live
+        company-level data, and the graph only when you want the larger repo-wide network view.
       </div>
 
       <div class="hero">
         <section class="panel">
           <h2>Recommended first click</h2>
           <p>
-            The architecture hub is the main visual entrypoint. It explains which diagram answers
-            which question and links you straight into the right view.
+            The root page now shows the simplified architecture directly. Use the diagram hub next
+            when you want the full guided split between runtime, authority, and ticker views.
           </p>
         </section>
         <section class="panel">
           <h2>Quick guide</h2>
           <ul>
+            <li>First-screen architecture summary: this page</li>
             <li>Architecture overview: Diagram Hub</li>
             <li>Services, ports, storage, runtime: Runtime Topology</li>
             <li>Why backend comes before agent: Authority Flow</li>
@@ -189,6 +299,86 @@
           </ul>
         </section>
       </div>
+
+      <section class="snapshot" aria-labelledby="entry-architecture-title">
+        <div class="snapshot-header">
+          <div>
+            <h2 class="snapshot-title" id="entry-architecture-title">Architecture At A Glance</h2>
+            <div class="snapshot-copy">
+              The top-level Tenn story is deliberately smaller than the repo graph. Cockpit is the
+              client layer, FastAPI is the authority boundary, background work runs through Celery,
+              inference flows through llama.cpp, truth lives in Postgres and Qdrant plus local
+              memory surfaces, and the main external inputs are ASX filings and news.
+            </div>
+          </div>
+        </div>
+
+        <div class="snapshot-grid">
+          <section class="snapshot-panel" aria-labelledby="entry-spine-title">
+            <h2 id="entry-spine-title">Six-Box Runtime Spine</h2>
+            <p>The simplified runtime view is visible here on the landing page, not hidden a click deeper.</p>
+            <div class="spine">
+              <div class="spine-row">
+                <div class="spine-label">Client</div>
+                <div class="spine-arrow">▶</div>
+                <div class="spine-node client">Cockpit Clients</div>
+              </div>
+              <div class="spine-row">
+                <div class="spine-label">Authority</div>
+                <div class="spine-arrow">▶</div>
+                <div class="spine-node authority">FastAPI Backend :8000</div>
+              </div>
+              <div class="spine-row">
+                <div class="spine-label">Async Jobs</div>
+                <div class="spine-arrow">▶</div>
+                <div class="spine-node jobs">Celery + Redis</div>
+              </div>
+              <div class="spine-row">
+                <div class="spine-label">Inference</div>
+                <div class="spine-arrow">▶</div>
+                <div class="spine-node inference">llama.cpp + Embeddings</div>
+              </div>
+              <div class="spine-row">
+                <div class="spine-label">Data</div>
+                <div class="spine-arrow">▶</div>
+                <div class="spine-node data">Postgres + Qdrant + SQLite</div>
+              </div>
+              <div class="spine-row">
+                <div class="spine-label">Inputs</div>
+                <div class="spine-arrow">▶</div>
+                <div class="spine-node inputs">ASX + News + Optional Sidecars</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="snapshot-panel" aria-labelledby="entry-surfaces-title">
+            <h2 id="entry-surfaces-title">What Matters Operationally</h2>
+            <p>These are the surfaces most people actually look for when trying to understand Tenn.</p>
+            <div class="surface-grid">
+              <div class="surface">
+                <strong>Chat Runtime</strong>
+                <span>Agent loop, SSE streaming, verification-aware prompts, and recent-turn context.</span>
+              </div>
+              <div class="surface">
+                <strong>Memory Surfaces</strong>
+                <span>Chat history, dossier state, company memory, market memory, and commentary context.</span>
+              </div>
+              <div class="surface">
+                <strong>Company Financials</strong>
+                <span>Structured financial rows flow from backend truth APIs backed by `asx_periodic_financials`.</span>
+              </div>
+              <div class="surface">
+                <strong>Written Evidence</strong>
+                <span>Filings, announcement chunks, news, commentary, and qualitative notes remain visible data surfaces.</span>
+              </div>
+              <div class="surface surface-wide">
+                <strong>View Routing</strong>
+                <span>`/docs/tenn-system-map.html` is the deeper runtime map, `/docs/architecture/tenn_system_map_frontend.html` explains authority flow, and `/docs/architecture/tenn_ticker_map.html?ticker=BHP` shows one company’s actual data in the map.</span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
 
       <div class="cards">
         <a class="card" href="/docs/architecture/tenn_diagrams.html">
