@@ -11,11 +11,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Play, Eye, RefreshCw, Terminal, Cpu, CalendarRange, Layers3 } from 'lucide-react'
-import { getGpuProcesses, getGpuSummary } from '@/components/cockpit/gpu-activity-dialog'
-import { getHostSummary } from '@/components/cockpit/host-activity-dialog'
+import { Play, Eye, RefreshCw, Terminal, CalendarRange, Layers3 } from 'lucide-react'
+import { getGpuProcesses } from '@/components/cockpit/gpu-activity-dialog'
 import { checkHealth, executeAction, restartBackend, getActionJob, getSystemStatus, loadCockpitModel, previewAction, startActionJob } from '@/lib/api-client'
-import type { CockpitPreferences, ServiceHealth } from '@/lib/cockpit-types'
+import type { ServiceHealth } from '@/lib/cockpit-types'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import { cn } from '@/lib/utils'
 
@@ -67,56 +66,6 @@ const AVAILABLE_ACTIONS: readonly ActionDef[] = [
   { id: 'show_candlestick', label: 'Show Candlestick', description: 'Generate candlestick chart', requiresTicker: true },
 ]
 
-function getStatusColor(status: ServiceHealth['status']) {
-  switch (status) {
-    case 'healthy':
-      return 'bg-[oklch(0.65_0.2_145)]'
-    case 'degraded':
-      return 'bg-[oklch(0.75_0.15_80)]'
-    case 'down':
-      return 'bg-[oklch(0.55_0.2_25)]'
-    default:
-      return 'bg-muted-foreground'
-  }
-}
-
-function getStatusBadgeVariant(status: ServiceHealth['status']): 'default' | 'secondary' | 'destructive' | 'critical' | 'outline' {
-  switch (status) {
-    case 'healthy':
-      return 'default'
-    case 'degraded':
-      return 'secondary'
-    case 'down':
-      return 'critical'
-    default:
-      return 'outline'
-  }
-}
-
-function formatStatusLabel(status: ServiceHealth['status']): string {
-  switch (status) {
-    case 'healthy':
-      return 'RUNNING'
-    case 'degraded':
-      return 'DEGRADED'
-    case 'down':
-      return 'DOWN'
-    default:
-      return 'UNKNOWN'
-  }
-}
-
-function formatClock(time: Date | undefined): string {
-  return time
-    ? time.toLocaleTimeString('en-AU', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-      })
-    : '--:--:--'
-}
-
 function formatLogTimestamp(): string {
   return new Date().toLocaleTimeString('en-AU', {
     hour: '2-digit',
@@ -148,21 +97,14 @@ function actionUsesQueuedJob(actionId: string): boolean {
 
 export function OperationsScreen() {
   const [hasHydrated, setHasHydrated] = useState(false)
-  const { activeTicker, preferences, updatePreferences, setApiDefaultEnabled } = useCockpitStore()
+  const { activeTicker, setApiDefaultEnabled } = useCockpitStore()
   
   const [selectedAction, setSelectedAction] = useState<string>('')
   const [actionArgs, setActionArgs] = useState(activeTicker || '')
   const [actionLog, setActionLog] = useState<string[]>([])
   const [isRunning, setIsRunning] = useState(false)
   const [isRestartingBackend, setIsRestartingBackend] = useState(false)
-  const [backendHealth, setBackendHealth] = useState<ServiceHealth>({
-    name: 'Backend API',
-    status: 'unknown',
-    endpoint: '/api/health',
-    lastChecked: new Date(),
-  })
   const [gpuHealth, setGpuHealth] = useState<ServiceHealth | null>(null)
-  const [hostHealth, setHostHealth] = useState<ServiceHealth | null>(null)
   const [universeBackfillYears, setUniverseBackfillYears] = useState('5')
   const [universeProcessDocuments, setUniverseProcessDocuments] = useState(true)
   const [isUniverseRunning, setIsUniverseRunning] = useState(false)
@@ -182,22 +124,9 @@ export function OperationsScreen() {
   }, [activeTicker])
 
   const fetchHealth = useCallback(async () => {
-    const start = performance.now()
     try {
       const health = await checkHealth()
-      const elapsed = Math.round(performance.now() - start)
-      const backendService = health.services?.find((service) => service.name === 'backend')
       const gpuService = health.services?.find((service) => service.name === 'gpu') ?? null
-      const hostService = health.services?.find((service) => service.name === 'host') ?? null
-      setBackendHealth({
-        name: backendService?.name ?? 'Backend API',
-        status: backendService?.status ?? 'healthy',
-        endpoint: backendService?.endpoint ?? '/api/health',
-        responseTimeMs: backendService?.responseTimeMs ?? elapsed,
-        lastChecked: new Date(),
-        error: backendService?.error,
-        details: backendService?.details,
-      })
       setGpuHealth(
         gpuService
           ? {
@@ -206,24 +135,8 @@ export function OperationsScreen() {
             }
           : null,
       )
-      setHostHealth(
-        hostService
-          ? {
-              ...hostService,
-              lastChecked: new Date(),
-            }
-          : null,
-      )
     } catch {
-      setBackendHealth({
-        name: 'Backend API',
-        status: 'down',
-        endpoint: '/api/health',
-        lastChecked: new Date(),
-        error: 'Unreachable',
-      })
       setGpuHealth(null)
-      setHostHealth(null)
     }
   }, [])
 
@@ -232,10 +145,6 @@ export function OperationsScreen() {
     const interval = setInterval(fetchHealth, 30_000)
     return () => clearInterval(interval)
   }, [fetchHealth])
-
-  const togglePreference = (key: keyof CockpitPreferences) => {
-    updatePreferences({ [key]: !preferences[key] })
-  }
 
   const appendActionLog = useCallback((lines: string[]) => {
     setActionLog(prev => [...prev, ...lines])
@@ -434,15 +343,6 @@ export function OperationsScreen() {
 
   if (!hasHydrated) return null
 
-  const gpuSummary = getGpuSummary(gpuHealth)
-  const gpuProcesses = getGpuProcesses(gpuHealth)
-  const hostSummary = getHostSummary(hostHealth)
-  const hostCpu = hostHealth?.details?.cpu as Record<string, unknown> | undefined
-  const hostMemory = hostHealth?.details?.memory as Record<string, unknown> | undefined
-  const hostDisks = Array.isArray(hostHealth?.details?.disks)
-    ? (hostHealth?.details?.disks as Array<Record<string, unknown>>)
-    : []
-
   const handlePreview = async () => {
     const action = AVAILABLE_ACTIONS.find(a => a.id === selectedAction)
     if (!action) return
@@ -631,65 +531,7 @@ export function OperationsScreen() {
         </div>
 
         {/* GPU Workload — auto-visible when GPU is active, shows driving jobs */}
-        <GpuWorkloadCard gpuHealth={gpuHealth} gpuProcesses={gpuProcesses} />
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Cpu className="h-5 w-5 text-primary" />
-              Hardware Status
-            </CardTitle>
-            <CardDescription>Live host CPU, RAM, and storage usage from the Cockpit health probe</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="rounded-lg border border-border bg-card p-4">
-                <p className="text-xs font-medium text-muted-foreground">CPU Load</p>
-                <p className="mt-2 text-2xl font-semibold text-foreground">
-                  {typeof hostCpu?.normalized_load_percent === 'number' ? `${hostCpu.normalized_load_percent}%` : 'n/a'}
-                </p>
-                <p className="mt-1 text-xs font-mono text-muted-foreground">
-                  {typeof hostCpu?.core_count === 'number' ? `${hostCpu.core_count} cores` : 'core count unavailable'}
-                </p>
-                <p className="mt-1 text-xs font-mono text-muted-foreground">
-                  {typeof hostCpu?.load_1m === 'number' ? `1m ${hostCpu.load_1m}` : '1m n/a'}
-                  {typeof hostCpu?.load_5m === 'number' ? ` | 5m ${hostCpu.load_5m}` : ''}
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-border bg-card p-4">
-                <p className="text-xs font-medium text-muted-foreground">RAM Usage</p>
-                <p className="mt-2 text-2xl font-semibold text-foreground">
-                  {typeof hostMemory?.used_percent === 'number' ? `${hostMemory.used_percent}%` : 'n/a'}
-                </p>
-                <p className="mt-1 text-xs font-mono text-muted-foreground">
-                  {typeof hostMemory?.used_gib === 'number' && typeof hostMemory?.total_gib === 'number'
-                    ? `${hostMemory.used_gib} / ${hostMemory.total_gib} GiB`
-                    : 'memory unavailable'}
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-border bg-card p-4">
-                <p className="text-xs font-medium text-muted-foreground">Storage</p>
-                <p className="mt-2 text-2xl font-semibold text-foreground">
-                  {hostDisks.length > 0 && typeof hostDisks[0]?.used_percent === 'number'
-                    ? `${hostDisks[0].used_percent}%`
-                    : 'n/a'}
-                </p>
-                <p className="mt-1 text-xs font-mono text-muted-foreground">
-                  {hostDisks.length > 0 ? `Primary ${String(hostDisks[0]?.mount ?? '/')}` : 'disk data unavailable'}
-                </p>
-                <p className="mt-1 text-xs font-mono text-muted-foreground">
-                  {hostDisks.length > 1 && typeof hostDisks[1]?.used_percent === 'number'
-                    ? `${String(hostDisks[1]?.mount ?? '/home')} ${hostDisks[1].used_percent}%`
-                    : hostDisks.length > 1
-                      ? String(hostDisks[1]?.mount ?? '/home')
-                      : 'additional mounts unavailable'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <GpuWorkloadCard gpuHealth={gpuHealth} gpuProcesses={getGpuProcesses(gpuHealth)} />
 
         <Card>
           <CardHeader>

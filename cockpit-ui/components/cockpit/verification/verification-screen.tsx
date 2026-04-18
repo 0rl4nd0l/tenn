@@ -31,6 +31,7 @@ import { GoldEvalTabPanel } from './tabs/gold-eval-tab-panel'
 import { ReviewTabPanel } from './tabs/review-tab-panel'
 import { RunsTabPanel } from './tabs/runs-tab-panel'
 import { VerifyTabPanel } from './tabs/verify-tab-panel'
+import { VerificationSidebar } from './verification-sidebar'
 import type { ActiveExtractionMonitorRun, ProcessDocumentResponse, RealGoldEvalResponse, VerificationTab } from './types'
 import { useSnippetImage } from './use-snippet-image'
 import { VerificationHeader } from './verification-header'
@@ -65,7 +66,21 @@ export function VerificationScreen() {
   const [activeTab, setActiveTab] = useState<VerificationTab>(parseVerificationTab(searchParams.get('tab')))
   const [ticker, setTicker] = useState(activeTicker || '')
 
+  const updateTab = useCallback((value: string) => {
+    const nextTab = parseVerificationTab(value)
+    setActiveTab(nextTab)
+    const params = new URLSearchParams(searchParams.toString())
+    if (nextTab === 'review') {
+      params.delete('tab')
+    } else {
+      params.set('tab', nextTab)
+    }
+    const nextUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+    router.replace(nextUrl, { scroll: false })
+  }, [pathname, router, searchParams])
+
   const [isRunning, setIsRunning] = useState(false)
+
   const [results, setResults] = useState<VerificationResult[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -102,6 +117,88 @@ export function VerificationScreen() {
   const recentRunsLoadLockRef = useRef(false)
   const reviewActionLockRef = useRef(false)
 
+  const handleLoadDocuments = useCallback(async () => {
+    if (documentLoadLockRef.current) return
+    const cleanTicker = ticker.trim().toUpperCase()
+    if (!cleanTicker) {
+      setReviewError('Ticker is required to load review documents.')
+      return
+    }
+
+    documentLoadLockRef.current = true
+    setReviewError(null)
+    setDocumentsLoading(true)
+    try {
+      const parsedLimit = Number.parseInt(docsLimit, 10)
+      const docs = await getTickerDocuments(cleanTicker, Number.isFinite(parsedLimit) ? parsedLimit : 10)
+      const runsPayload = await getExtractionReviewRuns(cleanTicker, 20)
+      setDocuments(docs)
+      setRecentRuns(runsPayload.items)
+      const defaultDoc = docs[0]?.document_id ?? ''
+      setSelectedDocumentId((current) => docs.some((doc) => doc.document_id === current) ? current : defaultDoc)
+      setSelectedRunId((current) => runsPayload.items.some((run) => run.run_id === current) ? current : (runsPayload.items[0]?.run_id || ''))
+      toast.success(`Loaded ${docs.length} document(s) for ${cleanTicker}`)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load documents'
+      setReviewError(message)
+      toast.error(message)
+    } finally {
+      documentLoadLockRef.current = false
+      setDocumentsLoading(false)
+    }
+  }, [docsLimit, ticker])
+
+  const handleLoadRecentRuns = useCallback(async (filterTicker?: string) => {
+    if (recentRunsLoadLockRef.current) return
+    
+    // If no ticker provided, we use the current component state ticker if it exists
+    const targetTicker = filterTicker !== undefined ? filterTicker : ticker.trim().toUpperCase()
+    
+    recentRunsLoadLockRef.current = true
+    setRecentRunsLoading(true)
+    try {
+      // Fetch recent runs (optional ticker filter)
+      const payload = await getExtractionReviewRuns(targetTicker, 50)
+      setRecentRuns(payload.items)
+      
+      // If we are filtering by a specific ticker, also update the selected run
+      if (targetTicker) {
+        setSelectedRunId((current) => 
+          payload.items.some((run) => run.run_id === current) ? current : (payload.items[0]?.run_id || '')
+        )
+      }
+    } catch (err: unknown) {
+      console.error('Failed to load recent runs:', err)
+      if (targetTicker) {
+        const message = err instanceof Error ? err.message : 'Failed to load recent runs'
+        setReviewError(message)
+        toast.error(message)
+      }
+    } finally {
+      recentRunsLoadLockRef.current = false
+      setRecentRunsLoading(false)
+    }
+  }, [ticker])
+
+  useEffect(() => {
+    // Initial global load for discovery - we pass empty string to ensure global fetch
+    void handleLoadRecentRuns('')
+    void loadWrongQueue()
+  }, [handleLoadRecentRuns, loadWrongQueue])
+
+  const handleSelectHistoryTicker = useCallback((historyTicker: string) => {
+    setTicker(historyTicker)
+    // Switching ticker should trigger a document load for that company
+    setTimeout(() => {
+      void handleLoadDocuments()
+    }, 10)
+  }, [handleLoadDocuments])
+
+  const handleSelectHistoryRun = useCallback((runId: string) => {
+    setSelectedRunId(runId)
+    updateTab('runs')
+  }, [updateTab])
+
   useEffect(() => {
     setHasHydrated(true)
   }, [])
@@ -116,19 +213,6 @@ export function VerificationScreen() {
     const nextTab = parseVerificationTab(searchParams.get('tab'))
     setActiveTab((current) => (current === nextTab ? current : nextTab))
   }, [searchParams])
-
-  const updateTab = useCallback((value: string) => {
-    const nextTab = parseVerificationTab(value)
-    setActiveTab(nextTab)
-    const params = new URLSearchParams(searchParams.toString())
-    if (nextTab === 'review') {
-      params.delete('tab')
-    } else {
-      params.set('tab', nextTab)
-    }
-    const nextUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
-    router.replace(nextUrl, { scroll: false })
-  }, [pathname, router, searchParams])
 
   const reviewItems = useMemo(() => {
     const items = reviewSession?.items ?? []
@@ -399,36 +483,7 @@ export function VerificationScreen() {
     }
   }, [ticker])
 
-  const handleLoadDocuments = useCallback(async () => {
-    if (documentLoadLockRef.current) return
-    const cleanTicker = ticker.trim().toUpperCase()
-    if (!cleanTicker) {
-      setReviewError('Ticker is required to load review documents.')
-      return
-    }
-
-    documentLoadLockRef.current = true
-    setReviewError(null)
-    setDocumentsLoading(true)
-    try {
-      const parsedLimit = Number.parseInt(docsLimit, 10)
-      const docs = await getTickerDocuments(cleanTicker, Number.isFinite(parsedLimit) ? parsedLimit : 10)
-      const runsPayload = await getExtractionReviewRuns(cleanTicker, 20)
-      setDocuments(docs)
-      setRecentRuns(runsPayload.items)
-      const defaultDoc = docs[0]?.document_id ?? ''
-      setSelectedDocumentId((current) => docs.some((doc) => doc.document_id === current) ? current : defaultDoc)
-      setSelectedRunId((current) => runsPayload.items.some((run) => run.run_id === current) ? current : (runsPayload.items[0]?.run_id || ''))
-      toast.success(`Loaded ${docs.length} document(s) for ${cleanTicker}`)
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load documents'
-      setReviewError(message)
-      toast.error(message)
-    } finally {
-      documentLoadLockRef.current = false
-      setDocumentsLoading(false)
-    }
-  }, [docsLimit, ticker])
+  const failedChecksCount = useMemo(() => results?.filter((r) => !r.passed).length ?? 0, [results])
 
   const runSelectedDocumentExtractions = useCallback(async (): Promise<{
     queuedIds: string[]
@@ -533,31 +588,6 @@ export function VerificationScreen() {
     }
   }, [])
 
-  const handleLoadRecentRuns = useCallback(async () => {
-    if (recentRunsLoadLockRef.current) return
-    const cleanTicker = ticker.trim().toUpperCase()
-    if (!cleanTicker) {
-      setReviewError('Ticker is required to inspect recent runs.')
-      return
-    }
-
-    recentRunsLoadLockRef.current = true
-    setRecentRunsLoading(true)
-    setReviewError(null)
-    try {
-      const payload = await getExtractionReviewRuns(cleanTicker, 20)
-      setRecentRuns(payload.items)
-      setSelectedRunId((current) => payload.items.some((run) => run.run_id === current) ? current : (payload.items[0]?.run_id || ''))
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load recent runs'
-      setReviewError(message)
-      toast.error(message)
-    } finally {
-      recentRunsLoadLockRef.current = false
-      setRecentRunsLoading(false)
-    }
-  }, [ticker])
-
   const handleInspectSelectedRun = useCallback(async () => {
     if (reviewActionLockRef.current) return
     if (!selectedRunId) {
@@ -653,6 +683,41 @@ export function VerificationScreen() {
     runSelectedDocumentExtractions,
     selectedReviewDocumentIds.length,
   ])
+
+  const handleInspectResult = useCallback((result: VerificationResult) => {
+    updateTab('review')
+
+    if (result.document_id) {
+      setSelectedDocumentId(result.document_id)
+
+      // If the document is not in our current review items, we should trigger a load.
+      const isDocInSession = reviewSession?.document_ids?.includes(result.document_id)
+        || reviewItems.some((item) => item.document_id === result.document_id)
+
+      if (!isDocInSession) {
+        setExtraDocumentIds((current) => {
+          const existing = parseDocumentIds(current)
+          if (existing.includes(result.document_id!)) return current
+          return existing.length > 0 ? `${current}, ${result.document_id}` : result.document_id!
+        })
+        // Delay slightly to allow state to propagate before loading the review session.
+        setTimeout(() => {
+          void handleLoadReview()
+        }, 50)
+      }
+    }
+
+    if (result.item_id) {
+      setSelectedReviewItemId(result.item_id)
+    } else if (result.metric) {
+      const match = reviewItems.find((item) => item.metric_name === result.metric)
+      if (match) {
+        setSelectedReviewItemId(match.item_id)
+      }
+    }
+
+    toast.info(`Inspecting ${result.metric}. Review evidence for ${result.document_id ? result.document_id.slice(0, 12) : 'the document'}...`)
+  }, [handleLoadReview, reviewItems, reviewSession, updateTab])
 
   const handleRunGoldEval = useCallback(async () => {
     setGoldEvalLoading(true)
@@ -921,130 +986,147 @@ export function VerificationScreen() {
   })
 
   return (
-    <Tabs value={activeTab} onValueChange={updateTab} className="flex h-full min-h-0 flex-col gap-4 p-6">
-      <VerificationHeader
-        ticker={ticker}
-        extractionMethod={extractionMethod}
-        strictMethod={strictMethod}
-        reviewSession={reviewSession}
-        onTickerChange={setTicker}
-        onMethodChange={setExtractionMethod}
-        onStrictMethodChange={setStrictMethod}
-      />
+    <div className="flex h-full min-h-0 w-full gap-6 p-6">
+      <Tabs value={activeTab} onValueChange={updateTab} className="flex min-w-0 flex-1 flex-col gap-4">
+        <VerificationHeader
+          ticker={ticker}
+          extractionMethod={extractionMethod}
+          strictMethod={strictMethod}
+          reviewSession={reviewSession}
+          failedChecksCount={failedChecksCount}
+          onTickerChange={setTicker}
+          onMethodChange={setExtractionMethod}
+          onStrictMethodChange={setStrictMethod}
+        />
 
-      <VerificationTabBar
-        activeTab={activeTab}
-        wrongQueueCount={wrongQueue?.count ?? 0}
-        pendingCount={reviewSession?.summary?.pending ?? 0}
-      />
+        <VerificationTabBar
+          wrongQueueCount={wrongQueue?.count ?? 0}
+          pendingCount={reviewSession?.summary?.pending ?? 0}
+          failedChecksCount={failedChecksCount}
+        />
 
-      <TabsContent value="review" className="mt-0 min-h-0 flex-1">
-        <ScrollArea className="h-full">
-          <div className="pr-4">
-            <ReviewTabPanel
-              documents={documents}
-              documentsLoading={documentsLoading}
-              docsLimit={docsLimit}
-              extraDocumentIds={extraDocumentIds}
-              reviewError={reviewError}
-              reviewActionLoading={reviewActionLoading}
-              reviewSession={reviewSession}
-              reviewSessionLoadingMessage={reviewSessionLoadingMessage}
-              wrongQueue={wrongQueue}
-              recentRuns={recentRuns}
-              recentRunsLoading={recentRunsLoading}
-              selectedRunId={selectedRunId}
-              selectedDocumentId={selectedDocumentId}
-              selectedReviewDocumentIds={selectedReviewDocumentIds}
-              currentReviewItem={currentReviewItem}
-              currentReviewIndex={currentReviewIndex}
-              currentEvidenceQuality={currentEvidenceQuality}
-              matchedEvidenceText={matchedEvidenceText}
-              currentSnippetPath={currentSnippetPath}
-              currentSnippetUrl={currentSnippetUrl}
-              currentSnippetRenderKey={currentSnippetRenderKey}
-              currentRowRef={currentRowRef}
-              reviewItems={reviewItems}
-              evidenceSuspendMessage={evidenceSuspendMessage}
-              snippetImageState={snippetImageState}
-              hasPrevReviewItem={hasPrevReviewItem}
-              hasNextReviewItem={hasNextReviewItem}
-              onDocsLimitChange={setDocsLimit}
-              onExtraDocumentIdsChange={setExtraDocumentIds}
-              onLoadDocuments={handleLoadDocuments}
-              onRunExtraction={handleRunExtraction}
-              onLoadReview={handleLoadReview}
-              onRefreshWrongQueue={() => void loadWrongQueue()}
-              onExportReviewArtifacts={handleExportReviewArtifacts}
-              onSelectedRunIdChange={setSelectedRunId}
-              onLoadRecentRuns={() => void handleLoadRecentRuns()}
-              onInspectSelectedRun={() => void handleInspectSelectedRun()}
-              onSelectedDocumentIdChange={setSelectedDocumentId}
-              onMoveReviewSelection={moveReviewSelection}
-              onSelectedReviewItemIdChange={setSelectedReviewItemId}
-              onSnippetImageLoad={handleSnippetImageLoad}
-              onSnippetImageError={handleSnippetImageError}
-              onSubmitReview={(verdict) => void handleSubmitReview(verdict)}
-            />
-          </div>
-        </ScrollArea>
-      </TabsContent>
+        <div className="min-h-0 flex-1">
+          <TabsContent value="review" className="m-0 h-full min-h-0 outline-none data-[state=active]:flex">
+            <ScrollArea className="h-full w-full">
+              <div className="pr-4">
+                <ReviewTabPanel
+                  documents={documents}
+                  documentsLoading={documentsLoading}
+                  docsLimit={docsLimit}
+                  extraDocumentIds={extraDocumentIds}
+                  reviewError={reviewError}
+                  reviewActionLoading={reviewActionLoading}
+                  reviewSession={reviewSession}
+                  reviewSessionLoadingMessage={reviewSessionLoadingMessage}
+                  wrongQueue={wrongQueue}
+                  recentRuns={recentRuns}
+                  recentRunsLoading={recentRunsLoading}
+                  selectedRunId={selectedRunId}
+                  selectedDocumentId={selectedDocumentId}
+                  selectedReviewDocumentIds={selectedReviewDocumentIds}
+                  currentReviewItem={currentReviewItem}
+                  currentReviewIndex={currentReviewIndex}
+                  currentEvidenceQuality={currentEvidenceQuality}
+                  matchedEvidenceText={matchedEvidenceText}
+                  currentSnippetPath={currentSnippetPath}
+                  currentSnippetUrl={currentSnippetUrl}
+                  currentSnippetRenderKey={currentSnippetRenderKey}
+                  currentRowRef={currentRowRef}
+                  reviewItems={reviewItems}
+                  evidenceSuspendMessage={evidenceSuspendMessage}
+                  snippetImageState={snippetImageState}
+                  hasPrevReviewItem={hasPrevReviewItem}
+                  hasNextReviewItem={hasNextReviewItem}
+                  onDocsLimitChange={setDocsLimit}
+                  onExtraDocumentIdsChange={setExtraDocumentIds}
+                  onLoadDocuments={handleLoadDocuments}
+                  onRunExtraction={handleRunExtraction}
+                  onLoadReview={handleLoadReview}
+                  onRefreshWrongQueue={() => void loadWrongQueue()}
+                  onExportReviewArtifacts={handleExportReviewArtifacts}
+                  onSelectedRunIdChange={setSelectedRunId}
+                  onLoadRecentRuns={() => void handleLoadRecentRuns()}
+                  onInspectSelectedRun={() => void handleInspectSelectedRun()}
+                  onSelectedDocumentIdChange={setSelectedDocumentId}
+                  onMoveReviewSelection={moveReviewSelection}
+                  onSelectedReviewItemIdChange={setSelectedReviewItemId}
+                  onSnippetImageLoad={handleSnippetImageLoad}
+                  onSnippetImageError={handleSnippetImageError}
+                  onSubmitReview={(verdict) => void handleSubmitReview(verdict)}
+                />
+              </div>
+            </ScrollArea>
+          </TabsContent>
 
-      <TabsContent value="runs" className="mt-0 min-h-0 flex-1">
-        <ScrollArea className="h-full">
-          <div className="pr-4">
-            <RunsTabPanel
-              attachActiveRuns={attachActiveRuns}
-              activeMonitorNotice={activeMonitorNotice}
-              statusCards={runStatusCards}
-              runStatusLoading={runStatusLoading}
-              activeRunId={activeRunId}
-              runStatus={runStatus}
-            />
-          </div>
-        </ScrollArea>
-      </TabsContent>
+          <TabsContent value="runs" className="m-0 h-full min-h-0 outline-none data-[state=active]:flex">
+            <ScrollArea className="h-full w-full">
+              <div className="pr-4">
+                <RunsTabPanel
+                  attachActiveRuns={attachActiveRuns}
+                  activeMonitorNotice={activeMonitorNotice}
+                  statusCards={runStatusCards}
+                  runStatusLoading={runStatusLoading}
+                  activeRunId={activeRunId}
+                  runStatus={runStatus}
+                />
+              </div>
+            </ScrollArea>
+          </TabsContent>
 
-      <TabsContent value="gold-eval" className="mt-0 min-h-0 flex-1">
-        <ScrollArea className="h-full">
-          <div className="pr-4">
-            <GoldEvalTabPanel
-              goldLimit={goldLimit}
-              goldEvalLoading={goldEvalLoading}
-              goldEvalError={goldEvalError}
-              goldEval={goldEval}
-              extractionMethod={extractionMethod}
-              onGoldLimitChange={setGoldLimit}
-              onRunGoldEval={() => void handleRunGoldEval()}
-              onExportGoldEvalJson={handleExportGoldEvalJson}
-              onOpenReviewSession={(sessionId) => void handleOpenGoldEvalReviewSession(sessionId)}
-            />
-          </div>
-        </ScrollArea>
-      </TabsContent>
+          <TabsContent value="gold-eval" className="m-0 h-full min-h-0 outline-none data-[state=active]:flex">
+            <ScrollArea className="h-full w-full">
+              <div className="pr-4">
+                <GoldEvalTabPanel
+                  goldLimit={goldLimit}
+                  goldEvalLoading={goldEvalLoading}
+                  goldEvalError={goldEvalError}
+                  goldEval={goldEval}
+                  extractionMethod={extractionMethod}
+                  onGoldLimitChange={setGoldLimit}
+                  onRunGoldEval={() => void handleRunGoldEval()}
+                  onExportGoldEvalJson={handleExportGoldEvalJson}
+                  onOpenReviewSession={(sessionId) => void handleOpenGoldEvalReviewSession(sessionId)}
+                />
+              </div>
+            </ScrollArea>
+          </TabsContent>
 
-      <TabsContent value="verify" className="mt-0 min-h-0 flex-1">
-        <ScrollArea className="h-full">
-          <div className="pr-4">
-            <VerifyTabPanel
-              ticker={ticker}
-              isRunning={isRunning}
-              error={error}
-              results={results}
-              onRunVerification={(broad) => void handleRunVerification(broad)}
-              onExportJson={handleExportJson}
-              onExportHtml={handleExportHtml}
-            />
-          </div>
-        </ScrollArea>
-      </TabsContent>
+          <TabsContent value="verify" className="m-0 h-full min-h-0 outline-none data-[state=active]:flex">
+            <ScrollArea className="h-full w-full">
+              <div className="pr-4">
+                <VerifyTabPanel
+                  ticker={ticker}
+                  isRunning={isRunning}
+                  error={error}
+                  results={results}
+                  onRunVerification={(broad) => void handleRunVerification(broad)}
+                  onExportJson={handleExportJson}
+                  onExportHtml={handleExportHtml}
+                  onInspectResult={handleInspectResult}
+                />
+              </div>
+            </ScrollArea>
+          </TabsContent>
+        </div>
 
-      <VerificationStatusStrip
-        wrongQueueCount={wrongQueue?.count ?? 0}
-        pendingCount={reviewSession?.summary?.pending ?? 0}
-        activeRunId={activeRunId}
-        attachActiveRuns={attachActiveRuns}
-      />
-    </Tabs>
+        <VerificationStatusStrip
+          wrongQueueCount={wrongQueue?.count ?? 0}
+          pendingCount={reviewSession?.summary?.pending ?? 0}
+          activeRunId={activeRunId}
+          attachActiveRuns={attachActiveRuns}
+        />
+      </Tabs>
+
+      <aside className="w-80 shrink-0 border-l border-border/40 pl-6">
+        <VerificationSidebar
+          recentRuns={recentRuns}
+          loading={recentRunsLoading}
+          onSelectTicker={handleSelectHistoryTicker}
+          onSelectRun={handleSelectHistoryRun}
+          activeTicker={ticker}
+        />
+      </aside>
+    </div>
   )
+
 }

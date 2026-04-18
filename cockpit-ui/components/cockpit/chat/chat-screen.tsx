@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -14,9 +15,30 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { TerminalMessage } from './terminal-message'
 import { TerminalInput } from './terminal-input'
+import {
+  IngestSummaryCard,
+  type IngestSummary,
+} from './ingest-summary-card'
+import {
+  TakeawaysPanel,
+  type TakeawayCitation,
+  type TakeawaysPayload,
+} from './takeaways-panel'
+import { SourcesDrawer } from './sources-drawer'
 import { modelsLikelyMatch, parseCockpitConfig, resolveRuntimeModel } from '@/lib/cockpit-config'
 import { useCockpitStore, generateId } from '@/lib/cockpit-store'
 import { streamChat, sendChatMessage, executeAction, restartBackend } from '@/lib/api-client'
+import { useAttachedSources } from '@/lib/hooks/use-attached-sources'
+import {
+  MARKETPLACE_CAPTURE_CHANNEL,
+  isMarketplaceCaptureRelayResponse,
+} from '@/lib/marketplace-capture-helper'
+import {
+  parseMarketplaceCaptureError,
+  shouldOfferMarketplaceBrowserLaunch,
+} from '@/lib/marketplace-bootstrap'
+import { extractMarketplaceUrl } from '@/lib/marketplace-url'
+import { extractYouTubeUrl } from '@/lib/youtube-url'
 import type { ChatMessage as ChatMessageType, ActionPreview } from '@/lib/cockpit-types'
 import { toast } from 'sonner'
 
@@ -35,6 +57,45 @@ type FeedbackCaptureResponse = {
 type PendingFeedback = {
   kind: FeedbackKind
   message: ChatMessageType
+}
+
+type WatchlistNotice = {
+  tone: 'success' | 'error'
+  text: string
+}
+
+type IngestUrlResponse = {
+  source_id: string
+  video_title?: string
+  listing_title?: string
+  source_name?: string
+  webpage_url?: string
+  staged?: boolean
+  chunks_staged?: number
+  chunks_indexed?: number
+  detected_tickers?: string[]
+  source_kind?: 'ephemeral' | 'concat' | 'primary'
+}
+
+type TakeawaysResponse = {
+  source_id: string
+  takeaways?: Array<{
+    text: string
+    citations?: Array<{
+      chunk_id: string
+      segment_start_seconds: number
+    }>
+  }>
+  watchlist_suggestions?: Array<{
+    ticker: string
+    commentary: string
+    citations?: Array<{
+      chunk_id: string
+      segment_start_seconds: number
+    }>
+  }>
+  model?: string
+  prompt_version?: string
 }
 
 const BACKEND_PREFIX_RE = /^\s*\/(advisor|cloud|local|ops)\b/i
@@ -175,6 +236,7 @@ function serializeMessageForFeedback(message: ChatMessageType) {
 }
 
 export function ChatScreen() {
+  const attached = useAttachedSources()
   const [hasHydrated, setHasHydrated] = useState(false)
   const [messages, setMessages] = useState<ChatMessageType[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
@@ -187,6 +249,12 @@ export function ChatScreen() {
   const [pendingFeedback, setPendingFeedback] = useState<PendingFeedback | null>(null)
   const [feedbackNote, setFeedbackNote] = useState('')
   const [pendingActionPreview, setPendingActionPreview] = useState<ActionPreview | null>(null)
+  const [latestIngest, setLatestIngest] = useState<IngestSummary | null>(null)
+  const [latestVideoUrl, setLatestVideoUrl] = useState<string | null>(null)
+  const [takeaways, setTakeaways] = useState<TakeawaysPayload | null>(null)
+  const [sourcesOpen, setSourcesOpen] = useState(false)
+  const [watchlistNotice, setWatchlistNotice] = useState<WatchlistNotice | null>(null)
+  const [apiKey, setApiKey] = useState(process.env.NEXT_PUBLIC_API_KEY ?? '')
   const activeStreamRef = useRef<{ close: () => void } | null>(null)
   const statusFallbackTimersRef = useRef<number[]>([])
   const receivedServerStatusRef = useRef(false)
@@ -226,7 +294,280 @@ export function ChatScreen() {
   // Wait for hydration to finish to avoid SSR/CSR mismatch with Zustand
   useEffect(() => {
     setHasHydrated(true)
+    setApiKey(localStorage.getItem('cockpit.apiKey') ?? process.env.NEXT_PUBLIC_API_KEY ?? '')
   }, [])
+
+  const appendSystemMessage = useCallback((content: string) => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: generateId(),
+        role: 'system',
+        content,
+        timestamp: new Date(),
+      },
+    ])
+  }, [])
+
+  const buildAuthHeaders = useCallback(
+    (contentType?: string): Record<string, string> => {
+      const headers: Record<string, string> = {}
+      if (contentType) {
+        headers['Content-Type'] = contentType
+      }
+      if (apiKey) {
+        headers['X-API-Key'] = apiKey
+      }
+      return headers
+    },
+    [apiKey],
+  )
+
+  const openCitation = useCallback((citation: TakeawayCitation) => {
+    if (!latestVideoUrl || typeof window === 'undefined') {
+      return
+    }
+
+    try {
+      const link = new URL(latestVideoUrl)
+      link.searchParams.set('t', `${Math.max(0, Math.floor(citation.segmentStartSeconds))}s`)
+      window.open(link.toString(), '_blank', 'noopener,noreferrer')
+    } catch {
+      // Ignore malformed URLs and preserve the rest of the chat flow.
+    }
+  }, [latestVideoUrl])
+
+  const addTickerToWatchlist = useCallback(async (ticker: string, commentary?: string) => {
+    try {
+      const response = await fetch('/api/cockpit/watchlist', {
+        method: 'POST',
+        headers: buildAuthHeaders('application/json'),
+        body: JSON.stringify({
+          ticker,
+          source_id: latestIngest?.sourceId ?? null,
+          note: commentary ?? null,
+          stance: 'watch',
+        }),
+      })
+
+      if (response.status === 409) {
+        const text = `${ticker} is already in watchlist`
+        setWatchlistNotice({ tone: 'error', text })
+        toast.error(text)
+        return
+      }
+
+      if (!response.ok) {
+        const text = `Failed to add ${ticker} to watchlist (${response.status})`
+        setWatchlistNotice({ tone: 'error', text })
+        toast.error(text)
+        return
+      }
+
+      const text = `Added ${ticker} to watchlist`
+      setWatchlistNotice({ tone: 'success', text })
+      toast.success(text)
+    } catch (error) {
+      const text = error instanceof Error ? error.message : 'Watchlist request failed'
+      setWatchlistNotice({ tone: 'error', text })
+      toast.error(text)
+    }
+  }, [buildAuthHeaders, latestIngest?.sourceId])
+
+  const fetchTakeaways = useCallback(async (sourceId: string, videoUrl: string | null) => {
+    try {
+      const response = await fetch('/api/cockpit/commentary/takeaways', {
+        method: 'POST',
+        headers: buildAuthHeaders('application/json'),
+        body: JSON.stringify({ source_id: sourceId }),
+      })
+      if (!response.ok) {
+        return
+      }
+
+      const payload = (await response.json()) as TakeawaysResponse
+      setTakeaways({
+        sourceId: payload.source_id,
+        videoId: videoUrl ?? sourceId,
+        takeaways: (payload.takeaways || []).map((takeaway) => ({
+          text: takeaway.text,
+          citations: (takeaway.citations || []).map((citation) => ({
+            chunkId: citation.chunk_id,
+            segmentStartSeconds: citation.segment_start_seconds,
+          })),
+        })),
+        watchlistSuggestions: (payload.watchlist_suggestions || []).map((suggestion) => ({
+          ticker: suggestion.ticker,
+          commentary: suggestion.commentary,
+          citations: (suggestion.citations || []).map((citation) => ({
+            chunkId: citation.chunk_id,
+            segmentStartSeconds: citation.segment_start_seconds,
+          })),
+        })),
+        model: payload.model || 'unknown',
+        promptVersion: payload.prompt_version || 'unknown',
+      })
+    } catch {
+      // Keep the paste-to-ingest flow usable even when takeaways are unavailable.
+    }
+  }, [buildAuthHeaders])
+
+  const applyMarketplaceIngest = useCallback((body: IngestUrlResponse, url: string, systemMessage?: string) => {
+    const summary: IngestSummary = {
+      sourceId: body.source_id,
+      title: body.listing_title || body.source_name || 'Facebook Marketplace listing',
+      chunkCount: body.chunks_staged ?? body.chunks_indexed ?? 0,
+      detectedTickers: Array.isArray(body.detected_tickers) ? body.detected_tickers : [],
+      status: body.staged === false ? 'approved' : 'pending',
+      sourceKind: body.source_kind ?? 'concat',
+    }
+
+    setLatestIngest(summary)
+    setLatestVideoUrl(body.webpage_url ?? url)
+    setTakeaways(null)
+    setWatchlistNotice(null)
+    attached.attach({
+      sourceId: body.source_id,
+      sourceKind: summary.sourceKind,
+      title: summary.title,
+    })
+    if (systemMessage) {
+      appendSystemMessage(systemMessage)
+    }
+    toast.success(`Captured ${summary.title}`)
+  }, [appendSystemMessage, attached])
+
+  const buildEphemeralIndex = useCallback(async (sourceId: string) => {
+    try {
+      await fetch('/api/cockpit/commentary/ephemeral-index', {
+        method: 'POST',
+        headers: buildAuthHeaders('application/json'),
+        body: JSON.stringify({
+          session_id: sessionId,
+          source_ids: [sourceId],
+        }),
+      })
+    } catch {
+      // Session-scoped indexing is opportunistic from the UI's perspective.
+    }
+  }, [buildAuthHeaders, sessionId])
+
+  const ingestYouTubeUrl = useCallback(async (url: string) => {
+    try {
+      const response = await fetch('/api/commentary/ingest-url', {
+        method: 'POST',
+        headers: buildAuthHeaders('application/json'),
+        body: JSON.stringify({ url }),
+      })
+
+      if (!response.ok) {
+        const detail = await response.text()
+        const message = detail || `Ingest failed (${response.status})`
+        appendSystemMessage(`YouTube ingest failed: ${message}`)
+        toast.error(message)
+        return
+      }
+
+      const body = (await response.json()) as IngestUrlResponse
+      const summary: IngestSummary = {
+        sourceId: body.source_id,
+        title: body.video_title || body.source_name || 'YouTube transcript',
+        chunkCount: body.chunks_staged ?? body.chunks_indexed ?? 0,
+        detectedTickers: Array.isArray(body.detected_tickers) ? body.detected_tickers : [],
+        status: body.staged === false ? 'approved' : 'pending',
+        sourceKind: 'ephemeral',
+      }
+
+      setLatestIngest(summary)
+      setLatestVideoUrl(body.webpage_url ?? url)
+      setTakeaways(null)
+      setWatchlistNotice(null)
+      attached.attach({
+        sourceId: body.source_id,
+        sourceKind: summary.sourceKind,
+        title: summary.title,
+      })
+      toast.success(`Ingested ${summary.title}`)
+
+      await Promise.allSettled([
+        fetchTakeaways(body.source_id, body.webpage_url ?? url),
+        buildEphemeralIndex(body.source_id),
+      ])
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'YouTube ingest failed'
+      appendSystemMessage(`YouTube ingest failed: ${message}`)
+      toast.error(message)
+    }
+  }, [appendSystemMessage, attached, buildAuthHeaders, buildEphemeralIndex, fetchTakeaways])
+
+  const openMarketplaceCaptureHelper = useCallback(async (url: string) => {
+    try {
+      const response = await fetch('/api/cockpit/commentary/marketplace-capture/token', {
+        method: 'POST',
+        headers: buildAuthHeaders('application/json'),
+        body: JSON.stringify({ url }),
+      })
+      if (!response.ok) {
+        const detail = await response.text()
+        throw new Error(detail || `Marketplace helper failed (${response.status})`)
+      }
+      const body = (await response.json()) as { token?: string }
+      const token = String(body.token || '').trim()
+      if (!token) {
+        throw new Error('Marketplace helper did not return a capture token')
+      }
+      const helperUrl = `/marketplace-capture?token=${encodeURIComponent(token)}&url=${encodeURIComponent(url)}`
+      if (typeof window !== 'undefined') {
+        const helperWindow = window.open(helperUrl, '_blank', 'noopener,noreferrer')
+        if (!helperWindow) {
+          window.location.assign(helperUrl)
+        }
+      }
+      appendSystemMessage('Marketplace browser helper opened. Use the bookmarklet on the Facebook listing page to capture it.')
+      toast.success('Marketplace helper opened')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Marketplace helper launch failed'
+      appendSystemMessage(`Marketplace helper launch failed: ${message}`)
+      toast.error(message)
+    }
+  }, [appendSystemMessage, buildAuthHeaders])
+
+  const inspectMarketplaceUrl = useCallback(async (url: string) => {
+    try {
+      const response = await fetch('/api/commentary/inspect-marketplace', {
+        method: 'POST',
+        headers: buildAuthHeaders('application/json'),
+        body: JSON.stringify({ url }),
+      })
+
+      if (!response.ok) {
+        const detail = await response.text()
+        const failure = parseMarketplaceCaptureError(detail, response.status)
+        const message = failure.message || `Marketplace capture failed (${response.status})`
+        appendSystemMessage(`Marketplace capture failed: ${message}`)
+        if (shouldOfferMarketplaceBrowserLaunch(failure.kind)) {
+          toast.error(message, {
+            action: {
+              label: 'Open Helper',
+              onClick: () => {
+                void openMarketplaceCaptureHelper(url)
+              },
+            },
+          })
+        } else {
+          toast.error(message)
+        }
+        return
+      }
+
+      const body = (await response.json()) as IngestUrlResponse
+      applyMarketplaceIngest(body, url)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Marketplace capture failed'
+      appendSystemMessage(`Marketplace capture failed: ${message}`)
+      toast.error(message)
+    }
+  }, [appendSystemMessage, applyMarketplaceIngest, buildAuthHeaders, openMarketplaceCaptureHelper])
 
   const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
@@ -251,6 +592,32 @@ export function ChatScreen() {
       }
     }
   }, [setChatCompletionActive])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof BroadcastChannel === 'undefined') {
+      return
+    }
+    const channel = new BroadcastChannel(MARKETPLACE_CAPTURE_CHANNEL)
+    channel.onmessage = (event: MessageEvent<unknown>) => {
+      if (!isMarketplaceCaptureRelayResponse(event.data)) {
+        return
+      }
+      if (!event.data.ok) {
+        appendSystemMessage(`Marketplace helper failed: ${event.data.message}`)
+        toast.error(event.data.message)
+        return
+      }
+      const ingest = event.data.ingest as IngestUrlResponse
+      applyMarketplaceIngest(
+        ingest,
+        ingest.webpage_url ?? '',
+        'Marketplace capture received from browser helper.',
+      )
+    }
+    return () => {
+      channel.close()
+    }
+  }, [appendSystemMessage, applyMarketplaceIngest])
 
   const clearStatusFallbackTimers = useCallback(() => {
     if (statusFallbackTimersRef.current.length > 0) {
@@ -339,6 +706,19 @@ export function ChatScreen() {
 
     setPendingActionPreview(null)
 
+    if (!content.startsWith('/')) {
+      const marketplaceUrl = extractMarketplaceUrl(content)
+      if (marketplaceUrl) {
+        await inspectMarketplaceUrl(marketplaceUrl)
+        return
+      }
+      const detectedUrl = extractYouTubeUrl(content)
+      if (detectedUrl) {
+        await ingestYouTubeUrl(detectedUrl)
+        return
+      }
+    }
+
     clearStatusFallbackTimers()
     receivedServerStatusRef.current = false
     setIsStreaming(true)
@@ -416,8 +796,9 @@ export function ChatScreen() {
           model: chatModel,
           webSearch: preferences.webSearchEnabled,
           rag: preferences.ragEnabled,
-          dbDiagnostics: preferences.dbDiagnosticsEnabled,
-        })
+        dbDiagnostics: preferences.dbDiagnosticsEnabled,
+        attachedSources: attached.serialize(),
+      })
 
         const systemMessage: ChatMessageType = {
           id: generateId(),
@@ -465,6 +846,7 @@ export function ChatScreen() {
         webSearch: preferences.webSearchEnabled,
         rag: preferences.ragEnabled,
         dbDiagnostics: preferences.dbDiagnosticsEnabled,
+        attachedSources: attached.serialize(),
         onMessage: (event) => {
           switch (event.type) {
             case 'chunk':
@@ -770,10 +1152,16 @@ export function ChatScreen() {
     setMessages([])
     setStreamingContent('')
     setStreamingMetadata({})
-    setFeedbackStates({})
-    setPendingFeedback(null)
-    setFeedbackNote('')
-  }, [])
+      setFeedbackStates({})
+      setPendingFeedback(null)
+      setFeedbackNote('')
+      setLatestIngest(null)
+      setLatestVideoUrl(null)
+      setTakeaways(null)
+      setSourcesOpen(false)
+      setWatchlistNotice(null)
+      attached.clear()
+  }, [attached])
 
   const submitFeedbackMessage = useCallback(async (message: ChatMessageType, note: string, feedbackType: FeedbackKind) => {
     if (message.role !== 'assistant') {
@@ -1045,6 +1433,55 @@ export function ChatScreen() {
 
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>
         <div className="space-y-4 pb-4">
+          {(latestIngest || takeaways || attached.attached.length > 0) ? (
+            <div className="space-y-3 rounded-lg border border-border/60 bg-black/10 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs font-mono text-muted-foreground">
+                  Attached sources: {attached.attached.length}
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSourcesOpen(true)}
+                >
+                  Recent sources
+                </Button>
+              </div>
+              {watchlistNotice ? (
+                <div
+                  className={watchlistNotice.tone === 'error'
+                    ? 'text-xs text-red-300'
+                    : 'text-xs text-emerald-300'}
+                >
+                  {watchlistNotice.text}
+                </div>
+              ) : null}
+              {latestIngest ? (
+                <IngestSummaryCard
+                  summary={latestIngest}
+                  isAttached={attached.attached.some((source) => source.sourceId === latestIngest.sourceId)}
+                  onAttach={(sourceId) => {
+                    attached.attach({
+                      sourceId,
+                      sourceKind: latestIngest.sourceKind,
+                      title: latestIngest.title,
+                    })
+                  }}
+                  onDetach={(sourceId) => {
+                    attached.detach(sourceId)
+                  }}
+                  onAddTicker={(ticker) => void addTickerToWatchlist(ticker)}
+                />
+              ) : null}
+              {takeaways ? (
+                <TakeawaysPanel
+                  payload={takeaways}
+                  onAddTicker={(input) => void addTickerToWatchlist(input.ticker, input.commentary)}
+                  onJumpToCitation={openCitation}
+                />
+              ) : null}
+            </div>
+          ) : null}
           {messages.map((msg) => (
             <div key={msg.id} className="space-y-1">
               <TerminalMessage
@@ -1122,6 +1559,16 @@ export function ChatScreen() {
           )}
         </div>
       </ScrollArea>
+
+      <SourcesDrawer
+        open={sourcesOpen}
+        apiKey={apiKey}
+        onClose={() => setSourcesOpen(false)}
+        onReattach={({ sourceId, title }) => {
+          attached.attach({ sourceId, sourceKind: 'ephemeral', title })
+          setSourcesOpen(false)
+        }}
+      />
 
       <TerminalInput
         onSend={handleSend}

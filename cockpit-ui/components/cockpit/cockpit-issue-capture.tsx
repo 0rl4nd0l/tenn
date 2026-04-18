@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from 'react'
 import type { RefObject } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import html2canvas from 'html2canvas'
+import { toPng } from 'html-to-image'
 import { Camera, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -45,6 +45,7 @@ type CockpitIssueCaptureProps = {
   backendLastHealthyAt: Date | null
   backendError: string | null
   gpuHealth: ServiceHealth | null
+  hostHealth: ServiceHealth | null
 }
 
 async function copyPrompt(prompt: string): Promise<boolean> {
@@ -67,6 +68,7 @@ export function CockpitIssueCapture({
   backendLastHealthyAt,
   backendError,
   gpuHealth,
+  hostHealth,
 }: CockpitIssueCaptureProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -98,21 +100,33 @@ export function CockpitIssueCapture({
       throw new Error('Cockpit capture root is unavailable')
     }
 
-    const canvas = await html2canvas(target, {
+    // Capture using toPng which handles oklch/modern CSS much better than html2canvas
+    const dataUrl = await toPng(target, {
       backgroundColor: '#09090b',
-      logging: false,
-      scale: Math.min(window.devicePixelRatio || 1, 2),
-      useCORS: true,
-      ignoreElements: (element) => element instanceof HTMLElement
-        && element.dataset.cockpitIssueDialog === 'true',
+      cacheBust: true,
+      filter: (node) => {
+        // Skip the dialog itself in the capture
+        if (node instanceof HTMLElement && node.dataset.cockpitIssueDialog === 'true') {
+          return false
+        }
+        return true
+      },
     })
 
-    return {
-      dataUrl: canvas.toDataURL('image/png'),
-      width: canvas.width,
-      height: canvas.height,
-      capturedAt: new Date().toISOString(),
-    } satisfies ScreenshotCapture
+    // Extract dimensions to maintain ScreenshotCapture compatibility
+    return new Promise<ScreenshotCapture>((resolve, reject) => {
+      const img = new window.Image()
+      img.onload = () => {
+        resolve({
+          dataUrl,
+          width: img.width,
+          height: img.height,
+          capturedAt: new Date().toISOString(),
+        })
+      }
+      img.onerror = () => reject(new Error('Failed to process captured image dimensions'))
+      img.src = dataUrl
+    })
   }, [captureRootRef])
 
   const handleOpen = useCallback(async () => {
@@ -203,6 +217,7 @@ export function CockpitIssueCapture({
             backendLastHealthyAt: backendLastHealthyAt?.toISOString() ?? null,
             backendError,
             gpuHealth,
+            hostHealth,
             viewport: {
               width: window.innerWidth,
               height: window.innerHeight,
@@ -266,6 +281,7 @@ export function CockpitIssueCapture({
     chatModel,
     description,
     gpuHealth,
+    hostHealth,
     pageTitle,
     pathname,
     preferences,

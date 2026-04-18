@@ -1,5 +1,6 @@
 'use client'
 
+import { checkHealth } from '@/lib/api-client'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import { AlertTriangle, WifiOff, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
@@ -7,16 +8,14 @@ import { useState } from 'react'
 export function OfflineIndicator() {
   const isHealthy = useCockpitStore((state) => state.isBackendHealthy)
   const error = useCockpitStore((state) => state.backendError)
-  const setBackendStatus = useCockpitStore((state) => state.setBackendStatus)
   const [retrying, setRetrying] = useState(false)
 
   const handleRetry = async () => {
     setRetrying(true)
     try {
-      // Simple fetch to root or health to trigger apiFetch logic
-      await fetch('/api/cockpit/health')
-    } catch (e) {
-      // apiFetch will handle the store update
+      await checkHealth()
+    } catch {
+      // checkHealth/apiFetch updates the global backend status store
     } finally {
       setTimeout(() => setRetrying(false), 500)
     }

@@ -16,6 +16,10 @@ import {
   Gauge,
   Activity,
   Zap,
+  List,
+  Store,
+  ShoppingBag,
+  Bell,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -32,6 +36,7 @@ import {
 } from '@/components/ui/sidebar'
 import { Badge } from '@/components/ui/badge'
 import { GpuActivityDialog, getGpuProcesses, getGpuSummary } from '@/components/cockpit/gpu-activity-dialog'
+import { HostActivityDialog, getHostSummary } from '@/components/cockpit/host-activity-dialog'
 import type { ServiceHealth } from '@/lib/cockpit-types'
 import { useCockpitStore } from '@/lib/cockpit-store'
 
@@ -40,6 +45,7 @@ interface CockpitSidebarProps {
   backendLastHealthyAt: Date | null
   backendError: string | null
   gpuHealth: ServiceHealth | null
+  hostHealth: ServiceHealth | null
   sessionCost: number
 }
 
@@ -73,6 +79,10 @@ const navItems = [
   { href: '/settings', icon: Gauge, label: 'Settings', shortcut: '6' },
   { href: '/news', icon: Newspaper, label: 'News', shortcut: '7' },
   { href: '/intel-ops', icon: Activity, label: 'Intel Pulse', shortcut: '8' },
+  { href: '/watchlist', icon: List, label: 'Watchlist', shortcut: '9' },
+  { href: '/marketplace', icon: Store, label: 'Marketplace', shortcut: 'M' },
+  { href: '/marketplace/matches', icon: ShoppingBag, label: 'Matches', shortcut: 'N' },
+  { href: '/marketplace/alerts', icon: Bell, label: 'Alerts', shortcut: 'B' },
 ]
 
 function readNumber(value: unknown): number | null {
@@ -105,6 +115,7 @@ export function CockpitSidebar({
   backendLastHealthyAt,
   backendError,
   gpuHealth,
+  hostHealth,
   sessionCost,
 }: CockpitSidebarProps) {
   const pathname = usePathname()
@@ -188,6 +199,7 @@ export function CockpitSidebar({
       }
 
   const gpuSummary = useMemo(() => getGpuSummary(gpuHealth), [gpuHealth])
+  const hostSummary = useMemo(() => getHostSummary(hostHealth), [hostHealth])
   const configFieldCount = [
     configSummary.model,
     configSummary.maxTokens,
@@ -267,6 +279,32 @@ export function CockpitSidebar({
               <div className="text-[11px] text-muted-foreground/90 pl-4 font-mono">
                 last healthy: {formatClock(backendLastHealthyAt)}
               </div>
+              <HostActivityDialog hostHealth={hostHealth}>
+                  <button
+                    type="button"
+                    className="w-full rounded border border-sidebar-border/70 px-2 py-2 text-left transition-colors hover:border-primary/50 hover:bg-sidebar-accent/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  >
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <div className="flex items-center gap-2">
+                        <span className={`h-2 w-2 rounded-full ${
+                          hostHealth?.status === 'healthy'
+                            ? 'bg-[oklch(0.69_0.22_145)] status-dot-running'
+                            : 'bg-[oklch(0.58_0.22_25)]'
+                        }`} />
+                        <span className="text-muted-foreground">
+                          HOST: {hostHealth?.status === 'healthy' ? 'RUNNING' : (hostHealth?.status ?? 'UNKNOWN').toUpperCase()}
+                        </span>
+                      </div>
+                      <span className="flex items-center gap-1 text-[10px] text-muted-foreground/80">
+                        details
+                        <ExternalLink className="h-3 w-3" />
+                      </span>
+                    </div>
+                    <div className="mt-1 text-[11px] text-muted-foreground/90 pl-4 font-mono break-words">
+                      {hostSummary}
+                    </div>
+                  </button>
+              </HostActivityDialog>
               <GpuActivityDialog gpuHealth={gpuHealth}>
                   <button
                     type="button"

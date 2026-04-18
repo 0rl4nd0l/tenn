@@ -1,6 +1,7 @@
 const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/$/, '')
 const ACTION_TIMEOUT_MS = 15 * 60 * 1000
 const JOB_POLL_INTERVAL_MS = 1500
+const NON_QUEUED_ACTION_IDS = new Set(['show_candlestick', 'launch_marketplace_browser'])
 
 export const runtime = 'nodejs'
 export const maxDuration = 900
@@ -85,7 +86,7 @@ export async function POST(req: Request): Promise<Response> {
       action_id?: string
       return_job_handle?: boolean
     }
-    const shouldQueue = parsedBody.action_id !== 'show_candlestick'
+    const shouldQueue = !NON_QUEUED_ACTION_IDS.has(String(parsedBody.action_id || ''))
     const backendBody = JSON.stringify({
       ...parsedBody,
       wait: !shouldQueue,

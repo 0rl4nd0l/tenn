@@ -100,7 +100,7 @@ function NewsResult({ result }: NewsResultProps) {
 
 export function NewsScreen() {
   const [hasHydrated, setHasHydrated] = useState(false)
-  const { activeTicker, sessionId } = useCockpitStore()
+  const { activeTicker } = useCockpitStore()
   
   const [query, setQuery] = useState('')
   const [ticker, setTicker] = useState('')

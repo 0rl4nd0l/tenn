@@ -21,6 +21,7 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
   const [backendLastHealthyAt, setBackendLastHealthyAt] = useState<Date | null>(null)
   const [backendError, setBackendError] = useState<string | null>(null)
   const [gpuHealth, setGpuHealth] = useState<ServiceHealth | null>(null)
+  const [hostHealth, setHostHealth] = useState<ServiceHealth | null>(null)
   const captureRootRef = useRef<HTMLDivElement>(null)
   const { activeTicker, sessionStats, chatCompletionActive } = useCockpitStore()
 
@@ -40,6 +41,7 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
 
         setBackendHealthy(healthy)
         setGpuHealth(res.services?.find((service) => service.name === 'gpu') ?? null)
+        setHostHealth(res.services?.find((service) => service.name === 'host') ?? null)
         if (healthy) {
           setBackendLastHealthyAt(new Date())
           setBackendError(null)
@@ -74,6 +76,7 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
         backendLastHealthyAt={backendLastHealthyAt}
         backendError={backendError}
         gpuHealth={gpuHealth}
+        hostHealth={hostHealth}
         sessionCost={sessionStats.totalCostUsd} 
       />
       <SidebarInset className="flex flex-col overflow-hidden">
@@ -96,6 +99,7 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
                   backendLastHealthyAt={backendLastHealthyAt}
                   backendError={backendError}
                   gpuHealth={gpuHealth}
+                  hostHealth={hostHealth}
                 />
               </Suspense>
             </div>

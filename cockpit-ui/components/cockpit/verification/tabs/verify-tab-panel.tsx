@@ -1,8 +1,9 @@
-import { AlertCircle, CheckCircle2, FileJson, FileText, Play } from 'lucide-react'
+import { AlertCircle, CheckCircle2, FileJson, FileText, Play, Search } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { VerificationResult } from '@/lib/cockpit-types'
 
 import { formatValue } from '../utils'
@@ -15,6 +16,7 @@ type VerifyTabPanelProps = {
   onRunVerification: (broad?: boolean) => void
   onExportJson: () => void
   onExportHtml: () => void
+  onInspectResult: (result: VerificationResult) => void
 }
 
 export function VerifyTabPanel({
@@ -25,6 +27,7 @@ export function VerifyTabPanel({
   onRunVerification,
   onExportJson,
   onExportHtml,
+  onInspectResult,
 }: VerifyTabPanelProps) {
   const passedCount = results?.filter((result) => result.passed).length || 0
   const totalCount = results?.length || 0
@@ -118,6 +121,7 @@ export function VerifyTabPanel({
                   <TableHead className="text-right">Expected</TableHead>
                   <TableHead className="text-right">Actual</TableHead>
                   <TableHead>Details</TableHead>
+                  <TableHead className="w-[100px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -134,6 +138,24 @@ export function VerifyTabPanel({
                     <TableCell className="text-right font-mono text-sm">{formatValue(result.expected)}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{formatValue(result.actual)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{result.details || '-'}</TableCell>
+                    <TableCell className="text-right">
+                      {!result.passed && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => onInspectResult(result)}
+                            >
+                              <Search className="h-4 w-4" />
+                              <span className="sr-only">Investigate</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="left">Jump to evidence in Review tab</TooltipContent>
+                        </Tooltip>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

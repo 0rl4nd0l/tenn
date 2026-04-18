@@ -18,6 +18,7 @@ type VerificationHeaderProps = {
   extractionMethod: ExtractionMethod
   strictMethod: boolean
   reviewSession: ExtractionReviewSession | null
+  failedChecksCount: number
   onTickerChange: (value: string) => void
   onMethodChange: (value: ExtractionMethod) => void
   onStrictMethodChange: (value: boolean) => void
@@ -28,6 +29,7 @@ export function VerificationHeader({
   extractionMethod,
   strictMethod,
   reviewSession,
+  failedChecksCount,
   onTickerChange,
   onMethodChange,
   onStrictMethodChange,
@@ -47,14 +49,21 @@ export function VerificationHeader({
               Shared extraction configuration stays visible while you move between review, runs, gold eval, and verification workflows.
             </CardDescription>
           </div>
-          {summary ? (
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline">pending {summary.pending ?? 0}</Badge>
-              <Badge variant="default">correct {summary.approved ?? 0}</Badge>
-              <Badge variant="critical">wrong {summary.wrong ?? 0}</Badge>
-              <Badge variant="secondary">unsure {summary.abstain ?? 0}</Badge>
-            </div>
-          ) : null}
+          <div className="flex flex-wrap gap-2">
+            {failedChecksCount > 0 && (
+              <Badge variant="critical" className="h-6 animate-pulse px-2 shadow-sm">
+                {failedChecksCount} Logical Failure{failedChecksCount === 1 ? '' : 's'}
+              </Badge>
+            )}
+            {summary ? (
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline" className="h-6">pending {summary.pending ?? 0}</Badge>
+                <Badge variant="default" className="h-6">correct {summary.approved ?? 0}</Badge>
+                <Badge variant="critical" className="h-6">wrong {summary.wrong ?? 0}</Badge>
+                <Badge variant="secondary" className="h-6">unsure {summary.abstain ?? 0}</Badge>
+              </div>
+            ) : null}
+          </div>
         </div>
       </CardHeader>
       <CardContent>

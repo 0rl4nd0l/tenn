@@ -52,6 +52,14 @@ type HostProcessSnapshot = {
   command: string | null
 }
 
+type UpstreamJsonResponse = {
+  ok: boolean
+  status: number
+  contentType: string
+  payload: unknown
+  responseTimeMs: number
+}
+
 function parseMetric(value: string): number | null {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
@@ -250,6 +258,62 @@ function normalizeService(service: Record<string, unknown>): ServiceHealth {
   }
 }
 
+async function readJsonResponse(url: string): Promise<UpstreamJsonResponse> {
+  const startedAt = Date.now()
+  const response = await fetch(url, { cache: 'no-store' })
+  const contentType = response.headers.get('content-type') || 'application/json'
+
+  let payload: unknown = null
+  try {
+    payload = await response.json()
+  } catch {
+    try {
+      payload = await response.text()
+    } catch {
+      payload = null
+    }
+  }
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    contentType,
+    payload,
+    responseTimeMs: Date.now() - startedAt,
+  }
+}
+
+function buildFallbackHealthPayload(
+  backendHealth: UpstreamJsonResponse,
+  cockpitHealth?: UpstreamJsonResponse,
+): Record<string, unknown> {
+  const cockpitStatus = cockpitHealth?.status ?? null
+  const cockpitError = cockpitStatus === 404
+    ? 'GET /api/cockpit/health not available on backend; using canonical /api/health liveness.'
+    : cockpitStatus
+      ? `GET /api/cockpit/health returned HTTP ${cockpitStatus}; using canonical /api/health liveness.`
+      : 'GET /api/cockpit/health unreachable; using canonical /api/health liveness.'
+
+  return {
+    status: cockpitStatus && cockpitStatus !== 404 ? 'degraded' : 'healthy',
+    services: [
+      {
+        name: 'backend',
+        status: backendHealth.ok ? 'healthy' : 'down',
+        endpoint: `${backendUrl}/api/health`,
+        response_time_ms: backendHealth.responseTimeMs,
+        responseTimeMs: backendHealth.responseTimeMs,
+      },
+      {
+        name: 'cockpit',
+        status: cockpitStatus === 404 ? 'unknown' : 'degraded',
+        endpoint: `${backendUrl}/api/cockpit/health`,
+        error: cockpitError,
+      },
+    ],
+  }
+}
+
 async function probeGpuProcesses(gpus: GpuSnapshot[]): Promise<GpuProcessSnapshot[]> {
   const gpuNameByUuid = new Map<string, string>()
   for (const gpu of gpus) {
@@ -365,34 +429,53 @@ async function probeHostGpu(): Promise<ServiceHealth> {
 }
 
 export async function GET(): Promise<Response> {
-  const upstream = await fetch(`${backendUrl}/api/cockpit/health`, {
-    cache: 'no-store',
-  })
+  try {
+    const backendHealth = await readJsonResponse(`${backendUrl}/api/health`)
+    if (!backendHealth.ok) {
+      return new Response(JSON.stringify(backendHealth.payload), {
+        status: backendHealth.status,
+        headers: { 'content-type': backendHealth.contentType },
+      })
+    }
 
-  const contentType = upstream.headers.get('content-type') || 'application/json'
-  const payload = await upstream.json()
+    const cockpitHealth = await readJsonResponse(`${backendUrl}/api/cockpit/health`)
+    const payloadRecord = cockpitHealth.ok
+      ? (cockpitHealth.payload && typeof cockpitHealth.payload === 'object'
+          ? cockpitHealth.payload as Record<string, unknown>
+          : {})
+      : buildFallbackHealthPayload(backendHealth, cockpitHealth)
 
-  if (!upstream.ok) {
-    return new Response(JSON.stringify(payload), {
-      status: upstream.status,
-      headers: { 'content-type': contentType },
+    const [gpu, host] = await Promise.all([probeHostGpu(), probeHostResources()])
+    const services = Array.isArray(payloadRecord.services)
+      ? payloadRecord.services
+          .filter((service: unknown): service is Record<string, unknown> => typeof service === 'object' && service !== null)
+          .map(normalizeService)
+      : []
+    const mergedServices = [
+      ...services.filter((service: ServiceHealth) => service.name !== 'gpu' && service.name !== 'host'),
+      gpu,
+      host,
+    ]
+
+    return Response.json({
+      ...payloadRecord,
+      services: mergedServices,
     })
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : 'Health proxy failed'
+    return Response.json(
+      {
+        status: 'down',
+        services: [
+          {
+            name: 'backend',
+            status: 'down',
+            endpoint: `${backendUrl}/api/health`,
+            error: detail,
+          },
+        ],
+      },
+      { status: 502 },
+    )
   }
-
-  const [gpu, host] = await Promise.all([probeHostGpu(), probeHostResources()])
-  const services = Array.isArray(payload.services)
-    ? payload.services
-        .filter((service: unknown): service is Record<string, unknown> => typeof service === 'object' && service !== null)
-        .map(normalizeService)
-    : []
-  const mergedServices = [
-    ...services.filter((service: ServiceHealth) => service.name !== 'gpu' && service.name !== 'host'),
-    gpu,
-    host,
-  ]
-
-  return Response.json({
-    ...payload,
-    services: mergedServices,
-  })
 }

@@ -65,6 +65,11 @@ export type ActionJobStatus = {
   progress_pct?: number | null
 }
 
+type AttachedChatSource = {
+  source_id: string
+  source_kind: string
+}
+
 // ── Base fetch helper ──────────────────────────────────────────────────────
 
 export async function apiFetch<T>(path: string, options?: RequestInit, timeoutMs: number = 120_000): Promise<T> {
@@ -164,6 +169,7 @@ export async function sendChatMessage(params: {
   webSearch?: boolean
   rag?: boolean
   dbDiagnostics?: boolean
+  attachedSources?: AttachedChatSource[]
 }): Promise<ChatResponse> {
   const raw = await apiFetch<any>("/api/cockpit/chat", {
     method: "POST",
@@ -176,6 +182,7 @@ export async function sendChatMessage(params: {
       web_search: params.webSearch,
       rag: params.rag,
       db_diagnostics: params.dbDiagnostics,
+      attached_sources: params.attachedSources,
       stream: false,
     }),
   })
@@ -240,6 +247,7 @@ export async function streamChat(params: {
   webSearch?: boolean
   rag?: boolean
   dbDiagnostics?: boolean
+  attachedSources?: AttachedChatSource[]
   onMessage: (event: { type: string; data: any }) => void
   onError: (err: any) => void
   onEnd: () => void
@@ -257,6 +265,7 @@ export async function streamChat(params: {
       web_search: params.webSearch,
       rag: params.rag,
       db_diagnostics: params.dbDiagnostics,
+      attached_sources: params.attachedSources,
       stream: true,
     }),
   })

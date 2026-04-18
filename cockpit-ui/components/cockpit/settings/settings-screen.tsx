@@ -108,7 +108,7 @@ const DEFAULTS: ConfigState = {
 }
 
 export function SettingsScreen() {
-  const { chatModel, setChatModel, preferences } = useCockpitStore()
+  const { chatModel, setChatModel } = useCockpitStore()
   const [config, setConfig] = useState<ConfigState>(DEFAULTS)
   const [modelGroups, setModelGroups] = useState<ModelGroup[]>([])
   const [loading, setLoading] = useState(true)
@@ -159,8 +159,14 @@ export function SettingsScreen() {
               profile: status.profile || prev.backend.profile,
             },
             features: {
-              webSearch: prev.features.webSearch,
-              rag: prev.features.rag,
+              webSearch:
+                typeof status.features?.web_search === 'boolean'
+                  ? status.features.web_search
+                  : prev.features.webSearch,
+              rag:
+                typeof status.features?.rag === 'boolean'
+                  ? status.features.rag
+                  : prev.features.rag,
               extraction: status.features?.extraction ?? prev.features.extraction,
             },
             environment: {
@@ -193,17 +199,6 @@ export function SettingsScreen() {
 
     fetchConfig()
   }, [])
-
-  useEffect(() => {
-    setConfig((prev) => ({
-      ...prev,
-      features: {
-        ...prev.features,
-        webSearch: preferences.webSearchEnabled,
-        rag: preferences.ragEnabled,
-      },
-    }))
-  }, [preferences.ragEnabled, preferences.webSearchEnabled])
 
   if (loading) {
     return (
@@ -332,7 +327,7 @@ export function SettingsScreen() {
         <ConfigSection title="Backend Configuration" icon={<Server className="h-5 w-5 text-primary" />}>
           <ConfigRow label="URL" value={config.backend.url} mono />
           <Separator />
-          <ConfigRow label="Profile" value={config.backend.profile} />
+          <ConfigRow label="Runtime Profile" value={config.backend.profile} />
         </ConfigSection>
 
         {/* Feature Flags */}
@@ -343,7 +338,7 @@ export function SettingsScreen() {
           <Separator />
           <ConfigRow label="Extraction" value={config.features.extraction} />
           <p className="text-xs text-muted-foreground">
-            Web Search and RAG reflect the current cockpit session toggles from Operations. Extraction reflects backend runtime capability.
+            These flags reflect backend-authoritative defaults and runtime capability for new chat turns. Session-level overrides can still change an individual tab.
           </p>
         </ConfigSection>
 
