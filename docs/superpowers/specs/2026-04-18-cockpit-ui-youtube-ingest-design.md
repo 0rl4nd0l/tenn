@@ -47,7 +47,7 @@ This spec closes that gap and uses the opportunity to make the watchlist a prope
 | Q5 | Additional features in scope | Citation deep-links, watchlist notes carry quote+timestamp, recent-ingested tray, speaker/credibility surfacing. Per-video chat threads deferred. |
 | Q6 | TUI parity needed | No — TUI never used; left untouched |
 | Q7 | UI placement | Chat-screen right-edge drawer (3 tabs) + new top-level `Watchlist` sidebar tab |
-| Q8 | LLM context for attached transcripts | Hybrid: short (≤4k tokens) concat into prompt, long route through ephemeral session-scoped Qdrant collection |
+| Q8 | LLM context for attached transcripts | Hybrid: short transcripts concat into prompt, long transcripts route through ephemeral session-scoped Qdrant collection. The concat-vs-ephemeral cutoff is an **implementation threshold** (currently ~4000 tokens) tunable in `tenn_chat.py`, NOT a stable API invariant — clients must not depend on the exact value. |
 | Q9 | Watchlist DB | Both Postgres + SQLite via SQLAlchemy + Alembic, idempotent SQLite script (matches existing pattern) |
 | Q10 | Watchlist suggestions | Suggest-only, one-click Add. **Advisory only — never auto-added.** |
 | — | Architectural orchestration | Approach 2: web UI orchestrated, backend stays narrow |
@@ -67,6 +67,7 @@ This spec closes that gap and uses the opportunity to make the watchlist a prope
 - **`/chat` learning loop integrity.** Quality scorer, router optimizer, and chat preferences are not modified. Ephemeral chunks pass through `extra_context` and are merged before final ranking, but counted in a separate retrieval-precision bucket so they cannot pollute learned preferences.
 - **Auth model unchanged.** All new endpoints use `require_api_key`. Cockpit-ui proxy routes forward `X-API-Key` per the existing `app/api/cockpit/action/execute/route.ts` pattern.
 - **Watchlist additions are advisory only.** No code path auto-writes a row to `watchlist` from LLM output. Every row exists because of an explicit user action — manual add, suggestion-card click, or imported list. This matches the broader evidence-bound and confirmation-gated direction.
+- **Non-canonical data boundary.** YouTube transcript chunks, generated takeaways, ticker suggestions, analyst quotes, and watchlist notes are **non-canonical contextual artifacts**. They MUST NEVER populate canonical financial-truth storage (`asx_periodic_financials`, `asx_risk_notes`, `extraction_runs`, or any future canonical metric table). They live exclusively in `commentary_chunks`, ephemeral collections, the takeaways cache, and the new `watchlist` table — all of which are explicitly contextual/curatorial, not authoritative.
 
 ---
 
@@ -148,12 +149,12 @@ All under `/api`, all guarded by `require_api_key`.
 | Method | Path | Purpose |
 |---|---|---|
 | POST | `/commentary/ingest-url` | **Extend existing.** Response now includes `video_id`, `tickers_detected[]`, `summary_line`, `transcript_preview` (~500 chars), `transcript_token_estimate`. |
-| GET | `/commentary/transcripts/{source_id}` | **New.** Return staged transcript JSONL (chunks + metadata + segment timings) so cockpit-ui can attach. |
+| GET | `/commentary/transcripts/{source_id}` | **New.** Return transcript JSONL (chunks + metadata + segment timings) so cockpit-ui can attach. Response shape: `{status: "pending" \| "approved", source_id, chunks, metadata, segment_timings}`. Resolution order: (1) if a staged JSONL exists at `~/.tenn/memory/staged_chunks/<source_id>.jsonl` → return with `status: "pending"`; (2) else if the source exists in the approved registry / `commentary_chunks` → reconstruct chunks from that store and return with `status: "approved"`; (3) else → `404 {"detail": "transcript not found"}`. The `status` field is the contract — clients use it to decide whether to surface Approve/Reject buttons (pending only) or only Detach (approved). |
 | POST | `/commentary/takeaways/{source_id}` | **New.** Run LLM pass → `{summary, key_points[], suggested_tickers[{ticker, quote, timestamp_seconds, stance}]}`. Cached on disk; accepts `regenerate=true` query param to bypass cache. |
 | POST | `/commentary/ephemeral-index` | **New.** `{session_id, source_id}`. Embeds chunks into `commentary_ephemeral_<session_id>`. Idempotent. Called only for long transcripts. |
 | DELETE | `/commentary/ephemeral-index/{session_id}/{source_id}` | **New.** Remove one source's chunks from the session collection. Called on detach. |
 | DELETE | `/commentary/ephemeral-index/{session_id}` | **New.** Drop the whole session collection. Called on session clear. |
-| GET | `/commentary/recent` | **New.** Last 10 approved sources (id, name, channel, video_id, approved_at). |
+| GET | `/commentary/recent` | **New.** Last 10 **approved YouTube/commentary sources** ordered by `approved_at desc`. Filtered to `kind in ("youtube", "commentary")` — does not include news, filings, or other source types. Returns `[{source_id, name, channel, video_id, approved_at}]`. Per-user filtering is out of scope for v1 (single-user system); the list is global, not "sources you touched". |
 | GET | `/watchlist` | **New.** All watchlist rows. |
 | POST | `/watchlist` | **New.** `{ticker, source_id?, note?, timestamp_seconds?}`. |
 | DELETE | `/watchlist/{ticker}` | **New.** Remove by ticker. |
@@ -170,7 +171,7 @@ attached_sources: list[str] | None = None  # source_ids attached to this session
 Inside `tenn_chat.py`:
 1. For each `source_id` in `attached_sources`, locate `~/.tenn/memory/staged_chunks/<source_id>.jsonl`. If missing, skip with a warning logged (do not fail the chat call).
 2. Compute total estimated tokens across all attached transcripts.
-3. If total ≤ **4000 tokens** → concat raw transcript text into a system-message block tagged `attached_transcripts`.
+3. If total is below the configured concat threshold (`CONCAT_TOKEN_THRESHOLD`, default `4000`, internal-only — not part of the public API) → concat raw transcript text into a system-message block tagged `attached_transcripts`.
 4. Else → for each attached source, call into `commentary_ephemeral.query(session_id, source_id, query, top_k=8)` and include returned chunks.
 5. Merge with existing `commentary_chunks` + news retrieval. Each chunk in the merged set carries `source_kind: "primary" | "ephemeral" | "news" | "concat"`.
 6. Quality scorer treats `ephemeral` and `concat` chunks as a separate bucket — not mixed into `retrieval_precision` used by the learning loop.
@@ -200,6 +201,14 @@ class Watchlist(Base):
 - Alembic migration: `backend/app/alembic/versions/<rev>_add_watchlist.py` (Postgres).
 - Idempotent SQLite script: `scripts/ensure_sqlite_watchlist_table.py` mirroring `ensure_sqlite_asx_created_at_columns.py`.
 - Ticker is normalized to uppercase before insert; the API layer is responsible for normalization (matches TUI behaviour at `cockpit/storage/state.py:379`).
+
+**Uniqueness model (v1):** `ticker` as PK enforces **one row per ticker**. A second add for the same ticker is a `409 Conflict` (the API does not silently overwrite existing `note` / `source_id` / `timestamp_seconds`). This is intentional for v1: the watchlist is a flat "what am I tracking" list, not an evidence log.
+
+**Future path (out of scope for v1, noted to avoid lock-in):** when the watchlist needs to carry multiple supporting evidences per ticker (multiple analyst quotes from different videos, history of stance changes, dated rationales), the schema migrates to:
+- `watchlist(ticker PK, added_at, current_stance)` — one row per ticker, summary state.
+- `watchlist_evidence(id PK, ticker FK, source_id, note, timestamp_seconds, stance, recorded_at)` — many rows per ticker.
+
+Designing the v1 API around `POST /watchlist {ticker, source_id?, note?, timestamp_seconds?}` makes that future split additive — `note` becomes the latest evidence excerpt while the full history moves to the child table — rather than a breaking change.
 
 ### New backend services
 
@@ -263,12 +272,25 @@ Regenerate replaces this file in place (latest-only). The `prompt_version` field
 
 ### Session activity tracking for cleanup cron
 
-The cleanup cron needs to know when a `session_id` was last active. Two options for v1:
+The cleanup cron MUST NOT depend on parsing `/chat` access logs, web-server access logs, or any other indirectly-derived activity signal — those formats drift, rotate, and give the cron a stale or empty view of liveness. Locked design:
 
-1. **Reuse the existing chat session log** if `tenn_chat.py` already records session activity (to be confirmed during implementation).
-2. **Add a new file** `~/.tenn/memory/ephemeral_sessions.json` mapping `session_id → last_activity_iso`. `tenn_chat.py` updates it on any chat call that includes `session_id`. Cron reads it, drops collections whose `last_activity_iso` is > 7 days old, and removes the entry.
+**Dedicated session-activity store:** `~/.tenn/memory/ephemeral_sessions.sqlite` (or a flat-file `ephemeral_sessions.json` if the SQLite import cost is excessive — implementation choice, but file-backed and dedicated to this purpose). Schema:
 
-Implementation tasks should pick option 1 if available, else implement option 2. Either way, the cron is idempotent and safe to run multiple times per day.
+```
+ephemeral_sessions(
+  session_id TEXT PRIMARY KEY,
+  last_activity_at TEXT NOT NULL,    -- ISO8601 UTC
+  collection_name TEXT NOT NULL      -- "commentary_ephemeral_<session_id>"
+)
+```
+
+**Write path (single writer):** `tenn_chat.py` UPSERTs `(session_id, now_utc)` on **every** `/chat` call that includes a `session_id`, regardless of whether the call uses ephemeral retrieval. This guarantees an active conversation keeps its ephemeral collection alive even if no attached transcripts are queried that turn. The write is best-effort and logged-on-failure — it must never block the chat response.
+
+**Cron read path:** `scripts/cleanup_ephemeral_collections.py` reads the table, computes `now - last_activity_at > 7 days`, drops the matching Qdrant collection, and removes the row. Idempotent — safe to run multiple times per day. If the file is missing entirely (fresh install), the cron exits 0 silently.
+
+**Insertion point:** `commentary_ephemeral.ensure_collection(session_id)` writes the row when a collection is first created (so the cron knows about every collection it might need to drop, not only those that have seen a chat turn).
+
+This explicitly rules out the option-1/option-2 ambiguity from earlier drafts: there is one source of truth for "session_id last-seen", written by `tenn_chat.py` and `commentary_ephemeral`, read only by the cron.
 
 ---
 
@@ -530,9 +552,13 @@ The `▶ 12:34` button opens `https://youtu.be/abc123?t=754s` in a new tab. The 
 
 ## Risks and mitigations
 
+**Collision risk: MEDIUM.** This change is not isolated. It touches several shared surfaces simultaneously: `tenn_chat.py` (chat orchestration — also currently modified by the visible-source-grounding milestone), `commentary_ingest` and `commentary_takeaways` paths (extraction-truth area), Qdrant collection lifecycle (shared with `commentary_chunks` and news indexes), and cockpit-ui chat state (also currently modified by verification screen and offline-indicator work on this branch). Concurrent in-flight work on any of these surfaces increases the chance of merge conflicts and silent regressions. Mitigation: phase the implementation so backend foundation (Phase 1) lands as one commit, the `/chat` extension (Phase 2) lands as a second commit gated on a green retrieval-baseline run, and the cockpit-ui changes (Phases 3–4) land last so chat-screen edits rebase onto already-merged backend changes rather than the other way around.
+
 | Risk | Mitigation |
 |---|---|
 | Ephemeral Qdrant collections accumulate without bound | Daily cleanup cron with 7-day inactivity threshold + explicit drop on session delete. |
+| Merge conflicts on `tenn_chat.py` and `chat-screen.tsx` (both under active edit on this branch) | Phase 2 (chat extension) lands only after current visible-source-grounding work is committed; Phase 4 (cockpit-ui) rebases on Phases 1–3. Each phase is a self-contained milestone commit per the project commit protocol. |
+| Silent regression in retrieval quality from `attached_sources` merge logic | Quality scorer separation by `source_kind` ensures ephemeral chunks cannot move learned-preferences metrics. Phase 2 includes a baseline-comparison step on the existing retrieval-precision suite before merge. |
 | Long video token estimate is wrong → concat path used for too-long transcript | Fall back: if concat would exceed model context, backend logs and switches to ephemeral path on the fly. Estimate uses `len(text) // 4` as a fast approximation; refine later if needed. |
 | Cockpit-ui state loss on refresh frustrates user | "Recent" drawer tab makes re-attach a single click. The stage is preserved in `~/.tenn/memory/staged_chunks/` so nothing is actually lost. |
 | Watchlist becomes dual source of truth (backend + TUI SQLite) | Documented as legacy; TUI is unused per Q6. Future cleanup task scheduled in Future Upgrades. |
