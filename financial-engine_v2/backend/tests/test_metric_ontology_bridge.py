@@ -105,6 +105,88 @@ def test_operating_cf_header_strong() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Quarterly 5B aliases
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+def test_quarterly_cash_flows_from_operating_activities_is_strong() -> None:
+    p = project(
+        _datapoint(
+            row_label="Cash flows from operating activities",
+            context_text="Cash flows from operating activities",
+            raw_value="21,836",
+            raw_scale="thousands",
+            currency="AUD",
+            unit_type="currency",
+        )
+    )
+    assert p.canonical_family == "operating_cf"
+    assert p.mapping_confidence == MappingConfidence.STRONG
+    assert p.auto_collapse_safe is True
+
+
+@pytest.mark.unit
+def test_quarterly_fragment_item_1_9_maps_operating_cf_medium() -> None:
+    p = project(
+        _datapoint(
+            row_label="activities (item 1.9 above)",
+            context_text=(
+                "Consolidated statement of cash flows | "
+                "Net cash from / (used in) operating | activities (item 1.9 above)"
+            ),
+            raw_value="1,154",
+            raw_scale="thousands",
+            currency="AUD",
+            unit_type="currency",
+        )
+    )
+    assert p.canonical_family == "operating_cf"
+    assert p.mapping_confidence == MappingConfidence.MEDIUM
+    assert p.auto_collapse_safe is False
+
+
+@pytest.mark.unit
+def test_quarterly_fragment_item_3_10_maps_financing_cf_medium() -> None:
+    p = project(
+        _datapoint(
+            row_label="(item 3.10 above)",
+            context_text=(
+                "Consolidated statement of cash flows | "
+                "Net cash from / (used in) financing activities | (item 3.10 above)"
+            ),
+            raw_value="42,241",
+            raw_scale="thousands",
+            currency="AUD",
+            unit_type="currency",
+        )
+    )
+    assert p.canonical_family == "financing_cf"
+    assert p.mapping_confidence == MappingConfidence.MEDIUM
+    assert p.auto_collapse_safe is False
+
+
+@pytest.mark.unit
+def test_quarterly_end_cash_fragment_maps_cash_end_medium() -> None:
+    p = project(
+        _datapoint(
+            row_label="quarter (should equal item 4.6 above)",
+            context_text=(
+                "Consolidated statement of cash flows | "
+                "Cash and cash equivalents at end of | quarter (should equal item 4.6 above)"
+            ),
+            raw_value="21,979",
+            raw_scale="thousands",
+            currency="AUD",
+            unit_type="currency",
+        )
+    )
+    assert p.canonical_family == "cash_end"
+    assert p.mapping_confidence == MappingConfidence.MEDIUM
+    assert p.auto_collapse_safe is False
+
+
+# ---------------------------------------------------------------------------
 # Qualifier / period-suffix rules
 # ---------------------------------------------------------------------------
 

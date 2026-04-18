@@ -140,6 +140,9 @@ _FAMILY_CORE_PHRASES: dict[str, tuple[str, ...]] = {
         "cash from operating activities",
         "net cash inflow from operating activities",
         "operating cash flow",
+        "cash flows from operating activities",
+        "cash flows from operating activities subtotal",
+        "net cash from used in operating activities",
     ),
     "investing_cf": (
         "net cash used in investing activities",
@@ -147,6 +150,8 @@ _FAMILY_CORE_PHRASES: dict[str, tuple[str, ...]] = {
         "cash flow from investing activities",
         "net cash outflow from investing activities",
         "investing cash flow",
+        "cash flows from investing activities",
+        "net cash from used in investing activities",
     ),
     "financing_cf": (
         "net cash used in financing activities",
@@ -154,6 +159,8 @@ _FAMILY_CORE_PHRASES: dict[str, tuple[str, ...]] = {
         "cash flow from financing activities",
         "net cash outflow from financing activities",
         "financing cash flow",
+        "cash flows from financing activities",
+        "net cash from used in financing activities",
     ),
     "capex": (
         "capex",
@@ -169,6 +176,7 @@ _FAMILY_CORE_PHRASES: dict[str, tuple[str, ...]] = {
         "cash and cash equivalents at the end of the period",
         "cash and cash equivalents at end of half year",
         "cash and cash equivalents at end of the year",
+        "cash and cash equivalents at end of quarter",
     ),
     "net_debt": ("net debt",),
     "shares_outstanding": (
@@ -384,6 +392,74 @@ def _match_family_contains(normalized: str) -> tuple[str | None, str | None]:
     return best
 
 
+def _match_quarterly_fragment(
+    *,
+    normalized_label: str,
+    normalized_context: str,
+) -> tuple[str | None, str | None]:
+    """Recognize split 5B labels that rely on local context.
+
+    Keep this narrow and eval-only: it only covers fragment rows that clearly
+    point to operating / investing / financing totals or end-cash totals in
+    ASX Appendix 5B-style cash flow statements.
+    """
+
+    fragment_map = (
+        (
+            "operating_cf",
+            (
+                "activities",
+                "activities item 1 9 above",
+                "item 1 9 above",
+            ),
+            (
+                "net cash from used in operating",
+                "net cash from operating activities",
+            ),
+        ),
+        (
+            "investing_cf",
+            (
+                "activities",
+                "item 2 6 above",
+            ),
+            (
+                "net cash from used in investing",
+                "net cash from investing activities",
+            ),
+        ),
+        (
+            "financing_cf",
+            (
+                "activities",
+                "item 3 10 above",
+            ),
+            (
+                "net cash from used in financing",
+                "net cash from financing activities",
+            ),
+        ),
+        (
+            "cash_end",
+            (
+                "period",
+                "period should equal item 4 6 above",
+                "quarter should equal item 4 6 above",
+            ),
+            (
+                "cash and cash equivalents at end of",
+            ),
+        ),
+    )
+
+    for family, label_fragments, context_fragments in fragment_map:
+        if normalized_label not in label_fragments:
+            continue
+        if any(fragment in normalized_context for fragment in context_fragments):
+            return family, "quarterly_fragment_context"
+    return None, None
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -401,6 +477,7 @@ def project(datapoint: Mapping[str, Any]) -> OntologyProjection:
     unit_type_src = datapoint.get("unit_type_src", datapoint.get("unit_type"))
 
     normalized = _normalize_label(row_label)
+    normalized_context = _normalize_label(context_text)
 
     unit_type, unit_basis = _derive_unit_type(
         row_label=str(row_label or ""),
@@ -451,6 +528,16 @@ def project(datapoint: Mapping[str, Any]) -> OntologyProjection:
                         family = fam_ctx
                         basis = "context_leading_section"
                         confidence = MappingConfidence.WEAK
+
+    if family is None and normalized and normalized_context:
+        fam_fragment, basis_fragment = _match_quarterly_fragment(
+            normalized_label=normalized,
+            normalized_context=normalized_context,
+        )
+        if fam_fragment is not None:
+            family = fam_fragment
+            basis = basis_fragment or "quarterly_fragment_context"
+            confidence = MappingConfidence.MEDIUM
 
     if (
         family is None
