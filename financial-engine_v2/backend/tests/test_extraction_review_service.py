@@ -69,7 +69,7 @@ def test_build_review_item_includes_provenance_and_snippet(
         },
     )
 
-    item = review.build_review_item(document, run, "revenue")
+    item = review.build_review_item(None, document, run, "revenue")
 
     assert item is not None
     assert item["metric_name"] == "revenue"
@@ -155,7 +155,7 @@ def test_build_review_item_includes_method_provenance_and_gold_expected(
         },
     )
 
-    item = review.build_review_item(document, run, "revenue")
+    item = review.build_review_item(None, document, run, "revenue")
 
     assert item is not None
     assert item["requested_method"] == "docling"
@@ -211,7 +211,7 @@ def test_build_review_item_exposes_optional_visual_verification_fields(
         },
     )
 
-    item = review.build_review_item(document, run, "operating_cf")
+    item = review.build_review_item(None, document, run, "operating_cf")
 
     assert item is not None
     assert item["image_url"] == "/api/extraction-review/snippets/test.png"
@@ -283,7 +283,7 @@ def test_build_review_item_maps_real_gold_operating_cash_flow_alias(
         },
     )
 
-    item = review.build_review_item(document, run, "operating_cf")
+    item = review.build_review_item(None, document, run, "operating_cf")
 
     assert item is not None
     assert item["gold_document_id"] == "gold-qbe"
@@ -479,7 +479,7 @@ def test_build_review_item_marks_page_preview_only_as_approximate(
         },
     )
 
-    item = review.build_review_item(document, run, "cash")
+    item = review.build_review_item(None, document, run, "cash")
 
     assert item is not None
     assert item["image_url"] == "/api/extraction-review/snippets/page.png"

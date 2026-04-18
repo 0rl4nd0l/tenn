@@ -40,13 +40,19 @@ def create_session(
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     try:
-        return create_review_session(
+        session = create_review_session(
             db,
             payload.document_ids,
             run_ids=payload.run_ids,
         )
+        # Force JSON serialization and back to dict to ensure all UUIDs/Decimals are converted
+        import json
+        from app.services.extraction_review import _ReviewJSONEncoder
+        return json.loads(json.dumps(session, cls=_ReviewJSONEncoder))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @router.get("/runs")
@@ -62,7 +68,10 @@ def recent_runs(
 @router.get("/session/{session_id}")
 def get_session(session_id: str) -> dict[str, Any]:
     try:
-        return load_review_session(session_id)
+        session = load_review_session(session_id)
+        import json
+        from app.services.extraction_review import _ReviewJSONEncoder
+        return json.loads(json.dumps(session, cls=_ReviewJSONEncoder))
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
@@ -75,13 +84,16 @@ def review_decision(
     payload: ExtractionReviewDecisionRequest,
 ) -> dict[str, Any]:
     try:
-        return submit_review_decision(
+        result = submit_review_decision(
             session_id,
             item_id=payload.item_id,
             status=payload.status,
             expected_value=payload.expected_value,
             reviewer_note=payload.reviewer_note,
         )
+        import json
+        from app.services.extraction_review import _ReviewJSONEncoder
+        return json.loads(json.dumps(result, cls=_ReviewJSONEncoder))
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except KeyError as exc:

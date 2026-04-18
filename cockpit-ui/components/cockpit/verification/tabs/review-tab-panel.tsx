@@ -461,8 +461,11 @@ export function ReviewTabPanel({
                             <TrendingUp className="h-3 w-3 text-muted-foreground/60" />
                             <span className="font-mono text-sm font-semibold text-muted-foreground/80">{String(currentReviewItem.historical_value)}</span>
                             {(() => {
-                              const curr = Number(currentReviewItem.metric_value ?? currentReviewItem.extracted_value)
-                              const prev = Number(currentReviewItem.historical_value)
+                              const currVal = currentReviewItem.metric_value ?? currentReviewItem.extracted_value
+                              const prevVal = currentReviewItem.historical_value
+                              if (currVal === null || currVal === undefined || prevVal === null || prevVal === undefined) return null
+                              const curr = Number(currVal)
+                              const prev = Number(prevVal)
                               if (isNaN(curr) || isNaN(prev) || prev === 0) return null
                               const diff = Math.abs((curr - prev) / prev)
                               if (diff > 0.5) {

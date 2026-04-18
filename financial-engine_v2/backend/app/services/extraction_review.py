@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 from functools import lru_cache
 from datetime import datetime, timezone, date
+from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Mapping, Sequence
@@ -12,6 +14,9 @@ from uuid import UUID
 
 import fitz
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
+
 
 try:
     from PIL import Image, ImageDraw
@@ -48,25 +53,39 @@ from app.models.asx_financials import ASXPeriodicFinancial
 def _previous_period_value(
     db: Session | None, ticker: str, metric: str, period_end: str | date | None, period_type: str | None
 ) -> float | None:
-    if db is None or not ticker or not period_end or not period_type:
-        return None
-    
-    # Find the most recent record for the same ticker and type before the current period_end
-    prev = (
-        db.query(ASXPeriodicFinancial)
-        .filter(
-            ASXPeriodicFinancial.ticker == ticker,
-            ASXPeriodicFinancial.period_type == period_type,
-            ASXPeriodicFinancial.period_end < period_end,
+    try:
+        if db is None or not ticker or not period_end or not period_type:
+            return None
+        
+        # Ensure period_end is a date object for SQL comparison
+        if isinstance(period_end, str):
+            try:
+                period_end = date.fromisoformat(period_end[:10])
+            except (ValueError, TypeError):
+                return None
+        
+        # Find the most recent record for the same ticker and type before the current period_end
+        prev = (
+            db.query(ASXPeriodicFinancial)
+            .filter(
+                ASXPeriodicFinancial.ticker == ticker,
+                ASXPeriodicFinancial.period_type == period_type,
+                ASXPeriodicFinancial.period_end < period_end,
+            )
+            .order_by(desc(ASXPeriodicFinancial.period_end))
+            .first()
         )
-        .order_by(desc(ASXPeriodicFinancial.period_end))
-        .first()
-    )
-    
-    if prev:
-        val = getattr(prev, metric, None)
-        return float(val) if val is not None else None
-    return None
+        
+        if prev:
+            try:
+                val = getattr(prev, metric, None)
+                return float(val) if val is not None else None
+            except (TypeError, ValueError, AttributeError):
+                return None
+        return None
+    except Exception as exc:
+        logger.error("Error in _previous_period_value: %s", exc)
+        return None
 
 
 def _row_reference_for_metric(payload: Mapping[str, Any], metric: str) -> str | None:
@@ -707,135 +726,173 @@ def _item_summary(items: Sequence[Mapping[str, Any]]) -> dict[str, int]:
 def build_review_item(
     db: Session | None, document: Document, run: ExtractionRun, metric: str
 ) -> dict[str, Any] | None:
-    payload = run.structured_json or {}
-    metrics = payload.get("metrics")
-    if not isinstance(metrics, Mapping):
-        return None
+    try:
+        if run is None or document is None:
+            logger.error("build_review_item called with None run or document")
+            return None
+            
+        payload = run.structured_json or {}
+        if not isinstance(payload, Mapping):
+            logger.warning("run.structured_json for %s is not a mapping", run.run_id)
+            payload = {}
+            
+        metrics = payload.get("metrics")
+        if not isinstance(metrics, Mapping):
+            logger.warning("metrics in payload for %s is not a mapping", run.run_id)
+            return None
 
-    value = metrics.get(metric)
-    # If the parser failed, we still want to show the item so the human can manually extract.
-    # Otherwise, if the value is None, we skip it.
-    if value is None and run.status != "parser_error":
-        return None
+        value = metrics.get(metric)
+        # If the parser failed, we still want to show the item so the human can manually extract.
+        # Otherwise, if the value is None, we skip it.
+        if value is None and run.status != "parser_error":
+            return None
 
-    period_end = str(payload.get("period_end") or "").strip() or None
-    period_type = str(payload.get("period_type") or "").strip() or None
-    source_document_id = str(getattr(document, "document_id", "") or "").strip()
-    raw_provenance = (
-        payload.get("provenance")
-        if isinstance(payload.get("provenance"), Mapping)
-        else {}
-    )
-    record = from_extraction_provenance(
-        metric_name=metric,
-        provenance=str(raw_provenance.get(metric) or "").strip() or None,
-        source_document_id=source_document_id or None,
-        period_ref=f"{period_end}:{period_type}"
-        if period_end and period_type
-        else (period_end or period_type),
-        confidence=payload.get("confidence_metrics"),
-    )
-    page_number = _parse_page_number(record.location_ref)
-    item_id = f"{run.run_id}:{metric}"
-    pdf_path = _coerce_pdf_path(document, payload)
-    matched_text = str(record.evidence_text or "").strip() or None
-    row_ref = _row_reference_for_metric(payload, metric)
-    thinking = _thinking_for_metric(payload, metric)
-    markdown = _markdown_for_metric(payload, metric)
-    
-    historical_value = _previous_period_value(
-        db,
-        ticker=str(getattr(document, "ticker", "") or "").strip(),
-        metric=metric,
-        period_end=payload.get("period_end"),
-        period_type=payload.get("period_type"),
-    )
-    
-    # Use row_ref as primary evidence for highlighting if available, 
-    # as it's the most specific anchor in the table.
-    highlight_text = row_ref or matched_text
-    
-    period_col = str(payload.get("period_col") or "").strip() or None
-    method_provenance = payload.get("_method_provenance")
-    method_provenance = (
-        dict(method_provenance) if isinstance(method_provenance, Mapping) else {}
-    )
-    gold_payload = _gold_payload_for_document(document, pdf_path)
-    gold_metrics = (
-        gold_payload.get("metrics") if isinstance(gold_payload, Mapping) else {}
-    )
-    gold_metrics = gold_metrics if isinstance(gold_metrics, Mapping) else {}
-    gold_expected_value = _gold_metric_value(gold_metrics, metric)
-    snippet = build_metric_snippet(
-        item_id=item_id,
-        pdf_path=pdf_path,
-        page_number=page_number,
-        evidence_text=highlight_text,
-    )
-    evidence_quality = str(
-        snippet.get("evidence_quality") or _evidence_quality_for_snippet(snippet)
-    )
-    snippet["evidence_quality"] = evidence_quality
-    method_label = (
-        str(method_provenance.get("actual_method") or "").strip()
-        or str(method_provenance.get("requested_method") or "").strip()
-        or None
-    )
-    return {
-        "item_id": item_id,
-        "run_id": str(run.run_id),
-        "document_id": source_document_id,
-        "ticker": str(getattr(document, "ticker", "") or "").strip(),
-        "title": str(getattr(document, "title", "") or "").strip() or None,
-        "file_path": _project_relative(pdf_path),
-        "metric_name": metric,
-        "extracted_value": value,
-        "period_end": period_end,
-        "period_type": period_type,
-        "currency": str(payload.get("currency") or "").strip() or None,
-        "scale": str(payload.get("scale") or "").strip() or None,
-        "page_number": page_number,
-        "metric_value": value,
-        "matched_text": matched_text,
-        "image_url": snippet.get("image_url"),
-        "image_path": snippet.get("image_path"),
-        "evidence_quality": evidence_quality,
-        "method_provenance": method_label,
-        "row_refs": {metric: row_ref} if row_ref else {},
-        "table_type": record.source_label,
-        "period_col": period_col,
-        "confidence_metrics": payload.get("confidence_metrics"),
-        "evidence_reference": record.raw_reference,
-        "evidence_text": highlight_text,
-        "evidence_summary": record.evidence_summary,
-        "provenance_status": record.provenance_status,
-        "source_label": record.source_label,
-        "location_ref": record.location_ref,
-        "thinking": thinking,
-        "raw_markdown": markdown,
-        "historical_value": historical_value,
-        "requested_method": method_provenance.get("requested_method"),
-        "actual_method": method_provenance.get("actual_method"),
-        "strict_method": method_provenance.get("strict_method"),
-        "parser_id": method_provenance.get("parser_id"),
-        "model_id": method_provenance.get("model_id"),
-        "runtime_id": method_provenance.get("runtime_id"),
-        "fallback_used": method_provenance.get("fallback_used"),
-        "error_stage": method_provenance.get("error_stage"),
-        "method_warnings": method_provenance.get("warnings") or [],
-        "gold_document_id": gold_payload.get("document_id")
-        if isinstance(gold_payload, Mapping)
-        else None,
-        "gold_expected_trust": gold_payload.get("expected_trust")
-        if isinstance(gold_payload, Mapping)
-        else None,
-        "bbox": snippet.get("bbox"),
-        "snippet": snippet,
-        "review_status": "pending",
-        "reviewed_at": None,
-        "expected_value": gold_expected_value,
-        "reviewer_note": "",
-    }
+        period_end = str(payload.get("period_end") or "").strip() or None
+        period_type = str(payload.get("period_type") or "").strip() or None
+        source_document_id = str(getattr(document, "document_id", "") or "").strip()
+        raw_provenance = (
+            payload.get("provenance")
+            if isinstance(payload.get("provenance"), Mapping)
+            else {}
+        )
+        
+        provenance_value = str(raw_provenance.get(metric) or "").strip() or None
+        
+        record = from_extraction_provenance(
+            metric_name=metric,
+            provenance=provenance_value,
+            source_document_id=source_document_id or None,
+            period_ref=f"{period_end}:{period_type}"
+            if period_end and period_type
+            else (period_end or period_type),
+            confidence=payload.get("confidence_metrics"),
+        )
+        page_number = _parse_page_number(record.location_ref)
+        item_id = f"{run.run_id}:{metric}"
+        
+        pdf_path = None
+        try:
+            pdf_path = _coerce_pdf_path(document, payload)
+        except Exception as e:
+            logger.error("Failed to coerce PDF path for doc %s: %s", source_document_id, e)
+            return None
+            
+        matched_text = str(record.evidence_text or "").strip() or None
+        row_ref = _row_reference_for_metric(payload, metric)
+        thinking = _thinking_for_metric(payload, metric)
+        markdown = _markdown_for_metric(payload, metric)
+        
+        historical_value = None
+        try:
+            historical_value = _previous_period_value(
+                db,
+                ticker=str(getattr(document, "ticker", "") or "").strip(),
+                metric=metric,
+                period_end=payload.get("period_end"),
+                period_type=payload.get("period_type"),
+            )
+        except Exception as exc:
+            logger.error("Failed to fetch historical value for %s: %s", metric, exc)
+        
+        # Use row_ref as primary evidence for highlighting if available, 
+        # as it's the most specific anchor in the table.
+        highlight_text = row_ref or matched_text
+        
+        period_col = str(payload.get("period_col") or "").strip() or None
+        method_provenance = payload.get("_method_provenance")
+        method_provenance = (
+            dict(method_provenance) if isinstance(method_provenance, Mapping) else {}
+        )
+        gold_payload = _gold_payload_for_document(document, pdf_path)
+        gold_metrics = (
+            gold_payload.get("metrics") if isinstance(gold_payload, Mapping) else {}
+        )
+        gold_metrics = gold_metrics if isinstance(gold_metrics, Mapping) else {}
+        gold_expected_value = _gold_metric_value(gold_metrics, metric)
+        
+        snippet = {
+            "kind": "text_only",
+            "status": "pending",
+            "image_url": None,
+            "bbox": None
+        }
+        try:
+            snippet = build_metric_snippet(
+                item_id=item_id,
+                pdf_path=pdf_path,
+                page_number=page_number,
+                evidence_text=highlight_text,
+            )
+        except Exception as e:
+            logger.error("Failed to build metric snippet for %s: %s", metric, e)
+
+        evidence_quality = str(
+            snippet.get("evidence_quality") or _evidence_quality_for_snippet(snippet)
+        )
+        snippet["evidence_quality"] = evidence_quality
+        method_label = (
+            str(method_provenance.get("actual_method") or "").strip()
+            or str(method_provenance.get("requested_method") or "").strip()
+            or None
+        )
+        return {
+            "item_id": str(item_id),
+            "run_id": str(run.run_id),
+            "document_id": str(source_document_id),
+            "ticker": str(getattr(document, "ticker", "") or "").strip(),
+            "title": str(getattr(document, "title", "") or "").strip() or None,
+            "file_path": _project_relative(pdf_path) if pdf_path else None,
+            "metric_name": metric,
+            "extracted_value": value,
+            "period_end": period_end,
+            "period_type": period_type,
+            "currency": str(payload.get("currency") or "").strip() or None,
+            "scale": str(payload.get("scale") or "").strip() or None,
+            "page_number": page_number,
+            "metric_value": value,
+            "matched_text": matched_text,
+            "image_url": snippet.get("image_url"),
+            "image_path": snippet.get("image_path"),
+            "evidence_quality": evidence_quality,
+            "method_provenance": method_label,
+            "row_refs": {metric: row_ref} if row_ref else {},
+            "table_type": record.source_label,
+            "period_col": period_col,
+            "confidence_metrics": payload.get("confidence_metrics"),
+            "evidence_reference": record.raw_reference,
+            "evidence_text": highlight_text,
+            "evidence_summary": record.evidence_summary,
+            "provenance_status": record.provenance_status,
+            "source_label": record.source_label,
+            "location_ref": record.location_ref,
+            "thinking": thinking,
+            "raw_markdown": markdown,
+            "historical_value": historical_value,
+            "requested_method": method_provenance.get("requested_method"),
+            "actual_method": method_provenance.get("actual_method"),
+            "strict_method": method_provenance.get("strict_method"),
+            "parser_id": method_provenance.get("parser_id"),
+            "model_id": method_provenance.get("model_id"),
+            "runtime_id": method_provenance.get("runtime_id"),
+            "fallback_used": method_provenance.get("fallback_used"),
+            "error_stage": method_provenance.get("error_stage"),
+            "method_warnings": method_provenance.get("warnings") or [],
+            "gold_document_id": gold_payload.get("document_id")
+            if isinstance(gold_payload, Mapping)
+            else None,
+            "gold_expected_trust": gold_payload.get("expected_trust")
+            if isinstance(gold_payload, Mapping)
+            else None,
+            "bbox": snippet.get("bbox"),
+            "snippet": snippet,
+            "review_status": "pending",
+            "reviewed_at": None,
+            "expected_value": gold_expected_value,
+            "reviewer_note": "",
+        }
+    except Exception as exc:
+        logger.error("Failed to build review item for %s: %s", metric, exc, exc_info=True)
+        return None
 
 
 def _append_review_items(
@@ -846,39 +903,45 @@ def _append_review_items(
     document: Document,
     run: ExtractionRun,
 ) -> None:
-    item_count_before = len(items)
-    payload = run.structured_json if isinstance(run.structured_json, Mapping) else {}
-    for metric in METRIC_FIELDS:
-        item = build_review_item(db, document, run, metric)
-        if item is not None:
-            items.append(item)
+    try:
+        item_count_before = len(items)
+        payload = run.structured_json if isinstance(run.structured_json, Mapping) else {}
+        for metric in METRIC_FIELDS:
+            try:
+                item = build_review_item(db, document, run, metric)
+                if item is not None:
+                    items.append(item)
+            except Exception as e:
+                logger.error("Failed to append item for %s: %s", metric, e, exc_info=True)
 
-    metrics_count = _count_reviewable_metrics(payload)
-    review_ready, reason = _review_diagnostic(
-        str(run.status or "unknown"), metrics_count
-    )
-    method_provenance = payload.get("_method_provenance")
-    method_provenance = (
-        dict(method_provenance) if isinstance(method_provenance, Mapping) else {}
-    )
+        metrics_count = _count_reviewable_metrics(payload)
+        review_ready, reason = _review_diagnostic(
+            str(run.status or "unknown"), metrics_count
+        )
+        method_provenance = payload.get("_method_provenance")
+        method_provenance = (
+            dict(method_provenance) if isinstance(method_provenance, Mapping) else {}
+        )
 
-    document_summaries.append(
-        {
-            "document_id": str(document.document_id),
-            "ticker": str(document.ticker or "").strip(),
-            "title": str(document.title or "").strip() or None,
-            "status": str(run.status or "unknown"),
-            "run_id": str(run.run_id),
-            "items_count": len(items) - item_count_before,
-            "metrics_count": metrics_count,
-            "review_ready": review_ready,
-            "reason": reason,
-            "requested_method": method_provenance.get("requested_method"),
-            "actual_method": method_provenance.get("actual_method"),
-            "strict_method": method_provenance.get("strict_method"),
-            "created_at": str(run.created_at),
-        }
-    )
+        document_summaries.append(
+            {
+                "document_id": str(document.document_id),
+                "ticker": str(document.ticker or "").strip(),
+                "title": str(document.title or "").strip() or None,
+                "status": str(run.status or "unknown"),
+                "run_id": str(run.run_id),
+                "items_count": len(items) - item_count_before,
+                "metrics_count": metrics_count,
+                "review_ready": review_ready,
+                "reason": reason,
+                "requested_method": method_provenance.get("requested_method"),
+                "actual_method": method_provenance.get("actual_method"),
+                "strict_method": method_provenance.get("strict_method"),
+                "created_at": str(run.created_at),
+            }
+        )
+    except Exception as exc:
+        logger.error("Critical error in _append_review_items: %s", exc, exc_info=True)
 
 
 def create_review_session(
@@ -886,126 +949,130 @@ def create_review_session(
     document_ids: Sequence[str],
     run_ids: Sequence[str] | None = None,
 ) -> dict[str, Any]:
-    cleaned_ids = _clean_requested_ids(document_ids)
-    cleaned_run_ids = _clean_requested_ids(run_ids)
-    if not cleaned_ids and not cleaned_run_ids:
-        raise ValueError("document_ids or run_ids must not be empty")
+    try:
+        cleaned_ids = _clean_requested_ids(document_ids)
+        cleaned_run_ids = _clean_requested_ids(run_ids)
+        if not cleaned_ids and not cleaned_run_ids:
+            raise ValueError("document_ids or run_ids must not be empty")
 
-    items: list[dict[str, Any]] = []
-    document_summaries: list[dict[str, Any]] = []
-    missing_document_ids: list[str] = []
-    missing_run_ids: list[str] = []
+        items: list[dict[str, Any]] = []
+        document_summaries: list[dict[str, Any]] = []
+        missing_document_ids: list[str] = []
+        missing_run_ids: list[str] = []
 
-    if cleaned_run_ids:
-        normalized_run_ids: dict[str, str] = {}
-        parsed_run_ids: list[UUID] = []
-        for run_id in cleaned_run_ids:
-            try:
-                parsed = UUID(run_id)
-            except ValueError:
-                missing_run_ids.append(run_id)
-                continue
-            normalized_run_ids[str(parsed)] = run_id
-            parsed_run_ids.append(parsed)
+        if cleaned_run_ids:
+            normalized_run_ids: dict[str, str] = {}
+            parsed_run_ids: list[UUID] = []
+            for run_id in cleaned_run_ids:
+                try:
+                    parsed = UUID(run_id)
+                except ValueError:
+                    missing_run_ids.append(run_id)
+                    continue
+                normalized_run_ids[str(parsed)] = run_id
+                parsed_run_ids.append(parsed)
 
-        runs = []
-        if parsed_run_ids:
-            runs = (
-                db.query(ExtractionRun)
-                .filter(ExtractionRun.run_id.in_(parsed_run_ids))
-                .all()
-            )
-
-        run_by_id = {str(run.run_id): run for run in runs}
-        documents = []
-        if runs:
-            documents = (
-                db.query(Document)
-                .filter(Document.document_id.in_([run.document_id for run in runs]))
-                .all()
-            )
-        document_by_id = {str(document.document_id): document for document in documents}
-
-        for normalized_run_id, requested_run_id in normalized_run_ids.items():
-            run = run_by_id.get(normalized_run_id)
-            if run is None:
-                missing_run_ids.append(requested_run_id)
-                continue
-            document = document_by_id.get(str(run.document_id))
-            if document is None:
-                missing_document_ids.append(str(run.document_id))
-                continue
-            _append_review_items(
-                db,
-                items,
-                document_summaries,
-                document=document,
-                run=run,
-            )
-
-        if not document_summaries:
-            raise ValueError("no extraction runs found for requested run_ids")
-    else:
-        documents = (
-            db.query(Document).filter(Document.document_id.in_(cleaned_ids)).all()
-        )
-        document_by_id = {str(document.document_id): document for document in documents}
-        missing_document_ids = [
-            document_id
-            for document_id in cleaned_ids
-            if document_id not in document_by_id
-        ]
-
-        for document_id in cleaned_ids:
-            document = document_by_id.get(document_id)
-            if document is None:
-                continue
-            run = _latest_review_run(db, document_id)
-            if run is None:
-                document_summaries.append(
-                    {
-                        "document_id": document_id,
-                        "ticker": str(document.ticker or "").strip(),
-                        "title": str(document.title or "").strip() or None,
-                        "status": "missing_extraction_run",
-                        "review_ready": False,
-                        "reason": "run_not_found",
-                        "metrics_count": 0,
-                    }
+            runs = []
+            if parsed_run_ids:
+                runs = (
+                    db.query(ExtractionRun)
+                    .filter(ExtractionRun.run_id.in_(parsed_run_ids))
+                    .all()
                 )
-                continue
-            _append_review_items(
-                db,
-                items,
-                document_summaries,
-                document=document,
-                run=run,
-            )
 
-    resolved_document_ids = _clean_requested_ids(
-        [summary.get("document_id") for summary in document_summaries]
-    )
-    resolved_run_ids = _clean_requested_ids(
-        [summary.get("run_id") for summary in document_summaries]
-    )
-    digest_source = cleaned_run_ids or cleaned_ids or resolved_run_ids
-    digest = hashlib.sha1("|".join(digest_source).encode("utf-8")).hexdigest()[:10]
-    session_id = (
-        f"manual-review-{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}-{digest}"
-    )
-    session = {
-        "session_id": session_id,
-        "created_at": utc_now_iso(),
-        "document_ids": resolved_document_ids,
-        "run_ids": resolved_run_ids,
-        "missing_document_ids": _clean_requested_ids(missing_document_ids),
-        "missing_run_ids": _clean_requested_ids(missing_run_ids),
-        "documents": document_summaries,
-        "items": items,
-        "summary": _item_summary(items),
-    }
-    save_review_session(session)
-    return session
+            run_by_id = {str(run.run_id): run for run in runs}
+            documents = []
+            if runs:
+                documents = (
+                    db.query(Document)
+                    .filter(Document.document_id.in_([run.document_id for run in runs]))
+                    .all()
+                )
+            document_by_id = {str(document.document_id): document for document in documents}
+
+            for normalized_run_id, requested_run_id in normalized_run_ids.items():
+                run = run_by_id.get(normalized_run_id)
+                if run is None:
+                    missing_run_ids.append(requested_run_id)
+                    continue
+                document = document_by_id.get(str(run.document_id))
+                if document is None:
+                    missing_document_ids.append(str(run.document_id))
+                    continue
+                _append_review_items(
+                    db,
+                    items,
+                    document_summaries,
+                    document=document,
+                    run=run,
+                )
+
+            if not document_summaries:
+                raise ValueError("no extraction runs found for requested run_ids")
+        else:
+            documents = (
+                db.query(Document).filter(Document.document_id.in_(cleaned_ids)).all()
+            )
+            document_by_id = {str(document.document_id): document for document in documents}
+            missing_document_ids = [
+                document_id
+                for document_id in cleaned_ids
+                if document_id not in document_by_id
+            ]
+
+            for document_id in cleaned_ids:
+                document = document_by_id.get(document_id)
+                if document is None:
+                    continue
+                run = _latest_review_run(db, document_id)
+                if run is None:
+                    document_summaries.append(
+                        {
+                            "document_id": document_id,
+                            "ticker": str(document.ticker or "").strip(),
+                            "title": str(document.title or "").strip() or None,
+                            "status": "missing_extraction_run",
+                            "review_ready": False,
+                            "reason": "run_not_found",
+                            "metrics_count": 0,
+                        }
+                    )
+                    continue
+                _append_review_items(
+                    db,
+                    items,
+                    document_summaries,
+                    document=document,
+                    run=run,
+                )
+
+        resolved_document_ids = _clean_requested_ids(
+            [summary.get("document_id") for summary in document_summaries]
+        )
+        resolved_run_ids = _clean_requested_ids(
+            [summary.get("run_id") for summary in document_summaries]
+        )
+        digest_source = cleaned_run_ids or cleaned_ids or resolved_run_ids
+        digest = hashlib.sha1("|".join(digest_source).encode("utf-8")).hexdigest()[:10]
+        session_id = (
+            f"manual-review-{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}-{digest}"
+        )
+        session = {
+            "session_id": session_id,
+            "created_at": utc_now_iso(),
+            "document_ids": resolved_document_ids,
+            "run_ids": resolved_run_ids,
+            "missing_document_ids": _clean_requested_ids(missing_document_ids),
+            "missing_run_ids": _clean_requested_ids(missing_run_ids),
+            "documents": document_summaries,
+            "items": items,
+            "summary": _item_summary(items),
+        }
+        save_review_session(session)
+        return session
+    except Exception as exc:
+        logger.error("Critical error in create_review_session: %s", exc, exc_info=True)
+        raise exc
 
 
 def create_review_session_from_payload(
@@ -1080,6 +1147,17 @@ def create_review_session_from_payload(
     return session
 
 
+class _ReviewJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, UUID):
+            return str(obj)
+        if isinstance(obj, (datetime, date)):
+            return obj.isoformat()
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super().default(obj)
+
+
 def save_review_session(session: Mapping[str, Any]) -> None:
     session_id = str(session.get("session_id") or "").strip()
     if not session_id:
@@ -1088,7 +1166,12 @@ def save_review_session(session: Mapping[str, Any]) -> None:
     _ensure_parent(path)
     payload = dict(session)
     payload["summary"] = _item_summary(payload.get("items") or [])
-    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    try:
+        json_data = json.dumps(payload, indent=2, cls=_ReviewJSONEncoder)
+        path.write_text(json_data, encoding="utf-8")
+    except Exception as exc:
+        logger.error("Failed to save review session %s: %s", session_id, exc, exc_info=True)
+        raise ValueError(f"failed to serialize review session: {exc}") from exc
 
 
 def load_review_session(session_id: str) -> dict[str, Any]:
