@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { AlertCircle, CheckCircle2, FileImage, FileJson, Play, RefreshCw, Search, XCircle, Maximize2, Minimize2 } from 'lucide-react'
+import { AlertCircle, CheckCircle2, FileImage, FileJson, Play, RefreshCw, Search, XCircle, Maximize2, Minimize2, Brain, Code, TrendingUp, HelpCircle } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,7 @@ import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type {
   ContextDocument,
   ExtractionEvidenceQuality,
@@ -23,7 +24,6 @@ import {
   evidenceMethodLabel,
   evidenceQualityBadgeVariant,
   evidenceQualityBody,
-  evidenceQualityForItem,
   evidenceQualityHeadline,
   evidenceQualityLabel,
   formatMethodLabel,
@@ -100,7 +100,6 @@ export function ReviewTabPanel({
   currentSnippetPath,
   currentSnippetUrl,
   currentSnippetRenderKey,
-  currentRowRef,
   reviewItems,
   evidenceSuspendMessage,
   snippetImageState,
@@ -452,99 +451,188 @@ export function ReviewTabPanel({
                     </div>
                     <h2 className="text-2xl font-bold tracking-tight">{currentReviewItem.metric_name}</h2>
                   </div>
-                  <div className="text-right">
+                  <div className="flex flex-col items-end">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Extracted Value</p>
-                    <p className="font-mono text-3xl font-black text-primary">{String(currentReviewItem.metric_value ?? currentReviewItem.extracted_value ?? '-')}</p>
+                    <div className="flex items-center gap-3">
+                      {currentReviewItem.historical_value !== undefined && currentReviewItem.historical_value !== null && (
+                        <div className="flex flex-col items-end mr-2">
+                          <p className="text-[10px] font-bold uppercase text-muted-foreground/60 leading-none mb-1">Previous Period</p>
+                          <div className="flex items-center gap-1.5">
+                            <TrendingUp className="h-3 w-3 text-muted-foreground/60" />
+                            <span className="font-mono text-sm font-semibold text-muted-foreground/80">{String(currentReviewItem.historical_value)}</span>
+                            {(() => {
+                              const curr = Number(currentReviewItem.metric_value ?? currentReviewItem.extracted_value)
+                              const prev = Number(currentReviewItem.historical_value)
+                              if (isNaN(curr) || isNaN(prev) || prev === 0) return null
+                              const diff = Math.abs((curr - prev) / prev)
+                              if (diff > 0.5) {
+                                return (
+                                  <Badge variant="destructive" className="ml-1 h-4 px-1 text-[8px] font-bold leading-none uppercase">
+                                    Anomaly
+                                  </Badge>
+                                )
+                              }
+                              return null
+                            })()}
+                          </div>
+                        </div>
+                      )}
+                      <p className="font-mono text-3xl font-black text-primary">{String(currentReviewItem.metric_value ?? currentReviewItem.extracted_value ?? '-')}</p>
+                    </div>
                   </div>
                 </div>
 
                 <div className="space-y-4 rounded-xl border border-border/60 bg-muted/5 p-5 shadow-sm">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-tight">
-                      <FileImage className="h-4 w-4 text-primary" />
-                      Visual Evidence
+                  <Tabs defaultValue="image" className="w-full">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-2 mb-2">
+                      <TabsList className="h-8 bg-muted/30">
+                        <TabsTrigger value="image" className="gap-1.5 text-[10px] uppercase font-bold px-3">
+                          <FileImage className="h-3 w-3" />
+                          Evidence Image
+                        </TabsTrigger>
+                        <TabsTrigger value="reasoning" className="gap-1.5 text-[10px] uppercase font-bold px-3">
+                          <Brain className="h-3 w-3" />
+                          Thinking
+                        </TabsTrigger>
+                        <TabsTrigger value="markdown" className="gap-1.5 text-[10px] uppercase font-bold px-3">
+                          <Code className="h-3 w-3" />
+                          Markdown
+                        </TabsTrigger>
+                      </TabsList>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant={evidenceQualityBadgeVariant(currentEvidenceQuality)} className="rounded-sm px-1.5 py-0 text-[10px] font-bold uppercase">{evidenceQualityLabel(currentEvidenceQuality)}</Badge>
+                        <Badge variant="outline" className="rounded-sm px-1.5 py-0 text-[10px] font-bold uppercase">page {currentReviewItem.page_number ?? '?'}</Badge>
+                        <Badge variant="outline" className="rounded-sm px-1.5 py-0 text-[10px] font-bold uppercase">method {evidenceMethodLabel(currentReviewItem)}</Badge>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant={evidenceQualityBadgeVariant(currentEvidenceQuality)} className="rounded-sm px-1.5 py-0 text-[10px] font-bold uppercase">{evidenceQualityLabel(currentEvidenceQuality)}</Badge>
-                      <Badge variant="outline" className="rounded-sm px-1.5 py-0 text-[10px] font-bold uppercase">page {currentReviewItem.page_number ?? '?'}</Badge>
-                      <Badge variant="outline" className="rounded-sm px-1.5 py-0 text-[10px] font-bold uppercase">method {evidenceMethodLabel(currentReviewItem)}</Badge>
-                    </div>
-                  </div>
 
-                  <div className="rounded-md border border-border/40 bg-muted/20 p-3 text-xs">
-                    <p className="font-bold text-foreground">{evidenceQualityHeadline(currentEvidenceQuality)}</p>
-                    <p className="mt-0.5 text-muted-foreground">{evidenceQualityBody(currentEvidenceQuality)}</p>
-                  </div>
+                    <TabsContent value="image" className="space-y-4 mt-0">
+                      <div className="rounded-md border border-border/40 bg-muted/20 p-3 text-xs">
+                        <p className="font-bold text-foreground">{evidenceQualityHeadline(currentEvidenceQuality)}</p>
+                        <p className="mt-0.5 text-muted-foreground">{evidenceQualityBody(currentEvidenceQuality)}</p>
+                      </div>
 
-                  {evidenceSuspendMessage ? (
-                    <div className="rounded-md border border-dashed border-border/40 bg-muted/20 p-4 text-sm text-muted-foreground">
-                      {evidenceSuspendMessage}
-                    </div>
-                  ) : currentSnippetUrl ? (
-                    <div className="space-y-3">
-                      <div className={`relative overflow-hidden rounded-md border border-border/60 bg-black/5 shadow-inner transition-all duration-200 ${isZoomed ? 'overflow-auto cursor-zoom-out' : 'cursor-zoom-in'}`}
-                           onClick={() => setIsZoomed(!isZoomed)}>
-                        <Image
-                          key={currentSnippetRenderKey}
-                          src={currentSnippetUrl}
-                          alt={`Evidence for ${currentReviewItem.metric_name}`}
-                          width={1200}
-                          height={1600}
-                          unoptimized
-                          onLoad={onSnippetImageLoad}
-                          onError={onSnippetImageError}
-                          className={`w-full object-top transition-all duration-300 ${isZoomed ? 'max-h-none w-[180%] max-w-none' : 'max-h-[800px]'} ${snippetImageState.status === 'ready' ? 'opacity-100' : 'opacity-0'}`}
-                        />
-                        
-                        <div className="absolute right-4 top-4 z-10">
-                          <Button
-                            variant="secondary"
-                            size="icon"
-                            className="h-8 w-8 rounded-full bg-background/80 shadow-md backdrop-blur-sm"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setIsZoomed(!isZoomed)
-                            }}
-                            title={isZoomed ? "Zoom out" : "Zoom in"}
-                          >
-                            {isZoomed ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                          </Button>
+                      {evidenceSuspendMessage ? (
+                        <div className="rounded-md border border-dashed border-border/40 bg-muted/20 p-4 text-sm text-muted-foreground">
+                          {evidenceSuspendMessage}
                         </div>
+                      ) : currentSnippetUrl ? (
+                        <div className="space-y-3">
+                          <div className={`relative overflow-hidden rounded-md border border-border/60 bg-black/5 shadow-inner transition-all duration-200 ${isZoomed ? 'overflow-auto cursor-zoom-out' : 'cursor-zoom-in'}`}
+                              onClick={() => setIsZoomed(!isZoomed)}>
+                            <Image
+                              key={currentSnippetRenderKey}
+                              src={currentSnippetUrl}
+                              alt={`Evidence for ${currentReviewItem.metric_name}`}
+                              width={1200}
+                              height={1600}
+                              unoptimized
+                              onLoad={onSnippetImageLoad}
+                              onError={onSnippetImageError}
+                              className={`w-full object-top transition-all duration-300 ${isZoomed ? 'max-h-none w-[180%] max-w-none' : 'max-h-[800px]'} ${snippetImageState.status === 'ready' ? 'opacity-100' : 'opacity-0'}`}
+                            />
+                            
+                            <div className="absolute right-4 top-4 z-10">
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                type="button"
+                                className="h-8 w-8 rounded-full bg-background/80 shadow-md backdrop-blur-sm"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setIsZoomed(!isZoomed)
+                                }}
+                                title={isZoomed ? "Zoom out" : "Zoom in"}
+                              >
+                                {isZoomed ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                              </Button>
+                            </div>
 
-                        {snippetImageState.status !== 'ready' ? (
-                          <div className="absolute inset-0 flex items-center justify-center bg-background/85 px-6 text-center text-sm text-muted-foreground">
-                            <div className="space-y-3">
-                              {(snippetImageState.status === 'loading' || snippetImageState.status === 'retrying') ? (
-                                <div className="mx-auto h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                              ) : null}
-                              <p>
-                                {snippetImageState.message
-                                  || (snippetImageState.status === 'retrying'
-                                    ? 'Refreshing snippet evidence...'
-                                    : 'Loading snippet evidence...')}
-                              </p>
+                            {snippetImageState.status !== 'ready' ? (
+                              <div className="absolute inset-0 flex items-center justify-center bg-background/85 px-6 text-center text-sm text-muted-foreground">
+                                <div className="space-y-3">
+                                  {(snippetImageState.status === 'loading' || snippetImageState.status === 'retrying') ? (
+                                    <div className="mx-auto h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                  ) : null}
+                                  <p>
+                                    {snippetImageState.message
+                                      || (snippetImageState.status === 'retrying'
+                                        ? 'Refreshing snippet evidence...'
+                                        : 'Loading snippet evidence...')}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                          <p className="font-mono text-[10px] text-muted-foreground">{currentSnippetPath}</p>
+                        </div>
+                      ) : (
+                        <div className="rounded-md border border-dashed border-border/40 bg-muted/20 p-4 text-sm text-muted-foreground">
+                          {currentReviewItem.snippet.reason || evidenceQualityHeadline(currentEvidenceQuality)}
+                        </div>
+                      )}
+
+                      {matchedEvidenceText && !evidenceSuspendMessage ? (
+                        <div className="space-y-2 border-t border-border/40 pt-4">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                            {currentEvidenceQuality === 'precise' ? 'Matched source line' : 'Preserved evidence text'}
+                          </p>
+                          <pre className="whitespace-pre-wrap rounded-md bg-muted/20 p-3 font-mono text-xs leading-5 text-foreground">
+                            {matchedEvidenceText}
+                          </pre>
+                        </div>
+                      ) : null}
+                    </TabsContent>
+
+                    <TabsContent value="reasoning" className="mt-0">
+                      <div className="min-h-[400px] rounded-md border border-border/60 bg-black/10 p-6 shadow-inner">
+                        <div className="flex items-center gap-2 mb-4 text-xs font-bold uppercase text-muted-foreground">
+                          <Brain className="h-3.5 w-3.5 text-primary" />
+                          Extraction Thinking Logic
+                        </div>
+                        {currentReviewItem.thinking ? (
+                          <div className="space-y-4">
+                            <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap italic font-serif">
+                              &ldquo;{currentReviewItem.thinking}&rdquo;
+                            </p>
+                            <div className="pt-4 border-t border-border/20">
+                              <p className="text-[10px] font-bold uppercase text-muted-foreground mb-2">Confidence Context</p>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="font-mono">{Math.round((currentReviewItem.confidence_metrics ?? 0) * 100)}% Confidence</Badge>
+                                <span className="text-[10px] text-muted-foreground italic">Self-reported by LLM during pass 3a</span>
+                              </div>
                             </div>
                           </div>
-                        ) : null}
+                        ) : (
+                          <div className="flex flex-col items-center justify-center py-20 text-center space-y-3 opacity-50">
+                            <HelpCircle className="h-10 w-10 text-muted-foreground/30" />
+                            <p className="text-sm text-muted-foreground">No thinking trace was recorded for this extraction.</p>
+                          </div>
+                        )}
                       </div>
-                      <p className="font-mono text-[10px] text-muted-foreground">{currentSnippetPath}</p>
-                    </div>
-                  ) : (
-                    <div className="rounded-md border border-dashed border-border/40 bg-muted/20 p-4 text-sm text-muted-foreground">
-                      {currentReviewItem.snippet.reason || evidenceQualityHeadline(currentEvidenceQuality)}
-                    </div>
-                  )}
+                    </TabsContent>
 
-                  {matchedEvidenceText && !evidenceSuspendMessage ? (
-                    <div className="space-y-2 border-t border-border/40 pt-4">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                        {currentEvidenceQuality === 'precise' ? 'Matched source line' : 'Preserved evidence text'}
-                      </p>
-                      <pre className="whitespace-pre-wrap rounded-md bg-muted/20 p-3 font-mono text-xs leading-5 text-foreground">
-                        {matchedEvidenceText}
-                      </pre>
-                    </div>
-                  ) : null}
+                    <TabsContent value="markdown" className="mt-0">
+                      <div className="min-h-[400px] max-h-[800px] overflow-auto rounded-md border border-border/60 bg-black/20 p-0 shadow-inner">
+                        <div className="sticky top-0 z-10 flex items-center gap-2 p-3 border-b border-border/40 bg-background/95 backdrop-blur-sm text-xs font-bold uppercase text-muted-foreground">
+                          <Code className="h-3.5 w-3.5 text-primary" />
+                          Raw Table Markdown (Parser View)
+                        </div>
+                        {currentReviewItem.raw_markdown ? (
+                          <div className="p-4">
+                            <pre className="font-mono text-[11px] leading-tight text-emerald-400/90 whitespace-pre">
+                              {currentReviewItem.raw_markdown}
+                            </pre>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center py-20 text-center space-y-3 opacity-50">
+                            <Code className="h-10 w-10 text-muted-foreground/30" />
+                            <p className="text-sm text-muted-foreground">No raw table markdown was preserved.</p>
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 </div>
 
                 <div className="grid gap-x-6 gap-y-4 rounded-lg border border-border/40 bg-muted/10 p-4 text-[13px] md:grid-cols-2 lg:grid-cols-3">

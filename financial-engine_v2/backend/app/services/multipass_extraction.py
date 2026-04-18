@@ -136,6 +136,34 @@ _CURRENCY_PATTERNS: list[tuple[str, str]] = [
     (r"\b(?:CNY|CNH|RMB|YUAN|RENMINBI)\b", "CNY"),
 ]
 
+_ROW_LEVEL_CURRENCY_CONTEXT_HINTS: tuple[str, ...] = (
+    "statement",
+    "income",
+    "cash flow",
+    "financial position",
+    "balance sheet",
+    "share capital",
+    "financial highlights",
+    "summary",
+)
+
+
+def _table_allows_row_level_currency_scan(table) -> bool:
+    """
+    Only treat row text as currency evidence for canonical statement/highlight tables.
+
+    Generic note tables often mention foreign-denominated debt instruments
+    ("Euro bond", "JPY private placement") inside body rows; counting those rows as
+    document currency evidence can incorrectly override the filing currency.
+    """
+    surfaces: list[str] = []
+    if table.headers:
+        surfaces.append(" ".join(str(h) for h in table.headers))
+    if getattr(table, "caption", None):
+        surfaces.append(str(table.caption))
+    combined = " ".join(surfaces).lower()
+    return any(hint in combined for hint in _ROW_LEVEL_CURRENCY_CONTEXT_HINTS)
+
 
 def _detect_scale_from_tables(tables) -> str:
     """
@@ -167,7 +195,9 @@ def _detect_currency_from_tables(tables) -> str | None:
     Detect a dominant document currency from table headers/captions/body rows.
 
     Returns a 3-letter currency code when one currency has clear evidence,
-    otherwise returns None.
+    otherwise returns None. Row-level evidence is limited to canonical
+    statement/highlight tables so foreign-currency note text does not override
+    the filing currency.
     """
     hits: dict[str, int] = {}
     for table in tables[:20]:
@@ -176,8 +206,9 @@ def _detect_currency_from_tables(tables) -> str | None:
             surfaces.append(" ".join(str(h) for h in table.headers))
         if getattr(table, "caption", None):
             surfaces.append(str(table.caption))
-        for row in (table.rows or [])[:8]:
-            surfaces.append(" ".join(str(cell) for cell in row))
+        if _table_allows_row_level_currency_scan(table):
+            for row in (table.rows or [])[:8]:
+                surfaces.append(" ".join(str(cell) for cell in row))
 
         combined = " ".join(surfaces)
         for pattern, currency in _CURRENCY_PATTERNS:
@@ -397,6 +428,14 @@ _SEGMENT_DISQUALIFY_PHRASES = [
     "reportable segments",
 ]
 
+# Closed-group deed notes can embed a full-looking "statement of comprehensive
+# income" table that is not the consolidated group truth surface.
+_INCOME_STATEMENT_DISQUALIFY_PHRASES = [
+    "deed of cross guarantee",
+    "closed group",
+    "retained earnings",
+]
+
 
 def _merge_cf_tables(
     candidates: list[tuple[int, Any]],
@@ -560,6 +599,10 @@ def _run_pass2_locator(tables) -> dict[str, Any]:
                 # (segment tables have one column per division).
                 if label == "income_statement" and (
                     any(p in _hdr_caption for p in _SEGMENT_DISQUALIFY_PHRASES)
+                    or any(
+                        p in _hdr_caption
+                        for p in _INCOME_STATEMENT_DISQUALIFY_PHRASES
+                    )
                     or len(table.headers) >= 8
                 ):
                     continue
@@ -832,6 +875,7 @@ Extract ONLY these metrics relevant to {table_type}:
 
 Required JSON Output Format:
 {{
+  "thinking": "Brief step-by-step reasoning for the extraction (e.g., 'Found row X, verified column Y for period Z, checked scale in header')",
   "metrics": {{
 {metric_schema}
   }},
@@ -1217,7 +1261,9 @@ def _extract_single_table(
             metric_schema=metric_schema,
         )
 
-    def _build_output(raw_payload: dict[str, Any]) -> dict[str, Any]:
+    def _build_output(
+        raw_payload: dict[str, Any], *, table_markdown: str
+    ) -> dict[str, Any]:
         # Support both old flat format and new nested format
         metrics_payload = raw_payload.get("metrics")
         if not isinstance(metrics_payload, dict):
@@ -1230,6 +1276,8 @@ def _extract_single_table(
         extracted = {
             "_source": table_type,
             "_page_number": getattr(table, "page_number", None),
+            "_thinking": raw_payload.get("thinking"),
+            "_markdown": table_markdown,
             "row_refs": raw_payload.get("row_refs", {}),
         }
         for metric_name in metrics:
@@ -1406,6 +1454,7 @@ def _extract_single_table(
         return extracted
 
     prompt = _build_prompt(markdown)
+    selected_markdown = markdown
 
     try:
         raw = _llm_json_call(prompt, llm_client, max_tokens=2048)
@@ -1414,16 +1463,16 @@ def _extract_single_table(
             "Pass 3a failed for %s: %s — retrying with truncated table", table_type, e
         )
         try:
-            truncated_prompt = _build_prompt(
-                _table_to_markdown_truncated(table, max_rows=20)
-            )
+            truncated_markdown = _table_to_markdown_truncated(table, max_rows=20)
+            truncated_prompt = _build_prompt(truncated_markdown)
             raw = _llm_json_call(truncated_prompt, llm_client, max_tokens=1024)
+            selected_markdown = truncated_markdown
         except Exception as e2:
             logger.error("Pass 3a retry also failed for %s: %s", table_type, e2)
             return None
 
     selected_raw = raw
-    out = _build_output(raw)
+    out = _build_output(raw, table_markdown=selected_markdown)
 
     used_filtered_rows = bool(
         filter_enabled and filtered_rows is not None and filtered_rows != table.rows
@@ -1441,7 +1490,7 @@ def _extract_single_table(
                     llm_client,
                     max_tokens=2048,
                 )
-                full_out = _build_output(full_raw)
+                full_out = _build_output(full_raw, table_markdown=full_markdown)
                 full_count = sum(1 for m in metrics if full_out.get(m) is not None)
                 current_count = sum(1 for m in metrics if out.get(m) is not None)
                 if full_count > current_count or not _needs_full_table_retry(
@@ -2112,6 +2161,8 @@ def _run_pass4_reconciler(
     merged_metrics: dict[str, Any] = {m: None for m in METRIC_FIELDS}
     provenance: dict[str, str] = {}
     row_refs: dict[str, str] = {}
+    thinking_map: dict[str, str] = {}
+    markdown_map: dict[str, str] = {}
     confidence_weighted_sum = 0.0
     confidence_weight = 0
 
@@ -2138,6 +2189,8 @@ def _run_pass4_reconciler(
                 merged_metrics[m] = extraction[m]
                 row_ref = extraction.get("row_refs", {}).get(m, "unknown")
                 row_refs[m] = row_ref
+                thinking_map[m] = extraction.get("_thinking") or ""
+                markdown_map[m] = extraction.get("_markdown") or ""
                 provenance[m] = f"{source}:{page_tag}:{row_ref}"
                 confidence_weighted_sum += conf
                 confidence_weight += 1
@@ -2150,6 +2203,8 @@ def _run_pass4_reconciler(
         row_ref = explicit_net_debt.get("row_refs", {}).get("net_debt", "unknown")
         merged_metrics["net_debt"] = explicit_net_debt["net_debt"]
         row_refs["net_debt"] = row_ref
+        thinking_map["net_debt"] = explicit_net_debt.get("_thinking") or ""
+        markdown_map["net_debt"] = explicit_net_debt.get("_markdown") or ""
         provenance["net_debt"] = f"{source}:{page_tag}:{row_ref}"
         net_debt_conf = _explicit_net_debt_confidence(explicit_net_debt)
         confidence_weighted_sum += net_debt_conf
@@ -2234,6 +2289,8 @@ def _run_pass4_reconciler(
         "period_end": pass1_result.get("period_end"),
         "metrics": merged_metrics,
         "row_refs": row_refs,
+        "thinking": thinking_map,
+        "markdown_tables": markdown_map,
         "confidence_metrics": round(metric_confidence, 3),
         "provenance": provenance,
         **pass3b_result,  # risk_summary, risk_bullets, guidance_summary, material_changes, confidence_narrative

@@ -4,7 +4,7 @@ import hashlib
 import json
 import re
 from functools import lru_cache
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Mapping, Sequence
@@ -41,10 +41,54 @@ _WHITESPACE_RE = re.compile(r"\s+")
 _ASCII_CHARS = " .:-=+*#%@"
 
 
+from sqlalchemy import desc
+from app.models.asx_financials import ASXPeriodicFinancial
+
+
+def _previous_period_value(
+    db: Session | None, ticker: str, metric: str, period_end: str | date | None, period_type: str | None
+) -> float | None:
+    if db is None or not ticker or not period_end or not period_type:
+        return None
+    
+    # Find the most recent record for the same ticker and type before the current period_end
+    prev = (
+        db.query(ASXPeriodicFinancial)
+        .filter(
+            ASXPeriodicFinancial.ticker == ticker,
+            ASXPeriodicFinancial.period_type == period_type,
+            ASXPeriodicFinancial.period_end < period_end,
+        )
+        .order_by(desc(ASXPeriodicFinancial.period_end))
+        .first()
+    )
+    
+    if prev:
+        val = getattr(prev, metric, None)
+        return float(val) if val is not None else None
+    return None
+
+
 def _row_reference_for_metric(payload: Mapping[str, Any], metric: str) -> str | None:
     row_refs = payload.get("row_refs")
     if isinstance(row_refs, Mapping):
         value = str(row_refs.get(metric) or "").strip()
+        return value or None
+    return None
+
+
+def _thinking_for_metric(payload: Mapping[str, Any], metric: str) -> str | None:
+    thinking = payload.get("thinking")
+    if isinstance(thinking, Mapping):
+        value = str(thinking.get(metric) or "").strip()
+        return value or None
+    return None
+
+
+def _markdown_for_metric(payload: Mapping[str, Any], metric: str) -> str | None:
+    markdowns = payload.get("markdown_tables")
+    if isinstance(markdowns, Mapping):
+        value = str(markdowns.get(metric) or "").strip()
         return value or None
     return None
 
@@ -661,7 +705,7 @@ def _item_summary(items: Sequence[Mapping[str, Any]]) -> dict[str, int]:
 
 
 def build_review_item(
-    document: Document, run: ExtractionRun, metric: str
+    db: Session | None, document: Document, run: ExtractionRun, metric: str
 ) -> dict[str, Any] | None:
     payload = run.structured_json or {}
     metrics = payload.get("metrics")
@@ -696,6 +740,16 @@ def build_review_item(
     pdf_path = _coerce_pdf_path(document, payload)
     matched_text = str(record.evidence_text or "").strip() or None
     row_ref = _row_reference_for_metric(payload, metric)
+    thinking = _thinking_for_metric(payload, metric)
+    markdown = _markdown_for_metric(payload, metric)
+    
+    historical_value = _previous_period_value(
+        db,
+        ticker=str(getattr(document, "ticker", "") or "").strip(),
+        metric=metric,
+        period_end=payload.get("period_end"),
+        period_type=payload.get("period_type"),
+    )
     
     # Use row_ref as primary evidence for highlighting if available, 
     # as it's the most specific anchor in the table.
@@ -757,6 +811,9 @@ def build_review_item(
         "provenance_status": record.provenance_status,
         "source_label": record.source_label,
         "location_ref": record.location_ref,
+        "thinking": thinking,
+        "raw_markdown": markdown,
+        "historical_value": historical_value,
         "requested_method": method_provenance.get("requested_method"),
         "actual_method": method_provenance.get("actual_method"),
         "strict_method": method_provenance.get("strict_method"),
@@ -782,6 +839,7 @@ def build_review_item(
 
 
 def _append_review_items(
+    db: Session | None,
     items: list[dict[str, Any]],
     document_summaries: list[dict[str, Any]],
     *,
@@ -791,7 +849,7 @@ def _append_review_items(
     item_count_before = len(items)
     payload = run.structured_json if isinstance(run.structured_json, Mapping) else {}
     for metric in METRIC_FIELDS:
-        item = build_review_item(document, run, metric)
+        item = build_review_item(db, document, run, metric)
         if item is not None:
             items.append(item)
 
@@ -878,6 +936,7 @@ def create_review_session(
                 missing_document_ids.append(str(run.document_id))
                 continue
             _append_review_items(
+                db,
                 items,
                 document_summaries,
                 document=document,
@@ -916,6 +975,7 @@ def create_review_session(
                 )
                 continue
             _append_review_items(
+                db,
                 items,
                 document_summaries,
                 document=document,
@@ -986,6 +1046,7 @@ def create_review_session_from_payload(
     items: list[dict[str, Any]] = []
     document_summaries: list[dict[str, Any]] = []
     _append_review_items(
+        None,
         items,
         document_summaries,
         document=synthetic_document,

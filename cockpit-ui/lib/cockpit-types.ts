@@ -189,6 +189,7 @@ export interface ExtractionReviewItem {
   row_refs?: Record<string, string> | null
   table_type?: string | null
   period_col?: string | null
+  confidence_metrics?: number | null
   evidence_reference?: string | null
   evidence_text?: string | null
   evidence_summary?: string | null
@@ -207,6 +208,9 @@ export interface ExtractionReviewItem {
   gold_document_id?: string | null
   gold_expected_trust?: string | null
   bbox?: number[] | null
+  thinking?: string | null
+  raw_markdown?: string | null
+  historical_value?: number | null
   snippet: ExtractionReviewSnippet
   review_status: 'pending' | 'approved' | 'wrong' | 'abstain'
   reviewed_at?: string | null
