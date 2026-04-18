@@ -145,6 +145,18 @@ def _clean_text(value: Any) -> str | None:
     return text or None
 
 
+def _parse_iso_timestamp(value: str | None) -> float | None:
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.timestamp()
+
+
 def _synthetic_job_id(active_run: dict[str, Any]) -> str | None:
     run_id = _clean_text(active_run.get("run_id"))
     if run_id:
@@ -178,6 +190,15 @@ def _build_synthetic_extraction_job(active_run: dict[str, Any], *, source: str) 
         "No persisted ops tracker row exists for this run yet."
     )
 
+    now_dt = datetime.now(timezone.utc).replace(microsecond=0)
+    now_iso = now_dt.isoformat()
+    started_ts = _parse_iso_timestamp(started_at)
+    elapsed_ms = (
+        max(0, int(round((now_dt.timestamp() - started_ts) * 1000)))
+        if started_ts is not None
+        else 0
+    )
+
     metadata = {
         "synthetic": True,
         "synthetic_source": "extraction_activity",
@@ -189,6 +210,8 @@ def _build_synthetic_extraction_job(active_run: dict[str, Any], *, source: str) 
         "strict_method": active_run.get("strict_method"),
         "expires_at": active_run.get("expires_at"),
         "expires_in_seconds": active_run.get("expires_in_seconds"),
+        "host": _clean_text(active_run.get("host")),
+        "pid": _clean_text(active_run.get("pid")),
     }
 
     return {
@@ -211,9 +234,9 @@ def _build_synthetic_extraction_job(active_run: dict[str, Any], *, source: str) 
         "current_item_label": document_id or requested_method,
         "queued_at": started_at,
         "started_at": started_at,
-        "updated_at": started_at,
+        "updated_at": now_iso,
         "completed_at": None,
-        "elapsed_ms": 0,
+        "elapsed_ms": elapsed_ms,
         "metadata": metadata,
     }
 

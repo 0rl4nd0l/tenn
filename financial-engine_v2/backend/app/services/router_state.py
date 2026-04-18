@@ -4,6 +4,7 @@ import fcntl
 import json
 import os
 import shlex
+import socket
 import subprocess
 import tempfile
 import time
@@ -292,10 +293,43 @@ _EXTRACTION_ACTIVE_STATE_FILE = (
 _EXTRACTION_ACTIVE_LOCK_FILE = _EXTRACTION_ACTIVE_STATE_FILE.with_suffix(".lock")
 _EXTRACTION_ACTIVITY_LOCK = Lock()
 _legacy_extraction_activity_token: str | None = None
+_HOST_ID = (socket.gethostname() or "unknown").strip() or "unknown"
 
 
 def _now_timestamp() -> float:
     return time.time()
+
+
+def _is_pid_alive(pid: int) -> bool:
+    if pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return False
+    return True
+
+
+def _is_holder_alive(metadata_entry: Mapping[str, Any] | None) -> bool:
+    # Same-host: verify the registering pid is alive.
+    # Cross-host or missing metadata: trust TTL, don't prune.
+    if not isinstance(metadata_entry, Mapping):
+        return True
+    host = str(metadata_entry.get("host") or "").strip()
+    if not host or host != _HOST_ID:
+        return True
+    raw_pid = metadata_entry.get("pid")
+    if raw_pid is None:
+        return True
+    try:
+        pid = int(raw_pid)
+    except (TypeError, ValueError):
+        return True
+    return _is_pid_alive(pid)
 
 
 def _decode_redis_value(value: Any) -> str:
@@ -329,6 +363,8 @@ def _sanitize_extraction_metadata(
         "ticker",
         "title",
         "started_at",
+        "host",
+        "pid",
     ):
         value = metadata.get(key)
         if value is None:
@@ -367,12 +403,18 @@ def _read_file_extraction_state(
             expiry = float(raw_expiry)
         except (TypeError, ValueError):
             continue
-        if expiry > now_ts:
-            token_text = str(token)
-            active[token_text] = expiry
-            meta = raw_metadata.get(token_text)
-            if isinstance(meta, dict):
-                active_metadata[token_text] = _sanitize_extraction_metadata(meta)
+        if expiry <= now_ts:
+            continue
+        token_text = str(token)
+        meta = raw_metadata.get(token_text)
+        sanitized = (
+            _sanitize_extraction_metadata(meta) if isinstance(meta, dict) else {}
+        )
+        if not _is_holder_alive(sanitized):
+            continue
+        active[token_text] = expiry
+        if sanitized:
+            active_metadata[token_text] = sanitized
     return active, active_metadata
 
 
@@ -482,9 +524,35 @@ def _redis_extraction_tokens(
         else:
             stale.append(token)
 
+    if active:
+        try:
+            raw_meta = client.hgetall(_EXTRACTION_ACTIVE_META_KEY)
+        except Exception:
+            raw_meta = {}
+        decoded: dict[str, dict[str, Any]] = {}
+        if isinstance(raw_meta, dict):
+            for raw_key, raw_val in raw_meta.items():
+                key = _decode_redis_value(raw_key).strip()
+                if not key:
+                    continue
+                try:
+                    payload = json.loads(_decode_redis_value(raw_val))
+                except Exception:
+                    continue
+                if isinstance(payload, dict):
+                    decoded[key] = _sanitize_extraction_metadata(payload)
+        for token in list(active):
+            if not _is_holder_alive(decoded.get(token)):
+                active.pop(token, None)
+                stale.append(token)
+
     if stale:
         try:
             client.hdel(_EXTRACTION_ACTIVE_KEY, *stale)
+        except Exception:
+            pass
+        try:
+            client.hdel(_EXTRACTION_ACTIVE_META_KEY, *stale)
         except Exception:
             pass
     if not active:
@@ -552,6 +620,8 @@ def register_extraction_activity(
         "started_at",
         _utc_now().replace(microsecond=0).isoformat(),
     )
+    activity_metadata.setdefault("host", _HOST_ID)
+    activity_metadata.setdefault("pid", str(os.getpid()))
     client = _build_redis_client(redis_url)
     if client is not None:
         try:

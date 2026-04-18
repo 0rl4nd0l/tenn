@@ -97,3 +97,100 @@ def test_is_extraction_active_prunes_expired_file_tokens(monkeypatch, tmp_path) 
 
     assert router_state.is_extraction_active() is False
     assert state_path.exists() is False
+
+
+def _find_unused_pid() -> int:
+    import os as _os
+
+    for candidate in (999_997, 999_998, 999_999):
+        try:
+            _os.kill(candidate, 0)
+        except ProcessLookupError:
+            return candidate
+        except OSError:
+            continue
+    raise AssertionError("no unused pid available on this host")
+
+
+def test_is_extraction_active_prunes_dead_holder_pid(monkeypatch, tmp_path) -> None:
+    """Token registered by a since-killed same-host process must be pruned.
+
+    Covers the bug where a Celery child killed via SIGKILL/OOM/time_limit
+    never runs `finally`, leaving a ghost token that the UI then renders as
+    a phantom 'Running' job until the 30-min TTL expires.
+    """
+    import json as _json
+
+    state_path = tmp_path / "dead-pid-extraction.json"
+    lock_path = tmp_path / "dead-pid-extraction.lock"
+    monkeypatch.setattr(router_state, "_EXTRACTION_ACTIVE_STATE_FILE", state_path)
+    monkeypatch.setattr(router_state, "_EXTRACTION_ACTIVE_LOCK_FILE", lock_path)
+    monkeypatch.setattr(
+        router_state, "_build_redis_client", lambda redis_url=None: None
+    )
+
+    dead_pid = _find_unused_pid()
+    expiry = time.time() + 600
+    payload = {
+        "tokens": {"ghost-token": expiry},
+        "metadata": {
+            "ghost-token": {
+                "run_id": "run-ghost",
+                "document_id": "doc-ghost",
+                "host": router_state._HOST_ID,
+                "pid": str(dead_pid),
+            }
+        },
+    }
+    state_path.write_text(_json.dumps(payload), encoding="utf-8")
+
+    assert router_state.is_extraction_active() is False
+    assert router_state.get_extraction_activity_snapshot()["active"] is False
+    assert state_path.exists() is False
+
+
+def test_is_extraction_active_trusts_cross_host_tokens(monkeypatch, tmp_path) -> None:
+    """Tokens from a different host must not be pruned — we can't verify their PID."""
+    import json as _json
+
+    state_path = tmp_path / "cross-host-extraction.json"
+    lock_path = tmp_path / "cross-host-extraction.lock"
+    monkeypatch.setattr(router_state, "_EXTRACTION_ACTIVE_STATE_FILE", state_path)
+    monkeypatch.setattr(router_state, "_EXTRACTION_ACTIVE_LOCK_FILE", lock_path)
+    monkeypatch.setattr(
+        router_state, "_build_redis_client", lambda redis_url=None: None
+    )
+
+    foreign_host = f"not-{router_state._HOST_ID}"
+    expiry = time.time() + 600
+    payload = {
+        "tokens": {"remote-token": expiry},
+        "metadata": {
+            "remote-token": {
+                "host": foreign_host,
+                "pid": "1",  # irrelevant, lives on another host
+            }
+        },
+    }
+    state_path.write_text(_json.dumps(payload), encoding="utf-8")
+
+    assert router_state.is_extraction_active() is True
+    snapshot = router_state.get_extraction_activity_snapshot()
+    assert snapshot["active"] is True
+    assert snapshot["active_runs"][0]["host"] == foreign_host
+
+
+def test_extraction_activity_records_host_and_pid(monkeypatch, tmp_path) -> None:
+    state_path = tmp_path / "host-pid-extraction.json"
+    lock_path = tmp_path / "host-pid-extraction.lock"
+    monkeypatch.setattr(router_state, "_EXTRACTION_ACTIVE_STATE_FILE", state_path)
+    monkeypatch.setattr(router_state, "_EXTRACTION_ACTIVE_LOCK_FILE", lock_path)
+    monkeypatch.setattr(
+        router_state, "_build_redis_client", lambda redis_url=None: None
+    )
+
+    with router_state.extraction_activity():
+        snapshot = router_state.get_extraction_activity_snapshot()
+        run = snapshot["active_runs"][0]
+        assert run["host"] == router_state._HOST_ID
+        assert int(run["pid"]) == __import__("os").getpid()

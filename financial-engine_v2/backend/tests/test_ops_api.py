@@ -196,6 +196,88 @@ def test_list_jobs_includes_synthetic_active_extraction(client, monkeypatch):
     assert job["metadata"]["document_id"] == "doc-456"
 
 
+def test_synthetic_extraction_card_reports_real_elapsed_ms(client, monkeypatch):
+    """Synthetic card must show real elapsed time derived from started_at."""
+    from datetime import datetime, timedelta, timezone
+
+    c, _ = client
+    started_at = (
+        datetime.now(timezone.utc) - timedelta(seconds=42)
+    ).replace(microsecond=0).isoformat()
+
+    monkeypatch.setattr(
+        ops_api,
+        "get_extraction_activity_snapshot",
+        lambda: {
+            "active": True,
+            "source": "redis",
+            "token_count": 1,
+            "expires_at": None,
+            "expires_in_seconds": 0,
+            "active_runs": [
+                {
+                    "token": "tok-elapsed",
+                    "document_id": "doc-elapsed",
+                    "requested_method": "auto",
+                    "ticker": "BHP",
+                    "title": "Half Yearly Report",
+                    "started_at": started_at,
+                    "host": "test-host",
+                    "pid": "4242",
+                }
+            ],
+        },
+    )
+
+    resp = c.get("/api/ops/jobs")
+    assert resp.status_code == 200
+    job = resp.json()["items"][0]
+
+    # elapsed_ms should reflect real wall-clock time since started_at, not be hardcoded 0.
+    assert job["elapsed_ms"] >= 40_000  # at least 40s
+    assert job["elapsed_ms"] < 120_000  # sanity upper bound for a quick test
+    # updated_at must be fresh, not echo of started_at.
+    assert job["updated_at"] != job["started_at"]
+    # Host and pid forwarded for ops diagnostics.
+    assert job["metadata"]["host"] == "test-host"
+    assert job["metadata"]["pid"] == "4242"
+
+
+def test_synthetic_extraction_card_clamps_future_started_at(client, monkeypatch):
+    """If started_at is in the future (clock skew), elapsed_ms must not go negative."""
+    from datetime import datetime, timedelta, timezone
+
+    c, _ = client
+    future_start = (
+        datetime.now(timezone.utc) + timedelta(minutes=5)
+    ).replace(microsecond=0).isoformat()
+
+    monkeypatch.setattr(
+        ops_api,
+        "get_extraction_activity_snapshot",
+        lambda: {
+            "active": True,
+            "source": "file",
+            "token_count": 1,
+            "expires_at": None,
+            "expires_in_seconds": 0,
+            "active_runs": [
+                {
+                    "token": "tok-future",
+                    "document_id": "doc-future",
+                    "requested_method": "auto",
+                    "ticker": "BHP",
+                    "started_at": future_start,
+                }
+            ],
+        },
+    )
+
+    resp = c.get("/api/ops/jobs/active")
+    assert resp.status_code == 200
+    assert resp.json()["items"][0]["elapsed_ms"] == 0
+
+
 def test_list_active_jobs_includes_synthetic_active_extraction(client, monkeypatch):
     c, _ = client
     monkeypatch.setattr(
