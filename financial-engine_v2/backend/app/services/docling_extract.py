@@ -12,11 +12,14 @@ from __future__ import annotations
 
 import json
 import logging
+import multiprocessing as mp
 import os
-import signal
+import threading
+from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 import importlib.metadata
 
@@ -443,20 +446,81 @@ def extract_structured(
         return result
 
 
+_docling_pool: Optional[ProcessPoolExecutor] = None
+_docling_pool_lock = threading.Lock()
+
+
+def _get_docling_pool() -> ProcessPoolExecutor:
+    """Lazy-init a spawn-context process pool for Docling.
+
+    Docling imports torch/CUDA; fork() copies CUDA state into children and
+    breaks initialization. Spawn gives each worker a fresh Python interpreter.
+    A single worker is sufficient — extraction is already serialized elsewhere,
+    and we only need process isolation for hard wall-clock timeouts.
+
+    Guarded by ``_docling_pool_lock`` because the now-sync FastAPI handler is
+    executed on the anyio threadpool, so concurrent requests may race here.
+    """
+    global _docling_pool
+    with _docling_pool_lock:
+        if _docling_pool is None:
+            ctx = mp.get_context("spawn")
+            _docling_pool = ProcessPoolExecutor(max_workers=1, mp_context=ctx)
+        return _docling_pool
+
+
+def _reset_docling_pool() -> None:
+    """Tear down the pool after a timeout so the next call respawns a clean worker.
+
+    Note: ``shutdown(wait=False, cancel_futures=True)`` detaches the parent from
+    the pool but does not ``SIGKILL`` a child that is blocked inside a CUDA
+    kernel. Such a child will continue to hold VRAM until it exits on its own
+    or the parent process terminates. With ``max_workers=1`` this is acceptable
+    for rare timeouts; repeated pathological inputs would require direct
+    ``multiprocessing.Process.terminate()`` management instead of a pool.
+    """
+    global _docling_pool
+    with _docling_pool_lock:
+        if _docling_pool is not None:
+            _docling_pool.shutdown(wait=False, cancel_futures=True)
+            _docling_pool = None
+
+
 def _run_docling_with_timeout(
-    pdf_path: str, timeout: int = DOCLING_TIMEOUT_SECONDS
+    pdf_path: str,
+    timeout: float = DOCLING_TIMEOUT_SECONDS,
+    *,
+    runner: Optional[Callable[[str], StructuredDocument]] = None,
+    executor: Optional[ProcessPoolExecutor] = None,
 ) -> StructuredDocument:
-    """Run docling with SIGALRM timeout. Raises on timeout or failure."""
+    """Run docling in a worker with a wall-clock timeout.
 
-    def _timeout_handler(signum, frame):
-        raise TimeoutError(f"docling exceeded {timeout}s on {pdf_path}")
+    Uses a spawn-based process pool so extraction cannot wedge the parent
+    FastAPI event loop. The previous SIGALRM-based approach was main-thread-only
+    and broke under FastAPI worker-thread execution.
 
-    signal.signal(signal.SIGALRM, _timeout_handler)
-    signal.alarm(timeout)
+    Args:
+        pdf_path: PDF to extract.
+        timeout: Seconds before ExtractionTimeoutError is raised.
+        runner: Test seam; when None, ``_run_docling`` is used.
+        executor: Test seam; when None, the module-level spawn pool is used.
+
+    Raises:
+        ExtractionTimeoutError: when the worker exceeds ``timeout`` seconds.
+    """
+    call = runner if runner is not None else _run_docling
+    using_default_pool = executor is None
+    pool = executor if executor is not None else _get_docling_pool()
+    future = pool.submit(call, pdf_path)
     try:
-        return _run_docling(pdf_path)
-    finally:
-        signal.alarm(0)
+        return future.result(timeout=timeout)
+    except FuturesTimeoutError as exc:
+        future.cancel()
+        if using_default_pool:
+            _reset_docling_pool()
+        raise ExtractionTimeoutError(
+            f"docling exceeded {timeout}s on {pdf_path}"
+        ) from exc
 
 
 def _run_docling(pdf_path: str) -> StructuredDocument:
@@ -484,8 +548,6 @@ def _run_docling(pdf_path: str) -> StructuredDocument:
         result = converter.convert(pdf_path)
     except RuntimeError as e:
         if "Pipeline StandardPdfPipeline failed" in str(e):
-            # If the cause was a signal (TimeoutError from _run_docling_with_timeout),
-            # re-raise it so the handler can catch it.
             logger.error("Docling pipeline failed for %s: %s", pdf_path, e)
             raise
         raise

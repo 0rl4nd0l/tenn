@@ -599,8 +599,14 @@ def test_real_gold_eval_endpoint_reports_review_session_failures(
     )
 
 
-def test_real_gold_eval_route_is_async():
-    assert inspect.iscoroutinefunction(main_app.run_real_gold_eval)
+def test_real_gold_eval_route_is_sync():
+    """Handler must be sync so FastAPI runs it in the anyio threadpool.
+
+    A coroutine would execute on the event loop and block /api/health during
+    full-corpus evals. Docling timeouts are enforced by a spawn ProcessPoolExecutor,
+    not SIGALRM, so no main-thread context is required.
+    """
+    assert not inspect.iscoroutinefunction(main_app.run_real_gold_eval)
 
 
 def test_real_gold_eval_summary_rolls_up_failure_and_trigger_fields():

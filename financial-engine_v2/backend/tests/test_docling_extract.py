@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 import os
+import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from app.services import docling_extract
-from app.services.docling_extract import DoclingTable, StructuredDocument
+from app.services.docling_extract import (
+    DoclingTable,
+    ExtractionTimeoutError,
+    StructuredDocument,
+)
 
 
 def test_extract_structured_reads_fresh_cache(tmp_path, monkeypatch):
@@ -455,3 +461,69 @@ def test_extract_caption_prefers_captions_list():
     )
 
     assert docling_extract._extract_caption(table_item) == "Statement of Cash Flows"
+
+
+def test_run_docling_with_timeout_raises_extraction_timeout_error_on_slow_runner():
+    """A slow docling runner must raise ExtractionTimeoutError, not TimeoutError.
+
+    The timeout must fire without relying on SIGALRM (which is main-thread-only
+    and incompatible with FastAPI worker-thread execution).
+    """
+
+    def slow_runner(path: str) -> StructuredDocument:
+        time.sleep(0.5)
+        return StructuredDocument()
+
+    executor = ThreadPoolExecutor(max_workers=1)
+    try:
+        with pytest.raises(ExtractionTimeoutError) as exc_info:
+            docling_extract._run_docling_with_timeout(
+                "/fake/path.pdf",
+                timeout=0.05,
+                runner=slow_runner,
+                executor=executor,
+            )
+        assert "/fake/path.pdf" in str(exc_info.value)
+    finally:
+        executor.shutdown(wait=False)
+
+
+def test_run_docling_with_timeout_returns_runner_result_on_success():
+    expected = StructuredDocument(page_count=7, extraction_method="docling")
+
+    def fast_runner(path: str) -> StructuredDocument:
+        return expected
+
+    executor = ThreadPoolExecutor(max_workers=1)
+    try:
+        result = docling_extract._run_docling_with_timeout(
+            "/fake/path.pdf",
+            timeout=5.0,
+            runner=fast_runner,
+            executor=executor,
+        )
+        assert result is expected
+    finally:
+        executor.shutdown(wait=False)
+
+
+def test_run_docling_with_timeout_propagates_runner_exception():
+    """Non-timeout errors from the runner must propagate (not be swallowed)."""
+
+    class DoclingBoom(RuntimeError):
+        pass
+
+    def boom_runner(path: str) -> StructuredDocument:
+        raise DoclingBoom("pipeline exploded")
+
+    executor = ThreadPoolExecutor(max_workers=1)
+    try:
+        with pytest.raises(DoclingBoom, match="pipeline exploded"):
+            docling_extract._run_docling_with_timeout(
+                "/fake/path.pdf",
+                timeout=5.0,
+                runner=boom_runner,
+                executor=executor,
+            )
+    finally:
+        executor.shutdown(wait=False)

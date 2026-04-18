@@ -603,11 +603,12 @@ def _run_real_gold_eval_sync(body: RealGoldEvalRequest) -> dict[str, Any]:
 
 
 @app.post("/api/extraction-eval/real-gold", dependencies=[Depends(require_api_key)])
-async def run_real_gold_eval(body: RealGoldEvalRequest):
-    # Keep this handler on the main event-loop thread. The extraction stack uses
-    # signal-based docling timeouts and other main-thread-sensitive code paths,
-    # so FastAPI's worker-thread execution for sync handlers can terminate the
-    # request unexpectedly under real corpus loads.
+def run_real_gold_eval(body: RealGoldEvalRequest):
+    # Sync handler: FastAPI offloads this to the anyio threadpool so the event
+    # loop stays responsive (e.g. /api/health) during a full-corpus run.
+    # Docling timeouts are enforced by a spawn ProcessPoolExecutor in
+    # docling_extract._run_docling_with_timeout, so main-thread signal state
+    # is no longer required here.
     return _run_real_gold_eval_sync(body)
 
 
