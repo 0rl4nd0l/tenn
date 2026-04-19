@@ -42,6 +42,10 @@ from cockpit.core.config import (
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+# How long the SSE chat stream may remain silent before emitting a keepalive
+# comment. Module-level so tests can monkey-patch it to a smaller value.
+SSE_KEEPALIVE_INTERVAL_SECONDS = 10.0
+
 
 @dataclass
 class QueuedActionJobRuntime:
@@ -3039,6 +3043,13 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
         # Start the chat worker
         worker_task = asyncio.create_task(run_chat())
 
+        # SSE keepalive: yield a comment line if no real event has been sent
+        # for this long. Prevents intermediaries (nginx, corporate proxies) from
+        # silently tearing down the connection during long LLM passes, and gives
+        # the client a signal that the server is still alive.
+        keepalive_interval = SSE_KEEPALIVE_INTERVAL_SECONDS
+        last_yield_monotonic = time.monotonic()
+
         while True:
             # Check for client disconnect
             if await request.is_disconnected():
@@ -3048,12 +3059,16 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
             try:
                 item = await asyncio.wait_for(queue.get(), timeout=0.25)
             except asyncio.TimeoutError:
+                if time.monotonic() - last_yield_monotonic >= keepalive_interval:
+                    yield ": keepalive\n\n"
+                    last_yield_monotonic = time.monotonic()
                 continue
 
             if item is None:
                 break
 
             yield f"data: {json.dumps(item)}\n\n"
+            last_yield_monotonic = time.monotonic()
 
         yield "event: end\ndata: {}\n\n"
 

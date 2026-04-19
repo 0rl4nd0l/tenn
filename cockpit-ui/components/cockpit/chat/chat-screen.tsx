@@ -684,6 +684,12 @@ export function ChatScreen() {
     if (!isStreaming || !streamingStatusStartedAt) {
       return label
     }
+    // Status labels that already carry their own elapsed time (e.g.
+    // "Local model generating: N token chunks / 12s") should not get a second
+    // timer appended — the inner counter is the authoritative one.
+    if (/\/\s*\d+\s*s$/.test(label)) {
+      return label
+    }
     const elapsedMs = Math.max(0, streamingClockMs - streamingStatusStartedAt)
     return `${label} (${(elapsedMs / 1000).toFixed(1)}s)`
   }, [isStreaming, streamingClockMs, streamingStatus, streamingStatusStartedAt])

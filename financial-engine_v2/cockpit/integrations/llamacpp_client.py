@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import threading
+import time
 from typing import Callable
 
 import httpx
@@ -271,6 +272,7 @@ class LlamaCppClient:
         stream_timeout = httpx.Timeout(
             connect=5.0, read=timeout, write=min(120.0, timeout), pool=5.0
         )
+        deadline = time.monotonic() + timeout
         try:
             with self._http_client().stream(
                 "POST",
@@ -286,6 +288,12 @@ class LlamaCppClient:
             ) as response:
                 response.raise_for_status()
                 for line in response.iter_lines():
+                    if time.monotonic() > deadline:
+                        raise TimeoutError(
+                            f"llama.cpp wall-clock timeout ({timeout:.0f}s) exceeded at {url}; "
+                            f"received {len(parts)} token chunks. The model is streaming too slowly "
+                            "for this deadline — consider switching to the API backend or a smaller model."
+                        )
                     if not line:
                         continue
                     if isinstance(line, bytes):

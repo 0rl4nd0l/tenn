@@ -412,6 +412,73 @@ class HybridRouter:
             return str(getattr(self._api, "model", "api") or "api")
         return str(getattr(self._local, "model", "local") or "local")
 
+    def _wrap_chunk_progress(
+        self,
+        on_chunk: Callable[[str], None] | None,
+        on_status: Callable[[str], None] | None,
+        backend: str,
+    ) -> tuple[Callable[[str], None] | None, float]:
+        """Wrap on_chunk with periodic on_status ticks so the UI sees progress.
+
+        Emits a status update every ~3 s once token generation has started, so a
+        silent JSON-generation pass (iteration 0, which intentionally swallows
+        chunks from the caller) still produces user-visible "generating" ticks.
+
+        Only applied to the ``local`` backend — wrapping ``on_chunk`` for the
+        API backend would defeat the ``complete()``-vs-``chat()`` preference in
+        ``_call_api`` (complete() is only called when ``on_chunk is None``).
+
+        Returns the wrapped callback and the monotonic start timestamp so the
+        caller can measure fallback latency against the same clock.
+        """
+        start = time.monotonic()
+        if backend != "local":
+            return on_chunk, start
+        if on_status is None and on_chunk is None:
+            return None, start
+
+        state = {"tokens": 0, "last_emit": start}
+
+        def _wrapped(chunk: str) -> None:
+            state["tokens"] += 1
+            if on_chunk is not None:
+                on_chunk(chunk)
+            if on_status is None:
+                return
+            now = time.monotonic()
+            if now - state["last_emit"] >= 3.0:
+                state["last_emit"] = now
+                elapsed = now - start
+                on_status(
+                    f"Local model generating: "
+                    f"{state['tokens']} token chunks / {elapsed:.0f}s"
+                )
+
+        return _wrapped, start
+
+    def _should_fallback_to_api(
+        self,
+        exc: Exception,
+        *,
+        backend: str,
+        force_backend: str | None,
+    ) -> bool:
+        """Return True when a failed local call should be retried via API.
+
+        Triggered on TimeoutError or RuntimeError from the local backend when an
+        API client is configured and the caller did not explicitly force local.
+        Guards against infinite recursion (API-only path never enters here).
+        """
+        if backend != "local":
+            return False
+        if force_backend == "local":
+            return False
+        if self._api is None:
+            return False
+        if self._policy in ("local_only",):
+            return False
+        return isinstance(exc, (TimeoutError, RuntimeError))
+
     # ------------------------------------------------------------------
     # chat() adapter — allows HybridRouter to be used as llm_client
     # in AgentLoop without a separate wrapper class.
@@ -468,22 +535,55 @@ class HybridRouter:
             on_status=on_status,
         )
 
+        wrapped_on_chunk, progress_start = self._wrap_chunk_progress(
+            on_chunk, on_status, backend
+        )
+
         start = time.monotonic()
-        if backend == "local":
-            # Override timeout for this call only — no instance mutation.
-            saved = self._timeout
-            self._timeout = timeout
-            try:
-                response = self._call_local(messages, on_chunk=on_chunk)
-            finally:
-                self._timeout = saved
-        else:
-            saved = self._timeout
-            self._timeout = timeout
-            try:
-                response = self._call_api(messages, on_chunk=on_chunk)
-            finally:
-                self._timeout = saved
+        try:
+            if backend == "local":
+                saved = self._timeout
+                self._timeout = timeout
+                try:
+                    response = self._call_local(messages, on_chunk=wrapped_on_chunk)
+                finally:
+                    self._timeout = saved
+            else:
+                saved = self._timeout
+                self._timeout = timeout
+                try:
+                    response = self._call_api(messages, on_chunk=wrapped_on_chunk)
+                finally:
+                    self._timeout = saved
+        except Exception as exc:  # noqa: BLE001 — we re-raise after fallback attempt
+            if self._should_fallback_to_api(
+                exc, backend=backend, force_backend=force_backend
+            ):
+                elapsed_local = time.monotonic() - progress_start
+                reason = str(exc).splitlines()[0] if str(exc) else type(exc).__name__
+                logger.warning(
+                    "Local backend failed (%s) after %.1fs; retrying on API backend",
+                    reason,
+                    elapsed_local,
+                )
+                if on_status is not None:
+                    on_status(
+                        f"Local model failed after {elapsed_local:.0f}s ({reason}) — retrying on API backend"
+                    )
+                backend = "api"
+                routing_reason = f"fallback_api_after_local_failure:{type(exc).__name__}"
+                wrapped_on_chunk, progress_start = self._wrap_chunk_progress(
+                    on_chunk, on_status, backend
+                )
+                start = time.monotonic()
+                saved = self._timeout
+                self._timeout = timeout
+                try:
+                    response = self._call_api(messages, on_chunk=wrapped_on_chunk)
+                finally:
+                    self._timeout = saved
+            else:
+                raise
         elapsed_ms = int((time.monotonic() - start) * 1000)
 
         result = RouterResponse(
