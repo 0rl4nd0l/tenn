@@ -33,6 +33,7 @@ Usage:
   cockpit kill root      Stop all local Cockpit UI processes (web port + TUI/web PIDs)
   cockpit restart backend
   cockpit reboot         Kill backend + UI processes, then reboot stack and Next.js web UI
+  cockpit reboot full    Hard reboot: docker down + stop systemd units + kill rogue llama-servers + full restart
   cockpit doctor
   cockpit bugagent       Start bug monitor web UI (http://localhost:8765)
 
@@ -438,6 +439,63 @@ reboot_cockpit() {
   launch_cockpit_new
 }
 
+stop_llama_systemd_units() {
+  # Stop every systemd user unit that could respawn llama-server during a reboot.
+  command -v systemctl >/dev/null 2>&1 || return 0
+  local units=(
+    llama-cpp-router.service
+    llama-cpp-qwen25.service
+    llama-cpp.service
+    llama-server.service
+  )
+  local unit
+  for unit in "${units[@]}"; do
+    if systemctl --user is-active "${unit}" >/dev/null 2>&1; then
+      echo "Stopping systemd --user unit ${unit}…"
+      systemctl --user stop "${unit}" >/dev/null 2>&1 || true
+    fi
+  done
+}
+
+kill_rogue_llama_servers() {
+  # Sweep any llama-server not on an authorised port (SYSTEM_CONTRACT.md §9.4).
+  local guard="${REPO_ROOT}/scripts/gpu_process_guard.sh"
+  if [[ -x "${guard}" ]]; then
+    echo "Sweeping rogue llama-server processes…"
+    (cd "${REPO_ROOT}" && "${guard}" --kill-rogues) || true
+  fi
+}
+
+clear_llama_lockfile() {
+  local lock="${LLAMA_SERVER_LOCKFILE:-/tmp/llama-server.lock}"
+  if [[ -e "${lock}" ]]; then
+    echo "Removing stale llama-server lockfile ${lock}"
+    rm -f "${lock}" 2>/dev/null || sudo rm -f "${lock}" 2>/dev/null || true
+  fi
+}
+
+reboot_cockpit_full() {
+  echo "==> cockpit reboot full: tearing down the entire stack"
+  cockpit_kill_root
+  kill_backend_stack
+  stop_llama_systemd_units
+  kill_rogue_llama_servers
+  clear_llama_lockfile
+
+  echo "==> Stopping docker compose services (${COMPOSE_FILE})"
+  (cd "${ENGINE_ROOT}" && "${COMPOSE[@]}" down) || true
+
+  # After compose down, any leftover uvicorn / llama-server / rogues are stragglers.
+  kill_backend_stack
+  kill_rogue_llama_servers
+
+  echo "==> Bringing the stack back up"
+  start_full_stack
+  start_all_backends_safely
+  wait_for_health "Backend API" "$(backend_health_url)" 120
+  launch_cockpit_new
+}
+
 launch_cockpit_tui() {
   local py
   py="$(python_cmd)"
@@ -679,7 +737,20 @@ case "${cmd}" in
     wait_for_health "Backend API" "$(backend_health_url)" 120
     ;;
   reboot)
-    reboot_cockpit
+    sub="${1:-}"
+    shift || true
+    case "${sub}" in
+      ""|soft)
+        reboot_cockpit
+        ;;
+      full|hard)
+        reboot_cockpit_full
+        ;;
+      *)
+        echo "Usage: cockpit reboot [full]" >&2
+        exit 2
+        ;;
+    esac
     ;;
   bugagent)
     py="$(python_cmd)"
