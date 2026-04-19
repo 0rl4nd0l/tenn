@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -519,6 +520,64 @@ class HybridRouter:
         )
         return result.text
 
+    def _run_with_wall_clock_watchdog(
+        self,
+        call: Callable[[], dict],
+        *,
+        timeout: float,
+        label: str,
+        on_status: Callable[[str], None] | None = None,
+    ) -> dict:
+        """Run *call* in a daemon thread with an absolute wall-clock deadline.
+
+        The inner httpx clients already have per-read timeouts, but those reset
+        on every chunk. If the backend blocks before the first byte arrives, or
+        dribbles tokens just fast enough to keep resetting the read timeout,
+        those per-read timeouts never fire and the caller hangs indefinitely.
+
+        This watchdog enforces a hard *timeout*-second budget from the outside.
+        When the deadline expires we raise :class:`TimeoutError` and let the
+        orphaned daemon thread unwind on its own — its httpx session will
+        eventually raise on its own connect/read timeout, and as a daemon it
+        cannot block process exit.
+        """
+        box: dict[str, Any] = {"value": None, "error": None}
+
+        def _runner() -> None:
+            try:
+                box["value"] = call()
+            except BaseException as exc:  # noqa: BLE001 — surface every failure
+                box["error"] = exc
+
+        thread = threading.Thread(
+            target=_runner,
+            daemon=True,
+            name=f"hybrid-router-{label}-watchdog",
+        )
+        thread.start()
+        thread.join(timeout=timeout)
+        if thread.is_alive():
+            msg = (
+                f"{label} wall-clock watchdog expired after {timeout:.1f}s "
+                "(request is still running but we stopped waiting)"
+            )
+            if on_status is not None:
+                try:
+                    on_status(msg)
+                except Exception:
+                    pass
+            raise TimeoutError(msg)
+
+        err = box["error"]
+        if err is not None:
+            raise err
+        value = box["value"]
+        if value is None:
+            raise RuntimeError(
+                f"{label} backend returned no result without raising — this is a bug"
+            )
+        return value
+
     def _complete_with_timeout(
         self,
         messages: list[dict],
@@ -545,14 +604,28 @@ class HybridRouter:
                 saved = self._timeout
                 self._timeout = timeout
                 try:
-                    response = self._call_local(messages, on_chunk=wrapped_on_chunk)
+                    response = self._run_with_wall_clock_watchdog(
+                        lambda: self._call_local(
+                            messages, on_chunk=wrapped_on_chunk
+                        ),
+                        timeout=timeout,
+                        label="local",
+                        on_status=on_status,
+                    )
                 finally:
                     self._timeout = saved
             else:
                 saved = self._timeout
                 self._timeout = timeout
                 try:
-                    response = self._call_api(messages, on_chunk=wrapped_on_chunk)
+                    response = self._run_with_wall_clock_watchdog(
+                        lambda: self._call_api(
+                            messages, on_chunk=wrapped_on_chunk
+                        ),
+                        timeout=timeout,
+                        label="api",
+                        on_status=on_status,
+                    )
                 finally:
                     self._timeout = saved
         except Exception as exc:  # noqa: BLE001 — we re-raise after fallback attempt
@@ -579,7 +652,14 @@ class HybridRouter:
                 saved = self._timeout
                 self._timeout = timeout
                 try:
-                    response = self._call_api(messages, on_chunk=wrapped_on_chunk)
+                    response = self._run_with_wall_clock_watchdog(
+                        lambda: self._call_api(
+                            messages, on_chunk=wrapped_on_chunk
+                        ),
+                        timeout=timeout,
+                        label="api",
+                        on_status=on_status,
+                    )
                 finally:
                     self._timeout = saved
             else:
