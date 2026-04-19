@@ -157,10 +157,10 @@ def _has_graphical_desktop_session() -> bool:
 def _already_ready_message(port: int, payload: dict[str, object]) -> str:
     browser_name = str(payload.get("Browser") or "Chrome/Brave").strip()
     return (
-        "Marketplace browser already ready.\n"
+        "Marketplace browser debugger already reachable.\n"
         f"Browser: {browser_name}\n"
         f"Debugging URL: http://127.0.0.1:{port}\n"
-        "Paste the listing URL into Cockpit again."
+        "Cockpit will run a separate Marketplace health probe before scanning."
     )
 
 

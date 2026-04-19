@@ -11,15 +11,20 @@ from urllib.request import Request, urlopen
 from app.services.facebook_marketplace_inspector import (
     DEFAULT_MARKETPLACE_CDP_URL,
     DEFAULT_MARKETPLACE_TIMEOUT_MS,
+    MarketplaceBrowserProbeTimeout,
+    _await_marketplace_probe,
     _browser_unavailable_detail,
     _has_graphical_desktop_session,
     _is_local_cdp_url,
+    _marketplace_probe_timeout_detail,
+    _probe_timeout_seconds,
 )
 
 
 DEFAULT_MARKETPLACE_HOME_URL = "https://www.facebook.com/marketplace/"
 DEFAULT_PROFILE_ROOT = Path.home() / ".tenn" / "browser_profiles"
 DEFAULT_MARKETPLACE_HELPER_URL = "http://127.0.0.1:9233"
+DEFAULT_MARKETPLACE_HEALTH_TIMEOUT_MS = 5_000
 
 
 def _now_iso() -> str:
@@ -147,7 +152,27 @@ async def _check_browser_health_async(
 
     async with async_playwright() as playwright:
         try:
-            browser = await playwright.chromium.connect_over_cdp(cdp_url)
+            browser = await _await_marketplace_probe(
+                playwright.chromium.connect_over_cdp(cdp_url),
+                stage="CDP attach",
+                timeout_seconds=_probe_timeout_seconds(timeout_ms),
+            )
+        except MarketplaceBrowserProbeTimeout as exc:
+            return {
+                "status": "browser_unavailable",
+                "cdp_url": cdp_url,
+                "browser_family": family,
+                "profile_path": _profile_path(family),
+                "logged_in": False,
+                "challenge_detected": False,
+                "last_checked_at": last_checked_at,
+                "detail": _marketplace_probe_timeout_detail(
+                    cdp_url=cdp_url,
+                    timeout_ms=timeout_ms,
+                    stage=exc.stage,
+                    version_payload=version_payload,
+                ),
+            }
         except Exception:
             return {
                 "status": "browser_unavailable",
@@ -165,16 +190,40 @@ async def _check_browser_health_async(
         created_page = False
         try:
             try:
-                page = await context.new_page()
+                page = await _await_marketplace_probe(
+                    context.new_page(),
+                    stage="page creation",
+                    timeout_seconds=_probe_timeout_seconds(timeout_ms),
+                )
                 created_page = True
             except Exception:
-                page = context.pages[0] if context.pages else await context.new_page()
+                if context.pages:
+                    page = context.pages[0]
+                else:
+                    page = await _await_marketplace_probe(
+                        context.new_page(),
+                        stage="page creation",
+                        timeout_seconds=_probe_timeout_seconds(timeout_ms),
+                    )
                 created_page = page not in context.pages[:-1]
 
             page.set_default_timeout(timeout_ms)
-            await page.goto(DEFAULT_MARKETPLACE_HOME_URL, wait_until="domcontentloaded")
-            await page.wait_for_timeout(1_000)
-            evaluated = await page.evaluate(
+            await _await_marketplace_probe(
+                page.goto(
+                    DEFAULT_MARKETPLACE_HOME_URL,
+                    wait_until="domcontentloaded",
+                    timeout=timeout_ms,
+                ),
+                stage="Marketplace navigation",
+                timeout_seconds=_probe_timeout_seconds(timeout_ms, extra_seconds=2.0),
+            )
+            await _await_marketplace_probe(
+                page.wait_for_timeout(1_000),
+                stage="post-navigation wait",
+                timeout_seconds=3.0,
+            )
+            evaluated = await _await_marketplace_probe(
+                page.evaluate(
                 """
                 () => {
                   const text = (document.body?.innerText || '').toLowerCase()
@@ -191,6 +240,9 @@ async def _check_browser_health_async(
                   }
                 }
                 """
+                ),
+                stage="Marketplace evaluation",
+                timeout_seconds=_probe_timeout_seconds(timeout_ms),
             )
             challenge_detected = bool(evaluated.get("challengeDetected"))
             login_required = bool(evaluated.get("loginRequired"))
@@ -216,6 +268,22 @@ async def _check_browser_health_async(
                 "detail": detail,
                 "final_url": str(evaluated.get("finalUrl") or DEFAULT_MARKETPLACE_HOME_URL),
             }
+        except MarketplaceBrowserProbeTimeout as exc:
+            return {
+                "status": "browser_unavailable",
+                "cdp_url": cdp_url,
+                "browser_family": family,
+                "profile_path": _profile_path(family),
+                "logged_in": False,
+                "challenge_detected": False,
+                "last_checked_at": last_checked_at,
+                "detail": _marketplace_probe_timeout_detail(
+                    cdp_url=cdp_url,
+                    timeout_ms=timeout_ms,
+                    stage=exc.stage,
+                    version_payload=version_payload,
+                ),
+            }
         finally:
             if created_page and page is not None:
                 try:
@@ -230,7 +298,7 @@ def check_marketplace_browser_health(
     timeout_ms: int | None = None,
 ) -> dict[str, object]:
     resolved_cdp_url = str(cdp_url or "").strip() or DEFAULT_MARKETPLACE_CDP_URL
-    resolved_timeout = int(timeout_ms or DEFAULT_MARKETPLACE_TIMEOUT_MS)
+    resolved_timeout = int(timeout_ms or DEFAULT_MARKETPLACE_HEALTH_TIMEOUT_MS)
     return asyncio.run(
         _check_browser_health_async(
             cdp_url=resolved_cdp_url,

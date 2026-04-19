@@ -55,7 +55,7 @@ def test_main_reuses_existing_debugger_even_without_display(
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert "Marketplace browser already ready." in captured.out
+    assert "Marketplace browser debugger already reachable." in captured.out
     assert "http://127.0.0.1:9222" in captured.out
 
 

@@ -193,4 +193,46 @@ describe('MarketplaceMissionScreen', () => {
       screen.getByText(/launch chrome manually with remote debugging on port 9222, then refresh/i),
     ).toBeInTheDocument()
   })
+
+  it('shows a headless attach warning when CDP is reachable but Marketplace probing times out', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            status: 'browser_unavailable',
+            cdp_url: 'http://127.0.0.1:9222',
+            browser_family: 'chrome',
+            profile_path: '/tmp/profile',
+            logged_in: false,
+            challenge_detected: false,
+            last_checked_at: '2026-04-19T00:30:00Z',
+            detail:
+              'marketplace_browser_unavailable: Browser debugger is reachable, but the Marketplace probe timed out during CDP attach after about 5s. This Chrome session is running in headless mode, and the current Marketplace probe could not attach cleanly through Playwright CDP.',
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [] }),
+        }),
+    )
+
+    render(<MarketplaceMissionScreen apiKey="" />)
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/headless chrome is exposing cdp, but marketplace probing is not attachable yet/i),
+      ).toBeInTheDocument()
+    })
+    expect(screen.getAllByText(/timed out during cdp attach/i).length).toBeGreaterThan(0)
+    expect(
+      screen.getByText(/the current marketplace scanner still needs a cdp session that playwright can attach to/i),
+    ).toBeInTheDocument()
+  })
 })

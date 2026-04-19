@@ -37,6 +37,12 @@ class MarketplaceListingCapture:
     transcript_text: str
 
 
+class MarketplaceBrowserProbeTimeout(RuntimeError):
+    def __init__(self, stage: str) -> None:
+        super().__init__(stage)
+        self.stage = stage
+
+
 def is_facebook_marketplace_url(url: str) -> bool:
     return bool(FACEBOOK_MARKETPLACE_URL_RE.match(str(url or "").strip()))
 
@@ -103,6 +109,57 @@ def _browser_unavailable_detail(cdp_url: str) -> str:
         )
     detail += " Start the browser with --remote-debugging-port=9222 and stay logged into Facebook."
     return detail
+
+
+def _probe_timeout_seconds(timeout_ms: int, *, extra_seconds: float = 0.0) -> float:
+    return max((int(timeout_ms) / 1000.0) + extra_seconds, 5.0)
+
+
+def _is_headless_browser_version(version_payload: dict[str, object] | None) -> bool:
+    browser_text = str((version_payload or {}).get("Browser") or "")
+    user_agent = str((version_payload or {}).get("User-Agent") or "")
+    combined = f"{browser_text} {user_agent}"
+    return "HeadlessChrome" in combined
+
+
+def _marketplace_probe_timeout_detail(
+    *,
+    cdp_url: str,
+    timeout_ms: int,
+    stage: str,
+    version_payload: dict[str, object] | None = None,
+) -> str:
+    timeout_seconds = _probe_timeout_seconds(timeout_ms)
+    browser_name = str((version_payload or {}).get("Browser") or "Chrome/Brave").strip()
+    detail = (
+        "marketplace_browser_unavailable: Browser debugger is reachable, but the "
+        f"Marketplace probe timed out during {stage} after about {timeout_seconds:.0f}s."
+    )
+    if _is_headless_browser_version(version_payload):
+        detail += (
+            " This Chrome session is running in headless mode, and the current "
+            "Marketplace probe could not attach cleanly through Playwright CDP."
+        )
+    elif _is_local_cdp_url(cdp_url) and not _has_graphical_desktop_session():
+        detail += (
+            " This backend shell has no X/Wayland desktop session, so Chrome/Brave "
+            "must be started from a graphical desktop login on the same machine, or "
+            "marketplace_browser_helper.py must be running there."
+        )
+    detail += f" Browser: {browser_name}. Debugging URL: {cdp_url}"
+    return detail
+
+
+async def _await_marketplace_probe(
+    awaitable,
+    *,
+    stage: str,
+    timeout_seconds: float,
+):
+    try:
+        return await asyncio.wait_for(awaitable, timeout=timeout_seconds)
+    except asyncio.TimeoutError as exc:
+        raise MarketplaceBrowserProbeTimeout(stage) from exc
 
 
 def _compose_transcript(
@@ -216,7 +273,19 @@ async def _inspect_listing_async(
 
     async with async_playwright() as playwright:
         try:
-            browser = await playwright.chromium.connect_over_cdp(cdp_url)
+            browser = await _await_marketplace_probe(
+                playwright.chromium.connect_over_cdp(cdp_url),
+                stage="CDP attach",
+                timeout_seconds=_probe_timeout_seconds(timeout_ms),
+            )
+        except MarketplaceBrowserProbeTimeout as exc:
+            raise RuntimeError(
+                _marketplace_probe_timeout_detail(
+                    cdp_url=cdp_url,
+                    timeout_ms=timeout_ms,
+                    stage=exc.stage,
+                )
+            ) from exc
         except Exception as exc:
             raise RuntimeError(_browser_unavailable_detail(cdp_url)) from exc
 
@@ -225,20 +294,37 @@ async def _inspect_listing_async(
         created_page = False
         try:
             try:
-                page = await context.new_page()
+                page = await _await_marketplace_probe(
+                    context.new_page(),
+                    stage="page creation",
+                    timeout_seconds=_probe_timeout_seconds(timeout_ms),
+                )
                 created_page = True
             except Exception:
                 if context.pages:
                     page = context.pages[0]
                 else:
-                    page = await context.new_page()
+                    page = await _await_marketplace_probe(
+                        context.new_page(),
+                        stage="page creation",
+                        timeout_seconds=_probe_timeout_seconds(timeout_ms),
+                    )
                     created_page = True
 
             page.set_default_timeout(timeout_ms)
-            await page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
-            await page.wait_for_timeout(1_500)
+            await _await_marketplace_probe(
+                page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms),
+                stage="listing navigation",
+                timeout_seconds=_probe_timeout_seconds(timeout_ms, extra_seconds=2.0),
+            )
+            await _await_marketplace_probe(
+                page.wait_for_timeout(1_500),
+                stage="post-navigation wait",
+                timeout_seconds=3.0,
+            )
 
-            extracted = await page.evaluate(
+            extracted = await _await_marketplace_probe(
+                page.evaluate(
                 """
                 () => {
                   const clean = (value) => (value || '').replace(/\\s+/g, ' ').trim()
@@ -325,6 +411,9 @@ async def _inspect_listing_async(
                   }
                 }
                 """
+                ),
+                stage="listing evaluation",
+                timeout_seconds=_probe_timeout_seconds(timeout_ms),
             )
 
             if bool(extracted.get("login_required")):

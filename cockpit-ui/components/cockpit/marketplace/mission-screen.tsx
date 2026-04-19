@@ -75,7 +75,7 @@ function healthBadgeVariant(
 ): 'default' | 'secondary' | 'destructive' | 'outline' {
   if (status === 'ready') return 'default'
   if (status === 'login_required' || status === 'challenge_detected') return 'secondary'
-  if (status === 'browser_not_running' || status === 'desktop_session_missing') return 'destructive'
+  if (status === 'browser_not_running' || status === 'desktop_session_missing' || status === 'browser_unavailable') return 'destructive'
   return 'outline'
 }
 
@@ -98,6 +98,9 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const desktopSessionMissing = browserHealth?.status === 'desktop_session_missing'
+  const headlessProbeBlocked =
+    browserHealth?.status === 'browser_unavailable' &&
+    /headless mode|timed out during cdp attach/i.test(browserHealth?.detail || '')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -233,6 +236,19 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                 Start <span className="font-mono">marketplace_browser_helper.py</span> from a
                 desktop login on this machine, or launch Chrome manually with remote debugging on
                 port 9222, then refresh.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {headlessProbeBlocked && (
+          <div className="flex items-start gap-3 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div className="space-y-1">
+              <p className="font-medium">Headless Chrome is exposing CDP, but Marketplace probing is not attachable yet.</p>
+              {browserHealth?.detail && <p>{browserHealth.detail}</p>}
+              <p className="text-xs text-destructive/80">
+                The current Marketplace scanner still needs a CDP session that Playwright can attach to. This headless Chrome session is visible on port 9222, but Cockpit cannot scan until that attach step succeeds.
               </p>
             </div>
           </div>
