@@ -27,7 +27,15 @@ import {
 import { SourcesDrawer } from './sources-drawer'
 import { modelsLikelyMatch, parseCockpitConfig, resolveRuntimeModel } from '@/lib/cockpit-config'
 import { useCockpitStore, generateId } from '@/lib/cockpit-store'
-import { streamChat, sendChatMessage, executeAction, restartBackend } from '@/lib/api-client'
+import {
+  streamChat,
+  sendChatMessage,
+  restartBackend,
+  startActionJob,
+  getActionJob,
+  type ActionJobStatus,
+} from '@/lib/api-client'
+import { loadChatSession, saveChatSession } from '@/lib/chat-session-store'
 import { useAttachedSources } from '@/lib/hooks/use-attached-sources'
 import {
   MARKETPLACE_CAPTURE_CHANNEL,
@@ -291,11 +299,29 @@ export function ChatScreen() {
   const [showTickerInput, setShowTickerInput] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Wait for hydration to finish to avoid SSR/CSR mismatch with Zustand
+  // Wait for hydration to finish to avoid SSR/CSR mismatch with Zustand,
+  // and restore previously-persisted chat messages so navigating between
+  // cockpit screens does not wipe the current conversation.
   useEffect(() => {
     setHasHydrated(true)
     setApiKey(localStorage.getItem('cockpit.apiKey') ?? process.env.NEXT_PUBLIC_API_KEY ?? '')
+    const persisted = loadChatSession()
+    if (persisted.messages.length > 0) {
+      setMessages(persisted.messages)
+    }
   }, [])
+
+  // Persist messages to localStorage whenever they change so the chat survives
+  // route changes (ChatScreen unmounts when the user navigates away).
+  useEffect(() => {
+    if (!hasHydrated) return
+    saveChatSession({
+      sessionId,
+      activeTicker,
+      draft: '',
+      messages,
+    })
+  }, [messages, sessionId, activeTicker, hasHydrated])
 
   const appendSystemMessage = useCallback((content: string) => {
     setMessages((prev) => [
@@ -1105,31 +1131,113 @@ export function ChatScreen() {
 
     actionInFlightRef.current = true
     setPendingActionPreview(null)
+
+    const progressMessageId = generateId()
+    const renderProgressContent = (status: ActionJobStatus | null, fallbackStatus: string): string => {
+      const stage = status?.progress_stage?.trim()
+      const pct = typeof status?.progress_pct === 'number' ? status.progress_pct : null
+      const pctLabel = pct !== null ? ` — ${Math.round(pct)}%` : ''
+      const statusLabel = status?.status ?? fallbackStatus
+      const stageLabel = stage ? `\n\n_Stage: ${stage}${pctLabel}_` : (pctLabel ? `\n\n_${pctLabel.replace(/^ — /, '')}_` : '')
+      return `Running **${actionPreview.name}**… (status: ${statusLabel})${stageLabel}`
+    }
+
+    setMessages(prev => [...prev, {
+      id: progressMessageId,
+      role: 'system',
+      content: renderProgressContent(null, 'starting'),
+      timestamp: new Date(),
+      metadata: { source: 'local' },
+    }])
+
+    const terminalStatuses = new Set(['completed', 'failed', 'cancelled', 'error', 'timeout'])
+    const pollIntervalMs = 1000
+    const pollTimeoutMs = 15 * 60 * 1000  // 15-minute hard cap on UI polling
+
     try {
-      const result = await executeAction({
+      const handle = await startActionJob({
         actionId,
         args: actionPreview.args,
         sessionId,
       })
-      const resultMessage: ChatMessageType = {
-        id: generateId(),
-        role: 'assistant',
-        content: `Action **${actionPreview.name}** executed successfully.\n\n${result.result}`,
-        timestamp: new Date(),
-        metadata: { source: 'local' },
-        chart: result.chart,
+
+      if (!handle.job_id) {
+        const finalContent = handle.result
+          ? `Action **${actionPreview.name}** executed successfully.\n\n${handle.result}`
+          : `Action **${actionPreview.name}** executed successfully.`
+        setMessages(prev => prev.map(m => m.id === progressMessageId
+          ? { ...m, role: 'assistant', content: finalContent, timestamp: new Date(), metadata: { source: 'local' } }
+          : m))
+        toast.success(`Action "${actionPreview.name}" executed`)
+        return
       }
-      setMessages(prev => [...prev, resultMessage])
-      toast.success(`Action "${actionPreview.name}" executed`)
+
+      setMessages(prev => prev.map(m => m.id === progressMessageId
+        ? { ...m, content: renderProgressContent(null, handle.status || 'queued') }
+        : m))
+
+      const pollStart = Date.now()
+      let lastStatus: ActionJobStatus | null = null
+      while (Date.now() - pollStart < pollTimeoutMs) {
+        await new Promise(resolve => setTimeout(resolve, pollIntervalMs))
+        try {
+          lastStatus = await getActionJob(handle.job_id)
+        } catch {
+          // Transient poll failures (network blip) should not kill the action — keep trying.
+          continue
+        }
+        setMessages(prev => prev.map(m => m.id === progressMessageId
+          ? { ...m, content: renderProgressContent(lastStatus, lastStatus?.status ?? 'running') }
+          : m))
+        if (lastStatus && terminalStatuses.has(lastStatus.status)) {
+          break
+        }
+      }
+
+      if (!lastStatus || !terminalStatuses.has(lastStatus.status)) {
+        setMessages(prev => prev.map(m => m.id === progressMessageId
+          ? {
+              ...m,
+              role: 'system',
+              content: `Action **${actionPreview.name}** is still running in the background. Check the jobs panel for final status.`,
+              timestamp: new Date(),
+            }
+          : m))
+        toast.info(`Action "${actionPreview.name}" still running — continuing in background`)
+        return
+      }
+
+      if (lastStatus.status === 'completed') {
+        const body = lastStatus.result?.trim()
+        const finalContent = body
+          ? `Action **${actionPreview.name}** executed successfully.\n\n${body}`
+          : `Action **${actionPreview.name}** executed successfully.`
+        setMessages(prev => prev.map(m => m.id === progressMessageId
+          ? { ...m, role: 'assistant', content: finalContent, timestamp: new Date(), metadata: { source: 'local' } }
+          : m))
+        toast.success(`Action "${actionPreview.name}" executed`)
+      } else {
+        const detail = lastStatus.result?.trim() || `exit code ${lastStatus.exit_code ?? 'unknown'}`
+        setMessages(prev => prev.map(m => m.id === progressMessageId
+          ? {
+              ...m,
+              role: 'system',
+              content: `Action **${actionPreview.name}** ${lastStatus.status}: ${detail}`,
+              timestamp: new Date(),
+            }
+          : m))
+        toast.error(`Action "${actionPreview.name}" ${lastStatus.status}`)
+      }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unknown error'
-      const errorMessage: ChatMessageType = {
-        id: generateId(),
-        role: 'system',
-        content: `Action "${actionPreview.name}" failed: ${errorMsg}`,
-        timestamp: new Date(),
-      }
-      setMessages(prev => [...prev, errorMessage])
+      setMessages(prev => prev.map(m => m.id === progressMessageId
+        ? {
+            ...m,
+            role: 'system',
+            content: `Action "${actionPreview.name}" failed: ${errorMsg}`,
+            timestamp: new Date(),
+          }
+        : m))
       toast.error(`Action failed: ${errorMsg}`)
     } finally {
       actionInFlightRef.current = false
