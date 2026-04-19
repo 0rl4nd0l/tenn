@@ -38,6 +38,17 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 
 ---
 
+## L068 — Do not gzip proxied SSE responses in Cockpit web
+
+**Date:** 2026-04-19
+**Subsystem:** `cockpit-ui`
+**Symptom:** Web chat stayed on fallback copy like `Waiting for model response...` for minutes even though `POST /api/cockpit/chat` was healthy and emitted status events when queried outside the browser.
+**Root cause:** `next start` compressed the proxied `text/event-stream` response when the browser sent `Accept-Encoding: gzip`. Chromium then received `content-encoding: gzip` and no incremental chunks, so the chat UI never saw the early SSE status events.
+**Fix:** Disabled Next.js compression in `cockpit-ui/next.config.mjs` and kept the explicit `sse.js` listener-before-stream ordering fix in `lib/api-client.ts`. Verified with browser-side `fetch()` chunk reads and a full UI send against a fresh `next start` instance.
+**Rule:** Any Cockpit web SSE surface must be validated in a real browser with normal `Accept-Encoding` headers. If a proxied stream stalls in-browser but works with raw `curl`, check for server-side compression before changing backend chat logic.
+
+---
+
 ## L001 — Margin formula: _pct_change is not _ratio
 
 **Date:** 2026-03-24

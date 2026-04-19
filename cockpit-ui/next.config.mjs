@@ -7,6 +7,9 @@ const configDir = path.dirname(fileURLToPath(import.meta.url))
 
 const nextConfig = {
   outputFileTracingRoot: configDir,
+  // Next's gzip compression buffers proxied SSE responses, which prevents the
+  // chat stream from delivering incremental status/chunk events to browsers.
+  compress: false,
   typescript: {
     ignoreBuildErrors: false,
   },

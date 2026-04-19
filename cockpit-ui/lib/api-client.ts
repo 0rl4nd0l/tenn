@@ -256,6 +256,9 @@ export async function streamChat(params: {
   const source = new SSE("/api/cockpit/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    // sse.js starts streaming in the constructor by default. Disable that so
+    // we can attach listeners before the first status event is emitted.
+    start: false,
     payload: JSON.stringify({
       message: params.message,
       mode: params.mode,
