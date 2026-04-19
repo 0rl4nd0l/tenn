@@ -8,6 +8,7 @@ import csv
 import json
 import os
 import sys
+import time
 from pathlib import Path
 from typing import Any
 from urllib import error as urlerror
@@ -29,6 +30,7 @@ DEFAULT_REPORT_PATH = REPO_ROOT / "reports" / "extraction_real_eval_summary.md"
 DEFAULT_RESULTS_JSON = REPO_ROOT / "reports" / "extraction_real_eval_results.json"
 DEFAULT_BACKEND_URL = "http://127.0.0.1:8000"
 DEFAULT_TIMEOUT_SECONDS = 1800.0
+DEFAULT_POLL_INTERVAL_SECONDS = 5.0
 SUPPORTED_METRICS = ("revenue", "operating_cash_flow", "net_debt")
 
 
@@ -133,38 +135,13 @@ def _resolve_backend_api_key(arg_value: str | None) -> str | None:
     return None
 
 
-def _request_real_gold_eval(
-    *,
-    backend_url: str,
-    api_key: str | None,
-    limit: int,
-    tolerance: float,
-    method: str,
-    strict_method: bool,
-    timeout_seconds: float,
+def _http_json(
+    request: urlrequest.Request, *, per_call_timeout: float, error_label: str
 ) -> dict[str, Any]:
-    body = {
-        "limit": max(int(limit), 0),
-        "tolerance": max(float(tolerance), 0.0),
-        "method": normalize_extraction_method(method),
-        "strict_method": bool(strict_method),
-    }
-    payload = json.dumps(body).encode("utf-8")
-    headers = {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-    }
-    if api_key:
-        headers["X-API-Key"] = api_key
+    """Issue a single HTTP call and return the decoded JSON object body."""
 
-    request = urlrequest.Request(
-        f"{backend_url}/api/extraction-eval/real-gold",
-        data=payload,
-        headers=headers,
-        method="POST",
-    )
     try:
-        with urlrequest.urlopen(request, timeout=max(float(timeout_seconds), 1.0)) as resp:
+        with urlrequest.urlopen(request, timeout=max(per_call_timeout, 1.0)) as resp:
             response_body = resp.read().decode("utf-8")
     except urlerror.HTTPError as exc:
         detail = ""
@@ -179,26 +156,112 @@ def _request_real_gold_eval(
             detail = str(exc.reason or "").strip()
         suffix = f": {detail}" if detail else ""
         raise RuntimeError(
-            f"backend real-gold eval failed (HTTP {exc.code}){suffix}"
+            f"{error_label} failed (HTTP {exc.code}){suffix}"
         ) from exc
     except (urlerror.URLError, TimeoutError) as exc:
-        raise RuntimeError(
-            f"backend real-gold eval request failed: {exc}"
-        ) from exc
+        raise RuntimeError(f"{error_label} request failed: {exc}") from exc
 
     try:
         decoded = json.loads(response_body)
     except json.JSONDecodeError as exc:
-        raise RuntimeError(
-            "backend real-gold eval returned non-JSON output"
-        ) from exc
+        raise RuntimeError(f"{error_label} returned non-JSON output") from exc
     if not isinstance(decoded, dict):
-        raise RuntimeError("backend real-gold eval returned a non-object payload")
-    if not isinstance(decoded.get("summary"), dict):
-        raise RuntimeError("backend real-gold eval payload is missing summary")
-    if not isinstance(decoded.get("documents"), list):
-        raise RuntimeError("backend real-gold eval payload is missing documents")
+        raise RuntimeError(f"{error_label} returned a non-object payload")
     return decoded
+
+
+def _build_json_request(
+    url: str, *, method: str, api_key: str | None, body: dict[str, Any] | None = None
+) -> urlrequest.Request:
+    headers = {"Accept": "application/json"}
+    data: bytes | None = None
+    if body is not None:
+        headers["Content-Type"] = "application/json"
+        data = json.dumps(body).encode("utf-8")
+    if api_key:
+        headers["X-API-Key"] = api_key
+    return urlrequest.Request(url, data=data, headers=headers, method=method)
+
+
+def _request_real_gold_eval(
+    *,
+    backend_url: str,
+    api_key: str | None,
+    limit: int,
+    tolerance: float,
+    method: str,
+    strict_method: bool,
+    timeout_seconds: float,
+    poll_interval_seconds: float = DEFAULT_POLL_INTERVAL_SECONDS,
+) -> dict[str, Any]:
+    """Schedule a background real-gold job and poll until it terminates."""
+
+    body = {
+        "limit": max(int(limit), 0),
+        "tolerance": max(float(tolerance), 0.0),
+        "method": normalize_extraction_method(method),
+        "strict_method": bool(strict_method),
+    }
+    per_call_timeout = max(min(float(timeout_seconds), 60.0), 1.0)
+    poll_interval = max(float(poll_interval_seconds), 0.1)
+
+    schedule_request = _build_json_request(
+        f"{backend_url}/api/extraction-eval/real-gold?background=true",
+        method="POST",
+        api_key=api_key,
+        body=body,
+    )
+    scheduled = _http_json(
+        schedule_request,
+        per_call_timeout=per_call_timeout,
+        error_label="backend real-gold job",
+    )
+    task_id = scheduled.get("task_id")
+    if not isinstance(task_id, str) or not task_id:
+        raise RuntimeError(
+            "backend real-gold job schedule response missing task_id"
+        )
+
+    deadline = time.monotonic() + max(float(timeout_seconds), 1.0)
+    status_url = (
+        f"{backend_url}/api/extraction-eval/real-gold/tasks/{task_id}"
+    )
+    while True:
+        status_request = _build_json_request(
+            status_url, method="GET", api_key=api_key
+        )
+        status = _http_json(
+            status_request,
+            per_call_timeout=per_call_timeout,
+            error_label="backend real-gold job status",
+        )
+        state = str(status.get("status") or "").strip().lower()
+        if state == "completed":
+            result = status.get("result")
+            if not isinstance(result, dict):
+                raise RuntimeError(
+                    "backend real-gold job completed without result payload"
+                )
+            if not isinstance(result.get("summary"), dict):
+                raise RuntimeError(
+                    "backend real-gold job payload is missing summary"
+                )
+            if not isinstance(result.get("documents"), list):
+                raise RuntimeError(
+                    "backend real-gold job payload is missing documents"
+                )
+            return result
+        if state == "failed":
+            error_text = str(status.get("error") or "").strip() or "unknown error"
+            raise RuntimeError(
+                f"backend real-gold job failed: {error_text}"
+            )
+        if time.monotonic() >= deadline:
+            raise RuntimeError(
+                f"backend real-gold job timed out after {timeout_seconds:.0f}s "
+                f"(task_id={task_id}, last_status={state or 'unknown'})"
+            )
+        time.sleep(poll_interval)
 
 
 def _build_report_markdown(

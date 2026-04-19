@@ -204,8 +204,14 @@ Runtime note:
     - `method` and `strict_method` — parser backend selection (`auto`, `docling`, `pymupdf`, `anthropic`)
     - `prompt_variant_id` — bundle id resolved via `app.services.prompt_registry.resolve()`; `None` selects the canonical `"default"` bundle (the one that pins `extraction_runs.prompt_hash` to its historical value)
     - `model_override` — llama.cpp model id (e.g. `qwen2.5-14b-instruct`); threaded through every LLM call in the run via `metadata.requested_model`, honored by `app.services.llm._resolve_runtime_from_metadata`
-  - returns inline JSON summary plus per-document metric/trust results for the verification UI; response echoes `prompt_variant_id` and `model_override` for audit
+  - default (no query string): blocking execution, returns inline `200 OK` JSON summary plus per-document metric/trust results for the verification UI; response echoes `prompt_variant_id` and `model_override` for audit. Existing callers (cockpit-ui verification surface, `scripts/run_prompt_model_matrix.py`, E2E tests) rely on this blocking shape
+  - optional `?background=true`: schedules the run on a background daemon thread backed by an in-memory task registry (`app.services.eval_task_registry`) and returns `202 Accepted` with `{ "task_id": "<uuid4.hex>", "status": "pending" }` immediately. Use this for full-corpus runs that would otherwise exceed the HTTP client timeout. **Scope limits:** the registry is process-local; on backend restart all scheduled task state is lost. Persistence is intentionally out of scope for this slice — a DB-backed implementation can replace the registry later without changing the endpoint contract
   - batch driver: `financial-engine_v2/scripts/run_prompt_model_matrix.py` enumerates (prompt_variant × model) cells in model-major order to minimize llama.cpp `--models-max 1` VRAM swaps
+- `GET /api/extraction-eval/real-gold/tasks/{task_id}`
+  - polls the status of a previously-scheduled background run
+  - returns `{ "task_id", "status", "created_at", "updated_at", "result", "error" }` where `status` is one of `pending`, `running`, `completed`, `failed`; `result` is populated only on `completed` (same shape as the blocking POST response), `error` only on `failed`
+  - returns `404 Not Found` for an unknown `task_id` (including one observed before a backend restart)
+  - CLI client: `scripts/run_real_extraction_eval.py` always uses `?background=true` + poll, capping each HTTP call at 60 s while honoring the CLI-level `--timeout-seconds` as the overall deadline via `time.monotonic()`
 - `POST /api/extraction-review/session`
   - builds a manual metric-review session from the latest extracted run(s) for selected document IDs
 - `GET /api/extraction-review/session/{session_id}`

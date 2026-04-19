@@ -4,6 +4,10 @@ import inspect
 import importlib.util
 import json
 import sys
+import threading
+import time
+
+from fastapi.testclient import TestClient
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = BACKEND_ROOT.parent
@@ -649,3 +653,137 @@ def test_real_gold_eval_summary_rolls_up_failure_and_trigger_fields():
         "context_mismatch:currency": 1,
         "net_debt:missing": 1,
     }
+
+
+# ---------------------------------------------------------------------------
+# Background-task polling path (Phase B)
+#
+# Default behavior (no ?background flag) must still return the full blocking
+# result synchronously so existing callers (cockpit-ui verification screen,
+# scripts/run_prompt_model_matrix.py, E2E tests) do not break.
+#
+# ?background=true returns 202 + task_id and runs the eval on a daemon thread.
+# GET /api/extraction-eval/real-gold/tasks/{task_id} returns the current state.
+# ---------------------------------------------------------------------------
+
+
+def _stub_sync_payload() -> dict:
+    return {
+        "summary": {
+            "total_documents": 0,
+            "total_accuracy": 0.0,
+            "trust_distribution": {"trusted": 0, "abstain": 0, "quarantine": 0},
+            "metric_status_counts": {},
+            "total_metric_checks": 0,
+        },
+        "documents": [],
+        "dataset_dir": "stub",
+        "requested_method": "auto",
+        "strict_method": False,
+        "prompt_variant_id": None,
+        "model_override": None,
+    }
+
+
+def test_real_gold_eval_route_preserves_blocking_response_by_default(monkeypatch):
+    """Existing callers (UI, prompt-matrix, E2E) must keep getting a 200 + full body."""
+    captured: dict[str, object] = {}
+
+    def fake_sync(body):
+        captured["body"] = body
+        return _stub_sync_payload()
+
+    monkeypatch.setattr(main_app, "_run_real_gold_eval_sync", fake_sync)
+
+    client = TestClient(main_app.app)
+    response = client.post("/api/extraction-eval/real-gold", json={})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["summary"]["total_documents"] == 0
+    assert "task_id" not in body
+    assert "status" not in body
+    assert captured["body"] is not None
+
+
+def test_real_gold_eval_route_returns_202_task_id_when_background_true(monkeypatch):
+    """background=true must return 202 and a task_id without waiting for the job."""
+    started = threading.Event()
+    finish = threading.Event()
+
+    def slow_sync(_body):
+        started.set()
+        finish.wait(timeout=5.0)
+        return _stub_sync_payload()
+
+    monkeypatch.setattr(main_app, "_run_real_gold_eval_sync", slow_sync)
+
+    client = TestClient(main_app.app)
+    try:
+        response = client.post(
+            "/api/extraction-eval/real-gold?background=true", json={}
+        )
+        assert response.status_code == 202
+        body = response.json()
+        assert body["status"] in {"pending", "running"}
+        assert isinstance(body.get("task_id"), str) and body["task_id"]
+        # Handler must return before the eval finishes.
+        assert started.wait(timeout=2.0), "background thread never started"
+    finally:
+        finish.set()
+
+
+def test_real_gold_eval_task_endpoint_reports_completed_result(monkeypatch):
+    monkeypatch.setattr(
+        main_app, "_run_real_gold_eval_sync", lambda _body: _stub_sync_payload()
+    )
+    client = TestClient(main_app.app)
+    schedule = client.post("/api/extraction-eval/real-gold?background=true", json={})
+    assert schedule.status_code == 202
+    task_id = schedule.json()["task_id"]
+
+    deadline = time.monotonic() + 3.0
+    last: dict = {}
+    while time.monotonic() < deadline:
+        poll = client.get(f"/api/extraction-eval/real-gold/tasks/{task_id}")
+        assert poll.status_code == 200
+        last = poll.json()
+        if last.get("status") in {"completed", "failed"}:
+            break
+        time.sleep(0.02)
+
+    assert last.get("status") == "completed", last
+    assert last["result"]["summary"]["total_documents"] == 0
+    assert last["error"] is None
+
+
+def test_real_gold_eval_task_endpoint_reports_failed_error(monkeypatch):
+    def raising_sync(_body):
+        raise RuntimeError("extraction crashed")
+
+    monkeypatch.setattr(main_app, "_run_real_gold_eval_sync", raising_sync)
+    client = TestClient(main_app.app)
+    schedule = client.post("/api/extraction-eval/real-gold?background=true", json={})
+    task_id = schedule.json()["task_id"]
+
+    deadline = time.monotonic() + 3.0
+    last: dict = {}
+    while time.monotonic() < deadline:
+        last = client.get(
+            f"/api/extraction-eval/real-gold/tasks/{task_id}"
+        ).json()
+        if last.get("status") in {"completed", "failed"}:
+            break
+        time.sleep(0.02)
+
+    assert last.get("status") == "failed", last
+    assert "extraction crashed" in (last.get("error") or "")
+    assert last["result"] is None
+
+
+def test_real_gold_eval_task_endpoint_returns_404_for_unknown_id():
+    client = TestClient(main_app.app)
+    response = client.get(
+        "/api/extraction-eval/real-gold/tasks/does-not-exist"
+    )
+    assert response.status_code == 404

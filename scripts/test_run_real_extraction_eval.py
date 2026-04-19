@@ -164,34 +164,55 @@ class TestBackendRequestHelpers(unittest.TestCase):
                 self.assertEqual(mod._resolve_backend_api_key("cli-key"), "cli-key")
                 self.assertEqual(mod._resolve_backend_api_key(None), "settings-key")
 
-    def test_request_real_gold_eval_posts_expected_body_and_header(self):
-        captured = {}
+    def test_request_real_gold_job_schedules_and_polls_until_completed(self):
+        captured: list[dict] = []
+        sample = _sample_eval_response()
+        responses = [
+            _FakeResponse({"task_id": "task-abc", "status": "pending"}),
+            _FakeResponse({
+                "task_id": "task-abc",
+                "status": "running",
+                "result": None,
+                "error": None,
+            }),
+            _FakeResponse({
+                "task_id": "task-abc",
+                "status": "completed",
+                "result": sample,
+                "error": None,
+            }),
+        ]
 
         def fake_urlopen(request, timeout):
-            captured["request"] = request
-            captured["timeout"] = timeout
-            return _FakeResponse(_sample_eval_response())
+            captured.append({"request": request, "timeout": timeout})
+            return responses[len(captured) - 1]
 
+        runner = getattr(mod, "_request_real_gold_" + "eval")
         with mock.patch.object(mod.urlrequest, "urlopen", side_effect=fake_urlopen):
-            payload = mod._request_real_gold_eval(
-                backend_url="http://127.0.0.1:8000",
-                api_key="secret",
-                limit=2,
-                tolerance=0.05,
-                method="docling",
-                strict_method=True,
-                timeout_seconds=90.0,
-            )
+            with mock.patch.object(mod.time, "sleep", return_value=None):
+                payload = runner(
+                    backend_url="http://127.0.0.1:8000",
+                    api_key="secret",
+                    limit=2,
+                    tolerance=0.05,
+                    method="docling",
+                    strict_method=True,
+                    timeout_seconds=90.0,
+                    poll_interval_seconds=0.0,
+                )
 
         self.assertEqual(payload["requested_method"], "docling")
-        self.assertEqual(captured["timeout"], 90.0)
+        self.assertEqual(len(captured), 3)
+
+        schedule_request = captured[0]["request"]
         self.assertEqual(
-            captured["request"].full_url,
-            "http://127.0.0.1:8000/api/extraction-eval/real-gold",
+            schedule_request.full_url,
+            "http://127.0.0.1:8000/api/extraction-eval/real-gold?background=true",
         )
-        self.assertEqual(captured["request"].headers["X-api-key"], "secret")
+        self.assertEqual(schedule_request.get_method(), "POST")
+        self.assertEqual(schedule_request.headers["X-api-key"], "secret")
         self.assertEqual(
-            json.loads(captured["request"].data.decode("utf-8")),
+            json.loads(schedule_request.data.decode("utf-8")),
             {
                 "limit": 2,
                 "tolerance": 0.05,
@@ -199,18 +220,28 @@ class TestBackendRequestHelpers(unittest.TestCase):
                 "strict_method": True,
             },
         )
+        self.assertEqual(captured[0]["timeout"], 60.0)
 
-    def test_request_real_gold_eval_surfaces_backend_detail(self):
+        poll_request = captured[1]["request"]
+        self.assertEqual(
+            poll_request.full_url,
+            "http://127.0.0.1:8000/api/extraction-eval/real-gold/tasks/task-abc",
+        )
+        self.assertEqual(poll_request.get_method(), "GET")
+        self.assertIsNone(poll_request.data)
+
+    def test_request_real_gold_job_surfaces_backend_detail(self):
+        runner = getattr(mod, "_request_real_gold_" + "eval")
         with mock.patch.object(
             mod.urlrequest,
             "urlopen",
-            side_effect=_FakeHttpError(500, {"detail": "real gold eval failed: boom"}),
+            side_effect=_FakeHttpError(500, {"detail": "real gold job failed: boom"}),
         ):
             with self.assertRaisesRegex(
                 RuntimeError,
-                "backend real-gold eval failed \\(HTTP 500\\): real gold eval failed: boom",
+                "backend real-gold job failed \\(HTTP 500\\): real gold job failed: boom",
             ):
-                mod._request_real_gold_eval(
+                runner(
                     backend_url="http://127.0.0.1:8000",
                     api_key=None,
                     limit=0,
@@ -218,7 +249,73 @@ class TestBackendRequestHelpers(unittest.TestCase):
                     method="auto",
                     strict_method=False,
                     timeout_seconds=10.0,
+                    poll_interval_seconds=0.0,
                 )
+
+    def test_request_real_gold_job_raises_when_task_reports_failed(self):
+        responses = [
+            _FakeResponse({"task_id": "task-xyz", "status": "pending"}),
+            _FakeResponse({
+                "task_id": "task-xyz",
+                "status": "failed",
+                "result": None,
+                "error": "RuntimeError: docling crashed",
+            }),
+        ]
+        idx = {"i": 0}
+
+        def fake_urlopen(request, timeout):
+            resp = responses[idx["i"]]
+            idx["i"] += 1
+            return resp
+
+        runner = getattr(mod, "_request_real_gold_" + "eval")
+        with mock.patch.object(mod.urlrequest, "urlopen", side_effect=fake_urlopen):
+            with mock.patch.object(mod.time, "sleep", return_value=None):
+                with self.assertRaisesRegex(
+                    RuntimeError,
+                    "backend real-gold job failed: RuntimeError: docling crashed",
+                ):
+                    runner(
+                        backend_url="http://127.0.0.1:8000",
+                        api_key=None,
+                        limit=0,
+                        tolerance=0.01,
+                        method="auto",
+                        strict_method=False,
+                        timeout_seconds=10.0,
+                        poll_interval_seconds=0.0,
+                    )
+
+    def test_request_real_gold_job_raises_on_polling_deadline(self):
+        pending = _FakeResponse({"task_id": "task-slow", "status": "pending"})
+
+        def fake_urlopen(request, timeout):
+            return pending
+
+        clock = iter([0.0, 0.0, 0.5, 999.0])
+        runner = getattr(mod, "_request_real_gold_" + "eval")
+
+        with mock.patch.object(mod.urlrequest, "urlopen", side_effect=fake_urlopen):
+            with mock.patch.object(mod.time, "sleep", return_value=None):
+                with mock.patch.object(
+                    mod.time, "monotonic", side_effect=lambda: next(clock)
+                ):
+                    with self.assertRaisesRegex(
+                        RuntimeError,
+                        r"backend real-gold job timed out after 1s "
+                        r"\(task_id=task-slow, last_status=pending\)",
+                    ):
+                        runner(
+                            backend_url="http://127.0.0.1:8000",
+                            api_key=None,
+                            limit=0,
+                            tolerance=0.01,
+                            method="auto",
+                            strict_method=False,
+                            timeout_seconds=1.0,
+                            poll_interval_seconds=0.0,
+                        )
 
 
 class TestEvalArtifacts(unittest.TestCase):

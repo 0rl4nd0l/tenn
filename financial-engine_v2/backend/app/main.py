@@ -4,6 +4,7 @@ import logging
 import os
 import socket
 import subprocess
+import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -13,7 +14,8 @@ from urllib.parse import urlparse
 import httpx
 from typing import Any, Literal, Optional
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy import func
 
@@ -69,6 +71,7 @@ from app.services.method_isolated_extraction import (
 )
 from app.services.ollama import probe_ollama_embeddings
 from app.services.rag import query_news_chunks, query_rag
+from app.services.eval_task_registry import get_eval_task_registry
 from app.services.router_state import extraction_activity
 
 
@@ -602,14 +605,78 @@ def _run_real_gold_eval_sync(body: RealGoldEvalRequest) -> dict[str, Any]:
         ) from exc
 
 
+def _run_real_gold_eval_background(
+    task_id: str, body: RealGoldEvalRequest
+) -> None:
+    """Execute a real-gold eval run and funnel its outcome into the task registry.
+
+    This is the worker body for the background-thread path. Both HTTPException
+    (400s from input validation) and any other exception must be captured and
+    recorded on the registry — otherwise the polling GET would never see the
+    failure and the CLI would hang until its own timeout.
+    """
+    registry = get_eval_task_registry()
+    registry.set_running(task_id)
+    try:
+        result = _run_real_gold_eval_sync(body)
+    except HTTPException as exc:
+        registry.set_failed(task_id, f"HTTP {exc.status_code}: {exc.detail}")
+    except Exception as exc:  # noqa: BLE001 — surface every failure to the poller
+        registry.set_failed(task_id, f"{type(exc).__name__}: {exc}")
+    else:
+        registry.set_completed(task_id, result)
+
+
 @app.post("/api/extraction-eval/real-gold", dependencies=[Depends(require_api_key)])
-def run_real_gold_eval(body: RealGoldEvalRequest):
+def run_real_gold_eval(
+    body: RealGoldEvalRequest,
+    background: bool = Query(
+        default=False,
+        description=(
+            "When true, schedule the eval on a background thread and return "
+            "202 + task_id; poll GET /api/extraction-eval/real-gold/tasks/"
+            "{task_id} for the result. When false (default), run blocking "
+            "and return the full payload — preserves the legacy contract for "
+            "cockpit-ui and the prompt×model matrix script."
+        ),
+    ),
+):
     # Sync handler: FastAPI offloads this to the anyio threadpool so the event
     # loop stays responsive (e.g. /api/health) during a full-corpus run.
     # Docling timeouts are enforced by a spawn ProcessPoolExecutor in
     # docling_extract._run_docling_with_timeout, so main-thread signal state
     # is no longer required here.
-    return _run_real_gold_eval_sync(body)
+    if not background:
+        return _run_real_gold_eval_sync(body)
+
+    registry = get_eval_task_registry()
+    record = registry.register()
+    thread = threading.Thread(
+        target=_run_real_gold_eval_background,
+        args=(record.task_id, body),
+        name=f"real-gold-eval-{record.task_id[:8]}",
+        daemon=True,
+    )
+    thread.start()
+    return JSONResponse(
+        status_code=202,
+        content={
+            "task_id": record.task_id,
+            "status": record.status.value,
+        },
+    )
+
+
+@app.get(
+    "/api/extraction-eval/real-gold/tasks/{task_id}",
+    dependencies=[Depends(require_api_key)],
+)
+def get_real_gold_eval_task(task_id: str) -> dict[str, Any]:
+    """Poll the status/result of a background real-gold eval run."""
+    record = get_eval_task_registry().get(task_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"unknown task_id: {task_id}")
+    return record.to_dict()
 
 
 @app.post("/rag/query", dependencies=[Depends(require_api_key)])
