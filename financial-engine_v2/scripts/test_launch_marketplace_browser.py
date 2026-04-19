@@ -91,3 +91,23 @@ def test_main_delegates_to_helper_when_no_graphical_session(
 
     assert exit_code == 0
     assert "desktop helper" in captured.out
+
+
+def test_main_reports_direct_runtime_mode(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        launcher,
+        "_parse_args",
+        lambda: SimpleNamespace(
+            url="https://www.facebook.com/marketplace/",
+            browser="auto",
+            port=9222,
+            fresh_profile=False,
+        ),
+    )
+    monkeypatch.setenv("MARKETPLACE_BROWSER_RUNTIME", "direct")
+
+    exit_code = launcher.main()
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "direct headless runtime is enabled" in captured.out.lower()

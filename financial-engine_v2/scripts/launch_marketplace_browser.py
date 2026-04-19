@@ -262,6 +262,14 @@ def _launch_with_helper(
 def main() -> int:
     args = _parse_args()
 
+    if str(os.environ.get("MARKETPLACE_BROWSER_RUNTIME") or "").strip().lower() == "direct":
+        print(
+            "Marketplace direct headless runtime is enabled.\n"
+            "The backend launches Chrome on demand using Playwright and the configured profile.\n"
+            "Refresh browser health or trigger a scan instead of launching a persistent CDP browser."
+        )
+        return 0
+
     existing_payload = _wait_for_cdp(args.port, timeout_seconds=0.5)
     if existing_payload is not None:
         print(_already_ready_message(args.port, existing_payload))

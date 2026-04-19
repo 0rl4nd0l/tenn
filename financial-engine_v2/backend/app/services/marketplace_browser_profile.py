@@ -19,6 +19,11 @@ from app.services.facebook_marketplace_inspector import (
     _marketplace_probe_timeout_detail,
     _probe_timeout_seconds,
 )
+from app.services.marketplace_headless_runtime import (
+    marketplace_direct_runtime_detail,
+    open_direct_marketplace_context,
+    use_direct_marketplace_runtime,
+)
 
 
 DEFAULT_MARKETPLACE_HOME_URL = "https://www.facebook.com/marketplace/"
@@ -93,6 +98,104 @@ async def _check_browser_health_async(
     timeout_ms: int,
 ) -> dict[str, object]:
     last_checked_at = _now_iso()
+    if use_direct_marketplace_runtime():
+        try:
+            async with open_direct_marketplace_context() as (
+                context,
+                browser_family,
+                profile_path,
+            ):
+                page = context.pages[0] if context.pages else await context.new_page()
+                page.set_default_timeout(timeout_ms)
+                await _await_marketplace_probe(
+                    page.goto(
+                        DEFAULT_MARKETPLACE_HOME_URL,
+                        wait_until="domcontentloaded",
+                        timeout=timeout_ms,
+                    ),
+                    stage="Marketplace navigation",
+                    timeout_seconds=_probe_timeout_seconds(timeout_ms, extra_seconds=2.0),
+                )
+                await _await_marketplace_probe(
+                    page.wait_for_timeout(1_000),
+                    stage="post-navigation wait",
+                    timeout_seconds=3.0,
+                )
+                evaluated = await _await_marketplace_probe(
+                    page.evaluate(
+                        """
+                        () => {
+                          const text = (document.body?.innerText || '').toLowerCase()
+                          const challengeDetected =
+                            /confirm (it'?s )?you|challenge|checkpoint|security check|suspended/i.test(text) ||
+                            /checkpoint|challenge/i.test(window.location.href || '')
+                          const loginRequired =
+                            !!document.querySelector('input[name="email"], form[action*="login"], #loginbutton') ||
+                            /log in to continue|see marketplace listings|facebook login/i.test(text)
+                          return {
+                            challengeDetected,
+                            loginRequired,
+                            finalUrl: window.location.href || '',
+                          }
+                        }
+                        """
+                    ),
+                    stage="Marketplace evaluation",
+                    timeout_seconds=_probe_timeout_seconds(timeout_ms),
+                )
+        except MarketplaceBrowserProbeTimeout as exc:
+            return {
+                "status": "browser_unavailable",
+                "cdp_url": cdp_url,
+                "browser_family": "chrome",
+                "profile_path": profile_path if "profile_path" in locals() else _profile_path("chrome"),
+                "logged_in": False,
+                "challenge_detected": False,
+                "last_checked_at": last_checked_at,
+                "detail": (
+                    f"{marketplace_direct_runtime_detail(profile_path) if 'profile_path' in locals() else 'Marketplace direct headless runtime is enabled.'} "
+                    f"Probe timed out during {exc.stage}."
+                ),
+            }
+        except Exception as exc:
+            return {
+                "status": "browser_unavailable",
+                "cdp_url": cdp_url,
+                "browser_family": "chrome",
+                "profile_path": profile_path if "profile_path" in locals() else _profile_path("chrome"),
+                "logged_in": False,
+                "challenge_detected": False,
+                "last_checked_at": last_checked_at,
+                "detail": (
+                    f"{marketplace_direct_runtime_detail(profile_path) if 'profile_path' in locals() else 'Marketplace direct headless runtime is enabled.'} "
+                    f"Launch failed: {exc}"
+                ),
+            }
+
+        challenge_detected = bool(evaluated.get("challengeDetected"))
+        login_required = bool(evaluated.get("loginRequired"))
+        if login_required:
+            status = "login_required"
+            detail = "The browser session is not logged into Facebook Marketplace."
+        elif challenge_detected:
+            status = "challenge_detected"
+            detail = "The browser session hit a Facebook checkpoint or challenge page."
+        else:
+            status = "ready"
+            detail = marketplace_direct_runtime_detail(profile_path)
+
+        return {
+            "status": status,
+            "cdp_url": cdp_url,
+            "browser_family": browser_family,
+            "profile_path": profile_path,
+            "logged_in": status == "ready",
+            "challenge_detected": challenge_detected,
+            "last_checked_at": last_checked_at,
+            "detail": detail,
+            "final_url": str(evaluated.get("finalUrl") or DEFAULT_MARKETPLACE_HOME_URL),
+        }
+
     version_payload = _fetch_cdp_version(cdp_url, timeout_seconds=max(timeout_ms / 1000, 1.5))
     if version_payload is None:
         helper_health = None
@@ -247,12 +350,12 @@ async def _check_browser_health_async(
             challenge_detected = bool(evaluated.get("challengeDetected"))
             login_required = bool(evaluated.get("loginRequired"))
 
-            if challenge_detected:
-                status = "challenge_detected"
-                detail = "The browser session hit a Facebook checkpoint or challenge page."
-            elif login_required:
+            if login_required:
                 status = "login_required"
                 detail = "The browser session is not logged into Facebook Marketplace."
+            elif challenge_detected:
+                status = "challenge_detected"
+                detail = "The browser session hit a Facebook checkpoint or challenge page."
             else:
                 status = "ready"
                 detail = "Marketplace browser profile is ready."

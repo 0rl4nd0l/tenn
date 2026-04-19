@@ -9,6 +9,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 
+from app.services.marketplace_headless_runtime import (
+    marketplace_direct_runtime_detail,
+    open_direct_marketplace_context,
+    use_direct_marketplace_runtime,
+)
+
 
 FACEBOOK_MARKETPLACE_URL_RE = re.compile(
     r"^https?://(?:www\.|m\.)?facebook\.com/marketplace/item/[^\s?#]+(?:[^\s#]*)?$",
@@ -270,6 +276,153 @@ async def _inspect_listing_async(
     captured_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     ts = captured_at.replace(":", "").replace("-", "").replace("+00:00", "Z")
     screenshot_path = MARKETPLACE_CAPTURE_ROOT / f"{ts}_marketplace.png"
+
+    if use_direct_marketplace_runtime():
+        try:
+            async with open_direct_marketplace_context() as (
+                context,
+                _browser_family,
+                profile_path,
+            ):
+                page = context.pages[0] if context.pages else await context.new_page()
+                page.set_default_timeout(timeout_ms)
+                await _await_marketplace_probe(
+                    page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms),
+                    stage="listing navigation",
+                    timeout_seconds=_probe_timeout_seconds(timeout_ms, extra_seconds=2.0),
+                )
+                await _await_marketplace_probe(
+                    page.wait_for_timeout(1_500),
+                    stage="post-navigation wait",
+                    timeout_seconds=3.0,
+                )
+
+                extracted = await _await_marketplace_probe(
+                    page.evaluate(
+                        """
+                        () => {
+                          const clean = (value) => (value || '').replace(/\\s+/g, ' ').trim()
+                          const dedupe = (items) => {
+                            const out = []
+                            const seen = new Set()
+                            for (const item of items) {
+                              const cleaned = clean(item)
+                              if (!cleaned) continue
+                              const key = cleaned.toLowerCase()
+                              if (seen.has(key)) continue
+                              seen.add(key)
+                              out.push(cleaned)
+                            }
+                            return out
+                          }
+                          const collect = (selector) =>
+                            Array.from(document.querySelectorAll(selector)).map((el) =>
+                              clean(el.innerText || el.textContent || '')
+                            )
+                          const visible = dedupe(
+                            collect('h1,h2,h3,span,div,p,a,li').filter(
+                              (text) => text.length >= 2 && text.length <= 280
+                            )
+                          )
+                          const byHeading = (heading) => {
+                            const index = visible.findIndex(
+                              (text) => text.toLowerCase() === heading
+                            )
+                            if (index < 0) return null
+                            for (let i = index + 1; i < Math.min(visible.length, index + 6); i += 1) {
+                              const candidate = visible[i]
+                              if (candidate && candidate.toLowerCase() !== heading) {
+                                return candidate
+                              }
+                            }
+                            return null
+                          }
+                          const metaTitle =
+                            clean(document.querySelector('meta[property="og:title"]')?.content) ||
+                            clean(document.querySelector('h1')?.textContent) ||
+                            clean(document.title) ||
+                            ''
+                          const metaDescription =
+                            clean(document.querySelector('meta[property="og:description"]')?.content) ||
+                            clean(document.querySelector('meta[name="description"]')?.content) ||
+                            ''
+                          const loginRequired =
+                            !!document.querySelector('input[name="email"], form[action*="login"], #loginbutton') ||
+                            /log in to continue|see marketplace listings/i.test(document.body?.innerText || '')
+                          const priceMatch =
+                            visible.find((text) => /(?:A\\$|AU\\$|USD\\s*\\$|\\$)\\s?\\d[\\d,]*(?:\\.\\d{2})?/.test(text)) ||
+                            clean(document.querySelector('meta[property="product:price:amount"]')?.content) ||
+                            null
+                          let location =
+                            visible.find((text) => /^Location is approximate/i.test(text)) ||
+                            byHeading('location') ||
+                            null
+                          if (!location && metaDescription) {
+                            const match = metaDescription.match(/\\bin\\s+([A-Za-z0-9 ,.'-]{3,80})/i)
+                            if (match) {
+                              location = clean(match[1])
+                            }
+                          }
+                          const description =
+                            byHeading('description') ||
+                            metaDescription ||
+                            visible.find((text) => text.length >= 80) ||
+                            null
+                          const sellerName =
+                            byHeading('seller details') ||
+                            byHeading('seller information') ||
+                            byHeading('seller') ||
+                            null
+
+                          return {
+                            login_required: loginRequired,
+                            title: metaTitle,
+                            price: priceMatch,
+                            seller_name: sellerName,
+                            location,
+                            description,
+                            visible_text: visible.slice(0, 80),
+                          }
+                        }
+                        """
+                    ),
+                    stage="listing evaluation",
+                    timeout_seconds=_probe_timeout_seconds(timeout_ms),
+                )
+
+                if bool(extracted.get("login_required")):
+                    raise RuntimeError(
+                        "marketplace_login_required: The browser session is not logged into Facebook Marketplace."
+                    )
+
+                title = _compact(extracted.get("title")) or "Facebook Marketplace listing"
+                screenshot_path = screenshot_path.with_name(
+                    f"{ts}_{_slugify(title) or 'marketplace'}.png"
+                )
+                await page.screenshot(path=str(screenshot_path), full_page=True)
+                return build_marketplace_listing_capture(
+                    url=url,
+                    captured_at=captured_at,
+                    title=title,
+                    price=_compact(extracted.get("price")) or None,
+                    seller_name=_compact(extracted.get("seller_name")) or None,
+                    location=_compact(extracted.get("location")) or None,
+                    description=_compact(extracted.get("description")) or None,
+                    screenshot_path=str(screenshot_path),
+                    raw_text_lines=[str(item) for item in (extracted.get("visible_text") or [])],
+                )
+        except MarketplaceBrowserProbeTimeout as exc:
+            raise RuntimeError(
+                f"{marketplace_direct_runtime_detail(profile_path if 'profile_path' in locals() else str((Path.home() / '.tenn' / 'browser_profiles' / 'facebook-marketplace-chrome').resolve()))} "
+                f"Probe timed out during {exc.stage}."
+            ) from exc
+        except RuntimeError:
+            raise
+        except Exception as exc:
+            raise RuntimeError(
+                f"{marketplace_direct_runtime_detail(profile_path if 'profile_path' in locals() else str((Path.home() / '.tenn' / 'browser_profiles' / 'facebook-marketplace-chrome').resolve()))} "
+                f"Launch failed: {exc}"
+            ) from exc
 
     async with async_playwright() as playwright:
         try:

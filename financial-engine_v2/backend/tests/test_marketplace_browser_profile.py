@@ -75,3 +75,43 @@ def test_browser_health_fails_fast_when_cdp_attach_stalls(monkeypatch) -> None:
     assert health["status"] == "browser_unavailable"
     assert "timed out during cdp attach" in str(health["detail"]).lower()
     assert "headless mode" in str(health["detail"]).lower()
+
+
+def test_browser_health_uses_direct_runtime(monkeypatch) -> None:
+    class _FakePage:
+        def set_default_timeout(self, timeout_ms: int) -> None:
+            self.timeout_ms = timeout_ms
+
+        async def goto(self, url: str, wait_until: str, timeout: int):
+            self.url = url
+            return None
+
+        async def wait_for_timeout(self, timeout_ms: int):
+            return None
+
+        async def evaluate(self, script: str):
+            return {
+                "challengeDetected": False,
+                "loginRequired": True,
+                "finalUrl": "https://www.facebook.com/",
+            }
+
+    class _FakeContextManager:
+        async def __aenter__(self):
+            return type("Ctx", (), {"pages": [_FakePage()]})(), "chrome", "/tmp/direct-profile"
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+    monkeypatch.setattr(browser_profile, "use_direct_marketplace_runtime", lambda: True)
+    monkeypatch.setattr(
+        browser_profile,
+        "open_direct_marketplace_context",
+        lambda: _FakeContextManager(),
+    )
+
+    health = browser_profile.check_marketplace_browser_health(timeout_ms=1000)
+
+    assert health["status"] == "login_required"
+    assert health["profile_path"] == "/tmp/direct-profile"
+    assert health["browser_family"] == "chrome"
