@@ -755,3 +755,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The real handler in `_run_real_gold_eval_sync` calls `run_method_isolated_extraction(..., prompt_bundle_id=..., model_override=...)` — two kwargs that were added when prompt-variant + model-override threading landed. The test's fake never grew those kwargs. Calling it raised `TypeError: unexpected keyword argument`, which was swallowed by the wrapping `except Exception: # noqa: BLE001` around the extraction call. The handler then continued on with `extraction_status = "failed"` and `captured` stayed empty, surfacing downstream as a misleading `KeyError`.
 **Fix:** Added `prompt_bundle_id=None` and `model_override=None` to the fake's signature and recorded both in `captured` so the stub tracks the full call shape.
 **Rule:** When the real callee's signature grows new kwargs, every test stub that monkeypatches it in the same module must grow the same kwargs — preferably as explicit parameters, not `**kwargs`, so the test still asserts on each parameter. A broad `except Exception` at the call site can silently reinterpret a stub mismatch as "extraction failed", so signature changes to any function that is mocked must include a repo-wide search for `fake_<name>` / `mock.patch.object(..., "<name>")` / `monkeypatch.setattr(..., "<name>")` in the same change.
+
+---
+
+## L069 — Time-bounded ticker update questions must answer from available news and price before proposing backfill
+
+**Date:** 2026-04-19
+**Subsystem:** `financial-engine_v2/cockpit/core/chat.py`, `financial-engine_v2/cockpit/core/tools.py`, `financial-engine_v2/shared/ticker_inference.py`, `financial-engine_v2/cockpit/core/agent/prompts/system.md`
+**Symptom:** Asking Tenn questions like `what happened with BHP this week` could skip available recent-news or price context and jump straight to an announcement backfill proposal, which did not actually answer the user's question.
+**Root cause:** The query wording was not treated as an explicit ticker cue, recent-update phrasing did not request news context or prefer the existing local-context assembly path, and the thin-context fallback treated missing announcement history as the whole answer even when usable price evidence existed.
+**Fix:** Added a recent-update ticker cue (`what happened with <ticker>` style), broadened news-context detection for time-bounded update queries, routed those queries through the existing local-context path, and changed the response to summarize available price/news context first while keeping backfill as an optional follow-up action.
+**Rule:** For time-bounded company-update questions, Tenn must first use whatever current-turn evidence already exists (price, news, indexed announcements) and only then offer ingest/backfill to close remaining gaps. A missing announcement corpus is a caveat plus follow-up action, not the primary answer.

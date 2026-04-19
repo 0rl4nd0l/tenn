@@ -18,6 +18,8 @@ DEFAULT_TICKER_CUE_PATTERNS = (
     r"\b(?:about|on|for|vs|versus|compare|chart|price|financials?|announcements?|news|"
     r"analyse|analyze|analysis|ticker|stock|company|research|show|plot|candlestick|candle|"
     r"report|results?|strategy|thesis|risk|catalysts?|document|history|was)\s+{token}\b",
+    r"\b(?:what(?:'s| is)?\s+happened|what\s+happened|what(?:'s| is)?\s+going\s+on|"
+    r"what(?:'s| is)?\s+new|latest\s+on|recent\s+update|update\s+me\s+on)\s+(?:with\s+)?{token}\b",
     r"\bprice\s+history\s+{token}\b",
     r"\b{token}\s+(?:vs|versus|chart|price|financials?|announcements?|news|on|between|"
     r"close|closing|summary|performance|results?|strategy|thesis)\b",

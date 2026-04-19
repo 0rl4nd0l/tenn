@@ -6,9 +6,10 @@ import os
 import re
 import threading
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from urllib.parse import urlparse
+from zoneinfo import ZoneInfo
 
 try:
     from enum import StrEnum
@@ -72,6 +73,19 @@ class _ContextResult:
     ok: bool = True
 
 
+@dataclass
+class _AttachedSourceBundle:
+    context: str = ""
+    evidence: list[dict[str, Any]] = field(default_factory=list)
+    unresolved_ids: list[str] = field(default_factory=list)
+
+
+STAGED_CHUNKS_DIR = Path("~/.tenn/memory/staged_chunks").expanduser()
+ATTACHED_SOURCE_MAX_CHARS = 3_500
+ATTACHED_SOURCE_TOTAL_MAX_CHARS = 8_000
+ATTACHED_SOURCE_MAX_SEGMENTS = 6
+
+
 def _apply_backend_prefix(message: str, force_backend: str | None) -> str:
     text = str(message or "").strip()
     if force_backend == "api":
@@ -79,6 +93,154 @@ def _apply_backend_prefix(message: str, force_backend: str | None) -> str:
     if force_backend == "local":
         return f"/local {text}" if text else "/local"
     return message
+
+
+def _normalize_attached_source_kind(raw: Any) -> str:
+    cleaned = str(raw or "").strip().lower()
+    if cleaned in {"ephemeral", "concat", "primary"}:
+        return cleaned
+    return "concat"
+
+
+def _load_staged_attachment_rows(source_id: str) -> list[dict[str, Any]]:
+    path = STAGED_CHUNKS_DIR / f"{source_id}.jsonl"
+    if not path.exists():
+        return []
+    rows: list[dict[str, Any]] = []
+    try:
+        for raw_line in path.read_text("utf-8").splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            payload = json.loads(line)
+            if isinstance(payload, dict):
+                rows.append(payload)
+    except (OSError, json.JSONDecodeError):
+        logger.warning("Failed to read staged attachment source %s", source_id)
+        return []
+    return rows
+
+
+def _build_attached_source_bundle(
+    attached_sources: list[dict[str, Any]] | None,
+) -> _AttachedSourceBundle:
+    if not attached_sources:
+        return _AttachedSourceBundle()
+
+    sections: list[str] = []
+    evidence: list[dict[str, Any]] = []
+    unresolved_ids: list[str] = []
+    total_chars = 0
+    for item in attached_sources:
+        if not isinstance(item, dict):
+            continue
+        source_id = str(item.get("source_id") or "").strip()
+        if not source_id:
+            continue
+        source_kind = _normalize_attached_source_kind(item.get("source_kind"))
+        rows = _load_staged_attachment_rows(source_id)
+        if not rows:
+            unresolved_ids.append(source_id)
+            continue
+
+        first_payload = (
+            rows[0].get("payload") if isinstance(rows[0].get("payload"), dict) else rows[0]
+        )
+        if not isinstance(first_payload, dict):
+            unresolved_ids.append(source_id)
+            continue
+
+        title = str(first_payload.get("source_name") or source_id).strip() or source_id
+        source_type = (
+            str(first_payload.get("source_type") or "attached_source").strip()
+            or "attached_source"
+        )
+        published_at = str(first_payload.get("published_at") or "").strip()
+
+        segments: list[str] = []
+        seen_texts: set[str] = set()
+        source_chars = 0
+        truncated = False
+        for row in rows:
+            payload = row.get("payload") if isinstance(row.get("payload"), dict) else row
+            if not isinstance(payload, dict):
+                continue
+            text = re.sub(r"\s+", " ", str(payload.get("text") or "")).strip()
+            if not text:
+                continue
+            key = text.lower()
+            if key in seen_texts:
+                continue
+            seen_texts.add(key)
+            remaining = ATTACHED_SOURCE_MAX_CHARS - source_chars
+            if remaining <= 0 or len(segments) >= ATTACHED_SOURCE_MAX_SEGMENTS:
+                truncated = True
+                break
+            if len(text) > remaining:
+                text = text[: max(remaining - 3, 0)].rstrip()
+                if text:
+                    text += "..."
+                truncated = True
+            if not text:
+                continue
+            segments.append(text)
+            source_chars += len(text)
+
+        if not segments:
+            unresolved_ids.append(source_id)
+            continue
+
+        excerpt = "\n".join(f"- {segment}" for segment in segments)
+        if total_chars + len(excerpt) > ATTACHED_SOURCE_TOTAL_MAX_CHARS:
+            remaining_total = ATTACHED_SOURCE_TOTAL_MAX_CHARS - total_chars
+            if remaining_total < 120:
+                break
+            excerpt = excerpt[: max(remaining_total - 3, 0)].rstrip()
+            if excerpt:
+                excerpt += "..."
+            truncated = True
+
+        total_chars += len(excerpt)
+        truncated_note = "\n[truncated]" if truncated else ""
+        sections.append(
+            f"[{title}] source_id={source_id} kind={source_kind}\n{excerpt}{truncated_note}"
+        )
+        evidence.append(
+            {
+                "type": "attached_source",
+                "details": {
+                    "title": title,
+                    "source_id": source_id,
+                    "source_kind": source_kind,
+                    "snippet": segments[0][:240],
+                    "sources": {
+                        "rag_hits": [
+                            {
+                                "title": title,
+                                "source_id": source_id,
+                                "score": 1.0,
+                                "doc_type": source_type,
+                                "published_at": published_at,
+                                "text": "\n".join(segments),
+                            }
+                        ]
+                    },
+                },
+            }
+        )
+
+    if not sections:
+        return _AttachedSourceBundle(unresolved_ids=unresolved_ids)
+
+    return _AttachedSourceBundle(
+        context=(
+            "Attached source evidence provided by the user. "
+            "Treat it as current-turn evidence:\n\n"
+            + "\n\n".join(sections)
+        ),
+        evidence=evidence,
+        unresolved_ids=unresolved_ids,
+    )
 
 
 ACTION_KEYWORDS = {
@@ -157,6 +319,8 @@ ACTION_KEYWORDS = {
 
 
 class ChatController:
+    _ASX_TIMEZONE = ZoneInfo("Australia/Sydney")
+
     def __init__(
         self,
         ollama_client,
@@ -512,71 +676,40 @@ class ChatController:
         return new_id
 
     TICKER_STOPWORDS = COMMON_TICKER_STOPWORDS | {
-        "A",
-        "AN",
-        "AND",
         "AS",
         "ASK",
         "ANALYSE",
         "ANALYZE",
-        "ABOUT",
         "CANDLE",
         "CHART",
         "CHECK",
-        "FOR",
-        "FROM",
-        "GIVE",
         "HAVE",
         "HI",
-        "HOW",
         "I",
-        "IN",
-        "IS",
         "IT",
         "LATEST",
         "MANY",
-        "ME",
         "MOST",
-        "NEWS",
         "OF",
-        "ON",
-        "ONE",
-        "SHOW",
         "PLEASE",
         "PLOT",
-        "PRICE",
         "RECENT",
-        "SUMMARISE",
-        "SUMMARIZE",
-        "TELL",
-        "THAT",
-        "THE",
         "THIS",
         "TO",
         "TODAY",
         "UPDATE",
         "WE",
-        "WHAT",
         "WHATS",
-        "WITH",
         "YOU",
         "YOUR",
         "DO",
-        "DOES",
         "DID",
         "ANY",
         "ALL",
         "COUNT",
         "NUMBER",
-        "ANNOUNCEMENT",
-        "ANNOUNCEMENTS",
-        # Market/exchange scope words — not company tickers.
-        "ASX",
-        # Common English words that happen to be 2-5 chars.
         "RUN",
         "SOME",
-        "SURE",
-        "OKAY",
         "JUST",
         "WELL",
         "FINE",
@@ -604,12 +737,10 @@ class ChatController:
         "MAKE",
         "BACK",
         "OVER",
-        "INTO",
         "AFTER",
         "BEFORE",
         "COULD",
         "WOULD",
-        "SHOULD",
         "WILL",
         "CAN",
         "MAY",
@@ -630,40 +761,27 @@ class ChatController:
         "GOOD",
         "BAD",
         "WORK",
-        "LAST",
-        "NEXT",
         "LONG",
         "BIG",
         "OLD",
         "NEW",
         "OWN",
         "OUR",
-        # Pronouns used in follow-up questions — not tickers.
         "ITS",
         "THEY",
         "THEM",
         "THEIR",
         "SAME",
         "RIGHT",
-        # Verbs and question words commonly seen in conversational messages.
-        "WHY",
-        "ARE",
-        "WAS",
         "HAS",
         "HAD",
         "GOT",
-        "GET",
         "LET",
-        "SAY",
-        "TRY",
         "WAY",
         "END",
-        "WHO",
-        "FAIL",
         "DONE",
         "WENT",
         "GOES",
-        "GOING",
         "BEING",
         "STILL",
         "EACH",
@@ -853,18 +971,6 @@ class ChatController:
 
         return result_holder[0]
 
-    @staticmethod
-    def _extract_alpha_tokens(message: str) -> list[tuple[str, str]]:
-        # Match ASX-style tickers: letter-started 2-5 alphanumeric chars (e.g. MP1, A200)
-        # OR digit-started tickers that contain at least one letter (e.g. 29M, 4DS, 5GN).
-        return [
-            (m.group(0), m.group(0).upper())
-            for m in re.finditer(
-                r"\b(?:[A-Za-z][A-Za-z0-9]{1,4}|[0-9]+[A-Za-z][A-Za-z0-9]{0,3})\b",
-                message,
-            )
-        ]
-
     def _detect_ticker(
         self, message: str, prior_ticker: str | None = None
     ) -> str | None:
@@ -903,6 +1009,20 @@ class ChatController:
         r"|\b(?:summari(?:s|z)e|quote)\s+(?:the\s+)?(?:announcement|document|release|filing|report|results?|presentation)\b",
         re.IGNORECASE,
     )
+    _RECENT_UPDATE_QUERY_RE = re.compile(
+        r"\b(?:"
+        r"what(?:'s| is)?\s+happened|"
+        r"what\s+happened|"
+        r"what(?:'s| is)?\s+new|"
+        r"what(?:'s| is)?\s+going\s+on|"
+        r"latest\s+on|"
+        r"recent\s+update|"
+        r"update\s+me\s+on|"
+        r"this\s+week|last\s+week|past\s+week|previous\s+week|"
+        r"recently|lately"
+        r")\b",
+        re.IGNORECASE,
+    )
 
     def _is_global_news_request(self, message: str) -> bool:
         """Return True when the message targets market-wide news rather than a specific company."""
@@ -914,6 +1034,9 @@ class ChatController:
 
     def _query_requires_document_grounding(self, message: str) -> bool:
         return bool(self._DOCUMENT_GROUNDING_RE.search(str(message or "")))
+
+    def _query_requests_recent_update(self, message: str) -> bool:
+        return bool(self._RECENT_UPDATE_QUERY_RE.search(str(message or "")))
 
     @staticmethod
     def _orchestration_has_substantive_evidence(orchestration_result) -> bool:
@@ -928,6 +1051,191 @@ class ChatController:
             or orchestration_result.market_memory_results.get("items")
         )
 
+    @staticmethod
+    def _local_payload_has_price_evidence(local_payload: dict[str, Any]) -> bool:
+        price = local_payload.get("price")
+        if isinstance(price, dict) and price.get("ok") is False:
+            return False
+
+        history = price.get("recent_history") if isinstance(price, dict) else None
+        if isinstance(history, list) and history:
+            return True
+
+        current = price.get("current") if isinstance(price, dict) else None
+        if isinstance(current, dict) and any(
+            current.get(key) is not None
+            for key in ("price", "previous_close", "change_percent")
+        ):
+            return True
+
+        price_state = local_payload.get("price_state")
+        return bool(
+            isinstance(price_state, dict)
+            and any(
+                price_state.get(key) is not None
+                for key in ("last_close", "trend_regime", "momentum_1d", "momentum_20d")
+            )
+        )
+
+    @staticmethod
+    def _build_recent_price_summary_block(local_payload: dict[str, Any]) -> str | None:
+        price = local_payload.get("price")
+        if not isinstance(price, dict) or price.get("ok") is False:
+            return None
+
+        symbol = str(price.get("symbol") or "").strip()
+        history = price.get("recent_history")
+        rows = history if isinstance(history, list) else []
+
+        dated_closes: list[tuple[str, float]] = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            date_str = str(row.get("timestamp") or "").strip()[:10]
+            close = row.get("close")
+            if not date_str or close is None:
+                continue
+            try:
+                dated_closes.append((date_str, float(close)))
+            except (TypeError, ValueError):
+                continue
+
+        if len(dated_closes) >= 2:
+            dated_closes.sort(key=lambda item: item[0])
+            window = dated_closes[-5:] if len(dated_closes) >= 5 else dated_closes
+            first_date = window[0][0]
+            last_date = window[-1][0]
+            first_close = window[0][1]
+            last_close = window[-1][1]
+            period_return = (
+                ((last_close / first_close) - 1.0) * 100.0 if first_close else 0.0
+            )
+            high = max(close for _, close in window)
+            low = min(close for _, close in window)
+            label = symbol or "ticker"
+            return (
+                f"Recent price action for {label}:\n"
+                f"  - Last week ({first_date} to {last_date}): {period_return:+.2f}% close-to-close\n"
+                f"  - High: {high:.4f}  Low: {low:.4f}  Last close: {last_close:.4f}"
+            )
+
+        current = price.get("current")
+        if not isinstance(current, dict):
+            return None
+
+        price_now = current.get("price")
+        change_percent = current.get("change_percent")
+        try:
+            price_now_value = float(price_now) if price_now is not None else None
+        except (TypeError, ValueError):
+            price_now_value = None
+        try:
+            change_pct_value = (
+                float(change_percent) if change_percent is not None else None
+            )
+        except (TypeError, ValueError):
+            change_pct_value = None
+
+        if price_now_value is None:
+            return None
+
+        label = symbol or "ticker"
+        if change_pct_value is None:
+            return f"Recent price action for {label}:\n  - Last traded price: {price_now_value:.4f}"
+        return (
+            f"Recent price action for {label}:\n"
+            f"  - Last traded price: {price_now_value:.4f}\n"
+            f"  - Daily move: {change_pct_value:+.2f}%"
+        )
+
+    @staticmethod
+    def _build_recent_news_summary_block(local_payload: dict[str, Any]) -> str:
+        news_payload = local_payload.get("qual_context_news")
+        hits = news_payload.get("hits") if isinstance(news_payload, dict) else None
+
+        if not isinstance(hits, list) or not hits:
+            merged = local_payload.get("qual_context")
+            merged_hits = merged.get("hits") if isinstance(merged, dict) else []
+            if isinstance(merged_hits, list):
+                hits = [
+                    row
+                    for row in merged_hits
+                    if isinstance(row, dict)
+                    and (
+                        "news"
+                        in str(
+                            row.get("source_corpus")
+                            or row.get("corpus")
+                            or row.get("source_type")
+                            or ""
+                        ).lower()
+                    )
+                ]
+            else:
+                hits = []
+
+        if not hits:
+            return (
+                "Recent news context:\n"
+                "  - No recent indexed news hits were available in the local corpus for this ticker."
+            )
+
+        lines = ["Recent news context:"]
+        seen_keys: set[str] = set()
+        count = 0
+        for row in hits:
+            if not isinstance(row, dict):
+                continue
+            title = str(row.get("title") or row.get("source_name") or "").strip()
+            snippet = re.sub(
+                r"\s+",
+                " ",
+                str(row.get("text") or row.get("snippet") or "").strip(),
+            )[:220]
+            published_at = str(row.get("published_at") or "").strip()[:10]
+            dedupe_key = (
+                str(row.get("url") or "").strip()
+                or title.lower()
+                or snippet.lower()
+            )
+            if not dedupe_key or dedupe_key in seen_keys:
+                continue
+            seen_keys.add(dedupe_key)
+            headline = f"  - {published_at}: {title}" if published_at and title else f"  - {title or snippet}"
+            lines.append(headline)
+            if snippet:
+                lines.append(f"    {snippet}")
+            count += 1
+            if count >= 3:
+                break
+
+        if count == 0:
+            return (
+                "Recent news context:\n"
+                "  - No recent indexed news hits were available in the local corpus for this ticker."
+            )
+        return "\n".join(lines)
+
+    @staticmethod
+    def _recent_update_offer_suffix(
+        action_preview: dict[str, Any] | None,
+        *,
+        ticker: str,
+    ) -> str:
+        if not isinstance(action_preview, dict):
+            return ""
+        action_id = str(action_preview.get("action_id") or "").strip()
+        if action_id == "single_ticker_announcement_backfill":
+            return (
+                f"\n\nIf you want, I can backfill ASX announcements for {ticker} next "
+                "to fill the local announcement gap."
+            )
+        if action_id == "update_ticker_financials":
+            return (
+                f"\n\nIf you want, I can refresh the latest ASX announcements for {ticker} next."
+            )
+        return ""
+
     # Chart intent keywords — checked before general action detection.
     # NOTE: "price history" is a price-query pattern, not a chart request.
     _GREETING_RE = re.compile(
@@ -938,6 +1246,18 @@ class ChatController:
         r"how\s+are\s+you(?:\s+doing)?|"
         r"how\s+r\s+u|hru"
         r")\s*[!?.]*\s*$",
+        re.IGNORECASE,
+    )
+    _DAY_QUERY_RE = re.compile(
+        r"^\s*(?:what\s+day\s+(?:is\s+it|is\s+today)|what'?s\s+the\s+day)\s*[!?.]*\s*$",
+        re.IGNORECASE,
+    )
+    _DATE_QUERY_RE = re.compile(
+        r"^\s*(?:what\s+date\s+(?:is\s+it|is\s+today)|what'?s\s+the\s+date)\s*[!?.]*\s*$",
+        re.IGNORECASE,
+    )
+    _TIME_QUERY_RE = re.compile(
+        r"^\s*(?:what\s+time\s+(?:is\s+it|is\s+it\s+now)|what'?s\s+the\s+time)\s*[!?.]*\s*$",
         re.IGNORECASE,
     )
 
@@ -1711,6 +2031,80 @@ class ChatController:
 
         return ResponseMode.FAST
 
+    @staticmethod
+    def _is_ultra_short_prompt(message: str) -> bool:
+        stripped = str(message or "").strip()
+        if not stripped or any(prefix in stripped for prefix in ("http://", "https://")):
+            return False
+        tokens = re.findall(r"[A-Za-z0-9]+", stripped)
+        if len(tokens) != 1:
+            return False
+        token = tokens[0]
+        if token.isdigit():
+            return False
+        return len(token) <= 2
+
+    @staticmethod
+    def _query_depends_on_attached_source(message: str) -> bool:
+        stripped = str(message or "").strip().lower()
+        if not stripped:
+            return True
+        if re.search(
+            r"\b(this|that|it|attached|source|video|article|listing|clip|podcast|transcript)\b",
+            stripped,
+        ):
+            return True
+        return bool(
+            re.search(
+                r"\b(tell me about|summari[sz]e|what stands out|what do you think|"
+                r"compare|analyse|analyze|walk me through|break down|explain)\b",
+                stripped,
+            )
+        )
+
+    def _try_fast_clarification_shortcircuit(
+        self,
+        message: str,
+        *,
+        ticker: str | None,
+        attached_bundle: _AttachedSourceBundle,
+    ) -> ChatResponse | None:
+        if ticker:
+            return None
+
+        if self._is_ultra_short_prompt(message):
+            return ChatResponse(
+                text=(
+                    "Please enter a clearer question. Examples: "
+                    '"tell me about CSL", "show BHP news", or '
+                    '"summarize the attached source".'
+                ),
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        if (
+            attached_bundle.unresolved_ids
+            and not attached_bundle.context.strip()
+            and self._query_depends_on_attached_source(message)
+        ):
+            if len(attached_bundle.unresolved_ids) == 1:
+                source_label = f"`{attached_bundle.unresolved_ids[0]}`"
+            else:
+                source_label = "the attached sources"
+            return ChatResponse(
+                text=(
+                    f"I can't analyse {source_label} from current evidence because "
+                    "its transcript or chunk text is not available in this chat turn yet. "
+                    "Re-ingest the source in this tab, or attach one with available chunks, "
+                    "then ask again."
+                ),
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        return None
+
     def _compute_announcement_sync_status(
         self, ticker: str, docs: list[dict], message: str
     ) -> dict:  # noqa: ARG002
@@ -1739,24 +2133,35 @@ class ChatController:
                 "note": f"Announcement sync check for {ticker}: up to date",
                 "action_preview": None,
             }
-        args: dict[str, Any] = {"ticker": ticker, "years": 1, "process_documents": True}
+        status = str(sync.get("status", "unknown"))
+        if status == "missing":
+            action_id = "single_ticker_announcement_backfill"
+            args = {"ticker": ticker, "years": 3, "process_documents": True}
+        else:
+            action_id = "update_ticker_financials"
+            args = {"ticker": ticker, "years": 1, "process_documents": True}
         action_preview: dict[str, Any] = {
-            "action_id": "update_ticker_financials",
+            "action_id": action_id,
             "args": args,
         }
         if self.action_registry:
             try:
-                preview = self.action_registry.preview("update_ticker_financials", args)
+                preview = self.action_registry.preview(action_id, args)
                 action_preview["command"] = preview.command
                 action_preview["impact"] = preview.estimated_impact
                 action_preview["timeout_seconds"] = preview.timeout_seconds
             except Exception:
                 pass
-        status = sync.get("status", "unknown")
-        note = (
-            f"Announcement sync check for {ticker}: {status}. "
-            f"Use /confirm to update or /cancel to skip."
-        )
+        if action_id == "single_ticker_announcement_backfill":
+            note = (
+                f"Announcement sync check for {ticker}: missing local announcement history. "
+                "Use /confirm to backfill or /cancel to skip."
+            )
+        else:
+            note = (
+                f"Announcement sync check for {ticker}: {status}. "
+                "Use /confirm to update or /cancel to skip."
+            )
         return {"note": note, "action_preview": action_preview}
 
     # ------------------------------------------------------------------ #
@@ -3720,6 +4125,50 @@ class ChatController:
                 lines.append(f"  {name}: failed ({exc})")
         return ChatResponse(text="\n".join(lines), evidence=[], mode=ResponseMode.FAST)
 
+    def _try_runtime_clock_shortcircuit(self, message: str) -> ChatResponse | None:
+        text = str(message or "").strip()
+        if not text:
+            return None
+
+        if not (
+            self._DAY_QUERY_RE.fullmatch(text)
+            or self._DATE_QUERY_RE.fullmatch(text)
+            or self._TIME_QUERY_RE.fullmatch(text)
+        ):
+            return None
+
+        now = datetime.now(self._ASX_TIMEZONE)
+        weekday = now.strftime("%A")
+        month = now.strftime("%B")
+        tz_name = now.tzname() or "Australia/Sydney"
+
+        if self._TIME_QUERY_RE.fullmatch(text):
+            hour_12 = now.hour % 12 or 12
+            answer = (
+                f"It is {hour_12}:{now.minute:02d} {now.strftime('%p')} {tz_name} "
+                f"on {weekday}, {month} {now.day}, {now.year}."
+            )
+        elif self._DATE_QUERY_RE.fullmatch(text):
+            answer = f"Today's date is {month} {now.day}, {now.year} ({tz_name})."
+        else:
+            answer = f"Today is {weekday}, {month} {now.day}, {now.year} ({tz_name})."
+
+        evidence = [
+            {
+                "type": "runtime_clock",
+                "details": {
+                    "title": "Cockpit runtime clock",
+                    "source_id": "runtime_clock:australia-sydney",
+                    "snippet": (
+                        "Backend runtime clock in Australia/Sydney reported "
+                        f"{now.isoformat()}."
+                    ),
+                    "published_at": now.isoformat(),
+                },
+            }
+        ]
+        return ChatResponse(text=answer, evidence=evidence, mode=ResponseMode.FAST)
+
     # -- Dispatch table ------------------------------------------------- #
 
     _SLASH_DISPATCH: dict[str, Any] = {
@@ -3837,6 +4286,7 @@ class ChatController:
         on_status,
         analysis_mode: str | None,
         on_thinking=None,
+        attached_bundle: _AttachedSourceBundle | None = None,
     ) -> ChatResponse:
         """Run the agentic tool-calling loop and convert the result to a ChatResponse."""
         # Reuse existing ticker detection logic
@@ -3883,6 +4333,8 @@ class ChatController:
             augmented_message = ov_agent_block + "\n\n" + augmented_message
         if strategy_block:
             augmented_message = augmented_message + "\n\n" + strategy_block
+        if attached_bundle is not None and attached_bundle.context.strip():
+            augmented_message = augmented_message + "\n\n" + attached_bundle.context.strip()
         if self._memory and ticker:
             try:
                 research = self._memory.read_research(ticker)
@@ -3927,11 +4379,13 @@ class ChatController:
             answer=result.text.strip(),
             ticker=ticker,
         )
-        self._set_latest_sources_payloads(result.evidence)
+        combined_evidence = list(attached_bundle.evidence) if attached_bundle else []
+        combined_evidence.extend(list(getattr(result, "evidence", None) or []))
+        self._set_latest_sources_payloads(combined_evidence)
 
         return ChatResponse(
             text=result.text.strip(),
-            evidence=result.evidence,
+            evidence=combined_evidence,
             action_preview=result.action_preview,
             mode=result.mode,
             routing_metadata=result.routing_metadata,
@@ -4003,6 +4457,7 @@ class ChatController:
         ticker: str | None,
         on_chunk=None,
         on_status=None,
+        attached_bundle: _AttachedSourceBundle | None = None,
     ) -> ChatResponse | None:
         if orchestration_result is None:
             return None
@@ -4047,6 +4502,8 @@ class ChatController:
                     "result": payload,
                 }
             )
+        if attached_bundle is not None and attached_bundle.evidence:
+            evidence.extend(attached_bundle.evidence)
 
         if on_status:
             on_status("Routing query through orchestrator")
@@ -4129,6 +4586,7 @@ class ChatController:
         analysis_mode: str | None = None,
         context_profile: str | None = None,
         ui_mode: str | None = None,
+        attached_sources: list[dict[str, Any]] | None = None,
     ) -> ChatResponse:
         article_text_request = self._try_article_text_request(message)
         if article_text_request is not None:
@@ -4143,6 +4601,7 @@ class ChatController:
         )
         effective_message = rewritten_confirmation or message
         forced_backend, effective_message = parse_backend_prefix(effective_message)
+        attached_bundle = _build_attached_source_bundle(attached_sources)
 
         # --- Greeting short-circuit: don't invoke the full analyst pipeline ---
         if self._GREETING_RE.match(effective_message):
@@ -4157,6 +4616,11 @@ class ChatController:
             cmd_response = self._handle_slash_command(effective_message.strip())
             if cmd_response is not None:
                 return cmd_response
+
+        # --- Runtime clock short-circuit: answer local date/time/day directly ---
+        runtime_clock_result = self._try_runtime_clock_shortcircuit(effective_message)
+        if runtime_clock_result is not None:
+            return runtime_clock_result
 
         # ------------------------------------------------------------------ #
         # Deterministic fast-paths — fire BEFORE agent loop or keyword LLM.   #
@@ -4175,7 +4639,18 @@ class ChatController:
         if ticker:
             self.last_ticker = ticker
 
+        clarification_result = self._try_fast_clarification_shortcircuit(
+            effective_message,
+            ticker=ticker,
+            attached_bundle=attached_bundle,
+        )
+        if clarification_result is not None:
+            return clarification_result
+
         msg_lower = effective_message.lower()
+        recent_update_query = bool(ticker) and self._query_requests_recent_update(
+            effective_message
+        )
 
         # --- Conversational update shortcut: "update <ticker> announcements" ---
         explicit_ticker_in_message = ticker if explicit_ticker else None
@@ -4372,6 +4847,7 @@ class ChatController:
                     )
                     prefer_local_context = bool(ticker) and (
                         self._query_requires_document_grounding(effective_message)
+                        or recent_update_query
                         or not has_orchestrated_evidence
                     )
                     if forced_backend != "api" and not prefer_local_context:
@@ -4381,6 +4857,7 @@ class ChatController:
                             ticker=ticker,
                             on_chunk=on_chunk,
                             on_status=on_status,
+                            attached_bundle=attached_bundle,
                         )
                 except Exception as exc:
                     logger.warning(
@@ -4408,6 +4885,7 @@ class ChatController:
                     on_status,
                     analysis_mode,
                     on_thinking=on_thinking,
+                    attached_bundle=attached_bundle,
                 )
 
         # ------------------------------------------------------------------ #
@@ -4482,6 +4960,8 @@ class ChatController:
         evidence = [
             {"type": "local_context", "details": local_context.payload},
         ]
+        if attached_bundle.evidence:
+            evidence.extend(attached_bundle.evidence)
 
         _MARKET_WIDE_ACTIONS = {
             "daily_news_ingest",
@@ -4582,7 +5062,12 @@ class ChatController:
         # give the user a direct actionable response with a backfill offer.
         has_docs = bool(local_payload.get("docs"))
         has_financials = bool(local_payload.get("financials"))
-        has_qual = bool(local_payload.get("qual_context"))
+        qual_payload = local_payload.get("qual_context")
+        if isinstance(qual_payload, dict):
+            has_qual = bool(qual_payload.get("hits"))
+        else:
+            has_qual = bool(qual_payload)
+        has_price = self._local_payload_has_price_evidence(local_payload)
 
         if (
             ticker
@@ -4590,6 +5075,7 @@ class ChatController:
             and not has_docs
             and not has_financials
             and not has_qual
+            and not (recent_update_query and has_price)
             and not local_payload.get("db_error")  # don't mask DB errors
         ):
             _backfill_args: dict[str, Any] = {"ticker": ticker, "years": 3}
@@ -4772,6 +5258,11 @@ class ChatController:
                         else f"  - {title} ({doc_class})"
                     )
             evidence_parts.append("\n".join(doc_lines))
+        elif recent_update_query and ticker:
+            evidence_parts.append(
+                "Recent ASX announcement context:\n"
+                f"  - No local ASX announcement documents are currently indexed for {ticker}."
+            )
 
         # Summarise doc snippets as readable excerpts
         snippets = local_payload.get("doc_snippets")
@@ -4841,6 +5332,12 @@ class ChatController:
             if len(state_lines) > 1:
                 evidence_parts.append("\n".join(state_lines))
 
+        if recent_update_query:
+            recent_price_block = self._build_recent_price_summary_block(local_payload)
+            if recent_price_block:
+                evidence_parts.append(recent_price_block)
+            evidence_parts.append(self._build_recent_news_summary_block(local_payload))
+
         # Include news/qual context if present
         qual = local_payload.get("qual_context")
         if isinstance(qual, list) and qual:
@@ -4880,6 +5377,8 @@ class ChatController:
         if history_block:
             user_parts.append(history_block.strip())
         user_parts.append(effective_message)
+        if attached_bundle.context.strip():
+            user_parts.append(attached_bundle.context.strip())
         if evidence_section.strip():
             user_parts.append(evidence_section.strip())
         user_message = "\n\n".join(user_parts)
@@ -4939,11 +5438,31 @@ class ChatController:
                 local_payload=local_payload,
             )
 
+        followup_action_preview: dict[str, Any] | None = None
+        if recent_update_query and ticker:
+            sync = self._compute_announcement_sync_status(
+                ticker,
+                docs=local_payload.get("docs") or [],
+                message=effective_message,
+            )
+            offer = self._build_ticker_update_offer(ticker, sync)
+            action_preview = offer.get("action_preview")
+            if isinstance(action_preview, dict):
+                followup_action_preview = action_preview
+                answer = answer.rstrip() + self._recent_update_offer_suffix(
+                    action_preview,
+                    ticker=ticker,
+                )
+
         self._record_answer_side_effects(query=message, answer=answer, ticker=ticker)
         self._set_latest_sources_payloads(evidence)
 
         return ChatResponse(
-            text=answer.strip(), evidence=evidence, mode=mode, prompt=prompt_fallback
+            text=answer.strip(),
+            evidence=evidence,
+            action_preview=followup_action_preview,
+            mode=mode,
+            prompt=prompt_fallback,
         )
 
     @staticmethod

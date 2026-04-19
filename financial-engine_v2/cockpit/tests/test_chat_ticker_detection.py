@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import unittest
 from datetime import datetime as real_datetime
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 from zoneinfo import ZoneInfo
 
@@ -34,6 +35,14 @@ class ChatTickerDetectionTests(unittest.TestCase):
         self.assertEqual(
             self.controller._detect_ticker("tell me about csl", prior_ticker=None),
             "CSL",
+        )
+
+    def test_detect_ticker_accepts_recent_update_wording(self) -> None:
+        self.assertEqual(
+            self.controller._detect_ticker(
+                "what happened with bhp this week", prior_ticker=None
+            ),
+            "BHP",
         )
 
     def test_resolve_ticker_context_reuses_prior_only_for_follow_up(self) -> None:
@@ -120,6 +129,69 @@ class ChatTickerDetectionTests(unittest.TestCase):
 
         self.assertEqual(response.mode, ResponseMode.FAST)
         self.assertIn("couldn't find recent indexed news for BHP", response.text)
+
+    def test_recent_update_query_summarises_available_context_before_backfill_offer(
+        self,
+    ) -> None:
+        self.controller.tool_router.gather_local_context.return_value = SimpleNamespace(
+            payload={
+                "ticker": "BHP",
+                "docs": [],
+                "doc_snippets": [],
+                "financials": [],
+                "price": {
+                    "ok": True,
+                    "symbol": "BHP.AX",
+                    "current": {
+                        "price": 44.0,
+                        "previous_close": 43.5,
+                        "change_percent": 1.15,
+                    },
+                    "recent_history": [
+                        {"timestamp": "2026-04-14T00:00:00Z", "close": 41.0},
+                        {"timestamp": "2026-04-15T00:00:00Z", "close": 41.5},
+                        {"timestamp": "2026-04-16T00:00:00Z", "close": 42.0},
+                        {"timestamp": "2026-04-17T00:00:00Z", "close": 43.0},
+                        {"timestamp": "2026-04-18T00:00:00Z", "close": 44.0},
+                    ],
+                },
+                "price_state": {"trend_regime": "bullish", "last_close": 44.0},
+                "qual_context_news": {
+                    "hits": [
+                        {
+                            "title": "BHP copper expansion gathers pace",
+                            "published_at": "2026-04-18T01:00:00Z",
+                            "text": "Recent coverage focused on BHP expanding its copper footprint.",
+                            "source_corpus": "news",
+                        }
+                    ]
+                },
+                "qual_context": {"hits": []},
+                "sources": {},
+            }
+        )
+        self.controller.ollama_client.chat.return_value = (
+            "BHP rose this week and recent coverage centred on copper expansion."
+        )
+        self.controller.action_registry.preview.return_value = SimpleNamespace(
+            command=["python", "scripts/full_history_ticker_sync.py", "--ticker", "BHP"],
+            estimated_impact="mutates local data and reports",
+            timeout_seconds=14400,
+        )
+
+        response = self.controller.build_chat_response(
+            "what happened with bhp this week", prior_ticker=None
+        )
+
+        self.assertEqual(response.mode, ResponseMode.FAST)
+        self.assertIn("BHP rose this week", response.text)
+        self.assertIn("I can backfill ASX announcements for BHP next", response.text)
+        self.assertIsNotNone(response.action_preview)
+        assert response.action_preview is not None
+        self.assertEqual(
+            response.action_preview["action_id"], "single_ticker_announcement_backfill"
+        )
+        self.controller.ollama_client.chat.assert_called_once()
 
     def test_direct_filestats_shortcircuit_returns_company_dump(self) -> None:
         backend = MagicMock()

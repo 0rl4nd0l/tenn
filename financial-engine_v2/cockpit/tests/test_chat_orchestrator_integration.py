@@ -431,6 +431,72 @@ def test_document_grounded_queries_prefer_local_context_even_with_orchestrator_e
     ]
 
 
+def test_recent_update_queries_prefer_local_context_and_keep_backfill_as_optional_followup() -> (
+    None
+):
+    ctrl = _controller(_result("mixed", ("financial_truth", "company_memory")))
+    ctrl.tool_router.gather_local_context.return_value = SimpleNamespace(
+        payload={
+            "ticker": "BHP",
+            "docs": [],
+            "doc_snippets": [],
+            "financials": [],
+            "price": {
+                "ok": True,
+                "symbol": "BHP.AX",
+                "current": {
+                    "price": 44.0,
+                    "previous_close": 43.5,
+                    "change_percent": 1.15,
+                },
+                "recent_history": [
+                    {"timestamp": "2026-04-14T00:00:00Z", "close": 41.0},
+                    {"timestamp": "2026-04-15T00:00:00Z", "close": 41.5},
+                    {"timestamp": "2026-04-16T00:00:00Z", "close": 42.0},
+                    {"timestamp": "2026-04-17T00:00:00Z", "close": 43.0},
+                    {"timestamp": "2026-04-18T00:00:00Z", "close": 44.0},
+                ],
+            },
+            "price_state": {"trend_regime": "bullish", "last_close": 44.0},
+            "qual_context_news": {
+                "hits": [
+                    {
+                        "title": "BHP copper expansion gathers pace",
+                        "published_at": "2026-04-18T01:00:00Z",
+                        "text": "Recent coverage focused on BHP expanding its copper footprint.",
+                        "source_corpus": "news",
+                    }
+                ]
+            },
+            "qual_context": {"hits": []},
+            "sources": {},
+        }
+    )
+    ctrl.ollama_client.chat.return_value = (
+        "BHP rose this week and recent coverage centred on copper expansion."
+    )
+    ctrl.action_registry.preview.return_value = SimpleNamespace(
+        command=["python", "scripts/full_history_ticker_sync.py", "--ticker", "BHP"],
+        estimated_impact="mutates local data and reports",
+        timeout_seconds=14400,
+    )
+
+    response = ctrl.build_chat_response("what happened with BHP this week")
+
+    assert response.text.startswith(
+        "BHP rose this week and recent coverage centred on copper expansion."
+    )
+    assert response.action_preview is not None
+    assert response.action_preview["action_id"] == "single_ticker_announcement_backfill"
+    assert response.evidence == [
+        {
+            "type": "local_context",
+            "details": ctrl.tool_router.gather_local_context.return_value.payload,
+        }
+    ]
+    assert ctrl._agent_loop.calls == []
+
+
 def test_cloud_prefix_bypasses_local_document_grounding_and_uses_agent_loop() -> None:
     ctrl = _controller(_result("mixed", ("financial_truth", "company_memory")))
     ctrl.tool_router.gather_local_context.return_value = SimpleNamespace(

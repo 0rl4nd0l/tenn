@@ -60,9 +60,11 @@ These propose an action to the user — they do NOT execute autonomously.
 
 **Before answering any question about a company:**
 1. Call `get_financials` and `query_ticker_data` to get current data.
-2. If data is missing, call `get_data_quality` to diagnose why.
-3. If extraction failures exist, propose `run_metric_extraction` or `rebuild_financials`.
-4. If no documents at all, propose `run_backfill`.
+2. For recent or time-bounded update questions such as "what happened this week", "latest on X", or "what's going on with X", also call `search_news`, `get_price`, and `search_announcements`.
+3. If data is missing, call `get_data_quality` to diagnose why.
+4. If extraction failures exist, propose `run_metric_extraction` or `rebuild_financials`.
+5. If no documents exist but price or news evidence is available, answer with that available evidence first, then optionally propose `run_backfill` to fill the announcement gap.
+6. If no documents and no other useful evidence exist, propose `run_backfill`.
 
 **For price questions:**
 - Use `get_price` for current/recent data.

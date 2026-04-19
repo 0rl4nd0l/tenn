@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import math
+import re
 import sqlite3 as _sqlite3
 import time
 from datetime import datetime, timezone
@@ -1349,6 +1350,20 @@ class ToolRouter:
         "upgrade",
         "reaction",
     )
+    _RECENT_UPDATE_CONTEXT_RE = re.compile(
+        r"\b(?:"
+        r"what(?:'s| is)?\s+happened|"
+        r"what\s+happened|"
+        r"what(?:'s| is)?\s+new|"
+        r"what(?:'s| is)?\s+going\s+on|"
+        r"latest\s+on|"
+        r"recent\s+update|"
+        r"update\s+me\s+on|"
+        r"this\s+week|last\s+week|past\s+week|previous\s+week|"
+        r"recently|lately"
+        r")\b",
+        re.IGNORECASE,
+    )
 
     @classmethod
     def _query_wants_file_search(cls, query: str) -> bool:
@@ -1360,7 +1375,9 @@ class ToolRouter:
         if deep_mode:
             return True
         lower = str(query or "").lower()
-        return any(kw in lower for kw in cls._NEWS_CONTEXT_KEYWORDS)
+        return any(kw in lower for kw in cls._NEWS_CONTEXT_KEYWORDS) or bool(
+            cls._RECENT_UPDATE_CONTEXT_RE.search(lower)
+        )
 
     def gather_local_context(
         self, ticker: str | None, query: str, deep_mode: bool = False
