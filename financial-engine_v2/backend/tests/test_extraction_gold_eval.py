@@ -417,6 +417,8 @@ def test_real_gold_eval_endpoint_passes_method_selection(monkeypatch, tmp_path):
         requested_method,
         strict_method,
         skip_narrative,
+        prompt_bundle_id=None,
+        model_override=None,
     ):
         captured.update(
             {
@@ -425,6 +427,8 @@ def test_real_gold_eval_endpoint_passes_method_selection(monkeypatch, tmp_path):
                 "requested_method": requested_method,
                 "strict_method": strict_method,
                 "skip_narrative": skip_narrative,
+                "prompt_bundle_id": prompt_bundle_id,
+                "model_override": model_override,
             }
         )
         return SimpleNamespace(
