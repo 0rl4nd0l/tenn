@@ -744,3 +744,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** Prompt wording said "don't fabricate," but the runtime still failed open: direct-answer and synthesis paths could return substantive text without checking whether the current turn produced user-visible source entries.
 **Fix:** Hardened prompts and runtime guards so substantive answers without current-turn, user-visible source support are converted into explicit non-verification responses instead of being shown as fact. Prior session context is now treated as background only.
 **Rule:** In Tenn/Cockpit, source visibility is part of correctness. If the current turn cannot surface supporting sources for a substantive factual answer, the system must refuse to verify rather than answer from memory, prior context, or draft text.
+
+---
+
+## L068 — Broad `except Exception` at call sites hides signature drift between real callees and test stubs
+
+**Date:** 2026-04-19
+**Subsystem:** `financial-engine_v2/backend/app/main.py`, `financial-engine_v2/backend/tests/test_extraction_gold_eval.py`
+**Symptom:** `test_real_gold_eval_endpoint_passes_method_selection` failed with `KeyError: 'requested_method'` at an assertion against a `captured` dict that was silently left empty. The `captured` dict was only ever populated by the stubbed `run_method_isolated_extraction`, and the failure mode looked like a missing monkeypatch when it was actually a signature mismatch.
+**Root cause:** The real handler in `_run_real_gold_eval_sync` calls `run_method_isolated_extraction(..., prompt_bundle_id=..., model_override=...)` — two kwargs that were added when prompt-variant + model-override threading landed. The test's fake never grew those kwargs. Calling it raised `TypeError: unexpected keyword argument`, which was swallowed by the wrapping `except Exception: # noqa: BLE001` around the extraction call. The handler then continued on with `extraction_status = "failed"` and `captured` stayed empty, surfacing downstream as a misleading `KeyError`.
+**Fix:** Added `prompt_bundle_id=None` and `model_override=None` to the fake's signature and recorded both in `captured` so the stub tracks the full call shape.
+**Rule:** When the real callee's signature grows new kwargs, every test stub that monkeypatches it in the same module must grow the same kwargs — preferably as explicit parameters, not `**kwargs`, so the test still asserts on each parameter. A broad `except Exception` at the call site can silently reinterpret a stub mismatch as "extraction failed", so signature changes to any function that is mocked must include a repo-wide search for `fake_<name>` / `mock.patch.object(..., "<name>")` / `monkeypatch.setattr(..., "<name>")` in the same change.
