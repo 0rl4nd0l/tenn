@@ -31,6 +31,18 @@ _BROWSER_CANDIDATES: dict[str, tuple[str, ...]] = {
 }
 
 
+def _normalize_browser_path(candidate: str | None) -> str | None:
+    raw = str(candidate or "").strip()
+    if not raw:
+        return None
+    path = Path(raw).expanduser()
+    try:
+        resolved = path.resolve()
+    except OSError:
+        resolved = path
+    return str(resolved) if resolved.exists() else None
+
+
 def use_direct_marketplace_runtime() -> bool:
     return str(os.environ.get(DIRECT_RUNTIME_ENV) or "").strip().lower() == DIRECT_RUNTIME_VALUE
 
@@ -52,10 +64,14 @@ def _resolve_playwright_browser_path() -> str | None:
     except Exception:
         return None
 
-    return executable if executable and Path(executable).exists() else None
+    return _normalize_browser_path(executable)
 
 
-def resolve_marketplace_browser(binary_kind: str | None = None) -> tuple[str, str]:
+def resolve_marketplace_browser(
+    binary_kind: str | None = None,
+    *,
+    playwright_executable_path: str | None = None,
+) -> tuple[str, str]:
     explicit_path = str(os.environ.get(EXECUTABLE_PATH_ENV) or "").strip()
     if explicit_path:
         resolved_path = str(Path(explicit_path).expanduser().resolve())
@@ -72,6 +88,9 @@ def resolve_marketplace_browser(binary_kind: str | None = None) -> tuple[str, st
             resolved = shutil.which(candidate)
             if resolved:
                 return family, resolved
+    playwright_path = _normalize_browser_path(playwright_executable_path)
+    if playwright_path:
+        return "chrome", playwright_path
     playwright_path = _resolve_playwright_browser_path()
     if playwright_path:
         return "chrome", playwright_path
@@ -131,23 +150,24 @@ async def open_direct_marketplace_context() -> AsyncIterator[tuple[Any, str, str
     except Exception as exc:  # pragma: no cover - environment specific
         raise RuntimeError("Playwright is not installed in this environment.") from exc
 
-    browser_family, browser_binary = resolve_marketplace_browser()
-    profile_dir = resolve_marketplace_profile_dir(browser_family)
-    profile_dir.mkdir(parents=True, exist_ok=True)
-    profile_path = str(profile_dir)
-
-    launch_env = os.environ.copy()
-    launch_env["XDG_RUNTIME_DIR"] = ensure_marketplace_xdg_runtime_dir()
-
-    acquired = await asyncio.to_thread(
-        _DIRECT_RUNTIME_PROFILE_LOCK.acquire,
-        True,
-        _DIRECT_RUNTIME_PROFILE_LOCK_TIMEOUT_SECONDS,
-    )
-    if not acquired:
-        raise RuntimeError(_profile_in_use_message(profile_path))
-
     async with async_playwright() as playwright:
+        browser_family, browser_binary = resolve_marketplace_browser(
+            playwright_executable_path=playwright.chromium.executable_path,
+        )
+        profile_dir = resolve_marketplace_profile_dir(browser_family)
+        profile_dir.mkdir(parents=True, exist_ok=True)
+        profile_path = str(profile_dir)
+
+        launch_env = os.environ.copy()
+        launch_env["XDG_RUNTIME_DIR"] = ensure_marketplace_xdg_runtime_dir()
+
+        acquired = await asyncio.to_thread(
+            _DIRECT_RUNTIME_PROFILE_LOCK.acquire,
+            True,
+            _DIRECT_RUNTIME_PROFILE_LOCK_TIMEOUT_SECONDS,
+        )
+        if not acquired:
+            raise RuntimeError(_profile_in_use_message(profile_path))
         try:
             context = await playwright.chromium.launch_persistent_context(
                 user_data_dir=profile_path,
