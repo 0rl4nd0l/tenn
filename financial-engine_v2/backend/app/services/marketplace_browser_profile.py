@@ -30,6 +30,32 @@ DEFAULT_MARKETPLACE_HOME_URL = "https://www.facebook.com/marketplace/"
 DEFAULT_PROFILE_ROOT = Path.home() / ".tenn" / "browser_profiles"
 DEFAULT_MARKETPLACE_HELPER_URL = "http://127.0.0.1:9233"
 DEFAULT_MARKETPLACE_HEALTH_TIMEOUT_MS = 5_000
+_MARKETPLACE_HOME_EVALUATION_SCRIPT = """
+() => {
+  const text = document.body?.innerText || ''
+  const normalized = text.toLowerCase()
+  const challengeDetected =
+    /confirm (it'?s )?you|challenge|checkpoint|security check|suspended/i.test(text) ||
+    /checkpoint|challenge/i.test(window.location.href || '')
+  const listingAnchors = document.querySelectorAll('a[href*="/marketplace/item/"]').length
+  const priceMatches = Array.from(
+    normalized.matchAll(/(?:a\\$|au\\$|usd\\s*\\$|\\$)\\s?\\d[\\d,]*(?:\\.\\d{2})?/g)
+  )
+  const publicMarketplaceVisible =
+    /today.?s picks|browse all|categories|nearby towns and cities|more categories/i.test(text) &&
+    (listingAnchors > 0 || priceMatches.length >= 3)
+  const loginPromptVisible =
+    !!document.querySelector('input[name="email"], form[action*="login"], #loginbutton') ||
+    /log in to continue|see marketplace listings|facebook login/i.test(normalized)
+  const loginRequired = loginPromptVisible && !publicMarketplaceVisible
+  return {
+    challengeDetected,
+    loginRequired,
+    publicMarketplaceVisible,
+    finalUrl: window.location.href || '',
+  }
+}
+"""
 
 
 def _now_iso() -> str:
@@ -122,24 +148,7 @@ async def _check_browser_health_async(
                     timeout_seconds=3.0,
                 )
                 evaluated = await _await_marketplace_probe(
-                    page.evaluate(
-                        """
-                        () => {
-                          const text = (document.body?.innerText || '').toLowerCase()
-                          const challengeDetected =
-                            /confirm (it'?s )?you|challenge|checkpoint|security check|suspended/i.test(text) ||
-                            /checkpoint|challenge/i.test(window.location.href || '')
-                          const loginRequired =
-                            !!document.querySelector('input[name="email"], form[action*="login"], #loginbutton') ||
-                            /log in to continue|see marketplace listings|facebook login/i.test(text)
-                          return {
-                            challengeDetected,
-                            loginRequired,
-                            finalUrl: window.location.href || '',
-                          }
-                        }
-                        """
-                    ),
+                    page.evaluate(_MARKETPLACE_HOME_EVALUATION_SCRIPT),
                     stage="Marketplace evaluation",
                     timeout_seconds=_probe_timeout_seconds(timeout_ms),
                 )
@@ -326,24 +335,7 @@ async def _check_browser_health_async(
                 timeout_seconds=3.0,
             )
             evaluated = await _await_marketplace_probe(
-                page.evaluate(
-                """
-                () => {
-                  const text = (document.body?.innerText || '').toLowerCase()
-                  const challengeDetected =
-                    /confirm (it'?s )?you|challenge|checkpoint|security check|suspended/i.test(text) ||
-                    /checkpoint|challenge/i.test(window.location.href || '')
-                  const loginRequired =
-                    !!document.querySelector('input[name="email"], form[action*="login"], #loginbutton') ||
-                    /log in to continue|see marketplace listings|facebook login/i.test(text)
-                  return {
-                    challengeDetected,
-                    loginRequired,
-                    finalUrl: window.location.href || '',
-                  }
-                }
-                """
-                ),
+                page.evaluate(_MARKETPLACE_HOME_EVALUATION_SCRIPT),
                 stage="Marketplace evaluation",
                 timeout_seconds=_probe_timeout_seconds(timeout_ms),
             )

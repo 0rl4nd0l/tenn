@@ -27,6 +27,96 @@ MARKETPLACE_TOPIC_TAGS = ["facebook_marketplace", "marketplace_listing"]
 MARKETPLACE_CAPTURE_ROOT = (
     Path(__file__).resolve().parents[3] / "reports" / "marketplace_captures"
 )
+_GENERIC_MARKETPLACE_HOME_TITLE_RE = re.compile(
+    r"facebook marketplace: buy and sell items locally or shipped",
+    re.IGNORECASE,
+)
+_MARKETPLACE_LISTING_EVALUATION_SCRIPT = """
+() => {
+  const clean = (value) => (value || '').replace(/\\s+/g, ' ').trim()
+  const dedupe = (items) => {
+    const out = []
+    const seen = new Set()
+    for (const item of items) {
+      const cleaned = clean(item)
+      if (!cleaned) continue
+      const key = cleaned.toLowerCase()
+      if (seen.has(key)) continue
+      seen.add(key)
+      out.push(cleaned)
+    }
+    return out
+  }
+  const collect = (selector) =>
+    Array.from(document.querySelectorAll(selector)).map((el) =>
+      clean(el.innerText || el.textContent || '')
+    )
+  const visible = dedupe(
+    collect('h1,h2,h3,span,div,p,a,li').filter(
+      (text) => text.length >= 2 && text.length <= 280
+    )
+  )
+  const byHeading = (heading) => {
+    const index = visible.findIndex(
+      (text) => text.toLowerCase() === heading
+    )
+    if (index < 0) return null
+    for (let i = index + 1; i < Math.min(visible.length, index + 6); i += 1) {
+      const candidate = visible[i]
+      if (candidate && candidate.toLowerCase() !== heading) {
+        return candidate
+      }
+    }
+    return null
+  }
+  const metaTitle =
+    clean(document.querySelector('meta[property="og:title"]')?.content) ||
+    clean(document.querySelector('h1')?.textContent) ||
+    clean(document.title) ||
+    ''
+  const metaDescription =
+    clean(document.querySelector('meta[property="og:description"]')?.content) ||
+    clean(document.querySelector('meta[name="description"]')?.content) ||
+    ''
+  const priceMatch =
+    visible.find((text) => /(?:A\\$|AU\\$|USD\\s*\\$|\\$)\\s?\\d[\\d,]*(?:\\.\\d{2})?/.test(text)) ||
+    clean(document.querySelector('meta[property="product:price:amount"]')?.content) ||
+    null
+  let location =
+    visible.find((text) => /^Location is approximate/i.test(text)) ||
+    byHeading('location') ||
+    null
+  if (!location && metaDescription) {
+    const match = metaDescription.match(/\\bin\\s+([A-Za-z0-9 ,.'-]{3,80})/i)
+    if (match) {
+      location = clean(match[1])
+    }
+  }
+  const description =
+    byHeading('description') ||
+    metaDescription ||
+    visible.find((text) => text.length >= 80) ||
+    null
+  const sellerName =
+    byHeading('seller details') ||
+    byHeading('seller information') ||
+    byHeading('seller') ||
+    null
+  const loginPromptVisible =
+    !!document.querySelector('input[name="email"], form[action*="login"], #loginbutton') ||
+    /log in to continue|see marketplace listings/i.test(document.body?.innerText || '')
+  return {
+    login_required: loginPromptVisible,
+    final_url: window.location.href || '',
+    title: metaTitle,
+    price: priceMatch,
+    seller_name: sellerName,
+    location,
+    description,
+    visible_text: visible.slice(0, 80),
+  }
+}
+"""
 
 
 @dataclass(frozen=True)
@@ -74,6 +164,34 @@ def _dedupe(items: list[str]) -> list[str]:
         seen.add(key)
         out.append(cleaned)
     return out
+
+
+def _listing_requires_authenticated_session(
+    extracted: dict[str, object],
+    *,
+    final_url: str,
+) -> bool:
+    if not bool(extracted.get("login_required")):
+        return False
+
+    normalized_url = str(final_url or "").strip().lower()
+    if "/marketplace/item/" not in normalized_url:
+        return True
+
+    title = _compact(extracted.get("title"))
+    price = _compact(extracted.get("price"))
+    seller_name = _compact(extracted.get("seller_name"))
+    location = _compact(extracted.get("location"))
+    description = _compact(extracted.get("description"))
+    generic_title = bool(_GENERIC_MARKETPLACE_HOME_TITLE_RE.search(title))
+
+    return not (
+        price
+        or seller_name
+        or location
+        or (description and len(description) >= 24)
+        or (title and not generic_title)
+    )
 
 
 def _int_env(name: str, default: int) -> int:
@@ -298,99 +416,13 @@ async def _inspect_listing_async(
                 )
 
                 extracted = await _await_marketplace_probe(
-                    page.evaluate(
-                        """
-                        () => {
-                          const clean = (value) => (value || '').replace(/\\s+/g, ' ').trim()
-                          const dedupe = (items) => {
-                            const out = []
-                            const seen = new Set()
-                            for (const item of items) {
-                              const cleaned = clean(item)
-                              if (!cleaned) continue
-                              const key = cleaned.toLowerCase()
-                              if (seen.has(key)) continue
-                              seen.add(key)
-                              out.push(cleaned)
-                            }
-                            return out
-                          }
-                          const collect = (selector) =>
-                            Array.from(document.querySelectorAll(selector)).map((el) =>
-                              clean(el.innerText || el.textContent || '')
-                            )
-                          const visible = dedupe(
-                            collect('h1,h2,h3,span,div,p,a,li').filter(
-                              (text) => text.length >= 2 && text.length <= 280
-                            )
-                          )
-                          const byHeading = (heading) => {
-                            const index = visible.findIndex(
-                              (text) => text.toLowerCase() === heading
-                            )
-                            if (index < 0) return null
-                            for (let i = index + 1; i < Math.min(visible.length, index + 6); i += 1) {
-                              const candidate = visible[i]
-                              if (candidate && candidate.toLowerCase() !== heading) {
-                                return candidate
-                              }
-                            }
-                            return null
-                          }
-                          const metaTitle =
-                            clean(document.querySelector('meta[property="og:title"]')?.content) ||
-                            clean(document.querySelector('h1')?.textContent) ||
-                            clean(document.title) ||
-                            ''
-                          const metaDescription =
-                            clean(document.querySelector('meta[property="og:description"]')?.content) ||
-                            clean(document.querySelector('meta[name="description"]')?.content) ||
-                            ''
-                          const loginRequired =
-                            !!document.querySelector('input[name="email"], form[action*="login"], #loginbutton') ||
-                            /log in to continue|see marketplace listings/i.test(document.body?.innerText || '')
-                          const priceMatch =
-                            visible.find((text) => /(?:A\\$|AU\\$|USD\\s*\\$|\\$)\\s?\\d[\\d,]*(?:\\.\\d{2})?/.test(text)) ||
-                            clean(document.querySelector('meta[property="product:price:amount"]')?.content) ||
-                            null
-                          let location =
-                            visible.find((text) => /^Location is approximate/i.test(text)) ||
-                            byHeading('location') ||
-                            null
-                          if (!location && metaDescription) {
-                            const match = metaDescription.match(/\\bin\\s+([A-Za-z0-9 ,.'-]{3,80})/i)
-                            if (match) {
-                              location = clean(match[1])
-                            }
-                          }
-                          const description =
-                            byHeading('description') ||
-                            metaDescription ||
-                            visible.find((text) => text.length >= 80) ||
-                            null
-                          const sellerName =
-                            byHeading('seller details') ||
-                            byHeading('seller information') ||
-                            byHeading('seller') ||
-                            null
-
-                          return {
-                            login_required: loginRequired,
-                            title: metaTitle,
-                            price: priceMatch,
-                            seller_name: sellerName,
-                            location,
-                            description,
-                            visible_text: visible.slice(0, 80),
-                          }
-                        }
-                        """
-                    ),
+                    page.evaluate(_MARKETPLACE_LISTING_EVALUATION_SCRIPT),
                     stage="listing evaluation",
                     timeout_seconds=_probe_timeout_seconds(timeout_ms),
                 )
 
-                if bool(extracted.get("login_required")):
+                final_url = str(extracted.get("final_url") or page.url or url).strip() or url
+                if _listing_requires_authenticated_session(extracted, final_url=final_url):
                     raise RuntimeError(
                         "marketplace_login_required: The browser session is not logged into Facebook Marketplace."
                     )
@@ -401,7 +433,7 @@ async def _inspect_listing_async(
                 )
                 await page.screenshot(path=str(screenshot_path), full_page=True)
                 return build_marketplace_listing_capture(
-                    url=url,
+                    url=final_url,
                     captured_at=captured_at,
                     title=title,
                     price=_compact(extracted.get("price")) or None,
@@ -477,99 +509,13 @@ async def _inspect_listing_async(
             )
 
             extracted = await _await_marketplace_probe(
-                page.evaluate(
-                """
-                () => {
-                  const clean = (value) => (value || '').replace(/\\s+/g, ' ').trim()
-                  const dedupe = (items) => {
-                    const out = []
-                    const seen = new Set()
-                    for (const item of items) {
-                      const cleaned = clean(item)
-                      if (!cleaned) continue
-                      const key = cleaned.toLowerCase()
-                      if (seen.has(key)) continue
-                      seen.add(key)
-                      out.push(cleaned)
-                    }
-                    return out
-                  }
-                  const collect = (selector) =>
-                    Array.from(document.querySelectorAll(selector)).map((el) =>
-                      clean(el.innerText || el.textContent || '')
-                    )
-                  const visible = dedupe(
-                    collect('h1,h2,h3,span,div,p,a,li').filter(
-                      (text) => text.length >= 2 && text.length <= 280
-                    )
-                  )
-                  const byHeading = (heading) => {
-                    const index = visible.findIndex(
-                      (text) => text.toLowerCase() === heading
-                    )
-                    if (index < 0) return null
-                    for (let i = index + 1; i < Math.min(visible.length, index + 6); i += 1) {
-                      const candidate = visible[i]
-                      if (candidate && candidate.toLowerCase() !== heading) {
-                        return candidate
-                      }
-                    }
-                    return null
-                  }
-                  const metaTitle =
-                    clean(document.querySelector('meta[property="og:title"]')?.content) ||
-                    clean(document.querySelector('h1')?.textContent) ||
-                    clean(document.title) ||
-                    ''
-                  const metaDescription =
-                    clean(document.querySelector('meta[property="og:description"]')?.content) ||
-                    clean(document.querySelector('meta[name="description"]')?.content) ||
-                    ''
-                  const loginRequired =
-                    !!document.querySelector('input[name="email"], form[action*="login"], #loginbutton') ||
-                    /log in to continue|see marketplace listings/i.test(document.body?.innerText || '')
-                  const priceMatch =
-                    visible.find((text) => /(?:A\\$|AU\\$|USD\\s*\\$|\\$)\\s?\\d[\\d,]*(?:\\.\\d{2})?/.test(text)) ||
-                    clean(document.querySelector('meta[property="product:price:amount"]')?.content) ||
-                    null
-                  let location =
-                    visible.find((text) => /^Location is approximate/i.test(text)) ||
-                    byHeading('location') ||
-                    null
-                  if (!location && metaDescription) {
-                    const match = metaDescription.match(/\\bin\\s+([A-Za-z0-9 ,.'-]{3,80})/i)
-                    if (match) {
-                      location = clean(match[1])
-                    }
-                  }
-                  const description =
-                    byHeading('description') ||
-                    metaDescription ||
-                    visible.find((text) => text.length >= 80) ||
-                    null
-                  const sellerName =
-                    byHeading('seller details') ||
-                    byHeading('seller information') ||
-                    byHeading('seller') ||
-                    null
-
-                  return {
-                    login_required: loginRequired,
-                    title: metaTitle,
-                    price: priceMatch,
-                    seller_name: sellerName,
-                    location,
-                    description,
-                    visible_text: visible.slice(0, 80),
-                  }
-                }
-                """
-                ),
+                page.evaluate(_MARKETPLACE_LISTING_EVALUATION_SCRIPT),
                 stage="listing evaluation",
                 timeout_seconds=_probe_timeout_seconds(timeout_ms),
             )
 
-            if bool(extracted.get("login_required")):
+            final_url = str(extracted.get("final_url") or page.url or url).strip() or url
+            if _listing_requires_authenticated_session(extracted, final_url=final_url):
                 raise RuntimeError(
                     "marketplace_login_required: The browser session is not logged into Facebook Marketplace."
                 )
@@ -588,7 +534,6 @@ async def _inspect_listing_async(
                     "marketplace_capture_failed: No listing content was detected after loading the page."
                 )
 
-            final_url = str(page.url or url).strip() or url
             price = _compact(extracted.get("price")) or None
             seller_name = _compact(extracted.get("seller_name")) or None
             location = _compact(extracted.get("location")) or None

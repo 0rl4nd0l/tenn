@@ -90,10 +90,12 @@ def test_browser_health_uses_direct_runtime(monkeypatch) -> None:
             return None
 
         async def evaluate(self, script: str):
+            assert "publicMarketplaceVisible" in script
             return {
                 "challengeDetected": False,
-                "loginRequired": True,
-                "finalUrl": "https://www.facebook.com/",
+                "loginRequired": False,
+                "publicMarketplaceVisible": True,
+                "finalUrl": "https://www.facebook.com/marketplace/",
             }
 
     class _FakeContextManager:
@@ -112,6 +114,6 @@ def test_browser_health_uses_direct_runtime(monkeypatch) -> None:
 
     health = browser_profile.check_marketplace_browser_health(timeout_ms=1000)
 
-    assert health["status"] == "login_required"
+    assert health["status"] == "ready"
     assert health["profile_path"] == "/tmp/direct-profile"
     assert health["browser_family"] == "chrome"
