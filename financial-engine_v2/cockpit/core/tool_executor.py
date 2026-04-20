@@ -67,6 +67,7 @@ class ToolExecutor:
         self._thesis_service = thesis_service
         self._risk_gate = risk_gate
         self._reflection_service = reflection_service
+        self._current_intent: str | None = None
 
     # ------------------------------------------------------------------
     # Public API
@@ -280,8 +281,12 @@ class ToolExecutor:
         query = str(args.get("query", "")).strip()
         if not query:
             return {"ok": False, "error": "query is required"}
-        ticker = str(args.get("ticker", "")).strip().upper() or self._infer_news_ticker(
-            query
+        explicit_ticker = str(args.get("ticker", "")).strip().upper()
+        # Suppress ticker inference for market-wide queries to avoid narrowing
+        # a "news today?" search to an irrelevant active ticker.
+        _is_market_wide = str(self._current_intent or "").lower() == "market_wide"
+        ticker = explicit_ticker or (
+            None if _is_market_wide else self._infer_news_ticker(query)
         )
         limit = int(args.get("limit", 5))
         result = self._router.get_news_context(
@@ -329,6 +334,29 @@ class ToolExecutor:
                 }
                 if ticker:
                     enriched["ticker"] = ticker
+                return enriched
+
+            # For a named ticker with zero hits, zero results almost certainly
+            # means stale or missing data — not confirmed absence of news.
+            if ticker and not likely_unpopulated_news_db:
+                suggestion_json = f'{{"tool": "run_news_ingest", "since_hours": 24}}'
+                enriched = {
+                    **result,
+                    "ok": False,
+                    "data_insufficient": True,
+                    "hit_count": 0,
+                    "ticker": ticker,
+                    "suggestion": (
+                        f"No news articles found for {ticker}. This likely means the news "
+                        f"corpus is stale or {ticker} has not been ingested yet. "
+                        f"Offer to run news ingest (requires confirmation): {suggestion_json}"
+                    ),
+                    "recommended_tool_call": {
+                        "tool": "run_news_ingest",
+                        "arguments": {"since_hours": 24},
+                        "requires_confirmation": True,
+                    },
+                }
                 return enriched
 
         compact_hits: list[dict[str, Any]] = []
@@ -1015,7 +1043,7 @@ class ToolExecutor:
                     value = datetime.now(timezone.utc).strftime("%Y-%m-%d")
                 action_args[action_key] = value
 
-        return {
+        proposal: dict[str, Any] = {
             "tool": tool_name,
             "ok": True,
             "type": "action_proposal",
@@ -1026,6 +1054,14 @@ class ToolExecutor:
             "is_mutating": spec.is_mutating,
             "timeout_seconds": spec.timeout_seconds,
         }
+        if tool_name == "generate_chart":
+            proposal["synthesis_instruction"] = (
+                "After the chart renders, provide a 2-3 sentence commentary: "
+                "describe the current trend (up/down/sideways), the recent price range, "
+                "and whether the move is consistent with broader market conditions. "
+                "Use the price data embedded in the chart result."
+            )
+        return proposal
 
     def _propose_dossier_save(self, args: dict[str, Any]) -> dict[str, Any]:
         """Build a dossier-save proposal (requires confirmation, then executes directly)."""

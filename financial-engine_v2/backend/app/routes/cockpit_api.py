@@ -30,17 +30,28 @@ from app.models.documents import Document
 from app.services.cockpit_service import CockpitService
 from app.services.llamacpp_runtime import (
     is_manual_fallback_llm_model,
-    resolve_extraction_runtime_config,
+    resolve_llm_runtime_config,
 )
+from app.services.marketplace_browser_profile import check_marketplace_browser_health
+from app.services.marketplace_mission_service import (
+    MarketplaceMissionError,
+    MarketplaceMissionNotFound,
+    MarketplaceMissionService,
+)
+from app.services.marketplace_scanner import MarketplaceScanner
 from app.services.router_state import get_extraction_activity_snapshot
 from cockpit.core.config import (
     compute_effective_cockpit_config,
     effective_anthropic_api_key,
     load_env,
 )
+from cockpit.integrations.qual_context_bootstrap import context_enabled
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+_MARKETPLACE_SCHEDULER_LOCK = threading.Lock()
+_MARKETPLACE_SCHEDULER_STARTED = False
+_MARKETPLACE_SCHEDULER_INTERVAL_SECONDS = 60
 
 # How long the SSE chat stream may remain silent before emitting a keepalive
 # comment. Module-level so tests can monkey-patch it to a smaller value.
@@ -286,6 +297,44 @@ class QueueStatusResponse(BaseModel):
     active: int = 0
     completed: int = 0
     failed: int = 0
+
+
+def _effective_cockpit_feature_flags(
+    effective_cfg: dict[str, Any],
+) -> dict[str, bool]:
+    web_cfg = effective_cfg.get("web") if isinstance(effective_cfg.get("web"), dict) else {}
+    rag_cfg = effective_cfg.get("rag") if isinstance(effective_cfg.get("rag"), dict) else {}
+    db_cfg = effective_cfg.get("db") if isinstance(effective_cfg.get("db"), dict) else {}
+    qual_cfg = (
+        rag_cfg.get("qualitative_context")
+        if isinstance(rag_cfg.get("qualitative_context"), dict)
+        else {}
+    )
+    news_cfg = (
+        rag_cfg.get("news_context")
+        if isinstance(rag_cfg.get("news_context"), dict)
+        else {}
+    )
+
+    rag_setting = rag_cfg.get("enabled")
+    rag_config_enabled = (
+        bool(rag_setting)
+        if rag_setting is not None
+        else bool(settings.enable_embeddings and settings.enable_qdrant)
+    )
+    rag_path_enabled = bool(rag_cfg.get("backend_search_enabled", False)) or context_enabled(
+        qual_cfg, default=False
+    ) or context_enabled(news_cfg, default=False)
+
+    return {
+        "web_search": bool(web_cfg.get("enabled_default", False)),
+        "rag": rag_config_enabled and (
+            rag_path_enabled or bool(settings.enable_embeddings and settings.enable_qdrant)
+        ),
+        "extraction": bool(settings.enable_extraction),
+        "session_memory": bool(getattr(settings, "enable_session_memory", True)),
+        "db_diagnostics": bool(db_cfg.get("diagnostic_query_enabled", False)),
+    }
 
 
 class IntelPulseStats(BaseModel):
@@ -573,6 +622,15 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                     default_title="Web source",
                     kind="web",
                 )
+
+        elif ev_type == "runtime_clock":
+            _append_source_item(
+                items,
+                seen,
+                details,
+                default_title="Cockpit runtime clock",
+                kind="context",
+            )
 
         elif ev.get("tool") and not ev.get("type"):
             # Agent loop evidence format: {tool, arguments, result}
@@ -875,6 +933,15 @@ _EXPLICIT_UNVERIFIED_RESPONSE_RE = re.compile(
     r"\bunable to verify\b",
     re.IGNORECASE,
 )
+_CONTAINS_FINANCIAL_CLAIM_RE = re.compile(
+    r"\b[A-Z]{2,5}\b|"                                     # ASX tickers / company abbreviations
+    r"\$[\d,]+(?:\.\d+)?[MBKmb]?\b|"                      # dollar amounts
+    r"\b\d+(?:\.\d+)?%\b|"                                 # percentages
+    r"\b(?:announced|reported|upgraded|downgraded|raised|cut|beat|missed|"
+    r"acquired|merged|divested|appointed|resigned|flagged|guided|earnings|"
+    r"revenue|profit|loss|EBIT|EBITDA|dividend|buyback|placement)\b",
+    re.IGNORECASE,
+)
 _SOURCE_CONTRACT_REFUSAL = (
     "I can't verify that from current evidence, and I won't make factual claims unless "
     "the supporting sources can be shown in the Sources dropdown. Please narrow the "
@@ -899,11 +966,34 @@ def _enforce_visible_source_contract(message: str, response: Any) -> list[dict[s
         return sources
     if sources:
         return sources
-    if _EXPLICIT_UNVERIFIED_RESPONSE_RE.search(text):
+    # Only allow the "explicit unverified" bypass when the response is a PURE
+    # statement of inability — no named tickers, monetary figures, events, or
+    # company-specific claims. A hedged hallucination ("the evidence is
+    # incomplete, but BHP reported...") must still be blocked.
+    if _EXPLICIT_UNVERIFIED_RESPONSE_RE.search(text) and not _CONTAINS_FINANCIAL_CLAIM_RE.search(text):
         return sources
 
     meta = dict(getattr(response, "routing_metadata", None) or {})
     meta["grounding_guard"] = "missing_visible_sources"
+    # Build a tool audit so the UI can surface "Searched X: 0 results"
+    # rather than a completely empty sources panel.
+    evidence = getattr(response, "evidence", None) or []
+    tool_audit = []
+    for ev in evidence:
+        if not isinstance(ev, dict):
+            continue
+        tool = ev.get("tool", "")
+        result = ev.get("result", {})
+        if not isinstance(result, dict):
+            continue
+        hit_count = result.get("hit_count") or len(result.get("hits", [])) or len(result.get("results", []))
+        audit_entry: dict[str, Any] = {"tool": tool, "hit_count": hit_count}
+        if result.get("error"):
+            audit_entry["error"] = str(result["error"])[:120]
+        if tool:
+            tool_audit.append(audit_entry)
+    if tool_audit:
+        meta["tool_audit"] = tool_audit
     response.routing_metadata = meta
     response.text = _SOURCE_CONTRACT_REFUSAL
     return []
@@ -1225,6 +1315,16 @@ def cockpit_config() -> CockpitConfigResponse:
         if isinstance(effective_cfg.get("cockpit_llm"), dict)
         else {}
     )
+    backend_cfg = (
+        effective_cfg.get("backend")
+        if isinstance(effective_cfg.get("backend"), dict)
+        else {}
+    )
+    runtime_cfg = (
+        effective_cfg.get("runtime")
+        if isinstance(effective_cfg.get("runtime"), dict)
+        else {}
+    )
     anthropic_key_configured = bool(effective_anthropic_api_key(cockpit_llm))
     extraction_activity = get_extraction_activity_snapshot()
 
@@ -1266,15 +1366,18 @@ def cockpit_config() -> CockpitConfigResponse:
         ],
         extract_model=str(settings.extract_model or "").strip() or None,
         embed_model=str(settings.embed_model or "").strip() or None,
-        routing_policy="adaptive",
-        backend_url="http://localhost:8000",
-        profile=os.environ.get("LOCAL_BACKEND_PROFILE"),
-        features={
-            "web_search": False,
-            "rag": bool(settings.enable_embeddings and settings.enable_qdrant),
-            "extraction": bool(settings.enable_extraction),
-            "session_memory": bool(getattr(settings, "enable_session_memory", True)),
-        },
+        routing_policy=str(cockpit_llm.get("hybrid_router_policy") or "").strip() or None,
+        backend_url=str(backend_cfg.get("api_base_url") or "").strip() or None,
+        profile=(
+            str(
+                cockpit_llm.get("llm_profile_label")
+                or runtime_cfg.get("profile")
+                or os.environ.get("LOCAL_BACKEND_PROFILE")
+                or ""
+            ).strip()
+            or None
+        ),
+        features=_effective_cockpit_feature_flags(effective_cfg),
         python_version=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
         git_branch=_git_branch(),
         data_root=str(settings.data_root or "").strip() or None,
@@ -1523,20 +1626,31 @@ def _normalize_model_identifier(value: str | None) -> str:
     return str(value or "").strip().removeprefix("model:").lower()
 
 
+def _model_alias_tokens(model_id: str, info: dict[str, Any] | None = None) -> set[str]:
+    tokens = {_normalize_model_identifier(model_id)}
+    if str(model_id).startswith("model:"):
+        tokens.add(_normalize_model_identifier(str(model_id).split(":", 1)[1]))
+    if info:
+        tokens.add(_normalize_model_identifier(str(info.get("path_stem") or "").strip()))
+    return {token for token in tokens if token}
+
+
 def _find_matching_runtime_model(
     runtime_models: dict[str, dict[str, Any]],
     requested_model: str,
 ) -> str | None:
-    requested_norm = _normalize_model_identifier(requested_model)
-    if not requested_norm:
+    requested_tokens = _model_alias_tokens(requested_model)
+    if not requested_tokens:
         return None
 
     preferred_match: str | None = None
     for model_id, info in runtime_models.items():
-        model_norm = _normalize_model_identifier(model_id)
-        path_stem = str(info.get("path_stem") or "").strip()
-        stem_norm = _normalize_model_identifier(path_stem)
-        if requested_norm not in model_norm and requested_norm not in stem_norm:
+        matches = any(
+            req == token or req.startswith(token) or token.startswith(req)
+            for req in requested_tokens
+            for token in _model_alias_tokens(model_id, info)
+        )
+        if not matches:
             continue
         if str(model_id).startswith("model:"):
             return model_id
@@ -1638,7 +1752,7 @@ def cockpit_available_models() -> AvailableModelsResponse:
 def cockpit_load_model(payload: ModelLoadRequest) -> ModelLoadResponse:
     from cockpit.integrations.llamacpp_manager import load_model_api
 
-    runtime_url, default_model = resolve_extraction_runtime_config(model=payload.model_id)
+    runtime_url, default_model = resolve_llm_runtime_config(model=payload.model_id)
     requested_model = str(payload.model_id or default_model or "").strip()
     if not requested_model:
         raise HTTPException(status_code=400, detail="model_id is required")
@@ -1652,7 +1766,7 @@ def cockpit_load_model(payload: ModelLoadRequest) -> ModelLoadResponse:
         raise HTTPException(
             status_code=404,
             detail={
-                "message": f"Model '{requested_model}' is not available on the configured extraction runtime.",
+                "message": f"Model '{requested_model}' is not available on the configured chat runtime.",
                 "requested_model": requested_model,
                 "runtime_url": runtime_url,
                 "available_models": available_models,
@@ -1845,6 +1959,10 @@ def cockpit_intel_matrix(
 
 
 class CockpitChatRequest(BaseModel):
+    class AttachedSource(BaseModel):
+        source_id: str
+        source_kind: Literal["ephemeral", "concat", "primary"]
+
     message: str
     mode: str = "analysis"
     ticker: str | None = None
@@ -1854,6 +1972,7 @@ class CockpitChatRequest(BaseModel):
     web_search: bool | None = None
     rag: bool | None = None
     db_diagnostics: bool | None = None
+    attached_sources: list[AttachedSource] = Field(default_factory=list)
 
 
 class CockpitActionExecuteRequest(BaseModel):
@@ -1887,6 +2006,113 @@ class CockpitActionJobStatusResponse(BaseModel):
     result: str | None = None
     progress_stage: str | None = None
     progress_pct: float | None = None
+
+
+class MarketplaceMissionRecord(BaseModel):
+    mission_id: str
+    name: str
+    status: str
+    brief: str
+    category_hint: str | None = None
+    hard_filters: dict[str, Any] = Field(default_factory=dict)
+    soft_preferences: dict[str, Any] = Field(default_factory=dict)
+    search_config: dict[str, Any] = Field(default_factory=dict)
+    scan_config: dict[str, Any] = Field(default_factory=dict)
+    created_at: str
+    updated_at: str
+    last_scan_at: str | None = None
+
+
+class MarketplaceMissionListResponse(BaseModel):
+    items: list[MarketplaceMissionRecord] = Field(default_factory=list)
+
+
+class MarketplaceMissionUpsertRequest(BaseModel):
+    name: str | None = None
+    status: str | None = None
+    brief: str | None = None
+    category_hint: str | None = None
+    hard_filters: dict[str, Any] = Field(default_factory=dict)
+    soft_preferences: dict[str, Any] = Field(default_factory=dict)
+    search_config: dict[str, Any] = Field(default_factory=dict)
+    scan_config: dict[str, Any] = Field(default_factory=dict)
+
+
+class MarketplaceBrowserHealthResponse(BaseModel):
+    status: str
+    cdp_url: str
+    browser_family: str
+    profile_path: str
+    logged_in: bool
+    challenge_detected: bool
+    last_checked_at: str
+    detail: str | None = None
+    final_url: str | None = None
+
+
+class MarketplaceScanRequest(BaseModel):
+    mission_id: str | None = None
+
+
+class MarketplaceScanJobListResponse(BaseModel):
+    items: list[CockpitActionJobStatusResponse] = Field(default_factory=list)
+
+
+class MarketplaceMatchRecord(BaseModel):
+    match_id: str
+    mission_id: str
+    mission_name: str | None = None
+    listing_id: str
+    listing_url: str
+    title: str
+    price: str | None = None
+    price_value: float | None = None
+    location: str | None = None
+    seller_name: str | None = None
+    captured_at: str
+    score: int
+    decision_band: str
+    reasons_for: list[str] = Field(default_factory=list)
+    reasons_against: list[str] = Field(default_factory=list)
+    confidence: float | None = None
+    raw_text_snapshot: str
+    screenshot_path: str | None = None
+    status: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    updated_at: str
+
+
+class MarketplaceMatchListResponse(BaseModel):
+    items: list[MarketplaceMatchRecord] = Field(default_factory=list)
+
+
+class MarketplaceMatchStatusRequest(BaseModel):
+    status: str
+
+
+class MarketplaceAlertRecord(BaseModel):
+    alert_id: str
+    mission_id: str
+    mission_name: str | None = None
+    match_id: str
+    match_title: str | None = None
+    listing_url: str | None = None
+    price: str | None = None
+    location: str | None = None
+    decision_band: str | None = None
+    status: str
+    created_at: str
+    updated_at: str
+    trigger_reason: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class MarketplaceAlertListResponse(BaseModel):
+    items: list[MarketplaceAlertRecord] = Field(default_factory=list)
+
+
+class MarketplaceAlertStatusRequest(BaseModel):
+    status: str
 
 
 class CockpitFeedbackFlagRequest(BaseModel):
@@ -2127,6 +2353,278 @@ def _serialize_action_job_status(
         "progress_stage": job.get("progress_stage"),
         "progress_pct": job.get("progress_pct"),
     }
+
+
+def _marketplace_mission_service(service: CockpitService) -> MarketplaceMissionService:
+    _ensure_marketplace_scan_scheduler(service)
+    return MarketplaceMissionService(service.state_store)
+
+
+def _list_marketplace_scan_jobs(
+    service: CockpitService, *, limit: int = 20
+) -> list[dict[str, Any]]:
+    rows = service.state_store.list_jobs(limit=max(limit * 5, 100))
+    items: list[dict[str, Any]] = []
+    for row in rows:
+        if str(row.get("action_id") or "") != "marketplace_scan":
+            continue
+        items.append(
+            {
+                "ok": True,
+                "job_id": str(row.get("job_id") or ""),
+                "action_id": "marketplace_scan",
+                "status": str(row.get("status") or "unknown"),
+                "started_at": row.get("started_at"),
+                "ended_at": row.get("ended_at"),
+                "exit_code": row.get("exit_code"),
+                "stdout_path": row.get("stdout_path"),
+                "stderr_path": row.get("stderr_path"),
+                "result": None,
+                "progress_stage": row.get("progress_stage"),
+                "progress_pct": row.get("progress_pct"),
+            }
+        )
+        if len(items) >= limit:
+            break
+    return items
+
+
+def _write_marketplace_job_line(handle: IO[str], message: str) -> None:
+    handle.write(message.rstrip() + "\n")
+    handle.flush()
+
+
+def _marketplace_scan_in_progress(service: CockpitService) -> bool:
+    for job in _list_marketplace_scan_jobs(service, limit=50):
+        if str(job.get("status") or "") in {"queued", "running"}:
+            return True
+    return False
+
+
+def _run_marketplace_scan_job(
+    *,
+    service: CockpitService,
+    mission_id: str | None,
+    job_id: str,
+    stdout_path: Path,
+    stderr_path: Path,
+    tracker: Any | None,
+) -> None:
+    started_at = datetime.now(timezone.utc).isoformat()
+    mission_service = _marketplace_mission_service(service)
+    title = "Marketplace scan"
+    if mission_id:
+        mission = mission_service.get_mission(mission_id)
+        if mission is not None:
+            title = f"Marketplace scan: {mission['name']}"
+
+    _persist_action_job_row(
+        service,
+        job_id=job_id,
+        action_id="marketplace_scan",
+        args={"mission_id": mission_id},
+        started_at=started_at,
+        status="running",
+        stdout_path=stdout_path,
+        stderr_path=stderr_path,
+    )
+    if tracker is not None:
+        _best_effort_tracker_call("start_job", job_id)
+        _best_effort_tracker_call(
+            "change_phase", job_id, "marketplace_scan", message=f"Started {title}"
+        )
+
+    with stdout_path.open("a", encoding="utf-8") as stdout_handle, stderr_path.open(
+        "a", encoding="utf-8"
+    ) as stderr_handle:
+        scanner = MarketplaceScanner(mission_service)
+
+        def progress(stage: str, pct: float | None) -> None:
+            service.state_store.update_job_progress(job_id, stage, pct)
+            if tracker is not None:
+                _best_effort_tracker_call("change_phase", job_id, stage, message=stage)
+                if pct is not None:
+                    bounded = max(0, min(100, int(pct)))
+                    _best_effort_tracker_call(
+                        "record_progress",
+                        job_id,
+                        current=bounded,
+                        total=100,
+                        message=stage,
+                    )
+
+        def log(message: str) -> None:
+            _write_marketplace_job_line(stdout_handle, message)
+
+        try:
+            result = scanner.run_sync(
+                mission_id=mission_id,
+                progress=progress,
+                log=log,
+            )
+            _write_marketplace_job_line(stdout_handle, json.dumps(result, indent=2))
+            ended_at = datetime.now(timezone.utc).isoformat()
+            _persist_action_job_row(
+                service,
+                job_id=job_id,
+                action_id="marketplace_scan",
+                args={"mission_id": mission_id},
+                started_at=started_at,
+                ended_at=ended_at,
+                status="success",
+                exit_code=0,
+                stdout_path=stdout_path,
+                stderr_path=stderr_path,
+            )
+            if tracker is not None:
+                _best_effort_tracker_call("complete_job", job_id, result.get("summary"))
+        except Exception as exc:
+            _write_marketplace_job_line(stderr_handle, str(exc))
+            ended_at = datetime.now(timezone.utc).isoformat()
+            _persist_action_job_row(
+                service,
+                job_id=job_id,
+                action_id="marketplace_scan",
+                args={"mission_id": mission_id},
+                started_at=started_at,
+                ended_at=ended_at,
+                status="failed",
+                exit_code=1,
+                stdout_path=stdout_path,
+                stderr_path=stderr_path,
+            )
+            if tracker is not None:
+                _best_effort_tracker_call("fail_job", job_id, str(exc))
+
+
+def _launch_marketplace_scan_job(
+    service: CockpitService,
+    *,
+    mission_id: str | None,
+    trigger_source: str = "cockpit",
+) -> dict[str, Any]:
+    tracker = _get_backend_job_tracker()
+    job_id = uuid.uuid4().hex
+    logs_dir = Path(service.artifact_store.logs_dir)
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    stdout_path = logs_dir / f"{job_id}.out.log"
+    stderr_path = logs_dir / f"{job_id}.err.log"
+    started_at = datetime.now(timezone.utc).isoformat()
+    title = "Marketplace scan"
+
+    if tracker is not None:
+        _best_effort_tracker_call(
+            "create_job",
+            job_id=job_id,
+            job_type="marketplace_scan",
+            job_family="marketplace",
+            title=title,
+            trigger_source=trigger_source,
+            entity_scope=mission_id or "all",
+            metadata={"mission_id": mission_id, "trigger_source": trigger_source},
+        )
+        _best_effort_tracker_call(
+            "add_artifact",
+            job_id,
+            artifact_type="log",
+            artifact_label="stdout log",
+            artifact_path=str(stdout_path),
+        )
+        _best_effort_tracker_call(
+            "add_artifact",
+            job_id,
+            artifact_type="log",
+            artifact_label="stderr log",
+            artifact_path=str(stderr_path),
+        )
+
+    _persist_action_job_row(
+        service,
+        job_id=job_id,
+        action_id="marketplace_scan",
+        args={"mission_id": mission_id},
+        started_at=started_at,
+        status="queued",
+        stdout_path=stdout_path,
+        stderr_path=stderr_path,
+    )
+
+    worker = threading.Thread(
+        target=_run_marketplace_scan_job,
+        kwargs={
+            "service": service,
+            "mission_id": mission_id,
+            "job_id": job_id,
+            "stdout_path": stdout_path,
+            "stderr_path": stderr_path,
+            "tracker": tracker,
+        },
+        daemon=True,
+        name=f"marketplace-scan-{job_id[:8]}",
+    )
+    worker.start()
+
+    return {
+        "ok": True,
+        "action_id": "marketplace_scan",
+        "result": f"Queued marketplace scan job ({trigger_source})",
+        "exit_code": 0,
+        "job_id": job_id,
+        "status": "queued",
+        "queued": True,
+    }
+
+
+def _run_marketplace_scheduler_tick(service: CockpitService) -> list[dict[str, Any]]:
+    mission_service = MarketplaceMissionService(service.state_store)
+    due_missions = mission_service.due_missions()
+    if not due_missions or _marketplace_scan_in_progress(service):
+        return []
+
+    health = check_marketplace_browser_health()
+    if str(health.get("status") or "") != "ready":
+        return []
+
+    launched: list[dict[str, Any]] = []
+    mission = due_missions[0]
+    queued = _launch_marketplace_scan_job(
+        service,
+        mission_id=str(mission.get("mission_id") or "") or None,
+        trigger_source="scheduler",
+    )
+    launched.append(
+        {
+            "mission_id": mission.get("mission_id"),
+            "job_id": queued.get("job_id"),
+        }
+    )
+    return launched
+
+
+def _marketplace_scheduler_loop(service: CockpitService) -> None:
+    while True:
+        try:
+            launched = _run_marketplace_scheduler_tick(service)
+            if launched:
+                logger.info("Marketplace scheduler queued %d scan(s)", len(launched))
+        except Exception:
+            logger.exception("Marketplace scheduler tick failed")
+        time.sleep(_MARKETPLACE_SCHEDULER_INTERVAL_SECONDS)
+
+
+def _ensure_marketplace_scan_scheduler(service: CockpitService) -> None:
+    global _MARKETPLACE_SCHEDULER_STARTED
+    with _MARKETPLACE_SCHEDULER_LOCK:
+        if _MARKETPLACE_SCHEDULER_STARTED:
+            return
+        worker = threading.Thread(
+            target=_marketplace_scheduler_loop,
+            kwargs={"service": service},
+            daemon=True,
+            name="marketplace-scheduler",
+        )
+        worker.start()
+        _MARKETPLACE_SCHEDULER_STARTED = True
 
 
 def _launch_action_job(
@@ -2817,6 +3315,334 @@ async def cockpit_stop_action_job(job_id: str):
     )
 
 
+@router.get(
+    "/marketplace/browser-health",
+    response_model=MarketplaceBrowserHealthResponse,
+)
+async def cockpit_marketplace_browser_health():
+    try:
+        health = await asyncio.to_thread(check_marketplace_browser_health)
+    except Exception as exc:
+        logger.exception("Marketplace browser health check failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Marketplace browser health check failed: {str(exc)}",
+        ) from exc
+    return MarketplaceBrowserHealthResponse(**health)
+
+
+@router.get(
+    "/marketplace/missions",
+    response_model=MarketplaceMissionListResponse,
+)
+async def cockpit_list_marketplace_missions(status: str | None = None):
+    try:
+        service = CockpitService.get_instance()
+        mission_service = _marketplace_mission_service(service)
+        statuses = [item.strip().lower() for item in str(status or "").split(",") if item.strip()]
+        items = await asyncio.to_thread(mission_service.list_missions, statuses=statuses or None)
+    except Exception as exc:
+        logger.exception("Marketplace mission listing failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Marketplace mission listing failed: {str(exc)}",
+        ) from exc
+    return MarketplaceMissionListResponse(items=items)
+
+
+@router.post(
+    "/marketplace/missions",
+    response_model=MarketplaceMissionRecord,
+)
+async def cockpit_create_marketplace_mission(payload: MarketplaceMissionUpsertRequest):
+    try:
+        service = CockpitService.get_instance()
+        mission_service = _marketplace_mission_service(service)
+        mission = await asyncio.to_thread(mission_service.create_mission, payload.model_dump())
+    except MarketplaceMissionError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Marketplace mission creation failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Marketplace mission creation failed: {str(exc)}",
+        ) from exc
+    return MarketplaceMissionRecord(**mission)
+
+
+@router.get(
+    "/marketplace/missions/{mission_id}",
+    response_model=MarketplaceMissionRecord,
+)
+async def cockpit_get_marketplace_mission(mission_id: str):
+    try:
+        service = CockpitService.get_instance()
+        mission_service = _marketplace_mission_service(service)
+        mission = await asyncio.to_thread(mission_service.get_mission, mission_id)
+    except Exception as exc:
+        logger.exception("Marketplace mission read failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Marketplace mission read failed: {str(exc)}",
+        ) from exc
+    if mission is None:
+        raise HTTPException(status_code=404, detail=f"Marketplace mission not found: {mission_id}")
+    return MarketplaceMissionRecord(**mission)
+
+
+@router.patch(
+    "/marketplace/missions/{mission_id}",
+    response_model=MarketplaceMissionRecord,
+)
+async def cockpit_update_marketplace_mission(
+    mission_id: str,
+    payload: MarketplaceMissionUpsertRequest,
+):
+    try:
+        service = CockpitService.get_instance()
+        mission_service = _marketplace_mission_service(service)
+        mission = await asyncio.to_thread(
+            mission_service.update_mission,
+            mission_id,
+            payload.model_dump(exclude_none=True),
+        )
+    except MarketplaceMissionNotFound as exc:
+        raise HTTPException(status_code=404, detail=f"Marketplace mission not found: {exc}") from exc
+    except MarketplaceMissionError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Marketplace mission update failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Marketplace mission update failed: {str(exc)}",
+        ) from exc
+    return MarketplaceMissionRecord(**mission)
+
+
+@router.get(
+    "/marketplace/scans",
+    response_model=MarketplaceScanJobListResponse,
+)
+async def cockpit_list_marketplace_scan_jobs(limit: int = 20):
+    try:
+        service = CockpitService.get_instance()
+        items = await asyncio.to_thread(_list_marketplace_scan_jobs, service, limit=limit)
+    except Exception as exc:
+        logger.exception("Marketplace scan listing failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Marketplace scan listing failed: {str(exc)}",
+        ) from exc
+    return MarketplaceScanJobListResponse(
+        items=[CockpitActionJobStatusResponse(**item) for item in items]
+    )
+
+
+@router.post(
+    "/marketplace/scans",
+    response_model=CockpitActionExecuteResponse,
+)
+async def cockpit_trigger_marketplace_scan(payload: MarketplaceScanRequest):
+    try:
+        service = CockpitService.get_instance()
+        mission_service = _marketplace_mission_service(service)
+    except Exception as exc:
+        logger.exception("Failed to initialize CockpitService for marketplace scan")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Service initialization failed: {str(exc)}",
+        ) from exc
+
+    mission_id = str(payload.mission_id or "").strip() or None
+    if mission_id:
+        mission = await asyncio.to_thread(mission_service.get_mission, mission_id)
+        if mission is None:
+            raise HTTPException(status_code=404, detail=f"Marketplace mission not found: {mission_id}")
+    else:
+        active_missions = await asyncio.to_thread(mission_service.list_missions, statuses=["active"])
+        if not active_missions:
+            raise HTTPException(status_code=400, detail="No active Marketplace missions are available to scan")
+
+    health = await asyncio.to_thread(check_marketplace_browser_health)
+    if str(health.get("status")) != "ready":
+        code = 409 if str(health.get("status")) in {"login_required", "challenge_detected"} else 503
+        raise HTTPException(status_code=code, detail=str(health.get("detail") or health.get("status")))
+
+    try:
+        queued = await asyncio.to_thread(
+            _launch_marketplace_scan_job,
+            service,
+            mission_id=mission_id,
+        )
+    except Exception as exc:
+        logger.exception("Marketplace scan launch failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Marketplace scan launch failed: {str(exc)}",
+        ) from exc
+    return CockpitActionExecuteResponse(**queued)
+
+
+@router.get(
+    "/marketplace/scans/{job_id}",
+    response_model=CockpitActionJobStatusResponse,
+)
+async def cockpit_get_marketplace_scan_job(job_id: str, tail: int = 0):
+    try:
+        service = CockpitService.get_instance()
+        result = await asyncio.to_thread(
+            _serialize_action_job_status,
+            service,
+            job_id,
+            tail=tail,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=f"Marketplace scan job not found: {exc}") from exc
+    except Exception as exc:
+        logger.exception("Marketplace scan job read failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Marketplace scan job read failed: {str(exc)}",
+        ) from exc
+    if str(result.get("action_id") or "") != "marketplace_scan":
+        raise HTTPException(status_code=404, detail=f"Marketplace scan job not found: {job_id}")
+    return CockpitActionJobStatusResponse(**result)
+
+
+@router.get(
+    "/marketplace/matches",
+    response_model=MarketplaceMatchListResponse,
+)
+async def cockpit_list_marketplace_matches(
+    mission_id: str | None = None,
+    status: str | None = None,
+    decision_band: str | None = None,
+    limit: int = 100,
+):
+    try:
+        service = CockpitService.get_instance()
+        mission_service = _marketplace_mission_service(service)
+        items = await asyncio.to_thread(
+            mission_service.list_matches,
+            mission_id=mission_id,
+            status=status,
+            decision_band=decision_band,
+            limit=limit,
+        )
+    except Exception as exc:
+        logger.exception("Marketplace match listing failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Marketplace match listing failed: {str(exc)}",
+        ) from exc
+    return MarketplaceMatchListResponse(items=items)
+
+
+@router.get(
+    "/marketplace/matches/{match_id}",
+    response_model=MarketplaceMatchRecord,
+)
+async def cockpit_get_marketplace_match(match_id: str):
+    try:
+        service = CockpitService.get_instance()
+        mission_service = _marketplace_mission_service(service)
+        match = await asyncio.to_thread(mission_service.get_match, match_id)
+    except Exception as exc:
+        logger.exception("Marketplace match read failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Marketplace match read failed: {str(exc)}",
+        ) from exc
+    if match is None:
+        raise HTTPException(status_code=404, detail=f"Marketplace match not found: {match_id}")
+    return MarketplaceMatchRecord(**match)
+
+
+@router.patch(
+    "/marketplace/matches/{match_id}",
+    response_model=MarketplaceMatchRecord,
+)
+async def cockpit_update_marketplace_match(
+    match_id: str,
+    payload: MarketplaceMatchStatusRequest,
+):
+    try:
+        service = CockpitService.get_instance()
+        mission_service = _marketplace_mission_service(service)
+        match = await asyncio.to_thread(
+            mission_service.update_match_status,
+            match_id,
+            payload.status,
+        )
+    except MarketplaceMissionNotFound as exc:
+        raise HTTPException(status_code=404, detail=f"Marketplace match not found: {exc}") from exc
+    except MarketplaceMissionError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Marketplace match update failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Marketplace match update failed: {str(exc)}",
+        ) from exc
+    return MarketplaceMatchRecord(**match)
+
+
+@router.get(
+    "/marketplace/alerts",
+    response_model=MarketplaceAlertListResponse,
+)
+async def cockpit_list_marketplace_alerts(
+    mission_id: str | None = None,
+    status: str | None = None,
+    limit: int = 100,
+):
+    try:
+        service = CockpitService.get_instance()
+        mission_service = _marketplace_mission_service(service)
+        items = await asyncio.to_thread(
+            mission_service.list_alerts,
+            mission_id=mission_id,
+            status=status,
+            limit=limit,
+        )
+    except Exception as exc:
+        logger.exception("Marketplace alert listing failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Marketplace alert listing failed: {str(exc)}",
+        ) from exc
+    return MarketplaceAlertListResponse(items=items)
+
+
+@router.patch(
+    "/marketplace/alerts/{alert_id}",
+    response_model=MarketplaceAlertRecord,
+)
+async def cockpit_update_marketplace_alert(
+    alert_id: str,
+    payload: MarketplaceAlertStatusRequest,
+):
+    try:
+        service = CockpitService.get_instance()
+        mission_service = _marketplace_mission_service(service)
+        alert = await asyncio.to_thread(
+            mission_service.update_alert_status,
+            alert_id,
+            payload.status,
+        )
+    except MarketplaceMissionNotFound as exc:
+        raise HTTPException(status_code=404, detail=f"Marketplace alert not found: {exc}") from exc
+    except MarketplaceMissionError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Marketplace alert update failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Marketplace alert update failed: {str(exc)}",
+        ) from exc
+    return MarketplaceAlertRecord(**alert)
+
+
 @router.post("/feedback/flag", response_model=CockpitFeedbackFlagResponse)
 async def cockpit_flag_feedback(payload: CockpitFeedbackFlagRequest):
     """Persist a flagged cockpit chat turn with relevant backend diagnostics."""
@@ -2918,6 +3744,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
     if not payload.stream:
         # Blocking implementation if requested (rare for this UI)
         try:
+            attached_sources = [item.model_dump() for item in payload.attached_sources]
             response = await asyncio.to_thread(
                 service.chat_stream,
                 message=payload.message,
@@ -2928,6 +3755,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 rag=payload.rag,
                 db_diagnostics=payload.db_diagnostics,
                 ui_mode=payload.mode,
+                attached_sources=attached_sources,
             )
             sources = _enforce_visible_source_contract(payload.message, response)
             rendered_chart = _build_filestats_chart_from_chat_response(response)
@@ -2978,6 +3806,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 await queue.put(
                     {"type": "status", "data": {"stage": "Resolving request context"}}
                 )
+                attached_sources = [item.model_dump() for item in payload.attached_sources]
                 # ChatController.build_chat_response is synchronous and blocking.
                 # We run it in a thread to keep the event loop free.
                 response = await asyncio.to_thread(
@@ -2992,6 +3821,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     rag=payload.rag,
                     db_diagnostics=payload.db_diagnostics,
                     ui_mode=payload.mode,
+                    attached_sources=attached_sources,
                 )
                 sources = _enforce_visible_source_contract(payload.message, response)
 

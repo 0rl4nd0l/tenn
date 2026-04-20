@@ -26,6 +26,7 @@ from cockpit.core.response_parser import (
 )
 from cockpit.core.action_preview import normalize_action_preview
 from cockpit.core.tool_call_debug import build_tool_trace_entry
+from cockpit.core.query_intent import QueryIntent, classify_intent
 
 # ---------------------------------------------------------------------------
 # Conditional imports for modules being created in parallel.  At runtime they
@@ -76,6 +77,26 @@ _SUBSTANTIVE_INFO_QUERY_RE = re.compile(
     r"valuation|broker|upgrade|downgrade|chart)\b",
     re.IGNORECASE,
 )
+
+_FINANCIAL_CLAIM_IN_RESPONSE_RE = re.compile(
+    r"\b[A-Z]{2,5}\b|"
+    r"\$[\d,]+(?:\.\d+)?[MBKmb]?\b|"
+    r"\b\d+(?:\.\d+)?%\b|"
+    r"\b(?:announced|reported|upgraded|downgraded|raised|cut|beat|missed|"
+    r"earnings|revenue|profit|EBIT|dividend|buyback|placement)\b",
+    re.IGNORECASE,
+)
+
+
+def _response_is_pure_refusal(text: str) -> bool:
+    """Return True only when *text* is a pure statement of inability with zero substantive claims.
+
+    A hedged fabrication ("I cannot confirm, but BHP reported...") returns False.
+    """
+    text = str(text or "").strip()
+    if not text:
+        return True
+    return not bool(_FINANCIAL_CLAIM_IN_RESPONSE_RE.search(text))
 
 
 def parse_backend_prefix(message: str) -> tuple[str | None, str]:
@@ -250,6 +271,7 @@ class AgentLoop:
         """
         force_backend, message = parse_backend_prefix(message)
         self._turn_force_backend = force_backend
+        self._current_intent: QueryIntent | None = None
         try:
             result = self._run_inner(
                 message,
@@ -289,17 +311,28 @@ class AgentLoop:
         if conversation_history:
             messages.extend(conversation_history)
 
-        # Build the user message, injecting ticker context when available.
+        # Build the user message with intent-aware ticker context injection.
+        # MARKET_WIDE queries must NOT receive ticker context — the active ticker
+        # is irrelevant to "news today" or "market movers" queries, and its
+        # presence causes search_news to narrow scope inappropriately.
         user_content = message
-        if ticker:
+        _intent = classify_intent(
+            message,
+            active_ticker=ticker,
+            conversation_history=conversation_history,
+        )
+        if ticker and _intent not in (QueryIntent.MARKET_WIDE, QueryIntent.COMMAND):
             user_content = f"Current ticker context: {ticker}\n\n{message}"
         messages.append({"role": "user", "content": user_content})
+        # Pass intent downstream for use by tool execution layer.
+        self._current_intent = _intent
 
         evidence: list[dict] = []
         tool_traces: list[dict[str, Any]] = []
         total_tool_calls = 0
         thinking_steps = 0
         has_thought = False  # Track whether the LLM has completed a thinking step
+        grounding_nudges_given = 0
 
         iteration = 0
         while iteration < self.MAX_ITERATIONS:
@@ -452,6 +485,29 @@ class AgentLoop:
                     conversation_history=conversation_history,
                     evidence=evidence,
                 ):
+                    if grounding_nudges_given >= 1 and not _response_is_pure_refusal(
+                        parsed.content or raw_response
+                    ):
+                        # The model has been nudged once and still produced a
+                        # substantive tool-less response.  Do not let it through.
+                        logger.warning(
+                            "agent: grounding hard-block after %d nudge(s); "
+                            "returning source contract refusal",
+                            grounding_nudges_given,
+                        )
+                        _GROUNDING_REFUSAL = (
+                            "I need to look that up before I can answer reliably. "
+                            "Could you ask me to fetch the relevant news, price, or "
+                            "financial data first?"
+                        )
+                        return AgentResult(
+                            text=_GROUNDING_REFUSAL,
+                            evidence=evidence,
+                            tool_calls_made=total_tool_calls,
+                            iterations_used=iteration,
+                            tool_traces=tool_traces,
+                        )
+                    grounding_nudges_given += 1
                     messages.append({"role": "assistant", "content": raw_response})
                     messages.append(
                         {
@@ -889,6 +945,11 @@ class AgentLoop:
             return {"error": f"Tool execution is not available (tool: {tool_name})"}
 
         try:
+            # Propagate the current query intent so tool implementations can
+            # adjust scope (e.g. suppress ticker inference for MARKET_WIDE).
+            intent = getattr(self, "_current_intent", None)
+            if intent is not None and hasattr(self._tool_executor, "_current_intent"):
+                self._tool_executor._current_intent = intent.value if hasattr(intent, "value") else str(intent)
             result = self._tool_executor(tool_name, arguments)
             if not isinstance(result, dict):
                 result = {"result": result}

@@ -4,6 +4,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
+import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import {
@@ -113,6 +114,15 @@ export function VerificationScreen() {
   const [goldEvalError, setGoldEvalError] = useState<string | null>(null)
   const [goldEval, setGoldEval] = useState<RealGoldEvalResponse | null>(null)
 
+  const [verificationRunHistory, setVerificationRunHistory] = useState<Array<{
+    run_id: string
+    ticker: string
+    timestamp: string
+    passed: boolean
+    outcome_summary: string
+  }>>([])
+  const [verificationHistoryLoading, setVerificationHistoryLoading] = useState(false)
+
   const documentLoadLockRef = useRef(false)
   const recentRunsLoadLockRef = useRef(false)
   const reviewActionLockRef = useRef(false)
@@ -187,11 +197,6 @@ export function VerificationScreen() {
       void handleLoadDocuments()
     }, 10)
   }, [handleLoadDocuments])
-
-  const handleSelectHistoryRun = useCallback((runId: string) => {
-    setSelectedRunId(runId)
-    updateTab('runs')
-  }, [updateTab])
 
   useEffect(() => {
     setHasHydrated(true)
@@ -588,6 +593,28 @@ export function VerificationScreen() {
     void loadWrongQueue()
   }, [handleLoadRecentRuns, loadWrongQueue])
 
+  useEffect(() => {
+    setVerificationHistoryLoading(true)
+    fetch('/api/context/verification/runs?limit=10')
+      .then((r) => r.json())
+      .then((data: unknown) => {
+        const payload = data as { ok?: boolean; runs?: unknown[] }
+        if (payload.ok && Array.isArray(payload.runs)) {
+          setVerificationRunHistory(
+            payload.runs as Array<{
+              run_id: string
+              ticker: string
+              timestamp: string
+              passed: boolean
+              outcome_summary: string
+            }>,
+          )
+        }
+      })
+      .catch(() => {/* silent — history is best-effort */})
+      .finally(() => setVerificationHistoryLoading(false))
+  }, [])
+
   const handleInspectSelectedRun = useCallback(async () => {
     if (reviewActionLockRef.current) return
     if (!selectedRunId) {
@@ -616,6 +643,42 @@ export function VerificationScreen() {
       setReviewActionLoading(false)
     }
   }, [beginReviewSessionSwap, loadWrongQueue, selectedRunId])
+
+  const handleSelectHistoryRun = useCallback((runId: string) => {
+    setSelectedRunId(runId)
+    updateTab('runs')
+    // Trigger inspection to load review items so they appear below the timeline
+    setTimeout(() => {
+      void handleInspectSelectedRun()
+    }, 50)
+  }, [handleInspectSelectedRun, updateTab])
+
+  const handleSelectRunGroup = useCallback(async (runIds: string[]) => {
+    if (runIds.length === 0) return
+    setSelectedRunId(runIds[0])
+    updateTab('runs')
+
+    reviewActionLockRef.current = true
+    setReviewError(null)
+    setReviewActionLoading(true)
+    beginReviewSessionSwap(`Loading review session for group of ${runIds.length} runs...`)
+    try {
+      const session = await createExtractionReviewSession({ runIds })
+      setReviewSession(session)
+      setSelectedReviewItemId(session.items[0]?.item_id ?? null)
+      setReviewSessionLoadingMessage(null)
+      await loadWrongQueue()
+      toast.success(`Loaded bundled review session for ${runIds.length} runs`)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to inspect selected group'
+      setReviewError(message)
+      toast.error(message)
+    } finally {
+      setReviewSessionLoadingMessage(null)
+      reviewActionLockRef.current = false
+      setReviewActionLoading(false)
+    }
+  }, [beginReviewSessionSwap, loadWrongQueue, updateTab])
 
   const handleLoadReview = useCallback(async () => {
     if (reviewActionLockRef.current) return
@@ -1060,7 +1123,7 @@ export function VerificationScreen() {
 
           <TabsContent value="runs" className="m-0 h-full min-h-0 outline-none data-[state=active]:flex">
             <ScrollArea className="h-full w-full">
-              <div className="pr-4">
+              <div className="space-y-8 pr-4">
                 <RunsTabPanel
                   attachActiveRuns={attachActiveRuns}
                   activeMonitorNotice={activeMonitorNotice}
@@ -1069,6 +1132,60 @@ export function VerificationScreen() {
                   activeRunId={activeRunId}
                   runStatus={runStatus}
                 />
+                
+                {selectedRunId && (
+                  <div className="border-t border-border/40 pt-8">
+                    <div className="mb-4 flex items-center gap-2">
+                      <Badge variant="outline" className="px-2 py-0.5">Review Panel</Badge>
+                      <div className="h-px flex-1 bg-border/40" />
+                    </div>
+                    <ReviewTabPanel
+                      documents={documents}
+                      documentsLoading={documentsLoading}
+                      docsLimit={docsLimit}
+                      extraDocumentIds={extraDocumentIds}
+                      reviewError={reviewError}
+                      reviewActionLoading={reviewActionLoading}
+                      reviewSession={reviewSession}
+                      reviewSessionLoadingMessage={reviewSessionLoadingMessage}
+                      wrongQueue={wrongQueue}
+                      recentRuns={recentRuns}
+                      recentRunsLoading={recentRunsLoading}
+                      selectedRunId={selectedRunId}
+                      selectedDocumentId={selectedDocumentId}
+                      selectedReviewDocumentIds={selectedReviewDocumentIds}
+                      currentReviewItem={currentReviewItem}
+                      currentReviewIndex={currentReviewIndex}
+                      currentEvidenceQuality={currentEvidenceQuality}
+                      matchedEvidenceText={matchedEvidenceText}
+                      currentSnippetPath={currentSnippetPath}
+                      currentSnippetUrl={currentSnippetUrl}
+                      currentSnippetRenderKey={currentSnippetRenderKey}
+                      currentRowRef={currentRowRef}
+                      reviewItems={reviewItems}
+                      evidenceSuspendMessage={evidenceSuspendMessage}
+                      snippetImageState={snippetImageState}
+                      hasPrevReviewItem={hasPrevReviewItem}
+                      hasNextReviewItem={hasNextReviewItem}
+                      onDocsLimitChange={setDocsLimit}
+                      onExtraDocumentIdsChange={setExtraDocumentIds}
+                      onLoadDocuments={handleLoadDocuments}
+                      onRunExtraction={handleRunExtraction}
+                      onLoadReview={handleLoadReview}
+                      onRefreshWrongQueue={() => void loadWrongQueue()}
+                      onExportReviewArtifacts={handleExportReviewArtifacts}
+                      onSelectedRunIdChange={setSelectedRunId}
+                      onLoadRecentRuns={() => void handleLoadRecentRuns()}
+                      onInspectSelectedRun={() => void handleInspectSelectedRun()}
+                      onSelectedDocumentIdChange={setSelectedDocumentId}
+                      onMoveReviewSelection={moveReviewSelection}
+                      onSelectedReviewItemIdChange={setSelectedReviewItemId}
+                      onSnippetImageLoad={handleSnippetImageLoad}
+                      onSnippetImageError={handleSnippetImageError}
+                      onSubmitReview={(verdict) => void handleSubmitReview(verdict)}
+                    />
+                  </div>
+                )}
               </div>
             </ScrollArea>
           </TabsContent>
@@ -1093,7 +1210,7 @@ export function VerificationScreen() {
 
           <TabsContent value="verify" className="m-0 h-full min-h-0 outline-none data-[state=active]:flex">
             <ScrollArea className="h-full w-full">
-              <div className="pr-4">
+              <div className="space-y-4 pr-4">
                 <VerifyTabPanel
                   ticker={ticker}
                   isRunning={isRunning}
@@ -1104,6 +1221,45 @@ export function VerificationScreen() {
                   onExportHtml={handleExportHtml}
                   onInspectResult={handleInspectResult}
                 />
+
+                {(verificationHistoryLoading || verificationRunHistory.length > 0) && (
+                  <div className="mt-4 rounded border border-border/40 p-3">
+                    <h3 className="mb-2 text-sm font-semibold text-muted-foreground">
+                      Recent Verification Runs
+                    </h3>
+                    {verificationHistoryLoading && verificationRunHistory.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">Loading history…</p>
+                    ) : (
+                      <div className="space-y-1">
+                        {verificationRunHistory.map((run) => (
+                          <div
+                            key={run.run_id}
+                            className="flex items-center justify-between border-b border-border/30 py-1 text-sm last:border-0"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs font-bold">
+                                {run.ticker}
+                              </span>
+                              <span className={run.passed ? 'text-green-600' : 'text-red-500'}>
+                                {run.passed ? '✓ Pass' : '✗ Fail'}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(run.timestamp).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              className="text-xs text-blue-500 hover:underline"
+                              onClick={() => handleSelectHistoryTicker(run.ticker)}
+                            >
+                              Re-run
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </ScrollArea>
           </TabsContent>
@@ -1123,6 +1279,7 @@ export function VerificationScreen() {
           loading={recentRunsLoading}
           onSelectTicker={handleSelectHistoryTicker}
           onSelectRun={handleSelectHistoryRun}
+          onSelectRunGroup={handleSelectRunGroup}
           activeTicker={ticker}
         />
       </aside>

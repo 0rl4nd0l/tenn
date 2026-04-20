@@ -764,6 +764,7 @@ class CockpitService:
         )
         self._feedback_lock = threading.Lock()
         self._recent_turn_diagnostics: dict[str, list[dict[str, Any]]] = {}
+        self._verification_runs_lock = threading.Lock()
 
         logger.info("CockpitService initialized successfully (config=%s)", config_path)
 
@@ -1564,6 +1565,7 @@ class CockpitService:
         rag: bool | None = None,
         db_diagnostics: bool | None = None,
         ui_mode: str | None = None,
+        attached_sources: list[dict[str, Any]] | None = None,
     ) -> ChatResponse:
         """Run a chat turn and return the full response, while optionally streaming chunks."""
         requested_model = str(model or "").strip()
@@ -1675,6 +1677,7 @@ class CockpitService:
             on_status=_capture_status,
             on_thinking=_capture_thinking,
             ui_mode=ui_mode,
+            attached_sources=attached_sources or [],
         )
         meta = dict(getattr(response, "routing_metadata", None) or {})
         if not str(meta.get("source") or "").strip():
@@ -1726,3 +1729,60 @@ class CockpitService:
             },
         )
         return response
+
+    # ------------------------------------------------------------------
+    # Verification run history
+    # ------------------------------------------------------------------
+
+    def record_verification_run(
+        self,
+        ticker: str,
+        outcome_summary: str,
+        passed: bool,
+        run_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Record a completed verification run."""
+        import time
+
+        run: dict[str, Any] = {
+            "run_id": run_id or str(uuid.uuid4())[:8],
+            "ticker": ticker.upper().strip(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "epoch": time.time(),
+            "passed": passed,
+            "outcome_summary": outcome_summary[:500],
+        }
+        with self._verification_runs_lock:
+            runs = self._load_verification_runs()
+            runs.insert(0, run)
+            runs = runs[:50]
+            self._save_verification_runs(runs)
+        return run
+
+    def get_verification_runs(self, limit: int = 20) -> list[dict[str, Any]]:
+        """Return recent verification runs, newest first."""
+        runs = self._load_verification_runs()
+        return runs[: max(1, min(int(limit), 50))]
+
+    def _verification_runs_path(self) -> Path:
+        data_root = os.environ.get("DATA_ROOT", "/tmp")
+        return Path(data_root) / "cockpit_verification_runs.json"
+
+    def _load_verification_runs(self) -> list[dict[str, Any]]:
+        path = self._verification_runs_path()
+        if not path.exists():
+            return []
+        try:
+            data = json.loads(path.read_text())
+            return data if isinstance(data, list) else []
+        except Exception:
+            return []
+
+    def _save_verification_runs(self, runs: list[dict[str, Any]]) -> None:
+        path = self._verification_runs_path()
+        try:
+            tmp = path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(runs, default=str))
+            tmp.replace(path)
+        except Exception as exc:
+            logger.warning("Failed to save verification runs: %s", exc)

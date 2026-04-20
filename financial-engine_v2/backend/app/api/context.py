@@ -948,3 +948,24 @@ def get_verification_context(
         "low_confidence_financials": low_conf,
         "errors": errors,
     }
+
+
+# ---------------------------------------------------------------------------
+# GET /api/context/verification/runs
+# ---------------------------------------------------------------------------
+
+
+@router.get("/verification/runs")
+def get_verification_runs(
+    limit: int = Query(default=20, ge=1, le=50),
+) -> dict[str, Any]:
+    """Return recent verification run history recorded by CockpitService."""
+    try:
+        from app.services.cockpit_service import CockpitService
+
+        service = CockpitService.get_instance()
+        runs = service.get_verification_runs(limit=limit)
+        return {"ok": True, "runs": runs, "count": len(runs)}
+    except Exception as exc:
+        logger.warning("get_verification_runs failed: %s", exc)
+        return {"ok": False, "runs": [], "error": str(exc)}
