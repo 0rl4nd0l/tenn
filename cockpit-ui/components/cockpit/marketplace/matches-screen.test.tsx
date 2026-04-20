@@ -8,10 +8,8 @@ describe('MarketplaceMatchesScreen', () => {
     vi.restoreAllMocks()
   })
 
-  it('renders saved Marketplace matches', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
+  it('renders saved Marketplace matches even without a local API key', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({
           items: [
@@ -37,15 +35,16 @@ describe('MarketplaceMatchesScreen', () => {
             },
           ],
         }),
-      }),
-    )
+      })
+    vi.stubGlobal('fetch', fetchMock)
 
-    render(<MarketplaceMatchesScreen apiKey="k" />)
+    render(<MarketplaceMatchesScreen apiKey="" />)
 
     await waitFor(() => {
       expect(screen.getByText('2014 Toyota Hilux SR5 4x4')).toBeInTheDocument()
     })
     expect(screen.getByText('$22,500')).toBeInTheDocument()
     expect(screen.getByText(/below local median/i)).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 })

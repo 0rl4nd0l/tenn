@@ -18,6 +18,15 @@ interface MarketplaceMatchesScreenProps {
   apiKey: string
 }
 
+const MATCH_STATUS_OPTIONS = [
+  { value: 'new', label: 'New' },
+  { value: 'reviewed', label: 'Reviewed' },
+  { value: 'dismissed', label: 'Dismissed' },
+  { value: 'contacted', label: 'Contacted' },
+  { value: 'won', label: 'Won' },
+  { value: 'lost', label: 'Lost' },
+] as const
+
 function formatClock(value: string): string {
   try {
     return new Date(value).toLocaleString('en-AU', {
@@ -50,7 +59,6 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
-    if (!apiKey) return
     setLoading(true)
     setError(null)
     try {
@@ -71,7 +79,6 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
   }, [load])
 
   async function handleStatus(matchId: string, status: string) {
-    if (!apiKey) return
     setError(null)
     try {
       await updateMarketplaceMatch(apiKey, matchId, status)
@@ -106,9 +113,11 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all" className="text-xs">All Status</SelectItem>
-                <SelectItem value="pending" className="text-xs">Pending</SelectItem>
-                <SelectItem value="reviewed" className="text-xs">Reviewed</SelectItem>
-                <SelectItem value="dismissed" className="text-xs">Dismissed</SelectItem>
+                {MATCH_STATUS_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value} className="text-xs">
+                    {option.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -179,9 +188,11 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="pending" className="text-[10px]">Pending</SelectItem>
-                            <SelectItem value="reviewed" className="text-[10px]">Reviewed</SelectItem>
-                            <SelectItem value="dismissed" className="text-[10px]">Dismissed</SelectItem>
+                            {MATCH_STATUS_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value} className="text-[10px]">
+                                {option.label}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>

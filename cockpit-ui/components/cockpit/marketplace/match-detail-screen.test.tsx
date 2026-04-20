@@ -8,10 +8,8 @@ describe('MarketplaceMatchDetailScreen', () => {
     vi.restoreAllMocks()
   })
 
-  it('renders score breakdown and evidence for one Marketplace match', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
+  it('renders score breakdown and evidence for one Marketplace match without requiring a local API key', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({
           match_id: 'mp_match_1',
@@ -38,10 +36,10 @@ describe('MarketplaceMatchDetailScreen', () => {
           },
           updated_at: '2026-04-18T10:00:00Z',
         }),
-      }),
-    )
+      })
+    vi.stubGlobal('fetch', fetchMock)
 
-    render(<MarketplaceMatchDetailScreen apiKey="k" matchId="mp_match_1" />)
+    render(<MarketplaceMatchDetailScreen apiKey="" matchId="mp_match_1" />)
 
     await waitFor(() => {
       expect(screen.getByText('2014 Toyota Hilux SR5 4x4')).toBeInTheDocument()
@@ -50,5 +48,6 @@ describe('MarketplaceMatchDetailScreen', () => {
     expect(screen.getByText(/example seller/i)).toBeInTheDocument()
     expect(screen.getByText(/toyota hilux 4x4/i)).toBeInTheDocument()
     expect(screen.getByText(/price_drop/i)).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 })

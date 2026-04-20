@@ -47,7 +47,11 @@ export function MarketplaceMatchDetailScreen({
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
-    if (!apiKey || !matchId) return
+    if (!matchId) {
+      setLoading(false)
+      setError('Marketplace match ID is missing')
+      return
+    }
     setLoading(true)
     setError(null)
     try {
