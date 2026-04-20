@@ -606,6 +606,58 @@ _READ_ONLY_TOOLS: list[dict[str, Any]] = [
         },
         "mutating": False,
     },
+    {
+        "name": "get_tv_indicators",
+        "description": (
+            "Fetch TradingView technical indicators for a ticker (RSI, MACD, EMA, SMA, etc.). "
+            "Uses TradingView's screener data. Available when tradingview-scraper is installed. "
+            "Useful for confirming momentum, trend direction, and overbought/oversold conditions."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "ticker": {"type": "string", "description": "ASX ticker symbol"},
+                "indicators": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Indicator names e.g. ['RSI', 'MACD', 'EMA20', 'SMA50', 'BB_upper']. Defaults to RSI, MACD, EMA20, SMA50.",
+                },
+                "exchange": {
+                    "type": "string",
+                    "description": "Exchange prefix (default: ASX). E.g. ASX, NASDAQ, NYSE.",
+                },
+            },
+            "required": ["ticker"],
+        },
+        "mutating": False,
+    },
+    {
+        "name": "tv_screener",
+        "description": (
+            "Screen tickers on TradingView for a given market. Returns ranked list with technical "
+            "indicator values. Useful for identifying momentum plays, breakouts, or oversold names "
+            "across the ASX or other markets. Available when tradingview-scraper is installed."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "market": {
+                    "type": "string",
+                    "description": "Market to screen: 'australia', 'us', 'uk', etc. Defaults to 'australia'.",
+                },
+                "filters": {
+                    "type": "object",
+                    "description": "Optional filter dict. Supported: min_rs_rating (number).",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max results to return (default: 20).",
+                },
+            },
+            "required": [],
+        },
+        "mutating": False,
+    },
 ]
 
 # ---------------------------------------------------------------------------

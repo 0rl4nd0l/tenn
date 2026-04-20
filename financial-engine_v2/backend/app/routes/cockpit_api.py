@@ -3911,3 +3911,80 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
             "Connection": "keep-alive",
         },
     )
+
+
+# -------------------------------------------------------------------
+# TradingView Pine Script webhook endpoints
+# -------------------------------------------------------------------
+
+
+class TvAlertPayload(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    ticker: str
+    action: str = "neutral"
+    price: float | None = None
+    message: str | None = None
+    timestamp: str | None = None
+
+
+_TV_ALERTS_LOCK = threading.Lock()
+_TV_ALERTS_MAX = 200
+
+
+def _tv_alerts_path() -> Path:
+    data_root = Path(settings.data_root) if hasattr(settings, "data_root") else Path("/tmp")
+    return data_root / "tv_alerts.json"
+
+
+def _load_tv_alerts() -> list[dict]:
+    p = _tv_alerts_path()
+    if not p.exists():
+        return []
+    try:
+        return json.loads(p.read_text())
+    except Exception:
+        return []
+
+
+def _save_tv_alerts(alerts: list[dict]) -> None:
+    p = _tv_alerts_path()
+    tmp = p.with_suffix(".tmp")
+    tmp.write_text(json.dumps(alerts, default=str))
+    tmp.replace(p)
+
+
+@router.post("/tv/alert", tags=["tradingview"])
+async def receive_tv_alert(
+    payload: TvAlertPayload,
+    request: Request,
+) -> dict:
+    """Receive a Pine Script webhook alert from TradingView."""
+    token = os.environ.get("TV_WEBHOOK_TOKEN", "")
+    if token:
+        incoming = request.headers.get("X-TradingView-Webhook-Token", "")
+        if incoming != token:
+            raise HTTPException(status_code=403, detail="Invalid webhook token")
+
+    entry: dict = {
+        "received_at": datetime.now(timezone.utc).isoformat(),
+        **payload.model_dump(),
+    }
+    with _TV_ALERTS_LOCK:
+        alerts = _load_tv_alerts()
+        alerts.append(entry)
+        if len(alerts) > _TV_ALERTS_MAX:
+            alerts = alerts[-_TV_ALERTS_MAX:]
+        _save_tv_alerts(alerts)
+
+    logger.info("TV alert received: %s %s @ %s", payload.ticker, payload.action, payload.price)
+    return {"ok": True, "received": entry}
+
+
+@router.get("/tv/alerts", tags=["tradingview"])
+async def get_tv_alerts(limit: int = 50) -> dict:
+    """Return recent TradingView Pine Script alerts."""
+    limit = max(1, min(limit, 200))
+    with _TV_ALERTS_LOCK:
+        alerts = _load_tv_alerts()
+    return {"ok": True, "count": len(alerts[-limit:]), "alerts": list(reversed(alerts[-limit:]))}

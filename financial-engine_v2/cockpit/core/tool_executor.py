@@ -940,6 +940,55 @@ class ToolExecutor:
             "decisions": self._reflection_service.review_open_decisions(),
         }
 
+    def _exec_get_tv_indicators(self, args: dict[str, Any]) -> dict[str, Any]:
+        ticker = str(args.get("ticker", "")).strip().upper()
+        indicators = args.get("indicators") or ["RSI", "MACD", "EMA20", "SMA50"]
+        exchange = str(args.get("exchange", "ASX")).strip().upper()
+        if not ticker:
+            return {"ok": False, "error": "ticker is required"}
+        try:
+            from tradingview_scraper.symbols.technicals import Indicators  # type: ignore[import-untyped]
+            handler = Indicators()
+            symbol = f"{exchange}:{ticker}"
+            results = {}
+            for ind in indicators:
+                try:
+                    val = handler.scrape(symbol=symbol, indicator=ind)
+                    results[ind] = val
+                except Exception as exc:  # noqa: BLE001
+                    results[ind] = {"error": str(exc)[:120]}
+            return {"ok": True, "ticker": ticker, "exchange": exchange, "indicators": results}
+        except ImportError:
+            return {
+                "ok": False,
+                "error": "tradingview-scraper package not installed. Run: pip install tradingview-scraper",
+            }
+        except Exception as exc:  # noqa: BLE001
+            return {"ok": False, "error": str(exc)[:300]}
+
+    def _exec_tv_screener(self, args: dict[str, Any]) -> dict[str, Any]:
+        market = str(args.get("market", "australia")).strip().lower()
+        filters = args.get("filters") or {}
+        limit = int(args.get("limit", 20))
+        try:
+            from tradingview_scraper.symbols.screener import Screener  # type: ignore[import-untyped]
+            handler = Screener()
+            results = handler.scrape(market=market)
+            if not isinstance(results, list):
+                return {"ok": False, "error": f"unexpected screener response type: {type(results).__name__}"}
+            # Apply simple filter: min_rs_rating if provided
+            min_rs = filters.get("min_rs_rating")
+            if min_rs is not None:
+                results = [r for r in results if isinstance(r, dict) and float(r.get("Relative Strength Index (14)", 0) or 0) >= float(min_rs)]
+            return {"ok": True, "market": market, "count": len(results[:limit]), "results": results[:limit]}
+        except ImportError:
+            return {
+                "ok": False,
+                "error": "tradingview-scraper package not installed. Run: pip install tradingview-scraper",
+            }
+        except Exception as exc:  # noqa: BLE001
+            return {"ok": False, "error": str(exc)[:300]}
+
     # Dispatch table: tool_name -> handler method
     _READ_ONLY_DISPATCH: dict[str, Any] = {
         "query_ticker_data": _exec_query_ticker_data,
@@ -968,6 +1017,8 @@ class ToolExecutor:
         "get_thesis": _exec_get_thesis,
         "check_decision_outcome": _exec_check_decision_outcome,
         "review_open_decisions": _exec_review_open_decisions,
+        "get_tv_indicators": _exec_get_tv_indicators,
+        "tv_screener": _exec_tv_screener,
     }
 
     # ------------------------------------------------------------------
