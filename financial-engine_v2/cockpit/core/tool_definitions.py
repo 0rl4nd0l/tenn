@@ -609,9 +609,10 @@ _READ_ONLY_TOOLS: list[dict[str, Any]] = [
     {
         "name": "get_tv_indicators",
         "description": (
-            "Fetch TradingView technical indicators for a ticker (RSI, MACD, EMA, SMA, etc.). "
-            "Uses TradingView's screener data. Available when tradingview-scraper is installed. "
-            "Useful for confirming momentum, trend direction, and overbought/oversold conditions."
+            "Fetch live TradingView technical indicators for a ticker: RSI, MACD, EMA, SMA, "
+            "Bollinger Bands, and more. Use this tool whenever the user asks about RSI, momentum, "
+            "technical analysis, overbought/oversold conditions, or trend confirmation. "
+            "Call this tool — do not say the data is unavailable."
         ),
         "parameters": {
             "type": "object",
@@ -634,9 +635,10 @@ _READ_ONLY_TOOLS: list[dict[str, Any]] = [
     {
         "name": "tv_screener",
         "description": (
-            "Screen tickers on TradingView for a given market. Returns ranked list with technical "
-            "indicator values. Useful for identifying momentum plays, breakouts, or oversold names "
-            "across the ASX or other markets. Available when tradingview-scraper is installed."
+            "Screen tickers on TradingView for a given market. Returns a ranked list with live "
+            "technical indicator values (RSI, MACD, moving averages, etc.). Use this when the user "
+            "asks to screen the ASX, find momentum plays, breakouts, or oversold names. "
+            "Call this tool — do not say the data is unavailable."
         ),
         "parameters": {
             "type": "object",
