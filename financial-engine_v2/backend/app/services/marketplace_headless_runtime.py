@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import os
 import shutil
+import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, AsyncIterator
@@ -15,6 +17,8 @@ BROWSER_KIND_ENV = "MARKETPLACE_BROWSER_KIND"
 XDG_RUNTIME_DIR_ENV = "MARKETPLACE_BROWSER_XDG_RUNTIME_DIR"
 EXECUTABLE_PATH_ENV = "MARKETPLACE_BROWSER_EXECUTABLE_PATH"
 DIRECT_RUNTIME_VALUE = "direct"
+_DIRECT_RUNTIME_PROFILE_LOCK = threading.Lock()
+_DIRECT_RUNTIME_PROFILE_LOCK_TIMEOUT_SECONDS = 45.0
 
 _BROWSER_CANDIDATES: dict[str, tuple[str, ...]] = {
     "brave": ("brave-browser", "brave"),
@@ -105,6 +109,21 @@ def marketplace_direct_runtime_detail(profile_path: str) -> str:
     )
 
 
+def _profile_in_use_message(profile_path: str) -> str:
+    return (
+        "Marketplace browser profile is already in use by another Chromium instance or "
+        f"Marketplace operation. Profile: {profile_path}. Close the other browser or wait "
+        "for the current Marketplace task to finish, then retry."
+    )
+
+
+def _normalize_runtime_launch_error(exc: Exception, profile_path: str) -> RuntimeError:
+    message = str(exc)
+    if "ProcessSingleton" in message or "SingletonLock" in message:
+        return RuntimeError(_profile_in_use_message(profile_path))
+    return RuntimeError(message)
+
+
 @asynccontextmanager
 async def open_direct_marketplace_context() -> AsyncIterator[tuple[Any, str, str]]:
     try:
@@ -115,23 +134,40 @@ async def open_direct_marketplace_context() -> AsyncIterator[tuple[Any, str, str
     browser_family, browser_binary = resolve_marketplace_browser()
     profile_dir = resolve_marketplace_profile_dir(browser_family)
     profile_dir.mkdir(parents=True, exist_ok=True)
+    profile_path = str(profile_dir)
 
     launch_env = os.environ.copy()
     launch_env["XDG_RUNTIME_DIR"] = ensure_marketplace_xdg_runtime_dir()
 
+    acquired = await asyncio.to_thread(
+        _DIRECT_RUNTIME_PROFILE_LOCK.acquire,
+        True,
+        _DIRECT_RUNTIME_PROFILE_LOCK_TIMEOUT_SECONDS,
+    )
+    if not acquired:
+        raise RuntimeError(_profile_in_use_message(profile_path))
+
     async with async_playwright() as playwright:
-        context = await playwright.chromium.launch_persistent_context(
-            user_data_dir=str(profile_dir),
-            executable_path=browser_binary,
-            headless=True,
-            args=[
-                "--disable-gpu",
-                "--disable-dev-shm-usage",
-                "--no-sandbox",
-            ],
-            env=launch_env,
-        )
         try:
-            yield context, browser_family, str(profile_dir)
+            context = await playwright.chromium.launch_persistent_context(
+                user_data_dir=profile_path,
+                executable_path=browser_binary,
+                headless=True,
+                args=[
+                    "--disable-gpu",
+                    "--disable-dev-shm-usage",
+                    "--no-sandbox",
+                ],
+                env=launch_env,
+            )
+        except Exception as exc:
+            _DIRECT_RUNTIME_PROFILE_LOCK.release()
+            raise _normalize_runtime_launch_error(exc, profile_path) from exc
+
+        try:
+            yield context, browser_family, profile_path
         finally:
-            await context.close()
+            try:
+                await context.close()
+            finally:
+                _DIRECT_RUNTIME_PROFILE_LOCK.release()

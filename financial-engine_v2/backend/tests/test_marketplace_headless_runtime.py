@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
 import app.services.marketplace_headless_runtime as runtime
@@ -31,3 +32,37 @@ def test_resolve_marketplace_browser_falls_back_to_playwright(monkeypatch) -> No
 
     assert family == "chrome"
     assert resolved == "/root/.cache/ms-playwright/chromium-1234/chrome-linux/chrome"
+
+
+def test_normalize_runtime_launch_error_reports_profile_in_use() -> None:
+    exc = RuntimeError("Failed to create a ProcessSingleton for your profile directory. SingletonLock: File exists")
+
+    normalized = runtime._normalize_runtime_launch_error(
+        exc,
+        "/home/l4nd0/.tenn/browser_profiles/facebook-marketplace-chrome",
+    )
+
+    assert "profile is already in use" in str(normalized).lower()
+    assert "facebook-marketplace-chrome" in str(normalized)
+
+
+def test_open_direct_marketplace_context_fails_fast_when_profile_lock_busy(monkeypatch) -> None:
+    class _BusyLock:
+        def acquire(self, blocking: bool = True, timeout: float = -1) -> bool:
+            return False
+
+        def release(self) -> None:  # pragma: no cover - defensive
+            raise AssertionError("release should not be called when acquire fails")
+
+    monkeypatch.setattr(runtime, "_DIRECT_RUNTIME_PROFILE_LOCK", _BusyLock())
+
+    async def _run() -> str:
+        try:
+            async with runtime.open_direct_marketplace_context():
+                raise AssertionError("context should not open when lock is busy")
+        except RuntimeError as exc:
+            return str(exc)
+
+    message = asyncio.run(_run())
+
+    assert "profile is already in use" in message.lower()
