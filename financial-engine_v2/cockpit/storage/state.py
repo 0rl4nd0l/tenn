@@ -4,6 +4,7 @@ import json
 import logging
 import sqlite3
 import threading
+import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -174,6 +175,31 @@ class StateStore:
                 updated_at TEXT NOT NULL DEFAULT (datetime('now'))
             )
             """
+        )
+        # Holdings: cockpit-local portfolio state. NOT financial truth, NOT
+        # memory reasoning. See SYSTEM_CONTRACT §1.2.
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS holdings_items (
+                holding_id TEXT PRIMARY KEY,
+                ticker TEXT NOT NULL,
+                account_label TEXT,
+                thesis_bucket TEXT,
+                status TEXT NOT NULL DEFAULT 'active',
+                quantity REAL,
+                avg_cost REAL,
+                cost_currency TEXT,
+                opened_at TEXT,
+                updated_at TEXT NOT NULL,
+                note TEXT
+            )
+            """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_holdings_ticker ON holdings_items(ticker)"
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_holdings_status ON holdings_items(status)"
         )
         self.conn.commit()
 
@@ -403,6 +429,152 @@ class StateStore:
             cur = self.conn.execute("delete from watchlist")
             self.conn.commit()
             return cur.rowcount
+
+    # ------------------------------------------------------------------ #
+    # Holdings (cockpit-local portfolio state)                             #
+    # ------------------------------------------------------------------ #
+    # Holdings are personal portfolio entries the user manually curates in
+    # the cockpit. They are NOT a source of truth for financial data, NOT
+    # memory reasoning, and never feed back into the canonical pipeline.
+    # See SYSTEM_CONTRACT §1.2 (cockpit role: client + orchestration only).
+
+    _HOLDING_COLUMNS = (
+        "holding_id",
+        "ticker",
+        "account_label",
+        "thesis_bucket",
+        "status",
+        "quantity",
+        "avg_cost",
+        "cost_currency",
+        "opened_at",
+        "updated_at",
+        "note",
+    )
+
+    _HOLDING_UPDATABLE_COLUMNS = (
+        "ticker",
+        "account_label",
+        "thesis_bucket",
+        "status",
+        "quantity",
+        "avg_cost",
+        "cost_currency",
+        "opened_at",
+        "note",
+    )
+
+    def add_holding(
+        self,
+        ticker: str,
+        *,
+        account_label: str | None = None,
+        thesis_bucket: str | None = None,
+        quantity: float | None = None,
+        avg_cost: float | None = None,
+        cost_currency: str | None = None,
+        opened_at: str | None = None,
+        note: str | None = None,
+    ) -> str:
+        """Insert a holding. Returns the generated holding_id.
+
+        Multiple rows for the same ticker are allowed (e.g., one per account).
+        """
+        holding_id = str(uuid.uuid4())
+        updated_at = datetime.now().isoformat()
+        with self._lock:
+            self.conn.execute(
+                """
+                INSERT INTO holdings_items(
+                    holding_id, ticker, account_label, thesis_bucket, status,
+                    quantity, avg_cost, cost_currency, opened_at, updated_at, note
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                (
+                    holding_id,
+                    ticker.upper(),
+                    account_label,
+                    thesis_bucket,
+                    "active",
+                    quantity,
+                    avg_cost,
+                    cost_currency,
+                    opened_at,
+                    updated_at,
+                    note,
+                ),
+            )
+            self.conn.commit()
+        return holding_id
+
+    def list_holdings(
+        self,
+        *,
+        ticker: str | None = None,
+        include_archived: bool = False,
+    ) -> list[dict[str, Any]]:
+        """Return holdings ordered alphabetically by ticker, then opened_at."""
+        clauses: list[str] = []
+        params: list[Any] = []
+        if not include_archived:
+            clauses.append("status != 'archived'")
+        if ticker is not None:
+            clauses.append("ticker = ?")
+            params.append(ticker.upper())
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        cols = ", ".join(self._HOLDING_COLUMNS)
+        rows = self.conn.execute(
+            f"SELECT {cols} FROM holdings_items {where} ORDER BY ticker ASC, opened_at ASC",  # noqa: S608
+            tuple(params),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_holding(self, holding_id: str) -> dict[str, Any] | None:
+        cols = ", ".join(self._HOLDING_COLUMNS)
+        row = self.conn.execute(
+            f"SELECT {cols} FROM holdings_items WHERE holding_id = ? LIMIT 1",  # noqa: S608
+            (holding_id,),
+        ).fetchone()
+        return dict(row) if row else None
+
+    def update_holding(self, holding_id: str, **fields: Any) -> bool:
+        """Partial update. Returns True iff a row was modified.
+
+        Only fields in ``_HOLDING_UPDATABLE_COLUMNS`` are accepted; unknown
+        kwargs are ignored. ``updated_at`` is refreshed automatically.
+        Tickers are normalised to uppercase. An empty kwargs call is a no-op
+        and returns False.
+        """
+        accepted: dict[str, Any] = {
+            k: v for k, v in fields.items() if k in self._HOLDING_UPDATABLE_COLUMNS
+        }
+        if not accepted:
+            return False
+        if "ticker" in accepted and isinstance(accepted["ticker"], str):
+            accepted["ticker"] = accepted["ticker"].upper()
+        accepted["updated_at"] = datetime.now().isoformat()
+        assignments = ", ".join(f"{col} = ?" for col in accepted)
+        values = list(accepted.values()) + [holding_id]
+        with self._lock:
+            cur = self.conn.execute(
+                f"UPDATE holdings_items SET {assignments} WHERE holding_id = ?",  # noqa: S608
+                values,
+            )
+            self.conn.commit()
+            return cur.rowcount == 1
+
+    def archive_holding(self, holding_id: str) -> bool:
+        """Soft-delete by flipping status to 'archived'. Returns True on hit."""
+        return self.update_holding(holding_id, status="archived")
+
+    def remove_holding(self, holding_id: str) -> bool:
+        """Hard-delete a holding. Returns True iff a row was removed."""
+        with self._lock:
+            cur = self.conn.execute(
+                "DELETE FROM holdings_items WHERE holding_id = ?", (holding_id,)
+            )
+            self.conn.commit()
+            return cur.rowcount == 1
 
     # ------------------------------------------------------------------ #
     # Update events                                                        #
