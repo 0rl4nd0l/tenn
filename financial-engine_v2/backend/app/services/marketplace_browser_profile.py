@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -387,16 +388,52 @@ async def _check_browser_health_async(
                     pass
 
 
-def check_marketplace_browser_health(
+async def check_marketplace_browser_health_async(
     *,
     cdp_url: str | None = None,
     timeout_ms: int | None = None,
 ) -> dict[str, object]:
     resolved_cdp_url = str(cdp_url or "").strip() or DEFAULT_MARKETPLACE_CDP_URL
     resolved_timeout = int(timeout_ms or DEFAULT_MARKETPLACE_HEALTH_TIMEOUT_MS)
-    return asyncio.run(
-        _check_browser_health_async(
-            cdp_url=resolved_cdp_url,
-            timeout_ms=resolved_timeout,
-        )
+    return await _check_browser_health_async(
+        cdp_url=resolved_cdp_url,
+        timeout_ms=resolved_timeout,
     )
+
+
+def check_marketplace_browser_health(
+    *,
+    cdp_url: str | None = None,
+    timeout_ms: int | None = None,
+) -> dict[str, object]:
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(
+            check_marketplace_browser_health_async(
+                cdp_url=cdp_url,
+                timeout_ms=timeout_ms,
+            )
+        )
+
+    result: dict[str, object] = {}
+    failure: dict[str, BaseException] = {}
+
+    def _runner() -> None:
+        try:
+            result["value"] = asyncio.run(
+                check_marketplace_browser_health_async(
+                    cdp_url=cdp_url,
+                    timeout_ms=timeout_ms,
+                )
+            )
+        except BaseException as exc:  # pragma: no cover - defensive thread handoff
+            failure["error"] = exc
+
+    thread = threading.Thread(target=_runner, daemon=True)
+    thread.start()
+    thread.join()
+
+    if "error" in failure:
+        raise failure["error"]
+    return dict(result.get("value") or {})

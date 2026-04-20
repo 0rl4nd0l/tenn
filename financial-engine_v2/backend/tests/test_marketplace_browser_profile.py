@@ -117,3 +117,27 @@ def test_browser_health_uses_direct_runtime(monkeypatch) -> None:
     assert health["status"] == "ready"
     assert health["profile_path"] == "/tmp/direct-profile"
     assert health["browser_family"] == "chrome"
+
+
+def test_browser_health_sync_wrapper_works_inside_running_loop(monkeypatch) -> None:
+    async def _fake_async_health(*, cdp_url=None, timeout_ms=None):
+        return {
+            "status": "ready",
+            "cdp_url": cdp_url or "http://127.0.0.1:9222",
+            "browser_family": "chrome",
+            "profile_path": "/tmp/direct-profile",
+        }
+
+    monkeypatch.setattr(
+        browser_profile,
+        "check_marketplace_browser_health_async",
+        _fake_async_health,
+    )
+
+    async def _call_sync_wrapper():
+        return browser_profile.check_marketplace_browser_health(timeout_ms=1000)
+
+    health = asyncio.run(_call_sync_wrapper())
+
+    assert health["status"] == "ready"
+    assert health["profile_path"] == "/tmp/direct-profile"
