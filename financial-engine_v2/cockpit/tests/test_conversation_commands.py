@@ -51,3 +51,159 @@ class TestYouTubeIngestRules:
     def test_slash_command_passthrough_not_matched(self):
         result = derive_conversational_command("/ingest https://youtu.be/abc123abcde")
         assert result is None
+
+
+class TestHoldingsConversationalCommands:
+    """P3 of the cockpit verbal market updates plus holdings v1.
+
+    Maps natural-language phrases for the cockpit-local holdings state to
+    /holdings slash commands. The actual handlers live in app.py (P4).
+    """
+
+    # --- list -------------------------------------------------------------
+    def test_show_holdings_maps_to_list(self) -> None:
+        assert derive_conversational_command("show holdings") == "/holdings list"
+
+    def test_show_my_holdings_maps_to_list(self) -> None:
+        assert derive_conversational_command("show my holdings") == "/holdings list"
+
+    def test_list_holdings_maps_to_list(self) -> None:
+        assert derive_conversational_command("list holdings") == "/holdings list"
+
+    def test_list_my_holdings_maps_to_list(self) -> None:
+        assert derive_conversational_command("list my holdings") == "/holdings list"
+
+    def test_bare_holdings_word_maps_to_list(self) -> None:
+        assert derive_conversational_command("holdings") == "/holdings list"
+
+    def test_bare_holding_singular_maps_to_list(self) -> None:
+        assert derive_conversational_command("holding") == "/holdings list"
+
+    # --- add --------------------------------------------------------------
+    def test_add_to_holdings_maps_to_add(self) -> None:
+        assert derive_conversational_command("add BHP to holdings") == "/holdings add BHP"
+
+    def test_add_to_my_holdings_normalises_ticker(self) -> None:
+        assert (
+            derive_conversational_command("add cba to my holdings")
+            == "/holdings add CBA"
+        )
+
+    # --- remove -----------------------------------------------------------
+    def test_remove_from_holdings_maps_to_remove(self) -> None:
+        assert (
+            derive_conversational_command("remove BHP from holdings")
+            == "/holdings remove BHP"
+        )
+
+    def test_remove_from_my_holdings_normalises_ticker(self) -> None:
+        assert (
+            derive_conversational_command("remove cba from my holdings")
+            == "/holdings remove CBA"
+        )
+
+    # --- archive ----------------------------------------------------------
+    def test_archive_ticker_holding_maps_to_archive(self) -> None:
+        assert (
+            derive_conversational_command("archive BHP holding")
+            == "/holdings archive BHP"
+        )
+
+    def test_archive_holding_ticker_maps_to_archive(self) -> None:
+        assert (
+            derive_conversational_command("archive holding cba")
+            == "/holdings archive CBA"
+        )
+
+    # --- non-collisions with existing rules ------------------------------
+    def test_add_to_watchlist_still_routes_to_watch(self) -> None:
+        # Holdings rules MUST NOT eat plain watchlist additions.
+        assert (
+            derive_conversational_command("add BHP to watchlist") == "/watch add BHP"
+        )
+
+    def test_watch_ticker_still_routes_to_watch(self) -> None:
+        assert derive_conversational_command("watch BHP") == "/watch add BHP"
+
+    def test_show_watchlist_still_routes_to_watch_list(self) -> None:
+        assert derive_conversational_command("show my watchlist") == "/watch list"
+
+
+class TestMarketUpdateConversationalCommands:
+    """Maps natural-language phrases to the /market-update slash command.
+
+    The orchestrator that runs the update lives in P5; here we only parse
+    the intent and the run_type (noon | final | manual).
+    """
+
+    # --- noon -------------------------------------------------------------
+    def test_noon_market_update_maps_to_noon(self) -> None:
+        assert (
+            derive_conversational_command("noon market update")
+            == "/market-update noon"
+        )
+
+    def test_noon_update_short_form_maps_to_noon(self) -> None:
+        assert (
+            derive_conversational_command("noon update") == "/market-update noon"
+        )
+
+    def test_run_noon_market_update_maps_to_noon(self) -> None:
+        assert (
+            derive_conversational_command("run noon market update")
+            == "/market-update noon"
+        )
+
+    # --- final ------------------------------------------------------------
+    def test_final_market_update_maps_to_final(self) -> None:
+        assert (
+            derive_conversational_command("final market update")
+            == "/market-update final"
+        )
+
+    def test_final_update_short_form_maps_to_final(self) -> None:
+        assert (
+            derive_conversational_command("final update") == "/market-update final"
+        )
+
+    def test_eod_market_update_maps_to_final(self) -> None:
+        assert (
+            derive_conversational_command("eod market update")
+            == "/market-update final"
+        )
+
+    def test_end_of_day_market_update_maps_to_final(self) -> None:
+        assert (
+            derive_conversational_command("end of day market update")
+            == "/market-update final"
+        )
+
+    def test_end_hyphen_of_hyphen_day_market_update_maps_to_final(self) -> None:
+        assert (
+            derive_conversational_command("end-of-day market update")
+            == "/market-update final"
+        )
+
+    # --- manual -----------------------------------------------------------
+    def test_manual_market_update_maps_to_manual(self) -> None:
+        assert (
+            derive_conversational_command("manual market update")
+            == "/market-update manual"
+        )
+
+    # --- generic ----------------------------------------------------------
+    def test_run_market_update_maps_to_generic(self) -> None:
+        assert (
+            derive_conversational_command("run market update") == "/market-update"
+        )
+
+    def test_bare_market_update_maps_to_generic(self) -> None:
+        assert derive_conversational_command("market update") == "/market-update"
+
+    # --- non-collisions ---------------------------------------------------
+    def test_market_news_does_not_match(self) -> None:
+        # "market news" must not be re-routed to /market-update.
+        assert derive_conversational_command("show market news") is None
+
+    def test_slash_market_update_passthrough_returns_none(self) -> None:
+        assert derive_conversational_command("/market-update noon") is None

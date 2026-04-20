@@ -102,6 +102,44 @@ def _(_m, _msg):
     return "/changes"
 
 
+# ---------------------------------------------------------------------------
+# Holdings (cockpit-local portfolio state — see SYSTEM_CONTRACT §1.2).
+# These rules MUST be registered before the generic
+# ``\b(add|watch|track)\s+([A-Za-z]{2,5})\b`` watchlist rule below, so that
+# "add BHP to holdings" is not eaten as "/watch add BHP".
+# ---------------------------------------------------------------------------
+
+
+@_rule(r"\b(?:show|list)\s+(?:my\s+)?holdings?\b")
+def _(_m, _msg):
+    return "/holdings list"
+
+
+@_rule(r"^\s*holdings?\s*$")
+def _(_m, _msg):
+    return "/holdings list"
+
+
+@_rule(r"\badd\s+([A-Za-z]{2,5})\s+to\s+(?:my\s+)?holdings?\b")
+def _(m, _msg):
+    return f"/holdings add {m.group(1).upper()}"
+
+
+@_rule(r"\bremove\s+([A-Za-z]{2,5})\s+from\s+(?:my\s+)?holdings?\b")
+def _(m, _msg):
+    return f"/holdings remove {m.group(1).upper()}"
+
+
+@_rule(r"\barchive\s+([A-Za-z]{2,5})\s+holdings?\b")
+def _(m, _msg):
+    return f"/holdings archive {m.group(1).upper()}"
+
+
+@_rule(r"\barchive\s+holdings?\s+([A-Za-z]{2,5})\b")
+def _(m, _msg):
+    return f"/holdings archive {m.group(1).upper()}"
+
+
 @_rule(r"\bremove\s+([A-Za-z]{2,5})\s+from\s+watchlist\b")
 def _(m, _msg):
     return f"/watch remove {m.group(1).upper()}"
@@ -171,6 +209,39 @@ def _(m, _msg):
 @_rule(r"\bset\s+(?:my\s+)?decision\s+on\s+([A-Za-z]{2,5})\s+to\s+(\w+)")
 def _(m, _msg):
     return f"/strategy decide {m.group(1).upper()} {m.group(2).lower()}"
+
+
+# ---------------------------------------------------------------------------
+# Market update (P3 of cockpit verbal market updates v1).
+# Specific run_type rules must come BEFORE the generic ``market update``
+# catch-all so phrases like "noon market update" are tagged with the
+# right run_type instead of dropping back to /market-update.
+# ---------------------------------------------------------------------------
+
+
+@_rule(r"\bnoon\s+(?:market\s+)?update\b")
+def _(_m, _msg):
+    return "/market-update noon"
+
+
+@_rule(r"\bfinal\s+(?:market\s+)?update\b")
+def _(_m, _msg):
+    return "/market-update final"
+
+
+@_rule(r"\b(?:eod|end[- ]of[- ]day)\s+(?:market\s+)?update\b")
+def _(_m, _msg):
+    return "/market-update final"
+
+
+@_rule(r"\bmanual\s+(?:market\s+)?update\b")
+def _(_m, _msg):
+    return "/market-update manual"
+
+
+@_rule(r"\b(?:run\s+)?(?:a\s+|the\s+)?market\s+update\b")
+def _(_m, _msg):
+    return "/market-update"
 
 
 def derive_conversational_command(message: str) -> str | None:
