@@ -121,6 +121,21 @@ def test_usage_lists_reboot_command() -> None:
     assert "cockpit reboot" in script
 
 
+def test_start_config_defaults_marketplace_to_direct_runtime() -> None:
+    config = (REPO_ROOT / "scripts" / "start_config.env").read_text(encoding="utf-8")
+
+    assert 'MARKETPLACE_BROWSER_RUNTIME_ON_STARTUP="direct"' in config
+    assert 'MARKETPLACE_BROWSER_PROFILE_DIR_ON_STARTUP="/root/.tenn/browser_profiles/facebook-marketplace-chrome"' in config
+
+
+def test_start_full_stack_propagates_marketplace_runtime_flags() -> None:
+    script = (REPO_ROOT / "scripts" / "start_full_stack.sh").read_text(encoding="utf-8")
+
+    assert 'set_env_key "MARKETPLACE_BROWSER_RUNTIME"' in script
+    assert 'set_env_key "MARKETPLACE_BROWSER_PROFILE_DIR"' in script
+    assert 'export MARKETPLACE_BROWSER_RUNTIME="${MARKETPLACE_BROWSER_RUNTIME_ON_STARTUP}"' in script
+
+
 def test_stop_backend_api_falls_back_to_sudo_for_root_owned_process(
     tmp_path: Path,
 ) -> None:

@@ -13,6 +13,7 @@ DIRECT_RUNTIME_ENV = "MARKETPLACE_BROWSER_RUNTIME"
 PROFILE_DIR_ENV = "MARKETPLACE_BROWSER_PROFILE_DIR"
 BROWSER_KIND_ENV = "MARKETPLACE_BROWSER_KIND"
 XDG_RUNTIME_DIR_ENV = "MARKETPLACE_BROWSER_XDG_RUNTIME_DIR"
+EXECUTABLE_PATH_ENV = "MARKETPLACE_BROWSER_EXECUTABLE_PATH"
 DIRECT_RUNTIME_VALUE = "direct"
 
 _BROWSER_CANDIDATES: dict[str, tuple[str, ...]] = {
@@ -35,7 +36,31 @@ def resolve_marketplace_browser_kind() -> str:
     return raw if raw in {"auto", "brave", "chrome"} else DEFAULT_BROWSER_KIND
 
 
+def _resolve_playwright_browser_path() -> str | None:
+    try:
+        from playwright.sync_api import sync_playwright
+    except Exception:
+        return None
+
+    try:
+        with sync_playwright() as playwright:
+            executable = str(playwright.chromium.executable_path or "").strip()
+    except Exception:
+        return None
+
+    return executable if executable and Path(executable).exists() else None
+
+
 def resolve_marketplace_browser(binary_kind: str | None = None) -> tuple[str, str]:
+    explicit_path = str(os.environ.get(EXECUTABLE_PATH_ENV) or "").strip()
+    if explicit_path:
+        resolved_path = str(Path(explicit_path).expanduser().resolve())
+        if Path(resolved_path).exists():
+            return "chrome", resolved_path
+        raise RuntimeError(
+            f"Configured Marketplace browser executable does not exist: {resolved_path}"
+        )
+
     browser_kind = str(binary_kind or "").strip().lower() or resolve_marketplace_browser_kind()
     families = ("brave", "chrome") if browser_kind == "auto" else (browser_kind,)
     for family in families:
@@ -43,8 +68,15 @@ def resolve_marketplace_browser(binary_kind: str | None = None) -> tuple[str, st
             resolved = shutil.which(candidate)
             if resolved:
                 return family, resolved
+    playwright_path = _resolve_playwright_browser_path()
+    if playwright_path:
+        return "chrome", playwright_path
     searched = ", ".join(candidate for family in families for candidate in _BROWSER_CANDIDATES[family])
-    raise RuntimeError(f"No supported browser binary was found. Searched: {searched}.")
+    raise RuntimeError(
+        "No supported browser binary was found. "
+        f"Searched PATH candidates: {searched}. "
+        "Playwright Chromium was also unavailable."
+    )
 
 
 def resolve_marketplace_profile_dir(browser_family: str) -> Path:
