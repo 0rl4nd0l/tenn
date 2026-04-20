@@ -924,12 +924,14 @@ class TestHoldingsSlashCommand(SlashCommandTestBase):
 
 
 class TestMarketUpdateSlashCommand(SlashCommandTestBase):
-    """P4: /market-update list|show|<run_type>|latest handler.
+    """P4 + P5b: /market-update list|show|<run_type>|latest handler.
 
-    The orchestrator (P5) is not yet implemented. This handler reads from
-    the cockpit-local ``market_update_reports`` / ``market_update_followups``
-    tables (P2) and surfaces a clear "P5 not yet implemented" stub when the
-    user asks for a fresh run.
+    For ``list``, ``show``, and ``latest`` the handler reads from the
+    cockpit-local market-update tables (P2). For a run_type
+    (``noon|final|manual``) the handler delegates to a
+    ``MarketUpdateOrchestrator`` constructed via
+    ``_build_market_update_orchestrator``; tests inject a stub
+    orchestrator so no live yfinance calls are made.
     """
 
     _SAMPLE_REPORT = {
@@ -1017,48 +1019,103 @@ class TestMarketUpdateSlashCommand(SlashCommandTestBase):
             "final"
         )
 
-    # --- run_type stubs (P5 not yet implemented) -------------------------
-    def test_market_update_noon_returns_p5_stub(self) -> None:
-        self.state_store.get_latest_market_update_report.return_value = None
-        resp = self.controller._handle_slash_command("/market-update noon")
-        assert resp is not None
-        # Must clearly surface that the orchestrator is not implemented yet.
-        assert (
-            "not yet implemented" in resp.text.lower()
-            or "p5" in resp.text.lower()
-            or "orchestrator" in resp.text.lower()
-        )
+    # --- run_type orchestrator integration (P5b) ------------------------
+    def _stub_orchestrator(
+        self,
+        *,
+        status: str = "complete",
+        gathered: int = 1,
+        followups: int = 0,
+        errors: tuple[str, ...] = (),
+        report_id: str | None = "report-stub-1",
+    ) -> MagicMock:
+        from cockpit.core.market_update_orchestrator import RunResult
 
-    def test_market_update_noon_stub_includes_latest_when_present(self) -> None:
+        orc = MagicMock()
+        orc.run.return_value = RunResult(
+            report_id=report_id,
+            run_type="noon",
+            status=status,
+            gathered_tickers=gathered,
+            queued_followups=followups,
+            errors=errors,
+            started_at="2026-04-20T12:00:00+00:00",
+            finished_at="2026-04-20T12:00:01+00:00",
+        )
+        return orc
+
+    def test_market_update_noon_invokes_orchestrator(self) -> None:
+        orc = self._stub_orchestrator()
+        self.controller._build_market_update_orchestrator = MagicMock(
+            return_value=orc
+        )
         self.state_store.get_latest_market_update_report.return_value = (
             self._SAMPLE_REPORT
         )
         resp = self.controller._handle_slash_command("/market-update noon")
         assert resp is not None
-        # Stub MUST also surface the most recent report of that run_type so
-        # the user sees what already exists rather than getting a dead-end.
-        assert "ASX 200" in resp.text or "2026-04-20" in resp.text
-        self.state_store.get_latest_market_update_report.assert_called_with("noon")
+        orc.run.assert_called_once_with("noon", tickers=None)
+        assert "complete" in resp.text.lower()
+        assert "ASX 200" in resp.text  # rendered persisted report
 
-    def test_market_update_final_returns_p5_stub(self) -> None:
+    def test_market_update_noon_passes_explicit_tickers(self) -> None:
+        orc = self._stub_orchestrator()
+        self.controller._build_market_update_orchestrator = MagicMock(
+            return_value=orc
+        )
         self.state_store.get_latest_market_update_report.return_value = None
+        self.controller._handle_slash_command("/market-update noon BHP RIO")
+        orc.run.assert_called_once_with("noon", tickers=["BHP", "RIO"])
+
+    def test_market_update_final_renders_status_summary(self) -> None:
+        orc = self._stub_orchestrator(
+            status="partial", gathered=2, followups=1, errors=("RIO: snapshot failed",)
+        )
+        self.controller._build_market_update_orchestrator = MagicMock(
+            return_value=orc
+        )
+        self.state_store.get_latest_market_update_report.return_value = (
+            self._SAMPLE_REPORT
+        )
         resp = self.controller._handle_slash_command("/market-update final")
         assert resp is not None
-        assert (
-            "not yet implemented" in resp.text.lower()
-            or "p5" in resp.text.lower()
-            or "orchestrator" in resp.text.lower()
-        )
+        assert "partial" in resp.text.lower()
+        assert "tickers=2" in resp.text
+        assert "followups=1" in resp.text
+        assert "RIO" in resp.text  # error surfaced
 
-    def test_market_update_manual_returns_p5_stub(self) -> None:
-        self.state_store.get_latest_market_update_report.return_value = None
+    def test_market_update_manual_handles_skipped_run(self) -> None:
+        orc = self._stub_orchestrator(
+            status="skipped", gathered=0, followups=0, report_id=None
+        )
+        self.controller._build_market_update_orchestrator = MagicMock(
+            return_value=orc
+        )
         resp = self.controller._handle_slash_command("/market-update manual")
         assert resp is not None
-        assert (
-            "not yet implemented" in resp.text.lower()
-            or "p5" in resp.text.lower()
-            or "orchestrator" in resp.text.lower()
+        assert "skipped" in resp.text.lower()
+        # No report fetched when report_id is None
+        self.state_store.get_latest_market_update_report.assert_not_called()
+
+    def test_market_update_orchestrator_init_failure_is_friendly(self) -> None:
+        self.controller._build_market_update_orchestrator = MagicMock(
+            side_effect=RuntimeError("yfinance import failed")
         )
+        resp = self.controller._handle_slash_command("/market-update noon")
+        assert resp is not None
+        assert "unavailable" in resp.text.lower()
+        assert "yfinance" in resp.text.lower()
+
+    def test_market_update_run_failure_is_friendly(self) -> None:
+        orc = MagicMock()
+        orc.run.side_effect = RuntimeError("network down")
+        self.controller._build_market_update_orchestrator = MagicMock(
+            return_value=orc
+        )
+        resp = self.controller._handle_slash_command("/market-update noon")
+        assert resp is not None
+        assert "failed" in resp.text.lower()
+        assert "network down" in resp.text.lower()
 
     # --- unknown subcommand ---------------------------------------------
     def test_market_update_unknown_subcommand_returns_usage(self) -> None:

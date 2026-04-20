@@ -3905,11 +3905,30 @@ class ChatController:
 
     # -- Market-update commands ----------------------------------------- #
     # Cockpit-local snapshots of orchestrator output (P2 tables). The
-    # orchestrator itself is P5 and not yet implemented; requests for a
-    # fresh run return a clear stub plus the most recent report on file
-    # for that run_type.
+    # orchestrator (P5) gathers per-ticker snapshots via yfinance, scores
+    # them with `compute_significance`, persists a report, and queues
+    # follow-ups for high-significance tickers.
 
     _MARKET_UPDATE_RUN_TYPES = ("noon", "final", "manual")
+
+    def _build_market_update_orchestrator(self):
+        """Construct an orchestrator using yfinance as the snapshot source.
+
+        Lazy: yfinance is only imported on first use. Tests can override
+        this method to inject a stub orchestrator.
+        """
+        from cockpit.core.market_update_orchestrator import (  # noqa: PLC0415
+            MarketUpdateOrchestrator,
+        )
+        from cockpit.core.yfinance_snapshot_provider import (  # noqa: PLC0415
+            YFinanceSnapshotProvider,
+        )
+
+        provider = YFinanceSnapshotProvider()
+        return MarketUpdateOrchestrator(
+            state_store=self._state_store,
+            snapshot_provider=provider,
+        )
 
     @staticmethod
     def _render_market_update_report(report: dict[str, Any]) -> str:
@@ -3993,19 +4012,55 @@ class ChatController:
             )
 
         if sub in self._MARKET_UPDATE_RUN_TYPES:
-            latest = self._state_store.get_latest_market_update_report(sub)
+            try:
+                orchestrator = self._build_market_update_orchestrator()
+            except Exception as exc:  # noqa: BLE001 — surface boot failure
+                logger.exception("market-update orchestrator init failed")
+                return ChatResponse(
+                    text=f"Market-update orchestrator unavailable: {exc}",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+
+            tickers_arg = [t.strip() for t in rest.split() if t.strip()] or None
+            try:
+                result = orchestrator.run(sub, tickers=tickers_arg)
+            except Exception as exc:  # noqa: BLE001 — surface run failure
+                logger.exception("market-update run failed")
+                return ChatResponse(
+                    text=f"Market-update run failed: {exc}",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+
             parts = [
-                "Market-update orchestrator not yet implemented (P5)."
-                f" Cannot trigger a fresh '{sub}' run."
+                f"Market-update '{sub}' run: status={result.status}, "
+                f"tickers={result.gathered_tickers}, "
+                f"followups={result.queued_followups}.",
             ]
-            if latest is not None:
+            if result.errors:
+                parts.append(
+                    f"Errors ({len(result.errors)}): "
+                    + "; ".join(result.errors[:3])
+                    + ("…" if len(result.errors) > 3 else "")
+                )
+
+            report = None
+            if result.report_id is not None:
+                report = self._state_store.get_latest_market_update_report(sub)
+            if report is not None:
                 parts.append("")
-                parts.append(f"Most recent '{sub}' report:")
-                parts.append(self._render_market_update_report(latest))
+                parts.append(self._render_market_update_report(report))
             else:
-                parts.append(f"No prior '{sub}' report on file.")
+                parts.append(f"No '{sub}' report persisted (status={result.status}).")
+
+            evidence: list[dict[str, Any]] = []
+            if report is not None:
+                evidence.append({"type": "market_update_report", "details": report})
             return ChatResponse(
-                text="\n".join(parts), evidence=[], mode=ResponseMode.FAST
+                text="\n".join(parts),
+                evidence=evidence,
+                mode=ResponseMode.FAST,
             )
 
         return ChatResponse(
