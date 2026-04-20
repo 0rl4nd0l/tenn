@@ -124,6 +124,7 @@ def test_usage_lists_reboot_command() -> None:
 def test_start_config_defaults_marketplace_to_direct_runtime() -> None:
     config = (REPO_ROOT / "scripts" / "start_config.env").read_text(encoding="utf-8")
 
+    assert 'COCKPIT_STATE_DB_ON_STARTUP="/data/cockpit/state.db"' in config
     assert 'MARKETPLACE_BROWSER_RUNTIME_ON_STARTUP="direct"' in config
     assert 'MARKETPLACE_BROWSER_PROFILE_DIR_ON_STARTUP="/root/.tenn/browser_profiles/facebook-marketplace-chrome"' in config
 
@@ -131,6 +132,8 @@ def test_start_config_defaults_marketplace_to_direct_runtime() -> None:
 def test_start_full_stack_propagates_marketplace_runtime_flags() -> None:
     script = (REPO_ROOT / "scripts" / "start_full_stack.sh").read_text(encoding="utf-8")
 
+    assert 'set_env_key "COCKPIT_STATE_DB"' in script
+    assert 'export COCKPIT_STATE_DB="${COCKPIT_STATE_DB_ON_STARTUP}"' in script
     assert 'set_env_key "MARKETPLACE_BROWSER_RUNTIME"' in script
     assert 'set_env_key "MARKETPLACE_BROWSER_PROFILE_DIR"' in script
     assert 'export MARKETPLACE_BROWSER_RUNTIME="${MARKETPLACE_BROWSER_RUNTIME_ON_STARTUP}"' in script

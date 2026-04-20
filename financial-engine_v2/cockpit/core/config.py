@@ -654,6 +654,12 @@ def apply_runtime_flags(config: dict[str, Any], flags: RuntimeFlags) -> dict[str
         or str(cfg["backend"].get("api_base_url", DEFAULT_BACKEND_URL)).strip()
         or DEFAULT_BACKEND_URL
     )
+    cfg.setdefault("memory", {})
+    cfg["memory"]["state_db"] = (
+        os.getenv("COCKPIT_STATE_DB", "").strip()
+        or str(cfg["memory"].get("state_db", DEFAULT_CONFIG["memory"]["state_db"])).strip()
+        or DEFAULT_CONFIG["memory"]["state_db"]
+    )
     cfg.setdefault("db", {})
     cfg["db"]["database_url"] = os.getenv(
         "DATABASE_URL", "sqlite:///./data/fe_local.db"

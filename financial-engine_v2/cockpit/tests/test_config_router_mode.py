@@ -72,3 +72,22 @@ def test_apply_runtime_flags_uses_backend_url_when_api_url_unset(
     )
 
     assert cfg["backend"]["api_base_url"] == "http://localhost:8100"
+
+
+def test_apply_runtime_flags_prefers_cockpit_state_db_env(
+    monkeypatch, tmp_path: Path
+):
+    monkeypatch.setenv("COCKPIT_STATE_DB", "/shared/cockpit/state.db")
+
+    cfg = apply_runtime_flags(
+        {"memory": {"state_db": str(tmp_path / "fallback-state.db")}},
+        RuntimeFlags(
+            config_path="config/cockpit.yaml",
+            profile="default",
+            read_only=False,
+            no_web=False,
+            repo_root=tmp_path,
+        ),
+    )
+
+    assert cfg["memory"]["state_db"] == "/shared/cockpit/state.db"
