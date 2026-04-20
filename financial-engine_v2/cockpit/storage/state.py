@@ -201,6 +201,53 @@ class StateStore:
         cur.execute(
             "CREATE INDEX IF NOT EXISTS idx_holdings_status ON holdings_items(status)"
         )
+        # Market-update reports + queued follow-up actions. See
+        # SYSTEM_CONTRACT §1.2 — these are cockpit-local report snapshots
+        # produced by the orchestrator, not authoritative financial data.
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS market_update_reports (
+                report_id TEXT PRIMARY KEY,
+                run_type TEXT NOT NULL CHECK (run_type IN ('noon','final','manual')),
+                report_date TEXT NOT NULL,
+                status TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                summary_json TEXT NOT NULL,
+                markdown_path TEXT,
+                json_path TEXT
+            )
+            """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_market_update_reports_run_type "
+            "ON market_update_reports(run_type, created_at DESC)"
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_market_update_reports_date "
+            "ON market_update_reports(report_date, created_at DESC)"
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS market_update_followups (
+                followup_id TEXT PRIMARY KEY,
+                report_id TEXT NOT NULL,
+                ticker TEXT,
+                action_type TEXT NOT NULL,
+                priority_score REAL NOT NULL DEFAULT 0,
+                reason_json TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'queued',
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_market_update_followups_report "
+            "ON market_update_followups(report_id, priority_score DESC)"
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_market_update_followups_status "
+            "ON market_update_followups(status, priority_score DESC)"
+        )
         self.conn.commit()
 
     # ------------------------------------------------------------------ #
@@ -572,6 +619,202 @@ class StateStore:
         with self._lock:
             cur = self.conn.execute(
                 "DELETE FROM holdings_items WHERE holding_id = ?", (holding_id,)
+            )
+            self.conn.commit()
+            return cur.rowcount == 1
+
+    # ------------------------------------------------------------------ #
+    # Market-update reports + followups                                    #
+    # ------------------------------------------------------------------ #
+    # Cockpit-local snapshots of the verbal market-update orchestrator's
+    # output. The orchestrator (P5) writes one report row per run and
+    # optionally queues per-ticker follow-up actions (e.g., research,
+    # watchlist add/remove proposals). See SYSTEM_CONTRACT §1.2.
+
+    _REPORT_COLUMNS = (
+        "report_id",
+        "run_type",
+        "report_date",
+        "status",
+        "created_at",
+        "summary_json",
+        "markdown_path",
+        "json_path",
+    )
+
+    _FOLLOWUP_COLUMNS = (
+        "followup_id",
+        "report_id",
+        "ticker",
+        "action_type",
+        "priority_score",
+        "reason_json",
+        "status",
+        "created_at",
+    )
+
+    @staticmethod
+    def _row_to_report(row: sqlite3.Row) -> dict[str, Any]:
+        item = dict(row)
+        item["summary"] = json.loads(item.pop("summary_json"))
+        return item
+
+    @staticmethod
+    def _row_to_followup(row: sqlite3.Row) -> dict[str, Any]:
+        item = dict(row)
+        item["reason"] = json.loads(item.pop("reason_json"))
+        return item
+
+    def save_market_update_report(
+        self,
+        *,
+        run_type: str,
+        report_date: str,
+        status: str,
+        summary: dict[str, Any],
+        markdown_path: str | None = None,
+        json_path: str | None = None,
+    ) -> str:
+        """Persist a report run. Returns the generated report_id.
+
+        ``run_type`` must be one of 'noon', 'final', 'manual' (CHECK
+        constraint). Each call inserts a new row; day-level uniqueness is a
+        higher-layer policy, not a schema constraint.
+        """
+        report_id = str(uuid.uuid4())
+        created_at = datetime.now().isoformat()
+        with self._lock:
+            self.conn.execute(
+                """
+                INSERT INTO market_update_reports(
+                    report_id, run_type, report_date, status, created_at,
+                    summary_json, markdown_path, json_path
+                ) VALUES (?,?,?,?,?,?,?,?)
+                """,
+                (
+                    report_id,
+                    run_type,
+                    report_date,
+                    status,
+                    created_at,
+                    json.dumps(summary),
+                    markdown_path,
+                    json_path,
+                ),
+            )
+            self.conn.commit()
+        return report_id
+
+    def get_latest_market_update_report(
+        self, run_type: str | None = None
+    ) -> dict[str, Any] | None:
+        """Most recent report (optionally filtered by run_type), or None."""
+        cols = ", ".join(self._REPORT_COLUMNS)
+        if run_type is None:
+            row = self.conn.execute(
+                f"SELECT {cols} FROM market_update_reports "  # noqa: S608
+                "ORDER BY created_at DESC LIMIT 1"
+            ).fetchone()
+        else:
+            row = self.conn.execute(
+                f"SELECT {cols} FROM market_update_reports WHERE run_type = ? "  # noqa: S608
+                "ORDER BY created_at DESC LIMIT 1",
+                (run_type,),
+            ).fetchone()
+        return self._row_to_report(row) if row else None
+
+    def list_market_update_reports(
+        self,
+        *,
+        run_type: str | None = None,
+        report_date: str | None = None,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        """Reports newest-first. Optional filters on run_type and report_date."""
+        clauses: list[str] = []
+        params: list[Any] = []
+        if run_type is not None:
+            clauses.append("run_type = ?")
+            params.append(run_type)
+        if report_date is not None:
+            clauses.append("report_date = ?")
+            params.append(report_date)
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        cols = ", ".join(self._REPORT_COLUMNS)
+        rows = self.conn.execute(
+            f"SELECT {cols} FROM market_update_reports {where} "  # noqa: S608
+            "ORDER BY created_at DESC LIMIT ?",
+            (*params, limit),
+        ).fetchall()
+        return [self._row_to_report(r) for r in rows]
+
+    def add_market_update_followup(
+        self,
+        *,
+        report_id: str,
+        action_type: str,
+        reason: dict[str, Any],
+        ticker: str | None = None,
+        priority_score: float = 0.0,
+    ) -> str:
+        """Queue a follow-up action linked to a report. Returns followup_id."""
+        followup_id = str(uuid.uuid4())
+        created_at = datetime.now().isoformat()
+        with self._lock:
+            self.conn.execute(
+                """
+                INSERT INTO market_update_followups(
+                    followup_id, report_id, ticker, action_type,
+                    priority_score, reason_json, status, created_at
+                ) VALUES (?,?,?,?,?,?,?,?)
+                """,
+                (
+                    followup_id,
+                    report_id,
+                    ticker.upper() if ticker else None,
+                    action_type,
+                    priority_score,
+                    json.dumps(reason),
+                    "queued",
+                    created_at,
+                ),
+            )
+            self.conn.commit()
+        return followup_id
+
+    def list_market_update_followups(
+        self,
+        *,
+        report_id: str | None = None,
+        status: str | None = None,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        """Followups ordered by priority desc. Optional filters on report/status."""
+        clauses: list[str] = []
+        params: list[Any] = []
+        if report_id is not None:
+            clauses.append("report_id = ?")
+            params.append(report_id)
+        if status is not None:
+            clauses.append("status = ?")
+            params.append(status)
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        cols = ", ".join(self._FOLLOWUP_COLUMNS)
+        rows = self.conn.execute(
+            f"SELECT {cols} FROM market_update_followups {where} "  # noqa: S608
+            "ORDER BY priority_score DESC, created_at ASC LIMIT ?",
+            (*params, limit),
+        ).fetchall()
+        return [self._row_to_followup(r) for r in rows]
+
+    def update_market_update_followup_status(
+        self, followup_id: str, status: str
+    ) -> bool:
+        """Update status (e.g., queued → accepted/rejected/done). Returns True on hit."""
+        with self._lock:
+            cur = self.conn.execute(
+                "UPDATE market_update_followups SET status = ? WHERE followup_id = ?",
+                (status, followup_id),
             )
             self.conn.commit()
             return cur.rowcount == 1
