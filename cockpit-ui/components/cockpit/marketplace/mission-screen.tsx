@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { AlertTriangle, Loader2, Play, RefreshCw, Store } from 'lucide-react'
 
 import {
   createMarketplaceMission,
+  getMarketplaceScanJob,
   getMarketplaceBrowserHealth,
   launchMarketplaceBrowser,
   listMarketplaceMissions,
@@ -19,6 +20,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Progress } from '@/components/ui/progress'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Textarea } from '@/components/ui/textarea'
 
 interface MarketplaceMissionScreenProps {
@@ -88,19 +91,78 @@ function scanBadgeVariant(
   return 'outline'
 }
 
+function formatProgress(value: number | null | undefined): string | null {
+  if (typeof value !== 'number' || Number.isNaN(value)) return null
+  return `${Math.max(0, Math.min(100, Math.round(value)))}%`
+}
+
+function clampProgress(value: number | null | undefined): number {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 0
+  return Math.max(0, Math.min(100, value))
+}
+
+function pickScanJobId(
+  jobs: MarketplaceScanJob[],
+  preferredJobId: string | null,
+): string | null {
+  if (preferredJobId && jobs.some((job) => job.job_id === preferredJobId)) {
+    return preferredJobId
+  }
+  const activeJob = jobs.find((job) => job.status === 'running' || job.status === 'queued')
+  return activeJob?.job_id ?? jobs[0]?.job_id ?? null
+}
+
+function scanOutputPlaceholder(job: MarketplaceScanJob | null): string {
+  if (!job) return 'Select a Marketplace scan to inspect live output.'
+  if (job.status === 'queued') return 'Scan is queued. Output will appear when the worker starts.'
+  if (job.status === 'running') return 'Scanner is running. Waiting for stdout...'
+  if (job.status === 'failed') return 'Scan failed, but no stderr/stdout was captured.'
+  return 'Scan completed, but no stdout was captured.'
+}
+
 export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenProps) {
   const [browserHealth, setBrowserHealth] = useState<MarketplaceBrowserHealth | null>(null)
   const [missions, setMissions] = useState<MarketplaceMission[]>([])
   const [scanJobs, setScanJobs] = useState<MarketplaceScanJob[]>([])
+  const [selectedScanJobId, setSelectedScanJobId] = useState<string | null>(null)
+  const [selectedScanJob, setSelectedScanJob] = useState<MarketplaceScanJob | null>(null)
+  const [scanOutputLoading, setScanOutputLoading] = useState(false)
+  const [scanOutputError, setScanOutputError] = useState<string | null>(null)
   const [form, setForm] = useState<MissionFormState>(DEFAULT_FORM)
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const selectedScanJobIdRef = useRef<string | null>(null)
   const desktopSessionMissing = browserHealth?.status === 'desktop_session_missing'
   const headlessProbeBlocked =
     browserHealth?.status === 'browser_unavailable' &&
     /headless mode|timed out during cdp attach/i.test(browserHealth?.detail || '')
+
+  const loadSelectedScanJob = useCallback(
+    async (jobId: string | null) => {
+      if (!jobId) {
+        setSelectedScanJob(null)
+        setScanOutputError(null)
+        setScanOutputLoading(false)
+        return
+      }
+      setScanOutputLoading(true)
+      try {
+        const job = await getMarketplaceScanJob(apiKey, jobId)
+        setSelectedScanJob(job)
+        setScanOutputError(null)
+      } catch (scanError) {
+        setSelectedScanJob(null)
+        setScanOutputError(
+          scanError instanceof Error ? scanError.message : 'Failed to load scan output',
+        )
+      } finally {
+        setScanOutputLoading(false)
+      }
+    },
+    [apiKey],
+  )
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -114,12 +176,16 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
       setBrowserHealth(health)
       setMissions(missionItems)
       setScanJobs(jobs)
+      const nextSelectedJobId = pickScanJobId(jobs, selectedScanJobIdRef.current)
+      selectedScanJobIdRef.current = nextSelectedJobId
+      setSelectedScanJobId(nextSelectedJobId)
+      await loadSelectedScanJob(nextSelectedJobId)
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Failed to load Marketplace state')
     } finally {
       setLoading(false)
     }
-  }, [apiKey])
+  }, [apiKey, loadSelectedScanJob])
 
   useEffect(() => {
     void load()
@@ -179,12 +245,24 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
     setError(null)
     setNotice(null)
     try {
-      await triggerMarketplaceScan(apiKey, missionId)
+      const queued = await triggerMarketplaceScan(apiKey, missionId)
+      if (queued.job_id) {
+        selectedScanJobIdRef.current = queued.job_id
+        setSelectedScanJobId(queued.job_id)
+      }
       setNotice('Scan triggered successfully.')
       await load()
     } catch (scanError) {
       setError(scanError instanceof Error ? scanError.message : 'Failed to trigger Marketplace scan')
     }
+  }
+
+  async function handleSelectScanJob(jobId: string) {
+    selectedScanJobIdRef.current = jobId
+    setSelectedScanJobId(jobId)
+    setSelectedScanJob(null)
+    setScanOutputError(null)
+    await loadSelectedScanJob(jobId)
   }
 
   async function handleStatus(missionId: string, status: string) {
@@ -411,18 +489,36 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                 ) : (
                   <div className="space-y-3">
                     {scanJobs.slice(0, 10).map((job) => (
-                      <div key={job.job_id} className="space-y-1 border-b border-border/50 pb-2 last:border-0 last:pb-0">
+                      <button
+                        key={job.job_id}
+                        type="button"
+                        onClick={() => void handleSelectScanJob(job.job_id)}
+                        aria-pressed={selectedScanJobId === job.job_id}
+                        aria-label={`Inspect scan ${job.job_id.slice(0, 8)}`}
+                        className={`w-full space-y-1 rounded-md border px-2 py-2 text-left transition-colors ${
+                          selectedScanJobId === job.job_id
+                            ? 'border-primary/40 bg-primary/5'
+                            : 'border-border/50 hover:bg-muted/40'
+                        }`}
+                      >
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-medium truncate max-w-[120px]">{job.action_id}</span>
+                          <span className="text-[10px] font-medium truncate max-w-[120px]">
+                            Scan {job.job_id.slice(0, 8)}
+                          </span>
                           <Badge variant={scanBadgeVariant(job.status)} className="text-[9px] px-1 h-4">
                             {job.status}
                           </Badge>
                         </div>
-                        <div className="flex items-center justify-between text-[9px] text-muted-foreground font-mono">
-                          <span>{formatClock(job.started_at)}</span>
-                          {job.progress_stage && <span>{job.progress_stage}</span>}
+                        <div className="flex items-center justify-between gap-2 text-[9px] text-muted-foreground font-mono">
+                          <span className="truncate">{formatClock(job.started_at)}</span>
+                          <span className="truncate text-right">
+                            {job.progress_stage || formatProgress(job.progress_pct) || 'idle'}
+                          </span>
                         </div>
-                      </div>
+                        {job.progress_pct != null && (
+                          <Progress value={clampProgress(job.progress_pct)} className="h-1" />
+                        )}
+                      </button>
                     ))}
                   </div>
                 )}
@@ -430,6 +526,118 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
             </Card>
           </div>
         </div>
+
+        <Card>
+          <CardHeader>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-base">Scan Output</CardTitle>
+                <CardDescription>
+                  Live scanner output and persisted progress for the selected Marketplace scan.
+                </CardDescription>
+              </div>
+              {selectedScanJobId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void loadSelectedScanJob(selectedScanJobId)}
+                  disabled={scanOutputLoading}
+                >
+                  <RefreshCw className={`mr-2 h-4 w-4 ${scanOutputLoading ? 'animate-spin' : ''}`} />
+                  Refresh Output
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!selectedScanJobId && (
+              <p className="text-sm text-muted-foreground italic">
+                No Marketplace scan selected yet.
+              </p>
+            )}
+
+            {selectedScanJobId && scanOutputError && (
+              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+                {scanOutputError}
+              </div>
+            )}
+
+            {selectedScanJobId && !scanOutputError && scanOutputLoading && !selectedScanJob && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading scan output…
+              </div>
+            )}
+
+            {selectedScanJob && (
+              <>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={scanBadgeVariant(selectedScanJob.status)}>
+                    {selectedScanJob.status}
+                  </Badge>
+                  <Badge variant="outline" className="font-mono">
+                    {selectedScanJob.job_id}
+                  </Badge>
+                  {selectedScanJob.progress_stage && (
+                    <Badge variant="outline">{selectedScanJob.progress_stage}</Badge>
+                  )}
+                  {formatProgress(selectedScanJob.progress_pct) && (
+                    <Badge variant="outline" className="font-mono">
+                      {formatProgress(selectedScanJob.progress_pct)}
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="grid gap-3 text-xs text-muted-foreground sm:grid-cols-4">
+                  <div>
+                    <div className="font-medium text-foreground">Started</div>
+                    <div className="font-mono">{formatClock(selectedScanJob.started_at)}</div>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground">Finished</div>
+                    <div className="font-mono">{formatClock(selectedScanJob.ended_at)}</div>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground">Exit Code</div>
+                    <div className="font-mono">
+                      {selectedScanJob.exit_code == null ? 'running' : selectedScanJob.exit_code}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground">Stdout Log</div>
+                    <div className="truncate font-mono">
+                      {selectedScanJob.stdout_path || 'not available'}
+                    </div>
+                  </div>
+                </div>
+
+                {selectedScanJob.progress_pct != null && (
+                  <div className="space-y-1">
+                    <Progress value={clampProgress(selectedScanJob.progress_pct)} className="h-2" />
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground font-mono">
+                      <span>{formatProgress(selectedScanJob.progress_pct)}</span>
+                      <span className="truncate pl-3">
+                        {selectedScanJob.progress_stage || 'working'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="overflow-hidden rounded-md border border-border/60 bg-muted/20">
+                  <ScrollArea className="h-[320px]">
+                    <pre
+                      className="whitespace-pre-wrap break-words p-4 font-mono text-[11px] leading-5 text-foreground/90"
+                      role="log"
+                      aria-label="Marketplace scan output"
+                    >
+                      {selectedScanJob.result || scanOutputPlaceholder(selectedScanJob)}
+                    </pre>
+                  </ScrollArea>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

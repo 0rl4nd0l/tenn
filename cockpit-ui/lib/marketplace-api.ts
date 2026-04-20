@@ -32,6 +32,8 @@ export interface MarketplaceScanJob {
   started_at?: string | null
   ended_at?: string | null
   exit_code?: number | null
+  stdout_path?: string | null
+  stderr_path?: string | null
   result?: string | null
   progress_stage?: string | null
   progress_pct?: number | null
@@ -181,11 +183,18 @@ export async function listMarketplaceScanJobs(apiKey: string): Promise<Marketpla
   return body.items
 }
 
-export async function getMarketplaceScanJob(apiKey: string, jobId: string): Promise<MarketplaceScanJob> {
-  const response = await fetch(`/api/cockpit/marketplace/scans/${encodeURIComponent(jobId)}?tail=40`, {
+export async function getMarketplaceScanJob(
+  apiKey: string,
+  jobId: string,
+  tail = 80,
+): Promise<MarketplaceScanJob> {
+  const response = await fetch(
+    `/api/cockpit/marketplace/scans/${encodeURIComponent(jobId)}?tail=${tail}`,
+    {
     headers: buildHeaders(apiKey, null),
     cache: 'no-store',
-  })
+    },
+  )
   return parseJson<MarketplaceScanJob>(response)
 }
 

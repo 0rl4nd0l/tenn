@@ -9,7 +9,7 @@ describe('MarketplaceMissionScreen', () => {
     vi.restoreAllMocks()
   })
 
-  it('renders browser health, missions, and recent scan jobs', async () => {
+  it('renders browser health, missions, recent scan jobs, and selected scan output', async () => {
     vi.stubGlobal(
       'fetch',
       vi
@@ -51,22 +51,36 @@ describe('MarketplaceMissionScreen', () => {
             ],
           }),
         })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          items: [
-            {
-              job_id: 'job-1',
-              mission_name: 'Dual-cab ute',
-              action_id: 'marketplace_scan',
-              status: 'queued',
-              progress_stage: 'Queued',
-              started_at: '2026-04-18T10:00:00Z',
-              items_found: null,
-            },
-          ],
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            items: [
+              {
+                job_id: 'job-1',
+                mission_name: 'Dual-cab ute',
+                action_id: 'marketplace_scan',
+                status: 'queued',
+                progress_stage: 'Queued',
+                progress_pct: 0,
+                started_at: '2026-04-18T10:00:00Z',
+                items_found: null,
+              },
+            ],
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            job_id: 'job-1',
+            action_id: 'marketplace_scan',
+            status: 'queued',
+            progress_stage: 'Queued',
+            progress_pct: 0,
+            started_at: '2026-04-18T10:00:00Z',
+            result: 'queued output',
+            stdout_path: '/reports/cockpit/logs/job-1.out.log',
+          }),
         }),
-      }),
     )
 
     render(<MarketplaceMissionScreen apiKey="k" />)
@@ -76,7 +90,10 @@ describe('MarketplaceMissionScreen', () => {
     })
     expect(screen.getByText('ready')).toBeInTheDocument()
     expect(screen.getAllByText('Dual-cab ute').length).toBeGreaterThan(0)
-    expect(screen.getByText('queued')).toBeInTheDocument()
+    expect(screen.getAllByText('queued').length).toBeGreaterThan(0)
+    expect(screen.getByText('Scan Output')).toBeInTheDocument()
+    expect(screen.getByText('queued output')).toBeInTheDocument()
+    expect(screen.getByText('/reports/cockpit/logs/job-1.out.log')).toBeInTheDocument()
   })
 
   it('launches the Marketplace browser even when apiKey is blank', async () => {
@@ -234,5 +251,98 @@ describe('MarketplaceMissionScreen', () => {
     expect(
       screen.getByText(/the current marketplace scanner still needs a cdp session that playwright can attach to/i),
     ).toBeInTheDocument()
+  })
+
+  it('loads new scan output when a recent scan is selected', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'ready',
+          cdp_url: 'http://127.0.0.1:9222',
+          browser_family: 'chrome',
+          profile_path: '/tmp/profile',
+          logged_in: true,
+          challenge_detected: false,
+          last_checked_at: '2026-04-20T01:00:00Z',
+          detail: 'Marketplace browser profile is ready.',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              job_id: 'job-1',
+              action_id: 'marketplace_scan',
+              status: 'running',
+              progress_stage: 'Scanning mission one',
+              progress_pct: 35,
+              started_at: '2026-04-20T01:01:00Z',
+            },
+            {
+              job_id: 'job-2',
+              action_id: 'marketplace_scan',
+              status: 'success',
+              progress_stage: 'Marketplace scan complete',
+              progress_pct: 100,
+              started_at: '2026-04-20T01:02:00Z',
+              ended_at: '2026-04-20T01:04:00Z',
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          job_id: 'job-1',
+          action_id: 'marketplace_scan',
+          status: 'running',
+          progress_stage: 'Scanning mission one',
+          progress_pct: 35,
+          started_at: '2026-04-20T01:01:00Z',
+          result: 'job one output',
+          stdout_path: '/reports/cockpit/logs/job-1.out.log',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          job_id: 'job-2',
+          action_id: 'marketplace_scan',
+          status: 'success',
+          progress_stage: 'Marketplace scan complete',
+          progress_pct: 100,
+          started_at: '2026-04-20T01:02:00Z',
+          ended_at: '2026-04-20T01:04:00Z',
+          result: 'job two output',
+          stdout_path: '/reports/cockpit/logs/job-2.out.log',
+        }),
+      })
+
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<MarketplaceMissionScreen apiKey="k" />)
+
+    await waitFor(() => {
+      expect(screen.getByText('job one output')).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: /inspect scan job-2/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('job two output')).toBeInTheDocument()
+    })
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/cockpit/marketplace/scans/job-2?tail=80',
+      expect.objectContaining({
+        cache: 'no-store',
+      }),
+    )
   })
 })

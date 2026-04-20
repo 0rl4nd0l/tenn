@@ -142,7 +142,15 @@ def _persist_action_job_row(
     stderr_path: Path,
     exit_code: int | None = None,
     ended_at: str | None = None,
+    progress_stage: str | None = None,
+    progress_pct: float | None = None,
 ) -> None:
+    existing = service.state_store.get_job(job_id)
+    if existing is not None:
+        if progress_stage is None:
+            progress_stage = existing.get("progress_stage")
+        if progress_pct is None:
+            progress_pct = existing.get("progress_pct")
     service.state_store.add_job(
         {
             "job_id": job_id,
@@ -155,6 +163,8 @@ def _persist_action_job_row(
             "stdout_path": str(stdout_path),
             "stderr_path": str(stderr_path),
             "artifacts": [],
+            "progress_stage": progress_stage,
+            "progress_pct": progress_pct,
         }
     )
 
@@ -2427,6 +2437,8 @@ def _run_marketplace_scan_job(
         status="running",
         stdout_path=stdout_path,
         stderr_path=stderr_path,
+        progress_stage="Starting Marketplace scan",
+        progress_pct=0.0,
     )
     if tracker is not None:
         _best_effort_tracker_call("start_job", job_id)
@@ -2547,6 +2559,8 @@ def _launch_marketplace_scan_job(
         status="queued",
         stdout_path=stdout_path,
         stderr_path=stderr_path,
+        progress_stage="Queued",
+        progress_pct=0.0,
     )
 
     worker = threading.Thread(
