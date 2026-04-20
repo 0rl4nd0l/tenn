@@ -78,8 +78,14 @@ Under `cockpit-ui/app/api/cockpit/` (non-exhaustive; glob the directory if route
 - `restart/route.ts` — restart orchestration.
 - `action/execute/route.ts` — action execution proxy.
 - `action/jobs/[jobId]/route.ts`, `action/jobs/[jobId]/stop/route.ts` — job status / stop.
+- `commentary/takeaways/route.ts` — thin browser proxy to backend commentary takeaway generation.
+- `commentary/ephemeral-index/route.ts`, `commentary/ephemeral-index/[sessionId]/route.ts` — thin browser proxies for session-scoped commentary indexing lifecycle.
+- `commentary/recent/route.ts` — thin browser proxy for recently approved commentary sources.
+- `watchlist/route.ts`, `watchlist/[ticker]/route.ts` — thin browser proxies for watchlist CRUD.
 
 Client-side helpers may live under `cockpit-ui/lib/` (e.g. `api-client.ts`).
+
+These browser routes are **presentation-layer pass-throughs only**. Their presence in `cockpit-ui` does **not** guarantee that the matching backend route exists on every branch or environment.
 
 ### 6.1 Active model and switch-state UX
 
@@ -95,6 +101,22 @@ For correctness:
 - "switching" / "waiting for model switch" UI states **SHOULD** be based on backend-backed runtime identity and normalized model aliases, not on raw string inequality between a selected alias and a resolved runtime display name.
 
 This keeps the UI aligned with SYSTEM_CONTRACT §1.2: Cockpit presents backend authority; it does not invent an independent model-truth state.
+
+### 6.2 Ephemeral attached-source state
+
+The web chat UI may keep a per-tab list of attached commentary sources in client state so the operator can:
+
+- re-attach recently ingested commentary sources,
+- carry those attachments across subsequent chat turns in the same browser tab,
+- render non-authoritative UI affordances such as ingest summary cards and takeaways panels.
+
+For correctness:
+
+- this attachment list is **ephemeral client state only** and **MUST NOT** become an alternate source of truth,
+- the browser **MUST** forward any attachment metadata to backend-owned chat/commentary endpoints rather than performing its own retrieval or ranking,
+- any browser proxy route under `cockpit-ui/app/api/cockpit/*` remains a pass-through layer only; it **does not** authorize frontend-owned ingestion, retrieval, or watchlist truth.
+
+Implementation note: the current web client forwards `attached_sources` in the chat payload, but the backend remains the contract authority for whether that field is accepted or ignored.
 
 ---
 
@@ -131,6 +153,12 @@ Each row maps a **contract obligation** to **implementation** and an explicit **
 | C8 | No independent merge/rank as authority | Cockpit does not replace backend hybrid retriever for `/api/chat` | N/A | **conform** (scope: Cockpit client; backend owns `/chat` RAG) |
 | C9 | Orchestration (subprocess actions, UI) without owning ingestion truth | `financial-engine_v2/cockpit/core/actions.py` runs scripts (e.g. ticker sync, loaders) | Actions invoke repo scripts; backend remains authority for persisted truth | **conform** |
 | C10 | Web UI active-model/switch UX reflects backend authority rather than stale client state | `cockpit-ui/components/cockpit/chat/chat-screen.tsx`, `cockpit-ui/components/cockpit/cockpit-status-bar.tsx`, `cockpit-ui/lib/cockpit-config.ts` | UI should compare normalized backend-backed runtime identity before showing switch-wait states | **conform** |
+| C11 | Web UI commentary attachments remain ephemeral and backend-authoritative | `cockpit-ui/components/cockpit/chat/chat-screen.tsx`, `cockpit-ui/lib/hooks/use-attached-sources.ts`, `cockpit-ui/lib/api-client.ts` | The browser stores only per-tab attachment metadata and forwards `attached_sources` to backend chat routes; no client retrieval path was added | **conform** |
+| C12 | Source contract bypass requires PURE refusal — no financial claims | `backend/app/routes/cockpit_api.py` `_enforce_visible_source_contract` + `_CONTAINS_FINANCIAL_CLAIM_RE` | A response hedged with "I cannot confirm" that also contains named tickers, dollar amounts, percentages, or financial events is blocked by the guard — the `_EXPLICIT_UNVERIFIED_RESPONSE_RE` bypass only fires when `_CONTAINS_FINANCIAL_CLAIM_RE` does NOT match | **conform** |
+| C13 | Agent hard-blocks substantive tool-less responses after one grounding nudge | `cockpit/core/agent_loop.py` `grounding_nudges_given` counter + `_response_is_pure_refusal()` | After the first grounding nudge, any non-pure-refusal response that still lacks tool evidence is replaced with a safe refusal; the model cannot answer substantive questions without tools on a second attempt | **conform** |
+| C14 | Market-wide queries must not receive active ticker context | `cockpit/core/agent_loop.py` intent-aware ticker injection + `cockpit/core/query_intent.py` | MARKET_WIDE and COMMAND intents bypass the `Current ticker context: X` prefix so "news today?" searches the whole corpus | **conform** |
+| C15 | Imperative commands short-circuit to action proposals before agent loop | `cockpit/core/command_router.py` + `AgentLoop.run()` pre-loop check | `ingest VEA`, `chart BHP`, `update CBA` are matched by regex pre-router and returned as `action_preview` without entering the LLM loop | **conform** |
+| C16 | Verification run history persisted and exposed via backend endpoint | `backend/app/services/cockpit_service.py` `record_verification_run` + `GET /api/context/verification/runs` | Run metadata stored in `$DATA_ROOT/cockpit_verification_runs.json`; frontend verification-screen fetches on mount and shows ticker/date/pass-fail/re-run panel | **conform** |
 
 ---
 
