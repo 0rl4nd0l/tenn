@@ -78,15 +78,20 @@ def test_browser_health_fails_fast_when_cdp_attach_stalls(monkeypatch) -> None:
 
 
 def test_browser_health_uses_direct_runtime(monkeypatch) -> None:
+    calls: dict[str, object] = {}
+
     class _FakePage:
         def set_default_timeout(self, timeout_ms: int) -> None:
             self.timeout_ms = timeout_ms
 
         async def goto(self, url: str, wait_until: str, timeout: int):
-            self.url = url
+            calls["url"] = url
+            calls["wait_until"] = wait_until
+            calls["timeout"] = timeout
             return None
 
         async def wait_for_timeout(self, timeout_ms: int):
+            calls["wait_for_timeout"] = timeout_ms
             return None
 
         async def evaluate(self, script: str):
@@ -117,6 +122,49 @@ def test_browser_health_uses_direct_runtime(monkeypatch) -> None:
     assert health["status"] == "ready"
     assert health["profile_path"] == "/tmp/direct-profile"
     assert health["browser_family"] == "chrome"
+    assert calls["wait_until"] == "commit"
+    assert calls["timeout"] == 1000
+    assert calls["wait_for_timeout"] == 1000
+
+
+def test_browser_health_direct_runtime_reports_navigation_timeout_cleanly(monkeypatch) -> None:
+    class _FakePage:
+        def set_default_timeout(self, timeout_ms: int) -> None:
+            self.timeout_ms = timeout_ms
+
+        async def goto(self, url: str, wait_until: str, timeout: int):
+            raise RuntimeError(
+                "Page.goto: Timeout 5000ms exceeded. Call log: "
+                '- navigating to "https://www.facebook.com/marketplace/", '
+                'waiting until "domcontentloaded"'
+            )
+
+        async def wait_for_timeout(self, timeout_ms: int):
+            return None
+
+        async def evaluate(self, script: str):
+            return {}
+
+    class _FakeContextManager:
+        async def __aenter__(self):
+            return type("Ctx", (), {"pages": [_FakePage()]})(), "chrome", "/tmp/direct-profile"
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+    monkeypatch.setattr(browser_profile, "use_direct_marketplace_runtime", lambda: True)
+    monkeypatch.setattr(
+        browser_profile,
+        "open_direct_marketplace_context",
+        lambda: _FakeContextManager(),
+    )
+
+    health = browser_profile.check_marketplace_browser_health(timeout_ms=5000)
+
+    assert health["status"] == "browser_unavailable"
+    assert health["profile_path"] == "/tmp/direct-profile"
+    assert "probe timed out during marketplace navigation" in str(health["detail"]).lower()
+    assert "launch failed" not in str(health["detail"]).lower()
 
 
 def test_browser_health_sync_wrapper_works_inside_running_loop(monkeypatch) -> None:

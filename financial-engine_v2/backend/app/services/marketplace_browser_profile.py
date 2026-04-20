@@ -59,6 +59,36 @@ _MARKETPLACE_HOME_EVALUATION_SCRIPT = """
 """
 
 
+def _is_playwright_navigation_timeout(exc: Exception) -> bool:
+    message = str(exc or "")
+    normalized = message.lower()
+    return "page.goto:" in normalized and "timeout" in normalized
+
+
+async def _navigate_marketplace_home(page: object, *, timeout_ms: int) -> None:
+    page.set_default_timeout(timeout_ms)
+    try:
+        await _await_marketplace_probe(
+            page.goto(
+                DEFAULT_MARKETPLACE_HOME_URL,
+                wait_until="commit",
+                timeout=timeout_ms,
+            ),
+            stage="Marketplace navigation",
+            timeout_seconds=_probe_timeout_seconds(timeout_ms, extra_seconds=2.0),
+        )
+    except Exception as exc:
+        if _is_playwright_navigation_timeout(exc):
+            raise MarketplaceBrowserProbeTimeout("Marketplace navigation") from exc
+        raise
+
+    await _await_marketplace_probe(
+        page.wait_for_timeout(1_000),
+        stage="post-navigation wait",
+        timeout_seconds=3.0,
+    )
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -133,21 +163,7 @@ async def _check_browser_health_async(
                 profile_path,
             ):
                 page = context.pages[0] if context.pages else await context.new_page()
-                page.set_default_timeout(timeout_ms)
-                await _await_marketplace_probe(
-                    page.goto(
-                        DEFAULT_MARKETPLACE_HOME_URL,
-                        wait_until="domcontentloaded",
-                        timeout=timeout_ms,
-                    ),
-                    stage="Marketplace navigation",
-                    timeout_seconds=_probe_timeout_seconds(timeout_ms, extra_seconds=2.0),
-                )
-                await _await_marketplace_probe(
-                    page.wait_for_timeout(1_000),
-                    stage="post-navigation wait",
-                    timeout_seconds=3.0,
-                )
+                await _navigate_marketplace_home(page, timeout_ms=timeout_ms)
                 evaluated = await _await_marketplace_probe(
                     page.evaluate(_MARKETPLACE_HOME_EVALUATION_SCRIPT),
                     stage="Marketplace evaluation",
@@ -320,21 +336,7 @@ async def _check_browser_health_async(
                     )
                 created_page = page not in context.pages[:-1]
 
-            page.set_default_timeout(timeout_ms)
-            await _await_marketplace_probe(
-                page.goto(
-                    DEFAULT_MARKETPLACE_HOME_URL,
-                    wait_until="domcontentloaded",
-                    timeout=timeout_ms,
-                ),
-                stage="Marketplace navigation",
-                timeout_seconds=_probe_timeout_seconds(timeout_ms, extra_seconds=2.0),
-            )
-            await _await_marketplace_probe(
-                page.wait_for_timeout(1_000),
-                stage="post-navigation wait",
-                timeout_seconds=3.0,
-            )
+            await _navigate_marketplace_home(page, timeout_ms=timeout_ms)
             evaluated = await _await_marketplace_probe(
                 page.evaluate(_MARKETPLACE_HOME_EVALUATION_SCRIPT),
                 stage="Marketplace evaluation",
