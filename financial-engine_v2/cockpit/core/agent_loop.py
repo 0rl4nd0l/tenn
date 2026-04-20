@@ -27,6 +27,7 @@ from cockpit.core.response_parser import (
 from cockpit.core.action_preview import normalize_action_preview
 from cockpit.core.tool_call_debug import build_tool_trace_entry
 from cockpit.core.query_intent import QueryIntent, classify_intent
+from cockpit.core.command_router import route_command
 
 # ---------------------------------------------------------------------------
 # Conditional imports for modules being created in parallel.  At runtime they
@@ -75,6 +76,13 @@ _SUBSTANTIVE_INFO_QUERY_RE = re.compile(
     r"walk me through|analyse|analyze|analysis|outlook|news|headline|"
     r"price|financial|revenue|profit|ebit|announcement|risk|thesis|"
     r"valuation|broker|upgrade|downgrade|chart)\b",
+    re.IGNORECASE,
+)
+
+_ANALYTICAL_QUERY_RE = re.compile(
+    r"\b(?:why|what\s+drove|what\s+caused|thesis|outlook|compare|versus|vs\.?|"
+    r"analyse|analyze|analysis|explain|walk\s+me\s+through|break\s+down|"
+    r"what'?s?\s+the\s+(?:story|case|situation)|risk|catalyst)\b",
     re.IGNORECASE,
 )
 
@@ -272,6 +280,26 @@ class AgentLoop:
         force_backend, message = parse_backend_prefix(message)
         self._turn_force_backend = force_backend
         self._current_intent: QueryIntent | None = None
+
+        # Pre-route explicit commands (ingest, chart, update, backfill) before
+        # the full agent loop so they always produce a clean action_proposal
+        # rather than relying on the LLM to parse the imperative correctly.
+        cmd = route_command(message, active_ticker=ticker)
+        if cmd.matched and cmd.tool:
+            preview = normalize_action_preview(
+                {
+                    "tool": cmd.tool,
+                    "arguments": cmd.arguments or {},
+                    "explanation": cmd.explanation or "",
+                    "requires_confirmation": True,
+                }
+            )
+            return AgentResult(
+                text=cmd.explanation or f"Ready to execute: {cmd.tool}",
+                action_preview=preview,
+                mode="command",
+            )
+
         try:
             result = self._run_inner(
                 message,
@@ -888,6 +916,18 @@ class AgentLoop:
             "If a claim cannot be supported, state that you cannot verify it. "
             "Do not rely on prior session context unless the current evidence confirms it."
         )
+        # Verbosity calibration: factual lookups get facts-only; analytical
+        # questions get full narrative with interpretation.
+        if _ANALYTICAL_QUERY_RE.search(question or ""):
+            system_prompt += (
+                " This is an analytical question — provide full narrative including "
+                "interpretation, context, and implications, not just raw facts."
+            )
+        else:
+            system_prompt += (
+                " This is a factual lookup — respond with facts only. "
+                "Do not add unsolicited interpretation or market commentary."
+            )
         history_lines = []
         for msg in (conversation_history or [])[-4:]:
             role = str(msg.get("role", "user"))

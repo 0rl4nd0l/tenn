@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from cockpit.core.actions import ActionRegistry
+from cockpit.core.news_freshness import NewsFreshnessTracker
 from cockpit.core.tool_definitions import MUTATING_TOOL_NAMES
 from cockpit.core.tools import ToolRouter
 from shared.ticker_inference import COMMON_TICKER_STOPWORDS, detect_primary_ticker
@@ -68,6 +69,7 @@ class ToolExecutor:
         self._risk_gate = risk_gate
         self._reflection_service = reflection_service
         self._current_intent: str | None = None
+        self._freshness_tracker = NewsFreshnessTracker()
 
     # ------------------------------------------------------------------
     # Public API
@@ -289,6 +291,14 @@ class ToolExecutor:
             None if _is_market_wide else self._infer_news_ticker(query)
         )
         limit = int(args.get("limit", 5))
+
+        # Check news freshness before querying — surface a staleness warning
+        # so the model can caveat its answer or offer an ingest if data is old.
+        freshness = self._freshness_tracker.staleness_summary(ticker)
+        staleness_preflight: dict[str, Any] | None = (
+            freshness if freshness.get("recommend_ingest") or freshness.get("never_ingested") else None
+        )
+
         result = self._router.get_news_context(
             query=query,
             top_k=limit,
@@ -420,6 +430,11 @@ class ToolExecutor:
                 "do not present this as confirmation that no news exists on this topic."
             )
 
+        # Successful hits act as a freshness proxy: the corpus clearly has data,
+        # so update the ingest timestamp to avoid spurious staleness warnings.
+        if compact_hits:
+            self._freshness_tracker.record_ingest(ticker)
+
         out: dict[str, Any] = {
             "ok": bool(result.get("ok", hit_count > 0)),
             "query": query,
@@ -431,6 +446,8 @@ class ToolExecutor:
         }
         if freshness_warning:
             out["freshness_warning"] = freshness_warning
+        if staleness_preflight:
+            out["staleness_preflight"] = staleness_preflight
         return out
 
     @staticmethod
