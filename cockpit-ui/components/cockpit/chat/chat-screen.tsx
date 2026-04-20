@@ -243,6 +243,23 @@ function serializeMessageForFeedback(message: ChatMessageType) {
   }
 }
 
+function resolveResponseLatencyMs(rawLatencyMs: unknown, startedAtMs: number | null): number | undefined {
+  const latencyMs =
+    typeof rawLatencyMs === 'number'
+      ? rawLatencyMs
+      : (typeof rawLatencyMs === 'string' ? Number(rawLatencyMs) : Number.NaN)
+
+  if (Number.isFinite(latencyMs) && latencyMs > 0) {
+    return Math.round(latencyMs)
+  }
+
+  if (startedAtMs === null) {
+    return undefined
+  }
+
+  return Math.max(1, Date.now() - startedAtMs)
+}
+
 export function ChatScreen() {
   const attached = useAttachedSources()
   const [hasHydrated, setHasHydrated] = useState(false)
@@ -264,6 +281,7 @@ export function ChatScreen() {
   const [watchlistNotice, setWatchlistNotice] = useState<WatchlistNotice | null>(null)
   const [apiKey, setApiKey] = useState(process.env.NEXT_PUBLIC_API_KEY ?? '')
   const activeStreamRef = useRef<{ close: () => void } | null>(null)
+  const activeRequestStartedAtRef = useRef<number | null>(null)
   const statusFallbackTimersRef = useRef<number[]>([])
   const receivedServerStatusRef = useRef(false)
   const actionInFlightRef = useRef(false)
@@ -611,6 +629,7 @@ export function ChatScreen() {
         activeStreamRef.current.close()
         activeStreamRef.current = null
       }
+      activeRequestStartedAtRef.current = null
       setChatCompletionActive(false)
       if (statusFallbackTimersRef.current.length > 0) {
         statusFallbackTimersRef.current.forEach((timerId) => window.clearTimeout(timerId))
@@ -694,6 +713,13 @@ export function ChatScreen() {
     return `${label} (${(elapsedMs / 1000).toFixed(1)}s)`
   }, [isStreaming, streamingClockMs, streamingStatus, streamingStatusStartedAt])
 
+  const streamingLatencyMs = (
+    isStreaming
+    && activeRequestStartedAtRef.current !== null
+  )
+    ? Math.max(1, streamingClockMs - activeRequestStartedAtRef.current)
+    : undefined
+
   const formatStageLabel = useCallback((rawStage: string): string => {
     const stage = rawStage.trim()
     if (!stage) return 'Working...'
@@ -770,6 +796,8 @@ export function ChatScreen() {
         : 'Connecting to backend stream...'
     )
     setStreamingMetadata({})
+    const requestStartedAt = Date.now()
+    activeRequestStartedAtRef.current = requestStartedAt
     const outboundMessage = applyApiDefaultOverride(content, apiDefaultEnabled)
 
     statusFallbackTimersRef.current = [
@@ -799,7 +827,10 @@ export function ChatScreen() {
             role: 'assistant',
             content: result.message || 'Backend restarted successfully.',
             timestamp: new Date(),
-            metadata: { source: 'local' },
+            metadata: {
+              source: 'local',
+              latencyMs: resolveResponseLatencyMs(undefined, requestStartedAt),
+            },
           }
           setMessages(prev => [...prev, systemMessage])
           toast.success(result.message || 'Backend restarted')
@@ -815,6 +846,7 @@ export function ChatScreen() {
         } finally {
           setIsStreaming(false)
           setChatCompletionActive(false)
+          activeRequestStartedAtRef.current = null
         }
         return
       }
@@ -832,6 +864,7 @@ export function ChatScreen() {
         attachedSources: attached.serialize(),
       })
 
+        const latencyMs = resolveResponseLatencyMs(response.content.latency_ms, requestStartedAt)
         const systemMessage: ChatMessageType = {
           id: generateId(),
           role: 'assistant',
@@ -839,7 +872,7 @@ export function ChatScreen() {
           timestamp: new Date(),
           metadata: {
             model: response.content.model,
-            latencyMs: response.content.latency_ms,
+            latencyMs,
             costUsd: response.content.cost_usd || 0,
             source: response.content.source || 'local'
           },
@@ -847,7 +880,7 @@ export function ChatScreen() {
           chart: response.content.chart,
         }
         if (response.content.cost_usd) addCost(response.content.cost_usd)
-        if (response.content.latency_ms) setLatency(response.content.latency_ms)
+        if (latencyMs !== undefined) setLatency(latencyMs)
         if (response.content.model) setActiveModel(response.content.model)
         setActiveSource(response.content.source || 'local')
         setMessages(prev => [...prev, systemMessage])
@@ -856,6 +889,7 @@ export function ChatScreen() {
       } finally {
         setIsStreaming(false)
         setChatCompletionActive(false)
+        activeRequestStartedAtRef.current = null
       }
       return
     }
@@ -956,6 +990,7 @@ export function ChatScreen() {
               break
             case 'done':
               streamFinalized = true
+              const latencyMs = resolveResponseLatencyMs(event.data.latency_ms, requestStartedAt)
               const finalText =
                 typeof event.data?.text === 'string' && event.data.text.trim().length > 0
                   ? event.data.text
@@ -972,7 +1007,7 @@ export function ChatScreen() {
                 timestamp: new Date(),
                 metadata: {
                   model: event.data.model,
-                  latencyMs: event.data.latency_ms,
+                  latencyMs,
                   costUsd: event.data.cost_usd || 0,
                   source: event.data.source || 'local'
                 },
@@ -985,7 +1020,7 @@ export function ChatScreen() {
               
               // Update global stats
               if (event.data.cost_usd) addCost(event.data.cost_usd)
-              if (event.data.latency_ms) setLatency(event.data.latency_ms)
+              if (latencyMs !== undefined) setLatency(latencyMs)
               if (event.data.model) setActiveModel(event.data.model)
               setActiveSource(event.data.source || 'local')
               setPendingActionPreview(normalizedActionPreview ?? null)
@@ -998,6 +1033,7 @@ export function ChatScreen() {
               setChatCompletionActive(false)
               clearStatusFallbackTimers()
               activeStreamRef.current = null
+              activeRequestStartedAtRef.current = null
               break
             case 'error':
               streamFinalized = true
@@ -1016,6 +1052,7 @@ export function ChatScreen() {
               setChatCompletionActive(false)
               clearStatusFallbackTimers()
               activeStreamRef.current = null
+              activeRequestStartedAtRef.current = null
               break
           }
         },
@@ -1034,10 +1071,12 @@ export function ChatScreen() {
           setChatCompletionActive(false)
           clearStatusFallbackTimers()
           activeStreamRef.current = null
+          activeRequestStartedAtRef.current = null
         },
         onEnd: () => {
           if (!streamFinalized) {
             const fallbackText = currentContent.trim()
+            const latencyMs = resolveResponseLatencyMs(undefined, requestStartedAt)
             if (fallbackText || currentMetadata.actionPreview) {
               const normalizedActionPreview = currentMetadata.actionPreview
               setMessages(prev => [...prev, {
@@ -1048,12 +1087,16 @@ export function ChatScreen() {
                   normalizedActionPreview,
                 ),
                 timestamp: new Date(),
-                metadata: { source: 'local' },
+                metadata: {
+                  source: 'local',
+                  latencyMs,
+                },
                 thinking: currentMetadata.thinking,
                 sources: currentMetadata.sources,
                 toolTraces: normalizedActionPreview ? [] : currentMetadata.toolTraces,
                 actionPreview: normalizedActionPreview,
               }])
+              if (latencyMs !== undefined) setLatency(latencyMs)
               setPendingActionPreview(normalizedActionPreview ?? null)
             } else {
               setMessages(prev => [...prev, {
@@ -1069,6 +1112,7 @@ export function ChatScreen() {
           setChatCompletionActive(false)
           clearStatusFallbackTimers()
           activeStreamRef.current = null
+          activeRequestStartedAtRef.current = null
         }
       })
       
@@ -1088,6 +1132,7 @@ export function ChatScreen() {
       setChatCompletionActive(false)
       clearStatusFallbackTimers()
       activeStreamRef.current = null
+      activeRequestStartedAtRef.current = null
     }
   }
 
@@ -1640,7 +1685,11 @@ export function ChatScreen() {
                   role: 'assistant',
                   content: streamingContent,
                   timestamp: new Date(),
-                  ...streamingMetadata
+                  ...streamingMetadata,
+                  metadata: {
+                    ...(streamingMetadata.metadata || {}),
+                    latencyMs: streamingLatencyMs,
+                  },
                 }} 
                 isStreaming={true}
                 showSources={preferences.showSources}

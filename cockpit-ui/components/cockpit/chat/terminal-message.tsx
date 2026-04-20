@@ -19,6 +19,32 @@ interface TerminalMessageProps {
   onCancelAction?: (actionPreview: ChatMessageType['actionPreview']) => void
 }
 
+function formatDurationLabel(durationMs: number): string {
+  const roundedMs = Math.max(0, Math.round(durationMs))
+
+  if (roundedMs < 1000) {
+    return `${roundedMs}ms`
+  }
+
+  if (roundedMs < 10_000) {
+    return `${(roundedMs / 1000).toFixed(1)}s`
+  }
+
+  if (roundedMs < 60_000) {
+    return `${Math.round(roundedMs / 1000)}s`
+  }
+
+  const totalSeconds = Math.round(roundedMs / 1000)
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+
+  if (seconds === 0) {
+    return `${minutes}m`
+  }
+
+  return `${minutes}m ${seconds}s`
+}
+
 export function TerminalMessage({
   message,
   isStreaming,
@@ -35,6 +61,12 @@ export function TerminalMessage({
 
   const isUser = message.role === 'user'
   const isSystem = message.role === 'system'
+  const rawLatencyMs = message.metadata?.latencyMs
+  const latencyMs =
+    typeof rawLatencyMs === 'number' && Number.isFinite(rawLatencyMs)
+      ? rawLatencyMs
+      : null
+  const responseTimingLabel = latencyMs !== null ? formatDurationLabel(latencyMs) : null
 
   const timestamp = message.timestamp.toLocaleTimeString('en-US', { 
     hour12: false,
@@ -208,11 +240,12 @@ export function TerminalMessage({
         </div>
       )}
 
-      {/* Tool traces */}
-      {message.toolTraces && message.toolTraces.length > 0 && (
-        <div className="text-sm text-blue-400/70 mb-1">
-          {message.toolTraces.map((trace, i) => (
-            <span key={i} className="mr-3">
+      {/* Response and tool timings */}
+      {(responseTimingLabel || (message.toolTraces && message.toolTraces.length > 0)) && (
+        <div className="mb-1 ml-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-blue-400/70">
+          {responseTimingLabel && <span>[response: {responseTimingLabel}]</span>}
+          {message.toolTraces?.map((trace, i) => (
+            <span key={i}>
               [{trace.tool}: {trace.durationMs}ms]
             </span>
           ))}
@@ -415,8 +448,8 @@ export function TerminalMessage({
         <span>[{timestamp}]</span>
         {message.metadata && (
           <>
-            <span>{message.metadata.model}</span>
-            {message.metadata.latencyMs && <span>{message.metadata.latencyMs}ms</span>}
+            {message.metadata.model && <span>{message.metadata.model}</span>}
+            {responseTimingLabel && <span>{responseTimingLabel}</span>}
             {message.metadata.costUsd !== undefined && <span>${message.metadata.costUsd.toFixed(4)}</span>}
           </>
         )}
