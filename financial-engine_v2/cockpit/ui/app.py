@@ -1338,6 +1338,37 @@ class CockpitApp(App):
             )
             return
 
+        # Handle /holdings commands (P4 — cockpit-local portfolio state).
+        # Delegates to chat_controller._slash_holdings so the parsing /
+        # rendering logic lives in one place (chat.py).
+        if stripped.startswith("/holdings"):
+            now_iso = datetime.now(timezone.utc).isoformat()
+            parts = stripped[len("/holdings") :].strip().split(maxsplit=1)
+            sub = parts[0].lower() if parts else ""
+            rest = parts[1].strip() if len(parts) > 1 else ""
+            resp = self.chat_controller._slash_holdings(sub, rest)
+            reply = resp.text if resp is not None else "/holdings: no response."
+            self._append_log(log, f"assistant: {reply}")
+            self.state_store.add_chat_message(
+                self.thread_id, "assistant", reply, now_iso
+            )
+            return
+
+        # Handle /market-update commands (P4 — read-only view onto P2 reports;
+        # orchestrator stub until P5 lands).
+        if stripped.startswith("/market-update"):
+            now_iso = datetime.now(timezone.utc).isoformat()
+            parts = stripped[len("/market-update") :].strip().split(maxsplit=1)
+            sub = parts[0].lower() if parts else ""
+            rest = parts[1].strip() if len(parts) > 1 else ""
+            resp = self.chat_controller._slash_market_update(sub, rest)
+            reply = resp.text if resp is not None else "/market-update: no response."
+            self._append_log(log, f"assistant: {reply}")
+            self.state_store.add_chat_message(
+                self.thread_id, "assistant", reply, now_iso
+            )
+            return
+
         # Handle /sources commands
         if stripped.startswith("/sources"):
             parts = stripped[len("/sources") :].strip().split(maxsplit=1)

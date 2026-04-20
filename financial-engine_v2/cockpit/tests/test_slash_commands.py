@@ -689,5 +689,390 @@ class TestIngestCommand(unittest.TestCase):
         assert "backend" in result.lower()
 
 
+class TestHoldingsSlashCommand(SlashCommandTestBase):
+    """P4: /holdings list|add|remove|archive handler.
+
+    Cockpit-local portfolio state, persisted via ``StateStore`` (P1).
+    Holdings are NOT a financial truth source (SYSTEM_CONTRACT §1.2) and
+    must NOT auto-mutate the watchlist.
+    """
+
+    # --- list -------------------------------------------------------------
+    def test_holdings_list_empty_returns_friendly_message(self) -> None:
+        self.state_store.list_holdings.return_value = []
+        resp = self.controller._handle_slash_command("/holdings list")
+        assert resp is not None
+        assert "no holdings" in resp.text.lower()
+        self.state_store.list_holdings.assert_called_once_with()
+
+    def test_holdings_default_subcommand_is_list(self) -> None:
+        self.state_store.list_holdings.return_value = []
+        resp = self.controller._handle_slash_command("/holdings")
+        assert resp is not None
+        assert "no holdings" in resp.text.lower()
+
+    def test_holdings_list_renders_active_rows(self) -> None:
+        self.state_store.list_holdings.return_value = [
+            {
+                "holding_id": "h1",
+                "ticker": "BHP",
+                "account_label": "main",
+                "thesis_bucket": None,
+                "status": "active",
+                "quantity": 100.0,
+                "avg_cost": 45.5,
+                "cost_currency": "AUD",
+                "opened_at": "2026-04-01T00:00:00",
+                "updated_at": "2026-04-01T00:00:00",
+                "note": None,
+            },
+            {
+                "holding_id": "h2",
+                "ticker": "CBA",
+                "account_label": None,
+                "thesis_bucket": None,
+                "status": "active",
+                "quantity": None,
+                "avg_cost": None,
+                "cost_currency": None,
+                "opened_at": None,
+                "updated_at": "2026-04-02T00:00:00",
+                "note": None,
+            },
+        ]
+        resp = self.controller._handle_slash_command("/holdings list")
+        assert resp is not None
+        assert "Holdings (2)" in resp.text
+        assert "BHP" in resp.text
+        assert "CBA" in resp.text
+        # Quantity and avg cost surfaced when present
+        assert "100" in resp.text
+        assert "45.5" in resp.text
+
+    def test_holdings_list_filters_by_ticker(self) -> None:
+        self.state_store.list_holdings.return_value = []
+        self.controller._handle_slash_command("/holdings list bhp")
+        self.state_store.list_holdings.assert_called_once_with(ticker="BHP")
+
+    # --- add --------------------------------------------------------------
+    def test_holdings_add_ticker_only(self) -> None:
+        self.state_store.add_holding.return_value = "new-id-123"
+        resp = self.controller._handle_slash_command("/holdings add bhp")
+        assert resp is not None
+        assert "Added BHP" in resp.text
+        self.state_store.add_holding.assert_called_once_with(
+            "BHP", quantity=None, avg_cost=None
+        )
+
+    def test_holdings_add_ticker_with_quantity(self) -> None:
+        self.state_store.add_holding.return_value = "new-id-123"
+        resp = self.controller._handle_slash_command("/holdings add BHP 100")
+        assert resp is not None
+        assert "BHP" in resp.text
+        self.state_store.add_holding.assert_called_once_with(
+            "BHP", quantity=100.0, avg_cost=None
+        )
+
+    def test_holdings_add_ticker_with_quantity_and_cost(self) -> None:
+        self.state_store.add_holding.return_value = "new-id-123"
+        resp = self.controller._handle_slash_command("/holdings add BHP 100 45.5")
+        assert resp is not None
+        assert "BHP" in resp.text
+        self.state_store.add_holding.assert_called_once_with(
+            "BHP", quantity=100.0, avg_cost=45.5
+        )
+
+    def test_holdings_add_missing_ticker_returns_usage(self) -> None:
+        resp = self.controller._handle_slash_command("/holdings add")
+        assert resp is not None
+        assert "Usage" in resp.text
+        self.state_store.add_holding.assert_not_called()
+
+    def test_holdings_add_invalid_quantity_returns_error(self) -> None:
+        resp = self.controller._handle_slash_command("/holdings add BHP not-a-number")
+        assert resp is not None
+        assert "quantity" in resp.text.lower()
+        self.state_store.add_holding.assert_not_called()
+
+    # --- remove -----------------------------------------------------------
+    def test_holdings_remove_single_match_by_ticker(self) -> None:
+        self.state_store.list_holdings.return_value = [
+            {
+                "holding_id": "h1",
+                "ticker": "BHP",
+                "account_label": None,
+                "thesis_bucket": None,
+                "status": "active",
+                "quantity": None,
+                "avg_cost": None,
+                "cost_currency": None,
+                "opened_at": None,
+                "updated_at": "2026-04-01T00:00:00",
+                "note": None,
+            }
+        ]
+        self.state_store.remove_holding.return_value = True
+        resp = self.controller._handle_slash_command("/holdings remove BHP")
+        assert resp is not None
+        assert "Removed" in resp.text
+        assert "BHP" in resp.text
+        self.state_store.remove_holding.assert_called_once_with("h1")
+
+    def test_holdings_remove_multi_match_asks_for_holding_id(self) -> None:
+        self.state_store.list_holdings.return_value = [
+            {
+                "holding_id": "h1",
+                "ticker": "BHP",
+                "account_label": "main",
+                "thesis_bucket": None,
+                "status": "active",
+                "quantity": 100.0,
+                "avg_cost": None,
+                "cost_currency": None,
+                "opened_at": None,
+                "updated_at": "2026-04-01T00:00:00",
+                "note": None,
+            },
+            {
+                "holding_id": "h2",
+                "ticker": "BHP",
+                "account_label": "smsf",
+                "thesis_bucket": None,
+                "status": "active",
+                "quantity": 50.0,
+                "avg_cost": None,
+                "cost_currency": None,
+                "opened_at": None,
+                "updated_at": "2026-04-01T00:00:00",
+                "note": None,
+            },
+        ]
+        resp = self.controller._handle_slash_command("/holdings remove BHP")
+        assert resp is not None
+        assert "Multiple holdings" in resp.text or "multiple" in resp.text.lower()
+        assert "h1" in resp.text
+        assert "h2" in resp.text
+        self.state_store.remove_holding.assert_not_called()
+
+    def test_holdings_remove_no_match_by_ticker(self) -> None:
+        self.state_store.list_holdings.return_value = []
+        resp = self.controller._handle_slash_command("/holdings remove XYZ")
+        assert resp is not None
+        assert "No active holding" in resp.text or "not found" in resp.text.lower()
+        self.state_store.remove_holding.assert_not_called()
+
+    def test_holdings_remove_by_holding_id(self) -> None:
+        # UUID-shaped argument — treated as holding_id, no list lookup needed
+        holding_id = "12345678-1234-1234-1234-123456789abc"
+        self.state_store.remove_holding.return_value = True
+        resp = self.controller._handle_slash_command(f"/holdings remove {holding_id}")
+        assert resp is not None
+        assert "Removed" in resp.text
+        self.state_store.remove_holding.assert_called_once_with(holding_id)
+        self.state_store.list_holdings.assert_not_called()
+
+    def test_holdings_remove_missing_arg_returns_usage(self) -> None:
+        resp = self.controller._handle_slash_command("/holdings remove")
+        assert resp is not None
+        assert "Usage" in resp.text
+        self.state_store.remove_holding.assert_not_called()
+
+    # --- archive ----------------------------------------------------------
+    def test_holdings_archive_single_match_by_ticker(self) -> None:
+        self.state_store.list_holdings.return_value = [
+            {
+                "holding_id": "h1",
+                "ticker": "BHP",
+                "account_label": None,
+                "thesis_bucket": None,
+                "status": "active",
+                "quantity": None,
+                "avg_cost": None,
+                "cost_currency": None,
+                "opened_at": None,
+                "updated_at": "2026-04-01T00:00:00",
+                "note": None,
+            }
+        ]
+        self.state_store.archive_holding.return_value = True
+        resp = self.controller._handle_slash_command("/holdings archive BHP")
+        assert resp is not None
+        assert "Archived" in resp.text
+        assert "BHP" in resp.text
+        self.state_store.archive_holding.assert_called_once_with("h1")
+
+    def test_holdings_archive_by_holding_id(self) -> None:
+        holding_id = "12345678-1234-1234-1234-123456789abc"
+        self.state_store.archive_holding.return_value = True
+        resp = self.controller._handle_slash_command(f"/holdings archive {holding_id}")
+        assert resp is not None
+        assert "Archived" in resp.text
+        self.state_store.archive_holding.assert_called_once_with(holding_id)
+
+    # --- usage / unknown subcommand --------------------------------------
+    def test_holdings_unknown_subcommand_returns_usage(self) -> None:
+        resp = self.controller._handle_slash_command("/holdings frobnicate")
+        assert resp is not None
+        assert "Usage" in resp.text
+
+    # --- no state store --------------------------------------------------
+    def test_holdings_without_state_store_returns_friendly_message(self) -> None:
+        self.controller._state_store = None
+        resp = self.controller._handle_slash_command("/holdings list")
+        assert resp is not None
+        assert "not available" in resp.text.lower()
+
+
+class TestMarketUpdateSlashCommand(SlashCommandTestBase):
+    """P4: /market-update list|show|<run_type>|latest handler.
+
+    The orchestrator (P5) is not yet implemented. This handler reads from
+    the cockpit-local ``market_update_reports`` / ``market_update_followups``
+    tables (P2) and surfaces a clear "P5 not yet implemented" stub when the
+    user asks for a fresh run.
+    """
+
+    _SAMPLE_REPORT = {
+        "report_id": "r1",
+        "run_type": "noon",
+        "report_date": "2026-04-20",
+        "status": "complete",
+        "created_at": "2026-04-20T12:05:00",
+        "summary": {
+            "headline": "ASX 200 +0.6% at noon",
+            "movers": [{"ticker": "BHP", "pct": 1.2}],
+        },
+        "markdown_path": None,
+        "json_path": None,
+    }
+
+    # --- default / latest ------------------------------------------------
+    def test_market_update_default_shows_latest(self) -> None:
+        self.state_store.get_latest_market_update_report.return_value = (
+            self._SAMPLE_REPORT
+        )
+        resp = self.controller._handle_slash_command("/market-update")
+        assert resp is not None
+        assert "noon" in resp.text.lower()
+        assert "2026-04-20" in resp.text
+        assert "ASX 200" in resp.text
+        self.state_store.get_latest_market_update_report.assert_called_once_with(None)
+
+    def test_market_update_latest_explicit(self) -> None:
+        self.state_store.get_latest_market_update_report.return_value = (
+            self._SAMPLE_REPORT
+        )
+        resp = self.controller._handle_slash_command("/market-update latest")
+        assert resp is not None
+        assert "ASX 200" in resp.text
+
+    def test_market_update_latest_when_none_present(self) -> None:
+        self.state_store.get_latest_market_update_report.return_value = None
+        resp = self.controller._handle_slash_command("/market-update")
+        assert resp is not None
+        assert "no market-update" in resp.text.lower() or (
+            "no" in resp.text.lower() and "report" in resp.text.lower()
+        )
+
+    # --- list ------------------------------------------------------------
+    def test_market_update_list_empty(self) -> None:
+        self.state_store.list_market_update_reports.return_value = []
+        resp = self.controller._handle_slash_command("/market-update list")
+        assert resp is not None
+        assert "no market-update" in resp.text.lower() or (
+            "no" in resp.text.lower() and "report" in resp.text.lower()
+        )
+
+    def test_market_update_list_renders_rows(self) -> None:
+        self.state_store.list_market_update_reports.return_value = [
+            self._SAMPLE_REPORT,
+            {**self._SAMPLE_REPORT, "report_id": "r2", "run_type": "final"},
+        ]
+        resp = self.controller._handle_slash_command("/market-update list")
+        assert resp is not None
+        assert "noon" in resp.text.lower()
+        assert "final" in resp.text.lower()
+        assert "2026-04-20" in resp.text
+
+    def test_market_update_list_filters_by_run_type(self) -> None:
+        self.state_store.list_market_update_reports.return_value = []
+        self.controller._handle_slash_command("/market-update list noon")
+        self.state_store.list_market_update_reports.assert_called_once_with(
+            run_type="noon"
+        )
+
+    # --- show ------------------------------------------------------------
+    def test_market_update_show_default(self) -> None:
+        self.state_store.get_latest_market_update_report.return_value = (
+            self._SAMPLE_REPORT
+        )
+        resp = self.controller._handle_slash_command("/market-update show")
+        assert resp is not None
+        assert "ASX 200" in resp.text
+
+    def test_market_update_show_filters_by_run_type(self) -> None:
+        self.state_store.get_latest_market_update_report.return_value = None
+        self.controller._handle_slash_command("/market-update show final")
+        self.state_store.get_latest_market_update_report.assert_called_once_with(
+            "final"
+        )
+
+    # --- run_type stubs (P5 not yet implemented) -------------------------
+    def test_market_update_noon_returns_p5_stub(self) -> None:
+        self.state_store.get_latest_market_update_report.return_value = None
+        resp = self.controller._handle_slash_command("/market-update noon")
+        assert resp is not None
+        # Must clearly surface that the orchestrator is not implemented yet.
+        assert (
+            "not yet implemented" in resp.text.lower()
+            or "p5" in resp.text.lower()
+            or "orchestrator" in resp.text.lower()
+        )
+
+    def test_market_update_noon_stub_includes_latest_when_present(self) -> None:
+        self.state_store.get_latest_market_update_report.return_value = (
+            self._SAMPLE_REPORT
+        )
+        resp = self.controller._handle_slash_command("/market-update noon")
+        assert resp is not None
+        # Stub MUST also surface the most recent report of that run_type so
+        # the user sees what already exists rather than getting a dead-end.
+        assert "ASX 200" in resp.text or "2026-04-20" in resp.text
+        self.state_store.get_latest_market_update_report.assert_called_with("noon")
+
+    def test_market_update_final_returns_p5_stub(self) -> None:
+        self.state_store.get_latest_market_update_report.return_value = None
+        resp = self.controller._handle_slash_command("/market-update final")
+        assert resp is not None
+        assert (
+            "not yet implemented" in resp.text.lower()
+            or "p5" in resp.text.lower()
+            or "orchestrator" in resp.text.lower()
+        )
+
+    def test_market_update_manual_returns_p5_stub(self) -> None:
+        self.state_store.get_latest_market_update_report.return_value = None
+        resp = self.controller._handle_slash_command("/market-update manual")
+        assert resp is not None
+        assert (
+            "not yet implemented" in resp.text.lower()
+            or "p5" in resp.text.lower()
+            or "orchestrator" in resp.text.lower()
+        )
+
+    # --- unknown subcommand ---------------------------------------------
+    def test_market_update_unknown_subcommand_returns_usage(self) -> None:
+        resp = self.controller._handle_slash_command("/market-update frobnicate")
+        assert resp is not None
+        assert "Usage" in resp.text
+
+    # --- no state store --------------------------------------------------
+    def test_market_update_without_state_store_returns_friendly_message(self) -> None:
+        self.controller._state_store = None
+        resp = self.controller._handle_slash_command("/market-update")
+        assert resp is not None
+        assert "not available" in resp.text.lower()
+
+
 if __name__ == "__main__":
     unittest.main()

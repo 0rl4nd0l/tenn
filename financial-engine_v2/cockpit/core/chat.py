@@ -3756,6 +3756,264 @@ class ChatController:
             mode=ResponseMode.FAST,
         )
 
+    # -- Holdings commands ---------------------------------------------- #
+    # Cockpit-local portfolio state (SYSTEM_CONTRACT §1.2). The cockpit is
+    # the single owner of holdings rows; financial truth is sourced from the
+    # backend. These handlers MUST NOT auto-mutate the watchlist or the
+    # canonical financial stores. Persistence lives in P1
+    # (StateStore.add_holding / list_holdings / archive_holding /
+    # remove_holding).
+
+    @staticmethod
+    def _looks_like_holding_id(arg: str) -> bool:
+        """Loose UUID-shape check (8-4-4-4-12). Tickers never collide."""
+        if len(arg) != 36:
+            return False
+        return arg[8] == "-" and arg[13] == "-" and arg[18] == "-" and arg[23] == "-"
+
+    def _slash_holdings(self, sub: str, rest: str) -> ChatResponse | None:
+        if self._state_store is None:
+            return ChatResponse(
+                text="Holdings not available (no state store).",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        if sub in ("", "list"):
+            ticker = rest.strip().upper() or None
+            if ticker:
+                items = self._state_store.list_holdings(ticker=ticker)
+            else:
+                items = self._state_store.list_holdings()
+            if not items:
+                return ChatResponse(
+                    text="No holdings recorded.",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+            lines = [f"Holdings ({len(items)}):"]
+            for h in items:
+                qty = h.get("quantity")
+                cost = h.get("avg_cost")
+                account = h.get("account_label")
+                qty_str = f" qty={qty}" if qty is not None else ""
+                cost_str = f" @ {cost}" if cost is not None else ""
+                account_str = f" [{account}]" if account else ""
+                lines.append(
+                    f"  {h['ticker']}{account_str}{qty_str}{cost_str}"
+                    f"  ({h['holding_id']})"
+                )
+            return ChatResponse(
+                text="\n".join(lines),
+                evidence=[{"type": "holdings", "details": items}],
+                mode=ResponseMode.FAST,
+            )
+
+        if sub == "add":
+            tokens = rest.split()
+            if not tokens:
+                return ChatResponse(
+                    text="Usage: /holdings add <TICKER> [QTY [AVG_COST]]",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+            ticker = tokens[0].upper()
+            quantity: float | None = None
+            avg_cost: float | None = None
+            if len(tokens) >= 2:
+                try:
+                    quantity = float(tokens[1])
+                except ValueError:
+                    return ChatResponse(
+                        text=f"Invalid quantity '{tokens[1]}'. Use a number.",
+                        evidence=[],
+                        mode=ResponseMode.FAST,
+                    )
+            if len(tokens) >= 3:
+                try:
+                    avg_cost = float(tokens[2])
+                except ValueError:
+                    return ChatResponse(
+                        text=f"Invalid avg cost '{tokens[2]}'. Use a number.",
+                        evidence=[],
+                        mode=ResponseMode.FAST,
+                    )
+            holding_id = self._state_store.add_holding(
+                ticker, quantity=quantity, avg_cost=avg_cost
+            )
+            return ChatResponse(
+                text=f"Added {ticker} to holdings (id {holding_id}).",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        if sub in ("remove", "archive"):
+            arg = rest.strip()
+            if not arg:
+                return ChatResponse(
+                    text=f"Usage: /holdings {sub} <TICKER|HOLDING_ID>",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+            verb_past = "Removed" if sub == "remove" else "Archived"
+            mutate = (
+                self._state_store.remove_holding
+                if sub == "remove"
+                else self._state_store.archive_holding
+            )
+            if self._looks_like_holding_id(arg):
+                ok = mutate(arg)
+                msg = (
+                    f"{verb_past} holding {arg}."
+                    if ok
+                    else f"Holding {arg} not found."
+                )
+                return ChatResponse(text=msg, evidence=[], mode=ResponseMode.FAST)
+            ticker = arg.upper()
+            items = self._state_store.list_holdings(ticker=ticker)
+            if not items:
+                return ChatResponse(
+                    text=f"No active holding for {ticker}.",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+            if len(items) > 1:
+                lines = [f"Multiple holdings for {ticker}. Specify holding_id:"]
+                for h in items:
+                    account = h.get("account_label") or "—"
+                    qty = h.get("quantity")
+                    qty_str = f" qty={qty}" if qty is not None else ""
+                    lines.append(
+                        f"  /holdings {sub} {h['holding_id']}  [{account}]{qty_str}"
+                    )
+                return ChatResponse(
+                    text="\n".join(lines), evidence=[], mode=ResponseMode.FAST
+                )
+            holding_id = items[0]["holding_id"]
+            mutate(holding_id)
+            return ChatResponse(
+                text=f"{verb_past} {ticker} from holdings.",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        return ChatResponse(
+            text="Usage: /holdings list|add|remove|archive [args]",
+            evidence=[],
+            mode=ResponseMode.FAST,
+        )
+
+    # -- Market-update commands ----------------------------------------- #
+    # Cockpit-local snapshots of orchestrator output (P2 tables). The
+    # orchestrator itself is P5 and not yet implemented; requests for a
+    # fresh run return a clear stub plus the most recent report on file
+    # for that run_type.
+
+    _MARKET_UPDATE_RUN_TYPES = ("noon", "final", "manual")
+
+    @staticmethod
+    def _render_market_update_report(report: dict[str, Any]) -> str:
+        summary = report.get("summary") or {}
+        headline = summary.get("headline") or "(no headline)"
+        lines = [
+            f"[{report['run_type']}] {report['report_date']}"
+            f"  status={report['status']}",
+            f"  {headline}",
+        ]
+        movers = summary.get("movers") or []
+        if movers:
+            lines.append("  Movers:")
+            for m in movers[:5]:
+                lines.append(f"    {m.get('ticker', '?')}: {m.get('pct', '?')}")
+        return "\n".join(lines)
+
+    def _format_market_update_report(
+        self, report: dict[str, Any] | None, *, header: str
+    ) -> ChatResponse:
+        if report is None:
+            return ChatResponse(
+                text="No market-update reports found.",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+        text = f"{header}:\n{self._render_market_update_report(report)}"
+        return ChatResponse(
+            text=text,
+            evidence=[{"type": "market_update_report", "details": report}],
+            mode=ResponseMode.FAST,
+        )
+
+    def _slash_market_update(self, sub: str, rest: str) -> ChatResponse | None:
+        if self._state_store is None:
+            return ChatResponse(
+                text="Market-update reports not available (no state store).",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        if sub in ("", "latest"):
+            report = self._state_store.get_latest_market_update_report(None)
+            return self._format_market_update_report(
+                report, header="Latest market update"
+            )
+
+        if sub == "list":
+            run_type = rest.strip().lower() or None
+            kwargs: dict[str, Any] = {}
+            if run_type:
+                kwargs["run_type"] = run_type
+            reports = self._state_store.list_market_update_reports(**kwargs)
+            if not reports:
+                scope = f" ({run_type})" if run_type else ""
+                return ChatResponse(
+                    text=f"No market-update reports found{scope}.",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+            lines = [f"Market-update reports ({len(reports)}):"]
+            for r in reports:
+                summary = r.get("summary") or {}
+                headline = summary.get("headline") or r.get("status", "?")
+                lines.append(
+                    f"  [{r['run_type']}] {r['report_date']}  {headline}"
+                    f"  ({r['report_id']})"
+                )
+            return ChatResponse(
+                text="\n".join(lines),
+                evidence=[{"type": "market_update_reports", "details": reports}],
+                mode=ResponseMode.FAST,
+            )
+
+        if sub == "show":
+            run_type = rest.strip().lower() or None
+            report = self._state_store.get_latest_market_update_report(run_type)
+            scope = run_type or "market"
+            return self._format_market_update_report(
+                report, header=f"Latest {scope} update"
+            )
+
+        if sub in self._MARKET_UPDATE_RUN_TYPES:
+            latest = self._state_store.get_latest_market_update_report(sub)
+            parts = [
+                "Market-update orchestrator not yet implemented (P5)."
+                f" Cannot trigger a fresh '{sub}' run."
+            ]
+            if latest is not None:
+                parts.append("")
+                parts.append(f"Most recent '{sub}' report:")
+                parts.append(self._render_market_update_report(latest))
+            else:
+                parts.append(f"No prior '{sub}' report on file.")
+            return ChatResponse(
+                text="\n".join(parts), evidence=[], mode=ResponseMode.FAST
+            )
+
+        return ChatResponse(
+            text="Usage: /market-update [list|show|latest|noon|final|manual]",
+            evidence=[],
+            mode=ResponseMode.FAST,
+        )
+
     # -- Strategy commands ---------------------------------------------- #
 
     def _slash_strategy(self, sub: str, rest: str) -> ChatResponse | None:
@@ -4182,6 +4440,8 @@ class ChatController:
         "/filestats": _slash_filestats,
         "/memory": _slash_memory,
         "/watch": _slash_watch,
+        "/holdings": _slash_holdings,
+        "/market-update": _slash_market_update,
         "/strategy": _slash_strategy,
         "/run": _slash_run,
         "/confirm": _slash_confirm,
