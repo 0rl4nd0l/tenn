@@ -21,7 +21,8 @@ const JOB_POLL_INTERVAL_MS = 1500
 
 export function UpdaterScreen() {
   const [hasHydrated, setHasHydrated] = useState(false)
-  const { activeTicker } = useCockpitStore()
+  const { activeTicker, preferences } = useCockpitStore()
+  const isIPhoneScale = preferences.iphoneScale
   const [ticker, setTicker] = useState(activeTicker || '')
   const [yearRange, setYearRange] = useState('5')
   const [processDocuments, setProcessDocuments] = useState(true)
@@ -151,7 +152,10 @@ export function UpdaterScreen() {
 
   return (
     <ScrollArea className="h-full">
-      <div className="p-6 space-y-6 max-w-5xl mx-auto">
+      <div className={cn(
+        "space-y-6 max-w-5xl mx-auto",
+        isIPhoneScale ? "p-4" : "p-6"
+      )}>
         {/* Fetch Controls */}
         <Card>
           <CardHeader>
@@ -164,8 +168,11 @@ export function UpdaterScreen() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-4">
-              <Field className="w-[200px]">
+            <div className={cn(
+              "flex gap-4",
+              isIPhoneScale ? "flex-col" : "flex-wrap"
+            )}>
+              <Field className={cn(isIPhoneScale ? "w-full" : "w-[200px]")}>
                 <FieldLabel>Ticker Symbol</FieldLabel>
                 <Input
                   placeholder="e.g., BHP"
@@ -175,7 +182,7 @@ export function UpdaterScreen() {
                 />
               </Field>
 
-              <Field className="w-[150px]">
+              <Field className={cn(isIPhoneScale ? "w-full" : "w-[150px]")}>
                 <FieldLabel>Year Range</FieldLabel>
                 <Select value={yearRange} onValueChange={setYearRange}>
                   <SelectTrigger>
@@ -328,19 +335,25 @@ export function UpdaterScreen() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className={cn(
+                    "flex items-center justify-between gap-4",
+                    isIPhoneScale && "flex-col items-start"
+                  )}>
                     <span className="text-sm">Overall Confidence</span>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 w-full">
                       <Progress
                         value={(results[0].auditConfidence || 0) * 100}
-                        className="w-[200px]"
+                        className="flex-1"
                       />
                       <Badge variant={results[0].auditConfidence && results[0].auditConfidence > 0.9 ? 'default' : 'secondary'}>
                         {((results[0].auditConfidence || 0) * 100).toFixed(0)}%
                       </Badge>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+                  <div className={cn(
+                    "grid gap-4 pt-2",
+                    isIPhoneScale ? "grid-cols-2" : "grid-cols-2 md:grid-cols-4"
+                  )}>
                     <div className="text-center p-3 rounded-lg bg-muted/50">
                       <p className="text-2xl font-mono font-semibold text-[oklch(0.65_0.2_145)]">23</p>
                       <p className="text-xs text-muted-foreground">Documents</p>

@@ -61,7 +61,8 @@ export function VerificationScreen() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { activeTicker } = useCockpitStore()
+  const { activeTicker, preferences } = useCockpitStore()
+  const isIPhoneScale = preferences.iphoneScale
 
   const [hasHydrated, setHasHydrated] = useState(false)
   const [activeTab, setActiveTab] = useState<VerificationTab>(parseVerificationTab(searchParams.get('tab')))
@@ -1049,7 +1050,10 @@ export function VerificationScreen() {
   })
 
   return (
-    <div className="flex h-full min-h-0 w-full gap-6 p-6">
+    <div className={cn(
+      "flex h-full min-h-0 w-full",
+      isIPhoneScale ? "gap-2 p-2" : "gap-6 p-6"
+    )}>
       <Tabs value={activeTab} onValueChange={updateTab} className="flex min-w-0 flex-1 flex-col gap-4">
         <VerificationHeader
           ticker={ticker}
@@ -1273,17 +1277,18 @@ export function VerificationScreen() {
         />
       </Tabs>
 
-      <aside className="w-80 shrink-0 border-l border-border/40 pl-6">
-        <VerificationSidebar
-          recentRuns={recentRuns}
-          loading={recentRunsLoading}
-          onSelectTicker={handleSelectHistoryTicker}
-          onSelectRun={handleSelectHistoryRun}
-          onSelectRunGroup={handleSelectRunGroup}
-          activeTicker={ticker}
-        />
-      </aside>
+      {!isIPhoneScale && (
+        <aside className="w-80 shrink-0 border-l border-border/40 pl-6">
+          <VerificationSidebar
+            recentRuns={recentRuns}
+            loading={recentRunsLoading}
+            onSelectTicker={handleSelectHistoryTicker}
+            onSelectRun={handleSelectHistoryRun}
+            onSelectRunGroup={handleSelectRunGroup}
+            activeTicker={ticker}
+          />
+        </aside>
+      )}
     </div>
   )
-
 }

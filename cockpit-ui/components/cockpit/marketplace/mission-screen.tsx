@@ -26,6 +26,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { MarketplaceAssistant } from './marketplace-assistant'
+import { useCockpitStore } from '@/lib/cockpit-store'
+import { cn } from '@/lib/utils'
 
 interface MarketplaceMissionScreenProps {
   apiKey: string
@@ -222,6 +224,9 @@ function missionAggressiveAlertingEnabled(mission: MarketplaceMission): boolean 
 }
 
 export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenProps) {
+  const { preferences } = useCockpitStore()
+  const isIPhoneScale = preferences.iphoneScale
+
   const [browserHealth, setBrowserHealth] = useState<MarketplaceBrowserHealth | null>(null)
   const [missions, setMissions] = useState<MarketplaceMission[]>([])
   const [scanJobs, setScanJobs] = useState<MarketplaceScanJob[]>([])
@@ -474,8 +479,14 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
 
   return (
     <div className="h-full overflow-auto">
-      <div className="mx-auto flex max-w-5xl flex-col gap-6 p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className={cn(
+        "mx-auto flex max-w-5xl flex-col gap-6",
+        isIPhoneScale ? "p-4" : "p-6"
+      )}>
+        <div className={cn(
+          "flex items-center justify-between gap-3",
+          isIPhoneScale ? "flex-col items-start" : "flex-wrap"
+        )}>
           <div>
             <h2 className="text-xl font-semibold">Marketplace Missions</h2>
             <p className="text-sm text-muted-foreground">
@@ -536,7 +547,10 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
           onScanQueued={handleAssistantScanQueued}
         />
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        <div className={cn(
+          "grid gap-6",
+          isIPhoneScale ? "grid-cols-1" : "lg:grid-cols-[1fr_320px]"
+        )}>
           <div className="space-y-6">
             <Card>
               <CardHeader>

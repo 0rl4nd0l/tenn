@@ -84,10 +84,10 @@ function JobRow({ job, isOpen, onToggle, onRerun }: JobRowProps) {
             )}
           </Button>
         </TableCell>
-        <TableCell className="font-mono text-xs">{job.id}</TableCell>
-        <TableCell>{job.action}</TableCell>
-        <TableCell className="font-mono text-xs text-muted-foreground">
-          {JSON.stringify(job.args).slice(0, 50)}...
+        <TableCell className="font-mono text-xs truncate max-w-[100px]" title={job.id}>{job.id}</TableCell>
+        <TableCell className="truncate max-w-[150px]" title={job.action}>{job.action}</TableCell>
+        <TableCell className="font-mono text-xs text-muted-foreground truncate max-w-[200px]" title={JSON.stringify(job.args)}>
+          {JSON.stringify(job.args)}
         </TableCell>
         <TableCell>
           <div className="flex items-center gap-2">
@@ -184,6 +184,8 @@ function mapDocumentToJob(doc: Record<string, unknown>, index: number): Job {
 }
 
 export function HistoryScreen() {
+  const { preferences } = useCockpitStore()
+  const isIPhoneScale = preferences.iphoneScale
   const [hasHydrated, setHasHydrated] = useState(false)
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null)
 
@@ -271,9 +273,15 @@ export function HistoryScreen() {
 
   return (
     <ScrollArea className="h-full">
-      <div className="p-6 space-y-6 max-w-6xl mx-auto">
+      <div className={cn(
+        "space-y-6 max-w-6xl mx-auto",
+        isIPhoneScale ? "p-4" : "p-6"
+      )}>
         {/* Summary Stats */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className={cn(
+          "grid gap-4",
+          isIPhoneScale ? "grid-cols-2" : "grid-cols-4"
+        )}>
           <Card>
             <CardContent className="pt-6">
               <div className="text-center">
@@ -349,31 +357,33 @@ export function HistoryScreen() {
                 </Button>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40px]"></TableHead>
-                    <TableHead className="w-[100px]">Job ID</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Arguments</TableHead>
-                    <TableHead className="w-[120px]">Status</TableHead>
-                    <TableHead className="w-[100px]">Started</TableHead>
-                    <TableHead className="w-[100px]">Duration</TableHead>
-                    <TableHead className="w-[80px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {jobs.map((job) => (
-                    <JobRow
-                      key={job.id}
-                      job={job}
-                      isOpen={expandedJobId === job.id}
-                      onToggle={() => toggleJob(job.id)}
-                      onRerun={handleRerun}
-                    />
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[40px]"></TableHead>
+                      <TableHead className="w-[100px]">Job ID</TableHead>
+                      <TableHead>Action</TableHead>
+                      <TableHead>Arguments</TableHead>
+                      <TableHead className="w-[120px]">Status</TableHead>
+                      <TableHead className="w-[100px]">Started</TableHead>
+                      <TableHead className="w-[100px]">Duration</TableHead>
+                      <TableHead className="w-[80px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {jobs.map((job) => (
+                      <JobRow
+                        key={job.id}
+                        job={job}
+                        isOpen={expandedJobId === job.id}
+                        onToggle={() => toggleJob(job.id)}
+                        onRerun={handleRerun}
+                      />
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

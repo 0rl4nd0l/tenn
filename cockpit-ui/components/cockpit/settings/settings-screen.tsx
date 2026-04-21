@@ -202,6 +202,8 @@ export function SettingsScreen() {
     fetchConfig()
   }, [])
 
+  const isIPhoneScale = preferences.iphoneScale
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -213,7 +215,10 @@ export function SettingsScreen() {
 
   return (
     <ScrollArea className="h-full">
-      <div className="p-6 space-y-6 max-w-4xl mx-auto">
+      <div className={cn(
+        "space-y-6 max-w-4xl mx-auto",
+        isIPhoneScale ? "p-4" : "p-6"
+      )}>
         {/* Header */}
         <div className="mb-6">
           <h2 className="text-xl font-semibold">Configuration</h2>
@@ -232,14 +237,23 @@ export function SettingsScreen() {
 
         {/* LLM Configuration */}
         <ConfigSection title="LLM Configuration" icon={<Cpu className="h-5 w-5 text-primary" />}>
-          <div className="flex items-center justify-between py-2">
+          <div className={cn(
+            "flex items-center justify-between py-2 gap-4",
+            isIPhoneScale && "flex-col items-start"
+          )}>
             <span className="text-sm text-muted-foreground">Chat Model</span>
-            <div className="flex items-center gap-2">
+            <div className={cn(
+              "flex items-center gap-2",
+              isIPhoneScale && "w-full"
+            )}>
               <Select value={chatModel} onValueChange={(value) => {
                 setChatModel(value)
                 setSwitchResult(null)
               }}>
-                <SelectTrigger className="w-[300px] h-8 text-sm font-mono">
+                <SelectTrigger className={cn(
+                  "h-8 text-sm font-mono",
+                  isIPhoneScale ? "flex-1" : "w-[300px]"
+                )}>
                   <SelectValue placeholder="Select a model..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -409,7 +423,10 @@ export function SettingsScreen() {
               <FolderOpen className="h-3 w-3" />
               Data Root
             </span>
-            <span className="text-sm font-mono text-muted-foreground truncate max-w-[300px]">
+            <span className={cn(
+              "text-sm font-mono text-muted-foreground truncate",
+              isIPhoneScale ? "max-w-[150px]" : "max-w-[300px]"
+            )}>
               {config.environment.dataRoot}
             </span>
           </div>

@@ -514,10 +514,18 @@ export function OperationsScreen() {
     }
   }
 
+  const isIPhoneScale = preferences.iphoneScale
+
   return (
     <ScrollArea className="h-full">
-      <div className="p-6 space-y-6 max-w-6xl mx-auto">
-        <div className="flex items-center justify-between">
+      <div className={cn(
+        "space-y-6 max-w-6xl mx-auto",
+        isIPhoneScale ? "p-4" : "p-6"
+      )}>
+        <div className={cn(
+          "flex items-center justify-between",
+          isIPhoneScale && "flex-col items-start gap-2"
+        )}>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Operations</h1>
             <p className="text-muted-foreground">Manage backend actions, ingestion, and system maintenance.</p>
@@ -588,7 +596,7 @@ export function OperationsScreen() {
               </Button>
               {universeJobId ? (
                 <button type="button" onClick={() => setSelectedOpsJobId(universeJobId)}>
-                  <Badge variant="outline" className="font-mono">
+                  <Badge variant="outline" className="font-mono text-[10px]">
                     Backend ops job {universeJobId}
                   </Badge>
                 </button>
@@ -607,9 +615,14 @@ export function OperationsScreen() {
             <CardDescription>Run cockpit actions and follow queued work in the backend ops panel</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-3">
+            <div className={cn(
+              "flex gap-3",
+              isIPhoneScale && "flex-col"
+            )}>
               <Select value={selectedAction} onValueChange={setSelectedAction}>
-                <SelectTrigger className="w-[300px]">
+                <SelectTrigger className={cn(
+                  isIPhoneScale ? "w-full" : "w-[300px]"
+                )}>
                   <SelectValue placeholder="Select action..." />
                 </SelectTrigger>
                 <SelectContent>
