@@ -12,6 +12,7 @@ const DEFAULT_PREFERENCES: CockpitPreferences = {
   theme: 'dark',
   marketplaceHomeLocation: '',
   marketplacePreferCloudRouting: false,
+  iphoneScale: false,
 }
 
 // Generate unique IDs

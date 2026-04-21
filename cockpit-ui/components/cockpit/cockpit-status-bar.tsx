@@ -14,6 +14,7 @@ interface CockpitStatusBarProps {
   backendHealthy: boolean
   backendLastHealthyAt: Date | null
   backendError: string | null
+  compact?: boolean
 }
 
 function formatClock(time: Date | null): string {
@@ -30,6 +31,7 @@ export function CockpitStatusBar({
   backendHealthy,
   backendLastHealthyAt,
   backendError,
+  compact = false,
 }: CockpitStatusBarProps) {
   const {
     sessionStats,
@@ -117,96 +119,113 @@ export function CockpitStatusBar({
   }
 
   return (
-    <footer className="shrink-0 border-t border-border bg-card/95 px-4 py-1 text-xs terminal-panel">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="h-5 text-[10px] font-mono">
-            Selected: {chatModel}
-          </Badge>
-          <Badge variant="outline" className="h-5 text-[10px] font-mono">
-            Active: {activeRuntimeModel}
-          </Badge>
-          <Badge variant="outline" className="h-5 text-[10px] font-mono">
+    <footer className={cn(
+      "shrink-0 border-t border-border bg-card/95 text-xs terminal-panel",
+      compact ? "px-2 py-0.5" : "px-4 py-1"
+    )}>
+      <div className={cn("flex items-center justify-between gap-1", compact && "flex-col items-stretch")}>
+        <div className={cn("flex items-center gap-2", compact && "flex-wrap justify-center overflow-hidden h-6")}>
+          {!compact && (
+            <>
+              <Badge variant="outline" className="h-5 text-[10px] font-mono">
+                Selected: {chatModel}
+              </Badge>
+              <Badge variant="outline" className="h-5 text-[10px] font-mono">
+                Active: {activeRuntimeModel}
+              </Badge>
+            </>
+          )}
+          {compact && (
+             <Badge variant="outline" className="h-4 text-[9px] font-mono px-1">
+               {activeRuntimeModel}
+             </Badge>
+          )}
+          <Badge variant="outline" className={cn("text-[10px] font-mono", compact ? "h-4 text-[9px] px-1" : "h-5")}>
             {config.maxTokens ? `max ${config.maxTokens}` : 'max --'}
           </Badge>
-          <Badge variant="outline" className="h-5 text-[10px] font-mono">
-            {config.temperature !== null ? `temp ${config.temperature.toFixed(2)}` : 'temp --'}
-          </Badge>
-          <Badge variant={routeVariant} className="h-5 text-[10px] font-mono">
-            Source: {routeLabel}
+          {!compact && (
+            <Badge variant="outline" className="h-5 text-[10px] font-mono">
+              {config.temperature !== null ? `temp ${config.temperature.toFixed(2)}` : 'temp --'}
+            </Badge>
+          )}
+          <Badge variant={routeVariant} className={cn("text-[10px] font-mono", compact ? "h-4 text-[9px] px-1" : "h-5")}>
+            {compact ? (activeSource === 'anthropic' ? 'API' : 'LOC') : `Source: ${routeLabel}`}
           </Badge>
           <Badge variant="outline" className="h-5 text-[10px] font-mono hidden lg:inline-flex">
             profile: {config.profile ?? '--'}
           </Badge>
-          <Badge asChild variant={apiOverrideAvailable ? 'outline' : 'critical'} className="hidden h-5 px-1.5 text-[10px] font-mono xl:inline-flex">
-            <button
-              type="button"
-              onClick={handleApiOverrideToggle}
-              aria-pressed={apiDefaultEnabled}
-              title={
-                apiOverrideForced
-                  ? 'Claude API routing is locked while extraction is running.'
-                  : apiOverrideAvailable
-                  ? apiDefaultEnabled
-                    ? 'Claude API pinned as the default chat route. Click to restore adaptive routing.'
-                    : 'Claude API available. Click to pin cloud routing as the default.'
-                  : 'Claude API key missing for this cockpit session.'
-              }
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded-md px-1 py-0.5 transition-colors',
-                apiOverrideAvailable ? 'cursor-pointer hover:bg-[oklch(0.22_0.02_255)]' : 'cursor-not-allowed opacity-80',
-                apiDefaultEnabled && 'border border-[oklch(0.72_0.16_210)]/70 api-default-override-badge'
-              )}
-            >
-              <span
-                aria-hidden="true"
-                className={cn(
-                  'h-2 w-2 rounded-full',
-                  apiDefaultEnabled
-                    ? 'api-default-override-dot api-default-override-pulse'
+          {!compact && (
+            <Badge asChild variant={apiOverrideAvailable ? 'outline' : 'critical'} className="hidden h-5 px-1.5 text-[10px] font-mono xl:inline-flex">
+              <button
+                type="button"
+                onClick={handleApiOverrideToggle}
+                aria-pressed={apiDefaultEnabled}
+                title={
+                  apiOverrideForced
+                    ? 'Claude API routing is locked while extraction is running.'
                     : apiOverrideAvailable
-                      ? 'bg-[oklch(0.68_0.18_245)]'
-                      : 'bg-destructive'
+                    ? apiDefaultEnabled
+                      ? 'Claude API pinned as the default chat route. Click to restore adaptive routing.'
+                      : 'Claude API available. Click to pin cloud routing as the default.'
+                    : 'Claude API key missing for this cockpit session.'
+                }
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-md px-1 py-0.5 transition-colors',
+                  apiOverrideAvailable ? 'cursor-pointer hover:bg-[oklch(0.22_0.02_255)]' : 'cursor-not-allowed opacity-80',
+                  apiDefaultEnabled && 'border border-[oklch(0.72_0.16_210)]/70 api-default-override-badge'
                 )}
-              />
-              <span>
-                API: {apiOverrideAvailable ? (apiOverrideForced ? 'forced' : apiDefaultEnabled ? 'default' : 'set') : 'missing'}
-              </span>
-            </button>
-          </Badge>
+              >
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'h-2 w-2 rounded-full',
+                    apiDefaultEnabled
+                      ? 'api-default-override-dot api-default-override-pulse'
+                      : apiOverrideAvailable
+                        ? 'bg-[oklch(0.68_0.18_245)]'
+                        : 'bg-destructive'
+                  )}
+                />
+                <span>
+                  API: {apiOverrideAvailable ? (apiOverrideForced ? 'forced' : apiDefaultEnabled ? 'default' : 'set') : 'missing'}
+                </span>
+              </button>
+            </Badge>
+          )}
           {extractionHref ? (
-            <Badge asChild variant={extractionVariant} className="h-5 text-[10px] font-mono" title={extractionTitle}>
-              <Link href={extractionHref}>Extract: {extractionLabel}</Link>
+            <Badge asChild variant={extractionVariant} className={cn("text-[10px] font-mono", compact ? "h-4 text-[9px] px-1" : "h-5")} title={extractionTitle}>
+              <Link href={extractionHref}>{compact ? 'EXT' : `Extract: ${extractionLabel}`}</Link>
             </Badge>
           ) : (
-            <Badge variant={extractionVariant} className="h-5 text-[10px] font-mono" title={extractionTitle}>
-              Extract: {extractionLabel}
+            <Badge variant={extractionVariant} className={cn("text-[10px] font-mono", compact ? "h-4 text-[9px] px-1" : "h-5")} title={extractionTitle}>
+              {compact ? 'EXT' : `Extract: ${extractionLabel}`}
             </Badge>
           )}
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="font-mono text-muted-foreground">
-            latency: {sessionStats.lastLatencyMs}ms
-          </span>
-          <span className={`h-2 w-2 rounded-full ${backendHealthy ? 'bg-[oklch(0.69_0.22_145)] status-dot-running' : 'bg-destructive'}`} />
-          <span className="font-mono text-muted-foreground">
-            {backendHealthy ? 'backend running' : 'backend down'}
-          </span>
-          <span className="font-mono text-muted-foreground hidden xl:inline">
-            last healthy: {formatClock(backendLastHealthyAt)}
-          </span>
-          <Badge variant="outline" className="h-5 text-[10px] font-mono">
-            Session: ${sessionStats.totalCostUsd.toFixed(4)}
+        <div className={cn("flex items-center gap-3", compact && "justify-between border-t border-border/30 mt-0.5 pt-0.5 px-2")}>
+          {!compact && (
+            <span className="font-mono text-muted-foreground">
+              latency: {sessionStats.lastLatencyMs}ms
+            </span>
+          )}
+          <div className="flex items-center gap-1.5">
+            <span className={`h-2 w-2 rounded-full ${backendHealthy ? 'bg-[oklch(0.69_0.22_145)] status-dot-running' : 'bg-destructive'}`} />
+            <span className={cn("font-mono text-muted-foreground", compact && "text-[9px]")}>
+              {compact ? 'BACKEND' : (backendHealthy ? 'backend running' : 'backend down')}
+            </span>
+          </div>
+          {!compact && (
+            <span className="font-mono text-muted-foreground hidden xl:inline">
+              last healthy: {formatClock(backendLastHealthyAt)}
+            </span>
+          )}
+          <Badge variant="outline" className={cn("text-[10px] font-mono", compact ? "h-4 text-[9px] px-1" : "h-5")}>
+            {compact ? `$${sessionStats.totalCostUsd.toFixed(3)}` : `Session: $${sessionStats.totalCostUsd.toFixed(4)}`}
           </Badge>
           {!backendHealthy && (
-            <Badge variant="critical" className="h-5 text-[10px] font-mono">
-              CRITICAL
-            </Badge>
-          )}
-          {configAuthFailure && (
-            <Badge variant="critical" className="h-5 text-[10px] font-mono">
-              AUTH
+            <Badge variant="critical" className={cn("text-[10px] font-mono", compact ? "h-4 text-[9px] px-1" : "h-5")}>
+              {compact ? '!' : 'CRITICAL'}
             </Badge>
           )}
         </div>

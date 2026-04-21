@@ -73,6 +73,7 @@ export interface CockpitPreferences {
   theme: 'dark' | 'light'
   marketplaceHomeLocation: string
   marketplacePreferCloudRouting: boolean
+  iphoneScale: boolean
 }
 
 export interface Job {
