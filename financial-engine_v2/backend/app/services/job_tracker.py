@@ -38,6 +38,7 @@ EVENT_TYPES = frozenset(
 )
 
 TERMINAL_STATUSES = frozenset({"succeeded", "failed", "cancelled"})
+ACTIVE_STATUSES = frozenset({"pending", "running"})
 
 
 def _now_iso() -> str:
@@ -232,12 +233,61 @@ class JobTracker:
 
     def cancel_job(self, job_id: str, reason: str = "") -> None:
         now = _now_iso()
+        run = self._store.get_job_run(job_id)
+        elapsed = 0
+        if run and run.get("started_at"):
+            started = datetime.fromisoformat(run["started_at"])
+            elapsed = max(
+                0,
+                int(
+                    (datetime.now(timezone.utc) - started).total_seconds()
+                    * 1000
+                ),
+            )
         self._store.update_job_run(
-            job_id, status="cancelled", completed_at=now
+            job_id,
+            status="cancelled",
+            completed_at=now,
+            elapsed_ms=elapsed,
+            summary=reason or "Job cancelled",
         )
         self._emit_event(
             job_id, "job.cancelled", reason or "Job cancelled"
         )
+
+    def request_cancellation(self, job_id: str, reason: str = "") -> bool:
+        run = self._store.get_job_run(job_id)
+        if run is None:
+            return False
+
+        status = str(run.get("status") or "").strip().lower()
+        if status in TERMINAL_STATUSES:
+            return False
+
+        metadata = dict(run.get("metadata") or {})
+        already_requested = bool(metadata.get("cancel_requested"))
+        metadata["cancel_requested"] = True
+        metadata["cancel_reason"] = reason or "Cancellation requested"
+        metadata["cancel_requested_at"] = _now_iso()
+        self._store.update_job_run(job_id, metadata=metadata)
+
+        if status in ACTIVE_STATUSES and (
+            not already_requested or str(run.get("phase") or "") != "cancelling"
+        ):
+            self.change_phase(
+                job_id,
+                "cancelling",
+                reason or "Cancellation requested",
+            )
+
+        return True
+
+    def is_cancellation_requested(self, job_id: str) -> bool:
+        run = self._store.get_job_run(job_id)
+        if run is None:
+            return False
+        metadata = dict(run.get("metadata") or {})
+        return bool(metadata.get("cancel_requested"))
 
     def add_artifact(
         self,

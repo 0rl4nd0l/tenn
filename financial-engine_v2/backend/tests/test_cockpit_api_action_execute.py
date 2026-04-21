@@ -418,3 +418,47 @@ def test_cockpit_action_job_stop_terminates_registered_process(
     assert payload["job_id"] == "job-123"
     assert payload["status"] == "cancelling"
     assert dummy_proc.terminated is True
+
+
+def test_cockpit_action_job_stop_requests_pipeline_cancellation(
+    monkeypatch,
+) -> None:
+    requested: list[tuple[str, str]] = []
+
+    class FakeTracker:
+        def __init__(self) -> None:
+            self.store = SimpleNamespace(
+                get_job_run=lambda job_id: {
+                    "job_id": job_id,
+                    "job_type": "extraction",
+                    "job_family": "pipeline",
+                    "status": "running",
+                    "metadata": {"supports_cancellation": True},
+                }
+            )
+
+        def request_cancellation(self, job_id: str, reason: str = "") -> bool:
+            requested.append((job_id, reason))
+            return True
+
+    fake_service = SimpleNamespace(
+        state_store=SimpleNamespace(get_job=lambda job_id: None)
+    )
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+    monkeypatch.setattr(cockpit_api_module, "_get_backend_job_tracker", lambda: FakeTracker())
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post("/api/cockpit/action/jobs/extract-1/stop")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["job_id"] == "extract-1"
+    assert payload["status"] == "cancelling"
+    assert requested == [
+        ("extract-1", "Cancellation requested from Cockpit.")
+    ]

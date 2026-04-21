@@ -83,6 +83,25 @@ def test_cancel_job(tmp_path) -> None:
     assert run["status"] == "cancelled"
 
 
+def test_request_cancellation_sets_flag_and_phase(tmp_path) -> None:
+    tracker = _make_tracker(tmp_path)
+    handle = tracker.create_job(
+        job_type="backfill", job_family="pipeline", title="Cancel request test"
+    )
+    tracker.start_job(handle.job_id)
+
+    requested = tracker.request_cancellation(handle.job_id, "Stop requested")
+
+    assert requested is True
+    assert tracker.is_cancellation_requested(handle.job_id) is True
+    run = tracker.store.get_job_run(handle.job_id)
+    assert run is not None
+    assert run["status"] == "running"
+    assert run["phase"] == "cancelling"
+    assert run["metadata"]["cancel_requested"] is True
+    assert run["metadata"]["cancel_reason"] == "Stop requested"
+
+
 def test_change_phase(tmp_path) -> None:
     tracker = _make_tracker(tmp_path)
     handle = tracker.create_job(

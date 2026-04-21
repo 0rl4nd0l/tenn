@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import type { OpsJobRun, OpsJobEvent, OpsJobArtifact } from '@/lib/ops-types'
 import { getOpsJob, getOpsJobEvents, getOpsJobArtifacts } from '@/lib/ops-api-client'
+import { stopActionJob } from '@/lib/api-client'
 import { useJobStream } from '@/hooks/use-job-stream'
 import { cn } from '@/lib/utils'
 
@@ -49,6 +50,7 @@ const EVENT_ICON: Record<string, typeof Clock> = {
   'job.warning': AlertTriangle,
   'job.completed': CheckCircle2,
   'job.failed': XCircle,
+  'job.cancelled': XCircle,
 }
 
 const EVENT_COLOR: Record<string, string> = {
@@ -95,12 +97,33 @@ function DetailSkeleton() {
   )
 }
 
+function jobSupportsCancellation(job: OpsJobRun): boolean {
+  if (job.status !== 'running' && job.status !== 'pending') {
+    return false
+  }
+
+  if (job.job_family === 'cockpit_action' || job.job_family === 'marketplace') {
+    return true
+  }
+
+  if (
+    (job.job_family === 'pipeline' || job.job_family === 'celery') &&
+    (job.job_type === 'extraction' || job.job_type === 'backfill')
+  ) {
+    return Boolean(job.metadata?.supports_cancellation)
+  }
+
+  return false
+}
+
 export function JobDetailPanel({ jobId, onClose }: JobDetailPanelProps) {
   const [job, setJob] = useState<OpsJobRun | null>(null)
   const [events, setEvents] = useState<OpsJobEvent[]>([])
   const [artifacts, setArtifacts] = useState<OpsJobArtifact[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [cancelMessage, setCancelMessage] = useState<string | null>(null)
+  const [isCancelling, setIsCancelling] = useState(false)
   const eventsEndRef = useRef<HTMLDivElement>(null)
 
   const { recentEvents } = useJobStream({
@@ -130,6 +153,11 @@ export function JobDetailPanel({ jobId, onClose }: JobDetailPanelProps) {
     fetchData()
   }, [fetchData])
 
+  useEffect(() => {
+    setCancelMessage(null)
+    setIsCancelling(false)
+  }, [jobId])
+
   // Auto-scroll events
   useEffect(() => {
     eventsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -141,6 +169,37 @@ export function JobDetailPanel({ jobId, onClose }: JobDetailPanelProps) {
       fetchData()
     }
   }, [recentEvents, fetchData])
+  const canCancel = job ? jobSupportsCancellation(job) : false
+
+  const handleCancel = useCallback(async () => {
+    if (!job || !canCancel || isCancelling) {
+      return
+    }
+
+    setIsCancelling(true)
+    setCancelMessage(null)
+    try {
+      const response = await stopActionJob(job.job_id)
+      setCancelMessage(
+        response.status === 'cancelling'
+          ? 'Cancellation requested. The operation will stop at the next safe checkpoint.'
+          : `Operation status: ${response.status}`,
+      )
+      setJob((prev) => (
+        prev
+          ? {
+              ...prev,
+              phase: response.status === 'cancelling' ? 'cancelling' : prev.phase,
+            }
+          : prev
+      ))
+      await fetchData()
+    } catch (err: unknown) {
+      setCancelMessage(err instanceof Error ? err.message : 'Failed to cancel operation')
+    } finally {
+      setIsCancelling(false)
+    }
+  }, [canCancel, fetchData, isCancelling, job])
 
   if (loading) return <DetailSkeleton />
 
@@ -198,6 +257,22 @@ export function JobDetailPanel({ jobId, onClose }: JobDetailPanelProps) {
             <Badge variant="outline" className="text-[11px]">{job.phase}</Badge>
           )}
         </div>
+        {canCancel && (
+          <div className="mt-2 flex items-center gap-2">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleCancel}
+              disabled={isCancelling}
+              className="h-7 text-xs"
+            >
+              {isCancelling ? 'Cancelling…' : 'Cancel Operation'}
+            </Button>
+            {cancelMessage && (
+              <p className="text-[11px] text-muted-foreground">{cancelMessage}</p>
+            )}
+          </div>
+        )}
       </CardHeader>
 
       <CardContent className="flex-1 overflow-hidden flex flex-col gap-3 pt-2">

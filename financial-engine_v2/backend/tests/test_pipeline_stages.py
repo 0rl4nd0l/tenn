@@ -4,6 +4,8 @@ import json
 import uuid
 from types import SimpleNamespace
 
+import pytest
+
 from app.models.extractions import ExtractionRun
 from app.services.announcement_importance import (
     classify_narrative_extraction_policy,
@@ -285,6 +287,95 @@ def test_process_document_fails_loudly_when_pdf_missing_under_active_root(
     assert "stored_pdf_path=/data/asx/docs/WTC/2026-02-25_wtc-1h26.pdf" in run.error
     assert f"docs_root={docs_root.resolve()}" in run.error
     assert session.commits == 1
+
+
+def test_process_document_honors_cancellation_request(
+    monkeypatch, tmp_path
+) -> None:
+    doc_id = uuid.uuid4()
+
+    class DummyDoc:
+        document_id = doc_id
+        ticker = "WTC"
+        doc_class = "announcement"
+        doc_subtype = "periodic"
+        title = "WTC 1H26 Appendix 4D and Financial Report"
+        pdf_path = "/data/asx/docs/WTC/2026-02-25_wtc-1h26.pdf"
+        source_url = "https://example.com/wtc.pdf"
+        pdf_sha256 = "sha-wtc"
+
+    class DummyQuery:
+        def filter(self, *args, **kwargs):
+            return self
+
+        def first(self):
+            return DummyDoc()
+
+    class DummySession:
+        def __init__(self):
+            self.rollbacks = 0
+
+        def query(self, _model):
+            return DummyQuery()
+
+        def add(self, _obj):
+            raise AssertionError("cancelled extraction should not persist results")
+
+        def commit(self):
+            raise AssertionError("cancelled extraction should not commit")
+
+        def rollback(self):
+            self.rollbacks += 1
+
+        def close(self):
+            pass
+
+    class FakeTracker:
+        def __init__(self) -> None:
+            self.cancelled: list[tuple[str, str]] = []
+
+        def create_job(self, *args, **kwargs):
+            return SimpleNamespace(job_id=kwargs["job_id"])
+
+        def start_job(self, *args, **kwargs):
+            return None
+
+        def change_phase(self, *args, **kwargs):
+            return None
+
+        def complete_job(self, *args, **kwargs):
+            return None
+
+        def fail_job(self, *args, **kwargs):
+            return None
+
+        def is_cancellation_requested(self, job_id: str) -> bool:
+            return job_id == "run-cancelled-1"
+
+        def cancel_job(self, job_id: str, reason: str = "") -> None:
+            self.cancelled.append((job_id, reason))
+
+    session = DummySession()
+    tracker = FakeTracker()
+    monkeypatch.setattr(pipeline, "SessionLocal", lambda: session)
+    monkeypatch.setattr(pipeline.settings, "enable_extraction", False, raising=False)
+    monkeypatch.setattr(pipeline.settings, "enable_embeddings", False, raising=False)
+    monkeypatch.setattr(pipeline.settings, "enable_qdrant", False, raising=False)
+    monkeypatch.setattr("app.services.job_tracker.get_tracker", lambda: tracker)
+
+    from app.services import extraction_run_observability
+
+    monkeypatch.setattr(
+        extraction_run_observability, "RUN_STATUS_ROOT", tmp_path / "run_status"
+    )
+
+    with pytest.raises(pipeline.PipelineJobCancelled):
+        pipeline.process_document(str(doc_id), run_id="run-cancelled-1")
+
+    assert tracker.cancelled == [
+        ("run-cancelled-1", "Pipeline operation cancelled by user request.")
+    ]
+    assert session.rollbacks >= 1
 
 
 def test_process_document_downloads_pending_pdf_before_extraction(

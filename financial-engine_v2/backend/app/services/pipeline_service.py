@@ -41,6 +41,7 @@ class PipelineResult(TypedDict):
     chunks_skipped: int
     invalid_payloads: int
     written_points: int
+    cancelled: bool
 
 
 def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
@@ -64,7 +65,11 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
                 trigger_source=spec.mode,
                 entity_scope="ticker",
                 ticker=ticker,
-                metadata={"years": spec.years, "process_documents": spec.process_documents},
+                metadata={
+                    "years": spec.years,
+                    "process_documents": spec.process_documents,
+                    "supports_cancellation": True,
+                },
             )
             _tracker.start_job(_handle.job_id)
             _ops_job_id = _handle.job_id
@@ -73,6 +78,48 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
 
     db = SessionLocal()
     try:
+        def _cancel_requested() -> bool:
+            if not _ops_job_id:
+                return False
+            tracker = get_tracker()
+            if tracker is None:
+                return False
+            return tracker.is_cancellation_requested(_ops_job_id)
+
+        if _cancel_requested():
+            if _ops_job_id:
+                try:
+                    _tracker = get_tracker()
+                    if _tracker:
+                        _tracker.cancel_job(
+                            _ops_job_id, "Backfill cancelled by user request."
+                        )
+                except Exception:
+                    logger.warning(
+                        "ops tracker cancellation for backfill failed (non-fatal)",
+                        exc_info=True,
+                    )
+            return {
+                "ticker": ticker,
+                "found": 0,
+                "inserted": 0,
+                "processed": 0,
+                "processed_ok_count": 0,
+                "extraction_failed_count": 0,
+                "skipped_download": 0,
+                "process_documents": bool(spec.process_documents),
+                "importance_classification": None,
+                "provider_metrics": {},
+                "provider_failures_sample": [],
+                "errors": [],
+                "error_count": 0,
+                "chunks_created": 0,
+                "chunks_skipped": 0,
+                "invalid_payloads": 0,
+                "written_points": 0,
+                "cancelled": True,
+            }
+
         discovery = pipeline_core.discover_and_insert_documents(
             db,
             ticker=ticker,
@@ -117,45 +164,85 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
             except Exception:
                 pass
 
-        for idx, document_id in enumerate(doc_ids):
-            # Ops progress
+        try:
+            for idx, document_id in enumerate(doc_ids):
+                if _cancel_requested():
+                    raise pipeline_core.PipelineJobCancelled(
+                        "Backfill cancelled by user request."
+                    )
+
+                # Ops progress
+                if _ops_job_id:
+                    try:
+                        _tracker = get_tracker()
+                        if _tracker:
+                            _tracker.record_progress(
+                                _ops_job_id,
+                                current=idx,
+                                total=total_docs,
+                                current_item_label=str(document_id)[:16],
+                            )
+                    except Exception:
+                        pass
+                try:
+                    pipeline_core.download_pdf_for_document(db, document_id)
+                except Exception as exc:
+                    err_str = str(exc)
+                    if "marketindex_headed_required" in err_str or "document_quarantined" in err_str:
+                        skipped_download += 1
+                    errors.append({"document_id": str(document_id), "stage": "download", "error": err_str})
+                    continue
+                processed += 1
+                if bool(spec.process_documents):
+                    try:
+                        proc_result = pipeline_core.process_document(
+                            document_id,
+                            parent_job_id=_ops_job_id,
+                        ) or {}
+                        if (proc_result.get("extraction_status") or "").strip().lower() == "failed":
+                            extraction_failed_count += 1
+                            errors.append({
+                                "document_id": str(document_id),
+                                "stage": "process_document",
+                                "error": "extraction_failed",
+                                "extraction_status": proc_result.get("extraction_status"),
+                            })
+                        for key in ("chunks_created", "chunks_skipped", "invalid_payloads", "written_points"):
+                            ingestion_metrics[key] = ingestion_metrics.get(key, 0) + int(proc_result.get(key) or 0)
+                    except pipeline_core.PipelineJobCancelled:
+                        raise
+                    except Exception as exc:
+                        extraction_failed_count += 1
+                        errors.append({"document_id": str(document_id), "stage": "process_document", "error": str(exc)})
+        except pipeline_core.PipelineJobCancelled as exc:
             if _ops_job_id:
                 try:
                     _tracker = get_tracker()
                     if _tracker:
-                        _tracker.record_progress(
-                            _ops_job_id,
-                            current=idx,
-                            total=total_docs,
-                            current_item_label=str(document_id)[:16],
-                        )
+                        _tracker.cancel_job(_ops_job_id, str(exc))
                 except Exception:
-                    pass
-            try:
-                pipeline_core.download_pdf_for_document(db, document_id)
-            except Exception as exc:
-                err_str = str(exc)
-                if "marketindex_headed_required" in err_str or "document_quarantined" in err_str:
-                    skipped_download += 1
-                errors.append({"document_id": str(document_id), "stage": "download", "error": err_str})
-                continue
-            processed += 1
-            if bool(spec.process_documents):
-                try:
-                    proc_result = pipeline_core.process_document(document_id) or {}
-                    if (proc_result.get("extraction_status") or "").strip().lower() == "failed":
-                        extraction_failed_count += 1
-                        errors.append({
-                            "document_id": str(document_id),
-                            "stage": "process_document",
-                            "error": "extraction_failed",
-                            "extraction_status": proc_result.get("extraction_status"),
-                        })
-                    for key in ("chunks_created", "chunks_skipped", "invalid_payloads", "written_points"):
-                        ingestion_metrics[key] = ingestion_metrics.get(key, 0) + int(proc_result.get(key) or 0)
-                except Exception as exc:
-                    extraction_failed_count += 1
-                    errors.append({"document_id": str(document_id), "stage": "process_document", "error": str(exc)})
+                    logger.warning("ops tracker cancellation for backfill failed (non-fatal)", exc_info=True)
+
+            return {
+                "ticker": discovery["ticker"],
+                "found": discovery["found"],
+                "inserted": discovery["inserted"],
+                "processed": processed,
+                "processed_ok_count": max(processed - extraction_failed_count, 0),
+                "extraction_failed_count": extraction_failed_count,
+                "skipped_download": skipped_download,
+                "process_documents": bool(spec.process_documents),
+                "importance_classification": None,
+                "provider_metrics": discovery.get("provider_metrics") or {},
+                "provider_failures_sample": discovery.get("provider_failures_sample") or [],
+                "errors": errors,
+                "error_count": len(errors),
+                "chunks_created": int(ingestion_metrics.get("chunks_created", 0) or 0),
+                "chunks_skipped": int(ingestion_metrics.get("chunks_skipped", 0) or 0),
+                "invalid_payloads": int(ingestion_metrics.get("invalid_payloads", 0) or 0),
+                "written_points": int(ingestion_metrics.get("written_points", 0) or 0),
+                "cancelled": True,
+            }
 
         processed_ok_count = processed - extraction_failed_count
 
@@ -193,6 +280,7 @@ def run_pipeline_sync(spec: PipelineJobSpec) -> PipelineResult:
             "chunks_skipped": int(ingestion_metrics.get("chunks_skipped", 0) or 0),
             "invalid_payloads": int(ingestion_metrics.get("invalid_payloads", 0) or 0),
             "written_points": int(ingestion_metrics.get("written_points", 0) or 0),
+            "cancelled": False,
         }
 
         # Ops tracker completion

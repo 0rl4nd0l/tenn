@@ -64,6 +64,38 @@ from app.services.storage import ensure_dir, sha256_file, write_bytes
 logger = logging.getLogger(__name__)
 
 
+class PipelineJobCancelled(RuntimeError):
+    """Raised when a tracked pipeline operation is cancelled by the user."""
+
+
+def _ops_job_cancel_requested(job_id: str | None) -> bool:
+    resolved_job_id = str(job_id or "").strip()
+    if not resolved_job_id:
+        return False
+    try:
+        from app.services.job_tracker import get_tracker
+
+        tracker = get_tracker()
+        if tracker is None:
+            return False
+        return tracker.is_cancellation_requested(resolved_job_id)
+    except Exception:
+        logger.debug(
+            "pipeline cancellation probe failed for %s",
+            resolved_job_id,
+            exc_info=True,
+        )
+        return False
+
+
+def _raise_if_ops_job_cancelled(*job_ids: str | None) -> None:
+    for job_id in job_ids:
+        if _ops_job_cancel_requested(job_id):
+            raise PipelineJobCancelled(
+                "Pipeline operation cancelled by user request."
+            )
+
+
 # ── Job-tracker bridge ─────────────────────────────────────────────────────
 # Bridges ExtractionRunObserver events into the unified ops job-status layer.
 # Purely additive — never raises; extraction proceeds regardless of tracker state.
@@ -1141,6 +1173,7 @@ def process_document(
     ollama_client: Optional[httpx.Client] = None,
     *,
     run_id: str | None = None,
+    parent_job_id: str | None = None,
     requested_method: str = "auto",
     strict_method: bool = False,
     skip_narrative: bool = False,
@@ -1164,6 +1197,11 @@ def process_document(
             requested_method=requested_method,
             strict_method=strict_method,
         )
+        cancellation_job_ids = tuple(
+            job_id
+            for job_id in (resolved_run_id, parent_job_id)
+            if str(job_id or "").strip()
+        )
         # Bridge observer events into the ops job-status layer
         try:
             from app.services.job_tracker import get_tracker
@@ -1178,13 +1216,17 @@ def process_document(
                     entity_scope="document",
                     ticker=doc.ticker,
                     job_id=resolved_run_id,
-                    metadata={"document_id": str(doc_uuid)},
+                    metadata={
+                        "document_id": str(doc_uuid),
+                        "supports_cancellation": True,
+                    },
                 )
                 _ops_tracker.start_job(_ops_handle.job_id)
                 _bridge_observer_to_tracker(observer, _ops_handle.job_id)
         except Exception:
             logger.warning("ops tracker init for extraction failed (non-fatal)", exc_info=True)
         observer.emit("starting", "running", "Extraction run started.")
+        _raise_if_ops_job_cancelled(*cancellation_job_ids)
 
         # --- Structured extraction stage ---
         observer.emit(
@@ -1202,6 +1244,7 @@ def process_document(
             "Document metadata loaded.",
             details={"resolved_pdf_path": resolved_pdf_path},
         )
+        _raise_if_ops_job_cancelled(*cancellation_job_ids)
         default_model_name = "qwen2.5-32b-instruct"
         if resolved_pdf_path and resolved_pdf_path != str(doc.pdf_path or "").strip():
             resolved_pdf_path = _repair_document_pdf_path_if_needed(
@@ -1325,6 +1368,7 @@ def process_document(
                                 "title": str(doc.title or "").strip(),
                             }
                         ):
+                            _raise_if_ops_job_cancelled(*cancellation_job_ids)
                             multipass_result = run_method_isolated_extraction(
                                 resolved_pdf_path,
                                 dict(doc_metadata),
@@ -1334,6 +1378,9 @@ def process_document(
                                 strict_method=strict_method,
                                 skip_narrative=skip_narrative,
                             )
+                        _raise_if_ops_job_cancelled(*cancellation_job_ids)
+                    except PipelineJobCancelled:
+                        raise
                     except Exception as exc:
                         error_text = str(exc)
                         observer.emit(
@@ -1434,6 +1481,7 @@ def process_document(
             ExtractionStageStatus.OK,
             ExtractionStageStatus.OK_LOW_CONFIDENCE,
         }:
+            _raise_if_ops_job_cancelled(*cancellation_job_ids)
             sections_for_chunks = extraction_stage.sections
             # Use structured sections for prose chunking, not raw parser text.
             _doc_for_chunks = StructuredDocument(sections=sections_for_chunks)
@@ -1441,7 +1489,10 @@ def process_document(
                 "chunking", "running", "Chunking extracted sections for embeddings."
             )
             try:
+                _raise_if_ops_job_cancelled(*cancellation_job_ids)
                 chunks = chunk_prose_sections(_doc_for_chunks)
+            except PipelineJobCancelled:
+                raise
             except Exception as exc:
                 observer.emit(
                     "chunking",
@@ -1457,6 +1508,7 @@ def process_document(
                 details={"chunks_created": len(chunks)},
             )
             observer.emit("embedding", "running", "Writing chunks to vector storage.")
+            _raise_if_ops_job_cancelled(*cancellation_job_ids)
             embedding_stage = run_embedding_stage(
                 chunks=chunks,
                 doc=doc,
@@ -1475,6 +1527,7 @@ def process_document(
                 log_rejected_payload_fn=log_rejected_payload,
                 logger_obj=logger,
             )
+            _raise_if_ops_job_cancelled(*cancellation_job_ids)
             observer.emit(
                 "embedding",
                 "blocked"
@@ -1570,6 +1623,7 @@ def process_document(
         financial_rows_written = 0
         observer.emit("persistence", "running", "Persisting extraction outputs.")
         try:
+            _raise_if_ops_job_cancelled(*cancellation_job_ids)
             db.add(run)
             if extraction_stage.status in {
                 ExtractionStageStatus.OK,
@@ -1577,6 +1631,9 @@ def process_document(
             }:
                 financial_rows_written = _upsert_financial_rows(db, doc, structured)
             db.commit()  # single atomic commit: ExtractionRun + financial rows together
+        except PipelineJobCancelled:
+            db.rollback()
+            raise
         except Exception as exc:
             db.rollback()
             observer.emit(
@@ -1641,6 +1698,29 @@ def process_document(
             "invalid_payloads": invalid_payloads,
             "written_points": written_points,
         }
+    except PipelineJobCancelled as exc:
+        db.rollback()
+        observer.final_summary(
+            {
+                "run_id": resolved_run_id,
+                "document_id": str(doc_uuid),
+                "extraction_status": "cancelled",
+                "error": str(exc),
+                "persisted": False,
+            }
+        )
+        try:
+            from app.services.job_tracker import get_tracker
+
+            tracker = get_tracker()
+            if tracker is not None:
+                tracker.cancel_job(resolved_run_id, str(exc))
+        except Exception:
+            logger.warning(
+                "ops tracker cancellation for extraction failed (non-fatal)",
+                exc_info=True,
+            )
+        raise
     finally:
         db.close()
 

@@ -370,6 +370,16 @@ export async function getActionJob(jobId: string): Promise<ActionJobStatus> {
   return apiFetch<ActionJobStatus>(`/api/cockpit/action/jobs/${encodeURIComponent(jobId)}`)
 }
 
+export async function stopActionJob(jobId: string): Promise<{
+  ok: boolean
+  job_id: string
+  status: string
+}> {
+  return apiFetch(`/api/cockpit/action/jobs/${encodeURIComponent(jobId)}/stop`, {
+    method: 'POST',
+  })
+}
+
 /** Action preview – POST /api/cockpit/action/preview */
 export async function previewAction(params: {
   actionId: string

@@ -71,7 +71,11 @@ export function useJobStream(options?: UseJobStreamOptions): UseJobStreamReturn 
           setRecentEvents((prev) => [...prev.slice(-(MAX_RECENT_EVENTS - 1)), event])
 
           // Update active jobs map based on event
-          if (event.event_type === 'job.created' || event.event_type === 'job.started') {
+          if (
+            event.event_type === 'job.created' ||
+            event.event_type === 'job.started' ||
+            event.event_type === 'job.phase_changed'
+          ) {
             fetchActiveJobs()
           } else if (
             event.event_type === 'job.completed' ||

@@ -3351,6 +3351,43 @@ async def cockpit_stop_action_job(job_id: str):
     if runtime is not None:
         return {"ok": True, "job_id": job_id, "status": "cancelling"}
 
+    tracker = _get_backend_job_tracker()
+    tracker_job: dict[str, Any] | None = None
+    if tracker is not None:
+        try:
+            tracker_job = tracker.store.get_job_run(job_id)
+        except Exception as exc:
+            logger.debug("Tracker job lookup failed for %s: %s", job_id, exc)
+
+    if tracker_job is not None:
+        tracker_status = str(tracker_job.get("status") or "unknown")
+        if tracker_status in {"succeeded", "failed", "cancelled"}:
+            return {"ok": True, "job_id": job_id, "status": tracker_status}
+
+        tracker_job_type = str(tracker_job.get("job_type") or "").strip().lower()
+        tracker_job_family = (
+            str(tracker_job.get("job_family") or "").strip().lower()
+        )
+        tracker_metadata = dict(tracker_job.get("metadata") or {})
+        tracker_supports_cancellation = bool(
+            tracker_metadata.get("supports_cancellation")
+        )
+        if (
+            tracker_supports_cancellation
+            and tracker_job_type in {"extraction", "backfill"}
+            and tracker_job_family in {"pipeline", "celery"}
+        ):
+            try:
+                tracker.request_cancellation(
+                    job_id, reason="Cancellation requested from Cockpit."
+                )
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to request operation cancellation: {str(exc)}",
+                ) from exc
+            return {"ok": True, "job_id": job_id, "status": "cancelling"}
+
     job = service.state_store.get_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail=f"Action job not found: {job_id}")
