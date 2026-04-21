@@ -59,6 +59,7 @@ from cockpit.ui.screens import (
     ChatScreen,
     ConfirmActionScreen,
     HistoryScreen,
+    HoldingsScreen,
     MemoryScreen,
     NewsSearchScreen,
     OperationsScreen,
@@ -185,6 +186,7 @@ class CockpitApp(App):
         Binding("u", "show_updater", "Updater"),
         Binding("v", "show_verification", "Verify"),
         Binding("h", "show_history", "History"),
+        Binding("p", "show_holdings", "Holdings"),
         Binding("s", "show_settings", "Settings"),
         Binding("?", "show_help", "Help"),
         Binding("ctrl+n", "show_news_search", "News Search"),
@@ -751,6 +753,7 @@ class CockpitApp(App):
         self.install_screen(UpdaterScreen(), name="updater")
         self.install_screen(VerificationScreen(), name="verification")
         self.install_screen(HistoryScreen(), name="history")
+        self.install_screen(HoldingsScreen(), name="holdings")
         self.install_screen(SettingsScreen(), name="settings")
         self.install_screen(NewsSearchScreen(), name="news_search")
         # Defer initial screen activation one tick to avoid startup stack race.
@@ -2725,6 +2728,9 @@ class CockpitApp(App):
 
     def action_show_history(self) -> None:
         self.push_screen("history")
+
+    def action_show_holdings(self) -> None:
+        self.push_screen("holdings")
 
     def action_show_settings(self) -> None:
         self.push_screen("settings")

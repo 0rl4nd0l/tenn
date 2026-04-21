@@ -232,6 +232,7 @@ class ChatScreen(Screen):
             Horizontal(
                 Button("Copy Chat/Output", id="chat-copy-output"),
                 Button("Open Memory", id="chat-open-memory"),
+                Button("Open Holdings", id="chat-open-holdings"),
                 Button("Open Operations", id="chat-open-ops"),
                 Button("Help", id="chat-open-help"),
             ),
@@ -330,6 +331,9 @@ class ChatScreen(Screen):
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "chat-open-memory":
             self.app.action_show_memory()
+            return
+        if event.button.id == "chat-open-holdings":
+            self.app.action_show_holdings()
             return
         if event.button.id == "chat-open-ops":
             self.app.action_show_ops()
@@ -1562,6 +1566,209 @@ class MemoryScreen(Screen):
 
     async def action_expire_selected(self) -> None:
         await self._expire_selected()
+
+
+class HoldingsScreen(Screen):
+    """Cockpit-local holdings (P6). Reads/writes via `app.state_store`.
+
+    Holdings live exclusively in the cockpit SQLite store — they are not
+    financial truth and never flow into RAG, memory, or the watchlist
+    (SYSTEM_CONTRACT §1.2). This screen is a thin operator UI over the P1
+    `add_holding` / `list_holdings` / `remove_holding` API.
+    """
+
+    BINDINGS = [
+        ("escape", "app.show_chat", "Back"),
+        ("r", "refresh", "Refresh"),
+        ("d", "remove_selected", "Remove"),
+    ]
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._holdings_rows: list[dict[str, Any]] = []
+
+    def compose(self) -> ComposeResult:
+        yield Label("Holdings — cockpit-local portfolio state")
+        yield Horizontal(
+            Input(value="", id="holdings-ticker", placeholder="Ticker (e.g. BHP)"),
+            Input(value="", id="holdings-quantity", placeholder="Quantity"),
+            Input(value="", id="holdings-cost", placeholder="Avg cost (optional)"),
+            Input(
+                value="",
+                id="holdings-account",
+                placeholder="Account label (optional)",
+            ),
+            Button("Add", id="holdings-add", variant="primary"),
+            Button("Remove Selected", id="holdings-remove", variant="warning"),
+            Button("Refresh", id="holdings-refresh"),
+            id="holdings-controls",
+        )
+        yield DataTable(id="holdings-table")
+        yield Static("", id="holdings-status")
+
+    async def on_mount(self) -> None:
+        table = self.query_one("#holdings-table", DataTable)
+        table.cursor_type = "row"
+        table.add_columns(
+            "Ticker",
+            "Quantity",
+            "Avg Cost",
+            "Currency",
+            "Account",
+            "Note",
+            "Holding ID",
+        )
+        await self._refresh()
+
+    def _set_status(self, message: str) -> None:
+        self.query_one("#holdings-status", Static).update(str(message or ""))
+
+    @staticmethod
+    def _format_optional(value: Any) -> str:
+        if value is None or value == "":
+            return "-"
+        return str(value)
+
+    @staticmethod
+    def _format_number(value: Any) -> str:
+        if value is None:
+            return "-"
+        try:
+            return f"{float(value):g}"
+        except (TypeError, ValueError):
+            return str(value)
+
+    async def _refresh(self) -> None:
+        store = self.app.state_store
+        try:
+            rows = await asyncio.to_thread(store.list_holdings)
+        except Exception as exc:  # noqa: BLE001 — surface DB faults to the operator
+            self._holdings_rows = []
+            self._populate_table([])
+            self._set_status(f"Failed to load holdings: {exc}")
+            return
+
+        self._holdings_rows = list(rows)
+        self._populate_table(self._holdings_rows)
+        self._set_status(f"Loaded {len(self._holdings_rows)} holding(s).")
+
+    def _populate_table(self, rows: list[dict[str, Any]]) -> None:
+        table = self.query_one("#holdings-table", DataTable)
+        table.clear()
+        for row in rows:
+            holding_id = str(row.get("holding_id") or "")
+            short_id = holding_id[:8] if holding_id else "-"
+            table.add_row(
+                str(row.get("ticker") or "-"),
+                self._format_number(row.get("quantity")),
+                self._format_number(row.get("avg_cost")),
+                self._format_optional(row.get("cost_currency")),
+                self._format_optional(row.get("account_label")),
+                self._format_optional(row.get("note")),
+                short_id,
+            )
+
+    def _selected_row(self) -> dict[str, Any] | None:
+        if not self._holdings_rows:
+            return None
+        table = self.query_one("#holdings-table", DataTable)
+        try:
+            row_index = int(getattr(table, "cursor_row", 0) or 0)
+        except (TypeError, ValueError):
+            row_index = 0
+        if 0 <= row_index < len(self._holdings_rows):
+            return self._holdings_rows[row_index]
+        return None
+
+    async def _add_holding(self) -> None:
+        ticker = self.query_one("#holdings-ticker", Input).value.strip()
+        if not ticker:
+            self._set_status("Ticker is required to add a holding.")
+            return
+
+        qty_raw = self.query_one("#holdings-quantity", Input).value.strip()
+        cost_raw = self.query_one("#holdings-cost", Input).value.strip()
+        account = self.query_one("#holdings-account", Input).value.strip() or None
+
+        quantity: float | None = None
+        if qty_raw:
+            try:
+                quantity = float(qty_raw)
+            except ValueError:
+                self._set_status(f"Quantity '{qty_raw}' is not a valid number.")
+                return
+            if quantity <= 0:
+                self._set_status("Quantity must be greater than zero.")
+                return
+
+        avg_cost: float | None = None
+        if cost_raw:
+            try:
+                avg_cost = float(cost_raw)
+            except ValueError:
+                self._set_status(f"Avg cost '{cost_raw}' is not a valid number.")
+                return
+
+        store = self.app.state_store
+        try:
+            holding_id = await asyncio.to_thread(
+                store.add_holding,
+                ticker,
+                account_label=account,
+                quantity=quantity,
+                avg_cost=avg_cost,
+            )
+        except Exception as exc:  # noqa: BLE001 — surface DB faults to the operator
+            self._set_status(f"Failed to add holding: {exc}")
+            return
+
+        # Clear inputs only on success, then reload table.
+        self.query_one("#holdings-ticker", Input).value = ""
+        self.query_one("#holdings-quantity", Input).value = ""
+        self.query_one("#holdings-cost", Input).value = ""
+        self.query_one("#holdings-account", Input).value = ""
+
+        await self._refresh()
+        self._set_status(f"Added {ticker.upper()} (id={holding_id[:8]}).")
+
+    async def _remove_selected(self) -> None:
+        row = self._selected_row()
+        if row is None:
+            self._set_status("No holding selected.")
+            return
+        holding_id = str(row.get("holding_id") or "")
+        if not holding_id:
+            self._set_status("Selected row is missing a holding_id.")
+            return
+
+        store = self.app.state_store
+        try:
+            removed = await asyncio.to_thread(store.remove_holding, holding_id)
+        except Exception as exc:  # noqa: BLE001 — surface DB faults to the operator
+            self._set_status(f"Failed to remove holding: {exc}")
+            return
+
+        if not removed:
+            self._set_status(f"Holding {holding_id[:8]} not found.")
+            return
+
+        ticker = str(row.get("ticker") or "?")
+        await self._refresh()
+        self._set_status(f"Removed {ticker} (id={holding_id[:8]}).")
+
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "holdings-add":
+            await self._add_holding()
+        elif event.button.id == "holdings-remove":
+            await self._remove_selected()
+        elif event.button.id == "holdings-refresh":
+            await self._refresh()
+
+    async def action_refresh(self) -> None:
+        await self._refresh()
+
+    async def action_remove_selected(self) -> None:
+        await self._remove_selected()
 
 
 class HistoryScreen(Screen):
