@@ -550,12 +550,21 @@ class _BackendFinancialTruthProvider:
                 "query": query,
                 "intent": intent,
             }
+        recovery_level = str(entities.get("recovery_level") or "").strip().lower()
+        deep_recovery = recovery_level == "deep"
+        docs_limit = 24 if deep_recovery else 8
+        financials_limit = 24 if deep_recovery else 8
+        announcements_limit = 24 if deep_recovery else 8
+        failures_limit = 20 if deep_recovery else 8
+        low_confidence_limit = 20 if deep_recovery else 8
         try:
             payload = self._client.get_ticker_context(
                 ticker,
-                docs_limit=8,
-                financials_limit=8,
-                announcements_limit=8,
+                docs_limit=docs_limit,
+                financials_limit=financials_limit,
+                announcements_limit=announcements_limit,
+                failures_limit=failures_limit,
+                low_confidence_limit=low_confidence_limit,
             )
         except Exception as exc:
             return {
@@ -579,6 +588,8 @@ class _BackendFinancialTruthProvider:
             "financials": payload.get("financials") or [],
             "latest_financial_snapshot": payload.get("latest_financial_snapshot") or {},
             "announcement_context": payload.get("announcement_context") or [],
+            "extraction_failures": payload.get("extraction_failures") or [],
+            "low_confidence_financials": payload.get("low_confidence_financials") or [],
             "errors": errors,
             "query": query,
             "intent": intent,

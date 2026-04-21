@@ -282,11 +282,13 @@ def test_extract_structured_strict_docling_bypasses_large_pdf_precheck(
         "_get_page_count_fast",
         lambda path: docling_extract.DOCLING_LARGE_PDF_PAGE_THRESHOLD,
     )
-    monkeypatch.setattr(
-        docling_extract,
-        "_run_docling_with_timeout",
-        lambda path, timeout=120: extracted_doc,
-    )
+    seen_timeout: list[int] = []
+
+    def fake_run(path: str, timeout: int = 120) -> StructuredDocument:
+        seen_timeout.append(timeout)
+        return extracted_doc
+
+    monkeypatch.setattr(docling_extract, "_run_docling_with_timeout", fake_run)
     monkeypatch.setattr(
         docling_extract,
         "_extract_pymupdf",
@@ -302,6 +304,7 @@ def test_extract_structured_strict_docling_bypasses_large_pdf_precheck(
     )
 
     assert loaded == extracted_doc
+    assert seen_timeout == [docling_extract.DOCLING_TIMEOUT_MAX_STRICT]
 
 
 def test_extract_structured_strict_docling_does_not_fallback(tmp_path, monkeypatch):

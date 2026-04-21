@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Any, Iterable, Protocol
 
 from app.services.company_memory import CompanyMemoryStore
@@ -173,6 +174,33 @@ _USER_THESIS_TYPE_PRIORITY = {
     ),
     "mixed": ("thesis", "supporting_evidence", "disconfirming_evidence"),
 }
+_ALL_SOURCE_PLAN: tuple[SourceName, ...] = (
+    "financial_truth",
+    "company_memory",
+    "market_memory",
+    "user_thesis_memory",
+)
+_COMPANY_ANALYSIS_QUERY_RE = re.compile(
+    r"\b(full|deep|comprehensive)\s+(company\s+)?(analysis|review)\b"
+    r"|\bcompany\s+deep\s+dive\b"
+    r"|\binvestment\s+(thesis|case|view)\b"
+    r"|\bbull\s+case\b|\bbear\s+case\b",
+    flags=re.IGNORECASE,
+)
+_PEER_QUERY_RE = re.compile(
+    r"\b(peer|peers|comparable|comparables|vs\.?|versus|relative to|compare)\b",
+    flags=re.IGNORECASE,
+)
+_RECENT_CONTEXT_RE = re.compile(
+    r"\b(news|announcement|update|recent|latest|this week|today)\b",
+    flags=re.IGNORECASE,
+)
+_STALE_EVIDENCE_HOURS = 96.0
+_CRITICAL_COMPANY_ANALYSIS_BLOCKERS = {
+    "financials",
+    "business_profile_context",
+    "announcements_news_context",
+}
 
 
 class EvidenceProvider(Protocol):
@@ -208,6 +236,10 @@ class OrchestratedQueryResult:
     raw_supporting_evidence: dict[str, dict[str, Any]]
     answer_input: str
     answer: dict[str, Any]
+    missing_categories_before_recovery: tuple[str, ...] = ()
+    missing_categories_after_recovery: tuple[str, ...] = ()
+    missing_data_recovery: dict[str, Any] = field(default_factory=dict)
+    sufficient_for_analysis: bool = True
 
 
 class _NullProvider:
@@ -339,6 +371,277 @@ def build_plan(intent: QueryIntent) -> QueryPlan:
     return mapping.get(intent, mapping["mixed"])
 
 
+def _is_company_analysis_request(
+    query: str,
+    *,
+    context: dict[str, Any] | None,
+) -> bool:
+    normalized_standard = (
+        str((context or {}).get("request_standard") or "").strip().lower()
+    )
+    if normalized_standard == "company_analysis":
+        return True
+    analysis_mode = str((context or {}).get("analysis_mode") or "").strip().lower()
+    if analysis_mode == "deep":
+        return True
+    return bool(_COMPANY_ANALYSIS_QUERY_RE.search(str(query or "")))
+
+
+def _timestamp_from_payload_row(row: Any) -> datetime | None:
+    if not isinstance(row, dict):
+        return None
+    raw = str(
+        row.get("published_at")
+        or row.get("lodged_at")
+        or row.get("created_at")
+        or row.get("date")
+        or ""
+    ).strip()
+    if not raw:
+        return None
+    normalized = raw.replace("Z", "+00:00")
+    try:
+        ts = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    return ts.astimezone(timezone.utc)
+
+
+def _latest_payload_timestamp(rows: list[Any]) -> datetime | None:
+    latest: datetime | None = None
+    for row in rows:
+        ts = _timestamp_from_payload_row(row)
+        if ts is None:
+            continue
+        if latest is None or ts > latest:
+            latest = ts
+    return latest
+
+
+def _has_contradiction_metadata(items: list[Any]) -> bool:
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        metadata = dict(item.get("metadata") or {})
+        if metadata.get("contradicted_entry_ids"):
+            return True
+    return False
+
+
+def _detect_missing_categories(
+    *,
+    query: str,
+    plan: QueryPlan,
+    evidence: dict[str, dict[str, Any]],
+    company_analysis_request: bool,
+) -> list[str]:
+    categories: list[str] = []
+    category_set: set[str] = set()
+
+    def _add(category: str) -> None:
+        if category in category_set:
+            return
+        category_set.add(category)
+        categories.append(category)
+
+    financial_truth = evidence.get("financial_truth") or {}
+    financials = financial_truth.get("financials")
+    financial_rows = financials if isinstance(financials, list) else []
+    latest_snapshot = financial_truth.get("latest_financial_snapshot")
+    snapshot = latest_snapshot if isinstance(latest_snapshot, dict) else {}
+    docs = financial_truth.get("docs")
+    doc_rows = docs if isinstance(docs, list) else []
+    announcements = financial_truth.get("announcement_context")
+    announcement_rows = announcements if isinstance(announcements, list) else []
+
+    company_memory = evidence.get("company_memory") or {}
+    company_items = (
+        company_memory.get("items") if isinstance(company_memory.get("items"), list) else []
+    )
+    market_memory = evidence.get("market_memory") or {}
+    market_items = market_memory.get("items")
+    merged_market_items = market_items if isinstance(market_items, list) else []
+    if not merged_market_items:
+        sector_items = market_memory.get("sector_items")
+        macro_items = market_memory.get("macro_items")
+        merged_market_items = (
+            (sector_items if isinstance(sector_items, list) else [])
+            + (macro_items if isinstance(macro_items, list) else [])
+        )
+
+    has_financial_truth = bool(snapshot) or bool(financial_rows)
+    has_announcements = bool(doc_rows) or bool(announcement_rows)
+    has_company_context = bool(company_items)
+    has_market_context = bool(merged_market_items)
+
+    if company_analysis_request and not has_financial_truth:
+        _add("financials")
+    if company_analysis_request and not has_company_context:
+        _add("business_profile_context")
+    if (company_analysis_request or _RECENT_CONTEXT_RE.search(query)) and not has_announcements:
+        _add("announcements_news_context")
+    if plan.needs_environment and not has_market_context:
+        _add("market_context")
+
+    if _PEER_QUERY_RE.search(query):
+        peer_signals = 0
+        for item in company_items + merged_market_items:
+            if not isinstance(item, dict):
+                continue
+            text = str(item.get("statement") or "").lower()
+            if "peer" in text or "comparable" in text:
+                peer_signals += 1
+        if peer_signals == 0:
+            _add("peer_set")
+
+    if (
+        "extraction_failures" not in financial_truth
+        and "low_confidence_financials" not in financial_truth
+    ):
+        _add("data_quality_status")
+
+    latest_context_ts = _latest_payload_timestamp(doc_rows + announcement_rows)
+    if latest_context_ts is not None:
+        age_hours = (datetime.now(timezone.utc) - latest_context_ts).total_seconds() / 3600.0
+        if age_hours > _STALE_EVIDENCE_HOURS:
+            _add("stale_evidence")
+
+    if _has_contradiction_metadata(company_items) or _has_contradiction_metadata(
+        merged_market_items
+    ):
+        _add("contradictory_evidence")
+
+    return categories
+
+
+def _payload_signal_count(source: SourceName, payload: dict[str, Any]) -> int:
+    if source == "financial_truth":
+        financials = payload.get("financials")
+        docs = payload.get("docs")
+        announcements = payload.get("announcement_context")
+        snapshot = payload.get("latest_financial_snapshot")
+        return (
+            (len(financials) if isinstance(financials, list) else 0)
+            + (len(docs) if isinstance(docs, list) else 0)
+            + (len(announcements) if isinstance(announcements, list) else 0)
+            + (1 if isinstance(snapshot, dict) and snapshot else 0)
+        )
+    items = payload.get("items")
+    if isinstance(items, list):
+        return len(items)
+    sector_items = payload.get("sector_items")
+    macro_items = payload.get("macro_items")
+    return (len(sector_items) if isinstance(sector_items, list) else 0) + (
+        len(macro_items) if isinstance(macro_items, list) else 0
+    )
+
+
+def _prefer_payload(
+    source: SourceName,
+    current_payload: dict[str, Any],
+    candidate_payload: dict[str, Any],
+) -> dict[str, Any]:
+    current_status = str(current_payload.get("status") or "ok")
+    candidate_status = str(candidate_payload.get("status") or "ok")
+    if current_status != "ok" and candidate_status == "ok":
+        return candidate_payload
+    current_score = _payload_signal_count(source, current_payload)
+    candidate_score = _payload_signal_count(source, candidate_payload)
+    if candidate_score > current_score:
+        return candidate_payload
+    return current_payload
+
+
+def _merge_evidence_payloads(
+    *,
+    base: dict[str, dict[str, Any]],
+    candidate: dict[str, dict[str, Any]],
+    sources: tuple[SourceName, ...],
+) -> dict[str, dict[str, Any]]:
+    merged: dict[str, dict[str, Any]] = {}
+    for source in sources:
+        base_payload = base.get(source) or {}
+        candidate_payload = candidate.get(source) or {}
+        merged[source] = _prefer_payload(source, base_payload, candidate_payload)
+    return merged
+
+
+def _build_recovery_query(
+    query: str,
+    *,
+    entities: dict[str, Any],
+    missing_categories: list[str],
+) -> str:
+    ticker = str(entities.get("primary_ticker") or "").strip().upper()
+    focus_terms: list[str] = []
+    if "financials" in missing_categories:
+        focus_terms.append("latest financial statements")
+    if "business_profile_context" in missing_categories:
+        focus_terms.append("business model and strategy")
+    if "announcements_news_context" in missing_categories:
+        focus_terms.append("recent announcements and news")
+    if "peer_set" in missing_categories:
+        focus_terms.append("peers and comparables")
+    if "market_context" in missing_categories:
+        focus_terms.append("sector and macro backdrop")
+    if not focus_terms:
+        return query
+    if not ticker:
+        return query + " | recovery focus: " + ", ".join(focus_terms)
+    return f"{query}\nRecovery focus for {ticker}: " + ", ".join(focus_terms)
+
+
+def _is_sufficient_for_company_analysis(
+    *,
+    evidence: dict[str, dict[str, Any]],
+    missing_categories: list[str],
+) -> bool:
+    financial_truth = evidence.get("financial_truth") or {}
+    has_financials = bool(
+        (financial_truth.get("latest_financial_snapshot") or {})
+    ) or bool(financial_truth.get("financials") or [])
+    has_company_context = bool((evidence.get("company_memory") or {}).get("items") or [])
+    has_announcements = bool(financial_truth.get("docs") or []) or bool(
+        financial_truth.get("announcement_context") or []
+    )
+    has_market_context = bool((evidence.get("market_memory") or {}).get("items") or [])
+    if not has_financials:
+        return False
+    if not (has_company_context or has_announcements or has_market_context):
+        return False
+    blocker_set = set(missing_categories)
+    if blocker_set & _CRITICAL_COMPANY_ANALYSIS_BLOCKERS:
+        return False
+    return True
+
+
+def _confirmed_evidence_categories(
+    evidence: dict[str, dict[str, Any]],
+) -> list[str]:
+    categories: list[str] = []
+    financial_truth = evidence.get("financial_truth") or {}
+    if bool(financial_truth.get("latest_financial_snapshot") or {}) or bool(
+        financial_truth.get("financials") or []
+    ):
+        categories.append("financial truth")
+    if bool((evidence.get("company_memory") or {}).get("items") or []):
+        categories.append("business/profile context")
+    if bool((evidence.get("market_memory") or {}).get("items") or []):
+        categories.append("market context")
+    if bool(financial_truth.get("docs") or []) or bool(
+        financial_truth.get("announcement_context") or []
+    ):
+        categories.append("announcements/news context")
+    if (
+        "extraction_failures" in financial_truth
+        or "low_confidence_financials" in financial_truth
+    ):
+        categories.append("data-quality status")
+    return categories
+
+
 def retrieve(
     plan: QueryPlan,
     *,
@@ -403,6 +706,64 @@ def build_answer_input(
     lines.append(
         "Use financial truth for explicit numbers, company memory for business meaning, and market memory only when it adds relevant external context."
     )
+    recovery = (
+        dict(answer.get("missing_data_recovery") or {})
+        if isinstance(answer.get("missing_data_recovery"), dict)
+        else {}
+    )
+    missing_before = [
+        str(item)
+        for item in (answer.get("missing_categories_before_recovery") or [])
+        if str(item).strip()
+    ]
+    missing_after = [
+        str(item)
+        for item in (answer.get("missing_categories_after_recovery") or [])
+        if str(item).strip()
+    ]
+    if recovery.get("attempted"):
+        lines.append("Confirmed evidence already present:")
+        confirmed = _confirmed_evidence_categories(evidence)
+        if confirmed:
+            for category in confirmed:
+                lines.append(f"- {category}")
+        else:
+            lines.append("- none")
+
+        lines.append("Missing or weak evidence categories:")
+        if missing_before:
+            for category in missing_before:
+                lines.append(f"- {category}")
+        else:
+            lines.append("- none detected")
+
+        lines.append("Additional retrieval attempts:")
+        lines.append(
+            "- ran one bounded recovery pass across expanded sources before final verdict"
+        )
+        recovery_sources = recovery.get("sources")
+        if isinstance(recovery_sources, list) and recovery_sources:
+            lines.append("- recovery sources: " + ", ".join(str(src) for src in recovery_sources))
+
+        lines.append("Updated evidence state:")
+        resolved = recovery.get("resolved_categories")
+        if isinstance(resolved, list) and resolved:
+            lines.append("- resolved gaps: " + ", ".join(str(item) for item in resolved))
+        if missing_after:
+            lines.append("- unresolved gaps: " + ", ".join(missing_after))
+        else:
+            lines.append("- unresolved gaps: none")
+
+        if not bool(answer.get("sufficient_for_analysis", True)):
+            lines.append("Final verdict: abstain until blocking evidence gaps are resolved.")
+            lines.append("Unknowns:")
+            if missing_after:
+                for category in missing_after:
+                    lines.append(f"- {category}")
+            else:
+                lines.append("- unresolved evidence blockers")
+            return "\n".join(lines)
+        lines.append("Recovery outcome: sufficient evidence available; proceeding with analysis.")
 
     financial_truth = evidence.get("financial_truth") or {}
     snapshot = financial_truth.get("latest_financial_snapshot") or {}
@@ -666,12 +1027,96 @@ class QueryOrchestrator:
             source_plan=plan.sources,
         )
         evidence = memory_bundle.evidence
-        answer = compose_answer(intent, plan, evidence)
+        raw_evidence = memory_bundle.raw_evidence
+        company_analysis_request = _is_company_analysis_request(
+            query,
+            context=context,
+        )
+        missing_before = _detect_missing_categories(
+            query=query,
+            plan=plan,
+            evidence=evidence,
+            company_analysis_request=company_analysis_request,
+        )
+        missing_after = list(missing_before)
+        recovery_summary: dict[str, Any] = {
+            "attempted": False,
+            "sources": [],
+            "resolved_categories": [],
+            "remaining_categories": list(missing_after),
+        }
+        effective_plan = plan
+
+        if company_analysis_request and missing_before:
+            recovery_entities = dict(entities)
+            recovery_entities["recovery_level"] = "deep"
+            recovery_entities["recovery_targets"] = list(missing_before)
+            recovery_sources = tuple(dict.fromkeys(plan.sources + _ALL_SOURCE_PLAN))
+            recovery_query = _build_recovery_query(
+                query,
+                entities=entities,
+                missing_categories=missing_before,
+            )
+            recovery_bundle = self._memory_assembler.assemble(
+                mode="cockpit_chat_missing_data_recovery",
+                query=recovery_query,
+                intent=plan.intent,
+                entities=recovery_entities,
+                source_plan=recovery_sources,
+            )
+            evidence = _merge_evidence_payloads(
+                base=evidence,
+                candidate=recovery_bundle.evidence,
+                sources=recovery_sources,
+            )
+            raw_evidence = _merge_evidence_payloads(
+                base=raw_evidence,
+                candidate=recovery_bundle.raw_evidence,
+                sources=recovery_sources,
+            )
+            missing_after = _detect_missing_categories(
+                query=query,
+                plan=plan,
+                evidence=evidence,
+                company_analysis_request=company_analysis_request,
+            )
+            resolved = [category for category in missing_before if category not in missing_after]
+            recovery_summary = {
+                "attempted": True,
+                "sources": list(recovery_sources),
+                "query": recovery_query,
+                "resolved_categories": resolved,
+                "remaining_categories": list(missing_after),
+            }
+            effective_plan = QueryPlan(
+                intent=plan.intent,
+                sources=recovery_sources,
+                needs_numbers=plan.needs_numbers,
+                needs_meaning=plan.needs_meaning,
+                needs_environment=plan.needs_environment,
+            )
+
+        sufficient_for_analysis = True
+        if company_analysis_request:
+            sufficient_for_analysis = _is_sufficient_for_company_analysis(
+                evidence=evidence,
+                missing_categories=missing_after,
+            )
+
+        answer = compose_answer(intent, effective_plan, evidence)
+        answer["missing_categories_before_recovery"] = list(missing_before)
+        answer["missing_categories_after_recovery"] = list(missing_after)
+        answer["missing_data_recovery"] = recovery_summary
+        answer["sufficient_for_analysis"] = sufficient_for_analysis
+        if recovery_summary.get("attempted") and not sufficient_for_analysis:
+            answer.setdefault("notes", []).append(
+                "insufficient evidence after bounded recovery pass; abstain with explicit blockers"
+            )
         answer_input = build_answer_input(
             query,
             intent,
             entities,
-            plan,
+            effective_plan,
             evidence,
             answer,
         )
@@ -679,15 +1124,19 @@ class QueryOrchestrator:
             query=query,
             intent=intent,
             entities=entities,
-            plan=plan,
-            source_plan=plan.sources,
+            plan=effective_plan,
+            source_plan=effective_plan.sources,
             financial_truth_results=evidence.get("financial_truth") or {},
             company_memory_results=evidence.get("company_memory") or {},
             market_memory_results=evidence.get("market_memory") or {},
             evidence=evidence,
-            raw_supporting_evidence=memory_bundle.raw_evidence,
+            raw_supporting_evidence=raw_evidence,
             answer_input=answer_input,
             answer=answer,
+            missing_categories_before_recovery=tuple(missing_before),
+            missing_categories_after_recovery=tuple(missing_after),
+            missing_data_recovery=recovery_summary,
+            sufficient_for_analysis=sufficient_for_analysis,
         )
 
 

@@ -36,6 +36,7 @@ except importlib.metadata.PackageNotFoundError:
 DOCLING_TIMEOUT_SECONDS = 120
 DOCLING_TIMEOUT_SECONDS_PER_PAGE = 6
 DOCLING_TIMEOUT_MAX = 600
+DOCLING_TIMEOUT_MAX_STRICT = 1200
 DOCLING_LARGE_PDF_PAGE_THRESHOLD = 200
 DOCLING_LARGE_PDF_SIZE_THRESHOLD_BYTES = 12 * 1024 * 1024
 DOCLING_CACHE_PAGE_GAP_TOLERANCE = 2
@@ -137,13 +138,15 @@ def _get_page_count_fast(pdf_path: str) -> int:
         return 0
 
 
-def _compute_docling_timeout(page_count: int) -> int:
+def _compute_docling_timeout(page_count: int, *, strict_backend: bool = False) -> int:
     """
     Adaptive timeout proportional to page count.
-    Returns seconds: max(DOCLING_TIMEOUT_SECONDS, page_count * per_page) capped at DOCLING_TIMEOUT_MAX.
+    Returns seconds: max(DOCLING_TIMEOUT_SECONDS, page_count * per_page) capped at
+    the mode-appropriate timeout ceiling.
     """
     adaptive = page_count * DOCLING_TIMEOUT_SECONDS_PER_PAGE
-    return min(DOCLING_TIMEOUT_MAX, max(DOCLING_TIMEOUT_SECONDS, adaptive))
+    timeout_cap = DOCLING_TIMEOUT_MAX_STRICT if strict_backend else DOCLING_TIMEOUT_MAX
+    return min(timeout_cap, max(DOCLING_TIMEOUT_SECONDS, adaptive))
 
 
 def _observed_page_numbers(doc: StructuredDocument) -> list[int]:
@@ -419,7 +422,7 @@ def extract_structured(
             result = _extract_pymupdf(pdf_path)
             _save_cache(Path(pdf_path + ".pymupdf.json"), result)
             return result
-        timeout = _compute_docling_timeout(page_count)
+        timeout = _compute_docling_timeout(page_count, strict_backend=strict_backend)
         if timeout != DOCLING_TIMEOUT_SECONDS:
             logger.info(
                 "docling adaptive timeout: %ds for %d-page PDF", timeout, page_count
@@ -428,17 +431,42 @@ def extract_structured(
             result = _run_docling_with_timeout(pdf_path, timeout=timeout)
             _save_cache(cache_path, result)
             if _has_garbled_tables(result, pdf_path):
-                # Strict: reject garbled output for docling backend
-                raise RuntimeError(
-                    f"docling strict backend rejected garbled output for {pdf_path}"
+                if strict_backend:
+                    raise RuntimeError(
+                        f"docling strict backend rejected garbled output for {pdf_path}"
+                    )
+                logger.warning(
+                    "docling output quality fallback triggered for %s; using PyMuPDF",
+                    pdf_path,
                 )
+                result = _extract_pymupdf(pdf_path)
+                _save_cache(Path(pdf_path + ".pymupdf.json"), result)
+                return result
             return result
         except (TimeoutError, ExtractionTimeoutError) as te:
             logger.error("docling timeout for %s: %s", pdf_path, te)
-            raise ExtractionTimeoutError(str(te)) from te
+            if strict_backend:
+                raise RuntimeError(
+                    f"docling strict backend failed: {te}"
+                ) from te
+            logger.warning(
+                "docling timeout fallback triggered for %s; using PyMuPDF",
+                pdf_path,
+            )
+            result = _extract_pymupdf(pdf_path)
+            _save_cache(Path(pdf_path + ".pymupdf.json"), result)
+            return result
         except Exception as e:
             logger.error("docling failed for %s: %s", pdf_path, e)
-            raise RuntimeError(f"docling failed: {e}") from e
+            if strict_backend:
+                raise RuntimeError(f"docling strict backend failed: {e}") from e
+            logger.warning(
+                "docling failure fallback triggered for %s; using PyMuPDF",
+                pdf_path,
+            )
+            result = _extract_pymupdf(pdf_path)
+            _save_cache(Path(pdf_path + ".pymupdf.json"), result)
+            return result
     else:
         logger.info("PyMuPDF extraction: %s", pdf_path)
         result = _extract_pymupdf(pdf_path)

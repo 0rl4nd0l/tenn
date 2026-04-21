@@ -402,3 +402,106 @@ def test_mixed_answer_input_separates_facts_interpretation_and_context() -> None
     assert result.answer_input.index(
         "Interpretation from company memory:"
     ) < result.answer_input.index("External context from market memory:")
+
+
+def test_company_analysis_runs_bounded_missing_data_recovery_and_recovers_financials() -> None:
+    class FinancialTruthProvider:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def retrieve(self, *, query, entities, intent):
+            self.calls += 1
+            if str(entities.get("recovery_level") or "").strip().lower() == "deep":
+                return {
+                    "status": "ok",
+                    "ticker": entities.get("primary_ticker"),
+                    "financials": [{"period_end": "2025-12-31", "revenue": 55000}],
+                    "latest_financial_snapshot": {
+                        "period_end": "2025-12-31",
+                        "revenue": 55000,
+                    },
+                    "docs": [
+                        {
+                            "title": "FY25 Results",
+                            "published_at": "2026-04-20T01:00:00Z",
+                        }
+                    ],
+                    "announcement_context": [
+                        {
+                            "title": "Quarterly Update",
+                            "published_at": "2026-04-19T01:00:00Z",
+                        }
+                    ],
+                    "extraction_failures": [],
+                    "low_confidence_financials": [],
+                }
+            return {
+                "status": "ok",
+                "ticker": entities.get("primary_ticker"),
+                "financials": [],
+                "latest_financial_snapshot": {},
+                "docs": [],
+                "announcement_context": [],
+                "extraction_failures": [],
+                "low_confidence_financials": [],
+            }
+
+    class CompanyProvider:
+        def retrieve(self, *, query, entities, intent):
+            return {
+                "status": "ok",
+                "items": [
+                    {
+                        "type": "management_guidance",
+                        "statement": "Management is prioritising balance sheet strength.",
+                        "active_score": 0.8,
+                        "metadata": {"themes": ["balance sheet"]},
+                    }
+                ],
+            }
+
+    result = QueryOrchestrator(
+        financial_truth_provider=FinancialTruthProvider(),
+        company_memory_provider=CompanyProvider(),
+    ).orchestrate_query_with_context(
+        "Give me a deep company analysis on BHP",
+        context={"request_standard": "company_analysis", "analysis_mode": "deep"},
+    )
+
+    assert result.missing_data_recovery["attempted"] is True
+    assert "financials" in result.missing_categories_before_recovery
+    assert "financials" not in result.missing_categories_after_recovery
+    assert result.sufficient_for_analysis is True
+    assert "Recovery outcome: sufficient evidence available" in result.answer_input
+    assert "Final verdict: abstain" not in result.answer_input
+
+
+def test_company_analysis_abstains_after_recovery_when_blockers_remain() -> None:
+    class EmptyProvider:
+        def retrieve(self, *, query, entities, intent):
+            return {
+                "status": "ok",
+                "financials": [],
+                "latest_financial_snapshot": {},
+                "docs": [],
+                "announcement_context": [],
+                "items": [],
+                "sector_items": [],
+                "macro_items": [],
+                "extraction_failures": [],
+                "low_confidence_financials": [],
+            }
+
+    result = QueryOrchestrator(
+        financial_truth_provider=EmptyProvider(),
+        company_memory_provider=EmptyProvider(),
+        market_memory_provider=EmptyProvider(),
+    ).orchestrate_query_with_context(
+        "Full company analysis for BHP",
+        context={"request_standard": "company_analysis", "analysis_mode": "deep"},
+    )
+
+    assert result.missing_data_recovery["attempted"] is True
+    assert result.sufficient_for_analysis is False
+    assert "Final verdict: abstain" in result.answer_input
+    assert "financials" in result.missing_categories_after_recovery

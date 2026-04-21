@@ -43,7 +43,10 @@ from cockpit.core.backend_proposals import (
 )
 from cockpit.core.agent_loop import parse_backend_prefix
 from cockpit.core.conversation_commands import derive_conversational_command
-from cockpit.core.request_standards import build_request_standard_prompt_guidance
+from cockpit.core.request_standards import (
+    build_request_standard_prompt_guidance,
+    select_request_standard_type,
+)
 from cockpit.core.sources import SourcesFormatter
 from shared.ticker_inference import COMMON_TICKER_STOPWORDS, detect_primary_ticker
 
@@ -1044,6 +1047,9 @@ class ChatController:
     def _orchestration_has_substantive_evidence(orchestration_result) -> bool:
         if orchestration_result is None:
             return False
+        recovery = getattr(orchestration_result, "missing_data_recovery", None)
+        if isinstance(recovery, dict) and bool(recovery.get("attempted")):
+            return True
         return bool(
             orchestration_result.financial_truth_results.get("items")
             or orchestration_result.financial_truth_results.get(
@@ -4927,6 +4933,26 @@ class ChatController:
                     "entities": orchestration_result.entities,
                     "source_status": orchestration_result.answer.get("source_status")
                     or {},
+                    "missing_data_recovery": getattr(
+                        orchestration_result, "missing_data_recovery", {}
+                    ),
+                    "missing_categories_before_recovery": list(
+                        getattr(
+                            orchestration_result,
+                            "missing_categories_before_recovery",
+                            (),
+                        )
+                    ),
+                    "missing_categories_after_recovery": list(
+                        getattr(
+                            orchestration_result,
+                            "missing_categories_after_recovery",
+                            (),
+                        )
+                    ),
+                    "sufficient_for_analysis": bool(
+                        getattr(orchestration_result, "sufficient_for_analysis", True)
+                    ),
                 },
                 "result": {
                     "intent": orchestration_result.intent,
@@ -4934,6 +4960,12 @@ class ChatController:
                     "entities": orchestration_result.entities,
                     "source_status": orchestration_result.answer.get("source_status")
                     or {},
+                    "missing_data_recovery": getattr(
+                        orchestration_result, "missing_data_recovery", {}
+                    ),
+                    "sufficient_for_analysis": bool(
+                        getattr(orchestration_result, "sufficient_for_analysis", True)
+                    ),
                 },
             }
         ]
@@ -5216,6 +5248,11 @@ class ChatController:
             mode=standards_mode_hint.value,
             ticker=ticker,
         )
+        pre_routing_standard_type = select_request_standard_type(
+            message=effective_message,
+            mode=standards_mode_hint.value,
+            ticker=ticker,
+        )
 
         clarification_result = self._try_fast_clarification_shortcircuit(
             effective_message,
@@ -5473,7 +5510,11 @@ class ChatController:
                     orchestration_result = (
                         self._query_orchestrator.orchestrate_query_with_context(
                             effective_message,
-                            context={"prior_ticker": ticker},
+                            context={
+                                "prior_ticker": ticker,
+                                "analysis_mode": analysis_mode,
+                                "request_standard": pre_routing_standard_type,
+                            },
                         )
                     )
                     has_orchestrated_evidence = (
