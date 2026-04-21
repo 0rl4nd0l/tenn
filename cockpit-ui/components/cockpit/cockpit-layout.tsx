@@ -93,13 +93,14 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
           className={cn(
             "flex min-h-0 flex-1 flex-col overflow-hidden transition-all duration-500",
             isIPhoneScale 
-              ? "w-[390px] h-[844px] max-h-full rounded-[3rem] border-[12px] border-muted-foreground/20 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] relative bg-background" 
+              ? "w-[414px] h-[896px] max-h-full rounded-[3.5rem] border-[12px] border-muted-foreground/20 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] relative bg-background" 
               : "w-full"
           )}
         >
           {isIPhoneScale && (
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-7 bg-muted-foreground/20 rounded-b-3xl z-50 flex items-center justify-center backdrop-blur-md">
-              <div className="w-12 h-1.5 bg-background/40 rounded-full" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-7 bg-muted-foreground/20 rounded-b-3xl z-50 flex items-center justify-center backdrop-blur-md">
+              <div className="w-16 h-1.5 bg-background/40 rounded-full mx-auto" />
+              <div className="absolute right-8 w-2 h-2 rounded-full bg-background/20" />
             </div>
           )}
           <header className={cn(
