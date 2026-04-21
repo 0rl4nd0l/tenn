@@ -79,6 +79,15 @@ class TestHoldingsConversationalCommands:
     def test_bare_holding_singular_maps_to_list(self) -> None:
         assert derive_conversational_command("holding") == "/holdings list"
 
+    def test_what_are_my_holdings_maps_to_list(self) -> None:
+        assert derive_conversational_command("what are my holdings") == "/holdings list"
+
+    def test_what_stocks_am_i_holding_maps_to_list(self) -> None:
+        assert derive_conversational_command("what stocks am i holding") == "/holdings list"
+
+    def test_what_stoicks_am_i_holding_maps_to_list(self) -> None:
+        assert derive_conversational_command("what stoicks am i holding") == "/holdings list"
+
     # --- add --------------------------------------------------------------
     def test_add_to_holdings_maps_to_add(self) -> None:
         assert derive_conversational_command("add BHP to holdings") == "/holdings add BHP"
@@ -127,6 +136,15 @@ class TestHoldingsConversationalCommands:
 
     def test_show_watchlist_still_routes_to_watch_list(self) -> None:
         assert derive_conversational_command("show my watchlist") == "/watch list"
+
+    def test_what_is_in_my_watchlist_routes_to_watch_list(self) -> None:
+        assert derive_conversational_command("what is in my watchlist") == "/watch list"
+
+    def test_what_stocks_are_in_my_watchlist_routes_to_watch_list(self) -> None:
+        assert (
+            derive_conversational_command("what stocks are in my watchlist")
+            == "/watch list"
+        )
 
 
 class TestMarketUpdateConversationalCommands:
@@ -189,6 +207,24 @@ class TestMarketUpdateConversationalCommands:
         assert (
             derive_conversational_command("manual market update")
             == "/market-update manual"
+        )
+
+    def test_daily_market_update_maps_to_final(self) -> None:
+        assert (
+            derive_conversational_command("daily market update")
+            == "/market-update final"
+        )
+
+    def test_market_update_today_maps_to_final(self) -> None:
+        assert (
+            derive_conversational_command("market update today?")
+            == "/market-update final"
+        )
+
+    def test_todays_market_update_maps_to_final(self) -> None:
+        assert (
+            derive_conversational_command("today's market update")
+            == "/market-update final"
         )
 
     # --- generic ----------------------------------------------------------

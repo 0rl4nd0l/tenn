@@ -42,6 +42,8 @@ from cockpit.core.backend_proposals import (
     build_backend_runtime_remediation_request,
 )
 from cockpit.core.agent_loop import parse_backend_prefix
+from cockpit.core.conversation_commands import derive_conversational_command
+from cockpit.core.request_standards import build_request_standard_prompt_guidance
 from cockpit.core.sources import SourcesFormatter
 from shared.ticker_inference import COMMON_TICKER_STOPWORDS, detect_primary_ticker
 
@@ -1662,6 +1664,24 @@ class ChatController:
         r"^\s*(?:(?P<ticker_prefix>[A-Za-z0-9]{1,10})\s+filestats?|filestats?\s+(?P<ticker_suffix>[A-Za-z0-9]{1,10}))\s*[?!.]*\s*$",
         re.IGNORECASE,
     )
+    _EXPLICIT_WEB_SEARCH_PATTERNS = (
+        re.compile(
+            r"^\s*(?:search|find|look\s+up)\s+(?:the\s+)?web(?:\s+for)?\s+(?P<query>.+?)\s*[?!.]*\s*$",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"^\s*web\s+search(?:\s+for)?\s+(?P<query>.+?)\s*[?!.]*\s*$",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"^\s*search\s+online(?:\s+for)?\s+(?P<query>.+?)\s*[?!.]*\s*$",
+            re.IGNORECASE,
+        ),
+    )
+    _BARE_WEB_SEARCH_RE = re.compile(
+        r"^\s*(?:search\s+web|web\s+search)\s*[?!.]*\s*$",
+        re.IGNORECASE,
+    )
 
     def _try_news_shortcircuit(
         self, message: str, ticker: str | None
@@ -1734,6 +1754,39 @@ class ChatController:
             ],
             mode=ResponseMode.FAST,
         )
+
+    @classmethod
+    def _extract_explicit_web_search_query(cls, message: str) -> str | None:
+        text = str(message or "").strip()
+        if not text:
+            return None
+        if cls._BARE_WEB_SEARCH_RE.fullmatch(text):
+            return ""
+        for pattern in cls._EXPLICIT_WEB_SEARCH_PATTERNS:
+            match = pattern.fullmatch(text)
+            if not match:
+                continue
+            query = str(match.group("query") or "").strip().rstrip("?.!,")
+            return query
+        return None
+
+    @staticmethod
+    def _query_signals_fresh_web_context(message: str) -> bool:
+        text = str(message or "").strip().lower()
+        if not text:
+            return False
+        freshness_markers = (
+            "latest",
+            "recent",
+            "today",
+            "current",
+            "this week",
+            "breaking",
+            "new announcement",
+            "market update",
+            "news",
+        )
+        return any(marker in text for marker in freshness_markers)
 
     def _try_price_history_shortcircuit(
         self, message: str, ticker: str | None
@@ -3928,7 +3981,77 @@ class ChatController:
         return MarketUpdateOrchestrator(
             state_store=self._state_store,
             snapshot_provider=provider,
+            market_universe_loader=self._load_default_market_update_universe,
         )
+
+    @staticmethod
+    def _load_default_market_update_universe() -> list[str]:
+        """Load cockpit's default market-wide ticker universe.
+
+        Used as the /market-update final fallback when no explicit tickers
+        are supplied and the watchlist is empty.
+        """
+        local_path = (
+            Path(__file__).resolve().parents[2]
+            / "data"
+            / "raw"
+            / "asx_ticker_universe.txt"
+        )
+        workspace_root = str(os.getenv("COCKPIT_WORKSPACE_ROOT") or "").strip()
+        candidates = [
+            local_path,
+            Path("/data/raw/asx_ticker_universe.txt"),  # Docker compose mount
+        ]
+        if workspace_root:
+            candidates.append(
+                Path(workspace_root)
+                / "financial-engine_v2"
+                / "data"
+                / "raw"
+                / "asx_ticker_universe.txt"
+            )
+
+        lines: list[str] = []
+        loaded_path: Path | None = None
+        last_error: Exception | None = None
+        for path in candidates:
+            try:
+                if not path.exists():
+                    continue
+                lines = path.read_text(encoding="utf-8").splitlines()
+                loaded_path = path
+                break
+            except OSError as exc:
+                last_error = exc
+                continue
+        if loaded_path is None:
+            if last_error is not None:
+                logger.warning(
+                    "market-update universe file unavailable (%s): %s",
+                    candidates,
+                    last_error,
+                )
+            else:
+                logger.warning(
+                    "market-update universe file not found; checked: %s",
+                    [str(p) for p in candidates],
+                )
+            return []
+
+        tickers: list[str] = []
+        seen: set[str] = set()
+        for raw in lines:
+            # Allow inline comments and comma-separated rows.
+            cleaned = raw.split("#", 1)[0].replace(",", " ").strip()
+            if not cleaned:
+                continue
+            for token in cleaned.split():
+                ticker = token.strip().upper()
+                if not ticker or ticker in seen:
+                    continue
+                seen.add(ticker)
+                tickers.append(ticker)
+        return tickers
 
     @staticmethod
     def _render_market_update_report(report: dict[str, Any]) -> str:
@@ -4602,6 +4725,7 @@ class ChatController:
         analysis_mode: str | None,
         on_thinking=None,
         attached_bundle: _AttachedSourceBundle | None = None,
+        request_standard_guidance: str = "",
     ) -> ChatResponse:
         """Run the agentic tool-calling loop and convert the result to a ChatResponse."""
         # Reuse existing ticker detection logic
@@ -4650,6 +4774,13 @@ class ChatController:
             augmented_message = augmented_message + "\n\n" + strategy_block
         if attached_bundle is not None and attached_bundle.context.strip():
             augmented_message = augmented_message + "\n\n" + attached_bundle.context.strip()
+        if request_standard_guidance.strip():
+            augmented_message = (
+                "Request-standard guidance for this turn:\n"
+                + request_standard_guidance.strip()
+                + "\n\n"
+                + augmented_message
+            )
         if self._memory and ticker:
             try:
                 research = self._memory.read_research(ticker)
@@ -4773,6 +4904,7 @@ class ChatController:
         on_chunk=None,
         on_status=None,
         attached_bundle: _AttachedSourceBundle | None = None,
+        request_standard_guidance: str = "",
     ) -> ChatResponse | None:
         if orchestration_result is None:
             return None
@@ -4826,13 +4958,19 @@ class ChatController:
         final_text = orchestration_result.answer_input
         if self._agent_loop is not None:
             conversation_history = self._recent_conversation_history()
+            synthesis_question = message
+            if request_standard_guidance.strip():
+                synthesis_question = (
+                    f"{message}\n\nRequest-standard guidance for this turn:\n"
+                    f"{request_standard_guidance.strip()}"
+                )
             if on_status:
                 on_status("Streaming final synthesis")
             if on_chunk is not None:
                 final_text = self._agent_loop.synthesize_final_answer_stream(
                     evidence,
                     on_chunk,
-                    question=message,
+                    question=synthesis_question,
                     ticker=primary_ticker or ticker,
                     conversation_history=conversation_history,
                     draft_answer=orchestration_result.answer_input,
@@ -4841,7 +4979,7 @@ class ChatController:
             else:
                 final_text = self._agent_loop.synthesize_final_answer(
                     evidence,
-                    question=message,
+                    question=synthesis_question,
                     ticker=primary_ticker or ticker,
                     conversation_history=conversation_history,
                     draft_answer=orchestration_result.answer_input,
@@ -5014,6 +5152,20 @@ class ChatController:
         forced_backend, effective_message = parse_backend_prefix(effective_message)
         attached_bundle = _build_attached_source_bundle(attached_sources)
 
+        # Web chat path parity with Textual UI: map recognised natural-language
+        # control phrases to deterministic slash commands.
+        if not effective_message.strip().startswith("/"):
+            derived_cmd = derive_conversational_command(effective_message.strip())
+            if derived_cmd:
+                effective_message = derived_cmd
+
+        # Slash commands should be deterministic in all UI modes, including
+        # marketplace. Dispatch them before mode-specific chat paths.
+        if effective_message.strip().startswith("/"):
+            cmd_response = self._handle_slash_command(effective_message.strip())
+            if cmd_response is not None:
+                return cmd_response
+
         if ui_mode == "marketplace":
             return self._run_marketplace_chat_mode(
                 effective_message,
@@ -5030,12 +5182,6 @@ class ChatController:
                 'Ask me about a company (e.g. "tell me about CSL") or run an action from the panel.'
             )
             return ChatResponse(text=greeting, evidence=[], mode=ResponseMode.FAST)
-
-        # --- Slash command dispatch: deterministic, no LLM needed ---
-        if effective_message.strip().startswith("/"):
-            cmd_response = self._handle_slash_command(effective_message.strip())
-            if cmd_response is not None:
-                return cmd_response
 
         # --- Runtime clock short-circuit: answer local date/time/day directly ---
         runtime_clock_result = self._try_runtime_clock_shortcircuit(effective_message)
@@ -5058,6 +5204,18 @@ class ChatController:
         )
         if ticker:
             self.last_ticker = ticker
+        standards_mode_hint = self.classify_request(
+            effective_message, enable_web=enable_web
+        )
+        if str(analysis_mode or "").strip().lower() == "deep":
+            standards_mode_hint = ResponseMode.DEEP_ANALYSIS
+        elif standards_mode_hint == ResponseMode.FAST and ui_mode:
+            standards_mode_hint = self._UI_MODE_MAP.get(ui_mode, standards_mode_hint)
+        pre_routing_standards_guidance = build_request_standard_prompt_guidance(
+            message=effective_message,
+            mode=standards_mode_hint.value,
+            ticker=ticker,
+        )
 
         clarification_result = self._try_fast_clarification_shortcircuit(
             effective_message,
@@ -5151,6 +5309,64 @@ class ChatController:
                 evidence=[],
                 action_preview=action_preview,
                 mode=ResponseMode.ACTION,
+            )
+
+        # --- Explicit web-search shortcut: "search web for ..." ---
+        explicit_web_query = self._extract_explicit_web_search_query(effective_message)
+        if explicit_web_query is not None:
+            if not explicit_web_query:
+                return ChatResponse(
+                    text='Tell me what to search for, e.g. "search web for BHP latest announcement".',
+                    evidence=[],
+                    mode=ResponseMode.WEB,
+                )
+            if not enable_web:
+                return ChatResponse(
+                    text="Web access is required for web search. Enable web and try again.",
+                    evidence=[],
+                    action_preview=build_backend_access_proposal_request(
+                        "web",
+                        enable=True,
+                        resume_message=effective_message,
+                    ),
+                    mode=ResponseMode.FAST,
+                )
+            try:
+                web_result = self.tool_router.web_enrich(
+                    explicit_web_query, enabled=True
+                )
+            except Exception as exc:
+                return ChatResponse(
+                    text=f"Web search failed: {exc}",
+                    evidence=[],
+                    mode=ResponseMode.WEB,
+                )
+
+            payload = (
+                web_result.payload
+                if isinstance(getattr(web_result, "payload", None), dict)
+                else {}
+            )
+            evidence: list[dict[str, Any]] = [{"type": "web", "details": payload}]
+            if attached_bundle.evidence:
+                evidence.extend(attached_bundle.evidence)
+
+            urls = payload.get("urls") if isinstance(payload.get("urls"), list) else []
+            lines = [f"Web search results for: {explicit_web_query}"]
+            if urls:
+                for idx, url in enumerate(urls[:5], start=1):
+                    lines.append(f"{idx}. {url}")
+            else:
+                lines.append("No web results were returned.")
+
+            facts_count = payload.get("facts_count")
+            if isinstance(facts_count, int) and facts_count > 0:
+                lines.append(f"Extracted {facts_count} numeric web fact(s).")
+
+            return ChatResponse(
+                text="\n".join(lines),
+                evidence=evidence,
+                mode=ResponseMode.WEB,
             )
 
         # --- Chart intent short-circuit (before general action detection) ---
@@ -5278,6 +5494,7 @@ class ChatController:
                             on_chunk=on_chunk,
                             on_status=on_status,
                             attached_bundle=attached_bundle,
+                            request_standard_guidance=pre_routing_standards_guidance,
                         )
                 except Exception as exc:
                     logger.warning(
@@ -5306,6 +5523,7 @@ class ChatController:
                     analysis_mode,
                     on_thinking=on_thinking,
                     attached_bundle=attached_bundle,
+                    request_standard_guidance=pre_routing_standards_guidance,
                 )
 
         # ------------------------------------------------------------------ #
@@ -5441,14 +5659,24 @@ class ChatController:
                 web = self.tool_router.fetch_web(maybe_url.group(0), enabled=True)
                 evidence.append({"type": "web", "details": web.payload})
 
-        # --- Web enrichment for deep mode or max-depth profile ---
-        if (analysis_mode == "deep" or effective_profile == "max-depth") and enable_web:
-            if hasattr(self.tool_router, "web_enrich"):
-                web_query = (
-                    f"{ticker}: {effective_message}" if ticker else effective_message
+        # --- Web enrichment for deep mode, max-depth profile, or freshness intent ---
+        should_auto_web_enrich = (
+            enable_web
+            and hasattr(self.tool_router, "web_enrich")
+            and (
+                analysis_mode == "deep"
+                or effective_profile == "max-depth"
+                or recent_update_query
+                or (
+                    mode in {ResponseMode.DEEP_ANALYSIS, ResponseMode.VERIFICATION}
+                    and self._query_signals_fresh_web_context(effective_message)
                 )
-                web_result = self.tool_router.web_enrich(web_query, enabled=True)
-                evidence.append({"type": "web", "details": web_result.payload})
+            )
+        )
+        if should_auto_web_enrich:
+            web_query = f"{ticker}: {effective_message}" if ticker else effective_message
+            web_result = self.tool_router.web_enrich(web_query, enabled=True)
+            evidence.append({"type": "web", "details": web_result.payload})
 
         # --- Announcement sync check ---
         if "announcement" in msg_lower and ticker:
@@ -5555,6 +5783,13 @@ class ChatController:
             )
         elif mode == ResponseMode.WEB:
             system_instruction += "The user supplied a URL. Incorporate any fetched web evidence if it is available.\n"
+        standards_guidance = build_request_standard_prompt_guidance(
+            message=effective_message,
+            mode=mode.value,
+            ticker=ticker,
+        )
+        if standards_guidance:
+            system_instruction += standards_guidance
 
         # OpenViking: fetch semantically relevant prior turns for this query
         ov_context_block = ""

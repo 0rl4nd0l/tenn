@@ -115,6 +115,16 @@ def _(_m, _msg):
     return "/holdings list"
 
 
+@_rule(r"\bwhat\s+(?:am\s+i|are\s+my)\s+holdings?\b")
+def _(_m, _msg):
+    return "/holdings list"
+
+
+@_rule(r"\bwhat\s+(?:stocks?|stoicks?)\s+(?:am\s+i|are\s+we)\s+holding\b")
+def _(_m, _msg):
+    return "/holdings list"
+
+
 @_rule(r"^\s*holdings?\s*$")
 def _(_m, _msg):
     return "/holdings list"
@@ -166,6 +176,16 @@ def _(_m, _msg):
 
 
 @_rule(r"\bshow\s+(my\s+)?watchlist\b")
+def _(_m, _msg):
+    return "/watch list"
+
+
+@_rule(r"\bwhat\s+is\s+in\s+(?:my\s+)?watchlist\b")
+def _(_m, _msg):
+    return "/watch list"
+
+
+@_rule(r"\bwhat\s+stocks?\s+are\s+in\s+(?:my\s+)?watchlist\b")
 def _(_m, _msg):
     return "/watch list"
 
@@ -237,6 +257,21 @@ def _(_m, _msg):
 @_rule(r"\bmanual\s+(?:market\s+)?update\b")
 def _(_m, _msg):
     return "/market-update manual"
+
+
+@_rule(r"\bdaily\s+(?:market\s+)?update\b")
+def _(_m, _msg):
+    return "/market-update final"
+
+
+@_rule(r"\b(?:market\s+)?update\s+today\b")
+def _(_m, _msg):
+    return "/market-update final"
+
+
+@_rule(r"\btoday'?s\s+(?:market\s+)?update\b")
+def _(_m, _msg):
+    return "/market-update final"
 
 
 @_rule(r"\b(?:run\s+)?(?:a\s+|the\s+)?market\s+update\b")
