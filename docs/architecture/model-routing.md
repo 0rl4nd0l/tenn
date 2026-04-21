@@ -156,7 +156,7 @@ The metrics layer stores rolling per-model summaries and rolling per `(model, fi
 - `error_rate`
 - `timeout_rate`
 
-Periodic summary snapshots are also written to `financial-engine_v2/reports/router_metrics_snapshot.json`. Older snapshots without finance-task fields still load safely and fall back to global per-model summaries.
+Periodic summary snapshots are written to `${DATA_ROOT}/reports/router_metrics_snapshot.json` (for example `/data/reports/router_metrics_snapshot.json` in Docker). If that location is unavailable or not writable, the backend falls back to `financial-engine_v2/backend/reports/router_metrics_snapshot.json`. Older snapshots without finance-task fields still load safely and fall back to global per-model summaries.
 
 ## Routing feedback loop
 

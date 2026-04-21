@@ -1,15 +1,33 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from hashlib import sha1
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from app.core.config import settings
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-REPORTS_ROOT = REPO_ROOT / "reports"
+
+def _default_reports_root() -> Path:
+    backend_root = Path(__file__).resolve().parents[2]
+    candidates = [
+        Path(getattr(settings, "data_root", "/data")).expanduser().resolve() / "reports",
+        backend_root / "reports",
+    ]
+    for candidate in candidates:
+        try:
+            candidate.mkdir(parents=True, exist_ok=True)
+            if os.access(candidate, os.W_OK | os.X_OK):
+                return candidate
+        except OSError:
+            continue
+    return candidates[0]
+
+
+REPORTS_ROOT = _default_reports_root()
 PROPOSALS_LOG_PATH = REPORTS_ROOT / "strategy_proposals.jsonl"
 ACTIVE_STATE_PATH = REPORTS_ROOT / "strategy_state.json"
 

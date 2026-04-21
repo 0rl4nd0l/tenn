@@ -134,6 +134,111 @@ def test_cockpit_chat_stream_blocks_substantive_answer_without_sources(monkeypat
     assert not [event for event in data_events if event.get("type") == "sources"]
 
 
+def test_cockpit_chat_stream_allows_good_morning_without_sources(monkeypatch) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="Good morning. How can I help?",
+                evidence=[],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 321,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "good morning", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    assert done_events
+    assert done_events[-1]["data"]["text"] == "Good morning. How can I help?"
+
+
+def test_cockpit_chat_stream_allows_market_update_command_phrase_without_sources(
+    monkeypatch,
+) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="No market-update reports found.",
+                evidence=[],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 111,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "market update today?", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    assert done_events
+    assert done_events[-1]["data"]["text"] == "No market-update reports found."
+    assert not [event for event in data_events if event.get("type") == "sources"]
+
+
 def test_cockpit_chat_stream_emits_sources_when_evidence_is_renderable(monkeypatch) -> None:
     class FakeService:
         def chat_stream(
@@ -198,6 +303,75 @@ def test_cockpit_chat_stream_emits_sources_when_evidence_is_renderable(monkeypat
     assert source_events
     items = source_events[-1]["data"]["items"]
     assert items[0]["url"] == "https://example.com/bhp-update"
+
+
+def test_cockpit_chat_stream_tv_screener_evidence_satisfies_source_contract(monkeypatch) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="Top movers include BHP and RIO today.",
+                evidence=[
+                    {
+                        "tool": "tv_screener",
+                        "result": {
+                            "market": "australia",
+                            "results": [
+                                {
+                                    "symbol": "ASX:BHP",
+                                    "change_percent": 2.4,
+                                    "close": 45.2,
+                                }
+                            ],
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 121,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "what are some market movers today", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    source_events = [event for event in data_events if event.get("type") == "sources"]
+
+    assert done_events
+    assert done_events[-1]["data"]["text"] == "Top movers include BHP and RIO today."
+    assert source_events
+    assert source_events[-1]["data"]["items"][0]["source_id"] == "tv_screener:AUSTRALIA:ASX:BHP"
 
 
 def test_cockpit_chat_stream_done_event_preserves_model_metadata(monkeypatch) -> None:
@@ -290,6 +464,47 @@ def test_cockpit_chat_non_stream_uses_to_thread(monkeypatch) -> None:
     assert response.status_code == 200
     assert called["used"] is True
     assert response.json()["data"]["text"] == "Hello there."
+
+
+def test_cockpit_chat_forwards_attached_sources(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    class FakeService:
+        def chat_stream(self, **kwargs):
+            captured.update(kwargs)
+            return SimpleNamespace(
+                text="Hello there.",
+                evidence=[],
+                action_preview=None,
+                routing_metadata={
+                    "model": "model:gpt-oss-20b",
+                    "latency_ms": 42,
+                    "cost_usd": 0.0,
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/chat",
+        json={
+            "message": "hello",
+            "stream": False,
+            "attached_sources": [{"source_id": "src-1", "source_kind": "concat"}],
+        },
+    )
+
+    assert response.status_code == 200
+    assert captured["attached_sources"] == [
+        {"source_id": "src-1", "source_kind": "concat"}
+    ]
 
 
 def test_cockpit_chat_stream_emits_filestats_chart_event(monkeypatch) -> None:

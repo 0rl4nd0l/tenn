@@ -2,9 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$ROOT_DIR"
-
 TENN_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$ROOT_DIR"
 PYTHON_BIN="$(command -v python3 2>/dev/null || command -v python 2>/dev/null)"
 if [[ -z "${PYTHON_BIN}" ]]; then
   echo "ERROR: python3 or python required for Tenn storage guard" >&2
@@ -277,7 +276,7 @@ export EMBEDDING_API_KEY="${EMBEDDING_API_KEY:-${LLM_API_KEY}}"
 export EMBED_MODEL="${EMBED_MODEL:-nomic-embed-text}"
 export EXTRACT_MODEL="${EXTRACT_MODEL:-qwen2.5-14b-instruct}"
 export EMBEDDING_MODEL="${EMBEDDING_MODEL:-${EMBED_MODEL}}"
-export LLM_MODEL="${LLM_MODEL:-${EXTRACT_MODEL}}"
+export LLM_MODEL="${LLM_MODEL:-model:qwen3.5-35b-a3b-apex}"
 export ROUTER_FEEDBACK_ENABLED="${ROUTER_FEEDBACK_ENABLED:-true}"
 export ANALYZER_MAX_AGE_SECONDS="${ANALYZER_MAX_AGE_SECONDS:-600}"
 export MARKETINDEX_ANNOUNCEMENTS_FILE="${MARKETINDEX_ANNOUNCEMENTS_FILE:-${DATA_ROOT}/raw/marketindex_announcements.json}"
@@ -332,10 +331,10 @@ echo "[run_local_backend] task_mode=${TASK_MODE}"
 echo "[run_local_backend] embeddings=${ENABLE_EMBEDDINGS} qdrant=${ENABLE_QDRANT} extraction=${ENABLE_EXTRACTION}"
 echo "[startup] LLAMACPP_URL=${LLAMACPP_URL}"
 echo "[startup] EXTRACTION_LLAMACPP_URL=${EXTRACTION_LLAMACPP_URL:-<unset, using router mode on LLAMACPP_URL>}"
-echo "[startup] COCKPIT_STATE_DB=${COCKPIT_STATE_DB}"
 echo "[startup] OLLAMA_URL=${OLLAMA_URL}"
 echo "[startup] EMBEDDING_URL=${EMBEDDING_URL:-<unset, falls back to OLLAMA_URL>}"
 echo "[startup] OLLAMA_NUM_GPU=${OLLAMA_NUM_GPU:-<unset>}"
+echo "[startup] COCKPIT_STATE_DB=${COCKPIT_STATE_DB}"
 echo "[startup] MARKETPLACE_BROWSER_RUNTIME=${MARKETPLACE_BROWSER_RUNTIME}"
 echo "[startup] MARKETPLACE_BROWSER_PROFILE_DIR=${MARKETPLACE_BROWSER_PROFILE_DIR}"
 echo "[startup] MARKETPLACE_BROWSER_XDG_RUNTIME_DIR=${MARKETPLACE_BROWSER_XDG_RUNTIME_DIR}"

@@ -95,6 +95,41 @@ class TestEmptyTickerList:
         assert result.report_id is None
         store.save_market_update_report.assert_not_called()
 
+    def test_final_no_watchlist_uses_market_universe_fallback(self) -> None:
+        store = _make_store()
+        store.list_watch_tickers.return_value = []
+        seen: list[str] = []
+
+        def provider(t: str) -> TickerSnapshot | None:
+            seen.append(t)
+            return _snap(t, pct_change=1.0)
+
+        orc = MarketUpdateOrchestrator(
+            state_store=store,
+            snapshot_provider=provider,
+            market_universe_loader=lambda: ["BHP", "RIO"],
+            clock=_fixed_clock,
+        )
+        result = orc.run("final")
+        assert result.status == "complete"
+        assert result.gathered_tickers == 2
+        assert seen == ["BHP", "RIO"]
+        store.save_market_update_report.assert_called_once()
+
+    def test_noon_no_watchlist_still_skips_even_with_market_universe_loader(self) -> None:
+        store = _make_store()
+        store.list_watch_tickers.return_value = []
+        orc = MarketUpdateOrchestrator(
+            state_store=store,
+            snapshot_provider=lambda t: _snap(t),
+            market_universe_loader=lambda: ["BHP", "RIO"],
+            clock=_fixed_clock,
+        )
+        result = orc.run("noon")
+        assert result.status == "skipped"
+        assert result.report_id is None
+        store.save_market_update_report.assert_not_called()
+
 
 class TestWatchlistResolution:
     def test_falls_back_to_watchlist_when_tickers_is_none(self) -> None:

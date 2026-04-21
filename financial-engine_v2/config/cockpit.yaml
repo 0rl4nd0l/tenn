@@ -21,7 +21,7 @@ backend:
   api_key: ""
 
 web:
-  enabled_default: false
+  enabled_default: true
 
 exports:
   dir: reports/analysis

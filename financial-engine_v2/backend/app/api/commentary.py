@@ -19,6 +19,13 @@ from pydantic import BaseModel
 from app.api.routes import require_api_key
 from app.services.commentary_ingest import ingest_transcript
 from app.services.embeddings import upsert_points, verify_qdrant
+from app.services.facebook_marketplace_inspector import (
+    MARKETPLACE_TOPIC_TAGS,
+    MarketplaceListingCapture,
+    build_marketplace_listing_capture,
+    inspect_facebook_marketplace_listing,
+    is_facebook_marketplace_url,
+)
 from app.services.youtube_transcript_fetcher import (
     TranscriptUnavailableError,
     _default_fetch_transcript,  # private module-level fetcher; patched directly in tests
@@ -222,6 +229,50 @@ class IngestUrlRequest(BaseModel):
     url: str
 
 
+class InspectMarketplaceRequest(BaseModel):
+    url: str
+
+
+class IngestMarketplaceSnapshotRequest(BaseModel):
+    url: str
+    captured_at: str | None = None
+    title: str | None = None
+    price: str | None = None
+    seller_name: str | None = None
+    location: str | None = None
+    description: str | None = None
+    raw_text_lines: list[str] = []
+
+
+def _stage_marketplace_capture(capture: MarketplaceListingCapture) -> dict[str, Any]:
+    try:
+        result = ingest_transcript(
+            transcript_text=capture.transcript_text,
+            source_name=capture.title or "Facebook Marketplace listing",
+            source_type="market_commentary",
+            speaker=capture.seller_name or "Facebook Marketplace",
+            published_at=capture.captured_at,
+            topic_tags=list(MARKETPLACE_TOPIC_TAGS),
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422, detail=f"marketplace processing failed: {exc}"
+        ) from exc
+
+    return {
+        **result,
+        "source_name": capture.title or "Facebook Marketplace listing",
+        "listing_title": capture.title,
+        "price": capture.price,
+        "seller_name": capture.seller_name,
+        "location": capture.location,
+        "captured_at": capture.captured_at,
+        "screenshot_path": capture.screenshot_path,
+        "webpage_url": capture.url,
+        "source_kind": "concat",
+    }
+
+
 @router.post(
     "/ingest-url",
     dependencies=[Depends(require_api_key)],
@@ -267,3 +318,57 @@ def ingest_url(body: IngestUrlRequest) -> dict[str, Any]:
         "published_at": video.published_at,
         "webpage_url": video.webpage_url,
     }
+
+
+@router.post(
+    "/inspect-marketplace",
+    dependencies=[Depends(require_api_key)],
+)
+def inspect_marketplace(body: InspectMarketplaceRequest) -> dict[str, Any]:
+    url = str(body.url or "").strip()
+    if not url:
+        raise HTTPException(status_code=422, detail="url is required")
+    if not is_facebook_marketplace_url(url):
+        raise HTTPException(
+            status_code=422,
+            detail="url must be a Facebook Marketplace item URL",
+        )
+
+    try:
+        capture = inspect_facebook_marketplace_listing(url)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        detail = str(exc).strip() or exc.__class__.__name__
+        if detail.startswith("marketplace_login_required:"):
+            raise HTTPException(status_code=409, detail=detail) from exc
+        if detail.startswith("marketplace_browser_unavailable:"):
+            raise HTTPException(status_code=503, detail=detail) from exc
+        raise HTTPException(status_code=502, detail=detail) from exc
+
+    return _stage_marketplace_capture(capture)
+
+
+@router.post(
+    "/ingest-marketplace-snapshot",
+    dependencies=[Depends(require_api_key)],
+)
+def ingest_marketplace_snapshot(
+    body: IngestMarketplaceSnapshotRequest,
+) -> dict[str, Any]:
+    try:
+        capture = build_marketplace_listing_capture(
+            url=body.url,
+            captured_at=body.captured_at,
+            title=body.title,
+            price=body.price,
+            seller_name=body.seller_name,
+            location=body.location,
+            description=body.description,
+            screenshot_path="",
+            raw_text_lines=body.raw_text_lines,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return _stage_marketplace_capture(capture)

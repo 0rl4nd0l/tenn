@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from app.core.config import settings
 from app.modules.portfolio.catalyst_calendar import compute_catalyst_calendar
 from app.modules.portfolio.moat_quality import compute_moat_quality
 from app.modules.portfolio.position_sizing import compute_position_sizing
@@ -26,11 +27,20 @@ logger = logging.getLogger(__name__)
 
 
 def _default_reports_root() -> Path:
-    """Derive reports root from DATA_ROOT or fall back to project default."""
-    data_root = os.environ.get("DATA_ROOT")
-    if data_root:
-        return Path(data_root) / "reports"
-    return Path(__file__).resolve().parents[4] / "reports"
+    """Derive reports root from canonical settings with a writable fallback."""
+    backend_root = Path(__file__).resolve().parents[3]
+    candidates = [
+        Path(getattr(settings, "data_root", "/data")).expanduser().resolve() / "reports",
+        backend_root / "reports",
+    ]
+    for candidate in candidates:
+        try:
+            candidate.mkdir(parents=True, exist_ok=True)
+            if os.access(candidate, os.W_OK | os.X_OK):
+                return candidate
+        except OSError:
+            continue
+    return candidates[0]
 
 
 class PortfolioAnalyser:

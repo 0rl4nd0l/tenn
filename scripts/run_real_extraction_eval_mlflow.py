@@ -171,6 +171,12 @@ def main() -> int:
     payload_run_metadata = (
         payload.get("run_metadata") if isinstance(payload.get("run_metadata"), dict) else {}
     )
+    eval_policy = (
+        payload.get("eval_policy")
+        if isinstance(payload.get("eval_policy"), dict)
+        else {}
+    )
+    kpi_eligible = bool(eval_policy.get("kpi_eligible", True))
     results_dataset_dir = payload.get("dataset_dir")
     dataset_dir = args.dataset_dir
     if dataset_dir is None and isinstance(results_dataset_dir, str) and results_dataset_dir:
@@ -200,6 +206,8 @@ def main() -> int:
         "parser_backend": args.parser_backend
         or payload_run_metadata.get("parser_backend")
         or "auto",
+        "eval_mode": str(eval_policy.get("mode") or "unknown"),
+        "kpi_eligible": str(kpi_eligible).lower(),
     }
     if args.model_label:
         params["model_label"] = args.model_label
@@ -222,10 +230,10 @@ def main() -> int:
 
     with mlflow.start_run(run_name=run_name) as run:
         mlflow.log_params(params)
-        mlflow.log_metric("overall_accuracy", float(summary.get("total_accuracy", 0.0)))
-        mlflow.log_metric(
-            "context_accuracy", float(summary.get("context_accuracy", 0.0))
-        )
+        accuracy_key = "overall_accuracy" if kpi_eligible else "exploratory_overall_accuracy"
+        context_key = "context_accuracy" if kpi_eligible else "exploratory_context_accuracy"
+        mlflow.log_metric(accuracy_key, float(summary.get("total_accuracy", 0.0)))
+        mlflow.log_metric(context_key, float(summary.get("context_accuracy", 0.0)))
         mlflow.log_metric("document_count", float(summary.get("total_documents", 0)))
         mlflow.log_metric(
             "failed_document_count", float(summary.get("failed_documents", 0))

@@ -9,6 +9,7 @@ from typing import Any
 
 import fitz
 
+from app.core.config import settings
 from app.models.documents import Document
 
 
@@ -154,8 +155,17 @@ PRE_EXTRACTION_SKIP_TITLE_KEYWORDS = frozenset(
         "cessation of securities",
         "unquoted securities",
         "cleansing notice",
+        "notification of buy-back",
+        "notification of buy back",
+        "cancellation of buy-back shares",
+        "asic form 484",
+        "form 484",
     }
 )
+
+
+def _canonical_docs_root() -> Path:
+    return Path(getattr(settings, "docs_root", "/data/asx/docs")).expanduser().resolve()
 
 
 def _norm(value: str | None) -> str:
@@ -534,7 +544,7 @@ def classify_documents_and_materialize(
             skipped += 1
             continue
         if only_unsorted:
-            docs_ticker_root = (Path("./data/asx/docs") / (row.ticker or "").upper()).resolve()
+            docs_ticker_root = (_canonical_docs_root() / (row.ticker or "").upper()).resolve()
             try:
                 rel = path.resolve().relative_to(docs_ticker_root)
                 parts = rel.parts
@@ -608,7 +618,7 @@ def classify_documents_and_materialize(
         )
 
     if ticker:
-        docs_ticker_root = Path("./data/asx/docs") / ticker.upper()
+        docs_ticker_root = _canonical_docs_root() / ticker.upper()
         if docs_ticker_root.exists():
             _prune_empty_legacy_dirs(docs_ticker_root)
         if root is not None:

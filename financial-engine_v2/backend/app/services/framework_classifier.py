@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 from typing import Any, Callable
@@ -11,8 +12,13 @@ from app.core.config import settings
 from app.services.llm import embed_texts
 
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-WORKSPACE_ROOT = REPO_ROOT.parent
+BACKEND_ROOT = Path(__file__).resolve().parents[2]
+_workspace_root_env = str(os.getenv("COCKPIT_WORKSPACE_ROOT") or "").strip()
+WORKSPACE_ROOT = (
+    Path(_workspace_root_env).expanduser().resolve()
+    if _workspace_root_env
+    else BACKEND_ROOT.parent.parent
+)
 TOKEN_RE = re.compile(r"[A-Za-z0-9_]+")
 
 
@@ -35,20 +41,27 @@ def _resolve_candidate_path(path: Path) -> Path:
     cwd_candidate = (Path.cwd() / expanded).resolve()
     if cwd_candidate.exists():
         return cwd_candidate
-    return (REPO_ROOT / expanded).resolve()
+    return (BACKEND_ROOT / expanded).resolve()
 
 
 def resolve_frameworks_path(frameworks_path: str | Path | None = None) -> Path:
+    data_reports_root = (
+        Path(getattr(settings, "data_root", "/data")).expanduser().resolve() / "reports"
+    )
     candidates: list[Path] = []
     if frameworks_path is not None:
         candidates.append(Path(frameworks_path))
     else:
         candidates.extend(
             [
+                data_reports_root
+                / "investment_preprocess"
+                / "framework_records"
+                / "frameworks.jsonl",
                 WORKSPACE_ROOT / "reports" / "investment_preprocess" / "framework_records" / "frameworks.jsonl",
-                REPO_ROOT / "reports" / "investment_preprocess" / "framework_records" / "frameworks.jsonl",
+                BACKEND_ROOT / "reports" / "investment_preprocess" / "framework_records" / "frameworks.jsonl",
                 WORKSPACE_ROOT / "framework_records" / "frameworks.jsonl",
-                REPO_ROOT / "framework_records" / "frameworks.jsonl",
+                BACKEND_ROOT / "framework_records" / "frameworks.jsonl",
             ]
         )
 

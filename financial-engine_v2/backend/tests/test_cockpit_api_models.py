@@ -337,6 +337,55 @@ def test_cockpit_config_reports_anthropic_key_from_effective_config(
     assert response.json()["anthropic_key_configured"] is True
 
 
+def test_cockpit_config_reports_effective_flags_and_routing(monkeypatch) -> None:
+    monkeypatch.setattr(cockpit_api, "_fetch_llama_server_models", lambda: {})
+    monkeypatch.setattr(
+        cockpit_api,
+        "compute_effective_cockpit_config",
+        lambda *args, **kwargs: {
+            "cockpit_llm": {
+                "hybrid_router_policy": "local_preferred",
+                "llm_profile_label": "ops",
+                "defaults": {
+                    "anthropic_api_key": "",
+                },
+            },
+            "backend": {
+                "api_base_url": "http://backend.internal:8000",
+            },
+            "runtime": {
+                "profile": "default",
+            },
+            "web": {
+                "enabled_default": True,
+            },
+            "rag": {
+                "enabled": True,
+                "backend_search_enabled": True,
+                "qualitative_context": {},
+                "news_context": {"enabled": True},
+            },
+            "db": {
+                "diagnostic_query_enabled": False,
+            },
+        },
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.get("/api/cockpit/config")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["routing_policy"] == "local_preferred"
+    assert payload["backend_url"] == "http://backend.internal:8000"
+    assert payload["profile"] == "ops"
+    assert payload["features"]["web_search"] is True
+    assert payload["features"]["rag"] is True
+    assert payload["features"]["db_diagnostics"] is False
+
+
 def test_cockpit_models_fills_missing_ssd_group_from_llama_registry(
     monkeypatch,
 ) -> None:
@@ -427,7 +476,7 @@ def test_cockpit_load_model_noops_when_requested_model_already_loaded(monkeypatc
     )
     monkeypatch.setattr(
         cockpit_api,
-        "resolve_extraction_runtime_config",
+        "resolve_llm_runtime_config",
         lambda *args, **kwargs: ("http://127.0.0.1:8001", "model:qwen2.5-14b-instruct"),
         raising=False,
     )
@@ -466,7 +515,7 @@ def test_cockpit_load_model_uses_router_api_when_model_is_available(monkeypatch)
     )
     monkeypatch.setattr(
         cockpit_api,
-        "resolve_extraction_runtime_config",
+        "resolve_llm_runtime_config",
         lambda *args, **kwargs: ("http://127.0.0.1:8001", "model:qwen2.5-14b-instruct"),
         raising=False,
     )
@@ -490,6 +539,93 @@ def test_cockpit_load_model_uses_router_api_when_model_is_available(monkeypatch)
     assert payload["resolved_model"] == "model:qwen2.5-14b-instruct"
 
 
+def test_cockpit_load_model_resolves_stale_alias_before_router_load(monkeypatch) -> None:
+    captured: dict[str, str] = {}
+
+    monkeypatch.setattr(
+        cockpit_api,
+        "_fetch_runtime_models",
+        lambda base_url=None: {
+            "model:qwen3.5-35b-a3b": {
+                "status": "unloaded",
+                "model_path": "/models/Qwen3.5-35B-A3B-Q4_K_M.gguf",
+                "path_stem": "Qwen3.5-35B-A3B-Q4_K_M",
+            },
+            "model:gpt-oss-20b": {
+                "status": "loaded",
+                "model_path": "/models/gpt-oss-20b.gguf",
+                "path_stem": "gpt-oss-20b",
+            },
+        },
+    )
+    monkeypatch.setattr(
+        cockpit_api,
+        "resolve_llm_runtime_config",
+        lambda *args, **kwargs: ("http://127.0.0.1:8001", "model:qwen3.5-35b-a3b-apex"),
+        raising=False,
+    )
+
+    def _fake_load_model_api(**kwargs):
+        captured["model_name"] = kwargs["model_name"]
+        return True
+
+    monkeypatch.setattr(
+        "cockpit.integrations.llamacpp_manager.load_model_api",
+        _fake_load_model_api,
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/models/load",
+        json={"model_id": "model:qwen3.5-35b-a3b-apex"},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["ok"] is True
+    assert payload["resolved_model"] == "model:qwen3.5-35b-a3b"
+    assert captured["model_name"] == "model:qwen3.5-35b-a3b"
+
+
+def test_cockpit_load_model_uses_chat_runtime_url(monkeypatch) -> None:
+    captured: dict[str, str] = {}
+
+    def _fake_fetch_runtime_models(base_url=None):
+        captured["base_url"] = str(base_url)
+        return {
+            "model:qwen2.5-14b-instruct": {
+                "status": "unloaded",
+                "model_path": "/models/qwen2.5-14b-instruct-q4_k_m.gguf",
+                "path_stem": "qwen2.5-14b-instruct-q4_k_m",
+            }
+        }
+
+    monkeypatch.setattr(cockpit_api, "_fetch_runtime_models", _fake_fetch_runtime_models)
+    monkeypatch.setattr(
+        cockpit_api,
+        "resolve_llm_runtime_config",
+        lambda *args, **kwargs: ("http://127.0.0.1:8001", "model:qwen2.5-14b-instruct"),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        "cockpit.integrations.llamacpp_manager.load_model_api",
+        lambda **kwargs: True,
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/models/load",
+        json={"model_id": "model:qwen2.5-14b-instruct"},
+    )
+    assert response.status_code == 200
+    assert captured["base_url"] == "http://127.0.0.1:8001"
+
+
 def test_cockpit_load_model_returns_404_when_model_missing(monkeypatch) -> None:
     monkeypatch.setattr(
         cockpit_api,
@@ -504,7 +640,7 @@ def test_cockpit_load_model_returns_404_when_model_missing(monkeypatch) -> None:
     )
     monkeypatch.setattr(
         cockpit_api,
-        "resolve_extraction_runtime_config",
+        "resolve_llm_runtime_config",
         lambda *args, **kwargs: ("http://127.0.0.1:8001", "model:qwen2.5-14b-instruct"),
         raising=False,
     )

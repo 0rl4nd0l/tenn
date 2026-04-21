@@ -2801,6 +2801,16 @@ def _run_marketplace_scan_job(
                 _best_effort_tracker_call("change_phase", job_id, stage, message=stage)
                 if pct is not None:
                     bounded = max(0, min(100, int(pct)))
+                    # Update tracker metrics so JobDetailPanel shows the progress bar
+                    try:
+                        tracker.store.update_job_run(
+                            job_id,
+                            total_items=100,
+                            succeeded_items=bounded,
+                            current_item_label=stage,
+                        )
+                    except Exception:
+                        pass
                     _best_effort_tracker_call(
                         "record_progress",
                         job_id,
@@ -2821,53 +2831,33 @@ def _run_marketplace_scan_job(
             )
             _write_marketplace_job_line(stdout_handle, json.dumps(result, indent=2))
             ended_at = datetime.now(timezone.utc).isoformat()
-            _persist_action_job_row(
-                service,
-                job_id=job_id,
-                action_id="marketplace_scan",
-                args={"mission_id": mission_id},
-                started_at=started_at,
-                ended_at=ended_at,
+            service.state_store.update_job_status(
+                job_id,
                 status="success",
                 exit_code=0,
-                stdout_path=stdout_path,
-                stderr_path=stderr_path,
+                ended_at=ended_at,
             )
             if tracker is not None:
                 _best_effort_tracker_call("complete_job", job_id, result.get("summary"))
         except MarketplaceScanCancelled as exc:
             _write_marketplace_job_line(stdout_handle, str(exc))
             ended_at = datetime.now(timezone.utc).isoformat()
-            _persist_action_job_row(
-                service,
-                job_id=job_id,
-                action_id="marketplace_scan",
-                args={"mission_id": mission_id},
-                started_at=started_at,
-                ended_at=ended_at,
+            service.state_store.update_job_status(
+                job_id,
                 status="cancelled",
                 exit_code=130,
-                stdout_path=stdout_path,
-                stderr_path=stderr_path,
-                progress_stage="Cancelled",
-                progress_pct=100.0,
+                ended_at=ended_at,
             )
             if tracker is not None:
                 _best_effort_tracker_call("cancel_job", job_id, reason=str(exc))
         except Exception as exc:
             _write_marketplace_job_line(stderr_handle, str(exc))
             ended_at = datetime.now(timezone.utc).isoformat()
-            _persist_action_job_row(
-                service,
-                job_id=job_id,
-                action_id="marketplace_scan",
-                args={"mission_id": mission_id},
-                started_at=started_at,
-                ended_at=ended_at,
+            service.state_store.update_job_status(
+                job_id,
                 status="failed",
                 exit_code=1,
-                stdout_path=stdout_path,
-                stderr_path=stderr_path,
+                ended_at=ended_at,
             )
             if tracker is not None:
                 _best_effort_tracker_call("fail_job", job_id, str(exc))

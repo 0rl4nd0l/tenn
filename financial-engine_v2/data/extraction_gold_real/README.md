@@ -96,10 +96,28 @@ Artifacts written by the base eval runner:
 
 - detailed JSON: `reports/extraction_real_eval_results.json`
 - summary JSON: `reports/extraction_real_eval_results_summary.json`
+- canonical scorecard JSON: `reports/extraction_real_eval_results_canonical_scorecard.json`
 - summary Markdown: `reports/extraction_real_eval_summary.md`
 - per-document CSV: `reports/extraction_real_eval_results_documents.csv`
 - per-metric CSV: `reports/extraction_real_eval_results_metrics.csv`
 - trust-trigger CSV: `reports/extraction_real_eval_results_trust_triggers.csv`
+
+## Canonical KPI Policy (fixed)
+
+Canonical KPI reporting only accepts runs where all of the following are true:
+
+- `dataset_dir == financial-engine_v2/data/extraction_gold_real`
+- `method == docling`
+- `strict_method == true`
+- `limit == 0`
+- `tolerance == 0.01`
+- `prompt_variant_id == null`
+- `model_override == null`
+
+Runs that do not match this fixed tuple are marked `non_canonical` and remain
+valid for exploratory analysis, but they are excluded from canonical KPI rollups.
+The exclusion reason list is persisted in `eval_policy.non_canonical_reasons`
+inside the JSON artifacts.
 
 Intentional non-goals for this lane:
 

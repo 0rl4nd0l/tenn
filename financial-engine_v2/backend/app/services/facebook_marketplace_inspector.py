@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 
+from app.core.config import settings
 from app.services.marketplace_headless_runtime import (
     marketplace_direct_runtime_detail,
     open_direct_marketplace_context,
@@ -24,9 +25,27 @@ FACEBOOK_MARKETPLACE_URL_RE = re.compile(
 DEFAULT_MARKETPLACE_CDP_URL = "http://127.0.0.1:9222"
 DEFAULT_MARKETPLACE_TIMEOUT_MS = 20_000
 MARKETPLACE_TOPIC_TAGS = ["facebook_marketplace", "marketplace_listing"]
-MARKETPLACE_CAPTURE_ROOT = (
-    Path(__file__).resolve().parents[3] / "reports" / "marketplace_captures"
-)
+
+
+def _default_marketplace_capture_root() -> Path:
+    backend_root = Path(__file__).resolve().parents[2]
+    candidates = [
+        Path(getattr(settings, "data_root", "/data")).expanduser().resolve()
+        / "reports"
+        / "marketplace_captures",
+        backend_root / "reports" / "marketplace_captures",
+    ]
+    for candidate in candidates:
+        try:
+            candidate.mkdir(parents=True, exist_ok=True)
+            if os.access(candidate, os.W_OK | os.X_OK):
+                return candidate
+        except OSError:
+            continue
+    return candidates[0]
+
+
+MARKETPLACE_CAPTURE_ROOT = _default_marketplace_capture_root()
 _GENERIC_MARKETPLACE_HOME_TITLE_RE = re.compile(
     r"facebook marketplace: buy and sell items locally or shipped",
     re.IGNORECASE,

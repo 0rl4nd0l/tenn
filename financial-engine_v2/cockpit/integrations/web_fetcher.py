@@ -91,17 +91,31 @@ def _extract_facts(url: str, text: str) -> list[dict[str, Any]]:
 
 
 class WebFetcher:
-    def fetch_text(self, url: str, timeout: float = 20.0) -> str:
+    def fetch_text(
+        self,
+        url: str,
+        *,
+        timeout: float = 20.0,
+        max_chars: int | None = 8000,
+    ) -> str:
         with httpx.Client(timeout=timeout, follow_redirects=True) as client:
             response = client.get(url, headers={"User-Agent": _USER_AGENT})
             response.raise_for_status()
-            return response.text[:8000]
+            text = response.text
+            if max_chars is None:
+                return text
+            try:
+                limit = max(0, int(max_chars))
+            except Exception:
+                limit = 8000
+            return text[:limit]
 
     def search_and_fetch(
         self,
         query: str,
         *,
         max_results: int = 5,
+        max_chars_per_page: int = 4000,
         timeout: float = 20.0,
         preferred_domains: list[str] | None = None,
         strict_official: bool = False,
@@ -158,9 +172,13 @@ class WebFetcher:
                         text = _extract_text(r.text)
                         facts = _extract_facts(url, text)
                         all_facts.extend(facts)
+                        try:
+                            per_page_limit = max(0, int(max_chars_per_page))
+                        except Exception:
+                            per_page_limit = 4000
                         pages.append({
                             "url": url,
-                            "text": text[:4000],
+                            "text": text[:per_page_limit],
                             "official_source": bool(is_official),
                         })
                     except Exception as exc:

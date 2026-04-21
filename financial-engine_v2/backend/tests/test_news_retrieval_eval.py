@@ -207,6 +207,63 @@ class TestChatWithTennTickerPropagation(unittest.TestCase):
         _, kwargs = call_kwargs
         self.assertIsNone(kwargs.get("ticker"))
 
+    @patch("app.services.tenn_chat.generate_json")
+    @patch("app.services.tenn_chat.get_session_context")
+    @patch("app.services.tenn_chat.query_rag")
+    @patch("app.services.tenn_chat.HybridRetriever")
+    def test_chat_uses_shared_session_fallback_context(
+        self,
+        mock_retriever_cls,
+        mock_rag,
+        mock_get_session_context,
+        mock_generate_json,
+    ):
+        mock_rag.return_value = {
+            "hits": [
+                {
+                    "text": "BHP reiterated cost discipline.",
+                    "title": "BHP update",
+                    "document_id": "doc-1",
+                    "score": 0.87,
+                    "doc_class": "asx_announcement",
+                    "published_at": "2026-03-31T00:00:00Z",
+                }
+            ],
+            "research_context": {"evidence_chunks": []},
+        }
+        commentary_mock = self._make_retriever_mock()
+        news_mock = self._make_retriever_mock()
+        mock_retriever_cls.side_effect = [commentary_mock, news_mock]
+        mock_get_session_context.return_value = [
+            {
+                "query": "What did management say last time?",
+                "answer": "Management focused on cost discipline.",
+            }
+        ]
+        captured: dict[str, str] = {}
+
+        def _fake_generate_json(prompt, metadata=None, timeout=None):
+            captured["prompt"] = prompt
+            return {
+                "answer": "BHP remains focused on cost discipline.",
+                "insights": [],
+                "confidence": 0.6,
+            }
+
+        mock_generate_json.side_effect = _fake_generate_json
+
+        from app.services.tenn_chat import chat_with_tenn
+
+        result = chat_with_tenn(
+            "What is BHP doing now?",
+            ticker="BHP",
+            session_id="session-1",
+        )
+
+        self.assertIn("Relevant prior session context", captured["prompt"])
+        self.assertIn("Management focused on cost discipline.", captured["prompt"])
+        self.assertEqual(result["answer"], "BHP remains focused on cost discipline.")
+
 
 # ---------------------------------------------------------------------------
 # C. _build_prompt() temporal/uncertainty behavior

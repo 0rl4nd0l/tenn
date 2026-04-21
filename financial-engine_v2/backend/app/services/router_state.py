@@ -6,7 +6,6 @@ import os
 import shlex
 import socket
 import subprocess
-import tempfile
 import time
 from collections import Counter
 from contextlib import contextmanager
@@ -277,23 +276,36 @@ def _collect_queue_depths(client: Any) -> dict[str, int]:
     return depths
 
 
+def _default_extraction_activity_state_file() -> Path:
+    override = str(os.getenv("TENN_EXTRACTION_ACTIVE_FILE") or "").strip()
+    if override:
+        return Path(override).expanduser().resolve()
+
+    # Host-launched evals and the backend container need to observe the same
+    # fallback file when Redis is unavailable. Prefer the shared repo mount
+    # over process-local /tmp so Cockpit can synthesize visible jobs for
+    # ad-hoc host runs.
+    for root in _EXTRACTION_ACTIVITY_SHARED_ROOTS:
+        if root.is_dir() and os.access(root, os.W_OK | os.X_OK):
+            return (root / "tenn_extraction_active.json").resolve()
+
+    return (Path("/tmp") / "tenn_extraction_active.json").resolve()
+
+
 _EXTRACTION_ACTIVE_KEY = "tenn:extraction_active"
 _EXTRACTION_ACTIVE_META_KEY = "tenn:extraction_active_meta"
 _EXTRACTION_ACTIVE_TTL = 1800  # 30 min safety TTL — auto-clears if process crashes
-_EXTRACTION_ACTIVE_STATE_FILE = (
-    Path(
-        str(
-            os.getenv("TENN_EXTRACTION_ACTIVE_FILE")
-            or (Path(tempfile.gettempdir()) / "tenn_extraction_active.json")
-        )
-    )
-    .expanduser()
-    .resolve()
+_EXTRACTION_ACTIVITY_SHARED_ROOTS = (
+    Path("/app/shared"),
+    Path(__file__).resolve().parents[2] / "shared",
 )
+_EXTRACTION_ACTIVE_STATE_FILE = _default_extraction_activity_state_file()
 _EXTRACTION_ACTIVE_LOCK_FILE = _EXTRACTION_ACTIVE_STATE_FILE.with_suffix(".lock")
 _EXTRACTION_ACTIVITY_LOCK = Lock()
 _legacy_extraction_activity_token: str | None = None
 _HOST_ID = (socket.gethostname() or "unknown").strip() or "unknown"
+_PROCESS_BOOT_ID = uuid4().hex
+_PROCESS_STARTED_AT_TS = time.time()
 
 
 def _now_timestamp() -> float:
@@ -314,6 +326,20 @@ def _is_pid_alive(pid: int) -> bool:
     return True
 
 
+def _parse_activity_started_at(value: Any) -> float | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    normalized = text.replace("Z", "+00:00")
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.timestamp()
+
+
 def _is_holder_alive(metadata_entry: Mapping[str, Any] | None) -> bool:
     # Same-host: verify the registering pid is alive.
     # Cross-host or missing metadata: trust TTL, don't prune.
@@ -329,6 +355,16 @@ def _is_holder_alive(metadata_entry: Mapping[str, Any] | None) -> bool:
         pid = int(raw_pid)
     except (TypeError, ValueError):
         return True
+    if pid == os.getpid():
+        boot_id = str(metadata_entry.get("boot_id") or "").strip()
+        if boot_id and boot_id != _PROCESS_BOOT_ID:
+            return False
+        started_at_ts = _parse_activity_started_at(metadata_entry.get("started_at"))
+        if (
+            started_at_ts is not None
+            and started_at_ts < (_PROCESS_STARTED_AT_TS - 1.0)
+        ):
+            return False
     return _is_pid_alive(pid)
 
 
@@ -338,10 +374,22 @@ def _decode_redis_value(value: Any) -> str:
     return str(value or "")
 
 
+def _set_activity_file_mode(path: Path) -> None:
+    try:
+        if path.exists():
+            path.chmod(0o666)
+    except Exception:
+        pass
+
+
 @contextmanager
 def _locked_extraction_activity_file() -> Any:
     _EXTRACTION_ACTIVE_LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
     with _EXTRACTION_ACTIVE_LOCK_FILE.open("a+", encoding="utf-8") as lock_handle:
+        try:
+            os.fchmod(lock_handle.fileno(), 0o666)
+        except Exception:
+            _set_activity_file_mode(_EXTRACTION_ACTIVE_LOCK_FILE)
         fcntl.flock(lock_handle.fileno(), fcntl.LOCK_EX)
         try:
             yield
@@ -365,6 +413,7 @@ def _sanitize_extraction_metadata(
         "started_at",
         "host",
         "pid",
+        "boot_id",
     ):
         value = metadata.get(key)
         if value is None:
@@ -446,6 +495,7 @@ def _write_file_extraction_tokens(
         json.dumps(payload, sort_keys=True),
         encoding="utf-8",
     )
+    _set_activity_file_mode(_EXTRACTION_ACTIVE_STATE_FILE)
 
 
 def _register_file_extraction_token(
@@ -622,6 +672,7 @@ def register_extraction_activity(
     )
     activity_metadata.setdefault("host", _HOST_ID)
     activity_metadata.setdefault("pid", str(os.getpid()))
+    activity_metadata.setdefault("boot_id", _PROCESS_BOOT_ID)
     client = _build_redis_client(redis_url)
     if client is not None:
         try:

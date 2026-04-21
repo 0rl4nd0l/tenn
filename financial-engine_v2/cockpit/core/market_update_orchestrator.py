@@ -90,12 +90,14 @@ class MarketUpdateOrchestrator:
         scorer: Callable[[TickerSnapshot], TickerScore] | None = None,
         followup_threshold: float = 0.5,
         clock: Callable[[], datetime] | None = None,
+        market_universe_loader: Callable[[], list[str]] | None = None,
     ) -> None:
         self._store = state_store
         self._snapshot = snapshot_provider
         self._scorer = scorer or compute_significance
         self._followup_threshold = float(followup_threshold)
         self._clock = clock or _utc_now
+        self._market_universe_loader = market_universe_loader
 
     def run(
         self,
@@ -117,7 +119,7 @@ class MarketUpdateOrchestrator:
         started_dt = self._clock()
         started = started_dt.isoformat()
 
-        scan = self._resolve_tickers(tickers)
+        scan = self._resolve_tickers(run_type, tickers)
         if not scan:
             finished = self._clock().isoformat()
             return RunResult(
@@ -189,11 +191,36 @@ class MarketUpdateOrchestrator:
             finished_at=finished,
         )
 
-    def _resolve_tickers(self, tickers: list[str] | None) -> list[str]:
+    def _resolve_tickers(self, run_type: str, tickers: list[str] | None) -> list[str]:
         if tickers is not None:
-            return [t.upper() for t in tickers]
+            return self._normalize_tickers(tickers)
         rows = self._store.list_watch_tickers()
-        return [str(r["ticker"]).upper() for r in rows]
+        watch_tickers = self._normalize_tickers(str(r["ticker"]) for r in rows)
+        if watch_tickers:
+            return watch_tickers
+        # For end-of-day runs, default to a market-wide universe when available
+        # so /market-update final reflects the broader market by default.
+        if run_type == "final" and self._market_universe_loader is not None:
+            try:
+                return self._normalize_tickers(self._market_universe_loader())
+            except Exception as exc:  # noqa: BLE001 -- fallback loader must be safe
+                logger.warning(
+                    "market_update_orchestrator: market universe load failed: %s",
+                    exc,
+                )
+        return []
+
+    @staticmethod
+    def _normalize_tickers(tickers: list[str] | tuple[str, ...] | set[str] | Any) -> list[str]:
+        normalized: list[str] = []
+        seen: set[str] = set()
+        for raw in tickers:
+            ticker = str(raw or "").strip().upper()
+            if not ticker or ticker in seen:
+                continue
+            seen.add(ticker)
+            normalized.append(ticker)
+        return normalized
 
     @staticmethod
     def _derive_status(*, gathered_count: int, error_count: int) -> str:

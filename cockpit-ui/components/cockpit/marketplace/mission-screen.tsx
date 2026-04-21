@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { AlertTriangle, Loader2, Play, RefreshCw, Store } from 'lucide-react'
+import { AlertTriangle, Loader2, Play, RefreshCw, Store, X } from 'lucide-react'
 
 import {
   createMarketplaceMission,
@@ -320,10 +320,10 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
     setError(null)
     setNotice(null)
     try {
-      await createMarketplaceMission(apiKey, marketplacePayloadFromForm(form))
+      const mission = await createMarketplaceMission(apiKey, marketplacePayloadFromForm(form))
       setForm(DEFAULT_FORM)
-      setNotice('Mission created successfully.')
-      await load()
+      setNotice(`Mission "${mission.name}" created. Starting initial scan...`)
+      await handleTriggerScan(mission.mission_id)
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : 'Failed to create Marketplace mission')
     } finally {
@@ -929,44 +929,71 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
 
             <Card>
               <CardHeader className="p-4">
-                <CardTitle className="text-sm font-semibold">Recent Scans</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-semibold">Recent Scans</CardTitle>
+                </div>
               </CardHeader>
               <CardContent className="px-4 pb-4">
                 {scanJobs.length === 0 ? (
                   <p className="text-xs text-muted-foreground italic">No recent scan history.</p>
                 ) : (
                   <div className="space-y-3">
-                    {scanJobs.slice(0, 10).map((job) => (
-                      <button
+                    {scanJobs.slice(0, 30).map((job) => (
+                      <div
                         key={job.job_id}
-                        type="button"
-                        onClick={() => void handleSelectScanJob(job.job_id)}
-                        aria-pressed={selectedScanJobId === job.job_id}
-                        aria-label={`Inspect scan ${job.job_id.slice(0, 8)}`}
-                        className={`w-full space-y-1 rounded-md border px-2 py-2 text-left transition-colors ${
+                        className={`group relative flex flex-col gap-1 rounded-md border px-2 py-2 transition-colors ${
                           selectedScanJobId === job.job_id
                             ? 'border-primary/40 bg-primary/5'
                             : 'border-border/50 hover:bg-muted/40'
                         }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-medium truncate max-w-[120px]">
-                            Scan {job.job_id.slice(0, 8)}
-                          </span>
-                          <Badge variant={scanBadgeVariant(job.status)} className="text-[9px] px-1 h-4">
-                            {job.status}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center justify-between gap-2 text-[9px] text-muted-foreground font-mono">
-                          <span className="truncate">{formatClock(job.started_at)}</span>
-                          <span className="truncate text-right">
-                            {job.progress_stage || formatProgress(job.progress_pct) || 'idle'}
-                          </span>
-                        </div>
-                        {job.progress_pct != null && (
-                          <Progress value={clampProgress(job.progress_pct)} className="h-1" />
+                        <button
+                          type="button"
+                          onClick={() => void handleSelectScanJob(job.job_id)}
+                          aria-pressed={selectedScanJobId === job.job_id}
+                          aria-label={`Inspect scan ${job.job_id.slice(0, 8)}`}
+                          className="w-full text-left space-y-1"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-medium truncate max-w-[120px]">
+                              Scan {job.job_id.slice(0, 8)}
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <Badge variant={scanBadgeVariant(job.status)} className="text-[9px] px-1 h-4">
+                                {job.status}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between gap-2 text-[9px] text-muted-foreground font-mono">
+                            <span className="truncate">{formatClock(job.started_at)}</span>
+                            <span className="truncate text-right">
+                              {job.progress_stage || formatProgress(job.progress_pct) || 'idle'}
+                            </span>
+                          </div>
+                          {job.progress_pct != null && (
+                            <Progress value={clampProgress(job.progress_pct)} className="h-1" />
+                          )}
+                        </button>
+                        {['queued', 'running'].includes(job.status) && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              void handleStopScan(job.job_id)
+                            }}
+                            disabled={stoppingJobId === job.job_id}
+                            className="absolute -right-1 -top-1 h-6 w-6 rounded-full border bg-background opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:text-destructive"
+                            title="Stop Scan"
+                          >
+                            {stoppingJobId === job.job_id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <X className="h-3 w-3" />
+                            )}
+                          </Button>
                         )}
-                      </button>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -1087,7 +1114,7 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                 )}
 
                 <div className="overflow-hidden rounded-md border border-border/60 bg-muted/20">
-                  <ScrollArea className="h-[320px]">
+                  <ScrollArea className="h-[480px]">
                     <pre
                       className="whitespace-pre-wrap break-words p-4 font-mono text-[11px] leading-5 text-foreground/90"
                       role="log"
@@ -1101,6 +1128,7 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
             )}
           </CardContent>
         </Card>
+
       </div>
     </div>
   )

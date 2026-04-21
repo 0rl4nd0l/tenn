@@ -45,6 +45,18 @@ class _FakeClient:
 
 @unittest.skipIf(WebFetcher is None, "httpx is not installed in this environment")
 class CockpitWebFetcherQualityTests(unittest.TestCase):
+    def test_fetch_text_accepts_max_chars(self):
+        routes = {
+            "https://example.com/article": "<html><body>abcdefghijklmnopqrstuvwxyz</body></html>"
+        }
+        with mock.patch(
+            "cockpit.integrations.web_fetcher.httpx.Client",
+            side_effect=lambda *a, **k: _FakeClient(routes, "<html></html>", *a, **k),
+        ):
+            fetcher = WebFetcher()
+            text = fetcher.fetch_text("https://example.com/article", max_chars=10)
+        self.assertEqual(len(text), 10)
+
     def test_strict_official_first_prefers_official_url_when_available(self):
         search_html = """
         <a href="https://example.com/article">A</a>
@@ -111,6 +123,28 @@ class CockpitWebFetcherQualityTests(unittest.TestCase):
         self.assertIn("url", facts[0])
         self.assertIn("claim", facts[0])
         self.assertIn("numbers", facts[0])
+
+    def test_search_and_fetch_respects_max_chars_per_page(self):
+        search_html = '<a href="https://example.com/article">A</a>'
+        routes = {
+            "https://example.com/article": (
+                "<html><body>" + ("x" * 5000) + "</body></html>"
+            )
+        }
+        with mock.patch(
+            "cockpit.integrations.web_fetcher.httpx.Client",
+            side_effect=lambda *a, **k: _FakeClient(routes, search_html, *a, **k),
+        ):
+            fetcher = WebFetcher()
+            result = fetcher.search_and_fetch(
+                "BHP",
+                max_results=1,
+                max_chars_per_page=123,
+            )
+        self.assertTrue(result.get("ok"))
+        pages = result.get("pages") or []
+        self.assertEqual(len(pages), 1)
+        self.assertLessEqual(len(str(pages[0].get("text") or "")), 123)
 
 
 if __name__ == "__main__":

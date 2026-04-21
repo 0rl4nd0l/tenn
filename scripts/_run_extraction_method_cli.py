@@ -15,6 +15,7 @@ if str(BACKEND_ROOT) not in sys.path:
 from app.core.db import SessionLocal
 from app.models.documents import Document
 from app.services.method_isolated_extraction import run_method_isolated_extraction
+from app.services.router_state import extraction_activity
 from app.services.pipeline import _coerce_uuid, _resolve_pdf_path
 
 
@@ -32,29 +33,30 @@ def run_for_method(method: str) -> int:
         if document is None:
             raise SystemExit(f"document not found: {args.document_id}")
 
-        result = run_method_isolated_extraction(
-            _resolve_pdf_path(document.pdf_path),
-            {
-                "document_id": str(document.document_id),
-                "ticker": str(document.ticker or ""),
-                "title": str(document.title or ""),
-            },
-            None,
-            requested_method=method,
-            strict_method=True,
-        )
-        print(
-            json.dumps(
+        with extraction_activity(metadata={"document_id": str(document.document_id), "ticker": str(document.ticker or ""), "requested_method": method, "strict_method": True}):
+            result = run_method_isolated_extraction(
+                _resolve_pdf_path(document.pdf_path),
                 {
                     "document_id": str(document.document_id),
-                    "status": result.status,
-                    "error": result.error,
-                    "payload": result.payload,
+                    "ticker": str(document.ticker or ""),
+                    "title": str(document.title or ""),
                 },
+                None,
+                requested_method=method,
+                strict_method=True,
+            )
+        print(
+            json.dumps(
+                    {
+                        "document_id": str(document.document_id),
+                        "status": result.status,
+                        "error": result.error,
+                        "payload": result.payload,
+                    },
                 indent=2,
                 default=str,
+                )
             )
-        )
         return 0 if result.status in {"ok", "ok_low_confidence"} else 1
     finally:
         db.close()

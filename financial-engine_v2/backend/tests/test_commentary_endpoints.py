@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -230,7 +231,14 @@ class TestPurgeExpiredTranscripts:
 # POST /api/commentary/ingest-url
 # ---------------------------------------------------------------------------
 
-from app.api.commentary import IngestUrlRequest, ingest_url  # noqa: E402
+from app.api.commentary import (  # noqa: E402
+    IngestUrlRequest,
+    IngestMarketplaceSnapshotRequest,
+    InspectMarketplaceRequest,
+    ingest_marketplace_snapshot,
+    ingest_url,
+    inspect_marketplace,
+)
 
 
 class TestIngestUrl:
@@ -320,3 +328,138 @@ class TestIngestUrl:
         with pytest.raises(HTTPException) as exc_info:
             ingest_url(IngestUrlRequest(url="https://youtu.be/abc123abcde"))
         assert exc_info.value.status_code == 422
+
+
+class TestInspectMarketplace:
+    def test_missing_url_raises_422(self):
+        with pytest.raises(HTTPException) as exc_info:
+            inspect_marketplace(InspectMarketplaceRequest(url=""))
+        assert exc_info.value.status_code == 422
+
+    def test_non_marketplace_url_raises_422(self):
+        with pytest.raises(HTTPException) as exc_info:
+            inspect_marketplace(
+                InspectMarketplaceRequest(url="https://example.com/not-marketplace")
+            )
+        assert exc_info.value.status_code == 422
+
+    def test_browser_unavailable_maps_to_503(self, monkeypatch):
+        import app.api.commentary as mod
+
+        monkeypatch.setattr(
+            mod,
+            "inspect_facebook_marketplace_listing",
+            lambda url: (_ for _ in ()).throw(
+                RuntimeError("marketplace_browser_unavailable: no debugger")
+            ),
+        )
+        with pytest.raises(HTTPException) as exc_info:
+            inspect_marketplace(
+                InspectMarketplaceRequest(
+                    url="https://www.facebook.com/marketplace/item/1234567890"
+                )
+            )
+        assert exc_info.value.status_code == 503
+
+    def test_login_required_maps_to_409(self, monkeypatch):
+        import app.api.commentary as mod
+
+        monkeypatch.setattr(
+            mod,
+            "inspect_facebook_marketplace_listing",
+            lambda url: (_ for _ in ()).throw(
+                RuntimeError("marketplace_login_required: log in first")
+            ),
+        )
+        with pytest.raises(HTTPException) as exc_info:
+            inspect_marketplace(
+                InspectMarketplaceRequest(
+                    url="https://www.facebook.com/marketplace/item/1234567890"
+                )
+            )
+        assert exc_info.value.status_code == 409
+
+    def test_successful_marketplace_inspect_stages_market_commentary(self, monkeypatch):
+        import app.api.commentary as mod
+
+        captured: dict[str, Any] = {}
+        monkeypatch.setattr(
+            mod,
+            "inspect_facebook_marketplace_listing",
+            lambda url: SimpleNamespace(
+                url=url,
+                captured_at="2026-04-18T10:00:00Z",
+                title="2018 Excavator",
+                price="$28,000",
+                seller_name="Seller A",
+                location="Melbourne VIC",
+                description="Low hours, serviced.",
+                screenshot_path="/tmp/marketplace.png",
+                transcript_text="Facebook Marketplace listing snapshot",
+            ),
+        )
+
+        def _fake_ingest_transcript(**kwargs):
+            captured.update(kwargs)
+            return {
+                "ok": True,
+                "source_id": "market_commentary:2018-excavator:abc123",
+                "staged": True,
+                "chunks_staged": 1,
+                "chunks_indexed": 0,
+                "collection": "commentary_chunks",
+            }
+
+        monkeypatch.setattr(mod, "ingest_transcript", _fake_ingest_transcript)
+
+        result = inspect_marketplace(
+            InspectMarketplaceRequest(
+                url="https://www.facebook.com/marketplace/item/1234567890"
+            )
+        )
+
+        assert captured["source_type"] == "market_commentary"
+        assert captured["speaker"] == "Seller A"
+        assert captured["topic_tags"] == ["facebook_marketplace", "marketplace_listing"]
+        assert result["source_id"] == "market_commentary:2018-excavator:abc123"
+        assert result["listing_title"] == "2018 Excavator"
+        assert result["price"] == "$28,000"
+        assert result["source_kind"] == "concat"
+
+    def test_marketplace_snapshot_ingest_stages_market_commentary(self, monkeypatch):
+        import app.api.commentary as mod
+
+        captured: dict[str, Any] = {}
+
+        def _fake_ingest_transcript(**kwargs):
+            captured.update(kwargs)
+            return {
+                "ok": True,
+                "source_id": "market_commentary:portable-saw:abc123",
+                "staged": True,
+                "chunks_staged": 1,
+                "chunks_indexed": 0,
+                "collection": "commentary_chunks",
+            }
+
+        monkeypatch.setattr(mod, "ingest_transcript", _fake_ingest_transcript)
+
+        result = ingest_marketplace_snapshot(
+            IngestMarketplaceSnapshotRequest(
+                url="https://www.facebook.com/marketplace/item/1234567890",
+                title="Portable Saw",
+                price="$180",
+                seller_name="Seller B",
+                location="Geelong VIC",
+                description="Works well, pickup only.",
+                raw_text_lines=["Portable Saw", "$180", "Works well, pickup only."],
+            )
+        )
+
+        assert captured["source_type"] == "market_commentary"
+        assert captured["speaker"] == "Seller B"
+        assert captured["topic_tags"] == ["facebook_marketplace", "marketplace_listing"]
+        assert result["source_id"] == "market_commentary:portable-saw:abc123"
+        assert result["listing_title"] == "Portable Saw"
+        assert result["price"] == "$180"
+        assert result["webpage_url"] == "https://www.facebook.com/marketplace/item/1234567890"

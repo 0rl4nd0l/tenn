@@ -186,7 +186,7 @@ export async function listMarketplaceScanJobs(apiKey: string): Promise<Marketpla
 export async function getMarketplaceScanJob(
   apiKey: string,
   jobId: string,
-  tail = 80,
+  tail = 500,
 ): Promise<MarketplaceScanJob> {
   const response = await fetch(
     `/api/cockpit/marketplace/scans/${encodeURIComponent(jobId)}?tail=${tail}`,

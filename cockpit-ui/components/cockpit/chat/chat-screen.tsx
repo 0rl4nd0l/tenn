@@ -317,27 +317,37 @@ export function ChatScreen() {
   const [showTickerInput, setShowTickerInput] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Wait for hydration to finish to avoid SSR/CSR mismatch with Zustand,
-  // and restore previously-persisted chat messages so navigating between
-  // cockpit screens does not wipe the current conversation.
+  // Wait for hydration to finish to avoid SSR/CSR mismatch with Zustand.
   useEffect(() => {
     setHasHydrated(true)
     setApiKey(localStorage.getItem('cockpit.apiKey') ?? process.env.NEXT_PUBLIC_API_KEY ?? '')
-    const persisted = loadChatSession()
-    if (persisted.messages.length > 0) {
-      setMessages(persisted.messages)
-    }
   }, [])
+
+  // Sync state with storage whenever sessionId changes (switching sessions).
+  useEffect(() => {
+    if (!hasHydrated) return
+    const persisted = loadChatSession(sessionId)
+    setMessages(persisted.messages)
+    // We don't want to clear takeaways/ingest immediately if they are session-bound,
+    // but typically a session change means a fresh view.
+    setLatestIngest(null)
+    setTakeaways(null)
+  }, [sessionId, hasHydrated])
 
   // Persist messages to localStorage whenever they change so the chat survives
   // route changes (ChatScreen unmounts when the user navigates away).
   useEffect(() => {
     if (!hasHydrated) return
+    // Only save if we have a valid session and at least some messages or an active ticker
+    // to avoid creating empty "zombie" sessions in the list if the user just clicks around.
+    if (messages.length === 0 && !activeTicker) return
+
     saveChatSession({
       sessionId,
       activeTicker,
       draft: '',
       messages,
+      updatedAt: new Date().toISOString(),
     })
   }, [messages, sessionId, activeTicker, hasHydrated])
 

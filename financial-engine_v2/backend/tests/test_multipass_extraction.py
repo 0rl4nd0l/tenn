@@ -1478,6 +1478,14 @@ def test_compute_docling_timeout_cap():
     assert _compute_docling_timeout(100) == 600
 
 
+def test_compute_docling_timeout_strict_mode_uses_higher_cap():
+    """Strict docling gets a larger timeout ceiling for canonical method runs."""
+    from app.services.docling_extract import _compute_docling_timeout
+
+    # 200 pages × 6 = 1200s — strict cap
+    assert _compute_docling_timeout(200, strict_backend=True) == 1200
+
+
 # ---------------------------------------------------------------------------
 # Pass 2 — footnote table scoring guard (B5)
 # ---------------------------------------------------------------------------

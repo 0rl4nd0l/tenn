@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
 import re
 from functools import lru_cache
 from datetime import datetime, timezone, date
@@ -24,17 +25,36 @@ except ImportError:  # pragma: no cover - optional dependency in restricted envs
     Image = None
     ImageDraw = None
 
-from app.core.config import PROJECT_ROOT
+from app.core.config import settings
 from app.models.documents import Document
 from app.models.extractions import ExtractionRun
 from app.services.multipass_extraction import METRIC_FIELDS
 from app.services.provenance import from_extraction_provenance
 
-REVIEW_ROOT = PROJECT_ROOT / "reports" / "extraction_review"
+BACKEND_ROOT = Path(__file__).resolve().parents[2]
+DATA_ROOT = Path(getattr(settings, "data_root", "/data")).expanduser().resolve()
+
+
+def _default_review_root() -> Path:
+    candidates = [
+        DATA_ROOT / "reports" / "extraction_review",
+        BACKEND_ROOT / "reports" / "extraction_review",
+    ]
+    for candidate in candidates:
+        try:
+            candidate.mkdir(parents=True, exist_ok=True)
+            if os.access(candidate, os.W_OK | os.X_OK):
+                return candidate
+        except OSError:
+            continue
+    return candidates[0]
+
+
+REVIEW_ROOT = _default_review_root()
 SESSIONS_ROOT = REVIEW_ROOT / "sessions"
 SNIPPETS_ROOT = REVIEW_ROOT / "snippets"
 ERROR_QUEUE_PATH = REVIEW_ROOT / "wrong_metric_queue.json"
-REAL_GOLD_REVIEW_DIR = PROJECT_ROOT / "data" / "extraction_gold_real"
+REAL_GOLD_REVIEW_DIR = BACKEND_ROOT / "data" / "extraction_gold_real"
 
 VALID_REVIEW_STATUSES = {"approved", "wrong", "abstain"}
 _GOLD_METRIC_ALIASES = {
@@ -136,10 +156,20 @@ def _ensure_parent(path: Path) -> None:
 def _project_relative(path: Path | None) -> str | None:
     if path is None:
         return None
+    candidates = (
+        DATA_ROOT.parent,
+        BACKEND_ROOT,
+    )
     try:
-        return str(path.resolve().relative_to(PROJECT_ROOT))
+        resolved = path.resolve()
     except Exception:
-        return str(path.resolve())
+        return str(path)
+    for root in candidates:
+        try:
+            return str(resolved.relative_to(root.resolve()))
+        except Exception:
+            continue
+    return str(resolved)
 
 
 @lru_cache(maxsize=1)
@@ -192,7 +222,7 @@ def _coerce_pdf_path(document: Document, payload: Mapping[str, Any]) -> Path | N
         return None
     path = Path(candidate)
     if not path.is_absolute():
-        path = (PROJECT_ROOT / path).resolve()
+        path = (DATA_ROOT.parent / path).resolve()
     return path if path.exists() else None
 
 

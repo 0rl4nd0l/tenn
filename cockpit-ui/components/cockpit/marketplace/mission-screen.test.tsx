@@ -203,6 +203,16 @@ describe('MarketplaceMissionScreen', () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
+          job_id: 'job-mp-new',
+          action_id: 'marketplace_scan',
+          status: 'queued',
+          progress_stage: 'queued',
+          progress_pct: 0,
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
           status: 'ready',
           cdp_url: 'http://127.0.0.1:9222',
           browser_family: 'chrome',
@@ -247,7 +257,7 @@ describe('MarketplaceMissionScreen', () => {
     )
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledTimes(7)
+      expect(fetchMock).toHaveBeenCalledTimes(8)
     })
 
     expect(fetchMock.mock.calls[3][0]).toBe('/api/cockpit/marketplace/missions')
@@ -264,6 +274,7 @@ describe('MarketplaceMissionScreen', () => {
         },
       }),
     )
+    expect(fetchMock.mock.calls[4][0]).toBe('/api/cockpit/marketplace/scans')
   })
 
   it('shows a desktop-session warning before launch when the backend reports desktop_session_missing', async () => {
@@ -612,7 +623,7 @@ describe('MarketplaceMissionScreen', () => {
       expect(screen.getByText('job two output')).toBeInTheDocument()
     })
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/cockpit/marketplace/scans/job-2?tail=80',
+      '/api/cockpit/marketplace/scans/job-2?tail=500',
       expect.objectContaining({
         cache: 'no-store',
       }),
@@ -729,7 +740,11 @@ describe('MarketplaceMissionScreen', () => {
       expect(screen.getByText('still working')).toBeInTheDocument()
     })
 
-    await userEvent.click(screen.getByRole('button', { name: /stop scan/i }))
+    const outputCard = screen.getByText('Scan Output').closest('[data-slot="card"]')
+    expect(outputCard).toBeTruthy()
+    await userEvent.click(
+      within(outputCard as HTMLElement).getByRole('button', { name: /^stop scan$/i }),
+    )
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(

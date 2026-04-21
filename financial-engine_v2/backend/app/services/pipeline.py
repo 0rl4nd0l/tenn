@@ -352,6 +352,7 @@ EXTRACTION_FAILURE_TAXONOMY = (
     "ocr_or_text_unavailable",
     "missing_pdf_file",
     "parser_timeout",
+    "classifier_low_confidence",
     "llm_invalid_json",
     "provider_network",
     "corrupted_pdf",
@@ -414,6 +415,16 @@ def classify_extraction_failure(
         )
     ):
         return "parser_error"
+
+    if any(
+        token in text
+        for token in (
+            "classifier_low_confidence",
+            "classifier confidence below threshold",
+            "pass1_classifier",
+        )
+    ):
+        return "classifier_low_confidence"
 
     if any(
         token in text
@@ -1146,6 +1157,35 @@ def _upsert_financial_rows(db, doc, structured):
         row.currency = structured.get("currency") or None
         financial_rows_written = 1
 
+    _upsert_risk_note(db, doc, structured, allow_empty=True)
+    # NOTE: caller is responsible for db.commit() — do not commit here so that
+    # ExtractionRun and financial rows are written in a single atomic transaction.
+    return financial_rows_written
+
+
+def _has_narrative_content(structured: Mapping[str, Any]) -> bool:
+    if _coerce_text(structured.get("risk_summary")):
+        return True
+    if _coerce_risk_bullets(structured.get("risk_bullets")):
+        return True
+    if _coerce_text(structured.get("guidance_summary")):
+        return True
+    if _coerce_text(structured.get("material_changes"), join_lists=True):
+        return True
+    return False
+
+
+def _upsert_risk_note(
+    db,
+    doc,
+    structured: Mapping[str, Any],
+    *,
+    allow_empty: bool,
+) -> int:
+    has_narrative = _has_narrative_content(structured)
+    if not allow_empty and not has_narrative:
+        return 0
+
     risk_note = (
         db.query(ASXRiskNote).filter(ASXRiskNote.document_id == doc.document_id).first()
     )
@@ -1162,9 +1202,21 @@ def _upsert_financial_rows(db, doc, structured):
     risk_note.confidence_narrative = _coerce_float(
         structured.get("confidence_narrative")
     )
-    # NOTE: caller is responsible for db.commit() — do not commit here so that
-    # ExtractionRun and financial rows are written in a single atomic transaction.
-    return financial_rows_written
+    return int(has_narrative)
+
+
+def _should_persist_failed_narrative(
+    extraction_stage: ExtractionStageResult,
+) -> bool:
+    if extraction_stage.status != ExtractionStageStatus.FAILED:
+        return False
+    error_text = str(extraction_stage.error or "").strip().lower()
+    if not error_text.startswith("validation_gate:"):
+        return False
+    payload = extraction_stage.payload
+    if not isinstance(payload, Mapping):
+        return False
+    return _has_narrative_content(payload)
 
 
 def process_document(
@@ -1621,6 +1673,7 @@ def process_document(
             structured_json=_json_safe(structured_with_repro),
         )
         financial_rows_written = 0
+        risk_note_written = 0
         observer.emit("persistence", "running", "Persisting extraction outputs.")
         try:
             _raise_if_ops_job_cancelled(*cancellation_job_ids)
@@ -1630,6 +1683,18 @@ def process_document(
                 ExtractionStageStatus.OK_LOW_CONFIDENCE,
             }:
                 financial_rows_written = _upsert_financial_rows(db, doc, structured)
+                risk_note_written = int(
+                    _has_narrative_content(structured)
+                    if isinstance(structured, Mapping)
+                    else 0
+                )
+            elif _should_persist_failed_narrative(extraction_stage):
+                risk_note_written = _upsert_risk_note(
+                    db,
+                    doc,
+                    structured,
+                    allow_empty=False,
+                )
             db.commit()  # single atomic commit: ExtractionRun + financial rows together
         except PipelineJobCancelled:
             db.rollback()
@@ -1650,6 +1715,7 @@ def process_document(
             details={
                 "persisted": True,
                 "financial_rows_written": financial_rows_written,
+                "risk_note_written": risk_note_written,
                 "reviewable_metrics_count": reviewable_metrics_count,
             },
         )
@@ -1662,6 +1728,7 @@ def process_document(
             "persisted": True,
             "reviewable_metrics_count": reviewable_metrics_count,
             "financial_rows_written": financial_rows_written,
+            "risk_note_written": risk_note_written,
             "written_points": written_points,
         }
         observer.final_summary(final_summary)

@@ -38,6 +38,18 @@ def test_classify_title_extraction_skip_matches_admin_titles() -> None:
     assert "cessation of securities" in result["matched_keywords"]
 
 
+def test_classify_title_extraction_skip_matches_buyback_admin_titles() -> None:
+    result = classify_title_extraction_skip(
+        title="Update - Notification of buy-back - VEA",
+        doc_class="quarterly",
+        doc_subtype="other",
+    )
+
+    assert result["skip_extraction"] is True
+    assert result["reason"] == "non_financial_admin_title"
+    assert "notification of buy-back" in result["matched_keywords"]
+
+
 def test_classify_title_extraction_skip_preserves_structural_financial_docs() -> None:
     result = classify_title_extraction_skip(
         title="Appendix 4C Quarterly Cash Flow Report",
@@ -117,6 +129,14 @@ def test_classify_extraction_failure_detects_missing_pdf_file() -> None:
     )
 
     assert failure_code == "missing_pdf_file"
+
+
+def test_classify_extraction_failure_detects_classifier_low_confidence() -> None:
+    failure_code = pipeline.classify_extraction_failure(
+        "classifier_low_confidence:0.0"
+    )
+
+    assert failure_code == "classifier_low_confidence"
 
 
 def test_resolve_pdf_path_repairs_legacy_absolute_data_root(
@@ -810,6 +830,111 @@ def test_process_document_records_reproducibility_for_failed_extraction(
         code.startswith("missing_stage_event:")
         for code in run_status["warning_codes"]
     )
+
+
+def test_process_document_persists_narrative_for_failed_validation_gate(
+    monkeypatch, tmp_path
+) -> None:
+    doc_id = uuid.uuid4()
+    pdf_file = tmp_path / "incident.pdf"
+    pdf_file.write_bytes(b"%PDF-1.4\n")
+
+    class DummyDoc:
+        document_id = doc_id
+        ticker = "VEA"
+        doc_class = "quarterly"
+        doc_subtype = "other"
+        title = "Incident at Geelong Refinery"
+        pdf_path = str(pdf_file)
+        source_url = "https://example.com/incident.pdf"
+        pdf_sha256 = "sha-incident"
+
+    class DummyQuery:
+        def filter(self, *args, **kwargs):
+            return self
+
+        def first(self):
+            return DummyDoc()
+
+    class DummySession:
+        def __init__(self):
+            self.added: list[object] = []
+
+        def query(self, _model):
+            return DummyQuery()
+
+        def add(self, obj):
+            self.added.append(obj)
+
+        def commit(self):
+            pass
+
+        def rollback(self):
+            pass
+
+        def close(self):
+            pass
+
+    session = DummySession()
+    monkeypatch.setattr(pipeline, "SessionLocal", lambda: session)
+    from app.services import method_isolated_extraction
+
+    monkeypatch.setattr(
+        method_isolated_extraction,
+        "run_method_isolated_extraction",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            status="failed",
+            payload={
+                "risk_summary": "Compressor incident disrupted refinery output.",
+                "risk_bullets": ["Compressor drop event", "Refinery downtime risk"],
+                "guidance_summary": "Estimated monthly EBITDA impact disclosed.",
+                "material_changes": "Production outage expected while repairs complete.",
+            },
+            sections=[{"text": "Incident details", "page": 1}],
+            error="validation_gate:missing_period_end",
+        ),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "_upsert_financial_rows",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("periodic financial rows should not upsert on failed status")
+        ),
+    )
+    risk_upsert_calls: list[bool] = []
+    monkeypatch.setattr(
+        pipeline,
+        "_upsert_risk_note",
+        lambda *_args, **kwargs: risk_upsert_calls.append(
+            bool(kwargs.get("allow_empty"))
+        )
+        or 1,
+    )
+    monkeypatch.setattr(pipeline.settings, "enable_extraction", True, raising=False)
+    monkeypatch.setattr(pipeline.settings, "enable_embeddings", False, raising=False)
+    monkeypatch.setattr(pipeline.settings, "enable_qdrant", False, raising=False)
+
+    from app.services import extraction_run_observability
+
+    monkeypatch.setattr(
+        extraction_run_observability, "RUN_STATUS_ROOT", tmp_path / "run_status"
+    )
+
+    result = pipeline.process_document(str(doc_id))
+
+    assert result["extraction_status"] == "failed"
+    assert risk_upsert_calls == [False]
+
+    run = next(obj for obj in session.added if isinstance(obj, ExtractionRun))
+    assert run.structured_json is not None
+    repro = run.structured_json["_reproducibility"]
+    assert repro["status"] == "failed"
+
+    run_status_path = tmp_path / "run_status" / f"{result['run_id']}.json"
+    run_status = json.loads(run_status_path.read_text(encoding="utf-8"))
+    summary = run_status["final_summary"]
+    assert summary["financial_rows_written"] == 0
+    assert summary["risk_note_written"] == 1
 
 
 def test_normalize_document_process_result_accepts_mapping() -> None:

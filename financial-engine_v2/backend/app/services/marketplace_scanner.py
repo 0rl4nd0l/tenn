@@ -272,6 +272,8 @@ class MarketplaceScanner:
                     break
                 detail_used += 1
                 detail_pages_opened += 1
+                if log:
+                    log(f"    inspecting: {card['title']} ({card['listing_url']})")
                 detail = await self._inspect_listing_detail(
                     context=context,
                     listing_url=card["listing_url"],
@@ -284,6 +286,8 @@ class MarketplaceScanner:
                     mission,
                     observed_price_band=price_band,
                 )
+                if log:
+                    log(f"      score: {score['score']} ({score['decision_band']})")
                 detail_hash = listing_material_hash(detail)
                 previous_seen = self.mission_service.get_seen_listing(
                     mission_id, detail["listing_id"]

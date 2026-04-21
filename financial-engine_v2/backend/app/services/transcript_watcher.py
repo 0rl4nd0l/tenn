@@ -9,10 +9,21 @@ from pathlib import Path
 from threading import Event
 from typing import Any, Callable
 
+import os
+
 from app.services.source_registry import SourceRegistry, build_source_id
 
 
-WORKSPACE_ROOT = Path(__file__).resolve().parents[4]
+def _resolve_workspace_root() -> Path:
+    env_val = os.environ.get("COCKPIT_WORKSPACE_ROOT")
+    if env_val:
+        return Path(env_val)
+    # Host layout: .../tenn/financial-engine_v2/backend/app/services/<file>
+    #              parents: 0=services 1=app 2=backend 3=financial-engine_v2 4=tenn
+    return Path(__file__).resolve().parents[4]
+
+
+WORKSPACE_ROOT = _resolve_workspace_root()
 DEFAULT_INBOX_ROOT = WORKSPACE_ROOT / "inbox"
 DEFAULT_TRANSCRIPTS_DIR = DEFAULT_INBOX_ROOT / "transcripts"
 DEFAULT_BOOKS_DIR = DEFAULT_INBOX_ROOT / "books"

@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from app.core.config import settings
 from app.modules.base import ArtifactSet
 
 
@@ -50,12 +51,20 @@ def artifact_path(
 
 
 def _default_reports_root() -> Path:
-    """Derive reports root from DATA_ROOT or fall back to project default."""
-    data_root = os.environ.get("DATA_ROOT")
-    if data_root:
-        return Path(data_root) / "reports"
-    # Fall back to project-relative path
-    return Path(__file__).resolve().parents[3] / "reports"
+    """Derive reports root from canonical settings with a writable fallback."""
+    backend_root = Path(__file__).resolve().parents[2]
+    candidates = [
+        Path(getattr(settings, "data_root", "/data")).expanduser().resolve() / "reports",
+        backend_root / "reports",
+    ]
+    for candidate in candidates:
+        try:
+            candidate.mkdir(parents=True, exist_ok=True)
+            if os.access(candidate, os.W_OK | os.X_OK):
+                return candidate
+        except OSError:
+            continue
+    return candidates[0]
 
 
 def write_artifact(

@@ -1,13 +1,34 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from app.core.config import settings
 
-FINANCIAL_ENGINE_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_CHANNEL_REGISTRY_PATH = FINANCIAL_ENGINE_ROOT / "channel_registry.json"
+
+def _default_channel_registry_path() -> Path:
+    backend_root = Path(__file__).resolve().parents[2]
+    candidates = [
+        Path(getattr(settings, "data_root", "/data")).expanduser().resolve()
+        / "reports"
+        / "research_memory"
+        / "channel_registry.json",
+        backend_root / "reports" / "research_memory" / "channel_registry.json",
+    ]
+    for candidate in candidates:
+        try:
+            candidate.parent.mkdir(parents=True, exist_ok=True)
+            if os.access(candidate.parent, os.W_OK | os.X_OK):
+                return candidate
+        except OSError:
+            continue
+    return candidates[0]
+
+
+DEFAULT_CHANNEL_REGISTRY_PATH = _default_channel_registry_path()
 
 
 @dataclass(frozen=True)

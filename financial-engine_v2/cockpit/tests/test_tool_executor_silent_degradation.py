@@ -15,6 +15,7 @@ from cockpit.core.tool_executor import ToolExecutor
 def _make_executor(**overrides) -> ToolExecutor:
     """Build a ToolExecutor with all optional services as None by default."""
     mock_router = MagicMock()
+    mock_router.backend_api_client = None
     mock_registry = MagicMock()
     mock_registry.get.return_value = None
 
@@ -51,13 +52,16 @@ class TestThesisDegradation:
         assert result["ok"] is False
         assert "error" in result
 
-    def test_returns_ok_true_when_thesis_service_available(self) -> None:
-        mock_thesis = MagicMock()
-        mock_thesis.get_active.return_value = [{"id": "t1"}]
-        executor = _make_executor(thesis_service=mock_thesis)
+    def test_returns_ok_true_when_backend_api_available(self) -> None:
+        mock_backend = MagicMock()
+        mock_backend.get_user_thesis_memory.return_value = {
+            "user_thesis_memory": {"entries": [{"entry_id": 1}], "proposals": []}
+        }
+        executor = _make_executor()
+        executor._router.backend_api_client = mock_backend
         result = executor.execute("get_thesis", {"ticker": "BHP"})
         assert result["ok"] is True
-        assert result["theses"] == [{"id": "t1"}]
+        assert result["theses"] == [{"entry_id": 1}]
 
 
 class TestReviewOpenDecisionsDegradation:

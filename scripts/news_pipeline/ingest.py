@@ -81,6 +81,7 @@ def _process_provider_window(
     empty windows are recorded as provider_empty_response in failures but do not set status to partial_failed."""
     stats: Dict[str, Any] = {"fetched": 0, "inserted": 0, "deduped": 0, "rejected": 0, "errors": 0}
     try:
+        print(f"[progress] Fetching articles from {provider.name}...", flush=True)
         rows = provider.fetch_window(
             window_start_utc=window_start_utc,
             window_end_utc=window_end_utc,
@@ -238,9 +239,10 @@ def _process_provider_window(
                 )
 
         if (i + 1) % progress_interval == 0:
-            print(f"[ingest] {provider.name} progress {i + 1}/{len(rows)} inserted={stats['inserted']} deduped={stats['deduped']} rejected={stats['rejected']} errors={stats['errors']}", flush=True)
+            msg = f"[progress] {provider.name} ticker_index={i + 1}/{len(rows)} inserted={stats['inserted']} deduped={stats['deduped']}"
+            print(msg, flush=True)
 
-    print(f"[ingest] {provider.name} done fetched={stats['fetched']} inserted={stats['inserted']} deduped={stats['deduped']} rejected={stats['rejected']} errors={stats['errors']}", flush=True)
+    print(f"[progress] {provider.name} done fetched={stats['fetched']} inserted={stats['inserted']} deduped={stats['deduped']} rejected={stats['rejected']} errors={stats['errors']}", flush=True)
     return stats
 
 
@@ -276,7 +278,7 @@ def run_provider_backfill(
             if (window_start_utc, window_end_utc) in completed:
                 continue
             day_label = (window_start_utc or "")[:10] or "?"
-            print(f"[backfill] {provider.name} processing day {day_label} ...", flush=True)
+            print(f"[progress] {provider.name} backfill {day_label}...", flush=True)
             stats = _process_provider_window(
                 store=store,
                 linker=linker,
@@ -354,6 +356,7 @@ def run_provider_daily(
     failures = FailureBucketTracker()
     run_errors = 0
     try:
+        print(f"[progress] Starting {provider.name} daily ingest...", flush=True)
         stats = _process_provider_window(
             store=store,
             linker=linker,
@@ -419,6 +422,7 @@ def run_provider_probe(
     failures = FailureBucketTracker()
     run_errors = 0
     try:
+        print(f"[progress] Probing {provider.name} ({window_days} days)...", flush=True)
         stats = _process_provider_window(
             store=store,
             linker=linker,

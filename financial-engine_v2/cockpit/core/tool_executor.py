@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import warnings
 from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Any
@@ -74,6 +75,32 @@ class ToolExecutor:
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _get_tradingview_indicators_cls():
+        """Import TradingView Indicators while suppressing upstream pkg_resources noise."""
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message=r"pkg_resources is deprecated as an API.*",
+                category=UserWarning,
+                module=r"tradingview_scraper\.symbols\..*",
+            )
+            from tradingview_scraper.symbols.technicals import Indicators  # type: ignore[import-untyped]
+        return Indicators
+
+    @staticmethod
+    def _get_tradingview_screener_cls():
+        """Import TradingView Screener while suppressing upstream pkg_resources noise."""
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message=r"pkg_resources is deprecated as an API.*",
+                category=UserWarning,
+                module=r"tradingview_scraper\.symbols\..*",
+            )
+            from tradingview_scraper.symbols.screener import Screener  # type: ignore[import-untyped]
+        return Screener
 
     def execute(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         """Execute a tool call and return the result dict.
@@ -916,12 +943,27 @@ class ToolExecutor:
         ticker = str(args.get("ticker", "")).strip().upper()
         if not ticker:
             return {"ok": False, "error": "ticker is required"}
-        if self._thesis_service is None:
-            return {"ok": False, "error": "thesis service not available"}
+        backend = self._router.backend_api_client
+        if backend is None:
+            return {"ok": False, "error": "backend API client not configured"}
+        try:
+            payload = backend.get_user_thesis_memory(ticker=ticker)
+        except Exception as exc:
+            return {
+                "ok": False,
+                "ticker": ticker,
+                "error": f"user thesis request failed: {exc}",
+            }
+        memory_payload = (
+            payload.get("user_thesis_memory", {})
+            if isinstance(payload, dict)
+            else {}
+        )
         return {
             "ok": True,
             "ticker": ticker,
-            "theses": self._thesis_service.get_active(ticker),
+            "theses": memory_payload.get("entries", []),
+            "proposals": memory_payload.get("proposals", []),
         }
 
     def _exec_check_decision_outcome(self, args: dict[str, Any]) -> dict[str, Any]:
@@ -942,22 +984,75 @@ class ToolExecutor:
 
     def _exec_get_tv_indicators(self, args: dict[str, Any]) -> dict[str, Any]:
         ticker = str(args.get("ticker", "")).strip().upper()
-        indicators = args.get("indicators") or ["RSI", "MACD", "EMA20", "SMA50"]
+        raw_indicators = args.get("indicators") or ["RSI", "MACD", "EMA20", "SMA50"]
+        requested_indicators = [
+            str(ind).strip()
+            for ind in (raw_indicators if isinstance(raw_indicators, list) else [raw_indicators])
+            if str(ind).strip()
+        ] or ["RSI", "MACD", "EMA20", "SMA50"]
+        indicator_aliases = {
+            "MACD": "MACD.macd",
+            "MACD_SIGNAL": "MACD.signal",
+        }
+        provider_indicators = [
+            indicator_aliases.get(ind.upper(), ind) for ind in requested_indicators
+        ]
         exchange = str(args.get("exchange", "ASX")).strip().upper()
         if not ticker:
             return {"ok": False, "error": "ticker is required"}
         try:
-            from tradingview_scraper.symbols.technicals import Indicators  # type: ignore[import-untyped]
+            Indicators = self._get_tradingview_indicators_cls()
             handler = Indicators()
-            symbol = f"{exchange}:{ticker}"
-            results = {}
-            for ind in indicators:
-                try:
-                    val = handler.scrape(symbol=symbol, indicator=ind)
-                    results[ind] = val
-                except Exception as exc:  # noqa: BLE001
-                    results[ind] = {"error": str(exc)[:120]}
-            return {"ok": True, "ticker": ticker, "exchange": exchange, "indicators": results}
+            payload = handler.scrape(
+                exchange=exchange,
+                symbol=ticker,
+                indicators=provider_indicators,
+            )
+            if not isinstance(payload, dict):
+                return {
+                    "ok": False,
+                    "ticker": ticker,
+                    "exchange": exchange,
+                    "indicators": {
+                        ind: {"error": "unexpected provider response type"}
+                        for ind in requested_indicators
+                    },
+                    "error": f"unexpected TradingView response type: {type(payload).__name__}",
+                }
+
+            status = str(payload.get("status") or "").strip().lower()
+            data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
+            if status != "success":
+                return {
+                    "ok": False,
+                    "ticker": ticker,
+                    "exchange": exchange,
+                    "indicators": {
+                        ind: {"error": "provider returned failed status"}
+                        for ind in requested_indicators
+                    },
+                    "error": "TradingView indicator request failed",
+                }
+
+            results: dict[str, Any] = {}
+            successful_values = 0
+            for original_ind, provider_ind in zip(
+                requested_indicators, provider_indicators
+            ):
+                if provider_ind in data and data[provider_ind] is not None:
+                    results[original_ind] = data[provider_ind]
+                    successful_values += 1
+                else:
+                    results[original_ind] = {
+                        "error": "indicator not returned by provider"
+                    }
+            return {
+                "ok": successful_values > 0,
+                "ticker": ticker,
+                "exchange": exchange,
+                "indicators": results,
+                "error": None if successful_values > 0 else "No indicator values returned",
+            }
         except ImportError:
             return {
                 "ok": False,
@@ -971,15 +1066,55 @@ class ToolExecutor:
         filters = args.get("filters") or {}
         limit = int(args.get("limit", 20))
         try:
-            from tradingview_scraper.symbols.screener import Screener  # type: ignore[import-untyped]
+            Screener = self._get_tradingview_screener_cls()
             handler = Screener()
-            results = handler.scrape(market=market)
+            # tradingview-scraper API migrated from .scrape(...) -> .screen(...).
+            if hasattr(handler, "screen"):
+                payload = handler.screen(market=market, limit=limit)
+                if not isinstance(payload, dict):
+                    return {
+                        "ok": False,
+                        "error": f"unexpected screener response type: {type(payload).__name__}",
+                    }
+                status = str(payload.get("status") or "").strip().lower()
+                if status != "success":
+                    return {
+                        "ok": False,
+                        "error": str(payload.get("error") or "TradingView screener request failed")[:300],
+                    }
+                results = payload.get("data")
+            elif hasattr(handler, "scrape"):
+                results = handler.scrape(market=market)
+            else:
+                return {
+                    "ok": False,
+                    "error": "tradingview-scraper Screener has no supported screen/scrape method",
+                }
             if not isinstance(results, list):
-                return {"ok": False, "error": f"unexpected screener response type: {type(results).__name__}"}
+                return {
+                    "ok": False,
+                    "error": f"unexpected screener result list type: {type(results).__name__}",
+                }
             # Apply simple filter: min_rs_rating if provided
             min_rs = filters.get("min_rs_rating")
             if min_rs is not None:
-                results = [r for r in results if isinstance(r, dict) and float(r.get("Relative Strength Index (14)", 0) or 0) >= float(min_rs)]
+                def _row_rs_value(row: dict[str, Any]) -> float:
+                    for key in (
+                        "Relative Strength Index (14)",
+                        "RSI",
+                    ):
+                        try:
+                            value = float(row.get(key, 0) or 0)
+                            return value
+                        except (TypeError, ValueError):
+                            continue
+                    return 0.0
+
+                results = [
+                    r
+                    for r in results
+                    if isinstance(r, dict) and _row_rs_value(r) >= float(min_rs)
+                ]
             return {"ok": True, "market": market, "count": len(results[:limit]), "results": results[:limit]}
         except ImportError:
             return {
@@ -1182,11 +1317,11 @@ class ToolExecutor:
                     "ok": False,
                     "error": "ticker and thesis are required",
                 }
-            if self._thesis_service is None:
+            if self._router.backend_api_client is None:
                 return {
                     "tool": tool_name,
                     "ok": False,
-                    "error": "thesis service not available",
+                    "error": "backend API client not configured",
                 }
             return {
                 "tool": tool_name,
@@ -1213,11 +1348,11 @@ class ToolExecutor:
                     "ok": False,
                     "error": "ticker and finding are required",
                 }
-            if self._thesis_service is None:
+            if self._router.backend_api_client is None:
                 return {
                     "tool": tool_name,
                     "ok": False,
-                    "error": "thesis service not available",
+                    "error": "backend API client not configured",
                 }
             is_supporting = bool(args.get("is_supporting", True))
             label = "supporting" if is_supporting else "disconfirming"
@@ -1320,18 +1455,193 @@ class ToolExecutor:
     # Helpers
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _compact_text(value: Any, *, max_chars: int = 220) -> str | None:
+        text = re.sub(r"\s+", " ", str(value or "").strip())
+        if not text:
+            return None
+        if len(text) <= max_chars:
+            return text
+        return text[: max_chars - 3].rstrip() + "..."
+
+    def _compact_result_list(
+        self,
+        rows: Any,
+        *,
+        max_rows: int = 3,
+        max_result_chars: int = 180,
+    ) -> list[dict[str, Any]]:
+        if not isinstance(rows, list):
+            return []
+        compact_rows: list[dict[str, Any]] = []
+        for row in rows[:max_rows]:
+            if not isinstance(row, dict):
+                continue
+            compact: dict[str, Any] = {}
+            for key in (
+                "title",
+                "url",
+                "published_at",
+                "provider",
+                "ticker",
+                "primary_ticker",
+                "source_id",
+                "document_id",
+                "symbol",
+                "name",
+                "change",
+                "change_abs",
+                "close",
+                "volume",
+                "score",
+                "final_score",
+            ):
+                if key in row and row.get(key) not in (None, ""):
+                    compact[key] = row.get(key)
+
+            snippet = self._compact_text(
+                row.get("snippet") or row.get("text") or row.get("excerpt"),
+                max_chars=max_result_chars,
+            )
+            if snippet:
+                compact["snippet"] = snippet
+
+            if not compact:
+                compact = {
+                    "summary": self._compact_text(
+                        json.dumps(row, default=str, ensure_ascii=False),
+                        max_chars=max_result_chars,
+                    )
+                }
+            compact_rows.append(compact)
+        return compact_rows
+
+    def _structured_truncated_payload(
+        self, result: dict[str, Any], original_chars: int
+    ) -> dict[str, Any]:
+        """Build a compact, structured payload that preserves source/freshness fields."""
+        compact: dict[str, Any] = {
+            "tool": result.get("tool", "unknown"),
+            "ok": bool(result.get("ok", True)),
+            "_truncated": True,
+            "_original_chars": original_chars,
+        }
+
+        for key in (
+            "error",
+            "query",
+            "ticker",
+            "market",
+            "hit_count",
+            "count",
+            "freshness_warning",
+            "_source",
+        ):
+            if key in result and result.get(key) not in (None, ""):
+                value = result.get(key)
+                if isinstance(value, str):
+                    compact[key] = self._compact_text(value, max_chars=320) or value
+                else:
+                    compact[key] = value
+
+        if isinstance(result.get("staleness_preflight"), dict):
+            compact["staleness_preflight"] = result.get("staleness_preflight")
+
+        for list_key in ("hits", "results", "documents", "context", "alerts"):
+            compact_rows = self._compact_result_list(result.get(list_key))
+            if compact_rows:
+                compact[list_key] = compact_rows
+
+        # Keep scalar indicators if available (useful for get_tv_indicators).
+        indicators = result.get("indicators")
+        if isinstance(indicators, dict):
+            compact_indicators: dict[str, Any] = {}
+            for key, value in list(indicators.items())[:8]:
+                if isinstance(value, dict):
+                    err = self._compact_text(value.get("error"), max_chars=120)
+                    compact_indicators[key] = {"error": err or "error"}
+                else:
+                    compact_indicators[key] = value
+            compact["indicators"] = compact_indicators
+
+        return compact
+
     def _truncate(self, result: dict[str, Any]) -> dict[str, Any]:
         """Truncate serialized result to max_result_chars for context management."""
         serialized = json.dumps(result, default=str, ensure_ascii=False)
         if len(serialized) <= self._max_result_chars:
             return result
 
-        # Truncate the JSON string and return a reduced version.
-        truncated = serialized[: self._max_result_chars]
+        compact = self._structured_truncated_payload(result, len(serialized))
+        compact_serialized = json.dumps(compact, default=str, ensure_ascii=False)
+        if len(compact_serialized) <= self._max_result_chars:
+            return compact
+
+        # Ultra-minimal structured fallback: keep just enough to preserve
+        # source extraction (title/url/published_at) and freshness anchoring.
+        minimal: dict[str, Any] = {
+            "tool": result.get("tool", "unknown"),
+            "ok": result.get("ok", True),
+            "_truncated": True,
+            "_original_chars": len(serialized),
+        }
+        if result.get("hit_count") is not None:
+            minimal["hit_count"] = result.get("hit_count")
+        if result.get("count") is not None:
+            minimal["count"] = result.get("count")
+        freshness_warning = self._compact_text(
+            result.get("freshness_warning"), max_chars=120
+        )
+        if freshness_warning:
+            minimal["freshness_warning"] = freshness_warning
+
+        for list_key in ("hits", "results"):
+            rows = result.get(list_key)
+            if not isinstance(rows, list) or not rows:
+                continue
+            first = rows[0] if isinstance(rows[0], dict) else {}
+            if not isinstance(first, dict):
+                continue
+            minimal_row = {}
+            for key in (
+                "title",
+                "url",
+                "published_at",
+                "source_id",
+                "symbol",
+                "name",
+            ):
+                if first.get(key) not in (None, ""):
+                    minimal_row[key] = first.get(key)
+            if minimal_row:
+                minimal[list_key] = [minimal_row]
+
+        minimal_serialized = json.dumps(minimal, default=str, ensure_ascii=False)
+        if len(minimal_serialized) <= self._max_result_chars:
+            return minimal
+
+        # Final fallback keeps shape minimal while still preserving key context.
+        if "hits" in compact:
+            compact["hits"] = compact["hits"][:1]
+        if "results" in compact:
+            compact["results"] = compact["results"][:1]
+        if "documents" in compact:
+            compact["documents"] = compact["documents"][:1]
+        if "context" in compact:
+            compact["context"] = compact["context"][:1]
+
+        compact_serialized = json.dumps(compact, default=str, ensure_ascii=False)
+        if len(compact_serialized) <= self._max_result_chars:
+            return compact
+
         return {
             "tool": result.get("tool", "unknown"),
             "ok": result.get("ok", True),
             "_truncated": True,
             "_original_chars": len(serialized),
-            "data": truncated,
+            "error": self._compact_text(result.get("error"), max_chars=180),
+            "freshness_warning": self._compact_text(
+                result.get("freshness_warning"), max_chars=220
+            ),
+            "data": self._compact_text(serialized, max_chars=self._max_result_chars),
         }

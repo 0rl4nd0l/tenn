@@ -16,6 +16,7 @@ This contract defines **non-negotiable system rules** governing:
 * model usage
 * agent behavior (Claude / Codex)
 * system topology
+* system observability
 
 The goal is to:
 
@@ -616,6 +617,34 @@ If any rule is violated:
 2. identify violation
 3. report clearly
 4. DO NOT proceed
+
+---
+
+# 16. SYSTEM OBSERVABILITY (MANDATORY)
+
+## 16.1 Observability Mandate
+
+**Transparency is a core system invariant.** 
+
+All long-running or resource-intensive tasks MUST be observable in the global system state (Cockpit/Verification Workstation) regardless of their trigger source.
+
+## 16.2 Registration Requirements
+
+Every job (Extraction, Evaluation, Backfill, or Maintenance) MUST:
+
+1.  **Register Start:** Use the backend-authoritative activity monitor (e.g., `extraction_activity` context manager) to announce its existence and metadata (Ticker, Document ID, Method).
+2.  **Heartbeat:** Maintain liveness in the shared state for the full duration of the execution.
+3.  **Register Completion:** Explicitly clear its activity token upon success, failure, or cancellation.
+
+## 16.3 Origin Agnostic
+
+The observability mandate applies strictly to ALL job origins:
+*   Frontend (Web UI/Cockpit)
+*   Agents (Codex/Claude via tools)
+*   CLI (Local scripts)
+*   Systemd Services (Background workers)
+
+**Bypassing the activity monitor is a contract violation.**
 
 ---
 

@@ -13,6 +13,8 @@ from threading import Lock, Thread
 from time import time
 from typing import Any
 
+from app.core.config import settings
+
 
 DEFAULT_MAX_ENTRIES_PER_MODEL = 1000
 DEFAULT_SUMMARY_WINDOW = 50
@@ -20,7 +22,24 @@ DEFAULT_METRICS_SNAPSHOT_INTERVAL = 20
 
 
 _LOGGER = logging.getLogger(__name__)
-_REPORTS_DIR = Path(__file__).resolve().parents[3] / "reports"
+
+
+def _default_reports_dir() -> Path:
+    candidates = [
+        Path(getattr(settings, "data_root", "/data")).expanduser().resolve() / "reports",
+        Path(__file__).resolve().parents[2] / "reports",
+    ]
+    for candidate in candidates:
+        try:
+            candidate.mkdir(parents=True, exist_ok=True)
+            if os.access(candidate, os.W_OK | os.X_OK):
+                return candidate
+        except OSError:
+            continue
+    return candidates[0]
+
+
+_REPORTS_DIR = _default_reports_dir()
 _DEFAULT_SNAPSHOT_PATH = _REPORTS_DIR / "router_metrics_snapshot.json"
 
 _METRICS_LOCK = Lock()
