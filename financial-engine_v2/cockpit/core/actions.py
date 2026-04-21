@@ -44,6 +44,7 @@ TICKER_REQUIRED_ACTION_IDS: frozenset[str] = frozenset(
         "audit_ticker_financials",
         "single_ticker_announcement_backfill",
         "metric_extraction",
+        "run_analysis",
         "show_candlestick",
         "resume_pending",
         "recover_headed",
@@ -704,6 +705,24 @@ class ActionRegistry:
                 expected_outputs=["reports/rebuild_ticker_financials_from_docs_*.json"],
                 timeout_seconds=10800,
             ),
+            "run_analysis": ActionSpec(
+                id="run_analysis",
+                label="Run full analysis pipeline",
+                command_template=[
+                    py,
+                    "scripts/run_analysis_action.py",
+                    "--ticker",
+                    "{ticker}",
+                ],
+                arg_schema={
+                    "ticker": str,
+                    "modules": str,
+                },
+                is_mutating=False,
+                requires_confirmation=confirm_required,
+                expected_outputs=["reports/analysis/*/analysis_api_*.json"],
+                timeout_seconds=1800,
+            ),
             "show_candlestick": ActionSpec(
                 id="show_candlestick",
                 label="Generate candlestick / price chart",
@@ -723,6 +742,30 @@ class ActionRegistry:
                 requires_confirmation=False,
                 expected_outputs=["reports/cockpit/*candle*.html"],
                 timeout_seconds=60,
+            ),
+            "launch_marketplace_browser": ActionSpec(
+                id="launch_marketplace_browser",
+                label="Launch Marketplace browser",
+                command_template=[
+                    py,
+                    "scripts/launch_marketplace_browser.py",
+                    "--browser",
+                    "{browser}",
+                    "--port",
+                    "{port}",
+                    "--url",
+                    "{url}",
+                ],
+                arg_schema={
+                    "browser": str,
+                    "port": int,
+                    "url": str,
+                    "fresh_profile": bool,
+                },
+                is_mutating=False,
+                requires_confirmation=False,
+                expected_outputs=[],
+                timeout_seconds=30,
             ),
         }
 
@@ -842,6 +885,10 @@ class ActionRegistry:
                 command.append("--force")
             if normalized.get("with_embeddings"):
                 command.append("--with-embeddings")
+        if action_id == "run_analysis":
+            modules_raw = str(normalized.get("modules", "")).strip()
+            if modules_raw:
+                command.extend(["--modules", modules_raw])
         if action_id == "sort_asx_docs":
             if str(normalized.get("ticker", "")).strip():
                 command.extend(["--ticker", str(normalized["ticker"]).strip().upper()])
@@ -861,6 +908,10 @@ class ActionRegistry:
                 command.append("--include-non-financial-candidates")
             if normalized.get("force"):
                 command.append("--force")
+        if action_id == "launch_marketplace_browser" and normalized.get(
+            "fresh_profile"
+        ):
+            command.append("--fresh-profile")
 
         return command
 
@@ -1231,6 +1282,10 @@ class ActionRegistry:
         out.setdefault("lane", "high_precision")
         out.setdefault("tickers", "")
         out.setdefault("no_resume", False)
+        out.setdefault("browser", "auto")
+        out.setdefault("port", 9222)
+        out.setdefault("url", "https://www.facebook.com/marketplace/")
+        out.setdefault("fresh_profile", False)
         out.setdefault(
             "importance_report",
             f"reports/importance/announcement_importance_report_{ts}.json",

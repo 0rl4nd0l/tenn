@@ -100,6 +100,37 @@ def test_non_dict_evidence_entry() -> None:
     assert sources[0]["title"] == "Safe"
 
 
+def test_runtime_clock_evidence_renders_visible_source() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "type": "runtime_clock",
+                "details": {
+                    "title": "Cockpit runtime clock",
+                    "source_id": "runtime_clock:australia-sydney",
+                    "snippet": "Backend runtime clock in Australia/Sydney reported 2026-04-18T11:36:00+10:00.",
+                    "published_at": "2026-04-18T11:36:00+10:00",
+                },
+            }
+        ]
+    )
+
+    assert sources == [
+        {
+            "title": "Cockpit runtime clock",
+            "score": 0.0,
+            "url": None,
+            "snippet": "Backend runtime clock in Australia/Sydney reported 2026-04-18T11:36:00+10:00.",
+            "published_at": "2026-04-18T11:36:00+10:00",
+            "document_id": None,
+            "source_id": "runtime_clock:australia-sydney",
+            "doc_type": None,
+            "path": None,
+            "kind": "context",
+        }
+    ]
+
+
 def test_agent_format_search_announcements() -> None:
     sources = _build_ui_sources(
         [
@@ -236,7 +267,48 @@ def test_agent_format_search_web() -> None:
 
     assert len(sources) == 1
     assert sources[0]["kind"] == "web"
-    assert sources[0]["url"] == "https://example.com/transcript"
+
+
+def test_holdings_evidence_renders_visible_sources() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "type": "holdings",
+                "details": [
+                    {
+                        "holding_id": "h-1",
+                        "ticker": "EIQ",
+                        "account_label": "COMMSEC LT",
+                        "quantity": 5700.0,
+                        "avg_cost": 0.26,
+                    }
+                ],
+            }
+        ]
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["title"] == "EIQ holding"
+    assert sources[0]["source_id"] == "h-1"
+    assert "Quantity: 5700.0" in str(sources[0]["snippet"])
+
+
+def test_watchlist_evidence_renders_visible_sources() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "type": "watchlist",
+                "details": [
+                    {"ticker": "BHP", "added_at": "2026-04-21T00:00:00+00:00"}
+                ],
+            }
+        ]
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["title"] == "BHP watchlist"
+    assert sources[0]["source_id"] == "watchlist:BHP"
+    assert "Added: 2026-04-21" in str(sources[0]["snippet"])
 
 
 def test_agent_format_fetch_url() -> None:
@@ -425,3 +497,77 @@ def test_agent_format_get_watchlist_alerts() -> None:
     assert len(sources) == 1
     assert sources[0]["title"] == "BHP price"
     assert sources[0]["source_id"] == "alert-1"
+
+
+def test_agent_format_tv_screener() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "tool": "tv_screener",
+                "result": {
+                    "market": "australia",
+                    "results": [
+                        {
+                            "symbol": "ASX:BHP",
+                            "change_percent": 2.1,
+                            "close": 45.7,
+                            "volume": 1234567,
+                        }
+                    ],
+                },
+            }
+        ]
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["title"] == "ASX:BHP (AUSTRALIA)"
+    assert sources[0]["source_id"] == "tv_screener:AUSTRALIA:ASX:BHP"
+    assert "change percent: 2.1" in str(sources[0]["snippet"]).lower()
+
+
+def test_agent_format_get_tv_indicators() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "tool": "get_tv_indicators",
+                "result": {
+                    "ticker": "BHP",
+                    "exchange": "ASX",
+                    "indicators": {
+                        "RSI": 58.4,
+                        "MACD": {"error": "unavailable"},
+                    },
+                },
+            }
+        ]
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["title"] == "ASX:BHP indicators"
+    assert sources[0]["source_id"] == "tv_indicators:ASX:BHP"
+    assert "rsi: 58.4" in str(sources[0]["snippet"]).lower()
+
+
+def test_agent_format_search_news_truncated_legacy_data_payload() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "tool": "search_news",
+                "result": {
+                    "tool": "search_news",
+                    "ok": True,
+                    "_truncated": True,
+                    "_original_chars": 2500,
+                    "data": (
+                        '{"tool":"search_news","ok":true,"hits":'
+                        '[{"title":"Legacy parsed item","url":"https://example.com/legacy",'
+                        '"published_at":"2026-04-20","snippet":"Legacy snippet"}]}'
+                    ),
+                },
+            }
+        ]
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["title"] == "Legacy parsed item"
+    assert sources[0]["url"] == "https://example.com/legacy"

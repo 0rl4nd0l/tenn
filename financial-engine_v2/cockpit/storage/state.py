@@ -176,6 +176,115 @@ class StateStore:
             )
             """
         )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS marketplace_missions (
+                mission_id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                status TEXT NOT NULL,
+                brief TEXT NOT NULL,
+                category_hint TEXT,
+                hard_filters_json TEXT NOT NULL DEFAULT '{}',
+                soft_preferences_json TEXT NOT NULL DEFAULT '{}',
+                search_config_json TEXT NOT NULL DEFAULT '{}',
+                scan_config_json TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                last_scan_at TEXT
+            )
+            """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_marketplace_missions_status "
+            "ON marketplace_missions(status)"
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS marketplace_seen_listings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                mission_id TEXT NOT NULL,
+                listing_id TEXT NOT NULL,
+                listing_url TEXT NOT NULL,
+                title TEXT,
+                price_text TEXT,
+                price_value REAL,
+                location TEXT,
+                seller_name TEXT,
+                query_text TEXT,
+                first_seen_at TEXT NOT NULL,
+                last_seen_at TEXT NOT NULL,
+                detail_hash TEXT,
+                raw_snapshot_json TEXT NOT NULL DEFAULT '{}',
+                last_status TEXT NOT NULL DEFAULT 'seen',
+                last_score INTEGER,
+                last_decision_band TEXT,
+                last_error TEXT,
+                match_id TEXT,
+                UNIQUE(mission_id, listing_id)
+            )
+            """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_marketplace_seen_mission "
+            "ON marketplace_seen_listings(mission_id, last_seen_at DESC)"
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS marketplace_matches (
+                match_id TEXT PRIMARY KEY,
+                mission_id TEXT NOT NULL,
+                listing_id TEXT NOT NULL,
+                listing_url TEXT NOT NULL,
+                title TEXT NOT NULL,
+                price TEXT,
+                price_value REAL,
+                location TEXT,
+                seller_name TEXT,
+                captured_at TEXT NOT NULL,
+                score INTEGER NOT NULL,
+                decision_band TEXT NOT NULL,
+                reasons_for_json TEXT NOT NULL DEFAULT '[]',
+                reasons_against_json TEXT NOT NULL DEFAULT '[]',
+                confidence REAL,
+                raw_text_snapshot TEXT NOT NULL,
+                screenshot_path TEXT,
+                status TEXT NOT NULL DEFAULT 'new',
+                metadata_json TEXT NOT NULL DEFAULT '{}',
+                updated_at TEXT NOT NULL,
+                UNIQUE(mission_id, listing_id)
+            )
+            """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_marketplace_matches_mission "
+            "ON marketplace_matches(mission_id, captured_at DESC)"
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_marketplace_matches_status "
+            "ON marketplace_matches(status, decision_band)"
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS marketplace_alerts (
+                alert_id TEXT PRIMARY KEY,
+                mission_id TEXT NOT NULL,
+                match_id TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'new',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                trigger_reason TEXT NOT NULL,
+                metadata_json TEXT NOT NULL DEFAULT '{}'
+            )
+            """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_marketplace_alerts_status "
+            "ON marketplace_alerts(status, created_at DESC)"
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_marketplace_alerts_mission "
+            "ON marketplace_alerts(mission_id, created_at DESC)"
+        )
         # Holdings: cockpit-local portfolio state. NOT financial truth, NOT
         # memory reasoning. See SYSTEM_CONTRACT §1.2.
         cur.execute(
@@ -397,6 +506,21 @@ class StateStore:
             self.conn.execute(
                 "UPDATE jobs SET progress_stage = ?, progress_pct = ? WHERE job_id = ?",
                 (stage, pct, job_id),
+            )
+            self.conn.commit()
+
+    def update_job_status(
+        self,
+        job_id: str,
+        status: str,
+        exit_code: int | None = None,
+        ended_at: str | None = None,
+    ) -> None:
+        """Update job status and exit metadata without touching progress fields."""
+        with self._lock:
+            self.conn.execute(
+                "UPDATE jobs SET status = ?, exit_code = ?, ended_at = ? WHERE job_id = ?",
+                (status, exit_code, ended_at, job_id),
             )
             self.conn.commit()
 

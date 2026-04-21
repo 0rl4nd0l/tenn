@@ -186,6 +186,7 @@ def check_extraction_endpoint(
         port = str(parsed.port or 8001)
         from cockpit.integrations.llamacpp_manager import (
             find_all_llama_server_processes,
+            is_router_mode,
             load_model_api,
             probe_router_capability,
             resolve_llama_server_port_topology,
@@ -203,6 +204,37 @@ def check_extraction_endpoint(
 
         proc_info = topology.selected_process
         if proc_info is None:
+            # Containerized callers may not see host llama-server processes via /proc.
+            # If the router API is reachable, attempt direct auto-load without local
+            # process discovery instead of hard-failing on "no runtime on port ...".
+            api_key = (
+                os.getenv("LLM_API_KEY")
+                or os.getenv("LLAMA_SERVER_API_KEY")
+                or os.getenv("LLAMACPP_API_KEY")
+                or "local-openai-key"
+            )
+            if is_router_mode(host, port, api_key):
+                logger.info(
+                    "Auto-loading extraction model '%s' (as '%s') on %s via router API fallback.",
+                    expected_model,
+                    matching_name,
+                    extraction_url,
+                )
+                ok = load_model_api(
+                    host,
+                    port,
+                    matching_name,
+                    api_key=api_key,
+                    timeout=120.0,
+                )
+                if ok:
+                    return True, (
+                        f"Auto-loaded extraction model '{matching_name}' on {extraction_url}"
+                    )
+                return False, (
+                    f"Failed to auto-load extraction model '{matching_name}' on {extraction_url}"
+                )
+
             reason = str(topology.reason or "runtime_process_not_found").replace("_", " ")
             return False, (
                 f"Extraction model '{expected_model}' not loaded. "

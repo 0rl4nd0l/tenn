@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, TypeVar
 
+from app.services.memory_events import emit_memory_write_event
 from app.services.market_sector_inference import infer_sector
 from app.services.source_registry import RESEARCH_MEMORY_ROOT
 
@@ -350,7 +351,21 @@ class MarketMemoryStore:
             entry = self._get_entry_by_id(conn, table, int(entry_id))
             return {"rule": event_type, "entry": entry}
 
-        return self._run_write_transaction(_update)
+        result = self._run_write_transaction(_update)
+        entry = dict(result.get("entry") or {})
+        emit_memory_write_event(
+            memory_class="market_memory",
+            event_type=str(result.get("rule") or "update"),
+            payload={
+                "scope": scope,
+                "entity_key": entity_key,
+                "entry_id": entry.get("entry_id"),
+                "signal_type": entry.get("type") or signal.get("type"),
+                "source_id": entry.get("source_id") or signal.get("source_id"),
+                "status": entry.get("status"),
+            },
+        )
+        return result
 
     def list_sector_entries(
         self, sector: str, status: str | None = None
@@ -468,7 +483,20 @@ class MarketMemoryStore:
                 "entry": self._get_entry_by_id(conn, table, int(entry_id)),
             }
 
-        return self._run_write_transaction(_expire)
+        result = self._run_write_transaction(_expire)
+        entry = dict(result.get("entry") or {})
+        emit_memory_write_event(
+            memory_class="market_memory",
+            event_type="expire",
+            payload={
+                "scope": normalized_scope,
+                "entry_id": entry.get("entry_id"),
+                "signal_type": entry.get("type"),
+                "source_id": _manual_source_id(f"market-{normalized_scope}-expire-event"),
+                "status": entry.get("status"),
+            },
+        )
+        return result
 
     def retrieve(
         self,

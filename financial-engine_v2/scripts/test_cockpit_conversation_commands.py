@@ -21,8 +21,16 @@ class CockpitConversationCommandTests(unittest.TestCase):
     def test_watchlist_remove_list_clear_phrases(self):
         self.assertEqual(derive_conversational_command("remove bhp from watchlist"), "/watch remove BHP")
         self.assertEqual(derive_conversational_command("show my watchlist"), "/watch list")
+        self.assertEqual(derive_conversational_command("what is in my watchlist"), "/watch list")
+        self.assertEqual(derive_conversational_command("what stocks are in my watchlist"), "/watch list")
         self.assertEqual(derive_conversational_command("clear watchlist"), "/watch clear")
         self.assertEqual(derive_conversational_command("sync my watchlist"), "/watch sync")
+
+    def test_holdings_list_phrases(self):
+        self.assertEqual(derive_conversational_command("show my holdings"), "/holdings list")
+        self.assertEqual(derive_conversational_command("what are my holdings"), "/holdings list")
+        self.assertEqual(derive_conversational_command("what stocks am i holding"), "/holdings list")
+        self.assertEqual(derive_conversational_command("what stoicks am i holding"), "/holdings list")
 
     def test_alert_phrases(self):
         self.assertEqual(derive_conversational_command("check alerts"), "/alerts")

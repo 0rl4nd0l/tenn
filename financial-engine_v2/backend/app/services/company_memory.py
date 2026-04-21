@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, TypeVar
 
+from app.services.memory_events import emit_memory_write_event
 from app.services.source_registry import RESEARCH_MEMORY_ROOT
 
 DEFAULT_COMPANY_MEMORY_PATH = RESEARCH_MEMORY_ROOT / "company_memory.sqlite"
@@ -296,7 +297,20 @@ class CompanyMemoryStore:
             entry = self._get_entry_by_id(conn, int(entry_id))
             return {"rule": event_type, "entry": entry}
 
-        return self._run_write_transaction(_update)
+        result = self._run_write_transaction(_update)
+        entry = dict(result.get("entry") or {})
+        emit_memory_write_event(
+            memory_class="company_memory",
+            event_type=str(result.get("rule") or "update"),
+            payload={
+                "company_id": normalized_company,
+                "entry_id": entry.get("entry_id"),
+                "signal_type": entry.get("type") or signal.get("type"),
+                "source_id": entry.get("source_id") or signal.get("source_id"),
+                "status": entry.get("status"),
+            },
+        )
+        return result
 
     def list_entries(
         self, company_id: str, status: str | None = None
@@ -407,7 +421,20 @@ class CompanyMemoryStore:
             self._sync_company_summary(conn, normalized_company, now)
             return {"rule": "expire", "entry": self._get_entry_by_id(conn, int(entry_id))}
 
-        return self._run_write_transaction(_expire)
+        result = self._run_write_transaction(_expire)
+        entry = dict(result.get("entry") or {})
+        emit_memory_write_event(
+            memory_class="company_memory",
+            event_type="expire",
+            payload={
+                "company_id": normalized_company,
+                "entry_id": entry.get("entry_id"),
+                "signal_type": entry.get("type"),
+                "source_id": _manual_source_id("company-expire-event"),
+                "status": entry.get("status"),
+            },
+        )
+        return result
 
     def retrieve(
         self,

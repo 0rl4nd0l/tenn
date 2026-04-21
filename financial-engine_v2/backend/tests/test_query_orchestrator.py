@@ -60,6 +60,7 @@ def test_build_plan_routes_interpretation_to_all_layers() -> None:
         "financial_truth",
         "company_memory",
         "market_memory",
+        "user_thesis_memory",
     )
     assert plan.needs_numbers is True
     assert plan.needs_meaning is True
@@ -129,8 +130,16 @@ def test_orchestrator_calls_company_and_market_memory_for_risk_query() -> None:
     assert truth.calls == 0
     assert company.calls == 1
     assert market.calls == 1
-    assert result.plan.sources == ("company_memory", "market_memory")
-    assert result.answer["sources_used"] == ["company_memory", "market_memory"]
+    assert result.plan.sources == (
+        "company_memory",
+        "market_memory",
+        "user_thesis_memory",
+    )
+    assert result.answer["sources_used"] == [
+        "company_memory",
+        "market_memory",
+        "user_thesis_memory",
+    ]
 
 
 def test_orchestrator_uses_all_layers_for_mixed_query() -> None:
@@ -157,11 +166,13 @@ def test_orchestrator_uses_all_layers_for_mixed_query() -> None:
         "financial_truth",
         "company_memory",
         "market_memory",
+        "user_thesis_memory",
     )
     assert result.answer["sources_used"] == [
         "financial_truth",
         "company_memory",
         "market_memory",
+        "user_thesis_memory",
     ]
 
 

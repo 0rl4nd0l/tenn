@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -17,9 +17,13 @@ import {
   Activity,
   Zap,
   List,
+  Wallet,
+  Brain,
   Store,
   ShoppingBag,
   Bell,
+  Plus,
+  Trash2,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -35,10 +39,19 @@ import {
   SidebarSeparator,
 } from '@/components/ui/sidebar'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { GpuActivityDialog, getGpuProcesses, getGpuSummary } from '@/components/cockpit/gpu-activity-dialog'
 import { HostActivityDialog, getHostSummary } from '@/components/cockpit/host-activity-dialog'
 import type { ServiceHealth } from '@/lib/cockpit-types'
 import { useCockpitStore } from '@/lib/cockpit-store'
+import { 
+  loadAllChatSessions, 
+  createChatSessionId, 
+  deleteChatSession,
+  type PersistedChatSession 
+} from '@/lib/chat-session-store'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { cn } from '@/lib/utils'
 
 interface CockpitSidebarProps {
   backendHealthy: boolean
@@ -79,7 +92,9 @@ const navItems = [
   { href: '/settings', icon: Gauge, label: 'Settings', shortcut: '6' },
   { href: '/news', icon: Newspaper, label: 'News', shortcut: '7' },
   { href: '/intel-ops', icon: Activity, label: 'Intel Pulse', shortcut: '8' },
-  { href: '/watchlist', icon: List, label: 'Watchlist', shortcut: '9' },
+  { href: '/holdings', icon: Wallet, label: 'Holdings', shortcut: '9' },
+  { href: '/memory', icon: Brain, label: 'Memory', shortcut: '0' },
+  { href: '/watchlist', icon: List, label: 'Watchlist', shortcut: 'W' },
   { href: '/marketplace', icon: Store, label: 'Marketplace', shortcut: 'M' },
   { href: '/marketplace/matches', icon: ShoppingBag, label: 'Matches', shortcut: 'N' },
   { href: '/marketplace/alerts', icon: Bell, label: 'Alerts', shortcut: 'B' },
@@ -119,10 +134,46 @@ export function CockpitSidebar({
   sessionCost,
 }: CockpitSidebarProps) {
   const pathname = usePathname()
-  const { chatModel, sessionStats } = useCockpitStore()
+  const { 
+    chatModel, 
+    sessionStats, 
+    sessionId, 
+    setSessionId,
+    setActiveTicker
+  } = useCockpitStore()
   const [configSummary, setConfigSummary] = useState<ConfigSummary>(INITIAL_CONFIG_SUMMARY)
   const [configNotice, setConfigNotice] = useState<ConfigNotice | null>(null)
   const [lastConfigSyncAt, setLastConfigSyncAt] = useState<Date | null>(null)
+  const [sessions, setSessions] = useState<PersistedChatSession[]>([])
+
+  const refreshSessions = useCallback(() => {
+    setSessions(loadAllChatSessions())
+  }, [])
+
+  useEffect(() => {
+    refreshSessions()
+    // Optional: Refresh periodically if other tabs might change it
+    const interval = setInterval(refreshSessions, 10_000)
+    return () => clearInterval(interval)
+  }, [refreshSessions])
+
+  const handleNewChat = useCallback(() => {
+    const newId = createChatSessionId()
+    setActiveTicker('')
+    setSessionId(newId)
+    refreshSessions()
+  }, [setActiveTicker, setSessionId, refreshSessions])
+
+  const handleDeleteSession = useCallback((id: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    deleteChatSession(id)
+    if (id === sessionId) {
+      handleNewChat()
+    } else {
+      refreshSessions()
+    }
+  }, [sessionId, handleNewChat, refreshSessions])
 
   useEffect(() => {
     let cancelled = false
@@ -255,6 +306,59 @@ export function CockpitSidebar({
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+          <div className="flex items-center justify-between px-2 mb-2">
+            <SidebarGroupLabel className="px-0">Chat Sessions</SidebarGroupLabel>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={handleNewChat}
+              title="New Chat"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          <SidebarGroupContent>
+            <ScrollArea className="h-[250px] -mx-1 px-1">
+              <SidebarMenu>
+                {sessions.length === 0 ? (
+                  <div className="px-2 py-4 text-center text-xs text-muted-foreground italic">
+                    No recent chats
+                  </div>
+                ) : (
+                  sessions.map((s) => (
+                    <SidebarMenuItem key={s.sessionId}>
+                      <SidebarMenuButton
+                        isActive={sessionId === s.sessionId}
+                        className={cn(
+                          "group/session pr-8 relative",
+                          sessionId === s.sessionId && "bg-sidebar-accent"
+                        )}
+                        onClick={() => setSessionId(s.sessionId)}
+                        tooltip={s.title || 'Untitled Chat'}
+                      >
+                        <MessageSquare className="h-4 w-4 flex-shrink-0" />
+                        <span className="truncate flex-1">
+                          {s.title || 'Untitled Chat'}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5 absolute right-1 opacity-0 group-hover/session:opacity-100 transition-opacity hover:text-destructive"
+                          onClick={(e) => handleDeleteSession(s.sessionId, e)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))
+                )}
+              </SidebarMenu>
+            </ScrollArea>
           </SidebarGroupContent>
         </SidebarGroup>
 

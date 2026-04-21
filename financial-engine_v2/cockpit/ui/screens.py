@@ -224,6 +224,14 @@ class ChatScreen(Screen):
         yield Label("Chat + Actions")
         yield Static("Model runtime: loading...", id="chat-model-status")
         yield Static("", id="chat-ticker-context")
+        yield Horizontal(
+            Button(
+                "Portfolio Holdings",
+                id="chat-open-holdings-prominent",
+                variant="primary",
+            ),
+            id="chat-holdings-shortcut",
+        )
         yield RichLog(id="chat-log", wrap=True, markup=False, highlight=True)
         yield Static("", id="chat-live-response")
         yield Static("", id="chat-status")
@@ -332,7 +340,7 @@ class ChatScreen(Screen):
         if event.button.id == "chat-open-memory":
             self.app.action_show_memory()
             return
-        if event.button.id == "chat-open-holdings":
+        if event.button.id in {"chat-open-holdings", "chat-open-holdings-prominent"}:
             self.app.action_show_holdings()
             return
         if event.button.id == "chat-open-ops":

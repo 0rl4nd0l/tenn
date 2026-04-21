@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import MagicMock, PropertyMock, patch
 
 from cockpit.core.chat import ChatController, ChatResponse, ResponseMode
+from cockpit.core.types import ToolResult
 
 
 class SlashCommandTestBase(unittest.TestCase):
@@ -637,6 +638,90 @@ class TestBuildChatResponseSlashDispatch(SlashCommandTestBase):
         assert "empty" in resp.text
         # The ollama_client should NOT have been called (no LLM invocation).
         self.controller.ollama_client.chat.assert_not_called()
+
+    def test_natural_language_holdings_short_circuits_llm(self) -> None:
+        self.state_store.list_holdings.return_value = [
+            {
+                "holding_id": "h1",
+                "ticker": "BHP",
+                "account_label": None,
+                "thesis_bucket": None,
+                "status": "active",
+                "quantity": 100.0,
+                "avg_cost": 45.5,
+                "cost_currency": None,
+                "opened_at": None,
+                "updated_at": "2026-04-21T00:00:00",
+                "note": None,
+            }
+        ]
+        resp = self.controller.build_chat_response("what stocks am i holding")
+        assert resp is not None
+        assert "Holdings (1)" in resp.text
+        self.controller.ollama_client.chat.assert_not_called()
+
+    def test_natural_language_watchlist_short_circuits_llm(self) -> None:
+        self.state_store.list_watch_tickers.return_value = [
+            {"ticker": "BHP", "added_at": "2026-04-21T00:00:00"}
+        ]
+        resp = self.controller.build_chat_response("what is in my watchlist")
+        assert resp is not None
+        assert "Watchlist (1)" in resp.text
+        self.controller.ollama_client.chat.assert_not_called()
+
+    def test_explicit_web_search_uses_web_tool(self) -> None:
+        self.tool_router.web_enrich.return_value = ToolResult(
+            ok=True,
+            title="web_enrich",
+            payload={
+                "ok": True,
+                "urls": [
+                    "https://www.asx.com.au/",
+                    "https://www.bhp.com/news",
+                ],
+                "facts_count": 2,
+            },
+        )
+        resp = self.controller.build_chat_response(
+            "search web for BHP latest announcement",
+            enable_web=True,
+        )
+        assert resp is not None
+        assert resp.mode == ResponseMode.WEB
+        assert "Web search results for: BHP latest announcement" in resp.text
+        self.tool_router.web_enrich.assert_called_once_with(
+            "BHP latest announcement", enabled=True
+        )
+        self.controller.ollama_client.chat.assert_not_called()
+
+    def test_explicit_web_search_requires_web_access_when_disabled(self) -> None:
+        resp = self.controller.build_chat_response(
+            "search web for BHP latest announcement",
+            enable_web=False,
+        )
+        assert resp is not None
+        assert "Web access is required for web search" in resp.text
+        assert resp.action_preview is not None
+        self.tool_router.web_enrich.assert_not_called()
+
+    def test_ingest_shortcut_does_not_overlap_with_web_search(self) -> None:
+        preview = MagicMock(
+            command=["python", "scripts/run_full_pipeline.py", "--ticker", "BHP"],
+            estimated_impact="Runs single-ticker ingest",
+            timeout_seconds=3600,
+        )
+        self.action_registry.preview.return_value = preview
+
+        resp = self.controller.build_chat_response(
+            "ingest BHP",
+            enable_web=True,
+        )
+
+        assert resp is not None
+        assert resp.mode == ResponseMode.ACTION
+        assert resp.action_preview is not None
+        assert resp.action_preview["action_id"] == "single_ticker_announcement_backfill"
+        self.tool_router.web_enrich.assert_not_called()
 
 
 class TestIngestCommand(unittest.TestCase):

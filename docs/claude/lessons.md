@@ -49,6 +49,17 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 
 ---
 
+## L070 — Never bulk-cancel extraction runs without explicit per-run confirmation
+
+**Date:** 2026-04-21
+**Subsystem:** `financial-engine_v2/backend/app/services/router_state.py`, operator workflow
+**Symptom:** A bulk cancellation request was interpreted too broadly and canceled other agents' extraction activity runs.
+**Root cause:** I treated a pasted run list as blanket authorization to cancel all matching jobs, instead of requiring explicit confirmation per run scope.
+**Fix:** Added this hard operating rule and switched to strict-target cancellation behavior: only cancel exactly the run/document IDs explicitly confirmed by the user in the current request.
+**Rule:** Never bulk-cancel extraction jobs from an aggregate UI list. Require explicit, unambiguous confirmation of each run/document to cancel in the current turn. If the request is ambiguous, ask and do not cancel.
+
+---
+
 ## L001 — Margin formula: _pct_change is not _ratio
 
 **Date:** 2026-03-24
@@ -766,3 +777,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The query wording was not treated as an explicit ticker cue, recent-update phrasing did not request news context or prefer the existing local-context assembly path, and the thin-context fallback treated missing announcement history as the whole answer even when usable price evidence existed.
 **Fix:** Added a recent-update ticker cue (`what happened with <ticker>` style), broadened news-context detection for time-bounded update queries, routed those queries through the existing local-context path, and changed the response to summarize available price/news context first while keeping backfill as an optional follow-up action.
 **Rule:** For time-bounded company-update questions, Tenn must first use whatever current-turn evidence already exists (price, news, indexed announcements) and only then offer ingest/backfill to close remaining gaps. A missing announcement corpus is a caveat plus follow-up action, not the primary answer.
+
+---
+
+## L071 — Cockpit web-chat request flags must match backend schema (`web_search`, not `enable_web`)
+
+**Date:** 2026-04-21
+**Subsystem:** `backend/app/routes/cockpit_api.py`, Cockpit web/API callers
+**Symptom:** A request that should have routed through explicit web-search behavior still returned a web-access proposal and looked like routing logic was broken.
+**Root cause:** The caller sent `enable_web: true`, but `CockpitChatRequest` accepts `web_search` (plus `rag`, `db_diagnostics`). The unsupported field was ignored, so `payload.web_search` remained false.
+**Fix:** Updated docs to explicitly call out the supported `/api/cockpit/chat` request flags and added contract notes around explicit web-search routing vs ingest shortcut precedence/non-overlap.
+**Rule:** For `/api/cockpit/chat`, always use schema fields from `CockpitChatRequest` (`web_search`, `rag`, `db_diagnostics`) and never assume old alias names like `enable_web`.

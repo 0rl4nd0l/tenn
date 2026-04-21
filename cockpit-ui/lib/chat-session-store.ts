@@ -2,10 +2,10 @@
 
 import type { ChatMessage } from './cockpit-types'
 
-const STORAGE_KEY = 'cockpit-chat-session-v1'
+const STORAGE_KEY = 'cockpit-chat-sessions-v2'
+const LEGACY_STORAGE_KEY = 'cockpit-chat-session-v1'
 
-interface StoredChatMessage
-  extends Omit<ChatMessage, 'timestamp'> {
+interface StoredChatMessage extends Omit<ChatMessage, 'timestamp'> {
   timestamp: string
 }
 
@@ -14,6 +14,8 @@ export interface PersistedChatSession {
   activeTicker: string
   draft: string
   messages: ChatMessage[]
+  updatedAt: string
+  title?: string
 }
 
 function isValidRole(value: unknown): value is ChatMessage['role'] {
@@ -61,44 +63,96 @@ export function createChatSessionId(): string {
   return `chat_${Math.random().toString(36).slice(2, 10)}`
 }
 
-export function loadChatSession(): PersistedChatSession {
+export function loadAllChatSessions(): PersistedChatSession[] {
+  if (typeof window === 'undefined') return []
+  
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY)
+    let parsed: Record<string, any> = raw ? JSON.parse(raw) : {}
+
+    // Migrate from v1 if v2 is empty
+    if (Object.keys(parsed).length === 0) {
+      const rawV1 = window.localStorage.getItem(LEGACY_STORAGE_KEY)
+      if (rawV1) {
+        try {
+          const parsedV1 = JSON.parse(rawV1)
+          if (parsedV1 && parsedV1.sessionId) {
+            const migratedSession: PersistedChatSession = {
+              sessionId: parsedV1.sessionId,
+              activeTicker: parsedV1.activeTicker || '',
+              draft: parsedV1.draft || '',
+              updatedAt: new Date().toISOString(),
+              messages: Array.isArray(parsedV1.messages) 
+                ? (parsedV1.messages as unknown[])
+                    .map(deserializeMessage)
+                    .filter((m: ChatMessage | null): m is ChatMessage => m !== null)
+                : []
+            }
+            saveChatSession(migratedSession)
+            // reload after saving to get the migrated data from storage
+            const rawMigrated = window.localStorage.getItem(STORAGE_KEY)
+            parsed = rawMigrated ? JSON.parse(rawMigrated) : {}
+          }
+        } catch (e) {
+          console.error('Failed to migrate chat session v1', e)
+        }
+      }
+    }
+
+    return Object.values(parsed).map((session: any) => ({
+      sessionId: session.sessionId,
+      activeTicker: session.activeTicker || '',
+      draft: session.draft || '',
+      title: session.title,
+      updatedAt: session.updatedAt || new Date(0).toISOString(),
+      messages: Array.isArray(session.messages) 
+        ? (session.messages as unknown[])
+            .map(deserializeMessage)
+            .filter((m: ChatMessage | null): m is ChatMessage => m !== null)
+        : []
+    })).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+  } catch {
+    return []
+  }
+}
+
+export function loadChatSession(sessionId?: string): PersistedChatSession {
   const fallback: PersistedChatSession = {
-    sessionId: createChatSessionId(),
+    sessionId: sessionId || createChatSessionId(),
     activeTicker: '',
     draft: '',
     messages: [],
+    updatedAt: new Date().toISOString()
   }
 
-  if (typeof window === 'undefined') {
+  if (!sessionId || typeof window === 'undefined') {
     return fallback
   }
 
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) {
-      return fallback
-    }
+    if (!raw) return fallback
 
-    const parsed = JSON.parse(raw) as Record<string, unknown>
-    const messages = Array.isArray(parsed.messages)
-      ? parsed.messages.map(deserializeMessage).filter((item): item is ChatMessage => item !== null)
-      : []
-
-    return {
-      sessionId:
-        typeof parsed.sessionId === 'string' && parsed.sessionId.trim()
-          ? parsed.sessionId
-          : fallback.sessionId,
-      activeTicker:
-        typeof parsed.activeTicker === 'string' && parsed.activeTicker.trim()
-          ? parsed.activeTicker
-          : fallback.activeTicker,
-      draft: typeof parsed.draft === 'string' ? parsed.draft : '',
-      messages,
+    const parsed = JSON.parse(raw) as Record<string, any>
+    if (parsed[sessionId]) {
+      const session = parsed[sessionId]
+      return {
+        sessionId: session.sessionId,
+        activeTicker: session.activeTicker || '',
+        draft: session.draft || '',
+        title: session.title,
+        updatedAt: session.updatedAt || new Date().toISOString(),
+        messages: Array.isArray(session.messages)
+          ? (session.messages as unknown[])
+              .map(deserializeMessage)
+              .filter((item: ChatMessage | null): item is ChatMessage => item !== null)
+          : []
+      }
     }
   } catch {
-    return fallback
+    // Return fallback on error
   }
+  return fallback
 }
 
 export function saveChatSession(session: PersistedChatSession): void {
@@ -106,10 +160,38 @@ export function saveChatSession(session: PersistedChatSession): void {
     return
   }
 
-  const payload = {
-    ...session,
-    messages: session.messages.map(serializeMessage),
-  }
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY)
+    const parsed = raw ? JSON.parse(raw) : {}
 
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
+    const payload = {
+      ...session,
+      updatedAt: new Date().toISOString(),
+      messages: session.messages.map(serializeMessage),
+    }
+
+    // Auto-generate title from first user message if missing
+    if (!payload.title && payload.messages.length > 0) {
+      const firstUserMsg = payload.messages.find(m => m.role === 'user')
+      if (firstUserMsg) {
+        payload.title = firstUserMsg.content.slice(0, 40) + (firstUserMsg.content.length > 40 ? '...' : '')
+      }
+    }
+
+    parsed[session.sessionId] = payload
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed))
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+export function deleteChatSession(sessionId: string): void {
+  if (typeof window === 'undefined') return
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY)
+    if (!raw) return
+    const parsed = JSON.parse(raw)
+    delete parsed[sessionId]
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed))
+  } catch {}
 }

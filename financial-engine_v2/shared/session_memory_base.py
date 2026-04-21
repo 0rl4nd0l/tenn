@@ -93,6 +93,7 @@ class SessionMemoryClient:
         try:
             from openviking import SyncOpenViking  # type: ignore[import]
 
+            _seed_watch_tasks_file(config)
             ov = SyncOpenViking()
             previous_env = os.environ.get("OPENVIKING_CONFIG_FILE")
             os.environ["OPENVIKING_CONFIG_FILE"] = str(config)
@@ -284,6 +285,25 @@ class SessionMemoryClient:
         recent_count = recent_limit if recent_limit is not None else semantic_limit
         return self.get_recent_turns(session_id, limit=max(1, int(recent_count)))
 
+    def close(self) -> None:
+        """Release OpenViking resources and cancel background tasks.
+
+        Must be called from the process shutdown hook to prevent
+        'Task was destroyed but it is pending!' asyncio warnings.
+        """
+        ov = self._ov_instance
+        if ov is None:
+            return
+        try:
+            ov.close()
+        except Exception as exc:
+            self._logger.warning(
+                "%s.session_memory.close failed: %s: %s",
+                self._component_name,
+                type(exc).__name__,
+                exc,
+            )
+
     def record_turn(self, session_id: str, payload: dict[str, Any]) -> None:
         """Persist a structured turn record to the session.
 
@@ -324,6 +344,25 @@ def _message_content(msg: Any) -> str:
     if isinstance(msg, dict):
         return str(msg.get("content") or msg.get("text") or "").strip()
     return str(getattr(msg, "content", "") or "").strip()
+
+
+def _seed_watch_tasks_file(config: Path) -> None:
+    """Write an empty watch-tasks JSON into the workspace before ov.initialize().
+
+    WatchManager logs a WARNING on every startup when .watch_tasks.json is
+    absent and refuses to create it when the task list is empty (its own
+    write-guard).  We seed it once so the warning never fires on a clean
+    workspace.
+    """
+    try:
+        raw = json.loads(config.read_text())
+        workspace = Path(raw["storage"]["workspace"]).expanduser()
+        target = workspace / "viking" / "default" / "resources" / ".watch_tasks.json"
+        if not target.exists():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text('{"tasks": []}')
+    except Exception:
+        pass  # seeding is best-effort; ov.initialize() proceeds regardless
 
 
 def _known_domain_default_paths() -> set[Path]:

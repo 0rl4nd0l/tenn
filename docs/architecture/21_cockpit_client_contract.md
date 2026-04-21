@@ -81,11 +81,18 @@ Under `cockpit-ui/app/api/cockpit/` (non-exhaustive; glob the directory if route
 - `commentary/takeaways/route.ts` — thin browser proxy to backend commentary takeaway generation.
 - `commentary/ephemeral-index/route.ts`, `commentary/ephemeral-index/[sessionId]/route.ts` — thin browser proxies for session-scoped commentary indexing lifecycle.
 - `commentary/recent/route.ts` — thin browser proxy for recently approved commentary sources.
+- `memory/route.ts` — thin browser proxy for ticker-scoped consolidated memory reads (`GET /api/context/memory`).
+- `memory/company-dump/route.ts` — thin browser proxy for ticker context + memory summary (`GET /api/context/company_dump`).
+- `memory/company/add/route.ts`, `memory/company/expire/route.ts` — thin browser proxies for qualitative company-memory mutations.
+- `memory/market/add/route.ts`, `memory/market/expire/route.ts` — thin browser proxies for qualitative sector/macro-memory mutations.
+- `memory/thesis/proposals/route.ts`, `memory/thesis/proposals/[proposalId]/{confirm,reject,apply}/route.ts` — thin browser proxies for user-thesis proposal lifecycle actions.
 - `watchlist/route.ts`, `watchlist/[ticker]/route.ts` — thin browser proxies for watchlist CRUD.
 
 Client-side helpers may live under `cockpit-ui/lib/` (e.g. `api-client.ts`).
 
 These browser routes are **presentation-layer pass-throughs only**. Their presence in `cockpit-ui` does **not** guarantee that the matching backend route exists on every branch or environment.
+
+The web Memory tab (`cockpit-ui/app/memory/page.tsx`) is part of this same client-only contract: it is a management surface over backend-owned memory classes, not a second memory authority.
 
 ### 6.1 Active model and switch-state UX
 
@@ -162,6 +169,7 @@ Each row maps a **contract obligation** to **implementation** and an explicit **
 | C17 | TradingView technical indicators fetched via backend tool — not a client-side API call | `cockpit/core/tool_executor.py` `_exec_get_tv_indicators` + `_exec_tv_screener` in `_READ_ONLY_DISPATCH` | Uses `tradingview-scraper` package (optional dep); gracefully returns install instructions if absent; never calls TV API from browser | **conform** |
 | C18 | Pine Script webhook alerts stored server-side and exposed via backend endpoint | `backend/app/routes/cockpit_api.py` `POST /api/cockpit/tv/alert` + `GET /api/cockpit/tv/alerts` | Alerts persisted in `$DATA_ROOT/tv_alerts.json` (ring buffer, 200 entries); `TV_WEBHOOK_TOKEN` env var gates access in production | **conform** |
 | C19 | Candlestick charts rendered via TradingView Lightweight Charts (Apache 2.0) — no external data API | `cockpit/core/plotly_html.py` `build_candlestick_dashboard_html` | HTML generated server-side with self-contained Lightweight Charts CDN script; rendered in iframe `srcDoc`; no TV data API calls | **conform** |
+| C20 | Explicit web-search intents and ingest intents route to deterministic, non-overlapping shortcuts | `cockpit/core/chat.py` explicit web-search regex short-circuit + ingest/action short-circuits; backend `POST /api/cockpit/chat` forwarding of `web_search` | `financial-engine_v2/cockpit/tests/test_slash_commands.py` (`test_explicit_web_search_uses_web_tool`, `test_explicit_web_search_requires_web_access_when_disabled`, `test_ingest_shortcut_does_not_overlap_with_web_search`) | **conform** |
 
 ---
 

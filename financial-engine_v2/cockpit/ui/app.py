@@ -124,6 +124,12 @@ class CockpitApp(App):
     #chat-actions {
         margin: 0 0 1 0;
     }
+    #chat-holdings-shortcut {
+        margin: 0 0 1 0;
+    }
+    #chat-holdings-shortcut Button {
+        width: 1fr;
+    }
     #chat-actions Horizontal {
         margin: 0;
     }

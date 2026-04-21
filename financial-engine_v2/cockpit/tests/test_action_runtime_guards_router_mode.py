@@ -178,3 +178,32 @@ def test_check_extraction_endpoint_surfaces_auto_load_failure(monkeypatch):
 
     assert ok is False
     assert "Failed to auto-load extraction model" in message
+
+
+def test_check_extraction_endpoint_auto_loads_when_proc_discovery_unavailable(monkeypatch):
+    _patch_models_response(
+        monkeypatch,
+        {
+            "data": [
+                {"id": "qwen2.5-14b-instruct", "status": {"value": "unloaded"}},
+            ]
+        },
+    )
+    monkeypatch.setenv("EXTRACTION_LLAMACPP_URL", "http://127.0.0.1:8002")
+    monkeypatch.setattr(manager, "find_all_llama_server_processes", lambda: [])
+    monkeypatch.setattr(manager, "is_router_mode", lambda host, port, api_key="": True)
+    load_calls: list[tuple[str, str, str]] = []
+    monkeypatch.setattr(
+        manager,
+        "load_model_api",
+        lambda host, port, model_name, api_key="", timeout=120.0, on_status=None: load_calls.append(
+            (host, port, model_name)
+        )
+        or True,
+    )
+
+    ok, message = guards.check_extraction_endpoint("metric_extraction", {})
+
+    assert ok is True
+    assert "Auto-loaded extraction model" in message
+    assert load_calls == [("127.0.0.1", "8002", "qwen2.5-14b-instruct")]

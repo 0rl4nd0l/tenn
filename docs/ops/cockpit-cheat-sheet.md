@@ -287,6 +287,38 @@ Notes:
 
 3. Ask for current or URL-backed information.
 
+#### API payload examples (`/api/cockpit/chat`)
+
+Use `web_search` (not `enable_web`) when calling the backend API directly.
+
+Explicit web search:
+
+```bash
+curl -sS -X POST http://127.0.0.1:8000/api/cockpit/chat \
+  -H 'content-type: application/json' \
+  -d '{
+    "message": "search web for BHP latest announcement",
+    "web_search": true,
+    "stream": false
+  }'
+```
+
+Ingest action preview (no overlap with web-search shortcut):
+
+```bash
+curl -sS -X POST http://127.0.0.1:8000/api/cockpit/chat \
+  -H 'content-type: application/json' \
+  -d '{
+    "message": "ingest BHP",
+    "web_search": true,
+    "stream": false
+  }'
+```
+
+Expected:
+- first call returns a WEB-mode result with web evidence
+- second call returns an `action_preview` for `single_ticker_announcement_backfill`
+
 ### 3b. Backend-Gated Access And Runtime Repair
 
 Access toggles are backend-owned. Cockpit proposes a backend action first, then applies it after confirmation.

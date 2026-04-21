@@ -45,6 +45,7 @@ from cockpit.core.config import (
     effective_anthropic_api_key,
     load_env,
 )
+from cockpit.core.conversation_commands import derive_conversational_command
 from cockpit.integrations.qual_context_bootstrap import context_enabled
 
 router = APIRouter()
@@ -309,6 +310,52 @@ class QueueStatusResponse(BaseModel):
     failed: int = 0
 
 
+class CockpitHoldingRecord(BaseModel):
+    holding_id: str
+    ticker: str
+    account_label: str | None = None
+    thesis_bucket: str | None = None
+    status: str | None = None
+    quantity: float | None = None
+    avg_cost: float | None = None
+    cost_currency: str | None = None
+    opened_at: str | None = None
+    updated_at: str | None = None
+    note: str | None = None
+
+
+class CockpitHoldingListResponse(BaseModel):
+    items: list[CockpitHoldingRecord] = Field(default_factory=list)
+
+
+class CockpitHoldingCreateRequest(BaseModel):
+    ticker: str
+    account_label: str | None = None
+    thesis_bucket: str | None = None
+    quantity: float | None = None
+    avg_cost: float | None = None
+    cost_currency: str | None = None
+    opened_at: str | None = None
+    note: str | None = None
+
+
+class CockpitHoldingUpdateRequest(BaseModel):
+    ticker: str | None = None
+    account_label: str | None = None
+    thesis_bucket: str | None = None
+    status: str | None = None
+    quantity: float | None = None
+    avg_cost: float | None = None
+    cost_currency: str | None = None
+    opened_at: str | None = None
+    note: str | None = None
+
+
+class CockpitHoldingMutationResponse(BaseModel):
+    ok: bool
+    holding_id: str
+
+
 def _effective_cockpit_feature_flags(
     effective_cfg: dict[str, Any],
 ) -> dict[str, bool]:
@@ -413,6 +460,23 @@ def _clean_source_text(value: Any, *, max_chars: int = 280) -> str | None:
     return text[: max_chars - 3].rstrip() + "..."
 
 
+def _summarize_scalar_fields(raw: dict[str, Any], *, max_items: int = 4) -> str | None:
+    bits: list[str] = []
+    for key, value in raw.items():
+        if isinstance(value, (dict, list, tuple, set)) or value is None:
+            continue
+        label = str(key).strip().replace("_", " ")
+        text = str(value).strip()
+        if not label or not text:
+            continue
+        bits.append(f"{label}: {text}")
+        if len(bits) >= max_items:
+            break
+    if not bits:
+        return None
+    return _clean_source_text("; ".join(bits))
+
+
 def _normalize_source_item(
     raw: dict[str, Any],
     *,
@@ -505,6 +569,50 @@ def _append_source_item(
     items.append(item)
 
 
+def _decode_truncated_tool_result(result: dict[str, Any]) -> dict[str, Any]:
+    """Best-effort decode for historical truncated tool payload envelopes.
+
+    Older tool truncation stored a JSON string under ``data`` which made source
+    extraction impossible. Newer truncation keeps structured fields, so this is
+    primarily a backward-compatible decoder.
+    """
+    if not isinstance(result, dict):
+        return {}
+    if not result.get("_truncated"):
+        return result
+    data = result.get("data")
+    if not isinstance(data, str):
+        return result
+
+    parsed: dict[str, Any] | None = None
+    try:
+        raw = json.loads(data)
+        if isinstance(raw, dict):
+            parsed = raw
+    except (TypeError, ValueError, json.JSONDecodeError):
+        # Try parsing up to the last complete object brace.
+        last_brace = data.rfind("}")
+        if last_brace > 1:
+            candidate = data[: last_brace + 1]
+            try:
+                raw = json.loads(candidate)
+                if isinstance(raw, dict):
+                    parsed = raw
+            except (TypeError, ValueError, json.JSONDecodeError):
+                parsed = None
+
+    if parsed is None:
+        return result
+
+    merged = dict(parsed)
+    for key, value in result.items():
+        if key in {"data"}:
+            continue
+        if key not in merged or merged.get(key) in (None, "", [], {}):
+            merged[key] = value
+    return merged
+
+
 def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -513,7 +621,8 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
         if not isinstance(ev, dict):
             continue
         ev_type = str(ev.get("type") or "").strip().lower()
-        details = ev.get("details") if isinstance(ev.get("details"), dict) else {}
+        details_payload = ev.get("details")
+        details = details_payload if isinstance(details_payload, dict) else {}
 
         if ev_type == "local_context":
             qual_context = (
@@ -642,12 +751,88 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                 kind="context",
             )
 
+        elif ev_type == "holdings":
+            rows = (
+                details_payload
+                if isinstance(details_payload, list)
+                else (
+                    details.get("items")
+                    if isinstance(details.get("items"), list)
+                    else []
+                )
+            )
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                ticker = str(row.get("ticker") or "").strip().upper()
+                account = str(row.get("account_label") or "").strip()
+                qty = row.get("quantity")
+                avg_cost = row.get("avg_cost")
+                bits: list[str] = []
+                if account:
+                    bits.append(f"Account: {account}")
+                if qty is not None:
+                    bits.append(f"Quantity: {qty}")
+                if avg_cost is not None:
+                    bits.append(f"Avg cost: {avg_cost}")
+                _append_source_item(
+                    items,
+                    seen,
+                    {
+                        **row,
+                        "title": f"{ticker or 'Holding'} holding",
+                        "source_id": (
+                            row.get("holding_id")
+                            or (f"holding:{ticker}" if ticker else None)
+                        ),
+                        "snippet": "; ".join(bits) if bits else None,
+                    },
+                    default_title="Holding",
+                    kind="context",
+                )
+
+        elif ev_type == "watchlist":
+            rows = (
+                details_payload
+                if isinstance(details_payload, list)
+                else (
+                    details.get("items")
+                    if isinstance(details.get("items"), list)
+                    else []
+                )
+            )
+            for row in rows:
+                ticker = ""
+                added_at = None
+                if isinstance(row, dict):
+                    ticker = str(row.get("ticker") or "").strip().upper()
+                    added_at = row.get("added_at")
+                elif isinstance(row, str):
+                    ticker = row.strip().upper()
+                if not ticker:
+                    continue
+                added_text = str(added_at or "").strip()
+                _append_source_item(
+                    items,
+                    seen,
+                    {
+                        "title": f"{ticker} watchlist",
+                        "source_id": f"watchlist:{ticker}",
+                        "snippet": (
+                            f"Added: {added_text[:10]}" if added_text else "Tracked in watchlist."
+                        ),
+                    },
+                    default_title="Watchlist item",
+                    kind="context",
+                )
+
         elif ev.get("tool") and not ev.get("type"):
             # Agent loop evidence format: {tool, arguments, result}
             # Handle search_news and gather_local_context tool results.
             tool_name = str(ev.get("tool") or "")
             result = ev.get("result") or {}
             if isinstance(result, dict):
+                result = _decode_truncated_tool_result(result)
                 if tool_name == "search_news":
                     for hit in result.get("hits") or []:
                         if isinstance(hit, dict):
@@ -917,6 +1102,62 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                                 default_title="Watchlist alert",
                                 kind="context",
                             )
+                elif tool_name == "tv_screener":
+                    market = str(result.get("market") or "").strip().upper()
+                    for index, row in enumerate(result.get("results") or []):
+                        if not isinstance(row, dict):
+                            continue
+                        symbol = str(
+                            row.get("symbol")
+                            or row.get("ticker")
+                            or row.get("code")
+                            or row.get("name")
+                            or ""
+                        ).strip()
+                        _append_source_item(
+                            items,
+                            seen,
+                            {
+                                **row,
+                                "title": (
+                                    f"{symbol or 'Market mover'}"
+                                    f"{f' ({market})' if market else ''}"
+                                ),
+                                "source_id": f"tv_screener:{market}:{symbol or index}",
+                                "snippet": _summarize_scalar_fields(row, max_items=5),
+                            },
+                            default_title="TradingView screener",
+                            kind="context",
+                        )
+                elif tool_name == "get_tv_indicators":
+                    ticker = str(result.get("ticker") or "").strip().upper()
+                    exchange = str(result.get("exchange") or "").strip().upper()
+                    indicators = (
+                        result.get("indicators")
+                        if isinstance(result.get("indicators"), dict)
+                        else {}
+                    )
+                    indicator_bits: list[str] = []
+                    for name, value in indicators.items():
+                        if isinstance(value, dict):
+                            err = str(value.get("error") or "").strip()
+                            if err:
+                                indicator_bits.append(f"{name}: error ({err})")
+                        elif value is not None:
+                            indicator_bits.append(f"{name}: {value}")
+                        if len(indicator_bits) >= 6:
+                            break
+                    _append_source_item(
+                        items,
+                        seen,
+                        {
+                            "title": f"{exchange + ':' if exchange else ''}{ticker or 'Ticker'} indicators",
+                            "source_id": f"tv_indicators:{exchange}:{ticker}",
+                            "snippet": _clean_source_text("; ".join(indicator_bits)),
+                        },
+                        default_title="TradingView indicators",
+                        kind="context",
+                    )
 
         if len(items) >= 10:
             break
@@ -928,6 +1169,7 @@ _NON_SUBSTANTIVE_CHAT_MESSAGE_RE = re.compile(
     r"^\s*(?:"
     r"/[a-z_][\w-]*.*|"
     r"hi|hello|hey|yo|sup|"
+    r"good (?:morning|afternoon|evening)|"
     r"thanks|thank you|"
     r"ok(?:ay)?|yes|no|sure|cool|continue|go on|"
     r"help(?: me)?|"
@@ -962,6 +1204,12 @@ _SOURCE_CONTRACT_REFUSAL = (
 def _message_requires_visible_sources(message: str) -> bool:
     text = str(message or "").strip()
     if not text:
+        return False
+    # Natural-language control phrases (e.g. "daily market update") are
+    # deterministically rewritten to slash commands inside ChatController.
+    # Treat them the same as explicit slash commands so source-contract
+    # grounding does not mask command output.
+    if derive_conversational_command(text):
         return False
     return _NON_SUBSTANTIVE_CHAT_MESSAGE_RE.fullmatch(text) is None
 
@@ -1944,6 +2192,101 @@ def cockpit_docs():
         db.close()
 
 
+@router.get("/holdings", response_model=CockpitHoldingListResponse)
+def cockpit_list_holdings(
+    ticker: str | None = None,
+    include_archived: bool = False,
+) -> CockpitHoldingListResponse:
+    try:
+        service = CockpitService.get_instance()
+        rows = service.state_store.list_holdings(
+            ticker=ticker,
+            include_archived=include_archived,
+        )
+        return CockpitHoldingListResponse(
+            items=[CockpitHoldingRecord(**dict(row)) for row in rows]
+        )
+    except Exception as exc:
+        logger.exception("Failed to list cockpit holdings")
+        raise HTTPException(status_code=500, detail=f"Failed to list holdings: {str(exc)}") from exc
+
+
+@router.post("/holdings", response_model=CockpitHoldingRecord)
+def cockpit_add_holding(payload: CockpitHoldingCreateRequest) -> CockpitHoldingRecord:
+    ticker = str(payload.ticker or "").strip().upper()
+    if not ticker:
+        raise HTTPException(status_code=400, detail="ticker is required")
+
+    try:
+        service = CockpitService.get_instance()
+        state_store = service.state_store
+        holding_id = state_store.add_holding(
+            ticker=ticker,
+            account_label=payload.account_label,
+            thesis_bucket=payload.thesis_bucket,
+            quantity=payload.quantity,
+            avg_cost=payload.avg_cost,
+            cost_currency=payload.cost_currency,
+            opened_at=payload.opened_at,
+            note=payload.note,
+        )
+        row = state_store.get_holding(holding_id)
+    except Exception as exc:
+        logger.exception("Failed to add cockpit holding")
+        raise HTTPException(status_code=500, detail=f"Failed to add holding: {str(exc)}") from exc
+
+    if row is None:
+        raise HTTPException(status_code=500, detail="Holding was created but could not be reloaded")
+    return CockpitHoldingRecord(**dict(row))
+
+
+@router.patch("/holdings/{holding_id}", response_model=CockpitHoldingRecord)
+def cockpit_update_holding(
+    holding_id: str,
+    payload: CockpitHoldingUpdateRequest,
+) -> CockpitHoldingRecord:
+    fields = payload.model_dump(exclude_unset=True)
+    if not fields:
+        raise HTTPException(status_code=400, detail="No fields supplied for update")
+
+    if "ticker" in fields:
+        ticker_value = str(fields.get("ticker") or "").strip().upper()
+        if not ticker_value:
+            raise HTTPException(status_code=400, detail="ticker cannot be blank")
+        fields["ticker"] = ticker_value
+
+    try:
+        service = CockpitService.get_instance()
+        state_store = service.state_store
+        updated = state_store.update_holding(holding_id, **fields)
+        if not updated:
+            raise HTTPException(status_code=404, detail=f"Holding not found: {holding_id}")
+        row = state_store.get_holding(holding_id)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Failed to update cockpit holding")
+        raise HTTPException(status_code=500, detail=f"Failed to update holding: {str(exc)}") from exc
+
+    if row is None:
+        raise HTTPException(status_code=404, detail=f"Holding not found: {holding_id}")
+    return CockpitHoldingRecord(**dict(row))
+
+
+@router.delete("/holdings/{holding_id}", response_model=CockpitHoldingMutationResponse)
+def cockpit_remove_holding(holding_id: str) -> CockpitHoldingMutationResponse:
+    try:
+        service = CockpitService.get_instance()
+        removed = service.state_store.remove_holding(holding_id)
+    except Exception as exc:
+        logger.exception("Failed to remove cockpit holding")
+        raise HTTPException(status_code=500, detail=f"Failed to remove holding: {str(exc)}") from exc
+
+    if not removed:
+        raise HTTPException(status_code=404, detail=f"Holding not found: {holding_id}")
+    return CockpitHoldingMutationResponse(ok=True, holding_id=holding_id)
+
+
 @router.get("/pulse", response_model=IntelPulseResponse)
 def cockpit_intel_pulse(ticker: str | None = None) -> IntelPulseResponse:
     """Return system population and quality metrics for Intel Pulse."""
@@ -2309,7 +2652,7 @@ def _run_action_subprocess_streaming(
     return proc.returncode, stdout_text, stderr_text
 
 
-def _read_job_output_tail(raw_path: str | None, max_bytes: int = 8000) -> str:
+def _read_job_output_tail(raw_path: str | None, max_bytes: int = 64000) -> str:
     """Read the last *max_bytes* of a log file (for tailing in-progress jobs)."""
     if not raw_path:
         return ""
@@ -2371,7 +2714,7 @@ def _marketplace_mission_service(service: CockpitService) -> MarketplaceMissionS
 
 
 def _list_marketplace_scan_jobs(
-    service: CockpitService, *, limit: int = 20
+    service: CockpitService, *, limit: int = 50
 ) -> list[dict[str, Any]]:
     rows = service.state_store.list_jobs(limit=max(limit * 5, 100))
     items: list[dict[str, Any]] = []
@@ -2601,6 +2944,7 @@ def _launch_marketplace_scan_job(
             "stdout_path": stdout_path,
             "stderr_path": stderr_path,
             "tracker": tracker,
+            "stop_event": runtime.stop_event,
         },
         daemon=True,
         name=f"marketplace-scan-{job_id[:8]}",
@@ -2789,12 +3133,26 @@ def _launch_action_job(
                             job_id, info.stage, message=info.detail or info.stage
                         )
                         if info.current is not None and info.total is not None:
+                            # Update tracker metrics so JobDetailPanel shows the progress bar
+                            tracker.store.update_job_run(
+                                job_id,
+                                total_items=info.total,
+                                succeeded_items=info.current,
+                                current_item_label=info.detail,
+                            )
                             tracker.record_progress(
                                 job_id,
                                 current=info.current,
                                 total=info.total,
                                 message=info.detail
                                 or f"{info.current}/{info.total}",
+                            )
+                        elif info.percent_override is not None:
+                            tracker.record_progress(
+                                job_id,
+                                current=int(info.percent_override),
+                                total=100,
+                                message=info.detail or f"{info.percent_override}%",
                             )
                     except Exception:
                         logger.warning(
@@ -2831,19 +3189,12 @@ def _launch_action_job(
             stderr_text = f"Action execution failed: {exc}\n"
             status = "failed"
 
-        service.state_store.add_job(
-            {
-                "job_id": job_id,
-                "action_id": action_id,
-                "args": args,
-                "started_at": started_at,
-                "ended_at": datetime.now(timezone.utc).isoformat(),
-                "status": status,
-                "exit_code": exit_code,
-                "stdout_path": str(stdout_path),
-                "stderr_path": str(stderr_path),
-                "artifacts": [],
-            }
+        # Update the job status without overwriting the progress metrics
+        service.state_store.update_job_status(
+            job_id,
+            status=status,
+            exit_code=exit_code,
+            ended_at=datetime.now(timezone.utc).isoformat(),
         )
         if tracker is not None:
             try:
@@ -3208,6 +3559,76 @@ def _build_action_env(repo_root: Path) -> dict[str, str]:
     return env
 
 
+def _execute_user_thesis_action(
+    action_id: str,
+    args: dict[str, Any],
+) -> CockpitActionExecuteResponse:
+    from app.services.user_thesis_memory import UserThesisMemoryStore
+
+    store = UserThesisMemoryStore()
+    ticker = str(args.get("ticker") or "").strip().upper()
+    if not ticker:
+        raise HTTPException(status_code=400, detail="ticker is required")
+
+    if action_id == "create_thesis":
+        statement = str(args.get("thesis") or "").strip()
+        signal = str(args.get("signal") or "HOLD").strip().upper()
+        if not statement:
+            raise HTTPException(status_code=400, detail="thesis is required")
+        proposal = store.create_proposal(
+            ticker=ticker,
+            proposal_type="create_thesis",
+            statement=statement,
+            signal=signal,
+            confidence=0.7,
+            metadata={"source_action_id": action_id},
+            requested_by="cockpit_user",
+        )
+    elif action_id == "add_thesis_evidence":
+        statement = str(args.get("finding") or "").strip()
+        if not statement:
+            raise HTTPException(status_code=400, detail="finding is required")
+        is_supporting = bool(args.get("is_supporting", True))
+        proposal = store.create_proposal(
+            ticker=ticker,
+            proposal_type="add_evidence",
+            statement=statement,
+            confidence=0.7,
+            metadata={
+                "source_action_id": action_id,
+                "is_supporting": is_supporting,
+            },
+            requested_by="cockpit_user",
+        )
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported strategy action: {action_id}",
+        )
+
+    proposal_id = str(proposal.get("proposal_id") or "")
+    store.confirm_proposal(
+        proposal_id,
+        note="confirmed via cockpit action execute",
+    )
+    applied = store.apply_confirmed_proposal(proposal_id)
+    entry = dict(applied.get("entry") or {})
+    statement = str(entry.get("statement") or proposal.get("statement") or "").strip()
+    if len(statement) > 180:
+        statement = statement[:177] + "..."
+
+    return CockpitActionExecuteResponse(
+        ok=True,
+        action_id=action_id,
+        result=(
+            f"Recorded user thesis memory for {ticker}: {statement}"
+            f" (proposal_id={proposal_id})"
+        ),
+        exit_code=0,
+        status="success",
+    )
+
+
 @router.post("/action/execute", response_model=CockpitActionExecuteResponse)
 async def cockpit_execute_action(payload: CockpitActionExecuteRequest):
     """Execute a confirmed cockpit action command and return output."""
@@ -3224,6 +3645,21 @@ async def cockpit_execute_action(payload: CockpitActionExecuteRequest):
         raise HTTPException(status_code=400, detail="action_id is required")
 
     args = payload.args if isinstance(payload.args, dict) else {}
+    if action_id in {"create_thesis", "add_thesis_evidence"}:
+        try:
+            return await asyncio.to_thread(
+                _execute_user_thesis_action,
+                action_id,
+                args,
+            )
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.exception("Strategy memory action execution failed: %s", action_id)
+            raise HTTPException(
+                status_code=500,
+                detail=f"Strategy memory action failed: {str(exc)}",
+            ) from exc
 
     try:
         preview = service.action_registry.preview(action_id, args)
@@ -3510,7 +3946,7 @@ async def cockpit_update_marketplace_mission(
     "/marketplace/scans",
     response_model=MarketplaceScanJobListResponse,
 )
-async def cockpit_list_marketplace_scan_jobs(limit: int = 20):
+async def cockpit_list_marketplace_scan_jobs(limit: int = 50):
     try:
         service = CockpitService.get_instance()
         items = await asyncio.to_thread(_list_marketplace_scan_jobs, service, limit=limit)
@@ -3554,6 +3990,12 @@ async def cockpit_trigger_marketplace_scan(payload: MarketplaceScanRequest):
     if str(health.get("status")) != "ready":
         code = 409 if str(health.get("status")) in {"login_required", "challenge_detected"} else 503
         raise HTTPException(status_code=code, detail=str(health.get("detail") or health.get("status")))
+
+    if await asyncio.to_thread(_marketplace_scan_in_progress, service):
+        raise HTTPException(
+            status_code=409,
+            detail="A Marketplace scan is already in progress. Please wait for it to finish or stop it first.",
+        )
 
     try:
         queued = await asyncio.to_thread(

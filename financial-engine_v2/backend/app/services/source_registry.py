@@ -2,16 +2,35 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from app.core.config import settings
 from app.services.source_weighting import DEFAULT_HALF_LIFE_DAYS, DEFAULT_SOURCE_WEIGHTS
 
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-RESEARCH_MEMORY_ROOT = REPO_ROOT / "reports" / "research_memory"
+def _default_research_memory_root() -> Path:
+    backend_root = Path(__file__).resolve().parents[2]
+    candidates = [
+        Path(getattr(settings, "data_root", "/data")).expanduser().resolve()
+        / "reports"
+        / "research_memory",
+        backend_root / "reports" / "research_memory",
+    ]
+    for candidate in candidates:
+        try:
+            candidate.mkdir(parents=True, exist_ok=True)
+            if os.access(candidate, os.W_OK | os.X_OK):
+                return candidate
+        except OSError:
+            continue
+    return candidates[0]
+
+
+RESEARCH_MEMORY_ROOT = _default_research_memory_root()
 DEFAULT_SOURCE_REGISTRY_PATH = RESEARCH_MEMORY_ROOT / "source_registry.jsonl"
 DEFAULT_DURABLE_UPLOAD_ROOT = RESEARCH_MEMORY_ROOT / "durable_uploads"
 

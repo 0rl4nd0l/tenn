@@ -99,6 +99,16 @@ class TestActionRegistrySmoke(unittest.TestCase):
         self.assertEqual(preview.action_id, "full_history")
         self.assertTrue(preview.command)
 
+    def test_run_analysis_preview_builds_executable_command(self):
+        reg = ActionRegistry(repo_root=ROOT, confirm_required=True)
+        preview = reg.preview("run_analysis", {"ticker": "NST", "modules": "risk,moat"})
+        self.assertEqual(preview.action_id, "run_analysis")
+        self.assertIn("scripts/run_analysis_action.py", preview.command)
+        self.assertIn("--ticker", preview.command)
+        self.assertIn("NST", preview.command)
+        self.assertIn("--modules", preview.command)
+        self.assertIn("risk,moat", preview.command)
+
     def test_daily_announcement_ingest_normalizes_today_alias(self):
         reg = ActionRegistry(repo_root=ROOT, confirm_required=True)
         preview = reg.preview("daily_announcement_ingest", {"date": "today"})

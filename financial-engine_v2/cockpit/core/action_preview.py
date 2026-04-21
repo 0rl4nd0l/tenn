@@ -8,6 +8,7 @@ _TOOL_ACTION_ID_MAP: dict[str, str] = {
     "run_metric_extraction": "metric_extraction",
     "run_news_ingest": "daily_news_ingest",
     "run_announcement_ingest": "daily_announcement_ingest",
+    "run_analysis": "run_analysis",
     "update_financials": "update_ticker_financials",
     "rebuild_financials": "rebuild_ticker_financials",
     "audit_financials": "audit_ticker_financials",

@@ -76,6 +76,25 @@ class MarketMemoryExpireRequest(BaseModel):
     note: str | None = None
 
 
+class UserThesisProposalRequest(BaseModel):
+    ticker: str
+    proposal_type: Literal["create_thesis", "add_evidence", "invalidate"]
+    statement: str
+    signal: str | None = None
+    confidence: float = Field(default=0.7, ge=0.0, le=1.0)
+    is_supporting: bool = True
+    note: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class UserThesisConfirmRequest(BaseModel):
+    note: str | None = None
+
+
+class UserThesisRejectRequest(BaseModel):
+    note: str | None = None
+
+
 def _validate_ticker(raw: str) -> str:
     cleaned = (raw or "").strip().upper()
     if not cleaned:
@@ -330,6 +349,59 @@ def _load_market_memory(
         }, str(exc)
 
 
+def _load_user_thesis_memory(
+    ticker: str,
+    *,
+    entries_limit: int,
+    proposals_limit: int,
+) -> tuple[dict[str, Any], str | None]:
+    try:
+        from app.services.user_thesis_memory import (
+            DEFAULT_USER_THESIS_MEMORY_PATH,
+            UserThesisMemoryStore,
+        )
+
+        path = Path(DEFAULT_USER_THESIS_MEMORY_PATH)
+    except Exception as exc:
+        fallback = RESEARCH_MEMORY_ROOT / "user_thesis_memory.sqlite"
+        return {
+            "status": "unavailable",
+            "path": str(fallback),
+            "entries": [],
+            "proposals": [],
+            "reason": "user thesis memory module unavailable",
+        }, str(exc)
+
+    if not path.exists():
+        return {
+            "status": "unavailable",
+            "path": str(path),
+            "entries": [],
+            "proposals": [],
+            "reason": "user thesis memory store is not initialized",
+        }, None
+
+    try:
+        store = UserThesisMemoryStore(path)
+        entries = store.list_entries(ticker, status="active")
+        proposals = store.list_proposals(ticker=ticker, limit=proposals_limit)
+        return {
+            "status": "ok",
+            "path": str(path),
+            "entries": entries[:entries_limit],
+            "entries_total": len(entries),
+            "proposals": proposals[:proposals_limit],
+            "proposals_total": len(proposals),
+        }, None
+    except Exception as exc:
+        return {
+            "status": "error",
+            "path": str(path),
+            "entries": [],
+            "proposals": [],
+        }, str(exc)
+
+
 def _manual_memory_metadata(
     metadata: dict[str, Any],
     *,
@@ -390,6 +462,26 @@ def _resolve_market_add_payload(request: MarketMemoryAddRequest) -> dict[str, An
     return payload
 
 
+def _resolve_user_thesis_proposal_payload(
+    request: UserThesisProposalRequest,
+) -> dict[str, Any]:
+    ticker = _validate_ticker(request.ticker)
+    statement = str(request.statement or "").strip()
+    if not statement:
+        raise ValueError("statement must not be empty")
+    metadata = _manual_memory_metadata(request.metadata, note=request.note)
+    metadata["is_supporting"] = bool(request.is_supporting)
+    return {
+        "ticker": ticker,
+        "proposal_type": request.proposal_type,
+        "statement": statement,
+        "signal": request.signal,
+        "confidence": float(request.confidence),
+        "metadata": metadata,
+        "requested_by": "cockpit_user",
+    }
+
+
 # ---------------------------------------------------------------------------
 # GET /api/context/memory
 # ---------------------------------------------------------------------------
@@ -401,6 +493,8 @@ def get_memory_context(
     company_memory_entries_limit: int = Query(default=400, ge=1, le=2000),
     company_memory_change_limit: int = Query(default=400, ge=1, le=2000),
     market_memory_limit: int = Query(default=300, ge=1, le=2000),
+    user_thesis_entries_limit: int = Query(default=200, ge=1, le=2000),
+    user_thesis_proposals_limit: int = Query(default=200, ge=1, le=2000),
 ) -> dict[str, Any]:
     ticker = _validate_ticker(ticker)
     errors: list[str] = []
@@ -416,6 +510,14 @@ def get_memory_context(
     market_memory, err = _load_market_memory(ticker, limit=market_memory_limit)
     if err:
         errors.append(f"market_memory: {err}")
+
+    user_thesis_memory, err = _load_user_thesis_memory(
+        ticker,
+        entries_limit=user_thesis_entries_limit,
+        proposals_limit=user_thesis_proposals_limit,
+    )
+    if err:
+        errors.append(f"user_thesis_memory: {err}")
 
     return {
         "ticker": ticker,
@@ -436,9 +538,22 @@ def get_memory_context(
                 or 0
             ),
             "market_memory_sector": market_memory.get("sector"),
+            "user_thesis_entry_count": int(
+                user_thesis_memory.get(
+                    "entries_total", len(user_thesis_memory.get("entries") or [])
+                )
+                or 0
+            ),
+            "user_thesis_proposal_count": int(
+                user_thesis_memory.get(
+                    "proposals_total", len(user_thesis_memory.get("proposals") or [])
+                )
+                or 0
+            ),
         },
         "company_memory": company_memory,
         "market_memory": market_memory,
+        "user_thesis_memory": user_thesis_memory,
         "backend_version": "1.2",
         "errors": errors,
     }
@@ -569,6 +684,132 @@ def expire_market_memory_note(request: MarketMemoryExpireRequest) -> dict[str, A
         )
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
+    return {"ok": True, **result}
+
+
+# ---------------------------------------------------------------------------
+# /api/context/thesis*
+# ---------------------------------------------------------------------------
+
+
+@router.get("/thesis")
+def get_user_thesis_context(
+    ticker: str,
+    entries_limit: int = Query(default=200, ge=1, le=2000),
+    proposals_limit: int = Query(default=200, ge=1, le=2000),
+) -> dict[str, Any]:
+    ticker = _validate_ticker(ticker)
+    payload, err = _load_user_thesis_memory(
+        ticker,
+        entries_limit=entries_limit,
+        proposals_limit=proposals_limit,
+    )
+    errors = [f"user_thesis_memory: {err}"] if err else []
+    return {
+        "ticker": ticker,
+        "summary": {
+            "entry_count": int(
+                payload.get("entries_total", len(payload.get("entries") or [])) or 0
+            ),
+            "proposal_count": int(
+                payload.get(
+                    "proposals_total", len(payload.get("proposals") or [])
+                )
+                or 0
+            ),
+        },
+        "user_thesis_memory": payload,
+        "errors": errors,
+    }
+
+
+@router.post(
+    "/thesis/proposals",
+    dependencies=[Depends(require_api_key)],
+)
+def create_user_thesis_proposal(request: UserThesisProposalRequest) -> dict[str, Any]:
+    try:
+        from app.services.user_thesis_memory import UserThesisMemoryStore
+
+        store = UserThesisMemoryStore()
+        proposal = store.create_proposal(**_resolve_user_thesis_proposal_payload(request))
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=_memory_error_status(str(exc)),
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:
+        logger.exception("user thesis proposal creation failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return {"ok": True, "proposal": proposal}
+
+
+@router.post(
+    "/thesis/proposals/{proposal_id}/confirm",
+    dependencies=[Depends(require_api_key)],
+)
+def confirm_user_thesis_proposal(
+    proposal_id: str,
+    request: UserThesisConfirmRequest,
+) -> dict[str, Any]:
+    try:
+        from app.services.user_thesis_memory import UserThesisMemoryStore
+
+        store = UserThesisMemoryStore()
+        proposal = store.confirm_proposal(proposal_id, note=request.note)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=_memory_error_status(str(exc)),
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:
+        logger.exception("user thesis proposal confirmation failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return {"ok": True, "proposal": proposal}
+
+
+@router.post(
+    "/thesis/proposals/{proposal_id}/reject",
+    dependencies=[Depends(require_api_key)],
+)
+def reject_user_thesis_proposal(
+    proposal_id: str,
+    request: UserThesisRejectRequest,
+) -> dict[str, Any]:
+    try:
+        from app.services.user_thesis_memory import UserThesisMemoryStore
+
+        store = UserThesisMemoryStore()
+        proposal = store.reject_proposal(proposal_id, note=request.note)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=_memory_error_status(str(exc)),
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:
+        logger.exception("user thesis proposal rejection failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return {"ok": True, "proposal": proposal}
+
+
+@router.post(
+    "/thesis/proposals/{proposal_id}/apply",
+    dependencies=[Depends(require_api_key)],
+)
+def apply_user_thesis_proposal(proposal_id: str) -> dict[str, Any]:
+    try:
+        from app.services.user_thesis_memory import UserThesisMemoryStore
+
+        store = UserThesisMemoryStore()
+        result = store.apply_confirmed_proposal(proposal_id)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=_memory_error_status(str(exc)),
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:
+        logger.exception("user thesis proposal apply failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
     return {"ok": True, **result}
 
 
@@ -740,6 +981,8 @@ def get_company_dump(
     company_memory_entries_limit: int = Query(default=400, ge=1, le=2000),
     company_memory_change_limit: int = Query(default=400, ge=1, le=2000),
     market_memory_limit: int = Query(default=300, ge=1, le=2000),
+    user_thesis_entries_limit: int = Query(default=200, ge=1, le=2000),
+    user_thesis_proposals_limit: int = Query(default=200, ge=1, le=2000),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     ticker = _validate_ticker(ticker)
@@ -791,6 +1034,14 @@ def get_company_dump(
     if err:
         errors.append(f"market_memory: {err}")
 
+    user_thesis_memory, err = _load_user_thesis_memory(
+        ticker,
+        entries_limit=user_thesis_entries_limit,
+        proposals_limit=user_thesis_proposals_limit,
+    )
+    if err:
+        errors.append(f"user_thesis_memory: {err}")
+
     docs = [row for row in (base_context.get("docs") or []) if isinstance(row, dict)]
     financials = [
         row for row in (base_context.get("financials") or []) if isinstance(row, dict)
@@ -833,6 +1084,18 @@ def get_company_dump(
             market_memory.get("items_total", len(market_memory.get("items") or []))
             or 0
         ),
+        "user_thesis_entry_count": int(
+            user_thesis_memory.get(
+                "entries_total", len(user_thesis_memory.get("entries") or [])
+            )
+            or 0
+        ),
+        "user_thesis_proposal_count": int(
+            user_thesis_memory.get(
+                "proposals_total", len(user_thesis_memory.get("proposals") or [])
+            )
+            or 0
+        ),
         "price_points_1y": int(price_summary_1y.get("points") or 0),
         "last_close": price_summary_1y.get("last_close"),
         "high_close_1y": price_summary_1y.get("high_close"),
@@ -857,6 +1120,7 @@ def get_company_dump(
         "low_confidence_financials": low_confidence_financials,
         "company_memory": company_memory,
         "market_memory": market_memory,
+        "user_thesis_memory": user_thesis_memory,
         "backend_version": "1.1",
         "errors": errors,
     }

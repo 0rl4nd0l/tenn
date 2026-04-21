@@ -250,6 +250,56 @@ def test_cockpit_execute_action_can_queue_long_running_action(
     assert payload["status"] == "queued"
 
 
+def test_cockpit_execute_action_handles_strategy_thesis_actions(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    fake_service = SimpleNamespace(repo_root=tmp_path)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+    monkeypatch.setattr(
+        "app.services.user_thesis_memory.UserThesisMemoryStore.create_proposal",
+        lambda self, **kwargs: {"proposal_id": "thp_123", **kwargs, "status": "pending"},
+    )
+    monkeypatch.setattr(
+        "app.services.user_thesis_memory.UserThesisMemoryStore.confirm_proposal",
+        lambda self, proposal_id, note=None: {  # noqa: ARG005
+            "proposal_id": proposal_id,
+            "status": "confirmed",
+        },
+    )
+    monkeypatch.setattr(
+        "app.services.user_thesis_memory.UserThesisMemoryStore.apply_confirmed_proposal",
+        lambda self, proposal_id: {  # noqa: ARG005
+            "proposal": {"proposal_id": proposal_id, "status": "applied"},
+            "entry": {"entry_id": 7, "statement": "Copper growth supports rerating."},
+        },
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/action/execute",
+        json={
+            "action_id": "create_thesis",
+            "args": {
+                "ticker": "BHP",
+                "thesis": "Copper growth supports rerating.",
+                "signal": "BUY",
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["action_id"] == "create_thesis"
+    assert payload["status"] == "success"
+    assert "proposal_id=thp_123" in payload["result"]
+
+
 def test_cockpit_action_job_status_reads_persisted_job(
     tmp_path,
     monkeypatch,
@@ -309,6 +359,23 @@ def test_launch_action_job_registers_ops_tracker_events(
         ) -> None:
             self.rows.append(
                 {"job_id": job_id, "progress_stage": stage, "progress_pct": pct}
+            )
+
+        def update_job_status(
+            self,
+            job_id: str,
+            *,
+            status: str,
+            exit_code: int | None,
+            ended_at: str,
+        ) -> None:
+            self.rows.append(
+                {
+                    "job_id": job_id,
+                    "status": status,
+                    "exit_code": exit_code,
+                    "ended_at": ended_at,
+                }
             )
 
     class FakeTracker:

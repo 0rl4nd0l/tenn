@@ -28,9 +28,10 @@ Overview of the architecture docs in this folder and what each covers.
 | [16_currency_and_fx_policy.md](16_currency_and_fx_policy.md) | Currency and FX handling: current ok_low_confidence gate, what changes downstream, roadmap for FX conversion |
 | [17_analysis_modules.md](17_analysis_modules.md) | Phase 3 analysis modules: 6-module architecture (balance_sheet, ROIC, valuation, risk, catalysts, moat), Protocol contract, D1/D2 layers, orchestration, data flow, quality assurance |
 | [17_agentic_chat_architecture.md](17_agentic_chat_architecture.md) | Agentic chat transformation design history: tool-calling agent loop, structured output, migration rationale (historical document) |
-| [18_cockpit_memory.md](18_cockpit_memory.md) | Cockpit memory system: 5 storage layers, context assembly flow, session lifecycle, ticker intelligence model, retention policy |
+| [18_cockpit_memory.md](18_cockpit_memory.md) | Cockpit + backend memory model: memory classes, ownership boundaries, context assembly flow, session lifecycle, retention policy |
 | [19_backend_api_surface.md](19_backend_api_surface.md) | Live backend route inventory, auth boundaries, compatibility aliases, and route grouping |
 | [20_chat_learning_loop.md](20_chat_learning_loop.md) | Chat learning loop: composite quality metric, fast path (preference learning), slow path (skill patching), Rule 0 integration, rollback protection |
 | [21_cockpit_client_contract.md](21_cockpit_client_contract.md) | Cockpit client addendum: role vs SYSTEM_CONTRACT, liveness vs aggregated health, `/api/cockpit` inventory, BFF patterns, conformance matrix |
+| [22_memory_ownership_map.md](22_memory_ownership_map.md) | Memory ownership map: canonical truth vs company/market/user-thesis/session/operational stores, writer-reader ownership, and trace logs |
 
 Numbering is historical: both `11_engineering_discipline.md` and `11_rebuild_and_recovery.md` are active.

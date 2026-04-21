@@ -8,7 +8,34 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from app.services.cockpit_service import CockpitService
+from app.services.cockpit_service import (
+    CockpitService,
+    _normalize_cockpit_artifact_dirs,
+)
+
+
+def test_normalize_cockpit_artifact_dirs_maps_relative_reports_to_data_root() -> None:
+    cfg = {
+        "reports": {"dir": "reports"},
+        "exports": {"dir": "reports/analysis"},
+    }
+
+    _normalize_cockpit_artifact_dirs(cfg, data_root="/data")
+
+    assert cfg["reports"]["dir"] == "/data/reports"
+    assert cfg["exports"]["dir"] == "/data/reports/analysis"
+
+
+def test_normalize_cockpit_artifact_dirs_preserves_absolute_paths() -> None:
+    cfg = {
+        "reports": {"dir": "/mnt/runtime/reports"},
+        "exports": {"dir": "/mnt/runtime/reports/analysis"},
+    }
+
+    _normalize_cockpit_artifact_dirs(cfg, data_root="/data")
+
+    assert cfg["reports"]["dir"] == "/mnt/runtime/reports"
+    assert cfg["exports"]["dir"] == "/mnt/runtime/reports/analysis"
 
 
 def _prime_service(service: CockpitService) -> None:
@@ -102,6 +129,26 @@ def test_chat_stream_uses_session_thread_and_persists_turns() -> None:
     assert service.state_store.calls == [
         ("session-123", "user", "ok"),
         ("session-123", "assistant", "Here is the summary."),
+    ]
+
+
+def test_chat_stream_passes_attached_sources_to_controller() -> None:
+    service = CockpitService.__new__(CockpitService)
+    _prime_service(service)
+    service.state_store = _FakeStateStore()
+    controller = _FakeController("Attached source answer.")
+    service._build_chat_controller = lambda thread_id: controller  # type: ignore[method-assign]
+
+    response = CockpitService.chat_stream(
+        service,
+        message="compare this listing",
+        session_id="session-attach",
+        attached_sources=[{"source_id": "src-1", "source_kind": "concat"}],
+    )
+
+    assert response.text == "Attached source answer."
+    assert controller.calls[0]["attached_sources"] == [
+        {"source_id": "src-1", "source_kind": "concat"}
     ]
 
 

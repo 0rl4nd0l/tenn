@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 
 import httpx
 from sqlalchemy import func
+from app.core.config import settings
 from app.core.db import SessionLocal
 from app.models.asx_financials import ASXPeriodicFinancial
 from app.models.documents import Document
@@ -591,6 +592,99 @@ def _env_flag(name: str, default: bool = False) -> bool:
     return raw in {"1", "true", "yes", "on", "y"}
 
 
+def _resolve_repo_root() -> Path:
+    override = str(os.getenv("COCKPIT_REPO_ROOT") or "").strip()
+    candidates: list[Path] = []
+    if override:
+        candidates.append(Path(override).expanduser())
+
+    backend_root = Path(__file__).resolve().parents[2]
+    candidates.extend(
+        [
+            backend_root.parent,
+            Path("/workspace/financial-engine_v2"),
+        ]
+    )
+
+    seen: set[str] = set()
+    for candidate in candidates:
+        try:
+            resolved = candidate.resolve()
+        except Exception:
+            continue
+        key = str(resolved)
+        if key in seen:
+            continue
+        seen.add(key)
+        if (
+            (resolved / "config" / "cockpit.yaml").is_file()
+            or (resolved / ".env").is_file()
+            or str(resolved) == "/"
+        ):
+            return resolved
+
+    return backend_root.parent.resolve()
+
+
+def _resolve_config_path(config_path_value: str, repo_root: Path) -> Path:
+    configured = Path(str(config_path_value or "").strip() or "config/cockpit.yaml")
+    if configured.is_absolute():
+        return configured.resolve()
+
+    candidates = [
+        (repo_root / configured).resolve(),
+        (Path("/") / configured).resolve(),
+    ]
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        if candidate.exists():
+            return candidate
+    return candidates[0]
+
+
+def _normalize_cockpit_artifact_dirs(
+    cfg: dict[str, Any], *, data_root: str | Path | None = None
+) -> None:
+    reports_cfg = cfg.setdefault("reports", {})
+    exports_cfg = cfg.setdefault("exports", {})
+
+    raw_reports = str(reports_cfg.get("dir") or "reports").strip() or "reports"
+    raw_exports = str(exports_cfg.get("dir") or "reports/analysis").strip() or "reports/analysis"
+
+    reports_path = Path(raw_reports).expanduser()
+    exports_path = Path(raw_exports).expanduser()
+
+    canonical_reports_root = (
+        Path(str(data_root or getattr(settings, "data_root", "/data"))).expanduser().resolve()
+        / "reports"
+    )
+
+    if reports_path.is_absolute():
+        resolved_reports_dir = reports_path.resolve()
+    else:
+        if reports_path.parts and reports_path.parts[0] == "reports":
+            reports_suffix = Path(*reports_path.parts[1:])
+        else:
+            reports_suffix = reports_path
+        resolved_reports_dir = (canonical_reports_root / reports_suffix).resolve()
+
+    if exports_path.is_absolute():
+        resolved_exports_dir = exports_path.resolve()
+    else:
+        if exports_path.parts and exports_path.parts[0] == "reports":
+            exports_suffix = Path(*exports_path.parts[1:])
+        else:
+            exports_suffix = exports_path
+        resolved_exports_dir = (resolved_reports_dir / exports_suffix).resolve()
+
+    reports_cfg["dir"] = str(resolved_reports_dir)
+    exports_cfg["dir"] = str(resolved_exports_dir)
+
+
 def _normalize_database_url(repo_root: Path, database_url: str) -> str:
     value = (database_url or "").strip()
     if not value:
@@ -615,15 +709,13 @@ class CockpitService:
     _lock = threading.Lock()
 
     def __init__(self):
-        repo_root = Path(__file__).resolve().parents[3]
+        repo_root = _resolve_repo_root()
         load_env(repo_root)
 
         config_path_value = str(
             os.getenv("COCKPIT_CONFIG") or "config/cockpit.yaml"
         ).strip()
-        config_path = Path(config_path_value)
-        if not config_path.is_absolute():
-            config_path = (repo_root / config_path).resolve()
+        config_path = _resolve_config_path(config_path_value, repo_root)
 
         cfg = load_config(str(config_path))
         cfg = apply_runtime_flags(
@@ -637,6 +729,7 @@ class CockpitService:
                 repo_root=repo_root,
             ),
         )
+        _normalize_cockpit_artifact_dirs(cfg)
 
         db_cfg = cfg.get("db") if isinstance(cfg.get("db"), dict) else {}
         db_url = _normalize_database_url(

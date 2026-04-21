@@ -6,17 +6,24 @@
 
 ## 1. Overview
 
-The cockpit memory system gives Tenn cross-session continuity. Without it, every conversation starts from scratch: the LLM has no awareness of prior research, user preferences, or historical decisions. The memory system solves this by persisting state across five storage layers that collectively answer three questions:
+The cockpit memory system gives Tenn cross-session continuity. Without it, every conversation starts from scratch: the LLM has no awareness of prior research, user preferences, or historical decisions.
 
-1. **What has the user asked before?** (chat history, session summaries)
-2. **What does the system know about a company?** (entity observations, dossier, analysis exports)
-3. **What does the user want?** (preferences, strategy criteria, watchlist)
+As of 2026-04-21, memory is organized as explicit logical classes:
+
+1. **Canonical financial truth** (deterministic financial facts only)
+2. **Company memory** (durable qualitative company signals)
+3. **Market memory** (durable qualitative sector/macro signals)
+4. **User thesis memory** (durable but confirmation-gated user thesis/evidence)
+5. **Session memory** (short-horizon continuity and semantic recall)
+6. **Operational/workspace state** (jobs, alerts, feedback, drafts; not reasoning truth)
 
 All memory is local-only. Nothing leaves the host machine. The storage layers range from ephemeral (active session turns) to permanent (watchlist, strategy, dossier), with cleanup policies that prevent unbounded growth in the SQLite tables.
 
 The memory system operates on a **best-effort** principle: every memory read and write is wrapped in exception handlers so that a storage failure never blocks the primary chat response. This is by design -- memory enhances context but is not required for correctness.
 
 Backend-owned qualitative memory remains authoritative. Cockpit may inspect and manage that memory only through backend APIs; it must not edit the backend SQLite stores directly.
+
+For ownership and authority boundaries, see [22_memory_ownership_map.md](22_memory_ownership_map.md).
 
 ---
 
@@ -28,7 +35,7 @@ Backend-owned qualitative memory remains authoritative. Cockpit may inspect and 
 **Location:** `~/.financial_engine_cockpit/state.db`
 **Thread safety:** `threading.Lock` guards all writes; `check_same_thread=False` on the connection.
 
-The StateStore is the cockpit's primary persistence layer. It manages 9 SQLite tables:
+The StateStore is the cockpit's primary persistence layer. It manages 10 SQLite tables:
 
 | Table | Schema | Purpose |
 |-------|--------|---------|
@@ -170,7 +177,7 @@ An optional integration with the OpenViking session memory library. When `~/.ope
 
 ### 2.7 Memory Management Surfaces (Cockpit client over backend APIs)
 
-There are now two operator-facing memory inspection and management surfaces inside Cockpit:
+There are now three operator-facing memory inspection and management surfaces inside Cockpit:
 
 1. **Chat slash commands**
    - `/filestats <TICKER>` remains the broad per-ticker dump.
@@ -179,14 +186,50 @@ There are now two operator-facing memory inspection and management surfaces insi
    - `/memory remove company <TICKER> <ENTRY_ID>` and `/memory remove market [sector|macro] <ENTRY_ID>` soft-expire backend qualitative memory rows.
 2. **Textual Memory screen**
    - A dedicated Cockpit screen lets the user load a ticker, inspect company/market memory rows, add a manual note, and expire a selected active row.
+3. **Web Memory tab (`cockpit-ui`, `:8081`)**
+   - Route: `/memory` in the Next.js Cockpit UI.
+   - Browser BFF routes under `cockpit-ui/app/api/cockpit/memory/*` proxy to backend-owned `/api/context/memory*`, `/api/context/thesis*`, and `/api/context/company_dump`.
+   - UI capabilities:
+     - level-specific subsections for `company`, `sector`, `macro`, and `strategy` memory
+     - browse + search/filter over loaded memory rows
+     - manual add for company/sector/macro notes and thesis proposals
+     - row expiry for active qualitative entries
+     - thesis proposal `confirm` / `reject` / `apply` actions
+     - safe edit semantics for qualitative rows via explicit expire+replace (no in-place backend row mutation)
+   - Context panels expose framework/strategy/company context so operators can inspect what Tenn may consume during reasoning.
 
 These surfaces are clients only. They call backend context/memory endpoints through `BackendApiClient` and do not create a second memory authority.
+
+### 2.8 Backend Memory Classes and Contracts (authoritative)
+
+Backend memory classes are the authoritative reasoning-memory surfaces for Tenn:
+
+| Class | Primary store | Write contract | Read contract |
+|-------|---------------|----------------|---------------|
+| Canonical financial truth | Postgres `asx_periodic_financials` | Deterministic ingestion/extraction/normalization only | Used for explicit numeric truth |
+| Company memory | `reports/research_memory/company_memory.sqlite` | Evidence-bound qualitative signals only; financial-metric signal types rejected | Retrieved through orchestrator/memory APIs |
+| Market memory | `reports/research_memory/market_memory.sqlite` | Evidence-bound qualitative sector/macro signals only; financial-metric signal types rejected | Retrieved through orchestrator/memory APIs |
+| User thesis memory | `reports/research_memory/user_thesis_memory.sqlite` | Proposal -> confirm -> apply (confirmation-gated writes only) | Retrieved as confirmed thesis/evidence items |
+| Session memory | OpenViking session store + cockpit recency history | Conversation turn recording | Optional continuity/semantic recall |
+
+Operational state (jobs, alerts, feedback) and analyst workspace artifacts remain outside reasoning-memory authority.
 
 ---
 
 ## 3. Context Assembly Flow
 
 Context assembly differs between agent mode (default, structured) and keyword mode (legacy).
+
+### 3.0 Backend Memory Assembler (deterministic read contract)
+
+`financial-engine_v2/backend/app/services/memory_assembler.py` is now the deterministic memory read contract used by `query_orchestrator.py`:
+
+- input: mode, query, intent, entities, and explicit source plan
+- sources: `financial_truth`, `company_memory`, `market_memory`, `user_thesis_memory`
+- filtering: stale/low-score inactive qualitative items are filtered before answer-input synthesis
+- traces: every assembly emits a read event to `reports/research_memory/memory_read_events.jsonl`
+
+Write-side memory mutations emit write events to `reports/research_memory/memory_write_events.jsonl`.
 
 ### 3.1 Agent Mode Flow
 
@@ -495,5 +538,10 @@ The `pending.jsonl` alert file grows indefinitely. Old alerts are filtered at re
 | `financial-engine_v2/cockpit/core/research/situation_memory.py` | SituationMemory: BM25-indexed situation-outcome pairs | 149 |
 | `financial-engine_v2/cockpit/core/research/alerts.py` | AlertReader: watchlist scan alert consumption | 131 |
 | `financial-engine_v2/cockpit/core/agent_loop.py` | AgentLoop: structured tool-calling loop | 576 |
+| `financial-engine_v2/backend/app/services/query_orchestrator.py` | Backend orchestrator: intent/source planning and answer-input composition across financial truth + memory classes | -- |
+| `financial-engine_v2/backend/app/services/memory_assembler.py` | Deterministic memory read assembly and filtering + read event emission | -- |
+| `financial-engine_v2/backend/app/services/user_thesis_memory.py` | Confirmation-gated user thesis proposal/confirm/apply storage and retrieval | -- |
+| `financial-engine_v2/backend/app/services/memory_events.py` | Memory read/write event logging (`memory_read_events.jsonl`, `memory_write_events.jsonl`) | -- |
+| `financial-engine_v2/backend/app/api/context.py` | `/api/context/memory*`, `/api/context/thesis*`, and memory-inclusive ticker/company dump routes | -- |
 | `financial-engine_v2/cockpit/core/config.py` | Config defaults including `state_db` path | -- |
 | `financial-engine_v2/cockpit/ui/app.py` | App startup: StateStore init, cleanup call | -- |

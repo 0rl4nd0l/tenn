@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any, Iterable, Protocol
 
 from app.services.company_memory import CompanyMemoryStore
+from app.services.memory_assembler import MemoryAssembler
 from app.services.market_memory import MarketMemoryStore
 from shared.ticker_inference import COMMON_TICKER_STOPWORDS, detect_tickers
 
@@ -75,36 +76,42 @@ _QUERY_BUDGETS = {
         "company_items": 0,
         "sector_items": 0,
         "macro_items": 0,
+        "user_thesis_items": 0,
     },
     "strategy": {
         "financial_periods": 0,
         "company_items": 4,
         "sector_items": 0,
         "macro_items": 0,
+        "user_thesis_items": 3,
     },
     "market": {
         "financial_periods": 0,
         "company_items": 0,
         "sector_items": 3,
         "macro_items": 2,
+        "user_thesis_items": 0,
     },
     "risk_catalyst": {
         "financial_periods": 0,
         "company_items": 4,
         "sector_items": 2,
         "macro_items": 2,
+        "user_thesis_items": 2,
     },
     "financial_interpretation": {
         "financial_periods": 2,
         "company_items": 3,
         "sector_items": 2,
         "macro_items": 1,
+        "user_thesis_items": 2,
     },
     "mixed": {
         "financial_periods": 2,
         "company_items": 3,
         "sector_items": 2,
         "macro_items": 1,
+        "user_thesis_items": 2,
     },
 }
 _COMPANY_TYPE_PRIORITY = {
@@ -155,6 +162,16 @@ _MARKET_TYPE_PRIORITY = {
         "macro_risk",
     ),
     "mixed": ("sector_trend", "macro_theme", "sector_risk", "macro_risk"),
+}
+_USER_THESIS_TYPE_PRIORITY = {
+    "strategy": ("thesis", "supporting_evidence", "disconfirming_evidence"),
+    "risk_catalyst": ("disconfirming_evidence", "thesis", "supporting_evidence"),
+    "financial_interpretation": (
+        "thesis",
+        "supporting_evidence",
+        "disconfirming_evidence",
+    ),
+    "mixed": ("thesis", "supporting_evidence", "disconfirming_evidence"),
 }
 
 
@@ -275,7 +292,7 @@ def build_plan(intent: QueryIntent) -> QueryPlan:
         ),
         "strategy": QueryPlan(
             intent="strategy",
-            sources=("company_memory",),
+            sources=("company_memory", "user_thesis_memory"),
             needs_numbers=False,
             needs_meaning=True,
             needs_environment=False,
@@ -289,21 +306,31 @@ def build_plan(intent: QueryIntent) -> QueryPlan:
         ),
         "risk_catalyst": QueryPlan(
             intent="risk_catalyst",
-            sources=("company_memory", "market_memory"),
+            sources=("company_memory", "market_memory", "user_thesis_memory"),
             needs_numbers=False,
             needs_meaning=True,
             needs_environment=True,
         ),
         "financial_interpretation": QueryPlan(
             intent="financial_interpretation",
-            sources=("financial_truth", "company_memory", "market_memory"),
+            sources=(
+                "financial_truth",
+                "company_memory",
+                "market_memory",
+                "user_thesis_memory",
+            ),
             needs_numbers=True,
             needs_meaning=True,
             needs_environment=True,
         ),
         "mixed": QueryPlan(
             intent="mixed",
-            sources=("financial_truth", "company_memory", "market_memory"),
+            sources=(
+                "financial_truth",
+                "company_memory",
+                "market_memory",
+                "user_thesis_memory",
+            ),
             needs_numbers=True,
             needs_meaning=True,
             needs_environment=True,
@@ -320,11 +347,13 @@ def retrieve(
     financial_truth_provider: EvidenceProvider,
     company_memory_provider: EvidenceProvider,
     market_memory_provider: EvidenceProvider,
+    user_thesis_memory_provider: EvidenceProvider,
 ) -> dict[str, dict[str, Any]]:
     providers = {
         "financial_truth": financial_truth_provider,
         "company_memory": company_memory_provider,
         "market_memory": market_memory_provider,
+        "user_thesis_memory": user_thesis_memory_provider,
     }
     evidence: dict[str, dict[str, Any]] = {}
     for source in plan.sources:
@@ -457,6 +486,24 @@ def build_answer_input(
         if not sector_items and not macro_items:
             lines.append("- no shared market-memory signals matched")
 
+    user_thesis_memory = evidence.get("user_thesis_memory") or {}
+    if "user_thesis_memory" in plan.sources:
+        thesis_items = _select_memory_items(
+            user_thesis_memory.get("items") or [],
+            intent=intent,
+            query=query,
+            limit=budgets["user_thesis_items"],
+            priorities=_USER_THESIS_TYPE_PRIORITY.get(
+                intent, _USER_THESIS_TYPE_PRIORITY["mixed"]
+            ),
+        )
+        lines.append("User thesis memory (confirmed):")
+        if thesis_items:
+            for item in thesis_items:
+                lines.append(f"- {_format_user_thesis_item(item)}")
+        else:
+            lines.append("- no confirmed thesis items matched")
+
     uncertainty_notes = _uncertainty_notes(
         company_items=company_memory.get("items") or [],
         market_items=(market_memory.get("sector_items") or [])
@@ -499,7 +546,7 @@ def _select_memory_items(
         item = dict(raw_item)
         if float(item.get("active_score") or 0.0) < 0.55:
             continue
-        item_type = str(item.get("type") or "").strip().lower()
+        item_type = str(item.get("type") or item.get("entry_type") or "").strip().lower()
         metadata = dict(item.get("metadata") or {})
         item_terms = _query_terms(str(item.get("statement") or ""))
         theme_terms = {str(theme).lower() for theme in metadata.get("themes") or []}
@@ -530,6 +577,15 @@ def _memory_statement(item: dict[str, Any]) -> str:
 def _format_company_item(item: dict[str, Any]) -> str:
     label = str(item.get("type") or "context").replace("_", " ")
     return f"{label}: {_memory_statement(item)}"
+
+
+def _format_user_thesis_item(item: dict[str, Any]) -> str:
+    label = str(item.get("entry_type") or item.get("type") or "thesis").replace(
+        "_", " "
+    )
+    signal = str(item.get("signal") or "").strip()
+    prefix = f"{label} ({signal})" if signal else label
+    return f"{prefix}: {_memory_statement(item)}"
 
 
 def _uncertainty_notes(
@@ -572,12 +628,23 @@ class QueryOrchestrator:
         financial_truth_provider: EvidenceProvider | None = None,
         company_memory_provider: EvidenceProvider | None = None,
         market_memory_provider: EvidenceProvider | None = None,
+        user_thesis_memory_provider: EvidenceProvider | None = None,
+        memory_assembler: MemoryAssembler | None = None,
     ) -> None:
         self._financial_truth_provider = financial_truth_provider or _NullProvider(
             "financial_truth"
         )
         self._company_memory_provider = company_memory_provider or CompanyMemoryStore()
         self._market_memory_provider = market_memory_provider or MarketMemoryStore()
+        self._user_thesis_memory_provider = (
+            user_thesis_memory_provider or _NullProvider("user_thesis_memory")
+        )
+        self._memory_assembler = memory_assembler or MemoryAssembler(
+            financial_truth_provider=self._financial_truth_provider,
+            company_memory_provider=self._company_memory_provider,
+            market_memory_provider=self._market_memory_provider,
+            user_thesis_memory_provider=self._user_thesis_memory_provider,
+        )
 
     def orchestrate_query(self, query: str) -> OrchestratedQueryResult:
         return self.orchestrate_query_with_context(query)
@@ -591,14 +658,14 @@ class QueryOrchestrator:
         intent = classify(query)
         entities = resolve(query, context=context)
         plan = build_plan(intent)
-        evidence = retrieve(
-            plan,
+        memory_bundle = self._memory_assembler.assemble(
+            mode="cockpit_chat",
             query=query,
+            intent=plan.intent,
             entities=entities,
-            financial_truth_provider=self._financial_truth_provider,
-            company_memory_provider=self._company_memory_provider,
-            market_memory_provider=self._market_memory_provider,
+            source_plan=plan.sources,
         )
+        evidence = memory_bundle.evidence
         answer = compose_answer(intent, plan, evidence)
         answer_input = build_answer_input(
             query,
@@ -618,7 +685,7 @@ class QueryOrchestrator:
             company_memory_results=evidence.get("company_memory") or {},
             market_memory_results=evidence.get("market_memory") or {},
             evidence=evidence,
-            raw_supporting_evidence=evidence,
+            raw_supporting_evidence=memory_bundle.raw_evidence,
             answer_input=answer_input,
             answer=answer,
         )
@@ -630,10 +697,12 @@ def orchestrate_query(
     financial_truth_provider: EvidenceProvider | None = None,
     company_memory_provider: EvidenceProvider | None = None,
     market_memory_provider: EvidenceProvider | None = None,
+    user_thesis_memory_provider: EvidenceProvider | None = None,
     context: dict[str, Any] | None = None,
 ) -> OrchestratedQueryResult:
     return QueryOrchestrator(
         financial_truth_provider=financial_truth_provider,
         company_memory_provider=company_memory_provider,
         market_memory_provider=market_memory_provider,
+        user_thesis_memory_provider=user_thesis_memory_provider,
     ).orchestrate_query_with_context(query, context=context)

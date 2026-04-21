@@ -232,6 +232,64 @@ class TestMemoryMethods:
         assert called.kwargs["json"] == {"entry_id": 5, "scope": "macro"}
 
 
+class TestUserThesisMethods:
+    def test_get_user_thesis_memory(self, client):
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.content = b'{"ticker":"BHP"}'
+        mock_response.json.return_value = {
+            "ticker": "BHP",
+            "user_thesis_memory": {"entries": [], "proposals": []},
+        }
+        mock_response.raise_for_status = MagicMock()
+
+        with patch("httpx.Client") as MockClient:
+            mock_http = MagicMock()
+            MockClient.return_value.__enter__ = MagicMock(return_value=mock_http)
+            MockClient.return_value.__exit__ = MagicMock(return_value=False)
+            mock_http.get.return_value = mock_response
+
+            result = client.get_user_thesis_memory("BHP")
+
+        assert result["ticker"] == "BHP"
+        called = mock_http.get.call_args
+        assert called.args[0].endswith("/api/context/thesis")
+        assert called.kwargs["params"]["ticker"] == "BHP"
+
+    def test_create_confirm_apply_user_thesis_proposal(self, client):
+        post_response = MagicMock()
+        post_response.content = b'{"ok": true}'
+        post_response.json.return_value = {"ok": True, "proposal": {"proposal_id": "thp_1"}}
+        post_response.raise_for_status = MagicMock()
+
+        with patch("httpx.Client") as MockClient:
+            mock_http = MagicMock()
+            MockClient.return_value.__enter__ = MagicMock(return_value=mock_http)
+            MockClient.return_value.__exit__ = MagicMock(return_value=False)
+            mock_http.post.return_value = post_response
+
+            create_result = client.create_user_thesis_proposal(
+                ticker="bhp",
+                proposal_type="create_thesis",
+                statement="Copper growth supports rerating.",
+                signal="buy",
+            )
+            confirm_result = client.confirm_user_thesis_proposal("thp_1", note="yes")
+            apply_result = client.apply_user_thesis_proposal("thp_1")
+
+        assert create_result["ok"] is True
+        assert confirm_result["ok"] is True
+        assert apply_result["ok"] is True
+        create_call = mock_http.post.call_args_list[0]
+        confirm_call = mock_http.post.call_args_list[1]
+        apply_call = mock_http.post.call_args_list[2]
+        assert create_call.args[0].endswith("/api/context/thesis/proposals")
+        assert create_call.kwargs["json"]["ticker"] == "BHP"
+        assert create_call.kwargs["json"]["signal"] == "BUY"
+        assert confirm_call.args[0].endswith("/api/context/thesis/proposals/thp_1/confirm")
+        assert apply_call.args[0].endswith("/api/context/thesis/proposals/thp_1/apply")
+
+
 # ---------------------------------------------------------------------------
 # approve_transcript
 # ---------------------------------------------------------------------------

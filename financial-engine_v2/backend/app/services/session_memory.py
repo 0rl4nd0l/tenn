@@ -80,6 +80,11 @@ def record_turn(session_id: str, payload: dict[str, Any]) -> None:
     _client.record_turn(session_id, payload)
 
 
+def _shutdown() -> None:
+    """Release OpenViking resources on process shutdown."""
+    _client.close()
+
+
 def _build_turn_payload(
     *,
     session_id: str,

@@ -26,6 +26,8 @@ The FastAPI app mounts routes in these groups:
   do not require an API key by default.
 - Mutating routes such as `/ingest/*`, `/backfill/*`, `/process/*`, and `/api/analysis/{ticker}`
   do require the dependency where declared.
+- Memory/thesis mutation routes under `/api/context/memory/*` and `/api/context/thesis/*`
+  also require the dependency where declared.
 
 ## Route inventory
 
@@ -42,6 +44,41 @@ The FastAPI app mounts routes in these groups:
 - `GET /api/context/verification?ticker=...`
   - verification context bundle for extraction failures and low-confidence financial rows
   - ticker is optional; empty scope returns cross-ticker queue state
+
+### Context and memory routes (`/api/context/*`)
+
+- `GET /api/context/ticker?ticker=...`
+  - ticker context bundle: docs, financials, latest snapshot, announcement context,
+    extraction failures, low-confidence financial rows
+- `GET /api/context/company_dump?ticker=...`
+  - expanded ticker dump including context + risk notes + price history + memory surfaces
+- `GET /api/context/memory?ticker=...`
+  - combined memory view for one ticker:
+    - company memory
+    - market memory
+    - user thesis memory
+- `POST /api/context/memory/company/add`
+  - manual qualitative company-memory insert
+- `POST /api/context/memory/company/expire`
+  - manual company-memory soft-expire
+- `POST /api/context/memory/market/add`
+  - manual qualitative market-memory insert (sector/macro scopes)
+- `POST /api/context/memory/market/expire`
+  - manual market-memory soft-expire
+- `GET /api/context/thesis?ticker=...`
+  - user thesis memory view for one ticker (entries + proposals)
+- `POST /api/context/thesis/proposals`
+  - create user thesis proposal (`create_thesis`, `add_evidence`, `invalidate`)
+- `POST /api/context/thesis/proposals/{proposal_id}/confirm`
+  - explicit confirmation step
+- `POST /api/context/thesis/proposals/{proposal_id}/reject`
+  - reject pending/confirmed proposal
+- `POST /api/context/thesis/proposals/{proposal_id}/apply`
+  - apply a confirmed proposal into durable thesis entries
+- `GET /api/context/verification?ticker=...`
+  - extraction verification queue context (ticker-scoped or global)
+- `GET /api/context/verification/runs?limit=...`
+  - latest verification run history snapshots
 
 ### Retrieval and chat
 
@@ -72,9 +109,22 @@ The FastAPI app mounts routes in these groups:
 - `POST /api/cockpit/chat`
   - cockpit chat endpoint (blocking and SSE modes)
   - SSE emits status/chunk/tool/action-preview/done events
+  - request payload contract:
+    - web access flag is `web_search` (boolean)
+    - retrieval flag is `rag` (boolean)
+    - SQL diagnostics flag is `db_diagnostics` (boolean)
+    - `enable_web` is not a `CockpitChatRequest` field and is ignored by strict clients
+  - routing contract highlights:
+    - explicit web-search phrasing (`search web for ...`, `web search ...`) routes to web enrichment
+    - imperative ingest phrasing (`ingest <ticker>`) routes to action preview
+    - ingest shortcuts and explicit web-search shortcuts are deterministic and non-overlapping
 - `POST /api/cockpit/action/execute`
   - executes a confirmed cockpit action by `action_id` + `args`
   - returns command output on success, structured HTTP errors on validation/runtime failure
+  - includes strategy-memory actions:
+    - `create_thesis`
+    - `add_thesis_evidence`
+  - these actions write to `user_thesis_memory` through backend-owned store logic
 - `POST /api/cockpit/feedback/flag`
   - persists a cockpit assistant turn plus user feedback with `feedback_type: "poor" | "good"`, transcript, and backend diagnostics
   - poor feedback returns artifact paths, `report_id`, `read_api_path`, and a backend-generated Codex prompt keyed to the saved flag ID
@@ -132,8 +182,10 @@ Identify root cause in code, implement the minimal safe fix, and verify it.
 
 Runtime note:
 
-- the backend may persist the underlying artifacts inside a container/runtime-specific
-  filesystem such as `/reports/...`
+- canonical backend persistence root is `${DATA_ROOT}/reports/...` (for example
+  `/data/reports/...` in Docker Compose)
+- some services keep a writable fallback under `financial-engine_v2/backend/reports/...`
+  when `DATA_ROOT` is unavailable or not writable
 - the API above is the supported way to retrieve flagged chats across environments
 
 ### System control-plane and capability state
@@ -250,6 +302,8 @@ Runtime note:
 
 - `financial-engine_v2/backend/app/main.py`
 - `financial-engine_v2/backend/app/api/routes.py`
+- `financial-engine_v2/backend/app/api/context.py`
 - `financial-engine_v2/backend/app/api/analysis.py`
 - `financial-engine_v2/backend/app/routes/chat.py`
+- `financial-engine_v2/backend/app/routes/cockpit_api.py`
 - `financial-engine_v2/backend/app/routes/research.py`

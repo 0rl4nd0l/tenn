@@ -17,11 +17,19 @@ from app.api.context import (
     CompanyMemoryExpireRequest,
     MarketMemoryAddRequest,
     MarketMemoryExpireRequest,
+    UserThesisConfirmRequest,
+    UserThesisProposalRequest,
+    UserThesisRejectRequest,
     add_company_memory_note,
     add_market_memory_note,
+    apply_user_thesis_proposal,
+    confirm_user_thesis_proposal,
+    create_user_thesis_proposal,
     expire_company_memory_note,
     expire_market_memory_note,
     get_memory_context,
+    get_user_thesis_context,
+    reject_user_thesis_proposal,
     get_company_dump,
     get_ticker_context,
     get_verification_context,
@@ -306,6 +314,10 @@ class TestGetCompanyDump:
                 "app.api.context._load_market_memory",
                 return_value=({"items": [{"entry_id": 2}]}, None),
             ),
+            patch(
+                "app.api.context._load_user_thesis_memory",
+                return_value=({"entries": [], "proposals": []}, None),
+            ),
         ):
             result = get_company_dump(ticker="BHP", db=db)
 
@@ -359,12 +371,26 @@ class TestGetCompanyDump:
                     None,
                 ),
             ),
+            patch(
+                "app.api.context._load_user_thesis_memory",
+                return_value=(
+                    {
+                        "entries": [{"entry_id": 3}],
+                        "proposals": [{"proposal_id": "thp_1"}],
+                        "entries_total": 13,
+                        "proposals_total": 17,
+                    },
+                    None,
+                ),
+            ),
         ):
             result = get_company_dump(ticker="BHP", db=db)
 
         assert result["summary"]["company_memory_entry_count"] == 7
         assert result["summary"]["company_memory_change_count"] == 9
         assert result["summary"]["market_memory_item_count"] == 11
+        assert result["summary"]["user_thesis_entry_count"] == 13
+        assert result["summary"]["user_thesis_proposal_count"] == 17
 
     def test_company_dump_captures_partial_failures(self):
         db = _mock_db_session({})
@@ -393,12 +419,17 @@ class TestGetCompanyDump:
                 "app.api.context._load_market_memory",
                 return_value=({"items": []}, None),
             ),
+            patch(
+                "app.api.context._load_user_thesis_memory",
+                return_value=({"entries": [], "proposals": []}, "sqlite busy"),
+            ),
         ):
             result = get_company_dump(ticker="BHP", db=db)
 
         assert any("docs:" in err for err in result["errors"])
         assert any("price_history_1y:" in err for err in result["errors"])
         assert any("company_memory:" in err for err in result["errors"])
+        assert any("user_thesis_memory:" in err for err in result["errors"])
         assert result["summary"]["price_points_1y"] == 0
 
 
@@ -428,6 +459,18 @@ class TestGetMemoryContext:
                     None,
                 ),
             ),
+            patch(
+                "app.api.context._load_user_thesis_memory",
+                return_value=(
+                    {
+                        "entries": [{"entry_id": 12}],
+                        "proposals": [{"proposal_id": "thp_1"}],
+                        "entries_total": 2,
+                        "proposals_total": 3,
+                    },
+                    None,
+                ),
+            ),
         ):
             result = get_memory_context(ticker="BHP")
 
@@ -436,6 +479,8 @@ class TestGetMemoryContext:
         assert result["summary"]["company_memory_change_count"] == 4
         assert result["summary"]["market_memory_item_count"] == 5
         assert result["summary"]["market_memory_sector"] == "Materials"
+        assert result["summary"]["user_thesis_entry_count"] == 2
+        assert result["summary"]["user_thesis_proposal_count"] == 3
         assert result["errors"] == []
 
 
@@ -656,6 +701,97 @@ class TestMemoryMutations:
 
         assert response.status_code == 400
         assert "financial" in response.json()["detail"].lower()
+
+
+class TestUserThesisMutations:
+    def test_get_user_thesis_context(self):
+        with patch(
+            "app.api.context._load_user_thesis_memory",
+            return_value=(
+                {
+                    "entries": [{"entry_id": 1}],
+                    "proposals": [{"proposal_id": "thp_1"}],
+                    "entries_total": 3,
+                    "proposals_total": 4,
+                },
+                None,
+            ),
+        ):
+            result = get_user_thesis_context(ticker="BHP")
+
+        assert result["ticker"] == "BHP"
+        assert result["summary"]["entry_count"] == 3
+        assert result["summary"]["proposal_count"] == 4
+        assert result["errors"] == []
+
+    def test_create_confirm_reject_apply_delegates_to_store(self):
+        with patch(
+            "app.services.user_thesis_memory.UserThesisMemoryStore.create_proposal",
+            return_value={"proposal_id": "thp_1", "status": "pending"},
+        ) as create_mock:
+            result = create_user_thesis_proposal(
+                UserThesisProposalRequest(
+                    ticker="BHP",
+                    proposal_type="create_thesis",
+                    statement="Copper growth supports rerating.",
+                    signal="BUY",
+                    note="manual note",
+                )
+            )
+        assert result["ok"] is True
+        assert result["proposal"]["proposal_id"] == "thp_1"
+        assert create_mock.call_args.kwargs["ticker"] == "BHP"
+
+        with patch(
+            "app.services.user_thesis_memory.UserThesisMemoryStore.confirm_proposal",
+            return_value={"proposal_id": "thp_1", "status": "confirmed"},
+        ):
+            confirm = confirm_user_thesis_proposal(
+                "thp_1",
+                UserThesisConfirmRequest(note="yes"),
+            )
+        assert confirm["ok"] is True
+        assert confirm["proposal"]["status"] == "confirmed"
+
+        with patch(
+            "app.services.user_thesis_memory.UserThesisMemoryStore.reject_proposal",
+            return_value={"proposal_id": "thp_2", "status": "rejected"},
+        ):
+            reject = reject_user_thesis_proposal(
+                "thp_2",
+                UserThesisRejectRequest(note="no"),
+            )
+        assert reject["ok"] is True
+        assert reject["proposal"]["status"] == "rejected"
+
+        with patch(
+            "app.services.user_thesis_memory.UserThesisMemoryStore.apply_confirmed_proposal",
+            return_value={"proposal": {"proposal_id": "thp_1"}, "entry": {"entry_id": 9}},
+        ):
+            apply_result = apply_user_thesis_proposal("thp_1")
+        assert apply_result["ok"] is True
+        assert apply_result["entry"]["entry_id"] == 9
+
+    def test_user_thesis_routes_require_api_key_when_configured(self, monkeypatch):
+        monkeypatch.setattr(
+            config.settings,
+            "local_api_key",
+            "local-secret",
+            raising=False,
+        )
+        client = _context_client()
+
+        response = client.post(
+            "/api/context/thesis/proposals",
+            json={
+                "ticker": "BHP",
+                "proposal_type": "create_thesis",
+                "statement": "Thesis statement",
+            },
+        )
+
+        assert response.status_code == 401
+        assert response.json()["detail"] == "Invalid or missing API key"
 
 
 class TestLoadMarketMemory:

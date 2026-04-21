@@ -29,8 +29,9 @@
 ## DATA_ROOT issues
 
 - `DATA_ROOT` must be writable.
-- `docs_root`, analyzer reports, SQLite defaults, and MarketIndex defaults now derive from `DATA_ROOT`.
+- `docs_root`, analyzer reports, SQLite defaults, MarketIndex defaults, and Cockpit backend artifacts (reports/exports, feedback bundles, memory stores) derive from `DATA_ROOT`.
 - If you move `DATA_ROOT`, either keep the derived defaults or override the dependent paths explicitly in `financial-engine_v2/.env`.
+- If Cockpit loads config from an unexpected root, set `COCKPIT_REPO_ROOT` explicitly and confirm `COCKPIT_CONFIG` resolves to the intended file (for Docker this is commonly `/config/cockpit.yaml`).
 
 ## Safe degradation rules
 

@@ -511,6 +511,95 @@ class BackendApiClient:
             timeout=timeout,
         )
 
+    def get_user_thesis_memory(
+        self,
+        ticker: str,
+        *,
+        entries_limit: int | None = None,
+        proposals_limit: int | None = None,
+        timeout: float = 20.0,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}/api/context/thesis"
+        params: dict[str, Any] = {"ticker": str(ticker or "").strip().upper()}
+        if entries_limit is not None:
+            params["entries_limit"] = entries_limit
+        if proposals_limit is not None:
+            params["proposals_limit"] = proposals_limit
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.get(
+                url,
+                params=params,
+                headers=self._api_key_headers(),
+            )
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
+    def create_user_thesis_proposal(
+        self,
+        *,
+        ticker: str,
+        proposal_type: str,
+        statement: str,
+        signal: str | None = None,
+        confidence: float = 0.7,
+        is_supporting: bool = True,
+        note: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        timeout: float = 20.0,
+    ) -> dict[str, Any]:
+        body: dict[str, Any] = {
+            "ticker": str(ticker or "").strip().upper(),
+            "proposal_type": str(proposal_type or "").strip().lower(),
+            "statement": str(statement or "").strip(),
+            "signal": str(signal).strip().upper() if signal else None,
+            "confidence": float(confidence),
+            "is_supporting": bool(is_supporting),
+            "note": str(note or "").strip() or None,
+            "metadata": dict(metadata or {}),
+        }
+        return self._ops_post(
+            "/api/context/thesis/proposals",
+            json=body,
+            timeout=timeout,
+        )
+
+    def confirm_user_thesis_proposal(
+        self,
+        proposal_id: str,
+        *,
+        note: str | None = None,
+        timeout: float = 20.0,
+    ) -> dict[str, Any]:
+        return self._ops_post(
+            f"/api/context/thesis/proposals/{str(proposal_id or '').strip()}/confirm",
+            json={"note": str(note or "").strip() or None},
+            timeout=timeout,
+        )
+
+    def reject_user_thesis_proposal(
+        self,
+        proposal_id: str,
+        *,
+        note: str | None = None,
+        timeout: float = 20.0,
+    ) -> dict[str, Any]:
+        return self._ops_post(
+            f"/api/context/thesis/proposals/{str(proposal_id or '').strip()}/reject",
+            json={"note": str(note or "").strip() or None},
+            timeout=timeout,
+        )
+
+    def apply_user_thesis_proposal(
+        self,
+        proposal_id: str,
+        *,
+        timeout: float = 20.0,
+    ) -> dict[str, Any]:
+        return self._ops_post(
+            f"/api/context/thesis/proposals/{str(proposal_id or '').strip()}/apply",
+            timeout=timeout,
+        )
+
     def process_document(
         self,
         document_id: str,
