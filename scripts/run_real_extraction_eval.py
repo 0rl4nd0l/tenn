@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import os
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -32,6 +34,11 @@ DEFAULT_BACKEND_URL = "http://127.0.0.1:8000"
 DEFAULT_TIMEOUT_SECONDS = 1800.0
 DEFAULT_POLL_INTERVAL_SECONDS = 5.0
 SUPPORTED_METRICS = ("revenue", "operating_cash_flow", "net_debt")
+EVAL_POLICY_VERSION = "2026-04-20"
+CANONICAL_METHOD = "docling"
+CANONICAL_STRICT_METHOD = True
+CANONICAL_LIMIT = 0
+CANONICAL_TOLERANCE = 0.01
 
 
 def _parse_args() -> argparse.Namespace:
@@ -75,14 +82,25 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--config-label", default=None)
     parser.add_argument(
         "--parser-backend",
-        default=None,
+        default=CANONICAL_METHOD,
         choices=["docling", "pymupdf", "anthropic"],
-        help="Request a specific backend extraction method (default: auto).",
+        help="Request a specific backend extraction method (default: docling).",
     )
     parser.add_argument(
         "--strict-method",
+        dest="strict_method",
         action="store_true",
-        help="Require the requested extraction method without backend fallback.",
+        default=CANONICAL_STRICT_METHOD,
+        help="Require the requested extraction method without backend fallback (default: true).",
+    )
+    parser.add_argument(
+        "--allow-fallback",
+        dest="strict_method",
+        action="store_false",
+        help=(
+            "Allow backend fallback to other parser methods. "
+            "This marks the run non-canonical for KPI reporting."
+        ),
     )
     parser.add_argument(
         "--backend-url",
@@ -120,6 +138,73 @@ def _validate_dataset_dir(dataset_dir: Path) -> Path:
 
 def _normalize_backend_url(raw_url: str) -> str:
     return str(raw_url or DEFAULT_BACKEND_URL).strip().rstrip("/")
+
+
+def _compute_fixture_content_sha256(dataset_dir: Path) -> str:
+    digest = hashlib.sha256()
+    files = sorted(path for path in dataset_dir.glob("*.json") if path.is_file())
+    for path in files:
+        digest.update(path.name.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def _resolve_fixture_git_commit(dataset_dir: Path) -> str | None:
+    try:
+        rel_path = dataset_dir.resolve().relative_to(REPO_ROOT.resolve())
+    except ValueError:
+        return None
+
+    try:
+        proc = subprocess.run(
+            ["git", "log", "-n", "1", "--format=%H", "--", str(rel_path)],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=3,
+            check=False,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode != 0:
+        return None
+    commit = proc.stdout.strip()
+    return commit or None
+
+
+def _resolve_fixture_git_dirty(dataset_dir: Path) -> bool | None:
+    try:
+        rel_path = dataset_dir.resolve().relative_to(REPO_ROOT.resolve())
+    except ValueError:
+        return None
+
+    try:
+        proc = subprocess.run(
+            ["git", "status", "--porcelain", "--", str(rel_path)],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=3,
+            check=False,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode != 0:
+        return None
+    return bool(proc.stdout.strip())
+
+
+def _build_fixture_manifest(dataset_dir: Path) -> dict[str, Any]:
+    files = sorted(path for path in dataset_dir.glob("*.json") if path.is_file())
+    return {
+        "dataset_dir": str(dataset_dir.resolve()),
+        "fixture_file_count": len(files),
+        "fixture_content_sha256": _compute_fixture_content_sha256(dataset_dir),
+        "fixture_git_commit": _resolve_fixture_git_commit(dataset_dir),
+        "fixture_git_dirty": _resolve_fixture_git_dirty(dataset_dir),
+    }
 
 
 def _resolve_backend_api_key(arg_value: str | None) -> str | None:
@@ -264,11 +349,121 @@ def _request_real_gold_eval(
         time.sleep(poll_interval)
 
 
+def _canonical_contract(dataset_dir: Path) -> dict[str, Any]:
+    return {
+        "dataset_dir": str(dataset_dir.resolve()),
+        "method": CANONICAL_METHOD,
+        "strict_method": CANONICAL_STRICT_METHOD,
+        "limit": CANONICAL_LIMIT,
+        "tolerance": CANONICAL_TOLERANCE,
+        "prompt_variant_id": None,
+        "model_override": None,
+    }
+
+
+def _resolve_eval_policy(
+    response_payload: dict[str, Any],
+    *,
+    dataset_dir: Path,
+    requested_method: str,
+    strict_method: bool,
+    limit: int,
+    tolerance: float,
+) -> dict[str, Any]:
+    policy = response_payload.get("eval_policy")
+    if isinstance(policy, dict):
+        return policy
+
+    canonical_contract = _canonical_contract(dataset_dir)
+    actual_run = {
+        "dataset_dir": str(dataset_dir.resolve()),
+        "method": requested_method,
+        "strict_method": bool(strict_method),
+        "limit": max(int(limit), 0),
+        "tolerance": round(max(float(tolerance), 0.0), 8),
+        "prompt_variant_id": None,
+        "model_override": None,
+    }
+    non_canonical_reasons: list[str] = []
+    for key, expected in canonical_contract.items():
+        if actual_run.get(key) != expected:
+            non_canonical_reasons.append(
+                f"{key}:expected={expected!r},actual={actual_run.get(key)!r}"
+            )
+
+    mode = "canonical" if not non_canonical_reasons else "non_canonical"
+    return {
+        "policy_version": EVAL_POLICY_VERSION,
+        "mode": mode,
+        "kpi_eligible": mode == "canonical",
+        "non_canonical_reasons": non_canonical_reasons,
+        "canonical_contract": canonical_contract,
+        "actual_run": actual_run,
+    }
+
+
+def _fixture_provenance_non_canonical_reasons(
+    fixture_manifest: dict[str, Any],
+) -> list[str]:
+    reasons: list[str] = []
+    fixture_commit = str(fixture_manifest.get("fixture_git_commit") or "").strip()
+    if not fixture_commit:
+        reasons.append("fixture_provenance:fixture_git_commit_missing")
+    fixture_dirty = fixture_manifest.get("fixture_git_dirty")
+    if fixture_dirty is not False:
+        reasons.append(
+            "fixture_provenance:fixture_git_dirty_not_false:"
+            f"{fixture_dirty!r}"
+        )
+    return reasons
+
+
+def _apply_fixture_provenance_guard(
+    eval_policy: dict[str, Any],
+    fixture_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    merged = dict(eval_policy)
+    reasons = list(merged.get("non_canonical_reasons") or [])
+    for reason in _fixture_provenance_non_canonical_reasons(fixture_manifest):
+        if reason not in reasons:
+            reasons.append(reason)
+    if reasons:
+        merged["mode"] = "non_canonical"
+        merged["kpi_eligible"] = False
+    merged["non_canonical_reasons"] = reasons
+    return merged
+
+
+def _build_canonical_scorecard(
+    *,
+    summary: dict[str, Any],
+    eval_policy: dict[str, Any],
+    fixture_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    kpi_eligible = bool(eval_policy.get("kpi_eligible"))
+    canonical_summary = summary if kpi_eligible else None
+    exploratory_summary = summary if not kpi_eligible else None
+    return {
+        "generated_at": summary.get("generated_at"),
+        "policy_version": eval_policy.get("policy_version"),
+        "evaluation_mode": eval_policy.get("mode"),
+        "kpi_eligible": kpi_eligible,
+        "non_canonical_reasons": list(eval_policy.get("non_canonical_reasons") or []),
+        "canonical_contract": dict(eval_policy.get("canonical_contract") or {}),
+        "actual_run": dict(eval_policy.get("actual_run") or {}),
+        "fixture_manifest": fixture_manifest,
+        "canonical_kpi_summary": canonical_summary,
+        "exploratory_summary": exploratory_summary,
+    }
+
+
 def _build_report_markdown(
     summary: dict[str, Any],
     results: list[dict[str, Any]],
     *,
     dataset_dir: str,
+    eval_policy: dict[str, Any],
+    fixture_manifest: dict[str, Any],
     artifact_paths: dict[str, str],
 ) -> str:
     lines: list[str] = []
@@ -277,6 +472,31 @@ def _build_report_markdown(
     lines.append(f"- Generated: {summary['generated_at']}")
     lines.append(f"- Dataset: `{dataset_dir}`")
     lines.append(f"- Documents: {summary['total_documents']}")
+    lines.append(f"- Eval mode: `{eval_policy.get('mode')}`")
+    lines.append(
+        f"- KPI eligible: {'yes' if eval_policy.get('kpi_eligible') else 'no'}"
+    )
+    lines.append("")
+    if not eval_policy.get("kpi_eligible"):
+        lines.append(
+            "> This run is marked non-canonical and excluded from canonical KPI reporting."
+        )
+        lines.append("")
+    lines.append("## Eval Policy")
+    lines.append("")
+    lines.append(f"- Policy version: `{eval_policy.get('policy_version')}`")
+    lines.append(f"- Dataset commit: `{fixture_manifest.get('fixture_git_commit')}`")
+    lines.append(
+        f"- Dataset content hash: `{fixture_manifest.get('fixture_content_sha256')}`"
+    )
+    lines.append(
+        f"- Dataset dirty: `{fixture_manifest.get('fixture_git_dirty')}`"
+    )
+    non_canonical_reasons = eval_policy.get("non_canonical_reasons") or []
+    if non_canonical_reasons:
+        lines.append("- Non-canonical reasons:")
+        for reason in non_canonical_reasons:
+            lines.append(f"  - `{reason}`")
     lines.append("")
     lines.append("## Total Accuracy")
     lines.append("")
@@ -385,6 +605,9 @@ def _artifact_paths(results_json: Path, report_path: Path) -> dict[str, Path]:
         "results_json": results_json,
         "summary_markdown": report_path,
         "summary_json": results_json.with_name(f"{base_name}_summary.json"),
+        "canonical_scorecard_json": results_json.with_name(
+            f"{base_name}_canonical_scorecard.json"
+        ),
         "documents_csv": results_json.with_name(f"{base_name}_documents.csv"),
         "metrics_csv": results_json.with_name(f"{base_name}_metrics.csv"),
         "trust_triggers_csv": results_json.with_name(f"{base_name}_trust_triggers.csv"),
@@ -507,6 +730,19 @@ def main() -> int:
 
     summary = response_payload["summary"]
     results = response_payload["documents"]
+    eval_policy = _resolve_eval_policy(
+        response_payload,
+        dataset_dir=canonical_dataset_dir,
+        requested_method=str(response_payload.get("requested_method", requested_method)),
+        strict_method=bool(response_payload.get("strict_method", args.strict_method)),
+        limit=args.limit,
+        tolerance=max(float(args.tolerance), 0.0),
+    )
+    fixture_manifest = response_payload.get("fixture_manifest")
+    if not isinstance(fixture_manifest, dict):
+        fixture_manifest = _build_fixture_manifest(canonical_dataset_dir)
+    eval_policy = _apply_fixture_provenance_guard(eval_policy, fixture_manifest)
+
     report_path = args.report_path
     results_json = args.results_json
     artifact_paths = _artifact_paths(results_json, report_path)
@@ -525,12 +761,17 @@ def main() -> int:
         "tolerance": max(float(args.tolerance), 0.0),
         "limit": args.limit,
         "backend_url": backend_url,
+        "eval_policy_version": eval_policy.get("policy_version"),
+        "eval_mode": eval_policy.get("mode"),
+        "kpi_eligible": bool(eval_policy.get("kpi_eligible")),
     }
     output_payload = {
         "dataset_dir": dataset_dir,
         "requested_method": response_payload.get("requested_method", requested_method),
         "strict_method": response_payload.get("strict_method", args.strict_method),
         "run_metadata": run_metadata,
+        "eval_policy": eval_policy,
+        "fixture_manifest": fixture_manifest,
         "summary": summary,
         "artifact_paths": output_artifact_paths,
         "documents": results,
@@ -555,9 +796,25 @@ def main() -> int:
                     "strict_method", args.strict_method
                 ),
                 "run_metadata": run_metadata,
+                "eval_policy": eval_policy,
+                "fixture_manifest": fixture_manifest,
                 "summary": summary,
                 "artifact_paths": output_artifact_paths,
             },
+            indent=2,
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    canonical_scorecard_json = artifact_paths["canonical_scorecard_json"]
+    canonical_scorecard_json.parent.mkdir(parents=True, exist_ok=True)
+    canonical_scorecard_json.write_text(
+        json.dumps(
+            _build_canonical_scorecard(
+                summary=summary,
+                eval_policy=eval_policy,
+                fixture_manifest=fixture_manifest,
+            ),
             indent=2,
             sort_keys=True,
         ),
@@ -573,6 +830,8 @@ def main() -> int:
             summary,
             results,
             dataset_dir=dataset_dir,
+            eval_policy=eval_policy,
+            fixture_manifest=fixture_manifest,
             artifact_paths=output_artifact_paths,
         ),
         encoding="utf-8",
@@ -604,8 +863,18 @@ def main() -> int:
         f"abstain={summary['trust_distribution'].get('abstain', 0)}, "
         f"quarantine={summary['trust_distribution'].get('quarantine', 0)}"
     )
+    print(
+        f"- Eval mode: {eval_policy.get('mode')} (kpi_eligible={bool(eval_policy.get('kpi_eligible'))})"
+    )
+    if not eval_policy.get("kpi_eligible"):
+        reasons = list(eval_policy.get("non_canonical_reasons") or [])
+        if reasons:
+            print("- Non-canonical reasons:")
+            for reason in reasons:
+                print(f"  - {reason}")
     print(f"- Wrote detailed JSON: {results_json}")
     print(f"- Wrote summary JSON: {summary_json}")
+    print(f"- Wrote canonical scorecard JSON: {canonical_scorecard_json}")
     print(f"- Wrote markdown report: {report_path}")
     print(f"- Wrote per-document CSV: {artifact_paths['documents_csv']}")
     print(f"- Wrote per-metric CSV: {artifact_paths['metrics_csv']}")

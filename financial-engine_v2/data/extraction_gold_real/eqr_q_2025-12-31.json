@@ -1,0 +1,12 @@
+{
+  "document_id": "eqr_q_2025-12-31",
+  "source_file": "data/asx/docs/EQR/financial_performance/2026-01-21_quarterly-activities-appendix-5b-cash-flow-report-dec-2025_5ea6cd4b-ed13-4220-9ebf-cad83944a4a7.pdf",
+  "period_type": "Q",
+  "period_end": "2025-12-31",
+  "currency": "AUD",
+  "scale": "thousands",
+  "metrics": {
+    "operating_cash_flow": 1154000
+  },
+  "expected_trust": "trusted"
+}

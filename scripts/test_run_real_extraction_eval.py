@@ -55,6 +55,39 @@ def _sample_eval_response() -> dict:
         "dataset_dir": str(mod.DEFAULT_DATASET_DIR),
         "requested_method": "docling",
         "strict_method": False,
+        "eval_policy": {
+            "policy_version": "2026-04-20",
+            "mode": "non_canonical",
+            "kpi_eligible": False,
+            "non_canonical_reasons": [
+                "strict_method:expected=True,actual=False",
+            ],
+            "canonical_contract": {
+                "dataset_dir": str(mod.DEFAULT_DATASET_DIR.resolve()),
+                "method": "docling",
+                "strict_method": True,
+                "limit": 0,
+                "tolerance": 0.01,
+                "prompt_variant_id": None,
+                "model_override": None,
+            },
+            "actual_run": {
+                "dataset_dir": str(mod.DEFAULT_DATASET_DIR.resolve()),
+                "method": "docling",
+                "strict_method": False,
+                "limit": 1,
+                "tolerance": 0.01,
+                "prompt_variant_id": None,
+                "model_override": None,
+            },
+        },
+        "fixture_manifest": {
+            "dataset_dir": str(mod.DEFAULT_DATASET_DIR.resolve()),
+            "fixture_file_count": 10,
+            "fixture_content_sha256": "abc123",
+            "fixture_git_commit": "deadbeef",
+            "fixture_git_dirty": False,
+        },
         "summary": {
             "generated_at": "2026-04-14T00:00:00Z",
             "total_documents": 1,
@@ -330,6 +363,10 @@ class TestEvalArtifacts(unittest.TestCase):
             Path("/tmp/extraction_real_eval_results_summary.json"),
         )
         self.assertEqual(
+            artifact_paths["canonical_scorecard_json"],
+            Path("/tmp/extraction_real_eval_results_canonical_scorecard.json"),
+        )
+        self.assertEqual(
             artifact_paths["documents_csv"],
             Path("/tmp/extraction_real_eval_results_documents.csv"),
         )
@@ -357,6 +394,33 @@ class TestEvalArtifacts(unittest.TestCase):
             self.assertEqual(contents[0], "document_id,failed_metric_count")
             self.assertIn("doc_a,2", contents[1:])
             self.assertIn("doc_b,0", contents[1:])
+
+    def test_apply_fixture_provenance_guard_demotes_kpi(self):
+        eval_policy = {
+            "policy_version": "2026-04-20",
+            "mode": "canonical",
+            "kpi_eligible": True,
+            "non_canonical_reasons": [],
+            "canonical_contract": {},
+            "actual_run": {},
+        }
+        fixture_manifest = {
+            "fixture_git_commit": None,
+            "fixture_git_dirty": None,
+        }
+
+        guarded = mod._apply_fixture_provenance_guard(eval_policy, fixture_manifest)
+
+        self.assertEqual(guarded["mode"], "non_canonical")
+        self.assertFalse(guarded["kpi_eligible"])
+        self.assertIn(
+            "fixture_provenance:fixture_git_commit_missing",
+            guarded["non_canonical_reasons"],
+        )
+        self.assertIn(
+            "fixture_provenance:fixture_git_dirty_not_false:None",
+            guarded["non_canonical_reasons"],
+        )
 
     def test_main_persists_backend_artifacts(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -392,9 +456,19 @@ class TestEvalArtifacts(unittest.TestCase):
             self.assertEqual(persisted["requested_method"], "docling")
             self.assertEqual(persisted["summary"]["failed_documents"], 1)
             self.assertEqual(persisted["documents"][0]["ticker"], "QBE")
+            self.assertEqual(persisted["eval_policy"]["mode"], "non_canonical")
+            self.assertFalse(persisted["eval_policy"]["kpi_eligible"])
+            self.assertEqual(
+                persisted["run_metadata"]["eval_mode"],
+                "non_canonical",
+            )
+            self.assertFalse(persisted["run_metadata"]["kpi_eligible"])
 
             summary_json = results_json.with_name(
                 "extraction_real_eval_results_summary.json"
+            )
+            canonical_scorecard_json = results_json.with_name(
+                "extraction_real_eval_results_canonical_scorecard.json"
             )
             metrics_csv = results_json.with_name(
                 "extraction_real_eval_results_metrics.csv"
@@ -407,12 +481,18 @@ class TestEvalArtifacts(unittest.TestCase):
             )
 
             self.assertTrue(summary_json.exists())
+            self.assertTrue(canonical_scorecard_json.exists())
             self.assertTrue(metrics_csv.exists())
             self.assertTrue(documents_csv.exists())
             self.assertTrue(trust_triggers_csv.exists())
+            scorecard = json.loads(canonical_scorecard_json.read_text(encoding="utf-8"))
+            self.assertFalse(scorecard["kpi_eligible"])
+            self.assertIsNone(scorecard["canonical_kpi_summary"])
+            self.assertIsNotNone(scorecard["exploratory_summary"])
             report_text = report_path.read_text(encoding="utf-8")
             self.assertIn("# Extraction Real Eval Summary", report_text)
             self.assertIn("net_debt:missing", report_text)
+            self.assertIn("KPI eligible: no", report_text)
 
 
 if __name__ == "__main__":

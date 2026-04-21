@@ -1,0 +1,12 @@
+{
+  "document_id": "gre_q_2024-12-31",
+  "source_file": "data/asx/docs/GRE/financial_performance/2025-01-31_quarterly-activities-appendix-5b-cash-flow-report_05b2879e-cd73-4dc0-a587-590bcd619832.pdf",
+  "period_type": "Q",
+  "period_end": "2024-12-31",
+  "currency": "AUD",
+  "scale": "thousands",
+  "metrics": {
+    "operating_cash_flow": -450000
+  },
+  "expected_trust": "trusted"
+}

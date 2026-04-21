@@ -1,0 +1,14 @@
+{
+  "document_id": "bhp_a_2025-06-30",
+  "source_file": "data/asx/docs/BHP/financial_performance/2025-08-19_bhp-appendix-4e-and-2025-annual-report_60ba7318-bae4-4bb7-952b-ccd01b59e0d7.pdf",
+  "period_type": "A",
+  "period_end": "2025-06-30",
+  "currency": "USD",
+  "scale": "millions",
+  "metrics": {
+    "revenue": 51262000000,
+    "operating_cash_flow": 18692000000,
+    "net_debt": 12924000000
+  },
+  "expected_trust": "trusted"
+}

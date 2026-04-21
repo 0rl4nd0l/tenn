@@ -614,6 +614,78 @@ def test_real_gold_eval_policy_marks_docling_strict_run_canonical(
     assert result["fixture_manifest"]["fixture_git_dirty"] is False
 
 
+def test_real_gold_eval_policy_demotes_kpi_when_fixture_provenance_missing(
+    monkeypatch, tmp_path
+):
+    pdf_path = tmp_path / "sample.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+
+    gold_doc = main_app.RealGoldDocument(
+        document_id="doc_provenance_missing",
+        source_file="sample.pdf",
+        period_type="A",
+        period_end="2025-06-30",
+        currency="AUD",
+        scale="millions",
+        metrics={"revenue": 100.0},
+        expected_trust="trusted",
+    )
+
+    monkeypatch.setattr(main_app, "_load_real_gold_dataset", lambda _path: [gold_doc])
+    monkeypatch.setattr(
+        main_app, "_resolve_real_gold_source_path", lambda _path: pdf_path
+    )
+    monkeypatch.setattr(
+        main_app, "_persist_local_llm_api_key", lambda: "local-openai-key"
+    )
+    monkeypatch.setattr(
+        main_app,
+        "_build_real_gold_fixture_manifest",
+        lambda _path: {
+            "dataset_dir": str(main_app.REAL_GOLD_DATASET_DIR),
+            "fixture_file_count": 1,
+            "fixture_content_sha256": "fixture-hash",
+            "fixture_git_commit": None,
+            "fixture_git_dirty": None,
+        },
+    )
+    monkeypatch.setattr(
+        main_app,
+        "run_method_isolated_extraction",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            status="ok",
+            error=None,
+            payload={
+                "period_type": "A",
+                "period_end": "2025-06-30",
+                "currency": "AUD",
+                "scale": "millions",
+                "metrics": {"revenue": 100.0},
+                "_method_provenance": {
+                    "requested_method": "docling",
+                    "actual_method": "docling",
+                    "strict_method": True,
+                },
+            },
+        ),
+    )
+
+    result = main_app._run_real_gold_eval_sync(
+        main_app.RealGoldEvalRequest(method="docling", strict_method=True)
+    )
+
+    assert result["eval_policy"]["mode"] == "non_canonical"
+    assert result["eval_policy"]["kpi_eligible"] is False
+    assert (
+        "fixture_provenance:fixture_git_commit_missing"
+        in result["eval_policy"]["non_canonical_reasons"]
+    )
+    assert (
+        "fixture_provenance:fixture_git_dirty_not_false:None"
+        in result["eval_policy"]["non_canonical_reasons"]
+    )
+
+
 def test_real_gold_eval_endpoint_attaches_backend_review_session_for_flagged_metrics(
     monkeypatch, tmp_path
 ):

@@ -1,0 +1,14 @@
+{
+  "document_id": "rio_a_2023-12-31",
+  "source_file": "data/asx/docs/RIO/2024-02-21_rio-tinto-2023-full-year-results_42d723b9-9586-43b4-9601-792c05e3ad09.pdf",
+  "period_type": "A",
+  "period_end": "2023-12-31",
+  "currency": "USD",
+  "scale": "millions",
+  "metrics": {
+    "revenue": 54041000000,
+    "operating_cash_flow": 15160000000,
+    "net_debt": 4231000000
+  },
+  "expected_trust": "trusted"
+}

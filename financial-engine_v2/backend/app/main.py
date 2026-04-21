@@ -1,4 +1,5 @@
 import errno
+import hashlib
 import json
 import logging
 import os
@@ -119,6 +120,11 @@ REAL_GOLD_METRIC_KEY_MAP = {
 }
 REAL_GOLD_CONTEXT_FIELDS = ("period_type", "period_end", "currency", "scale")
 DEFAULT_LOCAL_LLAMACPP_API_KEY = "local-openai-key"
+REAL_GOLD_EVAL_POLICY_VERSION = "2026-04-20"
+REAL_GOLD_CANONICAL_METHOD = "docling"
+REAL_GOLD_CANONICAL_STRICT_METHOD = True
+REAL_GOLD_CANONICAL_LIMIT = 0
+REAL_GOLD_CANONICAL_TOLERANCE = 0.01
 
 
 @dataclass(frozen=True)
@@ -146,6 +152,166 @@ class RealGoldEvalRequest(BaseModel):
     # (e.g. "qwen2.5-14b-instruct" vs "qwen3-30b-a3b-instruct"). When None,
     # the configured extraction default is used.
     model_override: str | None = None
+
+
+def _normalize_optional_text(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _canonical_real_gold_contract(dataset_dir: Path) -> dict[str, Any]:
+    return {
+        "dataset_dir": str(dataset_dir.resolve()),
+        "method": REAL_GOLD_CANONICAL_METHOD,
+        "strict_method": REAL_GOLD_CANONICAL_STRICT_METHOD,
+        "limit": REAL_GOLD_CANONICAL_LIMIT,
+        "tolerance": REAL_GOLD_CANONICAL_TOLERANCE,
+        "prompt_variant_id": None,
+        "model_override": None,
+    }
+
+
+def _build_real_gold_eval_policy(
+    body: RealGoldEvalRequest,
+    *,
+    method: str,
+    dataset_dir: Path,
+) -> dict[str, Any]:
+    canonical_contract = _canonical_real_gold_contract(dataset_dir)
+    actual_run = {
+        "dataset_dir": str(dataset_dir.resolve()),
+        "method": method,
+        "strict_method": bool(body.strict_method),
+        "limit": max(int(body.limit), 0),
+        "tolerance": round(max(float(body.tolerance), 0.0), 8),
+        "prompt_variant_id": _normalize_optional_text(body.prompt_variant_id),
+        "model_override": _normalize_optional_text(body.model_override),
+    }
+    non_canonical_reasons: list[str] = []
+    for key in (
+        "dataset_dir",
+        "method",
+        "strict_method",
+        "limit",
+        "tolerance",
+        "prompt_variant_id",
+        "model_override",
+    ):
+        if actual_run[key] != canonical_contract[key]:
+            non_canonical_reasons.append(
+                f"{key}:expected={canonical_contract[key]!r},actual={actual_run[key]!r}"
+            )
+
+    mode = "canonical" if not non_canonical_reasons else "non_canonical"
+    return {
+        "policy_version": REAL_GOLD_EVAL_POLICY_VERSION,
+        "mode": mode,
+        "kpi_eligible": mode == "canonical",
+        "non_canonical_reasons": non_canonical_reasons,
+        "canonical_contract": canonical_contract,
+        "actual_run": actual_run,
+    }
+
+
+def _fixture_provenance_non_canonical_reasons(
+    fixture_manifest: dict[str, Any],
+) -> list[str]:
+    reasons: list[str] = []
+    fixture_commit = str(fixture_manifest.get("fixture_git_commit") or "").strip()
+    if not fixture_commit:
+        reasons.append("fixture_provenance:fixture_git_commit_missing")
+    fixture_dirty = fixture_manifest.get("fixture_git_dirty")
+    if fixture_dirty is not False:
+        reasons.append(
+            "fixture_provenance:fixture_git_dirty_not_false:"
+            f"{fixture_dirty!r}"
+        )
+    return reasons
+
+
+def _apply_real_gold_fixture_provenance_guard(
+    eval_policy: dict[str, Any],
+    fixture_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    merged = dict(eval_policy)
+    reasons = list(merged.get("non_canonical_reasons") or [])
+    for reason in _fixture_provenance_non_canonical_reasons(fixture_manifest):
+        if reason not in reasons:
+            reasons.append(reason)
+    if reasons:
+        merged["mode"] = "non_canonical"
+        merged["kpi_eligible"] = False
+    merged["non_canonical_reasons"] = reasons
+    return merged
+
+
+def _compute_fixture_content_sha256(dataset_dir: Path) -> str:
+    digest = hashlib.sha256()
+    files = sorted(path for path in dataset_dir.glob("*.json") if path.is_file())
+    for path in files:
+        digest.update(path.name.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def _resolve_fixture_git_commit(dataset_dir: Path) -> str | None:
+    try:
+        rel_path = dataset_dir.resolve().relative_to(PROJECT_ROOT.resolve())
+    except ValueError:
+        return None
+
+    try:
+        proc = subprocess.run(
+            ["git", "log", "-n", "1", "--format=%H", "--", str(rel_path)],
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=3,
+            check=False,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode != 0:
+        return None
+    commit = proc.stdout.strip()
+    return commit or None
+
+
+def _resolve_fixture_git_dirty(dataset_dir: Path) -> bool | None:
+    try:
+        rel_path = dataset_dir.resolve().relative_to(PROJECT_ROOT.resolve())
+    except ValueError:
+        return None
+
+    try:
+        proc = subprocess.run(
+            ["git", "status", "--porcelain", "--", str(rel_path)],
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=3,
+            check=False,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode != 0:
+        return None
+    return bool(proc.stdout.strip())
+
+
+def _build_real_gold_fixture_manifest(dataset_dir: Path) -> dict[str, Any]:
+    files = sorted(path for path in dataset_dir.glob("*.json") if path.is_file())
+    return {
+        "dataset_dir": str(dataset_dir.resolve()),
+        "fixture_file_count": len(files),
+        "fixture_content_sha256": _compute_fixture_content_sha256(dataset_dir),
+        "fixture_git_commit": _resolve_fixture_git_commit(dataset_dir),
+        "fixture_git_dirty": _resolve_fixture_git_dirty(dataset_dir),
+    }
 
 
 def _discover_local_llamacpp_api_key() -> str:
@@ -572,6 +738,16 @@ def _summarize_real_gold_results(results: list[dict[str, Any]]) -> dict[str, Any
 def _run_real_gold_eval_sync(body: RealGoldEvalRequest) -> dict[str, Any]:
     try:
         method = normalize_extraction_method(body.method)
+        fixture_manifest = _build_real_gold_fixture_manifest(REAL_GOLD_DATASET_DIR)
+        eval_policy = _build_real_gold_eval_policy(
+            body,
+            method=method,
+            dataset_dir=REAL_GOLD_DATASET_DIR,
+        )
+        eval_policy = _apply_real_gold_fixture_provenance_guard(
+            eval_policy,
+            fixture_manifest,
+        )
         gold_docs = _load_real_gold_dataset(REAL_GOLD_DATASET_DIR)
         if body.limit > 0:
             gold_docs = gold_docs[: body.limit]
@@ -593,6 +769,8 @@ def _run_real_gold_eval_sync(body: RealGoldEvalRequest) -> dict[str, Any]:
             "strict_method": body.strict_method,
             "prompt_variant_id": body.prompt_variant_id,
             "model_override": body.model_override,
+            "eval_policy": eval_policy,
+            "fixture_manifest": fixture_manifest,
             "summary": _summarize_real_gold_results(results),
             "documents": results,
         }
@@ -1773,6 +1951,14 @@ def startup():
     _log_redis_startup_status()
     _validate_qdrant_on_startup()
     _log_architecture_runtime_assertion()
+
+
+@app.on_event("shutdown")
+def shutdown():
+    if bool(getattr(settings, "enable_session_memory", True)):
+        from app.services.session_memory import _shutdown
+
+        _shutdown()
 
 
 def _init_ops_tracker() -> None:

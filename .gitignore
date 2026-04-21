@@ -70,6 +70,7 @@ financial-engine_v2/data/*
 !financial-engine_v2/data/extraction_gold_real/
 financial-engine_v2/data/extraction_gold_real/*
 !financial-engine_v2/data/extraction_gold_real/README.md
+!financial-engine_v2/data/extraction_gold_real/*.json
 reports/*
 !reports/daily_marketindex_action_report.json
 !reports/pdf_download_report.json

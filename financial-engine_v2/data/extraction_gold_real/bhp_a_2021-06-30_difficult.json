@@ -1,0 +1,14 @@
+{
+  "document_id": "bhp_a_2021-06-30_difficult",
+  "source_file": "data/asx/docs/BHP/financial_performance/2021-08-17_preliminary-final-report_37ba70c7-2724-4142-83a9-b55106f78907.pdf",
+  "period_type": "A",
+  "period_end": "2021-06-30",
+  "currency": "USD",
+  "scale": "millions",
+  "metrics": {
+    "revenue": 60817000000,
+    "operating_cash_flow": 27234000000,
+    "net_debt": null
+  },
+  "expected_trust": "trusted"
+}

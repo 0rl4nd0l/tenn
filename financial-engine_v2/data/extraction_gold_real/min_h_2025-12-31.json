@@ -1,0 +1,14 @@
+{
+  "document_id": "min_h_2025-12-31",
+  "source_file": "data/asx/docs/MIN/financial_performance/2026-02-20_fy26-half-year-financial-report-and-appendix-4d_47d18a8c-280f-4672-82fb-a07648e1a4fb.pdf",
+  "period_type": "H",
+  "period_end": "2025-12-31",
+  "currency": "AUD",
+  "scale": "millions",
+  "metrics": {
+    "revenue": 3052000000,
+    "operating_cash_flow": 880000000,
+    "net_debt": null
+  },
+  "expected_trust": "trusted"
+}

@@ -1,0 +1,14 @@
+{
+  "document_id": "qbe_h_2025-06-30",
+  "source_file": "data/asx/docs/QBE/financial_performance/2025-08-08_2025-half-year-results-and-financial-statements_e7387eb3-3667-4148-82a0-e86cd9975440.pdf",
+  "period_type": "H",
+  "period_end": "2025-06-30",
+  "currency": "USD",
+  "scale": "millions",
+  "metrics": {
+    "revenue": 10875000000,
+    "operating_cash_flow": 1756000000,
+    "net_debt": 1555000000
+  },
+  "expected_trust": "trusted"
+}
