@@ -4888,6 +4888,102 @@ class ChatController:
         "verification": ResponseMode.VERIFICATION,
     }
 
+    def _run_marketplace_chat_mode(
+        self,
+        message: str,
+        *,
+        force_backend: str | None,
+        on_chunk,
+        on_status,
+        attached_bundle: _AttachedSourceBundle | None = None,
+    ) -> ChatResponse:
+        """Run Marketplace assistant turns without the ASX/ticker short-circuits.
+
+        The Marketplace UI already constructs a strict instruction packet. This
+        mode treats that packet as authoritative and routes it straight through
+        the chat backend instead of letting ticker heuristics reinterpret it as
+        an ASX finance query.
+        """
+
+        if on_status is not None:
+            on_status("Marketplace assistant mode")
+
+        system_instruction = (
+            "You are Tenn in Marketplace assistant mode.\n"
+            "- Treat the user message as an application instruction packet for Marketplace mission drafting.\n"
+            "- Do not interpret uppercase words as ASX tickers, company identifiers, or command aliases.\n"
+            "- Do not trigger finance/news/announcement/backfill workflows unless the user explicitly requests those workflows.\n"
+            "- If the user message requests strict JSON only, return strict JSON only.\n"
+            "- Return plain text otherwise.\n"
+        )
+
+        user_message = message
+        if attached_bundle is not None and attached_bundle.context.strip():
+            user_message = f"{user_message}\n\n{attached_bundle.context.strip()}"
+
+        prior_messages = [{"role": "system", "content": system_instruction}]
+        prompt_fallback = f"{system_instruction}\n\n{user_message}"
+
+        answer: str
+        routing_metadata: dict[str, Any] | None = None
+        if self._hybrid_router is not None:
+            answer = self._hybrid_router.chat(
+                user_message,
+                timeout=self.llm_timeout_seconds,
+                on_chunk=on_chunk,
+                prior_messages=prior_messages,
+                force_backend=force_backend,
+                on_status=on_status,
+            )
+            last_attempt = self._hybrid_router.last_attempt_metadata()
+            if last_attempt:
+                routing_metadata = dict(last_attempt)
+                routing_metadata["total_session_cost_usd"] = self._hybrid_router.total_cost_usd()
+        elif on_chunk is not None:
+            try:
+                answer = self.ollama_client.chat(
+                    user_message,
+                    timeout=self.llm_timeout_seconds,
+                    on_chunk=on_chunk,
+                    prior_messages=prior_messages,
+                )
+            except TypeError as exc:
+                if "on_chunk" not in str(exc) and "prior_messages" not in str(exc):
+                    raise
+                logger.info("marketplace ollama_client.chat fallback (unsupported kwarg): %s", exc)
+                answer = self.ollama_client.chat(
+                    prompt_fallback,
+                    timeout=self.llm_timeout_seconds,
+                )
+        else:
+            try:
+                answer = self.ollama_client.chat(
+                    user_message,
+                    timeout=self.llm_timeout_seconds,
+                    prior_messages=prior_messages,
+                )
+            except TypeError as exc:
+                if "prior_messages" not in str(exc):
+                    raise
+                logger.info(
+                    "marketplace ollama_client.chat fallback (no prior_messages support): %s",
+                    exc,
+                )
+                answer = self.ollama_client.chat(
+                    prompt_fallback,
+                    timeout=self.llm_timeout_seconds,
+                )
+
+        evidence = list(attached_bundle.evidence) if attached_bundle is not None else []
+        self._record_answer_side_effects(query=message, answer=answer.strip(), ticker=None)
+        self._set_latest_sources_payloads(evidence)
+        return ChatResponse(
+            text=answer.strip(),
+            evidence=evidence,
+            mode=ResponseMode.FAST,
+            routing_metadata=routing_metadata,
+        )
+
     def build_chat_response(
         self,
         message: str,
@@ -4917,6 +5013,15 @@ class ChatController:
         effective_message = rewritten_confirmation or message
         forced_backend, effective_message = parse_backend_prefix(effective_message)
         attached_bundle = _build_attached_source_bundle(attached_sources)
+
+        if ui_mode == "marketplace":
+            return self._run_marketplace_chat_mode(
+                effective_message,
+                force_backend=forced_backend,
+                on_chunk=on_chunk,
+                on_status=on_status,
+                attached_bundle=attached_bundle,
+            )
 
         # --- Greeting short-circuit: don't invoke the full analyst pipeline ---
         if self._GREETING_RE.match(effective_message):

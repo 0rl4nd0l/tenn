@@ -19,6 +19,7 @@ describe('marketplace-assistant helpers', () => {
     expect(resolveMarketplaceAssistantRoutePrefix('anthropic', 'model:any')).toBe('/cloud')
     expect(resolveMarketplaceAssistantRoutePrefix('unknown', 'claude-3-7-sonnet')).toBe('/cloud')
     expect(resolveMarketplaceAssistantRoutePrefix('local', 'claude-3-7-sonnet')).toBe('/local')
+    expect(resolveMarketplaceAssistantRoutePrefix('unknown', 'model:qwen-test', true)).toBe('/cloud')
   })
 
   it('merges a structured assistant delta and preserves the saved home location', () => {
@@ -108,6 +109,7 @@ describe('marketplace-assistant helpers', () => {
       ],
       model: 'model:qwen-test',
       activeSource: 'local',
+      apiDefaultEnabled: false,
       webSearchEnabled: true,
       sessionId: 'session-1',
       userMessage:
@@ -154,6 +156,7 @@ describe('marketplace-assistant helpers', () => {
         ],
         model: 'model:qwen-test',
         activeSource: 'local',
+        apiDefaultEnabled: false,
         webSearchEnabled: true,
         sessionId: 'session-1',
         userMessage: 'Find a used RTX 3090 in Victoria.',

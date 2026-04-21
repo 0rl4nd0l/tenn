@@ -31,6 +31,50 @@ class ChatTickerDetectionTests(unittest.TestCase):
             self.controller._detect_ticker("can you help with this", prior_ticker=None)
         )
 
+    def test_marketplace_ui_mode_bypasses_ticker_backfill_shortcuts(self) -> None:
+        self.controller.ollama_client.chat.return_value = (
+            '{"assistant_message":"What budget do you have?","draft":{},'
+            '"missing_fields":["budget"],"ready_to_create":false,'
+            '"suggested_action":"ask_followup"}'
+        )
+
+        response = self.controller.build_chat_response(
+            "JSON",
+            ui_mode="marketplace",
+        )
+
+        self.assertEqual(response.mode, ResponseMode.FAST)
+        self.assertIsNone(response.action_preview)
+        self.assertIn("What budget do you have?", response.text)
+        self.controller.ollama_client.chat.assert_called_once()
+
+    def test_marketplace_ui_mode_uses_hybrid_router_when_available(self) -> None:
+        hybrid_router = MagicMock()
+        hybrid_router.chat.return_value = (
+            '{"assistant_message":"Need budget.","draft":{},'
+            '"missing_fields":["budget"],"ready_to_create":false,'
+            '"suggested_action":"ask_followup"}'
+        )
+        hybrid_router.last_attempt_metadata.return_value = {
+            "source": "api",
+            "model": "claude-test",
+            "latency_ms": 123,
+            "cost_usd": 0.01,
+            "routing_reason": "force:api",
+        }
+        hybrid_router.total_cost_usd.return_value = 0.01
+        self.controller._hybrid_router = hybrid_router
+
+        response = self.controller.build_chat_response(
+            "/cloud find a used GPU in Victoria",
+            ui_mode="marketplace",
+        )
+
+        self.assertEqual(response.text, '{"assistant_message":"Need budget.","draft":{},"missing_fields":["budget"],"ready_to_create":false,"suggested_action":"ask_followup"}')
+        self.assertEqual(response.routing_metadata["source"], "api")
+        hybrid_router.chat.assert_called_once()
+        self.controller.ollama_client.chat.assert_not_called()
+
     def test_detect_ticker_accepts_cued_lowercase_ticker(self) -> None:
         self.assertEqual(
             self.controller._detect_ticker("tell me about csl", prior_ticker=None),

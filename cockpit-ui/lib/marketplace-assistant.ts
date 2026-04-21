@@ -94,6 +94,7 @@ interface SendMarketplaceAssistantTurnParams {
   messages: MarketplaceAssistantTranscriptMessage[]
   model: string
   activeSource: 'local' | 'anthropic' | 'unknown'
+  apiDefaultEnabled: boolean
   webSearchEnabled: boolean
   sessionId: string
   userMessage: string
@@ -463,7 +464,9 @@ function parseAssistantPayload(answer: string): {
 function buildRoutePrefix(
   activeSource: 'local' | 'anthropic' | 'unknown',
   model: string,
+  apiDefaultEnabled = false,
 ): '/local' | '/cloud' {
+  if (apiDefaultEnabled) return '/cloud'
   if (activeSource === 'anthropic') return '/cloud'
   if (activeSource === 'local') return '/local'
   return /claude|anthropic/i.test(model) ? '/cloud' : '/local'
@@ -796,7 +799,11 @@ export function createTranscriptMessage(
 export async function sendMarketplaceAssistantTurn(
   params: SendMarketplaceAssistantTurnParams,
 ): Promise<MarketplaceAssistantPayload> {
-  const routePrefix = buildRoutePrefix(params.activeSource, params.model)
+  const routePrefix = buildRoutePrefix(
+    params.activeSource,
+    params.model,
+    params.apiDefaultEnabled,
+  )
   const prompt = buildPrompt({
     browserHealth: params.browserHealth,
     draft: params.draft,
@@ -810,7 +817,7 @@ export async function sendMarketplaceAssistantTurn(
     headers: buildHeaders(params.apiKey),
     body: JSON.stringify({
       message: `${routePrefix} ${prompt}`,
-      mode: 'analysis',
+      mode: 'marketplace',
       session_id: params.sessionId,
       model: params.model || undefined,
       web_search: params.webSearchEnabled,
@@ -882,6 +889,7 @@ export async function sendMarketplaceAssistantTurn(
 export function resolveMarketplaceAssistantRoutePrefix(
   activeSource: 'local' | 'anthropic' | 'unknown',
   model: string,
+  apiDefaultEnabled = false,
 ): '/local' | '/cloud' {
-  return buildRoutePrefix(activeSource, model)
+  return buildRoutePrefix(activeSource, model, apiDefaultEnabled)
 }

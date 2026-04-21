@@ -18,6 +18,7 @@ import {
   getMarketplaceAssistantSessionId,
   mapMarketplaceDraftToMissionPayload,
   mergeMarketplaceMissionDraft,
+  resolveMarketplaceAssistantRoutePrefix,
   sendMarketplaceAssistantTurn,
   type MarketplaceMissionDraft,
   type MarketplaceAssistantTranscriptMessage,
@@ -104,8 +105,13 @@ export function MarketplaceAssistant({
   onMarketplaceStateChange,
   onScanQueued,
 }: MarketplaceAssistantProps) {
-  const { chatModel, activeSource, preferences } = useCockpitStore()
+  const { chatModel, activeSource, apiDefaultEnabled, preferences } = useCockpitStore()
   const homeLocation = preferences.marketplaceHomeLocation.trim()
+  const effectiveRoute = resolveMarketplaceAssistantRoutePrefix(
+    activeSource,
+    chatModel,
+    apiDefaultEnabled,
+  )
   const [draft, setDraft] = useState<MarketplaceMissionDraft>(() => createMarketplaceMissionDraft(homeLocation))
   const [messages, setMessages] = useState<MarketplaceAssistantTranscriptMessage[]>(() =>
     createInitialMessages(homeLocation),
@@ -161,6 +167,7 @@ export function MarketplaceAssistant({
         messages: nextMessages,
         model: chatModel,
         activeSource,
+        apiDefaultEnabled,
         webSearchEnabled: preferences.webSearchEnabled,
         sessionId,
         userMessage,
@@ -286,7 +293,7 @@ export function MarketplaceAssistant({
             {homeLocation || 'No home location saved'}
           </Badge>
           <Badge variant="outline">Browser: {browserHealth?.status || 'unknown'}</Badge>
-          <Badge variant="outline">Route: {activeSource}</Badge>
+          <Badge variant="outline">Route: {effectiveRoute === '/cloud' ? 'cloud' : 'local'}</Badge>
         </div>
 
         {(requestError || notice) && (

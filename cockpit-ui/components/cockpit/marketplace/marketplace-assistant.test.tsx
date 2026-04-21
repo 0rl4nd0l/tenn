@@ -13,6 +13,7 @@ describe('MarketplaceAssistant', () => {
     useCockpitStore.setState((state) => ({
       ...state,
       activeSource: 'local',
+      apiDefaultEnabled: false,
       chatModel: 'model:qwen-test',
       preferences: {
         ...state.preferences,
@@ -108,6 +109,7 @@ describe('MarketplaceAssistant', () => {
       expect.objectContaining({
         session_id: expect.any(String),
         model: 'model:qwen-test',
+        mode: 'marketplace',
         web_search: true,
         rag: false,
         db_diagnostics: false,
