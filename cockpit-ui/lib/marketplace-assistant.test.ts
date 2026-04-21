@@ -1,13 +1,20 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  buildMarketplaceAssistantGreeting,
+  createTranscriptMessage,
   createMarketplaceMissionDraft,
   mapMarketplaceDraftToMissionPayload,
   mergeMarketplaceMissionDraft,
   resolveMarketplaceAssistantRoutePrefix,
+  sendMarketplaceAssistantTurn,
 } from './marketplace-assistant'
 
 describe('marketplace-assistant helpers', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('defaults the route prefix to cloud for anthropic activity or claude models', () => {
     expect(resolveMarketplaceAssistantRoutePrefix('anthropic', 'model:any')).toBe('/cloud')
     expect(resolveMarketplaceAssistantRoutePrefix('unknown', 'claude-3-7-sonnet')).toBe('/cloud')
@@ -69,6 +76,54 @@ describe('marketplace-assistant helpers', () => {
         scan_config: {
           aggressive_alerting: false,
         },
+      }),
+    )
+  })
+
+  it('falls back to local parsing when the model returns a web-access error instead of JSON', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        content: {
+          answer: 'Web access is required to fetch that URL. Enable web and try again.',
+          model: 'model:qwen-test',
+          source: 'local',
+        },
+      }),
+    })
+
+    vi.stubGlobal('fetch', fetchMock)
+
+    const response = await sendMarketplaceAssistantTurn({
+      apiKey: '',
+      browserHealth: null,
+      draft: createMarketplaceMissionDraft('Melbourne'),
+      homeLocation: 'Melbourne',
+      messages: [
+        createTranscriptMessage('assistant', buildMarketplaceAssistantGreeting('Melbourne')),
+        createTranscriptMessage(
+          'user',
+          'I want to buy a GPU that is good for our system, ideally 24GB of VRAM. Eaglemont/Victoriua is the location.',
+        ),
+      ],
+      model: 'model:qwen-test',
+      activeSource: 'local',
+      sessionId: 'session-1',
+      userMessage:
+        'I want to buy a GPU that is good for our system, ideally 24GB of VRAM. Eaglemont/Victoriua is the location.',
+    })
+
+    expect(response.assistantMessage).not.toContain('Web access is required')
+    expect(response.assistantMessage).toContain('Eaglemont, Victoriua')
+    expect(response.assistantMessage).toMatch(/budget/i)
+    expect(response.readyToCreate).toBe(true)
+    expect(response.suggestedAction).toBe('confirm_create')
+    expect(response.draftDelta.name).toBe('24GB GPU for local inference')
+    expect(response.draftDelta.brief).toContain('Eaglemont, Victoriua')
+    expect(response.draftDelta.hardFilters).toEqual(
+      expect.objectContaining({
+        locationNames: ['Eaglemont, Victoriua'],
+        includeKeywords: expect.arrayContaining(['GPU', '24GB VRAM']),
       }),
     )
   })

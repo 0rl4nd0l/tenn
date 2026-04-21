@@ -149,6 +149,210 @@ function normalizeSuggestedAction(value: unknown): MarketplaceAssistantSuggested
   return 'ask_followup'
 }
 
+function titleCaseWords(value: string): string {
+  return value.replace(/\b([a-z])([a-z]*)\b/gi, (_match, first: string, rest: string) => {
+    return `${first.toUpperCase()}${rest.toLowerCase()}`
+  })
+}
+
+function normalizeLocationLabel(value: string): string {
+  return titleCaseWords(
+    value
+      .replace(/[\\/|]+/g, ', ')
+      .replace(/\s*,\s*/g, ', ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/^[,.\- ]+|[,.\- ]+$/g, ''),
+  )
+}
+
+function parseBudgetCap(text: string): number | null {
+  const patterns = [
+    /\bunder\s*\$?\s*(\d[\d,]*(?:\.\d+)?)\b/i,
+    /\bup to\s*\$?\s*(\d[\d,]*(?:\.\d+)?)\b/i,
+    /\bmax(?:imum)?\s*(?:budget|price)?\s*\$?\s*(\d[\d,]*(?:\.\d+)?)\b/i,
+    /\bbudget(?:\s+is|\s+of)?\s*\$?\s*(\d[\d,]*(?:\.\d+)?)\b/i,
+  ]
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern)
+    const candidate = match?.[1]?.replace(/,/g, '')
+    if (!candidate) continue
+    const parsed = Number(candidate)
+    if (Number.isFinite(parsed)) {
+      return parsed
+    }
+  }
+
+  return null
+}
+
+function parsePreferredVramGb(text: string): number | null {
+  const match = text.match(/\b(?:ideally|at least|minimum|with)?\s*(\d{1,2})\s*gb(?:\s+of)?\s*vram\b/i)
+    ?? text.match(/\b(\d{1,2})\s*gb\b/i)
+  const candidate = match?.[1]
+  if (!candidate) return null
+  const parsed = Number(candidate)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function parseExplicitLocation(text: string): string[] {
+  const patterns = [
+    /\blocation\s+(?:is|should be|to use is)\s+(.+)$/i,
+    /(?:^|[.!?]\s*|,\s*)([a-z][a-z\s,\/-]{2,})\s+is\s+the\s+location\b/i,
+    /\buse\s+(.+?)\s+for\s+the\s+search\b/i,
+  ]
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern)
+    const candidate = cleanText(match?.[1])
+    if (!candidate) continue
+    const normalized = normalizeLocationLabel(candidate)
+    return normalized ? [normalized] : []
+  }
+
+  return []
+}
+
+function parseGpuModelKeywords(text: string): string[] {
+  const patterns = [
+    /\b(?:rtx|gtx)\s*\d{3,4}(?:\s*ti)?\b/gi,
+    /\b(?:rtx\s*a\d{3,4}|a\d{3,4})\b/gi,
+  ]
+  const matches: string[] = []
+  for (const pattern of patterns) {
+    for (const match of text.matchAll(pattern)) {
+      matches.push(cleanText(match[0]).replace(/\s+/g, ' ').toUpperCase())
+    }
+  }
+  return normalizeStringList(matches)
+}
+
+function inferMarketplaceDraftDeltaFromUserMessage(
+  userMessage: string,
+  currentDraft: MarketplaceMissionDraft,
+  homeLocation: string,
+): MarketplaceMissionDraftDelta {
+  const text = cleanText(userMessage)
+  if (!text) return {}
+
+  const normalized = text.replace(/\s+/g, ' ')
+  const lower = normalized.toLowerCase()
+  const wantsGpu = /\b(gpu|graphics card|video card|rtx|gtx|nvidia)\b/i.test(normalized)
+  const preferredVramGb = parsePreferredVramGb(normalized)
+  const explicitLocations = parseExplicitLocation(normalized)
+  const modelKeywords = parseGpuModelKeywords(normalized)
+  const includeKeywords = normalizeStringList([
+    ...currentDraft.hardFilters.includeKeywords,
+    ...(wantsGpu ? ['GPU'] : []),
+    ...modelKeywords,
+    ...(preferredVramGb != null ? [`${preferredVramGb}GB VRAM`] : []),
+  ])
+  const priceMax = parseBudgetCap(normalized) ?? currentDraft.hardFilters.priceMax
+  const locationNames = explicitLocations.length > 0
+    ? explicitLocations
+    : currentDraft.hardFilters.locationNames.length > 0
+      ? currentDraft.hardFilters.locationNames
+      : cleanText(homeLocation)
+        ? [cleanText(homeLocation)]
+        : []
+
+  const delta: MarketplaceMissionDraftDelta = {}
+
+  if (!cleanText(currentDraft.name)) {
+    if (modelKeywords.length === 1) {
+      delta.name = `${modelKeywords[0]} hunt`
+    } else if (wantsGpu && preferredVramGb != null) {
+      delta.name = `${preferredVramGb}GB GPU for local inference`
+    } else if (wantsGpu) {
+      delta.name = 'GPU hunt'
+    }
+  }
+
+  if (!cleanText(currentDraft.brief) && wantsGpu) {
+    const budgetText = priceMax != null ? ` under $${priceMax}` : ''
+    const locationText = locationNames.length > 0 ? ` around ${locationNames.join(', ')}` : ''
+    const vramText = preferredVramGb != null ? ` with ideally ${preferredVramGb}GB VRAM` : ''
+    delta.brief = `Find a used GPU suitable for the Tenn local workstation${budgetText}${locationText}${vramText}.`
+  }
+
+  const hardFilters: NonNullable<MarketplaceMissionDraftDelta['hardFilters']> = {}
+  if (includeKeywords.length > 0) {
+    hardFilters.includeKeywords = includeKeywords
+  }
+  if (locationNames.length > 0) {
+    hardFilters.locationNames = locationNames
+  }
+  if (priceMax != null) {
+    hardFilters.priceMax = priceMax
+  }
+  if (Object.keys(hardFilters).length > 0) {
+    delta.hardFilters = hardFilters
+  }
+
+  if (wantsGpu) {
+    const niceToHaveTerms = normalizeStringList([
+      ...currentDraft.softPreferences.niceToHaveTerms,
+      ...(preferredVramGb != null ? [`${preferredVramGb}GB VRAM preferred`] : []),
+      ...(lower.includes('good for our system') || lower.includes('good for the system')
+        ? ['suitable for local inference workstation']
+        : []),
+    ])
+    if (niceToHaveTerms.length > 0) {
+      delta.softPreferences = {
+        ...(delta.softPreferences ?? {}),
+        niceToHaveTerms,
+      }
+    }
+  }
+
+  return delta
+}
+
+function looksLikeMarketplaceAssistantToolError(answer: string): boolean {
+  const normalized = cleanText(answer).toLowerCase()
+  if (!normalized) return false
+  return (
+    normalized.includes('web access is required') ||
+    normalized.includes('enable web and try again') ||
+    normalized.includes('fetch that url') ||
+    normalized.includes('cannot access that url') ||
+    normalized.includes('can’t access that url') ||
+    normalized.includes('need web access') ||
+    normalized.includes('need browsing')
+  )
+}
+
+function buildMarketplaceAssistantFallbackReply(
+  draft: MarketplaceMissionDraft,
+): string {
+  const questions: string[] = []
+  const locations = draft.hardFilters.locationNames
+  const hasExplicitGpuTarget = draft.hardFilters.includeKeywords.some((keyword) => {
+    return /\b(?:rtx|gtx|a\d{3,4}|\d{1,2}gb vram)\b/i.test(keyword)
+  })
+  const preferredVram = draft.hardFilters.includeKeywords.find((keyword) => /\b\d{1,2}gb vram\b/i.test(keyword))
+
+  if (draft.hardFilters.priceMax == null) {
+    questions.push("What's your hard max budget?")
+  }
+  if (preferredVram) {
+    questions.push(`Should I keep the hunt strict to ${preferredVram}, or include strong 16GB cards as backups?`)
+  } else if (!hasExplicitGpuTarget) {
+    questions.push('Do you want me to target specific GPU models, or keep it broad and optimise for VRAM per dollar?')
+  }
+
+  const intro = locations.length > 0
+    ? `I’ll use ${locations.join(', ')} for the search.`
+    : 'I can draft the mission now.'
+
+  if (questions.length === 0) {
+    return `${intro} I can turn that into a mission now, or tighten it further if you give me a budget cap and any model preferences.`
+  }
+
+  return `${intro} ${questions.slice(0, 2).join(' ')}`
+}
+
 function parseAssistantJson(answer: string): Record<string, unknown> | null {
   const trimmed = answer.trim()
   if (!trimmed) return null
@@ -630,7 +834,36 @@ export async function sendMarketplaceAssistantTurn(
 
   const raw = (await response.json()) as MarketplaceAssistantApiRawResponse
   const normalized = normalizeChatAnswer(raw)
+  const heuristicDraftDelta = inferMarketplaceDraftDeltaFromUserMessage(
+    params.userMessage,
+    params.draft,
+    params.homeLocation,
+  )
   const parsed = parseAssistantPayload(normalized.answer)
+  const shouldUseHeuristicFallback = (
+    Object.keys(heuristicDraftDelta).length > 0
+    && (
+      !parseAssistantJson(normalized.answer)
+      || looksLikeMarketplaceAssistantToolError(normalized.answer)
+    )
+  )
+
+  if (shouldUseHeuristicFallback) {
+    const nextDraft = mergeMarketplaceMissionDraft(params.draft, heuristicDraftDelta, {
+      homeLocation: params.homeLocation,
+    })
+    const evaluated = evaluateMarketplaceMissionDraft(nextDraft)
+    return {
+      assistantMessage: buildMarketplaceAssistantFallbackReply(nextDraft),
+      draftDelta: heuristicDraftDelta,
+      missingFields: evaluated.missingFields,
+      readyToCreate: evaluated.readyToCreate,
+      suggestedAction: evaluated.readyToCreate ? 'confirm_create' : 'ask_followup',
+      rawAnswer: normalized.answer,
+      source: normalized.source,
+      model: normalized.model,
+    }
+  }
 
   return {
     ...parsed,
