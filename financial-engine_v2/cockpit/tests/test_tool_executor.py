@@ -157,3 +157,75 @@ class TestBuildUiSourcesSearchNewsRegression:
             "Agent-loop search_news evidence must produce at least one source item"
         )
         assert any(s.get("url") == "http://example.com/bhp-profit" for s in sources)
+
+
+class TestSearchNewsIntentRouting:
+    def test_exec_search_news_ticker_prompt_infers_ticker(self) -> None:
+        executor = _make_executor()
+        executor._router.get_news_context.return_value = {
+            "ok": True,
+            "hits": [
+                {
+                    "title": "BHP update",
+                    "published_at": _days_ago_iso(0),
+                    "url": "http://example.com/bhp",
+                    "ticker": "BHP",
+                }
+            ],
+        }
+
+        result = executor.execute("search_news", {"query": "latest BHP news"})
+
+        call = executor._router.get_news_context.call_args
+        assert call is not None
+        assert call.kwargs["ticker"] == "BHP"
+        assert result["ticker"] == "BHP"
+        assert result["hit_count"] == 1
+
+    def test_exec_search_news_market_wide_suppresses_ticker_inference(self) -> None:
+        executor = _make_executor()
+        executor._current_intent = "market_wide"
+        executor._router.get_news_context.return_value = {
+            "ok": True,
+            "hits": [
+                {
+                    "title": "Macro update",
+                    "published_at": _days_ago_iso(0),
+                    "url": "http://example.com/market",
+                }
+            ],
+        }
+
+        result = executor.execute("search_news", {"query": "latest BHP news"})
+
+        call = executor._router.get_news_context.call_args
+        assert call is not None
+        assert call.kwargs["ticker"] is None
+        assert result["ticker"] is None
+        assert result["hit_count"] == 1
+
+    def test_exec_search_news_market_wide_honors_explicit_ticker(self) -> None:
+        executor = _make_executor()
+        executor._current_intent = "market_wide"
+        executor._router.get_news_context.return_value = {
+            "ok": True,
+            "hits": [
+                {
+                    "title": "CSL update",
+                    "published_at": _days_ago_iso(0),
+                    "url": "http://example.com/csl",
+                    "ticker": "CSL",
+                }
+            ],
+        }
+
+        result = executor.execute(
+            "search_news",
+            {"query": "market headlines today", "ticker": "csl"},
+        )
+
+        call = executor._router.get_news_context.call_args
+        assert call is not None
+        assert call.kwargs["ticker"] == "CSL"
+        assert result["ticker"] == "CSL"
+        assert result["hit_count"] == 1

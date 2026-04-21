@@ -251,6 +251,144 @@ def test_cockpit_chat_stream_done_event_preserves_model_metadata(monkeypatch) ->
     assert done_events[-1]["data"]["model"] == "model:qwen3.5-35b-a3b"
 
 
+def test_cockpit_chat_stream_surfaces_timeout_fallback_to_api(monkeypatch) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            if on_status is not None:
+                on_status("Local model timed out; retrying on API backend")
+            if on_chunk is not None:
+                on_chunk("Recovered via API fallback.")
+            return SimpleNamespace(
+                text="Recovered via API fallback.",
+                evidence=[
+                    {
+                        "tool": "search_news",
+                        "result": {
+                            "hits": [
+                                {
+                                    "title": "Fallback event",
+                                    "url": "https://example.com/fallback",
+                                    "published_at": "2026-04-21T00:00:00Z",
+                                }
+                            ]
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "model:claude-sonnet-4-5",
+                    "latency_ms": 2200,
+                    "cost_usd": 0.02,
+                    "source": "api",
+                    "routing_reason": "fallback_api_after_local_failure:TimeoutError",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "BHP update", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    status_events = [event for event in data_events if event.get("type") == "status"]
+    assert any(
+        "retrying on api backend" in event["data"]["stage"].lower()
+        for event in status_events
+    )
+
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    assert done_events
+    assert done_events[-1]["data"]["source"] == "api"
+    assert done_events[-1]["data"]["model"] == "model:claude-sonnet-4-5"
+
+
+def test_cockpit_chat_stream_surfaces_extraction_mutex_route_to_api(
+    monkeypatch,
+) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            if on_status is not None:
+                on_status("Extraction active on shared llama.cpp - routing chat to API")
+            return SimpleNamespace(
+                text="I can't verify that from current evidence.",
+                evidence=[],
+                action_preview=None,
+                routing_metadata={
+                    "model": "model:claude-sonnet-4-5",
+                    "latency_ms": 1100,
+                    "cost_usd": 0.01,
+                    "source": "api",
+                    "routing_reason": "extraction_active",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "market news today", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    status_events = [event for event in data_events if event.get("type") == "status"]
+    assert any(
+        "extraction active on shared llama.cpp"
+        in event["data"]["stage"].lower()
+        for event in status_events
+    )
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    assert done_events
+    assert done_events[-1]["data"]["source"] == "api"
+
+
 def test_cockpit_chat_non_stream_uses_to_thread(monkeypatch) -> None:
     class FakeService:
         def chat_stream(self, **kwargs):
