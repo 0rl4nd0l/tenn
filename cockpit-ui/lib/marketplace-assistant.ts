@@ -94,6 +94,7 @@ interface SendMarketplaceAssistantTurnParams {
   messages: MarketplaceAssistantTranscriptMessage[]
   model: string
   activeSource: 'local' | 'anthropic' | 'unknown'
+  webSearchEnabled: boolean
   sessionId: string
   userMessage: string
 }
@@ -812,7 +813,7 @@ export async function sendMarketplaceAssistantTurn(
       mode: 'analysis',
       session_id: params.sessionId,
       model: params.model || undefined,
-      web_search: false,
+      web_search: params.webSearchEnabled,
       rag: false,
       db_diagnostics: false,
       stream: false,

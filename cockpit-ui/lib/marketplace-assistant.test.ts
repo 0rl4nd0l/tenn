@@ -108,6 +108,7 @@ describe('marketplace-assistant helpers', () => {
       ],
       model: 'model:qwen-test',
       activeSource: 'local',
+      webSearchEnabled: true,
       sessionId: 'session-1',
       userMessage:
         'I want to buy a GPU that is good for our system, ideally 24GB of VRAM. Eaglemont/Victoriua is the location.',

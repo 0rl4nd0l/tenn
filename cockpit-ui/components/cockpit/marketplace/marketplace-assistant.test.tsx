@@ -16,6 +16,7 @@ describe('MarketplaceAssistant', () => {
       chatModel: 'model:qwen-test',
       preferences: {
         ...state.preferences,
+        webSearchEnabled: true,
         marketplaceHomeLocation: 'Melbourne',
       },
     }))
@@ -107,7 +108,7 @@ describe('MarketplaceAssistant', () => {
       expect.objectContaining({
         session_id: expect.any(String),
         model: 'model:qwen-test',
-        web_search: false,
+        web_search: true,
         rag: false,
         db_diagnostics: false,
       }),

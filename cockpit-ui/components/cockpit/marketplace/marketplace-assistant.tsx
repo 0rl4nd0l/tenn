@@ -161,6 +161,7 @@ export function MarketplaceAssistant({
         messages: nextMessages,
         model: chatModel,
         activeSource,
+        webSearchEnabled: preferences.webSearchEnabled,
         sessionId,
         userMessage,
       })
