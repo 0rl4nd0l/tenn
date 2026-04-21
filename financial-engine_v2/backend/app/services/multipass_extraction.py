@@ -18,6 +18,7 @@ import logging
 import os
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Any, Optional
@@ -116,6 +117,10 @@ _SCALE_PATTERNS: list[tuple[str, str]] = [
     (r"\$A?'?000,000|\bmillions?\b|A?\$[Mm]\b|\$m\b", "millions"),
     (r"\bbillions?\b", "billions"),
 ]
+_COMPILED_SCALE_PATTERNS: list[tuple[_re.Pattern[str], str]] = [
+    (_re.compile(pattern, _re.IGNORECASE), scale)
+    for pattern, scale in _SCALE_PATTERNS
+]
 
 _CURRENCY_PATTERNS: list[tuple[str, str]] = [
     # AUD markers: A$, $A, AUD, Australian dollar(s)
@@ -134,6 +139,10 @@ _CURRENCY_PATTERNS: list[tuple[str, str]] = [
     (r"(?:(?<!\w)(?:NZ\$|\$NZ)|\b(?:NZD|NEW\s+ZEALAND\s+DOLLARS?)\b)", "NZD"),
     # CNY/CNH markers: CNY, CNH, RMB, yuan, renminbi (all word-bounded; no symbol in use)
     (r"\b(?:CNY|CNH|RMB|YUAN|RENMINBI)\b", "CNY"),
+]
+_COMPILED_CURRENCY_PATTERNS: list[tuple[_re.Pattern[str], str]] = [
+    (_re.compile(pattern, _re.IGNORECASE), currency)
+    for pattern, currency in _CURRENCY_PATTERNS
 ]
 
 _ROW_LEVEL_CURRENCY_CONTEXT_HINTS: tuple[str, ...] = (
@@ -184,8 +193,8 @@ def _detect_scale_from_tables(tables) -> str:
             surfaces.append(" ".join(str(cell) for cell in row))
 
         combined = " ".join(surfaces)
-        for pattern, scale in _SCALE_PATTERNS:
-            if _re.search(pattern, combined, _re.IGNORECASE):
+        for pattern, scale in _COMPILED_SCALE_PATTERNS:
+            if pattern.search(combined):
                 return scale
     return "unknown"
 
@@ -211,8 +220,8 @@ def _detect_currency_from_tables(tables) -> str | None:
                 surfaces.append(" ".join(str(cell) for cell in row))
 
         combined = " ".join(surfaces)
-        for pattern, currency in _CURRENCY_PATTERNS:
-            matches = _re.findall(pattern, combined, _re.IGNORECASE)
+        for pattern, currency in _COMPILED_CURRENCY_PATTERNS:
+            matches = pattern.findall(combined)
             if matches:
                 hits[currency] = hits.get(currency, 0) + len(matches)
 
@@ -2739,7 +2748,8 @@ def run_multipass_extraction(
             )
         raise
     if debug_capture is not None:
-        debug_capture["pass3a_results"] = json.loads(json.dumps(pass3a_results))
+        # Keep a detached copy while avoiding the JSON encode/decode overhead.
+        debug_capture["pass3a_results"] = deepcopy(pass3a_results)
     if observer is not None:
         observer.emit("pass3a_metrics", "succeeded", "Pass 3a completed.")
 
