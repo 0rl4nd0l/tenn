@@ -31,6 +31,7 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
   const [gpuHealth, setGpuHealth] = useState<ServiceHealth | null>(null)
   const [hostHealth, setHostHealth] = useState<ServiceHealth | null>(null)
   const [preferencesHydrated, setPreferencesHydrated] = useState(false)
+  const [scale, setScale] = useState(1)
   const captureRootRef = useRef<HTMLDivElement>(null)
   const syncedPreferencesRef = useRef('')
   const {
@@ -48,6 +49,28 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
   useEffect(() => {
     installBrowserDebugCollector()
   }, [])
+
+  useEffect(() => {
+    if (!isIPhoneScale) {
+      setScale(1)
+      return
+    }
+
+    const handleResize = () => {
+      // iPhone 11 height is 896px.
+      const targetHeight = 896 + 100 // Frame + breathing room
+      const availableHeight = window.innerHeight
+      if (availableHeight < targetHeight) {
+        setScale(Math.max(0.4, availableHeight / targetHeight))
+      } else {
+        setScale(1)
+      }
+    }
+
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [isIPhoneScale])
 
   useEffect(() => {
     let cancelled = false
@@ -185,70 +208,80 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
         sessionCost={sessionStats.totalCostUsd} 
       />
       <SidebarInset className={cn(
-        "flex flex-col transition-all duration-300",
-        isIPhoneScale ? "bg-muted/30 items-center justify-center p-4 lg:p-8 overflow-auto" : "overflow-hidden"
+        "flex flex-col transition-all duration-300 overflow-hidden",
+        isIPhoneScale ? "bg-muted/30 items-center justify-center" : ""
       )}>
         <div 
-          ref={captureRootRef} 
           className={cn(
-            "flex min-h-0 flex-col overflow-hidden transition-all duration-500 shrink-0",
-            isIPhoneScale 
-              ? "w-[414px] h-[896px] rounded-[3.5rem] border-[12px] border-muted-foreground/20 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] relative bg-background my-auto" 
-              : "w-full flex-1"
+            isIPhoneScale ? "flex items-center justify-center p-8 pointer-events-none" : "flex-1 flex flex-col min-h-0"
           )}
+          style={isIPhoneScale ? { 
+            transform: `scale(${scale})`,
+            transformOrigin: 'center center',
+          } : {}}
         >
-          {isIPhoneScale && (
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-7 bg-muted-foreground/20 rounded-b-3xl z-50 flex items-center justify-center backdrop-blur-md">
-              <div className="w-16 h-1.5 bg-background/40 rounded-full mx-auto" />
-              <div className="absolute right-8 w-2 h-2 rounded-full bg-background/20" />
-            </div>
-          )}
-          <header className={cn(
-            "flex h-12 shrink-0 items-center gap-2 border-b border-border transition-all duration-300",
-            isIPhoneScale ? "px-6 pt-2" : "px-4"
-          )}>
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            <div className="flex items-center gap-3 overflow-hidden">
-              <h1 className="text-sm font-medium truncate">{title}</h1>
-              {!isIPhoneScale && (
-                <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-mono text-primary shrink-0">
-                  {activeTicker}
-                </span>
-              )}
-            </div>
-            <div className="ml-auto flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-full hover:bg-primary/10 transition-colors"
-                onClick={() => updatePreferences({ iphoneScale: !isIPhoneScale })}
-                title={isIPhoneScale ? "Switch to Desktop Scale" : "Switch to iPhone Scale"}
-              >
-                {isIPhoneScale ? <Monitor className="h-4 w-4" /> : <Smartphone className="h-4 w-4" />}
-              </Button>
-              <Suspense>
-                <CockpitIssueCapture
-                  captureRootRef={captureRootRef}
-                  pageTitle={title}
-                  backendHealthy={backendHealthy}
-                  backendLastHealthyAt={backendLastHealthyAt}
-                  backendError={backendError}
-                  gpuHealth={gpuHealth}
-                  hostHealth={hostHealth}
-                />
-              </Suspense>
-            </div>
-          </header>
-          <main className="flex-1 overflow-hidden">
-            {children}
-          </main>
-          <CockpitStatusBar
-            backendHealthy={backendHealthy}
-            backendLastHealthyAt={backendLastHealthyAt}
-            backendError={backendError}
-            compact={isIPhoneScale}
-          />
+          <div 
+            ref={captureRootRef} 
+            className={cn(
+              "flex flex-col overflow-hidden transition-all duration-500 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] bg-background",
+              isIPhoneScale 
+                ? "w-[414px] h-[896px] rounded-[3.5rem] border-[12px] border-muted-foreground/20 relative pointer-events-auto shrink-0" 
+                : "w-full flex-1 min-h-0"
+            )}
+          >
+            {isIPhoneScale && (
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-7 bg-muted-foreground/20 rounded-b-3xl z-50 flex items-center justify-center backdrop-blur-md">
+                <div className="w-16 h-1.5 bg-background/40 rounded-full mx-auto" />
+                <div className="absolute right-8 w-2 h-2 rounded-full bg-background/20" />
+              </div>
+            )}
+            <header className={cn(
+              "flex h-12 shrink-0 items-center gap-2 border-b border-border transition-all duration-300",
+              isIPhoneScale ? "px-6 pt-2" : "px-4"
+            )}>
+              <SidebarTrigger className="-ml-1" />
+              <Separator orientation="vertical" className="mr-2 h-4" />
+              <div className="flex items-center gap-3 overflow-hidden">
+                <h1 className="text-sm font-medium truncate">{title}</h1>
+                {!isIPhoneScale && (
+                  <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-mono text-primary shrink-0">
+                    {activeTicker}
+                  </span>
+                )}
+              </div>
+              <div className="ml-auto flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full hover:bg-primary/10 transition-colors"
+                  onClick={() => updatePreferences({ iphoneScale: !isIPhoneScale })}
+                  title={isIPhoneScale ? "Switch to Desktop Scale" : "Switch to iPhone Scale"}
+                >
+                  {isIPhoneScale ? <Monitor className="h-4 w-4" /> : <Smartphone className="h-4 w-4" />}
+                </Button>
+                <Suspense>
+                  <CockpitIssueCapture
+                    captureRootRef={captureRootRef}
+                    pageTitle={title}
+                    backendHealthy={backendHealthy}
+                    backendLastHealthyAt={backendLastHealthyAt}
+                    backendError={backendError}
+                    gpuHealth={gpuHealth}
+                    hostHealth={hostHealth}
+                  />
+                </Suspense>
+              </div>
+            </header>
+            <main className="flex-1 min-h-0 overflow-hidden relative">
+              {children}
+            </main>
+            <CockpitStatusBar
+              backendHealthy={backendHealthy}
+              backendLastHealthyAt={backendLastHealthyAt}
+              backendError={backendError}
+              compact={isIPhoneScale}
+            />
+          </div>
         </div>
       </SidebarInset>
     </SidebarProvider>
