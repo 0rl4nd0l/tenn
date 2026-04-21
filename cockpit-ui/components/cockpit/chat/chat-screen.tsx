@@ -33,9 +33,11 @@ import {
   restartBackend,
   startActionJob,
   getActionJob,
+  getChatSessionMessages,
+  deleteChatSessionRemote,
   type ActionJobStatus,
 } from '@/lib/api-client'
-import { loadChatSession, saveChatSession } from '@/lib/chat-session-store'
+import { deleteChatSession, loadChatSession, saveChatSession } from '@/lib/chat-session-store'
 import { useAttachedSources } from '@/lib/hooks/use-attached-sources'
 import {
   MARKETPLACE_CAPTURE_CHANNEL,
@@ -47,6 +49,7 @@ import {
 } from '@/lib/marketplace-bootstrap'
 import { extractMarketplaceUrl } from '@/lib/marketplace-url'
 import { extractYouTubeUrl } from '@/lib/youtube-url'
+import { applyApiDefaultOverride } from '@/lib/chat-routing'
 import type { ChatMessage as ChatMessageType, ActionPreview } from '@/lib/cockpit-types'
 import { toast } from 'sonner'
 
@@ -106,7 +109,6 @@ type TakeawaysResponse = {
   prompt_version?: string
 }
 
-const BACKEND_PREFIX_RE = /^\s*\/(advisor|cloud|local|ops)\b/i
 const ACTION_CONFIRM_INPUTS = new Set([
   '/confirm',
   'confirm',
@@ -129,17 +131,6 @@ const ACTION_CANCEL_INPUTS = new Set([
   'skip',
   'stop',
 ])
-
-function applyApiDefaultOverride(message: string, enabled: boolean): string {
-  const trimmed = message.trim()
-  if (!enabled || !trimmed) {
-    return message
-  }
-  if (trimmed.startsWith('/') && !BACKEND_PREFIX_RE.test(trimmed)) {
-    return message
-  }
-  return `/cloud ${trimmed}`
-}
 
 function resolvePendingActionIntent(message: string): 'confirm' | 'cancel' | null {
   const normalized = message.trim().toLowerCase()
@@ -260,6 +251,24 @@ function resolveResponseLatencyMs(rawLatencyMs: unknown, startedAtMs: number | n
   return Math.max(1, Date.now() - startedAtMs)
 }
 
+function toChatMessage(record: {
+  id?: number
+  role?: string
+  content?: string
+  created_at?: string
+}): ChatMessageType {
+  const role = record.role === 'user' || record.role === 'assistant' || record.role === 'system'
+    ? record.role
+    : 'system'
+  const parsed = new Date(record.created_at || '')
+  return {
+    id: typeof record.id === 'number' ? `srv-${record.id}` : generateId(),
+    role,
+    content: String(record.content || ''),
+    timestamp: Number.isNaN(parsed.getTime()) ? new Date() : parsed,
+  }
+}
+
 export function ChatScreen() {
   const attached = useAttachedSources()
   const [hasHydrated, setHasHydrated] = useState(false)
@@ -323,15 +332,33 @@ export function ChatScreen() {
     setApiKey(localStorage.getItem('cockpit.apiKey') ?? process.env.NEXT_PUBLIC_API_KEY ?? '')
   }, [])
 
-  // Sync state with storage whenever sessionId changes (switching sessions).
+  // Load session messages from backend so chat history follows session_id across devices.
   useEffect(() => {
     if (!hasHydrated) return
-    const persisted = loadChatSession(sessionId)
-    setMessages(persisted.messages)
-    // We don't want to clear takeaways/ingest immediately if they are session-bound,
-    // but typically a session change means a fresh view.
-    setLatestIngest(null)
-    setTakeaways(null)
+    let cancelled = false
+    ;(async () => {
+      try {
+        const remoteMessages = await getChatSessionMessages(sessionId, 600)
+        if (cancelled) return
+        setMessages(remoteMessages.map(toChatMessage))
+      } catch {
+        // Backend unavailable: keep local cache path for resilience.
+        const persisted = loadChatSession(sessionId)
+        if (!cancelled) {
+          setMessages(persisted.messages)
+        }
+      } finally {
+        if (!cancelled) {
+          // We don't want to clear takeaways/ingest immediately if they are
+          // session-bound, but typically a session change means a fresh view.
+          setLatestIngest(null)
+          setTakeaways(null)
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [sessionId, hasHydrated])
 
   // Persist messages to localStorage whenever they change so the chat survives
@@ -1317,7 +1344,13 @@ export function ChatScreen() {
     setMessages(prev => [...prev, cancelMessage])
   }, [])
 
-  const handleClearMessages = useCallback(() => {
+  const handleClearMessages = useCallback(async () => {
+    try {
+      await deleteChatSessionRemote(sessionId)
+    } catch {
+      // Keep local clear available when backend is unavailable.
+    }
+    deleteChatSession(sessionId)
     setMessages([])
     setStreamingContent('')
     setStreamingMetadata({})
@@ -1330,7 +1363,7 @@ export function ChatScreen() {
       setSourcesOpen(false)
       setWatchlistNotice(null)
       attached.clear()
-  }, [attached])
+  }, [attached, sessionId])
 
   const submitFeedbackMessage = useCallback(async (message: ChatMessageType, note: string, feedbackType: FeedbackKind) => {
     if (message.role !== 'assistant') {

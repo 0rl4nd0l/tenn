@@ -13,6 +13,7 @@ import { Cpu, Server, ToggleLeft, Info, GitBranch, FolderOpen, Loader2, HardDriv
 import { useCockpitStore } from '@/lib/cockpit-store'
 import { fetchAvailableModels, loadCockpitModel } from '@/lib/api-client'
 import type { ModelGroup } from '@/lib/cockpit-types'
+import { cn } from '@/lib/utils'
 
 interface ConfigSectionProps {
   title: string
@@ -216,8 +217,8 @@ export function SettingsScreen() {
   return (
     <ScrollArea className="h-full">
       <div className={cn(
-        "space-y-6 max-w-4xl mx-auto",
-        isIPhoneScale ? "p-4" : "p-6"
+        "max-w-4xl mx-auto",
+        isIPhoneScale ? "p-3 space-y-3" : "p-6 space-y-6"
       )}>
         {/* Header */}
         <div className="mb-6">

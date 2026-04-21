@@ -505,7 +505,11 @@ def test_recovery_attempted_orchestrator_result_does_not_fall_back_to_local_cont
     response = ctrl.build_chat_response("full company analysis on BHP")
 
     assert response.routing_metadata["source"] == "orchestrator"
-    assert response.text == "Final verdict: abstain until blocking evidence gaps are resolved."
+    assert response.text.startswith(
+        "Final verdict: abstain until blocking evidence gaps are resolved."
+    )
+    assert "Coverage and Failure Signals:" in response.text
+    assert "Unresolved evidence gaps: financials, business_profile_context" in response.text
     assert [item["type"] for item in response.evidence] == [
         "orchestrator",
         "financial_truth",
@@ -513,6 +517,44 @@ def test_recovery_attempted_orchestrator_result_does_not_fall_back_to_local_cont
         "market_memory",
     ]
     assert ctrl.tool_router.gather_local_context.call_count == 0
+
+
+def test_orchestrated_response_surfaces_retrieval_failures_when_answer_is_thin() -> None:
+    failing_result = SimpleNamespace(
+        intent="mixed",
+        entities={"primary_ticker": "PPT", "tickers": ["PPT"]},
+        source_plan=("financial_truth", "company_memory", "market_memory"),
+        financial_truth_results={},
+        company_memory_results={},
+        market_memory_results={},
+        raw_supporting_evidence={
+            "financial_truth": {
+                "status": "partial_error",
+                "errors": ["context endpoint timed out"],
+            },
+            "company_memory": {"status": "ok", "items": []},
+            "market_memory": {"status": "ok", "items": []},
+        },
+        answer_input="Here is a quick overview.",
+        answer={
+            "source_status": {
+                "financial_truth": "partial_error",
+                "company_memory": "ok",
+                "market_memory": "ok",
+            }
+        },
+        missing_data_recovery={"attempted": True},
+        missing_categories_after_recovery=("financials",),
+        sufficient_for_analysis=False,
+    )
+    ctrl = _controller(failing_result)
+    response = ctrl.build_chat_response("analyse PPT")
+
+    assert response.text.startswith("Here is a quick overview.")
+    assert "Coverage and Failure Signals:" in response.text
+    assert "Unresolved evidence gaps: financials" in response.text
+    assert "financial_truth retrieval status: partial_error" in response.text
+    assert "financial_truth retrieval errors: context endpoint timed out" in response.text
 
 
 def test_recent_update_queries_prefer_local_context_and_keep_backfill_as_optional_followup() -> (

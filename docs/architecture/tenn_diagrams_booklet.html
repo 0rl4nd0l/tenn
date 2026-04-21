@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tenn Diagram Booklet</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 720px;
+        margin: 48px auto;
+        padding: 0 16px;
+        line-height: 1.5;
+      }
+      code {
+        font-size: 0.95em;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Tenn diagram booklet</h1>
+    <p>
+      The combined PDF is generated at
+      <code>docs/architecture/tenn_diagrams_booklet.pdf</code>.
+    </p>
+    <p>Regenerate from repo root:</p>
+    <pre><code>node scripts/build_tenn_diagrams_pdf.mjs</code></pre>
+    <p>
+      Sources included: <code>docs/tenn-system-map.html</code>,
+      <code>docs/architecture/tenn_system_map_frontend.html</code>,
+      <code>docs/architecture/tenn_full_system_map.md</code>,
+      <code>docs/claude/architecture/system-map.md</code>.
+    </p>
+  </body>
+</html>

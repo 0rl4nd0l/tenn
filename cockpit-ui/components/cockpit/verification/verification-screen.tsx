@@ -18,6 +18,7 @@ import {
   submitExtractionReviewDecision,
 } from '@/lib/api-client'
 import { useCockpitStore } from '@/lib/cockpit-store'
+import { cn } from '@/lib/utils'
 import type {
   ContextDocument,
   ExtractionReviewErrorQueue,
@@ -1054,7 +1055,10 @@ export function VerificationScreen() {
       "flex h-full min-h-0 w-full",
       isIPhoneScale ? "gap-2 p-2" : "gap-6 p-6"
     )}>
-      <Tabs value={activeTab} onValueChange={updateTab} className="flex min-w-0 flex-1 flex-col gap-4">
+      <Tabs value={activeTab} onValueChange={updateTab} className={cn(
+        "flex min-w-0 flex-1 flex-col",
+        isIPhoneScale ? "gap-2" : "gap-4"
+      )}>
         <VerificationHeader
           ticker={ticker}
           extractionMethod={extractionMethod}

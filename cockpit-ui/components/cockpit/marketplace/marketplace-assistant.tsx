@@ -65,16 +65,16 @@ function DraftSummary({ draft }: { draft: MarketplaceMissionDraft }) {
     <div className="space-y-3 text-xs">
       <div>
         <div className="font-medium text-foreground">Mission name</div>
-        <div className="text-muted-foreground">{draft.name || 'not set'}</div>
+        <div className="text-muted-foreground break-words">{draft.name || 'not set'}</div>
       </div>
       <div>
         <div className="font-medium text-foreground">Brief</div>
-        <div className="text-muted-foreground">{draft.brief || 'not set'}</div>
+        <div className="text-muted-foreground break-words">{draft.brief || 'not set'}</div>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <div className="font-medium text-foreground">Locations</div>
-          <div className="text-muted-foreground">{formatList(draft.hardFilters.locationNames)}</div>
+          <div className="text-muted-foreground break-words">{formatList(draft.hardFilters.locationNames)}</div>
         </div>
         <div>
           <div className="font-medium text-foreground">Budget</div>
@@ -83,17 +83,17 @@ function DraftSummary({ draft }: { draft: MarketplaceMissionDraft }) {
       </div>
       <div>
         <div className="font-medium text-foreground">Include keywords</div>
-        <div className="text-muted-foreground">{formatList(draft.hardFilters.includeKeywords)}</div>
+        <div className="text-muted-foreground break-words">{formatList(draft.hardFilters.includeKeywords)}</div>
       </div>
       <div>
         <div className="font-medium text-foreground">Exclude / deal-breakers</div>
-        <div className="text-muted-foreground">
+        <div className="text-muted-foreground break-words">
           {formatList([...draft.hardFilters.excludeKeywords, ...draft.hardFilters.forbiddenTerms])}
         </div>
       </div>
       <div>
         <div className="font-medium text-foreground">Preferred brands</div>
-        <div className="text-muted-foreground">{formatList(draft.softPreferences.preferredBrands)}</div>
+        <div className="text-muted-foreground break-words">{formatList(draft.softPreferences.preferredBrands)}</div>
       </div>
     </div>
   )

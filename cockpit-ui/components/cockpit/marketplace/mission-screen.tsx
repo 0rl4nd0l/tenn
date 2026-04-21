@@ -480,8 +480,8 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
   return (
     <div className="h-full overflow-auto">
       <div className={cn(
-        "mx-auto flex max-w-5xl flex-col gap-6",
-        isIPhoneScale ? "p-4" : "p-6"
+        "mx-auto max-w-5xl flex flex-col",
+        isIPhoneScale ? "p-3 gap-3" : "p-6 gap-6"
       )}>
         <div className={cn(
           "flex items-center justify-between gap-3",

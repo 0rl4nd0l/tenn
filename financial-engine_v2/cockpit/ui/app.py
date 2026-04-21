@@ -71,6 +71,80 @@ from cockpit.ui.help_modal import HelpScreen
 
 logger = logging.getLogger(__name__)
 
+try:
+    from app.services.query_orchestrator import QueryOrchestrator
+except Exception:  # pragma: no cover - optional backend import in local UI
+    QueryOrchestrator = None  # type: ignore[assignment]
+
+
+class _BackendFinancialTruthProvider:
+    """Backend-context adapter for QueryOrchestrator financial_truth retrieval."""
+
+    def __init__(self, backend_api_client: BackendApiClient) -> None:
+        self._client = backend_api_client
+
+    def retrieve(
+        self,
+        *,
+        query: str,
+        entities: dict[str, Any],
+        intent: str,
+    ) -> dict[str, Any]:
+        ticker = str(entities.get("primary_ticker") or "").strip().upper()
+        if not ticker:
+            return {
+                "source": "financial_truth",
+                "status": "no_entity",
+                "items": [],
+                "query": query,
+                "intent": intent,
+            }
+
+        recovery_level = str(entities.get("recovery_level") or "").strip().lower()
+        deep_recovery = recovery_level == "deep"
+        docs_limit = 24 if deep_recovery else 8
+        financials_limit = 24 if deep_recovery else 8
+        announcements_limit = 24 if deep_recovery else 8
+        failures_limit = 20 if deep_recovery else 8
+        low_confidence_limit = 20 if deep_recovery else 8
+        try:
+            payload = self._client.get_ticker_context(
+                ticker,
+                docs_limit=docs_limit,
+                financials_limit=financials_limit,
+                announcements_limit=announcements_limit,
+                failures_limit=failures_limit,
+                low_confidence_limit=low_confidence_limit,
+            )
+        except Exception as exc:
+            return {
+                "source": "financial_truth",
+                "status": "error",
+                "items": [],
+                "ticker": ticker,
+                "error": str(exc),
+                "query": query,
+                "intent": intent,
+            }
+
+        errors = payload.get("errors") or []
+        status = "partial_error" if errors else "ok"
+        return {
+            "source": "financial_truth",
+            "status": status,
+            "ticker": ticker,
+            "items": payload.get("financials") or [],
+            "docs": payload.get("docs") or [],
+            "financials": payload.get("financials") or [],
+            "latest_financial_snapshot": payload.get("latest_financial_snapshot") or {},
+            "announcement_context": payload.get("announcement_context") or [],
+            "extraction_failures": payload.get("extraction_failures") or [],
+            "low_confidence_financials": payload.get("low_confidence_financials") or [],
+            "errors": errors,
+            "query": query,
+            "intent": intent,
+        }
+
 
 class CockpitApp(App):
     ASSISTANT_NAME = "Tenn"
@@ -260,6 +334,17 @@ class CockpitApp(App):
                 backend_api_url,
                 api_key=str(backend_cfg.get("api_key") or "").strip(),
             )
+        self._query_orchestrator = None
+        if self._backend_client is not None and QueryOrchestrator is not None:
+            self._query_orchestrator = QueryOrchestrator(
+                financial_truth_provider=_BackendFinancialTruthProvider(
+                    self._backend_client
+                )
+            )
+        elif self._backend_client is not None:
+            self._startup_warnings.append(
+                "query orchestrator unavailable: app.services.query_orchestrator import failed"
+            )
 
         rag_cfg = config.get("rag") or {}
         qual_company = None
@@ -327,6 +412,7 @@ class CockpitApp(App):
             state_store=self.state_store,
             thread_id="global-main",
             cockpit_llm=config.get("cockpit_llm"),
+            query_orchestrator=self._query_orchestrator,
         )
 
         self.thread_id = "global-main"

@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { History, Play, ChevronDown, ChevronRight, Clock, CheckCircle2, XCircle, Loader2, RefreshCw } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { listDocuments, getQueueStatus, rerunJob } from '@/lib/api-client'
+import { useCockpitStore } from '@/lib/cockpit-store'
 import { toast } from 'sonner'
 import type { Job } from '@/lib/cockpit-types'
 import { cn } from '@/lib/utils'
@@ -274,8 +275,8 @@ export function HistoryScreen() {
   return (
     <ScrollArea className="h-full">
       <div className={cn(
-        "space-y-6 max-w-6xl mx-auto",
-        isIPhoneScale ? "p-4" : "p-6"
+        "max-w-6xl mx-auto",
+        isIPhoneScale ? "p-3 space-y-3" : "p-6 space-y-6"
       )}>
         {/* Summary Stats */}
         <div className={cn(

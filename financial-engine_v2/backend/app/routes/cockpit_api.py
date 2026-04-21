@@ -2328,6 +2328,58 @@ class CockpitChatRequest(BaseModel):
     attached_sources: list[AttachedSource] = Field(default_factory=list)
 
 
+class CockpitChatSessionSummary(BaseModel):
+    session_id: str
+    updated_at: str | None = None
+    message_count: int = 0
+    title: str | None = None
+    last_message: str | None = None
+
+
+class CockpitChatSessionListResponse(BaseModel):
+    items: list[CockpitChatSessionSummary] = Field(default_factory=list)
+
+
+class CockpitChatMessageRecord(BaseModel):
+    id: int
+    session_id: str
+    role: str
+    content: str
+    created_at: str
+
+
+class CockpitChatSessionMessagesResponse(BaseModel):
+    session_id: str
+    message_count: int = 0
+    items: list[CockpitChatMessageRecord] = Field(default_factory=list)
+
+
+class CockpitChatSessionDeleteResponse(BaseModel):
+    ok: bool
+    session_id: str
+    deleted_count: int = 0
+
+
+class CockpitChatSessionCreateRequest(BaseModel):
+    session_id: str | None = None
+
+
+class CockpitChatSessionCreateResponse(BaseModel):
+    ok: bool = True
+    session_id: str
+    created: bool = False
+
+
+class CockpitPreferencesResponse(BaseModel):
+    api_default_enabled: bool = False
+    marketplace_prefer_cloud_routing: bool = False
+
+
+class CockpitPreferencesPatchRequest(BaseModel):
+    api_default_enabled: bool | None = None
+    marketplace_prefer_cloud_routing: bool | None = None
+
+
 class CockpitActionExecuteRequest(BaseModel):
     action_id: str
     args: dict[str, Any] = Field(default_factory=dict)
@@ -4244,6 +4296,192 @@ async def cockpit_get_flagged_feedback(report_id: str):
         ) from exc
 
     return CockpitFlaggedReportResponse(**result)
+
+
+def _normalize_session_id(raw: str) -> str:
+    session_id = str(raw or "").strip()
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id is required")
+    return session_id[:128]
+
+
+def _derive_chat_title(
+    *,
+    title_seed: str | None,
+    last_message: str | None,
+) -> str:
+    seed = str(title_seed or "").strip() or str(last_message or "").strip()
+    if not seed:
+        return "Untitled Chat"
+    normalized = " ".join(seed.split())
+    return (normalized[:80] + "...") if len(normalized) > 80 else normalized
+
+
+def _parse_preference_bool(raw: str | None, default: bool = False) -> bool:
+    text = str(raw or "").strip().lower()
+    if not text:
+        return default
+    return text in {"1", "true", "yes", "on"}
+
+
+@router.get("/preferences", response_model=CockpitPreferencesResponse)
+def cockpit_get_preferences() -> CockpitPreferencesResponse:
+    try:
+        service = CockpitService.get_instance()
+        api_default_enabled = _parse_preference_bool(
+            service.state_store.get_preference("api_default_enabled", "false"),
+            default=False,
+        )
+        marketplace_prefer_cloud_routing = _parse_preference_bool(
+            service.state_store.get_preference(
+                "marketplace_prefer_cloud_routing",
+                "false",
+            ),
+            default=False,
+        )
+    except Exception as exc:
+        logger.exception("Failed to load cockpit preferences")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to load cockpit preferences: {str(exc)}"
+        ) from exc
+
+    return CockpitPreferencesResponse(
+        api_default_enabled=api_default_enabled,
+        marketplace_prefer_cloud_routing=marketplace_prefer_cloud_routing,
+    )
+
+
+@router.patch("/preferences", response_model=CockpitPreferencesResponse)
+def cockpit_patch_preferences(
+    payload: CockpitPreferencesPatchRequest,
+) -> CockpitPreferencesResponse:
+    try:
+        service = CockpitService.get_instance()
+        if payload.api_default_enabled is not None:
+            service.state_store.set_preference(
+                "api_default_enabled",
+                "true" if payload.api_default_enabled else "false",
+            )
+        if payload.marketplace_prefer_cloud_routing is not None:
+            service.state_store.set_preference(
+                "marketplace_prefer_cloud_routing",
+                "true" if payload.marketplace_prefer_cloud_routing else "false",
+            )
+    except Exception as exc:
+        logger.exception("Failed to update cockpit preferences")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to update cockpit preferences: {str(exc)}"
+        ) from exc
+
+    return cockpit_get_preferences()
+
+
+@router.get("/chat/sessions", response_model=CockpitChatSessionListResponse)
+def cockpit_list_chat_sessions(limit: int = 100) -> CockpitChatSessionListResponse:
+    try:
+        service = CockpitService.get_instance()
+        rows = service.state_store.list_chat_sessions(limit=limit)
+    except Exception as exc:
+        logger.exception("Failed to list cockpit chat sessions")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to list chat sessions: {str(exc)}"
+        ) from exc
+
+    items = [
+        CockpitChatSessionSummary(
+            session_id=str(row.get("thread_id") or ""),
+            updated_at=str(row.get("updated_at") or "").strip() or None,
+            message_count=int(row.get("message_count") or 0),
+            title=_derive_chat_title(
+                title_seed=str(row.get("title_seed") or "").strip() or None,
+                last_message=str(row.get("last_message") or "").strip() or None,
+            ),
+            last_message=str(row.get("last_message") or "").strip() or None,
+        )
+        for row in rows
+        if str(row.get("thread_id") or "").strip()
+    ]
+    return CockpitChatSessionListResponse(items=items)
+
+
+@router.post("/chat/sessions", response_model=CockpitChatSessionCreateResponse)
+def cockpit_create_chat_session(
+    payload: CockpitChatSessionCreateRequest,
+) -> CockpitChatSessionCreateResponse:
+    raw_session_id = str(payload.session_id or "").strip()
+    thread_id = _normalize_session_id(raw_session_id or str(uuid.uuid4()))
+    try:
+        service = CockpitService.get_instance()
+        created = service.state_store.ensure_chat_session(thread_id)
+    except Exception as exc:
+        logger.exception("Failed to create cockpit chat session")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create chat session: {str(exc)}"
+        ) from exc
+
+    return CockpitChatSessionCreateResponse(
+        ok=True,
+        session_id=thread_id,
+        created=bool(created),
+    )
+
+
+@router.get(
+    "/chat/sessions/{session_id}",
+    response_model=CockpitChatSessionMessagesResponse,
+)
+def cockpit_get_chat_session_messages(
+    session_id: str,
+    limit: int = 400,
+) -> CockpitChatSessionMessagesResponse:
+    thread_id = _normalize_session_id(session_id)
+    try:
+        service = CockpitService.get_instance()
+        rows = service.state_store.get_chat_messages_with_ids(thread_id, limit=limit)
+    except Exception as exc:
+        logger.exception("Failed to load cockpit chat session messages")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to load chat session: {str(exc)}"
+        ) from exc
+
+    items = [
+        CockpitChatMessageRecord(
+            id=int(row.get("id") or 0),
+            session_id=thread_id,
+            role=str(row.get("role") or "system"),
+            content=str(row.get("content") or ""),
+            created_at=str(row.get("created_at") or ""),
+        )
+        for row in rows
+    ]
+    return CockpitChatSessionMessagesResponse(
+        session_id=thread_id,
+        message_count=len(items),
+        items=items,
+    )
+
+
+@router.delete(
+    "/chat/sessions/{session_id}",
+    response_model=CockpitChatSessionDeleteResponse,
+)
+def cockpit_delete_chat_session(session_id: str) -> CockpitChatSessionDeleteResponse:
+    thread_id = _normalize_session_id(session_id)
+    try:
+        service = CockpitService.get_instance()
+        existed = service.state_store.has_chat_session(thread_id)
+        deleted_count = service.state_store.delete_chat_session(thread_id)
+    except Exception as exc:
+        logger.exception("Failed to delete cockpit chat session")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to delete chat session: {str(exc)}"
+        ) from exc
+
+    return CockpitChatSessionDeleteResponse(
+        ok=bool(existed),
+        session_id=thread_id,
+        deleted_count=deleted_count,
+    )
 
 
 @router.post("/chat")

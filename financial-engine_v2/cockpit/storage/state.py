@@ -5,7 +5,7 @@ import logging
 import sqlite3
 import threading
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -37,6 +37,18 @@ class StateStore:
         )
         cur.execute(
             "CREATE INDEX IF NOT EXISTS idx_chat_thread ON chat_messages(thread_id)"
+        )
+        cur.execute(
+            """
+            create table if not exists chat_sessions (
+                thread_id text primary key,
+                created_at text not null,
+                updated_at text not null
+            )
+            """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_chat_sessions_updated ON chat_sessions(updated_at)"
         )
         cur.execute(
             """
@@ -396,13 +408,37 @@ class StateStore:
                     )
             self.conn.commit()
 
+    def _ensure_chat_session_unlocked(self, thread_id: str, updated_at: str) -> bool:
+        existing = self.conn.execute(
+            "select 1 from chat_sessions where thread_id = ? limit 1",
+            (thread_id,),
+        ).fetchone()
+        self.conn.execute(
+            """
+            insert into chat_sessions(thread_id, created_at, updated_at)
+            values(?,?,?)
+            on conflict(thread_id) do update set updated_at = excluded.updated_at
+            """,
+            (thread_id, updated_at, updated_at),
+        )
+        return existing is None
+
+    def ensure_chat_session(self, thread_id: str, updated_at: str | None = None) -> bool:
+        stamp = str(updated_at or "").strip() or datetime.now(timezone.utc).isoformat()
+        with self._lock:
+            created = self._ensure_chat_session_unlocked(thread_id, stamp)
+            self.conn.commit()
+            return created
+
     def add_chat_message(
         self, thread_id: str, role: str, content: str, created_at: str
     ) -> None:
+        stamp = str(created_at or "").strip() or datetime.now(timezone.utc).isoformat()
         with self._lock:
+            self._ensure_chat_session_unlocked(thread_id, stamp)
             self.conn.execute(
                 "insert into chat_messages(thread_id, role, content, created_at) values(?,?,?,?)",
-                (thread_id, role, content, created_at),
+                (thread_id, role, content, stamp),
             )
             self.conn.commit()
 
@@ -434,6 +470,111 @@ class StateStore:
             (thread_id,),
         ).fetchone()
         return int(row[0]) if row else 0
+
+    def list_chat_sessions(self, limit: int = 100) -> list[dict[str, Any]]:
+        safe_limit = max(1, min(int(limit), 500))
+        rows = self.conn.execute(
+            """
+            with ranked as (
+                select
+                    thread_id,
+                    content,
+                    role,
+                    created_at,
+                    id,
+                    row_number() over (partition by thread_id order by id desc) as rn_desc,
+                    row_number() over (
+                        partition by thread_id
+                        order by case when role = 'user' then id else 2147483647 end asc
+                    ) as rn_user
+                from chat_messages
+            ),
+            message_stats as (
+                select
+                    thread_id,
+                    max(created_at) as message_updated_at,
+                    count(*) as message_count,
+                    max(case when rn_desc = 1 then content end) as last_message,
+                    max(case when rn_user = 1 and role = 'user' then content end) as title_seed,
+                    max(id) as max_id
+                from ranked
+                group by thread_id
+            ),
+            combined as (
+                select
+                    s.thread_id as thread_id,
+                    coalesce(m.message_updated_at, s.updated_at) as updated_at,
+                    coalesce(m.message_count, 0) as message_count,
+                    m.last_message as last_message,
+                    m.title_seed as title_seed,
+                    coalesce(m.max_id, -1) as sort_id
+                from chat_sessions s
+                left join message_stats m on m.thread_id = s.thread_id
+                union all
+                select
+                    m.thread_id as thread_id,
+                    m.message_updated_at as updated_at,
+                    m.message_count as message_count,
+                    m.last_message as last_message,
+                    m.title_seed as title_seed,
+                    m.max_id as sort_id
+                from message_stats m
+                left join chat_sessions s on s.thread_id = m.thread_id
+                where s.thread_id is null
+            )
+            select
+                thread_id,
+                updated_at,
+                message_count,
+                last_message,
+                title_seed
+            from combined
+            order by updated_at desc, sort_id desc
+            limit ?
+            """,
+            (safe_limit,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_chat_messages_with_ids(
+        self, thread_id: str, limit: int = 200
+    ) -> list[dict[str, Any]]:
+        safe_limit = max(1, min(int(limit), 2000))
+        rows = self.conn.execute(
+            """
+            select id, thread_id, role, content, created_at
+            from chat_messages
+            where thread_id = ?
+            order by id desc
+            limit ?
+            """,
+            (thread_id, safe_limit),
+        ).fetchall()
+        return list(reversed([dict(r) for r in rows]))
+
+    def delete_chat_session(self, thread_id: str) -> int:
+        with self._lock:
+            cur = self.conn.execute(
+                "delete from chat_messages where thread_id = ?",
+                (thread_id,),
+            )
+            self.conn.execute(
+                "delete from chat_sessions where thread_id = ?",
+                (thread_id,),
+            )
+            self.conn.commit()
+            return int(cur.rowcount or 0)
+
+    def has_chat_session(self, thread_id: str) -> bool:
+        row = self.conn.execute(
+            """
+            select 1
+            where exists(select 1 from chat_sessions where thread_id = ?)
+               or exists(select 1 from chat_messages where thread_id = ?)
+            """,
+            (thread_id, thread_id),
+        ).fetchone()
+        return row is not None
 
     def add_job(self, payload: dict[str, Any]) -> None:
         with self._lock:

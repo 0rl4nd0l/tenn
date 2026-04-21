@@ -45,11 +45,11 @@ import { HostActivityDialog, getHostSummary } from '@/components/cockpit/host-ac
 import type { ServiceHealth } from '@/lib/cockpit-types'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import { 
-  loadAllChatSessions, 
-  createChatSessionId, 
+  createChatSessionId,
   deleteChatSession,
-  type PersistedChatSession 
+  loadAllChatSessions, 
 } from '@/lib/chat-session-store'
+import { createChatSessionRemote, deleteChatSessionRemote, listChatSessions } from '@/lib/api-client'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 
@@ -133,6 +133,11 @@ export function CockpitSidebar({
   hostHealth,
   sessionCost,
 }: CockpitSidebarProps) {
+  type SidebarSession = {
+    sessionId: string
+    title?: string
+    updatedAt: string
+  }
   const pathname = usePathname()
   const { 
     chatModel, 
@@ -144,34 +149,63 @@ export function CockpitSidebar({
   const [configSummary, setConfigSummary] = useState<ConfigSummary>(INITIAL_CONFIG_SUMMARY)
   const [configNotice, setConfigNotice] = useState<ConfigNotice | null>(null)
   const [lastConfigSyncAt, setLastConfigSyncAt] = useState<Date | null>(null)
-  const [sessions, setSessions] = useState<PersistedChatSession[]>([])
+  const [sessions, setSessions] = useState<SidebarSession[]>([])
 
-  const refreshSessions = useCallback(() => {
-    setSessions(loadAllChatSessions())
+  const refreshSessions = useCallback(async () => {
+    try {
+      const remote = await listChatSessions(200)
+      const mapped = remote
+        .filter((row) => Boolean((row.session_id || '').trim()))
+        .map((row) => ({
+          sessionId: row.session_id,
+          title: row.title || undefined,
+          updatedAt: row.updated_at || new Date(0).toISOString(),
+        }))
+      setSessions(mapped)
+      return
+    } catch {
+      // Fall back to local browser cache when backend sessions are unavailable.
+      const local = loadAllChatSessions().map((row) => ({
+        sessionId: row.sessionId,
+        title: row.title,
+        updatedAt: row.updatedAt,
+      }))
+      setSessions(local)
+    }
   }, [])
 
   useEffect(() => {
-    refreshSessions()
+    void refreshSessions()
     // Optional: Refresh periodically if other tabs might change it
-    const interval = setInterval(refreshSessions, 10_000)
+    const interval = setInterval(() => void refreshSessions(), 10_000)
     return () => clearInterval(interval)
   }, [refreshSessions])
 
-  const handleNewChat = useCallback(() => {
+  const handleNewChat = useCallback(async () => {
     const newId = createChatSessionId()
     setActiveTicker('')
     setSessionId(newId)
-    refreshSessions()
+    try {
+      await createChatSessionRemote(newId)
+    } catch {
+      // Keep local-only behavior available when backend create is unavailable.
+    }
+    void refreshSessions()
   }, [setActiveTicker, setSessionId, refreshSessions])
 
-  const handleDeleteSession = useCallback((id: string, e: React.MouseEvent) => {
+  const handleDeleteSession = useCallback(async (id: string, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    try {
+      await deleteChatSessionRemote(id)
+    } catch {
+      // Keep local behavior available even if backend delete fails.
+    }
     deleteChatSession(id)
     if (id === sessionId) {
       handleNewChat()
     } else {
-      refreshSessions()
+      void refreshSessions()
     }
   }, [sessionId, handleNewChat, refreshSessions])
 

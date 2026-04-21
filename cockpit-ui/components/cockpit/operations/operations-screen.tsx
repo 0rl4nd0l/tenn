@@ -97,7 +97,7 @@ function actionUsesQueuedJob(actionId: string): boolean {
 
 export function OperationsScreen() {
   const [hasHydrated, setHasHydrated] = useState(false)
-  const { activeTicker, setApiDefaultEnabled } = useCockpitStore()
+  const { activeTicker, setApiDefaultEnabled, preferences } = useCockpitStore()
   
   const [selectedAction, setSelectedAction] = useState<string>('')
   const [actionArgs, setActionArgs] = useState(activeTicker || '')
@@ -519,8 +519,8 @@ export function OperationsScreen() {
   return (
     <ScrollArea className="h-full">
       <div className={cn(
-        "space-y-6 max-w-6xl mx-auto",
-        isIPhoneScale ? "p-4" : "p-6"
+        "max-w-6xl mx-auto",
+        isIPhoneScale ? "p-3 space-y-3" : "p-6 space-y-6"
       )}>
         <div className={cn(
           "flex items-center justify-between",

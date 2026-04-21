@@ -277,21 +277,21 @@ export function JobDetailPanel({ jobId, onClose }: JobDetailPanelProps) {
 
       <CardContent className="flex-1 overflow-hidden flex flex-col gap-3 pt-2">
         {/* Metrics row */}
-        <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground shrink-0">
-          <div>
-            <span className="block font-medium text-foreground tabular-nums">
+        <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground shrink-0 overflow-hidden">
+          <div className="truncate">
+            <span className="block font-medium text-foreground tabular-nums truncate">
               {formatElapsed(job.elapsed_ms)}
             </span>
             elapsed
           </div>
-          <div>
-            <span className="block font-medium text-foreground tabular-nums">
+          <div className="truncate">
+            <span className="block font-medium text-foreground tabular-nums truncate">
               {job.succeeded_items}/{job.total_items}
             </span>
             completed
           </div>
-          <div>
-            <span className="block font-medium text-foreground tabular-nums">
+          <div className="truncate">
+            <span className="block font-medium text-foreground tabular-nums truncate">
               {job.failed_items > 0 ? (
                 <span className="text-destructive">{job.failed_items}</span>
               ) : (

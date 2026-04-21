@@ -5,7 +5,12 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/s
 import { CockpitSidebar } from './cockpit-sidebar'
 import { CockpitStatusBar } from './cockpit-status-bar'
 import { CockpitIssueCapture } from './cockpit-issue-capture'
-import { checkHealth, isBackendHealthy as getBackendHealthy } from '@/lib/api-client'
+import {
+  checkHealth,
+  getCockpitPreferences,
+  isBackendHealthy as getBackendHealthy,
+  patchCockpitPreferences,
+} from '@/lib/api-client'
 import type { ServiceHealth } from '@/lib/cockpit-types'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import { installBrowserDebugCollector } from '@/lib/browser-debug'
@@ -25,14 +30,109 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
   const [backendError, setBackendError] = useState<string | null>(null)
   const [gpuHealth, setGpuHealth] = useState<ServiceHealth | null>(null)
   const [hostHealth, setHostHealth] = useState<ServiceHealth | null>(null)
+  const [preferencesHydrated, setPreferencesHydrated] = useState(false)
   const captureRootRef = useRef<HTMLDivElement>(null)
-  const { activeTicker, sessionStats, chatCompletionActive, preferences, updatePreferences } = useCockpitStore()
+  const syncedPreferencesRef = useRef('')
+  const {
+    activeTicker,
+    sessionStats,
+    chatCompletionActive,
+    apiDefaultEnabled,
+    setApiDefaultEnabled,
+    preferences,
+    updatePreferences,
+  } = useCockpitStore()
 
   const isIPhoneScale = preferences.iphoneScale
 
   useEffect(() => {
     installBrowserDebugCollector()
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const remote = await getCockpitPreferences()
+        if (cancelled) return
+        setApiDefaultEnabled(Boolean(remote.api_default_enabled))
+        updatePreferences({
+          marketplacePreferCloudRouting: Boolean(remote.marketplace_prefer_cloud_routing),
+        })
+        syncedPreferencesRef.current = JSON.stringify({
+          api_default_enabled: Boolean(remote.api_default_enabled),
+          marketplace_prefer_cloud_routing: Boolean(remote.marketplace_prefer_cloud_routing),
+        })
+      } catch {
+        // Keep local defaults when backend preferences are unavailable.
+      } finally {
+        if (!cancelled) {
+          setPreferencesHydrated(true)
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [setApiDefaultEnabled, updatePreferences])
+
+  useEffect(() => {
+    if (!preferencesHydrated) return
+    const snapshot = JSON.stringify({
+      api_default_enabled: Boolean(apiDefaultEnabled),
+      marketplace_prefer_cloud_routing: Boolean(preferences.marketplacePreferCloudRouting),
+    })
+    if (snapshot === syncedPreferencesRef.current) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        await patchCockpitPreferences({
+          api_default_enabled: Boolean(apiDefaultEnabled),
+          marketplace_prefer_cloud_routing: Boolean(preferences.marketplacePreferCloudRouting),
+        })
+        if (!cancelled) {
+          syncedPreferencesRef.current = snapshot
+        }
+      } catch {
+        // Keep local behavior even when backend preference sync fails.
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [apiDefaultEnabled, preferences.marketplacePreferCloudRouting, preferencesHydrated])
+
+  useEffect(() => {
+    if (!preferencesHydrated) return
+    let cancelled = false
+
+    async function refreshRemotePreferences() {
+      try {
+        const remote = await getCockpitPreferences()
+        if (cancelled) return
+        const remoteSnapshot = JSON.stringify({
+          api_default_enabled: Boolean(remote.api_default_enabled),
+          marketplace_prefer_cloud_routing: Boolean(remote.marketplace_prefer_cloud_routing),
+        })
+        if (remoteSnapshot === syncedPreferencesRef.current) return
+
+        // Update the sync marker first to prevent write-back loops.
+        syncedPreferencesRef.current = remoteSnapshot
+        setApiDefaultEnabled(Boolean(remote.api_default_enabled))
+        updatePreferences({
+          marketplacePreferCloudRouting: Boolean(remote.marketplace_prefer_cloud_routing),
+        })
+      } catch {
+        // Keep local state when backend preference refresh fails.
+      }
+    }
+
+    const interval = setInterval(() => void refreshRemotePreferences(), 10_000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [preferencesHydrated, setApiDefaultEnabled, updatePreferences])
 
   useEffect(() => {
     let cancelled = false
@@ -85,16 +185,16 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
         sessionCost={sessionStats.totalCostUsd} 
       />
       <SidebarInset className={cn(
-        "flex flex-col overflow-hidden transition-all duration-300",
-        isIPhoneScale && "bg-muted/30 items-center justify-center p-4 lg:p-8"
+        "flex flex-col transition-all duration-300",
+        isIPhoneScale ? "bg-muted/30 items-center justify-center p-4 lg:p-8 overflow-auto" : "overflow-hidden"
       )}>
         <div 
           ref={captureRootRef} 
           className={cn(
-            "flex min-h-0 flex-1 flex-col overflow-hidden transition-all duration-500",
+            "flex min-h-0 flex-col overflow-hidden transition-all duration-500 shrink-0",
             isIPhoneScale 
-              ? "w-[414px] h-[896px] max-h-full rounded-[3.5rem] border-[12px] border-muted-foreground/20 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] relative bg-background" 
-              : "w-full"
+              ? "w-[414px] h-[896px] rounded-[3.5rem] border-[12px] border-muted-foreground/20 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] relative bg-background my-auto" 
+              : "w-full flex-1"
           )}
         >
           {isIPhoneScale && (

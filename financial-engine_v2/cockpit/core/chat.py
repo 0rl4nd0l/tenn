@@ -4987,6 +4987,9 @@ class ChatController:
         if on_status:
             on_status("Routing query through orchestrator")
 
+        coverage_disclosures = self._collect_orchestration_coverage_disclosures(
+            orchestration_result
+        )
         final_text = orchestration_result.answer_input
         if self._agent_loop is not None:
             conversation_history = self._recent_conversation_history()
@@ -5020,6 +5023,11 @@ class ChatController:
         elif on_chunk is not None and final_text:
             self._stream_plain_text(final_text, on_chunk)
 
+        final_text = self._append_orchestration_disclosures(
+            final_text,
+            disclosures=coverage_disclosures,
+        )
+
         self._record_answer_side_effects(
             query=message,
             answer=final_text,
@@ -5043,6 +5051,89 @@ class ChatController:
             mode=ResponseMode.FAST,
             routing_metadata=routing_metadata,
         )
+
+    @staticmethod
+    def _collect_orchestration_coverage_disclosures(orchestration_result) -> list[str]:
+        disclosures: list[str] = []
+        seen: set[str] = set()
+
+        def _add(message: str) -> None:
+            cleaned = str(message or "").strip()
+            if not cleaned:
+                return
+            key = cleaned.lower()
+            if key in seen:
+                return
+            seen.add(key)
+            disclosures.append(cleaned)
+
+        missing_categories = [
+            str(category)
+            for category in list(
+                getattr(orchestration_result, "missing_categories_after_recovery", ())
+                or []
+            )
+            if str(category).strip()
+        ]
+        if missing_categories:
+            _add("Unresolved evidence gaps: " + ", ".join(missing_categories))
+
+        source_status = {}
+        answer = getattr(orchestration_result, "answer", None)
+        if isinstance(answer, dict):
+            source_status = answer.get("source_status") or {}
+        if isinstance(source_status, dict):
+            for source_name, raw_status in source_status.items():
+                source_label = str(source_name or "").strip() or "unknown_source"
+                if isinstance(raw_status, str):
+                    normalized = raw_status.strip().lower()
+                    if normalized and normalized != "ok":
+                        _add(f"{source_label} retrieval status: {raw_status}")
+                    continue
+                if isinstance(raw_status, dict):
+                    status_value = str(raw_status.get("status") or "").strip()
+                    ok_value = raw_status.get("ok")
+                    if status_value and status_value.lower() != "ok":
+                        _add(f"{source_label} retrieval status: {status_value}")
+                    elif ok_value is False:
+                        _add(f"{source_label} retrieval status: not_ok")
+
+        raw_supporting = getattr(orchestration_result, "raw_supporting_evidence", None)
+        if isinstance(raw_supporting, dict):
+            for source_name, payload in raw_supporting.items():
+                if not isinstance(payload, dict):
+                    continue
+                source_label = str(source_name or "").strip() or "unknown_source"
+                errors = payload.get("errors")
+                if isinstance(errors, list) and errors:
+                    _add(
+                        f"{source_label} retrieval errors: "
+                        + "; ".join(str(err) for err in errors[:3])
+                    )
+                error_text = str(payload.get("error") or "").strip()
+                if error_text:
+                    _add(f"{source_label} retrieval error: {error_text}")
+
+        return disclosures
+
+    @staticmethod
+    def _append_orchestration_disclosures(
+        text: str,
+        *,
+        disclosures: list[str],
+    ) -> str:
+        base = str(text or "").strip()
+        if not disclosures:
+            return base
+
+        lowered = base.lower()
+        missing = [item for item in disclosures if item.lower() not in lowered]
+        if not missing:
+            return base
+
+        suffix_lines = ["", "Coverage and Failure Signals:"]
+        suffix_lines.extend(f"- {item}" for item in missing)
+        return base + "\n" + "\n".join(suffix_lines)
 
     @staticmethod
     def _stream_plain_text(text: str, on_chunk) -> None:

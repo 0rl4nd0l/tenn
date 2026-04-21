@@ -65,6 +65,48 @@ export type ActionJobStatus = {
   progress_pct?: number | null
 }
 
+export type ChatSessionSummary = {
+  session_id: string
+  updated_at?: string | null
+  message_count: number
+  title?: string | null
+  last_message?: string | null
+}
+
+export type ChatSessionListResponse = {
+  items: ChatSessionSummary[]
+}
+
+export type ChatSessionMessage = {
+  id: number
+  session_id: string
+  role: 'user' | 'assistant' | 'system'
+  content: string
+  created_at: string
+}
+
+export type ChatSessionMessagesResponse = {
+  session_id: string
+  message_count: number
+  items: ChatSessionMessage[]
+}
+
+export type ChatSessionCreateResponse = {
+  ok: boolean
+  session_id: string
+  created: boolean
+}
+
+export type CockpitPreferences = {
+  api_default_enabled: boolean
+  marketplace_prefer_cloud_routing: boolean
+}
+
+export type CockpitPreferencesPatch = {
+  api_default_enabled?: boolean
+  marketplace_prefer_cloud_routing?: boolean
+}
+
 type AttachedChatSource = {
   source_id: string
   source_kind: string
@@ -157,6 +199,66 @@ export function isBackendHealthy(health?: HealthResponse): boolean {
   const backendService = health?.services?.find((service) => service.name === 'backend')
   if (backendService) return isHealthyService(backendService)
   return health?.status === 'healthy'
+}
+
+/** Shared chat sessions – GET /api/cockpit/chat/sessions */
+export async function listChatSessions(limit: number = 100): Promise<ChatSessionSummary[]> {
+  const safeLimit = Math.max(1, Math.min(limit, 500))
+  const response = await apiFetch<ChatSessionListResponse>(`/api/cockpit/chat/sessions?limit=${safeLimit}`)
+  return Array.isArray(response.items) ? response.items : []
+}
+
+/** Cockpit routing preferences – GET /api/cockpit/preferences */
+export async function getCockpitPreferences(): Promise<CockpitPreferences> {
+  return apiFetch<CockpitPreferences>('/api/cockpit/preferences')
+}
+
+/** Cockpit routing preferences – PATCH /api/cockpit/preferences */
+export async function patchCockpitPreferences(patch: CockpitPreferencesPatch): Promise<CockpitPreferences> {
+  return apiFetch<CockpitPreferences>(
+    '/api/cockpit/preferences',
+    {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    },
+  )
+}
+
+/** Shared chat messages for a session – GET /api/cockpit/chat/sessions/{session_id} */
+export async function getChatSessionMessages(
+  sessionId: string,
+  limit: number = 400,
+): Promise<ChatSessionMessage[]> {
+  const safeSessionId = encodeURIComponent((sessionId || '').trim())
+  const safeLimit = Math.max(1, Math.min(limit, 2000))
+  const response = await apiFetch<ChatSessionMessagesResponse>(
+    `/api/cockpit/chat/sessions/${safeSessionId}?limit=${safeLimit}`,
+  )
+  return Array.isArray(response.items) ? response.items : []
+}
+
+/** Create or touch a shared chat session – POST /api/cockpit/chat/sessions */
+export async function createChatSessionRemote(sessionId?: string): Promise<ChatSessionCreateResponse> {
+  const payload = typeof sessionId === 'string' && sessionId.trim()
+    ? { session_id: sessionId.trim() }
+    : {}
+  return apiFetch<ChatSessionCreateResponse>(
+    '/api/cockpit/chat/sessions',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  )
+}
+
+/** Delete shared chat session – DELETE /api/cockpit/chat/sessions/{session_id} */
+export async function deleteChatSessionRemote(sessionId: string): Promise<{ ok: boolean; deleted_count: number }> {
+  const safeSessionId = encodeURIComponent((sessionId || '').trim())
+  const response = await apiFetch<{ ok: boolean; deleted_count: number }>(
+    `/api/cockpit/chat/sessions/${safeSessionId}`,
+    { method: 'DELETE' },
+  )
+  return response
 }
 
 /** Send a chat message (blocking) – POST /api/cockpit/chat */

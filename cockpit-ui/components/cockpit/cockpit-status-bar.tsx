@@ -124,7 +124,7 @@ export function CockpitStatusBar({
       compact ? "px-2 py-0.5" : "px-4 py-1"
     )}>
       <div className={cn("flex items-center justify-between gap-1", compact && "flex-col items-stretch")}>
-        <div className={cn("flex items-center gap-2", compact && "flex-wrap justify-center overflow-hidden h-6")}>
+        <div className={cn("flex items-center gap-2", compact && "flex-wrap justify-center py-1")}>
           {!compact && (
             <>
               <Badge variant="outline" className="h-5 text-[10px] font-mono">

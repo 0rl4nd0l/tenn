@@ -189,11 +189,11 @@ export function JobList({ onSelectJob, selectedJobId }: JobListProps) {
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between text-muted-foreground">
-                      <span className="tabular-nums">
+                      <span className="tabular-nums truncate mr-2">
                         {job.job_type}
                         {job.ticker ? ` \u00B7 ${job.ticker}` : ''}
                       </span>
-                      <span className="tabular-nums">
+                      <span className="tabular-nums shrink-0">
                         {job.status === 'running'
                           ? job.phase ?? 'running'
                           : formatElapsed(job.elapsed_ms)}{' '}

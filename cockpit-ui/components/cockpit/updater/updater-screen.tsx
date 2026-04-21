@@ -15,6 +15,7 @@ import { FinancialData } from '@/lib/cockpit-types'
 import { fetchFinancials, getActionJob, startActionJob } from '@/lib/api-client'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { useCockpitStore } from '@/lib/cockpit-store'
+import { cn } from '@/lib/utils'
 import { useEffect } from 'react'
 
 const JOB_POLL_INTERVAL_MS = 1500
@@ -153,8 +154,8 @@ export function UpdaterScreen() {
   return (
     <ScrollArea className="h-full">
       <div className={cn(
-        "space-y-6 max-w-5xl mx-auto",
-        isIPhoneScale ? "p-4" : "p-6"
+        "max-w-5xl mx-auto",
+        isIPhoneScale ? "p-3 space-y-3" : "p-6 space-y-6"
       )}>
         {/* Fetch Controls */}
         <Card>
