@@ -822,13 +822,18 @@ export async function sendMarketplaceAssistantTurn(
 
   if (!response.ok) {
     let detail = `${response.status}`
-    try {
-      const body = (await response.json()) as { detail?: string }
-      if (body?.detail) {
-        detail = body.detail
+    const rawBody = await response.text()
+    if (rawBody) {
+      try {
+        const body = JSON.parse(rawBody) as { detail?: string }
+        if (cleanText(body?.detail)) {
+          detail = cleanText(body.detail)
+        } else {
+          detail = rawBody
+        }
+      } catch {
+        detail = rawBody
       }
-    } catch {
-      detail = await response.text()
     }
     throw new Error(detail || 'Marketplace assistant request failed')
   }

@@ -128,4 +128,36 @@ describe('marketplace-assistant helpers', () => {
       }),
     )
   })
+
+  it('surfaces non-json error bodies without trying to read the response stream twice', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response('upstream marketplace assistant failed', {
+          status: 502,
+          headers: {
+            'Content-Type': 'text/plain',
+          },
+        }),
+      ),
+    )
+
+    await expect(
+      sendMarketplaceAssistantTurn({
+        apiKey: '',
+        browserHealth: null,
+        draft: createMarketplaceMissionDraft('Melbourne'),
+        homeLocation: 'Melbourne',
+        messages: [
+          createTranscriptMessage('assistant', buildMarketplaceAssistantGreeting('Melbourne')),
+          createTranscriptMessage('user', 'Find a used RTX 3090 in Victoria.'),
+        ],
+        model: 'model:qwen-test',
+        activeSource: 'local',
+        webSearchEnabled: true,
+        sessionId: 'session-1',
+        userMessage: 'Find a used RTX 3090 in Victoria.',
+      }),
+    ).rejects.toThrow('upstream marketplace assistant failed')
+  })
 })
