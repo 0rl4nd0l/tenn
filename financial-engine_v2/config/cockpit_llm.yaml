@@ -5,8 +5,8 @@
 allow_env_override: false
 
 # HybridRouter policy: local_only | local_preferred | api_preferred | api_only
-# local_preferred = ops behaviour: local llama.cpp first, Anthropic when routing allows / fallback.
-hybrid_router_policy: local_preferred
+# api_preferred = Anthropic first when configured, with local fallback.
+hybrid_router_policy: api_preferred
 
 # Display / profile id (ops = local-first + cloud fallback; aligns with COCKPIT_LLM_PROFILE default).
 llm_profile_label: ops
