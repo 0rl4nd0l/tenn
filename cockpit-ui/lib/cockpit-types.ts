@@ -72,6 +72,7 @@ export interface CockpitPreferences {
   showSources: boolean
   theme: 'dark' | 'light'
   marketplaceHomeLocation: string
+  marketplacePreferCloudRouting: boolean
 }
 
 export interface Job {

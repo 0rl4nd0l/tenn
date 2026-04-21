@@ -14,6 +14,7 @@ describe('SettingsScreen', () => {
       preferences: {
         ...state.preferences,
         marketplaceHomeLocation: '',
+        marketplacePreferCloudRouting: false,
       },
     }))
   })
@@ -66,5 +67,51 @@ describe('SettingsScreen', () => {
     await userEvent.type(input as HTMLInputElement, 'Melbourne')
 
     expect(useCockpitStore.getState().preferences.marketplaceHomeLocation).toBe('Melbourne')
+  })
+
+  it('lets the user save the Marketplace cloud-routing preference', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ status: 'healthy' }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            llm_model: 'model:qwen-test',
+            llm_endpoint: 'http://localhost:8001',
+            routing_policy: 'local-first',
+            backend_url: 'http://localhost:8000',
+            profile: 'isolated',
+            features: {
+              web_search: true,
+              rag: true,
+              extraction: true,
+            },
+            python_version: '3.11.8',
+            git_branch: 'main',
+            data_root: '/data/financial-engine',
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            groups: [],
+          }),
+        }),
+    )
+
+    render(<SettingsScreen />)
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/prefer cloud routing for marketplace assistant/i)).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByLabelText(/prefer cloud routing for marketplace assistant/i))
+
+    expect(useCockpitStore.getState().preferences.marketplacePreferCloudRouting).toBe(true)
   })
 })

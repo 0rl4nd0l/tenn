@@ -11,6 +11,7 @@ const DEFAULT_PREFERENCES: CockpitPreferences = {
   showSources: true,
   theme: 'dark',
   marketplaceHomeLocation: '',
+  marketplacePreferCloudRouting: false,
 }
 
 // Generate unique IDs
@@ -89,7 +90,7 @@ export const useCockpitStore = create<CockpitState>()(
     }),
     {
       name: 'cockpit-storage',
-      version: 2,
+      version: 3,
       migrate: (persistedState) => {
         const state = persistedState as Partial<CockpitState> | undefined
         if (!state) {

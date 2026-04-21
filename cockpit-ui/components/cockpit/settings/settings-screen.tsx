@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { Cpu, Server, ToggleLeft, Info, GitBranch, FolderOpen, Loader2, HardDrive, ArrowRightLeft, Store } from 'lucide-react'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import { fetchAvailableModels, loadCockpitModel } from '@/lib/api-client'
@@ -361,6 +362,26 @@ export function SettingsScreen() {
             <p className="text-xs text-muted-foreground">
               Used as the default location context for Marketplace assistant mission drafting.
             </p>
+          </div>
+          <Separator />
+          <div className="flex items-start justify-between gap-4 py-1">
+            <div className="space-y-1">
+              <label htmlFor="marketplace-prefer-cloud-routing" className="text-sm text-muted-foreground">
+                Prefer cloud routing for Marketplace assistant
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Forces Marketplace assistant chat turns onto the cloud/API route. Extraction-triggered API pinning still overrides this automatically.
+              </p>
+            </div>
+            <Switch
+              id="marketplace-prefer-cloud-routing"
+              checked={preferences.marketplacePreferCloudRouting}
+              onCheckedChange={(checked) => {
+                updatePreferences({
+                  marketplacePreferCloudRouting: checked,
+                })
+              }}
+            />
           </div>
         </ConfigSection>
 

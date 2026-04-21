@@ -95,6 +95,7 @@ interface SendMarketplaceAssistantTurnParams {
   model: string
   activeSource: 'local' | 'anthropic' | 'unknown'
   apiDefaultEnabled: boolean
+  marketplacePreferCloudRouting: boolean
   webSearchEnabled: boolean
   sessionId: string
   userMessage: string
@@ -465,8 +466,9 @@ function buildRoutePrefix(
   activeSource: 'local' | 'anthropic' | 'unknown',
   model: string,
   apiDefaultEnabled = false,
+  marketplacePreferCloudRouting = false,
 ): '/local' | '/cloud' {
-  if (apiDefaultEnabled) return '/cloud'
+  if (apiDefaultEnabled || marketplacePreferCloudRouting) return '/cloud'
   if (activeSource === 'anthropic') return '/cloud'
   if (activeSource === 'local') return '/local'
   return /claude|anthropic/i.test(model) ? '/cloud' : '/local'
@@ -803,6 +805,7 @@ export async function sendMarketplaceAssistantTurn(
     params.activeSource,
     params.model,
     params.apiDefaultEnabled,
+    params.marketplacePreferCloudRouting,
   )
   const prompt = buildPrompt({
     browserHealth: params.browserHealth,
@@ -890,6 +893,12 @@ export function resolveMarketplaceAssistantRoutePrefix(
   activeSource: 'local' | 'anthropic' | 'unknown',
   model: string,
   apiDefaultEnabled = false,
+  marketplacePreferCloudRouting = false,
 ): '/local' | '/cloud' {
-  return buildRoutePrefix(activeSource, model, apiDefaultEnabled)
+  return buildRoutePrefix(
+    activeSource,
+    model,
+    apiDefaultEnabled,
+    marketplacePreferCloudRouting,
+  )
 }

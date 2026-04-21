@@ -19,6 +19,7 @@ describe('MarketplaceAssistant', () => {
         ...state.preferences,
         webSearchEnabled: true,
         marketplaceHomeLocation: 'Melbourne',
+        marketplacePreferCloudRouting: false,
       },
     }))
   })
@@ -139,5 +140,60 @@ describe('MarketplaceAssistant', () => {
     expect(onScanQueued).toHaveBeenCalledWith('job-77')
     expect(onMarketplaceStateChange).toHaveBeenCalled()
     expect(screen.getByText(/created mission and queued scan job-77/i)).toBeInTheDocument()
+  })
+
+  it('pins Marketplace assistant turns to cloud when the Marketplace cloud preference is enabled', async () => {
+    useCockpitStore.setState((state) => ({
+      ...state,
+      activeSource: 'local',
+      apiDefaultEnabled: false,
+      chatModel: 'model:qwen-test',
+      preferences: {
+        ...state.preferences,
+        webSearchEnabled: true,
+        marketplaceHomeLocation: 'Melbourne',
+        marketplacePreferCloudRouting: true,
+      },
+    }))
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        content: {
+          answer: JSON.stringify({
+            assistant_message: 'What budget do you have?',
+            draft: {},
+            missing_fields: ['budget'],
+            ready_to_create: false,
+            suggested_action: 'ask_followup',
+          }),
+          model: 'model:qwen-test',
+          source: 'anthropic',
+        },
+      }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(
+      <MarketplaceAssistant
+        apiKey="secret"
+        browserHealth={null}
+        onMarketplaceStateChange={vi.fn()}
+      />,
+    )
+
+    await userEvent.type(
+      screen.getByPlaceholderText(/describe what you want to buy/i),
+      'I want a used RTX 3090 in Victoria.',
+    )
+    await userEvent.click(screen.getByRole('button', { name: /^send$/i }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+    })
+
+    const chatRequest = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))
+    expect(chatRequest.message).toContain('/cloud')
+    expect(screen.getByText('Route: cloud')).toBeInTheDocument()
   })
 })

@@ -111,6 +111,7 @@ export function MarketplaceAssistant({
     activeSource,
     chatModel,
     apiDefaultEnabled,
+    preferences.marketplacePreferCloudRouting,
   )
   const [draft, setDraft] = useState<MarketplaceMissionDraft>(() => createMarketplaceMissionDraft(homeLocation))
   const [messages, setMessages] = useState<MarketplaceAssistantTranscriptMessage[]>(() =>
@@ -168,6 +169,7 @@ export function MarketplaceAssistant({
         model: chatModel,
         activeSource,
         apiDefaultEnabled,
+        marketplacePreferCloudRouting: preferences.marketplacePreferCloudRouting,
         webSearchEnabled: preferences.webSearchEnabled,
         sessionId,
         userMessage,
