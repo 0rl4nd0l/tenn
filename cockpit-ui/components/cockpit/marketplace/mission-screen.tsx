@@ -22,6 +22,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { MarketplaceAssistant } from './marketplace-assistant'
 
@@ -37,6 +38,8 @@ type MissionFormState = {
   preferredBrands: string
   locationNames: string
   priceMax: string
+  scanIntervalMinutes: string
+  autoScanEnabled: boolean
   aggressiveAlerting: boolean
 }
 
@@ -48,6 +51,8 @@ const DEFAULT_FORM: MissionFormState = {
   preferredBrands: '',
   locationNames: '',
   priceMax: '',
+  scanIntervalMinutes: '15',
+  autoScanEnabled: true,
   aggressiveAlerting: false,
 }
 
@@ -121,6 +126,18 @@ function scanOutputPlaceholder(job: MarketplaceScanJob | null): string {
   return 'Scan completed, but no stdout was captured.'
 }
 
+function missionScanIntervalMinutes(mission: MarketplaceMission): number {
+  const raw = Number((mission.scan_config || {}).scan_interval_minutes)
+  if (!Number.isFinite(raw) || raw <= 0) {
+    return 15
+  }
+  return Math.round(raw)
+}
+
+function missionAggressiveAlertingEnabled(mission: MarketplaceMission): boolean {
+  return Boolean((mission.scan_config || {}).aggressive_alerting)
+}
+
 export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenProps) {
   const [browserHealth, setBrowserHealth] = useState<MarketplaceBrowserHealth | null>(null)
   const [missions, setMissions] = useState<MarketplaceMission[]>([])
@@ -134,6 +151,8 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [missionIntervalDrafts, setMissionIntervalDrafts] = useState<Record<string, string>>({})
+  const [savingMissionId, setSavingMissionId] = useState<string | null>(null)
   const selectedScanJobIdRef = useRef<string | null>(null)
   const desktopSessionMissing = browserHealth?.status === 'desktop_session_missing'
   const headlessProbeBlocked =
@@ -176,6 +195,13 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
       ])
       setBrowserHealth(health)
       setMissions(missionItems)
+      setMissionIntervalDrafts((current) => {
+        const next = { ...current }
+        for (const mission of missionItems) {
+          next[mission.mission_id] = String(missionScanIntervalMinutes(mission))
+        }
+        return next
+      })
       setScanJobs(jobs)
       const nextSelectedJobId = pickScanJobId(jobs, selectedScanJobIdRef.current)
       selectedScanJobIdRef.current = nextSelectedJobId
@@ -211,14 +237,20 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
       await createMarketplaceMission(apiKey, {
         name: form.name,
         brief: form.brief,
+        status: form.autoScanEnabled ? 'active' : 'paused',
         hard_filters: {
           include_keywords: splitCsv(form.includeKeywords),
           exclude_keywords: splitCsv(form.excludeKeywords),
           location_names: splitCsv(form.locationNames),
           price_max: form.priceMax ? Number(form.priceMax) : null,
+        },
+        soft_preferences: {
           preferred_brands: splitCsv(form.preferredBrands),
         },
-        aggressive_alerting: form.aggressiveAlerting,
+        scan_config: {
+          scan_interval_minutes: form.scanIntervalMinutes ? Number(form.scanIntervalMinutes) : 15,
+          aggressive_alerting: form.aggressiveAlerting,
+        },
       })
       setForm(DEFAULT_FORM)
       setNotice('Mission created successfully.')
@@ -266,13 +298,47 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
     await loadSelectedScanJob(jobId)
   }
 
-  async function handleStatus(missionId: string, status: string) {
+  async function handleAutoScanToggle(mission: MarketplaceMission, enabled: boolean) {
+    setSavingMissionId(mission.mission_id)
     setError(null)
+    setNotice(null)
     try {
-      await updateMarketplaceMission(apiKey, missionId, { status })
+      await updateMarketplaceMission(apiKey, mission.mission_id, {
+        status: enabled ? 'active' : 'paused',
+      })
+      setNotice(enabled ? 'Auto scan enabled.' : 'Auto scan paused.')
       await load()
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : 'Mission update failed')
+    } finally {
+      setSavingMissionId(null)
+    }
+  }
+
+  async function handleSaveCadence(mission: MarketplaceMission) {
+    const raw = missionIntervalDrafts[mission.mission_id] ?? String(missionScanIntervalMinutes(mission))
+    const intervalMinutes = Number(raw)
+    if (!Number.isFinite(intervalMinutes) || intervalMinutes <= 0) {
+      setError('Scan cadence must be a positive number of minutes.')
+      return
+    }
+
+    setSavingMissionId(mission.mission_id)
+    setError(null)
+    setNotice(null)
+    try {
+      await updateMarketplaceMission(apiKey, mission.mission_id, {
+        scan_config: {
+          ...(mission.scan_config || {}),
+          scan_interval_minutes: Math.round(intervalMinutes),
+        },
+      })
+      setNotice(`Auto scan cadence updated to every ${Math.round(intervalMinutes)} minutes.`)
+      await load()
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : 'Cadence update failed')
+    } finally {
+      setSavingMissionId(null)
     }
   }
 
@@ -377,27 +443,86 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                           <p className="line-clamp-2 text-xs text-muted-foreground mb-4">
                             {mission.brief}
                           </p>
+                          <div className="mb-4 space-y-3 rounded-md border border-border/60 bg-muted/15 p-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <div className="text-[11px] font-medium text-foreground">Auto scan</div>
+                                <div className="text-[10px] text-muted-foreground">
+                                  Scheduler checks active missions continuously.
+                                </div>
+                              </div>
+                              <Switch
+                                aria-label={`Auto scan ${mission.name}`}
+                                checked={mission.status === 'active'}
+                                onCheckedChange={(checked) => void handleAutoScanToggle(mission, checked)}
+                                disabled={savingMissionId === mission.mission_id}
+                              />
+                            </div>
+                            <div className="flex items-end gap-2">
+                              <div className="flex-1 space-y-1">
+                                <label className="text-[10px] font-medium text-muted-foreground">
+                                  Check every (minutes)
+                                </label>
+                                <Input
+                                  type="number"
+                                  inputMode="numeric"
+                                  min="1"
+                                  value={
+                                    missionIntervalDrafts[mission.mission_id]
+                                    ?? String(missionScanIntervalMinutes(mission))
+                                  }
+                                  onChange={(event) =>
+                                    setMissionIntervalDrafts((current) => ({
+                                      ...current,
+                                      [mission.mission_id]: event.target.value,
+                                    }))
+                                  }
+                                  className="h-8 text-xs"
+                                  aria-label={`Scan cadence for ${mission.name}`}
+                                />
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => void handleSaveCadence(mission)}
+                                disabled={savingMissionId === mission.mission_id}
+                                className="h-8 text-[10px]"
+                              >
+                                Save cadence
+                              </Button>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground">
+                              {mission.status === 'active'
+                                ? `Auto scan is on. Next runs aim for every ${missionScanIntervalMinutes(mission)} minutes.`
+                                : `Auto scan is off. Resume it to let the scheduler keep checking every ${missionScanIntervalMinutes(mission)} minutes.`}
+                            </div>
+                            {mission.last_scan_at && (
+                              <div className="text-[10px] text-muted-foreground">
+                                Last scan: <span className="font-mono">{formatClock(mission.last_scan_at)}</span>
+                              </div>
+                            )}
+                            {missionAggressiveAlertingEnabled(mission) && (
+                              <Badge variant="outline" className="text-[9px]">
+                                aggressive alerting
+                              </Badge>
+                            )}
+                          </div>
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-1">
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => void handleTriggerScan(mission.mission_id)}
-                                disabled={loading}
+                                disabled={loading || savingMissionId === mission.mission_id}
                                 className="h-7 text-[10px]"
                               >
                                 <Play className="mr-1.5 h-3 w-3" />
                                 Scan Now
                               </Button>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => void handleStatus(mission.mission_id, mission.status === 'active' ? 'paused' : 'active')}
-                              className="h-7 text-[10px]"
-                            >
-                              {mission.status === 'active' ? 'Pause' : 'Resume'}
-                            </Button>
+                            <Badge variant="outline" className="text-[9px] font-mono">
+                              every {missionScanIntervalMinutes(mission)} min
+                            </Badge>
                           </div>
                         </CardContent>
                       </Card>
@@ -429,6 +554,37 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                       placeholder="e.g. 1500"
                       value={form.priceMax}
                       onChange={(e) => setForm({ ...form, priceMax: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium">Auto Scan</label>
+                    <div className="flex items-center justify-between rounded-md border border-border/60 px-3 py-2">
+                      <div>
+                        <div className="text-xs font-medium">
+                          {form.autoScanEnabled ? 'Enabled' : 'Paused'}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">
+                          Active missions are scanned by the scheduler on this cadence.
+                        </div>
+                      </div>
+                      <Switch
+                        aria-label="Auto scan for new mission"
+                        checked={form.autoScanEnabled}
+                        onCheckedChange={(checked) => setForm({ ...form, autoScanEnabled: checked })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium">Scan Every (Minutes)</label>
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      min="1"
+                      placeholder="e.g. 5"
+                      value={form.scanIntervalMinutes}
+                      onChange={(e) => setForm({ ...form, scanIntervalMinutes: e.target.value })}
                     />
                   </div>
                 </div>

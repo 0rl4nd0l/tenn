@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -168,6 +168,104 @@ describe('MarketplaceMissionScreen', () => {
     expect(screen.getByText(/browser launch request sent/i)).toBeInTheDocument()
   })
 
+  it('creates a mission with explicit auto-scan status and cadence', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'ready',
+          cdp_url: 'http://127.0.0.1:9222',
+          browser_family: 'chrome',
+          profile_path: '/tmp/profile',
+          logged_in: true,
+          challenge_detected: false,
+          last_checked_at: '2026-04-21T00:00:00Z',
+          detail: 'Marketplace browser profile is ready.',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          mission_id: 'mp-new',
+          name: 'RTX 3090',
+          status: 'paused',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'ready',
+          cdp_url: 'http://127.0.0.1:9222',
+          browser_family: 'chrome',
+          profile_path: '/tmp/profile',
+          logged_in: true,
+          challenge_detected: false,
+          last_checked_at: '2026-04-21T00:00:05Z',
+          detail: 'Marketplace browser profile is ready.',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [] }),
+      })
+
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<MarketplaceMissionScreen apiKey="k" />)
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(3)
+    })
+
+    await userEvent.type(screen.getByPlaceholderText(/vintage watches/i), 'RTX 3090')
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. 1500/i), '900')
+    await userEvent.type(
+      screen.getByPlaceholderText(/describe what you are looking for/i),
+      'Find a clean RTX 3090 around Melbourne with no repair history.',
+    )
+    await userEvent.type(screen.getByPlaceholderText(/rolex, omega, tudor/i), 'RTX 3090, NVIDIA')
+    await userEvent.click(screen.getByRole('switch', { name: /auto scan for new mission/i }))
+    await userEvent.clear(screen.getByPlaceholderText(/e\.g\. 5/i))
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. 5/i), '3')
+    const createMissionCard = screen.getByText(/create new mission/i).closest('[data-slot="card"]')
+    expect(createMissionCard).toBeTruthy()
+    await userEvent.click(
+      within(createMissionCard as HTMLElement).getByRole('button', { name: /^create mission$/i }),
+    )
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(7)
+    })
+
+    expect(fetchMock.mock.calls[3][0]).toBe('/api/cockpit/marketplace/missions')
+    expect(JSON.parse(String(fetchMock.mock.calls[3][1]?.body))).toEqual(
+      expect.objectContaining({
+        name: 'RTX 3090',
+        status: 'paused',
+        scan_config: {
+          scan_interval_minutes: 3,
+          aggressive_alerting: false,
+        },
+        soft_preferences: {
+          preferred_brands: [],
+        },
+      }),
+    )
+  })
+
   it('shows a desktop-session warning before launch when the backend reports desktop_session_missing', async () => {
     vi.stubGlobal(
       'fetch',
@@ -210,6 +308,180 @@ describe('MarketplaceMissionScreen', () => {
     expect(
       screen.getByText(/launch chrome manually with remote debugging on port 9222, then refresh/i),
     ).toBeInTheDocument()
+  })
+
+  it('lets the user toggle auto scan and save a faster cadence for an existing mission', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'ready',
+          cdp_url: 'http://127.0.0.1:9222',
+          browser_family: 'chrome',
+          profile_path: '/tmp/profile',
+          logged_in: true,
+          challenge_detected: false,
+          last_checked_at: '2026-04-21T00:00:00Z',
+          detail: 'Marketplace browser profile is ready.',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              mission_id: 'mp-mission-1',
+              name: 'GPU hunter',
+              status: 'paused',
+              brief: 'Watch for good value GPUs.',
+              category_hint: 'electronics',
+              hard_filters: {},
+              soft_preferences: {},
+              search_config: {},
+              scan_config: {
+                scan_interval_minutes: 15,
+                aggressive_alerting: false,
+              },
+              created_at: '2026-04-21T00:00:00Z',
+              updated_at: '2026-04-21T00:00:00Z',
+              last_scan_at: '2026-04-21T00:10:00Z',
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          mission_id: 'mp-mission-1',
+          status: 'active',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'ready',
+          cdp_url: 'http://127.0.0.1:9222',
+          browser_family: 'chrome',
+          profile_path: '/tmp/profile',
+          logged_in: true,
+          challenge_detected: false,
+          last_checked_at: '2026-04-21T00:00:05Z',
+          detail: 'Marketplace browser profile is ready.',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              mission_id: 'mp-mission-1',
+              name: 'GPU hunter',
+              status: 'active',
+              brief: 'Watch for good value GPUs.',
+              category_hint: 'electronics',
+              hard_filters: {},
+              soft_preferences: {},
+              search_config: {},
+              scan_config: {
+                scan_interval_minutes: 15,
+                aggressive_alerting: false,
+              },
+              created_at: '2026-04-21T00:00:00Z',
+              updated_at: '2026-04-21T00:00:05Z',
+              last_scan_at: '2026-04-21T00:10:00Z',
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          mission_id: 'mp-mission-1',
+          status: 'active',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'ready',
+          cdp_url: 'http://127.0.0.1:9222',
+          browser_family: 'chrome',
+          profile_path: '/tmp/profile',
+          logged_in: true,
+          challenge_detected: false,
+          last_checked_at: '2026-04-21T00:00:10Z',
+          detail: 'Marketplace browser profile is ready.',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              mission_id: 'mp-mission-1',
+              name: 'GPU hunter',
+              status: 'active',
+              brief: 'Watch for good value GPUs.',
+              category_hint: 'electronics',
+              hard_filters: {},
+              soft_preferences: {},
+              search_config: {},
+              scan_config: {
+                scan_interval_minutes: 5,
+                aggressive_alerting: false,
+              },
+              created_at: '2026-04-21T00:00:00Z',
+              updated_at: '2026-04-21T00:00:10Z',
+              last_scan_at: '2026-04-21T00:10:00Z',
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [] }),
+      })
+
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<MarketplaceMissionScreen apiKey="k" />)
+
+    await waitFor(() => {
+      expect(screen.getByText('GPU hunter')).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByRole('switch', { name: /auto scan gpu hunter/i }))
+
+    await waitFor(() => {
+      expect(fetchMock.mock.calls[3]?.[0]).toBe('/api/cockpit/marketplace/missions/mp-mission-1')
+    })
+    expect(JSON.parse(String(fetchMock.mock.calls[3][1]?.body))).toEqual({ status: 'active' })
+
+    const cadenceInput = screen.getByRole('spinbutton', { name: /scan cadence for gpu hunter/i })
+    await userEvent.clear(cadenceInput)
+    await userEvent.type(cadenceInput, '5')
+    await userEvent.click(screen.getByRole('button', { name: /save cadence/i }))
+
+    await waitFor(() => {
+      expect(fetchMock.mock.calls[7]?.[0]).toBe('/api/cockpit/marketplace/missions/mp-mission-1')
+    })
+    expect(JSON.parse(String(fetchMock.mock.calls[7][1]?.body))).toEqual(
+      expect.objectContaining({
+        scan_config: expect.objectContaining({
+          scan_interval_minutes: 5,
+        }),
+      }),
+    )
+    expect(screen.getByText(/auto scan cadence updated to every 5 minutes/i)).toBeInTheDocument()
   })
 
   it('shows a headless attach warning when CDP is reachable but Marketplace probing times out', async () => {
