@@ -137,31 +137,33 @@ Backend APIs that require authentication use the **`X-API-Key`** header pattern 
 
 ---
 
-## 9. Conformance matrix (SYSTEM_CONTRACT §1.2–§1.3)
+## 9. Conformance matrix (SYSTEM_CONTRACT §1.2, §1.3, §5.2)
 
-Each row maps a **contract obligation** to **implementation** and an explicit **outcome**. Update this table when behavior intentionally changes.
+Review date: `2026-04-21`
 
-| # | Contract obligation (summary) | Implementation pointers | Tests / notes | Outcome |
-|---|--------------------------------|---------------------------|---------------|---------|
-| C1 | Call backend APIs for authoritative reads when client is configured | `BackendApiClient`; `financial-engine_v2/cockpit/core/tools.py`, `tool_executor.py`, `verification.py`, research modules using `backend_api_client` | `financial-engine_v2/cockpit/tests/test_tool_executor_extraction.py`, `test_slash_commands.py`, `test_deep_research.py` | **conform** |
-| C2 | No silent fallback to local DB for authoritative reads when backend is configured | Contract text in `SYSTEM_CONTRACT.md` §1.2; failure returns empty + error signal | Backend integration behavior covered indirectly via cockpit tests with mocks | **conform** (by contract spec; verify when touching error paths) |
-| C3 | `DbReader` limited to diagnostics + legacy stubs | `financial-engine_v2/cockpit/integrations/db_reader.py` (diagnostics + legacy SQL stubs) | Stubs still execute SQL if invoked — only acceptable when `backend_api_client` is **not** configured per contract | **intentional deviation** — legacy / no-backend environments; **do not** use stubs for authoritative paths when backend is configured |
-| C4 | Do not access Qdrant directly for commentary write authority | Preferred: `BackendApiClient` transcript approve via backend `/api/commentary/transcripts/*` | `financial-engine_v2/cockpit/tests/test_transcript_review.py` | **conform** for preferred path |
-| C5 | Legacy direct Qdrant upsert from Cockpit for transcript approve | `TranscriptReviewService.approve()` in `financial-engine_v2/cockpit/integrations/transcript_review.py` (direct `verify_qdrant` / `upsert_points`) | Docstring states legacy path when backend API unavailable | **intentional deviation** — migrate callers to backend endpoint when possible |
-| C6 | Request retrieval via backend (RAG) | `BackendApiClient.rag_query`, `qual_context.py` | `test_tool_executor_extraction.py` | **conform** for primary path |
-| C7 | News context SQLite fallback when Qdrant/backend path fails | `financial-engine_v2/cockpit/core/tools.py` (`news_context`) | Logs fallback; not a second ranked retrieval engine — resilience only | **intentional deviation** — documented fallback; tighten if contract interpretation changes |
-| C8 | No independent merge/rank as authority | Cockpit does not replace backend hybrid retriever for `/api/chat` | N/A | **conform** (scope: Cockpit client; backend owns `/chat` RAG) |
-| C9 | Orchestration (subprocess actions, UI) without owning ingestion truth | `financial-engine_v2/cockpit/core/actions.py` runs scripts (e.g. ticker sync, loaders) | Actions invoke repo scripts; backend remains authority for persisted truth | **conform** |
-| C10 | Web UI active-model/switch UX reflects backend authority rather than stale client state | `cockpit-ui/components/cockpit/chat/chat-screen.tsx`, `cockpit-ui/components/cockpit/cockpit-status-bar.tsx`, `cockpit-ui/lib/cockpit-config.ts` | UI should compare normalized backend-backed runtime identity before showing switch-wait states | **conform** |
-| C11 | Web UI commentary attachments remain ephemeral and backend-authoritative | `cockpit-ui/components/cockpit/chat/chat-screen.tsx`, `cockpit-ui/lib/hooks/use-attached-sources.ts`, `cockpit-ui/lib/api-client.ts` | The browser stores only per-tab attachment metadata and forwards `attached_sources` to backend chat routes; no client retrieval path was added | **conform** |
-| C12 | Source contract bypass requires PURE refusal — no financial claims | `backend/app/routes/cockpit_api.py` `_enforce_visible_source_contract` + `_CONTAINS_FINANCIAL_CLAIM_RE` | A response hedged with "I cannot confirm" that also contains named tickers, dollar amounts, percentages, or financial events is blocked by the guard — the `_EXPLICIT_UNVERIFIED_RESPONSE_RE` bypass only fires when `_CONTAINS_FINANCIAL_CLAIM_RE` does NOT match | **conform** |
-| C13 | Agent hard-blocks substantive tool-less responses after one grounding nudge | `cockpit/core/agent_loop.py` `grounding_nudges_given` counter + `_response_is_pure_refusal()` | After the first grounding nudge, any non-pure-refusal response that still lacks tool evidence is replaced with a safe refusal; the model cannot answer substantive questions without tools on a second attempt | **conform** |
-| C14 | Market-wide queries must not receive active ticker context | `cockpit/core/agent_loop.py` intent-aware ticker injection + `cockpit/core/query_intent.py` | MARKET_WIDE and COMMAND intents bypass the `Current ticker context: X` prefix so "news today?" searches the whole corpus | **conform** |
-| C15 | Imperative commands short-circuit to action proposals before agent loop | `cockpit/core/command_router.py` + `AgentLoop.run()` pre-loop check | `ingest VEA`, `chart BHP`, `update CBA` are matched by regex pre-router and returned as `action_preview` without entering the LLM loop | **conform** |
-| C16 | Verification run history persisted and exposed via backend endpoint | `backend/app/services/cockpit_service.py` `record_verification_run` + `GET /api/context/verification/runs` | Run metadata stored in `$DATA_ROOT/cockpit_verification_runs.json`; frontend verification-screen fetches on mount and shows ticker/date/pass-fail/re-run panel | **conform** |
-| C17 | TradingView technical indicators fetched via backend tool — not a client-side API call | `cockpit/core/tool_executor.py` `_exec_get_tv_indicators` + `_exec_tv_screener` in `_READ_ONLY_DISPATCH` | Uses `tradingview-scraper` package (optional dep); gracefully returns install instructions if absent; never calls TV API from browser | **conform** |
-| C18 | Pine Script webhook alerts stored server-side and exposed via backend endpoint | `backend/app/routes/cockpit_api.py` `POST /api/cockpit/tv/alert` + `GET /api/cockpit/tv/alerts` | Alerts persisted in `$DATA_ROOT/tv_alerts.json` (ring buffer, 200 entries); `TV_WEBHOOK_TOKEN` env var gates access in production | **conform** |
-| C19 | Candlestick charts rendered via TradingView Lightweight Charts (Apache 2.0) — no external data API | `cockpit/core/plotly_html.py` `build_candlestick_dashboard_html` | HTML generated server-side with self-contained Lightweight Charts CDN script; rendered in iframe `srcDoc`; no TV data API calls | **conform** |
+This matrix is intentionally evidence-scoped to files and tests inspected in this Cloud-4 pass.
+
+| Clause | Implemented surface | Evidence (code/tests/docs) | Status | Notes |
+|---|---|---|---|---|
+| §1.2 Cockpit must read authoritative data via backend APIs when configured | Cockpit HTTP client + ticker/news context paths | `financial-engine_v2/cockpit/integrations/backend_api.py` (`/api/health`, `/rag/query`); `financial-engine_v2/cockpit/core/tools.py` (`_load_ticker_context`, `_load_ticker_context_from_backend`) | `compliant` | When configured, ticker context flows through backend endpoints. |
+| §1.2 Cockpit must not silently substitute local authority when backend read fails | Ticker-context error handling returns explicit error payloads | `financial-engine_v2/cockpit/core/tools.py` (returns `db_error` on unavailable backend / backend exception) | `compliant` | Current implementation degrades visibly with explicit backend-unavailable signal. |
+| §1.2 Cockpit must not use direct Postgres reads for authoritative flows | Legacy `DbReader` still ships direct SQL methods | `financial-engine_v2/cockpit/integrations/db_reader.py` (module header says diagnostics-only; methods `get_docs`, `get_financials`, etc. still execute SQL) | `partial` | Risk persists if callers regress to `DbReader`; guard is policy + call-site discipline, not full mechanical removal. |
+| §1.2 Cockpit must not access Qdrant directly for authority | Legacy transcript approve path performs direct Qdrant upsert | `financial-engine_v2/cockpit/integrations/transcript_review.py` (`approve()` imports `verify_qdrant` and `upsert_points`) | `non-compliant` | Docstring marks this as legacy, but code path still exists and can bypass backend commentary API. |
+| §1.3 Cockpit may request retrieval via backend, must not own retrieval logic | News retrieval calls backend first, then local SQLite fallback | `financial-engine_v2/cockpit/core/tools.py` (`get_news_context` Qdrant-first + `sqlite_fallback`); `financial-engine_v2/cockpit/tests/test_tool_executor_extraction.py` (fallback expectations at lines with `_source == "sqlite_fallback"`) | `partial` | Backend-first is in place; fallback still introduces cockpit-local retrieval surface. |
+| §5.2 Unified retrieval interface `POST /rag/query` | Endpoint exists and enforces source enum | `financial-engine_v2/backend/app/main.py` (`@app.post("/rag/query")`) | `partial` | Interface exists, but not all declared sources are live yet. |
+| §5.2 `source=asx_docs` implemented | ASX docs retrieval branch | `financial-engine_v2/backend/app/main.py` (`if body.source == "asx_docs": return query_rag(...)`) | `compliant` | Implemented and routed in backend authority layer. |
+| §5.2 `source=news` implemented | News retrieval branch | `financial-engine_v2/backend/app/main.py` (`elif body.source == "news": return query_news_chunks(...)`) | `compliant` | Implemented and routed in backend authority layer. |
+| §5.2 `source=commentary` should be served by unified retrieval contract | Current endpoint returns 501 | `financial-engine_v2/backend/app/main.py` (`elif body.source == "commentary": raise HTTPException(status_code=501, ...)`) | `partial` | Explicitly unimplemented in `/rag/query`; callers are redirected to `/chat`. |
+| §5.2 `source=hybrid` should be served by unified retrieval contract | Current endpoint returns 501 | `financial-engine_v2/backend/app/main.py` (`elif body.source == "hybrid": raise HTTPException(status_code=501, ...)`) | `partial` | Explicitly unimplemented in `/rag/query`; callers are redirected to `/chat`. |
+
+### 9.1 Highest-risk open gaps (ranked)
+
+| Rank | Gap | Current status | Risk | Why it matters |
+|---|---|---|---|---|
+| 1 | Direct cockpit Qdrant write path for transcript approval remains callable | `non-compliant` | High | Violates backend-only authority and can reintroduce split-write behavior for commentary indexing. |
+| 2 | Cockpit SQLite news fallback remains active when backend retrieval fails | `partial` | High | Keeps a client-side retrieval surface that can drift from backend ranking/filters. |
+| 3 | `DbReader` legacy SQL methods still present | `partial` | Medium | Even with current call-site discipline, latent direct-DB methods increase regression risk. |
+| 4 | `/rag/query` does not yet implement `commentary` and `hybrid` sources | `partial` | Medium | Unified retrieval contract remains incomplete, increasing route-shape divergence across clients. |
 
 ---
 
