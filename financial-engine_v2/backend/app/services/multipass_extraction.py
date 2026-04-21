@@ -1753,32 +1753,48 @@ def _run_pass3b_narrative_extractor(
 #   "comprises 3,003,366,782 fully paid shares"
 #   "1,924,937,480 ordinary shares on issue"
 #   "Number of shares on issue: 280,874,770"
+#   "11,893 million ordinary shares on issue"
+_SHARES_PROSE_UNIT_RE = r"(?P<unit>thousand|thousands|million|millions|billion|billions|bn)?"
+_SHARES_PROSE_UNIT_MULTIPLIERS: dict[str, float] = {
+    "thousand": 1_000.0,
+    "thousands": 1_000.0,
+    "million": 1_000_000.0,
+    "millions": 1_000_000.0,
+    "billion": 1_000_000_000.0,
+    "billions": 1_000_000_000.0,
+    "bn": 1_000_000_000.0,
+}
 _SHARES_PROSE_PATTERNS = [
     # "comprises X,XXX shares" / "comprised of X shares"
     re.compile(
-        r"compris\w*\s+([\d,]+(?:\.\d+)?)\s+(?:fully\s+paid\s+)?(?:ordinary\s+)?shares",
+        rf"compris\w*\s+(?P<count>[\d][\d,\s]*(?:\.\d+)?)\s*{_SHARES_PROSE_UNIT_RE}\s+(?:fully\s+paid\s+)?(?:ordinary\s+)?shares",
         re.IGNORECASE,
     ),
     # "X shares on issue" / "X ordinary shares on issue"
     re.compile(
-        r"([\d,]+(?:\.\d+)?)\s+(?:fully\s+paid\s+)?(?:ordinary\s+)?shares\s+on\s+issue",
+        rf"(?P<count>[\d][\d,\s]*(?:\.\d+)?)\s*{_SHARES_PROSE_UNIT_RE}\s+(?:fully\s+paid\s+)?(?:ordinary\s+)?shares\s+on\s+issue",
         re.IGNORECASE,
     ),
     # "shares on issue: X" / "number of shares on issue: X"
     re.compile(
-        r"(?:number\s+of\s+)?shares\s+on\s+issue[:\s]+([\d,]+(?:\.\d+)?)",
+        rf"(?:number\s+of\s+)?shares\s+on\s+issue[:\s]+(?P<count>[\d][\d,\s]*(?:\.\d+)?)(?:\s*(?P<unit>thousand|thousands|million|millions|billion|billions|bn))?",
         re.IGNORECASE,
     ),
     # "total issued shares X" / "total ordinary shares X"
     re.compile(
-        r"total\s+(?:issued|ordinary)\s+(?:share\s+)?(?:capital\s+)?(?:of\s+)?([\d,]+(?:\.\d+)?)\s+shares",
+        rf"total\s+(?:issued|ordinary)\s+(?:share\s+)?(?:capital\s+)?(?:of\s+)?(?P<count>[\d][\d,\s]*(?:\.\d+)?)\s*{_SHARES_PROSE_UNIT_RE}\s+shares",
+        re.IGNORECASE,
+    ),
+    # "ordinary shares outstanding were X million"
+    re.compile(
+        rf"(?:ordinary\s+)?shares?\s+outstanding(?:\s+were|\s+was)?\s+(?P<count>[\d][\d,\s]*(?:\.\d+)?)\s*(?P<unit>thousand|thousands|million|millions|billion|billions|bn)?",
         re.IGNORECASE,
     ),
 ]
 
 # Sections likely to contain share capital notes (filter for efficiency)
 _SHARE_NOTE_RE = re.compile(
-    r"note\s+\d+|share\s+capital|shares\s+on\s+issue|issued\s+capital",
+    r"note\s+\d+|share\s+capital|shares\s+on\s+issue|issued\s+capital|ordinary\s+shares|shares?\s+outstanding",
     re.IGNORECASE,
 )
 
@@ -1790,38 +1806,55 @@ def _extract_shares_from_prose(sections: list[dict]) -> tuple[float | None, str]
     Returns (None, "") if no match found.
     """
     # Filter to sections likely to mention share capital
+    all_sections = [s for s in sections if s.get("text")]
     candidates = [
         s for s in sections if s.get("text") and _SHARE_NOTE_RE.search(s["text"])
     ]
-    # Also scan all sections if no note-specific candidates found
-    if not candidates:
-        candidates = [s for s in sections if s.get("text")]
+    non_note_sections = [
+        s for s in all_sections if not _SHARE_NOTE_RE.search(str(s.get("text", "")))
+    ]
+    # Prefer note-like sections first, then scan remaining prose as a fallback.
+    scan_groups: list[list[dict]] = [candidates] if candidates else [all_sections]
+    if candidates and non_note_sections:
+        scan_groups.append(non_note_sections)
 
-    for section in candidates:
-        text = section["text"]
-        page = section.get("page", "?")
-        for pattern in _SHARES_PROSE_PATTERNS:
-            match = pattern.search(text)
-            if match:
-                raw = match.group(1).replace(",", "")
-                try:
-                    value = float(raw)
-                except ValueError:
-                    continue
-                # Sanity: share counts should be > 1M and < 100B
-                if value < 1_000_000 or value > 100_000_000_000:
-                    logger.debug(
-                        "Prose shares_outstanding %.0f outside sane range, skipping",
+    for scan_idx, group in enumerate(scan_groups):
+        if scan_idx == 1:
+            logger.debug(
+                "No shares_outstanding match in note-filtered prose; scanning remaining sections"
+            )
+        for section in group:
+            text = section["text"]
+            page = section.get("page", "?")
+            for pattern in _SHARES_PROSE_PATTERNS:
+                match = pattern.search(text)
+                if match:
+                    groups = match.groupdict()
+                    raw = groups.get("count") or match.group(1)
+                    if not raw:
+                        continue
+                    raw_value = raw.replace(",", "").replace(" ", "")
+                    try:
+                        value = float(raw_value)
+                    except ValueError:
+                        continue
+                    unit = str(groups.get("unit") or "").strip().lower()
+                    if unit:
+                        value *= _SHARES_PROSE_UNIT_MULTIPLIERS.get(unit, 1.0)
+                    # Sanity: share counts should be > 1M and < 100B
+                    if value < 1_000_000 or value > 100_000_000_000:
+                        logger.debug(
+                            "Prose shares_outstanding %.0f outside sane range, skipping",
+                            value,
+                        )
+                        continue
+                    provenance = f"prose_note:page_{page}:{match.group(0)[:60]}"
+                    logger.info(
+                        "shares_outstanding from prose: %.0f (page %s)",
                         value,
+                        page,
                     )
-                    continue
-                provenance = f"prose_note:page_{page}:{match.group(0)[:60]}"
-                logger.info(
-                    "shares_outstanding from prose: %.0f (page %s)",
-                    value,
-                    page,
-                )
-                return value, provenance
+                    return value, provenance
 
     return None, ""
 

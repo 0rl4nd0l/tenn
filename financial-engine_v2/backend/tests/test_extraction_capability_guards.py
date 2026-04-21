@@ -238,3 +238,46 @@ def test_validation_gate_rejects_insufficient_metrics():
     }
     status, error = _validate_gate(payload)
     assert status == "failed", f"Expected 'failed', got '{status}'"
+    assert error is not None
+
+
+# ---------------------------------------------------------------------------
+# Guard I — Prose shares fallback handles explicit scaled units
+# ---------------------------------------------------------------------------
+
+def test_prose_shares_fallback_scales_million_units():
+    """
+    _extract_shares_from_prose() must convert explicit prose units like
+    "11,893 million shares" into absolute counts.
+    """
+    from app.services.multipass_extraction import _extract_shares_from_prose
+
+    sections = [
+        {"text": "Number of shares on issue: 11,893 million", "page": 12},
+    ]
+    value, provenance = _extract_shares_from_prose(sections)
+    assert value == 11_893_000_000.0
+    assert "page_12" in provenance
+
+
+# ---------------------------------------------------------------------------
+# Guard J — Prose shares fallback scans non-note prose when note sections miss
+# ---------------------------------------------------------------------------
+
+def test_prose_shares_fallback_scans_non_note_sections_when_needed():
+    """
+    If note-filtered sections contain no share-count match, fallback must still
+    scan remaining prose sections for explicit "comprises X shares" evidence.
+    """
+    from app.services.multipass_extraction import _extract_shares_from_prose
+
+    sections = [
+        {"text": "Note 13 Share Capital movement during the period.", "page": 40},
+        {
+            "text": "The register comprises 1,924,937,480 fully paid shares.",
+            "page": 41,
+        },
+    ]
+    value, provenance = _extract_shares_from_prose(sections)
+    assert value == 1_924_937_480.0
+    assert "page_41" in provenance
