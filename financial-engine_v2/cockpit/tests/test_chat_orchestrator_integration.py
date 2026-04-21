@@ -197,6 +197,55 @@ def _empty_result(*, ticker: str | None = "BHP"):
     )
 
 
+def _recovery_only_result(*, ticker: str | None = "BHP"):
+    source_plan = ("financial_truth", "company_memory", "market_memory")
+    raw = {
+        "financial_truth": {
+            "status": "ok",
+            "ticker": ticker,
+            "items": [],
+            "latest_financial_snapshot": {},
+            "financials": [],
+            "docs": [],
+            "announcement_context": [],
+        },
+        "company_memory": {"status": "ok", "items": []},
+        "market_memory": {
+            "status": "ok",
+            "sector": None,
+            "sector_items": [],
+            "macro_items": [],
+            "items": [],
+        },
+    }
+    return SimpleNamespace(
+        intent="mixed",
+        entities={"primary_ticker": ticker, "tickers": [ticker] if ticker else []},
+        source_plan=source_plan,
+        financial_truth_results=raw["financial_truth"],
+        company_memory_results=raw["company_memory"],
+        market_memory_results=raw["market_memory"],
+        raw_supporting_evidence=raw,
+        answer_input="Final verdict: abstain until blocking evidence gaps are resolved.",
+        answer={"source_status": {name: "ok" for name in source_plan}},
+        missing_data_recovery={
+            "attempted": True,
+            "sources": list(source_plan),
+            "resolved_categories": [],
+            "remaining_categories": ["financials", "business_profile_context"],
+        },
+        missing_categories_before_recovery=(
+            "financials",
+            "business_profile_context",
+        ),
+        missing_categories_after_recovery=(
+            "financials",
+            "business_profile_context",
+        ),
+        sufficient_for_analysis=False,
+    )
+
+
 def test_financial_fact_queries_use_financial_truth_only() -> None:
     ctrl = _controller(_result("financial_fact", ("financial_truth",)))
 
@@ -332,7 +381,13 @@ def test_unrelated_query_does_not_leak_prior_ticker_into_orchestrator() -> None:
     response = ctrl.build_chat_response("how are things going?", prior_ticker="BHP")
 
     assert response.routing_metadata["intent"] == "market"
-    assert calls == [{"prior_ticker": None}]
+    assert calls == [
+        {
+            "prior_ticker": None,
+            "analysis_mode": None,
+            "request_standard": None,
+        }
+    ]
 
 
 def test_empty_orchestrator_result_falls_back_to_local_context() -> None:
@@ -429,6 +484,35 @@ def test_document_grounded_queries_prefer_local_context_even_with_orchestrator_e
             "details": ctrl.tool_router.gather_local_context.return_value.payload,
         }
     ]
+
+
+def test_recovery_attempted_orchestrator_result_does_not_fall_back_to_local_context() -> (
+    None
+):
+    ctrl = _controller(_recovery_only_result())
+    ctrl.tool_router.gather_local_context.return_value = SimpleNamespace(
+        payload={
+            "ticker": "BHP",
+            "docs": [],
+            "doc_snippets": [],
+            "financials": [],
+            "price": {},
+            "price_state": {},
+            "sources": {},
+        }
+    )
+
+    response = ctrl.build_chat_response("full company analysis on BHP")
+
+    assert response.routing_metadata["source"] == "orchestrator"
+    assert response.text == "Final verdict: abstain until blocking evidence gaps are resolved."
+    assert [item["type"] for item in response.evidence] == [
+        "orchestrator",
+        "financial_truth",
+        "company_memory",
+        "market_memory",
+    ]
+    assert ctrl.tool_router.gather_local_context.call_count == 0
 
 
 def test_recent_update_queries_prefer_local_context_and_keep_backfill_as_optional_followup() -> (

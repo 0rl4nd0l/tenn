@@ -180,13 +180,6 @@ _ALL_SOURCE_PLAN: tuple[SourceName, ...] = (
     "market_memory",
     "user_thesis_memory",
 )
-_COMPANY_ANALYSIS_QUERY_RE = re.compile(
-    r"\b(full|deep|comprehensive)\s+(company\s+)?(analysis|review)\b"
-    r"|\bcompany\s+deep\s+dive\b"
-    r"|\binvestment\s+(thesis|case|view)\b"
-    r"|\bbull\s+case\b|\bbear\s+case\b",
-    flags=re.IGNORECASE,
-)
 _PEER_QUERY_RE = re.compile(
     r"\b(peer|peers|comparable|comparables|vs\.?|versus|relative to|compare)\b",
     flags=re.IGNORECASE,
@@ -376,6 +369,8 @@ def _is_company_analysis_request(
     *,
     context: dict[str, Any] | None,
 ) -> bool:
+    if context is None:
+        return False
     normalized_standard = (
         str((context or {}).get("request_standard") or "").strip().lower()
     )
@@ -384,7 +379,7 @@ def _is_company_analysis_request(
     analysis_mode = str((context or {}).get("analysis_mode") or "").strip().lower()
     if analysis_mode == "deep":
         return True
-    return bool(_COMPANY_ANALYSIS_QUERY_RE.search(str(query or "")))
+    return False
 
 
 def _timestamp_from_payload_row(row: Any) -> datetime | None:
