@@ -755,6 +755,21 @@ class TestMultipleToolCallSequences:
         assert result.action_preview["args"] == {"ticker": "MIN"}
         assert result.iterations_used == 1
 
+    def test_action_proposal_run_analysis_maps_to_executable_action_id(self):
+        """run_analysis proposals must normalize to a concrete action_id for UI confirm."""
+        llm = _make_llm(
+            '{"type": "action_proposal", "tool": "run_analysis", "arguments": {"ticker": "NST"}, '
+            '"explanation": "Run full analysis pipeline for NST.", "requires_confirmation": true}'
+        )
+        loop = AgentLoop(llm_client=llm)
+        result = loop.run("run analysis NST")
+
+        assert result.action_preview is not None
+        assert result.action_preview["tool"] == "run_analysis"
+        assert result.action_preview["action_id"] == "run_analysis"
+        assert result.action_preview["args"] == {"ticker": "NST"}
+        assert result.iterations_used == 0
+
     def test_llm_exception_returns_error_result(self):
         """LLM communication failure returns a graceful error result, not a crash."""
         client = MagicMock()
