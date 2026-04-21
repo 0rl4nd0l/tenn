@@ -28,7 +28,13 @@ from app.services.query_orchestrator import QueryOrchestrator
 from cockpit.core.actions import ActionRegistry
 from cockpit.core.agent_loop import parse_backend_prefix
 from cockpit.core.chat import ChatController, ChatResponse
-from cockpit.core.config import RuntimeFlags, apply_runtime_flags, load_config, load_env
+from cockpit.core.config import (
+    RuntimeFlags,
+    apply_runtime_flags,
+    effective_anthropic_api_key,
+    load_config,
+    load_env,
+)
 from cockpit.core.tools import ToolRouter
 from cockpit.integrations.backend_api import BackendApiClient
 from cockpit.integrations.db_reader import DbReader
@@ -727,16 +733,18 @@ class CockpitService:
             os.getenv("COCKPIT_CONFIG") or "config/cockpit.yaml"
         ).strip()
         config_path = _resolve_config_path(config_path_value, repo_root)
+        runtime_profile = str(os.getenv("COCKPIT_PROFILE") or "default").strip() or "default"
+        runtime_read_only = _env_flag("COCKPIT_READ_ONLY", False)
+        runtime_no_web = _env_flag("COCKPIT_NO_WEB", False)
 
         cfg = load_config(str(config_path))
         cfg = apply_runtime_flags(
             cfg,
             RuntimeFlags(
                 config_path=str(config_path),
-                profile=str(os.getenv("COCKPIT_PROFILE") or "default").strip()
-                or "default",
-                read_only=_env_flag("COCKPIT_READ_ONLY", False),
-                no_web=_env_flag("COCKPIT_NO_WEB", False),
+                profile=runtime_profile,
+                read_only=runtime_read_only,
+                no_web=runtime_no_web,
                 repo_root=repo_root,
             ),
         )
@@ -763,6 +771,10 @@ class CockpitService:
         backend_api_url = str(backend_cfg.get("api_base_url") or "").strip()
 
         self.repo_root = repo_root
+        self._config_path = config_path
+        self._runtime_profile = runtime_profile
+        self._runtime_read_only = runtime_read_only
+        self._runtime_no_web = runtime_no_web
         self.config = cfg
         self.llm_timeout_seconds = float(llm_cfg.get("timeout_seconds", 300))
         self.artifact_store = ArtifactStore(
@@ -997,6 +1009,7 @@ class CockpitService:
 
     def _build_chat_controller(self, thread_id: str) -> ChatController:
         if thread_id == "global-main":
+            self._refresh_global_chat_controller_if_needed()
             return self.chat_controller
         return ChatController(
             ollama_client=self.llm_client,
@@ -1008,6 +1021,72 @@ class CockpitService:
             cockpit_llm=self.config.get("cockpit_llm"),
             repo_root=self.repo_root,
             query_orchestrator=self.query_orchestrator,
+        )
+
+    def _refresh_global_chat_controller_if_needed(self) -> None:
+        """Hot-refresh routing-sensitive chat config without full backend restart.
+
+        CockpitService is a process singleton, so runtime config edits would
+        otherwise require backend restart before HybridRouter picks them up.
+        We keep this narrow: only rebuild the global ChatController when
+        routing policy or API availability changed.
+        """
+        config_path = getattr(self, "_config_path", None)
+        if config_path is None:
+            return
+
+        try:
+            cfg = load_config(str(config_path))
+            cfg = apply_runtime_flags(
+                cfg,
+                RuntimeFlags(
+                    config_path=str(config_path),
+                    profile=str(getattr(self, "_runtime_profile", "default") or "default"),
+                    read_only=bool(getattr(self, "_runtime_read_only", False)),
+                    no_web=bool(getattr(self, "_runtime_no_web", False)),
+                    repo_root=self.repo_root,
+                ),
+            )
+        except Exception as exc:
+            logger.warning("Skipping chat controller config refresh: %s", exc)
+            return
+
+        cockpit_llm = (
+            cfg.get("cockpit_llm")
+            if isinstance(cfg.get("cockpit_llm"), dict)
+            else {}
+        )
+        desired_policy = str(cockpit_llm.get("hybrid_router_policy") or "").strip()
+        desired_api_available = bool(effective_anthropic_api_key(cockpit_llm))
+
+        hybrid_router = getattr(self.chat_controller, "_hybrid_router", None)
+        current_policy = str(getattr(hybrid_router, "_policy", "") or "").strip()
+        current_api_available = bool(getattr(hybrid_router, "_api", None))
+
+        if (
+            desired_policy == current_policy
+            and desired_api_available == current_api_available
+        ):
+            return
+
+        llm_cfg = cfg.get("llm") if isinstance(cfg.get("llm"), dict) else {}
+        self.config = cfg
+        self.llm_timeout_seconds = float(llm_cfg.get("timeout_seconds", 300))
+        self.chat_controller = ChatController(
+            ollama_client=self.llm_client,
+            tool_router=self.tool_router,
+            action_registry=self.action_registry,
+            llm_timeout_seconds=self.llm_timeout_seconds,
+            state_store=self.state_store,
+            thread_id="global-main",
+            cockpit_llm=self.config.get("cockpit_llm"),
+            repo_root=self.repo_root,
+            query_orchestrator=self.query_orchestrator,
+        )
+        logger.info(
+            "Reloaded global ChatController (policy=%s api=%s)",
+            desired_policy or "unknown",
+            "available" if desired_api_available else "none",
         )
 
     def _persist_chat_message(self, thread_id: str, role: str, content: str) -> None:
