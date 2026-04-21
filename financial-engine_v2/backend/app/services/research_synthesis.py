@@ -9,11 +9,14 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any
 
 import httpx
 
 from app.core.config import settings
+from app.services.fact_contract import CanonicalFact
+from app.services.synthesis_guard import verify_synthesis_claims
 from app.services.llamacpp_runtime import (
     build_llm_headers,
     resolve_llm_runtime_config,
@@ -86,7 +89,27 @@ def synthesize_research(
 
     try:
         raw_text = _call_llm(messages, timeout=timeout)
-        return _parse_synthesis(raw_text)
+        brief = _parse_synthesis(raw_text)
+        
+        # Apply Truth-Pipeline Guards
+        facts = _extract_numbers_from_data(gathered_sources)
+        if facts:
+            # Guard the summary
+            summary = brief.get("summary", "")
+            verified_summary, _ = verify_synthesis_claims(summary, facts)
+            brief["summary"] = verified_summary
+            
+            # Guard key_metrics (they are often strings or numbers in a dict)
+            metrics = brief.get("key_metrics", {})
+            if isinstance(metrics, dict):
+                guarded_metrics = {}
+                for k, v in metrics.items():
+                    # metrics values are often "437 million" etc.
+                    verified_val, _ = verify_synthesis_claims(str(v), facts)
+                    guarded_metrics[k] = verified_val
+                brief["key_metrics"] = guarded_metrics
+                
+        return brief
     except Exception as exc:
         logger.warning("research_synthesis: LLM call failed for %s: %s", ticker, exc)
         return _empty_brief(ticker, reason=f"LLM synthesis failed: {str(exc)[:200]}")
@@ -171,6 +194,64 @@ def _parse_synthesis(raw: str) -> dict[str, Any]:
         "catalysts": [],
         "data_gaps": ["LLM returned non-JSON response"],
     }
+
+
+def _extract_numbers_from_data(data: Any) -> list[CanonicalFact]:
+    facts = []
+    text_blobs = []
+    
+    if isinstance(data, dict):
+        for val in data.values():
+            text_blobs.append(str(val))
+    elif isinstance(data, list):
+        for val in data:
+            text_blobs.append(str(val))
+    else:
+        text_blobs.append(str(data))
+        
+    pattern = re.compile(r"([-+]?\d[\d,]*(?:\.\d+)?)\s*(?:billion|million|bn|mn|m|b|k)?", re.IGNORECASE)
+    
+    for blob in text_blobs:
+        for match in pattern.finditer(blob):
+            num_str = match.group(0)
+            # We reuse the logic from verify_synthesis_claims' _is_numeric_match roughly
+            # but here we just want to create CanonicalFact objects that verification will match against.
+            # To simplify, we create a fact for each number found in context.
+            
+            clean_num = re.sub(r"[^\d.]", "", num_str)
+            if not clean_num: continue
+            try:
+                val = float(clean_num)
+                lower_match = num_str.lower()
+                multiplier = 1.0
+                scale = "units"
+                if "billion" in lower_match or "bn" in lower_match or lower_match.endswith("b"):
+                    multiplier = 1_000_000_000.0
+                    scale = "billions"
+                elif "million" in lower_match or "mn" in lower_match or lower_match.endswith("m"):
+                    multiplier = 1_000_000.0
+                    scale = "millions"
+                elif "k" in lower_match or "thousand" in lower_match:
+                    multiplier = 1_000.0
+                    scale = "thousands"
+                
+                facts.append(
+                    CanonicalFact(
+                        metric_key="inferred_metric",
+                        value=val,
+                        unit="unknown",
+                        scale=scale,
+                        basis="unknown",
+                        period_type="unknown",
+                        period_end="unknown",
+                        source_doc_id="unknown",
+                        source_page="1",
+                        source_span=blob[:200]
+                    )
+                )
+            except ValueError:
+                continue
+    return facts
 
 
 def _empty_brief(ticker: str, *, reason: str = "Unknown") -> dict[str, Any]:

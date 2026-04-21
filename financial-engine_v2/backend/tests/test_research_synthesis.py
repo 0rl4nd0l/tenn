@@ -60,7 +60,8 @@ class TestSynthesizeResearch:
     @patch("app.services.research_synthesis._call_llm")
     def test_happy_path(self, mock_llm):
         mock_llm.return_value = '{"summary": "BHP revenue up 12%", "key_metrics": {"revenue": "$50B"}, "sentiment": "bullish", "confidence": 0.8, "recent_developments": ["iron ore prices up"], "risks": ["China slowdown"], "catalysts": ["dividend"], "data_gaps": []}'
-        result = synthesize_research("BHP", {"financials": [{"revenue": 50000}]})
+        # Include evidence for "12%" and "$50B"
+        result = synthesize_research("BHP", {"financials": [{"revenue": 50000, "note": "revenue up 12%"}]})
         assert result["summary"] == "BHP revenue up 12%"
         assert result["sentiment"] == "bullish"
         mock_llm.assert_called_once()

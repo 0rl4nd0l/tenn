@@ -11,6 +11,8 @@ from app.core.config import settings
 from app.services.hybrid_retriever import HybridRetriever
 from app.services.llm import generate_json
 from app.services.rag import query_rag
+from app.services.fact_contract import CanonicalFact
+from app.services.synthesis_guard import verify_synthesis_claims, verify_comparisons
 from app.services.session_memory import (
     _build_turn_payload,
     get_session_context,
@@ -293,6 +295,57 @@ def _build_prompt(
     )
 
 
+def _rows_to_facts(rows: list[dict[str, Any]]) -> list[CanonicalFact]:
+    facts = []
+    for row in rows:
+        text = str(row.get("text") or "").strip()
+        if not text:
+            continue
+        
+        # Heuristic: Extract numbers from text and treat them as potential facts
+        # In a more advanced version, this would use structured extraction metadata.
+        numbers = _extract_numbers(text)
+        for num_str, val in numbers:
+            facts.append(
+                CanonicalFact(
+                    metric_key="inferred_metric",
+                    value=val,
+                    unit="unknown",
+                    scale="units",
+                    basis="unknown",
+                    period_type="unknown",
+                    period_end="unknown",
+                    source_doc_id=row.get("document_id") or "unknown",
+                    source_page=row.get("page") or "1",
+                    source_span=text[:200], # Use a snippet as span
+                )
+            )
+    return facts
+
+
+def _extract_numbers(text: str) -> list[tuple[str, float]]:
+    # Simple regex to find numbers and their potential magnitude
+    pattern = re.compile(r"([-+]?\d[\d,]*(?:\.\d+)?)\s*(billion|million|bn|mn|m|b|k)?", re.IGNORECASE)
+    results = []
+    for match in pattern.finditer(text):
+        num_str = match.group(1).replace(",", "")
+        magnitude = match.group(2)
+        try:
+            val = float(num_str)
+            if magnitude:
+                mag_lower = magnitude.lower()
+                if mag_lower in ("billion", "bn", "b"):
+                    val *= 1_000_000_000
+                elif mag_lower in ("million", "mn", "m"):
+                    val *= 1_000_000
+                elif mag_lower in ("k", "thousand"):
+                    val *= 1_000
+            results.append((match.group(0), val))
+        except ValueError:
+            continue
+    return results
+
+
 def _degraded_chat_payload(message: str, *, error: str | None = None) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "answer": message,
@@ -443,6 +496,20 @@ def chat_with_tenn(
 
     answer = str(llm_payload.get("answer") or "").strip()
     insights = _normalize_insights(llm_payload.get("insights"))
+
+    # Apply Truth-Pipeline Guards
+    facts = _rows_to_facts(context_rows)
+    if facts:
+        verified_answer, answer_issues = verify_synthesis_claims(answer, facts)
+        answer = verified_answer
+        
+        # Also guard insights
+        guarded_insights = []
+        for insight in insights:
+            verified_insight, insight_issues = verify_synthesis_claims(insight, facts)
+            guarded_insights.append(verified_insight)
+        insights = guarded_insights
+
     confidence = _normalize_confidence(llm_payload.get("confidence"))
     sources = [
         {

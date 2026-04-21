@@ -76,6 +76,25 @@ def _real_payloads() -> dict[str, dict]:
                 "revenue": 750000,
             },
         },
+        "viva_fy2025_regression": {
+            "period_type": "A",
+            "period_end": "2025-12-31",
+            "currency": "AUD",
+            "scale": "millions",
+            "source_document_id": "viva_fy2025",
+            "provenance": {
+                "ebit": "presentation:page_2:RC EBIT $437.0m",
+                "np_attributable": "presentation:page_2:Statutory Net Loss ($421.1m)",
+                "operating_cf": "presentation:page_5:Operating Cash Flow $541.8m",
+                "capex": "presentation:page_5:Net capital expenditure $494.4m",
+            },
+            "metrics": {
+                "ebit": 437.0,
+                "np_attributable": -421.1,
+                "operating_cf": 541.8,
+                "capex": 494.4,
+            },
+        },
     }
 
 
@@ -87,6 +106,7 @@ def test_load_real_gold_fixtures_and_expected_trust_labels():
         "real_trusted_match",
         "real_abstain_missing_metric",
         "real_quarantine_currency_mismatch",
+        "viva_fy2025_regression",
     }
 
     assert (
@@ -203,7 +223,7 @@ def test_real_gold_scorecard_stays_separate_from_synthetic_flow():
     scorecard = build_real_gold_scorecard(REAL_FIXTURES_DIR, _real_payloads())
     synthetic_scorecard = build_fixture_scorecard(SYNTHETIC_FIXTURES_DIR, {})
 
-    assert scorecard["trusted_count"] == 1
+    assert scorecard["trusted_count"] == 2
     assert scorecard["abstained_count"] == 1
     assert scorecard["quarantined_count"] == 1
     assert all("document_id" in entry for entry in scorecard["fixture_summaries"])
@@ -214,6 +234,7 @@ def test_real_gold_scorecard_stays_separate_from_synthetic_flow():
         "real_trusted_match": [],
         "real_abstain_missing_metric": ["net_debt:missing"],
         "real_quarantine_currency_mismatch": ["context_mismatch:currency"],
+        "viva_fy2025_regression": [],
     }
     for entry in scorecard["fixture_summaries"]:
         assert entry["trust_triggers"] == expected_triggers[entry["document_id"]]
@@ -251,10 +272,10 @@ def test_real_gold_scorecard_reports_provenance_diagnostics_without_changing_tru
         entry["document_id"]: entry for entry in scorecard["fixture_summaries"]
     }
 
-    assert scorecard["trusted_count"] == 1
+    assert scorecard["trusted_count"] == 2
     assert scorecard["abstained_count"] == 1
     assert scorecard["quarantined_count"] == 1
-    assert scorecard["provenance_summary"]["available_fixture_count"] == 3
+    assert scorecard["provenance_summary"]["available_fixture_count"] == 4
     assert scorecard["provenance_summary"]["fixture_with_issues_count"] == 1
     assert scorecard["provenance_summary"]["status"] == "issues_detected"
 
@@ -463,6 +484,134 @@ def test_real_gold_eval_endpoint_passes_method_selection(monkeypatch, tmp_path):
     assert captured["requested_method"] == "docling"
     assert captured["strict_method"] is True
     assert result["documents"][0]["method_provenance"]["actual_method"] == "docling"
+
+
+def test_real_gold_eval_policy_defaults_to_non_canonical(monkeypatch, tmp_path):
+    pdf_path = tmp_path / "sample.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+
+    gold_doc = main_app.RealGoldDocument(
+        document_id="doc_default_noncanonical",
+        source_file="sample.pdf",
+        period_type="A",
+        period_end="2025-06-30",
+        currency="AUD",
+        scale="millions",
+        metrics={"revenue": 100.0},
+        expected_trust="trusted",
+    )
+
+    monkeypatch.setattr(main_app, "_load_real_gold_dataset", lambda _path: [gold_doc])
+    monkeypatch.setattr(
+        main_app, "_resolve_real_gold_source_path", lambda _path: pdf_path
+    )
+    monkeypatch.setattr(
+        main_app, "_persist_local_llm_api_key", lambda: "local-openai-key"
+    )
+    monkeypatch.setattr(
+        main_app,
+        "_build_real_gold_fixture_manifest",
+        lambda _path: {
+            "dataset_dir": str(main_app.REAL_GOLD_DATASET_DIR),
+            "fixture_file_count": 1,
+            "fixture_content_sha256": "fixture-hash",
+            "fixture_git_commit": "fixture-commit",
+            "fixture_git_dirty": False,
+        },
+    )
+    monkeypatch.setattr(
+        main_app,
+        "run_method_isolated_extraction",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            status="ok",
+            error=None,
+            payload={
+                "period_type": "A",
+                "period_end": "2025-06-30",
+                "currency": "AUD",
+                "scale": "millions",
+                "metrics": {"revenue": 100.0},
+                "_method_provenance": {
+                    "requested_method": "auto",
+                    "actual_method": "docling",
+                    "strict_method": False,
+                },
+            },
+        ),
+    )
+
+    result = main_app._run_real_gold_eval_sync(main_app.RealGoldEvalRequest())
+
+    assert result["eval_policy"]["mode"] == "non_canonical"
+    assert result["eval_policy"]["kpi_eligible"] is False
+    assert "strict_method" in " ".join(result["eval_policy"]["non_canonical_reasons"])
+    assert result["fixture_manifest"]["fixture_content_sha256"] == "fixture-hash"
+
+
+def test_real_gold_eval_policy_marks_docling_strict_run_canonical(
+    monkeypatch, tmp_path
+):
+    pdf_path = tmp_path / "sample.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4\n")
+
+    gold_doc = main_app.RealGoldDocument(
+        document_id="doc_canonical",
+        source_file="sample.pdf",
+        period_type="A",
+        period_end="2025-06-30",
+        currency="AUD",
+        scale="millions",
+        metrics={"revenue": 100.0},
+        expected_trust="trusted",
+    )
+
+    monkeypatch.setattr(main_app, "_load_real_gold_dataset", lambda _path: [gold_doc])
+    monkeypatch.setattr(
+        main_app, "_resolve_real_gold_source_path", lambda _path: pdf_path
+    )
+    monkeypatch.setattr(
+        main_app, "_persist_local_llm_api_key", lambda: "local-openai-key"
+    )
+    monkeypatch.setattr(
+        main_app,
+        "_build_real_gold_fixture_manifest",
+        lambda _path: {
+            "dataset_dir": str(main_app.REAL_GOLD_DATASET_DIR),
+            "fixture_file_count": 1,
+            "fixture_content_sha256": "fixture-hash",
+            "fixture_git_commit": "fixture-commit",
+            "fixture_git_dirty": False,
+        },
+    )
+    monkeypatch.setattr(
+        main_app,
+        "run_method_isolated_extraction",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            status="ok",
+            error=None,
+            payload={
+                "period_type": "A",
+                "period_end": "2025-06-30",
+                "currency": "AUD",
+                "scale": "millions",
+                "metrics": {"revenue": 100.0},
+                "_method_provenance": {
+                    "requested_method": "docling",
+                    "actual_method": "docling",
+                    "strict_method": True,
+                },
+            },
+        ),
+    )
+
+    result = main_app._run_real_gold_eval_sync(
+        main_app.RealGoldEvalRequest(method="docling", strict_method=True)
+    )
+
+    assert result["eval_policy"]["mode"] == "canonical"
+    assert result["eval_policy"]["kpi_eligible"] is True
+    assert result["eval_policy"]["non_canonical_reasons"] == []
+    assert result["fixture_manifest"]["fixture_git_dirty"] is False
 
 
 def test_real_gold_eval_endpoint_attaches_backend_review_session_for_flagged_metrics(
