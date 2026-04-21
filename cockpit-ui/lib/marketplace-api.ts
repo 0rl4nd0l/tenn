@@ -198,6 +198,17 @@ export async function getMarketplaceScanJob(
   return parseJson<MarketplaceScanJob>(response)
 }
 
+export async function stopMarketplaceScanJob(
+  apiKey: string,
+  jobId: string,
+): Promise<{ ok: boolean; job_id: string; status: string }> {
+  const response = await fetch(`/api/cockpit/action/jobs/${encodeURIComponent(jobId)}/stop`, {
+    method: 'POST',
+    headers: buildHeaders(apiKey, null),
+  })
+  return parseJson<{ ok: boolean; job_id: string; status: string }>(response)
+}
+
 export async function triggerMarketplaceScan(
   apiKey: string,
   missionId?: string,

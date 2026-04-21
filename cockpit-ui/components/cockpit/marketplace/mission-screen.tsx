@@ -10,6 +10,7 @@ import {
   launchMarketplaceBrowser,
   listMarketplaceMissions,
   listMarketplaceScanJobs,
+  stopMarketplaceScanJob,
   type MarketplaceBrowserHealth,
   type MarketplaceMission,
   type MarketplaceScanJob,
@@ -63,6 +64,87 @@ function splitCsv(value: string): string[] {
     .filter(Boolean)
 }
 
+function csvFromValue(value: unknown): string {
+  if (!Array.isArray(value)) {
+    return ''
+  }
+  return value
+    .map((item) => String(item ?? '').trim())
+    .filter(Boolean)
+    .join(', ')
+}
+
+function boolFromConfig(config: Record<string, unknown> | undefined, key: string): boolean {
+  return Boolean(config?.[key])
+}
+
+function numberStringFromConfig(
+  config: Record<string, unknown> | undefined,
+  key: string,
+  fallback = '',
+): string {
+  const raw = config?.[key]
+  if (raw == null || raw === '') return fallback
+  const parsed = Number(raw)
+  if (!Number.isFinite(parsed)) return fallback
+  return String(parsed)
+}
+
+function missionFormFromRecord(mission: MarketplaceMission): MissionFormState {
+  const hard = (mission.hard_filters || {}) as Record<string, unknown>
+  const soft = (mission.soft_preferences || {}) as Record<string, unknown>
+  const scan = (mission.scan_config || {}) as Record<string, unknown>
+
+  return {
+    name: mission.name,
+    brief: mission.brief,
+    includeKeywords: csvFromValue(hard.include_keywords),
+    excludeKeywords: csvFromValue(hard.exclude_keywords),
+    preferredBrands: csvFromValue(soft.preferred_brands),
+    locationNames: csvFromValue(hard.location_names),
+    priceMax: numberStringFromConfig(hard, 'price_max'),
+    scanIntervalMinutes: numberStringFromConfig(scan, 'scan_interval_minutes', '15'),
+    autoScanEnabled: mission.status === 'active',
+    aggressiveAlerting: boolFromConfig(scan, 'aggressive_alerting'),
+  }
+}
+
+function marketplacePayloadFromForm(
+  form: MissionFormState,
+  existingMission?: MarketplaceMission,
+): Record<string, unknown> {
+  const hard = ((existingMission?.hard_filters || {}) as Record<string, unknown>) ?? {}
+  const soft = ((existingMission?.soft_preferences || {}) as Record<string, unknown>) ?? {}
+  const search = ((existingMission?.search_config || {}) as Record<string, unknown>) ?? {}
+  const scan = ((existingMission?.scan_config || {}) as Record<string, unknown>) ?? {}
+
+  return {
+    name: form.name,
+    brief: form.brief,
+    status: form.autoScanEnabled ? 'active' : 'paused',
+    category_hint: existingMission?.category_hint ?? null,
+    hard_filters: {
+      ...hard,
+      include_keywords: splitCsv(form.includeKeywords),
+      exclude_keywords: splitCsv(form.excludeKeywords),
+      location_names: splitCsv(form.locationNames),
+      price_max: form.priceMax ? Number(form.priceMax) : null,
+    },
+    soft_preferences: {
+      ...soft,
+      preferred_brands: splitCsv(form.preferredBrands),
+    },
+    search_config: {
+      ...search,
+    },
+    scan_config: {
+      ...scan,
+      scan_interval_minutes: form.scanIntervalMinutes ? Number(form.scanIntervalMinutes) : 15,
+      aggressive_alerting: form.aggressiveAlerting,
+    },
+  }
+}
+
 function formatClock(value: string | null | undefined): string {
   if (!value) return 'never'
   try {
@@ -93,6 +175,7 @@ function scanBadgeVariant(
 ): 'default' | 'secondary' | 'destructive' | 'outline' {
   if (status === 'success') return 'default'
   if (status === 'running' || status === 'queued') return 'secondary'
+  if (status === 'cancelled') return 'outline'
   if (status === 'failed') return 'destructive'
   return 'outline'
 }
@@ -153,6 +236,9 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
   const [notice, setNotice] = useState<string | null>(null)
   const [missionIntervalDrafts, setMissionIntervalDrafts] = useState<Record<string, string>>({})
   const [savingMissionId, setSavingMissionId] = useState<string | null>(null)
+  const [editingMissionId, setEditingMissionId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<MissionFormState | null>(null)
+  const [stoppingJobId, setStoppingJobId] = useState<string | null>(null)
   const selectedScanJobIdRef = useRef<string | null>(null)
   const desktopSessionMissing = browserHealth?.status === 'desktop_session_missing'
   const headlessProbeBlocked =
@@ -234,24 +320,7 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
     setError(null)
     setNotice(null)
     try {
-      await createMarketplaceMission(apiKey, {
-        name: form.name,
-        brief: form.brief,
-        status: form.autoScanEnabled ? 'active' : 'paused',
-        hard_filters: {
-          include_keywords: splitCsv(form.includeKeywords),
-          exclude_keywords: splitCsv(form.excludeKeywords),
-          location_names: splitCsv(form.locationNames),
-          price_max: form.priceMax ? Number(form.priceMax) : null,
-        },
-        soft_preferences: {
-          preferred_brands: splitCsv(form.preferredBrands),
-        },
-        scan_config: {
-          scan_interval_minutes: form.scanIntervalMinutes ? Number(form.scanIntervalMinutes) : 15,
-          aggressive_alerting: form.aggressiveAlerting,
-        },
-      })
+      await createMarketplaceMission(apiKey, marketplacePayloadFromForm(form))
       setForm(DEFAULT_FORM)
       setNotice('Mission created successfully.')
       await load()
@@ -298,6 +367,40 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
     await loadSelectedScanJob(jobId)
   }
 
+  function handleEditMission(mission: MarketplaceMission) {
+    setEditingMissionId(mission.mission_id)
+    setEditForm(missionFormFromRecord(mission))
+    setError(null)
+    setNotice(null)
+  }
+
+  function handleCancelMissionEdit() {
+    setEditingMissionId(null)
+    setEditForm(null)
+  }
+
+  async function handleSaveMissionEdit(mission: MarketplaceMission) {
+    if (!editForm) return
+    setSavingMissionId(mission.mission_id)
+    setError(null)
+    setNotice(null)
+    try {
+      await updateMarketplaceMission(
+        apiKey,
+        mission.mission_id,
+        marketplacePayloadFromForm(editForm, mission),
+      )
+      setNotice(`Saved changes for ${mission.name}.`)
+      setEditingMissionId(null)
+      setEditForm(null)
+      await load()
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : 'Mission update failed')
+    } finally {
+      setSavingMissionId(null)
+    }
+  }
+
   async function handleAutoScanToggle(mission: MarketplaceMission, enabled: boolean) {
     setSavingMissionId(mission.mission_id)
     setError(null)
@@ -339,6 +442,25 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
       setError(updateError instanceof Error ? updateError.message : 'Cadence update failed')
     } finally {
       setSavingMissionId(null)
+    }
+  }
+
+  async function handleStopScan(jobId: string) {
+    setStoppingJobId(jobId)
+    setError(null)
+    setNotice(null)
+    try {
+      const queued = await stopMarketplaceScanJob(apiKey, jobId)
+      setNotice(
+        queued.status === 'cancelling'
+          ? 'Scan cancellation requested.'
+          : `Scan status: ${queued.status}.`,
+      )
+      await load()
+    } catch (stopError) {
+      setError(stopError instanceof Error ? stopError.message : 'Failed to stop Marketplace scan')
+    } finally {
+      setStoppingJobId(null)
     }
   }
 
@@ -434,15 +556,151 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                         <CardHeader className="p-4">
                           <div className="flex items-start justify-between gap-2">
                             <CardTitle className="text-sm font-semibold">{mission.name}</CardTitle>
-                            <Badge variant={mission.status === 'active' ? 'default' : 'outline'} className="text-[10px]">
-                              {mission.status}
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditMission(mission)}
+                                disabled={savingMissionId === mission.mission_id}
+                                className="h-7 text-[10px]"
+                              >
+                                Edit Mission
+                              </Button>
+                              <Badge variant={mission.status === 'active' ? 'default' : 'outline'} className="text-[10px]">
+                                {mission.status}
+                              </Badge>
+                            </div>
                           </div>
                         </CardHeader>
                         <CardContent className="px-4 pb-4">
                           <p className="line-clamp-2 text-xs text-muted-foreground mb-4">
                             {mission.brief}
                           </p>
+                          {editingMissionId === mission.mission_id && editForm && (
+                            <div className="mb-4 space-y-4 rounded-md border border-border/60 bg-background/80 p-3">
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-medium text-muted-foreground">Mission Name</label>
+                                  <Input
+                                    value={editForm.name}
+                                    onChange={(event) => setEditForm({ ...editForm, name: event.target.value })}
+                                    aria-label={`Edit name for ${mission.name}`}
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-medium text-muted-foreground">Max Price</label>
+                                  <Input
+                                    type="number"
+                                    inputMode="numeric"
+                                    value={editForm.priceMax}
+                                    onChange={(event) => setEditForm({ ...editForm, priceMax: event.target.value })}
+                                    aria-label={`Edit max price for ${mission.name}`}
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-medium text-muted-foreground">Brief</label>
+                                <Textarea
+                                  rows={3}
+                                  value={editForm.brief}
+                                  onChange={(event) => setEditForm({ ...editForm, brief: event.target.value })}
+                                  aria-label={`Edit brief for ${mission.name}`}
+                                  className="text-xs"
+                                />
+                              </div>
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-medium text-muted-foreground">Include Keywords</label>
+                                  <Input
+                                    value={editForm.includeKeywords}
+                                    onChange={(event) => setEditForm({ ...editForm, includeKeywords: event.target.value })}
+                                    aria-label={`Edit include keywords for ${mission.name}`}
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-medium text-muted-foreground">Exclude Keywords</label>
+                                  <Input
+                                    value={editForm.excludeKeywords}
+                                    onChange={(event) => setEditForm({ ...editForm, excludeKeywords: event.target.value })}
+                                    aria-label={`Edit exclude keywords for ${mission.name}`}
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                              </div>
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-medium text-muted-foreground">Preferred Brands</label>
+                                  <Input
+                                    value={editForm.preferredBrands}
+                                    onChange={(event) => setEditForm({ ...editForm, preferredBrands: event.target.value })}
+                                    aria-label={`Edit preferred brands for ${mission.name}`}
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-medium text-muted-foreground">Locations</label>
+                                  <Input
+                                    value={editForm.locationNames}
+                                    onChange={(event) => setEditForm({ ...editForm, locationNames: event.target.value })}
+                                    aria-label={`Edit locations for ${mission.name}`}
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                              </div>
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-medium text-muted-foreground">Scan Every (Minutes)</label>
+                                  <Input
+                                    type="number"
+                                    inputMode="numeric"
+                                    min="1"
+                                    value={editForm.scanIntervalMinutes}
+                                    onChange={(event) => setEditForm({ ...editForm, scanIntervalMinutes: event.target.value })}
+                                    aria-label={`Edit scan cadence for ${mission.name}`}
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-medium text-muted-foreground">Auto Scan</label>
+                                  <div className="flex items-center justify-between rounded-md border border-border/60 px-3 py-2">
+                                    <div className="text-[11px] text-muted-foreground">
+                                      {editForm.autoScanEnabled ? 'Enabled' : 'Paused'}
+                                    </div>
+                                    <Switch
+                                      aria-label={`Edit auto scan for ${mission.name}`}
+                                      checked={editForm.autoScanEnabled}
+                                      onCheckedChange={(checked) => setEditForm({ ...editForm, autoScanEnabled: checked })}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={handleCancelMissionEdit}
+                                  className="h-8 text-[10px]"
+                                >
+                                  Cancel
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => void handleSaveMissionEdit(mission)}
+                                  disabled={
+                                    savingMissionId === mission.mission_id
+                                    || !editForm.name.trim()
+                                    || !editForm.brief.trim()
+                                  }
+                                  className="h-8 text-[10px]"
+                                >
+                                  Save Changes
+                                </Button>
+                              </div>
+                            </div>
+                          )}
                           <div className="mb-4 space-y-3 rounded-md border border-border/60 bg-muted/15 p-3">
                             <div className="flex items-center justify-between gap-3">
                               <div>
@@ -513,7 +771,7 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                                 variant="outline"
                                 size="sm"
                                 onClick={() => void handleTriggerScan(mission.mission_id)}
-                                disabled={loading || savingMissionId === mission.mission_id}
+                                disabled={loading || savingMissionId === mission.mission_id || editingMissionId === mission.mission_id}
                                 className="h-7 text-[10px]"
                               >
                                 <Play className="mr-1.5 h-3 w-3" />
@@ -615,6 +873,24 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                     />
                   </div>
                 </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium">Preferred Brands (CSV)</label>
+                    <Input
+                      placeholder="asus, msi, gigabyte"
+                      value={form.preferredBrands}
+                      onChange={(e) => setForm({ ...form, preferredBrands: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium">Locations (CSV)</label>
+                    <Input
+                      placeholder="Melbourne, Richmond, Box Hill"
+                      value={form.locationNames}
+                      onChange={(e) => setForm({ ...form, locationNames: e.target.value })}
+                    />
+                  </div>
+                </div>
                 <Button className="w-full" onClick={handleCreateMission} disabled={creating || !form.name || !form.brief}>
                   {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Create Mission
@@ -708,17 +984,32 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                   Live scanner output and persisted progress for the selected Marketplace scan.
                 </CardDescription>
               </div>
-              {selectedScanJobId && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void loadSelectedScanJob(selectedScanJobId)}
-                  disabled={scanOutputLoading}
-                >
-                  <RefreshCw className={`mr-2 h-4 w-4 ${scanOutputLoading ? 'animate-spin' : ''}`} />
-                  Refresh Output
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                {selectedScanJob && ['queued', 'running'].includes(selectedScanJob.status) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void handleStopScan(selectedScanJob.job_id)}
+                    disabled={stoppingJobId === selectedScanJob.job_id}
+                  >
+                    {stoppingJobId === selectedScanJob.job_id && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Stop Scan
+                  </Button>
+                )}
+                {selectedScanJobId && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void loadSelectedScanJob(selectedScanJobId)}
+                    disabled={scanOutputLoading}
+                  >
+                    <RefreshCw className={`mr-2 h-4 w-4 ${scanOutputLoading ? 'animate-spin' : ''}`} />
+                    Refresh Output
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">

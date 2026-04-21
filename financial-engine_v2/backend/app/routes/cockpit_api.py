@@ -38,7 +38,7 @@ from app.services.marketplace_mission_service import (
     MarketplaceMissionNotFound,
     MarketplaceMissionService,
 )
-from app.services.marketplace_scanner import MarketplaceScanner
+from app.services.marketplace_scanner import MarketplaceScanCancelled, MarketplaceScanner
 from app.services.router_state import get_extraction_activity_snapshot
 from cockpit.core.config import (
     compute_effective_cockpit_config,
@@ -2419,6 +2419,7 @@ def _run_marketplace_scan_job(
     stdout_path: Path,
     stderr_path: Path,
     tracker: Any | None,
+    stop_event: threading.Event,
 ) -> None:
     started_at = datetime.now(timezone.utc).isoformat()
     mission_service = _marketplace_mission_service(service)
@@ -2473,6 +2474,7 @@ def _run_marketplace_scan_job(
                 mission_id=mission_id,
                 progress=progress,
                 log=log,
+                cancel_requested=stop_event.is_set,
             )
             _write_marketplace_job_line(stdout_handle, json.dumps(result, indent=2))
             ended_at = datetime.now(timezone.utc).isoformat()
@@ -2490,6 +2492,25 @@ def _run_marketplace_scan_job(
             )
             if tracker is not None:
                 _best_effort_tracker_call("complete_job", job_id, result.get("summary"))
+        except MarketplaceScanCancelled as exc:
+            _write_marketplace_job_line(stdout_handle, str(exc))
+            ended_at = datetime.now(timezone.utc).isoformat()
+            _persist_action_job_row(
+                service,
+                job_id=job_id,
+                action_id="marketplace_scan",
+                args={"mission_id": mission_id},
+                started_at=started_at,
+                ended_at=ended_at,
+                status="cancelled",
+                exit_code=130,
+                stdout_path=stdout_path,
+                stderr_path=stderr_path,
+                progress_stage="Cancelled",
+                progress_pct=100.0,
+            )
+            if tracker is not None:
+                _best_effort_tracker_call("cancel_job", job_id, reason=str(exc))
         except Exception as exc:
             _write_marketplace_job_line(stderr_handle, str(exc))
             ended_at = datetime.now(timezone.utc).isoformat()
@@ -2507,6 +2528,8 @@ def _run_marketplace_scan_job(
             )
             if tracker is not None:
                 _best_effort_tracker_call("fail_job", job_id, str(exc))
+        finally:
+            _forget_queued_action_job(job_id)
 
 
 def _launch_marketplace_scan_job(
@@ -2562,6 +2585,12 @@ def _launch_marketplace_scan_job(
         progress_stage="Queued",
         progress_pct=0.0,
     )
+    runtime = QueuedActionJobRuntime(
+        job_id=job_id,
+        action_id="marketplace_scan",
+        started_at=started_at,
+    )
+    _register_queued_action_job(runtime)
 
     worker = threading.Thread(
         target=_run_marketplace_scan_job,
@@ -3300,6 +3329,10 @@ async def cockpit_stop_action_job(job_id: str):
             status_code=500, detail=f"Service initialization failed: {str(exc)}"
         ) from exc
 
+    runtime = _get_queued_action_job(job_id)
+    if runtime is not None:
+        runtime.stop_event.set()
+
     with _ACTION_JOB_PROC_LOCK:
         proc = _ACTION_JOB_PROCS.get(job_id)
         if proc is not None:
@@ -3313,6 +3346,9 @@ async def cockpit_stop_action_job(job_id: str):
                 status_code=500,
                 detail=f"Failed to stop action job: {str(exc)}",
             ) from exc
+        return {"ok": True, "job_id": job_id, "status": "cancelling"}
+
+    if runtime is not None:
         return {"ok": True, "job_id": job_id, "status": "cancelling"}
 
     job = service.state_store.get_job(job_id)

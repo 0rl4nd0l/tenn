@@ -618,4 +618,308 @@ describe('MarketplaceMissionScreen', () => {
       }),
     )
   })
+
+  it('stops a selected running marketplace scan', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'ready',
+          cdp_url: 'http://127.0.0.1:9222',
+          browser_family: 'chrome',
+          profile_path: '/tmp/profile',
+          logged_in: true,
+          challenge_detected: false,
+          last_checked_at: '2026-04-21T02:00:00Z',
+          detail: 'Marketplace browser profile is ready.',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              job_id: 'job-stop-1',
+              action_id: 'marketplace_scan',
+              status: 'running',
+              progress_stage: 'Collecting cards',
+              progress_pct: 22,
+              started_at: '2026-04-21T02:00:10Z',
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          job_id: 'job-stop-1',
+          action_id: 'marketplace_scan',
+          status: 'running',
+          progress_stage: 'Collecting cards',
+          progress_pct: 22,
+          started_at: '2026-04-21T02:00:10Z',
+          result: 'still working',
+          stdout_path: '/reports/cockpit/logs/job-stop-1.out.log',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          ok: true,
+          job_id: 'job-stop-1',
+          status: 'cancelling',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'ready',
+          cdp_url: 'http://127.0.0.1:9222',
+          browser_family: 'chrome',
+          profile_path: '/tmp/profile',
+          logged_in: true,
+          challenge_detected: false,
+          last_checked_at: '2026-04-21T02:00:15Z',
+          detail: 'Marketplace browser profile is ready.',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              job_id: 'job-stop-1',
+              action_id: 'marketplace_scan',
+              status: 'running',
+              progress_stage: 'Cancelling',
+              progress_pct: 22,
+              started_at: '2026-04-21T02:00:10Z',
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          job_id: 'job-stop-1',
+          action_id: 'marketplace_scan',
+          status: 'running',
+          progress_stage: 'Cancelling',
+          progress_pct: 22,
+          started_at: '2026-04-21T02:00:10Z',
+          result: 'still working',
+          stdout_path: '/reports/cockpit/logs/job-stop-1.out.log',
+        }),
+      })
+
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<MarketplaceMissionScreen apiKey="k" />)
+
+    await waitFor(() => {
+      expect(screen.getByText('still working')).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: /stop scan/i }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/cockpit/action/jobs/job-stop-1/stop',
+        expect.objectContaining({
+          method: 'POST',
+        }),
+      )
+    })
+    expect(screen.getByText(/scan cancellation requested/i)).toBeInTheDocument()
+  })
+
+  it('edits an existing mission in place', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'ready',
+          cdp_url: 'http://127.0.0.1:9222',
+          browser_family: 'chrome',
+          profile_path: '/tmp/profile',
+          logged_in: true,
+          challenge_detected: false,
+          last_checked_at: '2026-04-21T03:00:00Z',
+          detail: 'Marketplace browser profile is ready.',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              mission_id: 'mp-edit-1',
+              name: 'GPU mission',
+              status: 'active',
+              brief: 'Find a GPU.',
+              category_hint: 'electronics',
+              hard_filters: {
+                include_keywords: ['GPU'],
+                exclude_keywords: ['broken'],
+                location_names: ['Melbourne'],
+                price_max: 500,
+              },
+              soft_preferences: {
+                preferred_brands: ['MSI'],
+              },
+              search_config: {
+                query_variants_enabled: true,
+                broadening_enabled: true,
+                max_queries_per_run: 6,
+              },
+              scan_config: {
+                scan_interval_minutes: 15,
+                aggressive_alerting: false,
+              },
+              created_at: '2026-04-21T03:00:00Z',
+              updated_at: '2026-04-21T03:00:00Z',
+              last_scan_at: null,
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          mission_id: 'mp-edit-1',
+          name: 'GPU mission updated',
+          status: 'paused',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'ready',
+          cdp_url: 'http://127.0.0.1:9222',
+          browser_family: 'chrome',
+          profile_path: '/tmp/profile',
+          logged_in: true,
+          challenge_detected: false,
+          last_checked_at: '2026-04-21T03:00:05Z',
+          detail: 'Marketplace browser profile is ready.',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              mission_id: 'mp-edit-1',
+              name: 'GPU mission updated',
+              status: 'paused',
+              brief: 'Find a clean RTX 3090 around Melbourne.',
+              category_hint: 'electronics',
+              hard_filters: {
+                include_keywords: ['RTX 3090'],
+                exclude_keywords: ['broken'],
+                location_names: ['Melbourne', 'Richmond'],
+                price_max: 900,
+              },
+              soft_preferences: {
+                preferred_brands: ['MSI', 'ASUS'],
+              },
+              search_config: {
+                query_variants_enabled: true,
+                broadening_enabled: true,
+                max_queries_per_run: 6,
+              },
+              scan_config: {
+                scan_interval_minutes: 10,
+                aggressive_alerting: false,
+              },
+              created_at: '2026-04-21T03:00:00Z',
+              updated_at: '2026-04-21T03:00:05Z',
+              last_scan_at: null,
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [] }),
+      })
+
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<MarketplaceMissionScreen apiKey="k" />)
+
+    await waitFor(() => {
+      expect(screen.getByText('GPU mission')).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: /edit mission/i }))
+
+    const nameInput = screen.getByRole('textbox', { name: /edit name for gpu mission/i })
+    await userEvent.clear(nameInput)
+    await userEvent.type(nameInput, 'GPU mission updated')
+
+    const briefInput = screen.getByRole('textbox', { name: /edit brief for gpu mission/i })
+    await userEvent.clear(briefInput)
+    await userEvent.type(briefInput, 'Find a clean RTX 3090 around Melbourne.')
+
+    const includeInput = screen.getByRole('textbox', { name: /edit include keywords for gpu mission/i })
+    await userEvent.clear(includeInput)
+    await userEvent.type(includeInput, 'RTX 3090')
+
+    const locationsInput = screen.getByRole('textbox', { name: /edit locations for gpu mission/i })
+    await userEvent.clear(locationsInput)
+    await userEvent.type(locationsInput, 'Melbourne, Richmond')
+
+    const brandsInput = screen.getByRole('textbox', { name: /edit preferred brands for gpu mission/i })
+    await userEvent.clear(brandsInput)
+    await userEvent.type(brandsInput, 'MSI, ASUS')
+
+    const priceInput = screen.getByRole('spinbutton', { name: /edit max price for gpu mission/i })
+    await userEvent.clear(priceInput)
+    await userEvent.type(priceInput, '900')
+
+    const cadenceInput = screen.getByRole('spinbutton', { name: /edit scan cadence for gpu mission/i })
+    await userEvent.clear(cadenceInput)
+    await userEvent.type(cadenceInput, '10')
+
+    await userEvent.click(screen.getByRole('switch', { name: /edit auto scan for gpu mission/i }))
+    await userEvent.click(screen.getByRole('button', { name: /save changes/i }))
+
+    await waitFor(() => {
+      expect(fetchMock.mock.calls[3]?.[0]).toBe('/api/cockpit/marketplace/missions/mp-edit-1')
+    })
+    expect(JSON.parse(String(fetchMock.mock.calls[3][1]?.body))).toEqual(
+      expect.objectContaining({
+        name: 'GPU mission updated',
+        status: 'paused',
+        brief: 'Find a clean RTX 3090 around Melbourne.',
+        hard_filters: expect.objectContaining({
+          include_keywords: ['RTX 3090'],
+          location_names: ['Melbourne', 'Richmond'],
+          price_max: 900,
+        }),
+        soft_preferences: expect.objectContaining({
+          preferred_brands: ['MSI', 'ASUS'],
+        }),
+        scan_config: expect.objectContaining({
+          scan_interval_minutes: 10,
+        }),
+      }),
+    )
+    expect(screen.getByText(/saved changes for gpu mission/i)).toBeInTheDocument()
+  }, 10_000)
 })
