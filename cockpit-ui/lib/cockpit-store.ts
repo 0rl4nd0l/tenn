@@ -2,6 +2,17 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { CockpitPreferences } from './cockpit-types'
 
+const DEFAULT_CHAT_MODEL = 'model:qwen3.5-35b-a3b-apex'
+const LEGACY_DEFAULT_CHAT_MODEL = 'model:qwen3.5-35b-a3b'
+const DEFAULT_PREFERENCES: CockpitPreferences = {
+  webSearchEnabled: true,
+  ragEnabled: true,
+  dbDiagnosticsEnabled: false,
+  showSources: true,
+  theme: 'dark',
+  marketplaceHomeLocation: '',
+}
+
 // Generate unique IDs
 export function generateId(): string {
   return Math.random().toString(36).substring(2, 9)
@@ -43,17 +54,11 @@ export const useCockpitStore = create<CockpitState>()(
     (set) => ({
       activeTicker: '',
       sessionId: generateId(),
-      chatModel: 'model:qwen3.5-35b-a3b',
+      chatModel: DEFAULT_CHAT_MODEL,
       chatCompletionActive: false,
       apiDefaultEnabled: false,
       activeSource: 'unknown',
-      preferences: {
-        webSearchEnabled: true,
-        ragEnabled: true,
-        dbDiagnosticsEnabled: false,
-        showSources: true,
-        theme: 'dark'
-      },
+      preferences: DEFAULT_PREFERENCES,
       sessionStats: {
         totalCostUsd: 0,
         lastLatencyMs: 0,
@@ -84,6 +89,27 @@ export const useCockpitStore = create<CockpitState>()(
     }),
     {
       name: 'cockpit-storage',
+      version: 2,
+      migrate: (persistedState) => {
+        const state = persistedState as Partial<CockpitState> | undefined
+        if (!state) {
+          return persistedState as unknown as CockpitState
+        }
+
+        const nextState = {
+          ...state,
+          chatModel:
+            state.chatModel === LEGACY_DEFAULT_CHAT_MODEL
+              ? DEFAULT_CHAT_MODEL
+              : state.chatModel,
+          preferences: {
+            ...DEFAULT_PREFERENCES,
+            ...(state.preferences ?? {}),
+          },
+        } as CockpitState
+
+        return nextState
+      },
       partialize: (state) => ({
         activeTicker: state.activeTicker,
         apiDefaultEnabled: state.apiDefaultEnabled,

@@ -91,6 +91,7 @@ describe('MarketplaceMissionScreen', () => {
     expect(screen.getByText('ready')).toBeInTheDocument()
     expect(screen.getAllByText('Dual-cab ute').length).toBeGreaterThan(0)
     expect(screen.getAllByText('queued').length).toBeGreaterThan(0)
+    expect(screen.getByText('Marketplace Assistant')).toBeInTheDocument()
     expect(screen.getByText('Scan Output')).toBeInTheDocument()
     expect(screen.getByText('queued output')).toBeInTheDocument()
     expect(screen.getByText('/reports/cockpit/logs/job-1.out.log')).toBeInTheDocument()

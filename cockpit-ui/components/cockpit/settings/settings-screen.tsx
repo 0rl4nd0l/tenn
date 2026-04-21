@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Cpu, Server, ToggleLeft, Info, GitBranch, FolderOpen, Loader2, HardDrive, ArrowRightLeft } from 'lucide-react'
+import { Cpu, Server, ToggleLeft, Info, GitBranch, FolderOpen, Loader2, HardDrive, ArrowRightLeft, Store } from 'lucide-react'
 import { useCockpitStore } from '@/lib/cockpit-store'
 import { fetchAvailableModels, loadCockpitModel } from '@/lib/api-client'
 import type { ModelGroup } from '@/lib/cockpit-types'
@@ -84,7 +85,7 @@ interface ConfigState {
 
 const DEFAULTS: ConfigState = {
   llm: {
-    model: 'model:qwen3.5-35b-a3b',
+    model: 'model:qwen3.5-35b-a3b-apex',
     endpoint: 'http://localhost:8001',
     routingPolicy: 'local-first',
     apiKeyConfigured: false,
@@ -108,7 +109,7 @@ const DEFAULTS: ConfigState = {
 }
 
 export function SettingsScreen() {
-  const { chatModel, setChatModel } = useCockpitStore()
+  const { chatModel, setChatModel, preferences, updatePreferences } = useCockpitStore()
   const [config, setConfig] = useState<ConfigState>(DEFAULTS)
   const [modelGroups, setModelGroups] = useState<ModelGroup[]>([])
   const [loading, setLoading] = useState(true)
@@ -216,7 +217,7 @@ export function SettingsScreen() {
         <div className="mb-6">
           <h2 className="text-xl font-semibold">Configuration</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Read-only view of cockpit configuration and capabilities
+            Cockpit configuration, runtime capabilities, and saved UI preferences
           </p>
           <div className="flex items-center gap-2 mt-2">
             <Badge variant={backendOnline ? 'default' : 'critical'} className="text-xs font-mono">
@@ -340,6 +341,27 @@ export function SettingsScreen() {
           <p className="text-xs text-muted-foreground">
             These flags reflect backend-authoritative defaults and runtime capability for new chat turns. Session-level overrides can still change an individual tab.
           </p>
+        </ConfigSection>
+
+        <ConfigSection title="Marketplace Preferences" icon={<Store className="h-5 w-5 text-primary" />}>
+          <div className="space-y-2">
+            <label htmlFor="marketplace-home-location" className="text-sm text-muted-foreground">
+              Home location / suburb
+            </label>
+            <Input
+              id="marketplace-home-location"
+              value={preferences.marketplaceHomeLocation}
+              placeholder="e.g. Melbourne, eastern suburbs"
+              onChange={(event) => {
+                updatePreferences({
+                  marketplaceHomeLocation: event.target.value,
+                })
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              Used as the default location context for Marketplace assistant mission drafting.
+            </p>
+          </div>
         </ConfigSection>
 
         {/* Environment */}

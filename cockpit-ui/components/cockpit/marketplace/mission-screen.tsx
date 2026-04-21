@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Textarea } from '@/components/ui/textarea'
+import { MarketplaceAssistant } from './marketplace-assistant'
 
 interface MarketplaceMissionScreenProps {
   apiKey: string
@@ -275,6 +276,14 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
     }
   }
 
+  function handleAssistantScanQueued(jobId: string | null) {
+    if (!jobId) {
+      return
+    }
+    selectedScanJobIdRef.current = jobId
+    setSelectedScanJobId(jobId)
+  }
+
   return (
     <div className="h-full overflow-auto">
       <div className="mx-auto flex max-w-5xl flex-col gap-6 p-6">
@@ -331,6 +340,13 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
             </div>
           </div>
         )}
+
+        <MarketplaceAssistant
+          apiKey={apiKey}
+          browserHealth={browserHealth}
+          onMarketplaceStateChange={load}
+          onScanQueued={handleAssistantScanQueued}
+        />
 
         <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
           <div className="space-y-6">

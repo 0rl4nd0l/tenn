@@ -71,6 +71,7 @@ export interface CockpitPreferences {
   dbDiagnosticsEnabled: boolean
   showSources: boolean
   theme: 'dark' | 'light'
+  marketplaceHomeLocation: string
 }
 
 export interface Job {
