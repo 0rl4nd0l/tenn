@@ -21,6 +21,17 @@ function holding(overrides: Partial<Record<string, unknown>> = {}) {
   }
 }
 
+function holdings(count: number): ReturnType<typeof holding>[] {
+  return Array.from({ length: count }, (_, index) =>
+    holding({
+      holding_id: `h-${index + 1}`,
+      ticker: `TK${String(index + 1).padStart(2, '0')}`,
+      account_label: index % 2 === 0 ? 'Broker' : 'SMSF',
+      opened_at: `2026-01-${String((index % 28) + 1).padStart(2, '0')}`,
+    }),
+  )
+}
+
 describe('HoldingsScreen', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
@@ -43,7 +54,10 @@ describe('HoldingsScreen', () => {
     expect(screen.getByText('CBA')).toBeInTheDocument()
     expect(screen.getByText('Positions')).toBeInTheDocument()
     expect(screen.getByText('Cost Basis Known')).toBeInTheDocument()
-    expect(screen.getByText('2 shown')).toBeInTheDocument()
+    expect(screen.getByText(/2 shown/)).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Amount mode' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Bar mode' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Daily range' })).toBeInTheDocument()
   })
 
   it('edits a holding and sends advanced fields in PATCH payload', async () => {
@@ -115,5 +129,28 @@ describe('HoldingsScreen', () => {
 
     await waitFor(() => expect(screen.getByText('Quantity must be numeric')).toBeInTheDocument())
     expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('paginates holdings with next/prev controls', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          items: holdings(12),
+        }),
+      }),
+    )
+
+    render(<HoldingsScreen apiKey="k" />)
+
+    await waitFor(() => expect(screen.getByText('TK01')).toBeInTheDocument())
+    expect(screen.queryByText('TK12')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+    await waitFor(() => expect(screen.getByText('TK12')).toBeInTheDocument())
+
+    await userEvent.click(screen.getByRole('button', { name: 'Prev' }))
+    await waitFor(() => expect(screen.getByText('TK01')).toBeInTheDocument())
   })
 })

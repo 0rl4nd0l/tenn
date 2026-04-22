@@ -189,6 +189,13 @@ test.describe('Holdings Screen', () => {
     await expect(page.getByText('Positions')).toBeVisible()
     await expect(page.getByText('BHP')).toBeVisible()
     await expect(page.getByText('WES')).toBeVisible()
+    await expect(page.locator('#amount')).toBeVisible()
+    await expect(page.locator('#percent')).toBeVisible()
+    await expect(page.locator('#line')).toBeVisible()
+    await expect(page.locator('#bar')).toBeVisible()
+    await expect(page.locator('#d')).toBeVisible()
+    await expect(page.locator('#m')).toBeVisible()
+    await expect(page.locator('#y')).toBeVisible()
   })
 
   test('creates, edits, and removes a holding', async ({ page }) => {
@@ -220,5 +227,21 @@ test.describe('Holdings Screen', () => {
 
     await page.locator('tr', { hasText: 'CBA' }).getByRole('button', { name: 'Remove' }).click()
     await expect(page.getByRole('cell', { name: 'CBA' })).toHaveCount(0)
+  })
+
+  test('switches chart modes and portfolio scope', async ({ page }) => {
+    await page.goto('/holdings')
+    await expect(page.getByRole('cell', { name: 'BHP' })).toBeVisible()
+
+    await page.locator('#percent').click()
+    await page.locator('#bar').click()
+    await page.locator('#y').click()
+
+    const scopeSelect = page.locator('button[role="combobox"]').filter({ hasText: 'All portfolios' }).first()
+    await scopeSelect.click()
+    await page.getByRole('option', { name: 'Broker' }).click()
+
+    await expect(page.getByRole('cell', { name: 'BHP' })).toBeVisible()
+    await expect(page.getByRole('cell', { name: 'WES' })).toHaveCount(0)
   })
 })

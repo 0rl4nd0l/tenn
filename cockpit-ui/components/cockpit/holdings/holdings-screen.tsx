@@ -5,6 +5,7 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
@@ -15,6 +16,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts'
 
 interface HoldingItem {
   holding_id: string
@@ -52,6 +55,15 @@ interface HoldingDraft {
 
 type StatusFilter = 'all' | 'active' | 'archived' | 'unset'
 type SortKey = 'ticker-asc' | 'ticker-desc' | 'quantity-desc' | 'avg-cost-desc' | 'updated-desc'
+type ValueMode = 'amount' | 'percent'
+type ChartMode = 'line' | 'bar'
+type ChartRange = 'd' | 'm' | 'y'
+
+interface HoldingsChartPoint {
+  label: string
+  amount: number
+  percent: number
+}
 
 const EMPTY_DRAFT: HoldingDraft = {
   ticker: '',
@@ -110,6 +122,108 @@ function normalizeStatus(value: string | null): string {
   return String(value ?? '').trim().toLowerCase()
 }
 
+function formatChartNumber(value: number, valueMode: ValueMode): string {
+  if (!Number.isFinite(value)) return '-'
+  if (valueMode === 'percent') {
+    return `${value.toFixed(2)}%`
+  }
+  return new Intl.NumberFormat('en-AU', {
+    style: 'currency',
+    currency: 'AUD',
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
+function parseHoldingDate(item: HoldingItem): Date | null {
+  const raw = item.opened_at || item.updated_at
+  if (!raw) return null
+  const parsed = new Date(raw)
+  if (Number.isNaN(parsed.getTime())) return null
+  return parsed
+}
+
+function getInvestedAmount(item: HoldingItem): number {
+  if (item.quantity == null || item.avg_cost == null) return 0
+  return Math.max(0, item.quantity * item.avg_cost)
+}
+
+function buildRangePoints(range: ChartRange): Date[] {
+  const now = new Date()
+  const points: Date[] = []
+  if (range === 'd') {
+    for (let offset = 9; offset >= 0; offset -= 1) {
+      const date = new Date(now)
+      date.setHours(0, 0, 0, 0)
+      date.setDate(date.getDate() - offset)
+      points.push(date)
+    }
+    return points
+  }
+
+  if (range === 'm') {
+    for (let offset = 11; offset >= 0; offset -= 1) {
+      const date = new Date(now.getFullYear(), now.getMonth() - offset, 1)
+      points.push(date)
+    }
+    return points
+  }
+
+  for (let offset = 5; offset >= 0; offset -= 1) {
+    const date = new Date(now.getFullYear() - offset, 0, 1)
+    points.push(date)
+  }
+  return points
+}
+
+function rangePointLabel(date: Date, range: ChartRange): string {
+  if (range === 'd') {
+    return date.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })
+  }
+  if (range === 'm') {
+    return date.toLocaleDateString('en-AU', { month: 'short', year: '2-digit' })
+  }
+  return date.toLocaleDateString('en-AU', { year: 'numeric' })
+}
+
+function rangePointCutoff(date: Date, range: ChartRange): Date {
+  if (range === 'd') {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999)
+  }
+  if (range === 'm') {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999)
+  }
+  return new Date(date.getFullYear(), 11, 31, 23, 59, 59, 999)
+}
+
+function buildHoldingsSeries(items: HoldingItem[], range: ChartRange): HoldingsChartPoint[] {
+  const points = buildRangePoints(range)
+  const contributions = items
+    .map((item) => ({
+      date: parseHoldingDate(item) ?? new Date(),
+      invested: getInvestedAmount(item),
+    }))
+    .filter((entry) => entry.invested > 0)
+    .sort((left, right) => left.date.getTime() - right.date.getTime())
+
+  const series = points.map((point) => {
+    const cutoff = rangePointCutoff(point, range).getTime()
+    const amount = contributions.reduce((sum, entry) => {
+      return entry.date.getTime() <= cutoff ? sum + entry.invested : sum
+    }, 0)
+    return {
+      label: rangePointLabel(point, range),
+      amount,
+      percent: 0,
+    }
+  })
+
+  const baseline = series.find((point) => point.amount > 0)?.amount ?? 0
+  return series.map((point) => ({
+    ...point,
+    percent: baseline > 0 ? ((point.amount - baseline) / baseline) * 100 : 0,
+  }))
+}
+
 export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
   const [items, setItems] = useState<HoldingItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -122,6 +236,12 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [sortKey, setSortKey] = useState<SortKey>('ticker-asc')
+  const [portfolioFilter, setPortfolioFilter] = useState<string>('all')
+  const [valueMode, setValueMode] = useState<ValueMode>('amount')
+  const [chartMode, setChartMode] = useState<ChartMode>('line')
+  const [chartRange, setChartRange] = useState<ChartRange>('m')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -149,6 +269,28 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
   }, [load])
 
   const canCreate = useMemo(() => createDraft.ticker.trim().length > 0, [createDraft.ticker])
+  const portfolioOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        items
+          .map((item) => item.account_label?.trim())
+          .filter((value): value is string => Boolean(value)),
+      ),
+    ).sort((left, right) => left.localeCompare(right))
+  }, [items])
+
+  useEffect(() => {
+    if (portfolioFilter === 'all') return
+    if (portfolioOptions.includes(portfolioFilter)) return
+    setPortfolioFilter('all')
+  }, [portfolioFilter, portfolioOptions])
+
+  const scopedItems = useMemo(() => {
+    if (portfolioFilter === 'all') return items
+    return items.filter((item) => item.account_label?.trim() === portfolioFilter)
+  }, [items, portfolioFilter])
+
+  const holdingsSeries = useMemo(() => buildHoldingsSeries(scopedItems, chartRange), [chartRange, scopedItems])
 
   async function handleCreate() {
     if (!canCreate) {
@@ -269,7 +411,7 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
 
   const visibleItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
-    const filtered = items.filter((item) => {
+    const filtered = scopedItems.filter((item) => {
       const status = normalizeStatus(item.status)
       if (statusFilter === 'active' && status !== 'active') return false
       if (statusFilter === 'archived' && status !== 'archived') return false
@@ -306,41 +448,69 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
     })
 
     return filtered
-  }, [items, query, sortKey, statusFilter])
+  }, [query, scopedItems, sortKey, statusFilter])
 
   const summary = useMemo(() => {
     const accounts = new Set(
-      items
+      scopedItems
         .map((item) => item.account_label?.trim())
         .filter((label): label is string => Boolean(label)),
     )
-    const costKnown = items.filter((item) => item.avg_cost != null && item.quantity != null).length
-    const activeCount = items.filter((item) => {
+    const costKnown = scopedItems.filter((item) => item.avg_cost != null && item.quantity != null).length
+    const activeCount = scopedItems.filter((item) => {
       const status = normalizeStatus(item.status)
       return status.length === 0 || status === 'active'
     }).length
 
     const investedByCurrency = new Map<string, number>()
-    for (const item of items) {
+    for (const item of scopedItems) {
       if (item.avg_cost == null || item.quantity == null) continue
       const currency = (item.cost_currency?.trim().toUpperCase() || 'UNK')
       investedByCurrency.set(currency, (investedByCurrency.get(currency) ?? 0) + item.avg_cost * item.quantity)
     }
 
     return {
-      positions: items.length,
+      positions: scopedItems.length,
       accounts: accounts.size,
       costKnown,
       activeCount,
       investedByCurrency,
     }
-  }, [items])
+  }, [scopedItems])
+
+  const totalPages = Math.max(1, Math.ceil(visibleItems.length / pageSize))
+
+  useEffect(() => {
+    setPage((current) => Math.min(Math.max(current, 1), totalPages))
+  }, [totalPages])
+
+  useEffect(() => {
+    setPage(1)
+  }, [portfolioFilter, query, statusFilter, sortKey, pageSize])
+
+  const pagedItems = useMemo(() => {
+    const offset = (page - 1) * pageSize
+    return visibleItems.slice(offset, offset + pageSize)
+  }, [page, pageSize, visibleItems])
 
   return (
     <div className="space-y-4 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-lg font-semibold">Portfolio Holdings</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={portfolioFilter} onValueChange={setPortfolioFilter}>
+            <SelectTrigger className="w-[210px]">
+              <SelectValue placeholder="Portfolio scope" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All portfolios</SelectItem>
+              {portfolioOptions.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {loading ? <Badge variant="outline">Loading</Badge> : null}
           <Button onClick={() => void load()} disabled={loading || saving}>
             Refresh
@@ -370,7 +540,7 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
             <CardTitle className="text-xs font-mono uppercase tracking-wide text-muted-foreground">Accounts</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-semibold">{summary.accounts}</p>
+            <p className="text-2xl font-semibold">{portfolioFilter === 'all' ? summary.accounts : 1}</p>
           </CardContent>
         </Card>
         <Card>
@@ -395,6 +565,107 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-mono uppercase tracking-wide">Holdings Exposure</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <ToggleGroup type="single" value={valueMode} onValueChange={(value) => value && setValueMode(value as ValueMode)} variant="outline" size="sm">
+              <ToggleGroupItem id="amount" value="amount" aria-label="Amount mode">
+                Amount
+              </ToggleGroupItem>
+              <ToggleGroupItem id="percent" value="percent" aria-label="Percent mode">
+                Percent
+              </ToggleGroupItem>
+            </ToggleGroup>
+            <ToggleGroup type="single" value={chartMode} onValueChange={(value) => value && setChartMode(value as ChartMode)} variant="outline" size="sm">
+              <ToggleGroupItem id="line" value="line" aria-label="Line mode">
+                Line
+              </ToggleGroupItem>
+              <ToggleGroupItem id="bar" value="bar" aria-label="Bar mode">
+                Bar
+              </ToggleGroupItem>
+            </ToggleGroup>
+            <ToggleGroup type="single" value={chartRange} onValueChange={(value) => value && setChartRange(value as ChartRange)} variant="outline" size="sm">
+              <ToggleGroupItem id="d" value="d" aria-label="Daily range">
+                D
+              </ToggleGroupItem>
+              <ToggleGroupItem id="m" value="m" aria-label="Monthly range">
+                M
+              </ToggleGroupItem>
+              <ToggleGroupItem id="y" value="y" aria-label="Yearly range">
+                Y
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+          {holdingsSeries.every((point) => point.amount === 0) ? (
+            <p className="rounded border border-dashed border-border/70 px-3 py-6 text-center text-sm text-muted-foreground">
+              Add holdings with quantity and average cost to populate this chart.
+            </p>
+          ) : (
+            <ChartContainer
+              config={{
+                value: {
+                  label: valueMode === 'amount' ? 'Amount' : 'Percent',
+                  color: 'oklch(0.62 0.16 165)',
+                },
+              }}
+              className="h-[260px] w-full aspect-auto"
+            >
+              {chartMode === 'line' ? (
+                <LineChart data={holdingsSeries} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="label" tickLine={false} axisLine={false} minTickGap={22} />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    width={82}
+                    tickFormatter={(value) => formatChartNumber(Number(value), valueMode)}
+                  />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        formatter={(value) => formatChartNumber(Number(value), valueMode)}
+                      />
+                    }
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey={valueMode}
+                    stroke="var(--color-value)"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </LineChart>
+              ) : (
+                <BarChart data={holdingsSeries} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="label" tickLine={false} axisLine={false} minTickGap={22} />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    width={82}
+                    tickFormatter={(value) => formatChartNumber(Number(value), valueMode)}
+                  />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        formatter={(value) => formatChartNumber(Number(value), valueMode)}
+                      />
+                    }
+                  />
+                  <Bar dataKey={valueMode} fill="var(--color-value)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              )}
+            </ChartContainer>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Derived from holding quantity x average cost, rolled up by opened date.
+          </p>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -510,7 +781,7 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
             </SelectContent>
           </Select>
           <div className="flex items-center text-xs text-muted-foreground">
-            {visibleItems.length} shown
+            {visibleItems.length} shown · page {page}/{totalPages}
           </div>
         </CardContent>
       </Card>
@@ -546,7 +817,7 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
                   </TableCell>
                 </TableRow>
               ) : (
-                visibleItems.map((item) => {
+                pagedItems.map((item) => {
                   const editing = editingId === item.holding_id
                   const expanded = expandedId === item.holding_id || editing
 
@@ -736,6 +1007,47 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
               )}
             </TableBody>
           </Table>
+          {visibleItems.length > 0 ? (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>Rows</span>
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(value) => setPageSize(Number(value))}
+                >
+                  <SelectTrigger className="h-8 w-[84px]">
+                    <SelectValue placeholder="Rows" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  disabled={page <= 1}
+                >
+                  Prev
+                </Button>
+                <span className="font-mono text-xs text-muted-foreground">
+                  {page} / {totalPages}
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                  disabled={page >= totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </div>

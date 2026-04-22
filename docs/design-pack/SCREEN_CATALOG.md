@@ -289,28 +289,37 @@ All screens are accessible via sidebar navigation with keyboard shortcuts (1–9
 
 ```
 ┌─────────────────────────────────────────┐
-│  Header + Refresh                       │
+│  Header + Portfolio Scope + Refresh     │
 ├─────────────────────────────────────────┤
 │  KPI Strip (4 cards)                    │
 │  Positions | Active | Accounts | Cost   │
 ├─────────────────────────────────────────┤
-│  Add Holding Card                        │
+│  Holdings Exposure Card                 │
+│  Amount/Percent | Line/Bar | D/M/Y      │
+│  Derived chart (line or bar)            │
+├─────────────────────────────────────────┤
+│  Add Holding Card                       │
 │  Ticker/Qty/Cost/Account + advanced     │
 ├─────────────────────────────────────────┤
-│  Filter Card                             │
+│  Filter Card                            │
 │  Search | Status Filter | Sort          │
 ├─────────────────────────────────────────┤
-│  Holdings Ledger Table                   │
+│  Holdings Ledger Table                  │
 │  Row actions: Edit | Details | Remove   │
 │  Expandable detail row for metadata      │
+│  Footer pagination: Rows + Prev/Next    │
 └─────────────────────────────────────────┘
 ```
 
 ### Key Patterns
 
 - KPI summary cards with monospace metadata (`font-mono`) and status badges
+- Portfolio-scoped view via header selector (All portfolios or account-specific)
+- Jam-style segmented controls via `ToggleGroup`: `Amount/Percent`, `Line/Bar`, and `D/M/Y`
+- Derived exposure chart rendered with shared `ChartContainer` + Recharts primitives
 - Inline search/filter/sort over currently loaded holdings
 - Expandable per-row detail panel (thesis bucket, currency, opened date, note, id)
+- Paged ledger with configurable row density (10/25/50) and Prev/Next navigation
 - Preserves existing backend contract via `/api/cockpit/holdings*` CRUD
 - No light mode or palette changes; follows existing dark OKLch design tokens
 
