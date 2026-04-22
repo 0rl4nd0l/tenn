@@ -240,3 +240,84 @@ class TestAgentLoopRegressions:
         assert result.tool_calls_made == 1
         executor.assert_called_once_with("get_financials", {"ticker": "BHP"})
         assert "I found current financials" in result.text
+
+    def test_cloud_prefix_forces_grounding_even_when_query_classifier_is_weak(self):
+        """`/cloud` turns must call a grounding tool before a substantive answer is accepted."""
+        responses = [
+            json.dumps(
+                {
+                    "type": "thinking",
+                    "assessment": "The user wants an update on BHP.",
+                    "plan": "I can answer directly.",
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "response",
+                    "content": "BHP reported strong results this quarter.",
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "tool_call",
+                    "tool": "get_financials",
+                    "arguments": {"ticker": "BHP"},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "response",
+                    "content": "I checked current-turn financial data before answering.",
+                }
+            ),
+        ]
+        executor = MagicMock(
+            return_value={"financials": [{"ticker": "BHP", "period_end": "2025-12-31"}]}
+        )
+        loop = AgentLoop(llm_client=_make_llm(responses), tool_executor=executor)
+
+        result = loop.run("/cloud BHP update")
+
+        assert result is not None
+        assert result.tool_calls_made == 1
+        executor.assert_called_once_with("get_financials", {"ticker": "BHP"})
+
+    def test_cloud_prefix_rejects_non_grounding_tool_evidence(self):
+        """`/cloud` turns must not treat unrelated tools as sufficient grounding evidence."""
+        responses = [
+            json.dumps(
+                {
+                    "type": "thinking",
+                    "assessment": "Need context quickly.",
+                    "plan": "I will scan local files first.",
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "tool_call",
+                    "tool": "search_files",
+                    "arguments": {"pattern": "bhp"},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "response",
+                    "content": "BHP reported strong results this quarter.",
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "response",
+                    "content": "BHP shares rallied on the announcement.",
+                }
+            ),
+        ]
+        executor = MagicMock(return_value={"matches": [{"path": "reports/bhp.txt"}]})
+        loop = AgentLoop(llm_client=_make_llm(responses), tool_executor=executor)
+
+        result = loop.run("/cloud BHP update")
+
+        assert result is not None
+        assert result.tool_calls_made == 1
+        executor.assert_called_once_with("search_files", {"pattern": "bhp"})
+        assert "I need to look that up before I can answer reliably." in result.text

@@ -95,6 +95,29 @@ _FINANCIAL_CLAIM_IN_RESPONSE_RE = re.compile(
     re.IGNORECASE,
 )
 
+_GROUNDING_TOOL_NAMES = frozenset(
+    {
+        "query_ticker_data",
+        "get_company_dump",
+        "get_price",
+        "get_price_on_date",
+        "get_price_range",
+        "get_financials",
+        "search_news",
+        "search_announcements",
+        "get_data_quality",
+        "run_analysis",
+        "fetch_url",
+        # Legacy/alternate evidence emitters kept for backward compatibility
+        # with older tests and payload shapes.
+        "gather_local_context",
+        "financial_truth",
+        "orchestrator",
+        "company_memory",
+        "market_memory",
+    }
+)
+
 
 def _response_is_pure_refusal(text: str) -> bool:
     """Return True only when *text* is a pure statement of inability with zero substantive claims.
@@ -512,6 +535,7 @@ class AgentLoop:
                     ticker=ticker,
                     conversation_history=conversation_history,
                     evidence=evidence,
+                    force_backend=getattr(self, "_turn_force_backend", None),
                 ):
                     if grounding_nudges_given >= 1 and not _response_is_pure_refusal(
                         parsed.content or raw_response
@@ -1049,14 +1073,18 @@ class AgentLoop:
         ticker: str | None,
         conversation_history: list[dict] | None,
         evidence: list[dict],
+        force_backend: str | None = None,
     ) -> bool:
-        if evidence:
-            return False
-
         query = str(message or "").strip()
         if not query:
             return False
         if _META_OR_ACK_RE.fullmatch(query):
+            return False
+        if force_backend == "api":
+            # /cloud turns must be grounded by at least one current-turn
+            # factual retrieval tool before we allow substantive answers.
+            return not cls._has_grounding_evidence(evidence)
+        if cls._has_grounding_evidence(evidence):
             return False
 
         has_news_or_event_terms = bool(_NEWS_OR_EVENT_QUERY_RE.search(query))
@@ -1075,6 +1103,20 @@ class AgentLoop:
         if is_time_sensitive and (has_news_or_event_terms or bool(ticker)):
             return True
         if _SUBSTANTIVE_INFO_QUERY_RE.search(query):
+            return True
+        return False
+
+    @staticmethod
+    def _has_grounding_evidence(evidence: list[dict]) -> bool:
+        for entry in evidence:
+            if not isinstance(entry, dict):
+                continue
+            tool = str(entry.get("tool") or entry.get("type") or "").strip()
+            if tool not in _GROUNDING_TOOL_NAMES:
+                continue
+            result = entry.get("result")
+            if isinstance(result, dict) and result.get("error"):
+                continue
             return True
         return False
 
