@@ -18,6 +18,7 @@ test.describe('Cockpit Smoke Tests', () => {
       'Verification',
       'History',
       'Settings',
+      'Holdings',
       'News',
       'Intel Pulse'
     ];

@@ -4,32 +4,35 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { HoldingsScreen } from './holdings-screen'
 
+function holding(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    holding_id: 'h-1',
+    ticker: 'BHP',
+    account_label: 'Broker',
+    thesis_bucket: 'Core',
+    status: 'active',
+    quantity: 100,
+    avg_cost: 42.5,
+    cost_currency: 'AUD',
+    opened_at: '2026-01-01',
+    updated_at: '2026-04-22T00:00:00Z',
+    note: 'starter',
+    ...overrides,
+  }
+}
+
 describe('HoldingsScreen', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
   })
 
-  it('lists items fetched from /api/cockpit/holdings', async () => {
+  it('lists holdings and renders summary metrics', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({
-          items: [
-            {
-              holding_id: 'h-1',
-              ticker: 'BHP',
-              account_label: 'Broker',
-              thesis_bucket: null,
-              status: 'active',
-              quantity: 100,
-              avg_cost: 42.5,
-              cost_currency: null,
-              opened_at: null,
-              updated_at: null,
-              note: 'starter',
-            },
-          ],
+          items: [holding(), holding({ holding_id: 'h-2', ticker: 'CBA', status: 'archived', account_label: 'SMSF' })],
         }),
       }),
     )
@@ -37,66 +40,27 @@ describe('HoldingsScreen', () => {
     render(<HoldingsScreen apiKey="k" />)
 
     await waitFor(() => expect(screen.getByText('BHP')).toBeInTheDocument())
-    expect(screen.getByText('Broker')).toBeInTheDocument()
+    expect(screen.getByText('CBA')).toBeInTheDocument()
+    expect(screen.getByText('Positions')).toBeInTheDocument()
+    expect(screen.getByText('Cost Basis Known')).toBeInTheDocument()
+    expect(screen.getByText('2 shown')).toBeInTheDocument()
   })
 
-  it('edits an existing holding row and saves it', async () => {
+  it('edits a holding and sends advanced fields in PATCH payload', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({
-          items: [
-            {
-              holding_id: 'h-1',
-              ticker: 'BHP',
-              account_label: 'Broker',
-              thesis_bucket: null,
-              status: 'active',
-              quantity: 100,
-              avg_cost: 42.5,
-              cost_currency: null,
-              opened_at: null,
-              updated_at: null,
-              note: 'starter',
-            },
-          ],
-        }),
+        json: async () => ({ items: [holding()] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => holding({ status: 'archived', note: 'updated note' }),
       })
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          holding_id: 'h-1',
-          ticker: 'BHP',
-          account_label: 'Brokerage A',
-          thesis_bucket: null,
-          status: 'active',
-          quantity: 125,
-          avg_cost: 41.2,
-          cost_currency: null,
-          opened_at: null,
-          updated_at: null,
-          note: 'updated',
-        }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          items: [
-            {
-              holding_id: 'h-1',
-              ticker: 'BHP',
-              account_label: 'Brokerage A',
-              thesis_bucket: null,
-              status: 'active',
-              quantity: 125,
-              avg_cost: 41.2,
-              cost_currency: null,
-              opened_at: null,
-              updated_at: null,
-              note: 'updated',
-            },
-          ],
+          items: [holding({ status: 'archived', note: 'updated note', updated_at: '2026-04-22T02:00:00Z' })],
         }),
       })
 
@@ -107,9 +71,13 @@ describe('HoldingsScreen', () => {
     await waitFor(() => expect(screen.getByText('BHP')).toBeInTheDocument())
     await userEvent.click(screen.getByRole('button', { name: /^edit$/i }))
 
-    const accountInput = screen.getByDisplayValue('Broker')
-    await userEvent.clear(accountInput)
-    await userEvent.type(accountInput, 'Brokerage A')
+    const statusInput = screen.getByDisplayValue('active')
+    await userEvent.clear(statusInput)
+    await userEvent.type(statusInput, 'archived')
+
+    const noteInput = screen.getByDisplayValue('starter')
+    await userEvent.clear(noteInput)
+    await userEvent.type(noteInput, 'updated note')
 
     await userEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
@@ -119,7 +87,33 @@ describe('HoldingsScreen', () => {
         expect.objectContaining({ method: 'PATCH' }),
       )
     })
-    await waitFor(() => expect(screen.getByText('Brokerage A')).toBeInTheDocument())
+
+    const patchCall = fetchMock.mock.calls.find((call) => call[0] === '/api/cockpit/holdings/h-1')
+    expect(patchCall).toBeDefined()
+    const requestInit = patchCall?.[1] as RequestInit
+    const body = JSON.parse(String(requestInit.body)) as { status?: string; note?: string }
+    expect(body.status).toBe('archived')
+    expect(body.note).toBe('updated note')
+
+    await waitFor(() => expect(screen.getByText('archived')).toBeInTheDocument())
+  })
+
+  it('shows validation error when quantity is non-numeric', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ items: [] }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<HoldingsScreen apiKey="k" />)
+
+    await waitFor(() => expect(screen.getByText('No holdings yet.')).toBeInTheDocument())
+
+    await userEvent.type(screen.getByPlaceholderText('Ticker (e.g. BHP)'), 'BHP')
+    await userEvent.type(screen.getByPlaceholderText('Quantity'), 'abc')
+    await userEvent.click(screen.getByRole('button', { name: /^add$/i }))
+
+    await waitFor(() => expect(screen.getByText('Quantity must be numeric')).toBeInTheDocument())
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 })
-
