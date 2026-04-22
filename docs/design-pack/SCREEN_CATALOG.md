@@ -15,10 +15,11 @@ Every screen in the cockpit-ui, documented with layout structure, interaction pa
 /settings ─────────── Configuration display
 /news ─────────────── Financial news search
 /intel-ops ────────── Pipeline health monitoring (Intel Pulse)
+/holdings ─────────── Portfolio holdings workspace
 /boot ─────────────── System health onboarding
 ```
 
-All screens are accessible via sidebar navigation with keyboard shortcuts (1–8).
+All screens are accessible via sidebar navigation with keyboard shortcuts (1–9, 0, W, M, N, B).
 
 ---
 
@@ -279,7 +280,43 @@ All screens are accessible via sidebar navigation with keyboard shortcuts (1–8
 
 ---
 
-## 8. Intel Pulse Screen (`/intel-ops`)
+## 8. Holdings Screen (`/holdings`)
+
+**Component**: `components/cockpit/holdings/holdings-screen.tsx`
+**Role**: Cockpit-local holdings management (CRUD + portfolio overview)
+
+### Layout
+
+```
+┌─────────────────────────────────────────┐
+│  Header + Refresh                       │
+├─────────────────────────────────────────┤
+│  KPI Strip (4 cards)                    │
+│  Positions | Active | Accounts | Cost   │
+├─────────────────────────────────────────┤
+│  Add Holding Card                        │
+│  Ticker/Qty/Cost/Account + advanced     │
+├─────────────────────────────────────────┤
+│  Filter Card                             │
+│  Search | Status Filter | Sort          │
+├─────────────────────────────────────────┤
+│  Holdings Ledger Table                   │
+│  Row actions: Edit | Details | Remove   │
+│  Expandable detail row for metadata      │
+└─────────────────────────────────────────┘
+```
+
+### Key Patterns
+
+- KPI summary cards with monospace metadata (`font-mono`) and status badges
+- Inline search/filter/sort over currently loaded holdings
+- Expandable per-row detail panel (thesis bucket, currency, opened date, note, id)
+- Preserves existing backend contract via `/api/cockpit/holdings*` CRUD
+- No light mode or palette changes; follows existing dark OKLch design tokens
+
+---
+
+## 9. Intel Pulse Screen (`/intel-ops`)
 
 **Component**: `app/intel-ops/page.tsx`
 **Role**: Real-time pipeline monitoring and failure diagnosis
@@ -345,7 +382,7 @@ All screens are accessible via sidebar navigation with keyboard shortcuts (1–8
 
 ---
 
-## 9. Boot Screen (`/boot`)
+## 10. Boot Screen (`/boot`)
 
 **Component**: `components/cockpit/boot/boot-screen.tsx`
 **Role**: System health check and onboarding

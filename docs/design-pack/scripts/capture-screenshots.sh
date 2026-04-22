@@ -41,7 +41,7 @@ fi
 
 # Phase 1: Warm all routes (triggers Turbopack compilation on first visit)
 echo "Phase 1: Warming routes..."
-ROUTES="/ /operations /updater /verification /history /settings /news /intel-ops /boot"
+ROUTES="/ /operations /updater /verification /history /settings /news /intel-ops /holdings /boot"
 for route in $ROUTES; do
   name=$(echo "$route" | sed 's|^/||; s|^$|home|; s|/|-|g')
   start=$(date +%s)
@@ -73,6 +73,7 @@ const routes = [
   { path: '/settings',      name: 'settings' },
   { path: '/news',          name: 'news' },
   { path: '/intel-ops',     name: 'intel-pulse' },
+  { path: '/holdings',      name: 'holdings' },
   { path: '/boot',          name: 'boot' },
 ];
 

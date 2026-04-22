@@ -193,12 +193,15 @@ test.describe('Holdings Screen', () => {
 
   test('creates, edits, and removes a holding', async ({ page }) => {
     await page.goto('/holdings')
+    await expect(page.getByRole('cell', { name: 'BHP' })).toBeVisible()
 
-    await page.locator('input[placeholder=\"Ticker (e.g. BHP)\"]').fill('CBA')
-    await page.locator('input[placeholder=\"Quantity\"]').fill('12')
-    await page.locator('input[placeholder=\"Avg cost\"]').fill('120.5')
-    await page.locator('input[placeholder=\"Account\"]').fill('Main')
-    await page.locator('input[placeholder=\"Status\"]').fill('active')
+    const addCard = page.locator('[data-slot=\"card\"]').filter({ hasText: 'Add Holding' }).first()
+    await addCard.locator('input[placeholder=\"Ticker (e.g. BHP)\"]').fill('CBA')
+    await addCard.locator('input[placeholder=\"Quantity\"]').fill('12')
+    await addCard.locator('input[placeholder=\"Avg cost\"]').fill('120.5')
+    await addCard.locator('input[placeholder=\"Account\"]').fill('Main')
+    await addCard.locator('input[placeholder=\"Status\"]').fill('active')
+    await expect(page.getByRole('button', { name: 'Add' })).toBeEnabled()
     await page.getByRole('button', { name: 'Add' }).click()
 
     await expect(page.getByText('CBA')).toBeVisible()
@@ -212,7 +215,7 @@ test.describe('Holdings Screen', () => {
     await page.locator('input[value=\"Main\"]').first().fill('Main-Updated')
     await page.getByRole('button', { name: 'Save' }).click()
 
-    await expect(page.getByText('archived')).toBeVisible()
+    await expect(page.locator('tr', { hasText: 'CBA' })).toContainText('archived')
     await expect(page.getByText('Main-Updated')).toBeVisible()
 
     await page.locator('tr', { hasText: 'CBA' }).getByRole('button', { name: 'Remove' }).click()
