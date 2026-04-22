@@ -14,12 +14,14 @@ import json
 import logging
 import multiprocessing as mp
 import os
+import tempfile
 import threading
+import time
 from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 import importlib.metadata
 
@@ -40,6 +42,10 @@ DOCLING_TIMEOUT_MAX_STRICT = 1200
 DOCLING_LARGE_PDF_PAGE_THRESHOLD = 200
 DOCLING_LARGE_PDF_SIZE_THRESHOLD_BYTES = 12 * 1024 * 1024
 DOCLING_CACHE_PAGE_GAP_TOLERANCE = 2
+DOCLING_PAGE_BATCH_PROFILE_PATH_ENV = "DOCLING_PAGE_BATCH_PROFILE_PATH"
+DOCLING_PAGE_BATCH_PROFILE_TARGET_ENV = "DOCLING_PAGE_BATCH_PROFILE_TARGET"
+DOCLING_PAGE_BATCH_PROFILE_BATCH_SIZE_ENV = "DOCLING_PAGE_BATCH_PROFILE_BATCH_SIZE"
+DOCLING_PAGE_BATCH_PROFILE_DEFAULT_BATCH_SIZE = 8
 
 
 class ExtractionTimeoutError(Exception):
@@ -147,6 +153,103 @@ def _compute_docling_timeout(page_count: int, *, strict_backend: bool = False) -
     adaptive = page_count * DOCLING_TIMEOUT_SECONDS_PER_PAGE
     timeout_cap = DOCLING_TIMEOUT_MAX_STRICT if strict_backend else DOCLING_TIMEOUT_MAX
     return min(timeout_cap, max(DOCLING_TIMEOUT_SECONDS, adaptive))
+
+
+def _docling_profile_batch_size() -> int:
+    raw = str(
+        os.environ.get(
+            DOCLING_PAGE_BATCH_PROFILE_BATCH_SIZE_ENV,
+            str(DOCLING_PAGE_BATCH_PROFILE_DEFAULT_BATCH_SIZE),
+        )
+        or ""
+    ).strip()
+    try:
+        parsed = int(raw)
+    except ValueError:
+        return DOCLING_PAGE_BATCH_PROFILE_DEFAULT_BATCH_SIZE
+    return max(1, min(parsed, 100))
+
+
+def _docling_page_batch_ranges(
+    *,
+    page_count: int,
+    batch_size: int,
+) -> list[tuple[int, int]]:
+    if page_count <= 0:
+        return []
+    ranges: list[tuple[int, int]] = []
+    start = 1
+    while start <= page_count:
+        end = min(page_count, start + batch_size - 1)
+        ranges.append((start, end))
+        start = end + 1
+    return ranges
+
+
+def _docling_page_batch_profile_enabled(pdf_path: str) -> bool:
+    out_path = str(os.environ.get(DOCLING_PAGE_BATCH_PROFILE_PATH_ENV) or "").strip()
+    if not out_path:
+        return False
+    target = str(os.environ.get(DOCLING_PAGE_BATCH_PROFILE_TARGET_ENV) or "").strip()
+    if not target:
+        return True
+    pdf_name = Path(pdf_path).name
+    return target in pdf_path or target == pdf_name
+
+
+def _profile_docling_page_batches(
+    *,
+    pdf_path: str,
+    converter: Any,
+    page_count: int,
+    batch_size: int,
+) -> list[dict[str, object]]:
+    ranges = _docling_page_batch_ranges(page_count=page_count, batch_size=batch_size)
+    if not ranges:
+        return []
+
+    rows: list[dict[str, object]] = []
+    with tempfile.TemporaryDirectory(prefix="docling-page-batch-") as tmp_dir:
+        tmp_root = Path(tmp_dir)
+        with fitz.open(pdf_path) as src_doc:
+            for start, end in ranges:
+                batch_pdf = tmp_root / f"pages_{start:04d}_{end:04d}.pdf"
+                slice_doc = fitz.open()
+                try:
+                    slice_doc.insert_pdf(src_doc, from_page=start - 1, to_page=end - 1)
+                    slice_doc.save(str(batch_pdf))
+                finally:
+                    slice_doc.close()
+
+                t0 = time.perf_counter()
+                error = None
+                try:
+                    converter.convert(str(batch_pdf))
+                except Exception as exc:  # noqa: BLE001
+                    error = str(exc)
+                elapsed = time.perf_counter() - t0
+                rows.append(
+                    {
+                        "range_start": start,
+                        "range_end": end,
+                        "page_count": end - start + 1,
+                        "elapsed_seconds": round(elapsed, 6),
+                        "error": error,
+                    }
+                )
+                if error:
+                    break
+
+    return rows
+
+
+def _write_docling_page_batch_profile(payload: dict[str, object]) -> None:
+    out_path = str(os.environ.get(DOCLING_PAGE_BATCH_PROFILE_PATH_ENV) or "").strip()
+    if not out_path:
+        return
+    path = Path(out_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
 def _observed_page_numbers(doc: StructuredDocument) -> list[int]:
@@ -572,6 +675,7 @@ def _run_docling(pdf_path: str) -> StructuredDocument:
     converter = DocumentConverter(
         format_options={"pdf": PdfFormatOption(pipeline_options=pipeline_options)}
     )
+    convert_started_at = time.perf_counter()
     try:
         result = converter.convert(pdf_path)
     except RuntimeError as e:
@@ -582,10 +686,12 @@ def _run_docling(pdf_path: str) -> StructuredDocument:
     except Exception as e:
         logger.error("Docling convert failed for %s: %s", pdf_path, e)
         raise
+    convert_elapsed_seconds = time.perf_counter() - convert_started_at
 
     doc = result.document
 
     tables: list[DoclingTable] = []
+    table_loop_started_at = time.perf_counter()
     for table_item in doc.tables:
         try:
             df = table_item.export_to_dataframe(doc=doc)
@@ -606,8 +712,10 @@ def _run_docling(pdf_path: str) -> StructuredDocument:
             )
         except Exception as e:
             logger.debug("Skipping malformed table: %s", e)
+    table_loop_elapsed_seconds = time.perf_counter() - table_loop_started_at
 
     sections: list[dict] = []
+    section_loop_started_at = time.perf_counter()
     for text_item in doc.texts:
         label = str(getattr(text_item, "label", "")).lower()
         text = (text_item.text or "").strip()
@@ -621,10 +729,46 @@ def _run_docling(pdf_path: str) -> StructuredDocument:
                 "page": page_num,
             }
         )
+    section_loop_elapsed_seconds = time.perf_counter() - section_loop_started_at
 
     import torch
     method = "docling_gpu" if torch.cuda.is_available() else "docling_cpu"
     page_count = _get_page_count_fast(pdf_path)
+
+    if _docling_page_batch_profile_enabled(pdf_path):
+        batch_size = _docling_profile_batch_size()
+        profile_payload: dict[str, object] = {
+            "pdf_path": str(Path(pdf_path).resolve()),
+            "batch_size": batch_size,
+            "page_count": page_count,
+            "docling_convert_seconds": round(convert_elapsed_seconds, 6),
+            "table_loop_seconds": round(table_loop_elapsed_seconds, 6),
+            "section_loop_seconds": round(section_loop_elapsed_seconds, 6),
+            "parser_id": method,
+            "page_batches": [],
+            "page_batch_error": None,
+        }
+        try:
+            page_batches = _profile_docling_page_batches(
+                pdf_path=pdf_path,
+                converter=converter,
+                page_count=page_count,
+                batch_size=batch_size,
+            )
+            profile_payload["page_batches"] = page_batches
+            first_error = next(
+                (
+                    str(item.get("error"))
+                    for item in page_batches
+                    if str(item.get("error") or "").strip()
+                ),
+                None,
+            )
+            profile_payload["page_batch_error"] = first_error
+        except Exception as exc:  # noqa: BLE001
+            profile_payload["page_batch_error"] = str(exc)
+            logger.warning("Docling page-batch profiling failed for %s: %s", pdf_path, exc)
+        _write_docling_page_batch_profile(profile_payload)
 
     return StructuredDocument(
         tables=tables,
