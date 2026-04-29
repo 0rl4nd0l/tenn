@@ -162,6 +162,24 @@ class BackendApiClient:
             timeout=timeout,
         )
 
+    def list_cockpit_holdings(
+        self,
+        *,
+        ticker: str | None = None,
+        include_archived: bool = False,
+        timeout: float = 20.0,
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {
+            "include_archived": "true" if include_archived else "false"
+        }
+        if ticker is not None:
+            params["ticker"] = str(ticker).strip().upper()
+        return self._ops_get(
+            "/api/cockpit/holdings",
+            params=params,
+            timeout=timeout,
+        )
+
     def start_action_job(
         self,
         action_id: str,
@@ -841,6 +859,41 @@ class BackendApiClient:
             response = client.post(url, json={"url": url}, headers=headers)
             response.raise_for_status()
             return response.json() if response.content else {}
+
+    def add_watched_channel(
+        self,
+        name_or_id: str,
+        *,
+        credibility_weight: float = 0.55,
+        enabled: bool = True,
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}/api/commentary/channels"
+        headers: dict[str, str] = {}
+        if self.api_key:
+            headers["X-API-Key"] = self.api_key
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.post(
+                url,
+                json={
+                    "name_or_id": name_or_id,
+                    "credibility_weight": credibility_weight,
+                    "enabled": enabled,
+                },
+                headers=headers,
+            )
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
+    def list_watched_channels(self, *, timeout: float = 10.0) -> dict[str, Any]:
+        url = f"{self.base_url}/api/commentary/channels"
+        headers: dict[str, str] = {}
+        if self.api_key:
+            headers["X-API-Key"] = self.api_key
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.get(url, headers=headers)
+            response.raise_for_status()
+            return response.json() if response.content else {"channels": [], "count": 0}
 
     @staticmethod
     def _normalize_base_url(raw: str) -> str:
