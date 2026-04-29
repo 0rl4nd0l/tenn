@@ -19,7 +19,7 @@ __all__ = ["CommandRoute", "route_command"]
 class CommandRoute:
     """A pre-parsed command that can skip or shortcut the agent loop."""
     matched: bool
-    action_type: str | None = None   # "action_proposal", "direct_action", None
+    action_type: str | None = None   # "action_proposal", "direct_tool", None
     tool: str | None = None
     arguments: dict[str, Any] | None = None
     explanation: str | None = None
@@ -173,7 +173,7 @@ def route_command(
         if channel_name:
             return CommandRoute(
                 matched=True,
-                action_type=None,
+                action_type="direct_tool",
                 tool="watch_youtube_channel",
                 arguments={"channel_name": channel_name},
                 explanation=f"Add YouTube channel {channel_name!r} to the watch list.",

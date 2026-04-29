@@ -241,6 +241,64 @@ class TestAgentLoopRegressions:
         executor.assert_called_once_with("get_financials", {"ticker": "BHP"})
         assert "I found current financials" in result.text
 
+    def test_watch_youtube_channel_command_executes_direct_tool(self):
+        executor = MagicMock(
+            return_value={
+                "ok": True,
+                "channel_id": "UCabc123",
+                "name": "Kneppy Invests",
+                "enabled": True,
+                "credibility_weight": 0.55,
+                "already_existed": False,
+            }
+        )
+        llm = _make_llm([])
+        loop = AgentLoop(llm_client=llm, tool_executor=executor)
+
+        result = loop.run("watch youtube channel Kneppy Invests")
+
+        assert result is not None
+        assert result.mode == "command"
+        assert result.action_preview is None
+        assert result.tool_calls_made == 1
+        assert result.evidence[0]["tool"] == "watch_youtube_channel"
+        assert "Added YouTube channel Kneppy Invests (UCabc123)" in result.text
+        executor.assert_called_once_with(
+            "watch_youtube_channel", {"channel_name": "Kneppy Invests"}
+        )
+        llm.chat.assert_not_called()
+
+    def test_watch_youtube_channel_command_reports_tool_failure(self):
+        executor = MagicMock(
+            return_value={"ok": False, "error": "backend API client not configured"}
+        )
+        llm = _make_llm([])
+        loop = AgentLoop(llm_client=llm, tool_executor=executor)
+
+        result = loop.run("watch youtube channel Kneppy Invests")
+
+        assert result is not None
+        assert result.action_preview is None
+        assert "backend API client not configured" in result.text
+        executor.assert_called_once_with(
+            "watch_youtube_channel", {"channel_name": "Kneppy Invests"}
+        )
+        llm.chat.assert_not_called()
+
+    def test_action_command_still_returns_confirmation_preview(self):
+        executor = MagicMock()
+        llm = _make_llm([])
+        loop = AgentLoop(llm_client=llm, tool_executor=executor)
+
+        result = loop.run("ingest BHP news")
+
+        assert result is not None
+        assert result.mode == "command"
+        assert result.action_preview is not None
+        assert result.action_preview["action_id"] == "daily_news_ingest"
+        executor.assert_not_called()
+        llm.chat.assert_not_called()
+
     def test_cloud_prefix_forces_grounding_even_when_query_classifier_is_weak(self):
         """`/cloud` turns must call a grounding tool before a substantive answer is accepted."""
         responses = [

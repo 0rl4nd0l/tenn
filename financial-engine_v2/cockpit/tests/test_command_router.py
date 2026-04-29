@@ -7,6 +7,7 @@ class TestWatchYoutubeChannelCommandRoute:
     def test_watch_youtube_from(self):
         r = route_command("watch youtube videos from Kneppy Invests")
         assert r.matched is True
+        assert r.action_type == "direct_tool"
         assert r.tool == "watch_youtube_channel"
         assert r.arguments["channel_name"] == "Kneppy Invests"
 

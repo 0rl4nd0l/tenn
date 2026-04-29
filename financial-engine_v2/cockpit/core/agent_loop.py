@@ -306,26 +306,28 @@ class AgentLoop:
         self._turn_force_backend = force_backend
         self._current_intent: QueryIntent | None = None
 
-        # Pre-route explicit commands (ingest, chart, update, backfill) before
-        # the full agent loop so they always produce a clean action_proposal
-        # rather than relying on the LLM to parse the imperative correctly.
-        cmd = route_command(message, active_ticker=ticker)
-        if cmd.matched and cmd.tool:
-            preview = normalize_action_preview(
-                {
-                    "tool": cmd.tool,
-                    "arguments": cmd.arguments or {},
-                    "explanation": cmd.explanation or "",
-                    "requires_confirmation": True,
-                }
-            )
-            return AgentResult(
-                text=cmd.explanation or f"Ready to execute: {cmd.tool}",
-                action_preview=preview,
-                mode="command",
-            )
-
         try:
+            # Pre-route explicit commands (ingest, chart, update, backfill)
+            # before the full agent loop so they always produce a clean command
+            # result rather than relying on the LLM to parse the imperative.
+            cmd = route_command(message, active_ticker=ticker)
+            if cmd.matched and cmd.tool:
+                if cmd.action_type == "direct_tool":
+                    return self._execute_direct_command_tool(cmd, on_status=on_status)
+                preview = normalize_action_preview(
+                    {
+                        "tool": cmd.tool,
+                        "arguments": cmd.arguments or {},
+                        "explanation": cmd.explanation or "",
+                        "requires_confirmation": True,
+                    }
+                )
+                return AgentResult(
+                    text=cmd.explanation or f"Ready to execute: {cmd.tool}",
+                    action_preview=preview,
+                    mode="command",
+                )
+
             result = self._run_inner(
                 message,
                 ticker,
@@ -343,6 +345,56 @@ class AgentLoop:
             )
         finally:
             self._turn_force_backend = None
+
+    def _execute_direct_command_tool(
+        self,
+        cmd: Any,
+        *,
+        on_status: Callable[[str], None] | None = None,
+    ) -> AgentResult:
+        """Execute an explicit command-router tool without confirmation."""
+        tool_name = str(cmd.tool or "unknown")
+        arguments = dict(cmd.arguments or {})
+        if on_status:
+            on_status(f"Executing tool: {tool_name}")
+        t0 = time.perf_counter()
+        result = self._execute_tool(tool_name, arguments)
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+        result_dict = result if isinstance(result, dict) else {"result": result}
+        trace = build_tool_trace_entry(
+            iteration=0,
+            tool_name=tool_name,
+            arguments=arguments,
+            result=result_dict,
+            duration_ms=elapsed_ms,
+        )
+        evidence = [{"tool": tool_name, "arguments": arguments, "result": result_dict}]
+        return AgentResult(
+            text=self._format_direct_command_tool_result(cmd, result_dict),
+            evidence=evidence,
+            mode="command",
+            tool_calls_made=1,
+            iterations_used=1,
+            tool_traces=[trace],
+        )
+
+    @staticmethod
+    def _format_direct_command_tool_result(cmd: Any, result: dict[str, Any]) -> str:
+        tool_name = str(cmd.tool or "tool")
+        if result.get("ok") is False or result.get("error"):
+            error = str(result.get("error") or "tool returned ok=false")
+            return f"Could not execute {tool_name}: {error}"
+
+        if tool_name == "watch_youtube_channel":
+            args = cmd.arguments if isinstance(cmd.arguments, dict) else {}
+            name = str(result.get("name") or args.get("channel_name") or "channel").strip()
+            channel_id = str(result.get("channel_id") or "").strip()
+            suffix = f" ({channel_id})" if channel_id else ""
+            if result.get("already_existed"):
+                return f"Already watching YouTube channel {name}{suffix}."
+            return f"Added YouTube channel {name}{suffix} to the watch list."
+
+        return str(cmd.explanation or f"Executed {tool_name}.")
 
     # Maximum thinking steps before we force the LLM to act.
     MAX_THINKING_STEPS: int = 2
