@@ -140,7 +140,10 @@ def _normalize_feedback_type(raw: Any) -> str:
 
 
 def _normalize_capture_kind(raw: Any) -> str:
-    return "ui_issue" if str(raw or "").strip().lower() == "ui_issue" else "chat_feedback"
+    value = str(raw or "").strip().lower()
+    if value in {"chat_feedback", "ui_issue", "auto_diagnostic"}:
+        return value
+    return "chat_feedback"
 
 
 def _sanitize_payload(value: Any, *, key: str | None = None) -> Any:
@@ -383,6 +386,16 @@ def _build_codex_flag_prompt(
             "",
             f"Issue ID: {bundle.get('report_id')}",
             f"Issue directory: {report_dir}",
+            f"Read API: {read_api_path}",
+            f"Bundle: {bundle_path}",
+            f"Summary: {summary_path}",
+        ]
+    elif capture_kind == "auto_diagnostic":
+        prompt_lines = [
+            "Investigate this automatically flagged cockpit diagnostic and fix the underlying issue if confirmed.",
+            "",
+            f"Diagnostic ID: {bundle.get('report_id')}",
+            f"Diagnostic directory: {report_dir}",
             f"Read API: {read_api_path}",
             f"Bundle: {bundle_path}",
             f"Summary: {summary_path}",
@@ -1149,6 +1162,74 @@ class CockpitService:
                 if str(item.get("response_text") or "").strip() == flagged_text:
                     return item
         return items[-1]
+
+    def auto_flag_chat_response(
+        self,
+        *,
+        session_id: str | None,
+        ticker: str | None,
+        response: Any,
+    ) -> dict[str, Any] | None:
+        """Persist an automatic diagnostic report when a turn exposes clear issues."""
+
+        thread_id = self._resolve_thread_id(session_id)
+        response_text = str(getattr(response, "text", "") or "").strip()
+        latest = self._resolve_turn_diagnostics(
+            thread_id,
+            {"content": response_text} if response_text else None,
+        )
+        turn = dict(latest or {})
+        turn["response_text"] = response_text or str(turn.get("response_text") or "")
+        turn["routing_metadata"] = dict(
+            getattr(response, "routing_metadata", None)
+            or turn.get("routing_metadata")
+            or {}
+        )
+        turn["evidence"] = list(
+            getattr(response, "evidence", None) or turn.get("evidence") or []
+        )
+        turn["tool_traces"] = list(
+            getattr(response, "tool_traces", None) or turn.get("tool_traces") or []
+        )
+
+        findings = detect_auto_flag_findings(turn)
+        if not findings:
+            return None
+
+        fingerprint = build_auto_flag_fingerprint(
+            thread_id=thread_id,
+            response_text=turn["response_text"],
+            findings=findings,
+        )
+        with self._feedback_lock:
+            seen = getattr(self, "_recent_auto_flag_fingerprints", set())
+            if fingerprint in seen:
+                return None
+            seen.add(fingerprint)
+            if len(seen) > 200:
+                seen = set(list(seen)[-100:])
+            self._recent_auto_flag_fingerprints = seen
+
+        request = turn.get("request") if isinstance(turn.get("request"), dict) else {}
+        return self.flag_chat_feedback(
+            session_id=thread_id,
+            ticker=ticker or request.get("ticker"),
+            feedback_type="poor",
+            capture_kind="auto_diagnostic",
+            note=build_auto_flag_note(findings),
+            flagged_message={
+                "id": f"auto-diagnostic-{uuid.uuid4().hex[:8]}",
+                "role": "assistant",
+                "content": turn["response_text"],
+            },
+            transcript=[],
+            frontend_context={
+                "source": "cockpit-auto-flagger",
+                "auto_flag": True,
+                "auto_findings": findings,
+            },
+            auto_findings=findings,
+        )
 
     def _analyze_flagged_bundle(self, bundle: dict[str, Any]) -> dict[str, Any] | None:
         if _normalize_feedback_type(bundle.get("feedback_type")) == "good":

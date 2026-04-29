@@ -59,6 +59,11 @@ def resolve_channel_id(name_or_url: str) -> tuple[str, str]:
         handle = _slugify_as_handle(raw)
         lookup_url = f"https://www.youtube.com/@{handle}/videos"
 
+    try:
+        import yt_dlp  # type: ignore
+    except ImportError as exc:
+        raise RuntimeError("yt-dlp is required for channel lookup") from exc
+
     ydl_opts = {
         "quiet": True,
         "no_warnings": True,
@@ -66,8 +71,6 @@ def resolve_channel_id(name_or_url: str) -> tuple[str, str]:
         "playlist_items": "1",
     }
     try:
-        import yt_dlp  # type: ignore
-
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(lookup_url, download=False)
     except Exception as exc:

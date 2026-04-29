@@ -1314,6 +1314,23 @@ def _enforce_visible_source_contract(message: str, response: Any) -> list[dict[s
     return []
 
 
+def _maybe_auto_flag_chat_response(
+    service: Any,
+    *,
+    session_id: str | None,
+    ticker: str | None,
+    response: Any,
+) -> dict[str, Any] | None:
+    auto_flag = getattr(service, "auto_flag_chat_response", None)
+    if not callable(auto_flag):
+        return None
+    try:
+        return auto_flag(session_id=session_id, ticker=ticker, response=response)
+    except Exception:
+        logger.exception("Cockpit auto diagnostic flag failed")
+        return None
+
+
 # ---------------------------------------------------------------------------
 # Helper: probe a single HTTP endpoint
 # ---------------------------------------------------------------------------
@@ -2581,7 +2598,7 @@ class CockpitFeedbackFlagRequest(BaseModel):
     session_id: str | None = None
     ticker: str | None = None
     feedback_type: Literal["good", "poor"] = "poor"
-    capture_kind: Literal["chat_feedback", "ui_issue"] = "chat_feedback"
+    capture_kind: Literal["chat_feedback", "ui_issue", "auto_diagnostic"] = "chat_feedback"
     note: str | None = None
     flagged_message: dict[str, Any] = Field(default_factory=dict)
     transcript: list[dict[str, Any]] = Field(default_factory=list)
@@ -2593,7 +2610,7 @@ class CockpitFeedbackFlagResponse(BaseModel):
     ok: bool = True
     report_id: str
     feedback_type: Literal["good", "poor"]
-    capture_kind: Literal["chat_feedback", "ui_issue"] = "chat_feedback"
+    capture_kind: Literal["chat_feedback", "ui_issue", "auto_diagnostic"] = "chat_feedback"
     report_dir: str
     bundle_path: str
     summary_path: str
@@ -2606,7 +2623,7 @@ class CockpitFeedbackFlagResponse(BaseModel):
 class CockpitFlaggedReportListItem(BaseModel):
     report_id: str
     feedback_type: Literal["good", "poor"]
-    capture_kind: Literal["chat_feedback", "ui_issue"] = "chat_feedback"
+    capture_kind: Literal["chat_feedback", "ui_issue", "auto_diagnostic"] = "chat_feedback"
     session_id: str
     ticker: str | None = None
     saved_at: str | None = None
@@ -2622,7 +2639,7 @@ class CockpitFlaggedReportListResponse(BaseModel):
 class CockpitFlaggedReportResponse(BaseModel):
     report_id: str
     feedback_type: Literal["good", "poor"]
-    capture_kind: Literal["chat_feedback", "ui_issue"] = "chat_feedback"
+    capture_kind: Literal["chat_feedback", "ui_issue", "auto_diagnostic"] = "chat_feedback"
     report_dir: str
     bundle_path: str
     summary_path: str
@@ -4572,6 +4589,12 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 attached_sources=attached_sources,
             )
             sources = _enforce_visible_source_contract(payload.message, response)
+            _maybe_auto_flag_chat_response(
+                service,
+                session_id=payload.session_id,
+                ticker=payload.ticker,
+                response=response,
+            )
             rendered_chart = _build_filestats_chart_from_chat_response(response)
             return {
                 "type": "done",
@@ -4638,6 +4661,12 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     attached_sources=attached_sources,
                 )
                 sources = _enforce_visible_source_contract(payload.message, response)
+                _maybe_auto_flag_chat_response(
+                    service,
+                    session_id=payload.session_id,
+                    ticker=payload.ticker,
+                    response=response,
+                )
 
                 # After streaming finishes, send metadata and final state
                 if response.tool_traces:

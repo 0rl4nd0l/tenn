@@ -177,7 +177,7 @@ class TestFetchVideoMetadata:
 
 
 from unittest.mock import patch, MagicMock
-from app.services.youtube_transcript_fetcher import resolve_channel_id
+from app.services.youtube_transcript_fetcher import resolve_channel_id, _slugify_as_handle
 
 
 class TestResolveChannelId:
@@ -205,6 +205,9 @@ class TestResolveChannelId:
             instance.extract_info.return_value = info
             channel_id, name = resolve_channel_id("Kneppy Invests")
         assert channel_id == "UCabc123"
+        # Verify correct @handle URL was constructed from the plain name
+        call_args = instance.extract_info.call_args
+        assert "KneppyInvests" in call_args[0][0]
 
     def test_passthrough_raw_channel_id(self):
         info = self._mock_ydl("UCabc123", "Kneppy Invests")
@@ -228,7 +231,6 @@ class TestResolveChannelId:
         with patch("yt_dlp.YoutubeDL") as MockYDL:
             instance = MockYDL.return_value.__enter__.return_value
             instance.extract_info.return_value = {"uploader": "Someone"}
-            import pytest
             with pytest.raises(RuntimeError, match="could not resolve channel_id"):
                 resolve_channel_id("some channel")
 
@@ -236,6 +238,24 @@ class TestResolveChannelId:
         with patch("yt_dlp.YoutubeDL") as MockYDL:
             instance = MockYDL.return_value.__enter__.return_value
             instance.extract_info.side_effect = Exception("network error")
-            import pytest
             with pytest.raises(RuntimeError, match="channel lookup failed"):
                 resolve_channel_id("Kneppy Invests")
+
+
+class TestSlugifyAsHandle:
+    def test_plain_two_word_name(self):
+        assert _slugify_as_handle("Kneppy Invests") == "KneppyInvests"
+
+    def test_name_with_hyphen(self):
+        # hyphens stripped
+        assert _slugify_as_handle("Investment-Guru") == "InvestmentGuru"
+
+    def test_name_with_underscore(self):
+        # underscores preserved
+        assert _slugify_as_handle("test_channel") == "Test_Channel"
+
+    def test_single_word(self):
+        assert _slugify_as_handle("Kneppy") == "Kneppy"
+
+    def test_empty_string(self):
+        assert _slugify_as_handle("") == ""
