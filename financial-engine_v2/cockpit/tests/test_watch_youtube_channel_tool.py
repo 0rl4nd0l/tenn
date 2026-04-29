@@ -71,6 +71,16 @@ class TestWatchYoutubeChannelTool:
         assert result["ok"] is False
         assert "channel lookup failed" in result["error"]
 
+    def test_invalid_credibility_weight_returns_error(self):
+        executor = _make_executor()
+        result = executor.execute(
+            "watch_youtube_channel",
+            {"channel_name": "Kneppy Invests", "credibility_weight": 1.5},
+        )
+        assert result["ok"] is False
+        assert "credibility_weight" in result["error"]
+        executor._router.backend_api_client.add_watched_channel.assert_not_called()
+
     def test_already_existed_true(self):
         executor = _make_executor(
             backend_response={

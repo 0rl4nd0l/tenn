@@ -59,11 +59,11 @@ _WATCH_CHANNEL_RE = re.compile(
     r"""
     ^\s*
     (?:
-        watch\s+(?:youtube\s+)?(?:videos?\s+from\s+|channel\s+)?  # watch [youtube] [videos from | channel]
-      | monitor\s+(?:youtube\s+)?(?:channel\s+)?                  # monitor [youtube] [channel]
-      | add\s+(?:youtube\s+)?channel\s+                           # add [youtube] channel
-      | subscribe\s+to\s+                                         # subscribe to
-      | follow\s+(?:youtube\s+)?(?:channel\s+)?                   # follow [youtube] [channel]
+        watch\s+(?:youtube\s+(?:videos?\s+from\s+|channel\s+|)|videos?\s+from\s+|channel\s+)
+      | monitor\s+(?:youtube\s+(?:channel\s+|)|channel\s+)
+      | add\s+(?:youtube\s+)?channel\s+
+      | subscribe\s+to\s+
+      | follow\s+(?:youtube\s+(?:channel\s+|)|channel\s+)
     )
     (.+)$
     """,

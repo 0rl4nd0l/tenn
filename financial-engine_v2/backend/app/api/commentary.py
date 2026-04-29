@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.api.routes import require_api_key
 from app.services.channel_registry import ChannelConfig, ChannelRegistry
@@ -229,7 +229,7 @@ _YOUTUBE_URL_RE = re.compile(
 
 class AddChannelRequest(BaseModel):
     name_or_id: str
-    credibility_weight: float = 0.55
+    credibility_weight: float = Field(default=0.55, ge=0.0, le=1.0)
     enabled: bool = True
 
 
@@ -344,7 +344,8 @@ def add_watched_channel(body: AddChannelRequest) -> dict[str, Any]:
 
     registry = ChannelRegistry()
     existing = registry.channels()
-    already_existed = any(c.channel_id == channel_id for c in existing)
+    existing_channel = next((c for c in existing if c.channel_id == channel_id), None)
+    already_existed = existing_channel is not None
 
     if not already_existed:
         new_channel = ChannelConfig(
@@ -354,12 +355,15 @@ def add_watched_channel(body: AddChannelRequest) -> dict[str, Any]:
             enabled=body.enabled,
         )
         registry.save([*existing, new_channel])
+        stored_channel = new_channel
+    else:
+        stored_channel = existing_channel
 
     return {
         "channel_id": channel_id,
-        "name": canonical_name,
-        "enabled": body.enabled,
-        "credibility_weight": body.credibility_weight,
+        "name": stored_channel.name,
+        "enabled": stored_channel.enabled,
+        "credibility_weight": stored_channel.credibility_weight,
         "already_existed": already_existed,
     }
 

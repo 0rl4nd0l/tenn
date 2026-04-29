@@ -45,7 +45,14 @@ class TestAddChannelEndpoint:
     def test_add_already_existing_channel(self):
         from app.services.channel_registry import ChannelConfig
         client = _make_client()
-        existing = [ChannelConfig(name="Kneppy Invests", channel_id="UCabc123")]
+        existing = [
+            ChannelConfig(
+                name="Kneppy Invests",
+                channel_id="UCabc123",
+                enabled=False,
+                credibility_weight=0.7,
+            )
+        ]
 
         with (
             patch(
@@ -65,13 +72,26 @@ class TestAddChannelEndpoint:
             )
 
         assert resp.status_code == 200
-        assert resp.json()["already_existed"] is True
+        body = resp.json()
+        assert body["already_existed"] is True
+        assert body["enabled"] is False
+        assert body["credibility_weight"] == 0.7
+        instance.save.assert_not_called()
 
     def test_missing_name_returns_422(self):
         client = _make_client()
         resp = client.post(
             "/api/commentary/channels",
             json={},
+            headers=_auth_headers(),
+        )
+        assert resp.status_code == 422
+
+    def test_credibility_weight_must_be_in_range(self):
+        client = _make_client()
+        resp = client.post(
+            "/api/commentary/channels",
+            json={"name_or_id": "Kneppy Invests", "credibility_weight": 1.5},
             headers=_auth_headers(),
         )
         assert resp.status_code == 422

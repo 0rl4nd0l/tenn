@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import re
 import warnings
 from dataclasses import asdict
@@ -1131,7 +1132,12 @@ class ToolExecutor:
         client = self._router.backend_api_client
         if client is None:
             return {"ok": False, "error": "backend API client not configured"}
-        credibility_weight = float(args.get("credibility_weight", 0.55))
+        try:
+            credibility_weight = float(args.get("credibility_weight", 0.55))
+        except (TypeError, ValueError):
+            return {"ok": False, "error": "credibility_weight must be a number"}
+        if not math.isfinite(credibility_weight) or not 0.0 <= credibility_weight <= 1.0:
+            return {"ok": False, "error": "credibility_weight must be between 0.0 and 1.0"}
         try:
             result = client.add_watched_channel(
                 channel_name, credibility_weight=credibility_weight

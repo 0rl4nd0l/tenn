@@ -31,6 +31,18 @@ class TestWatchYoutubeChannelCommandRoute:
         assert r.matched is True
         assert r.arguments["channel_name"] == "https://youtube.com/@KneppyInvests"
 
+    def test_plain_watch_ticker_does_not_route_to_youtube_channel(self):
+        r = route_command("watch BHP")
+        assert r.matched is False
+
+    def test_plain_monitor_ticker_does_not_route_to_youtube_channel(self):
+        r = route_command("monitor BHP")
+        assert r.matched is False
+
+    def test_plain_follow_ticker_does_not_route_to_youtube_channel(self):
+        r = route_command("follow BHP")
+        assert r.matched is False
+
     def test_unrelated_does_not_match(self):
         r = route_command("what do you think about BHP")
         assert r.matched is False
