@@ -55,6 +55,21 @@ _ANALYSIS_RE = re.compile(
     re.IGNORECASE,
 )
 
+_WATCH_CHANNEL_RE = re.compile(
+    r"""
+    ^\s*
+    (?:
+        watch\s+(?:youtube\s+)?(?:videos?\s+from\s+|channel\s+)?  # watch [youtube] [videos from | channel]
+      | monitor\s+(?:youtube\s+)?(?:channel\s+)?                  # monitor [youtube] [channel]
+      | add\s+(?:youtube\s+)?channel\s+                           # add [youtube] channel
+      | subscribe\s+to\s+                                         # subscribe to
+      | follow\s+(?:youtube\s+)?(?:channel\s+)?                   # follow [youtube] [channel]
+    )
+    (.+)$
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+
 _TICKER_STOPWORDS = frozenset({
     "ASX", "ETF", "IPO", "CEO", "AGM", "EGM", "FY", "HY",
     "USA", "AUS", "GDP", "CPI", "RBA", "AUD", "USD",
@@ -149,6 +164,19 @@ def route_command(
                 tool="run_analysis",
                 arguments={"ticker": ticker},
                 explanation=f"Run full analysis pipeline for {ticker}.",
+            )
+
+    # watch/monitor/add/subscribe/follow youtube channel
+    m = _WATCH_CHANNEL_RE.match(text)
+    if m:
+        channel_name = m.group(1).strip()
+        if channel_name:
+            return CommandRoute(
+                matched=True,
+                action_type=None,
+                tool="watch_youtube_channel",
+                arguments={"channel_name": channel_name},
+                explanation=f"Add YouTube channel {channel_name!r} to the watch list.",
             )
 
     return CommandRoute(matched=False)
