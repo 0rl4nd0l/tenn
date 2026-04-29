@@ -321,3 +321,39 @@ class TestAgentLoopRegressions:
         assert result.tool_calls_made == 1
         executor.assert_called_once_with("search_files", {"pattern": "bhp"})
         assert "I need to look that up before I can answer reliably." in result.text
+
+    def test_evidence_summary_does_not_surface_internal_truncation_metadata(self):
+        summary = AgentLoop._summarize_evidence(
+            [
+                {
+                    "tool": "query_ticker_data",
+                    "result": {
+                        "tool": "query_ticker_data",
+                        "ok": True,
+                        "_truncated": True,
+                        "_original_chars": 71_178,
+                        "ticker": "PLS",
+                        "price": {
+                            "symbol": "PLS.AX",
+                            "current": {
+                                "price": 5.945,
+                                "previous_close": 6.11,
+                                "change_percent": -2.7,
+                            },
+                        },
+                        "docs": [
+                            {
+                                "title": "PLS - March 2026 Quarterly Activities Report advisory",
+                                "published_at": "2026-04-02T00:00:00Z",
+                            }
+                        ],
+                        "financials": [],
+                    },
+                }
+            ]
+        )
+
+        assert "_truncated" not in summary
+        assert "_original_chars" not in summary
+        assert "financial_rows=0" in summary
+        assert "previous_close=6.11" in summary

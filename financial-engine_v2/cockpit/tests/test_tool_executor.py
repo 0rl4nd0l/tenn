@@ -42,6 +42,20 @@ def _days_ago_iso(days: int) -> str:
     return (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
 
 
+class TestGetFinancials:
+    def test_empty_backend_financial_rows_are_no_data_not_tool_failure(self) -> None:
+        executor = _make_executor()
+        backend = MagicMock()
+        backend.get_ticker_context.return_value = {"financials": []}
+        executor._router.backend_api_client = backend
+
+        result = executor.execute("get_financials", {"ticker": "PLS"})
+
+        assert result["ok"] is True
+        assert result["financials"] == []
+        backend.get_ticker_context.assert_called_once_with("PLS", financials_limit=6)
+
+
 # ---------------------------------------------------------------------------
 # search_news — freshness_warning on market-wide zero-hit path (Bug 3 extension)
 # ---------------------------------------------------------------------------

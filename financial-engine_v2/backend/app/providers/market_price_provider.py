@@ -39,6 +39,34 @@ def _at(values, idx):
     return value if value is not None else None
 
 
+def _as_float(value):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _derive_previous_close(history, current_price):
+    closes = []
+    for row in history:
+        if not isinstance(row, dict):
+            continue
+        close = _as_float(row.get("close"))
+        if close is not None:
+            closes.append(close)
+
+    if not closes:
+        return None
+
+    current = _as_float(current_price)
+    if current is not None and len(closes) >= 2:
+        tolerance = max(abs(current) * 1e-9, 1e-9)
+        if abs(closes[-1] - current) <= tolerance:
+            return closes[-2]
+
+    return closes[-1]
+
+
 class MarketPriceProvider:
     def __init__(self, base_url=DEFAULT_BASE_URL, timeout=DEFAULT_TIMEOUT_SECONDS):
         self.base_url = str(base_url).rstrip("/")
@@ -151,6 +179,12 @@ class MarketPriceProvider:
                 }
             )
 
+        previous_close = meta.get("previousClose")
+        if previous_close is None:
+            previous_close = _derive_previous_close(history, meta.get("regularMarketPrice"))
+        if previous_close is None:
+            previous_close = meta.get("chartPreviousClose")
+
         return {
             "provider": "yahoo_finance",
             "ticker": str(ticker or "").strip().upper(),
@@ -163,7 +197,7 @@ class MarketPriceProvider:
             "interval": params["interval"],
             "current": {
                 "price": meta.get("regularMarketPrice"),
-                "previous_close": meta.get("chartPreviousClose") or meta.get("previousClose"),
+                "previous_close": previous_close,
                 "open": meta.get("regularMarketOpen"),
                 "day_high": meta.get("regularMarketDayHigh"),
                 "day_low": meta.get("regularMarketDayLow"),

@@ -7,7 +7,7 @@ Covers:
 - JSON repair (trailing commas)
 """
 
-from cockpit.core.response_parser import parse_llm_response
+from cockpit.core.response_parser import format_tool_result, parse_llm_response
 
 
 # ---------------------------------------------------------------------------
@@ -209,3 +209,20 @@ class TestRegressions:
         assert "{" not in (parsed.content or ""), (
             "Raw JSON leaked into content — multi-object split not working"
         )
+
+    def test_format_tool_result_hides_internal_truncation_metadata(self):
+        formatted = format_tool_result(
+            "query_ticker_data",
+            {
+                "tool": "query_ticker_data",
+                "ok": True,
+                "_truncated": True,
+                "_original_chars": 50_000,
+                "ticker": "PLS",
+                "price": {"current": {"price": 5.945}},
+            },
+        )
+
+        assert "_truncated" not in formatted
+        assert "_original_chars" not in formatted
+        assert "PLS" in formatted

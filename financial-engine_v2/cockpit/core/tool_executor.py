@@ -286,7 +286,7 @@ class ToolExecutor:
             self._router._build_financials_narrative(financials) if financials else ""
         )
         return {
-            "ok": bool(financials),
+            "ok": True,
             "ticker": ticker,
             "financials": financials,
             "narrative": narrative,

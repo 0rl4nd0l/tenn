@@ -20,8 +20,11 @@ import json
 import logging
 import re
 from dataclasses import dataclass, field
+from typing import Any
 
 logger = logging.getLogger(__name__)
+
+_INTERNAL_TOOL_METADATA_KEYS = frozenset({"_truncated", "_original_chars"})
 
 # ---------------------------------------------------------------------------
 # Data structure
@@ -267,15 +270,29 @@ def format_tool_result(
         [Tool: query_ticker_data]
         {"ticker": "BHP", "documents": [...]}
 
-    If the JSON serialization exceeds *max_chars* it is truncated with an
-    ellipsis marker so the LLM knows data was clipped.
+    Internal context-window metadata is stripped before the result is sent back
+    to the LLM. Diagnostics still keep that metadata in the saved evidence
+    bundle, but the model should not turn it into a user-facing data limitation.
     """
+
+    def _sanitize(value: Any) -> Any:
+        if isinstance(value, dict):
+            return {
+                key: _sanitize(item)
+                for key, item in value.items()
+                if key not in _INTERNAL_TOOL_METADATA_KEYS
+            }
+        if isinstance(value, list):
+            return [_sanitize(item) for item in value]
+        return value
+
     try:
-        result_json = json.dumps(result, default=str, separators=(",", ":"))
+        result_json = json.dumps(_sanitize(result), default=str, separators=(",", ":"))
     except (TypeError, ValueError):
         result_json = str(result)
 
     if len(result_json) > max_chars:
-        result_json = result_json[: max_chars - 15] + "...[truncated]"
+        marker = "...[additional fields omitted for model context]"
+        result_json = result_json[: max_chars - len(marker)] + marker
 
     return f"[Tool: {tool_name}]\n{result_json}"
