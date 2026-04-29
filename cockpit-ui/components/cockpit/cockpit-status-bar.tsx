@@ -90,6 +90,8 @@ export function CockpitStatusBar({
       : activeSource === 'cockpit'
         ? 'secondary'
       : 'secondary'
+  const selectedModelLabel = apiDefaultEnabled ? 'Route: API default' : `Selected: ${chatModel}`
+  const localModelLabel = apiDefaultEnabled ? `Local fallback: ${chatModel}` : `Active: ${activeRuntimeModel}`
 
   useEffect(() => {
     if (!apiOverrideAvailable && apiDefaultEnabled) {
@@ -132,11 +134,16 @@ export function CockpitStatusBar({
           {!compact && (
             <>
               <Badge variant="outline" className="h-5 text-[10px] font-mono">
-                Selected: {chatModel}
+                {selectedModelLabel}
               </Badge>
               <Badge variant="outline" className="h-5 text-[10px] font-mono">
-                Active: {activeRuntimeModel}
+                {localModelLabel}
               </Badge>
+              {apiDefaultEnabled && (
+                <Badge variant="outline" className="h-5 text-[10px] font-mono">
+                  Active: {activeRuntimeModel}
+                </Badge>
+              )}
             </>
           )}
           {compact && (

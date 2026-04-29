@@ -810,3 +810,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** API-default rewrote plain messages to `/cloud ...`, but the frontend still sent the selected local `chatModel` as `model`. The backend then treated that stale selected model as requested-model intent and emitted a model status even after route preview showed the turn would go to API.
 **Fix:** The frontend now omits `model` for effective `/cloud` or `/advisor` messages, and the backend suppresses local requested-model status for API-previewed turns while using route-preview metadata as a fallback when the response lacks final routing metadata.
 **Rule:** Route intent wins over selected-model UI state. For `/cloud`, `/advisor`, or API-default turns, do not send or display the selected local model as requested execution state.
+
+---
+
+## L074 — API-default status labels must name the local model as fallback
+
+**Date:** 2026-04-29
+**Subsystem:** `cockpit-ui/components/cockpit/cockpit-status-bar.tsx`, `cockpit-ui/components/cockpit/cockpit-sidebar.tsx`
+**Symptom:** After API-default routing was enabled, Cockpit still showed `selected: model:qwen...` in persistent status surfaces, which made the UI look like it was using the local model even when the active route was Claude API.
+**Root cause:** The status bar and sidebar reused the same selected-model label for both adaptive local routing and API-default routing. In API-default mode that model is only the local fallback selector, not the execution route.
+**Fix:** API-default mode now labels the route as `API default` and labels the saved local model as `local fallback`, while keeping the active runtime model visible separately.
+**Rule:** Persistent Cockpit status copy must distinguish route mode from fallback model selection; do not label a fallback local model as the selected execution route when API default is active.

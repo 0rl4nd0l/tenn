@@ -141,6 +141,7 @@ export function CockpitSidebar({
   const pathname = usePathname()
   const { 
     chatModel, 
+    apiDefaultEnabled,
     sessionStats, 
     sessionId, 
     setSessionId,
@@ -275,6 +276,7 @@ export function CockpitSidebar({
     }
     return configSummary.model ?? '--'
   }, [configSummary.model, sessionStats.activeModel])
+  const routeModeLabel = apiDefaultEnabled ? 'API default' : 'adaptive'
 
   const displayNotice = backendHealthy
     ? configNotice
@@ -483,7 +485,10 @@ export function CockpitSidebar({
                   <Cpu className="h-3 w-3" />
                   Cockpit Config
                 </div>
-                <div className="text-[11px] text-foreground font-mono">selected: {chatModel}</div>
+                <div className="text-[11px] text-foreground font-mono">route: {routeModeLabel}</div>
+                <div className="text-[11px] text-muted-foreground font-mono">
+                  {apiDefaultEnabled ? 'local fallback' : 'selected'}: {chatModel}
+                </div>
                 <div className="text-[11px] text-muted-foreground font-mono">active: {activeModelLabel}</div>
                 <div className="text-[11px] text-muted-foreground font-mono">
                   max_tokens: {configSummary.maxTokens ?? '--'} | temp:{' '}
