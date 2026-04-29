@@ -4078,18 +4078,53 @@ class ChatController:
     def _format_market_update_report(
         self, report: dict[str, Any] | None, *, header: str
     ) -> ChatResponse:
+        routing_metadata = {
+            "source": "cockpit",
+            "model": "deterministic:market-update",
+            "cost_usd": 0.0,
+            "routing_reason": "slash:market-update",
+        }
         if report is None:
             return ChatResponse(
                 text="No market-update reports found.",
                 evidence=[],
                 mode=ResponseMode.FAST,
+                routing_metadata=routing_metadata,
             )
         text = f"{header}:\n{self._render_market_update_report(report)}"
         return ChatResponse(
             text=text,
             evidence=[{"type": "market_update_report", "details": report}],
             mode=ResponseMode.FAST,
+            routing_metadata=routing_metadata,
         )
+
+    @staticmethod
+    def _format_market_update_errors(errors: tuple[str, ...]) -> str | None:
+        if not errors:
+            return None
+
+        snapshot_gaps: list[str] = []
+        other_errors: list[str] = []
+        for item in errors:
+            ticker, sep, reason = str(item).partition(":")
+            if sep and reason.strip() == "no snapshot available":
+                snapshot_gaps.append(ticker.strip().upper())
+            else:
+                other_errors.append(str(item))
+
+        parts: list[str] = []
+        if snapshot_gaps:
+            shown = ", ".join(snapshot_gaps[:12])
+            suffix = "..." if len(snapshot_gaps) > 12 else ""
+            parts.append(
+                f"Snapshot gaps ({len(snapshot_gaps)} ticker(s)): {shown}{suffix}"
+            )
+        if other_errors:
+            shown = "; ".join(other_errors[:3])
+            suffix = "..." if len(other_errors) > 3 else ""
+            parts.append(f"Run errors ({len(other_errors)}): {shown}{suffix}")
+        return "\n".join(parts) if parts else None
 
     def _slash_market_update(self, sub: str, rest: str) -> ChatResponse | None:
         if self._state_store is None:
@@ -4141,6 +4176,12 @@ class ChatController:
             )
 
         if sub in self._MARKET_UPDATE_RUN_TYPES:
+            routing_metadata = {
+                "source": "cockpit",
+                "model": "deterministic:market-update",
+                "cost_usd": 0.0,
+                "routing_reason": "slash:market-update",
+            }
             try:
                 orchestrator = self._build_market_update_orchestrator()
             except Exception as exc:  # noqa: BLE001 — surface boot failure
@@ -4149,6 +4190,7 @@ class ChatController:
                     text=f"Market-update orchestrator unavailable: {exc}",
                     evidence=[],
                     mode=ResponseMode.FAST,
+                    routing_metadata=routing_metadata,
                 )
 
             tickers_arg = [t.strip() for t in rest.split() if t.strip()] or None
@@ -4160,6 +4202,7 @@ class ChatController:
                     text=f"Market-update run failed: {exc}",
                     evidence=[],
                     mode=ResponseMode.FAST,
+                    routing_metadata=routing_metadata,
                 )
 
             parts = [
@@ -4167,12 +4210,9 @@ class ChatController:
                 f"tickers={result.gathered_tickers}, "
                 f"followups={result.queued_followups}.",
             ]
-            if result.errors:
-                parts.append(
-                    f"Errors ({len(result.errors)}): "
-                    + "; ".join(result.errors[:3])
-                    + ("…" if len(result.errors) > 3 else "")
-                )
+            formatted_errors = self._format_market_update_errors(result.errors)
+            if formatted_errors:
+                parts.append(formatted_errors)
 
             report = None
             if result.report_id is not None:
@@ -4190,6 +4230,7 @@ class ChatController:
                 text="\n".join(parts),
                 evidence=evidence,
                 mode=ResponseMode.FAST,
+                routing_metadata=routing_metadata,
             )
 
         return ChatResponse(

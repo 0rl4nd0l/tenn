@@ -19,7 +19,7 @@ export interface ChatMessage {
     model?: string
     latencyMs?: number
     costUsd?: number
-    source?: 'local' | 'anthropic'
+    source?: 'local' | 'api' | 'anthropic' | 'cockpit'
   }
   thinking?: ThinkingStep
   sources?: Source[]
@@ -419,7 +419,7 @@ export interface ChatResponse {
     model?: string
     latency_ms?: number
     cost_usd?: number
-    source?: 'local' | 'anthropic'
+    source?: 'local' | 'api' | 'anthropic' | 'cockpit'
     chart?: RenderedChart
     sources?: Source[]
   }

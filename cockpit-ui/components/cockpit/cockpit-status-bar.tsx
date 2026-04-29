@@ -76,15 +76,19 @@ export function CockpitStatusBar({
   const extractionHref = config.extractionActive === true && config.activeRuns.length > 0
     ? '/verification?attach=active'
     : null
-  const routeLabel = activeSource === 'anthropic'
+  const routeLabel = activeSource === 'anthropic' || activeSource === 'api'
     ? 'Claude API'
     : activeSource === 'local'
       ? 'local'
+      : activeSource === 'cockpit'
+        ? 'Cockpit'
       : '--'
-  const routeVariant = activeSource === 'anthropic'
+  const routeVariant = activeSource === 'anthropic' || activeSource === 'api'
     ? 'default'
     : activeSource === 'local'
       ? 'outline'
+      : activeSource === 'cockpit'
+        ? 'secondary'
       : 'secondary'
 
   useEffect(() => {
@@ -149,7 +153,7 @@ export function CockpitStatusBar({
             </Badge>
           )}
           <Badge variant={routeVariant} className={cn("text-[10px] font-mono", compact ? "h-4 text-[9px] px-1" : "h-5")}>
-            {compact ? (activeSource === 'anthropic' ? 'API' : 'LOC') : `Source: ${routeLabel}`}
+            {compact ? (activeSource === 'anthropic' || activeSource === 'api' ? 'API' : activeSource === 'local' ? 'LOC' : activeSource === 'cockpit' ? 'SYS' : '--') : `Source: ${routeLabel}`}
           </Badge>
           <Badge variant="outline" className="h-5 text-[10px] font-mono hidden lg:inline-flex">
             profile: {config.profile ?? '--'}

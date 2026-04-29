@@ -1168,6 +1168,31 @@ class TestMarketUpdateSlashCommand(SlashCommandTestBase):
         assert "tickers=2" in resp.text
         assert "followups=1" in resp.text
         assert "RIO" in resp.text  # error surfaced
+        assert resp.routing_metadata is not None
+        assert resp.routing_metadata["source"] == "cockpit"
+        assert resp.routing_metadata["model"] == "deterministic:market-update"
+
+    def test_market_update_snapshot_gaps_are_not_labeled_top_level_errors(self) -> None:
+        orc = self._stub_orchestrator(
+            status="partial",
+            gathered=354,
+            followups=52,
+            errors=(
+                "ADR: no snapshot available",
+                "ADT: no snapshot available",
+                "AMPPB: no snapshot available",
+            ),
+        )
+        self.controller._build_market_update_orchestrator = MagicMock(
+            return_value=orc
+        )
+        self.state_store.get_latest_market_update_report.return_value = (
+            self._SAMPLE_REPORT
+        )
+        resp = self.controller._handle_slash_command("/market-update final")
+        assert resp is not None
+        assert "Snapshot gaps (3 ticker(s)): ADR, ADT, AMPPB" in resp.text
+        assert "Errors (3)" not in resp.text
 
     def test_market_update_manual_handles_skipped_run(self) -> None:
         orc = self._stub_orchestrator(

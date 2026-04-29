@@ -189,12 +189,10 @@ def test_chat_stream_populates_model_metadata_even_when_controller_omits_it() ->
     )
 
     assert service.llm_client.model == "model:qwen3.5-35b-a3b"
-    assert response.routing_metadata == {
-        "model": "model:qwen3.5-35b-a3b",
-        "source": "local",
-        "latency_ms": 0,
-        "cost_usd": 0.0,
-    }
+    assert response.routing_metadata["model"] == "model:qwen3.5-35b-a3b"
+    assert response.routing_metadata["source"] == "local"
+    assert response.routing_metadata["latency_ms"] >= 1
+    assert response.routing_metadata["cost_usd"] == 0.0
 
 
 def test_chat_stream_uses_last_attempt_route_when_controller_metadata_is_empty() -> None:
@@ -223,13 +221,11 @@ def test_chat_stream_uses_last_attempt_route_when_controller_metadata_is_empty()
     )
 
     assert "Error code: 529" in response.text
-    assert response.routing_metadata == {
-        "source": "api",
-        "model": "claude-sonnet-test",
-        "latency_ms": 0,
-        "cost_usd": 0.0,
-        "routing_reason": "force:api",
-    }
+    assert response.routing_metadata["source"] == "api"
+    assert response.routing_metadata["model"] == "claude-sonnet-test"
+    assert response.routing_metadata["latency_ms"] >= 1
+    assert response.routing_metadata["cost_usd"] == 0.0
+    assert response.routing_metadata["routing_reason"] == "force:api"
 
 
 def test_chat_stream_emits_model_switch_status_events() -> None:

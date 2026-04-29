@@ -311,6 +311,33 @@ def test_watchlist_evidence_renders_visible_sources() -> None:
     assert "Added: 2026-04-21" in str(sources[0]["snippet"])
 
 
+def test_market_update_evidence_uses_report_date_and_full_confidence() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "type": "market_update_report",
+                "details": {
+                    "report_id": "report-1",
+                    "run_type": "final",
+                    "report_date": "2026-04-29",
+                    "status": "partial",
+                    "summary": {
+                        "movers": [{"ticker": "BHP"}],
+                        "tickers": [{"ticker": "BHP"}, {"ticker": "RIO"}],
+                    },
+                },
+            }
+        ]
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["title"] == "Market update 2026-04-29"
+    assert sources[0]["source_id"] == "market_update:2026-04-29"
+    assert sources[0]["score"] == 1.0
+    assert "1 mover(s)" in str(sources[0]["snippet"])
+    assert "2 ticker(s) scanned" in str(sources[0]["snippet"])
+
+
 def test_agent_format_fetch_url() -> None:
     sources = _build_ui_sources(
         [

@@ -791,6 +791,63 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                     kind="context",
                 )
 
+        elif ev_type in ("market_update_report", "market_update_reports"):
+            reports = (
+                [details_payload]
+                if isinstance(details_payload, dict)
+                else (details_payload if isinstance(details_payload, list) else [])
+            )
+            for report in reports:
+                if not isinstance(report, dict):
+                    continue
+                run_date = str(
+                    report.get("report_date") or report.get("run_date") or ""
+                ).strip()
+                status = str(report.get("status") or "").strip()
+                summary = (
+                    report.get("summary")
+                    if isinstance(report.get("summary"), dict)
+                    else {}
+                )
+                movers = (
+                    summary.get("movers")
+                    if isinstance(summary.get("movers"), list)
+                    else []
+                )
+                tickers = (
+                    summary.get("tickers")
+                    if isinstance(summary.get("tickers"), list)
+                    else []
+                )
+                mover_count = report.get("mover_count")
+                if mover_count is None and movers:
+                    mover_count = len(movers)
+                ticker_count = report.get("ticker_count")
+                if ticker_count is None and tickers:
+                    ticker_count = len(tickers)
+                bits: list[str] = []
+                if mover_count is not None:
+                    bits.append(f"{mover_count} mover(s)")
+                if ticker_count is not None:
+                    bits.append(f"{ticker_count} ticker(s) scanned")
+                if status:
+                    bits.append(f"status: {status}")
+                _append_source_item(
+                    items,
+                    seen,
+                    {
+                        "title": f"Market update {run_date}"
+                        if run_date
+                        else "Market update",
+                        "source_id": f"market_update:{run_date or id(report)}",
+                        "score": 1.0,
+                        "snippet": "; ".join(bits) if bits else None,
+                        "published_at": run_date or None,
+                    },
+                    default_title="Market update",
+                    kind="context",
+                )
+
         elif ev_type == "watchlist":
             rows = (
                 details_payload

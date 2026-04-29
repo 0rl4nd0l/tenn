@@ -788,3 +788,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The caller sent `enable_web: true`, but `CockpitChatRequest` accepts `web_search` (plus `rag`, `db_diagnostics`). The unsupported field was ignored, so `payload.web_search` remained false.
 **Fix:** Updated docs to explicitly call out the supported `/api/cockpit/chat` request flags and added contract notes around explicit web-search routing vs ingest shortcut precedence/non-overlap.
 **Rule:** For `/api/cockpit/chat`, always use schema fields from `CockpitChatRequest` (`web_search`, `rag`, `db_diagnostics`) and never assume old alias names like `enable_web`.
+
+---
+
+## L072 — Deterministic slash responses need explicit route metadata and UI sources
+
+**Date:** 2026-04-29
+**Subsystem:** `financial-engine_v2/cockpit/core/chat.py`, `backend/app/services/cockpit_service.py`, `backend/app/routes/cockpit_api.py`, `cockpit-ui/lib/*`
+**Symptom:** `/market-update final` produced a useful deterministic report, but the web footer could label it as `local`, show a stale model, and render a `0%` source confidence item. Snapshot gaps also appeared as scary `Errors (...)` lines even when the run was only partial because some tickers had no market snapshot.
+**Root cause:** Deterministic slash-command responses did not attach their own routing metadata, so `CockpitService` fell back to local-route defaults and inferred the active local model. `_build_ui_sources` also had no market-update-specific source item, so the UI used generic fallback scoring. Finally, missing snapshot data was treated the same as execution errors in the text renderer.
+**Fix:** `/market-update` now marks responses as `source=cockpit` with deterministic route metadata, the backend records real wall-clock latency for slash responses without model metadata, market-update reports render as first-class UI source items with full confidence, and snapshot gaps are separated from actual run errors.
+**Rule:** Any deterministic Cockpit response path that bypasses an LLM must attach explicit route metadata and source items. Do not let service-layer model defaults imply a local/API model was used when the answer came from Cockpit control-plane logic.

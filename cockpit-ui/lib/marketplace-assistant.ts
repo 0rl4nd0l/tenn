@@ -68,7 +68,7 @@ export interface MarketplaceAssistantPayload {
   readyToCreate: boolean
   suggestedAction: MarketplaceAssistantSuggestedAction
   rawAnswer: string
-  source?: 'local' | 'anthropic'
+  source?: 'local' | 'api' | 'anthropic' | 'cockpit'
   model?: string
 }
 
@@ -76,13 +76,13 @@ interface MarketplaceAssistantApiRawResponse {
   content?: {
     answer?: string
     model?: string
-    source?: 'local' | 'anthropic'
+    source?: 'local' | 'api' | 'anthropic' | 'cockpit'
   }
   type?: string
   data?: {
     text?: string
     model?: string
-    source?: 'local' | 'anthropic'
+    source?: 'local' | 'api' | 'anthropic' | 'cockpit'
   }
 }
 
@@ -93,7 +93,7 @@ interface SendMarketplaceAssistantTurnParams {
   homeLocation: string
   messages: MarketplaceAssistantTranscriptMessage[]
   model: string
-  activeSource: 'local' | 'anthropic' | 'unknown'
+  activeSource: 'local' | 'api' | 'anthropic' | 'cockpit' | 'unknown'
   apiDefaultEnabled: boolean
   marketplacePreferCloudRouting: boolean
   webSearchEnabled: boolean
@@ -397,7 +397,7 @@ function buildHeaders(apiKey: string): HeadersInit {
 
 function normalizeChatAnswer(raw: MarketplaceAssistantApiRawResponse): {
   answer: string
-  source?: 'local' | 'anthropic'
+  source?: 'local' | 'api' | 'anthropic' | 'cockpit'
   model?: string
 } {
   if (
@@ -463,13 +463,13 @@ function parseAssistantPayload(answer: string): {
 }
 
 function buildRoutePrefix(
-  activeSource: 'local' | 'anthropic' | 'unknown',
+  activeSource: 'local' | 'api' | 'anthropic' | 'cockpit' | 'unknown',
   model: string,
   apiDefaultEnabled = false,
   marketplacePreferCloudRouting = false,
 ): '/local' | '/cloud' {
   if (apiDefaultEnabled || marketplacePreferCloudRouting) return '/cloud'
-  if (activeSource === 'anthropic') return '/cloud'
+  if (activeSource === 'anthropic' || activeSource === 'api') return '/cloud'
   if (activeSource === 'local') return '/local'
   return /claude|anthropic/i.test(model) ? '/cloud' : '/local'
 }
@@ -890,7 +890,7 @@ export async function sendMarketplaceAssistantTurn(
 }
 
 export function resolveMarketplaceAssistantRoutePrefix(
-  activeSource: 'local' | 'anthropic' | 'unknown',
+  activeSource: 'local' | 'api' | 'anthropic' | 'cockpit' | 'unknown',
   model: string,
   apiDefaultEnabled = false,
   marketplacePreferCloudRouting = false,

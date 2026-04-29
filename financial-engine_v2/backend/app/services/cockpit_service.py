@@ -8,6 +8,7 @@ import os
 import re
 import threading
 import uuid
+import time
 from uuid import UUID
 from datetime import datetime, timezone
 from pathlib import Path
@@ -1847,6 +1848,7 @@ class CockpitService:
             if on_thinking is not None:
                 on_thinking(assessment, plan)
 
+        response_started = time.monotonic()
         self._persist_chat_message(thread_id, "user", message)
         response = controller.build_chat_response(
             message=message,
@@ -1862,6 +1864,7 @@ class CockpitService:
             ui_mode=ui_mode,
             attached_sources=attached_sources or [],
         )
+        elapsed_ms = int((time.monotonic() - response_started) * 1000)
         meta = dict(getattr(response, "routing_metadata", None) or {})
         if not str(meta.get("source") or "").strip():
             hybrid_router = getattr(controller, "_hybrid_router", None)
@@ -1875,10 +1878,25 @@ class CockpitService:
                 meta.update(last_attempt)
         llm_client = getattr(self, "llm_client", None)
         current_model = str(getattr(llm_client, "model", "") or "").strip()
-        if current_model and not str(meta.get("model") or "").strip():
+        source = str(meta.get("source") or "").strip()
+        if (
+            current_model
+            and not str(meta.get("model") or "").strip()
+            and (
+                source in {"local", "api"}
+                or getattr(response, "prompt", None)
+                or requested_model
+            )
+        ):
             meta["model"] = current_model
-        meta.setdefault("source", "local")
-        meta.setdefault("latency_ms", 0)
+        if not source:
+            meta["source"] = (
+                "local"
+                if getattr(response, "prompt", None) or requested_model
+                else "cockpit"
+            )
+        if int(meta.get("latency_ms") or 0) <= 0:
+            meta["latency_ms"] = max(1, elapsed_ms)
         meta.setdefault("cost_usd", 0.0)
         response.routing_metadata = meta
         self._persist_chat_message(thread_id, "assistant", response.text)
