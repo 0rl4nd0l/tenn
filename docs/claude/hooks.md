@@ -17,6 +17,7 @@ These fire automatically during Claude Code sessions.
 |-------|---------|--------------|
 | `SessionStart` | Every session start | Prints current branch and `git status --short` (first 20 lines) |
 | `PreToolUse` / `Edit\|Write` | Before editing any file | Warns if path is embedding-sensitive (`embeddings.py`, `alembic/versions/`) or secret-bearing (`.env`) |
+| `PreToolUse` / `Glob\|Grep` | Before broad search tools | Emits a graphify reminder via `systemMessage` when `graphify-out/graph.json` exists |
 | `PostToolUse` / `Write\|Edit` | After Claude writes/edits a `.py` file | Runs `ruff check --fix` on the file; silent on non-Python files |
 | `PostToolUse` / `Write\|Edit` | After Claude writes/edits a `.sh` file | Runs `chmod +x` on the file |
 | `PostToolUse` / `Write\|Edit` | After Claude edits a file under `backend/app/` | Runs `pytest backend/tests/ -x -q --tb=short`; silent if venv not found |
@@ -29,6 +30,8 @@ All hooks are non-blocking (`|| true`); they will not interrupt Claude if they f
 **Note for agents:** The `SessionStart` and `Stop` hooks output context to the transcript. Use `Stop` output to verify what changed before concluding a task.
 
 **Sensitive path warning:** The `PreToolUse` hook prints a `WARNING:` line but does not block the edit. Claude should read the warning and confirm scope before proceeding when it appears.
+
+**Graphify reminder:** The `PreToolUse` search hook must emit a top-level `systemMessage`. Do not use `hookSpecificOutput.additionalContext` for this hook; recent Claude Code runtimes reject that field for `PreToolUse`.
 
 **Doc coverage warning:** The second `Stop` hook detects when infrastructure files (`.mcp.json`, `settings.json`, `scripts/mcp/`, `.claude/commands/`, etc.) were modified but no `docs/claude/` files were updated. This is a non-blocking warning — the agent must act on it before concluding the task. See CLAUDE.md "Post-Write Documentation" for the mapping of changed surfaces to required doc updates.
 
@@ -80,6 +83,7 @@ financial-engine_v2/.venv/bin/ruff check --fix autodev financial-engine_v2/backe
 |------|------|-------|
 | Session start context | `.claude/settings.json` | Claude Code only |
 | Sensitive path warning (PreToolUse) | `.claude/settings.json` | Claude Code only |
+| Graphify search reminder (PreToolUse) | `.claude/settings.json` / `.codex/hooks.json` | Claude Code + Codex |
 | Auto ruff on Python writes | `.claude/settings.json` | Claude Code only |
 | Auto chmod on shell writes | `.claude/settings.json` | Claude Code only |
 | Auto pytest on backend edits | `.claude/settings.json` | Claude Code only |
