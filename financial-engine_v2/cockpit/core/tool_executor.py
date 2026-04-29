@@ -295,7 +295,7 @@ class ToolExecutor:
     def _get_financials_via_backend(
         self, ticker: str, limit: int
     ) -> list[dict[str, Any]] | None:
-        """Returns list when backend configured, None when no backend."""
+        """Returns list when backend request succeeds, None when unavailable."""
         client = self._router.backend_api_client
         if not client:
             return None
@@ -304,7 +304,7 @@ class ToolExecutor:
             return resp.get("financials", [])
         except Exception as exc:
             logger.warning("Backend financials failed for %s: %s", ticker, exc)
-            return []
+            return None
 
     def _exec_search_news(self, args: dict[str, Any]) -> dict[str, Any]:
         query = str(args.get("query", "")).strip()
