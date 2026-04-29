@@ -1124,6 +1124,22 @@ class ToolExecutor:
         except Exception as exc:  # noqa: BLE001
             return {"ok": False, "error": str(exc)[:300]}
 
+    def _exec_watch_youtube_channel(self, args: dict[str, Any]) -> dict[str, Any]:
+        channel_name = str(args.get("channel_name", "")).strip()
+        if not channel_name:
+            return {"ok": False, "error": "channel_name is required"}
+        client = self._router.backend_api_client
+        if client is None:
+            return {"ok": False, "error": "backend API client not configured"}
+        credibility_weight = float(args.get("credibility_weight", 0.55))
+        try:
+            result = client.add_watched_channel(
+                channel_name, credibility_weight=credibility_weight
+            )
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)}
+        return {"ok": True, **result}
+
     # Dispatch table: tool_name -> handler method
     _READ_ONLY_DISPATCH: dict[str, Any] = {
         "query_ticker_data": _exec_query_ticker_data,
@@ -1154,6 +1170,7 @@ class ToolExecutor:
         "review_open_decisions": _exec_review_open_decisions,
         "get_tv_indicators": _exec_get_tv_indicators,
         "tv_screener": _exec_tv_screener,
+        "watch_youtube_channel": _exec_watch_youtube_channel,
     }
 
     # ------------------------------------------------------------------
@@ -1563,6 +1580,18 @@ class ToolExecutor:
                 else:
                     compact_indicators[key] = value
             compact["indicators"] = compact_indicators
+
+        # Preserve price attribution metadata for source panel (strips history).
+        price = result.get("price")
+        if isinstance(price, dict):
+            price_current = price.get("current")
+            compact["price"] = {
+                "provider": price.get("provider"),
+                "symbol": price.get("symbol"),
+                "range": price.get("range"),
+                "interval": price.get("interval"),
+                "current": price_current if isinstance(price_current, dict) else None,
+            }
 
         return compact
 
