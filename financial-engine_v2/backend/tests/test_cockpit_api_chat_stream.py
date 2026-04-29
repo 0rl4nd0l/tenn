@@ -240,6 +240,73 @@ def test_cockpit_chat_stream_allows_market_update_command_phrase_without_sources
     assert not [event for event in data_events if event.get("type") == "sources"]
 
 
+def test_cockpit_chat_stream_preserves_watch_youtube_command_result(monkeypatch) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="Added YouTube channel Kneppy Invests (UCabc123) to the watch list.",
+                evidence=[
+                    {
+                        "tool": "watch_youtube_channel",
+                        "arguments": {"channel_name": "Kneppy Invests"},
+                        "result": {
+                            "ok": True,
+                            "channel_id": "UCabc123",
+                            "name": "Kneppy Invests",
+                            "already_existed": False,
+                        },
+                    }
+                ],
+                action_preview=None,
+                mode="command",
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 111,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "watch youtube channel kneppy invests", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    assert done_events
+    assert done_events[-1]["data"]["text"] == (
+        "Added YouTube channel Kneppy Invests (UCabc123) to the watch list."
+    )
+    assert "Sources dropdown" not in done_events[-1]["data"]["text"]
+    assert not [event for event in data_events if event.get("type") == "sources"]
+
+
 def test_cockpit_chat_stream_emits_sources_when_evidence_is_renderable(monkeypatch) -> None:
     class FakeService:
         def chat_stream(

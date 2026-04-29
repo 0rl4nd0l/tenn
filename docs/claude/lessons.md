@@ -843,3 +843,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The implementation updated the durable API contract but skipped the session tracker. In this repo, architecture docs explain the stable contract, while `docs/claude/STATE.md` explains what just moved and what remains in flight.
 **Fix:** Added a 2026-04-29 session note and Recently Shipped row for backend-owned automatic diagnostics, including the operational-triage boundary and validation lane.
 **Rule:** When a Cockpit feedback or observability capability changes, update both the architecture contract docs and `docs/claude/STATE.md` before closeout. Contract docs answer "what is the interface"; STATE answers "what changed this session."
+
+---
+
+## L077 — Operational command results must not be rewritten by the financial source guard
+
+**Date:** 2026-04-29
+**Subsystem:** `financial-engine_v2/cockpit/core/agent_loop.py`, `financial-engine_v2/backend/app/routes/cockpit_api.py`
+**Symptom:** `watch youtube channel kneppy invests` executed the `watch_youtube_channel` tool successfully, then the backend chat source guard replaced the operational success message with the financial-source refusal text.
+**Root cause:** The source guard treated every substantive natural-language message without visible sources as a factual market answer, even when the response was `mode="command"` and the evidence was an operational tool result rather than a financial claim.
+**Fix:** Added a narrow operational-command exemption for `watch_youtube_channel` command results, while leaving market-update/source-requiring financial answers guarded.
+**Rule:** Source-contract enforcement must distinguish operational command acknowledgements from financial answers. Do not weaken the guard globally; whitelist only command tools whose output is an operational mutation/status and add an SSE regression test for the exact user phrase.

@@ -1256,6 +1256,13 @@ _SOURCE_CONTRACT_REFUSAL = (
     "the supporting sources can be shown in the Sources dropdown. Please narrow the "
     "question or ask me to fetch the relevant news, announcements, financials, or price data first."
 )
+_OPERATIONAL_COMMAND_TOOLS_WITHOUT_VISIBLE_SOURCES = frozenset(
+    {
+        "watch_youtube_channel",
+    }
+)
+
+
 
 
 def _message_requires_visible_sources(message: str) -> bool:
@@ -1271,11 +1278,26 @@ def _message_requires_visible_sources(message: str) -> bool:
     return _NON_SUBSTANTIVE_CHAT_MESSAGE_RE.fullmatch(text) is None
 
 
+def _is_operational_command_result(response: Any) -> bool:
+    if str(getattr(response, "mode", "") or "").strip() != "command":
+        return False
+    evidence = getattr(response, "evidence", None) or []
+    for entry in evidence:
+        if not isinstance(entry, dict):
+            continue
+        tool = str(entry.get("tool") or "").strip()
+        if tool in _OPERATIONAL_COMMAND_TOOLS_WITHOUT_VISIBLE_SOURCES:
+            return True
+    return False
+
+
 def _enforce_visible_source_contract(message: str, response: Any) -> list[dict[str, Any]]:
     sources = _build_ui_sources(getattr(response, "evidence", None) or [])
     text = str(getattr(response, "text", "") or "").strip()
 
     if not text or getattr(response, "action_preview", None) is not None:
+        return sources
+    if _is_operational_command_result(response):
         return sources
     if not _message_requires_visible_sources(message):
         return sources
