@@ -2,7 +2,6 @@
   "mcpServers": {
     "redis":  { "command": "./scripts/mcp/redis.sh" },
     "qdrant": { "command": "./scripts/mcp/qdrant.sh" },
-    "tenn":   { "command": "./scripts/mcp/tenn.sh" },
     "jam":    { "url": "https://mcp.jam.dev/mcp" }
   }
 }

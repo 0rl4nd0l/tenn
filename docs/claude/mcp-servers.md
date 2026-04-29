@@ -4,7 +4,7 @@ MCP (Model Context Protocol) servers extend Claude Code with direct access to ex
 
 ## Source Trace
 - `.mcp.json` (Confirmed)
-- `scripts/mcp/*.sh` (Confirmed — launcher scripts)
+- `scripts/mcp/*.sh` (Confirmed — launcher scripts; not all launchers are enabled by default)
 - `.claude/settings.local.json` → `enabledMcpjsonServers` (Confirmed)
 
 ---
@@ -17,12 +17,12 @@ MCP (Model Context Protocol) servers extend Claude Code with direct access to ex
 | **redis** | `scripts/mcp/redis.sh` | `mcp/redis:latest` | Inspect Celery task queues, check worker state, monitor backlog |
 | **playwright** | `scripts/mcp/playwright.sh` | `mcr.microsoft.com/playwright/mcp:latest` | Browser automation, API response inspection, Lighthouse audits |
 | **github** | `scripts/mcp/github.sh` | `ghcr.io/github/github-mcp-server:latest` | GitHub issues, PRs, checks, releases — active as of 2026-03-22 |
-| **tenn** | `scripts/mcp/tenn.sh` | _(native Python)_ | Custom Tenn/OpenClaw MCP server (`openclaw.tenn_mcp_server`) |
+| **tenn** | `scripts/mcp/tenn.sh` | _(native Python)_ | Disabled by default; custom Tenn/OpenClaw MCP server (`openclaw.tenn_mcp_server`) |
 | **screenpipe** | `scripts/mcp/screenpipe.sh` | _(native macOS app + npx mcp-remote)_ | Query screen/audio history captured by Screenpipe on Mac |
 
 ### Default `.mcp.json` (token-light)
 
-The checked-in `.mcp.json` enables only **redis**, **qdrant**, and **tenn** so MCP tool schemas stay small in Cursor/Claude. Everything else in the table above is supported via launcher scripts but **opt-in**.
+The checked-in `.mcp.json` enables only **redis**, **qdrant**, and **jam** so MCP tool schemas stay small in Cursor/Claude. The Tenn MCP server is intentionally not registered by default.
 
 ### Optional: add repo launcher MCPs
 
@@ -56,7 +56,6 @@ Merge any of these into `mcpServers` when needed:
 | **redis** | Docker; `mcp/redis:latest` image (`docker pull mcp/redis`) |
 | **playwright** | Docker; image auto-pulls on first use |
 | **github** | Docker; `GITHUB_PERSONAL_ACCESS_TOKEN` env var set; image must be pulled (`docker pull ghcr.io/github/github-mcp-server:latest`) |
-| **tenn** | `.venv-autodev` with `openclaw` package installed |
 | **screenpipe** | Screenpipe app installed and running on Mac; Node.js/npx on Linux; SSH tunnel on port 3030 active |
 
 ---
@@ -96,7 +95,6 @@ All servers use `--network host` for Docker, so they connect to localhost servic
 | MCP tools not appearing | Server not in `enabledMcpjsonServers` | Add to `.claude/settings.local.json` |
 | Qdrant MCP fails to start | Docker image not built | `docker build -t mcp-server-qdrant:latest https://github.com/qdrant/mcp-server-qdrant.git` |
 | GitHub MCP fails to start | Missing PAT | Export `GITHUB_PERSONAL_ACCESS_TOKEN` |
-| Tenn MCP fails to start | `.venv-autodev` missing | Create venv and install `openclaw` package |
 | Server starts but can't reach service | Service not running | Start the backing service (Qdrant, Redis, etc.) |
 | Screenpipe MCP fails | SSH tunnel not active | `ssh -L 3030:localhost:3030 <mac-host>` |
 | Screenpipe MCP fails | Screenpipe not running on Mac | Launch Screenpipe.app on Mac |
@@ -113,11 +111,6 @@ All servers use `--network host` for Docker, so they connect to localhost servic
 **Development (opt-in — add to `.mcp.json`):**
 - **playwright** MCP for browser checks against FastAPI
 - **github** MCP for PR/issue workflows (needs PAT + Docker)
-
-**Ops:**
-- Use **tenn** MCP for OpenClaw-specific operations (when `.venv-autodev` is available)
-
----
 
 ## Claude Code GitHub Actions
 
