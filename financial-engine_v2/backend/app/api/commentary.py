@@ -17,6 +17,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from app.api.routes import require_api_key
+from app.services.channel_registry import ChannelConfig, ChannelRegistry
 from app.services.commentary_ingest import ingest_transcript
 from app.services.embeddings import upsert_points, verify_qdrant
 from app.services.facebook_marketplace_inspector import (
@@ -30,6 +31,7 @@ from app.services.youtube_transcript_fetcher import (
     TranscriptUnavailableError,
     _default_fetch_transcript,  # private module-level fetcher; patched directly in tests
     fetch_video_metadata,
+    resolve_channel_id,
 )
 
 logger = logging.getLogger(__name__)
@@ -225,6 +227,12 @@ _YOUTUBE_URL_RE = re.compile(
 )
 
 
+class AddChannelRequest(BaseModel):
+    name_or_id: str
+    credibility_weight: float = 0.55
+    enabled: bool = True
+
+
 class IngestUrlRequest(BaseModel):
     url: str
 
@@ -317,6 +325,55 @@ def ingest_url(body: IngestUrlRequest) -> dict[str, Any]:
         "channel": video.channel_name,
         "published_at": video.published_at,
         "webpage_url": video.webpage_url,
+    }
+
+
+@router.post(
+    "/channels",
+    dependencies=[Depends(require_api_key)],
+)
+def add_watched_channel(body: AddChannelRequest) -> dict[str, Any]:
+    name_or_id = str(body.name_or_id or "").strip()
+    if not name_or_id:
+        raise HTTPException(status_code=422, detail="name_or_id is required")
+
+    try:
+        channel_id, canonical_name = resolve_channel_id(name_or_id)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    registry = ChannelRegistry()
+    existing = registry.channels()
+    already_existed = any(c.channel_id == channel_id for c in existing)
+
+    if not already_existed:
+        new_channel = ChannelConfig(
+            name=canonical_name,
+            channel_id=channel_id,
+            credibility_weight=float(body.credibility_weight),
+            enabled=body.enabled,
+        )
+        registry.save([*existing, new_channel])
+
+    return {
+        "channel_id": channel_id,
+        "name": canonical_name,
+        "enabled": body.enabled,
+        "credibility_weight": body.credibility_weight,
+        "already_existed": already_existed,
+    }
+
+
+@router.get(
+    "/channels",
+    dependencies=[Depends(require_api_key)],
+)
+def list_watched_channels() -> dict[str, Any]:
+    registry = ChannelRegistry()
+    channels = registry.channels()
+    return {
+        "channels": [c.to_dict() for c in channels],
+        "count": len(channels),
     }
 
 
