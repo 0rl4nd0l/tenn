@@ -209,6 +209,60 @@ class TestResolveChannelId:
         call_args = instance.extract_info.call_args
         assert "KneppyInvests" in call_args[0][0]
 
+    def test_plain_name_falls_back_to_youtube_search(self):
+        search_info = {
+            "entries": [
+                {
+                    "channel_id": "UCjQJPzeCJhA4KrETh3FVVHA",
+                    "channel": "Kneppy Invests",
+                    "uploader": "Kneppy Invests",
+                    "uploader_id": "@kneppyinvests7584",
+                }
+            ]
+        }
+        with patch("yt_dlp.YoutubeDL") as MockYDL:
+            instance = MockYDL.return_value.__enter__.return_value
+            instance.extract_info.side_effect = [
+                Exception("HTTP Error 404: Not Found"),
+                search_info,
+            ]
+            channel_id, name = resolve_channel_id("Kneppy Invests")
+
+        assert channel_id == "UCjQJPzeCJhA4KrETh3FVVHA"
+        assert name == "Kneppy Invests"
+        assert instance.extract_info.call_args_list[0].args[0].endswith(
+            "/@KneppyInvests/videos"
+        )
+        assert instance.extract_info.call_args_list[1].args[0] == (
+            "ytsearch5:Kneppy Invests"
+        )
+
+    def test_search_fallback_prefers_matching_channel_name(self):
+        search_info = {
+            "entries": [
+                {
+                    "channel_id": "UCwrong",
+                    "channel": "Other Channel",
+                    "uploader": "Other Channel",
+                },
+                {
+                    "channel_id": "UCabc123",
+                    "channel": "Kneppy Invests",
+                    "uploader": "Kneppy Invests",
+                },
+            ]
+        }
+        with patch("yt_dlp.YoutubeDL") as MockYDL:
+            instance = MockYDL.return_value.__enter__.return_value
+            instance.extract_info.side_effect = [
+                Exception("HTTP Error 404: Not Found"),
+                search_info,
+            ]
+            channel_id, name = resolve_channel_id("Kneppy Invests")
+
+        assert channel_id == "UCabc123"
+        assert name == "Kneppy Invests"
+
     def test_passthrough_raw_channel_id(self):
         info = self._mock_ydl("UCabc123", "Kneppy Invests")
         with patch("yt_dlp.YoutubeDL") as MockYDL:

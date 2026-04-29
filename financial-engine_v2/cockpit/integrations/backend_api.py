@@ -882,7 +882,18 @@ class BackendApiClient:
                 },
                 headers=headers,
             )
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                detail = None
+                try:
+                    body = response.json() if response.content else {}
+                    if isinstance(body, dict):
+                        detail = body.get("detail")
+                except Exception:
+                    detail = None
+                code = response.status_code
+                raise RuntimeError(str(detail or f"HTTP {code}")) from exc
             return response.json() if response.content else {}
 
     def list_watched_channels(self, *, timeout: float = 10.0) -> dict[str, Any]:

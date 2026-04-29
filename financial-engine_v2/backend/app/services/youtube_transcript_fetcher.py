@@ -20,6 +20,17 @@ class TranscriptUnavailableError(RuntimeError):
     pass
 
 
+class _QuietYtDlpLogger:
+    def debug(self, message: str) -> None:
+        pass
+
+    def warning(self, message: str) -> None:
+        pass
+
+    def error(self, message: str) -> None:
+        pass
+
+
 @dataclass(frozen=True)
 class YoutubeVideo:
     video_id: str
@@ -34,6 +45,62 @@ def _slugify_as_handle(name: str) -> str:
     return re.sub(r"[^A-Za-z0-9_]", "", name.title().replace(" ", ""))
 
 
+def _normalize_channel_lookup_value(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
+
+
+def _channel_identity_from_entry(entry: dict[str, Any], raw: str) -> tuple[str, str] | None:
+    channel_id = str(entry.get("channel_id") or "").strip()
+    if not channel_id:
+        return None
+    canonical_name = str(
+        entry.get("channel")
+        or entry.get("uploader")
+        or raw
+    ).strip()
+    return channel_id, canonical_name or raw
+
+
+def _search_result_matches_query(entry: dict[str, Any], raw: str) -> bool:
+    query = _normalize_channel_lookup_value(raw.lstrip("@"))
+    if not query:
+        return False
+    values = [
+        entry.get("channel"),
+        entry.get("uploader"),
+        str(entry.get("uploader_id") or "").lstrip("@"),
+    ]
+    return any(_normalize_channel_lookup_value(str(value or "")) == query for value in values)
+
+
+def _channel_identity_from_info(
+    info: dict[str, Any],
+    raw: str,
+    *,
+    prefer_query_match: bool = False,
+) -> tuple[str, str] | None:
+    direct = _channel_identity_from_entry(info, raw)
+    if direct is not None:
+        return direct
+
+    entries = info.get("entries")
+    if not isinstance(entries, list):
+        return None
+
+    first_identity: tuple[str, str] | None = None
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        identity = _channel_identity_from_entry(entry, raw)
+        if identity is None:
+            continue
+        if first_identity is None:
+            first_identity = identity
+        if prefer_query_match and _search_result_matches_query(entry, raw):
+            return identity
+    return first_identity
+
+
 def resolve_channel_id(name_or_url: str) -> tuple[str, str]:
     """Resolve a channel name, @handle, URL, or raw ID to (channel_id, canonical_name).
 
@@ -41,6 +108,7 @@ def resolve_channel_id(name_or_url: str) -> tuple[str, str]:
     1. If input starts with 'UC' (raw channel ID) → validate via yt-dlp
     2. If input is a URL or @handle → pass directly to yt-dlp
     3. Plain name → try https://www.youtube.com/@{slugified} via yt-dlp
+    4. Plain name or handle miss → fall back to ytsearch and use the matching channel
 
     Raises RuntimeError if channel_id cannot be resolved.
     """
@@ -49,15 +117,18 @@ def resolve_channel_id(name_or_url: str) -> tuple[str, str]:
         raise ValueError("channel name or URL is required")
 
     # Build the lookup URL
+    search_fallback_query = ""
     if raw.startswith("http://") or raw.startswith("https://"):
         lookup_url = raw
     elif raw.startswith("@"):
         lookup_url = f"https://www.youtube.com/{raw}/videos"
+        search_fallback_query = raw.lstrip("@")
     elif re.match(r"^UC[A-Za-z0-9_-]{10,}$", raw):
         lookup_url = f"https://www.youtube.com/channel/{raw}/videos"
     else:
         handle = _slugify_as_handle(raw)
         lookup_url = f"https://www.youtube.com/@{handle}/videos"
+        search_fallback_query = raw
 
     try:
         import yt_dlp  # type: ignore
@@ -67,27 +138,59 @@ def resolve_channel_id(name_or_url: str) -> tuple[str, str]:
     ydl_opts = {
         "quiet": True,
         "no_warnings": True,
+        "logger": _QuietYtDlpLogger(),
         "extract_flat": True,
         "playlist_items": "1",
     }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(lookup_url, download=False)
+            primary_error: Exception | None = None
+            try:
+                info = ydl.extract_info(lookup_url, download=False) or {}
+            except Exception as exc:
+                primary_error = exc
+            else:
+                identity = _channel_identity_from_info(info, raw)
+                if identity is not None:
+                    return identity
+
+            if search_fallback_query:
+                try:
+                    search_info = ydl.extract_info(
+                        f"ytsearch5:{search_fallback_query}",
+                        download=False,
+                    ) or {}
+                except Exception as exc:
+                    if primary_error is not None:
+                        raise RuntimeError(
+                            f"channel lookup failed for {raw!r}: {primary_error}; "
+                            f"search fallback failed: {exc}"
+                        ) from exc
+                    raise RuntimeError(
+                        f"channel lookup failed for {raw!r}: {exc}"
+                    ) from exc
+
+                identity = _channel_identity_from_info(
+                    search_info,
+                    raw,
+                    prefer_query_match=True,
+                )
+                if identity is not None:
+                    return identity
+
+            if primary_error is not None:
+                raise RuntimeError(
+                    f"channel lookup failed for {raw!r}: {primary_error}"
+                ) from primary_error
     except Exception as exc:
+        if isinstance(exc, RuntimeError):
+            raise
         raise RuntimeError(f"channel lookup failed for {raw!r}: {exc}") from exc
 
-    channel_id = str((info or {}).get("channel_id") or "").strip()
-    if not channel_id:
-        raise RuntimeError(
-            f"could not resolve channel_id from {raw!r} — "
-            "try providing a YouTube channel URL or @handle instead"
-        )
-    canonical_name = str(
-        (info or {}).get("channel")
-        or (info or {}).get("uploader")
-        or raw
-    ).strip()
-    return channel_id, canonical_name
+    raise RuntimeError(
+        f"could not resolve channel_id from {raw!r} — "
+        "try providing a YouTube channel URL or @handle instead"
+    )
 
 
 def _slugify(value: str) -> str:

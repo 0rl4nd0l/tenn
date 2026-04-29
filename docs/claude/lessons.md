@@ -854,3 +854,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The source guard treated every substantive natural-language message without visible sources as a factual market answer, even when the response was `mode="command"` and the evidence was an operational tool result rather than a financial claim.
 **Fix:** Added a narrow operational-command exemption for `watch_youtube_channel` command results, while leaving market-update/source-requiring financial answers guarded.
 **Rule:** Source-contract enforcement must distinguish operational command acknowledgements from financial answers. Do not weaken the guard globally; whitelist only command tools whose output is an operational mutation/status and add an SSE regression test for the exact user phrase.
+
+---
+
+## L078 — Natural-language channel names need search fallback, not handle-only lookup
+
+**Date:** 2026-04-29
+**Subsystem:** `financial-engine_v2/backend/app/services/youtube_transcript_fetcher.py`, `financial-engine_v2/cockpit/integrations/backend_api.py`
+**Symptom:** `watch youtube kneppy invests` reached `watch_youtube_channel` but failed with HTTP 502 because the resolver guessed `@KneppyInvests`, while the actual YouTube handle is `@kneppyinvests7584`.
+**Root cause:** Plain-name channel resolution only tried a title-cased handle guess and treated that miss as final. The Cockpit backend client also surfaced the raw `HTTPStatusError`, hiding the backend's JSON `detail`.
+**Fix:** Plain names and handles now fall back to `ytsearch5:<query>` and choose the matching channel identity when the direct handle lookup misses. The backend client now raises the backend detail for `add_watched_channel` failures.
+**Rule:** Natural-language commands must validate the full operator path with realistic external identifiers, not just mocked exact handles. For backend-mediated command tools, surface structured backend `detail` text instead of generic HTTP status strings.

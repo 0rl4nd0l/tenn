@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 import httpx
 import respx
@@ -61,3 +63,45 @@ def test_ingest_url_no_api_key_omits_header():
     client = BackendApiClient(BASE)  # no api_key
     client.ingest_url("https://youtu.be/abc123")
     assert "x-api-key" not in route.calls[0].request.headers
+
+
+@respx.mock
+def test_add_watched_channel_success():
+    route = respx.post(f"{BASE}/api/commentary/channels").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "channel_id": "UCabc123",
+                "name": "Kneppy Invests",
+                "enabled": True,
+                "credibility_weight": 0.55,
+                "already_existed": False,
+            },
+        )
+    )
+    client = BackendApiClient(BASE, api_key="secret")
+
+    result = client.add_watched_channel("Kneppy Invests")
+
+    assert result["channel_id"] == "UCabc123"
+    request = route.calls[0].request
+    assert request.headers.get("x-api-key") == "secret"
+    assert json.loads(request.read()) == {
+        "name_or_id": "Kneppy Invests",
+        "credibility_weight": 0.55,
+        "enabled": True,
+    }
+
+
+@respx.mock
+def test_add_watched_channel_raises_backend_detail():
+    respx.post(f"{BASE}/api/commentary/channels").mock(
+        return_value=httpx.Response(
+            502,
+            json={"detail": "channel lookup failed for 'Kneppy Invests'"},
+        )
+    )
+    client = BackendApiClient(BASE)
+
+    with pytest.raises(RuntimeError, match="channel lookup failed"):
+        client.add_watched_channel("Kneppy Invests")
