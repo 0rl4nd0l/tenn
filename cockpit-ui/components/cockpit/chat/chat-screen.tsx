@@ -49,7 +49,7 @@ import {
 } from '@/lib/marketplace-bootstrap'
 import { extractMarketplaceUrl } from '@/lib/marketplace-url'
 import { extractYouTubeUrl } from '@/lib/youtube-url'
-import { applyApiDefaultOverride } from '@/lib/chat-routing'
+import { applyApiDefaultOverride, isApiRoutedMessage } from '@/lib/chat-routing'
 import type { ChatMessage as ChatMessageType, ActionPreview } from '@/lib/cockpit-types'
 import { toast } from 'sonner'
 
@@ -819,7 +819,10 @@ export function ChatScreen() {
     setIsStreaming(true)
     setChatCompletionActive(true)
     setStreamingContent('')
-    const requestedModel = String(chatModel || '').trim()
+    const outboundMessage = applyApiDefaultOverride(content, apiDefaultEnabled)
+    const apiRoutedMessage = isApiRoutedMessage(outboundMessage)
+    const modelForRequest = apiRoutedMessage ? undefined : chatModel
+    const requestedModel = apiRoutedMessage ? '' : String(chatModel || '').trim()
     const activeModel = resolveRuntimeModel(sessionStats.activeModel, config.model)
     const hasModelSwitch = (
       requestedModel.length > 0
@@ -835,7 +838,6 @@ export function ChatScreen() {
     setStreamingMetadata({})
     const requestStartedAt = Date.now()
     activeRequestStartedAtRef.current = requestStartedAt
-    const outboundMessage = applyApiDefaultOverride(content, apiDefaultEnabled)
 
     statusFallbackTimersRef.current = [
       window.setTimeout(() => {
@@ -894,7 +896,7 @@ export function ChatScreen() {
           mode: 'analysis',
           ticker: activeTicker || undefined,
           sessionId: sessionId,
-          model: chatModel,
+          model: modelForRequest,
           webSearch: preferences.webSearchEnabled,
           rag: preferences.ragEnabled,
         dbDiagnostics: preferences.dbDiagnosticsEnabled,
@@ -945,7 +947,7 @@ export function ChatScreen() {
         mode: 'analysis',
         ticker: activeTicker || undefined,
         sessionId: sessionId,
-        model: chatModel,
+        model: modelForRequest,
         webSearch: preferences.webSearchEnabled,
         rag: preferences.ragEnabled,
         dbDiagnostics: preferences.dbDiagnosticsEnabled,

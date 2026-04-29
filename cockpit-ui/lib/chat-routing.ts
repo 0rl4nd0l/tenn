@@ -9,3 +9,13 @@ export function applyApiDefaultOverride(message: string, enabled: boolean): stri
   }
   return `/cloud ${trimmed}`
 }
+
+export function isApiRoutedMessage(message: string): boolean {
+  const trimmed = message.trim().toLowerCase()
+  return (
+    trimmed === '/cloud'
+    || trimmed.startsWith('/cloud ')
+    || trimmed === '/advisor'
+    || trimmed.startsWith('/advisor ')
+  )
+}

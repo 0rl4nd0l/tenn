@@ -1781,30 +1781,35 @@ class CockpitService:
             except Exception:
                 logger.exception("Failed to preview HybridRouter route before model switch")
 
+        route_preview_source = (
+            str(route_preview.get("source") or "").strip()
+            if isinstance(route_preview, dict)
+            else ""
+        )
+        route_preview_model = (
+            str(route_preview.get("model") or "").strip()
+            if isinstance(route_preview, dict)
+            else ""
+        )
+        route_preview_reason = (
+            str(route_preview.get("routing_reason") or "").strip()
+            if isinstance(route_preview, dict)
+            else ""
+        )
         should_switch_local_model = (
             requested_model
             and llm_client is not None
             and requested_model != current_model
-            and (
-                route_preview is None
-                or str(route_preview.get("source") or "").strip() == "local"
-            )
+            and (route_preview is None or route_preview_source == "local")
         )
 
-        if (
-            requested_model
-            and llm_client is not None
-            and requested_model != current_model
-            and not should_switch_local_model
-        ):
-            route_reason = str(route_preview.get("routing_reason") or "").strip()
-            route_source = str(route_preview.get("source") or "").strip() or "api"
-            suffix = f" ({route_reason})" if route_reason else ""
+        if requested_model and route_preview_source == "api":
+            suffix = f" ({route_preview_reason})" if route_preview_reason else ""
+            model_label = f": {route_preview_model}" if route_preview_model else ""
             _capture_status(
-                f"Skipping local model switch; this turn will route to {route_source}{suffix}"
+                f"Routing to API{model_label}{suffix}"
             )
-
-        if should_switch_local_model:
+        elif should_switch_local_model:
             if requested_model != current_model:
                 _capture_status(
                     f"Switching model: {current_model or 'unknown'} -> {requested_model}"
@@ -1876,6 +1881,15 @@ class CockpitService:
             )
             if isinstance(last_attempt, dict):
                 meta.update(last_attempt)
+        if not str(meta.get("source") or "").strip() and isinstance(route_preview, dict):
+            meta.update(
+                {
+                    key: value
+                    for key, value in route_preview.items()
+                    if key in {"source", "model", "cost_usd", "routing_reason"}
+                    and value is not None
+                }
+            )
         llm_client = getattr(self, "llm_client", None)
         current_model = str(getattr(llm_client, "model", "") or "").strip()
         source = str(meta.get("source") or "").strip()

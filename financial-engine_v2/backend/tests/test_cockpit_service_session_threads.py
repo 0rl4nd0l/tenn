@@ -278,10 +278,10 @@ def test_chat_stream_skips_local_model_switch_when_turn_will_route_to_api() -> N
     assert response.text == "API-routed answer."
     assert service.llm_client.model == "model:gpt-oss-20b"
     assert service.llm_client.switch_calls == []
-    assert statuses[0] == (
-        "Skipping local model switch; this turn will route to api (extraction_active)"
-    )
-    assert statuses[1] == "Requested model: model:qwen3.5-35b-a3b"
+    assert statuses == ["Routing to API: claude-sonnet-test (extraction_active)"]
+    assert response.routing_metadata["source"] == "api"
+    assert response.routing_metadata["model"] == "claude-sonnet-test"
+    assert response.routing_metadata["routing_reason"] == "extraction_active"
 
 
 def test_chat_stream_records_response_mode_in_turn_diagnostics() -> None:

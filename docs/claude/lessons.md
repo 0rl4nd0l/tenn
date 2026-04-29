@@ -799,3 +799,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** Deterministic slash-command responses did not attach their own routing metadata, so `CockpitService` fell back to local-route defaults and inferred the active local model. `_build_ui_sources` also had no market-update-specific source item, so the UI used generic fallback scoring. Finally, missing snapshot data was treated the same as execution errors in the text renderer.
 **Fix:** `/market-update` now marks responses as `source=cockpit` with deterministic route metadata, the backend records real wall-clock latency for slash responses without model metadata, market-update reports render as first-class UI source items with full confidence, and snapshot gaps are separated from actual run errors.
 **Rule:** Any deterministic Cockpit response path that bypasses an LLM must attach explicit route metadata and source items. Do not let service-layer model defaults imply a local/API model was used when the answer came from Cockpit control-plane logic.
+
+---
+
+## L073 — API-routed chat turns must not carry selected local model intent
+
+**Date:** 2026-04-29
+**Subsystem:** `cockpit-ui/components/cockpit/chat/chat-screen.tsx`, `cockpit-ui/lib/chat-routing.ts`, `financial-engine_v2/backend/app/services/cockpit_service.py`
+**Symptom:** With API default enabled, the web chat status still said `Requested model: model:qwen3.5-35b-a3b-apex` even though Cockpit config showed `routing: api_preferred` and the active backend was `claude-sonnet-4-20250514`.
+**Root cause:** API-default rewrote plain messages to `/cloud ...`, but the frontend still sent the selected local `chatModel` as `model`. The backend then treated that stale selected model as requested-model intent and emitted a model status even after route preview showed the turn would go to API.
+**Fix:** The frontend now omits `model` for effective `/cloud` or `/advisor` messages, and the backend suppresses local requested-model status for API-previewed turns while using route-preview metadata as a fallback when the response lacks final routing metadata.
+**Rule:** Route intent wins over selected-model UI state. For `/cloud`, `/advisor`, or API-default turns, do not send or display the selected local model as requested execution state.
