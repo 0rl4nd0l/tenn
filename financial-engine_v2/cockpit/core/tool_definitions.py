@@ -660,6 +660,40 @@ _READ_ONLY_TOOLS: list[dict[str, Any]] = [
         },
         "mutating": False,
     },
+    {
+        "name": "watch_youtube_channel",
+        "description": (
+            "Add a YouTube channel to the watch list so its transcripts are "
+            "automatically fetched and staged for ingestion. "
+            "Accepts a channel name (e.g. 'Kneppy Invests'), a @handle "
+            "(e.g. '@KneppyInvests'), a channel URL, or a raw UC... channel ID. "
+            "Returns the resolved channel_id, canonical name, and whether it "
+            "was already being watched."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "channel_name": {
+                    "type": "string",
+                    "description": (
+                        "Channel name, @handle, URL, or channel ID. "
+                        "Examples: 'Kneppy Invests', '@KneppyInvests', "
+                        "'https://youtube.com/@KneppyInvests', 'UCabc123'"
+                    ),
+                },
+                "credibility_weight": {
+                    "type": "number",
+                    "description": (
+                        "How much to trust this source (0.0–1.0). "
+                        "Default 0.55 is standard for YouTube commentary."
+                    ),
+                    "default": 0.55,
+                },
+            },
+            "required": ["channel_name"],
+        },
+        "mutating": False,
+    },
 ]
 
 # ---------------------------------------------------------------------------
