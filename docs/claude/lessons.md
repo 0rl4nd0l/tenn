@@ -832,3 +832,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** Provider-account failures were treated like ordinary model output. The route metadata carried source/model details, but there was no first-class provider-error field or UI affordance for account-level action required states.
 **Fix:** Cockpit now detects Anthropic insufficient-credit messages on API-routed turns, records `provider_error.code=billing_insufficient_credit`, emits a status event, includes the metadata in stream and non-stream responses, and renders a toast plus persistent system message telling the operator to top up Anthropic credits.
 **Rule:** Provider account, quota, or billing failures must be surfaced as explicit Cockpit operational notices with structured metadata. Do not leave top-up or operator-action requirements buried in assistant response text.
+
+---
+
+## L076 — Feedback capability changes need both contract docs and session-state docs
+
+**Date:** 2026-04-29
+**Subsystem:** `docs/architecture/19_backend_api_surface.md`, `docs/architecture/21_cockpit_client_contract.md`, `docs/claude/STATE.md`
+**Symptom:** Cockpit auto diagnostics were documented in the architecture/API contract, but `STATE.md` did not list the shipped capability, so a future agent checking active work could miss that Tenn now creates `auto_diagnostic` feedback reports itself.
+**Root cause:** The implementation updated the durable API contract but skipped the session tracker. In this repo, architecture docs explain the stable contract, while `docs/claude/STATE.md` explains what just moved and what remains in flight.
+**Fix:** Added a 2026-04-29 session note and Recently Shipped row for backend-owned automatic diagnostics, including the operational-triage boundary and validation lane.
+**Rule:** When a Cockpit feedback or observability capability changes, update both the architecture contract docs and `docs/claude/STATE.md` before closeout. Contract docs answer "what is the interface"; STATE answers "what changed this session."
