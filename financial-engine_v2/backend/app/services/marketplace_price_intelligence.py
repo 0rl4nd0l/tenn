@@ -1,0 +1,897 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+import sqlite3
+import uuid
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
+from statistics import median
+from typing import Any
+from urllib.parse import urlparse
+
+from cockpit.storage.state import StateStore
+
+
+PRODUCT_CATEGORIES = {"gpu", "cpu", "ram", "ssd"}
+PRODUCT_STATUSES = {"active", "inactive"}
+OBSERVATION_REVIEW_STATES = {"pending_review", "accepted", "rejected"}
+CAPTURE_MODES = {"manual", "test_seed", "future_adapter"}
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _now_iso() -> str:
+    return _now().replace(microsecond=0).isoformat()
+
+
+def _new_id(prefix: str) -> str:
+    return f"{prefix}{uuid.uuid4().hex[:12]}"
+
+
+def _clean(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value or "")).strip()
+
+
+def _lower(value: Any) -> str:
+    return _clean(value).lower()
+
+
+def _json_dumps(value: Any) -> str:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"))
+
+
+def _json_loads(value: Any, fallback: Any) -> Any:
+    if not isinstance(value, str) or not value.strip():
+        return fallback
+    try:
+        return json.loads(value)
+    except Exception:
+        return fallback
+
+
+def _parse_price(value: Any) -> float | None:
+    if value is None:
+        return None
+    if isinstance(value, int | float):
+        return float(value)
+    match = re.search(r"([0-9][0-9,]*(?:\.[0-9]{1,2})?)", str(value))
+    if match is None:
+        return None
+    try:
+        return float(match.group(1).replace(",", ""))
+    except ValueError:
+        return None
+
+
+def _parse_capacity_gb(text: str) -> int | None:
+    tb = re.search(r"\b(\d+(?:\.\d+)?)\s*tb\b", text, flags=re.IGNORECASE)
+    if tb:
+        return int(float(tb.group(1)) * 1000)
+    gb = re.search(r"\b(\d{1,5})\s*gb\b", text, flags=re.IGNORECASE)
+    if gb:
+        return int(gb.group(1))
+    return None
+
+
+def _parse_observed_at(value: Any) -> datetime:
+    text = _clean(value)
+    if not text:
+        return _now()
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return _now()
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _to_iso(value: Any) -> str:
+    return _parse_observed_at(value).replace(microsecond=0).isoformat()
+
+
+def _percentile(sorted_values: list[float], pct: float) -> float | None:
+    if not sorted_values:
+        return None
+    if len(sorted_values) == 1:
+        return float(sorted_values[0])
+    rank = (len(sorted_values) - 1) * pct
+    lower = int(rank)
+    upper = min(lower + 1, len(sorted_values) - 1)
+    weight = rank - lower
+    return float(sorted_values[lower] * (1 - weight) + sorted_values[upper] * weight)
+
+
+def detect_listing_junk(
+    *,
+    title: str,
+    price: float | None = None,
+    category: str | None = None,
+) -> dict[str, Any]:
+    text = f" {_lower(title)} "
+    flags: list[str] = []
+    checks = {
+        "wanted": r"\b(wanted|wtb|want to buy|looking for)\b",
+        "swap_trade": r"\b(swap|trade|trade only|swap only)\b",
+        "broken_parts": r"\b(broken|faulty|for parts|parts only|not working|dead gpu|dead cpu)\b",
+        "box_only": r"\b(box only|empty box|packaging only|accessory only|bracket only|cable only)\b",
+        "bundle_full_build": r"\b(full build|gaming pc|complete pc|bundle|whole setup)\b",
+    }
+    for name, pattern in checks.items():
+        if re.search(pattern, text):
+            flags.append(name)
+
+    if price is not None and price <= 5:
+        flags.append("placeholder_price")
+    if re.search(r"\b(123456|999999|111111)\b", text):
+        flags.append("placeholder_price")
+    if category in {"gpu", "cpu", "ram", "ssd"} and re.search(
+        r"\b(photo|picture|wallpaper|keyring|sticker)\b", text
+    ):
+        flags.append("accessory_only")
+
+    return {"is_junk": bool(flags), "flags": sorted(set(flags))}
+
+
+def normalize_product_text(category: str, text: str) -> dict[str, Any]:
+    category = _lower(category)
+    if category not in PRODUCT_CATEGORIES:
+        raise ValueError(f"unsupported product category: {category}")
+    cleaned = _clean(text)
+    lowered = cleaned.lower()
+    attributes: dict[str, Any] = {}
+
+    if category == "gpu":
+        if re.search(r"\brtx\b|\bgtx\b|\bnvidia\b|\bgeforce\b", lowered):
+            attributes["vendor"] = "NVIDIA"
+        elif re.search(r"\bradeon\b|\brx\b|\bamd\b", lowered):
+            attributes["vendor"] = "AMD"
+        match = re.search(r"\b(rtx|gtx)\s*([2345]0[0-9]{2})\b", lowered)
+        if match:
+            attributes["generation"] = match.group(2)[0] + "0"
+            attributes["chip_model"] = f"{match.group(1).upper()} {match.group(2)}"
+            modifiers = re.findall(r"\b(ti|super)\b", lowered)
+            if modifiers:
+                attributes["suffix"] = " ".join(mod.upper() for mod in modifiers)
+        amd = re.search(r"\brx\s*([5679][0-9]{3})(?:\s*(xtx|xt))?\b", lowered)
+        if amd:
+            attributes["generation"] = amd.group(1)[0] + "000"
+            attributes["chip_model"] = f"RX {amd.group(1)}"
+            if amd.group(2):
+                attributes["suffix"] = amd.group(2).upper()
+        vram = re.search(r"\b(\d{1,2})\s*gb\b", lowered)
+        if vram:
+            attributes["vram_gb"] = int(vram.group(1))
+
+    elif category == "cpu":
+        ryzen = re.search(r"\bryzen\s*([3579])\s*([0-9]{4})([a-z0-9]*)\b", lowered)
+        intel = re.search(r"\b(?:core\s*)?i([3579])[-\s]*([0-9]{4,5})([a-z]*)\b", lowered)
+        if ryzen:
+            attributes["vendor"] = "AMD"
+            attributes["family"] = f"Ryzen {ryzen.group(1)}"
+            attributes["generation"] = ryzen.group(2)[0] + "000"
+            attributes["exact_sku"] = f"Ryzen {ryzen.group(1)} {ryzen.group(2)}{ryzen.group(3).upper()}"
+            if ryzen.group(3):
+                attributes["suffix"] = ryzen.group(3).upper()
+        elif intel:
+            attributes["vendor"] = "Intel"
+            attributes["family"] = f"Core i{intel.group(1)}"
+            attributes["generation"] = intel.group(2)[:2] if len(intel.group(2)) == 5 else intel.group(2)[0]
+            attributes["exact_sku"] = f"i{intel.group(1)}-{intel.group(2)}{intel.group(3).upper()}"
+            if intel.group(3):
+                attributes["suffix"] = intel.group(3).upper()
+
+    elif category == "ram":
+        ddr = re.search(r"\bddr\s*([345])\b", lowered)
+        if ddr:
+            attributes["ddr_generation"] = int(ddr.group(1))
+        kit = re.search(r"\b(\d)\s*x\s*(\d{1,3})\s*gb\b", lowered)
+        if kit:
+            attributes["stick_count"] = int(kit.group(1))
+            attributes["total_capacity_gb"] = int(kit.group(1)) * int(kit.group(2))
+        else:
+            capacity = _parse_capacity_gb(lowered)
+            if capacity is not None:
+                attributes["total_capacity_gb"] = capacity
+        speed = re.search(r"\b(?:ddr[345][- ]?)?(\d{4,5})\s*(?:mhz)?\b", lowered)
+        if speed:
+            attributes["speed_mhz"] = int(speed.group(1))
+        cas = re.search(r"\bcl\s*([0-9]{2})\b", lowered)
+        if cas:
+            attributes["cas_latency"] = int(cas.group(1))
+
+    elif category == "ssd":
+        capacity = _parse_capacity_gb(lowered)
+        if capacity is not None:
+            attributes["capacity_gb"] = capacity
+        if re.search(r"\bnvme\b|\bm\.?2\b", lowered):
+            attributes["interface"] = "NVMe"
+        elif re.search(r"\bsata\b", lowered):
+            attributes["interface"] = "SATA"
+        gen = re.search(r"\bgen\s*([345])\b|\bpcie\s*([345])(?:\.0)?\b", lowered)
+        if gen:
+            attributes["pcie_generation"] = int(gen.group(1) or gen.group(2))
+        brand = re.search(r"\b(samsung|wd|western digital|crucial|kingston|seagate|lexar|solidigm)\b", lowered)
+        if brand:
+            attributes["brand"] = "WD" if brand.group(1) == "western digital" else brand.group(1).title()
+        model = re.search(r"\b(9[789]0\s*pro|sn[0-9]{3,4}x?|p[0-9]\s*plus|mx500|kc3000|firecuda\s*[0-9]+)\b", lowered)
+        if model:
+            attributes["model"] = _clean(model.group(1)).upper()
+
+    identity_parts = [
+        category,
+        str(attributes.get("vendor") or attributes.get("brand") or ""),
+        str(attributes.get("chip_model") or attributes.get("exact_sku") or attributes.get("model") or ""),
+        str(attributes.get("suffix") or ""),
+        str(attributes.get("vram_gb") or attributes.get("total_capacity_gb") or attributes.get("capacity_gb") or ""),
+    ]
+    canonical_key = re.sub(r"[^a-z0-9]+", "-", " ".join(identity_parts).lower()).strip("-")
+    return {
+        "category": category,
+        "input": cleaned,
+        "canonical_key": canonical_key or re.sub(r"[^a-z0-9]+", "-", cleaned.lower()).strip("-"),
+        "attributes": attributes,
+    }
+
+
+def listing_fingerprint(
+    *,
+    source: str,
+    source_listing_id: str | None = None,
+    url: str | None = None,
+    title: str | None = None,
+    price: float | None = None,
+    location: str | None = None,
+) -> str:
+    source_key = _lower(source) or "unknown"
+    listing_id = _lower(source_listing_id)
+    if listing_id:
+        basis = f"{source_key}|id|{listing_id}"
+    else:
+        parsed = urlparse(_clean(url))
+        normalized_url = ""
+        if parsed.netloc and parsed.path:
+            normalized_url = f"{parsed.netloc.lower()}{parsed.path.rstrip('/')}"
+        if normalized_url:
+            basis = f"{source_key}|url|{normalized_url}"
+        else:
+            price_key = "" if price is None else f"{float(price):.2f}"
+            basis = f"{source_key}|text|{_lower(title)}|{price_key}|{_lower(location)}"
+    return hashlib.sha256(basis.encode("utf-8")).hexdigest()[:32]
+
+
+@dataclass(frozen=True)
+class BenchmarkRollup:
+    sample_size: int
+    median_price: float | None
+    fair_range_low: float | None
+    fair_range_high: float | None
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "sample_size": self.sample_size,
+            "median_price": self.median_price,
+            "fair_range_low": self.fair_range_low,
+            "fair_range_high": self.fair_range_high,
+        }
+
+
+class MarketplacePriceIntelligenceService:
+    """Standalone cockpit-local used-market price intelligence foundation."""
+
+    def __init__(self, state_store: StateStore) -> None:
+        self._state_store = state_store
+        self._conn = state_store.conn
+        self._lock = state_store._lock
+        self._init_schema()
+
+    def _init_schema(self) -> None:
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS marketplace_tracked_products (
+                    tracked_product_id TEXT PRIMARY KEY,
+                    canonical_key TEXT NOT NULL UNIQUE,
+                    category TEXT NOT NULL,
+                    brand TEXT,
+                    model_family TEXT,
+                    variant TEXT,
+                    attributes_json TEXT NOT NULL DEFAULT '{}',
+                    aliases_json TEXT NOT NULL DEFAULT '[]',
+                    negative_terms_json TEXT NOT NULL DEFAULT '[]',
+                    status TEXT NOT NULL DEFAULT 'active',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+            cur.execute(
+                "CREATE INDEX IF NOT EXISTS idx_marketplace_tracked_products_category "
+                "ON marketplace_tracked_products(category, status)"
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS marketplace_price_observations (
+                    observation_id TEXT PRIMARY KEY,
+                    tracked_product_id TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    observed_at TEXT NOT NULL,
+                    source_listing_id TEXT,
+                    listing_fingerprint TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    price REAL NOT NULL,
+                    currency TEXT NOT NULL DEFAULT 'AUD',
+                    url TEXT,
+                    location TEXT,
+                    seller_type TEXT,
+                    condition_label TEXT,
+                    match_confidence REAL,
+                    capture_mode TEXT NOT NULL DEFAULT 'manual',
+                    provenance_json TEXT NOT NULL DEFAULT '{}',
+                    review_state TEXT NOT NULL DEFAULT 'pending_review',
+                    review_reason TEXT,
+                    junk_flags_json TEXT NOT NULL DEFAULT '[]',
+                    created_at TEXT NOT NULL
+                )
+                """
+            )
+            cur.execute(
+                "CREATE INDEX IF NOT EXISTS idx_marketplace_price_obs_product "
+                "ON marketplace_price_observations(tracked_product_id, observed_at DESC)"
+            )
+            cur.execute(
+                "CREATE INDEX IF NOT EXISTS idx_marketplace_price_obs_fingerprint "
+                "ON marketplace_price_observations(listing_fingerprint, observed_at DESC)"
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS marketplace_listing_timelines (
+                    listing_fingerprint TEXT PRIMARY KEY,
+                    tracked_product_id TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    first_seen TEXT NOT NULL,
+                    last_seen TEXT NOT NULL,
+                    latest_price REAL NOT NULL,
+                    price_history_json TEXT NOT NULL DEFAULT '[]',
+                    price_change_count INTEGER NOT NULL DEFAULT 0,
+                    active_state TEXT NOT NULL DEFAULT 'active',
+                    latest_observation_id TEXT,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+            cur.execute(
+                "CREATE INDEX IF NOT EXISTS idx_marketplace_listing_timelines_product "
+                "ON marketplace_listing_timelines(tracked_product_id, last_seen DESC)"
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS marketplace_benchmark_snapshots (
+                    snapshot_id TEXT PRIMARY KEY,
+                    tracked_product_id TEXT NOT NULL,
+                    generated_at TEXT NOT NULL,
+                    total_sample_size INTEGER NOT NULL,
+                    source_sample_sizes_json TEXT NOT NULL DEFAULT '{}',
+                    rollups_json TEXT NOT NULL DEFAULT '{}',
+                    fair_range_low REAL,
+                    fair_range_high REAL,
+                    used_median REAL,
+                    retail_anchor_json TEXT NOT NULL DEFAULT '{}',
+                    freshness_status TEXT NOT NULL,
+                    confidence_label TEXT NOT NULL,
+                    notes_json TEXT NOT NULL DEFAULT '[]',
+                    warnings_json TEXT NOT NULL DEFAULT '[]'
+                )
+                """
+            )
+            cur.execute(
+                "CREATE INDEX IF NOT EXISTS idx_marketplace_benchmark_snapshots_product "
+                "ON marketplace_benchmark_snapshots(tracked_product_id, generated_at DESC)"
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS marketplace_observation_review_history (
+                    review_id TEXT PRIMARY KEY,
+                    observation_id TEXT NOT NULL,
+                    from_state TEXT,
+                    to_state TEXT NOT NULL,
+                    reason TEXT,
+                    reviewed_at TEXT NOT NULL
+                )
+                """
+            )
+            self._conn.commit()
+
+    def create_tracked_product(self, payload: dict[str, Any]) -> dict[str, Any]:
+        category = _lower(payload.get("category"))
+        if category not in PRODUCT_CATEGORIES:
+            raise ValueError(f"unsupported product category: {category}")
+        brand = _clean(payload.get("brand")) or None
+        model_family = _clean(payload.get("model_family")) or None
+        variant = _clean(payload.get("variant")) or None
+        status = _lower(payload.get("status") or "active")
+        if status not in PRODUCT_STATUSES:
+            raise ValueError(f"unsupported tracked product status: {status}")
+        identity_text = " ".join(part for part in [brand, model_family, variant] if part)
+        normalized = normalize_product_text(category, identity_text or _clean(payload.get("canonical_key")))
+        attributes = dict(normalized["attributes"])
+        attributes.update(payload.get("attributes") or {})
+        canonical_key = _clean(payload.get("canonical_key")) or normalized["canonical_key"]
+        aliases = [str(item).strip() for item in payload.get("aliases") or [] if str(item).strip()]
+        negative_terms = [
+            str(item).strip() for item in payload.get("negative_terms") or [] if str(item).strip()
+        ]
+        now = _now_iso()
+        tracked_product_id = _new_id("tp_")
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT INTO marketplace_tracked_products (
+                    tracked_product_id, canonical_key, category, brand, model_family,
+                    variant, attributes_json, aliases_json, negative_terms_json,
+                    status, created_at, updated_at
+                )
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                (
+                    tracked_product_id,
+                    canonical_key,
+                    category,
+                    brand,
+                    model_family,
+                    variant,
+                    _json_dumps(attributes),
+                    _json_dumps(aliases),
+                    _json_dumps(negative_terms),
+                    status,
+                    now,
+                    now,
+                ),
+            )
+            self._conn.commit()
+        product = self.get_tracked_product(tracked_product_id)
+        if product is None:
+            raise RuntimeError("tracked product insert failed")
+        return product
+
+    def list_tracked_products(
+        self, *, status: str | None = None, category: str | None = None
+    ) -> list[dict[str, Any]]:
+        where = []
+        args: list[Any] = []
+        if status:
+            where.append("status = ?")
+            args.append(_lower(status))
+        if category:
+            where.append("category = ?")
+            args.append(_lower(category))
+        query = "SELECT * FROM marketplace_tracked_products"
+        if where:
+            query += " WHERE " + " AND ".join(where)
+        query += " ORDER BY updated_at DESC, created_at DESC"
+        rows = self._conn.execute(query, args).fetchall()
+        return [self._product_from_row(row) for row in rows]
+
+    def get_tracked_product(self, tracked_product_id: str) -> dict[str, Any] | None:
+        row = self._conn.execute(
+            "SELECT * FROM marketplace_tracked_products WHERE tracked_product_id = ?",
+            (_clean(tracked_product_id),),
+        ).fetchone()
+        return self._product_from_row(row) if row else None
+
+    def ingest_observation(self, payload: dict[str, Any]) -> dict[str, Any]:
+        tracked_product_id = _clean(payload.get("tracked_product_id"))
+        product = self.get_tracked_product(tracked_product_id)
+        if product is None:
+            raise ValueError("tracked_product_id not found")
+        source = _lower(payload.get("source")) or "manual"
+        title = _clean(payload.get("title"))
+        if not title:
+            raise ValueError("title is required")
+        price = _parse_price(payload.get("price"))
+        if price is None:
+            raise ValueError("price is required")
+        observed_at = _to_iso(payload.get("observed_at"))
+        capture_mode = _lower(payload.get("capture_mode") or "manual")
+        if capture_mode not in CAPTURE_MODES:
+            capture_mode = "manual"
+        fingerprint = listing_fingerprint(
+            source=source,
+            source_listing_id=_clean(payload.get("source_listing_id")) or None,
+            url=_clean(payload.get("url")) or None,
+            title=title,
+            price=price,
+            location=_clean(payload.get("location")) or None,
+        )
+        junk = detect_listing_junk(title=title, price=price, category=product["category"])
+        review_state = _lower(payload.get("review_state") or "")
+        if not review_state:
+            review_state = "rejected" if junk["is_junk"] else "pending_review"
+        if review_state not in OBSERVATION_REVIEW_STATES:
+            raise ValueError(f"unsupported review_state: {review_state}")
+        observation_id = _new_id("obs_")
+        created_at = _now_iso()
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT INTO marketplace_price_observations (
+                    observation_id, tracked_product_id, source, observed_at,
+                    source_listing_id, listing_fingerprint, title, price, currency,
+                    url, location, seller_type, condition_label, match_confidence,
+                    capture_mode, provenance_json, review_state, review_reason,
+                    junk_flags_json, created_at
+                )
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                (
+                    observation_id,
+                    tracked_product_id,
+                    source,
+                    observed_at,
+                    _clean(payload.get("source_listing_id")) or None,
+                    fingerprint,
+                    title,
+                    float(price),
+                    _clean(payload.get("currency")) or "AUD",
+                    _clean(payload.get("url")) or None,
+                    _clean(payload.get("location")) or None,
+                    _clean(payload.get("seller_type")) or None,
+                    _clean(payload.get("condition_label")) or None,
+                    payload.get("match_confidence"),
+                    capture_mode,
+                    _json_dumps(payload.get("provenance") or {}),
+                    review_state,
+                    _clean(payload.get("review_reason")) or None,
+                    _json_dumps(junk["flags"]),
+                    created_at,
+                ),
+            )
+            self._upsert_timeline_unlocked(
+                tracked_product_id=tracked_product_id,
+                source=source,
+                observed_at=observed_at,
+                price=float(price),
+                fingerprint=fingerprint,
+                observation_id=observation_id,
+            )
+            if review_state != "pending_review":
+                self._conn.execute(
+                    """
+                    INSERT INTO marketplace_observation_review_history (
+                        review_id, observation_id, from_state, to_state, reason, reviewed_at
+                    )
+                    VALUES (?,?,?,?,?,?)
+                    """,
+                    (
+                        _new_id("rev_"),
+                        observation_id,
+                        None,
+                        review_state,
+                        _clean(payload.get("review_reason")) or None,
+                        created_at,
+                    ),
+                )
+            self._conn.commit()
+        row = self._conn.execute(
+            "SELECT * FROM marketplace_price_observations WHERE observation_id = ?",
+            (observation_id,),
+        ).fetchone()
+        return self._observation_from_row(row)
+
+    def list_observations(
+        self, *, tracked_product_id: str | None = None, limit: int = 100
+    ) -> list[dict[str, Any]]:
+        safe_limit = max(1, min(int(limit), 500))
+        if tracked_product_id:
+            rows = self._conn.execute(
+                """
+                SELECT * FROM marketplace_price_observations
+                WHERE tracked_product_id = ?
+                ORDER BY observed_at DESC, created_at DESC
+                LIMIT ?
+                """,
+                (_clean(tracked_product_id), safe_limit),
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                """
+                SELECT * FROM marketplace_price_observations
+                ORDER BY observed_at DESC, created_at DESC
+                LIMIT ?
+                """,
+                (safe_limit,),
+            ).fetchall()
+        return [self._observation_from_row(row) for row in rows]
+
+    def list_timelines(self, *, tracked_product_id: str) -> list[dict[str, Any]]:
+        rows = self._conn.execute(
+            """
+            SELECT * FROM marketplace_listing_timelines
+            WHERE tracked_product_id = ?
+            ORDER BY last_seen DESC
+            """,
+            (_clean(tracked_product_id),),
+        ).fetchall()
+        return [self._timeline_from_row(row) for row in rows]
+
+    def rebuild_benchmark_snapshot(
+        self, tracked_product_id: str, *, retail_anchor: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        product = self.get_tracked_product(tracked_product_id)
+        if product is None:
+            raise ValueError("tracked_product_id not found")
+        rows = self._conn.execute(
+            """
+            SELECT *
+            FROM marketplace_price_observations
+            WHERE tracked_product_id = ?
+              AND review_state IN ('pending_review', 'accepted')
+            ORDER BY observed_at DESC
+            """,
+            (_clean(tracked_product_id),),
+        ).fetchall()
+        observations = [self._observation_from_row(row) for row in rows]
+        generated_at_dt = _now()
+        generated_at = generated_at_dt.replace(microsecond=0).isoformat()
+        source_counts: dict[str, int] = {}
+        for obs in observations:
+            source_counts[obs["source"]] = source_counts.get(obs["source"], 0) + 1
+        rollups: dict[str, dict[str, Any]] = {}
+        for days in (7, 30, 90):
+            cutoff = generated_at_dt - timedelta(days=days)
+            prices = [
+                float(obs["price"])
+                for obs in observations
+                if _parse_observed_at(obs["observed_at"]) >= cutoff
+            ]
+            rollups[f"{days}d"] = self._build_rollup(prices).as_dict()
+
+        all_prices = sorted(float(obs["price"]) for obs in observations)
+        total = len(all_prices)
+        latest_seen = (
+            max(_parse_observed_at(obs["observed_at"]) for obs in observations)
+            if observations
+            else None
+        )
+        warnings: list[str] = []
+        notes: list[str] = []
+        if total == 0:
+            freshness_status = "no_data"
+            confidence = "no_data"
+            warnings.append("No accepted or pending observations are available.")
+        else:
+            age_days = (generated_at_dt - latest_seen).total_seconds() / 86400 if latest_seen else 999
+            if total < 3:
+                freshness_status = "low_data"
+                confidence = "low"
+                warnings.append("Fewer than three samples; benchmark is provisional.")
+            elif age_days > 30:
+                freshness_status = "stale"
+                confidence = "low"
+                warnings.append("Newest observation is older than 30 days.")
+            elif age_days <= 7:
+                freshness_status = "fresh"
+                confidence = "high" if total >= 12 else "medium" if total >= 5 else "low"
+            else:
+                freshness_status = "aging"
+                confidence = "medium" if total >= 5 else "low"
+            notes.append("Asking-price benchmark; not mission-linked and not fair-value advice.")
+        snapshot = {
+            "snapshot_id": _new_id("bench_"),
+            "tracked_product_id": tracked_product_id,
+            "generated_at": generated_at,
+            "total_sample_size": total,
+            "source_sample_sizes": source_counts,
+            "rollups": rollups,
+            "fair_range_low": _percentile(all_prices, 0.25),
+            "fair_range_high": _percentile(all_prices, 0.75),
+            "used_median": float(median(all_prices)) if all_prices else None,
+            "retail_anchor": retail_anchor or {},
+            "freshness_status": freshness_status,
+            "confidence_label": confidence,
+            "notes": notes,
+            "warnings": warnings,
+        }
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT INTO marketplace_benchmark_snapshots (
+                    snapshot_id, tracked_product_id, generated_at, total_sample_size,
+                    source_sample_sizes_json, rollups_json, fair_range_low,
+                    fair_range_high, used_median, retail_anchor_json,
+                    freshness_status, confidence_label, notes_json, warnings_json
+                )
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                (
+                    snapshot["snapshot_id"],
+                    snapshot["tracked_product_id"],
+                    snapshot["generated_at"],
+                    snapshot["total_sample_size"],
+                    _json_dumps(snapshot["source_sample_sizes"]),
+                    _json_dumps(snapshot["rollups"]),
+                    snapshot["fair_range_low"],
+                    snapshot["fair_range_high"],
+                    snapshot["used_median"],
+                    _json_dumps(snapshot["retail_anchor"]),
+                    snapshot["freshness_status"],
+                    snapshot["confidence_label"],
+                    _json_dumps(snapshot["notes"]),
+                    _json_dumps(snapshot["warnings"]),
+                ),
+            )
+            self._conn.commit()
+        return snapshot
+
+    def list_benchmark_snapshots(
+        self, *, tracked_product_id: str, limit: int = 20
+    ) -> list[dict[str, Any]]:
+        safe_limit = max(1, min(int(limit), 100))
+        rows = self._conn.execute(
+            """
+            SELECT * FROM marketplace_benchmark_snapshots
+            WHERE tracked_product_id = ?
+            ORDER BY generated_at DESC
+            LIMIT ?
+            """,
+            (_clean(tracked_product_id), safe_limit),
+        ).fetchall()
+        return [self._snapshot_from_row(row) for row in rows]
+
+    def _upsert_timeline_unlocked(
+        self,
+        *,
+        tracked_product_id: str,
+        source: str,
+        observed_at: str,
+        price: float,
+        fingerprint: str,
+        observation_id: str,
+    ) -> None:
+        row = self._conn.execute(
+            "SELECT * FROM marketplace_listing_timelines WHERE listing_fingerprint = ?",
+            (fingerprint,),
+        ).fetchone()
+        price_entry = {"observed_at": observed_at, "price": float(price)}
+        if row is None:
+            self._conn.execute(
+                """
+                INSERT INTO marketplace_listing_timelines (
+                    listing_fingerprint, tracked_product_id, source, first_seen,
+                    last_seen, latest_price, price_history_json, price_change_count,
+                    active_state, latest_observation_id, updated_at
+                )
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                (
+                    fingerprint,
+                    tracked_product_id,
+                    source,
+                    observed_at,
+                    observed_at,
+                    float(price),
+                    _json_dumps([price_entry]),
+                    0,
+                    "active",
+                    observation_id,
+                    _now_iso(),
+                ),
+            )
+            return
+        history = _json_loads(row["price_history_json"], [])
+        if not isinstance(history, list):
+            history = []
+        previous_price = float(row["latest_price"])
+        changed = previous_price != float(price)
+        history.append(price_entry)
+        self._conn.execute(
+            """
+            UPDATE marketplace_listing_timelines
+            SET last_seen = ?,
+                latest_price = ?,
+                price_history_json = ?,
+                price_change_count = price_change_count + ?,
+                active_state = 'active',
+                latest_observation_id = ?,
+                updated_at = ?
+            WHERE listing_fingerprint = ?
+            """,
+            (
+                observed_at,
+                float(price),
+                _json_dumps(history),
+                1 if changed else 0,
+                observation_id,
+                _now_iso(),
+                fingerprint,
+            ),
+        )
+
+    def _build_rollup(self, prices: list[float]) -> BenchmarkRollup:
+        sorted_prices = sorted(prices)
+        return BenchmarkRollup(
+            sample_size=len(sorted_prices),
+            median_price=float(median(sorted_prices)) if sorted_prices else None,
+            fair_range_low=_percentile(sorted_prices, 0.25),
+            fair_range_high=_percentile(sorted_prices, 0.75),
+        )
+
+    def _product_from_row(self, row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "tracked_product_id": row["tracked_product_id"],
+            "canonical_key": row["canonical_key"],
+            "category": row["category"],
+            "brand": row["brand"],
+            "model_family": row["model_family"],
+            "variant": row["variant"],
+            "attributes": _json_loads(row["attributes_json"], {}),
+            "aliases": _json_loads(row["aliases_json"], []),
+            "negative_terms": _json_loads(row["negative_terms_json"], []),
+            "status": row["status"],
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+
+    def _observation_from_row(self, row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "observation_id": row["observation_id"],
+            "tracked_product_id": row["tracked_product_id"],
+            "source": row["source"],
+            "observed_at": row["observed_at"],
+            "source_listing_id": row["source_listing_id"],
+            "listing_fingerprint": row["listing_fingerprint"],
+            "title": row["title"],
+            "price": row["price"],
+            "currency": row["currency"],
+            "url": row["url"],
+            "location": row["location"],
+            "seller_type": row["seller_type"],
+            "condition_label": row["condition_label"],
+            "match_confidence": row["match_confidence"],
+            "capture_mode": row["capture_mode"],
+            "provenance": _json_loads(row["provenance_json"], {}),
+            "review_state": row["review_state"],
+            "review_reason": row["review_reason"],
+            "junk_flags": _json_loads(row["junk_flags_json"], []),
+            "created_at": row["created_at"],
+        }
+
+    def _timeline_from_row(self, row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "listing_fingerprint": row["listing_fingerprint"],
+            "tracked_product_id": row["tracked_product_id"],
+            "source": row["source"],
+            "first_seen": row["first_seen"],
+            "last_seen": row["last_seen"],
+            "latest_price": row["latest_price"],
+            "price_history": _json_loads(row["price_history_json"], []),
+            "price_change_count": row["price_change_count"],
+            "active_state": row["active_state"],
+            "latest_observation_id": row["latest_observation_id"],
+            "updated_at": row["updated_at"],
+        }
+
+    def _snapshot_from_row(self, row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "snapshot_id": row["snapshot_id"],
+            "tracked_product_id": row["tracked_product_id"],
+            "generated_at": row["generated_at"],
+            "total_sample_size": row["total_sample_size"],
+            "source_sample_sizes": _json_loads(row["source_sample_sizes_json"], {}),
+            "rollups": _json_loads(row["rollups_json"], {}),
+            "fair_range_low": row["fair_range_low"],
+            "fair_range_high": row["fair_range_high"],
+            "used_median": row["used_median"],
+            "retail_anchor": _json_loads(row["retail_anchor_json"], {}),
+            "freshness_status": row["freshness_status"],
+            "confidence_label": row["confidence_label"],
+            "notes": _json_loads(row["notes_json"], []),
+            "warnings": _json_loads(row["warnings_json"], []),
+        }

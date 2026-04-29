@@ -38,6 +38,9 @@ from app.api.context import router as context_router
 from app.api.commentary import router as commentary_router
 from app.api.extraction_review import router as extraction_review_router
 from app.routes.chat import router as chat_router
+from app.routes.marketplace_price_intelligence import (
+    router as marketplace_price_intelligence_router,
+)
 
 try:
     from app.routes.cockpit_api import router as cockpit_api_router
@@ -82,6 +85,11 @@ app.include_router(chat_router)
 app.include_router(chat_router, prefix="/api")
 app.include_router(analysis_router, prefix="/api", tags=["analysis"])
 app.include_router(research_router, prefix="/research", tags=["research"])
+app.include_router(
+    marketplace_price_intelligence_router,
+    prefix="/api/cockpit/marketplace/price-intelligence",
+    tags=["marketplace_price_intelligence"],
+)
 app.include_router(context_router, prefix="/api/context", tags=["context"])
 app.include_router(commentary_router, prefix="/api/commentary", tags=["commentary"])
 app.include_router(
