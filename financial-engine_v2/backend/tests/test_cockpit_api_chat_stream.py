@@ -426,6 +426,70 @@ def test_cockpit_chat_stream_done_event_preserves_model_metadata(monkeypatch) ->
     assert done_events[-1]["data"]["model"] == "model:qwen3.5-35b-a3b"
 
 
+def test_cockpit_chat_stream_done_event_preserves_provider_error(monkeypatch) -> None:
+    provider_error = {
+        "provider": "anthropic",
+        "code": "billing_insufficient_credit",
+        "severity": "action_required",
+        "message": "Top up Anthropic credits in Plans & Billing.",
+    }
+
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="API billing failed.",
+                evidence=[],
+                action_preview=None,
+                routing_metadata={
+                    "model": "claude-sonnet-test",
+                    "latency_ms": 0,
+                    "cost_usd": 0.0,
+                    "source": "api",
+                    "provider_error": provider_error,
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "/cloud tell me about BHP", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+
+    assert done_events[-1]["data"]["provider_error"]["provider"] == "anthropic"
+    assert (
+        done_events[-1]["data"]["provider_error"]["code"]
+        == "billing_insufficient_credit"
+    )
+    assert done_events[-1]["data"]["provider_error"]["severity"] == "action_required"
+
+
 def test_cockpit_chat_non_stream_uses_to_thread(monkeypatch) -> None:
     class FakeService:
         def chat_stream(self, **kwargs):

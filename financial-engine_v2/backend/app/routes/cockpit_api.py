@@ -4615,6 +4615,9 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     "action_preview": response.action_preview,
                     "chart": rendered_chart,
                     "sources": sources,
+                    "provider_error": response.routing_metadata.get("provider_error")
+                    if response.routing_metadata
+                    else None,
                 },
             }
         except Exception as exc:
@@ -4698,6 +4701,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                             "source": meta.get("source", "local"),
                             "chart": rendered_chart,
                             "sources": sources,
+                            "provider_error": meta.get("provider_error"),
                         },
                     }
                 )

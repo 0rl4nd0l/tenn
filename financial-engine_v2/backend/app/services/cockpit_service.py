@@ -63,6 +63,10 @@ _SENSITIVE_KEY_RE = re.compile(
     re.IGNORECASE,
 )
 _BEARER_TOKEN_RE = re.compile(r"Bearer\s+[A-Za-z0-9._\-+/=]+", re.IGNORECASE)
+_ANTHROPIC_BILLING_ERROR_RE = re.compile(
+    r"credit balance is too low|plans\s*&\s*billing|purchase credits",
+    re.IGNORECASE,
+)
 
 
 def _now_iso() -> str:
@@ -184,6 +188,30 @@ def _json_object_or_none(raw: str) -> dict[str, Any] | None:
     except json.JSONDecodeError:
         return None
     return parsed if isinstance(parsed, dict) else None
+
+
+def _detect_api_provider_error(
+    text: str, routing_metadata: dict[str, Any] | None
+) -> dict[str, str] | None:
+    content = str(text or "")
+    if not content or not _ANTHROPIC_BILLING_ERROR_RE.search(content):
+        return None
+
+    source = str((routing_metadata or {}).get("source") or "").strip().lower()
+    if source not in {"api", "anthropic"} and "anthropic" not in content.lower():
+        return None
+
+    return {
+        "provider": "anthropic",
+        "code": "billing_insufficient_credit",
+        "severity": "action_required",
+        "title": "Anthropic credits are exhausted",
+        "message": (
+            "Claude API rejected the request because the Anthropic credit balance "
+            "is too low. Top up Anthropic credits in Plans & Billing."
+        ),
+        "action_label": "Top up Anthropic credits",
+    }
 
 
 def _extract_tool_calls(evidence: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
@@ -2019,6 +2047,10 @@ class CockpitService:
         if int(meta.get("latency_ms") or 0) <= 0:
             meta["latency_ms"] = max(1, elapsed_ms)
         meta.setdefault("cost_usd", 0.0)
+        provider_error = _detect_api_provider_error(response.text, meta)
+        if provider_error:
+            meta["provider_error"] = provider_error
+            _capture_status("Claude API billing action required: top up Anthropic credits.")
         response.routing_metadata = meta
         self._persist_chat_message(thread_id, "assistant", response.text)
         self._remember_turn_diagnostics(

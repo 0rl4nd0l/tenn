@@ -10,6 +10,15 @@ export interface RenderedChart {
   html: string
 }
 
+export interface ChatProviderError {
+  provider?: string
+  code?: string
+  severity?: string
+  title?: string
+  message?: string
+  action_label?: string
+}
+
 export interface ChatMessage {
   id: string
   role: 'user' | 'assistant' | 'system'
@@ -422,6 +431,7 @@ export interface ChatResponse {
     source?: 'local' | 'api' | 'anthropic' | 'cockpit'
     chart?: RenderedChart
     sources?: Source[]
+    provider_error?: ChatProviderError | null
   }
   session_id?: string
 }

@@ -328,6 +328,7 @@ export async function sendChatMessage(params: {
               kind: s.kind,
             }))
           : undefined,
+        provider_error: raw.data.provider_error ?? null,
       },
     }
   }

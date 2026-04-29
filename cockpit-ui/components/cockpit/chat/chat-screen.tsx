@@ -50,7 +50,7 @@ import {
 import { extractMarketplaceUrl } from '@/lib/marketplace-url'
 import { extractYouTubeUrl } from '@/lib/youtube-url'
 import { applyApiDefaultOverride, isApiRoutedMessage } from '@/lib/chat-routing'
-import type { ChatMessage as ChatMessageType, ActionPreview } from '@/lib/cockpit-types'
+import type { ChatMessage as ChatMessageType, ActionPreview, ChatProviderError } from '@/lib/cockpit-types'
 import { toast } from 'sonner'
 
 type FeedbackKind = 'good' | 'poor'
@@ -107,6 +107,14 @@ type TakeawaysResponse = {
   }>
   model?: string
   prompt_version?: string
+}
+
+function buildProviderErrorNotice(providerError: ChatProviderError | null | undefined): string | null {
+  if (!providerError || providerError.code !== 'billing_insufficient_credit') {
+    return null
+  }
+  const message = String(providerError.message || '').trim()
+  return message || 'Claude API credits are exhausted. Top up Anthropic credits in Plans & Billing.'
 }
 
 const ACTION_CONFIRM_INPUTS = new Set([
@@ -922,7 +930,18 @@ export function ChatScreen() {
         if (latencyMs !== undefined) setLatency(latencyMs)
         if (response.content.model) setActiveModel(response.content.model)
         setActiveSource(response.content.source || 'local')
-        setMessages(prev => [...prev, systemMessage])
+        const providerErrorNotice = buildProviderErrorNotice(response.content.provider_error)
+        if (providerErrorNotice) {
+          toast.error(providerErrorNotice, { duration: 15000 })
+          setMessages(prev => [...prev, systemMessage, {
+            id: generateId(),
+            role: 'system',
+            content: providerErrorNotice,
+            timestamp: new Date(),
+          }])
+        } else {
+          setMessages(prev => [...prev, systemMessage])
+        }
       } catch (err) {
         toast.error('Command failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
       } finally {
@@ -1064,7 +1083,18 @@ export function ChatScreen() {
               setActiveSource(event.data.source || 'local')
               setPendingActionPreview(normalizedActionPreview ?? null)
 
-              setMessages(prev => [...prev, assistantMessage])
+              const providerErrorNotice = buildProviderErrorNotice(event.data?.provider_error)
+              if (providerErrorNotice) {
+                toast.error(providerErrorNotice, { duration: 15000 })
+                setMessages(prev => [...prev, assistantMessage, {
+                  id: generateId(),
+                  role: 'system',
+                  content: providerErrorNotice,
+                  timestamp: new Date(),
+                }])
+              } else {
+                setMessages(prev => [...prev, assistantMessage])
+              }
               setStreamingContent('')
               clearStreamingStage()
               setStreamingMetadata({})

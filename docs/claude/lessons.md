@@ -821,3 +821,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The status bar and sidebar reused the same selected-model label for both adaptive local routing and API-default routing. In API-default mode that model is only the local fallback selector, not the execution route.
 **Fix:** API-default mode now labels the route as `API default` and labels the saved local model as `local fallback`, while keeping the active runtime model visible separately.
 **Rule:** Persistent Cockpit status copy must distinguish route mode from fallback model selection; do not label a fallback local model as the selected execution route when API default is active.
+
+---
+
+## L075 — API billing failures must be operational notices, not just model text
+
+**Date:** 2026-04-29
+**Subsystem:** `backend/app/services/cockpit_service.py`, `backend/app/routes/cockpit_api.py`, `cockpit-ui/components/cockpit/chat/chat-screen.tsx`
+**Symptom:** When Anthropic rejected an API-routed chat turn because the credit balance was too low, Cockpit showed the raw failure as assistant text and the operator had to infer that billing needed action.
+**Root cause:** Provider-account failures were treated like ordinary model output. The route metadata carried source/model details, but there was no first-class provider-error field or UI affordance for account-level action required states.
+**Fix:** Cockpit now detects Anthropic insufficient-credit messages on API-routed turns, records `provider_error.code=billing_insufficient_credit`, emits a status event, includes the metadata in stream and non-stream responses, and renders a toast plus persistent system message telling the operator to top up Anthropic credits.
+**Rule:** Provider account, quota, or billing failures must be surfaced as explicit Cockpit operational notices with structured metadata. Do not leave top-up or operator-action requirements buried in assistant response text.

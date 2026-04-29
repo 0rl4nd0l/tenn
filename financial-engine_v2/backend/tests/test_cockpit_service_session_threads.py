@@ -228,6 +228,43 @@ def test_chat_stream_uses_last_attempt_route_when_controller_metadata_is_empty()
     assert response.routing_metadata["routing_reason"] == "force:api"
 
 
+def test_chat_stream_marks_anthropic_credit_error_as_provider_error() -> None:
+    service = CockpitService.__new__(CockpitService)
+    _prime_service(service)
+    service.state_store = _FakeStateStore()
+    service.llm_client = _FakeLlmClient("model:qwen3.5-35b-a3b")
+    controller = _FakeController(
+        "I encountered an error communicating with the language model: "
+        "Your credit balance is too low to access the Anthropic API. "
+        "Please go to Plans & Billing to upgrade or purchase credits."
+    )
+    controller._hybrid_router = SimpleNamespace(
+        last_attempt_metadata=lambda: {
+            "source": "api",
+            "model": "claude-sonnet-test",
+            "latency_ms": 0,
+            "cost_usd": 0.0,
+            "routing_reason": "force:api",
+        }
+    )
+    service._build_chat_controller = lambda thread_id: controller  # type: ignore[method-assign]
+    statuses: list[str] = []
+
+    response = CockpitService.chat_stream(
+        service,
+        message="/cloud tell me about AGL",
+        session_id="session-credit-error",
+        on_status=statuses.append,
+    )
+
+    provider_error = response.routing_metadata["provider_error"]
+    assert provider_error["provider"] == "anthropic"
+    assert provider_error["code"] == "billing_insufficient_credit"
+    assert provider_error["severity"] == "action_required"
+    assert "Top up Anthropic credits" in provider_error["message"]
+    assert statuses[-1] == "Claude API billing action required: top up Anthropic credits."
+
+
 def test_chat_stream_emits_model_switch_status_events() -> None:
     service = CockpitService.__new__(CockpitService)
     _prime_service(service)
