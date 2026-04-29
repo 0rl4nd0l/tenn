@@ -23,6 +23,11 @@ from app.models.asx_financials import ASXPeriodicFinancial
 from app.models.documents import Document
 from app.models.extractions import ExtractionRun
 from app.models.companies import Company
+from app.services.cockpit_auto_flagger import (
+    build_auto_flag_fingerprint,
+    build_auto_flag_note,
+    detect_auto_flag_findings,
+)
 from app.services.query_orchestrator import QueryOrchestrator
 
 # Import cockpit core logic
@@ -249,6 +254,9 @@ def _render_flagged_summary(
     if capture_kind == "ui_issue":
         title = "# Cockpit UI Issue"
         response_heading = "Issue Description"
+    elif capture_kind == "auto_diagnostic":
+        title = "# Auto Cockpit Diagnostic"
+        response_heading = "Flagged Response"
     else:
         title = (
             "# Positive Cockpit Feedback"
@@ -266,6 +274,9 @@ def _render_flagged_summary(
     lines.append(f"- Session ID: `{bundle.get('session_id') or 'global-main'}`")
     if bundle.get("ticker"):
         lines.append(f"- Ticker: `{bundle.get('ticker')}`")
+    auto_findings = bundle.get("auto_findings")
+    if isinstance(auto_findings, list) and auto_findings:
+        lines.append(f"- Auto Findings: `{len(auto_findings)}`")
     route_path = str(frontend_context.get("pathname") or "").strip()
     if route_path:
         lines.append(f"- Route: `{route_path}`")
@@ -412,6 +423,14 @@ def _build_codex_flag_prompt(
                 "",
                 "Check the saved screenshot, frontend context, backend runtime snapshot, and summary.",
                 "Use the artifact directory on disk as the source of truth for reproduction details.",
+            ]
+        )
+    elif capture_kind == "auto_diagnostic":
+        prompt_lines.extend(
+            [
+                "",
+                "Check the saved auto_findings, backend_turn, tool traces, routing metadata, and summary.",
+                "Confirm whether the diagnostic points to a real bug or operational inefficiency before changing code.",
             ]
         )
     elif feedback_type == "good":
@@ -881,6 +900,7 @@ class CockpitService:
         )
         self._feedback_lock = threading.Lock()
         self._recent_turn_diagnostics: dict[str, list[dict[str, Any]]] = {}
+        self._recent_auto_flag_fingerprints: set[str] = set()
         self._verification_runs_lock = threading.Lock()
 
         logger.info("CockpitService initialized successfully (config=%s)", config_path)
@@ -1359,6 +1379,7 @@ class CockpitService:
         transcript: list[dict[str, Any]] | None = None,
         frontend_context: dict[str, Any] | None = None,
         screenshot: dict[str, Any] | None = None,
+        auto_findings: list[dict[str, Any]] | None = None,
         note: str | None = None,
     ) -> dict[str, Any]:
         normalized_feedback_type = _normalize_feedback_type(feedback_type)
@@ -1394,6 +1415,8 @@ class CockpitService:
 
         if normalized_capture_kind == "ui_issue":
             report_prefix = "ui_issue"
+        elif normalized_capture_kind == "auto_diagnostic":
+            report_prefix = "auto"
         else:
             report_prefix = "good" if normalized_feedback_type == "good" else "flag"
         report_id = f"{report_prefix}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
@@ -1421,6 +1444,9 @@ class CockpitService:
             "feedback_type": normalized_feedback_type,
             "capture_kind": normalized_capture_kind,
             "note": str(note or "").strip() or None,
+            "auto_findings": [
+                item for item in (auto_findings or []) if isinstance(item, dict)
+            ][:10],
             "flagged_message": flagged_message
             if isinstance(flagged_message, dict)
             else {},
@@ -1469,7 +1495,7 @@ class CockpitService:
             read_api_path=read_api_path,
         )
         if (
-            normalized_capture_kind == "chat_feedback"
+            normalized_capture_kind in {"chat_feedback", "auto_diagnostic"}
             and normalized_feedback_type != "good"
         ):
             self._schedule_flagged_report_analysis(

@@ -58,7 +58,7 @@ Router is mounted with prefix **`/api/cockpit`** from `financial-engine_v2/backe
 | GET | `/pulse`, `/matrix` | Intel / pulse endpoints. |
 | POST | `/action/preview`, `/action/execute` | Action preview and execution. |
 | GET | `/action/jobs/{job_id}` | Action job status. |
-| POST | `/feedback/flag` | Flag feedback. |
+| POST | `/feedback/flag` | Flag feedback, UI issues, and deterministic auto diagnostics. |
 | GET | `/feedback/flags`, `/feedback/flags/{report_id}` | List / read flagged reports. |
 | POST | `/chat` | Cockpit chat (streaming behavior — see tests below). |
 
@@ -135,6 +135,10 @@ Cockpit chat streaming and API behavior are covered by backend tests such as:
 - Other `financial-engine_v2/backend/tests/test_cockpit_api_*.py` files as applicable.
 
 Use those tests as the **behavioral reference** for event shapes when docs and implementation disagree.
+
+### 7.1 Automatic diagnostics
+
+The backend may create `capture_kind="auto_diagnostic"` feedback reports after a chat turn when deterministic diagnostics show a likely operational issue: failed tools, backend/data-access errors, missing visible sources, context compaction markers, timeouts, high latency, or excessive tool usage. These reports reuse the normal feedback artifact path and resolution workflow; they are operational triage records and **MUST NOT** become a second source of financial truth.
 
 ---
 

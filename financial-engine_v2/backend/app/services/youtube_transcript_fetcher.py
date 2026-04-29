@@ -29,6 +29,64 @@ class YoutubeVideo:
     webpage_url: str
 
 
+def _slugify_as_handle(name: str) -> str:
+    """Convert 'Kneppy Invests' → 'KneppyInvests' for @handle attempt."""
+    return re.sub(r"[^A-Za-z0-9_]", "", name.title().replace(" ", ""))
+
+
+def resolve_channel_id(name_or_url: str) -> tuple[str, str]:
+    """Resolve a channel name, @handle, URL, or raw ID to (channel_id, canonical_name).
+
+    Tries in order:
+    1. If input starts with 'UC' (raw channel ID) → validate via yt-dlp
+    2. If input is a URL or @handle → pass directly to yt-dlp
+    3. Plain name → try https://www.youtube.com/@{slugified} via yt-dlp
+
+    Raises RuntimeError if channel_id cannot be resolved.
+    """
+    raw = str(name_or_url or "").strip()
+    if not raw:
+        raise ValueError("channel name or URL is required")
+
+    # Build the lookup URL
+    if raw.startswith("http://") or raw.startswith("https://"):
+        lookup_url = raw
+    elif raw.startswith("@"):
+        lookup_url = f"https://www.youtube.com/{raw}/videos"
+    elif re.match(r"^UC[A-Za-z0-9_-]{10,}$", raw):
+        lookup_url = f"https://www.youtube.com/channel/{raw}/videos"
+    else:
+        handle = _slugify_as_handle(raw)
+        lookup_url = f"https://www.youtube.com/@{handle}/videos"
+
+    ydl_opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "extract_flat": True,
+        "playlist_items": "1",
+    }
+    try:
+        import yt_dlp  # type: ignore
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(lookup_url, download=False)
+    except Exception as exc:
+        raise RuntimeError(f"channel lookup failed for {raw!r}: {exc}") from exc
+
+    channel_id = str((info or {}).get("channel_id") or "").strip()
+    if not channel_id:
+        raise RuntimeError(
+            f"could not resolve channel_id from {raw!r} — "
+            "try providing a YouTube channel URL or @handle instead"
+        )
+    canonical_name = str(
+        (info or {}).get("channel")
+        or (info or {}).get("uploader")
+        or raw
+    ).strip()
+    return channel_id, canonical_name
+
+
 def _slugify(value: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", str(value or "").strip().lower()).strip("-")
     return slug or "transcript"

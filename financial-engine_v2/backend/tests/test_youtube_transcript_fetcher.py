@@ -174,3 +174,68 @@ class TestFetchVideoMetadata:
         input_url = "https://youtu.be/abc123"
         video = fetch_video_metadata(input_url)
         assert video.webpage_url == input_url
+
+
+from unittest.mock import patch, MagicMock
+from app.services.youtube_transcript_fetcher import resolve_channel_id
+
+
+class TestResolveChannelId:
+    def _mock_ydl(self, channel_id: str, uploader: str):
+        return {
+            "channel_id": channel_id,
+            "uploader": uploader,
+            "channel": uploader,
+            "uploader_id": f"@{uploader.replace(' ', '')}",
+        }
+
+    def test_resolves_at_handle(self):
+        info = self._mock_ydl("UCabc123", "Kneppy Invests")
+        with patch("yt_dlp.YoutubeDL") as MockYDL:
+            instance = MockYDL.return_value.__enter__.return_value
+            instance.extract_info.return_value = info
+            channel_id, name = resolve_channel_id("@KneppyInvests")
+        assert channel_id == "UCabc123"
+        assert name == "Kneppy Invests"
+
+    def test_resolves_plain_name_via_at_handle(self):
+        info = self._mock_ydl("UCabc123", "Kneppy Invests")
+        with patch("yt_dlp.YoutubeDL") as MockYDL:
+            instance = MockYDL.return_value.__enter__.return_value
+            instance.extract_info.return_value = info
+            channel_id, name = resolve_channel_id("Kneppy Invests")
+        assert channel_id == "UCabc123"
+
+    def test_passthrough_raw_channel_id(self):
+        info = self._mock_ydl("UCabc123", "Kneppy Invests")
+        with patch("yt_dlp.YoutubeDL") as MockYDL:
+            instance = MockYDL.return_value.__enter__.return_value
+            instance.extract_info.return_value = info
+            channel_id, name = resolve_channel_id("UCabc123")
+        assert channel_id == "UCabc123"
+
+    def test_resolves_channel_url(self):
+        info = self._mock_ydl("UCabc123", "Kneppy Invests")
+        with patch("yt_dlp.YoutubeDL") as MockYDL:
+            instance = MockYDL.return_value.__enter__.return_value
+            instance.extract_info.return_value = info
+            channel_id, name = resolve_channel_id(
+                "https://www.youtube.com/@KneppyInvests"
+            )
+        assert channel_id == "UCabc123"
+
+    def test_raises_on_missing_channel_id(self):
+        with patch("yt_dlp.YoutubeDL") as MockYDL:
+            instance = MockYDL.return_value.__enter__.return_value
+            instance.extract_info.return_value = {"uploader": "Someone"}
+            import pytest
+            with pytest.raises(RuntimeError, match="could not resolve channel_id"):
+                resolve_channel_id("some channel")
+
+    def test_raises_runtime_error_on_yt_dlp_failure(self):
+        with patch("yt_dlp.YoutubeDL") as MockYDL:
+            instance = MockYDL.return_value.__enter__.return_value
+            instance.extract_info.side_effect = Exception("network error")
+            import pytest
+            with pytest.raises(RuntimeError, match="channel lookup failed"):
+                resolve_channel_id("Kneppy Invests")

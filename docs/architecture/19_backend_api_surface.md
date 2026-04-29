@@ -127,6 +127,7 @@ The FastAPI app mounts routes in these groups:
   - these actions write to `user_thesis_memory` through backend-owned store logic
 - `POST /api/cockpit/feedback/flag`
   - persists a cockpit assistant turn plus user feedback with `feedback_type: "poor" | "good"`, transcript, and backend diagnostics
+  - accepts `capture_kind: "chat_feedback" | "ui_issue" | "auto_diagnostic"`; `auto_diagnostic` is reserved for deterministic backend-observed issues such as tool failures, missing visible sources, truncation markers, timeouts, and latency/tool-count inefficiencies
   - poor feedback returns artifact paths, `report_id`, `read_api_path`, and a backend-generated Codex prompt keyed to the saved flag ID
   - good feedback uses the same backend-owned persistence path so strong responses can be reviewed later for training/tuning
   - persistence happens before optional LLM review so the save returns immediately; poor feedback may later get `analysis.json`, while positive feedback is stored immediately without the failure-analysis pass
