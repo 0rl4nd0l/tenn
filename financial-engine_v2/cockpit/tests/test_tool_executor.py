@@ -243,6 +243,7 @@ class TestSearchNewsFreshnessWarning:
         assert result["results"][0]["video_title"] == "Audeara 2026 March Quarterly (4C)"
         assert result["results"][0]["source_id"] == "youtube_transcript:audeara:abc123"
         assert result["results"][0]["webpage_url"] == "https://www.youtube.com/watch?v=2LOaEmbMkY0"
+        assert result["results"][0]["takeaways"][0]["text"]
 
     # -----------------------------------------------------------------------
     # HTTP / backend exception path
