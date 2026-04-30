@@ -55,6 +55,12 @@ import type { ChatMessage as ChatMessageType, ActionPreview, ChatProviderError }
 import { toReportDisplayPath } from '@/lib/report-path'
 import { toast } from 'sonner'
 
+const MAX_CHAT_ATTACHMENT_BYTES = 25 * 1024 * 1024
+
+function formatAttachmentLimit(bytes: number): string {
+  return `${Math.floor(bytes / (1024 * 1024))} MiB`
+}
+
 type FeedbackKind = 'good' | 'poor'
 
 type FeedbackState = 'saving-good' | 'saved-good' | 'saving-poor' | 'saved-poor'
@@ -632,6 +638,13 @@ export function ChatScreen() {
       if (!isTabular && !isPdf) {
         appendSystemMessage(`Unsupported file "${filename}". Upload CSV, XLSX, or PDF files only.`)
         toast.error(`Unsupported file: ${filename}`)
+        continue
+      }
+      if (file.size > MAX_CHAT_ATTACHMENT_BYTES) {
+        const limit = formatAttachmentLimit(MAX_CHAT_ATTACHMENT_BYTES)
+        const message = `Attachment "${filename}" is too large. Upload files up to ${limit}.`
+        appendSystemMessage(message)
+        toast.error(message)
         continue
       }
 
