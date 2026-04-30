@@ -436,6 +436,49 @@ class AgentLoop:
             )
             return "\n".join(lines)
 
+        if tool_name == "run_analysis":
+            ticker = str(result.get("ticker") or "Ticker").strip().upper()
+            summary = str(result.get("summary_text") or "").strip()
+            modules = result.get("modules") if isinstance(result.get("modules"), list) else []
+            lines: list[str] = []
+            if summary:
+                lines.append(summary)
+            elif result.get("error"):
+                lines.append(f"Analysis for {ticker} could not complete: {result.get('error')}")
+            else:
+                lines.append(f"Analysis Summary for {ticker}")
+
+            for module in modules[:7]:
+                if not isinstance(module, dict):
+                    continue
+                module_name = str(module.get("module") or "module").strip()
+                status = str(module.get("status") or "unknown").strip()
+                metrics = module.get("metrics") if isinstance(module.get("metrics"), dict) else {}
+                metric_text = (
+                    ", ".join(f"{key}: {value}" for key, value in metrics.items())
+                    if metrics
+                    else "no key metrics"
+                )
+                lines.append(f"- {module_name}: {status}; {metric_text}")
+                narrative = str(module.get("narrative") or "").strip()
+                if narrative:
+                    lines.append(f"  {narrative}")
+                warnings = (
+                    module.get("warnings")
+                    if isinstance(module.get("warnings"), list)
+                    else []
+                )
+                for warning in warnings[:2]:
+                    warning_text = str(warning or "").strip()
+                    if warning_text:
+                        lines.append(f"  warning: {warning_text}")
+
+            suggestion = str(result.get("suggestion") or "").strip()
+            if suggestion:
+                lines.append("")
+                lines.append(suggestion)
+            return "\n".join(lines)
+
         if result.get("ok") is False or result.get("error"):
             error = str(result.get("error") or "tool returned ok=false")
             return f"Could not execute {tool_name}: {error}"

@@ -97,6 +97,28 @@ class TestAgentLoopRegressions:
         assert "volume 1.2M | gainer" in text
         assert "ASX:CCC | change -9.50% | close 0.04 | decliner" in text
 
+    def test_direct_run_analysis_command_formats_module_summary(self):
+        text = AgentLoop._format_direct_command_tool_result(
+            SimpleNamespace(tool="run_analysis", arguments={}),
+            {
+                "ok": True,
+                "ticker": "BHP",
+                "summary_text": "Analysis Summary for BHP",
+                "modules": [
+                    {
+                        "module": "valuation",
+                        "status": "complete",
+                        "metrics": {"P/E": 12.3},
+                        "narrative": "Valuation looks reasonable.",
+                    }
+                ],
+            },
+        )
+
+        assert "Analysis Summary for BHP" in text
+        assert "valuation: complete; P/E: 12.3" in text
+        assert "Valuation looks reasonable." in text
+
     def test_tool_result_non_dict(self):
         """Tool executor returning a plain string is wrapped into {"result": value}.
 
@@ -413,6 +435,28 @@ class TestAgentLoopRegressions:
         assert result.action_preview["action_id"] == "daily_news_ingest"
         assert result.action_preview["args"]["tickers"] == "BHP"
         executor.assert_not_called()
+        llm.chat.assert_not_called()
+
+    def test_analyse_command_executes_analysis_pipeline_directly(self):
+        executor = MagicMock(
+            return_value={
+                "ok": True,
+                "ticker": "BHP",
+                "summary_text": "Analysis Summary for BHP",
+                "modules": [{"module": "risk", "status": "complete", "metrics": {}}],
+            }
+        )
+        llm = _make_llm([])
+        loop = AgentLoop(llm_client=llm, tool_executor=executor)
+
+        result = loop.run("analyse BHP")
+
+        assert result is not None
+        assert result.mode == "command"
+        assert result.tool_calls_made == 1
+        assert result.evidence[0]["tool"] == "run_analysis"
+        assert "Analysis Summary for BHP" in result.text
+        executor.assert_called_once_with("run_analysis", {"ticker": "BHP"})
         llm.chat.assert_not_called()
 
     def test_cloud_prefix_forces_grounding_even_when_query_classifier_is_weak(self):

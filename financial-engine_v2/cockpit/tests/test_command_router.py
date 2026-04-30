@@ -73,13 +73,25 @@ class TestWatchYoutubeChannelCommandRoute:
         assert r.matched is True
         assert r.tool == "run_news_ingest"
 
-    def test_analyse_ticker_remains_query_not_unmapped_action(self):
+    def test_analyse_ticker_routes_to_analysis_pipeline(self):
         r = route_command("analyse PPT")
-        assert r.matched is False
+        assert r.matched is True
+        assert r.action_type == "direct_tool"
+        assert r.tool == "run_analysis"
+        assert r.arguments["ticker"] == "PPT"
 
-    def test_run_analysis_ticker_remains_query_until_action_exists(self):
+    def test_run_analysis_ticker_routes_to_analysis_pipeline(self):
         r = route_command("run analysis PPT")
-        assert r.matched is False
+        assert r.matched is True
+        assert r.action_type == "direct_tool"
+        assert r.tool == "run_analysis"
+        assert r.arguments["ticker"] == "PPT"
+
+    def test_full_company_analysis_routes_to_analysis_pipeline(self):
+        r = route_command("full company analysis on BHP")
+        assert r.matched is True
+        assert r.tool == "run_analysis"
+        assert r.arguments["ticker"] == "BHP"
 
     def test_ingest_selected_youtube_video_numbers(self):
         r = route_command(

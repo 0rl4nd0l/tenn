@@ -46,6 +46,26 @@ _UPDATE_RE = re.compile(
     r"^\s*(?:update|refresh\s+financials?)\s+([A-Z]{2,5})\b",
     re.IGNORECASE,
 )
+_ANALYSIS_RE = re.compile(
+    r"""
+    ^\s*(?:
+        (?:
+            (?:run\s+)?
+            (?:full\s+)?
+            (?:company\s+)?
+            (?:analysis|analyse|analyze|research)
+            (?:\s+(?:on|for|of))?
+            \s+([A-Za-z]{2,5})
+        )
+        |
+        (?:
+            ([A-Za-z]{2,5})
+            \s+(?:analysis|analyse|analyze|research)
+        )
+    )\s*[?!.]*\s*$
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
 _CHART_RE = re.compile(
     r"^\s*(?:chart|show\s+chart|candlestick)\s+([A-Z]{2,5})\b|"
     r"^\s*([A-Z]{2,5})\s+chart\s*$",
@@ -223,6 +243,19 @@ def route_command(
                 tool="update_financials",
                 arguments={"ticker": ticker},
                 explanation=f"Update financial data for {ticker}.",
+            )
+
+    # analyse/analyze [ticker] should run the backend analysis pipeline.
+    m = _ANALYSIS_RE.match(text)
+    if m:
+        ticker = (m.group(1) or m.group(2) or "").upper()
+        if ticker and ticker not in _TICKER_STOPWORDS:
+            return CommandRoute(
+                matched=True,
+                action_type="direct_tool",
+                tool="run_analysis",
+                arguments={"ticker": ticker},
+                explanation=f"Run full analysis pipeline for {ticker}.",
             )
 
     # chart [ticker] / [ticker] chart
