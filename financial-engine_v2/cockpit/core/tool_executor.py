@@ -205,7 +205,11 @@ class ToolExecutor:
             interval=interval,
             max_history_rows=260,
         )
-        return {"ok": True, **result}
+        price = result.get("price") if isinstance(result, dict) else {}
+        if isinstance(price, dict):
+            price.setdefault("range", range_)
+            price.setdefault("interval", interval)
+        return {"ok": True, **result, "ticker": ticker}
 
     def _exec_get_price_on_date(self, args: dict[str, Any]) -> dict[str, Any]:
         ticker = str(args.get("ticker", "")).strip().upper()

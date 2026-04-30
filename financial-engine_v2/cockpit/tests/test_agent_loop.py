@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from cockpit.core.agent_loop import AgentLoop
@@ -51,6 +52,19 @@ class TestAgentLoopRegressions:
 
         assert result is not None
         assert result.tool_calls_made == 1
+
+    def test_direct_tv_indicator_command_formats_values(self):
+        text = AgentLoop._format_direct_command_tool_result(
+            SimpleNamespace(tool="get_tv_indicators", arguments={}),
+            {
+                "ok": True,
+                "ticker": "CBA",
+                "exchange": "ASX",
+                "indicators": {"RSI": 58.2},
+            },
+        )
+
+        assert text == "ASX:CBA indicators: RSI: 58.2"
 
     def test_tool_result_non_dict(self):
         """Tool executor returning a plain string is wrapped into {"result": value}.

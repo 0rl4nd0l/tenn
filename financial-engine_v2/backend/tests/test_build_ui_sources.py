@@ -267,6 +267,31 @@ def test_agent_format_search_news_zero_hits_emits_operational_source_item() -> N
     assert "2 days ago" in str(sources[0]["snippet"])
 
 
+def test_agent_format_get_price_uses_nested_symbol_for_source_identity() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "tool": "get_price",
+                "result": {
+                    "ok": True,
+                    "price": {
+                        "symbol": "CBA.AX",
+                        "range": "1y",
+                        "interval": "1d",
+                        "provider": "yahoo",
+                        "current": {"market_time": "2026-04-30T06:18:24+00:00"},
+                    },
+                },
+            }
+        ]
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["title"] == "CBA price data"
+    assert sources[0]["source_id"] == "price:CBA:1y:1d"
+    assert "Provider: yahoo" in str(sources[0]["snippet"])
+
+
 def test_agent_format_gather_local_context() -> None:
     sources = _build_ui_sources(
         [

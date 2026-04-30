@@ -2083,14 +2083,22 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                 elif tool_name == "get_price":
                     price = result.get("price") if isinstance(result.get("price"), dict) else {}
                     current = price.get("current") if isinstance(price.get("current"), dict) else {}
+                    raw_symbol = str(price.get("symbol") or "").strip().upper()
+                    ticker = str(
+                        result.get("ticker")
+                        or price.get("ticker")
+                        or (raw_symbol.split(".", 1)[0] if raw_symbol else "")
+                    ).strip().upper()
+                    range_text = str(price.get("range") or result.get("range") or "").strip()
+                    interval_text = str(
+                        price.get("interval") or result.get("interval") or ""
+                    ).strip()
                     _append_source_item(
                         items,
                         seen,
                         {
-                            "title": f"{result.get('ticker') or 'Ticker'} price data",
-                            "source_id": (
-                                f"price:{result.get('ticker') or ''}:{price.get('range') or ''}:{price.get('interval') or ''}"
-                            ),
+                            "title": f"{ticker or raw_symbol or 'Ticker'} price data",
+                            "source_id": f"price:{ticker or raw_symbol}:{range_text}:{interval_text}",
                             "snippet": (
                                 f"Provider: {price.get('provider') or 'unknown'}. "
                                 f"Market time: {current.get('market_time') or 'unknown'}."

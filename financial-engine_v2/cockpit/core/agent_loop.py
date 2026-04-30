@@ -440,6 +440,27 @@ class AgentLoop:
             error = str(result.get("error") or "tool returned ok=false")
             return f"Could not execute {tool_name}: {error}"
 
+        if tool_name == "get_tv_indicators":
+            ticker = str(result.get("ticker") or "Ticker").strip().upper()
+            exchange = str(result.get("exchange") or "").strip().upper()
+            label = f"{exchange}:{ticker}" if exchange else ticker
+            indicators = (
+                result.get("indicators")
+                if isinstance(result.get("indicators"), dict)
+                else {}
+            )
+            lines: list[str] = []
+            for name, value in indicators.items():
+                if isinstance(value, dict):
+                    err = str(value.get("error") or "").strip()
+                    if err:
+                        lines.append(f"{name}: unavailable ({err})")
+                elif value not in (None, ""):
+                    lines.append(f"{name}: {value}")
+            if not lines:
+                return f"No indicator values returned for {label}."
+            return f"{label} indicators: " + "; ".join(lines)
+
         if tool_name == "check_youtube_channel_recent_videos":
             name = str(result.get("name") or "channel").strip()
             channel_id = str(result.get("channel_id") or "").strip()

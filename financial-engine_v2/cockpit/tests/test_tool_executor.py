@@ -68,6 +68,28 @@ class TestGetFinancials:
         backend.get_ticker_context.assert_called_once_with("PLS", financials_limit=6)
 
 
+class TestGetPrice:
+    def test_exec_get_price_keeps_top_level_ticker_and_window(self) -> None:
+        executor = _make_executor()
+        executor._router.get_price_context_for_window.return_value = {
+            "price": {
+                "symbol": "CBA.AX",
+                "provider": "yahoo",
+                "current": {"price": 178.85},
+            }
+        }
+
+        result = executor.execute(
+            "get_price",
+            {"ticker": "CBA", "range": "1y", "interval": "1d"},
+        )
+
+        assert result["ok"] is True
+        assert result["ticker"] == "CBA"
+        assert result["price"]["range"] == "1y"
+        assert result["price"]["interval"] == "1d"
+
+
 # ---------------------------------------------------------------------------
 # search_news — freshness_warning on market-wide zero-hit path (Bug 3 extension)
 # ---------------------------------------------------------------------------
