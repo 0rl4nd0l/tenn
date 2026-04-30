@@ -231,6 +231,45 @@ def test_marketplace_mission_patch_preserves_existing_filters_when_omitted(tmp_p
     assert payload["hard_filters"]["location_names"] == ["Melbourne"]
 
 
+def test_marketplace_mission_get_does_not_prepare_requirement_candidates(
+    tmp_path, monkeypatch
+) -> None:
+    fake_service = _fake_service(tmp_path)
+    mission_service = MarketplaceMissionService(fake_service.state_store)
+    monkeypatch.setattr(
+        "app.routes.cockpit_api._ensure_marketplace_scan_scheduler",
+        lambda service: None,
+    )
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+    mission = mission_service.create_mission(
+        {
+            "name": "Inference GPU",
+            "brief": "Need a 24GB GPU for local inference in Melbourne.",
+            "category_hint": "gpu",
+            "hard_filters": {"location_names": ["Melbourne"]},
+            "search_config": {"max_queries_per_run": 4},
+        }
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.get(f"/api/cockpit/marketplace/missions/{mission['mission_id']}")
+
+    assert response.status_code == 200
+    assert response.json()["candidate_products"] == []
+    assert mission_service.list_mission_candidate_products(mission["mission_id"]) == []
+    assert (
+        fake_service.state_store.conn.execute(
+            "SELECT COUNT(*) FROM marketplace_tracked_products"
+        ).fetchone()[0]
+        == 0
+    )
+
+
 def test_marketplace_mission_link_product_and_value_context(
     tmp_path,
     monkeypatch,

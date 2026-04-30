@@ -127,3 +127,54 @@ def test_refresh_falls_back_to_seed_prices_when_all_other_paths_fail(
     assert summary["observation_sources"][OBS_SOURCE_SEED_FALLBACK] == len(CENTRE_COM_SEED_PRODUCTS)
     assert summary["price_observations_added"] == len(CENTRE_COM_SEED_PRODUCTS)
     assert len(summary["fetch_failures"]) > 0
+
+
+def test_enrich_match_is_read_only_unless_persist_requested(tmp_path: Path) -> None:
+    store = _state_store(tmp_path)
+    service = MarketplaceBenchmarkService(store)
+    match = {
+        "match_id": "match-read-only",
+        "listing_id": "listing-read-only",
+        "mission_id": "mission-read-only",
+        "title": "ASUS Dual GeForce RTX 4070 SUPER EVO OC 12GB graphics card",
+        "raw_text_snapshot": "ASUS Dual GeForce RTX 4070 SUPER EVO OC 12GB GPU",
+        "price": "$800",
+        "price_value": 800,
+    }
+
+    first = service.enrich_match(match)
+    second = service.enrich_match(match)
+
+    assert first["benchmark"]["matched_product"]
+    assert second["benchmark"]["matched_product"]
+    assert (
+        store.conn.execute(
+            "SELECT COUNT(*) FROM listing_benchmark_scores WHERE match_id = ?",
+            ("match-read-only",),
+        ).fetchone()[0]
+        == 0
+    )
+    assert (
+        store.conn.execute(
+            "SELECT COUNT(*) FROM listing_product_matches WHERE match_id = ?",
+            ("match-read-only",),
+        ).fetchone()[0]
+        == 0
+    )
+
+    service.enrich_match(match, persist=True)
+
+    assert (
+        store.conn.execute(
+            "SELECT COUNT(*) FROM listing_benchmark_scores WHERE match_id = ?",
+            ("match-read-only",),
+        ).fetchone()[0]
+        == 1
+    )
+    assert (
+        store.conn.execute(
+            "SELECT COUNT(*) FROM listing_product_matches WHERE match_id = ?",
+            ("match-read-only",),
+        ).fetchone()[0]
+        == 1
+    )
