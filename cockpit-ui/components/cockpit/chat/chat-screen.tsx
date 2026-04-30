@@ -79,6 +79,23 @@ type FeedbackCaptureResponse = {
   analysis_summary?: string | null
 }
 
+type CodexDeployStatus = 'queued' | 'launching' | 'running' | 'completed' | 'failed' | 'not_requested' | 'error'
+
+type CodexDeployState = {
+  status: CodexDeployStatus
+  detail?: string
+}
+
+type CodexDeployResponse = {
+  ok?: boolean
+  report_id?: string
+  status?: string
+  error?: string
+  output_tail?: string | null
+  stderr_tail?: string | null
+  launcher_log_tail?: string | null
+}
+
 type PendingFeedback = {
   kind: FeedbackKind
   message: ChatMessageType
@@ -250,6 +267,9 @@ function formatFlagHandoffMessage(result: FeedbackCaptureResponse, copiedPrompt:
   if (result.codex_cli_command) {
     lines.push('', 'Deploy Codex from the repo root:', '```bash', result.codex_cli_command, '```')
   }
+  if (result.report_id) {
+    lines.push('', 'Press **Deploy Codex** to start this investigation from Cockpit.')
+  }
   const prompt = result.codex_prompt?.trim()
   if (prompt) {
     lines.push(
@@ -376,6 +396,7 @@ export function ChatScreen() {
   const [sourcesOpen, setSourcesOpen] = useState(false)
   const [watchlistNotice, setWatchlistNotice] = useState<WatchlistNotice | null>(null)
   const [isDropActive, setIsDropActive] = useState(false)
+  const [codexDeployStates, setCodexDeployStates] = useState<Record<string, CodexDeployState>>({})
   const [apiKey, setApiKey] = useState(process.env.NEXT_PUBLIC_API_KEY ?? '')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dragDepthRef = useRef(0)

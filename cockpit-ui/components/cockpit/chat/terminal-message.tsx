@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ChevronRight, ChevronDown, Copy, Check, Maximize2, ExternalLink } from 'lucide-react'
+import { ChevronRight, ChevronDown, Copy, Check, Maximize2, ExternalLink, Rocket } from 'lucide-react'
 import type { ChatMessage as ChatMessageType } from '@/lib/cockpit-types'
 import {
   Dialog,
@@ -15,8 +15,10 @@ interface TerminalMessageProps {
   message: ChatMessageType
   isStreaming?: boolean
   showSources?: boolean
+  codexDeployStatus?: string | null
   onConfirmAction?: (actionPreview: ChatMessageType['actionPreview']) => void
   onCancelAction?: (actionPreview: ChatMessageType['actionPreview']) => void
+  onDeployCodexFlag?: (reportId: string) => void
 }
 
 function formatDurationLabel(durationMs: number): string {
@@ -49,8 +51,10 @@ export function TerminalMessage({
   message,
   isStreaming,
   showSources = true,
+  codexDeployStatus,
   onConfirmAction,
-  onCancelAction
+  onCancelAction,
+  onDeployCodexFlag,
 }: TerminalMessageProps) {
   const [sourcesExpanded, setSourcesExpanded] = useState(Boolean(showSources))
   const [thinkingExpanded, setThinkingExpanded] = useState(false)
@@ -61,6 +65,9 @@ export function TerminalMessage({
 
   const isUser = message.role === 'user'
   const isSystem = message.role === 'system'
+  const codexDeployReportId = message.metadata?.codexDeploy?.reportId
+  const effectiveCodexDeployStatus = codexDeployStatus || 'queued'
+  const codexDeployDisabled = ['launching', 'running', 'completed'].includes(effectiveCodexDeployStatus)
   const rawLatencyMs = message.metadata?.latencyMs
   const latencyMs =
     typeof rawLatencyMs === 'number' && Number.isFinite(rawLatencyMs)
@@ -207,6 +214,26 @@ export function TerminalMessage({
         <span className="whitespace-pre-wrap break-words">
           {formatContent(message.content)}
         </span>
+        {codexDeployReportId && onDeployCodexFlag ? (
+          <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-amber-500/20 pt-2">
+            <button
+              type="button"
+              disabled={codexDeployDisabled}
+              onClick={() => onDeployCodexFlag(codexDeployReportId)}
+              className="inline-flex items-center gap-1 rounded border border-amber-400/40 bg-amber-500/10 px-2 py-1 font-mono text-[11px] text-amber-100 transition-colors hover:bg-amber-500/20 disabled:cursor-default disabled:opacity-60"
+            >
+              <Rocket className="h-3 w-3" />
+              {effectiveCodexDeployStatus === 'completed'
+                ? 'Codex completed'
+                : effectiveCodexDeployStatus === 'running' || effectiveCodexDeployStatus === 'launching'
+                  ? 'Codex running'
+                  : 'Deploy Codex'}
+            </button>
+            <span className="font-mono text-[11px] text-amber-200/70">
+              status: {effectiveCodexDeployStatus}
+            </span>
+          </div>
+        ) : null}
       </div>
     )
   }

@@ -20,6 +20,9 @@ export interface ChatMessage {
     latencyMs?: number
     costUsd?: number
     source?: 'local' | 'api' | 'anthropic' | 'cockpit'
+    codexDeploy?: {
+      reportId: string
+    }
   }
   thinking?: ThinkingStep
   sources?: Source[]

@@ -121,6 +121,7 @@ def route_command(
     *,
     active_ticker: str | None = None,
     recent_youtube_channel: str | None = None,
+    recent_youtube_videos: list[dict[str, Any]] | None = None,
 ) -> CommandRoute:
     """Attempt to match *message* as a direct command.
 
@@ -129,6 +130,53 @@ def route_command(
     action proposal payload. Returns ``matched=False`` otherwise.
     """
     text = str(message or "").strip()
+
+    youtube_selection = _parse_youtube_video_selection(
+        text,
+        max_index=len(recent_youtube_videos or []),
+    )
+    if youtube_selection is not None and recent_youtube_videos:
+        if not youtube_selection:
+            return CommandRoute(
+                matched=True,
+                action_type=None,
+                explanation=(
+                    f"I only have {len(recent_youtube_videos)} recent YouTube "
+                    "video option(s) in context. Pick a listed number or say "
+                    '"ingest all".'
+                ),
+            )
+        selected: list[dict[str, Any]] = []
+        urls: list[str] = []
+        for index in youtube_selection:
+            row = recent_youtube_videos[index - 1]
+            if not isinstance(row, dict):
+                continue
+            url = str(row.get("webpage_url") or row.get("url") or "").strip()
+            if not url:
+                continue
+            selected.append(row)
+            urls.append(url)
+        if not urls:
+            return CommandRoute(
+                matched=True,
+                action_type=None,
+                explanation=(
+                    "I found the selected YouTube video number(s), but no video "
+                    "URL was preserved. Ask me to list the channel's recent videos "
+                    "again, then choose from that list."
+                ),
+            )
+        return CommandRoute(
+            matched=True,
+            action_type="direct_tool",
+            tool="ingest_youtube_videos",
+            arguments={"urls": urls, "selected_videos": selected, "takeaway_limit": 5},
+            explanation=(
+                f"Stage {len(urls)} selected YouTube transcript"
+                f"{'' if len(urls) == 1 else 's'} for review."
+            ),
+        )
 
     # ingest [ticker] news
     m = _INGEST_RE.match(text)
@@ -270,3 +318,74 @@ def route_command(
             )
 
     return CommandRoute(matched=False)
+
+
+_YOUTUBE_SELECTION_TOKEN_RE = re.compile(
+    r"#?\d+|first|second|third|fourth|fifth|sixth|seventh|eighth|last",
+    re.IGNORECASE,
+)
+_YOUTUBE_SELECTION_RE = re.compile(
+    r"""
+    ^\s*
+    (?:
+        (?:(?:ingest|stage|select|use)\s+)?
+        (?:(?:the\s+)?(?:video|videos|transcript|transcripts)\s+)?
+    )
+    (?P<selection>
+        all
+        |
+        (?:
+            #?\d+|first|second|third|fourth|fifth|sixth|seventh|eighth|last
+        )
+        (?:
+            \s*(?:,|and)\s*
+            (?:
+                #?\d+|first|second|third|fourth|fifth|sixth|seventh|eighth|last
+            )
+        )*
+    )
+    \s*
+    (?:(?:video|videos|transcript|transcripts)\s*)?
+    $
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+_YOUTUBE_ORDINALS = {
+    "first": 1,
+    "second": 2,
+    "third": 3,
+    "fourth": 4,
+    "fifth": 5,
+    "sixth": 6,
+    "seventh": 7,
+    "eighth": 8,
+}
+
+
+def _parse_youtube_video_selection(text: str, *, max_index: int) -> list[int] | None:
+    if max_index <= 0:
+        return None
+    match = _YOUTUBE_SELECTION_RE.match(str(text or "").strip())
+    if not match:
+        return None
+    selection = str(match.group("selection") or "").strip().lower()
+    if selection == "all":
+        return list(range(1, max_index + 1))
+
+    indexes: list[int] = []
+    for token_match in _YOUTUBE_SELECTION_TOKEN_RE.finditer(selection):
+        token = token_match.group(0).lower().lstrip("#")
+        if token == "last":
+            index = max_index
+        elif token in _YOUTUBE_ORDINALS:
+            index = _YOUTUBE_ORDINALS[token]
+        else:
+            try:
+                index = int(token)
+            except ValueError:
+                continue
+        if index < 1 or index > max_index:
+            return []
+        if index not in indexes:
+            indexes.append(index)
+    return indexes
