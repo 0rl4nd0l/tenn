@@ -30,6 +30,7 @@ Scope note:
 ## Commentary / RAG ops
 
 - `commentary_staging_to_qdrant.md` — staged hot-source transcripts: approve/reject, CLI promotion, definition of done for indexing.
+- `youtube_channel_watch_verification.md` — verify YouTube channel watch registration, transcript polling/staging, Qdrant approval, and commentary use in chat.
 
 ## Incident Notes
 
