@@ -55,6 +55,10 @@ try:
 except ImportError:
     cockpit_feedback_router = None
 try:
+    from app.routes.thesis_audit import router as thesis_audit_router
+except ImportError:
+    thesis_audit_router = None
+try:
     from app.routes.ops_api import router as ops_api_router
 except ImportError:
     ops_api_router = None
@@ -111,6 +115,8 @@ if cockpit_claims_router is not None:
     app.include_router(cockpit_claims_router, prefix="/api/cockpit", tags=["cockpit"])
 if cockpit_feedback_router is not None:
     app.include_router(cockpit_feedback_router, prefix="/api/cockpit", tags=["cockpit"])
+if thesis_audit_router is not None:
+    app.include_router(thesis_audit_router, prefix="/api/cockpit", tags=["cockpit"])
 if ops_api_router is not None:
     app.include_router(ops_api_router, prefix="/api/ops", tags=["ops"])
 
