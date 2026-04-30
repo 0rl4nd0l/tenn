@@ -25,6 +25,11 @@ _CONTEXT_COMPACTION_RE = re.compile(
     r"(_truncated|_original_chars|additional fields omitted|summarized\s+[—-]\s+original)",
     re.IGNORECASE,
 )
+_SOURCE_LIST_KEYS = frozenset({"hits", "results", "documents", "context", "alerts", "videos"})
+_SOURCE_ID_KEYS = frozenset(
+    {"url", "webpage_url", "source_id", "document_id", "path", "video_id"}
+)
+_SOURCE_TEXT_KEYS = frozenset({"title", "name", "snippet", "text", "excerpt"})
 
 
 def _dicts(value: Any) -> list[dict[str, Any]]:
@@ -46,6 +51,24 @@ def _json_preview(value: Any, limit: int = 1200) -> str:
     except (TypeError, ValueError):
         text = str(value)
     return text[:limit]
+
+
+def _has_sourceable_compacted_rows(result: Any) -> bool:
+    """Return true when truncation preserved source rows usable by the UI."""
+    if not isinstance(result, dict):
+        return False
+    for key in _SOURCE_LIST_KEYS:
+        rows = result.get(key)
+        if not isinstance(rows, list):
+            continue
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            has_identity = any(row.get(field) not in (None, "") for field in _SOURCE_ID_KEYS)
+            has_text = any(row.get(field) not in (None, "") for field in _SOURCE_TEXT_KEYS)
+            if has_identity and has_text:
+                return True
+    return False
 
 
 def _append(
@@ -166,7 +189,9 @@ def detect_auto_flag_findings(turn: dict[str, Any]) -> list[dict[str, Any]]:
                 reason=f"Evidence source {tool} reported an access or data error.",
                 evidence={"tool": tool, "error": result_error[:400]},
             )
-        if _CONTEXT_COMPACTION_RE.search(_json_preview(item)):
+        if _CONTEXT_COMPACTION_RE.search(_json_preview(item)) and not (
+            isinstance(result, dict) and _has_sourceable_compacted_rows(result)
+        ):
             _append(
                 findings,
                 category="context_truncation",

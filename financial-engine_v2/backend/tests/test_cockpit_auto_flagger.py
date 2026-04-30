@@ -57,6 +57,44 @@ def test_detect_auto_flag_findings_ignores_clean_turn() -> None:
     assert findings == []
 
 
+def test_detect_auto_flag_findings_ignores_sourceable_compacted_youtube_rows() -> None:
+    findings = detect_auto_flag_findings(
+        {
+            "response_text": "Recent videos: Audeara 2026 March Quarterly (4C).",
+            "routing_metadata": {"latency_ms": 1200},
+            "tool_traces": [
+                {
+                    "tool": "check_youtube_channel_recent_videos",
+                    "ok": True,
+                    "duration_ms": 800,
+                }
+            ],
+            "evidence": [
+                {
+                    "tool": "check_youtube_channel_recent_videos",
+                    "result": {
+                        "ok": True,
+                        "_truncated": True,
+                        "_original_chars": 3245,
+                        "name": "Kneppy Invests",
+                        "channel_id": "UCjQJPzeCJhA4KrETh3FVVHA",
+                        "videos": [
+                            {
+                                "title": "Audeara 2026 March Quarterly (4C)",
+                                "video_id": "2LOaEmbMkY0",
+                                "webpage_url": "https://www.youtube.com/watch?v=2LOaEmbMkY0",
+                                "duration_seconds": 373,
+                            }
+                        ],
+                    },
+                }
+            ],
+        }
+    )
+
+    assert findings == []
+
+
 def test_auto_flag_fingerprint_is_stable_for_same_findings() -> None:
     findings = [{"category": "tool_failure", "reason": "Tool failed."}]
 
