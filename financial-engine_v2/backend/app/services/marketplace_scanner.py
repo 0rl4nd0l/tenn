@@ -548,12 +548,53 @@ class MarketplaceScanner:
                 detail_pages_opened += 1
                 if log:
                     log(f"    inspecting: {card['title']} ({card['listing_url']})")
-                detail = await self._inspect_listing_detail(
-                    context=context,
-                    listing_url=card["listing_url"],
-                    mission_id=mission_id,
-                    cancel_requested=cancel_requested,
-                )
+                try:
+                    detail = await self._inspect_listing_detail(
+                        context=context,
+                        listing_url=card["listing_url"],
+                        mission_id=mission_id,
+                        cancel_requested=cancel_requested,
+                    )
+                except MarketplaceScanCancelled:
+                    raise
+                except Exception as exc:
+                    detail_error = str(exc) or exc.__class__.__name__
+                    post_detail_outcome = {
+                        "stage": "detail",
+                        "reason_code": "detail_inspection_failed",
+                        "reason_detail": detail_error,
+                        "evidence": {
+                            "listing_url": card.get("listing_url"),
+                            "title": card.get("title"),
+                        },
+                    }
+                    _increment_detail_reason(
+                        detail_rejection_reasons,
+                        post_detail_outcome["reason_code"],
+                    )
+                    if log:
+                        log(f"      detail inspection failed: {detail_error}")
+                    self.mission_service.upsert_seen_listing(
+                        mission_id,
+                        {
+                            "listing_id": card.get("listing_id")
+                            or extract_marketplace_listing_id(card.get("listing_url")),
+                            "listing_url": card.get("listing_url"),
+                            "title": card.get("title"),
+                            "price_text": card.get("price"),
+                            "price_value": parse_marketplace_price(card.get("price")),
+                            "location": card.get("location"),
+                            "query_text": query,
+                            "raw_snapshot": {
+                                **card,
+                                "post_detail_outcome": post_detail_outcome,
+                            },
+                            "last_status": post_detail_outcome["reason_code"],
+                            "last_error": detail_error,
+                            "match_id": None,
+                        },
+                    )
+                    continue
 
                 score = evaluate_marketplace_listing(
                     detail,

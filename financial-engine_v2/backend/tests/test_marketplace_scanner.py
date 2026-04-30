@@ -407,6 +407,158 @@ def test_requirement_scanner_reports_rejection_counters(
     )
 
 
+def test_requirement_scanner_records_detail_inspection_failures(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    mission_service, price_service = _state_services(tmp_path)
+    mission = mission_service.create_mission(
+        {
+            "name": "Inference GPU detail timeout",
+            "brief": "Need a 24GB GPU for local inference under $1000 in Melbourne.",
+            "category_hint": "gpu",
+            "hard_filters": {"location_names": ["Melbourne"], "price_max": 1000},
+            "search_config": {"max_queries_per_run": 1},
+            "scan_config": {
+                "candidate_threshold": 50,
+                "strong_match_threshold": 85,
+                "detail_open_target": 2,
+                "candidate_card_target": 2,
+                "run_time_budget_minutes": 20,
+            },
+        }
+    )
+    cards = [
+        {
+            "listing_id": "timeout",
+            "listing_url": "https://www.facebook.com/marketplace/item/timeout/",
+            "title": "NVIDIA RTX 3090 24GB",
+            "price": "$900",
+            "location": "Melbourne",
+            "text_fragments": ["NVIDIA RTX 3090 24GB", "$900", "Melbourne"],
+        },
+        {
+            "listing_id": "ok",
+            "listing_url": "https://www.facebook.com/marketplace/item/ok/",
+            "title": "NVIDIA RTX 3090 24GB",
+            "price": "$900",
+            "location": "Melbourne",
+            "text_fragments": ["NVIDIA RTX 3090 24GB", "$900", "Melbourne"],
+        },
+    ]
+
+    async def fake_collect(self, **kwargs):
+        return cards
+
+    inspected_urls: list[str] = []
+
+    async def fake_inspect(self, **kwargs):
+        inspected_urls.append(kwargs["listing_url"])
+        if kwargs["listing_url"].endswith("/timeout/"):
+            raise RuntimeError("Page.goto: Timeout 20000ms exceeded.")
+        return {
+            "listing_id": "ok",
+            "listing_url": "https://www.facebook.com/marketplace/item/ok/",
+            "captured_at": "2026-04-29T00:00:00Z",
+            "title": "NVIDIA RTX 3090 24GB GPU",
+            "price": "$900",
+            "seller_name": "Seller",
+            "location": "Melbourne",
+            "description": "Used RTX 3090 24GB GPU with 24GB VRAM, working condition.",
+            "raw_text_lines": ["Used RTX 3090 24GB GPU with 24GB VRAM."],
+            "raw_text_snapshot": "Used RTX 3090 24GB GPU with 24GB VRAM.",
+            "screenshot_path": "/tmp/ok.png",
+            "listing_media": [],
+        }
+
+    monkeypatch.setattr(scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect)
+    monkeypatch.setattr(scanner.MarketplaceScanner, "_inspect_listing_detail", fake_inspect)
+
+    marketplace_scanner = scanner.MarketplaceScanner(
+        mission_service,
+        price_service=price_service,
+    )
+    result = asyncio.run(
+        marketplace_scanner._scan_mission(
+            context=_FakeContext(),
+            mission=mission,
+            log=None,
+            cancel_requested=None,
+        )
+    )
+
+    failed_seen = mission_service.get_seen_listing(mission["mission_id"], "timeout")
+    assert result["scan_status"] == "completed"
+    assert result["detail_pages_opened"] == 2
+    assert inspected_urls == [
+        "https://www.facebook.com/marketplace/item/timeout/",
+        "https://www.facebook.com/marketplace/item/ok/",
+    ]
+    assert result["detail_rejection_reasons"]["detail_inspection_failed"] == 1
+    assert failed_seen["last_status"] == "detail_inspection_failed"
+    assert "Timeout 20000ms" in failed_seen["last_error"]
+    assert (
+        failed_seen["raw_snapshot"]["post_detail_outcome"]["reason_code"]
+        == "detail_inspection_failed"
+    )
+
+
+def test_requirement_scanner_preserves_cancel_during_detail_inspection(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    mission_service, price_service = _state_services(tmp_path)
+    mission = mission_service.create_mission(
+        {
+            "name": "Inference GPU detail cancel",
+            "brief": "Need a 24GB GPU for local inference under $1000 in Melbourne.",
+            "category_hint": "gpu",
+            "hard_filters": {"location_names": ["Melbourne"], "price_max": 1000},
+            "search_config": {"max_queries_per_run": 1},
+            "scan_config": {
+                "candidate_threshold": 70,
+                "strong_match_threshold": 85,
+                "detail_open_target": 1,
+                "candidate_card_target": 1,
+                "run_time_budget_minutes": 20,
+            },
+        }
+    )
+
+    async def fake_collect(self, **kwargs):
+        return [
+            {
+                "listing_id": "cancel",
+                "listing_url": "https://www.facebook.com/marketplace/item/cancel/",
+                "title": "NVIDIA RTX 3090 24GB",
+                "price": "$900",
+                "location": "Melbourne",
+                "text_fragments": ["NVIDIA RTX 3090 24GB", "$900", "Melbourne"],
+            }
+        ]
+
+    async def fake_inspect(self, **kwargs):
+        raise scanner.MarketplaceScanCancelled("Marketplace scan cancelled by user request.")
+
+    monkeypatch.setattr(scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect)
+    monkeypatch.setattr(scanner.MarketplaceScanner, "_inspect_listing_detail", fake_inspect)
+
+    marketplace_scanner = scanner.MarketplaceScanner(
+        mission_service,
+        price_service=price_service,
+    )
+
+    with pytest.raises(scanner.MarketplaceScanCancelled):
+        asyncio.run(
+            marketplace_scanner._scan_mission(
+                context=_FakeContext(),
+                mission=mission,
+                log=None,
+                cancel_requested=None,
+            )
+        )
+
+
 def test_requirement_scanner_reports_structured_detail_rejection_reasons(
     tmp_path: Path,
     monkeypatch,
