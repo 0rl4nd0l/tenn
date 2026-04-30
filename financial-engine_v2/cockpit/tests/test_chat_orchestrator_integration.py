@@ -10,6 +10,7 @@ from cockpit.core.chat import ChatController
 class _FakeAgentLoop:
     def __init__(self) -> None:
         self.calls: list[dict] = []
+        self._turn_force_backend = None
 
     def run(
         self,
@@ -48,11 +49,25 @@ class _FakeAgentLoop:
         )
 
     def synthesize_final_answer(self, evidence, **kwargs):
-        self.calls.append({"mode": "sync", "evidence": evidence, "kwargs": kwargs})
+        self.calls.append(
+            {
+                "mode": "sync",
+                "evidence": evidence,
+                "kwargs": kwargs,
+                "force_backend": self._turn_force_backend,
+            }
+        )
         return kwargs["draft_answer"]
 
     def synthesize_final_answer_stream(self, evidence, on_chunk, **kwargs):
-        self.calls.append({"mode": "stream", "evidence": evidence, "kwargs": kwargs})
+        self.calls.append(
+            {
+                "mode": "stream",
+                "evidence": evidence,
+                "kwargs": kwargs,
+                "force_backend": self._turn_force_backend,
+            }
+        )
         text = "Final streamed answer."
         for chunk in ("Final ", "streamed ", "answer."):
             on_chunk(chunk)
@@ -79,6 +94,8 @@ def _controller(orchestration_result):
     ctrl._hybrid_router = None
     ctrl._dossier_service = None
     ctrl._strategy_service = None
+    ctrl._recent_youtube_channel = None
+    ctrl._recent_youtube_video_options = []
     ctrl._agent_loop = _FakeAgentLoop()
     return ctrl
 
@@ -107,6 +124,8 @@ def _controller_with_context_capture(orchestration_result):
     ctrl._hybrid_router = None
     ctrl._dossier_service = None
     ctrl._strategy_service = None
+    ctrl._recent_youtube_channel = None
+    ctrl._recent_youtube_video_options = []
     ctrl._agent_loop = _FakeAgentLoop()
     return ctrl, calls
 
@@ -555,6 +574,22 @@ def test_orchestrated_response_surfaces_retrieval_failures_when_answer_is_thin()
     assert "Unresolved evidence gaps: financials" in response.text
     assert "financial_truth retrieval status: partial_error" in response.text
     assert "financial_truth retrieval errors: context endpoint timed out" in response.text
+
+
+def test_cloud_company_analysis_uses_orchestrator_evidence_with_api_synthesis() -> None:
+    ctrl = _controller(_result("mixed", ("financial_truth", "company_memory"), ticker="BHP"))
+
+    response = ctrl.build_chat_response("/cloud analyse BHP")
+
+    assert response.routing_metadata["source"] == "orchestrator"
+    assert [item["type"] for item in response.evidence] == [
+        "orchestrator",
+        "financial_truth",
+        "company_memory",
+    ]
+    assert ctrl._agent_loop.calls[-1]["mode"] == "sync"
+    assert ctrl._agent_loop.calls[-1]["force_backend"] == "api"
+    assert ctrl._agent_loop._turn_force_backend is None
 
 
 def test_recent_update_queries_prefer_local_context_and_keep_backfill_as_optional_followup() -> (

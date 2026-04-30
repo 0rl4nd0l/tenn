@@ -5505,6 +5505,7 @@ class ChatController:
         orchestration_result,
         message: str,
         ticker: str | None,
+        force_backend: str | None = None,
         on_chunk=None,
         on_status=None,
         attached_bundle: _AttachedSourceBundle | None = None,
@@ -5599,24 +5600,35 @@ class ChatController:
                 )
             if on_status:
                 on_status("Streaming final synthesis")
-            if on_chunk is not None:
-                final_text = self._agent_loop.synthesize_final_answer_stream(
-                    evidence,
-                    on_chunk,
-                    question=synthesis_question,
-                    ticker=primary_ticker or ticker,
-                    conversation_history=conversation_history,
-                    draft_answer=orchestration_result.answer_input,
-                    on_status=on_status,
-                )
-            else:
-                final_text = self._agent_loop.synthesize_final_answer(
-                    evidence,
-                    question=synthesis_question,
-                    ticker=primary_ticker or ticker,
-                    conversation_history=conversation_history,
-                    draft_answer=orchestration_result.answer_input,
-                    on_status=on_status,
+            previous_force_backend = getattr(
+                self._agent_loop, "_turn_force_backend", None
+            )
+            setattr(self._agent_loop, "_turn_force_backend", force_backend)
+            try:
+                if on_chunk is not None:
+                    final_text = self._agent_loop.synthesize_final_answer_stream(
+                        evidence,
+                        on_chunk,
+                        question=synthesis_question,
+                        ticker=primary_ticker or ticker,
+                        conversation_history=conversation_history,
+                        draft_answer=orchestration_result.answer_input,
+                        on_status=on_status,
+                    )
+                else:
+                    final_text = self._agent_loop.synthesize_final_answer(
+                        evidence,
+                        question=synthesis_question,
+                        ticker=primary_ticker or ticker,
+                        conversation_history=conversation_history,
+                        draft_answer=orchestration_result.answer_input,
+                        on_status=on_status,
+                    )
+            finally:
+                setattr(
+                    self._agent_loop,
+                    "_turn_force_backend",
+                    previous_force_backend,
                 )
         elif on_chunk is not None and final_text:
             self._stream_plain_text(final_text, on_chunk)
@@ -6226,11 +6238,12 @@ class ChatController:
                         or recent_update_query
                         or not has_orchestrated_evidence
                     )
-                    if forced_backend != "api" and not prefer_local_context:
+                    if not prefer_local_context:
                         orchestrated_response = self._build_orchestrated_response(
                             orchestration_result=orchestration_result,
                             message=effective_message,
                             ticker=ticker,
+                            force_backend=forced_backend,
                             on_chunk=on_chunk,
                             on_status=on_status,
                             attached_bundle=attached_bundle,
