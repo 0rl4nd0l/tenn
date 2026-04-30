@@ -1089,39 +1089,23 @@ class ToolExecutor:
         market = str(args.get("market", "australia")).strip().lower()
         filters = args.get("filters") or {}
         limit = int(args.get("limit", 20))
+        mode = str(args.get("mode") or "").strip().lower()
+        sort_by = str(args.get("sort_by") or args.get("sort") or "").strip()
+        sort_order = str(args.get("sort_order") or "desc").strip().lower()
+        if sort_order not in {"asc", "desc"}:
+            sort_order = "desc"
+        columns = args.get("columns")
+        provider_filters = args.get("provider_filters")
         try:
             Screener = self._get_tradingview_screener_cls()
             handler = Screener()
-            # tradingview-scraper API migrated from .scrape(...) -> .screen(...).
-            if hasattr(handler, "screen"):
-                payload = handler.screen(market=market, limit=limit)
-                if not isinstance(payload, dict):
-                    return {
-                        "ok": False,
-                        "error": f"unexpected screener response type: {type(payload).__name__}",
-                    }
-                status = str(payload.get("status") or "").strip().lower()
-                if status != "success":
-                    return {
-                        "ok": False,
-                        "error": str(payload.get("error") or "TradingView screener request failed")[:300],
-                    }
-                results = payload.get("data")
-            elif hasattr(handler, "scrape"):
-                results = handler.scrape(market=market)
-            else:
-                return {
-                    "ok": False,
-                    "error": "tradingview-scraper Screener has no supported screen/scrape method",
-                }
-            if not isinstance(results, list):
-                return {
-                    "ok": False,
-                    "error": f"unexpected screener result list type: {type(results).__name__}",
-                }
-            # Apply simple filter: min_rs_rating if provided
-            min_rs = filters.get("min_rs_rating")
-            if min_rs is not None:
+
+            def _apply_local_filters(rows: list[Any]) -> list[Any]:
+                # Apply simple filter: min_rs_rating if provided.
+                min_rs = filters.get("min_rs_rating") if isinstance(filters, dict) else None
+                if min_rs is None:
+                    return rows
+
                 def _row_rs_value(row: dict[str, Any]) -> float:
                     for key in (
                         "Relative Strength Index (14)",
@@ -1134,12 +1118,143 @@ class ToolExecutor:
                             continue
                     return 0.0
 
-                results = [
+                return [
                     r
-                    for r in results
+                    for r in rows
                     if isinstance(r, dict) and _row_rs_value(r) >= float(min_rs)
                 ]
-            return {"ok": True, "market": market, "count": len(results[:limit]), "results": results[:limit]}
+
+            def _annotate(rows: list[Any], side: str) -> list[dict[str, Any]]:
+                annotated: list[dict[str, Any]] = []
+                for row in rows:
+                    if not isinstance(row, dict):
+                        continue
+                    copied = dict(row)
+                    copied.setdefault("mover_side", side)
+                    annotated.append(copied)
+                return annotated
+
+            def _dedupe(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+                seen: set[str] = set()
+                deduped: list[dict[str, Any]] = []
+                for row in rows:
+                    key = str(
+                        row.get("symbol")
+                        or row.get("ticker")
+                        or row.get("name")
+                        or id(row)
+                    )
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    deduped.append(row)
+                return deduped
+
+            # tradingview-scraper API migrated from .scrape(...) -> .screen(...).
+            if hasattr(handler, "screen"):
+                def _screen(
+                    *,
+                    limit_override: int | None = None,
+                    sort_by_override: str | None = None,
+                    sort_order_override: str | None = None,
+                ) -> list[Any] | dict[str, str]:
+                    screen_kwargs: dict[str, Any] = {
+                        "market": market,
+                        "limit": limit_override or limit,
+                    }
+                    if isinstance(columns, list) and columns:
+                        screen_kwargs["columns"] = [str(item) for item in columns]
+                    if isinstance(provider_filters, list):
+                        screen_kwargs["filters"] = provider_filters
+                    elif isinstance(filters, list):
+                        screen_kwargs["filters"] = filters
+                    effective_sort_by = sort_by_override or sort_by
+                    if effective_sort_by:
+                        screen_kwargs["sort_by"] = effective_sort_by
+                    effective_sort_order = sort_order_override or sort_order
+                    if effective_sort_order:
+                        screen_kwargs["sort_order"] = effective_sort_order
+
+                    payload = handler.screen(**screen_kwargs)
+                    if not isinstance(payload, dict):
+                        return {
+                            "error": (
+                                "unexpected screener response type: "
+                                f"{type(payload).__name__}"
+                            )
+                        }
+                    status = str(payload.get("status") or "").strip().lower()
+                    if status != "success":
+                        return {
+                            "error": str(
+                                payload.get("error")
+                                or "TradingView screener request failed"
+                            )[:300]
+                        }
+                    results = payload.get("data")
+                    if not isinstance(results, list):
+                        return {
+                            "error": (
+                                "unexpected screener result list type: "
+                                f"{type(results).__name__}"
+                            )
+                        }
+                    return results
+
+                if mode == "market_movers":
+                    per_side = max(1, limit // 2)
+                    gainers_raw = _screen(
+                        limit_override=per_side,
+                        sort_by_override=sort_by or "change",
+                        sort_order_override="desc",
+                    )
+                    if isinstance(gainers_raw, dict):
+                        return {"ok": False, "error": gainers_raw["error"]}
+                    decliners_raw = _screen(
+                        limit_override=per_side,
+                        sort_by_override=sort_by or "change",
+                        sort_order_override="asc",
+                    )
+                    if isinstance(decliners_raw, dict):
+                        return {"ok": False, "error": decliners_raw["error"]}
+                    gainers = _annotate(_apply_local_filters(gainers_raw), "gainer")
+                    decliners = _annotate(
+                        _apply_local_filters(decliners_raw), "decliner"
+                    )
+                    combined = _dedupe([*gainers, *decliners])[:limit]
+                    return {
+                        "ok": True,
+                        "market": market,
+                        "mode": "market_movers",
+                        "count": len(combined),
+                        "results": combined,
+                        "gainers": gainers,
+                        "decliners": decliners,
+                        "sort_by": sort_by or "change",
+                    }
+
+                results = _screen()
+                if isinstance(results, dict):
+                    return {"ok": False, "error": results["error"]}
+            elif hasattr(handler, "scrape"):
+                results = handler.scrape(market=market)
+            else:
+                return {
+                    "ok": False,
+                    "error": "tradingview-scraper Screener has no supported screen/scrape method",
+                }
+            if not isinstance(results, list):
+                return {
+                    "ok": False,
+                    "error": f"unexpected screener result list type: {type(results).__name__}",
+                }
+            results = _apply_local_filters(results)
+            return {
+                "ok": True,
+                "market": market,
+                "count": len(results[:limit]),
+                "results": results[:limit],
+            }
         except ImportError:
             return {
                 "ok": False,

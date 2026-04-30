@@ -66,6 +66,37 @@ class TestAgentLoopRegressions:
 
         assert text == "ASX:CBA indicators: RSI: 58.2"
 
+    def test_direct_tv_screener_market_movers_formats_rows(self):
+        text = AgentLoop._format_direct_command_tool_result(
+            SimpleNamespace(tool="tv_screener", arguments={}),
+            {
+                "ok": True,
+                "market": "australia",
+                "mode": "market_movers",
+                "results": [
+                    {
+                        "symbol": "ASX:AAA",
+                        "name": "Alpha Ltd",
+                        "change": 12.5,
+                        "close": 0.18,
+                        "volume": 1200000,
+                        "mover_side": "gainer",
+                    },
+                    {
+                        "symbol": "ASX:CCC",
+                        "change": -9.5,
+                        "close": 0.04,
+                        "mover_side": "decliner",
+                    },
+                ],
+            },
+        )
+
+        assert "ASX market movers from TradingView screener:" in text
+        assert "ASX:AAA - Alpha Ltd | change +12.50% | close 0.18" in text
+        assert "volume 1.2M | gainer" in text
+        assert "ASX:CCC | change -9.50% | close 0.04 | decliner" in text
+
     def test_tool_result_non_dict(self):
         """Tool executor returning a plain string is wrapped into {"result": value}.
 

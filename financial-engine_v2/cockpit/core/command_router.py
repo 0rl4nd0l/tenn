@@ -59,6 +59,17 @@ _SCREENER_RE = re.compile(
     r"^\s*(?:run\s+)?(?:tv\s+|tradingview\s+)?screener\s*(?:for\s+([A-Za-z]{2,8}))?\s*[?!.]*\s*$",
     re.IGNORECASE,
 )
+_MARKET_MOVERS_RE = re.compile(
+    r"""
+    \b(?:
+        market\s+movers?
+      | biggest\s+(?:stock\s+)?movers?
+      | top\s+(?:asx\s+|stock\s+)?(?:gainers|losers|movers?)
+      | stocks?\s+(?:with\s+)?(?:the\s+)?(?:biggest|largest)\s+(?:price\s+)?moves?
+    )\b
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
 _BACKFILL_RE = re.compile(
     r"^\s*(?:backfill|run\s+backfill)\s+([A-Z]{2,5})\b",
     re.IGNORECASE,
@@ -252,6 +263,23 @@ def route_command(
             tool="tv_screener",
             arguments={"market": market, "limit": 20, "filters": {}},
             explanation=f"Run TradingView screener for {market}.",
+        )
+
+    # Market movers: use backend-owned TradingView screener data instead of
+    # stale broad news articles. Fetch both gainers and decliners.
+    if _MARKET_MOVERS_RE.search(text):
+        return CommandRoute(
+            matched=True,
+            action_type="direct_tool",
+            tool="tv_screener",
+            arguments={
+                "market": "australia",
+                "limit": 20,
+                "filters": {},
+                "mode": "market_movers",
+                "sort_by": "change",
+            },
+            explanation="Fetch ASX market movers from TradingView.",
         )
 
     # backfill [ticker]

@@ -274,6 +274,16 @@ def _(_m, _msg):
     return "/market-update final"
 
 
+@_rule(r"\bwhat\s+happened\s+(?:on|in|with)\s+(?:the\s+)?market\s+today\b")
+def _(_m, _msg):
+    return "/market-update final"
+
+
+@_rule(r"\bwhat(?:'s|\s+is)\s+happening\s+(?:on|in)\s+(?:the\s+)?market\s+today\b")
+def _(_m, _msg):
+    return "/market-update final"
+
+
 @_rule(r"^\s*(?:the\s+)?market\s+updat(?:e|er)\s*[?!.]*\s*$")
 def _(_m, _msg):
     # Bare conversational requests should show the latest cached report quickly.

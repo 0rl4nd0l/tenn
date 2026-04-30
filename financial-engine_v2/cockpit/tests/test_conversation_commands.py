@@ -233,6 +233,12 @@ class TestMarketUpdateConversationalCommands:
             == "/market-update final"
         )
 
+    def test_what_happened_on_market_today_maps_to_final(self) -> None:
+        assert (
+            derive_conversational_command("what happened on the market today")
+            == "/market-update final"
+        )
+
     # --- generic ----------------------------------------------------------
     def test_run_market_update_maps_to_final(self) -> None:
         assert (

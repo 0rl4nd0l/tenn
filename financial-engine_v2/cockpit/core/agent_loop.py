@@ -461,6 +461,74 @@ class AgentLoop:
                 return f"No indicator values returned for {label}."
             return f"{label} indicators: " + "; ".join(lines)
 
+        if tool_name == "tv_screener":
+            market = str(result.get("market") or "market").strip().upper()
+            rows = result.get("results") if isinstance(result.get("results"), list) else []
+            mode = str(result.get("mode") or "").strip().lower()
+            if not rows:
+                return f"No TradingView screener rows returned for {market}."
+
+            def _pick(row: dict[str, Any], *keys: str) -> Any:
+                for key in keys:
+                    value = row.get(key)
+                    if value not in (None, ""):
+                        return value
+                return None
+
+            def _format_number(value: Any, *, decimals: int = 2) -> str:
+                try:
+                    number = float(value)
+                except (TypeError, ValueError):
+                    return ""
+                if abs(number) >= 1_000_000:
+                    return f"{number / 1_000_000:.1f}M"
+                if abs(number) >= 1_000:
+                    return f"{number / 1_000:.1f}k"
+                return f"{number:.{decimals}f}"
+
+            def _format_change(value: Any) -> str:
+                formatted = _format_number(value, decimals=2)
+                if not formatted:
+                    return ""
+                if not formatted.startswith("-"):
+                    formatted = f"+{formatted}"
+                return f"{formatted}%"
+
+            header = (
+                "ASX market movers from TradingView screener:"
+                if mode == "market_movers"
+                else f"TradingView screener ({market}):"
+            )
+            lines = [header]
+            for index, row in enumerate(rows[:10], start=1):
+                if not isinstance(row, dict):
+                    continue
+                symbol = str(
+                    _pick(row, "symbol", "ticker", "name") or f"row {index}"
+                ).strip()
+                name = str(_pick(row, "name", "description") or "").strip()
+                side = str(row.get("mover_side") or "").strip()
+                label = f"{symbol} - {name}" if name and name != symbol else symbol
+                bits: list[str] = []
+                change = _format_change(
+                    _pick(row, "change", "change_percent", "change_abs")
+                )
+                if change:
+                    bits.append(f"change {change}")
+                close = _format_number(_pick(row, "close", "Close"))
+                if close:
+                    bits.append(f"close {close}")
+                volume = _format_number(_pick(row, "volume", "Volume"), decimals=0)
+                if volume:
+                    bits.append(f"volume {volume}")
+                if side:
+                    bits.append(side)
+                suffix = " | " + " | ".join(bits) if bits else ""
+                lines.append(f"{index}. {label}{suffix}")
+            if len(rows) > 10:
+                lines.append(f"...and {len(rows) - 10} more screener row(s).")
+            return "\n".join(lines)
+
         if tool_name == "check_youtube_channel_recent_videos":
             name = str(result.get("name") or "channel").strip()
             channel_id = str(result.get("channel_id") or "").strip()

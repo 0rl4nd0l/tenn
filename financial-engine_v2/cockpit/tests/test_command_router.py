@@ -113,3 +113,22 @@ class TestWatchYoutubeChannelCommandRoute:
     def test_youtube_video_selection_without_context_does_not_route(self):
         r = route_command("ingest 1")
         assert r.matched is False
+
+
+class TestMarketMoversCommandRoute:
+    def test_market_movers_routes_to_tradingview_screener(self):
+        r = route_command("what were the biggest movers today")
+
+        assert r.matched is True
+        assert r.action_type == "direct_tool"
+        assert r.tool == "tv_screener"
+        assert r.arguments["market"] == "australia"
+        assert r.arguments["mode"] == "market_movers"
+        assert r.arguments["sort_by"] == "change"
+
+    def test_market_movers_prompt_does_not_route_to_news(self):
+        r = route_command("market movers today?")
+
+        assert r.matched is True
+        assert r.tool == "tv_screener"
+        assert r.arguments["limit"] == 20

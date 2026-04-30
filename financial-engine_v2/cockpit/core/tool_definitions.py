@@ -651,6 +651,24 @@ _READ_ONLY_TOOLS: list[dict[str, Any]] = [
                     "type": "object",
                     "description": "Optional filter dict. Supported: min_rs_rating (number).",
                 },
+                "mode": {
+                    "type": "string",
+                    "description": (
+                        "Optional mode. Use 'market_movers' when the user asks "
+                        "for biggest movers, gainers, or losers today."
+                    ),
+                },
+                "sort_by": {
+                    "type": "string",
+                    "description": (
+                        "TradingView sort column, e.g. 'change'. Used with "
+                        "mode='market_movers' to rank daily movers."
+                    ),
+                },
+                "sort_order": {
+                    "type": "string",
+                    "description": "Sort direction: 'desc' or 'asc'. Defaults to 'desc'.",
+                },
                 "limit": {
                     "type": "integer",
                     "description": "Max results to return (default: 20).",

@@ -497,3 +497,48 @@ class TestTradingViewScreener:
 
         assert result["ok"] is False
         assert "upstream error" in str(result["error"])
+
+    def test_exec_tv_screener_market_movers_fetches_gainers_and_decliners(
+        self, monkeypatch
+    ) -> None:
+        executor = _make_executor()
+        calls: list[dict[str, object]] = []
+
+        class FakeScreener:
+            def screen(self, **kwargs):
+                calls.append(dict(kwargs))
+                if kwargs["sort_order"] == "desc":
+                    return {
+                        "status": "success",
+                        "data": [
+                            {"symbol": "ASX:AAA", "change": 12.5, "close": 0.18},
+                            {"symbol": "ASX:BBB", "change": 8.0, "close": 1.2},
+                        ],
+                    }
+                return {
+                    "status": "success",
+                    "data": [
+                        {"symbol": "ASX:CCC", "change": -9.5, "close": 0.04},
+                        {"symbol": "ASX:DDD", "change": -6.2, "close": 2.1},
+                    ],
+                }
+
+        monkeypatch.setattr(
+            executor,
+            "_get_tradingview_screener_cls",
+            lambda: FakeScreener,
+        )
+
+        result = executor.execute(
+            "tv_screener",
+            {"market": "australia", "limit": 4, "mode": "market_movers"},
+        )
+
+        assert result["ok"] is True
+        assert result["mode"] == "market_movers"
+        assert [call["sort_order"] for call in calls] == ["desc", "asc"]
+        assert [call["sort_by"] for call in calls] == ["change", "change"]
+        assert result["results"][0]["symbol"] == "ASX:AAA"
+        assert result["results"][0]["mover_side"] == "gainer"
+        assert result["results"][-1]["symbol"] == "ASX:DDD"
+        assert result["results"][-1]["mover_side"] == "decliner"
