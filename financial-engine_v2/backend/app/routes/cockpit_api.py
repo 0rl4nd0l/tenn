@@ -1617,6 +1617,58 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                         kind="web",
                     )
 
+            news_payload = (
+                details.get("qual_context_news")
+                if isinstance(details.get("qual_context_news"), dict)
+                else {}
+            )
+            news_hits = _dict_rows(news_payload.get("hits"))
+            for row in news_hits:
+                _append_source_item(
+                    items,
+                    seen,
+                    row,
+                    default_title="News article",
+                    kind="news",
+                )
+            if news_payload and not news_hits:
+                _append_news_no_hit_source(
+                    items,
+                    seen,
+                    {
+                        **news_payload,
+                        "ticker": details.get("ticker"),
+                    },
+                )
+
+            price = details.get("price") if isinstance(details.get("price"), dict) else {}
+            if price:
+                ticker = str(details.get("ticker") or "").strip().upper()
+                current = price.get("current") if isinstance(price.get("current"), dict) else {}
+                symbol = str(price.get("symbol") or current.get("symbol") or ticker).strip()
+                range_text = str(price.get("range") or "current").strip()
+                interval_text = str(price.get("interval") or "1d").strip()
+                snippet_bits: list[str] = []
+                for label, key in (
+                    ("price", "price"),
+                    ("previous close", "previous_close"),
+                    ("change", "change_percent"),
+                ):
+                    value = current.get(key)
+                    if value not in (None, ""):
+                        snippet_bits.append(f"{label}: {value}")
+                _append_source_item(
+                    items,
+                    seen,
+                    {
+                        "title": f"{ticker or symbol or 'Ticker'} price data",
+                        "source_id": f"local_price:{ticker or symbol or 'unknown'}:{range_text}:{interval_text}",
+                        "snippet": "; ".join(snippet_bits) or None,
+                    },
+                    default_title="Price data",
+                    kind="context",
+                )
+
             price_query = details.get("price_query")
             if isinstance(price_query, dict):
                 ticker = str(price_query.get("ticker") or "").strip().upper()

@@ -7083,10 +7083,16 @@ class ChatController:
                 local_payload=local_payload,
             )
         elif self._violates_missing_financials_contract(answer, local_payload):
-            answer = self._build_grounded_overview_brief(
-                ticker=ticker or str(local_payload.get("ticker") or ""),
-                local_payload=local_payload,
-            )
+            if recent_update_query:
+                answer = self._build_grounded_recent_update_brief(
+                    ticker=ticker or str(local_payload.get("ticker") or ""),
+                    local_payload=local_payload,
+                )
+            else:
+                answer = self._build_grounded_overview_brief(
+                    ticker=ticker or str(local_payload.get("ticker") or ""),
+                    local_payload=local_payload,
+                )
 
         followup_action_preview: dict[str, Any] | None = None
         if recent_update_query and ticker:
@@ -7172,6 +7178,46 @@ class ChatController:
         has_money = bool(re.search(r"\b(?:US\$|A\$|AUD|USD)\s*\d", text))
         has_percent = bool(re.search(r"\b\d+(?:\.\d+)?\s*%", text))
         return has_table or has_money or has_percent
+
+    def _build_grounded_recent_update_brief(
+        self,
+        *,
+        ticker: str,
+        local_payload: dict[str, Any],
+    ) -> str:
+        label = ticker or str(local_payload.get("ticker") or "This ticker").upper()
+        lines: list[str] = [f"**{label} recent update**", ""]
+
+        price_block = self._build_recent_price_summary_block(local_payload)
+        if price_block:
+            lines.append(price_block)
+            lines.append("")
+
+        docs = local_payload.get("docs") if isinstance(local_payload.get("docs"), list) else []
+        if docs:
+            lines.append("Recent filings available:")
+            for row in docs[:4]:
+                if not isinstance(row, dict):
+                    continue
+                title = str(row.get("title") or "Untitled filing").strip()
+                published_at = str(row.get("published_at") or "").strip()[:10]
+                prefix = f"- {published_at}: " if published_at else "- "
+                lines.append(f"{prefix}{title}")
+            lines.append("")
+
+        news_block = self._build_recent_news_summary_block(local_payload)
+        if news_block:
+            lines.append(news_block)
+            lines.append("")
+
+        if not local_payload.get("financials"):
+            lines.append(
+                "Canonical financial rows are unavailable in this turn, so this "
+                "is a recent-event summary from price, filing, and news evidence "
+                "rather than a financial-statement analysis."
+            )
+
+        return "\n".join(lines).strip()
 
     def _build_grounded_overview_brief(
         self,

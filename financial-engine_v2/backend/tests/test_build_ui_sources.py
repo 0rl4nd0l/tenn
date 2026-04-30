@@ -961,3 +961,29 @@ def test_agent_format_get_company_dump_source_rows() -> None:
     assert "Business overview" in titles
     assert "Contract announcement" in titles
     assert "EOS annual 2025-12-31" in titles
+
+
+def test_local_context_price_and_news_no_hit_sources() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "type": "local_context",
+                "details": {
+                    "ticker": "GNC",
+                    "price": {
+                        "symbol": "GNC.AX",
+                        "current": {
+                            "price": 6.155,
+                            "previous_close": 6.14,
+                            "change_percent": 0.24,
+                        },
+                    },
+                    "qual_context_news": {"hits": []},
+                },
+            }
+        ]
+    )
+
+    source_ids = {source["source_id"] for source in sources}
+    assert "local_price:GNC:current:1d" in source_ids
+    assert "search_news:no_hits:gnc" in source_ids

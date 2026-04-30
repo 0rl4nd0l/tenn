@@ -658,6 +658,61 @@ def test_recent_update_queries_prefer_local_context_and_keep_backfill_as_optiona
     assert ctrl._agent_loop.calls == []
 
 
+def test_recent_update_missing_financial_guard_keeps_event_summary() -> None:
+    ctrl = _controller(_result("mixed", ("financial_truth", "company_memory"), ticker="GNC"))
+    ctrl.tool_router.gather_local_context.return_value = SimpleNamespace(
+        payload={
+            "ticker": "GNC",
+            "docs": [
+                {
+                    "title": "Ceasing to be a substantial holder",
+                    "published_at": "2026-03-24T00:00:00Z",
+                }
+            ],
+            "doc_snippets": [],
+            "financials": [],
+            "price": {
+                "ok": True,
+                "symbol": "GNC.AX",
+                "current": {
+                    "price": 6.155,
+                    "previous_close": 6.14,
+                    "change_percent": 0.24,
+                },
+                "recent_history": [
+                    {"timestamp": "2026-04-24T00:00:00Z", "close": 6.0},
+                    {"timestamp": "2026-04-27T00:00:00Z", "close": 6.05},
+                    {"timestamp": "2026-04-28T00:00:00Z", "close": 6.1},
+                    {"timestamp": "2026-04-29T00:00:00Z", "close": 6.14},
+                    {"timestamp": "2026-04-30T00:00:00Z", "close": 6.155},
+                ],
+            },
+            "price_state": {"trend_regime": "neutral", "last_close": 6.155},
+            "qual_context_news": {"hits": []},
+            "qual_context": {"hits": []},
+            "sources": {},
+        }
+    )
+    ctrl.ollama_client.chat.return_value = (
+        "| Metric | Value |\n|---|---|\n| Profit margin | 5% |"
+    )
+    ctrl.action_registry.preview.return_value = SimpleNamespace(
+        command=["python", "scripts/full_history_ticker_sync.py", "--ticker", "GNC"],
+        estimated_impact="mutates local data and reports",
+        timeout_seconds=14400,
+    )
+
+    response = ctrl.build_chat_response("what happened with gnc")
+
+    assert "**GNC recent update**" in response.text
+    assert "Recent price action for GNC.AX" in response.text
+    assert "Ceasing to be a substantial holder" in response.text
+    assert "No recent indexed news hits" in response.text
+    assert "Detailed extracted financial metrics are not currently available" not in response.text
+    assert response.action_preview is not None
+    assert response.action_preview["action_id"] == "update_ticker_financials"
+
+
 def test_cloud_prefix_bypasses_local_document_grounding_and_uses_agent_loop() -> None:
     ctrl = _controller(_result("mixed", ("financial_truth", "company_memory")))
     ctrl.tool_router.gather_local_context.return_value = SimpleNamespace(
