@@ -920,3 +920,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The backend container runs as root and created flagged-report packets under the bind-mounted host `reports/` tree as `root:root`, while the Next.js Cockpit server and Codex runner run as the host operator user.
 **Fix:** Backend flagged-report creation/read paths now make report packets writable by the workspace owner; the Next deploy route refreshes the backend flag packet before launching so old root-owned packets can be repaired once the backend is patched.
 **Rule:** Any backend-created artifact intended for a host-side operator process must be owner-repaired at the backend boundary. Do not assume container UID and host UI UID match.
+
+---
+
+## L084 — Codex CLI flags differ between top-level and exec subcommands
+
+**Date:** 2026-04-30
+**Subsystem:** `scripts/cockpit_flag_investigator.py`, `cockpit-ui/app/api/cockpit/feedback/flags/[reportId]/deploy/route.ts`
+**Symptom:** `Deploy Codex` spawned the runner but the Codex CLI failed with `unexpected argument '--ask-for-approval' found`.
+**Root cause:** `--ask-for-approval` is accepted by the top-level interactive `codex` command, but not by `codex exec` in CLI `0.125.0`. The runner placed the removed flag after `exec`.
+**Fix:** The runner now passes `-c approval_policy="never"` to `codex exec`, and failed investigations can be retried from Cockpit with `--force`.
+**Rule:** Before wiring a CLI command into an operator button, validate the exact subcommand argv with the installed CLI help/parser and add a dry-run or argv regression test.

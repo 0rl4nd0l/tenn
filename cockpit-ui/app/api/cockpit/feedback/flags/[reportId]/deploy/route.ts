@@ -52,7 +52,8 @@ export async function POST(
         investigation_path: paths.investigationPath,
       })
     }
-    if (status !== 'queued') {
+    const retryFailed = status === 'failed' || status === 'error'
+    if (status !== 'queued' && !retryFailed) {
       return Response.json(
         {
           ok: false,
@@ -76,6 +77,9 @@ export async function POST(
       '--once',
       '--apply',
     ]
+    if (retryFailed) {
+      args.push('--force')
+    }
     appendFileSync(
       launcherLogPath,
       `[${new Date().toISOString()}] launching: ${pythonBin} ${args.join(' ')}\n`,

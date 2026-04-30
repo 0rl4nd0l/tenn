@@ -19,7 +19,7 @@ vi.mock('node:child_process', () => ({
   spawn: spawnMock,
 }))
 
-function createQueuedReport(reportId = 'flag_20260430_abc123'): {
+function createQueuedReport(reportId = 'flag_20260430_abc123', status = 'queued'): {
   workspace: string
   reportId: string
   reportDir: string
@@ -39,7 +39,7 @@ function createQueuedReport(reportId = 'flag_20260430_abc123'): {
     path.join(reportDir, 'investigation.json'),
     JSON.stringify({
       report_id: reportId,
-      status: 'queued',
+      status,
       mode: 'operator_gated_codex_cli',
       codex_prompt_path: path.join(reportDir, 'codex_prompt.md'),
       updated_at: '2026-04-30T00:00:00Z',
@@ -94,6 +94,31 @@ describe('Codex investigation deploy route', () => {
         detached: true,
         stdio: 'ignore',
       }),
+    )
+  })
+
+  it('allows retrying a failed report with force', async () => {
+    const { workspace, reportId } = createQueuedReport('flag_20260430_retry123', 'failed')
+    process.env.COCKPIT_WORKSPACE_ROOT = workspace
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200 })))
+
+    const response = await deployCodexInvestigation(
+      new Request(`http://localhost/api/cockpit/feedback/flags/${reportId}/deploy`, {
+        method: 'POST',
+      }),
+      { params: Promise.resolve({ reportId }) },
+    )
+
+    expect(response.status).toBe(202)
+    expect(spawnMock).toHaveBeenCalledWith(
+      'python3',
+      expect.arrayContaining([
+        '--report-id',
+        reportId,
+        '--apply',
+        '--force',
+      ]),
+      expect.any(Object),
     )
   })
 })
