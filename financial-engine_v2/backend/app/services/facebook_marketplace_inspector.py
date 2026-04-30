@@ -121,11 +121,7 @@ _MARKETPLACE_LISTING_EVALUATION_SCRIPT = """
     byHeading('seller information') ||
     byHeading('seller') ||
     null
-  const loginPromptVisible =
-    !!document.querySelector('input[name="email"], form[action*="login"], #loginbutton') ||
-    /log in to continue|see marketplace listings/i.test(document.body?.innerText || '')
   return {
-    login_required: loginPromptVisible,
     final_url: window.location.href || '',
     title: metaTitle,
     price: priceMatch,
@@ -185,17 +181,14 @@ def _dedupe(items: list[str]) -> list[str]:
     return out
 
 
-def _listing_requires_authenticated_session(
+def _has_listing_content(
     extracted: dict[str, object],
     *,
     final_url: str,
 ) -> bool:
-    if not bool(extracted.get("login_required")):
-        return False
-
     normalized_url = str(final_url or "").strip().lower()
     if "/marketplace/item/" not in normalized_url:
-        return True
+        return False
 
     title = _compact(extracted.get("title"))
     price = _compact(extracted.get("price"))
@@ -204,7 +197,7 @@ def _listing_requires_authenticated_session(
     description = _compact(extracted.get("description"))
     generic_title = bool(_GENERIC_MARKETPLACE_HOME_TITLE_RE.search(title))
 
-    return not (
+    return bool(
         price
         or seller_name
         or location
@@ -250,7 +243,7 @@ def _browser_unavailable_detail(cdp_url: str) -> str:
             "must be started from a graphical desktop login on the same machine, or "
             "marketplace_browser_helper.py must be running there."
         )
-    detail += " Start the browser with --remote-debugging-port=9222 and stay logged into Facebook."
+    detail += " Start the browser with --remote-debugging-port=9222."
     return detail
 
 
@@ -441,9 +434,9 @@ async def _inspect_listing_async(
                 )
 
                 final_url = str(extracted.get("final_url") or page.url or url).strip() or url
-                if _listing_requires_authenticated_session(extracted, final_url=final_url):
+                if not _has_listing_content(extracted, final_url=final_url):
                     raise RuntimeError(
-                        "marketplace_login_required: The browser session is not logged into Facebook Marketplace."
+                        "marketplace_capture_failed: No listing content was detected after loading the page."
                     )
 
                 title = _compact(extracted.get("title")) or "Facebook Marketplace listing"
@@ -534,9 +527,9 @@ async def _inspect_listing_async(
             )
 
             final_url = str(extracted.get("final_url") or page.url or url).strip() or url
-            if _listing_requires_authenticated_session(extracted, final_url=final_url):
+            if not _has_listing_content(extracted, final_url=final_url):
                 raise RuntimeError(
-                    "marketplace_login_required: The browser session is not logged into Facebook Marketplace."
+                    "marketplace_capture_failed: No listing content was detected after loading the page."
                 )
 
             title = _compact(extracted.get("title")) or "Facebook Marketplace listing"

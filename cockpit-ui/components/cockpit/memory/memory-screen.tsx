@@ -1,18 +1,32 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { useCockpitStore } from '@/lib/cockpit-store'
 
-type MemorySection = 'company' | 'sector' | 'macro' | 'strategy'
-type MemoryKind = 'company_entry' | 'sector_entry' | 'macro_entry' | 'thesis_entry' | 'thesis_proposal'
+type MemorySection = 'company' | 'sector' | 'macro' | 'strategy' | 'truth' | 'session' | 'operational'
+type MemoryKind =
+  | 'company_entry'
+  | 'sector_entry'
+  | 'macro_entry'
+  | 'thesis_entry'
+  | 'thesis_proposal'
+  | 'truth_document'
+  | 'truth_financial_period'
+  | 'truth_announcement'
+  | 'truth_risk_note'
+  | 'truth_extraction_failure'
+  | 'truth_low_confidence_financial'
+  | 'session_chat'
+  | 'operational_job'
+  | 'operational_feedback'
+  | 'operational_alert'
 type StrategyProposalType = 'create_thesis' | 'add_evidence' | 'invalidate'
 type EditableLevel = 'company' | 'sector' | 'macro' | 'strategy'
 
@@ -21,8 +35,9 @@ interface MemoryScreenProps {
 }
 
 interface MemoryPayload {
-  ticker: string
+  ticker?: string | null
   summary?: Record<string, unknown>
+  memory_levels?: Record<string, unknown>[]
   company_memory?: {
     entries?: Record<string, unknown>[]
     change_log?: Record<string, unknown>[]
@@ -42,15 +57,29 @@ interface MemoryPayload {
 interface CompanyDumpPayload {
   ticker: string
   summary?: Record<string, unknown>
+  docs?: Record<string, unknown>[]
+  financials?: Record<string, unknown>[]
+  announcement_context?: Record<string, unknown>[]
   latest_financial_snapshot?: Record<string, unknown> | null
   risk_notes?: Record<string, unknown>[]
+  extraction_failures?: Record<string, unknown>[]
+  low_confidence_financials?: Record<string, unknown>[]
   errors?: unknown[]
+}
+
+interface WorkspaceMemoryPayload {
+  chat_sessions?: Record<string, unknown>[]
+  jobs?: Record<string, unknown>[]
+  feedback_flags?: Record<string, unknown>[]
+  marketplace_alerts?: Record<string, unknown>[]
+  errors?: string[]
 }
 
 interface MemoryRow {
   key: string
   section: MemorySection
   kind: MemoryKind
+  scope: string
   entryId: number | null
   proposalId: string | null
   type: string
@@ -67,7 +96,96 @@ const SECTION_LABELS: Record<MemorySection, string> = {
   sector: 'Sector Memory',
   macro: 'Macro Memory',
   strategy: 'Strategy / Thesis Memory',
+  truth: 'Financial Truth (Docs + Financial Rows)',
+  session: 'Session Memory',
+  operational: 'Operational State',
 }
+
+const BROWSER_SECTIONS: MemorySection[] = [
+  'company',
+  'sector',
+  'macro',
+  'strategy',
+  'truth',
+  'session',
+  'operational',
+]
+
+interface BrowserGroup {
+  key: string
+  label: string
+  rows: MemoryRow[]
+}
+
+interface MemoryLevelSummary {
+  level: string
+  label: string
+  status: string
+  scope: string
+  rowCount: number | null
+  entityCount: number | null
+  source: string
+  section: MemorySection | null
+}
+
+const DEFAULT_MEMORY_LEVELS: Array<Omit<MemoryLevelSummary, 'rowCount' | 'entityCount'>> = [
+  {
+    level: 'financial_truth',
+    label: 'Financial Truth',
+    status: 'load_ticker',
+    scope: 'ticker',
+    source: 'postgres',
+    section: 'truth',
+  },
+  {
+    level: 'company',
+    label: 'Company Memory',
+    status: 'unknown',
+    scope: 'all_tickers',
+    source: 'company_memory.sqlite',
+    section: 'company',
+  },
+  {
+    level: 'sector',
+    label: 'Sector Memory',
+    status: 'unknown',
+    scope: 'all_sectors',
+    source: 'market_memory.sqlite',
+    section: 'sector',
+  },
+  {
+    level: 'macro',
+    label: 'Macro Memory',
+    status: 'unknown',
+    scope: 'macro_topics',
+    source: 'market_memory.sqlite',
+    section: 'macro',
+  },
+  {
+    level: 'strategy',
+    label: 'Strategy / Thesis Memory',
+    status: 'unknown',
+    scope: 'all_tickers',
+    source: 'user_thesis_memory.sqlite',
+    section: 'strategy',
+  },
+  {
+    level: 'session',
+    label: 'Session Memory',
+    status: 'outside_index',
+    scope: 'conversation_sessions',
+    source: 'openviking + cockpit recency',
+    section: 'session',
+  },
+  {
+    level: 'operational',
+    label: 'Operational State',
+    status: 'outside_reasoning_memory',
+    scope: 'jobs_alerts_feedback_workspace',
+    source: 'cockpit state + reports',
+    section: 'operational',
+  },
+]
 
 function asObject(value: unknown): Record<string, unknown> {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -124,18 +242,300 @@ function summarizeErrorPayload(raw: unknown): string {
   return 'Request failed'
 }
 
-function buildRows(payload: MemoryPayload): MemoryRow[] {
+function previewStatement(text: string): string {
+  const normalized = text.replace(/\s+/g, ' ').trim()
+  if (normalized.length <= 120) return normalized
+  return `${normalized.slice(0, 117)}...`
+}
+
+function displayMoney(value: unknown): string | null {
+  const parsed = asNumber(value)
+  if (parsed == null) return null
+  if (Math.abs(parsed) >= 1_000_000_000) return `${(parsed / 1_000_000_000).toFixed(2)}b`
+  if (Math.abs(parsed) >= 1_000_000) return `${(parsed / 1_000_000).toFixed(2)}m`
+  if (Math.abs(parsed) >= 1_000) return `${(parsed / 1_000).toFixed(2)}k`
+  return parsed.toFixed(2)
+}
+
+function displayCount(value: number | null): string {
+  if (value == null) return '-'
+  return String(value)
+}
+
+function displayLevelStatus(value: string): string {
+  const normalized = value.trim().toLowerCase()
+  if (normalized === 'outside_reasoning_memory') return 'ops'
+  if (normalized === 'outside_index') return 'external'
+  if (normalized === 'load_ticker') return 'ticker'
+  if (normalized === 'ticker_scoped') return 'ticker'
+  return value || 'unknown'
+}
+
+function sumCompanyDumpRows(companyDump: CompanyDumpPayload | null): number | null {
+  if (!companyDump) return null
+  const summary = asObject(companyDump.summary)
+  const keys = [
+    'doc_count',
+    'financial_period_count',
+    'announcement_context_count',
+    'risk_note_count',
+    'extraction_failure_count',
+    'low_confidence_financial_count',
+  ]
+  return keys.reduce((total, key) => total + Math.trunc(asNumber(summary[key]) ?? 0), 0)
+}
+
+function buildMemoryLevelSummaries(
+  payload: MemoryPayload | null,
+  companyDump: CompanyDumpPayload | null,
+  visibleCounts: Partial<Record<MemorySection, number>> = {},
+): MemoryLevelSummary[] {
+  const backendLevels = new Map<string, Record<string, unknown>>()
+  for (const level of asArray(payload?.memory_levels)) {
+    const key = asString(level.level).trim()
+    if (key) {
+      backendLevels.set(key, level)
+    }
+  }
+
+  const summary = asObject(payload?.summary)
+  const companyMemory = asObject(payload?.company_memory)
+  const marketMemory = asObject(payload?.market_memory)
+  const thesisMemory = asObject(payload?.user_thesis_memory)
+  const truthRows = sumCompanyDumpRows(companyDump)
+  const sectorRows =
+    asNumber(marketMemory.sector_items_total) ?? asArray(marketMemory.sector_items).length
+  const macroRows =
+    asNumber(marketMemory.macro_items_total) ?? asArray(marketMemory.macro_items).length
+  const strategyRows =
+    (asNumber(thesisMemory.entries_total) ??
+      Math.trunc(asNumber(summary.user_thesis_entry_count) ?? 0)) +
+    (asNumber(thesisMemory.proposals_total) ??
+      Math.trunc(asNumber(summary.user_thesis_proposal_count) ?? 0))
+
+  const fallbackCounts: Record<string, { rowCount: number | null; entityCount: number | null }> = {
+    financial_truth: {
+      rowCount: truthRows,
+      entityCount: companyDump ? 1 : null,
+    },
+    company: {
+      rowCount:
+        asNumber(companyMemory.entries_total) ??
+        Math.trunc(asNumber(summary.company_memory_entry_count) ?? 0),
+      entityCount: asNumber(summary.company_memory_ticker_count),
+    },
+    sector: {
+      rowCount: Math.trunc(sectorRows),
+      entityCount: asNumber(summary.market_memory_sector_count),
+    },
+    macro: {
+      rowCount: Math.trunc(macroRows),
+      entityCount: asNumber(summary.market_memory_macro_topic_count),
+    },
+    strategy: {
+      rowCount: strategyRows,
+      entityCount: asNumber(summary.user_thesis_ticker_count),
+    },
+    session: {
+      rowCount: visibleCounts.session ?? null,
+      entityCount: visibleCounts.session ?? null,
+    },
+    operational: {
+      rowCount: visibleCounts.operational ?? null,
+      entityCount: visibleCounts.operational ?? null,
+    },
+  }
+
+  return DEFAULT_MEMORY_LEVELS.map((base) => {
+    const backend = backendLevels.get(base.level) ?? {}
+    const fallback = fallbackCounts[base.level] ?? { rowCount: null, entityCount: null }
+    const rowCount = asNumber(backend.row_count) ?? fallback.rowCount
+    const entityCount = asNumber(backend.entity_count) ?? fallback.entityCount
+    return {
+      ...base,
+      label: asString(backend.label, base.label),
+      status:
+        base.level === 'financial_truth' && companyDump
+          ? 'loaded'
+          : asString(backend.status, base.status),
+      scope:
+        base.level === 'financial_truth' && companyDump
+          ? asString(companyDump.ticker, base.scope)
+          : asString(backend.scope, base.scope),
+      rowCount,
+      entityCount,
+      source: asString(backend.source, base.source),
+    }
+  })
+}
+
+function buildFinancialPeriodStatement(item: Record<string, unknown>): string {
+  const periodType = asString(item.period_type, 'period').toUpperCase()
+  const periodEnd = asString(item.period_end, '-')
+  const parts: string[] = [`${periodType} ${periodEnd}`]
+  const revenue = displayMoney(item.revenue)
+  const ebit = displayMoney(item.ebit)
+  const np = displayMoney(item.np_attributable)
+  const operatingCf = displayMoney(item.operating_cf)
+  const netDebt = displayMoney(item.net_debt)
+  if (revenue != null) parts.push(`Revenue ${revenue}`)
+  if (ebit != null) parts.push(`EBIT ${ebit}`)
+  if (np != null) parts.push(`NPAT ${np}`)
+  if (operatingCf != null) parts.push(`OpCF ${operatingCf}`)
+  if (netDebt != null) parts.push(`Net debt ${netDebt}`)
+  return parts.join(' | ')
+}
+
+function compactParts(parts: Array<string | null | undefined>): string {
+  return parts
+    .map((part) => (part ?? '').trim())
+    .filter(Boolean)
+    .join(' | ')
+}
+
+function buildWorkspaceRows(payload: WorkspaceMemoryPayload | null): MemoryRow[] {
+  const rows: MemoryRow[] = []
+
+  for (const item of asArray(payload?.chat_sessions)) {
+    const sessionId = asString(item.session_id)
+    const title = asString(item.title, sessionId || 'Untitled chat')
+    const lastMessage = asString(item.last_message)
+    const messageCount = Math.trunc(asNumber(item.message_count) ?? 0)
+    rows.push({
+      key: `session-chat:${sessionId || Math.random().toString(36).slice(2)}`,
+      section: 'session',
+      kind: 'session_chat',
+      scope: 'chat_sessions',
+      entryId: null,
+      proposalId: sessionId || null,
+      type: 'chat_session',
+      statement: compactParts([title, lastMessage]),
+      status: `${messageCount} messages`,
+      seenAt: formatTimestamp(item.updated_at),
+      signal: null,
+      confidence: null,
+      editable: false,
+    })
+  }
+
+  for (const item of asArray(payload?.jobs)) {
+    const jobId = asString(item.job_id)
+    const title = asString(item.title, asString(item.job_type, 'job'))
+    rows.push({
+      key: `operational-job:${jobId || Math.random().toString(36).slice(2)}`,
+      section: 'operational',
+      kind: 'operational_job',
+      scope: 'jobs',
+      entryId: null,
+      proposalId: jobId || null,
+      type: compactParts([asString(item.job_family), asString(item.job_type)]) || 'job',
+      statement: compactParts([
+        title,
+        asString(item.phase),
+        asString(item.summary),
+        asString(item.current_item_label),
+      ]),
+      status: asString(item.status, '-'),
+      seenAt: formatTimestamp(item.updated_at ?? item.completed_at ?? item.started_at ?? item.queued_at),
+      signal: asString(item.ticker) || null,
+      confidence: null,
+      editable: false,
+    })
+  }
+
+  for (const item of asArray(payload?.feedback_flags)) {
+    const reportId = asString(item.report_id)
+    rows.push({
+      key: `operational-feedback:${reportId || Math.random().toString(36).slice(2)}`,
+      section: 'operational',
+      kind: 'operational_feedback',
+      scope: 'feedback_flags',
+      entryId: null,
+      proposalId: reportId || null,
+      type: compactParts([asString(item.capture_kind), asString(item.feedback_type)]) || 'feedback',
+      statement: compactParts([asString(item.note), asString(item.flagged_response_excerpt)]),
+      status: asString(item.resolution_status, '-'),
+      seenAt: formatTimestamp(item.saved_at),
+      signal: asString(item.ticker) || null,
+      confidence: null,
+      editable: false,
+    })
+  }
+
+  for (const item of asArray(payload?.marketplace_alerts)) {
+    const alertId = asString(item.alert_id)
+    rows.push({
+      key: `operational-alert:${alertId || Math.random().toString(36).slice(2)}`,
+      section: 'operational',
+      kind: 'operational_alert',
+      scope: 'marketplace_alerts',
+      entryId: null,
+      proposalId: alertId || null,
+      type: compactParts([asString(item.decision_band), 'marketplace_alert']) || 'marketplace_alert',
+      statement: compactParts([
+        asString(item.match_title),
+        asString(item.trigger_reason),
+        asString(item.price),
+        asString(item.location),
+      ]),
+      status: asString(item.status, '-'),
+      seenAt: formatTimestamp(item.updated_at ?? item.created_at),
+      signal: asString(item.mission_name) || null,
+      confidence: null,
+      editable: false,
+    })
+  }
+
+  return rows
+}
+
+function groupRowsForBrowser(rows: MemoryRow[]): BrowserGroup[] {
+  const grouped = new Map<string, MemoryRow[]>()
+  for (const row of rows) {
+    const key = row.scope.trim() || 'global'
+    const bucket = grouped.get(key)
+    if (bucket) {
+      bucket.push(row)
+    } else {
+      grouped.set(key, [row])
+    }
+  }
+
+  return Array.from(grouped.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, groupRows]) => ({
+      key,
+      label: key,
+      rows: groupRows.sort((a, b) => {
+        const typeDiff = a.type.localeCompare(b.type)
+        if (typeDiff !== 0) return typeDiff
+        const leftId = a.entryId != null ? a.entryId : Number.MAX_SAFE_INTEGER
+        const rightId = b.entryId != null ? b.entryId : Number.MAX_SAFE_INTEGER
+        if (leftId !== rightId) return leftId - rightId
+        return (a.proposalId ?? '').localeCompare(b.proposalId ?? '')
+      }),
+    }))
+}
+
+function buildRows(
+  payload: MemoryPayload,
+  companyDump: CompanyDumpPayload | null,
+  workspacePayload: WorkspaceMemoryPayload | null,
+): MemoryRow[] {
   const rows: MemoryRow[] = []
   const companyMemory = asObject(payload.company_memory)
   const marketMemory = asObject(payload.market_memory)
   const thesisMemory = asObject(payload.user_thesis_memory)
+  const fallbackTicker = asString(payload.ticker, 'GLOBAL')
 
   for (const item of asArray(companyMemory.entries)) {
     const entryId = asInt(item.entry_id)
+    const ticker = asString(item.company_id, fallbackTicker)
     rows.push({
       key: `company:${entryId ?? Math.random().toString(36).slice(2)}`,
       section: 'company',
       kind: 'company_entry',
+      scope: ticker || 'GLOBAL',
       entryId,
       proposalId: null,
       type: asString(item.type, 'observed_fact'),
@@ -150,10 +550,12 @@ function buildRows(payload: MemoryPayload): MemoryRow[] {
 
   for (const item of asArray(marketMemory.sector_items)) {
     const entryId = asInt(item.entry_id)
+    const sector = asString(item.sector, asString(marketMemory.sector, 'sector'))
     rows.push({
       key: `sector:${entryId ?? Math.random().toString(36).slice(2)}`,
       section: 'sector',
       kind: 'sector_entry',
+      scope: sector || 'sector',
       entryId,
       proposalId: null,
       type: asString(item.type, 'sector_trend'),
@@ -168,10 +570,12 @@ function buildRows(payload: MemoryPayload): MemoryRow[] {
 
   for (const item of asArray(marketMemory.macro_items)) {
     const entryId = asInt(item.entry_id)
+    const macroTopic = asString(item.macro_topic, 'macro')
     rows.push({
       key: `macro:${entryId ?? Math.random().toString(36).slice(2)}`,
       section: 'macro',
       kind: 'macro_entry',
+      scope: macroTopic || 'macro',
       entryId,
       proposalId: null,
       type: asString(item.type, 'macro_theme'),
@@ -186,10 +590,12 @@ function buildRows(payload: MemoryPayload): MemoryRow[] {
 
   for (const item of asArray(thesisMemory.entries)) {
     const entryId = asInt(item.entry_id)
+    const ticker = asString(item.ticker, fallbackTicker)
     rows.push({
       key: `thesis-entry:${entryId ?? Math.random().toString(36).slice(2)}`,
       section: 'strategy',
       kind: 'thesis_entry',
+      scope: ticker || 'GLOBAL',
       entryId,
       proposalId: null,
       type: asString(item.entry_type, 'thesis'),
@@ -204,10 +610,12 @@ function buildRows(payload: MemoryPayload): MemoryRow[] {
 
   for (const item of asArray(thesisMemory.proposals)) {
     const proposalId = asString(item.proposal_id)
+    const ticker = asString(item.ticker, fallbackTicker)
     rows.push({
       key: `thesis-proposal:${proposalId || Math.random().toString(36).slice(2)}`,
       section: 'strategy',
       kind: 'thesis_proposal',
+      scope: ticker || 'GLOBAL',
       entryId: null,
       proposalId: proposalId || null,
       type: asString(item.proposal_type, 'proposal'),
@@ -220,7 +628,140 @@ function buildRows(payload: MemoryPayload): MemoryRow[] {
     })
   }
 
-  return rows
+  if (companyDump) {
+    const ticker = asString(companyDump.ticker, fallbackTicker || 'GLOBAL')
+
+    for (const item of asArray(companyDump.docs)) {
+      const documentId = asString(item.document_id)
+      const docClass = asString(item.doc_class, 'document')
+      const docSubtype = asString(item.doc_subtype)
+      const label = docSubtype ? `${docClass}/${docSubtype}` : docClass
+      rows.push({
+        key: `truth-document:${documentId || Math.random().toString(36).slice(2)}`,
+        section: 'truth',
+        kind: 'truth_document',
+        scope: 'documents',
+        entryId: null,
+        proposalId: documentId || null,
+        type: label,
+        statement: asString(item.title, '(untitled document)'),
+        status: 'available',
+        seenAt: formatTimestamp(item.published_at),
+        signal: ticker || null,
+        confidence: null,
+        editable: false,
+      })
+    }
+
+    for (const item of asArray(companyDump.financials)) {
+      const periodEnd = asString(item.period_end)
+      const periodType = asString(item.period_type)
+      rows.push({
+        key: `truth-financial:${periodType}:${periodEnd || Math.random().toString(36).slice(2)}`,
+        section: 'truth',
+        kind: 'truth_financial_period',
+        scope: 'financial_periods',
+        entryId: null,
+        proposalId: [periodType, periodEnd].filter(Boolean).join(':') || null,
+        type: 'financial_period',
+        statement: buildFinancialPeriodStatement(item),
+        status: 'available',
+        seenAt: formatTimestamp(item.period_end),
+        signal: ticker || null,
+        confidence: null,
+        editable: false,
+      })
+    }
+
+    for (const item of asArray(companyDump.announcement_context)) {
+      const documentId = asString(item.document_id)
+      const excerpt = asString(item.excerpt)
+      const title = asString(item.title, '(untitled announcement)')
+      rows.push({
+        key: `truth-announcement:${documentId || Math.random().toString(36).slice(2)}`,
+        section: 'truth',
+        kind: 'truth_announcement',
+        scope: 'announcement_context',
+        entryId: null,
+        proposalId: documentId || null,
+        type: 'announcement_context',
+        statement: excerpt || title,
+        status: 'available',
+        seenAt: formatTimestamp(item.published_at ?? item.updated_at),
+        signal: ticker || null,
+        confidence: null,
+        editable: false,
+      })
+    }
+
+    for (const item of asArray(companyDump.risk_notes)) {
+      const documentId = asString(item.document_id)
+      const summary = asString(item.risk_summary)
+      const guidance = asString(item.guidance_summary)
+      const bullets = asList(item.risk_bullets)
+        .map((value) => asString(value).trim())
+        .filter(Boolean)
+        .slice(0, 2)
+      rows.push({
+        key: `truth-risk:${documentId || Math.random().toString(36).slice(2)}`,
+        section: 'truth',
+        kind: 'truth_risk_note',
+        scope: 'risk_notes',
+        entryId: null,
+        proposalId: documentId || null,
+        type: 'risk_note',
+        statement: [summary, guidance, ...bullets].filter(Boolean).join(' | ') || '(no risk summary)',
+        status: 'available',
+        seenAt: formatTimestamp(item.published_at ?? item.updated_at),
+        signal: ticker || null,
+        confidence: null,
+        editable: false,
+      })
+    }
+
+    for (const item of asArray(companyDump.extraction_failures)) {
+      const runId = asString(item.run_id)
+      const title = asString(item.title)
+      const error = asString(item.error, '(unknown extraction error)')
+      rows.push({
+        key: `truth-extraction-failure:${runId || Math.random().toString(36).slice(2)}`,
+        section: 'truth',
+        kind: 'truth_extraction_failure',
+        scope: 'extraction_failures',
+        entryId: null,
+        proposalId: runId || null,
+        type: 'extraction_failure',
+        statement: title ? `${title}: ${error}` : error,
+        status: asString(item.status, 'failed'),
+        seenAt: formatTimestamp(item.created_at),
+        signal: ticker || null,
+        confidence: null,
+        editable: false,
+      })
+    }
+
+    for (const item of asArray(companyDump.low_confidence_financials)) {
+      const periodEnd = asString(item.period_end)
+      const periodType = asString(item.period_type)
+      rows.push({
+        key: `truth-low-confidence:${periodType}:${periodEnd || Math.random().toString(36).slice(2)}`,
+        section: 'truth',
+        kind: 'truth_low_confidence_financial',
+        scope: 'low_confidence_financials',
+        entryId: null,
+        proposalId: [periodType, periodEnd].filter(Boolean).join(':') || null,
+        type: 'low_confidence_financial',
+        statement: buildFinancialPeriodStatement(item),
+        status: 'low_confidence',
+        seenAt: formatTimestamp(item.period_end),
+        signal: ticker || null,
+        confidence: asNumber(item.confidence),
+        editable: false,
+      })
+    }
+  }
+
+  return [...rows, ...buildWorkspaceRows(workspacePayload)]
 }
 
 export function MemoryScreen({ apiKey }: MemoryScreenProps) {
@@ -230,9 +771,10 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [status, setStatus] = useState('Load a ticker to browse Tenn memory levels.')
+  const [status, setStatus] = useState('Loading persistent memory index...')
   const [memoryPayload, setMemoryPayload] = useState<MemoryPayload | null>(null)
   const [companyDump, setCompanyDump] = useState<CompanyDumpPayload | null>(null)
+  const [workspacePayload, setWorkspacePayload] = useState<WorkspaceMemoryPayload | null>(null)
   const [rows, setRows] = useState<MemoryRow[]>([])
   const [level, setLevel] = useState<EditableLevel>('company')
   const [entryType, setEntryType] = useState('')
@@ -240,6 +782,8 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
   const [strategySignal, setStrategySignal] = useState('')
   const [strategyProposalType, setStrategyProposalType] = useState<StrategyProposalType>('create_thesis')
   const [editTarget, setEditTarget] = useState<MemoryRow | null>(null)
+  const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null)
+  const initialLoadDoneRef = useRef(false)
 
   useEffect(() => {
     if (!tickerInput && activeTicker) {
@@ -255,6 +799,9 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
       sector: [],
       macro: [],
       strategy: [],
+      truth: [],
+      session: [],
+      operational: [],
     }
     for (const row of rows) {
       grouped[row.section].push(row)
@@ -267,6 +814,7 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
     if (!query) return source
     return source.filter((row) => {
       const haystack = [
+        row.scope,
         row.type,
         row.statement,
         row.status,
@@ -279,6 +827,19 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
       return haystack.includes(query)
     })
   }, [activeSection, query, rowsBySection])
+
+  useEffect(() => {
+    if (filteredRows.length === 0) {
+      if (selectedRowKey !== null) {
+        setSelectedRowKey(null)
+      }
+      return
+    }
+    if (selectedRowKey && filteredRows.some((row) => row.key === selectedRowKey)) {
+      return
+    }
+    setSelectedRowKey(filteredRows[0]?.key ?? null)
+  }, [filteredRows, selectedRowKey])
 
   const summary = asObject(memoryPayload?.summary)
   const companyDumpSummary = asObject(companyDump?.summary)
@@ -294,34 +855,61 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
     return nextHeaders
   }, [apiKey])
 
-  const loadMemory = useCallback(async () => {
-    const ticker = tickerInput.trim().toUpperCase()
-    if (!ticker) {
-      setStatus('Ticker is required.')
-      return
+  const loadWorkspaceContext = useCallback(async (): Promise<WorkspaceMemoryPayload> => {
+    const fetchItems = async (path: string): Promise<Record<string, unknown>[]> => {
+      const response = await fetch(path, {
+        cache: 'no-store',
+        headers,
+      })
+      if (!response.ok) {
+        const raw = await response.json().catch(() => null)
+        throw new Error(summarizeErrorPayload(raw) || `${path} failed (${response.status})`)
+      }
+      const payload = asObject(await response.json())
+      return asArray(payload.items)
     }
 
+    const requests = await Promise.allSettled([
+      fetchItems('/api/cockpit/chat/sessions?limit=50'),
+      fetchItems('/api/ops/jobs?limit=50'),
+      fetchItems('/api/cockpit/feedback/flags?limit=25&status=open'),
+      fetchItems('/api/cockpit/marketplace/alerts?limit=50'),
+    ])
+    const errors: string[] = []
+    const valueAt = (index: number): Record<string, unknown>[] => {
+      const result = requests[index]
+      if (!result) return []
+      if (result.status === 'fulfilled') return result.value
+      errors.push(result.reason instanceof Error ? result.reason.message : 'Workspace context request failed.')
+      return []
+    }
+
+    return {
+      chat_sessions: valueAt(0),
+      jobs: valueAt(1),
+      feedback_flags: valueAt(2),
+      marketplace_alerts: valueAt(3),
+      errors,
+    }
+  }, [headers])
+
+  const loadMemory = useCallback(async (explicitTicker?: string) => {
+    const ticker = (explicitTicker ?? tickerInput).trim().toUpperCase()
+    const scopedLoad = Boolean(ticker)
     setLoading(true)
-    setStatus(`Loading memory for ${ticker}...`)
-    setActiveTicker(ticker)
+    setStatus(scopedLoad ? `Loading memory for ${ticker}...` : 'Loading full persistent memory index...')
+    if (scopedLoad) {
+      setActiveTicker(ticker)
+    }
 
     try {
-      const [memoryResponse, dumpResponse] = await Promise.all([
-        fetch(
-          `/api/cockpit/memory?ticker=${encodeURIComponent(ticker)}&company_memory_entries_limit=500&company_memory_change_limit=300&market_memory_limit=300&user_thesis_entries_limit=250&user_thesis_proposals_limit=250`,
-          {
-            cache: 'no-store',
-            headers,
-          },
-        ),
-        fetch(
-          `/api/cockpit/memory/company-dump?ticker=${encodeURIComponent(ticker)}&docs_limit=40&financials_limit=24&announcements_limit=40&risk_notes_limit=20`,
-          {
-            cache: 'no-store',
-            headers,
-          },
-        ),
-      ])
+      const memoryPath = scopedLoad
+        ? `/api/cockpit/memory?ticker=${encodeURIComponent(ticker)}&company_memory_entries_limit=500&company_memory_change_limit=300&market_memory_limit=300&user_thesis_entries_limit=250&user_thesis_proposals_limit=250`
+        : '/api/cockpit/memory/index?company_memory_entries_limit=5000&company_memory_change_limit=2000&market_sector_limit=5000&market_macro_limit=5000&user_thesis_entries_limit=5000&user_thesis_proposals_limit=5000'
+      const memoryResponse = await fetch(memoryPath, {
+        cache: 'no-store',
+        headers,
+      })
 
       if (!memoryResponse.ok) {
         const raw = await memoryResponse.json().catch(() => null)
@@ -330,30 +918,53 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
 
       const memoryData = (await memoryResponse.json()) as MemoryPayload
       setMemoryPayload(memoryData)
-      setRows(buildRows(memoryData))
+      let dumpData: CompanyDumpPayload | null = null
+      const workspaceData = await loadWorkspaceContext()
+      setWorkspacePayload(workspaceData)
 
-      if (dumpResponse.ok) {
-        const dumpData = (await dumpResponse.json()) as CompanyDumpPayload
-        setCompanyDump(dumpData)
+      if (scopedLoad) {
+        const dumpResponse = await fetch(
+          `/api/cockpit/memory/company-dump?ticker=${encodeURIComponent(ticker)}&docs_limit=40&financials_limit=24&announcements_limit=40&risk_notes_limit=20`,
+          {
+            cache: 'no-store',
+            headers,
+          },
+        )
+
+        if (dumpResponse.ok) {
+          dumpData = (await dumpResponse.json()) as CompanyDumpPayload
+          setCompanyDump(dumpData)
+        } else {
+          setCompanyDump(null)
+        }
       } else {
         setCompanyDump(null)
       }
+      setRows(buildRows(memoryData, dumpData, workspaceData))
 
       const loadErrors = asList(memoryData.errors)
-      if (loadErrors.length > 0) {
-        setStatus(`Loaded with warnings for ${ticker}.`)
+      const workspaceErrors = workspaceData.errors ?? []
+      if (loadErrors.length > 0 || workspaceErrors.length > 0) {
+        setStatus(scopedLoad ? `Loaded with warnings for ${ticker}.` : 'Loaded full persistent memory index with warnings.')
       } else {
-        setStatus(`Loaded memory for ${ticker}.`)
+        setStatus(scopedLoad ? `Loaded memory for ${ticker}.` : 'Loaded full persistent memory index.')
       }
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Failed to load memory.')
       setMemoryPayload(null)
       setCompanyDump(null)
+      setWorkspacePayload(null)
       setRows([])
     } finally {
       setLoading(false)
     }
-  }, [headers, setActiveTicker, tickerInput])
+  }, [headers, loadWorkspaceContext, setActiveTicker, tickerInput])
+
+  useEffect(() => {
+    if (initialLoadDoneRef.current) return
+    initialLoadDoneRef.current = true
+    void loadMemory('')
+  }, [loadMemory])
 
   const submitMutation = useCallback(
     async (path: string, body: Record<string, unknown> | null) => {
@@ -444,6 +1055,9 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
   const startEdit = useCallback((row: MemoryRow) => {
     if (!row.editable) return
     setEditTarget(row)
+    if (row.section === 'company' && row.scope) {
+      setTickerInput(row.scope.toUpperCase())
+    }
     setStatement(row.statement)
     setEntryType(row.type)
     setStrategySignal(row.signal ?? '')
@@ -457,7 +1071,7 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
       setStatus('Select an editable row first.')
       return
     }
-    const ticker = tickerInput.trim().toUpperCase()
+    const ticker = (tickerInput.trim() || editTarget.scope || '').toUpperCase()
     const nextStatement = statement.trim()
     if (!ticker || !nextStatement) {
       setStatus('Ticker and statement are required.')
@@ -526,7 +1140,7 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
 
   const expireRow = useCallback(
     async (row: MemoryRow) => {
-      const ticker = tickerInput.trim().toUpperCase()
+      const ticker = (tickerInput.trim() || row.scope || '').toUpperCase()
       if (!row.entryId) {
         setStatus('Row has no entry id.')
         return
@@ -597,16 +1211,28 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
 
   const frameworkNotes = [
     'Canonical financial truth remains backend-authoritative.',
+    'Financial Truth tab is read-only and ticker-scoped (documents + structured rows).',
     'Company memory captures ticker-scoped qualitative signals.',
     'Market memory captures sector + macro qualitative signals.',
     'Strategy memory is user-thesis (proposal -> confirm -> apply).',
+    'Session memory shows recent chat-session continuity.',
+    'Operational state shows jobs, alerts, and feedback records.',
   ]
 
   const strategyEntries = rowsBySection.strategy.filter((row) => row.kind === 'thesis_entry').length
   const strategyProposals = rowsBySection.strategy.filter((row) => row.kind === 'thesis_proposal').length
 
   const memoryErrors = asList(memoryPayload?.errors)
+  const workspaceErrors = workspacePayload?.errors ?? []
   const dumpErrors = asList(companyDump?.errors)
+  const memoryLevels = useMemo(
+    () =>
+      buildMemoryLevelSummaries(memoryPayload, companyDump, {
+        session: rowsBySection.session.length,
+        operational: rowsBySection.operational.length,
+      }),
+    [companyDump, memoryPayload, rowsBySection.operational.length, rowsBySection.session.length],
+  )
 
   return (
     <div className="grid h-full min-h-0 gap-4 p-4 lg:grid-cols-[2.1fr_1fr]">
@@ -615,18 +1241,18 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
           <CardHeader className="pb-3">
             <CardTitle>Memory Workbench</CardTitle>
             <CardDescription>
-              Browse, search, edit, and add memory across company, sector, macro, and strategy levels.
+              Browse, search, edit, and add memory across persistent, financial-truth, session, and operational levels.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid gap-2 md:grid-cols-[1fr_auto_auto]">
               <Input
                 value={tickerInput}
-                placeholder="Ticker (e.g. BHP)"
+                placeholder="Ticker filter (optional, e.g. BHP)"
                 onChange={(event) => setTickerInput(event.target.value.toUpperCase())}
               />
               <Button onClick={() => void loadMemory()} disabled={loading || busy}>
-                {loading ? 'Loading…' : 'Load'}
+                {loading ? 'Loading…' : tickerInput.trim() ? 'Load Ticker' : 'Load All'}
               </Button>
               <Button variant="outline" onClick={() => void loadMemory()} disabled={loading || busy}>
                 Refresh
@@ -644,12 +1270,21 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
                 <Badge variant="outline">sector {rowsBySection.sector.length}</Badge>
                 <Badge variant="outline">macro {rowsBySection.macro.length}</Badge>
                 <Badge variant="outline">strategy {rowsBySection.strategy.length}</Badge>
+                <Badge variant="outline">truth {rowsBySection.truth.length}</Badge>
+                <Badge variant="outline">session {rowsBySection.session.length}</Badge>
+                <Badge variant="outline">ops {rowsBySection.operational.length}</Badge>
               </div>
             </div>
 
             <p className="text-xs text-muted-foreground">{status}</p>
+            <p className="text-xs text-muted-foreground/80">
+              Financial Truth context is ticker-scoped. Load a ticker to browse docs/financial rows beside persistent memory.
+            </p>
             {memoryErrors.length > 0 ? (
               <p className="text-xs text-destructive">Memory warnings: {memoryErrors.map((item) => asString(item)).join(' | ')}</p>
+            ) : null}
+            {workspaceErrors.length > 0 ? (
+              <p className="text-xs text-destructive">Workspace warnings: {workspaceErrors.join(' | ')}</p>
             ) : null}
           </CardContent>
         </Card>
@@ -750,113 +1385,169 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
         <Card className="flex min-h-0 flex-1 flex-col">
           <CardHeader className="pb-3">
             <CardTitle>Memory Levels</CardTitle>
-            <CardDescription>Each level is isolated so you can manage context Tenn can use during reasoning.</CardDescription>
+            <CardDescription>File-browser style memory navigation by level, then type, then entry.</CardDescription>
           </CardHeader>
           <CardContent className="flex min-h-0 flex-1 flex-col">
             <Tabs value={activeSection} onValueChange={(value) => setActiveSection(value as MemorySection)} className="flex min-h-0 flex-1 flex-col gap-3">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid h-auto w-full grid-cols-2 md:grid-cols-4 xl:grid-cols-7">
                 <TabsTrigger value="company">Company</TabsTrigger>
                 <TabsTrigger value="sector">Sector</TabsTrigger>
                 <TabsTrigger value="macro">Macro</TabsTrigger>
                 <TabsTrigger value="strategy">Strategy</TabsTrigger>
+                <TabsTrigger value="truth">Financial Truth</TabsTrigger>
+                <TabsTrigger value="session">Session</TabsTrigger>
+                <TabsTrigger value="operational">Operational</TabsTrigger>
               </TabsList>
 
-              {(['company', 'sector', 'macro', 'strategy'] as MemorySection[]).map((section) => (
+              {BROWSER_SECTIONS.map((section) => (
                 <TabsContent key={section} value={section} className="m-0 flex min-h-0 flex-1 flex-col">
-                  <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{SECTION_LABELS[section]}</span>
-                    <span>{section === activeSection ? `${filteredRows.length} visible` : `${rowsBySection[section].length} total`}</span>
-                  </div>
-                  <div className="min-h-0 flex-1 overflow-auto rounded-md border border-border/70">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>ID</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead className="w-[48%]">Statement</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Seen</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {(section === activeSection ? filteredRows : rowsBySection[section]).map((row) => {
-                          const statusLower = row.status.toLowerCase()
-                          return (
-                            <TableRow key={row.key}>
-                              <TableCell className="font-mono text-xs">
-                                {row.entryId != null ? row.entryId : row.proposalId ?? '-'}
-                              </TableCell>
-                              <TableCell className="text-xs">{row.type || '-'}</TableCell>
-                              <TableCell className="max-w-0 whitespace-normal text-sm">{row.statement}</TableCell>
-                              <TableCell>
-                                <Badge variant={statusLower === 'active' || statusLower === 'applied' ? 'secondary' : 'outline'}>
-                                  {row.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-xs text-muted-foreground">{row.seenAt}</TableCell>
-                              <TableCell>
-                                <div className="flex flex-wrap gap-1">
-                                  {row.editable ? (
-                                    <Button size="sm" variant="outline" onClick={() => startEdit(row)} disabled={busy || loading}>
+                  {(() => {
+                    const sectionRows = section === activeSection ? filteredRows : rowsBySection[section]
+                    const groupedRows = groupRowsForBrowser(sectionRows)
+                    const selectedRow = sectionRows.find((row) => row.key === selectedRowKey) ?? sectionRows[0] ?? null
+                    const selectedRowId =
+                      selectedRow?.entryId != null ? String(selectedRow.entryId) : selectedRow?.proposalId ?? '-'
+                    const selectedStatus = selectedRow?.status?.toLowerCase() ?? ''
+
+                    return (
+                      <>
+                        <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+                          <span>{SECTION_LABELS[section]}</span>
+                          <span>{section === activeSection ? `${sectionRows.length} visible` : `${rowsBySection[section].length} total`}</span>
+                        </div>
+                        <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[1.35fr_1fr]">
+                          <div className="min-h-0 overflow-auto rounded-md border border-border/70 p-2">
+                            {groupedRows.length > 0 ? (
+                              groupedRows.map((group) => (
+                                <details key={group.key} open className="mb-2 rounded-md border border-border/70 bg-background/50 last:mb-0">
+                                  <summary className="flex cursor-pointer items-center justify-between gap-2 px-2 py-1.5 text-xs text-muted-foreground">
+                                    <span className="font-mono">/{group.label}</span>
+                                    <Badge variant="outline">{group.rows.length}</Badge>
+                                  </summary>
+                                  <div className="space-y-1 px-2 pb-2 pt-1">
+                                    {group.rows.map((row) => {
+                                      const rowId = row.entryId != null ? String(row.entryId) : row.proposalId ?? '-'
+                                      const rowStatus = row.status.toLowerCase()
+                                      const isSelected = selectedRow?.key === row.key
+                                      return (
+                                        <button
+                                          key={row.key}
+                                          type="button"
+                                          onClick={() => {
+                                            setActiveSection(section)
+                                            setSelectedRowKey(row.key)
+                                          }}
+                                          className={`w-full rounded-md border p-2 text-left transition-colors ${
+                                            isSelected
+                                              ? 'border-primary/60 bg-primary/10'
+                                              : 'border-border/70 bg-background/70 hover:border-border hover:bg-muted/40'
+                                          }`}
+                                        >
+                                          <div className="flex items-center justify-between gap-2">
+                                            <span className="font-mono text-[11px] text-foreground/90">{rowId}</span>
+                                            <Badge variant={rowStatus === 'active' || rowStatus === 'applied' ? 'secondary' : 'outline'}>
+                                              {row.status}
+                                            </Badge>
+                                          </div>
+                                          <p className="mt-1 text-[10px] text-muted-foreground/70">{row.type}</p>
+                                          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{previewStatement(row.statement)}</p>
+                                          <p className="mt-1 text-[10px] text-muted-foreground/70">{row.seenAt}</p>
+                                        </button>
+                                      )
+                                    })}
+                                  </div>
+                                </details>
+                              ))
+                            ) : (
+                              <div className="py-6 text-center text-sm text-muted-foreground">
+                                {section === 'truth'
+                                  ? 'No Financial Truth rows loaded. Set a ticker and click Load Ticker to browse docs + structured context.'
+                                  : section === 'session'
+                                  ? 'No session memory rows found.'
+                                  : section === 'operational'
+                                  ? 'No operational state rows found.'
+                                  : 'No persistent memory rows found for this subsection.'}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="min-h-0 overflow-auto rounded-md border border-border/70 bg-background/40 p-3">
+                            {selectedRow ? (
+                              <div className="flex h-full min-h-[18rem] flex-col gap-3">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="font-mono text-xs text-muted-foreground">{selectedRowId}</span>
+                                  <Badge variant={selectedStatus === 'active' || selectedStatus === 'applied' ? 'secondary' : 'outline'}>
+                                    {selectedRow.status}
+                                  </Badge>
+                                </div>
+                                <div className="space-y-1 text-xs text-muted-foreground">
+                                  <p>Scope: {selectedRow.scope || '-'}</p>
+                                  <p>Type: {selectedRow.type || '-'}</p>
+                                  <p>Seen: {selectedRow.seenAt}</p>
+                                  <p>Signal: {selectedRow.signal ?? '-'}</p>
+                                  <p>Confidence: {selectedRow.confidence != null ? selectedRow.confidence : '-'}</p>
+                                </div>
+                                <div className="rounded-md border border-border/70 bg-background/60 p-2 text-sm whitespace-pre-wrap">
+                                  {selectedRow.statement}
+                                </div>
+                                <div className="mt-auto flex flex-wrap gap-1">
+                                  {selectedRow.editable ? (
+                                    <Button size="sm" variant="outline" onClick={() => startEdit(selectedRow)} disabled={busy || loading}>
                                       Edit
                                     </Button>
                                   ) : null}
-                                  {row.editable ? (
+                                  {selectedRow.editable ? (
                                     <Button
                                       size="sm"
                                       variant="destructive"
-                                      onClick={() => void expireRow(row)}
+                                      onClick={() => void expireRow(selectedRow)}
                                       disabled={busy || loading}
                                     >
                                       Expire
                                     </Button>
                                   ) : null}
-                                  {row.kind === 'thesis_proposal' && row.status === 'pending' && row.proposalId ? (
+                                  {selectedRow.kind === 'thesis_proposal' && selectedRow.status === 'pending' && selectedRow.proposalId ? (
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={() => void runProposalAction(row, 'confirm')}
+                                      onClick={() => void runProposalAction(selectedRow, 'confirm')}
                                       disabled={busy || loading}
                                     >
                                       Confirm
                                     </Button>
                                   ) : null}
-                                  {row.kind === 'thesis_proposal' && (row.status === 'pending' || row.status === 'confirmed') && row.proposalId ? (
+                                  {selectedRow.kind === 'thesis_proposal' &&
+                                  (selectedRow.status === 'pending' || selectedRow.status === 'confirmed') &&
+                                  selectedRow.proposalId ? (
                                     <Button
                                       size="sm"
                                       variant="destructive"
-                                      onClick={() => void runProposalAction(row, 'reject')}
+                                      onClick={() => void runProposalAction(selectedRow, 'reject')}
                                       disabled={busy || loading}
                                     >
                                       Reject
                                     </Button>
                                   ) : null}
-                                  {row.kind === 'thesis_proposal' && row.status === 'confirmed' && row.proposalId ? (
+                                  {selectedRow.kind === 'thesis_proposal' && selectedRow.status === 'confirmed' && selectedRow.proposalId ? (
                                     <Button
                                       size="sm"
                                       variant="default"
-                                      onClick={() => void runProposalAction(row, 'apply')}
+                                      onClick={() => void runProposalAction(selectedRow, 'apply')}
                                       disabled={busy || loading}
                                     >
                                       Apply
                                     </Button>
                                   ) : null}
                                 </div>
-                              </TableCell>
-                            </TableRow>
-                          )
-                        })}
-                        {(section === activeSection ? filteredRows : rowsBySection[section]).length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={6} className="py-6 text-center text-sm text-muted-foreground">
-                              No rows found for this subsection.
-                            </TableCell>
-                          </TableRow>
-                        ) : null}
-                      </TableBody>
-                    </Table>
-                  </div>
+                              </div>
+                            ) : (
+                              <div className="py-6 text-center text-sm text-muted-foreground">Select an entry to inspect or edit it.</div>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )
+                  })()}
                 </TabsContent>
               ))}
             </Tabs>
@@ -865,6 +1556,48 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
       </div>
 
       <div className="flex min-h-0 flex-col gap-4 overflow-auto">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle>Memory Level Directory</CardTitle>
+            <CardDescription>Backend-owned memory surfaces.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {memoryLevels.map((level) => (
+              <button
+                key={level.level}
+                type="button"
+                onClick={() => {
+                  if (level.section) {
+                    setActiveSection(level.section)
+                  }
+                }}
+                disabled={!level.section}
+                className={`w-full rounded-md border border-border/70 bg-background/50 p-2 text-left ${
+                  level.section ? 'hover:border-border hover:bg-muted/40' : 'cursor-default opacity-85'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{level.label}</p>
+                    <p className="truncate font-mono text-[10px] text-muted-foreground">{level.scope}</p>
+                  </div>
+                  <Badge
+                    title={level.status}
+                    variant={level.status === 'ok' || level.status === 'loaded' ? 'secondary' : 'outline'}
+                  >
+                    {displayLevelStatus(level.status)}
+                  </Badge>
+                </div>
+                <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
+                  <span>Rows {displayCount(level.rowCount)}</span>
+                  <span>Entities {displayCount(level.entityCount)}</span>
+                  <span className="truncate">{level.source}</span>
+                </div>
+              </button>
+            ))}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader className="pb-3">
             <CardTitle>Framework Context</CardTitle>
@@ -881,6 +1614,10 @@ export function MemoryScreen({ apiKey }: MemoryScreenProps) {
               <Badge variant="outline">changes: {asString(summary.company_memory_change_count, '0')}</Badge>
               <Badge variant="outline">market: {asString(summary.market_memory_item_count, '0')}</Badge>
               <Badge variant="outline">thesis: {asString(summary.user_thesis_entry_count, '0')}</Badge>
+              <Badge variant="outline">company tickers: {asString(summary.company_memory_ticker_count, '0')}</Badge>
+              <Badge variant="outline">thesis tickers: {asString(summary.user_thesis_ticker_count, '0')}</Badge>
+              <Badge variant="outline">sessions: {rowsBySection.session.length}</Badge>
+              <Badge variant="outline">ops rows: {rowsBySection.operational.length}</Badge>
             </div>
           </CardContent>
         </Card>

@@ -106,6 +106,14 @@ class ChatTickerDetectionTests(unittest.TestCase):
         self.assertIsNone(ticker)
         self.assertFalse(explicit)
 
+    def test_backend_prefix_does_not_become_ticker(self) -> None:
+        ticker, explicit = self.controller._resolve_ticker_context(
+            "/cloud news today?",
+            prior_ticker=None,
+        )
+        self.assertIsNone(ticker)
+        self.assertFalse(explicit)
+
     def test_chart_request_with_prior_ticker_uses_follow_up_context(self) -> None:
         self.controller.action_registry.preview.return_value = MagicMock(
             command=["chart", "BHP"],
@@ -159,6 +167,29 @@ class ChatTickerDetectionTests(unittest.TestCase):
             query="BHP",
             top_k=5,
             ticker="BHP",
+        )
+
+    def test_ticker_leading_price_prompt_hits_price_fast_path(self) -> None:
+        self.controller.tool_router.get_price_context_for_window.return_value = {
+            "price": {
+                "symbol": "JBH.AX",
+                "recent_history": [
+                    {"timestamp": "2026-04-17T00:00:00Z", "close": 92.15},
+                    {"timestamp": "2026-04-18T00:00:00Z", "close": 93.40},
+                ],
+            }
+        }
+
+        response = self.controller.build_chat_response("JBH price?", prior_ticker=None)
+
+        self.assertEqual(response.mode, ResponseMode.FAST)
+        self.assertIn("**JBH.AX** last close: **93.4000** (2026-04-18)", response.text)
+        self.assertNotIn("backfill", response.text.lower())
+        self.controller.ollama_client.chat.assert_not_called()
+
+    def test_fresh_web_context_detects_market_wrap_phrase(self) -> None:
+        self.assertTrue(
+            self.controller._query_signals_fresh_web_context("give me a market wrap")
         )
 
     def test_direct_ticker_news_reports_empty_corpus_cleanly(self) -> None:

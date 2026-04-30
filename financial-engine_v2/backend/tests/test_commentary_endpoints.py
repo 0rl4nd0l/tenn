@@ -361,7 +361,7 @@ class TestInspectMarketplace:
             )
         assert exc_info.value.status_code == 503
 
-    def test_login_required_maps_to_409(self, monkeypatch):
+    def test_legacy_login_required_prefix_is_not_special_cased(self, monkeypatch):
         import app.api.commentary as mod
 
         monkeypatch.setattr(
@@ -377,7 +377,7 @@ class TestInspectMarketplace:
                     url="https://www.facebook.com/marketplace/item/1234567890"
                 )
             )
-        assert exc_info.value.status_code == 409
+        assert exc_info.value.status_code == 502
 
     def test_successful_marketplace_inspect_stages_market_commentary(self, monkeypatch):
         import app.api.commentary as mod

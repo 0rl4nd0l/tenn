@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server'
 
 import { POST as postClaimVerificationRoute } from '@/app/api/cockpit/claims/verify/route'
 import { POST as postFeedbackRoute } from '@/app/api/cockpit/feedback/route'
+import { POST as postFlagFeedbackRoute } from '@/app/api/cockpit/feedback/flag/route'
 
 describe('claim verification BFF route', () => {
   afterEach(() => {
@@ -92,5 +93,61 @@ describe('response feedback BFF route', () => {
     const init = fetchMock.mock.calls[0]?.[1] as RequestInit
     expect((init.headers as Headers).get('X-API-Key')).toBe('test-key')
     expect(await response.json()).toEqual({ ok: true, feedback_id: 'fb-1' })
+  })
+})
+
+describe('flag feedback BFF route', () => {
+  afterEach(() => {
+    delete process.env.NEXT_PUBLIC_API_URL
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
+
+  it('proxies flag requests to the backend with headers and body', async () => {
+    process.env.NEXT_PUBLIC_API_URL = 'http://backend.internal:8000'
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({
+        ok: true,
+        report_id: 'flag_1',
+        codex_prompt: 'Investigate this flag.',
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const body = JSON.stringify({
+      session_id: 'session-1',
+      feedback_type: 'poor',
+      flagged_message: { role: 'assistant', content: 'Bad answer' },
+    })
+    const response = await postFlagFeedbackRoute(
+      new NextRequest('http://localhost/api/cockpit/feedback/flag', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': 'test-key',
+        },
+        body,
+      }),
+    )
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://backend.internal:8000/api/cockpit/feedback/flag',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.any(Headers),
+        body,
+        cache: 'no-store',
+      }),
+    )
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit
+    expect((init.headers as Headers).get('X-API-Key')).toBe('test-key')
+    expect(await response.json()).toEqual({
+      ok: true,
+      report_id: 'flag_1',
+      codex_prompt: 'Investigate this flag.',
+    })
   })
 })

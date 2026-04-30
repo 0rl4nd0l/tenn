@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 import threading
 import uuid
@@ -96,6 +97,92 @@ class _FakeLlmClient:
     def switch_model(self, new_model: str) -> None:
         self.switch_calls.append(new_model)
         self.model = new_model
+
+
+def test_analyze_flagged_bundle_falls_back_to_deterministic_analysis_on_llm_error() -> None:
+    service = CockpitService.__new__(CockpitService)
+    service.llm_timeout_seconds = 30.0
+
+    class _FailingLlmClient:
+        def chat(self, *_args, **_kwargs):
+            raise TimeoutError("simulated timeout")
+
+    service.llm_client = _FailingLlmClient()
+
+    analysis = CockpitService._analyze_flagged_bundle(
+        service,
+        {
+            "feedback_type": "poor",
+            "note": "answer looked stale",
+            "flagged_message": {"content": "Top movers today were ..."},
+            "backend_turn": {
+                "request": {"message": "what are the market movers today"},
+                "status_events": [{"stage": "Timed out while waiting for tool response"}],
+                "tool_traces": [{"tool_name": "search_news", "ok": False, "error": "timeout"}],
+                "tool_calls": [{"tool": "search_news"}],
+                "routing_metadata": {"source": "local"},
+            },
+            "frontend_snapshot": {"transcript": []},
+        },
+    )
+
+    assert analysis is not None
+    assert analysis["status"] == "fallback"
+    assert isinstance(analysis.get("summary"), str) and analysis["summary"]
+    assert isinstance(analysis.get("likely_failure_modes"), list)
+    assert analysis["likely_failure_modes"]
+    assert isinstance(analysis.get("evidence"), list)
+    assert any("Fallback trigger" in str(item) for item in analysis["evidence"])
+
+
+def test_finalize_flagged_report_async_persists_fallback_analysis_on_timeout(
+    tmp_path: Path,
+) -> None:
+    service = CockpitService.__new__(CockpitService)
+    service.llm_timeout_seconds = 30.0
+
+    class _FailingLlmClient:
+        def chat(self, *_args, **_kwargs):
+            raise TimeoutError("simulated timeout")
+
+    service.llm_client = _FailingLlmClient()
+
+    report_dir = tmp_path / "reports"
+    report_dir.mkdir(parents=True, exist_ok=True)
+    bundle_path = report_dir / "bundle.json"
+    summary_path = report_dir / "summary.md"
+    analysis_path = report_dir / "analysis.json"
+    bundle = {
+        "report_id": "flag_timeout",
+        "saved_at": "2026-04-22T00:00:00+00:00",
+        "feedback_type": "poor",
+        "capture_kind": "chat_feedback",
+        "session_id": "session-timeout",
+        "note": "timed out",
+        "flagged_message": {"content": "market movers looked stale"},
+        "backend_turn": {
+            "request": {"message": "market movers today"},
+            "status_events": [{"stage": "Timed out while waiting for tool response"}],
+            "tool_traces": [{"tool_name": "search_news", "ok": False, "error": "timeout"}],
+            "tool_calls": [{"tool": "search_news"}],
+        },
+        "frontend_snapshot": {"transcript": []},
+    }
+
+    CockpitService._finalize_flagged_report_async(
+        service,
+        report_id="flag_timeout",
+        bundle=bundle,
+        bundle_path=bundle_path,
+        summary_path=summary_path,
+        analysis_path=analysis_path,
+    )
+
+    assert analysis_path.exists()
+    analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
+    assert analysis["status"] == "fallback"
+    assert analysis["status"] != "llm_unavailable"
+    assert isinstance(analysis.get("likely_failure_modes"), list)
 
 
 def test_chat_stream_uses_session_thread_and_persists_turns() -> None:

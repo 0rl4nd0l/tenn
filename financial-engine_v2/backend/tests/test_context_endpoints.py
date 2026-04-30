@@ -27,6 +27,7 @@ from app.api.context import (
     create_user_thesis_proposal,
     expire_company_memory_note,
     expire_market_memory_note,
+    get_memory_index_context,
     get_memory_context,
     get_user_thesis_context,
     reject_user_thesis_proposal,
@@ -226,6 +227,74 @@ class TestGetTickerContext:
         assert result["announcement_context"] == []
         # "no such table" should NOT appear in errors — it's handled gracefully
         assert not any("announcement_context" in e for e in result["errors"])
+
+    def test_announcement_context_missing_table_uses_document_excerpt_fallback(self):
+        """Missing materialized context uses non-admin document PDF excerpts."""
+        from sqlalchemy.exc import OperationalError
+
+        db = MagicMock()
+        docs = [
+            {
+                "document_id": "admin-doc",
+                "ticker": "PPT",
+                "doc_class": "quarterly",
+                "doc_subtype": "other",
+                "published_at": "2026-04-09",
+                "title": "Appendix 3Y - G Cooper",
+                "source_url": "https://example.com/admin.pdf",
+                "pdf_path": "/tmp/admin.pdf",
+                "pdf_sha256": "abc",
+            },
+            {
+                "document_id": "sale-doc",
+                "ticker": "PPT",
+                "doc_class": "quarterly",
+                "doc_subtype": "other",
+                "published_at": "2026-03-16",
+                "title": "Sale of Wealth Management business",
+                "source_url": "https://example.com/sale.pdf",
+                "pdf_path": "/tmp/sale.pdf",
+                "pdf_sha256": "def",
+            },
+        ]
+
+        def fake_execute(sql_text, params=None):
+            sql_str = str(sql_text)
+            if "cockpit_announcement_context" in sql_str:
+                raise OperationalError(
+                    "mock", {}, Exception("no such table: cockpit_announcement_context")
+                )
+            rows = docs if "FROM documents" in sql_str and "pdf_sha256" in sql_str else []
+            row_mocks = []
+            for row in rows:
+                row_mock = MagicMock()
+                row_mock._mapping = row
+                row_mocks.append(row_mock)
+            result_mock = MagicMock()
+            result_mock.__iter__ = lambda self: iter(row_mocks)
+            return result_mock
+
+        db.execute = fake_execute
+        with patch(
+            "app.services.announcement_importance._extract_pdf_excerpt",
+            return_value="confirmed sale excerpt",
+        ):
+            result = get_ticker_context(ticker="PPT", db=db)
+
+        assert result["errors"] == []
+        assert result["announcement_context"] == [
+            {
+                "document_id": "sale-doc",
+                "ticker": "PPT",
+                "published_at": "2026-03-16",
+                "title": "Sale of Wealth Management business",
+                "pdf_path": "/tmp/sale.pdf",
+                "source_url": "https://example.com/sale.pdf",
+                "excerpt": "confirmed sale excerpt",
+                "updated_at": None,
+                "context_source": "documents_pdf_excerpt",
+            }
+        ]
 
     def test_docs_limit_clamped(self):
         """Verify limit param is passed through (FastAPI Query handles clamping)."""
@@ -481,6 +550,84 @@ class TestGetMemoryContext:
         assert result["summary"]["market_memory_sector"] == "Materials"
         assert result["summary"]["user_thesis_entry_count"] == 2
         assert result["summary"]["user_thesis_proposal_count"] == 3
+        assert [level["level"] for level in result["memory_levels"]] == [
+            "financial_truth",
+            "company",
+            "sector",
+            "macro",
+            "strategy",
+            "session",
+            "operational",
+        ]
+        assert result["memory_levels"][0]["status"] == "ticker_scoped"
+        assert result["errors"] == []
+
+
+class TestGetMemoryIndexContext:
+    def test_memory_index_loads_all_persistent_memory(self):
+        with (
+            patch(
+                "app.api.context._load_company_memory_index",
+                return_value=(
+                    {
+                        "entries": [{"entry_id": 1, "company_id": "BHP"}],
+                        "change_log": [{"change_id": 2}],
+                        "entries_total": 10,
+                        "change_log_total": 4,
+                        "ticker_count": 3,
+                    },
+                    None,
+                ),
+            ),
+            patch(
+                "app.api.context._load_market_memory_index",
+                return_value=(
+                    {
+                        "items": [{"entry_id": 5}],
+                        "items_total": 7,
+                        "sector_count": 2,
+                        "macro_topic_count": 4,
+                    },
+                    None,
+                ),
+            ),
+            patch(
+                "app.api.context._load_user_thesis_memory_index",
+                return_value=(
+                    {
+                        "entries": [{"entry_id": 9, "ticker": "BHP"}],
+                        "proposals": [{"proposal_id": "thp_1"}],
+                        "entries_total": 6,
+                        "proposals_total": 8,
+                        "ticker_count": 2,
+                    },
+                    None,
+                ),
+            ),
+        ):
+            result = get_memory_index_context()
+
+        assert result["ticker"] is None
+        assert result["summary"]["company_memory_entry_count"] == 10
+        assert result["summary"]["company_memory_change_count"] == 4
+        assert result["summary"]["company_memory_ticker_count"] == 3
+        assert result["summary"]["market_memory_item_count"] == 7
+        assert result["summary"]["market_memory_sector_count"] == 2
+        assert result["summary"]["market_memory_macro_topic_count"] == 4
+        assert result["summary"]["user_thesis_entry_count"] == 6
+        assert result["summary"]["user_thesis_proposal_count"] == 8
+        assert result["summary"]["user_thesis_ticker_count"] == 2
+        assert [level["level"] for level in result["memory_levels"]] == [
+            "financial_truth",
+            "company",
+            "sector",
+            "macro",
+            "strategy",
+            "session",
+            "operational",
+        ]
+        assert result["memory_levels"][0]["status"] == "load_ticker"
+        assert result["memory_levels"][4]["row_count"] == 14
         assert result["errors"] == []
 
 

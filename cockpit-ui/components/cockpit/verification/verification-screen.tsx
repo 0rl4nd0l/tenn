@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import {
+  ApiError,
   createExtractionReviewSession,
   getExtractionReviewErrors,
   getExtractionReviewRunStatus,
@@ -109,6 +110,7 @@ export function VerificationScreen() {
   const [attachedRunMetadataByDocumentId, setAttachedRunMetadataByDocumentId] = useState<Record<string, ActiveExtractionMonitorRun>>({})
   const [runStatus, setRunStatus] = useState<ExtractionReviewRunStatusResponse | null>(null)
   const [runStatuses, setRunStatuses] = useState<Record<string, ExtractionReviewRunStatusResponse>>({})
+  const [unavailableRunStatusIds, setUnavailableRunStatusIds] = useState<Set<string>>(new Set())
   const [runStatusLoading, setRunStatusLoading] = useState(false)
 
   const [goldLimit, setGoldLimit] = useState('10')
@@ -128,10 +130,43 @@ export function VerificationScreen() {
   const documentLoadLockRef = useRef(false)
   const recentRunsLoadLockRef = useRef(false)
   const reviewActionLockRef = useRef(false)
+  const unavailableRunStatusIdsRef = useRef<Set<string>>(new Set())
+  const pendingRunStatusIdsRef = useRef<Set<string>>(new Set())
 
-  const handleLoadDocuments = useCallback(async () => {
+  const markRunStatusUnavailable = useCallback((runId: string) => {
+    if (!runId) return
+    unavailableRunStatusIdsRef.current.add(runId)
+    setUnavailableRunStatusIds((current) => {
+      if (current.has(runId)) return current
+      const next = new Set(current)
+      next.add(runId)
+      return next
+    })
+  }, [])
+
+  const loadRunStatus = useCallback(async (runId: string): Promise<ExtractionReviewRunStatusResponse | null> => {
+    if (!runId || unavailableRunStatusIdsRef.current.has(runId)) return null
+    if (pendingRunStatusIdsRef.current.has(runId)) return null
+    pendingRunStatusIdsRef.current.add(runId)
+    try {
+      return await getExtractionReviewRunStatus(runId, 200)
+    } catch (err: unknown) {
+      const status = err instanceof ApiError
+        ? err.status
+        : (typeof err === 'object' && err !== null && 'status' in err ? Number((err as { status?: unknown }).status) : null)
+      if (status === 404) {
+        markRunStatusUnavailable(runId)
+        return null
+      }
+      throw err
+    } finally {
+      pendingRunStatusIdsRef.current.delete(runId)
+    }
+  }, [markRunStatusUnavailable])
+
+  const handleLoadDocuments = useCallback(async (tickerOverride?: string) => {
     if (documentLoadLockRef.current) return
-    const cleanTicker = ticker.trim().toUpperCase()
+    const cleanTicker = (typeof tickerOverride === 'string' ? tickerOverride : ticker).trim().toUpperCase()
     if (!cleanTicker) {
       setReviewError('Ticker is required to load review documents.')
       return
@@ -144,6 +179,7 @@ export function VerificationScreen() {
       const parsedLimit = Number.parseInt(docsLimit, 10)
       const docs = await getTickerDocuments(cleanTicker, Number.isFinite(parsedLimit) ? parsedLimit : 10)
       const runsPayload = await getExtractionReviewRuns(cleanTicker, 20)
+      setTicker(cleanTicker)
       setDocuments(docs)
       setRecentRuns(runsPayload.items)
       const defaultDoc = docs[0]?.document_id ?? ''
@@ -193,11 +229,9 @@ export function VerificationScreen() {
   }, [ticker])
 
   const handleSelectHistoryTicker = useCallback((historyTicker: string) => {
-    setTicker(historyTicker)
-    // Switching ticker should trigger a document load for that company
-    setTimeout(() => {
-      void handleLoadDocuments()
-    }, 10)
+    const cleanTicker = historyTicker.trim().toUpperCase()
+    setTicker(cleanTicker)
+    void handleLoadDocuments(cleanTicker)
   }, [handleLoadDocuments])
 
   useEffect(() => {
@@ -322,22 +356,25 @@ export function VerificationScreen() {
     const responses = await Promise.all(
       Object.entries(runIdsByDocumentId).map(async ([documentId, runId]) => {
         try {
-          return [documentId, await getExtractionReviewRunStatus(runId, 200)] as const
+          const status = await loadRunStatus(runId)
+          return status ? ([documentId, status] as const) : null
         } catch {
           return null
         }
       }),
     )
 
+    const foundResponses = responses.filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+    if (foundResponses.length === 0) return
+
     setRunStatuses((current) => {
       const next = { ...current }
-      for (const entry of responses) {
-        if (!entry) continue
+      for (const entry of foundResponses) {
         next[entry[0]] = entry[1]
       }
       return next
     })
-  }, [])
+  }, [loadRunStatus])
 
   useEffect(() => {
     if (!hasHydrated || typeof window === 'undefined') return
@@ -404,7 +441,9 @@ export function VerificationScreen() {
   useEffect(() => {
     const activeEntries = Object.entries(activeRunIdsByDocumentId).filter(([documentId, runId]) => {
       const status = runStatuses[documentId]?.summary?.status
-      return Boolean(runId) && !['succeeded', 'failed', 'blocked'].includes(String(status || ''))
+      return Boolean(runId)
+        && !unavailableRunStatusIds.has(runId)
+        && !['succeeded', 'failed', 'blocked'].includes(String(status || ''))
     })
     if (activeEntries.length === 0) return
 
@@ -413,17 +452,19 @@ export function VerificationScreen() {
       const responses = await Promise.all(
         activeEntries.map(async ([documentId, runId]) => {
           try {
-            return [documentId, await getExtractionReviewRunStatus(runId, 200)] as const
+            const status = await loadRunStatus(runId)
+            return status ? ([documentId, status] as const) : null
           } catch {
             return null
           }
         }),
       )
       if (cancelled) return
+      const foundResponses = responses.filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+      if (foundResponses.length === 0) return
       setRunStatuses((current) => {
         const next = { ...current }
-        for (const entry of responses) {
-          if (!entry) continue
+        for (const entry of foundResponses) {
           next[entry[0]] = entry[1]
         }
         return next
@@ -439,7 +480,7 @@ export function VerificationScreen() {
       cancelled = true
       window.clearInterval(interval)
     }
-  }, [activeRunIdsByDocumentId, runStatuses])
+  }, [activeRunIdsByDocumentId, loadRunStatus, runStatuses, unavailableRunStatusIds])
 
   const moveReviewSelection = useCallback((direction: 'prev' | 'next') => {
     if (currentReviewIndex < 0) return
@@ -486,7 +527,7 @@ export function VerificationScreen() {
 
   const failedChecksCount = useMemo(() => results?.filter((r) => !r.passed).length ?? 0, [results])
 
-  const runSelectedDocumentExtractions = useCallback(async (): Promise<{
+  const runSelectedDocumentExtractions = useCallback(async (documentIds = selectedReviewDocumentIds): Promise<{
     queuedIds: string[]
     failedRuns: string[]
     runIds: string[]
@@ -499,7 +540,7 @@ export function VerificationScreen() {
     const runIdsByDocumentId: Record<string, string> = {}
     const results: ProcessDocumentResponse[] = []
 
-    for (const documentId of selectedReviewDocumentIds) {
+    for (const documentId of documentIds) {
       const result = await processDocument({
         documentId,
         method: extractionMethod,
@@ -575,7 +616,7 @@ export function VerificationScreen() {
     persistActiveRuns,
     refreshRunStatuses,
     runSelectedDocumentExtractions,
-    selectedReviewDocumentIds.length,
+    selectedReviewDocumentIds,
     strictMethod,
   ])
 
@@ -617,9 +658,10 @@ export function VerificationScreen() {
       .finally(() => setVerificationHistoryLoading(false))
   }, [])
 
-  const handleInspectSelectedRun = useCallback(async () => {
+  const handleInspectSelectedRun = useCallback(async (runIdOverride?: string) => {
     if (reviewActionLockRef.current) return
-    if (!selectedRunId) {
+    const runId = (typeof runIdOverride === 'string' ? runIdOverride : selectedRunId).trim()
+    if (!runId) {
       setReviewError('Select a recent run first.')
       return
     }
@@ -627,14 +669,14 @@ export function VerificationScreen() {
     reviewActionLockRef.current = true
     setReviewError(null)
     setReviewActionLoading(true)
-    beginReviewSessionSwap(`Loading review session for run ${selectedRunId.slice(0, 12)}...`)
+    beginReviewSessionSwap(`Loading review session for run ${runId.slice(0, 12)}...`)
     try {
-      const session = await createExtractionReviewSession({ runIds: [selectedRunId] })
+      const session = await createExtractionReviewSession({ runIds: [runId] })
       setReviewSession(session)
       setSelectedReviewItemId(session.items[0]?.item_id ?? null)
       setReviewSessionLoadingMessage(null)
       await loadWrongQueue()
-      toast.success(`Loaded historical run ${selectedRunId.slice(0, 12)}`)
+      toast.success(`Loaded historical run ${runId.slice(0, 12)}`)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to inspect selected run'
       setReviewError(message)
@@ -649,10 +691,7 @@ export function VerificationScreen() {
   const handleSelectHistoryRun = useCallback((runId: string) => {
     setSelectedRunId(runId)
     updateTab('runs')
-    // Trigger inspection to load review items so they appear below the timeline
-    setTimeout(() => {
-      void handleInspectSelectedRun()
-    }, 50)
+    void handleInspectSelectedRun(runId)
   }, [handleInspectSelectedRun, updateTab])
 
   const handleSelectRunGroup = useCallback(async (runIds: string[]) => {
@@ -682,9 +721,10 @@ export function VerificationScreen() {
     }
   }, [beginReviewSessionSwap, loadWrongQueue, updateTab])
 
-  const handleLoadReview = useCallback(async () => {
+  const handleLoadReview = useCallback(async (documentIds?: string[]) => {
     if (reviewActionLockRef.current) return
-    if (selectedReviewDocumentIds.length === 0) {
+    const targetDocumentIds = Array.isArray(documentIds) ? documentIds : selectedReviewDocumentIds
+    if (targetDocumentIds.length === 0) {
       setReviewError('Select one document or enter document IDs first.')
       return
     }
@@ -694,7 +734,7 @@ export function VerificationScreen() {
     setReviewActionLoading(true)
     beginReviewSessionSwap('Loading a fresh review session for the selected document set...')
     try {
-      const { queuedIds, failedRuns, runIds, runIdsByDocumentId } = await runSelectedDocumentExtractions()
+      const { queuedIds, failedRuns, runIds, runIdsByDocumentId } = await runSelectedDocumentExtractions(targetDocumentIds)
       if (Object.keys(runIdsByDocumentId).length > 0) {
         const next = { ...activeRunIdsByDocumentId, ...runIdsByDocumentId }
         persistActiveRuns(next)
@@ -746,7 +786,7 @@ export function VerificationScreen() {
     persistActiveRuns,
     refreshRunStatuses,
     runSelectedDocumentExtractions,
-    selectedReviewDocumentIds.length,
+    selectedReviewDocumentIds,
   ])
 
   const handleInspectResult = useCallback((result: VerificationResult) => {
@@ -760,15 +800,16 @@ export function VerificationScreen() {
         || reviewItems.some((item) => item.document_id === result.document_id)
 
       if (!isDocInSession) {
+        const nextDocumentIds = parseDocumentIds(extraDocumentIds)
+        if (!nextDocumentIds.includes(result.document_id)) {
+          nextDocumentIds.unshift(result.document_id)
+        }
         setExtraDocumentIds((current) => {
           const existing = parseDocumentIds(current)
           if (existing.includes(result.document_id!)) return current
           return existing.length > 0 ? `${current}, ${result.document_id}` : result.document_id!
         })
-        // Delay slightly to allow state to propagate before loading the review session.
-        setTimeout(() => {
-          void handleLoadReview()
-        }, 50)
+        void handleLoadReview(nextDocumentIds)
       }
     }
 
@@ -782,7 +823,7 @@ export function VerificationScreen() {
     }
 
     toast.info(`Inspecting ${result.metric}. Review evidence for ${result.document_id ? result.document_id.slice(0, 12) : 'the document'}...`)
-  }, [handleLoadReview, reviewItems, reviewSession, updateTab])
+  }, [extraDocumentIds, handleLoadReview, reviewItems, reviewSession, updateTab])
 
   const handleRunGoldEval = useCallback(async () => {
     setGoldEvalLoading(true)
@@ -906,10 +947,15 @@ export function VerificationScreen() {
       setRunStatus(null)
       return
     }
+    if (unavailableRunStatusIds.has(activeRunId)) {
+      setRunStatus(null)
+      setRunStatusLoading(false)
+      return
+    }
 
     let cancelled = false
     setRunStatusLoading(true)
-    void getExtractionReviewRunStatus(activeRunId, 200)
+    void loadRunStatus(activeRunId)
       .then((payload) => {
         if (!cancelled) {
           setRunStatus(payload)
@@ -930,7 +976,7 @@ export function VerificationScreen() {
     return () => {
       cancelled = true
     }
-  }, [activeRunId])
+  }, [activeRunId, loadRunStatus, unavailableRunStatusIds])
 
   useEffect(() => {
     if (activeTab !== 'review' || !currentReviewItem) return

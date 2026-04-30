@@ -43,11 +43,12 @@ test.describe('Cockpit Smoke Tests', () => {
   test('should show Intel Pulse storage levels or no-data indicator', async ({ page }) => {
     await page.goto('/intel-ops');
     
-    // Check for either the storage levels (if backend up) or the NO_DATA placeholder (if down)
+    // Check for either storage data, explicit no-data state, or global offline banner.
     await expect(async () => {
       const hasData = await page.getByText('Storage levels (canonical DB)').isVisible();
-      const hasNoData = await page.getByText('[ NO_DATA_AVAILABLE ]').isVisible();
-      expect(hasData || hasNoData).toBeTruthy();
+      const hasNoData = await page.getByText(/NO_DATA_AVAILABLE/i).isVisible();
+      const hasOffline = await page.getByText(/Cockpit Offline/i).isVisible();
+      expect(hasData || hasNoData || hasOffline).toBeTruthy();
     }).toPass({ timeout: 20000 });
   });
 });

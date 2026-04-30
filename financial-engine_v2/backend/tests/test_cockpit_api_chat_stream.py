@@ -186,7 +186,7 @@ def test_cockpit_chat_stream_allows_good_morning_without_sources(monkeypatch) ->
     assert done_events[-1]["data"]["text"] == "Good morning. How can I help?"
 
 
-def test_cockpit_chat_stream_allows_market_update_command_phrase_without_sources(
+def test_cockpit_chat_stream_blocks_market_update_command_phrase_without_sources(
     monkeypatch,
 ) -> None:
     class FakeService:
@@ -236,7 +236,62 @@ def test_cockpit_chat_stream_allows_market_update_command_phrase_without_sources
     ]
     done_events = [event for event in data_events if event.get("type") == "done"]
     assert done_events
-    assert done_events[-1]["data"]["text"] == "No market-update reports found."
+    assert "can't verify that from current evidence" in done_events[-1]["data"]["text"].lower()
+    assert not [event for event in data_events if event.get("type") == "sources"]
+
+
+def test_cockpit_chat_stream_preserves_explicit_unverified_without_claims(
+    monkeypatch,
+) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="I can't verify that from current evidence yet.",
+                evidence=[],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 111,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "fgr price", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    assert done_events
+    assert done_events[-1]["data"]["text"] == "I can't verify that from current evidence yet."
+    assert "Sources dropdown" not in done_events[-1]["data"]["text"]
     assert not [event for event in data_events if event.get("type") == "sources"]
 
 
@@ -373,6 +428,278 @@ def test_cockpit_chat_stream_emits_sources_when_evidence_is_renderable(monkeypat
     assert items[0]["url"] == "https://example.com/bhp-update"
 
 
+def test_cockpit_chat_stream_financial_truth_sources_satisfy_source_contract(monkeypatch) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="BHP reported revenue in the latest annual period.",
+                evidence=[
+                    {
+                        "type": "orchestrator",
+                        "details": {
+                            "financial_truth": {
+                                "financials": [
+                                    {
+                                        "ticker": "BHP",
+                                        "period_type": "annual",
+                                        "period_end": "2025-06-30",
+                                        "revenue": 55100,
+                                        "source_document_id": "doc-bhp-fy25",
+                                    }
+                                ]
+                            }
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 123,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "what did BHP report?", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    source_events = [event for event in data_events if event.get("type") == "sources"]
+
+    assert done_events[-1]["data"]["text"] == "BHP reported revenue in the latest annual period."
+    assert source_events
+    assert source_events[-1]["data"]["items"][0]["document_id"] == "doc-bhp-fy25"
+
+
+def test_cockpit_chat_stream_youtube_recent_videos_emit_sources(monkeypatch) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text=(
+                    "Recent videos from Kneppy Invests (UCabc123):\n"
+                    "1. BHP quarterly results breakdown | 2026-04-28T00:00:00Z\n"
+                    "   https://www.youtube.com/watch?v=vid123"
+                ),
+                evidence=[
+                    {
+                        "tool": "check_youtube_channel_recent_videos",
+                        "arguments": {"channel_name": "Kneppy Invests"},
+                        "result": {
+                            "ok": True,
+                            "name": "Kneppy Invests",
+                            "channel_id": "UCabc123",
+                            "videos": [
+                                {
+                                    "video_id": "vid123",
+                                    "title": "BHP quarterly results breakdown",
+                                    "published_at": "2026-04-28T00:00:00Z",
+                                    "webpage_url": "https://www.youtube.com/watch?v=vid123",
+                                }
+                            ],
+                        },
+                    }
+                ],
+                action_preview=None,
+                mode="command",
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 123,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "check youtube Kneppy Invests for recent videos", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    source_events = [event for event in data_events if event.get("type") == "sources"]
+
+    assert done_events[-1]["data"]["text"].startswith("Recent videos from Kneppy Invests")
+    assert source_events
+    assert source_events[-1]["data"]["items"][0]["source_id"] == "youtube:vid123"
+
+
+def test_cockpit_chat_stream_search_news_zero_hit_allows_pure_no_hit_response(monkeypatch) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="No news results were returned for BHP.",
+                evidence=[
+                    {
+                        "tool": "search_news",
+                        "result": {
+                            "query": "BHP news",
+                            "ticker": "BHP",
+                            "hit_count": 0,
+                            "hits": [],
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 123,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "BHP news", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    source_events = [event for event in data_events if event.get("type") == "sources"]
+
+    assert done_events[-1]["data"]["text"] == "No news results were returned for BHP."
+    assert source_events[-1]["data"]["items"][0]["source_id"] == "search_news:no_hits:bhp news"
+
+
+def test_cockpit_chat_stream_search_news_zero_hit_does_not_support_claims(monkeypatch) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="BHP reported stronger revenue today.",
+                evidence=[
+                    {
+                        "tool": "search_news",
+                        "result": {
+                            "query": "BHP news",
+                            "ticker": "BHP",
+                            "hit_count": 0,
+                            "hits": [],
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 123,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "BHP news", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+
+    assert "can't verify that from current evidence" in done_events[-1]["data"]["text"].lower()
+
+
 def test_cockpit_chat_stream_tv_screener_evidence_satisfies_source_contract(monkeypatch) -> None:
     class FakeService:
         def chat_stream(
@@ -442,6 +769,70 @@ def test_cockpit_chat_stream_tv_screener_evidence_satisfies_source_contract(monk
     assert source_events[-1]["data"]["items"][0]["source_id"] == "tv_screener:AUSTRALIA:ASX:BHP"
 
 
+def test_cockpit_chat_stream_tv_screener_empty_result_still_emits_source_item(monkeypatch) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="No high-conviction movers were returned.",
+                evidence=[
+                    {
+                        "tool": "tv_screener",
+                        "result": {
+                            "market": "australia",
+                            "count": 0,
+                            "results": [],
+                        },
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 121,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "what are some market movers today", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    source_events = [event for event in data_events if event.get("type") == "sources"]
+
+    assert done_events
+    assert done_events[-1]["data"]["text"] == "No high-conviction movers were returned."
+    assert source_events
+    assert source_events[-1]["data"]["items"][0]["source_id"] == "tv_screener:AUSTRALIA"
+
+
 def test_cockpit_chat_stream_done_event_preserves_model_metadata(monkeypatch) -> None:
     class FakeService:
         def chat_stream(
@@ -494,13 +885,6 @@ def test_cockpit_chat_stream_done_event_preserves_model_metadata(monkeypatch) ->
 
 
 def test_cockpit_chat_stream_done_event_preserves_provider_error(monkeypatch) -> None:
-    provider_error = {
-        "provider": "anthropic",
-        "code": "billing_insufficient_credit",
-        "severity": "action_required",
-        "message": "Top up Anthropic credits in Plans & Billing.",
-    }
-
     class FakeService:
         def chat_stream(
             self,
@@ -513,15 +897,20 @@ def test_cockpit_chat_stream_done_event_preserves_provider_error(monkeypatch) ->
             **kwargs,
         ):
             return SimpleNamespace(
-                text="API billing failed.",
+                text="Claude API billing failed.",
                 evidence=[],
                 action_preview=None,
                 routing_metadata={
                     "model": "claude-sonnet-test",
-                    "latency_ms": 0,
+                    "latency_ms": 222,
                     "cost_usd": 0.0,
                     "source": "api",
-                    "provider_error": provider_error,
+                    "provider_error": {
+                        "provider": "anthropic",
+                        "code": "billing_insufficient_credit",
+                        "severity": "action_required",
+                        "message": "Top up Anthropic credits in Plans & Billing.",
+                    },
                 },
                 tool_traces=[],
             )
@@ -537,7 +926,7 @@ def test_cockpit_chat_stream_done_event_preserves_provider_error(monkeypatch) ->
     with client.stream(
         "POST",
         "/api/cockpit/chat",
-        json={"message": "/cloud tell me about BHP", "stream": True},
+        json={"message": "/cloud hello", "stream": True},
     ) as response:
         assert response.status_code == 200
         body = "".join(response.iter_text())
@@ -548,13 +937,11 @@ def test_cockpit_chat_stream_done_event_preserves_provider_error(monkeypatch) ->
         if line.startswith("data: ")
     ]
     done_events = [event for event in data_events if event.get("type") == "done"]
-
-    assert done_events[-1]["data"]["provider_error"]["provider"] == "anthropic"
-    assert (
-        done_events[-1]["data"]["provider_error"]["code"]
-        == "billing_insufficient_credit"
-    )
-    assert done_events[-1]["data"]["provider_error"]["severity"] == "action_required"
+    assert done_events
+    provider_error = done_events[-1]["data"]["provider_error"]
+    assert provider_error["provider"] == "anthropic"
+    assert provider_error["code"] == "billing_insufficient_credit"
+    assert provider_error["severity"] == "action_required"
 
 
 def test_cockpit_chat_non_stream_uses_to_thread(monkeypatch) -> None:
@@ -727,6 +1114,86 @@ def test_cockpit_chat_stream_emits_filestats_chart_event(monkeypatch) -> None:
     assert done_events[-1]["data"].get("chart") is not None
 
 
+def test_cockpit_chat_stream_emits_holdings_chart_event(monkeypatch) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="Portfolio overview (3 holdings)",
+                evidence=[
+                    {
+                        "type": "holdings",
+                        "details": [
+                            {
+                                "holding_id": "h1",
+                                "ticker": "BHP",
+                                "market_value": 12000.0,
+                                "price_currency": "AUD",
+                            },
+                            {
+                                "holding_id": "h2",
+                                "ticker": "CBA",
+                                "market_value": 8000.0,
+                                "price_currency": "AUD",
+                            },
+                            {
+                                "holding_id": "h3",
+                                "ticker": "CSL",
+                                "market_value": 5000.0,
+                                "price_currency": "AUD",
+                            },
+                        ],
+                    }
+                ],
+                action_preview=None,
+                routing_metadata={
+                    "model": "gpt-oss-20b",
+                    "latency_ms": 123,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "what are my holdings", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    chart_events = [event for event in data_events if event.get("type") == "chart"]
+    assert chart_events, body
+    assert chart_events[-1]["data"]["title"].startswith("Holdings allocation")
+    assert "Portfolio Allocation" in chart_events[-1]["data"]["html"]
+
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    assert done_events, body
+    assert done_events[-1]["data"].get("chart") is not None
+
+
 def test_cockpit_feedback_flag_route_returns_saved_artifact_info(monkeypatch) -> None:
     class FakeService:
         def flag_chat_feedback(self, **kwargs):
@@ -749,8 +1216,9 @@ def test_cockpit_feedback_flag_route_returns_saved_artifact_info(monkeypatch) ->
                 "analysis_summary": "The answer appears to have ignored the retrieved evidence.",
             }
 
-        def list_flagged_reports(self, limit):
+        def list_flagged_reports(self, limit, status):
             assert limit == 5
+            assert status == "open"
             return [
                 {
                     "report_id": "flag_20260409_abc123",
@@ -820,12 +1288,15 @@ def test_cockpit_feedback_flag_route_returns_saved_artifact_info(monkeypatch) ->
         payload["analysis_summary"]
         == "The answer appears to have ignored the retrieved evidence."
     )
+    assert payload["resolution_status"] == "open"
+    assert payload["resolution_commit_sha"] is None
 
 
 def test_cockpit_feedback_flag_list_route_returns_recent_flags(monkeypatch) -> None:
     class FakeService:
-        def list_flagged_reports(self, limit):
+        def list_flagged_reports(self, limit, status):
             assert limit == 5
+            assert status == "open"
             return [
                 {
                     "report_id": "flag_20260409_abc123",
@@ -860,6 +1331,34 @@ def test_cockpit_feedback_flag_list_route_returns_recent_flags(monkeypatch) -> N
     assert payload["items"][0]["report_id"] == "flag_20260409_abc123"
     assert payload["items"][0]["feedback_type"] == "poor"
     assert payload["items"][0]["capture_kind"] == "chat_feedback"
+    assert payload["items"][0]["resolution_status"] == "open"
+
+
+def test_cockpit_feedback_flag_list_route_accepts_resolved_status_filter(
+    monkeypatch,
+) -> None:
+    class FakeService:
+        def list_flagged_reports(self, limit, status):
+            assert limit == 5
+            assert status == "resolved"
+            return []
+
+    async def _fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+    monkeypatch.setattr(asyncio, "to_thread", _fake_to_thread)
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.get("/api/cockpit/feedback/flags?limit=5&status=resolved")
+
+    assert response.status_code == 200
+    assert response.json()["items"] == []
 
 
 def test_cockpit_feedback_flag_read_route_returns_flag_payload(monkeypatch) -> None:
@@ -900,6 +1399,54 @@ def test_cockpit_feedback_flag_read_route_returns_flag_payload(monkeypatch) -> N
     assert payload["feedback_type"] == "poor"
     assert payload["capture_kind"] == "chat_feedback"
     assert payload["bundle"]["ticker"] == "BHP"
+    assert payload["resolution_status"] == "open"
+
+
+def test_cockpit_feedback_flag_resolve_route_persists_commit_sha(monkeypatch) -> None:
+    class FakeService:
+        def resolve_flagged_report(self, report_id, *, commit_sha, resolved_by, note):
+            assert report_id == "flag_20260409_abc123"
+            assert commit_sha == "abc1234"
+            assert resolved_by == "codex"
+            assert note == "fixed prompt guard"
+            return {
+                "ok": True,
+                "report_id": "flag_20260409_abc123",
+                "resolution_status": "resolved",
+                "resolved_at": "2026-04-22T10:00:00+00:00",
+                "resolution_commit_sha": "abc1234",
+                "resolved_by": "codex",
+                "summary_path": "/tmp/reports/cockpit/flagged_sessions/session-123/flag_20260409_abc123/summary.md",
+                "read_api_path": "/api/cockpit/feedback/flags/flag_20260409_abc123",
+            }
+
+    async def _fake_to_thread(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+    monkeypatch.setattr(asyncio, "to_thread", _fake_to_thread)
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/feedback/flags/flag_20260409_abc123/resolve",
+        json={
+            "commit_sha": "abc1234",
+            "resolved_by": "codex",
+            "note": "fixed prompt guard",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["report_id"] == "flag_20260409_abc123"
+    assert payload["resolution_status"] == "resolved"
+    assert payload["resolution_commit_sha"] == "abc1234"
+    assert payload["resolved_by"] == "codex"
 
 
 def test_cockpit_feedback_flag_route_supports_good_feedback(monkeypatch) -> None:
@@ -1076,9 +1623,22 @@ def test_flag_chat_feedback_persists_before_background_analysis(tmp_path) -> Non
     bundle_path = Path(result["bundle_path"])
     summary_path = Path(result["summary_path"])
     analysis_path = Path(result["analysis_path"])
+    prompt_path = Path(result["codex_prompt_path"])
+    investigation_path = Path(result["investigation_path"])
     assert bundle_path.exists()
     assert summary_path.exists()
     assert not analysis_path.exists()
+    assert prompt_path.exists()
+    assert investigation_path.exists()
+    assert prompt_path.read_text(encoding="utf-8").strip() == result["codex_prompt"]
+    investigation = json.loads(investigation_path.read_text(encoding="utf-8"))
+    assert result["investigation_status"] == "queued"
+    assert investigation["status"] == "queued"
+    assert investigation["mode"] == "operator_gated_codex_cli"
+    assert investigation["codex_prompt_path"] == str(prompt_path)
+    assert result["codex_cli_command"] == (
+        f"python scripts/cockpit_flag_investigator.py --report-id {result['report_id']} --once --apply"
+    )
     bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
     assert bundle["feedback_type"] == "poor"
     assert bundle["note"] == "Unsupported claim"
@@ -1087,6 +1647,13 @@ def test_flag_chat_feedback_persists_before_background_analysis(tmp_path) -> Non
     assert bundle["backend_turn"]["tool_calls"][0]["tool"] == "query_ticker_data"
     assert bundle["backend_turn"]["tool_calls"][0]["iteration"] == 2
     assert bundle["backend_turn"]["tool_calls"][0]["duration_ms"] == 42.5
+    assert "Flag directory: reports/cockpit/flagged_sessions/" in result["codex_prompt"]
+    assert "Bundle: reports/cockpit/flagged_sessions/" in result["codex_prompt"]
+    assert "Summary: reports/cockpit/flagged_sessions/" in result["codex_prompt"]
+    assert (
+        f"/api/cockpit/feedback/flags/{result['report_id']}/resolve"
+        in result["codex_prompt"]
+    )
     assert scheduled["report_id"] == result["report_id"]
     assert scheduled["analysis_path"] == analysis_path
 
@@ -1107,19 +1674,21 @@ def test_auto_flag_chat_response_persists_auto_diagnostic(tmp_path) -> None:
         "request": {"message": "tell me about PLS", "ticker": "PLS"},
         "routing_metadata": {"model": "model:test", "latency_ms": 90_000},
         "response_mode": "deep_analysis",
-        "prompt": "diagnostic prompt excerpt",
-        "thinking_events": [],
-        "status_events": [],
-        "tool_traces": [
+        "evidence": [
             {
                 "tool": "query_ticker_data",
+                "arguments": {"ticker": "PLS"},
+                "result": {"ok": True, "_truncated": True},
+            }
+        ],
+        "tool_traces": [
+            {
+                "tool": "get_financials",
                 "ok": False,
-                "error": "database unavailable",
+                "error": "backend API client not configured",
                 "duration_ms": 25_000,
             }
         ],
-        "tool_calls": [],
-        "evidence": [],
         "response_text": "I can't verify that from current evidence.",
     }
     scheduled: dict[str, object] = {}
@@ -1133,8 +1702,9 @@ def test_auto_flag_chat_response_persists_auto_diagnostic(tmp_path) -> None:
             evidence=[],
             tool_traces=[],
             routing_metadata={
-                "grounding_guard": "missing_visible_sources",
+                "model": "model:test",
                 "latency_ms": 90_000,
+                "grounding_guard": "missing_visible_sources",
             },
         ),
     )
@@ -1152,9 +1722,15 @@ def test_auto_flag_chat_response_persists_auto_diagnostic(tmp_path) -> None:
         "inefficiency",
     }
     summary = Path(result["summary_path"]).read_text(encoding="utf-8")
+    investigation = json.loads(Path(result["investigation_path"]).read_text(encoding="utf-8"))
+    assert result["investigation_status"] == "queued"
+    assert investigation["capture_kind"] == "auto_diagnostic"
+    assert result["codex_cli_command"].endswith(
+        f"--report-id {result['report_id']} --once --apply"
+    )
     assert "# Auto Cockpit Diagnostic" in summary
     assert "Auto Findings" in summary
-    assert "Diagnostic directory:" in result["codex_prompt"]
+    assert "Diagnostic directory: reports/cockpit/flagged_sessions/" in result["codex_prompt"]
     assert scheduled["report_id"] == result["report_id"]
 
     duplicate = service.auto_flag_chat_response(
@@ -1164,7 +1740,11 @@ def test_auto_flag_chat_response_persists_auto_diagnostic(tmp_path) -> None:
             text="I can't verify that from current evidence.",
             evidence=[],
             tool_traces=[],
-            routing_metadata={"grounding_guard": "missing_visible_sources"},
+            routing_metadata={
+                "model": "model:test",
+                "latency_ms": 90_000,
+                "grounding_guard": "missing_visible_sources",
+            },
         ),
     )
     assert duplicate is None
@@ -1252,9 +1832,12 @@ def test_good_chat_feedback_persists_without_background_analysis(tmp_path) -> No
 
     bundle = json.loads(Path(result["bundle_path"]).read_text(encoding="utf-8"))
     assert result["feedback_type"] == "good"
+    assert result["investigation_status"] == "not_requested"
+    assert result["codex_cli_command"] is None
     assert bundle["feedback_type"] == "good"
     assert bundle["backend_turn"]["response_mode"] == "fast"
     assert bundle["backend_turn"]["response_prompt"] == "good prompt excerpt"
+    assert "Feedback directory: reports/cockpit/flagged_sessions/" in result["codex_prompt"]
     assert result["report_id"].startswith("good_")
     assert scheduled == {}
 
@@ -1321,6 +1904,69 @@ def test_ui_issue_capture_persists_screenshot_artifact(tmp_path) -> None:
     debug_bundle = json.loads(debug_path.read_text(encoding="utf-8"))
     assert debug_bundle["console"][0]["message"] == "boom"
     summary = Path(result["summary_path"]).read_text(encoding="utf-8")
+    investigation = json.loads(Path(result["investigation_path"]).read_text(encoding="utf-8"))
+    assert result["investigation_status"] == "queued"
+    assert investigation["capture_kind"] == "ui_issue"
+    assert result["codex_cli_command"].endswith(
+        f"--report-id {result['report_id']} --once --apply"
+    )
     assert "# Cockpit UI Issue" in summary
     assert "ui-screenshot.png" in summary
     assert "browser-debug.json" in summary
+    assert "Issue directory: reports/cockpit/flagged_sessions/" in result["codex_prompt"]
+    assert "Screenshot: reports/cockpit/flagged_sessions/" in result["codex_prompt"]
+    assert "Browser debug: reports/cockpit/flagged_sessions/" in result["codex_prompt"]
+    assert (
+        f"/api/cockpit/feedback/flags/{result['report_id']}/resolve"
+        in result["codex_prompt"]
+    )
+
+
+def test_resolve_flagged_report_updates_status_and_filters_open_queue(tmp_path) -> None:
+    service = CockpitService.__new__(CockpitService)
+    service.repo_root = tmp_path
+    service.state_store = None
+    service.backend_api_client = None
+    service.query_orchestrator = None
+    service.llm_client = SimpleNamespace(
+        model="model:test", base_url="http://127.0.0.1:8001"
+    )
+    service._feedback_lock = threading.Lock()
+    service._resolve_thread_id = lambda session_id: session_id or "global-main"
+    service._resolve_turn_diagnostics = lambda thread_id, flagged_message: {}
+    service._schedule_flagged_report_analysis = lambda **kwargs: None
+
+    created = service.flag_chat_feedback(
+        session_id="session-1",
+        ticker="BHP",
+        feedback_type="poor",
+        flagged_message={"id": "a1", "role": "assistant", "content": "bad"},
+    )
+    report_id = created["report_id"]
+
+    open_items_before = service.list_flagged_reports(limit=25, status="open")
+    assert any(item["report_id"] == report_id for item in open_items_before)
+
+    resolved = service.resolve_flagged_report(
+        report_id,
+        commit_sha="abc1234",
+        resolved_by="codex",
+        note="fixed source contract guard",
+    )
+    assert resolved["resolution_status"] == "resolved"
+    assert resolved["resolution_commit_sha"] == "abc1234"
+
+    open_items_after = service.list_flagged_reports(limit=25, status="open")
+    resolved_items = service.list_flagged_reports(limit=25, status="resolved")
+    assert all(item["report_id"] != report_id for item in open_items_after)
+    assert any(item["report_id"] == report_id for item in resolved_items)
+
+    details = service.get_flagged_report(report_id)
+    assert details["resolution_status"] == "resolved"
+    assert details["resolution_commit_sha"] == "abc1234"
+    assert details["bundle"]["resolution"]["commit_sha"] == "abc1234"
+    assert details["investigation"]["status"] == "queued"
+    assert details["codex_prompt_path"].endswith("codex_prompt.md")
+    assert details["investigation_path"].endswith("investigation.json")
+    summary_text = Path(details["summary_path"]).read_text(encoding="utf-8")
+    assert "Fix Commit: `abc1234`" in summary_text

@@ -194,7 +194,9 @@ class TestSearchNewsTickerInference:
 
         result = executor.execute("search_news", {"query": "bhp news", "limit": 5})
 
-        assert result["ok"] is True
+        assert result["ok"] is False
+        assert result["data_insufficient"] is True
+        assert result["recommended_tool_call"]["tool"] == "run_news_ingest"
         executor._router.get_news_context.assert_called_once_with(
             query="bhp news",
             top_k=5,

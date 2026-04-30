@@ -194,21 +194,78 @@ class StateStore:
                 mission_id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
                 status TEXT NOT NULL,
+                mission_type TEXT NOT NULL DEFAULT 'find_good_deals',
                 brief TEXT NOT NULL,
+                user_goal TEXT,
                 category_hint TEXT,
                 hard_filters_json TEXT NOT NULL DEFAULT '{}',
                 soft_preferences_json TEXT NOT NULL DEFAULT '{}',
                 search_config_json TEXT NOT NULL DEFAULT '{}',
                 scan_config_json TEXT NOT NULL DEFAULT '{}',
+                benchmark_sources_json TEXT NOT NULL DEFAULT '["centre_com"]',
+                deployment_args_json TEXT NOT NULL DEFAULT '{}',
+                last_error TEXT,
+                created_from_chat_message_id TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
                 last_scan_at TEXT
             )
             """
         )
+        # Additive migration: workflow metadata fields for marketplace missions.
+        for col, typedef in [
+            ("mission_type", "TEXT NOT NULL DEFAULT 'find_good_deals'"),
+            ("user_goal", "TEXT"),
+            ("benchmark_sources_json", "TEXT NOT NULL DEFAULT '[\"centre_com\"]'"),
+            ("deployment_args_json", "TEXT NOT NULL DEFAULT '{}'"),
+            ("last_error", "TEXT"),
+            ("created_from_chat_message_id", "TEXT"),
+        ]:
+            try:
+                cur.execute(f"ALTER TABLE marketplace_missions ADD COLUMN {col} {typedef}")
+            except sqlite3.OperationalError:
+                pass  # column already exists
         cur.execute(
             "CREATE INDEX IF NOT EXISTS idx_marketplace_missions_status "
             "ON marketplace_missions(status)"
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS marketplace_mission_product_links (
+                mission_id TEXT PRIMARY KEY,
+                tracked_product_id TEXT NOT NULL,
+                link_type TEXT NOT NULL DEFAULT 'primary',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_marketplace_mission_product_links_product "
+            "ON marketplace_mission_product_links(tracked_product_id, link_type)"
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS marketplace_mission_candidate_products (
+                mission_id TEXT NOT NULL,
+                tracked_product_id TEXT NOT NULL,
+                candidate_key TEXT NOT NULL,
+                category TEXT NOT NULL,
+                candidate_rank INTEGER NOT NULL,
+                fit_score REAL NOT NULL,
+                fit_label TEXT NOT NULL,
+                hard_constraints_json TEXT NOT NULL DEFAULT '[]',
+                soft_preferences_json TEXT NOT NULL DEFAULT '[]',
+                explanation TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                PRIMARY KEY (mission_id, tracked_product_id)
+            )
+            """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_marketplace_mission_candidates_mission "
+            "ON marketplace_mission_candidate_products(mission_id, candidate_rank)"
         )
         cur.execute(
             """
@@ -260,6 +317,7 @@ class StateStore:
                 confidence REAL,
                 raw_text_snapshot TEXT NOT NULL,
                 screenshot_path TEXT,
+                listing_media_json TEXT NOT NULL DEFAULT '[]',
                 status TEXT NOT NULL DEFAULT 'new',
                 metadata_json TEXT NOT NULL DEFAULT '{}',
                 updated_at TEXT NOT NULL,
@@ -267,6 +325,12 @@ class StateStore:
             )
             """
         )
+        try:
+            cur.execute(
+                "ALTER TABLE marketplace_matches ADD COLUMN listing_media_json TEXT NOT NULL DEFAULT '[]'"
+            )
+        except sqlite3.OperationalError:
+            pass  # column already exists
         cur.execute(
             "CREATE INDEX IF NOT EXISTS idx_marketplace_matches_mission "
             "ON marketplace_matches(mission_id, captured_at DESC)"
@@ -297,6 +361,142 @@ class StateStore:
             "CREATE INDEX IF NOT EXISTS idx_marketplace_alerts_mission "
             "ON marketplace_alerts(mission_id, created_at DESC)"
         )
+        # Cockpit-local retail benchmark subsystem (operational only, not financial truth).
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS canonical_products (
+                canonical_product_id TEXT PRIMARY KEY,
+                category TEXT NOT NULL,
+                vendor TEXT,
+                model TEXT,
+                sku TEXT,
+                product_name TEXT NOT NULL,
+                attributes_json TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_canonical_products_category "
+            "ON canonical_products(category)"
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS retailer_products (
+                retailer_product_id TEXT PRIMARY KEY,
+                retailer_name TEXT NOT NULL,
+                canonical_product_id TEXT NOT NULL,
+                product_name TEXT NOT NULL,
+                product_url TEXT,
+                sku TEXT,
+                attributes_json TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                last_seen_at TEXT NOT NULL,
+                UNIQUE(retailer_name, product_url)
+            )
+            """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_retailer_products_retailer "
+            "ON retailer_products(retailer_name)"
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_retailer_products_canonical "
+            "ON retailer_products(canonical_product_id)"
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS retailer_price_observations (
+                observation_id TEXT PRIMARY KEY,
+                retailer_product_id TEXT NOT NULL,
+                observed_at TEXT NOT NULL,
+                price REAL NOT NULL,
+                currency TEXT NOT NULL DEFAULT 'AUD',
+                in_stock INTEGER NOT NULL DEFAULT 1,
+                observation_source TEXT NOT NULL DEFAULT 'seed_fallback'
+            )
+            """
+        )
+        try:
+            cur.execute(
+                "ALTER TABLE retailer_price_observations "
+                "ADD COLUMN observation_source TEXT NOT NULL DEFAULT 'seed_fallback'"
+            )
+        except sqlite3.OperationalError:
+            pass  # column already exists
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_retailer_price_observations_product "
+            "ON retailer_price_observations(retailer_product_id, observed_at DESC)"
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS listing_product_matches (
+                listing_match_id TEXT PRIMARY KEY,
+                match_id TEXT NOT NULL,
+                listing_id TEXT NOT NULL,
+                mission_id TEXT,
+                matched_retailer_product_id TEXT,
+                category TEXT,
+                confidence REAL NOT NULL DEFAULT 0,
+                review_status TEXT NOT NULL DEFAULT 'pending_review',
+                warning TEXT,
+                rationale_json TEXT NOT NULL DEFAULT '[]',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE(match_id)
+            )
+            """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_listing_product_matches_review "
+            "ON listing_product_matches(review_status, confidence)"
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS listing_benchmark_scores (
+                score_id TEXT PRIMARY KEY,
+                match_id TEXT NOT NULL,
+                listing_id TEXT NOT NULL,
+                matched_retailer_product_id TEXT,
+                centre_com_price REAL,
+                centre_com_median_30d REAL,
+                listing_price REAL,
+                delta_pct REAL,
+                freshness_hours REAL,
+                confidence REAL,
+                low_confidence INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_listing_benchmark_scores_match "
+            "ON listing_benchmark_scores(match_id, created_at DESC)"
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS marketplace_match_value_assessments (
+                assessment_id TEXT PRIMARY KEY,
+                match_id TEXT NOT NULL UNIQUE,
+                mission_id TEXT,
+                tracked_product_id TEXT,
+                benchmark_snapshot_id TEXT,
+                value_state TEXT NOT NULL,
+                value_score REAL,
+                value_label TEXT NOT NULL,
+                value_confidence TEXT NOT NULL,
+                assessment_json TEXT NOT NULL DEFAULT '{}',
+                computed_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_marketplace_match_value_assessments_mission "
+            "ON marketplace_match_value_assessments(mission_id, tracked_product_id)"
+        )
         # Holdings: cockpit-local portfolio state. NOT financial truth, NOT
         # memory reasoning. See SYSTEM_CONTRACT §1.2.
         cur.execute(
@@ -305,6 +505,7 @@ class StateStore:
                 holding_id TEXT PRIMARY KEY,
                 ticker TEXT NOT NULL,
                 account_label TEXT,
+                market_exchange TEXT,
                 thesis_bucket TEXT,
                 status TEXT NOT NULL DEFAULT 'active',
                 quantity REAL,
@@ -319,6 +520,13 @@ class StateStore:
         cur.execute(
             "CREATE INDEX IF NOT EXISTS idx_holdings_ticker ON holdings_items(ticker)"
         )
+        for col, typedef in [
+            ("market_exchange", "TEXT"),
+        ]:
+            try:
+                cur.execute(f"ALTER TABLE holdings_items ADD COLUMN {col} {typedef}")
+            except sqlite3.OperationalError:
+                pass
         cur.execute(
             "CREATE INDEX IF NOT EXISTS idx_holdings_status ON holdings_items(status)"
         )
@@ -754,6 +962,7 @@ class StateStore:
         "holding_id",
         "ticker",
         "account_label",
+        "market_exchange",
         "thesis_bucket",
         "status",
         "quantity",
@@ -767,6 +976,7 @@ class StateStore:
     _HOLDING_UPDATABLE_COLUMNS = (
         "ticker",
         "account_label",
+        "market_exchange",
         "thesis_bucket",
         "status",
         "quantity",
@@ -781,6 +991,7 @@ class StateStore:
         ticker: str,
         *,
         account_label: str | None = None,
+        market_exchange: str | None = None,
         thesis_bucket: str | None = None,
         quantity: float | None = None,
         avg_cost: float | None = None,
@@ -798,14 +1009,15 @@ class StateStore:
             self.conn.execute(
                 """
                 INSERT INTO holdings_items(
-                    holding_id, ticker, account_label, thesis_bucket, status,
+                    holding_id, ticker, account_label, market_exchange, thesis_bucket, status,
                     quantity, avg_cost, cost_currency, opened_at, updated_at, note
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
                 """,
                 (
                     holding_id,
                     ticker.upper(),
                     account_label,
+                    market_exchange,
                     thesis_bucket,
                     "active",
                     quantity,

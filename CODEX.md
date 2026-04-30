@@ -1,5 +1,5 @@
 # CODEX.md — Codex Operating Identity
-<!-- Last updated: 2026-04-15 -->
+<!-- Last updated: 2026-04-22 -->
 
 This file defines Codex's agent-specific operating identity in this repository.
 
@@ -88,6 +88,26 @@ Tested: <how verified — test name, curl output, log line>
 WIP commits use: `wip(<subsystem>): <description>`
 
 Never end a session with uncommitted working state.
+
+## Flagged Cockpit Report Closeout (mandatory)
+
+When a task fixes a Cockpit flagged report (`report_id` from `/api/cockpit/feedback/flags/{report_id}`), Codex must close that report after the fix commit is created.
+
+Required payload fields:
+- `commit_sha`: fix commit hash
+- `note`: exact commit subject line (first line of commit message)
+
+Required command:
+
+```bash
+COMMIT_SHA="$(git rev-parse --short=12 HEAD)"
+COMMIT_MSG="$(git log -1 --pretty=%s)"
+curl -sS -X POST "http://127.0.0.1:8000/api/cockpit/feedback/flags/<REPORT_ID>/resolve" \
+  -H "Content-Type: application/json" \
+  -d "{\"commit_sha\":\"${COMMIT_SHA}\",\"resolved_by\":\"codex\",\"note\":\"${COMMIT_MSG}\"}"
+```
+
+Do not mark flagged-bug work complete until this resolve call succeeds.
 
 ## Commit Hygiene
 

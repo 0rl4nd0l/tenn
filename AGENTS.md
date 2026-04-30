@@ -1,5 +1,5 @@
 # AGENTS.md instructions for /home/l4nd0/tenn
-<!-- Last updated: 2026-04-15 -->
+<!-- Last updated: 2026-04-22 -->
 
 > **Note for Claude Code:** The skills listed in this file use `.codex/skills/` paths that are only accessible to the Codex agent. If you are Claude Code, ignore the skills block and use your own skills in `.claude/skills/` instead. All other repo context below applies to both agents equally.
 
@@ -132,6 +132,26 @@ Tested: <how verified>
 ```
 
 WIP: `wip(<subsystem>): <description>`. Never end a session with uncommitted state.
+
+## Flagged Report Resolution Protocol (mandatory, Claude + Codex)
+
+If a task fixes a Cockpit flagged report (`report_id` under `/api/cockpit/feedback/flags/{report_id}`), the responsible agent MUST mark that report resolved after the fix commit lands.
+
+Required resolution payload:
+- `commit_sha`: fix commit hash
+- `note`: exact commit subject line (first line of the fix commit message)
+
+Required closeout command:
+
+```bash
+COMMIT_SHA="$(git rev-parse --short=12 HEAD)"
+COMMIT_MSG="$(git log -1 --pretty=%s)"
+curl -sS -X POST "http://127.0.0.1:8000/api/cockpit/feedback/flags/<REPORT_ID>/resolve" \
+  -H "Content-Type: application/json" \
+  -d "{\"commit_sha\":\"${COMMIT_SHA}\",\"resolved_by\":\"<claude|codex>\",\"note\":\"${COMMIT_MSG}\"}"
+```
+
+A flagged bug-fix is not complete until this call succeeds.
 
 ## graphify
 

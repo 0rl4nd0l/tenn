@@ -36,10 +36,17 @@ class YoutubeVideo:
     video_id: str
     title: str
     channel_name: str
-    published_at: str
+    published_at: str | None
     webpage_url: str
     duration_seconds: int | None = None
     view_count: int | None = None
+
+
+class YoutubeChannelResolutionError(RuntimeError):
+    def __init__(self, message: str, *, name_or_id: str) -> None:
+        super().__init__(message)
+        self.name_or_id = name_or_id
+        self.error_code = "youtube_channel_resolution_failed"
 
 
 def _slugify_as_handle(name: str) -> str:
@@ -118,6 +125,9 @@ def resolve_channel_id(name_or_url: str) -> tuple[str, str]:
     if not raw:
         raise ValueError("channel name or URL is required")
 
+    def _resolution_error(message: str) -> YoutubeChannelResolutionError:
+        return YoutubeChannelResolutionError(message, name_or_id=raw)
+
     # Build the lookup URL
     search_fallback_query = ""
     if raw.startswith("http://") or raw.startswith("https://"):
@@ -135,7 +145,7 @@ def resolve_channel_id(name_or_url: str) -> tuple[str, str]:
     try:
         import yt_dlp  # type: ignore
     except ImportError as exc:
-        raise RuntimeError("yt-dlp is required for channel lookup") from exc
+        raise _resolution_error("yt-dlp is required for channel lookup") from exc
 
     ydl_opts = {
         "quiet": True,
@@ -164,11 +174,11 @@ def resolve_channel_id(name_or_url: str) -> tuple[str, str]:
                     ) or {}
                 except Exception as exc:
                     if primary_error is not None:
-                        raise RuntimeError(
+                        raise _resolution_error(
                             f"channel lookup failed for {raw!r}: {primary_error}; "
                             f"search fallback failed: {exc}"
                         ) from exc
-                    raise RuntimeError(
+                    raise _resolution_error(
                         f"channel lookup failed for {raw!r}: {exc}"
                     ) from exc
 
@@ -181,15 +191,15 @@ def resolve_channel_id(name_or_url: str) -> tuple[str, str]:
                     return identity
 
             if primary_error is not None:
-                raise RuntimeError(
+                raise _resolution_error(
                     f"channel lookup failed for {raw!r}: {primary_error}"
                 ) from primary_error
     except Exception as exc:
-        if isinstance(exc, RuntimeError):
+        if isinstance(exc, YoutubeChannelResolutionError):
             raise
-        raise RuntimeError(f"channel lookup failed for {raw!r}: {exc}") from exc
+        raise _resolution_error(f"channel lookup failed for {raw!r}: {exc}") from exc
 
-    raise RuntimeError(
+    raise _resolution_error(
         f"could not resolve channel_id from {raw!r} — "
         "try providing a YouTube channel URL or @handle instead"
     )
@@ -200,7 +210,7 @@ def _slugify(value: str) -> str:
     return slug or "transcript"
 
 
-def _iso_from_timestamp(value: Any) -> str:
+def _iso_from_timestamp(value: Any) -> str | None:
     if isinstance(value, (int, float)) and float(value) > 0:
         return (
             datetime.fromtimestamp(float(value), tz=timezone.utc)
@@ -213,7 +223,7 @@ def _iso_from_timestamp(value: Any) -> str:
         return f"{text[:4]}-{text[4:6]}-{text[6:8]}T00:00:00Z"
     if text:
         return text
-    return "1970-01-01T00:00:00Z"
+    return None
 
 
 def _coerce_optional_int(value: Any) -> int | None:
@@ -231,9 +241,30 @@ def _parse_iso_datetime(value: str) -> datetime | None:
     if not text or text == "1970-01-01T00:00:00Z":
         return None
     try:
-        return datetime.fromisoformat(text.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
     except ValueError:
         return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _ordered_recent_videos(videos: list[YoutubeVideo]) -> list[YoutubeVideo]:
+    """Order dated videos by recency, but preserve upstream order if any date is unknown."""
+    dated: list[tuple[datetime, str, YoutubeVideo]] = []
+    for video in videos:
+        parsed = _parse_iso_datetime(video.published_at or "")
+        if parsed is None:
+            return list(videos)
+        dated.append((parsed, video.video_id, video))
+    return [
+        video
+        for _published_at, _video_id, video in sorted(
+            dated,
+            key=lambda row: (row[0], row[1]),
+            reverse=True,
+        )
+    ]
 
 
 _IMPORTANT_TITLE_RE = re.compile(
@@ -488,11 +519,8 @@ def list_recent_channel_videos(
         credibility_weight=credibility_weight,
         enabled=True,
     )
-    videos = (list_videos_fn or _default_list_videos)(channel, resolved_limit)
-    videos = sorted(
-        videos,
-        key=lambda video: (video.published_at, video.video_id),
-        reverse=True,
+    videos = _ordered_recent_videos(
+        (list_videos_fn or _default_list_videos)(channel, resolved_limit)
     )[:resolved_limit]
     return {
         "ok": True,
@@ -624,10 +652,7 @@ class YoutubeTranscriptFetcher:
         self.channel_registry.ensure_exists()
         results = []
         for channel in self.channel_registry.enabled_channels():
-            videos = sorted(
-                self.list_videos_fn(channel, self.video_limit),
-                key=lambda video: (video.published_at, video.video_id),
-            )
+            videos = _ordered_recent_videos(self.list_videos_fn(channel, self.video_limit))
             for video in videos:
                 try:
                     transcript_text = self.fetch_transcript_fn(video)
@@ -638,7 +663,7 @@ class YoutubeTranscriptFetcher:
                     source_name=video.title,
                     source_type="youtube_transcript",
                     speaker=video.channel_name or channel.name,
-                    published_at=video.published_at,
+                    published_at=video.published_at or "",
                     credibility_weight=channel.credibility_weight,
                     decay_half_life_days=14.0,
                 )

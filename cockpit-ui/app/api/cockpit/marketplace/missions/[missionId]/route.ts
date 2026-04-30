@@ -49,3 +49,25 @@ export async function PATCH(
     },
   })
 }
+
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ missionId: string }> },
+): Promise<NextResponse> {
+  const { missionId } = await context.params
+  const backend = await fetch(
+    `${resolveBackendUrl()}/api/cockpit/marketplace/missions/${encodeURIComponent(missionId)}`,
+    {
+      method: 'DELETE',
+      headers: copyRequestHeaders(request),
+      cache: 'no-store',
+    },
+  )
+  const payload = await backend.text()
+  return new NextResponse(payload, {
+    status: backend.status,
+    headers: {
+      'Content-Type': backend.headers.get('Content-Type') ?? 'application/json',
+    },
+  })
+}

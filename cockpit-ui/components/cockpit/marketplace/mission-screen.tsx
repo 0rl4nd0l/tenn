@@ -1,20 +1,31 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { AlertTriangle, Loader2, Play, RefreshCw, Store, X } from 'lucide-react'
+import { AlertTriangle, ImageOff, Loader2, Play, RefreshCw, Store, Trash2, X } from 'lucide-react'
 
 import {
   createMarketplaceMission,
+  deleteMarketplaceMission,
+  linkMarketplaceMissionTrackedProduct,
+  listMarketplaceMatches,
   getMarketplaceScanJob,
   getMarketplaceBrowserHealth,
   launchMarketplaceBrowser,
   listMarketplaceMissions,
   listMarketplaceScanJobs,
+  listMarketplaceTrackedProducts,
+  refreshMarketplaceBenchmarks,
   stopMarketplaceScanJob,
+  type MarketplaceBenchmarkState,
+  type MarketplaceCandidateProduct,
+  type MarketplaceMatch,
   type MarketplaceBrowserHealth,
   type MarketplaceMission,
+  type MarketplaceRequirementProfile,
   type MarketplaceScanJob,
+  type MarketplaceTrackedProduct,
   triggerMarketplaceScan,
+  unlinkMarketplaceMissionTrackedProduct,
   updateMarketplaceMission,
 } from '@/lib/marketplace-api'
 import { Badge } from '@/components/ui/badge'
@@ -167,7 +178,7 @@ function healthBadgeVariant(
   status: string,
 ): 'default' | 'secondary' | 'destructive' | 'outline' {
   if (status === 'ready') return 'default'
-  if (status === 'login_required' || status === 'challenge_detected') return 'secondary'
+  if (status === 'challenge_detected') return 'secondary'
   if (status === 'browser_not_running' || status === 'desktop_session_missing' || status === 'browser_unavailable') return 'destructive'
   return 'outline'
 }
@@ -196,10 +207,17 @@ function pickScanJobId(
   jobs: MarketplaceScanJob[],
   preferredJobId: string | null,
 ): string | null {
-  if (preferredJobId && jobs.some((job) => job.job_id === preferredJobId)) {
-    return preferredJobId
-  }
   const activeJob = jobs.find((job) => job.status === 'running' || job.status === 'queued')
+  if (preferredJobId) {
+    const preferred = jobs.find((job) => job.job_id === preferredJobId)
+    if (preferred) {
+      const preferredIsActive =
+        preferred.status === 'running' || preferred.status === 'queued'
+      if (preferredIsActive || !activeJob) {
+        return preferredJobId
+      }
+    }
+  }
   return activeJob?.job_id ?? jobs[0]?.job_id ?? null
 }
 
@@ -223,6 +241,124 @@ function missionAggressiveAlertingEnabled(mission: MarketplaceMission): boolean 
   return Boolean((mission.scan_config || {}).aggressive_alerting)
 }
 
+function formatCurrency(value: number | null | undefined): string {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 'n/a'
+  return new Intl.NumberFormat('en-AU', {
+    style: 'currency',
+    currency: 'AUD',
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
+function formatDelta(value: number | null | undefined): string {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 'n/a'
+  const rounded = Math.round(value * 10) / 10
+  const sign = rounded > 0 ? '+' : ''
+  return `${sign}${rounded}%`
+}
+
+function trackedProductDisplayName(product: MarketplaceTrackedProduct | null | undefined): string {
+  if (!product) return 'Unknown tracked product'
+  const parts = [product.brand, product.model_family, product.variant]
+    .map((part) => String(part ?? '').trim())
+    .filter(Boolean)
+  return parts.length > 0 ? parts.join(' ') : product.canonical_key || product.tracked_product_id
+}
+
+function missionLinkedProduct(mission: MarketplaceMission): MarketplaceTrackedProduct | null {
+  return mission.primary_tracked_product?.tracked_product ?? null
+}
+
+function missionLinkedProductId(mission: MarketplaceMission): string {
+  return mission.primary_tracked_product?.tracked_product_id ?? ''
+}
+
+function missionRequirementProfile(mission: MarketplaceMission): MarketplaceRequirementProfile | null {
+  return mission.requirement_profile ?? null
+}
+
+function isRequirementDrivenMission(mission: MarketplaceMission): boolean {
+  return missionRequirementProfile(mission)?.mode === 'requirement_driven'
+}
+
+function constraintLabel(item: Record<string, unknown>): string {
+  const field = String(item.field ?? '').replace(/_/g, ' ')
+  const operator = String(item.operator ?? '=')
+  const value = item.value == null ? '' : String(item.value)
+  const unit = item.unit == null ? '' : ` ${String(item.unit)}`
+  return [field, operator, `${value}${unit}`].filter(Boolean).join(' ')
+}
+
+function requirementSummary(profile: MarketplaceRequirementProfile | null): string {
+  if (!profile) return 'n/a'
+  const parts = [
+    profile.category,
+    profile.intended_use ? profile.intended_use.replace(/_/g, ' ') : null,
+    ...(profile.hard_constraints ?? []).slice(0, 2).map(constraintLabel),
+  ]
+    .map((part) => String(part ?? '').trim())
+    .filter(Boolean)
+  return parts.length > 0 ? parts.join(' · ') : profile.mode
+}
+
+function candidateProductName(candidate: MarketplaceCandidateProduct): string {
+  return candidate.tracked_product
+    ? trackedProductDisplayName(candidate.tracked_product)
+    : candidate.candidate_key
+}
+
+function benchmarkStateBadgeVariant(
+  state: MarketplaceBenchmarkState | null | undefined,
+): 'default' | 'secondary' | 'destructive' | 'outline' {
+  if (!state || state.status === 'value_unavailable' || state.status === 'no_snapshot') {
+    return 'outline'
+  }
+  if (state.freshness_status === 'stale' || state.status === 'stale_benchmark') {
+    return 'secondary'
+  }
+  if (state.status === 'scored' || state.status === 'ready') {
+    return 'default'
+  }
+  return 'outline'
+}
+
+function benchmarkStateLabel(state: MarketplaceBenchmarkState | null | undefined): string {
+  if (!state) return 'benchmark unavailable'
+  if (state.status === 'scored' || state.status === 'ready') {
+    return state.freshness_status || 'ready'
+  }
+  return state.status.replace(/_/g, ' ')
+}
+
+function fairRangeLabel(state: MarketplaceBenchmarkState | null | undefined): string {
+  if (!state) return 'n/a'
+  if (typeof state.fair_low === 'number' && typeof state.fair_high === 'number') {
+    return `${formatCurrency(state.fair_low)} - ${formatCurrency(state.fair_high)}`
+  }
+  return 'n/a'
+}
+
+function benchmarkFreshnessLabel(hours: number | null | undefined): string {
+  if (typeof hours !== 'number' || Number.isNaN(hours)) return 'unknown'
+  if (hours <= 24) return 'fresh'
+  if (hours <= 24 * 7) return 'stale'
+  return 'old'
+}
+
+function listingMediaForMatch(match: MarketplaceMatch): string[] {
+  const raw = Array.isArray(match.listing_media) ? match.listing_media : []
+  const cleaned = raw
+    .map((item) => String(item ?? '').trim())
+    .filter((item) => /^https?:\/\//i.test(item))
+  if (cleaned.length > 0) {
+    return cleaned
+  }
+  if (match.screenshot_path && /^https?:\/\//i.test(match.screenshot_path)) {
+    return [match.screenshot_path]
+  }
+  return []
+}
+
 export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenProps) {
   const { preferences } = useCockpitStore()
   const isIPhoneScale = preferences.iphoneScale
@@ -230,6 +366,10 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
   const [browserHealth, setBrowserHealth] = useState<MarketplaceBrowserHealth | null>(null)
   const [missions, setMissions] = useState<MarketplaceMission[]>([])
   const [scanJobs, setScanJobs] = useState<MarketplaceScanJob[]>([])
+  const [benchmarkMatches, setBenchmarkMatches] = useState<MarketplaceMatch[]>([])
+  const [trackedProducts, setTrackedProducts] = useState<MarketplaceTrackedProduct[]>([])
+  const [trackedProductsLoaded, setTrackedProductsLoaded] = useState(false)
+  const [trackedProductsLoading, setTrackedProductsLoading] = useState(false)
   const [selectedScanJobId, setSelectedScanJobId] = useState<string | null>(null)
   const [selectedScanJob, setSelectedScanJob] = useState<MarketplaceScanJob | null>(null)
   const [scanOutputLoading, setScanOutputLoading] = useState(false)
@@ -243,7 +383,10 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
   const [savingMissionId, setSavingMissionId] = useState<string | null>(null)
   const [editingMissionId, setEditingMissionId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<MissionFormState | null>(null)
+  const [deletingMissionId, setDeletingMissionId] = useState<string | null>(null)
+  const [linkingMissionId, setLinkingMissionId] = useState<string | null>(null)
   const [stoppingJobId, setStoppingJobId] = useState<string | null>(null)
+  const [refreshingBenchmarks, setRefreshingBenchmarks] = useState(false)
   const selectedScanJobIdRef = useRef<string | null>(null)
   const desktopSessionMissing = browserHealth?.status === 'desktop_session_missing'
   const headlessProbeBlocked =
@@ -279,13 +422,34 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
     setLoading(true)
     setError(null)
     try {
-      const [health, missionItems, jobs] = await Promise.all([
+      const [healthResult, missionsResult, jobsResult, matchesResult] = await Promise.allSettled([
         getMarketplaceBrowserHealth(apiKey),
         listMarketplaceMissions(apiKey),
         listMarketplaceScanJobs(apiKey),
+        listMarketplaceMatches(apiKey),
       ])
-      setBrowserHealth(health)
+      if (missionsResult.status !== 'fulfilled') {
+        throw missionsResult.reason
+      }
+
+      const missionItems = missionsResult.value
       setMissions(missionItems)
+
+      if (healthResult.status === 'fulfilled') {
+        setBrowserHealth(healthResult.value)
+      } else {
+        setBrowserHealth(null)
+      }
+
+      const jobs = jobsResult.status === 'fulfilled' ? jobsResult.value : []
+      setScanJobs(jobs)
+
+      const matches =
+        matchesResult.status === 'fulfilled'
+          ? matchesResult.value
+          : []
+      const safeMatches = Array.isArray(matches) ? matches : []
+      setBenchmarkMatches(safeMatches.slice(0, 18))
       setMissionIntervalDrafts((current) => {
         const next = { ...current }
         for (const mission of missionItems) {
@@ -293,7 +457,6 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
         }
         return next
       })
-      setScanJobs(jobs)
       const nextSelectedJobId = pickScanJobId(jobs, selectedScanJobIdRef.current)
       selectedScanJobIdRef.current = nextSelectedJobId
       setSelectedScanJobId(nextSelectedJobId)
@@ -321,6 +484,11 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
   }, [apiKey, scanJobs, load])
 
   async function handleCreateMission() {
+    if (splitCsv(form.locationNames).length === 0) {
+      setError('Mission location is required. Add at least one location before creating the mission.')
+      setNotice(null)
+      return
+    }
     setCreating(true)
     setError(null)
     setNotice(null)
@@ -345,6 +513,78 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
       await load()
     } catch (launchError) {
       setError(launchError instanceof Error ? launchError.message : 'Failed to launch Marketplace browser')
+    }
+  }
+
+  async function handleRefreshBenchmarks() {
+    setRefreshingBenchmarks(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const summary = await refreshMarketplaceBenchmarks(apiKey)
+      const live = typeof summary.live_observations_added === 'number' ? summary.live_observations_added : 0
+      const fallback =
+        typeof summary.fallback_observations_added === 'number' ? summary.fallback_observations_added : 0
+      const failureCount = Array.isArray(summary.fetch_failures) ? summary.fetch_failures.length : 0
+      setNotice(
+        `Centre Com benchmark refresh complete: ${summary.price_observations_added} observations (${live} live, ${fallback} fallback).${failureCount > 0 ? ` ${failureCount} live fetches failed; fallback benchmarks were applied.` : ''}`,
+      )
+      await load()
+    } catch (refreshError) {
+      setError(
+        refreshError instanceof Error ? refreshError.message : 'Failed to refresh Centre Com benchmarks',
+      )
+    } finally {
+      setRefreshingBenchmarks(false)
+    }
+  }
+
+  async function ensureTrackedProductsLoaded() {
+    if (trackedProductsLoaded || trackedProductsLoading) {
+      return
+    }
+    setTrackedProductsLoading(true)
+    setError(null)
+    try {
+      const products = await listMarketplaceTrackedProducts(apiKey)
+      setTrackedProducts(products)
+      setTrackedProductsLoaded(true)
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : 'Failed to load Marketplace tracked products',
+      )
+    } finally {
+      setTrackedProductsLoading(false)
+    }
+  }
+
+  async function handleTrackedProductLink(mission: MarketplaceMission, trackedProductId: string) {
+    const currentId = missionLinkedProductId(mission)
+    if (trackedProductId === currentId) {
+      return
+    }
+
+    setLinkingMissionId(mission.mission_id)
+    setError(null)
+    setNotice(null)
+    try {
+      if (trackedProductId) {
+        const product = trackedProducts.find((item) => item.tracked_product_id === trackedProductId)
+        await linkMarketplaceMissionTrackedProduct(apiKey, mission.mission_id, trackedProductId)
+        setNotice(`Linked ${mission.name} to ${trackedProductDisplayName(product)}.`)
+      } else {
+        await unlinkMarketplaceMissionTrackedProduct(apiKey, mission.mission_id)
+        setNotice(`Unlinked tracked product from ${mission.name}.`)
+      }
+      await load()
+    } catch (linkError) {
+      setError(
+        linkError instanceof Error ? linkError.message : 'Tracked product link update failed',
+      )
+    } finally {
+      setLinkingMissionId(null)
     }
   }
 
@@ -386,6 +626,11 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
 
   async function handleSaveMissionEdit(mission: MarketplaceMission) {
     if (!editForm) return
+    if (splitCsv(editForm.locationNames).length === 0) {
+      setError('Mission location is required. Add at least one location before saving.')
+      setNotice(null)
+      return
+    }
     setSavingMissionId(mission.mission_id)
     setError(null)
     setNotice(null)
@@ -403,6 +648,43 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
       setError(updateError instanceof Error ? updateError.message : 'Mission update failed')
     } finally {
       setSavingMissionId(null)
+    }
+  }
+
+  async function handleDeleteMission(mission: MarketplaceMission) {
+    const missionHasActiveScan = scanJobs.some(
+      (job) =>
+        job.mission_id === mission.mission_id &&
+        (job.status === 'queued' || job.status === 'running'),
+    )
+    if (missionHasActiveScan) {
+      setError('Mission has an active scan. Cancel the running scan before deleting this mission.')
+      setNotice(null)
+      return
+    }
+
+    const confirmed = window.confirm(
+      `Delete mission "${mission.name}"? This removes its mission, match, and alert records from Marketplace UI.`,
+    )
+    if (!confirmed) {
+      return
+    }
+
+    setDeletingMissionId(mission.mission_id)
+    setError(null)
+    setNotice(null)
+    try {
+      await deleteMarketplaceMission(apiKey, mission.mission_id)
+      if (editingMissionId === mission.mission_id) {
+        setEditingMissionId(null)
+        setEditForm(null)
+      }
+      setNotice(`Deleted mission ${mission.name}.`)
+      await load()
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Mission delete failed')
+    } finally {
+      setDeletingMissionId(null)
     }
   }
 
@@ -498,6 +780,15 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
               <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void handleRefreshBenchmarks()}
+              disabled={refreshingBenchmarks}
+            >
+              {refreshingBenchmarks && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Refresh Benchmarks
+            </Button>
             <Button variant="secondary" size="sm" onClick={handleLaunchBrowser}>
               Launch Browser
             </Button>
@@ -540,6 +831,113 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
           </div>
         )}
 
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <CardTitle className="text-base">Listings & New Retail Benchmark Review</CardTitle>
+                <CardDescription>
+                  Compare captured listings against Centre Com new-retail references for GPUs, NVMe M.2, CPUs, and RAM kits.
+                </CardDescription>
+              </div>
+              <Badge variant="outline">source: centre_com</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {benchmarkMatches.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic">
+                No captured listings are available yet. Run a scan to populate benchmark review cards.
+              </p>
+            ) : (
+              <div className="grid gap-3 lg:grid-cols-2">
+                {benchmarkMatches.slice(0, 10).map((match) => {
+                  const benchmark = match.benchmark ?? null
+                  const media = listingMediaForMatch(match)
+                  const firstMedia = media[0] ?? null
+                  return (
+                    <div key={match.match_id} className="rounded-md border border-border/70 bg-muted/10 p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="text-sm font-medium">{match.title}</div>
+                          <div className="text-xs text-muted-foreground">
+                            Listing price: <span className="font-mono">{match.price || 'n/a'}</span>
+                          </div>
+                        </div>
+                        <Badge variant={benchmark?.low_confidence ? 'destructive' : 'secondary'}>
+                          {benchmark?.low_confidence ? 'needs review' : 'benchmarked'}
+                        </Badge>
+                      </div>
+                      <div className="mt-3 overflow-hidden rounded-md border border-border/60 bg-background/60">
+                        {firstMedia ? (
+                          <img
+                            src={firstMedia}
+                            alt={`Listing photo for ${match.title}`}
+                            className="h-36 w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-24 items-center justify-center gap-2 text-xs text-muted-foreground">
+                            <ImageOff className="h-4 w-4" />
+                            Listing photos unavailable
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="text-[10px]">
+                          photos: {media.length > 0 ? media.length : 0}
+                        </Badge>
+                      </div>
+                      {benchmark ? (
+                        <div className="mt-3 space-y-1 text-xs">
+                          <div>
+                            Matched product:{' '}
+                            <span className="font-medium">
+                              {benchmark.matched_product || 'No confident product match'}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>Current Centre Com: <span className="font-mono">{formatCurrency(benchmark.current_price)}</span></div>
+                            <div>30d median: <span className="font-mono">{formatCurrency(benchmark.median_30d)}</span></div>
+                            <div>Listing delta: <span className="font-mono">{formatDelta(benchmark.listing_delta_pct)}</span></div>
+                            <div>Confidence: <span className="font-mono">{Math.round(benchmark.confidence * 100)}%</span></div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-[10px]">
+                              freshness: {benchmarkFreshnessLabel(benchmark.freshness_hours)}
+                            </Badge>
+                            <Badge variant="outline" className="text-[10px]">
+                              wording: {benchmark.wording || 'new retail benchmark'}
+                            </Badge>
+                            {benchmark.review_status && (
+                              <Badge variant="outline" className="text-[10px]">
+                                review: {benchmark.review_status}
+                              </Badge>
+                            )}
+                          </div>
+                          {benchmark.warning && (
+                            <p className="text-[11px] text-destructive">{benchmark.warning}</p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Benchmark overlay unavailable for this listing yet.
+                        </p>
+                      )}
+                      <div className="mt-3">
+                        <a
+                          href={`/marketplace/matches/${encodeURIComponent(match.match_id)}`}
+                          className="text-xs text-primary underline-offset-2 hover:underline"
+                        >
+                          Open review details
+                        </a>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <MarketplaceAssistant
           apiKey={apiKey}
           browserHealth={browserHealth}
@@ -565,7 +963,16 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                   <p className="py-10 text-center text-sm text-muted-foreground italic">No missions configured yet.</p>
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2">
-                    {missions.map((mission) => (
+                    {missions.map((mission) => {
+                      const linkedProduct = missionLinkedProduct(mission)
+                      const linkedProductId = missionLinkedProductId(mission)
+                      const benchmarkState = mission.benchmark_state ?? null
+                      const requirementProfile = missionRequirementProfile(mission)
+                      const candidateProducts = mission.candidate_products ?? []
+                      const linkedProductInOptions = trackedProducts.some(
+                        (product) => product.tracked_product_id === linkedProductId,
+                      )
+                      return (
                       <Card key={mission.mission_id} className="bg-muted/5 transition-colors hover:bg-muted/10">
                         <CardHeader className="p-4">
                           <div className="flex items-start justify-between gap-2">
@@ -575,10 +982,31 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleEditMission(mission)}
-                                disabled={savingMissionId === mission.mission_id}
+                                disabled={
+                                  savingMissionId === mission.mission_id
+                                  || deletingMissionId === mission.mission_id
+                                }
                                 className="h-7 text-[10px]"
                               >
                                 Edit Mission
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => void handleDeleteMission(mission)}
+                                disabled={
+                                  savingMissionId === mission.mission_id
+                                  || deletingMissionId === mission.mission_id
+                                }
+                                className="h-7 w-7 text-destructive hover:text-destructive"
+                                title={`Delete mission ${mission.name}`}
+                                aria-label={`Delete mission ${mission.name}`}
+                              >
+                                {deletingMissionId === mission.mission_id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                )}
                               </Button>
                               <Badge variant={mission.status === 'active' ? 'default' : 'outline'} className="text-[10px]">
                                 {mission.status}
@@ -590,6 +1018,159 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                           <p className="line-clamp-2 text-xs text-muted-foreground mb-4">
                             {mission.brief}
                           </p>
+                          {isRequirementDrivenMission(mission) && (
+                            <div className="mb-4 space-y-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-[11px]">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant="outline" className="border-amber-500/40 text-[10px]">
+                                  Requirement-driven
+                                </Badge>
+                                <span className="text-muted-foreground">
+                                  {requirementSummary(requirementProfile)}
+                                </span>
+                              </div>
+                              {candidateProducts.length > 0 && (
+                                <div className="grid gap-2 md:grid-cols-2">
+                                  {candidateProducts.slice(0, 4).map((candidate) => (
+                                    <div
+                                      key={`${mission.mission_id}-${candidate.tracked_product_id}`}
+                                      className="rounded border border-border/60 bg-background/70 px-2 py-1.5"
+                                    >
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className="min-w-0 truncate font-medium">
+                                          {candidateProductName(candidate)}
+                                        </span>
+                                        <Badge variant="secondary" className="text-[9px]">
+                                          {candidate.fit_label.replace(/_/g, ' ')}
+                                        </Badge>
+                                      </div>
+                                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
+                                        <span>fit {Math.round(candidate.fit_score)}</span>
+                                        <span>{benchmarkStateLabel(candidate.benchmark_state)}</span>
+                                        {candidate.warning && (
+                                          <span className="text-destructive">{candidate.warning}</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          <div className="mb-4 space-y-3 rounded-md border border-border/60 bg-background/70 p-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="text-[11px] font-medium text-foreground">
+                                  Primary tracked product
+                                </div>
+                                <div className="truncate text-[10px] text-muted-foreground">
+                                  {linkedProduct
+                                    ? trackedProductDisplayName(linkedProduct)
+                                    : linkedProductId || 'No primary tracked product linked'}
+                                </div>
+                              </div>
+                              <Badge
+                                variant={benchmarkStateBadgeVariant(benchmarkState)}
+                                className="shrink-0 text-[9px]"
+                              >
+                                {linkedProductId
+                                  ? benchmarkStateLabel(benchmarkState)
+                                  : 'not linked'}
+                              </Badge>
+                            </div>
+
+                            {linkedProductId && (
+                              <div className="grid gap-1 text-[10px] text-muted-foreground sm:grid-cols-2">
+                                <div>
+                                  Fair range:{' '}
+                                  <span className="font-mono">{fairRangeLabel(benchmarkState)}</span>
+                                </div>
+                                <div>
+                                  Used median:{' '}
+                                  <span className="font-mono">
+                                    {formatCurrency(benchmarkState?.used_median)}
+                                  </span>
+                                </div>
+                                <div>
+                                  Samples:{' '}
+                                  <span className="font-mono">
+                                    {typeof benchmarkState?.sample_size === 'number'
+                                      ? benchmarkState.sample_size
+                                      : 'n/a'}
+                                  </span>
+                                </div>
+                                <div>
+                                  Confidence:{' '}
+                                  <span className="font-mono">
+                                    {benchmarkState?.confidence_label || 'unknown'}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                            {mission.primary_tracked_product?.warning && (
+                              <p className="text-[10px] text-destructive">
+                                {mission.primary_tracked_product.warning}
+                              </p>
+                            )}
+                            {benchmarkState?.warnings && benchmarkState.warnings.length > 0 && (
+                              <p className="text-[10px] text-muted-foreground">
+                                {benchmarkState.warnings.slice(0, 2).join(' ')}
+                              </p>
+                            )}
+
+                            {trackedProductsLoaded ? (
+                              <div className="flex flex-wrap items-center gap-2">
+                                <select
+                                  aria-label={`Linked tracked product for ${mission.name}`}
+                                  value={linkedProductId}
+                                  onChange={(event) =>
+                                    void handleTrackedProductLink(mission, event.target.value)
+                                  }
+                                  disabled={
+                                    linkingMissionId === mission.mission_id
+                                    || savingMissionId === mission.mission_id
+                                    || deletingMissionId === mission.mission_id
+                                  }
+                                  className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs"
+                                >
+                                  <option value="">No tracked product</option>
+                                  {linkedProductId && !linkedProductInOptions && (
+                                    <option value={linkedProductId}>
+                                      {linkedProduct
+                                        ? trackedProductDisplayName(linkedProduct)
+                                        : linkedProductId}
+                                    </option>
+                                  )}
+                                  {trackedProducts.map((product) => (
+                                    <option
+                                      key={product.tracked_product_id}
+                                      value={product.tracked_product_id}
+                                    >
+                                      {trackedProductDisplayName(product)}
+                                    </option>
+                                  ))}
+                                </select>
+                                {linkingMissionId === mission.mission_id && (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                                )}
+                              </div>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => void ensureTrackedProductsLoaded()}
+                                disabled={trackedProductsLoading}
+                                className="h-8 text-[10px]"
+                              >
+                                {trackedProductsLoading ? (
+                                  <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="mr-1.5 h-3 w-3" />
+                                )}
+                                Load tracked products
+                              </Button>
+                            )}
+                          </div>
                           {editingMissionId === mission.mission_id && editForm && (
                             <div className="mb-4 space-y-4 rounded-md border border-border/60 bg-background/80 p-3">
                               <div className="grid gap-3 sm:grid-cols-2">
@@ -707,6 +1288,7 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                                     savingMissionId === mission.mission_id
                                     || !editForm.name.trim()
                                     || !editForm.brief.trim()
+                                    || !editForm.locationNames.trim()
                                   }
                                   className="h-8 text-[10px]"
                                 >
@@ -798,7 +1380,8 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                           </div>
                         </CardContent>
                       </Card>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </CardContent>
@@ -905,7 +1488,11 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                     />
                   </div>
                 </div>
-                <Button className="w-full" onClick={handleCreateMission} disabled={creating || !form.name || !form.brief}>
+                <Button
+                  className="w-full"
+                  onClick={handleCreateMission}
+                  disabled={creating || !form.name || !form.brief || !form.locationNames.trim()}
+                >
                   {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Create Mission
                 </Button>
@@ -926,10 +1513,6 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                       <Badge variant={healthBadgeVariant(browserHealth.status)} className="text-[10px] font-mono">
                         {browserHealth.status}
                       </Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Logged In</span>
-                      <span className="text-[10px] font-mono">{browserHealth.logged_in ? 'Yes' : 'No'}</span>
                     </div>
                     {browserHealth.detail && (
                       <p className="text-[10px] text-destructive italic">{browserHealth.detail}</p>
@@ -997,7 +1580,7 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                               void handleStopScan(job.job_id)
                             }}
                             disabled={stoppingJobId === job.job_id}
-                            className="absolute -right-1 -top-1 h-6 w-6 rounded-full border bg-background opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:text-destructive"
+                            className="absolute -right-1 -top-1 h-6 w-6 rounded-full border bg-background shadow-sm hover:text-destructive"
                             title="Stop Scan"
                           >
                             {stoppingJobId === job.job_id ? (

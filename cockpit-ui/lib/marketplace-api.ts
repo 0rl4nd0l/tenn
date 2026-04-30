@@ -2,15 +2,97 @@ export interface MarketplaceMission {
   mission_id: string
   name: string
   status: string
+  mission_type: string
   brief: string
+  user_goal?: string | null
   category_hint: string | null
   hard_filters: Record<string, unknown>
   soft_preferences: Record<string, unknown>
   search_config: Record<string, unknown>
   scan_config: Record<string, unknown>
+  benchmark_sources?: string[]
+  deployment_args?: Record<string, unknown>
+  last_error?: string | null
+  created_from_chat_message_id?: string | null
   created_at: string
   updated_at: string
   last_scan_at: string | null
+  requirement_profile?: MarketplaceRequirementProfile | null
+  candidate_products?: MarketplaceCandidateProduct[]
+  primary_tracked_product?: MarketplacePrimaryTrackedProductLink | null
+  benchmark_state?: MarketplaceBenchmarkState | null
+}
+
+export interface MarketplaceRequirementProfile {
+  mode: string
+  category?: string | null
+  intended_use?: string | null
+  budget?: Record<string, unknown> | null
+  local_area?: string | null
+  hard_constraints?: Array<Record<string, unknown>>
+  soft_preferences?: Array<Record<string, unknown>>
+  performance_tier_hints?: string[]
+  exact_product_hint?: string | null
+  extracted_terms?: string[]
+  unsupported_reason?: string | null
+}
+
+export interface MarketplaceCandidateProduct {
+  mission_id: string
+  tracked_product_id: string
+  candidate_key: string
+  category: string
+  candidate_rank: number
+  fit_score: number
+  fit_label: string
+  hard_constraints_met: string[]
+  soft_preferences_met: string[]
+  explanation?: string | null
+  created_at: string
+  updated_at: string
+  tracked_product?: MarketplaceTrackedProduct | null
+  benchmark_state?: MarketplaceBenchmarkState | null
+  warning?: string | null
+}
+
+export interface MarketplaceTrackedProduct {
+  tracked_product_id: string
+  canonical_key: string
+  category: string
+  brand?: string | null
+  model_family?: string | null
+  variant?: string | null
+  attributes: Record<string, unknown>
+  aliases: string[]
+  negative_terms: string[]
+  status: string
+  created_at: string
+  updated_at: string
+}
+
+export interface MarketplacePrimaryTrackedProductLink {
+  mission_id: string
+  tracked_product_id: string
+  link_type: string
+  created_at: string
+  updated_at: string
+  tracked_product?: MarketplaceTrackedProduct | null
+  warning?: string | null
+}
+
+export interface MarketplaceBenchmarkState {
+  status: string
+  freshness_status: string
+  confidence_label: string
+  sample_size: number
+  snapshot_id?: string | null
+  generated_at?: string | null
+  fair_low?: number | null
+  fair_high?: number | null
+  used_median?: number | null
+  retail_anchor_price?: number | null
+  warnings?: string[]
+  notes?: string[]
 }
 
 export interface MarketplaceBrowserHealth {
@@ -18,7 +100,6 @@ export interface MarketplaceBrowserHealth {
   cdp_url: string
   browser_family: string
   profile_path: string
-  logged_in: boolean
   challenge_detected: boolean
   last_checked_at: string
   detail?: string | null
@@ -28,6 +109,7 @@ export interface MarketplaceBrowserHealth {
 export interface MarketplaceScanJob {
   job_id: string
   action_id: string
+  mission_id?: string | null
   status: string
   started_at?: string | null
   ended_at?: string | null
@@ -58,9 +140,60 @@ export interface MarketplaceMatch {
   confidence?: number | null
   raw_text_snapshot: string
   screenshot_path?: string | null
+  listing_media?: string[]
   status: string
   metadata: Record<string, unknown>
+  benchmark?: MarketplaceBenchmarkOverlay | null
+  value_context?: MarketplaceValueContext | null
   updated_at: string
+}
+
+export interface MarketplaceValueContext {
+  state: string
+  value_score?: number | null
+  value_label: string
+  value_confidence: string
+  benchmark_snapshot_id?: string | null
+  fair_low?: number | null
+  fair_high?: number | null
+  used_median?: number | null
+  retail_anchor_price?: number | null
+  price_movement_summary?: string | null
+  explanation?: string | null
+  warnings?: string[]
+  notes?: string[]
+  linked_tracked_product_id?: string | null
+  linked_tracked_product_name?: string | null
+  benchmark_freshness_status?: string | null
+  benchmark_sample_size?: number | null
+  variant_match_confidence?: number | null
+  condition_certainty?: string | null
+  mission_mode?: string | null
+  value_source?: string | null
+  matched_candidate_tracked_product_id?: string | null
+  matched_candidate_name?: string | null
+  candidate_match_confidence?: number | null
+  requirement_fit_score?: number | null
+  requirement_fit_label?: string | null
+  requirement_explanation?: string | null
+  requirement_category?: string | null
+  computed_at?: string | null
+}
+
+export interface MarketplaceBenchmarkOverlay {
+  source: string
+  category: string
+  matched_product: string | null
+  current_price: number | null
+  median_30d: number | null
+  listing_delta_pct: number | null
+  freshness_hours: number | null
+  confidence: number
+  low_confidence: boolean
+  review_status: string
+  warning: string | null
+  rationale: string[]
+  wording: string
 }
 
 export interface MarketplaceAlert {
@@ -111,11 +244,33 @@ async function parseJson<T>(response: Response): Promise<T> {
   return response.json() as Promise<T>
 }
 
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  timeoutMs = 10_000,
+): Promise<Response> {
+  const controller = new AbortController()
+  const timer = globalThis.setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    })
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error(`Request timed out after ${Math.ceil(timeoutMs / 1000)}s`)
+    }
+    throw error
+  } finally {
+    globalThis.clearTimeout(timer)
+  }
+}
+
 export async function getMarketplaceBrowserHealth(apiKey: string): Promise<MarketplaceBrowserHealth> {
-  const response = await fetch('/api/cockpit/marketplace/browser-health', {
+  const response = await fetchWithTimeout('/api/cockpit/marketplace/browser-health', {
     headers: buildHeaders(apiKey, null),
     cache: 'no-store',
-  })
+  }, 8_000)
   return parseJson<MarketplaceBrowserHealth>(response)
 }
 
@@ -161,6 +316,47 @@ export async function createMarketplaceMission(
   return parseJson<MarketplaceMission>(response)
 }
 
+export async function listMarketplaceTrackedProducts(
+  apiKey: string,
+): Promise<MarketplaceTrackedProduct[]> {
+  const response = await fetch('/api/cockpit/marketplace/price-intelligence/tracked-products', {
+    headers: buildHeaders(apiKey, null),
+    cache: 'no-store',
+  })
+  const body = await parseJson<{ items: MarketplaceTrackedProduct[] }>(response)
+  return body.items
+}
+
+export async function linkMarketplaceMissionTrackedProduct(
+  apiKey: string,
+  missionId: string,
+  trackedProductId: string,
+): Promise<MarketplaceMission> {
+  const response = await fetch(
+    `/api/cockpit/marketplace/missions/${encodeURIComponent(missionId)}/link-product`,
+    {
+      method: 'POST',
+      headers: buildHeaders(apiKey),
+      body: JSON.stringify({ tracked_product_id: trackedProductId }),
+    },
+  )
+  return parseJson<MarketplaceMission>(response)
+}
+
+export async function unlinkMarketplaceMissionTrackedProduct(
+  apiKey: string,
+  missionId: string,
+): Promise<MarketplaceMission> {
+  const response = await fetch(
+    `/api/cockpit/marketplace/missions/${encodeURIComponent(missionId)}/link-product`,
+    {
+      method: 'DELETE',
+      headers: buildHeaders(apiKey, null),
+    },
+  )
+  return parseJson<MarketplaceMission>(response)
+}
+
 export async function updateMarketplaceMission(
   apiKey: string,
   missionId: string,
@@ -172,6 +368,41 @@ export async function updateMarketplaceMission(
     body: JSON.stringify(payload),
   })
   return parseJson<MarketplaceMission>(response)
+}
+
+export async function deleteMarketplaceMission(
+  apiKey: string,
+  missionId: string,
+): Promise<{
+  ok: boolean
+  mission_id: string
+  status: string
+  deleted_missions: number
+  deleted_seen_listings: number
+  deleted_matches: number
+  deleted_alerts: number
+  deleted_listing_product_matches: number
+  deleted_listing_benchmark_scores: number
+  deleted_mission_product_links: number
+  deleted_match_value_assessments: number
+}> {
+  const response = await fetch(`/api/cockpit/marketplace/missions/${encodeURIComponent(missionId)}`, {
+    method: 'DELETE',
+    headers: buildHeaders(apiKey, null),
+  })
+  return parseJson<{
+    ok: boolean
+    mission_id: string
+    status: string
+    deleted_missions: number
+    deleted_seen_listings: number
+    deleted_matches: number
+    deleted_alerts: number
+    deleted_listing_product_matches: number
+    deleted_listing_benchmark_scores: number
+    deleted_mission_product_links: number
+    deleted_match_value_assessments: number
+  }>(response)
 }
 
 export async function listMarketplaceScanJobs(apiKey: string): Promise<MarketplaceScanJob[]> {
@@ -213,11 +444,11 @@ export async function triggerMarketplaceScan(
   apiKey: string,
   missionId?: string,
 ): Promise<MarketplaceScanJob> {
-  const response = await fetch('/api/cockpit/marketplace/scans', {
+  const response = await fetchWithTimeout('/api/cockpit/marketplace/scans', {
     method: 'POST',
     headers: buildHeaders(apiKey),
     body: JSON.stringify({ mission_id: missionId || null }),
-  })
+  }, 12_000)
   return parseJson<MarketplaceScanJob>(response)
 }
 
@@ -257,6 +488,54 @@ export async function updateMarketplaceMatch(
     body: JSON.stringify({ status }),
   })
   return parseJson<MarketplaceMatch>(response)
+}
+
+export async function reviewMarketplaceBenchmarkMatch(
+  apiKey: string,
+  matchId: string,
+  payload: { review_status: string; note?: string | null },
+): Promise<MarketplaceMatch> {
+  const response = await fetch(
+    `/api/cockpit/marketplace/matches/${encodeURIComponent(matchId)}/benchmark-review`,
+    {
+      method: 'PATCH',
+      headers: buildHeaders(apiKey),
+      body: JSON.stringify(payload),
+    },
+  )
+  return parseJson<MarketplaceMatch>(response)
+}
+
+export async function refreshMarketplaceBenchmarks(
+  apiKey: string,
+): Promise<{
+  ok: boolean
+  retailer: string
+  observed_at: string
+  canonical_created: number
+  retailer_products_created: number
+  price_observations_added: number
+  live_observations_added?: number
+  fallback_observations_added?: number
+  fetch_failures?: string[]
+  categories: string[]
+}> {
+  const response = await fetch('/api/cockpit/marketplace/benchmarks/refresh', {
+    method: 'POST',
+    headers: buildHeaders(apiKey, null),
+  })
+  return parseJson<{
+    ok: boolean
+    retailer: string
+    observed_at: string
+    canonical_created: number
+    retailer_products_created: number
+    price_observations_added: number
+    live_observations_added?: number
+    fallback_observations_added?: number
+    fetch_failures?: string[]
+    categories: string[]
+  }>(response)
 }
 
 export async function listMarketplaceAlerts(

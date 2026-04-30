@@ -23,6 +23,7 @@ interface HoldingItem {
   holding_id: string
   ticker: string
   account_label: string | null
+  market_exchange: string | null
   thesis_bucket: string | null
   status: string | null
   quantity: number | null
@@ -31,6 +32,12 @@ interface HoldingItem {
   opened_at: string | null
   updated_at: string | null
   note: string | null
+  current_price: number | null
+  price_currency: string | null
+  price_as_of: string | null
+  market_value: number | null
+  unrealized_pnl: number | null
+  valuation_warning: string | null
 }
 
 interface HoldingsResponse {
@@ -46,6 +53,7 @@ interface HoldingDraft {
   quantity: string
   avg_cost: string
   account_label: string
+  market_exchange: string
   thesis_bucket: string
   status: string
   cost_currency: string
@@ -58,6 +66,7 @@ type SortKey = 'ticker-asc' | 'ticker-desc' | 'quantity-desc' | 'avg-cost-desc' 
 type ValueMode = 'amount' | 'percent'
 type ChartMode = 'line' | 'bar'
 type ChartRange = 'd' | 'm' | 'y'
+type ExposureBasis = 'live' | 'cost'
 
 interface HoldingsChartPoint {
   label: string
@@ -70,6 +79,7 @@ const EMPTY_DRAFT: HoldingDraft = {
   quantity: '',
   avg_cost: '',
   account_label: '',
+  market_exchange: '',
   thesis_bucket: '',
   status: '',
   cost_currency: '',
@@ -98,6 +108,7 @@ function toDraft(item: HoldingItem): HoldingDraft {
     quantity: item.quantity == null ? '' : String(item.quantity),
     avg_cost: item.avg_cost == null ? '' : String(item.avg_cost),
     account_label: item.account_label ?? '',
+    market_exchange: item.market_exchange ?? '',
     thesis_bucket: item.thesis_bucket ?? '',
     status: item.status ?? '',
     cost_currency: item.cost_currency ?? '',
@@ -111,6 +122,20 @@ function formatNumber(value: number | null): string {
   return new Intl.NumberFormat('en-AU', {
     maximumFractionDigits: 2,
   }).format(value)
+}
+
+function formatCurrencyAmount(value: number | null, currency?: string | null): string {
+  if (value == null || !Number.isFinite(value)) return '-'
+  const code = String(currency || 'AUD').trim().toUpperCase() || 'AUD'
+  try {
+    return new Intl.NumberFormat('en-AU', {
+      style: 'currency',
+      currency: code,
+      maximumFractionDigits: 2,
+    }).format(value)
+  } catch {
+    return `${code} ${formatNumber(value)}`
+  }
 }
 
 function formatTimestamp(value: string | null): string {
@@ -145,6 +170,13 @@ function parseHoldingDate(item: HoldingItem): Date | null {
 function getInvestedAmount(item: HoldingItem): number {
   if (item.quantity == null || item.avg_cost == null) return 0
   return Math.max(0, item.quantity * item.avg_cost)
+}
+
+function getLiveMarketValue(item: HoldingItem): number {
+  if (item.market_value != null && Number.isFinite(item.market_value)) {
+    return Math.max(0, item.market_value)
+  }
+  return 0
 }
 
 function buildRangePoints(range: ChartRange): Date[] {
@@ -195,20 +227,27 @@ function rangePointCutoff(date: Date, range: ChartRange): Date {
   return new Date(date.getFullYear(), 11, 31, 23, 59, 59, 999)
 }
 
-function buildHoldingsSeries(items: HoldingItem[], range: ChartRange): HoldingsChartPoint[] {
+function buildHoldingsSeries(
+  items: HoldingItem[],
+  range: ChartRange,
+  basis: ExposureBasis,
+): HoldingsChartPoint[] {
   const points = buildRangePoints(range)
   const contributions = items
     .map((item) => ({
       date: parseHoldingDate(item) ?? new Date(),
-      invested: getInvestedAmount(item),
+      amount:
+        basis === 'live'
+          ? (getLiveMarketValue(item) || getInvestedAmount(item))
+          : getInvestedAmount(item),
     }))
-    .filter((entry) => entry.invested > 0)
+    .filter((entry) => entry.amount > 0)
     .sort((left, right) => left.date.getTime() - right.date.getTime())
 
   const series = points.map((point) => {
     const cutoff = rangePointCutoff(point, range).getTime()
     const amount = contributions.reduce((sum, entry) => {
-      return entry.date.getTime() <= cutoff ? sum + entry.invested : sum
+      return entry.date.getTime() <= cutoff ? sum + entry.amount : sum
     }, 0)
     return {
       label: rangePointLabel(point, range),
@@ -240,6 +279,7 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
   const [valueMode, setValueMode] = useState<ValueMode>('amount')
   const [chartMode, setChartMode] = useState<ChartMode>('line')
   const [chartRange, setChartRange] = useState<ChartRange>('m')
+  const [exposureBasis, setExposureBasis] = useState<ExposureBasis>('live')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
 
@@ -290,7 +330,10 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
     return items.filter((item) => item.account_label?.trim() === portfolioFilter)
   }, [items, portfolioFilter])
 
-  const holdingsSeries = useMemo(() => buildHoldingsSeries(scopedItems, chartRange), [chartRange, scopedItems])
+  const holdingsSeries = useMemo(
+    () => buildHoldingsSeries(scopedItems, chartRange, exposureBasis),
+    [chartRange, exposureBasis, scopedItems],
+  )
 
   async function handleCreate() {
     if (!canCreate) {
@@ -305,6 +348,7 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
         quantity: parseOptionalNumber(createDraft.quantity, 'Quantity'),
         avg_cost: parseOptionalNumber(createDraft.avg_cost, 'Avg cost'),
         account_label: parseOptionalText(createDraft.account_label),
+        market_exchange: parseOptionalText(createDraft.market_exchange),
         thesis_bucket: parseOptionalText(createDraft.thesis_bucket),
         status: parseOptionalText(createDraft.status),
         cost_currency: parseOptionalText(createDraft.cost_currency),
@@ -354,6 +398,7 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
         quantity: parseOptionalNumber(editDraft.quantity, 'Quantity'),
         avg_cost: parseOptionalNumber(editDraft.avg_cost, 'Avg cost'),
         account_label: parseOptionalText(editDraft.account_label),
+        market_exchange: parseOptionalText(editDraft.market_exchange),
         thesis_bucket: parseOptionalText(editDraft.thesis_bucket),
         status: parseOptionalText(editDraft.status),
         cost_currency: parseOptionalText(editDraft.cost_currency),
@@ -424,6 +469,7 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
         item.note,
         item.status,
         item.thesis_bucket,
+        item.market_exchange,
         item.cost_currency,
       ]
         .map((value) => String(value ?? '').toLowerCase())
@@ -457,24 +503,33 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
         .filter((label): label is string => Boolean(label)),
     )
     const costKnown = scopedItems.filter((item) => item.avg_cost != null && item.quantity != null).length
+    const livePriced = scopedItems.filter((item) => item.current_price != null && item.quantity != null).length
     const activeCount = scopedItems.filter((item) => {
       const status = normalizeStatus(item.status)
       return status.length === 0 || status === 'active'
     }).length
 
     const investedByCurrency = new Map<string, number>()
+    const marketValueByCurrency = new Map<string, number>()
     for (const item of scopedItems) {
       if (item.avg_cost == null || item.quantity == null) continue
       const currency = (item.cost_currency?.trim().toUpperCase() || 'UNK')
       investedByCurrency.set(currency, (investedByCurrency.get(currency) ?? 0) + item.avg_cost * item.quantity)
+    }
+    for (const item of scopedItems) {
+      if (item.market_value == null) continue
+      const currency = (item.price_currency?.trim().toUpperCase() || item.cost_currency?.trim().toUpperCase() || 'UNK')
+      marketValueByCurrency.set(currency, (marketValueByCurrency.get(currency) ?? 0) + item.market_value)
     }
 
     return {
       positions: scopedItems.length,
       accounts: accounts.size,
       costKnown,
+      livePriced,
       activeCount,
       investedByCurrency,
+      marketValueByCurrency,
     }
   }, [scopedItems])
 
@@ -545,11 +600,14 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-mono uppercase tracking-wide text-muted-foreground">Cost Basis Known</CardTitle>
+            <CardTitle className="text-xs font-mono uppercase tracking-wide text-muted-foreground">Live Prices</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-semibold">{summary.costKnown}</p>
+            <p className="text-2xl font-semibold">
+              {summary.livePriced}/{summary.positions}
+            </p>
             <div className="mt-1 flex flex-wrap gap-1 text-xs text-muted-foreground">
+              <span>Cost basis known: {summary.costKnown}</span>
               {summary.investedByCurrency.size === 0 ? (
                 <span>Invested capital unavailable</span>
               ) : (
@@ -557,10 +615,19 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
                   .slice(0, 2)
                   .map(([currency, total]) => (
                     <Badge key={currency} variant="secondary" className="font-mono text-[10px]">
-                      {currency} {formatNumber(total)}
+                      Cost {currency} {formatNumber(total)}
                     </Badge>
                   ))
               )}
+              {summary.marketValueByCurrency.size > 0
+                ? Array.from(summary.marketValueByCurrency.entries())
+                  .slice(0, 2)
+                  .map(([currency, total]) => (
+                    <Badge key={`mv-${currency}`} variant="outline" className="font-mono text-[10px]">
+                      Mkt {currency} {formatNumber(total)}
+                    </Badge>
+                  ))
+                : null}
             </div>
           </CardContent>
         </Card>
@@ -597,6 +664,20 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
               </ToggleGroupItem>
               <ToggleGroupItem id="y" value="y" aria-label="Yearly range">
                 Y
+              </ToggleGroupItem>
+            </ToggleGroup>
+            <ToggleGroup
+              type="single"
+              value={exposureBasis}
+              onValueChange={(value) => value && setExposureBasis(value as ExposureBasis)}
+              variant="outline"
+              size="sm"
+            >
+              <ToggleGroupItem id="live" value="live" aria-label="Live valuation basis">
+                Live
+              </ToggleGroupItem>
+              <ToggleGroupItem id="cost" value="cost" aria-label="Cost basis exposure">
+                Cost
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
@@ -662,7 +743,9 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
             </ChartContainer>
           )}
           <p className="text-xs text-muted-foreground">
-            Derived from holding quantity x average cost, rolled up by opened date.
+            {exposureBasis === 'live'
+              ? 'Live basis uses latest market value where available, otherwise falls back to quantity x average cost.'
+              : 'Cost basis uses quantity x average cost, rolled up by opened date.'}
           </p>
         </CardContent>
       </Card>
@@ -702,12 +785,19 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
               }
             />
           </div>
-          <div className="grid gap-2 md:grid-cols-4">
+          <div className="grid gap-2 md:grid-cols-5">
             <Input
               placeholder="Thesis bucket"
               value={createDraft.thesis_bucket}
               onChange={(event) =>
                 setCreateDraft((current) => ({ ...current, thesis_bucket: event.target.value }))
+              }
+            />
+            <Input
+              placeholder="Exchange (ASX/NASDAQ)"
+              value={createDraft.market_exchange}
+              onChange={(event) =>
+                setCreateDraft((current) => ({ ...current, market_exchange: event.target.value }))
               }
             />
             <Input
@@ -803,6 +893,9 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
                 <TableHead>Ticker</TableHead>
                 <TableHead className="font-mono">Quantity</TableHead>
                 <TableHead className="font-mono">Avg Cost</TableHead>
+                <TableHead className="font-mono">Current Px</TableHead>
+                <TableHead className="font-mono">Total Value</TableHead>
+                <TableHead className="font-mono">Unrealized P&L</TableHead>
                 <TableHead>Account</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Updated</TableHead>
@@ -812,7 +905,7 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
             <TableBody>
               {visibleItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                  <TableCell colSpan={10} className="py-8 text-center text-muted-foreground">
                     {loading ? 'Loading holdings...' : 'No holdings yet.'}
                   </TableCell>
                 </TableRow>
@@ -859,6 +952,15 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
                           ) : (
                             formatNumber(item.avg_cost)
                           )}
+                        </TableCell>
+                        <TableCell className="font-mono align-top">
+                          {formatCurrencyAmount(item.current_price, item.price_currency || item.cost_currency)}
+                        </TableCell>
+                        <TableCell className="font-mono align-top">
+                          {formatCurrencyAmount(item.market_value, item.price_currency || item.cost_currency)}
+                        </TableCell>
+                        <TableCell className="font-mono align-top">
+                          {formatCurrencyAmount(item.unrealized_pnl, item.price_currency || item.cost_currency)}
                         </TableCell>
                         <TableCell className="align-top">
                           {editing ? (
@@ -939,8 +1041,8 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
                       </TableRow>
                       {expanded ? (
                         <TableRow>
-                          <TableCell colSpan={7}>
-                            <div className="grid gap-2 md:grid-cols-4">
+                          <TableCell colSpan={10}>
+                            <div className="grid gap-2 md:grid-cols-5">
                               <div>
                                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Thesis Bucket</p>
                                 {editing ? (
@@ -952,6 +1054,19 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
                                   />
                                 ) : (
                                   <p className="text-sm">{item.thesis_bucket || '-'}</p>
+                                )}
+                              </div>
+                              <div>
+                                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Exchange</p>
+                                {editing ? (
+                                  <Input
+                                    value={editDraft.market_exchange}
+                                    onChange={(event) =>
+                                      setEditDraft((current) => ({ ...current, market_exchange: event.target.value }))
+                                    }
+                                  />
+                                ) : (
+                                  <p className="text-sm">{item.market_exchange || '-'}</p>
                                 )}
                               </div>
                               <div>
@@ -981,10 +1096,10 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
                                 )}
                               </div>
                               <div>
-                                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Holding ID</p>
-                                <p className="font-mono text-xs text-muted-foreground">{item.holding_id}</p>
+                                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Price As Of</p>
+                                <p className="text-sm">{formatTimestamp(item.price_as_of)}</p>
                               </div>
-                              <div className="md:col-span-4">
+                              <div className="md:col-span-5">
                                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Note</p>
                                 {editing ? (
                                   <Input
@@ -997,6 +1112,11 @@ export function HoldingsScreen({ apiKey }: HoldingsScreenProps) {
                                   <p className="text-sm">{item.note || '-'}</p>
                                 )}
                               </div>
+                              {item.valuation_warning ? (
+                                <div className="md:col-span-5 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs text-amber-200">
+                                  {item.valuation_warning}
+                                </div>
+                              ) : null}
                             </div>
                           </TableCell>
                         </TableRow>

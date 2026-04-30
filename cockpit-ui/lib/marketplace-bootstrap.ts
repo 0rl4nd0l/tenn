@@ -1,6 +1,5 @@
 export type MarketplaceCaptureErrorKind =
   | 'browser_unavailable'
-  | 'login_required'
   | 'other'
 
 type MarketplaceCaptureError = {
@@ -9,7 +8,6 @@ type MarketplaceCaptureError = {
 }
 
 const BROWSER_UNAVAILABLE_PREFIX = 'marketplace_browser_unavailable:'
-const LOGIN_REQUIRED_PREFIX = 'marketplace_login_required:'
 const CAPTURE_FAILED_PREFIX = 'marketplace_capture_failed:'
 
 function extractErrorDetail(rawBody: string, status: number): string {
@@ -48,13 +46,6 @@ export function parseMarketplaceCaptureError(
     }
   }
 
-  if (detail.startsWith(LOGIN_REQUIRED_PREFIX)) {
-    return {
-      kind: 'login_required',
-      message: detail.slice(LOGIN_REQUIRED_PREFIX.length).trim(),
-    }
-  }
-
   if (detail.startsWith(CAPTURE_FAILED_PREFIX)) {
     return {
       kind: 'other',
@@ -66,15 +57,11 @@ export function parseMarketplaceCaptureError(
     return { kind: 'browser_unavailable', message: detail }
   }
 
-  if (status === 409) {
-    return { kind: 'login_required', message: detail }
-  }
-
   return { kind: 'other', message: detail }
 }
 
 export function shouldOfferMarketplaceBrowserLaunch(
   kind: MarketplaceCaptureErrorKind,
 ): boolean {
-  return kind === 'browser_unavailable' || kind === 'login_required'
+  return kind === 'browser_unavailable'
 }

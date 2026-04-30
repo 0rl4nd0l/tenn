@@ -55,6 +55,7 @@ export type ActionJobHandle = {
   status: string
   queued: boolean
   result?: string
+  chart?: RenderedChart
 }
 
 export type ActionJobStatus = {
@@ -454,9 +455,10 @@ export async function sendChatMessage(params: {
         answer: String(raw.data.text || ''),
         model: raw.data.model,
         latency_ms: raw.data.latency_ms,
-        cost_usd: raw.data.cost_usd,
-        source: raw.data.source,
-        chart: raw.data.chart,
+	        cost_usd: raw.data.cost_usd,
+	        source: raw.data.source,
+	        provider_error: raw.data.provider_error ?? null,
+	        chart: raw.data.chart,
         sources: Array.isArray(raw.data.sources)
           ? raw.data.sources.map((s: any) => ({
               title: s.title,
@@ -471,7 +473,6 @@ export async function sendChatMessage(params: {
               kind: s.kind,
             }))
           : undefined,
-        provider_error: raw.data.provider_error ?? null,
       },
     }
   }

@@ -144,7 +144,10 @@ def _normalize_runtime_launch_error(exc: Exception, profile_path: str) -> Runtim
 
 
 @asynccontextmanager
-async def open_direct_marketplace_context() -> AsyncIterator[tuple[Any, str, str]]:
+async def open_direct_marketplace_context(
+    *,
+    lock_timeout_seconds: float | None = None,
+) -> AsyncIterator[tuple[Any, str, str]]:
     try:
         from playwright.async_api import async_playwright
     except Exception as exc:  # pragma: no cover - environment specific
@@ -161,10 +164,16 @@ async def open_direct_marketplace_context() -> AsyncIterator[tuple[Any, str, str
         launch_env = os.environ.copy()
         launch_env["XDG_RUNTIME_DIR"] = ensure_marketplace_xdg_runtime_dir()
 
+        timeout_seconds = (
+            _DIRECT_RUNTIME_PROFILE_LOCK_TIMEOUT_SECONDS
+            if lock_timeout_seconds is None
+            else max(float(lock_timeout_seconds), 0.0)
+        )
+
         acquired = await asyncio.to_thread(
             _DIRECT_RUNTIME_PROFILE_LOCK.acquire,
             True,
-            _DIRECT_RUNTIME_PROFILE_LOCK_TIMEOUT_SECONDS,
+            timeout_seconds,
         )
         if not acquired:
             raise RuntimeError(_profile_in_use_message(profile_path))

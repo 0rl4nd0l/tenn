@@ -791,14 +791,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 
 ---
 
-## L072 — Deterministic slash responses need explicit route metadata and UI sources
+## L072 — Deterministic Cockpit commands must not inherit local LLM routing metadata
 
 **Date:** 2026-04-29
-**Subsystem:** `financial-engine_v2/cockpit/core/chat.py`, `backend/app/services/cockpit_service.py`, `backend/app/routes/cockpit_api.py`, `cockpit-ui/lib/*`
-**Symptom:** `/market-update final` produced a useful deterministic report, but the web footer could label it as `local`, show a stale model, and render a `0%` source confidence item. Snapshot gaps also appeared as scary `Errors (...)` lines even when the run was only partial because some tickers had no market snapshot.
-**Root cause:** Deterministic slash-command responses did not attach their own routing metadata, so `CockpitService` fell back to local-route defaults and inferred the active local model. `_build_ui_sources` also had no market-update-specific source item, so the UI used generic fallback scoring. Finally, missing snapshot data was treated the same as execution errors in the text renderer.
-**Fix:** `/market-update` now marks responses as `source=cockpit` with deterministic route metadata, the backend records real wall-clock latency for slash responses without model metadata, market-update reports render as first-class UI source items with full confidence, and snapshot gaps are separated from actual run errors.
-**Rule:** Any deterministic Cockpit response path that bypasses an LLM must attach explicit route metadata and source items. Do not let service-layer model defaults imply a local/API model was used when the answer came from Cockpit control-plane logic.
+**Subsystem:** `financial-engine_v2/cockpit/core/chat.py`, `financial-engine_v2/backend/app/services/cockpit_service.py`, `cockpit-ui/components/cockpit/*`
+**Symptom:** A deterministic market-update command rendered as if it used the active local model, even when API-default routing was selected, and its context source showed `[0%]`.
+**Root cause:** Slash-command responses returned no routing metadata, so the backend wrapper filled in the active local model and `source=local`. The web UI also recognized `anthropic` but not the backend's `api` source label, and market-update source entries carried no score, so the UI defaulted them to zero confidence.
+**Fix:** Market-update command responses now identify themselves as `source=cockpit` / `model=deterministic:market-update`; backend chat metadata falls back to `cockpit` for non-LLM responses and records actual wall-clock latency; the UI recognizes both `api` and `cockpit`; market-update source entries use the persisted report date and full-confidence context score.
+**Rule:** Any deterministic Cockpit command that bypasses LLM execution must set explicit routing metadata. Backend/UI defaults must distinguish "Cockpit handled this" from "local model generated this"; never infer LLM source from the currently loaded model alone.
 
 ---
 
@@ -827,11 +827,11 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 ## L075 — API billing failures must be operational notices, not just model text
 
 **Date:** 2026-04-29
-**Subsystem:** `backend/app/services/cockpit_service.py`, `backend/app/routes/cockpit_api.py`, `cockpit-ui/components/cockpit/chat/chat-screen.tsx`
-**Symptom:** When Anthropic rejected an API-routed chat turn because the credit balance was too low, Cockpit showed the raw failure as assistant text and the operator had to infer that billing needed action.
-**Root cause:** Provider-account failures were treated like ordinary model output. The route metadata carried source/model details, but there was no first-class provider-error field or UI affordance for account-level action required states.
-**Fix:** Cockpit now detects Anthropic insufficient-credit messages on API-routed turns, records `provider_error.code=billing_insufficient_credit`, emits a status event, includes the metadata in stream and non-stream responses, and renders a toast plus persistent system message telling the operator to top up Anthropic credits.
-**Rule:** Provider account, quota, or billing failures must be surfaced as explicit Cockpit operational notices with structured metadata. Do not leave top-up or operator-action requirements buried in assistant response text.
+**Subsystem:** `financial-engine_v2/backend/app/services/cockpit_service.py`, `financial-engine_v2/backend/app/routes/cockpit_api.py`, `cockpit-ui/components/cockpit/chat/chat-screen.tsx`
+**Symptom:** When Anthropic rejected a cloud-routed Cockpit turn because credits were exhausted, the failure appeared only as assistant text, so the operator could miss that the real fix was to top up API credits.
+**Root cause:** Provider failures were treated as ordinary LLM response text after the agent loop caught the exception. The backend did not classify the known Anthropic billing signature, and the web client had no persistent provider-error surface.
+**Fix:** Cockpit now classifies Anthropic insufficient-credit responses as `provider_error.code=billing_insufficient_credit`, emits a billing action-required status, includes the metadata in chat responses, and renders a toast plus persistent system message in web chat.
+**Rule:** Known provider-account failures must become explicit Cockpit operational notices with an action label; do not rely on free-form assistant text for top-up, auth, quota, or billing remediation.
 
 ---
 
@@ -865,3 +865,36 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** Plain-name channel resolution only tried a title-cased handle guess and treated that miss as final. The Cockpit backend client also surfaced the raw `HTTPStatusError`, hiding the backend's JSON `detail`.
 **Fix:** Plain names and handles now fall back to `ytsearch5:<query>` and choose the matching channel identity when the direct handle lookup misses. The backend client now raises the backend detail for `add_watched_channel` failures.
 **Rule:** Natural-language commands must validate the full operator path with realistic external identifiers, not just mocked exact handles. For backend-mediated command tools, surface structured backend `detail` text instead of generic HTTP status strings.
+
+---
+
+## L079 — Marketplace scans must not imply Facebook login is required
+
+**Date:** 2026-04-30
+**Subsystem:** `financial-engine_v2/backend/app/services/marketplace_browser_profile.py`, `financial-engine_v2/backend/app/services/facebook_marketplace_inspector.py`, `cockpit-ui/components/cockpit/marketplace/mission-screen.tsx`
+**Symptom:** Marketplace scan health reported `login_required`/`logged_in`, even though the operational scanner can run against public Marketplace surfaces without an authenticated session.
+**Root cause:** Legacy browser bootstrap and capture logic treated login prompts as an operational state, which made degraded public browsing look like a required setup step.
+**Fix:** Marketplace health no longer emits login state, inspect/bootstrap no longer special-cases `marketplace_login_required`, and the web Marketplace health card no longer displays a login row.
+**Rule:** Marketplace browser health should describe operational availability and challenge/checkpoint state only. Do not add login-required gates unless a specific authenticated-only workflow is introduced and tested separately.
+
+---
+
+## L080 — Memory levels must be browseable, not only summarized
+
+**Date:** 2026-04-30
+**Subsystem:** `cockpit-ui/components/cockpit/memory/memory-screen.tsx`
+**Symptom:** The Memory tab listed Session Memory and Operational State in the side directory, but the main Memory Levels browser still exposed only Company, Sector, Macro, Strategy, and Financial Truth tabs.
+**Root cause:** The first web memory expansion treated non-persistent levels as directory metadata only. That made the UI technically mention all levels while leaving two levels invisible in the operator's primary browser path.
+**Fix:** Session and Operational are now first-class Memory Levels tabs, with rows populated from backend-backed chat sessions, ops jobs, feedback flags, and marketplace alerts.
+**Rule:** When adding a named Cockpit surface to a navigation/browser concept, make it reachable from the primary interaction path as well as summary cards. Directory-only visibility is not enough for operator-facing memory levels.
+
+---
+
+## L081 — Channel watching is not the same as reviewable video selection
+
+**Date:** 2026-04-30
+**Subsystem:** `financial-engine_v2/backend/app/services/youtube_transcript_fetcher.py`, `financial-engine_v2/cockpit/core/command_router.py`
+**Symptom:** The YouTube channel command registered a channel, but the operator expected a review workflow: list recent videos first, choose which transcripts to ingest, then review takeaways before memory/Qdrant commitment.
+**Root cause:** The command name "watch youtube channel" compressed two different intents: subscription-style monitoring and immediate recent-video triage. The implementation only handled the monitoring intent.
+**Fix:** Added a separate recent-video preview path and command route so "check/list recent videos" returns a selectable, scored list without ingesting transcripts.
+**Rule:** Keep monitoring and review-selection intents separate. Do not let "watch channel" auto-ingest or imply selection; explicit "check/list recent videos" should preview first and ask the operator what to ingest.

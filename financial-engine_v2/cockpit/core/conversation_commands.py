@@ -110,12 +110,12 @@ def _(_m, _msg):
 # ---------------------------------------------------------------------------
 
 
-@_rule(r"\b(?:show|list)\s+(?:my\s+)?holdings?\b")
+@_rule(r"\b(?:show|list)\s+(?:my\s+)?hold(?:ings?|iongs?)\b")
 def _(_m, _msg):
     return "/holdings list"
 
 
-@_rule(r"\bwhat\s+(?:am\s+i|are\s+my)\s+holdings?\b")
+@_rule(r"\bwhat\s+(?:(?:am\s+i)|(?:are|r)\s+my)\s+hold(?:ings?|iongs?)\b")
 def _(_m, _msg):
     return "/holdings list"
 
@@ -125,27 +125,27 @@ def _(_m, _msg):
     return "/holdings list"
 
 
-@_rule(r"^\s*holdings?\s*$")
+@_rule(r"^\s*hold(?:ings?|iongs?)\s*$")
 def _(_m, _msg):
     return "/holdings list"
 
 
-@_rule(r"\badd\s+([A-Za-z]{2,5})\s+to\s+(?:my\s+)?holdings?\b")
+@_rule(r"\badd\s+([A-Za-z]{2,5})\s+to\s+(?:my\s+)?hold(?:ings?|iongs?)\b")
 def _(m, _msg):
     return f"/holdings add {m.group(1).upper()}"
 
 
-@_rule(r"\bremove\s+([A-Za-z]{2,5})\s+from\s+(?:my\s+)?holdings?\b")
+@_rule(r"\bremove\s+([A-Za-z]{2,5})\s+from\s+(?:my\s+)?hold(?:ings?|iongs?)\b")
 def _(m, _msg):
     return f"/holdings remove {m.group(1).upper()}"
 
 
-@_rule(r"\barchive\s+([A-Za-z]{2,5})\s+holdings?\b")
+@_rule(r"\barchive\s+([A-Za-z]{2,5})\s+hold(?:ings?|iongs?)\b")
 def _(m, _msg):
     return f"/holdings archive {m.group(1).upper()}"
 
 
-@_rule(r"\barchive\s+holdings?\s+([A-Za-z]{2,5})\b")
+@_rule(r"\barchive\s+hold(?:ings?|iongs?)\s+([A-Za-z]{2,5})\b")
 def _(m, _msg):
     return f"/holdings archive {m.group(1).upper()}"
 
@@ -274,9 +274,11 @@ def _(_m, _msg):
     return "/market-update final"
 
 
-@_rule(r"\b(?:run\s+)?(?:a\s+|the\s+)?market\s+update\b")
+@_rule(r"\b(?:run\s+)?(?:a\s+|the\s+)?market\s+updat(?:e|er)\b")
 def _(_m, _msg):
-    return "/market-update"
+    # Bare conversational requests ("market update?", "run market update")
+    # should run a fresh final update, not only echo the latest cached report.
+    return "/market-update final"
 
 
 def derive_conversational_command(message: str) -> str | None:

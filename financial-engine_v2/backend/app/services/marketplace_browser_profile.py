@@ -4,6 +4,7 @@ import asyncio
 import json
 import os
 import threading
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -31,6 +32,9 @@ DEFAULT_MARKETPLACE_HOME_URL = "https://www.facebook.com/marketplace/"
 DEFAULT_PROFILE_ROOT = Path.home() / ".tenn" / "browser_profiles"
 DEFAULT_MARKETPLACE_HELPER_URL = "http://127.0.0.1:9233"
 DEFAULT_MARKETPLACE_HEALTH_TIMEOUT_MS = 5_000
+MARKETPLACE_SCAN_ALLOWED_HEALTH_STATUSES = frozenset(
+    {"ready", "challenge_detected"}
+)
 _MARKETPLACE_HOME_EVALUATION_SCRIPT = """
 () => {
   const text = document.body?.innerText || ''
@@ -38,25 +42,22 @@ _MARKETPLACE_HOME_EVALUATION_SCRIPT = """
   const challengeDetected =
     /confirm (it'?s )?you|challenge|checkpoint|security check|suspended/i.test(text) ||
     /checkpoint|challenge/i.test(window.location.href || '')
-  const listingAnchors = document.querySelectorAll('a[href*="/marketplace/item/"]').length
-  const priceMatches = Array.from(
-    normalized.matchAll(/(?:a\\$|au\\$|usd\\s*\\$|\\$)\\s?\\d[\\d,]*(?:\\.\\d{2})?/g)
-  )
-  const publicMarketplaceVisible =
-    /today.?s picks|browse all|categories|nearby towns and cities|more categories/i.test(text) &&
-    (listingAnchors > 0 || priceMatches.length >= 3)
-  const loginPromptVisible =
-    !!document.querySelector('input[name="email"], form[action*="login"], #loginbutton') ||
-    /log in to continue|see marketplace listings|facebook login/i.test(normalized)
-  const loginRequired = loginPromptVisible && !publicMarketplaceVisible
   return {
     challengeDetected,
-    loginRequired,
-    publicMarketplaceVisible,
     finalUrl: window.location.href || '',
   }
 }
 """
+
+
+def _is_profile_lock_busy_error(exc: Exception) -> bool:
+    message = str(exc or "").lower()
+    return "profile is already in use" in message and "marketplace" in message
+
+
+def marketplace_scan_health_allows_execution(health: Mapping[str, object]) -> bool:
+    status = str(health.get("status") or "").strip().lower()
+    return status in MARKETPLACE_SCAN_ALLOWED_HEALTH_STATUSES
 
 
 def _is_playwright_navigation_timeout(exc: Exception) -> bool:
@@ -157,7 +158,10 @@ async def _check_browser_health_async(
     last_checked_at = _now_iso()
     if use_direct_marketplace_runtime():
         try:
-            async with open_direct_marketplace_context() as (
+            lock_timeout_seconds = max(min(timeout_ms / 1000.0, 2.0), 0.5)
+            async with open_direct_marketplace_context(
+                lock_timeout_seconds=lock_timeout_seconds
+            ) as (
                 context,
                 browser_family,
                 profile_path,
@@ -175,7 +179,6 @@ async def _check_browser_health_async(
                 "cdp_url": cdp_url,
                 "browser_family": "chrome",
                 "profile_path": profile_path if "profile_path" in locals() else _profile_path("chrome"),
-                "logged_in": False,
                 "challenge_detected": False,
                 "last_checked_at": last_checked_at,
                 "detail": (
@@ -184,12 +187,22 @@ async def _check_browser_health_async(
                 ),
             }
         except Exception as exc:
+            if _is_profile_lock_busy_error(exc):
+                return {
+                    "status": "ready",
+                    "cdp_url": cdp_url,
+                    "browser_family": "chrome",
+                    "profile_path": profile_path if "profile_path" in locals() else _profile_path("chrome"),
+                    "challenge_detected": False,
+                    "last_checked_at": last_checked_at,
+                    "detail": "Marketplace browser profile is currently in use by another Marketplace task.",
+                    "final_url": DEFAULT_MARKETPLACE_HOME_URL,
+                }
             return {
                 "status": "browser_unavailable",
                 "cdp_url": cdp_url,
                 "browser_family": "chrome",
                 "profile_path": profile_path if "profile_path" in locals() else _profile_path("chrome"),
-                "logged_in": False,
                 "challenge_detected": False,
                 "last_checked_at": last_checked_at,
                 "detail": (
@@ -199,11 +212,7 @@ async def _check_browser_health_async(
             }
 
         challenge_detected = bool(evaluated.get("challengeDetected"))
-        login_required = bool(evaluated.get("loginRequired"))
-        if login_required:
-            status = "login_required"
-            detail = "The browser session is not logged into Facebook Marketplace."
-        elif challenge_detected:
+        if challenge_detected:
             status = "challenge_detected"
             detail = "The browser session hit a Facebook checkpoint or challenge page."
         else:
@@ -215,7 +224,6 @@ async def _check_browser_health_async(
             "cdp_url": cdp_url,
             "browser_family": browser_family,
             "profile_path": profile_path,
-            "logged_in": status == "ready",
             "challenge_detected": challenge_detected,
             "last_checked_at": last_checked_at,
             "detail": detail,
@@ -236,7 +244,6 @@ async def _check_browser_health_async(
                 "cdp_url": cdp_url,
                 "browser_family": helper_family,
                 "profile_path": str(helper_health.get("profile_path") or _profile_path(helper_family)),
-                "logged_in": False,
                 "challenge_detected": False,
                 "last_checked_at": last_checked_at,
                 "detail": str(
@@ -257,7 +264,6 @@ async def _check_browser_health_async(
             "cdp_url": cdp_url,
             "browser_family": "chrome",
             "profile_path": _profile_path("chrome"),
-            "logged_in": False,
             "challenge_detected": False,
             "last_checked_at": last_checked_at,
             "detail": detail,
@@ -273,7 +279,6 @@ async def _check_browser_health_async(
             "cdp_url": cdp_url,
             "browser_family": family,
             "profile_path": _profile_path(family),
-            "logged_in": False,
             "challenge_detected": False,
             "last_checked_at": last_checked_at,
             "detail": _browser_unavailable_detail(cdp_url),
@@ -292,7 +297,6 @@ async def _check_browser_health_async(
                 "cdp_url": cdp_url,
                 "browser_family": family,
                 "profile_path": _profile_path(family),
-                "logged_in": False,
                 "challenge_detected": False,
                 "last_checked_at": last_checked_at,
                 "detail": _marketplace_probe_timeout_detail(
@@ -308,7 +312,6 @@ async def _check_browser_health_async(
                 "cdp_url": cdp_url,
                 "browser_family": family,
                 "profile_path": _profile_path(family),
-                "logged_in": False,
                 "challenge_detected": False,
                 "last_checked_at": last_checked_at,
                 "detail": _browser_unavailable_detail(cdp_url),
@@ -343,12 +346,8 @@ async def _check_browser_health_async(
                 timeout_seconds=_probe_timeout_seconds(timeout_ms),
             )
             challenge_detected = bool(evaluated.get("challengeDetected"))
-            login_required = bool(evaluated.get("loginRequired"))
 
-            if login_required:
-                status = "login_required"
-                detail = "The browser session is not logged into Facebook Marketplace."
-            elif challenge_detected:
+            if challenge_detected:
                 status = "challenge_detected"
                 detail = "The browser session hit a Facebook checkpoint or challenge page."
             else:
@@ -360,7 +359,6 @@ async def _check_browser_health_async(
                 "cdp_url": cdp_url,
                 "browser_family": family,
                 "profile_path": _profile_path(family),
-                "logged_in": status == "ready",
                 "challenge_detected": challenge_detected,
                 "last_checked_at": last_checked_at,
                 "detail": detail,
@@ -372,7 +370,6 @@ async def _check_browser_health_async(
                 "cdp_url": cdp_url,
                 "browser_family": family,
                 "profile_path": _profile_path(family),
-                "logged_in": False,
                 "challenge_detected": False,
                 "last_checked_at": last_checked_at,
                 "detail": _marketplace_probe_timeout_detail(

@@ -6,8 +6,10 @@ All queries use the same SQL and field names as DbReader for parity.
 
 from __future__ import annotations
 
+import json
 import logging
 import re
+import sqlite3
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
@@ -127,6 +129,93 @@ def _run_query(
             pass
         logger.warning("Query failed: %s", exc)
         return [], str(exc)
+
+
+def _is_missing_table_error(error: str | None) -> bool:
+    lowered = str(error or "").lower()
+    return (
+        "no such table" in lowered
+        or "does not exist" in lowered
+        or "undefinedtable" in lowered
+    )
+
+
+def _build_document_announcement_context(
+    docs: list[dict[str, Any]],
+    *,
+    limit: Any,
+) -> list[dict[str, Any]]:
+    """Build read-only announcement excerpts from authoritative document rows.
+
+    Used only when the materialized cockpit_announcement_context surface is not
+    present. The existing title skip policy remains the gate, so administrative
+    holder/securities forms stay out of narrative context.
+    """
+    try:
+        limit_value = int(getattr(limit, "default", limit))
+    except (TypeError, ValueError):
+        limit_value = 0
+    if limit_value <= 0:
+        return []
+
+    try:
+        from app.services.announcement_importance import (
+            _extract_pdf_excerpt,
+            classify_title_extraction_skip,
+        )
+    except Exception as exc:
+        logger.warning("Announcement context fallback unavailable: %s", exc)
+        return []
+
+    context_rows: list[dict[str, Any]] = []
+    for row in docs:
+        if len(context_rows) >= limit_value:
+            break
+        if not isinstance(row, dict):
+            continue
+
+        title_skip = classify_title_extraction_skip(
+            title=row.get("title"),
+            doc_class=row.get("doc_class"),
+            doc_subtype=row.get("doc_subtype"),
+        )
+        if bool(title_skip.get("skip_extraction")):
+            continue
+
+        pdf_path = str(row.get("pdf_path") or "").strip()
+        pdf_sha256 = str(row.get("pdf_sha256") or "").strip().lower()
+        if not pdf_path or not pdf_sha256 or pdf_sha256.startswith("blocked_"):
+            continue
+
+        try:
+            excerpt = _extract_pdf_excerpt(pdf_path, max_pages=2, max_chars=3500)
+        except Exception as exc:
+            logger.warning(
+                "Failed to extract announcement context excerpt for %s: %s",
+                row.get("document_id"),
+                exc,
+            )
+            continue
+
+        excerpt = str(excerpt or "").strip()
+        if not excerpt:
+            continue
+
+        context_rows.append(
+            {
+                "document_id": row.get("document_id"),
+                "ticker": row.get("ticker"),
+                "published_at": row.get("published_at"),
+                "title": row.get("title"),
+                "pdf_path": pdf_path,
+                "source_url": row.get("source_url"),
+                "excerpt": excerpt,
+                "updated_at": None,
+                "context_source": "documents_pdf_excerpt",
+            }
+        )
+
+    return context_rows
 
 
 def _safe_float(value: Any) -> float | None:
@@ -402,6 +491,386 @@ def _load_user_thesis_memory(
         }, str(exc)
 
 
+def _safe_json_object(raw: Any) -> dict[str, Any]:
+    text = str(raw or "").strip()
+    if not text:
+        return {}
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _safe_json_list(raw: Any) -> list[Any]:
+    text = str(raw or "").strip()
+    if not text:
+        return []
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        return []
+    return parsed if isinstance(parsed, list) else []
+
+
+def _sqlite_rows(path: Path, query: str, params: tuple[Any, ...]) -> list[dict[str, Any]]:
+    with sqlite3.connect(path, timeout=5.0) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(query, params).fetchall()
+    return [dict(row) for row in rows]
+
+
+def _sqlite_count(path: Path, query: str, params: tuple[Any, ...] = ()) -> int:
+    with sqlite3.connect(path, timeout=5.0) as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(query, params).fetchone()
+    if row is None:
+        return 0
+    return int(row["count"] or 0)
+
+
+def _load_company_memory_index(
+    *,
+    entries_limit: int,
+    change_log_limit: int,
+) -> tuple[dict[str, Any], str | None]:
+    try:
+        from app.services.company_memory import DEFAULT_COMPANY_MEMORY_PATH
+
+        path = Path(DEFAULT_COMPANY_MEMORY_PATH)
+    except Exception as exc:
+        fallback = RESEARCH_MEMORY_ROOT / "company_memory.sqlite"
+        return {
+            "status": "unavailable",
+            "path": str(fallback),
+            "entries": [],
+            "change_log": [],
+            "reason": "company memory module unavailable",
+        }, str(exc)
+
+    if not path.exists():
+        return {
+            "status": "unavailable",
+            "path": str(path),
+            "entries": [],
+            "change_log": [],
+            "reason": "company memory store is not initialized",
+        }, None
+
+    try:
+        entries = _sqlite_rows(
+            path,
+            "SELECT * FROM memory_entries ORDER BY company_id ASC, entry_id ASC LIMIT ?",
+            (entries_limit,),
+        )
+        for row in entries:
+            row["metadata"] = _safe_json_object(row.pop("metadata_json", "{}"))
+
+        change_log = _sqlite_rows(
+            path,
+            "SELECT * FROM change_log ORDER BY company_id ASC, change_id ASC LIMIT ?",
+            (change_log_limit,),
+        )
+        for row in change_log:
+            row["details"] = _safe_json_object(row.pop("details_json", "{}"))
+
+        entries_total = _sqlite_count(path, "SELECT COUNT(*) AS count FROM memory_entries")
+        change_log_total = _sqlite_count(path, "SELECT COUNT(*) AS count FROM change_log")
+        ticker_count = _sqlite_count(
+            path,
+            "SELECT COUNT(DISTINCT company_id) AS count FROM memory_entries",
+        )
+
+        return {
+            "status": "ok",
+            "path": str(path),
+            "entries": entries,
+            "change_log": change_log,
+            "entries_total": entries_total,
+            "change_log_total": change_log_total,
+            "ticker_count": ticker_count,
+        }, None
+    except Exception as exc:
+        return {
+            "status": "error",
+            "path": str(path),
+            "entries": [],
+            "change_log": [],
+        }, str(exc)
+
+
+def _load_market_memory_index(
+    *,
+    sector_limit: int,
+    macro_limit: int,
+) -> tuple[dict[str, Any], str | None]:
+    try:
+        from app.services.market_memory import DEFAULT_MARKET_MEMORY_PATH
+
+        path = Path(DEFAULT_MARKET_MEMORY_PATH)
+    except Exception as exc:
+        fallback = RESEARCH_MEMORY_ROOT / "market_memory.sqlite"
+        return {
+            "status": "unavailable",
+            "path": str(fallback),
+            "sector_items": [],
+            "macro_items": [],
+            "items": [],
+            "reason": "market memory module unavailable",
+        }, str(exc)
+
+    if not path.exists():
+        return {
+            "status": "unavailable",
+            "path": str(path),
+            "sector_items": [],
+            "macro_items": [],
+            "items": [],
+            "reason": "market memory store is not initialized",
+        }, None
+
+    try:
+        sector_items = _sqlite_rows(
+            path,
+            "SELECT * FROM sector_states ORDER BY sector ASC, entry_id ASC LIMIT ?",
+            (sector_limit,),
+        )
+        for row in sector_items:
+            row["metadata"] = _safe_json_object(row.pop("metadata_json", "{}"))
+            row["linked_tickers"] = _safe_json_list(row.pop("linked_tickers_json", "[]"))
+
+        macro_items = _sqlite_rows(
+            path,
+            "SELECT * FROM macro_state ORDER BY macro_topic ASC, entry_id ASC LIMIT ?",
+            (macro_limit,),
+        )
+        for row in macro_items:
+            row["metadata"] = _safe_json_object(row.pop("metadata_json", "{}"))
+
+        sector_total = _sqlite_count(path, "SELECT COUNT(*) AS count FROM sector_states")
+        macro_total = _sqlite_count(path, "SELECT COUNT(*) AS count FROM macro_state")
+        sector_count = _sqlite_count(
+            path,
+            "SELECT COUNT(DISTINCT sector) AS count FROM sector_states",
+        )
+        macro_topic_count = _sqlite_count(
+            path,
+            "SELECT COUNT(DISTINCT macro_topic) AS count FROM macro_state",
+        )
+
+        return {
+            "status": "ok",
+            "path": str(path),
+            "sector_items": sector_items,
+            "macro_items": macro_items,
+            "items": sector_items + macro_items,
+            "sector_items_total": sector_total,
+            "macro_items_total": macro_total,
+            "items_total": sector_total + macro_total,
+            "sector_count": sector_count,
+            "macro_topic_count": macro_topic_count,
+        }, None
+    except Exception as exc:
+        return {
+            "status": "error",
+            "path": str(path),
+            "sector_items": [],
+            "macro_items": [],
+            "items": [],
+        }, str(exc)
+
+
+def _load_user_thesis_memory_index(
+    *,
+    entries_limit: int,
+    proposals_limit: int,
+) -> tuple[dict[str, Any], str | None]:
+    try:
+        from app.services.user_thesis_memory import DEFAULT_USER_THESIS_MEMORY_PATH
+
+        path = Path(DEFAULT_USER_THESIS_MEMORY_PATH)
+    except Exception as exc:
+        fallback = RESEARCH_MEMORY_ROOT / "user_thesis_memory.sqlite"
+        return {
+            "status": "unavailable",
+            "path": str(fallback),
+            "entries": [],
+            "proposals": [],
+            "reason": "user thesis memory module unavailable",
+        }, str(exc)
+
+    if not path.exists():
+        return {
+            "status": "unavailable",
+            "path": str(path),
+            "entries": [],
+            "proposals": [],
+            "reason": "user thesis memory store is not initialized",
+        }, None
+
+    try:
+        entries = _sqlite_rows(
+            path,
+            "SELECT * FROM thesis_entries ORDER BY ticker ASC, entry_id ASC LIMIT ?",
+            (entries_limit,),
+        )
+        for row in entries:
+            row["metadata"] = _safe_json_object(row.pop("metadata_json", "{}"))
+
+        proposals = _sqlite_rows(
+            path,
+            "SELECT * FROM thesis_proposals ORDER BY created_at DESC LIMIT ?",
+            (proposals_limit,),
+        )
+        for row in proposals:
+            row["payload"] = _safe_json_object(row.pop("payload_json", "{}"))
+
+        entries_total = _sqlite_count(path, "SELECT COUNT(*) AS count FROM thesis_entries")
+        proposals_total = _sqlite_count(path, "SELECT COUNT(*) AS count FROM thesis_proposals")
+        ticker_count = _sqlite_count(
+            path,
+            "SELECT COUNT(DISTINCT ticker) AS count FROM thesis_entries",
+        )
+
+        return {
+            "status": "ok",
+            "path": str(path),
+            "entries": entries,
+            "proposals": proposals,
+            "entries_total": entries_total,
+            "proposals_total": proposals_total,
+            "ticker_count": ticker_count,
+        }, None
+    except Exception as exc:
+        return {
+            "status": "error",
+            "path": str(path),
+            "entries": [],
+            "proposals": [],
+        }, str(exc)
+
+
+def _memory_level_summary(
+    *,
+    level: str,
+    label: str,
+    status: str,
+    scope: str,
+    row_count: int | None,
+    entity_count: int | None,
+    source: str,
+) -> dict[str, Any]:
+    return {
+        "level": level,
+        "label": label,
+        "status": status,
+        "scope": scope,
+        "row_count": row_count,
+        "entity_count": entity_count,
+        "source": source,
+    }
+
+
+def _build_memory_level_summaries(
+    *,
+    summary: dict[str, Any],
+    company_memory: dict[str, Any],
+    market_memory: dict[str, Any],
+    user_thesis_memory: dict[str, Any],
+    scoped_ticker: str | None = None,
+) -> list[dict[str, Any]]:
+    sector_count = market_memory.get("sector_items_total")
+    if sector_count is None:
+        sector_count = len(market_memory.get("sector_items") or [])
+
+    macro_count = market_memory.get("macro_items_total")
+    if macro_count is None:
+        macro_count = len(market_memory.get("macro_items") or [])
+
+    company_entries = int(summary.get("company_memory_entry_count") or 0)
+    thesis_entries = int(summary.get("user_thesis_entry_count") or 0)
+    thesis_proposals = int(summary.get("user_thesis_proposal_count") or 0)
+    strategy_rows = thesis_entries + thesis_proposals
+
+    return [
+        _memory_level_summary(
+            level="financial_truth",
+            label="Financial Truth",
+            status="ticker_scoped" if scoped_ticker else "load_ticker",
+            scope=scoped_ticker or "ticker",
+            row_count=None,
+            entity_count=None,
+            source="postgres",
+        ),
+        _memory_level_summary(
+            level="company",
+            label="Company Memory",
+            status=str(company_memory.get("status") or "unknown"),
+            scope=scoped_ticker or "all_tickers",
+            row_count=company_entries,
+            entity_count=(
+                int(summary.get("company_memory_ticker_count") or 0)
+                if not scoped_ticker
+                else (1 if company_entries > 0 else 0)
+            ),
+            source="company_memory.sqlite",
+        ),
+        _memory_level_summary(
+            level="sector",
+            label="Sector Memory",
+            status=str(market_memory.get("status") or "unknown"),
+            scope=str(market_memory.get("sector") or "all_sectors"),
+            row_count=int(sector_count or 0),
+            entity_count=(
+                int(summary.get("market_memory_sector_count") or 0)
+                if not scoped_ticker
+                else (1 if int(sector_count or 0) > 0 else 0)
+            ),
+            source="market_memory.sqlite",
+        ),
+        _memory_level_summary(
+            level="macro",
+            label="Macro Memory",
+            status=str(market_memory.get("status") or "unknown"),
+            scope="macro_topics",
+            row_count=int(macro_count or 0),
+            entity_count=int(summary.get("market_memory_macro_topic_count") or 0),
+            source="market_memory.sqlite",
+        ),
+        _memory_level_summary(
+            level="strategy",
+            label="Strategy / Thesis Memory",
+            status=str(user_thesis_memory.get("status") or "unknown"),
+            scope=scoped_ticker or "all_tickers",
+            row_count=strategy_rows,
+            entity_count=(
+                int(summary.get("user_thesis_ticker_count") or 0)
+                if not scoped_ticker
+                else (1 if strategy_rows > 0 else 0)
+            ),
+            source="user_thesis_memory.sqlite",
+        ),
+        _memory_level_summary(
+            level="session",
+            label="Session Memory",
+            status="outside_index",
+            scope="conversation_sessions",
+            row_count=None,
+            entity_count=None,
+            source="openviking + cockpit recency",
+        ),
+        _memory_level_summary(
+            level="operational",
+            label="Operational State",
+            status="outside_reasoning_memory",
+            scope="jobs_alerts_feedback_workspace",
+            row_count=None,
+            entity_count=None,
+            source="cockpit state + reports",
+        ),
+    ]
+
+
 def _manual_memory_metadata(
     metadata: dict[str, Any],
     *,
@@ -519,42 +988,136 @@ def get_memory_context(
     if err:
         errors.append(f"user_thesis_memory: {err}")
 
+    summary = {
+        "company_memory_entry_count": int(
+            company_memory.get("entries_total", len(company_memory.get("entries") or []))
+            or 0
+        ),
+        "company_memory_change_count": int(
+            company_memory.get(
+                "change_log_total",
+                len(company_memory.get("change_log") or []),
+            )
+            or 0
+        ),
+        "market_memory_item_count": int(
+            market_memory.get("items_total", len(market_memory.get("items") or []))
+            or 0
+        ),
+        "market_memory_sector": market_memory.get("sector"),
+        "user_thesis_entry_count": int(
+            user_thesis_memory.get(
+                "entries_total", len(user_thesis_memory.get("entries") or [])
+            )
+            or 0
+        ),
+        "user_thesis_proposal_count": int(
+            user_thesis_memory.get(
+                "proposals_total", len(user_thesis_memory.get("proposals") or [])
+            )
+            or 0
+        ),
+    }
+
     return {
         "ticker": ticker,
-        "summary": {
-            "company_memory_entry_count": int(
-                company_memory.get("entries_total", len(company_memory.get("entries") or []))
-                or 0
-            ),
-            "company_memory_change_count": int(
-                company_memory.get(
-                    "change_log_total",
-                    len(company_memory.get("change_log") or []),
-                )
-                or 0
-            ),
-            "market_memory_item_count": int(
-                market_memory.get("items_total", len(market_memory.get("items") or []))
-                or 0
-            ),
-            "market_memory_sector": market_memory.get("sector"),
-            "user_thesis_entry_count": int(
-                user_thesis_memory.get(
-                    "entries_total", len(user_thesis_memory.get("entries") or [])
-                )
-                or 0
-            ),
-            "user_thesis_proposal_count": int(
-                user_thesis_memory.get(
-                    "proposals_total", len(user_thesis_memory.get("proposals") or [])
-                )
-                or 0
-            ),
-        },
+        "summary": summary,
+        "memory_levels": _build_memory_level_summaries(
+            summary=summary,
+            company_memory=company_memory,
+            market_memory=market_memory,
+            user_thesis_memory=user_thesis_memory,
+            scoped_ticker=ticker,
+        ),
         "company_memory": company_memory,
         "market_memory": market_memory,
         "user_thesis_memory": user_thesis_memory,
         "backend_version": "1.2",
+        "errors": errors,
+    }
+
+
+@router.get("/memory/index")
+def get_memory_index_context(
+    company_memory_entries_limit: int = Query(default=5000, ge=1, le=20000),
+    company_memory_change_limit: int = Query(default=2000, ge=1, le=20000),
+    market_sector_limit: int = Query(default=5000, ge=1, le=20000),
+    market_macro_limit: int = Query(default=5000, ge=1, le=20000),
+    user_thesis_entries_limit: int = Query(default=5000, ge=1, le=20000),
+    user_thesis_proposals_limit: int = Query(default=5000, ge=1, le=20000),
+) -> dict[str, Any]:
+    errors: list[str] = []
+
+    company_memory, err = _load_company_memory_index(
+        entries_limit=company_memory_entries_limit,
+        change_log_limit=company_memory_change_limit,
+    )
+    if err:
+        errors.append(f"company_memory: {err}")
+
+    market_memory, err = _load_market_memory_index(
+        sector_limit=market_sector_limit,
+        macro_limit=market_macro_limit,
+    )
+    if err:
+        errors.append(f"market_memory: {err}")
+
+    user_thesis_memory, err = _load_user_thesis_memory_index(
+        entries_limit=user_thesis_entries_limit,
+        proposals_limit=user_thesis_proposals_limit,
+    )
+    if err:
+        errors.append(f"user_thesis_memory: {err}")
+
+    summary = {
+        "company_memory_entry_count": int(
+            company_memory.get("entries_total", len(company_memory.get("entries") or []))
+            or 0
+        ),
+        "company_memory_change_count": int(
+            company_memory.get(
+                "change_log_total",
+                len(company_memory.get("change_log") or []),
+            )
+            or 0
+        ),
+        "company_memory_ticker_count": int(company_memory.get("ticker_count", 0) or 0),
+        "market_memory_item_count": int(
+            market_memory.get("items_total", len(market_memory.get("items") or []))
+            or 0
+        ),
+        "market_memory_sector_count": int(market_memory.get("sector_count", 0) or 0),
+        "market_memory_macro_topic_count": int(
+            market_memory.get("macro_topic_count", 0) or 0
+        ),
+        "user_thesis_entry_count": int(
+            user_thesis_memory.get(
+                "entries_total", len(user_thesis_memory.get("entries") or [])
+            )
+            or 0
+        ),
+        "user_thesis_proposal_count": int(
+            user_thesis_memory.get(
+                "proposals_total", len(user_thesis_memory.get("proposals") or [])
+            )
+            or 0
+        ),
+        "user_thesis_ticker_count": int(user_thesis_memory.get("ticker_count", 0) or 0),
+    }
+
+    return {
+        "ticker": None,
+        "summary": summary,
+        "memory_levels": _build_memory_level_summaries(
+            summary=summary,
+            company_memory=company_memory,
+            market_memory=market_memory,
+            user_thesis_memory=user_thesis_memory,
+        ),
+        "company_memory": company_memory,
+        "market_memory": market_memory,
+        "user_thesis_memory": user_thesis_memory,
+        "backend_version": "1.3",
         "errors": errors,
     }
 
@@ -903,13 +1466,11 @@ def get_ticker_context(
         {"ticker": ticker, "limit": announcements_limit},
     )
     if err:
-        lowered = err.lower()
-        if (
-            "no such table" in lowered
-            or "does not exist" in lowered
-            or "undefinedtable" in lowered
-        ):
-            announcement_context = []
+        if _is_missing_table_error(err):
+            announcement_context = _build_document_announcement_context(
+                docs,
+                limit=announcements_limit,
+            )
         else:
             errors.append(f"announcement_context: {err}")
 

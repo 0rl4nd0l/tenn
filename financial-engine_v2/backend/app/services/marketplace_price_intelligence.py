@@ -18,6 +18,7 @@ PRODUCT_CATEGORIES = {"gpu", "cpu", "ram", "ssd"}
 PRODUCT_STATUSES = {"active", "inactive"}
 OBSERVATION_REVIEW_STATES = {"pending_review", "accepted", "rejected"}
 CAPTURE_MODES = {"manual", "test_seed", "future_adapter"}
+VALUE_CONFIDENCE_ORDER = {"low": 0, "medium": 1, "high": 2}
 
 
 def _now() -> datetime:
@@ -65,6 +66,47 @@ def _parse_price(value: Any) -> float | None:
         return float(match.group(1).replace(",", ""))
     except ValueError:
         return None
+
+
+def _identity_tokens(*values: Any) -> set[str]:
+    tokens: set[str] = set()
+    for value in values:
+        if isinstance(value, list | tuple | set):
+            tokens.update(_identity_tokens(*value))
+            continue
+        for token in re.findall(r"[a-z0-9]+", _lower(value)):
+            if len(token) <= 1 and not token.isdigit():
+                continue
+            if token in {"and", "with", "for", "the", "new", "used", "good"}:
+                continue
+            tokens.add(token)
+    return tokens
+
+
+def _retail_anchor_price(retail_anchor: dict[str, Any]) -> float | None:
+    for key in (
+        "retail_anchor_price",
+        "price",
+        "current_price",
+        "centre_com_price",
+        "amount",
+    ):
+        parsed = _parse_price(retail_anchor.get(key))
+        if parsed is not None:
+            return parsed
+    return None
+
+
+def _value_label(score: float | None) -> str:
+    if score is None:
+        return "unclear"
+    if score >= 85:
+        return "excellent"
+    if score >= 70:
+        return "good"
+    if score >= 50:
+        return "fair"
+    return "weak"
 
 
 def _parse_capacity_gb(text: str) -> int | None:
@@ -407,6 +449,28 @@ class MarketplacePriceIntelligenceService:
                 )
                 """
             )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS marketplace_match_value_assessments (
+                    assessment_id TEXT PRIMARY KEY,
+                    match_id TEXT NOT NULL UNIQUE,
+                    mission_id TEXT,
+                    tracked_product_id TEXT,
+                    benchmark_snapshot_id TEXT,
+                    value_state TEXT NOT NULL,
+                    value_score REAL,
+                    value_label TEXT NOT NULL,
+                    value_confidence TEXT NOT NULL,
+                    assessment_json TEXT NOT NULL DEFAULT '{}',
+                    computed_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+            cur.execute(
+                "CREATE INDEX IF NOT EXISTS idx_marketplace_match_value_assessments_mission "
+                "ON marketplace_match_value_assessments(mission_id, tracked_product_id)"
+            )
             self._conn.commit()
 
     def create_tracked_product(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -485,6 +549,28 @@ class MarketplacePriceIntelligenceService:
             (_clean(tracked_product_id),),
         ).fetchone()
         return self._product_from_row(row) if row else None
+
+    def get_tracked_product_by_canonical_key(self, canonical_key: str) -> dict[str, Any] | None:
+        row = self._conn.execute(
+            "SELECT * FROM marketplace_tracked_products WHERE canonical_key = ? LIMIT 1",
+            (_clean(canonical_key),),
+        ).fetchone()
+        return self._product_from_row(row) if row else None
+
+    def get_or_create_tracked_product(self, payload: dict[str, Any]) -> dict[str, Any]:
+        canonical_key = _clean(payload.get("canonical_key"))
+        if canonical_key:
+            existing = self.get_tracked_product_by_canonical_key(canonical_key)
+            if existing is not None:
+                return existing
+        try:
+            return self.create_tracked_product(payload)
+        except sqlite3.IntegrityError:
+            if canonical_key:
+                existing = self.get_tracked_product_by_canonical_key(canonical_key)
+                if existing is not None:
+                    return existing
+            raise
 
     def ingest_observation(self, payload: dict[str, Any]) -> dict[str, Any]:
         tracked_product_id = _clean(payload.get("tracked_product_id"))
@@ -744,6 +830,434 @@ class MarketplacePriceIntelligenceService:
             (_clean(tracked_product_id), safe_limit),
         ).fetchall()
         return [self._snapshot_from_row(row) for row in rows]
+
+    def latest_benchmark_snapshot(self, tracked_product_id: str) -> dict[str, Any] | None:
+        snapshots = self.list_benchmark_snapshots(
+            tracked_product_id=tracked_product_id,
+            limit=1,
+        )
+        return snapshots[0] if snapshots else None
+
+    def build_benchmark_state(
+        self,
+        tracked_product: dict[str, Any] | None,
+        snapshot: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
+        if tracked_product is None:
+            return None
+        if snapshot is None:
+            return {
+                "status": "unavailable",
+                "freshness_status": "no_snapshot",
+                "confidence_label": "low",
+                "sample_size": 0,
+                "snapshot_id": None,
+                "generated_at": None,
+                "fair_low": None,
+                "fair_high": None,
+                "used_median": None,
+                "retail_anchor_price": None,
+                "warnings": ["No benchmark snapshot exists for the linked tracked product."],
+            }
+        retail_anchor = snapshot.get("retail_anchor")
+        if not isinstance(retail_anchor, dict):
+            retail_anchor = {}
+        return {
+            "status": snapshot.get("freshness_status") or "unknown",
+            "freshness_status": snapshot.get("freshness_status") or "unknown",
+            "confidence_label": snapshot.get("confidence_label") or "low",
+            "sample_size": int(snapshot.get("total_sample_size") or 0),
+            "snapshot_id": snapshot.get("snapshot_id"),
+            "generated_at": snapshot.get("generated_at"),
+            "fair_low": snapshot.get("fair_range_low"),
+            "fair_high": snapshot.get("fair_range_high"),
+            "used_median": snapshot.get("used_median"),
+            "retail_anchor_price": _retail_anchor_price(retail_anchor),
+            "warnings": list(snapshot.get("warnings") or []),
+            "notes": list(snapshot.get("notes") or []),
+        }
+
+    def assess_match_value(
+        self,
+        *,
+        match: dict[str, Any],
+        tracked_product: dict[str, Any] | None,
+        snapshot: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        now_iso = _now_iso()
+        if tracked_product is None:
+            return {
+                "state": "value_unavailable",
+                "value_score": None,
+                "value_label": "unclear",
+                "value_confidence": "low",
+                "benchmark_snapshot_id": None,
+                "fair_low": None,
+                "fair_high": None,
+                "used_median": None,
+                "retail_anchor_price": None,
+                "price_movement_summary": None,
+                "explanation": "Mission is not linked to a tracked product.",
+                "warnings": ["Link a primary tracked product to enable value context."],
+                "notes": [],
+                "computed_at": now_iso,
+            }
+
+        if snapshot is None:
+            return {
+                "state": "value_unavailable",
+                "value_score": None,
+                "value_label": "unclear",
+                "value_confidence": "low",
+                "benchmark_snapshot_id": None,
+                "fair_low": None,
+                "fair_high": None,
+                "used_median": None,
+                "retail_anchor_price": None,
+                "price_movement_summary": None,
+                "explanation": "No benchmark snapshot exists for the linked tracked product.",
+                "warnings": ["Create or rebuild a benchmark snapshot before scoring value."],
+                "notes": [],
+                "computed_at": now_iso,
+            }
+
+        retail_anchor = snapshot.get("retail_anchor")
+        if not isinstance(retail_anchor, dict):
+            retail_anchor = {}
+        retail_price = _retail_anchor_price(retail_anchor)
+        listing_price = _parse_price(match.get("price_value"))
+        if listing_price is None:
+            listing_price = _parse_price(match.get("price"))
+
+        fair_low = _parse_price(snapshot.get("fair_range_low"))
+        fair_high = _parse_price(snapshot.get("fair_range_high"))
+        used_median = _parse_price(snapshot.get("used_median"))
+        sample_size = int(snapshot.get("total_sample_size") or 0)
+        freshness = _clean(snapshot.get("freshness_status")) or "unknown"
+        source_sample_sizes = snapshot.get("source_sample_sizes")
+        if not isinstance(source_sample_sizes, dict):
+            source_sample_sizes = {}
+        source_diversity = sum(1 for count in source_sample_sizes.values() if int(count or 0) > 0)
+        warnings = list(snapshot.get("warnings") or [])
+        notes = list(snapshot.get("notes") or [])
+        state = "scored"
+
+        confidence_rank = VALUE_CONFIDENCE_ORDER.get(
+            str(snapshot.get("confidence_label") or "low").lower(),
+            0,
+        )
+        if sample_size <= 0:
+            state = "value_unavailable"
+            confidence_rank = 0
+            warnings.append("Benchmark has no used-market observations.")
+            if retail_price is not None and listing_price is not None:
+                state = "retail_anchor_only"
+                warnings.append("Only a retail anchor is available; used-market value is not scored.")
+        elif sample_size < 3:
+            state = "insufficient_data"
+            confidence_rank = min(confidence_rank, 0)
+            warnings.append("Fewer than three observations support this benchmark.")
+        elif freshness == "stale":
+            state = "stale_benchmark"
+            confidence_rank = min(confidence_rank, 0)
+            warnings.append("Benchmark is stale; value context is low confidence.")
+        elif freshness in {"low_data", "no_data"}:
+            state = "insufficient_data"
+            confidence_rank = min(confidence_rank, 0)
+
+        if source_diversity < 2 and sample_size > 0:
+            confidence_rank = max(0, confidence_rank - 1)
+            warnings.append("Benchmark currently has weak source diversity.")
+
+        if listing_price is None:
+            state = "value_unavailable"
+            confidence_rank = 0
+            warnings.append("Listing price could not be parsed.")
+
+        variant_confidence = self._variant_match_confidence(match, tracked_product)
+        if variant_confidence < 0.35:
+            state = "ambiguous_variant"
+            confidence_rank = 0
+            warnings.append("Listing text does not clearly match the linked tracked product.")
+        elif variant_confidence < 0.65:
+            confidence_rank = max(0, confidence_rank - 1)
+            warnings.append("Listing variant match is plausible but not strong.")
+
+        condition_certainty = self._condition_certainty(match)
+        if condition_certainty == "weak":
+            confidence_rank = max(0, confidence_rank - 1)
+            warnings.append("Listing condition is not explicit enough for high-confidence value context.")
+        elif condition_certainty == "risky":
+            state = "ambiguous_variant" if state == "scored" else state
+            confidence_rank = 0
+            warnings.append("Listing condition may indicate broken, parts-only, or incomplete hardware.")
+
+        value_score: float | None = None
+        if listing_price is not None and used_median and used_median > 0:
+            discount_pct = (used_median - listing_price) / used_median
+            value_score = max(0.0, min(100.0, 55.0 + discount_pct * 120.0))
+            if fair_low is not None and listing_price <= fair_low:
+                value_score = max(value_score, 86.0)
+            if fair_high is not None and listing_price > fair_high:
+                value_score = min(value_score, 48.0)
+        elif state not in {"value_unavailable", "retail_anchor_only"} and retail_price is not None:
+            state = "retail_anchor_only"
+            confidence_rank = 0
+            warnings.append("Only a retail anchor is available; used-market value is not scored.")
+
+        if state == "value_unavailable":
+            value_score = None
+
+        value_label = _value_label(value_score if state != "retail_anchor_only" else None)
+        value_confidence = ["low", "medium", "high"][max(0, min(2, confidence_rank))]
+        explanation = self._value_explanation(
+            listing_price=listing_price,
+            used_median=used_median,
+            fair_low=fair_low,
+            fair_high=fair_high,
+            state=state,
+        )
+        return {
+            "state": state,
+            "value_score": round(value_score, 1) if value_score is not None else None,
+            "value_label": value_label,
+            "value_confidence": value_confidence,
+            "benchmark_snapshot_id": snapshot.get("snapshot_id"),
+            "fair_low": fair_low,
+            "fair_high": fair_high,
+            "used_median": used_median,
+            "retail_anchor_price": retail_price,
+            "price_movement_summary": self._price_movement_summary(match),
+            "explanation": explanation,
+            "warnings": warnings,
+            "notes": notes,
+            "linked_tracked_product_id": tracked_product.get("tracked_product_id"),
+            "linked_tracked_product_name": tracked_product.get("canonical_key"),
+            "benchmark_freshness_status": freshness,
+            "benchmark_sample_size": sample_size,
+            "variant_match_confidence": round(variant_confidence, 3),
+            "condition_certainty": condition_certainty,
+            "computed_at": now_iso,
+        }
+
+    def upsert_match_value_assessment(
+        self,
+        *,
+        match: dict[str, Any],
+        tracked_product: dict[str, Any],
+        snapshot: dict[str, Any] | None,
+        context: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        match_id = _clean(match.get("match_id"))
+        if not match_id:
+            raise ValueError("match_id is required for value assessment persistence")
+        assessment = self.assess_match_value(
+            match=match,
+            tracked_product=tracked_product,
+            snapshot=snapshot,
+        )
+        if context:
+            assessment.update(context)
+        now_iso = _now_iso()
+        with self._lock:
+            existing = self._conn.execute(
+                """
+                SELECT assessment_id
+                FROM marketplace_match_value_assessments
+                WHERE match_id = ?
+                LIMIT 1
+                """,
+                (match_id,),
+            ).fetchone()
+            assessment_id = (
+                str(existing["assessment_id"]) if existing else _new_id("value_")
+            )
+            self._conn.execute(
+                """
+                INSERT INTO marketplace_match_value_assessments (
+                    assessment_id, match_id, mission_id, tracked_product_id,
+                    benchmark_snapshot_id, value_state, value_score,
+                    value_label, value_confidence, assessment_json,
+                    computed_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(match_id) DO UPDATE SET
+                    mission_id = excluded.mission_id,
+                    tracked_product_id = excluded.tracked_product_id,
+                    benchmark_snapshot_id = excluded.benchmark_snapshot_id,
+                    value_state = excluded.value_state,
+                    value_score = excluded.value_score,
+                    value_label = excluded.value_label,
+                    value_confidence = excluded.value_confidence,
+                    assessment_json = excluded.assessment_json,
+                    computed_at = excluded.computed_at,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    assessment_id,
+                    match_id,
+                    _clean(match.get("mission_id")) or None,
+                    tracked_product.get("tracked_product_id"),
+                    assessment.get("benchmark_snapshot_id"),
+                    assessment["state"],
+                    assessment.get("value_score"),
+                    assessment["value_label"],
+                    assessment["value_confidence"],
+                    _json_dumps(assessment),
+                    assessment["computed_at"],
+                    now_iso,
+                ),
+            )
+            self._conn.commit()
+        return assessment
+
+    def resolve_match_candidate(
+        self,
+        match: dict[str, Any],
+        candidate_contexts: list[dict[str, Any]],
+        *,
+        min_confidence: float = 0.45,
+    ) -> dict[str, Any]:
+        best: dict[str, Any] | None = None
+        for context in candidate_contexts:
+            product = context.get("tracked_product")
+            if not isinstance(product, dict):
+                continue
+            confidence = self._variant_match_confidence(match, product)
+            candidate = context.get("candidate") if isinstance(context.get("candidate"), dict) else {}
+            score = float(candidate.get("fit_score") or 0.0)
+            ranked = {
+                **context,
+                "candidate_match_confidence": round(confidence, 3),
+                "_sort_key": (confidence, score),
+            }
+            if best is None or ranked["_sort_key"] > best["_sort_key"]:
+                best = ranked
+        if best is None:
+            return {
+                "matched": False,
+                "candidate_match_confidence": 0.0,
+                "warning": "No requirement candidates are available for this mission.",
+            }
+        if float(best["candidate_match_confidence"]) < min_confidence:
+            return {
+                "matched": False,
+                "candidate_match_confidence": best["candidate_match_confidence"],
+                "best_candidate": best.get("candidate"),
+                "tracked_product": best.get("tracked_product"),
+                "warning": "Listing did not match any requirement candidate strongly enough.",
+            }
+        best.pop("_sort_key", None)
+        return {"matched": True, **best}
+
+    def get_match_value_assessment(self, match_id: str) -> dict[str, Any] | None:
+        row = self._conn.execute(
+            """
+            SELECT assessment_json
+            FROM marketplace_match_value_assessments
+            WHERE match_id = ?
+            LIMIT 1
+            """,
+            (_clean(match_id),),
+        ).fetchone()
+        if row is None:
+            return None
+        parsed = _json_loads(row["assessment_json"], {})
+        return parsed if isinstance(parsed, dict) else None
+
+    def _variant_match_confidence(
+        self,
+        match: dict[str, Any],
+        tracked_product: dict[str, Any],
+    ) -> float:
+        listing_text = " ".join(
+            [
+                _clean(match.get("title")),
+                _clean(match.get("raw_text_snapshot")),
+                _clean(match.get("price")),
+            ]
+        )
+        listing_tokens = _identity_tokens(listing_text)
+        aliases = tracked_product.get("aliases")
+        identity_values = [
+            tracked_product.get("canonical_key"),
+            tracked_product.get("brand"),
+            tracked_product.get("model_family"),
+            tracked_product.get("variant"),
+            aliases if isinstance(aliases, list) else [],
+        ]
+        product_tokens = _identity_tokens(*identity_values)
+        if not product_tokens:
+            return 0.5
+        canonical = _lower(tracked_product.get("canonical_key"))
+        if canonical and canonical in _lower(listing_text):
+            return 1.0
+        overlap = product_tokens.intersection(listing_tokens)
+        exact_ratio = len(overlap) / max(len(product_tokens), 1)
+        numeric_tokens = {token for token in product_tokens if any(ch.isdigit() for ch in token)}
+        numeric_overlap = numeric_tokens.intersection(listing_tokens)
+        numeric_ratio = len(numeric_overlap) / max(len(numeric_tokens), 1) if numeric_tokens else 0.5
+        return max(0.0, min(1.0, (exact_ratio * 0.7) + (numeric_ratio * 0.3)))
+
+    def _condition_certainty(self, match: dict[str, Any]) -> str:
+        metadata = match.get("metadata")
+        condition = ""
+        if isinstance(metadata, dict):
+            condition = _lower(
+                metadata.get("condition")
+                or metadata.get("condition_label")
+                or metadata.get("listing_condition")
+            )
+        listing_text = _lower(
+            " ".join(
+                [
+                    _clean(match.get("title")),
+                    _clean(match.get("raw_text_snapshot")),
+                    condition,
+                ]
+            )
+        )
+        if re.search(r"\b(broken|not working|for parts|faulty|dead|repair)\b", listing_text):
+            return "risky"
+        if condition or re.search(r"\b(used|new|near new|excellent|working|sealed)\b", listing_text):
+            return "clear"
+        return "weak"
+
+    def _price_movement_summary(self, match: dict[str, Any]) -> str | None:
+        metadata = match.get("metadata")
+        if isinstance(metadata, dict):
+            summary = _clean(
+                metadata.get("price_movement_summary")
+                or metadata.get("price_history_summary")
+            )
+            if summary:
+                return summary
+        return "No listing price movement history is available for this match."
+
+    def _value_explanation(
+        self,
+        *,
+        listing_price: float | None,
+        used_median: float | None,
+        fair_low: float | None,
+        fair_high: float | None,
+        state: str,
+    ) -> str:
+        if state == "value_unavailable":
+            return "Value context is unavailable from the current benchmark data."
+        if state == "retail_anchor_only":
+            return "Only a retail anchor is present, so used-market value is not scored."
+        if listing_price is None:
+            return "Listing price could not be parsed, so value is not scored."
+        if used_median is None:
+            return "Benchmark has no used-market median, so value is not scored."
+        range_text = "fair range unavailable"
+        if fair_low is not None and fair_high is not None:
+            range_text = f"fair range AUD {fair_low:.0f}-{fair_high:.0f}"
+        return (
+            f"Listing price AUD {listing_price:.0f} is compared with used median "
+            f"AUD {used_median:.0f} and {range_text}."
+        )
 
     def _upsert_timeline_unlocked(
         self,

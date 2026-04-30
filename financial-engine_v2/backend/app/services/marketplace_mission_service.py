@@ -10,8 +10,16 @@ from typing import Any
 
 from cockpit.storage.state import StateStore
 
+from app.services.marketplace_requirement_resolver import build_requirement_profile
+
 
 MISSION_STATUSES = {"active", "paused", "archived"}
+MISSION_TYPES = {
+    "find_good_deals",
+    "benchmark_listings",
+    "refresh_retail_benchmarks",
+    "review_uncertain_matches",
+}
 MATCH_STATUSES = {"new", "reviewed", "dismissed", "contacted", "won", "lost"}
 ALERT_STATUSES = {"new", "acknowledged", "dismissed"}
 DECISION_BANDS = {"candidate", "strong_match", "reject"}
@@ -55,6 +63,22 @@ DEFAULT_SCAN_CONFIG = {
 }
 
 _MEANINGFUL_WORD_RE = re.compile(r"[a-z0-9]{3,}", re.IGNORECASE)
+_LOCATION_CLAUSE_RE = re.compile(
+    r"\blocations?\s*(?:i\s*(?:want|prefer)|to\s*use)?\s*:\s*([^.;\n]+)",
+    re.IGNORECASE,
+)
+_LOCATION_INLINE_RE = re.compile(
+    r"\b(?:around|near|in)\s+([a-z][a-z0-9\s,\-/]{2,})",
+    re.IGNORECASE,
+)
+_LOCATION_STOP_RE = re.compile(
+    r"\b(?:under|over|with|for|budget|max(?:imum)?|ideally|deal-breakers?|must-have|nice-to-have|brands?)\b",
+    re.IGNORECASE,
+)
+_CANONICAL_LOCATION_MAP = {
+    "victoria": "Victoria, Australia",
+    "vic": "Victoria, Australia",
+}
 
 
 def _now_iso() -> str:
@@ -95,6 +119,35 @@ def _string_list(value: Any) -> list[str]:
     return out
 
 
+def _media_url_list(value: Any) -> list[str]:
+    urls = _string_list(value)
+    out: list[str] = []
+    seen: set[str] = set()
+    for item in urls:
+        cleaned = _clean_text(item)
+        if not cleaned:
+            continue
+        if not re.match(r"^https?://", cleaned, flags=re.IGNORECASE):
+            continue
+        key = cleaned.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(cleaned)
+        if len(out) >= 12:
+            break
+    return out
+
+
+def _safe_json_loads(raw: Any, fallback: Any) -> Any:
+    if not isinstance(raw, str) or not raw.strip():
+        return fallback
+    try:
+        return json.loads(raw)
+    except Exception:
+        return fallback
+
+
 def _optional_float(value: Any) -> float | None:
     if value in (None, "", "null"):
         return None
@@ -122,6 +175,56 @@ def _bool(value: Any) -> bool:
 
 def _meaningful_brief(brief: str) -> bool:
     return len(_MEANINGFUL_WORD_RE.findall(brief)) >= 2
+
+
+def _brief_location_names(brief: str) -> list[str]:
+    text = _clean_text(brief)
+    if not text:
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+
+    def _append_location(candidate: str) -> None:
+        cleaned = _clean_text(candidate)
+        if not cleaned:
+            return
+        cleaned = _LOCATION_STOP_RE.split(cleaned, maxsplit=1)[0].strip(" ,.-")
+        if not cleaned or re.search(r"\d", cleaned):
+            return
+        key = cleaned.lower()
+        if key in seen:
+            return
+        seen.add(key)
+        out.append(cleaned)
+
+    for match in _LOCATION_CLAUSE_RE.finditer(text):
+        clause = _clean_text(match.group(1))
+        parts = re.split(r",|/|\band\b", clause, flags=re.IGNORECASE)
+        for part in parts:
+            _append_location(part)
+
+    for match in _LOCATION_INLINE_RE.finditer(text):
+        _append_location(match.group(1))
+
+    return normalize_marketplace_location_names(out[:4])
+
+
+def normalize_marketplace_location_names(values: list[str]) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        cleaned = _clean_text(value)
+        if not cleaned:
+            continue
+        canonical = _CANONICAL_LOCATION_MAP.get(cleaned.lower(), cleaned)
+        key = canonical.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(canonical)
+    if len(out) > 1:
+        out = [item for item in out if item.lower() != "australia"] or out
+    return out
 
 
 class MarketplaceMissionError(ValueError):
@@ -152,8 +255,10 @@ class MarketplaceMissionService:
                 INSERT INTO marketplace_missions (
                     mission_id, name, status, brief, category_hint,
                     hard_filters_json, soft_preferences_json, search_config_json,
-                    scan_config_json, created_at, updated_at, last_scan_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    scan_config_json, mission_type, user_goal,
+                    benchmark_sources_json, deployment_args_json, last_error,
+                    created_from_chat_message_id, created_at, updated_at, last_scan_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     mission["mission_id"],
@@ -165,6 +270,12 @@ class MarketplaceMissionService:
                     json.dumps(mission["soft_preferences"]),
                     json.dumps(mission["search_config"]),
                     json.dumps(mission["scan_config"]),
+                    mission["mission_type"],
+                    mission["user_goal"],
+                    json.dumps(mission["benchmark_sources"]),
+                    json.dumps(mission["deployment_args"]),
+                    mission["last_error"],
+                    mission["created_from_chat_message_id"],
                     mission["created_at"],
                     mission["updated_at"],
                     mission["last_scan_at"],
@@ -212,12 +323,18 @@ class MarketplaceMissionService:
         for key in (
             "name",
             "status",
+            "mission_type",
             "brief",
+            "user_goal",
             "category_hint",
             "hard_filters",
             "soft_preferences",
             "search_config",
             "scan_config",
+            "benchmark_sources",
+            "deployment_args",
+            "last_error",
+            "created_from_chat_message_id",
         ):
             if key in changes:
                 merged[key] = changes[key]
@@ -230,6 +347,8 @@ class MarketplaceMissionService:
                 SET name = ?, status = ?, brief = ?, category_hint = ?,
                     hard_filters_json = ?, soft_preferences_json = ?,
                     search_config_json = ?, scan_config_json = ?,
+                    mission_type = ?, user_goal = ?, benchmark_sources_json = ?,
+                    deployment_args_json = ?, last_error = ?, created_from_chat_message_id = ?,
                     updated_at = ?, last_scan_at = ?
                 WHERE mission_id = ?
                 """,
@@ -242,6 +361,12 @@ class MarketplaceMissionService:
                     json.dumps(mission["soft_preferences"]),
                     json.dumps(mission["search_config"]),
                     json.dumps(mission["scan_config"]),
+                    mission["mission_type"],
+                    mission["user_goal"],
+                    json.dumps(mission["benchmark_sources"]),
+                    json.dumps(mission["deployment_args"]),
+                    mission["last_error"],
+                    mission["created_from_chat_message_id"],
                     mission["updated_at"],
                     mission["last_scan_at"],
                     mission_id,
@@ -249,6 +374,130 @@ class MarketplaceMissionService:
             )
             self._conn.commit()
         return mission
+
+    def get_primary_tracked_product_link(self, mission_id: str) -> dict[str, Any] | None:
+        row = self._fetchone(
+            """
+            SELECT mission_id, tracked_product_id, link_type, created_at, updated_at
+            FROM marketplace_mission_product_links
+            WHERE mission_id = ? AND link_type = 'primary'
+            LIMIT 1
+            """,
+            (mission_id,),
+        )
+        return row
+
+    def link_primary_tracked_product(
+        self, mission_id: str, tracked_product_id: str
+    ) -> dict[str, Any]:
+        if self.get_mission(mission_id) is None:
+            raise MarketplaceMissionNotFound(mission_id)
+        product_id = _clean_text(tracked_product_id)
+        if not product_id:
+            raise MarketplaceMissionError("tracked_product_id is required")
+        now_iso = _now_iso()
+        with self._lock:
+            existing = self._conn.execute(
+                """
+                SELECT created_at
+                FROM marketplace_mission_product_links
+                WHERE mission_id = ? AND link_type = 'primary'
+                LIMIT 1
+                """,
+                (mission_id,),
+            ).fetchone()
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO marketplace_mission_product_links (
+                    mission_id, tracked_product_id, link_type, created_at, updated_at
+                )
+                VALUES (?, ?, 'primary', ?, ?)
+                """,
+                (
+                    mission_id,
+                    product_id,
+                    str(existing["created_at"]) if existing else now_iso,
+                    now_iso,
+                ),
+            )
+            self._conn.commit()
+        link = self.get_primary_tracked_product_link(mission_id)
+        if link is None:
+            raise MarketplaceMissionError("failed to persist mission product link")
+        return link
+
+    def unlink_primary_tracked_product(self, mission_id: str) -> dict[str, Any] | None:
+        if self.get_mission(mission_id) is None:
+            raise MarketplaceMissionNotFound(mission_id)
+        existing = self.get_primary_tracked_product_link(mission_id)
+        with self._lock:
+            self._conn.execute(
+                """
+                DELETE FROM marketplace_mission_product_links
+                WHERE mission_id = ? AND link_type = 'primary'
+                """,
+                (mission_id,),
+            )
+            self._conn.commit()
+        return existing
+
+    def replace_mission_candidate_products(
+        self,
+        mission_id: str,
+        candidates: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        if self.get_mission(mission_id) is None:
+            raise MarketplaceMissionNotFound(mission_id)
+        now_iso = _now_iso()
+        with self._lock:
+            self._conn.execute(
+                "DELETE FROM marketplace_mission_candidate_products WHERE mission_id = ?",
+                (mission_id,),
+            )
+            for index, candidate in enumerate(candidates):
+                tracked_product_id = _clean_text(candidate.get("tracked_product_id"))
+                candidate_key = _clean_text(candidate.get("candidate_key"))
+                category = _clean_text(candidate.get("category")).lower()
+                if not tracked_product_id or not candidate_key or not category:
+                    continue
+                self._conn.execute(
+                    """
+                    INSERT INTO marketplace_mission_candidate_products (
+                        mission_id, tracked_product_id, candidate_key, category,
+                        candidate_rank, fit_score, fit_label, hard_constraints_json,
+                        soft_preferences_json, explanation, created_at, updated_at
+                    )
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        mission_id,
+                        tracked_product_id,
+                        candidate_key,
+                        category,
+                        int(candidate.get("candidate_rank") or index + 1),
+                        float(candidate.get("fit_score") or 0.0),
+                        _clean_text(candidate.get("fit_label")) or "fit",
+                        json.dumps(candidate.get("hard_constraints_met") or []),
+                        json.dumps(candidate.get("soft_preferences_met") or []),
+                        _clean_text(candidate.get("explanation")) or None,
+                        now_iso,
+                        now_iso,
+                    ),
+                )
+            self._conn.commit()
+        return self.list_mission_candidate_products(mission_id)
+
+    def list_mission_candidate_products(self, mission_id: str) -> list[dict[str, Any]]:
+        rows = self._fetchall(
+            """
+            SELECT *
+            FROM marketplace_mission_candidate_products
+            WHERE mission_id = ?
+            ORDER BY candidate_rank ASC, updated_at DESC
+            """,
+            (mission_id,),
+        )
+        return [self._parse_candidate_product_row(row) for row in rows]
 
     def mark_last_scan(self, mission_id: str, when: str | None = None) -> None:
         timestamp = _clean_text(when) or _now_iso()
@@ -262,6 +511,99 @@ class MarketplaceMissionService:
                 (timestamp, timestamp, mission_id),
             )
             self._conn.commit()
+
+    def delete_mission(self, mission_id: str) -> dict[str, Any]:
+        existing = self.get_mission(mission_id)
+        if existing is None:
+            raise MarketplaceMissionNotFound(mission_id)
+
+        with self._lock:
+            match_rows = self._conn.execute(
+                """
+                SELECT match_id
+                FROM marketplace_matches
+                WHERE mission_id = ?
+                """,
+                (mission_id,),
+            ).fetchall()
+            match_ids = [str(row["match_id"]) for row in match_rows if row["match_id"]]
+
+            deleted_benchmark_scores = 0
+            deleted_listing_matches = 0
+            deleted_value_assessments = 0
+            if match_ids:
+                placeholders = ",".join("?" for _ in match_ids)
+                cur_scores = self._conn.execute(
+                    f"""
+                    DELETE FROM listing_benchmark_scores
+                    WHERE match_id IN ({placeholders})
+                    """,
+                    match_ids,
+                )
+                deleted_benchmark_scores = max(cur_scores.rowcount, 0)
+                cur_listing_matches = self._conn.execute(
+                    f"""
+                    DELETE FROM listing_product_matches
+                    WHERE match_id IN ({placeholders})
+                    """,
+                    match_ids,
+                )
+                deleted_listing_matches = max(cur_listing_matches.rowcount, 0)
+                cur_value_assessments = self._conn.execute(
+                    f"""
+                    DELETE FROM marketplace_match_value_assessments
+                    WHERE match_id IN ({placeholders})
+                    """,
+                    match_ids,
+                )
+                deleted_value_assessments = max(cur_value_assessments.rowcount, 0)
+
+            cur_alerts = self._conn.execute(
+                "DELETE FROM marketplace_alerts WHERE mission_id = ?",
+                (mission_id,),
+            )
+            deleted_alerts = max(cur_alerts.rowcount, 0)
+            cur_links = self._conn.execute(
+                "DELETE FROM marketplace_mission_product_links WHERE mission_id = ?",
+                (mission_id,),
+            )
+            deleted_links = max(cur_links.rowcount, 0)
+            cur_candidates = self._conn.execute(
+                "DELETE FROM marketplace_mission_candidate_products WHERE mission_id = ?",
+                (mission_id,),
+            )
+            deleted_candidates = max(cur_candidates.rowcount, 0)
+            cur_matches = self._conn.execute(
+                "DELETE FROM marketplace_matches WHERE mission_id = ?",
+                (mission_id,),
+            )
+            deleted_matches = max(cur_matches.rowcount, 0)
+            cur_seen = self._conn.execute(
+                "DELETE FROM marketplace_seen_listings WHERE mission_id = ?",
+                (mission_id,),
+            )
+            deleted_seen = max(cur_seen.rowcount, 0)
+            cur_missions = self._conn.execute(
+                "DELETE FROM marketplace_missions WHERE mission_id = ?",
+                (mission_id,),
+            )
+            if cur_missions.rowcount != 1:
+                self._conn.rollback()
+                raise MarketplaceMissionNotFound(mission_id)
+            self._conn.commit()
+
+        return {
+            "mission_id": mission_id,
+            "deleted_missions": 1,
+            "deleted_seen_listings": deleted_seen,
+            "deleted_matches": deleted_matches,
+            "deleted_alerts": deleted_alerts,
+            "deleted_listing_product_matches": deleted_listing_matches,
+            "deleted_listing_benchmark_scores": deleted_benchmark_scores,
+            "deleted_mission_product_links": deleted_links,
+            "deleted_mission_candidate_products": deleted_candidates,
+            "deleted_match_value_assessments": deleted_value_assessments,
+        }
 
     def due_missions(self, *, now: datetime | None = None) -> list[dict[str, Any]]:
         current = now or datetime.now(timezone.utc)
@@ -452,7 +794,7 @@ class MarketplaceMissionService:
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         rows = self._fetchall(
             f"""
-            SELECT m.*, mission.name AS mission_name
+            SELECT m.*, mission.name AS mission_name, mission.category_hint AS mission_category_hint
             FROM marketplace_matches m
             LEFT JOIN marketplace_missions mission
                 ON mission.mission_id = m.mission_id
@@ -467,7 +809,7 @@ class MarketplaceMissionService:
     def get_match(self, match_id: str) -> dict[str, Any] | None:
         row = self._fetchone(
             """
-            SELECT m.*, mission.name AS mission_name
+            SELECT m.*, mission.name AS mission_name, mission.category_hint AS mission_category_hint
             FROM marketplace_matches m
             LEFT JOIN marketplace_missions mission
                 ON mission.mission_id = m.mission_id
@@ -494,7 +836,7 @@ class MarketplaceMissionService:
 
         existing = self._fetchone(
             """
-            SELECT match_id
+            SELECT match_id, listing_media_json
             FROM marketplace_matches
             WHERE mission_id = ? AND listing_id = ?
             LIMIT 1
@@ -505,6 +847,21 @@ class MarketplaceMissionService:
         match_id = (
             _clean_text(existing.get("match_id")) if existing else _new_id("mp_match_")
         )
+        listing_media_payload = (
+            payload.get("listing_media")
+            if "listing_media" in payload
+            else payload.get("listing_photo_urls")
+            if "listing_photo_urls" in payload
+            else payload.get("listing_images")
+            if "listing_images" in payload
+            else None
+        )
+        if listing_media_payload is None and existing:
+            listing_media_payload = _safe_json_loads(
+                existing.get("listing_media_json"),
+                [],
+            )
+
         row = {
             "match_id": match_id,
             "mission_id": mission_id,
@@ -525,6 +882,9 @@ class MarketplaceMissionService:
             "confidence": _optional_float(payload.get("confidence")),
             "raw_text_snapshot": _clean_text(payload.get("raw_text_snapshot")),
             "screenshot_path": _clean_text(payload.get("screenshot_path")) or None,
+            "listing_media_json": json.dumps(
+                _media_url_list(listing_media_payload)
+            ),
             "status": _clean_text(payload.get("status")) or "new",
             "metadata_json": json.dumps(payload.get("metadata") or {}),
             "updated_at": now_iso,
@@ -542,9 +902,9 @@ class MarketplaceMissionService:
                         match_id, mission_id, listing_id, listing_url, title, price,
                         price_value, location, seller_name, captured_at, score,
                         decision_band, reasons_for_json, reasons_against_json,
-                        confidence, raw_text_snapshot, screenshot_path, status,
-                        metadata_json, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        confidence, raw_text_snapshot, screenshot_path, listing_media_json,
+                        status, metadata_json, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         row["match_id"],
@@ -564,6 +924,7 @@ class MarketplaceMissionService:
                         row["confidence"],
                         row["raw_text_snapshot"],
                         row["screenshot_path"],
+                        row["listing_media_json"],
                         row["status"],
                         row["metadata_json"],
                         row["updated_at"],
@@ -576,8 +937,8 @@ class MarketplaceMissionService:
                     SET listing_url = ?, title = ?, price = ?, price_value = ?, location = ?,
                         seller_name = ?, captured_at = ?, score = ?, decision_band = ?,
                         reasons_for_json = ?, reasons_against_json = ?, confidence = ?,
-                        raw_text_snapshot = ?, screenshot_path = ?, status = ?,
-                        metadata_json = ?, updated_at = ?
+                        raw_text_snapshot = ?, screenshot_path = ?, listing_media_json = ?,
+                        status = ?, metadata_json = ?, updated_at = ?
                     WHERE match_id = ?
                     """,
                     (
@@ -595,6 +956,7 @@ class MarketplaceMissionService:
                         row["confidence"],
                         row["raw_text_snapshot"],
                         row["screenshot_path"],
+                        row["listing_media_json"],
                         row["status"],
                         row["metadata_json"],
                         row["updated_at"],
@@ -768,7 +1130,19 @@ class MarketplaceMissionService:
         name = _clean_text(payload.get("name"))
         brief = _clean_text(payload.get("brief"))
         status = _clean_text(payload.get("status")).lower() or "active"
+        mission_type = _clean_text(payload.get("mission_type")).lower() or "find_good_deals"
         category_hint = _clean_text(payload.get("category_hint")) or None
+        user_goal = _clean_text(payload.get("user_goal")) or brief
+        benchmark_sources = _string_list(payload.get("benchmark_sources")) or ["centre_com"]
+        deployment_args = (
+            payload.get("deployment_args")
+            if isinstance(payload.get("deployment_args"), dict)
+            else {}
+        )
+        last_error = _clean_text(payload.get("last_error")) or None
+        created_from_chat_message_id = (
+            _clean_text(payload.get("created_from_chat_message_id")) or None
+        )
 
         if not name:
             raise MarketplaceMissionError("name is required")
@@ -776,6 +1150,8 @@ class MarketplaceMissionService:
             raise MarketplaceMissionError("brief is required")
         if status not in MISSION_STATUSES:
             raise MarketplaceMissionError(f"invalid mission status: {status}")
+        if mission_type not in MISSION_TYPES:
+            raise MarketplaceMissionError(f"invalid mission_type: {mission_type}")
         if not _meaningful_brief(brief):
             raise MarketplaceMissionError("brief must include meaningful search intent")
 
@@ -803,7 +1179,9 @@ class MarketplaceMissionService:
 
         hard_filters["include_keywords"] = _string_list(hard_filters.get("include_keywords"))
         hard_filters["exclude_keywords"] = _string_list(hard_filters.get("exclude_keywords"))
-        hard_filters["location_names"] = _string_list(hard_filters.get("location_names"))
+        hard_filters["location_names"] = normalize_marketplace_location_names(
+            _string_list(hard_filters.get("location_names"))
+        )
         hard_filters["condition_required"] = _string_list(hard_filters.get("condition_required"))
         hard_filters["required_terms"] = _string_list(hard_filters.get("required_terms"))
         hard_filters["forbidden_terms"] = _string_list(hard_filters.get("forbidden_terms"))
@@ -826,6 +1204,12 @@ class MarketplaceMissionService:
         soft_preferences["negotiation_expected"] = _bool(
             soft_preferences.get("negotiation_expected")
         )
+
+        if not hard_filters["location_names"]:
+            hard_filters["location_names"] = (
+                _string_list(soft_preferences.get("preferred_suburbs"))
+                or _brief_location_names(brief)
+            )
 
         urgency = _clean_text(soft_preferences.get("urgency")).lower() or "normal"
         if urgency not in {"low", "normal", "high"}:
@@ -895,6 +1279,25 @@ class MarketplaceMissionService:
             raise MarketplaceMissionError(
                 "mission requires include_keywords or a meaningful brief"
             )
+        if not hard_filters["location_names"]:
+            raise MarketplaceMissionError(
+                "mission requires at least one location (hard_filters.location_names)"
+            )
+
+        requirement_profile = build_requirement_profile(
+            {
+                "name": name,
+                "brief": brief,
+                "user_goal": user_goal,
+                "category_hint": category_hint,
+                "hard_filters": hard_filters,
+                "soft_preferences": soft_preferences,
+            }
+        )
+        deployment_args = {
+            **deployment_args,
+            "requirement_profile": requirement_profile,
+        }
 
         return {
             "mission_id": _clean_text(payload.get("mission_id"))
@@ -902,12 +1305,18 @@ class MarketplaceMissionService:
             or _new_id("mp_mission_"),
             "name": name,
             "status": status,
+            "mission_type": mission_type,
             "brief": brief,
+            "user_goal": user_goal,
             "category_hint": category_hint,
             "hard_filters": hard_filters,
             "soft_preferences": soft_preferences,
             "search_config": search_config,
             "scan_config": scan_config,
+            "benchmark_sources": benchmark_sources,
+            "deployment_args": deployment_args,
+            "last_error": last_error,
+            "created_from_chat_message_id": created_from_chat_message_id,
             "created_at": (existing or {}).get("created_at") or now_iso,
             "updated_at": now_iso,
             "last_scan_at": (existing or {}).get("last_scan_at"),
@@ -925,12 +1334,31 @@ class MarketplaceMissionService:
 
     @staticmethod
     def _parse_mission_row(row: dict[str, Any]) -> dict[str, Any]:
+        deployment_args = json.loads(row.pop("deployment_args_json") or "{}")
+        requirement_profile = (
+            deployment_args.get("requirement_profile")
+            if isinstance(deployment_args, dict)
+            else None
+        )
         return {
             **row,
             "hard_filters": json.loads(row.pop("hard_filters_json")),
             "soft_preferences": json.loads(row.pop("soft_preferences_json")),
             "search_config": json.loads(row.pop("search_config_json")),
             "scan_config": json.loads(row.pop("scan_config_json")),
+            "benchmark_sources": json.loads(
+                row.pop("benchmark_sources_json") or "[\"centre_com\"]"
+            ),
+            "deployment_args": deployment_args,
+            "requirement_profile": requirement_profile,
+        }
+
+    @staticmethod
+    def _parse_candidate_product_row(row: dict[str, Any]) -> dict[str, Any]:
+        return {
+            **row,
+            "hard_constraints_met": json.loads(row.pop("hard_constraints_json") or "[]"),
+            "soft_preferences_met": json.loads(row.pop("soft_preferences_json") or "[]"),
         }
 
     @staticmethod
@@ -946,6 +1374,7 @@ class MarketplaceMissionService:
             **row,
             "reasons_for": json.loads(row.pop("reasons_for_json")),
             "reasons_against": json.loads(row.pop("reasons_against_json")),
+            "listing_media": json.loads(row.pop("listing_media_json", "[]") or "[]"),
             "metadata": json.loads(row.pop("metadata_json")),
         }
 

@@ -193,7 +193,7 @@ export function TerminalMessage({
           <span className="text-blue-400 shrink-0">{`>`}</span>
           <span className="text-white text-lg whitespace-pre-wrap break-words">{message.content}</span>
         </div>
-        <div className="text-[10px] text-blue-400/60 ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="text-[10px] text-blue-400/60 ml-4 opacity-70 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity">
           [{timestamp}]
         </div>
       </div>
@@ -203,7 +203,10 @@ export function TerminalMessage({
   if (isSystem) {
     return (
       <div className="rounded-md border border-[oklch(0.78_0.17_80/0.35)] bg-[oklch(0.78_0.17_80/0.08)] px-2 py-1 text-amber-300 text-xs transition-colors duration-150 hover:bg-[oklch(0.78_0.17_80/0.12)]">
-        <span className="text-amber-500">[SYSTEM]</span> {message.content}
+        <span className="text-amber-500">[SYSTEM]</span>{' '}
+        <span className="whitespace-pre-wrap break-words">
+          {formatContent(message.content)}
+        </span>
       </div>
     )
   }
@@ -444,7 +447,7 @@ export function TerminalMessage({
       )}
 
       {/* Metadata footer */}
-      <div className="flex items-center gap-4 ml-4 mt-1 text-sm text-blue-400/60 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-4 ml-4 mt-1 text-sm text-blue-400/60 opacity-70 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity">
         <span>[{timestamp}]</span>
         {message.metadata && (
           <>

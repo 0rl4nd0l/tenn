@@ -20,13 +20,18 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { getBrowserDebugSnapshot } from '@/lib/browser-debug'
 import { useCockpitStore } from '@/lib/cockpit-store'
+import { toReportDisplayPath } from '@/lib/report-path'
 import type { ServiceHealth } from '@/lib/cockpit-types'
 
 type FeedbackCaptureResponse = {
   report_id: string
   feedback_type: 'good' | 'poor'
-  capture_kind: 'chat_feedback' | 'ui_issue'
+  capture_kind: 'chat_feedback' | 'ui_issue' | 'auto_diagnostic'
   report_dir: string
+  codex_prompt_path?: string | null
+  investigation_path?: string | null
+  investigation_status?: string | null
+  codex_cli_command?: string | null
   codex_prompt?: string | null
   analysis_summary?: string | null
 }
@@ -251,17 +256,18 @@ export function CockpitIssueCapture({
       }
 
       const result = payload as FeedbackCaptureResponse
+      const reportPath = toReportDisplayPath(result.report_dir) || result.report_dir
       const copied = result.codex_prompt?.trim()
         ? await copyPrompt(result.codex_prompt)
         : false
       toast.success(
         result.analysis_summary?.trim()
           ? copied
-            ? `Issue saved and Codex prompt copied: ${result.analysis_summary}`
+            ? `Issue saved. Deploy Codex from the queued prompt: ${result.analysis_summary}`
             : `Issue saved: ${result.analysis_summary}`
           : copied
-            ? `Issue saved and Codex prompt copied: ${result.report_dir}`
-            : `Issue saved to ${result.report_dir}`,
+            ? `Issue saved. Codex prompt copied; deploy from ${reportPath}`
+            : `Issue saved to ${reportPath}`,
       )
       resetDialog({ force: true })
     } catch (error) {

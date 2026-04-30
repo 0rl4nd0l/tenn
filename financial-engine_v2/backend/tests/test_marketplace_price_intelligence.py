@@ -114,6 +114,65 @@ def test_listing_fingerprint_prefers_listing_id_then_url_then_text() -> None:
     assert text_a != text_b
 
 
+def test_candidate_product_reuse_and_listing_candidate_resolution(tmp_path: Path) -> None:
+    service = _service(tmp_path)
+    rtx_3090_spec = {
+        "canonical_key": "gpu-nvidia-rtx-3090-24gb",
+        "category": "gpu",
+        "brand": "NVIDIA",
+        "model_family": "RTX 3090",
+        "variant": "24GB",
+        "attributes": {"vram_gb": 24, "vendor": "NVIDIA"},
+        "aliases": ["RTX 3090", "RTX 3090 24GB"],
+    }
+    rtx_4090_spec = {
+        "canonical_key": "gpu-nvidia-rtx-4090-24gb",
+        "category": "gpu",
+        "brand": "NVIDIA",
+        "model_family": "RTX 4090",
+        "variant": "24GB",
+        "attributes": {"vram_gb": 24, "vendor": "NVIDIA"},
+        "aliases": ["RTX 4090", "RTX 4090 24GB"],
+    }
+
+    rtx_3090 = service.get_or_create_tracked_product(rtx_3090_spec)
+    reused = service.get_or_create_tracked_product(rtx_3090_spec)
+    rtx_4090 = service.get_or_create_tracked_product(rtx_4090_spec)
+
+    assert reused["tracked_product_id"] == rtx_3090["tracked_product_id"]
+
+    contexts = [
+        {
+            "candidate": {"fit_score": 95, "fit_label": "strong_fit"},
+            "tracked_product": rtx_3090,
+        },
+        {
+            "candidate": {"fit_score": 90, "fit_label": "fit"},
+            "tracked_product": rtx_4090,
+        },
+    ]
+    resolved = service.resolve_match_candidate(
+        {
+            "title": "NVIDIA RTX 3090 24GB",
+            "raw_text_snapshot": "Used RTX 3090 24GB working condition.",
+            "price": "$950",
+        },
+        contexts,
+    )
+    assert resolved["matched"] is True
+    assert resolved["tracked_product"]["tracked_product_id"] == rtx_3090["tracked_product_id"]
+
+    mismatch = service.resolve_match_candidate(
+        {
+            "title": "RTX 4070 Super 12GB",
+            "raw_text_snapshot": "Used RTX 4070 Super 12GB working condition.",
+            "price": "$600",
+        },
+        contexts,
+    )
+    assert mismatch["matched"] is False
+
+
 def test_observation_ingest_updates_listing_timeline(tmp_path: Path) -> None:
     service = _service(tmp_path)
     product = _tracked_gpu(service)
@@ -198,6 +257,172 @@ def test_low_data_snapshot_is_provisional(tmp_path: Path) -> None:
     assert snapshot["freshness_status"] == "low_data"
     assert snapshot["confidence_label"] == "low"
     assert snapshot["warnings"]
+
+
+def test_match_value_assessment_uses_latest_snapshot_without_changing_match_score(
+    tmp_path: Path,
+) -> None:
+    service = _service(tmp_path)
+    product = _tracked_gpu(service)
+    for idx, price in enumerate([620, 640, 660, 680, 700]):
+        service.ingest_observation(
+            {
+                "tracked_product_id": product["tracked_product_id"],
+                "source": "facebook",
+                "observed_at": f"2026-04-2{idx}T10:00:00+00:00",
+                "source_listing_id": f"value-{idx}",
+                "title": f"RTX 4070 Super 12GB listing {idx}",
+                "price": price,
+                "review_state": "accepted",
+            }
+        )
+    snapshot = service.rebuild_benchmark_snapshot(product["tracked_product_id"])
+    match = {
+        "match_id": "mp_match_value",
+        "mission_id": "mp_mission_value",
+        "title": "NVIDIA RTX 4070 Super 12GB",
+        "price": "$610",
+        "price_value": 610,
+        "score": 44,
+        "raw_text_snapshot": "Used RTX 4070 Super 12GB working condition.",
+    }
+
+    value = service.upsert_match_value_assessment(
+        match=match,
+        tracked_product=product,
+        snapshot=snapshot,
+    )
+
+    assert match["score"] == 44
+    assert value["state"] == "scored"
+    assert value["value_score"] is not None
+    assert value["value_label"] in {"excellent", "good"}
+    assert value["benchmark_snapshot_id"] == snapshot["snapshot_id"]
+    assert value["fair_low"] == 640
+    assert value["fair_high"] == 680
+    assert value["used_median"] == 660
+    assert service.get_match_value_assessment(match["match_id"])["value_score"] == value["value_score"]
+
+
+def test_value_assessment_reports_no_snapshot_low_data_and_stale_states(
+    tmp_path: Path,
+) -> None:
+    service = _service(tmp_path)
+    product = _tracked_gpu(service)
+    match = {
+        "match_id": "mp_match_states",
+        "mission_id": "mp_mission_states",
+        "title": "RTX 4070 Super 12GB",
+        "price": "$650",
+        "raw_text_snapshot": "RTX 4070 Super 12GB working condition.",
+    }
+
+    no_snapshot = service.assess_match_value(
+        match=match,
+        tracked_product=product,
+        snapshot=None,
+    )
+    assert no_snapshot["state"] == "value_unavailable"
+    assert no_snapshot["value_confidence"] == "low"
+
+    service.ingest_observation(
+        {
+            "tracked_product_id": product["tracked_product_id"],
+            "source": "facebook",
+            "observed_at": "2026-04-20T10:00:00+00:00",
+            "source_listing_id": "low-data",
+            "title": "RTX 4070 Super",
+            "price": 700,
+            "review_state": "accepted",
+        }
+    )
+    low_data = service.rebuild_benchmark_snapshot(product["tracked_product_id"])
+    low_data_value = service.assess_match_value(
+        match=match,
+        tracked_product=product,
+        snapshot=low_data,
+    )
+    assert low_data_value["state"] == "insufficient_data"
+    assert low_data_value["value_confidence"] == "low"
+
+    stale_dir = tmp_path / "stale"
+    stale_dir.mkdir()
+    stale_service = _service(stale_dir)
+    stale_product = _tracked_gpu(stale_service)
+    for idx, price in enumerate([600, 620, 640]):
+        stale_service.ingest_observation(
+            {
+                "tracked_product_id": stale_product["tracked_product_id"],
+                "source": "facebook",
+                "observed_at": f"2026-01-0{idx + 1}T10:00:00+00:00",
+                "source_listing_id": f"stale-{idx}",
+                "title": f"RTX 4070 Super {idx}",
+                "price": price,
+                "review_state": "accepted",
+            }
+        )
+    stale_snapshot = stale_service.rebuild_benchmark_snapshot(
+        stale_product["tracked_product_id"]
+    )
+    stale_value = stale_service.assess_match_value(
+        match=match,
+        tracked_product=stale_product,
+        snapshot=stale_snapshot,
+    )
+    assert stale_value["state"] == "stale_benchmark"
+    assert stale_value["value_confidence"] == "low"
+
+
+def test_value_assessment_reports_ambiguous_variant_and_retail_anchor_only(
+    tmp_path: Path,
+) -> None:
+    service = _service(tmp_path)
+    product = _tracked_gpu(service)
+    retail_only_snapshot = service.rebuild_benchmark_snapshot(
+        product["tracked_product_id"],
+        retail_anchor={"source": "centre_com", "price": 1099},
+    )
+    retail_only = service.assess_match_value(
+        match={
+            "match_id": "mp_match_retail",
+            "mission_id": "mp_mission_retail",
+            "title": "RTX 4070 Super 12GB",
+            "price": "$650",
+            "raw_text_snapshot": "RTX 4070 Super 12GB working condition.",
+        },
+        tracked_product=product,
+        snapshot=retail_only_snapshot,
+    )
+    assert retail_only["state"] == "retail_anchor_only"
+    assert retail_only["value_score"] is None
+    assert retail_only["retail_anchor_price"] == 1099
+
+    for idx, price in enumerate([620, 640, 660]):
+        service.ingest_observation(
+            {
+                "tracked_product_id": product["tracked_product_id"],
+                "source": "facebook",
+                "observed_at": f"2026-04-2{idx}T10:00:00+00:00",
+                "source_listing_id": f"ambiguous-{idx}",
+                "title": f"RTX 4070 Super {idx}",
+                "price": price,
+                "review_state": "accepted",
+            }
+        )
+    snapshot = service.rebuild_benchmark_snapshot(product["tracked_product_id"])
+    ambiguous = service.assess_match_value(
+        match={
+            "match_id": "mp_match_ambiguous",
+            "mission_id": "mp_mission_ambiguous",
+            "title": "Gaming PC tower",
+            "price": "$500",
+            "raw_text_snapshot": "Full desktop tower with unspecified GPU.",
+        },
+        tracked_product=product,
+        snapshot=snapshot,
+    )
+    assert ambiguous["state"] == "ambiguous_variant"
+    assert ambiguous["value_confidence"] == "low"
 
 
 def test_standalone_api_supports_foundation_flow(tmp_path: Path, monkeypatch) -> None:

@@ -92,6 +92,32 @@ def test_open_direct_marketplace_context_fails_fast_when_profile_lock_busy(monke
     assert "profile is already in use" in message.lower()
 
 
+def test_open_direct_marketplace_context_honors_custom_lock_timeout(monkeypatch) -> None:
+    calls: list[tuple[bool, float]] = []
+
+    class _BusyLock:
+        def acquire(self, blocking: bool = True, timeout: float = -1) -> bool:
+            calls.append((blocking, timeout))
+            return False
+
+        def release(self) -> None:  # pragma: no cover - defensive
+            raise AssertionError("release should not be called when acquire fails")
+
+    monkeypatch.setattr(runtime, "_DIRECT_RUNTIME_PROFILE_LOCK", _BusyLock())
+
+    async def _run() -> str:
+        try:
+            async with runtime.open_direct_marketplace_context(lock_timeout_seconds=1.25):
+                raise AssertionError("context should not open when lock is busy")
+        except RuntimeError as exc:
+            return str(exc)
+
+    message = asyncio.run(_run())
+
+    assert "profile is already in use" in message.lower()
+    assert calls == [(True, 1.25)]
+
+
 def test_open_direct_marketplace_context_uses_async_playwright_executable(
     monkeypatch,
     tmp_path: Path,

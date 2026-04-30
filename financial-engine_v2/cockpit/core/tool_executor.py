@@ -32,6 +32,10 @@ _NEWS_TICKER_STOPWORDS = {
     "RECENT",
     "THIS",
     "TODAY",
+    "CLOUD",
+    "LOCAL",
+    "ADVISOR",
+    "OPS",
 }
 
 
@@ -1229,7 +1233,7 @@ class ToolExecutor:
     _ARG_REMAP: dict[str, dict[str, str]] = {
         "run_backfill": {"ticker": "ticker", "years": "years"},
         "run_metric_extraction": {"ticker": "ticker"},
-        "run_news_ingest": {"since_hours": "since_hours"},
+        "run_news_ingest": {"since_hours": "since_hours", "tickers": "tickers"},
         "run_announcement_ingest": {"date": "date"},
         "update_financials": {"ticker": "ticker", "years": "years"},
         "rebuild_financials": {"ticker": "ticker"},

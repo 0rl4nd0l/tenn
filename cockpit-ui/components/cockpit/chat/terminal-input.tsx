@@ -175,7 +175,7 @@ export function TerminalInput({ onSend, disabled, value: controlledValue, onValu
         />
         {!disabled && (
           <span className="text-xs text-blue-400/60 font-mono hidden sm:block">
-            [Enter] send | [Up/Down] history | [Tab] complete
+            [Enter] send | [Up/Down] history | [Tab] complete | [Ctrl+L] clear
           </span>
         )}
       </div>

@@ -81,7 +81,6 @@ describe('MarketplaceAssistant', () => {
           cdp_url: 'http://127.0.0.1:9222',
           browser_family: 'chrome',
           profile_path: '/tmp/profile',
-          logged_in: false,
           challenge_detected: false,
           last_checked_at: '2026-04-20T00:00:00Z',
         }}
@@ -121,7 +120,7 @@ describe('MarketplaceAssistant', () => {
 
     expect(screen.getByText(/ready to create/i)).toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole('button', { name: /create \+ run now/i }))
+    await userEvent.click(screen.getByRole('button', { name: /deploy \+ run now/i }))
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledTimes(4)

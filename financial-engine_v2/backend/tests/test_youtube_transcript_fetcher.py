@@ -179,6 +179,30 @@ class TestFetchVideoMetadata:
         video = fetch_video_metadata(input_url)
         assert video.webpage_url == input_url
 
+    def test_missing_publish_date_remains_unknown(self, monkeypatch):
+        info = {
+            "id": "abc123",
+            "title": "Test",
+            "channel": "Test Channel",
+            "upload_date": None,
+            "webpage_url": "https://www.youtube.com/watch?v=abc123",
+            "release_timestamp": None,
+            "timestamp": None,
+        }
+
+        class StubYDL:
+            def __init__(self, opts): pass
+            def __enter__(self): return self
+            def __exit__(self, *a): pass
+            def extract_info(self, url, download=False): return info
+
+        import yt_dlp
+        monkeypatch.setattr("yt_dlp.YoutubeDL", StubYDL)
+
+        video = fetch_video_metadata("https://www.youtube.com/watch?v=abc123")
+
+        assert video.published_at is None
+
 
 from unittest.mock import patch, MagicMock
 from app.services.youtube_transcript_fetcher import resolve_channel_id, _slugify_as_handle
@@ -388,3 +412,49 @@ class TestListRecentChannelVideos:
 
         assert result["limit"] == 20
         assert captured["limit"] == 20
+
+    def test_preserves_upstream_order_when_any_publish_date_is_unknown(self):
+        videos = [
+            YoutubeVideo(
+                video_id="unknown-a",
+                title="Unknown date A",
+                channel_name="Kneppy Invests",
+                published_at=None,
+                webpage_url="https://www.youtube.com/watch?v=unknown-a",
+            ),
+            YoutubeVideo(
+                video_id="dated-new",
+                title="Known recent date",
+                channel_name="Kneppy Invests",
+                published_at="2026-04-28T00:00:00Z",
+                webpage_url="https://www.youtube.com/watch?v=dated-new",
+            ),
+            YoutubeVideo(
+                video_id="unknown-b",
+                title="Unknown date B",
+                channel_name="Kneppy Invests",
+                published_at=None,
+                webpage_url="https://www.youtube.com/watch?v=unknown-b",
+            ),
+        ]
+
+        with (
+            patch(
+                "app.services.youtube_transcript_fetcher.resolve_channel_id",
+                return_value=("UCabc123", "Kneppy Invests"),
+            ),
+            patch("app.services.youtube_transcript_fetcher.ChannelRegistry") as MockRegistry,
+        ):
+            MockRegistry.return_value.channels.return_value = []
+            result = list_recent_channel_videos(
+                "Kneppy Invests",
+                limit=3,
+                list_videos_fn=lambda _channel, _limit: videos,
+            )
+
+        assert [video["video_id"] for video in result["videos"]] == [
+            "unknown-a",
+            "dated-new",
+            "unknown-b",
+        ]
+        assert result["videos"][0]["published_at"] is None

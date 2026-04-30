@@ -112,6 +112,22 @@ If simpler code solves the problem in half the lines, write the simpler version.
 - Zero context-switching required from the user; diagnose from evidence.
 - Do not ask for hand-holding on failures that are diagnosable from the codebase.
 
+### Flagged Cockpit Reports (MANDATORY CLOSEOUT)
+
+- If the bug originated from Cockpit flagged feedback (`report_id` / `/api/cockpit/feedback/flags/{report_id}`), you MUST close it after the fix is committed.
+- Closeout requires both:
+  - `commit_sha` = the fix commit hash
+  - `note` = the exact commit subject line (commit message first line)
+- Required closeout call (after committing):
+  ```bash
+  COMMIT_SHA="$(git rev-parse --short=12 HEAD)"
+  COMMIT_MSG="$(git log -1 --pretty=%s)"
+  curl -sS -X POST "http://127.0.0.1:8000/api/cockpit/feedback/flags/<REPORT_ID>/resolve" \
+    -H "Content-Type: application/json" \
+    -d "{\"commit_sha\":\"${COMMIT_SHA}\",\"resolved_by\":\"claude\",\"note\":\"${COMMIT_MSG}\"}"
+  ```
+- A flagged issue is not complete until this resolve call succeeds.
+
 ### Self-Improvement Loop
 
 - After ANY correction from the user: append a lesson to `docs/claude/lessons.md` with the pattern and the rule that prevents it recurring.

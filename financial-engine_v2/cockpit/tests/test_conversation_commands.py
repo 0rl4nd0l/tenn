@@ -88,6 +88,12 @@ class TestHoldingsConversationalCommands:
     def test_what_stoicks_am_i_holding_maps_to_list(self) -> None:
         assert derive_conversational_command("what stoicks am i holding") == "/holdings list"
 
+    def test_what_r_my_holdiongs_maps_to_list(self) -> None:
+        assert derive_conversational_command("what r my holdiongs") == "/holdings list"
+
+    def test_bare_holdiongs_word_maps_to_list(self) -> None:
+        assert derive_conversational_command("holdiongs") == "/holdings list"
+
     # --- add --------------------------------------------------------------
     def test_add_to_holdings_maps_to_add(self) -> None:
         assert derive_conversational_command("add BHP to holdings") == "/holdings add BHP"
@@ -228,13 +234,19 @@ class TestMarketUpdateConversationalCommands:
         )
 
     # --- generic ----------------------------------------------------------
-    def test_run_market_update_maps_to_generic(self) -> None:
+    def test_run_market_update_maps_to_final(self) -> None:
         assert (
-            derive_conversational_command("run market update") == "/market-update"
+            derive_conversational_command("run market update") == "/market-update final"
         )
 
-    def test_bare_market_update_maps_to_generic(self) -> None:
-        assert derive_conversational_command("market update") == "/market-update"
+    def test_bare_market_update_maps_to_final(self) -> None:
+        assert derive_conversational_command("market update") == "/market-update final"
+
+    def test_market_update_with_question_mark_maps_to_final(self) -> None:
+        assert derive_conversational_command("market update?") == "/market-update final"
+
+    def test_market_updater_typo_maps_to_final(self) -> None:
+        assert derive_conversational_command("market updater") == "/market-update final"
 
     # --- non-collisions ---------------------------------------------------
     def test_market_news_does_not_match(self) -> None:

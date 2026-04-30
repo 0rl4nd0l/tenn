@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import csv
+import hashlib
+import html
 import json
 import logging
 import math
@@ -12,6 +15,8 @@ import sys
 import threading
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from io import BytesIO
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -27,19 +32,35 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.core.config import PROJECT_ROOT, settings
 from app.core.db import SessionLocal
 from app.models.documents import Document
+from app.providers.market_price_provider import MarketPriceProvider, MarketPriceProviderError
 from app.services.cockpit_service import CockpitService
 from app.services.llamacpp_runtime import (
     is_manual_fallback_llm_model,
     resolve_llm_runtime_config,
 )
-from app.services.marketplace_browser_profile import check_marketplace_browser_health
+from app.services.marketplace_browser_profile import (
+    check_marketplace_browser_health,
+    marketplace_scan_health_allows_execution,
+)
+from app.services.marketplace_benchmark_service import (
+    MarketplaceBenchmarkService,
+    REVIEW_STATUSES,
+)
 from app.services.marketplace_mission_service import (
     MarketplaceMissionError,
     MarketplaceMissionNotFound,
     MarketplaceMissionService,
 )
+from app.services.marketplace_price_intelligence import MarketplacePriceIntelligenceService
+from app.services.marketplace_requirement_preparation import (
+    marketplace_candidate_contexts,
+    marketplace_candidate_products_payload,
+    marketplace_requirement_profile,
+    prepare_requirement_driven_mission,
+)
 from app.services.marketplace_scanner import MarketplaceScanCancelled, MarketplaceScanner
 from app.services.router_state import get_extraction_activity_snapshot
+from app.services.structured_chunking import simple_chunk
 from cockpit.core.config import (
     compute_effective_cockpit_config,
     effective_anthropic_api_key,
@@ -314,6 +335,7 @@ class CockpitHoldingRecord(BaseModel):
     holding_id: str
     ticker: str
     account_label: str | None = None
+    market_exchange: str | None = None
     thesis_bucket: str | None = None
     status: str | None = None
     quantity: float | None = None
@@ -322,6 +344,12 @@ class CockpitHoldingRecord(BaseModel):
     opened_at: str | None = None
     updated_at: str | None = None
     note: str | None = None
+    current_price: float | None = None
+    price_currency: str | None = None
+    price_as_of: str | None = None
+    market_value: float | None = None
+    unrealized_pnl: float | None = None
+    valuation_warning: str | None = None
 
 
 class CockpitHoldingListResponse(BaseModel):
@@ -331,6 +359,7 @@ class CockpitHoldingListResponse(BaseModel):
 class CockpitHoldingCreateRequest(BaseModel):
     ticker: str
     account_label: str | None = None
+    market_exchange: str | None = None
     thesis_bucket: str | None = None
     quantity: float | None = None
     avg_cost: float | None = None
@@ -342,6 +371,7 @@ class CockpitHoldingCreateRequest(BaseModel):
 class CockpitHoldingUpdateRequest(BaseModel):
     ticker: str | None = None
     account_label: str | None = None
+    market_exchange: str | None = None
     thesis_bucket: str | None = None
     status: str | None = None
     quantity: float | None = None
@@ -354,6 +384,701 @@ class CockpitHoldingUpdateRequest(BaseModel):
 class CockpitHoldingMutationResponse(BaseModel):
     ok: bool
     holding_id: str
+
+
+class CockpitChatAttachmentUploadRequest(BaseModel):
+    filename: str
+    content_base64: str
+    mime_type: str | None = None
+    csv_profile: Literal["auto", "holdings", "trades"] = "auto"
+    csv_strict: bool = False
+
+
+class CockpitChatAttachmentUploadResponse(BaseModel):
+    ok: bool = True
+    file_kind: Literal["holdings_csv", "strategy_pdf"]
+    message: str
+    imported_count: int = 0
+    skipped_count: int = 0
+    errors: list[str] = Field(default_factory=list)
+    source_id: str | None = None
+    source_kind: Literal["ephemeral", "concat", "primary"] | None = None
+    chunks_staged: int = 0
+    key_points: list[str] = Field(default_factory=list)
+
+
+_CSV_HEADER_NORMALIZE_RE = re.compile(r"[^a-z0-9]+")
+_CSV_TICKER_RE = re.compile(r"^[A-Za-z][A-Za-z0-9.\-]{1,11}$")
+_EXCHANGE_ALIASES = {
+    "ASX": "ASX",
+    "NASDAQ": "NASDAQ",
+    "NAS": "NASDAQ",
+    "NYSE": "NYSE",
+    "LSE": "LSE",
+    "TSX": "TSX",
+    "HKEX": "HKEX",
+    "HKSE": "HKEX",
+}
+_CSV_BUY_SIDE_ALIASES = {"buy", "b", "long", "bot", "purchase", "add"}
+_CSV_SELL_SIDE_ALIASES = {"sell", "s", "short", "sld", "dispose", "reduce"}
+_CSV_HOLDINGS_REQUIRED_COLUMNS = {
+    "ticker": ("ticker", "symbol", "asx", "code", "security"),
+    "quantity": ("quantity", "qty", "shares", "units", "holding"),
+}
+_CSV_TRADE_REQUIRED_COLUMNS = {
+    "ticker": ("ticker", "symbol", "asx", "code", "security"),
+    "side": ("side", "trade_side", "action", "buy_sell", "transaction_type"),
+    "quantity": ("quantity", "qty", "shares", "units"),
+}
+_CSV_TRADE_PRICE_COLUMNS = (
+    "price",
+    "trade_price",
+    "execution_price",
+    "fill_price",
+    "avg_price",
+)
+_CSV_TRADE_AMOUNT_COLUMNS = ("amount", "total_value", "notional", "gross_value")
+_HOLDINGS_PRICE_CACHE_TTL_SECONDS = 90.0
+_HOLDINGS_PRICE_CACHE_LOCK = threading.Lock()
+_HOLDINGS_PRICE_CACHE: dict[tuple[str, str | None], tuple[float, dict[str, Any] | None]] = {}
+_HOLDINGS_PRICE_EXCHANGE_FALLBACKS = ("ASX", "NASDAQ", "NYSE")
+
+
+def _normalize_csv_header(value: str) -> str:
+    return _CSV_HEADER_NORMALIZE_RE.sub("_", str(value or "").strip().lower()).strip("_")
+
+
+def _normalize_market_exchange(value: str | None) -> str | None:
+    raw = str(value or "").strip().upper()
+    if not raw:
+        return None
+    key = _normalize_csv_header(raw).replace("_", "")
+    mapped = _EXCHANGE_ALIASES.get(raw) or _EXCHANGE_ALIASES.get(key)
+    return mapped or raw
+
+
+def _coerce_optional_float(value: str | None) -> float | None:
+    cleaned = str(value or "").strip()
+    if not cleaned:
+        return None
+    cleaned = cleaned.replace(",", "")
+    cleaned = cleaned.replace("$", "")
+    if cleaned.startswith("(") and cleaned.endswith(")"):
+        cleaned = f"-{cleaned[1:-1]}"
+    return float(cleaned)
+
+
+def _parse_csv_rows(
+    content_text: str,
+) -> tuple[list[dict[str, str | None]], dict[str, str]]:
+    if not str(content_text or "").strip():
+        raise ValueError("CSV file is empty")
+
+    sample = content_text[:8192]
+    try:
+        dialect = csv.Sniffer().sniff(sample, delimiters=",;\t|")
+    except csv.Error:
+        dialect = csv.excel
+    reader = csv.DictReader(content_text.splitlines(), dialect=dialect)
+    if not reader.fieldnames:
+        raise ValueError("CSV header row is missing")
+
+    headers_by_key: dict[str, str] = {}
+    for header in reader.fieldnames:
+        if header is None:
+            continue
+        key = _normalize_csv_header(header)
+        if key and key not in headers_by_key:
+            headers_by_key[key] = header
+
+    rows = [dict(row) for row in reader]
+    return rows, headers_by_key
+
+
+def _parse_xlsx_rows(
+    content_bytes: bytes,
+) -> tuple[list[dict[str, str | None]], dict[str, str]]:
+    try:
+        from openpyxl import load_workbook
+    except Exception as exc:
+        raise RuntimeError(f"XLSX parser unavailable: {exc}") from exc
+
+    workbook = None
+    try:
+        workbook = load_workbook(
+            filename=BytesIO(content_bytes),
+            data_only=True,
+            read_only=True,
+        )
+        worksheet = workbook.active
+        raw_headers: list[str] = []
+        headers_by_key: dict[str, str] = {}
+        rows: list[dict[str, str | None]] = []
+
+        header_found = False
+        for excel_row in worksheet.iter_rows(values_only=True):
+            normalized_row = [str(value).strip() if value is not None else "" for value in excel_row]
+            if not header_found:
+                if not any(normalized_row):
+                    continue
+                header_found = True
+                for index, header in enumerate(normalized_row, start=1):
+                    final_header = header or f"column_{index}"
+                    raw_headers.append(final_header)
+                    key = _normalize_csv_header(final_header)
+                    if key and key not in headers_by_key:
+                        headers_by_key[key] = final_header
+                continue
+
+            if not any(normalized_row):
+                continue
+
+            row: dict[str, str | None] = {}
+            for idx, header in enumerate(raw_headers):
+                text = normalized_row[idx] if idx < len(normalized_row) else ""
+                row[header] = text or None
+            rows.append(row)
+
+        if not header_found:
+            raise ValueError("XLSX header row is missing")
+        return rows, headers_by_key
+    except ValueError:
+        raise
+    except Exception as exc:
+        raise ValueError(f"failed to read XLSX content: {exc}") from exc
+    finally:
+        if workbook is not None:
+            try:
+                workbook.close()
+            except Exception:
+                pass
+
+
+def _csv_cell(
+    row: dict[str, str | None],
+    headers_by_key: dict[str, str],
+    *aliases: str,
+) -> str:
+    for alias in aliases:
+        column = headers_by_key.get(alias)
+        if column is None:
+            continue
+        value = row.get(column)
+        if value is None:
+            continue
+        text = str(value).strip()
+        if text:
+            return text
+    return ""
+
+
+def _has_any_csv_column(headers_by_key: dict[str, str], aliases: tuple[str, ...]) -> bool:
+    return any(alias in headers_by_key for alias in aliases)
+
+
+def _validate_csv_required_columns(
+    headers_by_key: dict[str, str],
+    required_columns: dict[str, tuple[str, ...]],
+    *,
+    profile_name: str,
+) -> None:
+    missing = [
+        label
+        for label, aliases in required_columns.items()
+        if not _has_any_csv_column(headers_by_key, aliases)
+    ]
+    if missing:
+        joined = ", ".join(sorted(missing))
+        raise ValueError(
+            f"CSV schema mismatch for {profile_name} profile; missing columns: {joined}"
+        )
+
+
+def _detect_csv_profile(headers_by_key: dict[str, str]) -> Literal["holdings", "trades"]:
+    has_trade_side = _has_any_csv_column(
+        headers_by_key,
+        ("side", "trade_side", "action", "buy_sell", "transaction_type"),
+    )
+    has_trade_price = _has_any_csv_column(
+        headers_by_key,
+        _CSV_TRADE_PRICE_COLUMNS + _CSV_TRADE_AMOUNT_COLUMNS,
+    )
+    has_quantity = _has_any_csv_column(
+        headers_by_key,
+        ("quantity", "qty", "shares", "units", "holding"),
+    )
+    if has_trade_side and has_quantity:
+        return "trades"
+    if has_trade_price and has_quantity and "avg_cost" not in headers_by_key:
+        return "trades"
+    return "holdings"
+
+
+def _extract_holdings_rows_from_csv(
+    rows: list[dict[str, str | None]],
+    headers_by_key: dict[str, str],
+    *,
+    strict: bool = False,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    if strict:
+        _validate_csv_required_columns(
+            headers_by_key,
+            _CSV_HOLDINGS_REQUIRED_COLUMNS,
+            profile_name="holdings",
+        )
+
+    def cell(row: dict[str, str | None], *aliases: str) -> str:
+        return _csv_cell(row, headers_by_key, *aliases)
+
+    records: list[dict[str, Any]] = []
+    errors: list[str] = []
+    for row_number, row in enumerate(rows, start=2):
+        ticker = cell(row, "ticker", "symbol", "asx", "code", "security").upper()
+        if not ticker:
+            errors.append(f"row {row_number}: missing ticker")
+            continue
+        if not _CSV_TICKER_RE.match(ticker):
+            errors.append(f"row {row_number}: invalid ticker '{ticker}'")
+            continue
+
+        try:
+            quantity = _coerce_optional_float(
+                cell(row, "quantity", "qty", "shares", "units", "holding")
+            )
+        except ValueError:
+            errors.append(f"row {row_number}: invalid quantity")
+            continue
+        try:
+            avg_cost = _coerce_optional_float(
+                cell(
+                    row,
+                    "avg_cost",
+                    "average_cost",
+                    "average_price",
+                    "avg_price",
+                    "cost",
+                    "entry_price",
+                )
+            )
+        except ValueError:
+            errors.append(f"row {row_number}: invalid avg_cost")
+            continue
+
+        if avg_cost is None and quantity is not None and abs(quantity) > 0:
+            try:
+                total_cost = _coerce_optional_float(
+                    cell(
+                        row,
+                        "cost_basis",
+                        "total_cost",
+                        "invested_amount",
+                        "invested",
+                    )
+                )
+            except ValueError:
+                errors.append(f"row {row_number}: invalid cost_basis")
+                continue
+            if total_cost is not None:
+                avg_cost = total_cost / abs(quantity)
+            else:
+                try:
+                    value = _coerce_optional_float(
+                        cell(
+                            row,
+                            "value",
+                            "market_value",
+                            "position_value",
+                            "current_value",
+                        )
+                    )
+                    capital_gain = _coerce_optional_float(
+                        cell(
+                            row,
+                            "capital_gain",
+                            "gain",
+                            "unrealized_gain",
+                            "pnl",
+                            "profit_loss",
+                        )
+                    )
+                except ValueError:
+                    errors.append(f"row {row_number}: invalid value/capital_gain")
+                    continue
+                if value is not None and capital_gain is not None:
+                    avg_cost = (value - capital_gain) / abs(quantity)
+
+        cost_currency = cell(row, "cost_currency", "currency", "ccy").upper() or None
+        if cost_currency and len(cost_currency) > 8:
+            errors.append(f"row {row_number}: invalid cost_currency '{cost_currency}'")
+            continue
+
+        records.append(
+            {
+                "ticker": ticker,
+                "account_label": cell(row, "account_label", "account", "broker") or None,
+                "market_exchange": _normalize_market_exchange(
+                    cell(row, "market_exchange", "exchange", "market", "venue", "market_code")
+                ),
+                "thesis_bucket": cell(row, "thesis_bucket", "bucket", "strategy") or None,
+                "quantity": quantity,
+                "avg_cost": avg_cost,
+                "cost_currency": cost_currency,
+                "opened_at": cell(row, "opened_at", "open_date", "date", "acquired_at")
+                or None,
+                "note": cell(row, "note", "notes", "comment") or None,
+            }
+        )
+
+    return records, errors
+
+
+def _normalize_trade_side(raw_side: str) -> Literal["buy", "sell"] | None:
+    normalized = _normalize_csv_header(raw_side).replace("_", "")
+    if not normalized:
+        return None
+    if normalized in _CSV_BUY_SIDE_ALIASES:
+        return "buy"
+    if normalized in _CSV_SELL_SIDE_ALIASES:
+        return "sell"
+    return None
+
+
+def _extract_trade_holdings_rows_from_csv(
+    rows: list[dict[str, str | None]],
+    headers_by_key: dict[str, str],
+    *,
+    strict: bool = False,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    if strict:
+        _validate_csv_required_columns(
+            headers_by_key,
+            _CSV_TRADE_REQUIRED_COLUMNS,
+            profile_name="trades",
+        )
+
+    trade_rows: list[dict[str, Any]] = []
+    errors: list[str] = []
+    for row_number, row in enumerate(rows, start=2):
+        ticker = _csv_cell(
+            row, headers_by_key, "ticker", "symbol", "asx", "code", "security"
+        ).upper()
+        if not ticker:
+            errors.append(f"row {row_number}: missing ticker")
+            continue
+        if not _CSV_TICKER_RE.match(ticker):
+            errors.append(f"row {row_number}: invalid ticker '{ticker}'")
+            continue
+
+        raw_side = _csv_cell(
+            row,
+            headers_by_key,
+            "side",
+            "trade_side",
+            "action",
+            "buy_sell",
+            "transaction_type",
+        )
+        side = _normalize_trade_side(raw_side)
+        try:
+            quantity_value = _coerce_optional_float(
+                _csv_cell(row, headers_by_key, "quantity", "qty", "shares", "units")
+            )
+        except ValueError:
+            errors.append(f"row {row_number}: invalid quantity")
+            continue
+        if quantity_value is None or abs(quantity_value) <= 0.0:
+            errors.append(f"row {row_number}: missing quantity")
+            continue
+        quantity = abs(quantity_value)
+        if side is None:
+            if strict:
+                errors.append(f"row {row_number}: invalid side '{raw_side}'")
+                continue
+            side = "sell" if quantity_value < 0 else "buy"
+
+        try:
+            trade_price = _coerce_optional_float(
+                _csv_cell(row, headers_by_key, *_CSV_TRADE_PRICE_COLUMNS)
+            )
+        except ValueError:
+            errors.append(f"row {row_number}: invalid price")
+            continue
+        try:
+            trade_amount = _coerce_optional_float(
+                _csv_cell(row, headers_by_key, *_CSV_TRADE_AMOUNT_COLUMNS)
+            )
+        except ValueError:
+            errors.append(f"row {row_number}: invalid amount")
+            continue
+
+        if trade_price is None and trade_amount is not None:
+            trade_price = abs(trade_amount) / quantity
+        if trade_price is not None and trade_price <= 0:
+            errors.append(f"row {row_number}: invalid price")
+            continue
+        if strict and trade_price is None:
+            errors.append(
+                f"row {row_number}: missing price or amount for strict trades profile"
+            )
+            continue
+
+        cost_currency = _csv_cell(
+            row, headers_by_key, "cost_currency", "currency", "ccy"
+        ).upper() or None
+        if cost_currency and len(cost_currency) > 8:
+            errors.append(f"row {row_number}: invalid cost_currency '{cost_currency}'")
+            continue
+
+        trade_rows.append(
+            {
+                "row_number": row_number,
+                "ticker": ticker,
+                "side": side,
+                "quantity": quantity,
+                "trade_price": trade_price,
+                "account_label": _csv_cell(
+                    row, headers_by_key, "account_label", "account", "broker"
+                )
+                or None,
+                "market_exchange": _normalize_market_exchange(
+                    _csv_cell(
+                        row,
+                        headers_by_key,
+                        "market_exchange",
+                        "exchange",
+                        "market",
+                        "venue",
+                        "market_code",
+                    )
+                ),
+                "thesis_bucket": _csv_cell(
+                    row, headers_by_key, "thesis_bucket", "bucket", "strategy"
+                )
+                or None,
+                "cost_currency": cost_currency,
+                "opened_at": _csv_cell(
+                    row,
+                    headers_by_key,
+                    "trade_date",
+                    "date",
+                    "executed_at",
+                    "opened_at",
+                    "open_date",
+                )
+                or None,
+                "note": _csv_cell(row, headers_by_key, "note", "notes", "comment") or None,
+            }
+        )
+
+    aggregates: dict[tuple[str, str | None, str | None, str | None], dict[str, Any]] = {}
+    for trade in trade_rows:
+        key = (
+            str(trade["ticker"]),
+            trade["account_label"],
+            trade["market_exchange"],
+            trade["thesis_bucket"],
+        )
+        accumulator = aggregates.get(key)
+        if accumulator is None:
+            accumulator = {
+                "ticker": trade["ticker"],
+                "account_label": trade["account_label"],
+                "market_exchange": trade["market_exchange"],
+                "thesis_bucket": trade["thesis_bucket"],
+                "quantity": 0.0,
+                "cost_basis": 0.0,
+                "cost_currency": trade["cost_currency"],
+                "opened_at": trade["opened_at"],
+                "note": trade["note"],
+                "unknown_cost": False,
+            }
+            aggregates[key] = accumulator
+        elif not accumulator.get("cost_currency") and trade["cost_currency"]:
+            accumulator["cost_currency"] = trade["cost_currency"]
+
+        side = str(trade["side"])
+        quantity = float(trade["quantity"])
+        trade_price = trade["trade_price"]
+        if side == "buy":
+            accumulator["quantity"] += quantity
+            if trade_price is None:
+                accumulator["unknown_cost"] = True
+            else:
+                accumulator["cost_basis"] += quantity * float(trade_price)
+            continue
+
+        # Selling adjusts quantity and reduces cost basis proportionally.
+        current_qty = float(accumulator["quantity"])
+        if current_qty <= 0:
+            errors.append(
+                f"row {trade['row_number']}: sell before buy for {trade['ticker']}"
+            )
+            continue
+        if strict and quantity > current_qty + 1e-9:
+            errors.append(
+                "row "
+                f"{trade['row_number']}: sell quantity exceeds open position for "
+                f"{trade['ticker']}"
+            )
+            continue
+        sold_qty = min(quantity, current_qty)
+        avg_cost = float(accumulator["cost_basis"]) / current_qty if current_qty > 0 else 0.0
+        accumulator["quantity"] = current_qty - sold_qty
+        accumulator["cost_basis"] = max(
+            0.0, float(accumulator["cost_basis"]) - (avg_cost * sold_qty)
+        )
+        if float(accumulator["quantity"]) <= 1e-9:
+            accumulator["quantity"] = 0.0
+            accumulator["cost_basis"] = 0.0
+
+    records: list[dict[str, Any]] = []
+    for key in sorted(aggregates):
+        item = aggregates[key]
+        quantity = float(item["quantity"])
+        if quantity <= 1e-9:
+            continue
+        avg_cost: float | None = None
+        if not item["unknown_cost"]:
+            avg_cost = float(item["cost_basis"]) / quantity if quantity > 0 else None
+        records.append(
+            {
+                "ticker": item["ticker"],
+                "account_label": item["account_label"],
+                "market_exchange": item["market_exchange"],
+                "thesis_bucket": item["thesis_bucket"],
+                "quantity": quantity,
+                "avg_cost": avg_cost,
+                "cost_currency": item["cost_currency"],
+                "opened_at": item["opened_at"],
+                "note": item["note"],
+            }
+        )
+    return records, errors
+
+
+def _extract_pdf_text(content_bytes: bytes) -> str:
+    if not content_bytes.startswith(b"%PDF"):
+        raise ValueError("uploaded file is not a PDF")
+
+    try:
+        import fitz  # type: ignore[import-not-found]
+    except Exception as exc:
+        raise RuntimeError(f"PDF parser unavailable: {exc}") from exc
+
+    document = None
+    try:
+        document = fitz.open(stream=content_bytes, filetype="pdf")
+        chunks: list[str] = []
+        total_chars = 0
+        max_chars = 300_000
+        for page in document:
+            text = str(page.get_text("text") or "")
+            text = re.sub(r"\s+\n", "\n", text)
+            text = re.sub(r"[ \t]+", " ", text).strip()
+            if not text:
+                continue
+            remaining = max_chars - total_chars
+            if remaining <= 0:
+                break
+            if len(text) > remaining:
+                text = text[:remaining]
+            if text:
+                chunks.append(text)
+                total_chars += len(text)
+        combined = "\n".join(chunks).strip()
+        if not combined:
+            raise ValueError("no extractable text found in PDF")
+        return combined
+    except ValueError:
+        raise
+    except Exception as exc:
+        raise RuntimeError(f"failed to read PDF content: {exc}") from exc
+    finally:
+        if document is not None:
+            try:
+                document.close()
+            except Exception:
+                pass
+
+
+def _derive_key_points_from_text(text: str, limit: int = 5) -> list[str]:
+    points: list[str] = []
+    seen: set[str] = set()
+
+    def push(candidate: str) -> None:
+        if len(points) >= limit:
+            return
+        cleaned = re.sub(r"\s+", " ", str(candidate or "")).strip(" -\t")
+        if len(cleaned) < 40 or len(cleaned) > 260:
+            return
+        normalized = cleaned.lower()
+        if normalized in seen:
+            return
+        seen.add(normalized)
+        points.append(cleaned)
+
+    for line in text.splitlines():
+        if len(points) >= limit:
+            break
+        push(line)
+
+    if len(points) < limit:
+        for sentence in re.split(r"(?<=[.!?])\s+", text[:24000]):
+            if len(points) >= limit:
+                break
+            push(sentence)
+
+    return points
+
+
+def _stage_uploaded_pdf_chunks(
+    *,
+    filename: str,
+    extracted_text: str,
+    published_at: str,
+) -> tuple[str, int]:
+    stage_dir = Path("~/.tenn/memory/staged_chunks").expanduser().resolve()
+    stage_dir.mkdir(parents=True, exist_ok=True)
+
+    digest = hashlib.sha1(
+        f"{filename}|{published_at}|{extracted_text}".encode("utf-8")
+    ).hexdigest()[:16]
+    slug = re.sub(r"[^a-z0-9]+", "-", filename.lower()).strip("-") or "uploaded-pdf"
+    source_id = f"market_commentary:{slug}:{digest}"
+
+    chunks = []
+    seen: set[str] = set()
+    for chunk in simple_chunk(extracted_text, max_chars=1400):
+        normalized = re.sub(r"\s+", " ", str(chunk or "")).strip()
+        if not normalized:
+            continue
+        key = normalized.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        chunks.append(normalized)
+
+    if not chunks:
+        raise ValueError("no usable text chunks extracted from PDF")
+
+    staged_path = stage_dir / f"{source_id}.jsonl"
+    with staged_path.open("w", encoding="utf-8") as handle:
+        for index, chunk in enumerate(chunks):
+            row = {
+                "payload": {
+                    "chunk_id": f"{source_id}:{index}",
+                    "source_id": source_id,
+                    "chunk_index": index,
+                    "text": chunk,
+                    "source_name": filename,
+                    "source_type": "market_commentary",
+                    "speaker": "Uploaded PDF",
+                    "published_at": published_at,
+                }
+            }
+            handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+    return source_id, len(chunks)
 
 
 def _effective_cockpit_feature_flags(
@@ -613,6 +1338,185 @@ def _decode_truncated_tool_result(result: dict[str, Any]) -> dict[str, Any]:
     return merged
 
 
+def _dict_rows(value: Any) -> list[dict[str, Any]]:
+    return [row for row in value if isinstance(row, dict)] if isinstance(value, list) else []
+
+
+def _source_payloads_for_evidence(ev: dict[str, Any], details: dict[str, Any]) -> list[dict[str, Any]]:
+    payloads: list[dict[str, Any]] = []
+    for candidate in (details, ev.get("result")):
+        if isinstance(candidate, dict):
+            payloads.append(candidate)
+            for nested_key in ("financial_truth", "backend"):
+                nested = candidate.get(nested_key)
+                if isinstance(nested, dict):
+                    payloads.append(nested)
+    return payloads
+
+
+def _append_financial_payload_sources(
+    items: list[dict[str, Any]],
+    seen: set[str],
+    payload: dict[str, Any],
+) -> None:
+    for row in _dict_rows(payload.get("announcement_context")):
+        _append_source_item(
+            items,
+            seen,
+            row,
+            default_title="Announcement excerpt",
+            kind="document",
+        )
+
+    for row in _dict_rows(payload.get("docs")):
+        _append_source_item(
+            items,
+            seen,
+            row,
+            default_title="Financial document",
+            kind="document",
+        )
+
+    financial_rows = _dict_rows(payload.get("financials"))
+    snapshot = payload.get("latest_financial_snapshot")
+    if isinstance(snapshot, dict):
+        financial_rows.append(snapshot)
+
+    for row in financial_rows:
+        ticker = str(row.get("ticker") or "").strip().upper()
+        period_type = str(row.get("period_type") or "").strip()
+        period_end = str(row.get("period_end") or "").strip()
+        title = " ".join(part for part in (ticker or "Financials", period_type, period_end) if part)
+        metric_bits = []
+        for metric in (
+            "revenue",
+            "ebit",
+            "np_attributable",
+            "operating_cf",
+            "cash_end",
+            "net_debt",
+            "shares_outstanding",
+        ):
+            value = row.get(metric)
+            if value not in (None, ""):
+                metric_bits.append(f"{metric}: {value}")
+            if len(metric_bits) >= 4:
+                break
+        _append_source_item(
+            items,
+            seen,
+            {
+                **row,
+                "title": title,
+                "document_id": row.get("source_document_id"),
+                "source_id": (
+                    row.get("source_id")
+                    or row.get("source_document_id")
+                    or f"financials:{ticker or 'unknown'}:{period_end or 'unknown'}:{period_type or 'period'}"
+                ),
+                "published_at": period_end or row.get("published_at"),
+                "doc_type": period_type or row.get("doc_type"),
+                "snippet": "; ".join(metric_bits) if metric_bits else None,
+            },
+            default_title="Financial period",
+            kind="document",
+        )
+
+
+def _append_memory_payload_sources(
+    items: list[dict[str, Any]],
+    seen: set[str],
+    payload: dict[str, Any],
+    *,
+    default_title: str,
+    source_prefix: str,
+) -> None:
+    for row in _dict_rows(payload.get("items")):
+        entry_id = row.get("entry_id") or row.get("proposal_id") or row.get("source_id")
+        source = str(row.get("source") or default_title).strip()
+        signal_type = str(row.get("type") or row.get("entry_type") or row.get("signal") or "").strip()
+        title = " ".join(part for part in (source, signal_type) if part) or default_title
+        _append_source_item(
+            items,
+            seen,
+            {
+                **row,
+                "title": title,
+                "source_id": row.get("source_id") or (f"{source_prefix}:{entry_id}" if entry_id else None),
+                "snippet": row.get("statement") or row.get("summary"),
+                "published_at": row.get("updated_at") or row.get("created_at"),
+                "score": row.get("active_score") or row.get("confidence"),
+            },
+            default_title=default_title,
+            kind="context",
+        )
+
+
+def _append_youtube_recent_video_sources(
+    items: list[dict[str, Any]],
+    seen: set[str],
+    result: dict[str, Any],
+) -> None:
+    channel = str(result.get("name") or result.get("channel_name") or "YouTube channel").strip()
+    for index, video in enumerate(_dict_rows(result.get("videos")), start=1):
+        video_id = str(video.get("video_id") or video.get("id") or "").strip()
+        url = str(video.get("webpage_url") or video.get("url") or "").strip()
+        if not url and video_id:
+            url = f"https://www.youtube.com/watch?v={video_id}"
+        duration = video.get("duration_seconds")
+        bits = [f"Channel: {channel}"]
+        if video_id:
+            bits.append(f"Video ID: {video_id}")
+        if isinstance(duration, (int, float)) and duration > 0:
+            bits.append(f"Duration: {int(round(float(duration) / 60.0))} min")
+        scores = video.get("scores") if isinstance(video.get("scores"), dict) else {}
+        score = scores.get("overall") if isinstance(scores, dict) else None
+        if isinstance(score, (int, float)):
+            bits.append(f"Score: {float(score):.2f}")
+        _append_source_item(
+            items,
+            seen,
+            {
+                "title": video.get("title") or video_id or f"YouTube video {index}",
+                "url": url or None,
+                "source_id": video.get("source_id") or (f"youtube:{video_id}" if video_id else None),
+                "snippet": "; ".join(bits),
+                "published_at": video.get("published_at") or video.get("published_date"),
+                "score": score,
+                "doc_type": "youtube_video",
+            },
+            default_title="YouTube video",
+            kind="web",
+        )
+
+
+def _append_news_no_hit_source(
+    items: list[dict[str, Any]],
+    seen: set[str],
+    result: dict[str, Any],
+) -> None:
+    query = str(result.get("query") or result.get("normalized_query") or "").strip()
+    ticker = str(result.get("ticker") or "").strip().upper()
+    freshness = str(result.get("freshness_warning") or "").strip()
+    searched = query or ticker or "news"
+    bits = [f"No news hits returned for {searched}."]
+    if freshness:
+        bits.append(freshness)
+    _append_source_item(
+        items,
+        seen,
+        {
+            "title": f"News search: no hits for {searched}",
+            "source_id": f"search_news:no_hits:{searched.lower()}",
+            "snippet": " ".join(bits),
+            "score": 1.0,
+            "doc_type": "operational_no_hit",
+        },
+        default_title="News search audit",
+        kind="context",
+    )
+
+
 def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -690,25 +1594,55 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                         kind="document",
                     )
 
-        elif ev_type == "financial_truth":
-            for row in details.get("announcement_context", []) if isinstance(details.get("announcement_context"), list) else []:
-                if isinstance(row, dict):
-                    _append_source_item(
-                        items,
-                        seen,
-                        row,
-                        default_title="Announcement excerpt",
-                        kind="document",
-                    )
+            _append_financial_payload_sources(items, seen, backend)
 
-            for row in details.get("docs", []) if isinstance(details.get("docs"), list) else []:
-                if isinstance(row, dict):
-                    _append_source_item(
+        elif ev_type in {
+            "financial_truth",
+            "company_memory",
+            "market_memory",
+            "user_thesis_memory",
+            "orchestrator",
+        }:
+            for payload in _source_payloads_for_evidence(ev, details):
+                _append_financial_payload_sources(items, seen, payload)
+                if ev_type == "company_memory" or isinstance(payload.get("company_memory"), dict):
+                    memory_payload = (
+                        payload.get("company_memory")
+                        if isinstance(payload.get("company_memory"), dict)
+                        else payload
+                    )
+                    _append_memory_payload_sources(
                         items,
                         seen,
-                        row,
-                        default_title="Financial document",
-                        kind="document",
+                        memory_payload,
+                        default_title="Company memory",
+                        source_prefix="company_memory",
+                    )
+                if ev_type == "market_memory" or isinstance(payload.get("market_memory"), dict):
+                    memory_payload = (
+                        payload.get("market_memory")
+                        if isinstance(payload.get("market_memory"), dict)
+                        else payload
+                    )
+                    _append_memory_payload_sources(
+                        items,
+                        seen,
+                        memory_payload,
+                        default_title="Market memory",
+                        source_prefix="market_memory",
+                    )
+                if ev_type == "user_thesis_memory" or isinstance(payload.get("user_thesis_memory"), dict):
+                    memory_payload = (
+                        payload.get("user_thesis_memory")
+                        if isinstance(payload.get("user_thesis_memory"), dict)
+                        else payload
+                    )
+                    _append_memory_payload_sources(
+                        items,
+                        seen,
+                        memory_payload,
+                        default_title="User thesis memory",
+                        source_prefix="user_thesis_memory",
                     )
 
         elif ev_type == "news_search":
@@ -721,6 +1655,8 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                         default_title="News source",
                         kind="news",
                     )
+            if not _dict_rows(details.get("hits")):
+                _append_news_no_hit_source(items, seen, details)
 
         elif ev_type in {"news_summary", "article_request"}:
             _append_source_item(
@@ -825,21 +1761,9 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                     report.get("report_date") or report.get("run_date") or ""
                 ).strip()
                 status = str(report.get("status") or "").strip()
-                summary = (
-                    report.get("summary")
-                    if isinstance(report.get("summary"), dict)
-                    else {}
-                )
-                movers = (
-                    summary.get("movers")
-                    if isinstance(summary.get("movers"), list)
-                    else []
-                )
-                tickers = (
-                    summary.get("tickers")
-                    if isinstance(summary.get("tickers"), list)
-                    else []
-                )
+                summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+                movers = summary.get("movers") if isinstance(summary.get("movers"), list) else []
+                tickers = summary.get("tickers") if isinstance(summary.get("tickers"), list) else []
                 mover_count = report.get("mover_count")
                 if mover_count is None and movers:
                     mover_count = len(movers)
@@ -857,9 +1781,7 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                     items,
                     seen,
                     {
-                        "title": f"Market update {run_date}"
-                        if run_date
-                        else "Market update",
+                        "title": f"Market update {run_date}" if run_date else "Market update",
                         "source_id": f"market_update:{run_date or id(report)}",
                         "score": 1.0,
                         "snippet": "; ".join(bits) if bits else None,
@@ -912,7 +1834,8 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
             if isinstance(result, dict):
                 result = _decode_truncated_tool_result(result)
                 if tool_name == "search_news":
-                    for hit in result.get("hits") or []:
+                    hits = _dict_rows(result.get("hits"))
+                    for hit in hits:
                         if isinstance(hit, dict):
                             _append_source_item(
                                 items,
@@ -921,6 +1844,8 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                                 default_title="News article",
                                 kind="news",
                             )
+                    if not hits:
+                        _append_news_no_hit_source(items, seen, result)
                 elif tool_name == "search_announcements":
                     for row in result.get("documents") or []:
                         if isinstance(row, dict):
@@ -1162,7 +2087,8 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                                 kind="web",
                             )
                 elif tool_name == "get_watchlist_alerts":
-                    for row in result.get("alerts") or []:
+                    alerts = result.get("alerts") if isinstance(result.get("alerts"), list) else []
+                    for row in alerts:
                         if isinstance(row, dict):
                             _append_source_item(
                                 items,
@@ -1180,9 +2106,31 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                                 default_title="Watchlist alert",
                                 kind="context",
                             )
+                    if not alerts:
+                        ticker = str(result.get("ticker") or "watchlist").strip().upper()
+                        since_hours = result.get("since_hours")
+                        snippet = (
+                            f"No alerts returned in the last {since_hours} hour(s)."
+                            if isinstance(since_hours, (int, float))
+                            else "No alerts returned for the current watchlist scan."
+                        )
+                        _append_source_item(
+                            items,
+                            seen,
+                            {
+                                "title": f"{ticker or 'Watchlist'} alerts",
+                                "source_id": f"watchlist_alerts:{ticker or 'all'}",
+                                "snippet": snippet,
+                            },
+                            default_title="Watchlist alerts",
+                            kind="context",
+                        )
                 elif tool_name == "tv_screener":
                     market = str(result.get("market") or "").strip().upper()
-                    for index, row in enumerate(result.get("results") or []):
+                    screener_results = (
+                        result.get("results") if isinstance(result.get("results"), list) else []
+                    )
+                    for index, row in enumerate(screener_results):
                         if not isinstance(row, dict):
                             continue
                         symbol = str(
@@ -1203,6 +2151,28 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                                 ),
                                 "source_id": f"tv_screener:{market}:{symbol or index}",
                                 "snippet": _summarize_scalar_fields(row, max_items=5),
+                            },
+                            default_title="TradingView screener",
+                            kind="context",
+                        )
+                    if not screener_results:
+                        count = result.get("count")
+                        snippet = (
+                            f"Screener returned {count} rows."
+                            if isinstance(count, (int, float))
+                            else "Screener returned no rows for this query."
+                        )
+                        _append_source_item(
+                            items,
+                            seen,
+                            {
+                                "title": (
+                                    f"TradingView screener ({market})"
+                                    if market
+                                    else "TradingView screener"
+                                ),
+                                "source_id": f"tv_screener:{market or 'unknown'}",
+                                "snippet": snippet,
                             },
                             default_title="TradingView screener",
                             kind="context",
@@ -1236,6 +2206,8 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                         default_title="TradingView indicators",
                         kind="context",
                     )
+                elif tool_name == "check_youtube_channel_recent_videos":
+                    _append_youtube_recent_video_sources(items, seen, result)
 
         if len(items) >= 10:
             break
@@ -1264,7 +2236,7 @@ _EXPLICIT_UNVERIFIED_RESPONSE_RE = re.compile(
     re.IGNORECASE,
 )
 _CONTAINS_FINANCIAL_CLAIM_RE = re.compile(
-    r"\b[A-Z]{2,5}\b|"                                     # ASX tickers / company abbreviations
+    r"(?-i:\b[A-Z]{2,5}\b)|"                               # ASX tickers / company abbreviations
     r"\$[\d,]+(?:\.\d+)?[MBKmb]?\b|"                      # dollar amounts
     r"\b\d+(?:\.\d+)?%\b|"                                 # percentages
     r"\b(?:announced|reported|upgraded|downgraded|raised|cut|beat|missed|"
@@ -1272,10 +2244,20 @@ _CONTAINS_FINANCIAL_CLAIM_RE = re.compile(
     r"revenue|profit|loss|EBIT|EBITDA|dividend|buyback|placement)\b",
     re.IGNORECASE,
 )
+_PURE_OPERATIONAL_NO_HIT_RE = re.compile(
+    r"\bno (?:news )?(?:hits|results|articles|videos?) (?:were )?(?:returned|found)\b|"
+    r"\breturned no (?:news )?(?:hits|results|articles|videos?)\b",
+    re.IGNORECASE,
+)
 _SOURCE_CONTRACT_REFUSAL = (
     "I can't verify that from current evidence, and I won't make factual claims unless "
     "the supporting sources can be shown in the Sources dropdown. Please narrow the "
     "question or ask me to fetch the relevant news, announcements, financials, or price data first."
+)
+_COMMANDS_REQUIRING_SOURCES = (
+    "/market-update",
+    "/watch scan",
+    "/alerts",
 )
 _OPERATIONAL_COMMAND_TOOLS_WITHOUT_VISIBLE_SOURCES = frozenset(
     {
@@ -1284,19 +2266,20 @@ _OPERATIONAL_COMMAND_TOOLS_WITHOUT_VISIBLE_SOURCES = frozenset(
 )
 
 
-
-
 def _message_requires_visible_sources(message: str) -> bool:
     text = str(message or "").strip()
     if not text:
         return False
-    # Natural-language control phrases (e.g. "daily market update") are
-    # deterministically rewritten to slash commands inside ChatController.
-    # Treat them the same as explicit slash commands so source-contract
-    # grounding does not mask command output.
-    if derive_conversational_command(text):
+    explicit_command = text.lower()
+    if explicit_command.startswith("/"):
+        return explicit_command.startswith(_COMMANDS_REQUIRING_SOURCES)
+    rewritten = derive_conversational_command(text)
+    if rewritten:
+        command = rewritten.lower()
+        return command.startswith(_COMMANDS_REQUIRING_SOURCES)
+    if _NON_SUBSTANTIVE_CHAT_MESSAGE_RE.fullmatch(text):
         return False
-    return _NON_SUBSTANTIVE_CHAT_MESSAGE_RE.fullmatch(text) is None
+    return True
 
 
 def _is_operational_command_result(response: Any) -> bool:
@@ -1312,6 +2295,17 @@ def _is_operational_command_result(response: Any) -> bool:
     return False
 
 
+def _only_operational_no_hit_sources(sources: list[dict[str, Any]]) -> bool:
+    if not sources:
+        return False
+    for source in sources:
+        source_id = str(source.get("source_id") or "")
+        doc_type = str(source.get("doc_type") or "")
+        if not source_id.startswith("search_news:no_hits:") and doc_type != "operational_no_hit":
+            return False
+    return True
+
+
 def _enforce_visible_source_contract(message: str, response: Any) -> list[dict[str, Any]]:
     sources = _build_ui_sources(getattr(response, "evidence", None) or [])
     text = str(getattr(response, "text", "") or "").strip()
@@ -1323,7 +2317,14 @@ def _enforce_visible_source_contract(message: str, response: Any) -> list[dict[s
     if not _message_requires_visible_sources(message):
         return sources
     if sources:
-        return sources
+        if (
+            _only_operational_no_hit_sources(sources)
+            and _CONTAINS_FINANCIAL_CLAIM_RE.search(text)
+            and not _PURE_OPERATIONAL_NO_HIT_RE.search(text)
+        ):
+            sources = []
+        else:
+            return sources
     # Only allow the "explicit unverified" bypass when the response is a PURE
     # statement of inability — no named tickers, monetary figures, events, or
     # company-specific claims. A hedged hallucination ("the evidence is
@@ -1374,6 +2375,30 @@ def _maybe_auto_flag_chat_response(
         return None
 
 
+def _serialize_flag_handoff(flag_result: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(flag_result, dict):
+        return None
+    keys = (
+        "report_id",
+        "feedback_type",
+        "capture_kind",
+        "report_dir",
+        "read_api_path",
+        "codex_prompt",
+        "codex_prompt_path",
+        "investigation_path",
+        "investigation_status",
+        "codex_cli_command",
+        "analysis_summary",
+    )
+    payload = {
+        key: flag_result.get(key)
+        for key in keys
+        if flag_result.get(key) is not None
+    }
+    return payload or None
+
+
 # ---------------------------------------------------------------------------
 # Helper: probe a single HTTP endpoint
 # ---------------------------------------------------------------------------
@@ -1396,14 +2421,25 @@ def _probe_http(
         return False, 0.0, str(exc)
 
 
+def _parse_float(raw: str) -> float | None:
+    stripped = raw.strip()
+    if not stripped or stripped.startswith("["):
+        return None
+    try:
+        return float(stripped)
+    except ValueError:
+        return None
+
+
 def _probe_gpu() -> ServiceHealthItem:
-    """Return a compact GPU runtime summary for the cockpit sidebar."""
+    """Return a GPU runtime summary including power, clocks, and memory bandwidth."""
     try:
         start = time.monotonic()
         result = subprocess.run(
             [
                 "nvidia-smi",
-                "--query-gpu=name,temperature.gpu,utilization.gpu,memory.used,memory.total",
+                "--query-gpu=name,temperature.gpu,utilization.gpu,memory.used,memory.total,"
+                "power.draw,power.limit,fan.speed,utilization.memory,clocks.gr,clocks.mem,pstate",
                 "--format=csv,noheader,nounits",
             ],
             capture_output=True,
@@ -1448,28 +2484,22 @@ def _probe_gpu() -> ServiceHealthItem:
         parts = [part.strip() for part in line.split(",")]
         if len(parts) < 5:
             continue
-        name, temp_raw, util_raw, used_raw, total_raw = parts[:5]
-        try:
-            temp = float(temp_raw)
-        except ValueError:
-            temp = None
-        try:
-            util = float(util_raw)
-        except ValueError:
-            util = None
-        try:
-            used = float(used_raw)
-            total = float(total_raw)
-        except ValueError:
-            used = None
-            total = None
+        name = parts[0] or "GPU"
+        pstate = parts[11].strip() if len(parts) > 11 else None
         gpus.append(
             {
-                "name": name or "GPU",
-                "temp_c": temp,
-                "util_percent": util,
-                "mem_used_mib": used,
-                "mem_total_mib": total,
+                "name": name,
+                "temp_c": _parse_float(parts[1]) if len(parts) > 1 else None,
+                "util_percent": _parse_float(parts[2]) if len(parts) > 2 else None,
+                "mem_used_mib": _parse_float(parts[3]) if len(parts) > 3 else None,
+                "mem_total_mib": _parse_float(parts[4]) if len(parts) > 4 else None,
+                "power_draw_w": _parse_float(parts[5]) if len(parts) > 5 else None,
+                "power_limit_w": _parse_float(parts[6]) if len(parts) > 6 else None,
+                "fan_speed_pct": _parse_float(parts[7]) if len(parts) > 7 else None,
+                "mem_util_percent": _parse_float(parts[8]) if len(parts) > 8 else None,
+                "clock_gr_mhz": _parse_float(parts[9]) if len(parts) > 9 else None,
+                "clock_mem_mhz": _parse_float(parts[10]) if len(parts) > 10 else None,
+                "pstate": pstate if pstate and not pstate.startswith("[") else None,
             }
         )
 
@@ -1487,6 +2517,98 @@ def _probe_gpu() -> ServiceHealthItem:
         response_time_ms=elapsed_ms,
         details={"gpus": gpus},
     )
+
+
+def _probe_host() -> ServiceHealthItem:
+    """Return CPU, memory, disk, and top-process metrics using psutil."""
+    try:
+        import psutil
+
+        start = time.monotonic()
+
+        load_1m, load_5m, load_15m = os.getloadavg()
+        core_count = psutil.cpu_count(logical=False) or 1
+        logical_count = psutil.cpu_count(logical=True) or 1
+        normalized_load = round((load_1m / logical_count) * 100, 1)
+
+        mem = psutil.virtual_memory()
+        swap = psutil.swap_memory()
+
+        disk_data: list[dict[str, Any]] = []
+        for part in psutil.disk_partitions(all=False):
+            try:
+                usage = psutil.disk_usage(part.mountpoint)
+                disk_data.append(
+                    {
+                        "mount": part.mountpoint,
+                        "total_gib": round(usage.total / 1024**3, 2),
+                        "used_gib": round(usage.used / 1024**3, 2),
+                        "used_percent": round(usage.percent, 1),
+                    }
+                )
+            except (PermissionError, OSError):
+                continue
+
+        top_procs: list[dict[str, Any]] = []
+        try:
+            procs = []
+            for proc in psutil.process_iter(["pid", "name", "cmdline", "cpu_percent", "memory_percent", "memory_info"]):
+                try:
+                    info = proc.info
+                    procs.append(info)
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+            procs.sort(key=lambda p: float(p.get("cpu_percent") or 0), reverse=True)
+            for info in procs[:10]:
+                rss_mib = None
+                mem_info = info.get("memory_info")
+                if mem_info is not None:
+                    rss_mib = round(mem_info.rss / 1024**2, 1)
+                cmdline = info.get("cmdline") or []
+                top_procs.append(
+                    {
+                        "pid": info.get("pid"),
+                        "command_name": info.get("name") or "unknown",
+                        "command": " ".join(str(c) for c in cmdline[:8]) if cmdline else (info.get("name") or ""),
+                        "cpu_percent": round(float(info.get("cpu_percent") or 0), 1),
+                        "mem_percent": round(float(info.get("memory_percent") or 0), 2),
+                        "rss_mib": rss_mib,
+                    }
+                )
+        except Exception:
+            pass
+
+        elapsed_ms = round((time.monotonic() - start) * 1000, 1)
+        return ServiceHealthItem(
+            name="host",
+            status="healthy",
+            response_time_ms=elapsed_ms,
+            details={
+                "cpu": {
+                    "core_count": core_count,
+                    "logical_count": logical_count,
+                    "load_1m": round(load_1m, 2),
+                    "load_5m": round(load_5m, 2),
+                    "load_15m": round(load_15m, 2),
+                    "normalized_load_percent": normalized_load,
+                },
+                "memory": {
+                    "total_gib": round(mem.total / 1024**3, 2),
+                    "used_gib": round(mem.used / 1024**3, 2),
+                    "available_gib": round(mem.available / 1024**3, 2),
+                    "used_percent": round(mem.percent, 1),
+                    "swap_total_gib": round(swap.total / 1024**3, 2),
+                    "swap_used_gib": round(swap.used / 1024**3, 2),
+                    "swap_used_percent": round(swap.percent, 1),
+                },
+                "disks": disk_data,
+                "top_processes": top_procs,
+            },
+        )
+    except ImportError:
+        return ServiceHealthItem(name="host", status="unknown", error="psutil not available")
+    except Exception as exc:
+        return ServiceHealthItem(name="host", status="degraded", error=str(exc))
 
 
 # ---------------------------------------------------------------------------
@@ -1593,8 +2715,9 @@ def cockpit_health() -> AggregatedHealthResponse:
     )
 
     services.append(_probe_gpu())
+    services.append(_probe_host())
 
-    # 7. CockpitService initialization
+    # 8. CockpitService initialization
     cs_ok = False
     cs_latency: float = 0.0
     cs_err: str | None = None
@@ -1625,6 +2748,36 @@ def cockpit_health() -> AggregatedHealthResponse:
         overall = "healthy"
 
     return AggregatedHealthResponse(status=overall, services=services)
+
+
+# ---------------------------------------------------------------------------
+# GET /api/cockpit/metrics/gpu   — fast GPU-only poll (no HTTP probes)
+# GET /api/cockpit/metrics/host  — fast host-only poll (no HTTP probes)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/metrics/gpu")
+def cockpit_metrics_gpu() -> dict[str, Any]:
+    """Fast GPU-only metrics endpoint for the dialog live-poll loop."""
+    item = _probe_gpu()
+    return {
+        "status": item.status,
+        "error": item.error,
+        "response_time_ms": item.response_time_ms,
+        "details": item.details or {},
+    }
+
+
+@router.get("/metrics/host")
+def cockpit_metrics_host() -> dict[str, Any]:
+    """Fast host-only metrics endpoint for the dialog live-poll loop."""
+    item = _probe_host()
+    return {
+        "status": item.status,
+        "error": item.error,
+        "response_time_ms": item.response_time_ms,
+        "details": item.details or {},
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -2309,6 +3462,179 @@ def cockpit_docs():
         db.close()
 
 
+def _extract_latest_price_from_payload(payload: dict[str, Any]) -> tuple[float | None, str | None]:
+    current = payload.get("current") if isinstance(payload.get("current"), dict) else {}
+    raw_price = current.get("price")
+    market_time = current.get("market_time")
+    try:
+        if raw_price is not None:
+            price = float(raw_price)
+            if price > 0:
+                return price, str(market_time or "") or None
+    except (TypeError, ValueError):
+        pass
+
+    history = payload.get("history")
+    if isinstance(history, list):
+        for point in reversed(history):
+            if not isinstance(point, dict):
+                continue
+            raw_close = point.get("close")
+            try:
+                if raw_close is None:
+                    continue
+                close_price = float(raw_close)
+            except (TypeError, ValueError):
+                continue
+            if close_price > 0:
+                ts = point.get("timestamp")
+                return close_price, str(ts or "") or None
+    return None, None
+
+
+def _fetch_live_price_snapshot_for_holding(
+    ticker: str,
+    market_exchange: str | None,
+) -> dict[str, Any] | None:
+    symbol = str(ticker or "").strip().upper()
+    if not symbol:
+        return None
+    exchange_hint = _normalize_market_exchange(market_exchange)
+    cache_key = (symbol, exchange_hint)
+    now = time.monotonic()
+    with _HOLDINGS_PRICE_CACHE_LOCK:
+        cached = _HOLDINGS_PRICE_CACHE.get(cache_key)
+        if cached and now - cached[0] <= _HOLDINGS_PRICE_CACHE_TTL_SECONDS:
+            return cached[1]
+
+    provider = MarketPriceProvider(
+        base_url=getattr(
+            settings, "market_data_base_url", "https://query1.finance.yahoo.com"
+        ),
+        timeout=getattr(settings, "market_data_timeout_seconds", 20.0),
+    )
+    candidates: list[str] = []
+    if exchange_hint:
+        candidates.append(exchange_hint)
+    for item in _HOLDINGS_PRICE_EXCHANGE_FALLBACKS:
+        if item not in candidates:
+            candidates.append(item)
+
+    snapshot: dict[str, Any] | None = None
+    for exchange in candidates:
+        try:
+            payload = provider.fetch(
+                ticker=symbol,
+                exchange=exchange,
+                range_="5d",
+                interval="1d",
+            )
+        except (ValueError, MarketPriceProviderError):
+            continue
+        price, price_as_of = _extract_latest_price_from_payload(payload)
+        if price is None:
+            continue
+        snapshot = {
+            "current_price": price,
+            "price_currency": payload.get("currency"),
+            "price_as_of": price_as_of,
+            "market_exchange": exchange_hint or payload.get("exchange") or exchange,
+        }
+        break
+
+    with _HOLDINGS_PRICE_CACHE_LOCK:
+        _HOLDINGS_PRICE_CACHE[cache_key] = (now, snapshot)
+    return snapshot
+
+
+def _enrich_holdings_with_live_prices(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    keys: list[tuple[str, str | None]] = []
+    seen: set[tuple[str, str | None]] = set()
+    for row in rows:
+        ticker = str(row.get("ticker") or "").strip().upper()
+        if not ticker:
+            continue
+        key = (ticker, _normalize_market_exchange(row.get("market_exchange")))
+        if key in seen:
+            continue
+        seen.add(key)
+        keys.append(key)
+
+    live_by_key: dict[tuple[str, str | None], dict[str, Any] | None] = {}
+    if keys:
+        with ThreadPoolExecutor(max_workers=max(1, min(8, len(keys)))) as pool:
+            future_map = {
+                pool.submit(_fetch_live_price_snapshot_for_holding, ticker, exchange): (ticker, exchange)
+                for ticker, exchange in keys
+            }
+            for future in as_completed(future_map):
+                key = future_map[future]
+                try:
+                    live_by_key[key] = future.result()
+                except Exception as exc:
+                    logger.debug("Live price enrichment failed for %s: %s", key[0], exc)
+                    live_by_key[key] = None
+
+    enriched: list[dict[str, Any]] = []
+    for row in rows:
+        item = dict(row)
+        ticker = str(item.get("ticker") or "").strip().upper()
+        exchange = _normalize_market_exchange(item.get("market_exchange"))
+        live = live_by_key.get((ticker, exchange))
+        if live:
+            item["market_exchange"] = live.get("market_exchange") or exchange
+            item["current_price"] = live.get("current_price")
+            item["price_currency"] = live.get("price_currency")
+            item["price_as_of"] = live.get("price_as_of")
+        else:
+            item["market_exchange"] = exchange
+            item["current_price"] = None
+            item["price_currency"] = None
+            item["price_as_of"] = None
+
+        quantity = item.get("quantity")
+        current_price = item.get("current_price")
+        avg_cost = item.get("avg_cost")
+        cost_currency = str(item.get("cost_currency") or "").strip().upper() or None
+        price_currency = str(item.get("price_currency") or "").strip().upper() or None
+        try:
+            qty_val = float(quantity) if quantity is not None else None
+        except (TypeError, ValueError):
+            qty_val = None
+        try:
+            price_val = float(current_price) if current_price is not None else None
+        except (TypeError, ValueError):
+            price_val = None
+        try:
+            avg_cost_val = float(avg_cost) if avg_cost is not None else None
+        except (TypeError, ValueError):
+            avg_cost_val = None
+
+        item["market_value"] = (
+            qty_val * price_val if qty_val is not None and price_val is not None else None
+        )
+        valuation_warning: str | None = None
+        if qty_val is not None and price_val is not None and avg_cost_val is not None:
+            if not cost_currency or not price_currency:
+                item["unrealized_pnl"] = None
+                valuation_warning = (
+                    "Unrealized P&L unavailable until both cost currency and live price currency are known."
+                )
+            elif cost_currency != price_currency:
+                item["unrealized_pnl"] = None
+                valuation_warning = (
+                    f"Unrealized P&L unavailable due to currency mismatch "
+                    f"({cost_currency} cost vs {price_currency} price)."
+                )
+            else:
+                item["unrealized_pnl"] = (price_val - avg_cost_val) * qty_val
+        else:
+            item["unrealized_pnl"] = None
+        item["valuation_warning"] = valuation_warning
+        enriched.append(item)
+    return enriched
+
+
 @router.get("/holdings", response_model=CockpitHoldingListResponse)
 def cockpit_list_holdings(
     ticker: str | None = None,
@@ -2320,8 +3646,9 @@ def cockpit_list_holdings(
             ticker=ticker,
             include_archived=include_archived,
         )
+        enriched_rows = _enrich_holdings_with_live_prices([dict(row) for row in rows])
         return CockpitHoldingListResponse(
-            items=[CockpitHoldingRecord(**dict(row)) for row in rows]
+            items=[CockpitHoldingRecord(**row) for row in enriched_rows]
         )
     except Exception as exc:
         logger.exception("Failed to list cockpit holdings")
@@ -2333,6 +3660,7 @@ def cockpit_add_holding(payload: CockpitHoldingCreateRequest) -> CockpitHoldingR
     ticker = str(payload.ticker or "").strip().upper()
     if not ticker:
         raise HTTPException(status_code=400, detail="ticker is required")
+    market_exchange = _normalize_market_exchange(payload.market_exchange)
 
     try:
         service = CockpitService.get_instance()
@@ -2340,6 +3668,7 @@ def cockpit_add_holding(payload: CockpitHoldingCreateRequest) -> CockpitHoldingR
         holding_id = state_store.add_holding(
             ticker=ticker,
             account_label=payload.account_label,
+            market_exchange=market_exchange,
             thesis_bucket=payload.thesis_bucket,
             quantity=payload.quantity,
             avg_cost=payload.avg_cost,
@@ -2371,6 +3700,8 @@ def cockpit_update_holding(
         if not ticker_value:
             raise HTTPException(status_code=400, detail="ticker cannot be blank")
         fields["ticker"] = ticker_value
+    if "market_exchange" in fields:
+        fields["market_exchange"] = _normalize_market_exchange(fields.get("market_exchange"))
 
     try:
         service = CockpitService.get_instance()
@@ -2402,6 +3733,140 @@ def cockpit_remove_holding(holding_id: str) -> CockpitHoldingMutationResponse:
     if not removed:
         raise HTTPException(status_code=404, detail=f"Holding not found: {holding_id}")
     return CockpitHoldingMutationResponse(ok=True, holding_id=holding_id)
+
+
+@router.post(
+    "/chat/attachments/upload",
+    response_model=CockpitChatAttachmentUploadResponse,
+)
+def cockpit_upload_chat_attachment(
+    payload: CockpitChatAttachmentUploadRequest,
+) -> CockpitChatAttachmentUploadResponse:
+    filename = Path(str(payload.filename or "").strip()).name
+    if not filename:
+        raise HTTPException(status_code=400, detail="filename is required")
+    if not str(payload.content_base64 or "").strip():
+        raise HTTPException(status_code=400, detail="content_base64 is required")
+
+    try:
+        content_bytes = base64.b64decode(payload.content_base64, validate=True)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="invalid base64 content") from exc
+
+    content_type = str(payload.mime_type or "").strip().lower()
+    suffix = Path(filename).suffix.lower()
+    is_csv = suffix == ".csv" or "csv" in content_type
+    is_xlsx = (
+        suffix in {".xlsx", ".xlsm"}
+        or "spreadsheetml" in content_type
+        or "application/vnd.ms-excel" in content_type
+    )
+    is_pdf = suffix == ".pdf" or "pdf" in content_type or content_bytes.startswith(b"%PDF")
+
+    try:
+        service = CockpitService.get_instance()
+    except Exception as exc:
+        logger.exception("Failed to initialize CockpitService")
+        raise HTTPException(
+            status_code=500, detail=f"Service initialization failed: {str(exc)}"
+        ) from exc
+
+    if (is_csv or is_xlsx) and not is_pdf:
+        try:
+            if is_xlsx:
+                rows, headers_by_key = _parse_xlsx_rows(content_bytes)
+            else:
+                text = content_bytes.decode("utf-8-sig", errors="replace")
+                rows, headers_by_key = _parse_csv_rows(text)
+            requested_profile = payload.csv_profile
+            resolved_profile: Literal["holdings", "trades"]
+            if requested_profile == "auto":
+                resolved_profile = _detect_csv_profile(headers_by_key)
+            else:
+                resolved_profile = requested_profile
+
+            if resolved_profile == "trades":
+                records, parse_errors = _extract_trade_holdings_rows_from_csv(
+                    rows, headers_by_key, strict=payload.csv_strict
+                )
+            else:
+                records, parse_errors = _extract_holdings_rows_from_csv(
+                    rows, headers_by_key, strict=payload.csv_strict
+                )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+        if payload.csv_strict and parse_errors:
+            joined = "; ".join(parse_errors[:5])
+            raise HTTPException(status_code=400, detail=f"CSV validation failed: {joined}")
+
+        imported_count = 0
+        import_errors: list[str] = []
+        for index, row in enumerate(records, start=1):
+            try:
+                service.state_store.add_holding(**row)
+                imported_count += 1
+            except Exception as exc:
+                import_errors.append(f"row {index}: {exc}")
+                if len(import_errors) >= 25:
+                    break
+
+        if payload.csv_strict and import_errors:
+            joined = "; ".join(import_errors[:5])
+            raise HTTPException(status_code=400, detail=f"CSV import failed: {joined}")
+
+        all_errors = [*parse_errors, *import_errors]
+        skipped_count = max(0, len(records) - imported_count) + len(parse_errors)
+        return CockpitChatAttachmentUploadResponse(
+            file_kind="holdings_csv",
+            message=(
+                f"Imported {imported_count} holding"
+                f"{'' if imported_count == 1 else 's'} from {filename}."
+            ),
+            imported_count=imported_count,
+            skipped_count=skipped_count,
+            errors=all_errors[:25],
+        )
+
+    if is_pdf:
+        try:
+            extracted_text = _extract_pdf_text(content_bytes)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+        published_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+        try:
+            source_id, chunks_staged = _stage_uploaded_pdf_chunks(
+                filename=filename,
+                extracted_text=extracted_text,
+                published_at=published_at,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=f"PDF staging failed: {exc}") from exc
+        except OSError as exc:
+            raise HTTPException(status_code=500, detail=f"PDF staging failed: {exc}") from exc
+
+        source_kind: Literal["ephemeral", "concat", "primary"] = (
+            "ephemeral" if chunks_staged >= 24 else "concat"
+        )
+        key_points = _derive_key_points_from_text(extracted_text, limit=5)
+        return CockpitChatAttachmentUploadResponse(
+            file_kind="strategy_pdf",
+            message=f"Attached {filename} for chat context.",
+            source_id=source_id,
+            source_kind=source_kind,
+            chunks_staged=chunks_staged,
+            key_points=key_points,
+        )
+
+    raise HTTPException(
+        status_code=400,
+        detail="unsupported file type: upload CSV/XLSX (holdings/trades) or PDF",
+    )
 
 
 @router.get("/pulse", response_model=IntelPulseResponse)
@@ -2519,6 +3984,7 @@ class CockpitActionJobStatusResponse(BaseModel):
     ok: bool = True
     job_id: str
     action_id: str
+    mission_id: str | None = None
     status: str
     started_at: str | None = None
     ended_at: str | None = None
@@ -2534,12 +4000,22 @@ class MarketplaceMissionRecord(BaseModel):
     mission_id: str
     name: str
     status: str
+    mission_type: str = "find_good_deals"
     brief: str
+    user_goal: str | None = None
     category_hint: str | None = None
     hard_filters: dict[str, Any] = Field(default_factory=dict)
     soft_preferences: dict[str, Any] = Field(default_factory=dict)
     search_config: dict[str, Any] = Field(default_factory=dict)
     scan_config: dict[str, Any] = Field(default_factory=dict)
+    benchmark_sources: list[str] = Field(default_factory=lambda: ["centre_com"])
+    requirement_profile: dict[str, Any] | None = None
+    candidate_products: list[dict[str, Any]] = Field(default_factory=list)
+    primary_tracked_product: dict[str, Any] | None = None
+    benchmark_state: dict[str, Any] | None = None
+    deployment_args: dict[str, Any] = Field(default_factory=dict)
+    last_error: str | None = None
+    created_from_chat_message_id: str | None = None
     created_at: str
     updated_at: str
     last_scan_at: str | None = None
@@ -2549,15 +4025,40 @@ class MarketplaceMissionListResponse(BaseModel):
     items: list[MarketplaceMissionRecord] = Field(default_factory=list)
 
 
+class MarketplaceMissionDeleteResponse(BaseModel):
+    ok: bool = True
+    mission_id: str
+    status: str = "deleted"
+    deleted_missions: int = 0
+    deleted_seen_listings: int = 0
+    deleted_matches: int = 0
+    deleted_alerts: int = 0
+    deleted_listing_product_matches: int = 0
+    deleted_listing_benchmark_scores: int = 0
+    deleted_mission_product_links: int = 0
+    deleted_mission_candidate_products: int = 0
+    deleted_match_value_assessments: int = 0
+
+
 class MarketplaceMissionUpsertRequest(BaseModel):
     name: str | None = None
     status: str | None = None
+    mission_type: str | None = None
     brief: str | None = None
+    user_goal: str | None = None
     category_hint: str | None = None
     hard_filters: dict[str, Any] = Field(default_factory=dict)
     soft_preferences: dict[str, Any] = Field(default_factory=dict)
     search_config: dict[str, Any] = Field(default_factory=dict)
     scan_config: dict[str, Any] = Field(default_factory=dict)
+    benchmark_sources: list[str] = Field(default_factory=list)
+    deployment_args: dict[str, Any] = Field(default_factory=dict)
+    last_error: str | None = None
+    created_from_chat_message_id: str | None = None
+
+
+class MarketplaceMissionProductLinkRequest(BaseModel):
+    tracked_product_id: str
 
 
 class MarketplaceBrowserHealthResponse(BaseModel):
@@ -2565,7 +4066,6 @@ class MarketplaceBrowserHealthResponse(BaseModel):
     cdp_url: str
     browser_family: str
     profile_path: str
-    logged_in: bool
     challenge_detected: bool
     last_checked_at: str
     detail: str | None = None
@@ -2599,8 +4099,11 @@ class MarketplaceMatchRecord(BaseModel):
     confidence: float | None = None
     raw_text_snapshot: str
     screenshot_path: str | None = None
+    listing_media: list[str] = Field(default_factory=list)
     status: str
     metadata: dict[str, Any] = Field(default_factory=dict)
+    benchmark: dict[str, Any] | None = None
+    value_context: dict[str, Any] | None = None
     updated_at: str
 
 
@@ -2610,6 +4113,11 @@ class MarketplaceMatchListResponse(BaseModel):
 
 class MarketplaceMatchStatusRequest(BaseModel):
     status: str
+
+
+class MarketplaceBenchmarkReviewRequest(BaseModel):
+    review_status: str
+    note: str | None = None
 
 
 class MarketplaceAlertRecord(BaseModel):
@@ -2660,7 +4168,16 @@ class CockpitFeedbackFlagResponse(BaseModel):
     analysis_path: str | None = None
     read_api_path: str
     codex_prompt: str
+    codex_prompt_path: str | None = None
+    investigation_path: str | None = None
+    investigation_status: (
+        Literal["queued", "running", "completed", "failed", "not_requested"] | None
+    ) = None
+    codex_cli_command: str | None = None
     analysis_summary: str | None = None
+    resolution_status: Literal["open", "resolved"] = "open"
+    resolved_at: str | None = None
+    resolution_commit_sha: str | None = None
 
 
 class CockpitFlaggedReportListItem(BaseModel):
@@ -2673,6 +4190,9 @@ class CockpitFlaggedReportListItem(BaseModel):
     note: str | None = None
     flagged_response_excerpt: str | None = None
     read_api_path: str
+    resolution_status: Literal["open", "resolved"] = "open"
+    resolved_at: str | None = None
+    resolution_commit_sha: str | None = None
 
 
 class CockpitFlaggedReportListResponse(BaseModel):
@@ -2691,6 +4211,30 @@ class CockpitFlaggedReportResponse(BaseModel):
     bundle: dict[str, Any] = Field(default_factory=dict)
     summary_markdown: str = ""
     analysis: dict[str, Any] | None = None
+    investigation: dict[str, Any] | None = None
+    codex_prompt_path: str | None = None
+    investigation_path: str | None = None
+    resolution_status: Literal["open", "resolved"] = "open"
+    resolved_at: str | None = None
+    resolution_commit_sha: str | None = None
+    resolved_by: str | None = None
+
+
+class CockpitFlagResolutionRequest(BaseModel):
+    commit_sha: str
+    resolved_by: str | None = None
+    note: str | None = None
+
+
+class CockpitFlagResolutionResponse(BaseModel):
+    ok: bool = True
+    report_id: str
+    resolution_status: Literal["open", "resolved"] = "resolved"
+    resolved_at: str | None = None
+    resolution_commit_sha: str | None = None
+    resolved_by: str | None = None
+    summary_path: str
+    read_api_path: str
 
 
 def _coerce_float(raw: Any) -> float | None:
@@ -2865,6 +4409,11 @@ def _serialize_action_job_status(
         "ok": True,
         "job_id": str(job.get("job_id") or job_id),
         "action_id": str(job.get("action_id") or ""),
+        "mission_id": (
+            str((job.get("args") or {}).get("mission_id") or "").strip() or None
+            if isinstance(job.get("args"), dict)
+            else None
+        ),
         "status": status,
         "started_at": job.get("started_at"),
         "ended_at": job.get("ended_at"),
@@ -2882,6 +4431,250 @@ def _marketplace_mission_service(service: CockpitService) -> MarketplaceMissionS
     return MarketplaceMissionService(service.state_store)
 
 
+def _marketplace_benchmark_service(service: CockpitService) -> MarketplaceBenchmarkService:
+    return MarketplaceBenchmarkService(service.state_store)
+
+
+def _marketplace_price_intelligence_service(
+    service: CockpitService,
+) -> MarketplacePriceIntelligenceService:
+    return MarketplacePriceIntelligenceService(service.state_store)
+
+
+def _marketplace_requirement_profile(mission: dict[str, Any]) -> dict[str, Any] | None:
+    return marketplace_requirement_profile(mission)
+
+
+def _marketplace_candidate_contexts(
+    mission_service: MarketplaceMissionService,
+    price_service: MarketplacePriceIntelligenceService,
+    mission_id: str,
+) -> list[dict[str, Any]]:
+    return marketplace_candidate_contexts(mission_service, price_service, mission_id)
+
+
+def _marketplace_candidate_products_payload(
+    mission_service: MarketplaceMissionService,
+    price_service: MarketplacePriceIntelligenceService,
+    mission_id: str,
+) -> list[dict[str, Any]]:
+    return marketplace_candidate_products_payload(
+        mission_service,
+        price_service,
+        mission_id,
+    )
+
+
+def _prepare_marketplace_requirement_candidates(
+    mission_service: MarketplaceMissionService,
+    price_service: MarketplacePriceIntelligenceService,
+    mission: dict[str, Any],
+) -> dict[str, Any]:
+    return prepare_requirement_driven_mission(mission_service, price_service, mission)
+
+
+def _candidate_unmatched_value_context(
+    *,
+    profile: dict[str, Any] | None,
+    resolution: dict[str, Any],
+) -> dict[str, Any]:
+    warnings = [
+        "Requirement-driven value scoring only uses a matched candidate benchmark.",
+    ]
+    if resolution.get("warning"):
+        warnings.append(str(resolution["warning"]))
+    return {
+        "state": "candidate_unmatched",
+        "value_score": None,
+        "value_label": "unclear",
+        "value_confidence": "low",
+        "benchmark_snapshot_id": None,
+        "fair_low": None,
+        "fair_high": None,
+        "used_median": None,
+        "retail_anchor_price": None,
+        "price_movement_summary": None,
+        "explanation": (
+            "Listing did not resolve to a single requirement candidate, so no "
+            "single-product benchmark was applied."
+        ),
+        "warnings": warnings,
+        "notes": [],
+        "mission_mode": "requirement_driven",
+        "value_source": "none",
+        "requirement_category": profile.get("category") if isinstance(profile, dict) else None,
+        "candidate_match_confidence": resolution.get("candidate_match_confidence"),
+    }
+
+
+def _enrich_marketplace_mission_with_price_context(
+    mission_service: MarketplaceMissionService,
+    price_service: MarketplacePriceIntelligenceService,
+    mission: dict[str, Any],
+) -> dict[str, Any]:
+    mission_id = str(mission.get("mission_id") or "")
+    requirement_profile = _marketplace_requirement_profile(mission)
+    candidate_products = _marketplace_candidate_products_payload(
+        mission_service,
+        price_service,
+        mission_id,
+    )
+    link = mission_service.get_primary_tracked_product_link(str(mission.get("mission_id") or ""))
+    if link is None:
+        return {
+            **mission,
+            "requirement_profile": requirement_profile,
+            "candidate_products": candidate_products,
+            "primary_tracked_product": None,
+            "benchmark_state": None,
+        }
+    product = price_service.get_tracked_product(str(link.get("tracked_product_id") or ""))
+    if product is None:
+        return {
+            **mission,
+            "requirement_profile": requirement_profile,
+            "candidate_products": candidate_products,
+            "primary_tracked_product": {
+                **link,
+                "tracked_product": None,
+                "warning": "Linked tracked product was not found.",
+            },
+            "benchmark_state": None,
+        }
+    snapshot = price_service.latest_benchmark_snapshot(product["tracked_product_id"])
+    return {
+        **mission,
+        "requirement_profile": requirement_profile,
+        "candidate_products": candidate_products,
+        "primary_tracked_product": {
+            **link,
+            "tracked_product": product,
+        },
+        "benchmark_state": price_service.build_benchmark_state(product, snapshot),
+    }
+
+
+def _enrich_marketplace_match_with_value_context(
+    mission_service: MarketplaceMissionService,
+    price_service: MarketplacePriceIntelligenceService,
+    match: dict[str, Any],
+) -> dict[str, Any]:
+    mission_id = str(match.get("mission_id") or "")
+    mission = mission_service.get_mission(mission_id) if mission_id else None
+    profile = _marketplace_requirement_profile(mission or {})
+    if isinstance(profile, dict) and profile.get("mode") == "requirement_driven":
+        contexts = _marketplace_candidate_contexts(mission_service, price_service, mission_id)
+        if not contexts and mission is not None:
+            mission = _prepare_marketplace_requirement_candidates(
+                mission_service,
+                price_service,
+                mission,
+            )
+            contexts = _marketplace_candidate_contexts(mission_service, price_service, mission_id)
+        resolution = price_service.resolve_match_candidate(match, contexts)
+        if not resolution.get("matched"):
+            return {
+                **match,
+                "value_context": _candidate_unmatched_value_context(
+                    profile=profile,
+                    resolution=resolution,
+                ),
+            }
+        product = resolution.get("tracked_product")
+        candidate = resolution.get("candidate") if isinstance(resolution.get("candidate"), dict) else {}
+        snapshot = resolution.get("benchmark_snapshot")
+        if not isinstance(product, dict):
+            return {
+                **match,
+                "value_context": _candidate_unmatched_value_context(
+                    profile=profile,
+                    resolution={
+                        **resolution,
+                        "warning": "Matched candidate tracked product was not found.",
+                    },
+                ),
+            }
+        try:
+            value_context = price_service.upsert_match_value_assessment(
+                match=match,
+                tracked_product=product,
+                snapshot=snapshot if isinstance(snapshot, dict) else None,
+                context={
+                    "mission_mode": "requirement_driven",
+                    "value_source": "matched_candidate_benchmark",
+                    "matched_candidate_tracked_product_id": product.get("tracked_product_id"),
+                    "matched_candidate_name": product.get("canonical_key"),
+                    "candidate_match_confidence": resolution.get("candidate_match_confidence"),
+                    "requirement_fit_score": candidate.get("fit_score"),
+                    "requirement_fit_label": candidate.get("fit_label"),
+                    "requirement_explanation": candidate.get("explanation"),
+                },
+            )
+        except Exception:
+            logger.exception(
+                "Marketplace requirement-driven value assessment failed for %s",
+                match.get("match_id"),
+            )
+            value_context = {
+                **_candidate_unmatched_value_context(profile=profile, resolution=resolution),
+                "explanation": "Value assessment failed for the matched requirement candidate.",
+                "warnings": ["Backend could not compute value context for the matched candidate."],
+            }
+        return {**match, "value_context": value_context}
+
+    link = mission_service.get_primary_tracked_product_link(str(match.get("mission_id") or ""))
+    if link is None:
+        return {**match, "value_context": None}
+    product = price_service.get_tracked_product(str(link.get("tracked_product_id") or ""))
+    if product is None:
+        return {
+            **match,
+            "value_context": {
+                "state": "value_unavailable",
+                "value_score": None,
+                "value_label": "unclear",
+                "value_confidence": "low",
+                "benchmark_snapshot_id": None,
+                "fair_low": None,
+                "fair_high": None,
+                "used_median": None,
+                "retail_anchor_price": None,
+                "price_movement_summary": None,
+                "explanation": "Linked tracked product was not found.",
+                "warnings": ["Relink the mission to an existing tracked product."],
+                "notes": [],
+            },
+        }
+    snapshot = price_service.latest_benchmark_snapshot(product["tracked_product_id"])
+    try:
+        value_context = price_service.upsert_match_value_assessment(
+            match=match,
+            tracked_product=product,
+            snapshot=snapshot,
+        )
+    except Exception:
+        logger.exception(
+            "Marketplace value assessment failed for %s",
+            match.get("match_id"),
+        )
+        value_context = {
+            "state": "value_unavailable",
+            "value_score": None,
+            "value_label": "unclear",
+            "value_confidence": "low",
+            "benchmark_snapshot_id": snapshot.get("snapshot_id") if snapshot else None,
+            "fair_low": None,
+            "fair_high": None,
+            "used_median": None,
+            "retail_anchor_price": None,
+            "price_movement_summary": None,
+            "explanation": "Value assessment failed.",
+            "warnings": ["Backend could not compute value context for this match."],
+            "notes": [],
+        }
+    return {**match, "value_context": value_context}
+
+
 def _list_marketplace_scan_jobs(
     service: CockpitService, *, limit: int = 50
 ) -> list[dict[str, Any]]:
@@ -2895,6 +4688,11 @@ def _list_marketplace_scan_jobs(
                 "ok": True,
                 "job_id": str(row.get("job_id") or ""),
                 "action_id": "marketplace_scan",
+                "mission_id": (
+                    str((row.get("args") or {}).get("mission_id") or "").strip() or None
+                    if isinstance(row.get("args"), dict)
+                    else None
+                ),
                 "status": str(row.get("status") or "unknown"),
                 "started_at": row.get("started_at"),
                 "ended_at": row.get("ended_at"),
@@ -2919,6 +4717,20 @@ def _write_marketplace_job_line(handle: IO[str], message: str) -> None:
 def _marketplace_scan_in_progress(service: CockpitService) -> bool:
     for job in _list_marketplace_scan_jobs(service, limit=50):
         if str(job.get("status") or "") in {"queued", "running"}:
+            job_id = str(job.get("job_id") or "")
+            if job_id and _get_queued_action_job(job_id) is None:
+                # Orphaned from a previous server session — no live runtime exists.
+                logger.warning(
+                    "Auto-cancelling orphaned marketplace scan job %s (no live runtime after restart)",
+                    job_id,
+                )
+                service.state_store.update_job_status(
+                    job_id,
+                    status="cancelled",
+                    exit_code=-1,
+                    ended_at=datetime.now(timezone.utc).isoformat(),
+                )
+                continue
             return True
     return False
 
@@ -3128,7 +4940,7 @@ def _run_marketplace_scheduler_tick(service: CockpitService) -> list[dict[str, A
         return []
 
     health = check_marketplace_browser_health()
-    if str(health.get("status") or "") != "ready":
+    if not marketplace_scan_health_allows_execution(health):
         return []
 
     launched: list[dict[str, Any]] = []
@@ -3158,11 +4970,30 @@ def _marketplace_scheduler_loop(service: CockpitService) -> None:
         time.sleep(_MARKETPLACE_SCHEDULER_INTERVAL_SECONDS)
 
 
+def _cancel_orphaned_marketplace_scan_jobs(service: CockpitService) -> None:
+    """Cancel any marketplace_scan jobs left in running/queued state from a previous session."""
+    for job in _list_marketplace_scan_jobs(service, limit=100):
+        if str(job.get("status") or "") in {"queued", "running"}:
+            job_id = str(job.get("job_id") or "")
+            if not job_id:
+                continue
+            logger.warning(
+                "Startup cleanup: cancelling orphaned marketplace scan job %s", job_id
+            )
+            service.state_store.update_job_status(
+                job_id,
+                status="cancelled",
+                exit_code=-1,
+                ended_at=datetime.now(timezone.utc).isoformat(),
+            )
+
+
 def _ensure_marketplace_scan_scheduler(service: CockpitService) -> None:
     global _MARKETPLACE_SCHEDULER_STARTED
     with _MARKETPLACE_SCHEDULER_LOCK:
         if _MARKETPLACE_SCHEDULER_STARTED:
             return
+        _cancel_orphaned_marketplace_scan_jobs(service)
         worker = threading.Thread(
             target=_marketplace_scheduler_loop,
             kwargs={"service": service},
@@ -3516,6 +5347,11 @@ def _build_candlestick_chart_response(
             "generated_at": datetime.now(timezone.utc).isoformat(),
         }
     )
+    if not isinstance(html, str) or not html.strip():
+        raise HTTPException(
+            status_code=502,
+            detail=f"Candlestick chart render failed for {ticker}: empty chart payload",
+        )
     ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
     service.artifact_store.write_text(
         f"reports/cockpit/{ticker}_{ts}_candlestick_dashboard.html",
@@ -3585,6 +5421,229 @@ def _build_filestats_chart_from_chat_response(
         }
 
     return None
+
+
+def _build_holdings_chart_from_chat_response(
+    response: Any,
+) -> dict[str, str] | None:
+    evidence = getattr(response, "evidence", None)
+    if not isinstance(evidence, list):
+        return None
+
+    for item in evidence:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("type") or "") != "holdings":
+            continue
+        details = item.get("details")
+        if not isinstance(details, list):
+            continue
+
+        positions: list[dict[str, Any]] = []
+        for row in details:
+            if not isinstance(row, dict):
+                continue
+            ticker = str(row.get("ticker") or "").strip().upper()
+            if not ticker:
+                continue
+
+            market_value = _coerce_float(row.get("market_value"))
+            price_currency = str(row.get("price_currency") or "").strip().upper() or None
+            if market_value is not None and market_value > 0 and price_currency:
+                positions.append(
+                    {
+                        "label": ticker,
+                        "value": market_value,
+                        "currency": price_currency,
+                    }
+                )
+                continue
+
+            quantity = _coerce_float(row.get("quantity"))
+            avg_cost = _coerce_float(row.get("avg_cost"))
+            cost_currency = str(row.get("cost_currency") or "").strip().upper() or None
+            if (
+                quantity is not None
+                and avg_cost is not None
+                and quantity > 0
+                and avg_cost > 0
+                and cost_currency
+            ):
+                positions.append(
+                    {
+                        "label": ticker,
+                        "value": quantity * avg_cost,
+                        "currency": cost_currency,
+                    }
+                )
+
+        if not positions:
+            return None
+
+        totals_by_currency: dict[str, float] = {}
+        for pos in positions:
+            ccy = str(pos.get("currency") or "").strip().upper()
+            totals_by_currency[ccy] = totals_by_currency.get(ccy, 0.0) + float(
+                pos["value"]
+            )
+        if not totals_by_currency:
+            return None
+
+        dominant_currency = max(totals_by_currency.items(), key=lambda item: item[1])[0]
+        total_value = totals_by_currency.get(dominant_currency, 0.0)
+        if total_value <= 0:
+            return None
+
+        dominant_positions = [
+            pos for pos in positions if pos.get("currency") == dominant_currency
+        ]
+        dominant_positions.sort(key=lambda pos: float(pos.get("value") or 0.0), reverse=True)
+        top_positions = dominant_positions[:12]
+        displayed_total = sum(float(pos.get("value") or 0.0) for pos in top_positions)
+        other_value = max(total_value - displayed_total, 0.0)
+
+        rows_html: list[str] = []
+        for pos in top_positions:
+            value = float(pos.get("value") or 0.0)
+            if value <= 0:
+                continue
+            pct = (value / total_value) * 100 if total_value > 0 else 0.0
+            rows_html.append(
+                "<div class='row'>"
+                f"<div class='label'>{html.escape(str(pos.get('label') or '?'))}</div>"
+                "<div class='track'><div class='fill' "
+                f"style='width:{pct:.1f}%'></div></div>"
+                f"<div class='value'>{dominant_currency} {value:,.2f} ({pct:.1f}%)</div>"
+                "</div>"
+            )
+
+        if other_value > 0:
+            pct = (other_value / total_value) * 100
+            rows_html.append(
+                "<div class='row'>"
+                "<div class='label'>OTHER</div>"
+                "<div class='track'><div class='fill other' "
+                f"style='width:{pct:.1f}%'></div></div>"
+                f"<div class='value'>{dominant_currency} {other_value:,.2f} ({pct:.1f}%)</div>"
+                "</div>"
+            )
+
+        if not rows_html:
+            return None
+
+        generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        html_payload = f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Portfolio Allocation</title>
+  <style>
+    :root {{
+      color-scheme: dark;
+      --bg: #071019;
+      --surface: #0d1724;
+      --line: #1f3247;
+      --text: #d6e4f5;
+      --muted: #90abc8;
+      --accent: #2dd4bf;
+      --other: #7dd3fc;
+    }}
+    * {{ box-sizing: border-box; }}
+    body {{
+      margin: 0;
+      padding: 20px;
+      font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 0% 0%, #10253d, var(--bg) 60%);
+      color: var(--text);
+    }}
+    .card {{
+      max-width: 1040px;
+      margin: 0 auto;
+      border: 1px solid var(--line);
+      background: linear-gradient(170deg, rgba(255, 255, 255, 0.04), transparent 60%), var(--surface);
+      border-radius: 14px;
+      padding: 18px 18px 14px;
+    }}
+    h1 {{
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: 0.02em;
+    }}
+    .meta {{
+      margin: 6px 0 16px;
+      color: var(--muted);
+      font-size: 12px;
+    }}
+    .row {{
+      display: grid;
+      grid-template-columns: 120px 1fr 220px;
+      gap: 10px;
+      align-items: center;
+      padding: 6px 0;
+    }}
+    .label {{
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      color: #e2ecf8;
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }}
+    .track {{
+      height: 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.05);
+    }}
+    .fill {{
+      height: 100%;
+      background: linear-gradient(90deg, rgba(45, 212, 191, 0.55), rgba(45, 212, 191, 0.95));
+    }}
+    .fill.other {{
+      background: linear-gradient(90deg, rgba(125, 211, 252, 0.55), rgba(125, 211, 252, 0.95));
+    }}
+    .value {{
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-size: 12px;
+      color: #dce9f7;
+    }}
+    @media (max-width: 820px) {{
+      body {{ padding: 10px; }}
+      .row {{
+        grid-template-columns: 88px 1fr;
+        gap: 8px;
+      }}
+      .value {{
+        grid-column: 1 / -1;
+        text-align: left;
+      }}
+    }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Portfolio Allocation ({dominant_currency})</h1>
+    <div class="meta">Total {dominant_currency} {total_value:,.2f} • generated {generated_at}</div>
+    {"".join(rows_html)}
+  </div>
+</body>
+</html>"""
+        return {
+            "title": f"Holdings allocation ({dominant_currency})",
+            "html": html_payload,
+        }
+
+    return None
+
+
+def _build_chart_from_chat_response(response: Any) -> dict[str, str] | None:
+    filestats_chart = _build_filestats_chart_from_chat_response(response)
+    if filestats_chart is not None:
+        return filestats_chart
+    return _build_holdings_chart_from_chat_response(response)
 
 
 class CockpitActionPreviewRequest(BaseModel):
@@ -3936,6 +5995,10 @@ async def cockpit_stop_action_job(job_id: str):
     if proc is not None:
         try:
             proc.terminate()
+            try:
+                proc.wait(timeout=3)
+            except Exception:
+                proc.kill()
         except Exception as exc:
             raise HTTPException(
                 status_code=500,
@@ -3944,6 +6007,10 @@ async def cockpit_stop_action_job(job_id: str):
         return {"ok": True, "job_id": job_id, "status": "cancelling"}
 
     if runtime is not None:
+        try:
+            service.state_store.update_job_progress(job_id, "Cancelling", None)
+        except Exception:
+            logger.debug("Could not update cancelling progress for %s", job_id, exc_info=True)
         return {"ok": True, "job_id": job_id, "status": "cancelling"}
 
     tracker = _get_backend_job_tracker()
@@ -3991,6 +6058,17 @@ async def cockpit_stop_action_job(job_id: str):
     if status in {"success", "failed", "cancelled"}:
         return {"ok": True, "job_id": job_id, "status": status}
 
+    # Marketplace scan jobs that survived a backend restart have no live runtime or
+    # process — force-cancel them in the state store so new scans are not blocked.
+    if str(job.get("action_id") or "") == "marketplace_scan" and status in {"running", "queued"}:
+        service.state_store.update_job_status(
+            job_id,
+            status="cancelled",
+            exit_code=-1,
+            ended_at=datetime.now(timezone.utc).isoformat(),
+        )
+        return {"ok": True, "job_id": job_id, "status": "cancelled"}
+
     raise HTTPException(
         status_code=409,
         detail=f"Action job is not currently stoppable: {job_id}",
@@ -4021,8 +6099,19 @@ async def cockpit_list_marketplace_missions(status: str | None = None):
     try:
         service = CockpitService.get_instance()
         mission_service = _marketplace_mission_service(service)
+        price_service = _marketplace_price_intelligence_service(service)
         statuses = [item.strip().lower() for item in str(status or "").split(",") if item.strip()]
         items = await asyncio.to_thread(mission_service.list_missions, statuses=statuses or None)
+        items = await asyncio.to_thread(
+            lambda: [
+                _enrich_marketplace_mission_with_price_context(
+                    mission_service,
+                    price_service,
+                    item,
+                )
+                for item in items
+            ]
+        )
     except Exception as exc:
         logger.exception("Marketplace mission listing failed")
         raise HTTPException(
@@ -4040,7 +6129,20 @@ async def cockpit_create_marketplace_mission(payload: MarketplaceMissionUpsertRe
     try:
         service = CockpitService.get_instance()
         mission_service = _marketplace_mission_service(service)
+        price_service = _marketplace_price_intelligence_service(service)
         mission = await asyncio.to_thread(mission_service.create_mission, payload.model_dump())
+        mission = await asyncio.to_thread(
+            _prepare_marketplace_requirement_candidates,
+            mission_service,
+            price_service,
+            mission,
+        )
+        mission = await asyncio.to_thread(
+            _enrich_marketplace_mission_with_price_context,
+            mission_service,
+            price_service,
+            mission,
+        )
     except MarketplaceMissionError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
@@ -4060,6 +6162,7 @@ async def cockpit_get_marketplace_mission(mission_id: str):
     try:
         service = CockpitService.get_instance()
         mission_service = _marketplace_mission_service(service)
+        price_service = _marketplace_price_intelligence_service(service)
         mission = await asyncio.to_thread(mission_service.get_mission, mission_id)
     except Exception as exc:
         logger.exception("Marketplace mission read failed")
@@ -4069,6 +6172,18 @@ async def cockpit_get_marketplace_mission(mission_id: str):
         ) from exc
     if mission is None:
         raise HTTPException(status_code=404, detail=f"Marketplace mission not found: {mission_id}")
+    mission = await asyncio.to_thread(
+        _prepare_marketplace_requirement_candidates,
+        mission_service,
+        price_service,
+        mission,
+    )
+    mission = await asyncio.to_thread(
+        _enrich_marketplace_mission_with_price_context,
+        mission_service,
+        price_service,
+        mission,
+    )
     return MarketplaceMissionRecord(**mission)
 
 
@@ -4083,10 +6198,23 @@ async def cockpit_update_marketplace_mission(
     try:
         service = CockpitService.get_instance()
         mission_service = _marketplace_mission_service(service)
+        price_service = _marketplace_price_intelligence_service(service)
         mission = await asyncio.to_thread(
             mission_service.update_mission,
             mission_id,
-            payload.model_dump(exclude_none=True),
+            payload.model_dump(exclude_none=True, exclude_unset=True),
+        )
+        mission = await asyncio.to_thread(
+            _prepare_marketplace_requirement_candidates,
+            mission_service,
+            price_service,
+            mission,
+        )
+        mission = await asyncio.to_thread(
+            _enrich_marketplace_mission_with_price_context,
+            mission_service,
+            price_service,
+            mission,
         )
     except MarketplaceMissionNotFound as exc:
         raise HTTPException(status_code=404, detail=f"Marketplace mission not found: {exc}") from exc
@@ -4099,6 +6227,139 @@ async def cockpit_update_marketplace_mission(
             detail=f"Marketplace mission update failed: {str(exc)}",
         ) from exc
     return MarketplaceMissionRecord(**mission)
+
+
+@router.post(
+    "/marketplace/missions/{mission_id}/link-product",
+    response_model=MarketplaceMissionRecord,
+)
+async def cockpit_link_marketplace_mission_product(
+    mission_id: str,
+    payload: MarketplaceMissionProductLinkRequest,
+):
+    try:
+        service = CockpitService.get_instance()
+        mission_service = _marketplace_mission_service(service)
+        price_service = _marketplace_price_intelligence_service(service)
+        product = await asyncio.to_thread(
+            price_service.get_tracked_product,
+            payload.tracked_product_id,
+        )
+        if product is None:
+            raise HTTPException(status_code=404, detail="tracked product not found")
+        await asyncio.to_thread(
+            mission_service.link_primary_tracked_product,
+            mission_id,
+            payload.tracked_product_id,
+        )
+        mission = await asyncio.to_thread(mission_service.get_mission, mission_id)
+    except HTTPException:
+        raise
+    except MarketplaceMissionNotFound as exc:
+        raise HTTPException(status_code=404, detail=f"Marketplace mission not found: {exc}") from exc
+    except MarketplaceMissionError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Marketplace mission product link failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Marketplace mission product link failed: {str(exc)}",
+        ) from exc
+    if mission is None:
+        raise HTTPException(status_code=404, detail=f"Marketplace mission not found: {mission_id}")
+    mission = await asyncio.to_thread(
+        _enrich_marketplace_mission_with_price_context,
+        mission_service,
+        price_service,
+        mission,
+    )
+    return MarketplaceMissionRecord(**mission)
+
+
+@router.delete(
+    "/marketplace/missions/{mission_id}/link-product",
+    response_model=MarketplaceMissionRecord,
+)
+async def cockpit_unlink_marketplace_mission_product(mission_id: str):
+    try:
+        service = CockpitService.get_instance()
+        mission_service = _marketplace_mission_service(service)
+        price_service = _marketplace_price_intelligence_service(service)
+        await asyncio.to_thread(mission_service.unlink_primary_tracked_product, mission_id)
+        mission = await asyncio.to_thread(mission_service.get_mission, mission_id)
+    except MarketplaceMissionNotFound as exc:
+        raise HTTPException(status_code=404, detail=f"Marketplace mission not found: {exc}") from exc
+    except Exception as exc:
+        logger.exception("Marketplace mission product unlink failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Marketplace mission product unlink failed: {str(exc)}",
+        ) from exc
+    if mission is None:
+        raise HTTPException(status_code=404, detail=f"Marketplace mission not found: {mission_id}")
+    mission = await asyncio.to_thread(
+        _enrich_marketplace_mission_with_price_context,
+        mission_service,
+        price_service,
+        mission,
+    )
+    return MarketplaceMissionRecord(**mission)
+
+
+@router.delete(
+    "/marketplace/missions/{mission_id}",
+    response_model=MarketplaceMissionDeleteResponse,
+)
+async def cockpit_delete_marketplace_mission(mission_id: str):
+    try:
+        service = CockpitService.get_instance()
+        mission_service = _marketplace_mission_service(service)
+        mission = await asyncio.to_thread(mission_service.get_mission, mission_id)
+    except Exception as exc:
+        logger.exception("Marketplace mission delete precheck failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Marketplace mission delete precheck failed: {str(exc)}",
+        ) from exc
+
+    if mission is None:
+        raise HTTPException(status_code=404, detail=f"Marketplace mission not found: {mission_id}")
+
+    try:
+        scan_jobs = await asyncio.to_thread(_list_marketplace_scan_jobs, service, limit=100)
+    except Exception as exc:
+        logger.exception("Marketplace mission delete scan lookup failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Marketplace mission delete scan lookup failed: {str(exc)}",
+        ) from exc
+
+    active_scan = next(
+        (
+            job
+            for job in scan_jobs
+            if str(job.get("mission_id") or "") == mission_id
+            and str(job.get("status") or "") in {"queued", "running"}
+        ),
+        None,
+    )
+    if active_scan is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="Mission has an active scan job. Cancel it before deleting the mission.",
+        )
+
+    try:
+        deleted = await asyncio.to_thread(mission_service.delete_mission, mission_id)
+    except MarketplaceMissionNotFound as exc:
+        raise HTTPException(status_code=404, detail=f"Marketplace mission not found: {exc}") from exc
+    except Exception as exc:
+        logger.exception("Marketplace mission delete failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Marketplace mission delete failed: {str(exc)}",
+        ) from exc
+    return MarketplaceMissionDeleteResponse(**deleted)
 
 
 @router.get(
@@ -4145,16 +6406,15 @@ async def cockpit_trigger_marketplace_scan(payload: MarketplaceScanRequest):
         if not active_missions:
             raise HTTPException(status_code=400, detail="No active Marketplace missions are available to scan")
 
-    health = await asyncio.to_thread(check_marketplace_browser_health)
-    if str(health.get("status")) != "ready":
-        code = 409 if str(health.get("status")) in {"login_required", "challenge_detected"} else 503
-        raise HTTPException(status_code=code, detail=str(health.get("detail") or health.get("status")))
-
     if await asyncio.to_thread(_marketplace_scan_in_progress, service):
         raise HTTPException(
             status_code=409,
             detail="A Marketplace scan is already in progress. Please wait for it to finish or stop it first.",
         )
+
+    health = await asyncio.to_thread(check_marketplace_browser_health)
+    if not marketplace_scan_health_allows_execution(health):
+        raise HTTPException(status_code=503, detail=str(health.get("detail") or health.get("status")))
 
     try:
         queued = await asyncio.to_thread(
@@ -4210,6 +6470,8 @@ async def cockpit_list_marketplace_matches(
     try:
         service = CockpitService.get_instance()
         mission_service = _marketplace_mission_service(service)
+        benchmark_service = _marketplace_benchmark_service(service)
+        price_service = _marketplace_price_intelligence_service(service)
         items = await asyncio.to_thread(
             mission_service.list_matches,
             mission_id=mission_id,
@@ -4217,13 +6479,30 @@ async def cockpit_list_marketplace_matches(
             decision_band=decision_band,
             limit=limit,
         )
+        enriched_items: list[dict[str, Any]] = []
+        for item in items:
+            try:
+                enriched = benchmark_service.enrich_match(item)
+                enriched_items.append(
+                    _enrich_marketplace_match_with_value_context(
+                        mission_service,
+                        price_service,
+                        enriched,
+                    )
+                )
+            except Exception:
+                logger.exception(
+                    "Marketplace benchmark enrichment failed for %s",
+                    item.get("match_id"),
+                )
+                enriched_items.append({**item, "benchmark": None})
     except Exception as exc:
         logger.exception("Marketplace match listing failed")
         raise HTTPException(
             status_code=500,
             detail=f"Marketplace match listing failed: {str(exc)}",
         ) from exc
-    return MarketplaceMatchListResponse(items=items)
+    return MarketplaceMatchListResponse(items=enriched_items)
 
 
 @router.get(
@@ -4234,6 +6513,8 @@ async def cockpit_get_marketplace_match(match_id: str):
     try:
         service = CockpitService.get_instance()
         mission_service = _marketplace_mission_service(service)
+        benchmark_service = _marketplace_benchmark_service(service)
+        price_service = _marketplace_price_intelligence_service(service)
         match = await asyncio.to_thread(mission_service.get_match, match_id)
     except Exception as exc:
         logger.exception("Marketplace match read failed")
@@ -4243,6 +6524,16 @@ async def cockpit_get_marketplace_match(match_id: str):
         ) from exc
     if match is None:
         raise HTTPException(status_code=404, detail=f"Marketplace match not found: {match_id}")
+    try:
+        match = benchmark_service.enrich_match(match)
+        match = _enrich_marketplace_match_with_value_context(
+            mission_service,
+            price_service,
+            match,
+        )
+    except Exception:
+        logger.exception("Marketplace benchmark enrichment failed for %s", match_id)
+        match = {**match, "benchmark": None, "value_context": None}
     return MarketplaceMatchRecord(**match)
 
 
@@ -4257,6 +6548,8 @@ async def cockpit_update_marketplace_match(
     try:
         service = CockpitService.get_instance()
         mission_service = _marketplace_mission_service(service)
+        benchmark_service = _marketplace_benchmark_service(service)
+        price_service = _marketplace_price_intelligence_service(service)
         match = await asyncio.to_thread(
             mission_service.update_match_status,
             match_id,
@@ -4272,6 +6565,80 @@ async def cockpit_update_marketplace_match(
             status_code=500,
             detail=f"Marketplace match update failed: {str(exc)}",
         ) from exc
+    try:
+        match = benchmark_service.enrich_match(match)
+        match = _enrich_marketplace_match_with_value_context(
+            mission_service,
+            price_service,
+            match,
+        )
+    except Exception:
+        logger.exception("Marketplace benchmark enrichment failed for %s", match_id)
+        match = {**match, "benchmark": None, "value_context": None}
+    return MarketplaceMatchRecord(**match)
+
+
+@router.post("/marketplace/benchmarks/refresh")
+async def cockpit_refresh_marketplace_benchmarks():
+    try:
+        service = CockpitService.get_instance()
+        benchmark_service = _marketplace_benchmark_service(service)
+        summary = await asyncio.to_thread(benchmark_service.refresh_centre_com_benchmarks)
+    except Exception as exc:
+        logger.exception("Marketplace benchmark refresh failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Marketplace benchmark refresh failed: {str(exc)}",
+        ) from exc
+    return {"ok": True, **summary}
+
+
+@router.patch(
+    "/marketplace/matches/{match_id}/benchmark-review",
+    response_model=MarketplaceMatchRecord,
+)
+async def cockpit_update_marketplace_benchmark_review(
+    match_id: str,
+    payload: MarketplaceBenchmarkReviewRequest,
+):
+    review_status = str(payload.review_status or "").strip().lower()
+    if review_status not in REVIEW_STATUSES:
+        raise HTTPException(status_code=400, detail=f"invalid review_status: {payload.review_status}")
+
+    try:
+        service = CockpitService.get_instance()
+        mission_service = _marketplace_mission_service(service)
+        benchmark_service = _marketplace_benchmark_service(service)
+        price_service = _marketplace_price_intelligence_service(service)
+        await asyncio.to_thread(
+            benchmark_service.set_review_status,
+            match_id=match_id,
+            review_status=review_status,
+            note=payload.note,
+        )
+        match = await asyncio.to_thread(mission_service.get_match, match_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"Marketplace match not found: {exc}") from exc
+    except Exception as exc:
+        logger.exception("Marketplace benchmark review update failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Marketplace benchmark review update failed: {str(exc)}",
+        ) from exc
+
+    if match is None:
+        raise HTTPException(status_code=404, detail=f"Marketplace match not found: {match_id}")
+
+    try:
+        match = benchmark_service.enrich_match(match)
+        match = _enrich_marketplace_match_with_value_context(
+            mission_service,
+            price_service,
+            match,
+        )
+    except Exception:
+        logger.exception("Marketplace benchmark enrichment failed for %s", match_id)
+        match = {**match, "benchmark": None, "value_context": None}
     return MarketplaceMatchRecord(**match)
 
 
@@ -4366,7 +6733,10 @@ async def cockpit_flag_feedback(payload: CockpitFeedbackFlagRequest):
 
 
 @router.get("/feedback/flags", response_model=CockpitFlaggedReportListResponse)
-async def cockpit_list_flagged_feedback(limit: int = 25):
+async def cockpit_list_flagged_feedback(
+    limit: int = 25,
+    status: Literal["open", "resolved", "all"] = "open",
+):
     """List recent flagged cockpit chat reports."""
     try:
         service = CockpitService.get_instance()
@@ -4377,7 +6747,7 @@ async def cockpit_list_flagged_feedback(limit: int = 25):
         ) from exc
 
     try:
-        items = await asyncio.to_thread(service.list_flagged_reports, limit)
+        items = await asyncio.to_thread(service.list_flagged_reports, limit, status)
     except Exception as exc:
         logger.exception("Cockpit feedback listing failed")
         raise HTTPException(
@@ -4413,6 +6783,45 @@ async def cockpit_get_flagged_feedback(report_id: str):
         ) from exc
 
     return CockpitFlaggedReportResponse(**result)
+
+
+@router.post(
+    "/feedback/flags/{report_id}/resolve",
+    response_model=CockpitFlagResolutionResponse,
+)
+async def cockpit_resolve_flagged_feedback(
+    report_id: str,
+    payload: CockpitFlagResolutionRequest,
+):
+    """Mark a flagged cockpit report as resolved and attach fix commit metadata."""
+    try:
+        service = CockpitService.get_instance()
+    except Exception as exc:
+        logger.exception("Failed to initialize CockpitService for feedback resolve")
+        raise HTTPException(
+            status_code=500, detail=f"Service initialization failed: {str(exc)}"
+        ) from exc
+
+    try:
+        result = await asyncio.to_thread(
+            service.resolve_flagged_report,
+            report_id,
+            commit_sha=payload.commit_sha,
+            resolved_by=payload.resolved_by,
+            note=payload.note,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Cockpit feedback resolve failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Feedback resolve failed: {str(exc)}",
+        ) from exc
+
+    return CockpitFlagResolutionResponse(**result)
 
 
 def _normalize_session_id(raw: str) -> str:
@@ -4632,13 +7041,13 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 attached_sources=attached_sources,
             )
             sources = _enforce_visible_source_contract(payload.message, response)
-            _maybe_auto_flag_chat_response(
+            auto_flag = _maybe_auto_flag_chat_response(
                 service,
                 session_id=payload.session_id,
                 ticker=payload.ticker,
                 response=response,
             )
-            rendered_chart = _build_filestats_chart_from_chat_response(response)
+            rendered_chart = _build_chart_from_chat_response(response)
             return {
                 "type": "done",
                 "data": {
@@ -4655,12 +7064,13 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     "source": response.routing_metadata.get("source")
                     if response.routing_metadata
                     else "local",
-                    "action_preview": response.action_preview,
-                    "chart": rendered_chart,
-                    "sources": sources,
                     "provider_error": response.routing_metadata.get("provider_error")
                     if response.routing_metadata
                     else None,
+                    "action_preview": response.action_preview,
+                    "chart": rendered_chart,
+                    "sources": sources,
+                    "auto_flag": _serialize_flag_handoff(auto_flag),
                 },
             }
         except Exception as exc:
@@ -4707,7 +7117,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     attached_sources=attached_sources,
                 )
                 sources = _enforce_visible_source_contract(payload.message, response)
-                _maybe_auto_flag_chat_response(
+                auto_flag = _maybe_auto_flag_chat_response(
                     service,
                     session_id=payload.session_id,
                     ticker=payload.ticker,
@@ -4727,7 +7137,7 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                         {"type": "action_preview", "data": response.action_preview}
                     )
 
-                rendered_chart = _build_filestats_chart_from_chat_response(response)
+                rendered_chart = _build_chart_from_chat_response(response)
                 if rendered_chart:
                     await queue.put({"type": "chart", "data": rendered_chart})
 
@@ -4742,9 +7152,10 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                             "latency_ms": meta.get("latency_ms", 0),
                             "cost_usd": meta.get("cost_usd", 0),
                             "source": meta.get("source", "local"),
+                            "provider_error": meta.get("provider_error"),
                             "chart": rendered_chart,
                             "sources": sources,
-                            "provider_error": meta.get("provider_error"),
+                            "auto_flag": _serialize_flag_handoff(auto_flag),
                         },
                     }
                 )

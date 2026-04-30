@@ -30,7 +30,12 @@ class CommandRoute:
 # ---------------------------------------------------------------------------
 
 _INGEST_RE = re.compile(
-    r"^\s*(?:ingest|fetch\s+news)\s+(?:news\s+(?:for\s+)?)?([A-Z]{2,5})\b",
+    r"^\s*(?:"
+    r"ingest\s+(?:news\s+(?:for\s+)?)?([A-Z]{2,5})\s+news\b|"
+    r"ingest\s+news\s+(?:for\s+)?([A-Z]{2,5})\b|"
+    r"fetch\s+(?:news\s+(?:for\s+)?)?([A-Z]{2,5})\b|"
+    r"fetch\s+([A-Z]{2,5})\s+news\b"
+    r")",
     re.IGNORECASE,
 )
 _INGEST_MARKET_RE = re.compile(
@@ -44,6 +49,14 @@ _UPDATE_RE = re.compile(
 _CHART_RE = re.compile(
     r"^\s*(?:chart|show\s+chart|candlestick)\s+([A-Z]{2,5})\b|"
     r"^\s*([A-Z]{2,5})\s+chart\s*$",
+    re.IGNORECASE,
+)
+_RSI_RE = re.compile(
+    r"^\s*(?:rsi\s+(?:for\s+)?([A-Z]{2,5})|([A-Z]{2,5})\s+rsi)\s*[?!.]*\s*$",
+    re.IGNORECASE,
+)
+_SCREENER_RE = re.compile(
+    r"^\s*(?:run\s+)?(?:tv\s+|tradingview\s+)?screener\s*(?:for\s+([A-Za-z]{2,8}))?\s*[?!.]*\s*$",
     re.IGNORECASE,
 )
 _BACKFILL_RE = re.compile(
@@ -103,6 +116,8 @@ _WATCH_CHANNEL_RE = re.compile(
 _TICKER_STOPWORDS = frozenset({
     "ASX", "ETF", "IPO", "CEO", "AGM", "EGM", "FY", "HY",
     "USA", "AUS", "GDP", "CPI", "RBA", "AUD", "USD",
+    "CLOUD", "LOCAL", "ADVISOR", "OPS",
+    "SHOW",
 })
 
 
@@ -110,6 +125,7 @@ def route_command(
     message: str,
     *,
     active_ticker: str | None = None,
+    recent_youtube_channel: str | None = None,
 ) -> CommandRoute:
     """Attempt to match *message* as a direct command.
 
@@ -122,13 +138,13 @@ def route_command(
     # ingest [ticker] news
     m = _INGEST_RE.match(text)
     if m:
-        ticker = m.group(1).upper()
+        ticker = next((g for g in m.groups() if g), "").upper()
         if ticker not in _TICKER_STOPWORDS:
             return CommandRoute(
                 matched=True,
                 action_type="action_proposal",
                 tool="run_news_ingest",
-                arguments={"since_hours": 24, "ticker": ticker},
+                arguments={"since_hours": 24, "tickers": ticker},
                 explanation=f"Ingest latest news for {ticker} (last 24h).",
             )
 
@@ -170,6 +186,31 @@ def route_command(
                 explanation=f"Show candlestick chart for {ticker} (6 months).",
             )
 
+    # RSI [ticker] / [ticker] RSI
+    m = _RSI_RE.match(text)
+    if m:
+        ticker = (m.group(1) or m.group(2) or "").upper()
+        if ticker and ticker not in _TICKER_STOPWORDS:
+            return CommandRoute(
+                matched=True,
+                action_type="direct_tool",
+                tool="get_tv_indicators",
+                arguments={"ticker": ticker, "indicators": ["RSI"]},
+                explanation=f"Fetch RSI for {ticker}.",
+            )
+
+    # TradingView screener
+    m = _SCREENER_RE.match(text)
+    if m:
+        market = (m.group(1) or "australia").strip().lower()
+        return CommandRoute(
+            matched=True,
+            action_type="direct_tool",
+            tool="tv_screener",
+            arguments={"market": market, "limit": 20, "filters": {}},
+            explanation=f"Run TradingView screener for {market}.",
+        )
+
     # backfill [ticker]
     m = _BACKFILL_RE.match(text)
     if m:
@@ -209,6 +250,29 @@ def route_command(
                     arguments={"channel_name": channel_name, "limit": 8},
                     explanation=f"Check recent YouTube videos from {channel_name!r}.",
                 )
+
+    if re.fullmatch(
+        r"(?:most\s+recent|latest|recent)\s+(?:youtube\s+)?videos?\s*\??",
+        text,
+        re.IGNORECASE,
+    ):
+        channel_name = str(recent_youtube_channel or "").strip()
+        if channel_name:
+            return CommandRoute(
+                matched=True,
+                action_type="direct_tool",
+                tool="check_youtube_channel_recent_videos",
+                arguments={"channel_name": channel_name, "limit": 8},
+                explanation=f"Check recent YouTube videos from {channel_name!r}.",
+            )
+        return CommandRoute(
+            matched=True,
+            action_type=None,
+            explanation=(
+                "Which YouTube channel should I check? "
+                'For example: "check youtube channel Kneppy Invests".'
+            ),
+        )
 
     # watch/monitor/add/subscribe/follow youtube channel
     m = _WATCH_CHANNEL_RE.match(text)

@@ -72,6 +72,10 @@ _MODEL_RE = re.compile(
 )
 _GPU_CAPACITY_RE = re.compile(r"\b(?:GPU|VRAM)\s+\d{1,2}GB\b", re.IGNORECASE)
 _ACRONYM_RE = re.compile(r"\b(?:CUDA|NVIDIA|AMD|INTEL|LLM|AI)\b", re.IGNORECASE)
+_LOCATION_CLAUSE_RE = re.compile(
+    r"\blocations?\s*(?:i\s*(?:want|prefer)|to\s*use)?\s*:\s*([^.;\n]+)",
+    re.IGNORECASE,
+)
 
 
 def _clean_text(value: Any) -> str:
@@ -141,10 +145,31 @@ def _compact_keyword_list(values: list[str]) -> list[str]:
     return _unique(out)
 
 
+def _brief_location_terms(brief: str) -> list[str]:
+    text = _clean_text(brief)
+    if not text:
+        return []
+    out: list[str] = []
+    for match in _LOCATION_CLAUSE_RE.finditer(text):
+        clause = _clean_text(match.group(1))
+        if not clause:
+            continue
+        parts = re.split(r",|/|\band\b", clause, flags=re.IGNORECASE)
+        for part in parts:
+            candidate = _clean_text(part).strip("- ")
+            if not candidate:
+                continue
+            if re.search(r"\d", candidate):
+                continue
+            out.append(candidate)
+    return _unique(out)[:4]
+
+
 def build_marketplace_search_pack(mission: dict[str, Any]) -> dict[str, Any]:
     hard = mission.get("hard_filters") or {}
     soft = mission.get("soft_preferences") or {}
     search = mission.get("search_config") or {}
+    deployment_args = mission.get("deployment_args") or {}
 
     include_keywords = _compact_keyword_list(list(hard.get("include_keywords") or []))
     exclude_terms = _compact_keyword_list(
@@ -155,7 +180,26 @@ def build_marketplace_search_pack(mission: dict[str, Any]) -> dict[str, Any]:
     category_hint = _clean_text(mission.get("category_hint"))
     max_queries = max(1, int(search.get("max_queries_per_run") or 6))
 
-    seed_terms = include_keywords or brief_terms[:3]
+    requirement_profile = (
+        deployment_args.get("requirement_profile")
+        if isinstance(deployment_args, dict)
+        else None
+    )
+    candidate_terms = []
+    is_requirement_driven = (
+        isinstance(requirement_profile, dict)
+        and requirement_profile.get("mode") == "requirement_driven"
+    )
+    if is_requirement_driven:
+        candidate_terms = _compact_keyword_list(
+            list(deployment_args.get("candidate_search_terms") or [])
+        )
+        if not candidate_terms:
+            raise ValueError(
+                "Requirement-driven Marketplace mission is missing candidate_search_terms; "
+                "run prepare_requirement_driven_mission before search query generation."
+            )
+    seed_terms = candidate_terms if is_requirement_driven else include_keywords or brief_terms[:3]
     core_phrase = seed_terms[0].strip() if seed_terms else category_hint or _clean_text(mission.get("name"))
 
     primary_queries: list[str] = []
@@ -184,15 +228,23 @@ def build_marketplace_search_pack(mission: dict[str, Any]) -> dict[str, Any]:
 
     fallback_queries = []
     if bool(search.get("broadening_enabled", True)):
-        fallback_queries.extend(seed_terms[:3])
-        if category_hint:
-            fallback_queries.append(category_hint)
-        fallback_queries.extend(brief_terms[:2])
+        if is_requirement_driven:
+            fallback_queries.extend(seed_terms[:max_queries])
+        else:
+            fallback_queries.extend(seed_terms[:3])
+            if category_hint:
+                fallback_queries.append(category_hint)
+            fallback_queries.extend(brief_terms[:2])
 
     primary_queries = _unique(primary_queries)[:max_queries]
     synonym_queries = _unique(synonym_queries)[:max_queries]
     brand_model_queries = _unique(brand_model_queries)[:max_queries]
     fallback_queries = _unique(fallback_queries)[:max_queries]
+    location_terms = _unique(
+        list(hard.get("location_names") or [])
+        + list(soft.get("preferred_suburbs") or [])
+        + _brief_location_terms(_clean_text(mission.get("brief")))
+    )
 
     return {
         "primary_queries": primary_queries,
@@ -201,7 +253,7 @@ def build_marketplace_search_pack(mission: dict[str, Any]) -> dict[str, Any]:
         "fallback_queries": fallback_queries,
         "exclude_terms": exclude_terms,
         "location_scope": {
-            "location_names": _unique(list(hard.get("location_names") or [])),
+            "location_names": location_terms,
             "radius_km": hard.get("radius_km"),
         },
         "price_bounds": {
@@ -222,4 +274,15 @@ def flatten_marketplace_queries(
         + list(search_pack.get("synonym_queries") or [])
         + list(search_pack.get("fallback_queries") or [])
     )
-    return ordered[: max(1, max_queries)]
+    location_scope = search_pack.get("location_scope") or {}
+    location_names = _unique(list(location_scope.get("location_names") or []))
+    if not location_names:
+        return ordered[: max(1, max_queries)]
+
+    localized_queries: list[str] = []
+    for query in ordered:
+        for location in location_names[:2]:
+            localized_queries.append(f"{query} {location}")
+
+    expanded = _unique(localized_queries + ordered)
+    return expanded[: max(1, max_queries)]

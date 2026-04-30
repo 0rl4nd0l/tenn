@@ -7,12 +7,13 @@ import { Separator } from '@/components/ui/separator'
 import { Flame, MemoryStick, FileSearch, ArrowRight, Loader2 } from 'lucide-react'
 import type { ServiceHealth } from '@/lib/cockpit-types'
 import type { OpsJobRun } from '@/lib/ops-types'
+import type { GpuRecord } from '@/components/cockpit/gpu-activity-dialog'
 import { listActiveOpsJobs } from '@/lib/ops-api-client'
 import { cn } from '@/lib/utils'
 
 interface GpuWorkloadCardProps {
   gpuHealth: ServiceHealth | null
-  gpuProcesses: Array<Record<string, unknown>>
+  gpuProcesses: GpuRecord[]
 }
 
 interface ExtractionRun {

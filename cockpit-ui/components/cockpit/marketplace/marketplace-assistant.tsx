@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Loader2, MapPin, MessageSquareText, Play, Sparkles } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Loader2, MapPin, MessageSquareText, Play, Sparkles, X } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -64,8 +64,16 @@ function DraftSummary({ draft }: { draft: MarketplaceMissionDraft }) {
   return (
     <div className="space-y-3 text-xs">
       <div>
+        <div className="font-medium text-foreground">Mission type</div>
+        <div className="text-muted-foreground break-words font-mono">{draft.missionType}</div>
+      </div>
+      <div>
         <div className="font-medium text-foreground">Mission name</div>
         <div className="text-muted-foreground break-words">{draft.name || 'not set'}</div>
+      </div>
+      <div>
+        <div className="font-medium text-foreground">User goal</div>
+        <div className="text-muted-foreground break-words">{draft.userGoal || draft.brief || 'not set'}</div>
       </div>
       <div>
         <div className="font-medium text-foreground">Brief</div>
@@ -123,6 +131,7 @@ export function MarketplaceAssistant({
   const [isSending, setIsSending] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  const requestControllerRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     setSessionId(getMarketplaceAssistantSessionId())
@@ -158,6 +167,8 @@ export function MarketplaceAssistant({
     setNotice(null)
     setIsSending(true)
     setMessages(nextMessages)
+    const controller = new AbortController()
+    requestControllerRef.current = controller
 
     try {
       const response = await sendMarketplaceAssistantTurn({
@@ -173,6 +184,7 @@ export function MarketplaceAssistant({
         webSearchEnabled: preferences.webSearchEnabled,
         sessionId,
         userMessage,
+        signal: controller.signal,
       })
 
       const mergedDraft = mergeMarketplaceMissionDraft(draft, response.draftDelta, {
@@ -187,10 +199,19 @@ export function MarketplaceAssistant({
         createTranscriptMessage('assistant', response.assistantMessage),
       ])
     } catch (error) {
-      setRequestError(error instanceof Error ? error.message : 'Marketplace assistant request failed')
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        setNotice('Assistant request cancelled.')
+      } else {
+        setRequestError(error instanceof Error ? error.message : 'Marketplace assistant request failed')
+      }
     } finally {
       setIsSending(false)
+      requestControllerRef.current = null
     }
+  }
+
+  function handleCancelMessage() {
+    requestControllerRef.current?.abort()
   }
 
   function resetAssistant() {
@@ -213,7 +234,14 @@ export function MarketplaceAssistant({
     setNotice(null)
 
     try {
-      const createdMission = await createMarketplaceMission(apiKey, mapMarketplaceDraftToMissionPayload(draft))
+      const createdFromChatMessageId =
+        [...messages].reverse().find((message) => message.role === 'user')?.id ?? null
+      const createdMission = await createMarketplaceMission(
+        apiKey,
+        mapMarketplaceDraftToMissionPayload(draft, {
+          createdFromChatMessageId,
+        }),
+      )
 
       if (!runNow) {
         setMessages((current) => [
@@ -273,6 +301,10 @@ export function MarketplaceAssistant({
 
   const canRunNow = browserHealth?.status === 'ready'
   const readyToCreate = draft.status === 'ready'
+  const previewPayload = useMemo(
+    () => mapMarketplaceDraftToMissionPayload(draft),
+    [draft],
+  )
 
   return (
     <Card>
@@ -349,6 +381,12 @@ export function MarketplaceAssistant({
                 {isSending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Send
               </Button>
+              {isSending && (
+                <Button variant="destructive" onClick={handleCancelMessage}>
+                  <X className="mr-2 h-4 w-4" />
+                  Cancel
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={resetAssistant}
@@ -369,6 +407,29 @@ export function MarketplaceAssistant({
             <DraftSummary draft={draft} />
             <Separator />
             <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="marketplace-mission-type">
+                Mission Type
+              </label>
+              <select
+                id="marketplace-mission-type"
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                value={draft.missionType}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    missionType: event.target.value as MarketplaceMissionDraft['missionType'],
+                  }))
+                }
+                disabled={isSending || isCreating}
+              >
+                <option value="find_good_deals">find_good_deals</option>
+                <option value="benchmark_listings">benchmark_listings</option>
+                <option value="refresh_retail_benchmarks">refresh_retail_benchmarks</option>
+                <option value="review_uncertain_matches">review_uncertain_matches</option>
+              </select>
+            </div>
+            <Separator />
+            <div className="space-y-2">
               <div className="text-sm font-medium">Missing fields</div>
               <div className="flex flex-wrap gap-2">
                 {draft.missingFields.length === 0 ? (
@@ -384,13 +445,24 @@ export function MarketplaceAssistant({
             </div>
             <Separator />
             <div className="space-y-2">
+              <div className="text-sm font-medium">Mission Preview</div>
+              <div className="overflow-hidden rounded-md border border-border/60 bg-muted/20">
+                <ScrollArea className="h-[180px]">
+                  <pre className="p-3 text-[11px] leading-5">
+                    {JSON.stringify(previewPayload, null, 2)}
+                  </pre>
+                </ScrollArea>
+              </div>
+            </div>
+            <Separator />
+            <div className="space-y-2">
               <Button
                 className="w-full"
                 onClick={() => void handleCreateMission(false)}
                 disabled={!readyToCreate || isCreating}
               >
                 {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create Mission
+                Deploy Mission
               </Button>
               <Button
                 className="w-full"
@@ -403,7 +475,7 @@ export function MarketplaceAssistant({
                 ) : (
                   <Play className="mr-2 h-4 w-4" />
                 )}
-                Create + Run Now
+                Deploy + Run Now
               </Button>
               {!canRunNow && (
                 <p className="text-xs text-muted-foreground">

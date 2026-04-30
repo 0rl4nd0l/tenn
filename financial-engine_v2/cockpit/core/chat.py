@@ -42,6 +42,8 @@ from cockpit.core.backend_proposals import (
     build_backend_runtime_remediation_request,
 )
 from cockpit.core.agent_loop import parse_backend_prefix
+from cockpit.core.action_preview import normalize_action_preview
+from cockpit.core.command_router import CommandRoute, route_command
 from cockpit.core.conversation_commands import derive_conversational_command
 from cockpit.core.request_standards import (
     build_request_standard_prompt_guidance,
@@ -688,6 +690,7 @@ class ChatController:
         "CANDLE",
         "CHART",
         "CHECK",
+        "CLOUD",
         "HAVE",
         "HI",
         "I",
@@ -698,6 +701,9 @@ class ChatController:
         "OF",
         "PLEASE",
         "PLOT",
+        "LOCAL",
+        "ADVISOR",
+        "OPS",
         "RECENT",
         "THIS",
         "TO",
@@ -1662,6 +1668,14 @@ class ChatController:
         r"\b(?:last|past|previous)\s+week\b",
         re.IGNORECASE,
     )
+    _SIMPLE_PRICE_RE = re.compile(
+        r"^\s*(?:current\s+price|last\s+(?:price|close)|what.{0,15}price|price)\s*[?!.]*\s*$",
+        re.IGNORECASE,
+    )
+    _TICKER_LEADING_PRICE_RE = re.compile(
+        r"^\s*(?:[A-Za-z0-9]{2,5})\s+(?:share\s+)?price\s*[?!.]*\s*$",
+        re.IGNORECASE,
+    )
     _DIRECT_NEWS_RE = re.compile(
         r"^\s*(?:latest\s+)?(?:news(?:\s+for)?\s+(?P<prefix>[A-Za-z0-9]{2,5})|(?P<suffix>[A-Za-z0-9]{2,5})\s+news)\s*[?!.]*\s*$",
         re.IGNORECASE,
@@ -1790,6 +1804,10 @@ class ChatController:
             "breaking",
             "new announcement",
             "market update",
+            "market wrap",
+            "market summary",
+            "market movers",
+            "market snapshot",
             "news",
         )
         return any(marker in text for marker in freshness_markers)
@@ -2002,6 +2020,31 @@ class ChatController:
                                 "kind": "on_date",
                                 "ticker": ticker,
                                 "date": query_date,
+                            }
+                        },
+                    }
+                ],
+                mode=ResponseMode.FAST,
+            )
+
+        # --- Simple current price query: "price?", "current price", etc. ---
+        stripped_message = message.strip()
+        if self._SIMPLE_PRICE_RE.search(
+            stripped_message
+        ) or self._TICKER_LEADING_PRICE_RE.search(stripped_message):
+            last_date, last_close = dated_closes[-1]
+            text = f"**{symbol}** last close: **{last_close:.4f}** ({last_date})"
+            return ChatResponse(
+                text=text,
+                evidence=[
+                    {
+                        "type": "local_context",
+                        "details": {
+                            "price_query": {
+                                "ticker": ticker,
+                                "kind": "current",
+                                "close": last_close,
+                                "date": last_date,
                             }
                         },
                     }
@@ -3830,6 +3873,181 @@ class ChatController:
             return False
         return arg[8] == "-" and arg[13] == "-" and arg[18] == "-" and arg[23] == "-"
 
+    @staticmethod
+    def _holding_float(value: Any) -> float | None:
+        try:
+            if value is None:
+                return None
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _format_holding_qty(value: float | None) -> str:
+        if value is None:
+            return "—"
+        if abs(value - round(value)) < 1e-9:
+            return f"{int(round(value)):,}"
+        return f"{value:,.4f}".rstrip("0").rstrip(".")
+
+    @staticmethod
+    def _format_holding_money(
+        value: float | None,
+        currency: str | None,
+        *,
+        signed: bool = False,
+    ) -> str:
+        if value is None:
+            return "—"
+        ccy = str(currency or "").strip().upper()
+        sign = "+" if signed and value > 0 else ""
+        prefix = f"{ccy} " if ccy else ""
+        return f"{sign}{prefix}{value:,.2f}"
+
+    def _fetch_holdings_for_chat(self, *, ticker: str | None = None) -> list[dict[str, Any]]:
+        backend_client = getattr(self.tool_router, "backend_api_client", None)
+        list_cockpit_holdings = (
+            getattr(backend_client, "list_cockpit_holdings", None)
+            if backend_client is not None
+            else None
+        )
+        if callable(list_cockpit_holdings):
+            try:
+                payload = list_cockpit_holdings(
+                    ticker=ticker,
+                    include_archived=False,
+                    timeout=15.0,
+                )
+            except Exception as exc:
+                logger.debug("Holdings backend read failed, using local store: %s", exc)
+            else:
+                if isinstance(payload, dict):
+                    items = payload.get("items")
+                    if isinstance(items, list):
+                        normalized = [row for row in items if isinstance(row, dict)]
+                        if normalized:
+                            return normalized
+        if ticker:
+            return self._state_store.list_holdings(ticker=ticker)
+        return self._state_store.list_holdings()
+
+    def _render_holdings_overview(self, items: list[dict[str, Any]]) -> str:
+        rows: list[dict[str, Any]] = []
+        market_totals: dict[str, float] = {}
+        cost_totals: dict[str, float] = {}
+        pnl_totals: dict[str, float] = {}
+        warnings = 0
+        latest_price_as_of: str | None = None
+
+        for raw in items:
+            row = dict(raw)
+            ticker = str(row.get("ticker") or "").strip().upper() or "?"
+            account = str(row.get("account_label") or "").strip()
+            label = f"{ticker}/{account}" if account else ticker
+            quantity = self._holding_float(row.get("quantity"))
+            avg_cost = self._holding_float(row.get("avg_cost"))
+            current_price = self._holding_float(row.get("current_price"))
+            market_value = self._holding_float(row.get("market_value"))
+            unrealized_pnl = self._holding_float(row.get("unrealized_pnl"))
+            cost_currency = str(row.get("cost_currency") or "").strip().upper() or None
+            price_currency = str(row.get("price_currency") or "").strip().upper() or None
+            warning = str(row.get("valuation_warning") or "").strip()
+            if warning:
+                warnings += 1
+            price_as_of = str(row.get("price_as_of") or "").strip()
+            if price_as_of and (
+                latest_price_as_of is None or price_as_of > latest_price_as_of
+            ):
+                latest_price_as_of = price_as_of
+
+            implied_cost_value = None
+            if quantity is not None and avg_cost is not None:
+                implied_cost_value = quantity * avg_cost
+                if cost_currency:
+                    cost_totals[cost_currency] = (
+                        cost_totals.get(cost_currency, 0.0) + implied_cost_value
+                    )
+            if market_value is not None and price_currency:
+                market_totals[price_currency] = (
+                    market_totals.get(price_currency, 0.0) + market_value
+                )
+            if unrealized_pnl is not None and price_currency:
+                pnl_totals[price_currency] = (
+                    pnl_totals.get(price_currency, 0.0) + unrealized_pnl
+                )
+
+            rows.append(
+                {
+                    "label": label[:18],
+                    "quantity": quantity,
+                    "avg_cost": avg_cost,
+                    "current_price": current_price,
+                    "market_value": market_value,
+                    "unrealized_pnl": unrealized_pnl,
+                    "cost_currency": cost_currency,
+                    "price_currency": price_currency,
+                    "holding_id": str(row.get("holding_id") or ""),
+                    "sort_value": market_value
+                    if market_value is not None
+                    else implied_cost_value or -1.0,
+                }
+            )
+
+        priced_positions = sum(
+            1 for row in rows if row["market_value"] is not None and row["price_currency"]
+        )
+        rows.sort(key=lambda row: (row["sort_value"], row["label"]), reverse=True)
+
+        lines: list[str] = [f"Portfolio overview ({len(items)} holdings)"]
+        lines.append(
+            f"Live pricing coverage: {priced_positions}/{len(items)} positions."
+        )
+        if latest_price_as_of:
+            lines.append(f"Latest price timestamp: {latest_price_as_of}")
+        if warnings:
+            lines.append(
+                f"Valuation notes: {warnings} position(s) have currency/price gaps."
+            )
+
+        if market_totals:
+            lines.append("Market value:")
+            for ccy in sorted(market_totals):
+                lines.append(
+                    f"  {self._format_holding_money(market_totals[ccy], ccy)}"
+                )
+        if cost_totals:
+            lines.append("Cost basis:")
+            for ccy in sorted(cost_totals):
+                lines.append(f"  {self._format_holding_money(cost_totals[ccy], ccy)}")
+        if pnl_totals:
+            lines.append("Unrealized P/L:")
+            for ccy in sorted(pnl_totals):
+                lines.append(
+                    f"  {self._format_holding_money(pnl_totals[ccy], ccy, signed=True)}"
+                )
+
+        lines.append("")
+        header = (
+            f"{'Code':<18} {'Qty':>12} {'Cost':>16} {'Price':>16} "
+            f"{'Value':>16} {'P/L':>16} {'ID':<8}"
+        )
+        lines.append(header)
+        lines.append("-" * len(header))
+        for row in rows:
+            holding_id = row["holding_id"][:8] or "—"
+            lines.append(
+                f"{row['label']:<18} "
+                f"{self._format_holding_qty(row['quantity']):>12} "
+                f"{self._format_holding_money(row['avg_cost'], row['cost_currency']):>16} "
+                f"{self._format_holding_money(row['current_price'], row['price_currency']):>16} "
+                f"{self._format_holding_money(row['market_value'], row['price_currency']):>16} "
+                f"{self._format_holding_money(row['unrealized_pnl'], row['price_currency'], signed=True):>16} "
+                f"{holding_id:<8}"
+            )
+        lines.append("")
+        lines.append("Tip: use `/holdings remove <ID>` or `/holdings archive <ID>`.")
+        return "\n".join(lines)
+
     def _slash_holdings(self, sub: str, rest: str) -> ChatResponse | None:
         if self._state_store is None:
             return ChatResponse(
@@ -3840,30 +4058,15 @@ class ChatController:
 
         if sub in ("", "list"):
             ticker = rest.strip().upper() or None
-            if ticker:
-                items = self._state_store.list_holdings(ticker=ticker)
-            else:
-                items = self._state_store.list_holdings()
+            items = self._fetch_holdings_for_chat(ticker=ticker)
             if not items:
                 return ChatResponse(
                     text="No holdings recorded.",
                     evidence=[],
                     mode=ResponseMode.FAST,
                 )
-            lines = [f"Holdings ({len(items)}):"]
-            for h in items:
-                qty = h.get("quantity")
-                cost = h.get("avg_cost")
-                account = h.get("account_label")
-                qty_str = f" qty={qty}" if qty is not None else ""
-                cost_str = f" @ {cost}" if cost is not None else ""
-                account_str = f" [{account}]" if account else ""
-                lines.append(
-                    f"  {h['ticker']}{account_str}{qty_str}{cost_str}"
-                    f"  ({h['holding_id']})"
-                )
             return ChatResponse(
-                text="\n".join(lines),
+                text=self._render_holdings_overview(items),
                 evidence=[{"type": "holdings", "details": items}],
                 mode=ResponseMode.FAST,
             )
@@ -4068,11 +4271,40 @@ class ChatController:
             f"  status={report['status']}",
             f"  {headline}",
         ]
-        movers = summary.get("movers") or []
+        ticker_rows = summary.get("tickers") or []
+        if isinstance(ticker_rows, list):
+            movers = [row for row in ticker_rows if isinstance(row, dict)]
+        else:
+            movers = []
+        def _significance_value(row: dict[str, Any]) -> float:
+            try:
+                return float(row.get("significance") or 0.0)
+            except (TypeError, ValueError):
+                return 0.0
+
+        movers.sort(key=_significance_value, reverse=True)
         if movers:
-            lines.append("  Movers:")
-            for m in movers[:5]:
-                lines.append(f"    {m.get('ticker', '?')}: {m.get('pct', '?')}")
+            lines.append("  Ranked movers:")
+            for row in movers[:5]:
+                ticker = str(row.get("ticker") or "?").strip().upper() or "?"
+                pct_change = row.get("pct_change")
+                try:
+                    pct_text = f"{float(pct_change):+.2f}%"
+                except (TypeError, ValueError):
+                    pct_text = "pct n/a"
+                significance = row.get("significance")
+                try:
+                    sig_text = f"sig {float(significance):.2f}"
+                except (TypeError, ValueError):
+                    sig_text = "sig n/a"
+                reasons = row.get("reasons")
+                reason_items = [
+                    str(item).strip()
+                    for item in reasons
+                    if str(item).strip()
+                ] if isinstance(reasons, list) else []
+                reason_text = f" — {', '.join(reason_items[:3])}" if reason_items else ""
+                lines.append(f"    {ticker}: {pct_text} ({sig_text}){reason_text}")
         return "\n".join(lines)
 
     def _format_market_update_report(
@@ -4885,6 +5117,90 @@ class ChatController:
             tool_traces=getattr(result, "tool_traces", None) or [],
         )
 
+    def _recent_youtube_channel_from_context(self) -> str | None:
+        """Best-effort channel carryover from prior structured chat text."""
+        patterns = (
+            re.compile(r"Recent videos from\s+(.+?)(?:\s+\(|:)", re.IGNORECASE),
+            re.compile(
+                r"(?:Added|Already watching)\s+YouTube channel\s+(.+?)(?:\s+\(|\.|$)",
+                re.IGNORECASE,
+            ),
+        )
+        for item in reversed(self._recent_conversation_history()):
+            content = str(item.get("content") or "").strip()
+            if not content:
+                continue
+            for pattern in patterns:
+                match = pattern.search(content)
+                if match:
+                    channel = re.sub(r"\s+", " ", match.group(1)).strip(" .:")
+                    if channel:
+                        return channel
+        return None
+
+    def _build_command_route_response(self, route: CommandRoute) -> ChatResponse | None:
+        if not route.matched:
+            return None
+        if not route.tool:
+            return ChatResponse(
+                text=route.explanation or "I need one more detail to run that command.",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
+        from cockpit.core.tool_executor import ToolExecutor
+
+        executor = ToolExecutor(self.tool_router, self.action_registry)
+        arguments = dict(route.arguments or {})
+
+        if route.action_type == "direct_tool":
+            raw_result = executor.execute(route.tool, arguments)
+            result = raw_result if isinstance(raw_result, dict) else {"result": raw_result}
+            from cockpit.core.agent_loop import AgentLoop
+
+            evidence = [
+                {
+                    "tool": route.tool,
+                    "arguments": arguments,
+                    "result": result,
+                }
+            ]
+            self._set_latest_sources_payloads(evidence)
+            return ChatResponse(
+                text=AgentLoop._format_direct_command_tool_result(route, result),
+                evidence=evidence,
+                mode="command",
+            )
+
+        proposal = executor.execute(route.tool, arguments)
+        if isinstance(proposal, dict) and (
+            proposal.get("ok") is False or proposal.get("error")
+        ):
+            return ChatResponse(
+                text=f"Could not prepare {route.tool}: {proposal.get('error') or 'proposal failed'}",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+        preview = normalize_action_preview(
+            proposal
+            if isinstance(proposal, dict)
+            else {
+                "tool": route.tool,
+                "arguments": arguments,
+                "explanation": route.explanation or "",
+                "requires_confirmation": True,
+            }
+        )
+        text = route.explanation or f"Ready to execute: {route.tool}"
+        if preview.get("requires_confirmation", True) and "/confirm" not in text:
+            text = f"{text} Use /confirm to execute."
+        return ChatResponse(
+            text=text,
+            evidence=[],
+            action_preview=preview,
+            mode=ResponseMode.ACTION,
+        )
+
     def _recent_conversation_history(self) -> list[dict[str, str]]:
         conversation_history: list[dict[str, str]] = []
         if self._state_store is not None:
@@ -5338,6 +5654,15 @@ class ChatController:
                 on_status=on_status,
                 attached_bundle=attached_bundle,
             )
+
+        command_route = route_command(
+            effective_message,
+            active_ticker=prior_ticker or self.last_ticker,
+            recent_youtube_channel=self._recent_youtube_channel_from_context(),
+        )
+        command_response = self._build_command_route_response(command_route)
+        if command_response is not None:
+            return command_response
 
         # --- Greeting short-circuit: don't invoke the full analyst pipeline ---
         if self._GREETING_RE.match(effective_message):

@@ -1,10 +1,14 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { ArrowLeft, ExternalLink, RefreshCw } from 'lucide-react'
+import { ArrowLeft, ExternalLink, ImageOff, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 
-import { getMarketplaceMatch, type MarketplaceMatch } from '@/lib/marketplace-api'
+import {
+  getMarketplaceMatch,
+  reviewMarketplaceBenchmarkMatch,
+  type MarketplaceMatch,
+} from '@/lib/marketplace-api'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -38,6 +42,39 @@ function decisionVariant(
   return 'outline'
 }
 
+function formatCurrency(value: number | null | undefined): string {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 'n/a'
+  return new Intl.NumberFormat('en-AU', {
+    style: 'currency',
+    currency: 'AUD',
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
+function valueBadgeVariant(
+  label: string | null | undefined,
+): 'default' | 'secondary' | 'destructive' | 'outline' {
+  const normalized = String(label || '').toLowerCase()
+  if (normalized.includes('good') || normalized.includes('strong')) return 'default'
+  if (normalized.includes('overpriced') || normalized.includes('poor')) return 'destructive'
+  if (normalized.includes('unavailable') || normalized.includes('insufficient')) return 'outline'
+  return 'secondary'
+}
+
+function listingMedia(match: MarketplaceMatch): string[] {
+  const media = Array.isArray(match.listing_media) ? match.listing_media : []
+  const urls = media
+    .map((item) => String(item ?? '').trim())
+    .filter((item) => /^https?:\/\//i.test(item))
+  if (urls.length > 0) {
+    return urls
+  }
+  if (match.screenshot_path && /^https?:\/\//i.test(match.screenshot_path)) {
+    return [match.screenshot_path]
+  }
+  return []
+}
+
 export function MarketplaceMatchDetailScreen({
   apiKey,
   matchId,
@@ -45,6 +82,8 @@ export function MarketplaceMatchDetailScreen({
   const [match, setMatch] = useState<MarketplaceMatch | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [reviewSaving, setReviewSaving] = useState(false)
+  const media = match ? listingMedia(match) : []
 
   const load = useCallback(async () => {
     if (!matchId) {
@@ -66,6 +105,26 @@ export function MarketplaceMatchDetailScreen({
   useEffect(() => {
     void load()
   }, [load])
+
+  async function handleBenchmarkReview(reviewStatus: 'accepted' | 'rejected' | 'pending_review') {
+    if (!matchId) return
+    setReviewSaving(true)
+    setError(null)
+    try {
+      const updated = await reviewMarketplaceBenchmarkMatch(apiKey, matchId, {
+        review_status: reviewStatus,
+      })
+      setMatch(updated)
+    } catch (reviewError) {
+      setError(
+        reviewError instanceof Error
+          ? reviewError.message
+          : 'Failed to update benchmark review status',
+      )
+    } finally {
+      setReviewSaving(false)
+    }
+  }
 
   return (
     <div className="h-full overflow-auto">
@@ -103,6 +162,39 @@ export function MarketplaceMatchDetailScreen({
           </div>
         ) : match ? (
           <div className="grid gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Listing Photos</CardTitle>
+                <CardDescription>Marketplace listing media captured with this match.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {media.length > 0 ? (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {media.map((src, index) => (
+                      <a
+                        key={`${src}-${index}`}
+                        href={src}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="overflow-hidden rounded-md border border-border/60 bg-muted/10"
+                      >
+                        <img
+                          src={src}
+                          alt={`Listing photo ${index + 1} for ${match.title}`}
+                          className="h-52 w-full object-cover"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex h-24 items-center justify-center gap-2 rounded-md border border-dashed text-sm text-muted-foreground">
+                    <ImageOff className="h-4 w-4" />
+                    Listing photos unavailable for this capture.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader className="flex flex-row items-start justify-between space-y-0">
                 <div className="space-y-1">
@@ -211,6 +303,223 @@ export function MarketplaceMatchDetailScreen({
                 </pre>
               </CardContent>
             </Card>
+
+            {match.value_context && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Used-Market Value</CardTitle>
+                  <CardDescription>
+                    {match.value_context.value_source === 'matched_candidate_benchmark'
+                      ? 'Value overlay from the matched candidate benchmark snapshot.'
+                      : 'Value overlay from the mission primary tracked product benchmark snapshot.'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 text-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={valueBadgeVariant(match.value_context.value_label)}>
+                      {match.value_context.value_label}
+                    </Badge>
+                    <Badge variant="outline">
+                      confidence: {match.value_context.value_confidence}
+                    </Badge>
+                    <Badge variant="outline">
+                      state: {match.value_context.state.replace(/_/g, ' ')}
+                    </Badge>
+                    {typeof match.value_context.value_score === 'number' && (
+                      <Badge variant="outline" className="font-mono">
+                        value score: {match.value_context.value_score}
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div>
+                      Linked product:{' '}
+                      <span className="font-medium">
+                        {match.value_context.matched_candidate_name
+                          || match.value_context.linked_tracked_product_name
+                          || 'linked product'}
+                      </span>
+                    </div>
+                    <div>
+                      Source:{' '}
+                      <span className="font-mono">
+                        {match.value_context.value_source === 'matched_candidate_benchmark'
+                          ? 'matched candidate'
+                          : match.value_context.value_source || 'primary product'}
+                      </span>
+                    </div>
+                    <div>
+                      Benchmark snapshot:{' '}
+                      <span className="font-mono">
+                        {match.value_context.benchmark_snapshot_id || 'n/a'}
+                      </span>
+                    </div>
+                    <div>
+                      Fair range:{' '}
+                      <span className="font-mono">
+                        {typeof match.value_context.fair_low === 'number' &&
+                        typeof match.value_context.fair_high === 'number'
+                          ? `${formatCurrency(match.value_context.fair_low)} - ${formatCurrency(match.value_context.fair_high)}`
+                          : 'n/a'}
+                      </span>
+                    </div>
+                    <div>
+                      Used median:{' '}
+                      <span className="font-mono">
+                        {formatCurrency(match.value_context.used_median)}
+                      </span>
+                    </div>
+                    <div>
+                      Retail anchor:{' '}
+                      <span className="font-mono">
+                        {formatCurrency(match.value_context.retail_anchor_price)}
+                      </span>
+                    </div>
+                    <div>
+                      Benchmark freshness:{' '}
+                      <span className="font-mono">
+                        {match.value_context.benchmark_freshness_status || 'unknown'}
+                      </span>
+                    </div>
+                    {typeof match.value_context.candidate_match_confidence === 'number' && (
+                      <div>
+                        Candidate match:{' '}
+                        <span className="font-mono">
+                          {Math.round(match.value_context.candidate_match_confidence * 100)}%
+                        </span>
+                      </div>
+                    )}
+                    {typeof match.value_context.requirement_fit_score === 'number' && (
+                      <div>
+                        Requirement fit:{' '}
+                        <span className="font-mono">
+                          {Math.round(match.value_context.requirement_fit_score)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {match.value_context.price_movement_summary && (
+                    <p className="text-sm text-muted-foreground">
+                      {match.value_context.price_movement_summary}
+                    </p>
+                  )}
+                  {match.value_context.explanation && (
+                    <p className="text-sm text-muted-foreground">
+                      {match.value_context.explanation}
+                    </p>
+                  )}
+                  {match.value_context.warnings && match.value_context.warnings.length > 0 && (
+                    <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                      {match.value_context.warnings.join(' ')}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {match.benchmark && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">New Retail Benchmark Overlay</CardTitle>
+                  <CardDescription>
+                    Centre Com comparison for operational pricing context only.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 text-sm">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div>
+                      Matched product:{' '}
+                      <span className="font-medium">
+                        {match.benchmark.matched_product || 'No confident product match'}
+                      </span>
+                    </div>
+                    <div>
+                      Match confidence:{' '}
+                      <span className="font-mono">
+                        {Math.round(match.benchmark.confidence * 100)}%
+                      </span>
+                    </div>
+                    <div>
+                      Current Centre Com:{' '}
+                      <span className="font-mono">
+                        {typeof match.benchmark.current_price === 'number'
+                          ? `$${Math.round(match.benchmark.current_price)}`
+                          : 'n/a'}
+                      </span>
+                    </div>
+                    <div>
+                      30-day median:{' '}
+                      <span className="font-mono">
+                        {typeof match.benchmark.median_30d === 'number'
+                          ? `$${Math.round(match.benchmark.median_30d)}`
+                          : 'n/a'}
+                      </span>
+                    </div>
+                    <div>
+                      Listing delta:{' '}
+                      <span className="font-mono">
+                        {typeof match.benchmark.listing_delta_pct === 'number'
+                          ? `${Math.round(match.benchmark.listing_delta_pct * 10) / 10}%`
+                          : 'n/a'}
+                      </span>
+                    </div>
+                    <div>
+                      Freshness:{' '}
+                      <span className="font-mono">
+                        {typeof match.benchmark.freshness_hours === 'number'
+                          ? `${Math.round(match.benchmark.freshness_hours)}h`
+                          : 'unknown'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={match.benchmark.low_confidence ? 'destructive' : 'secondary'}>
+                      {match.benchmark.low_confidence ? 'low confidence' : 'high confidence'}
+                    </Badge>
+                    <Badge variant="outline">
+                      review: {match.benchmark.review_status || 'pending_review'}
+                    </Badge>
+                    <Badge variant="outline">
+                      wording: {match.benchmark.wording || 'new retail benchmark'}
+                    </Badge>
+                  </div>
+
+                  {match.benchmark.warning && (
+                    <p className="text-sm text-destructive">{match.benchmark.warning}</p>
+                  )}
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={reviewSaving}
+                      onClick={() => void handleBenchmarkReview('accepted')}
+                    >
+                      Mark Match Accepted
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={reviewSaving}
+                      onClick={() => void handleBenchmarkReview('rejected')}
+                    >
+                      Mark Match Rejected
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={reviewSaving}
+                      onClick={() => void handleBenchmarkReview('pending_review')}
+                    >
+                      Return to Pending Review
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center p-20 text-center space-y-4">

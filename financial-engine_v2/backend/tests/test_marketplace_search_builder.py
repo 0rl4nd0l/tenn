@@ -30,6 +30,7 @@ def test_build_marketplace_search_pack_prefers_keywords_and_brands() -> None:
     queries = flatten_marketplace_queries(pack, max_queries=4)
     assert len(queries) <= 4
     assert queries[0]
+    assert any("preston" in query.lower() for query in queries)
 
 
 def test_build_marketplace_search_pack_uses_brief_terms_when_keywords_missing() -> None:
@@ -45,6 +46,52 @@ def test_build_marketplace_search_pack_uses_brief_terms_when_keywords_missing() 
 
     assert pack["primary_queries"]
     assert any("heater" in query.lower() for query in pack["primary_queries"] + pack["fallback_queries"])
+
+
+def test_requirement_driven_search_pack_uses_candidate_terms_first() -> None:
+    mission = {
+        "name": "Inference GPU",
+        "brief": "24GB GPU for local inference.",
+        "hard_filters": {
+            "include_keywords": ["24GB GPU local inference"],
+            "location_names": ["Melbourne"],
+        },
+        "soft_preferences": {},
+        "search_config": {"max_queries_per_run": 4},
+        "deployment_args": {
+            "requirement_profile": {"mode": "requirement_driven", "category": "gpu"},
+            "candidate_search_terms": ["RTX 3090 24GB", "RTX 4090 24GB"],
+        },
+    }
+
+    pack = build_marketplace_search_pack(mission)
+    queries = flatten_marketplace_queries(pack, max_queries=4)
+
+    assert pack["primary_queries"][:2] == ["RTX 3090 24GB", "RTX 4090 24GB"]
+    assert any("rtx 3090" in query.lower() for query in queries)
+
+
+def test_requirement_driven_search_pack_fails_closed_without_candidate_terms() -> None:
+    mission = {
+        "name": "Inference GPU",
+        "brief": "24GB GPU for local inference.",
+        "hard_filters": {
+            "include_keywords": ["24GB GPU local inference"],
+            "location_names": ["Melbourne"],
+        },
+        "soft_preferences": {},
+        "search_config": {"max_queries_per_run": 4},
+        "deployment_args": {
+            "requirement_profile": {"mode": "requirement_driven", "category": "gpu"},
+        },
+    }
+
+    try:
+        build_marketplace_search_pack(mission)
+    except ValueError as exc:
+        assert "candidate_search_terms" in str(exc)
+    else:
+        raise AssertionError("requirement-driven search pack should fail closed")
 
 
 def test_build_marketplace_search_pack_compacts_long_keyword_blobs() -> None:
@@ -72,3 +119,41 @@ def test_build_marketplace_search_pack_compacts_long_keyword_blobs() -> None:
     assert "untested" in [term.lower() for term in pack["exclude_terms"]]
     assert len(queries) == 6
     assert all(len(query.split()) <= 4 for query in queries)
+
+
+def test_build_marketplace_search_pack_uses_preferred_suburbs_for_location_scope() -> None:
+    mission = {
+        "name": "Used GPU",
+        "brief": "Find an NVIDIA GPU.",
+        "hard_filters": {
+            "include_keywords": ["RTX 3090"],
+            "location_names": ["Melbourne"],
+        },
+        "soft_preferences": {"preferred_suburbs": ["Richmond"]},
+        "search_config": {"max_queries_per_run": 6},
+    }
+
+    pack = build_marketplace_search_pack(mission)
+    queries = flatten_marketplace_queries(pack, max_queries=6)
+
+    assert pack["location_scope"]["location_names"] == ["Melbourne", "Richmond"]
+    assert any("melbourne" in query.lower() for query in queries)
+
+
+def test_build_marketplace_search_pack_extracts_location_clause_from_brief() -> None:
+    mission = {
+        "name": "Inference GPU",
+        "brief": "Locations I want: Melbourne, eastern suburbs, south-east suburbs, nearby metro areas.",
+        "hard_filters": {"include_keywords": ["RTX 3090"]},
+        "soft_preferences": {},
+        "search_config": {"max_queries_per_run": 6, "query_variants_enabled": False, "broadening_enabled": False},
+    }
+
+    pack = build_marketplace_search_pack(mission)
+
+    assert pack["location_scope"]["location_names"] == [
+        "Melbourne",
+        "eastern suburbs",
+        "south-east suburbs",
+        "nearby metro areas",
+    ]

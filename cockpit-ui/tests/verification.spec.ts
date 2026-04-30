@@ -268,8 +268,9 @@ function buildMockState() {
   }
 }
 
-async function mockVerificationApi(page: Page) {
+async function mockVerificationApi(page: Page, options: { runStatusHttpStatus?: number } = {}) {
   const state = buildMockState()
+  const runStatusHttpStatus = options.runStatusHttpStatus ?? 200
 
   await page.route('**/api/cockpit/health', async (route) => {
     await route.fulfill({
@@ -399,7 +400,15 @@ async function mockVerificationApi(page: Page) {
     })
   })
 
-  await page.route('**/api/extraction-review/run/**', async (route) => {
+  await page.route(/\/api\/extraction-review\/run\/[^/?]+(?:\?.*)?$/, async (route) => {
+    if (runStatusHttpStatus === 404) {
+      await route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: 'run status not found' }),
+      })
+      return
+    }
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -520,5 +529,24 @@ test.describe('Verification screen', () => {
     await page.getByRole('button', { name: /Open Review/ }).click()
     await expect(page.getByText('Manual Extraction Review')).toBeVisible()
     await expect(page.getByText('Review 1 of 2')).toBeVisible()
+  })
+
+  test('does not repeatedly poll missing historical run timelines', async ({ page }) => {
+    let runStatusRequests = 0
+    await mockVerificationApi(page, { runStatusHttpStatus: 404 })
+    await page.route(/\/api\/extraction-review\/run\/[^/?]+(?:\?.*)?$/, async (route) => {
+      runStatusRequests += 1
+      await route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: 'run status not found' }),
+      })
+    })
+
+    await loadReviewSession(page)
+    await page.getByRole('tab', { name: /^Runs/ }).click()
+    await expect(page.getByText('Run timeline data is not available for this run yet.')).toBeVisible()
+    await page.waitForTimeout(3200)
+    expect(runStatusRequests).toBeLessThanOrEqual(1)
   })
 })

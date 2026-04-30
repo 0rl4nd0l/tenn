@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import base64
+from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from openpyxl import Workbook
 
+from app.routes import cockpit_api
 from app.routes.cockpit_api import router
 from app.services.cockpit_service import CockpitService
 from cockpit.storage.state import StateStore
@@ -106,3 +111,370 @@ def test_holdings_update_unknown_id_returns_404(tmp_path, monkeypatch) -> None:
     )
     assert response.status_code == 404
 
+
+def test_holdings_list_includes_live_market_value(tmp_path, monkeypatch) -> None:
+    fake_service = _fake_service(tmp_path)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+    monkeypatch.setattr(
+        cockpit_api,
+        "_fetch_live_price_snapshot_for_holding",
+        lambda ticker, market_exchange: (
+            {
+                "current_price": 50.25,
+                "price_currency": "AUD",
+                "price_as_of": "2026-04-22T10:00:00+00:00",
+                "market_exchange": market_exchange or "ASX",
+            }
+            if str(ticker).upper() == "BHP"
+            else None
+        ),
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    create_response = client.post(
+        "/api/cockpit/holdings",
+        json={
+            "ticker": "bhp",
+            "quantity": 100,
+            "avg_cost": 42.5,
+            "cost_currency": "AUD",
+            "market_exchange": "asx",
+        },
+    )
+    assert create_response.status_code == 200
+
+    list_response = client.get("/api/cockpit/holdings")
+    assert list_response.status_code == 200
+    items = list_response.json()["items"]
+    assert len(items) == 1
+    item = items[0]
+    assert item["ticker"] == "BHP"
+    assert item["market_exchange"] == "ASX"
+    assert item["current_price"] == 50.25
+    assert item["market_value"] == 5025.0
+    assert item["unrealized_pnl"] == 775.0
+
+
+def test_holdings_unrealized_pnl_hidden_on_currency_mismatch(
+    tmp_path, monkeypatch
+) -> None:
+    fake_service = _fake_service(tmp_path)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+    monkeypatch.setattr(
+        cockpit_api,
+        "_fetch_live_price_snapshot_for_holding",
+        lambda ticker, market_exchange: (
+            {
+                "current_price": 284.49,
+                "price_currency": "USD",
+                "price_as_of": "2026-04-22T10:00:00+00:00",
+                "market_exchange": market_exchange or "NASDAQ",
+            }
+            if str(ticker).upper() == "AMD"
+            else None
+        ),
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    create_response = client.post(
+        "/api/cockpit/holdings",
+        json={
+            "ticker": "amd",
+            "quantity": 10,
+            "avg_cost": 130,
+            "cost_currency": "AUD",
+            "market_exchange": "NASDAQ",
+        },
+    )
+    assert create_response.status_code == 200
+
+    list_response = client.get("/api/cockpit/holdings")
+    assert list_response.status_code == 200
+    item = list_response.json()["items"][0]
+    assert item["current_price"] == 284.49
+    assert item["market_value"] == 2844.9
+    assert item["unrealized_pnl"] is None
+    assert "currency mismatch" in str(item["valuation_warning"]).lower()
+
+
+def test_holdings_unrealized_pnl_requires_known_currencies(tmp_path, monkeypatch) -> None:
+    fake_service = _fake_service(tmp_path)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+    monkeypatch.setattr(
+        cockpit_api,
+        "_fetch_live_price_snapshot_for_holding",
+        lambda ticker, market_exchange: (
+            {
+                "current_price": 56.17,
+                "price_currency": "AUD",
+                "price_as_of": "2026-04-22T10:00:00+00:00",
+                "market_exchange": market_exchange or "ASX",
+            }
+            if str(ticker).upper() == "BHP"
+            else None
+        ),
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    create_response = client.post(
+        "/api/cockpit/holdings",
+        json={
+            "ticker": "BHP",
+            "quantity": 100,
+            "avg_cost": 42.5,
+            "market_exchange": "ASX",
+        },
+    )
+    assert create_response.status_code == 200
+
+    list_response = client.get("/api/cockpit/holdings")
+    assert list_response.status_code == 200
+    item = list_response.json()["items"][0]
+    assert item["current_price"] == 56.17
+    assert item["market_value"] == 5617.0
+    assert item["unrealized_pnl"] is None
+    assert "both cost currency and live price currency" in str(item["valuation_warning"]).lower()
+
+
+def test_holdings_csv_attachment_import(tmp_path, monkeypatch) -> None:
+    fake_service = _fake_service(tmp_path)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    csv_text = (
+        "ticker,quantity,avg_cost,account_label,note\n"
+        "BHP,100,43.2,Broker A,core\n"
+        "CBA,50,118.5,Broker B,trim candidate\n"
+    )
+    encoded = base64.b64encode(csv_text.encode("utf-8")).decode("ascii")
+    response = client.post(
+        "/api/cockpit/chat/attachments/upload",
+        json={
+            "filename": "holdings.csv",
+            "mime_type": "text/csv",
+            "content_base64": encoded,
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["file_kind"] == "holdings_csv"
+    assert payload["imported_count"] == 2
+    assert payload["skipped_count"] == 0
+
+    holdings = client.get("/api/cockpit/holdings").json()["items"]
+    assert len(holdings) == 2
+    assert {row["ticker"] for row in holdings} == {"BHP", "CBA"}
+
+
+def test_holdings_csv_derives_avg_cost_from_value_and_capital_gain(
+    tmp_path, monkeypatch
+) -> None:
+    fake_service = _fake_service(tmp_path)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    csv_text = (
+        "symbol,quantity,value,capital_gain\n"
+        "EIQ,5700,6526.5,5370.52\n"
+        "CSL,22,2904,-1979.95\n"
+    )
+    encoded = base64.b64encode(csv_text.encode("utf-8")).decode("ascii")
+    response = client.post(
+        "/api/cockpit/chat/attachments/upload",
+        json={
+            "filename": "holdings-derived-cost.csv",
+            "mime_type": "text/csv",
+            "content_base64": encoded,
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["imported_count"] == 2
+
+    holdings = client.get("/api/cockpit/holdings").json()["items"]
+    by_ticker = {row["ticker"]: row for row in holdings}
+    assert by_ticker["EIQ"]["avg_cost"] == pytest.approx(0.2028035087719298)
+    assert by_ticker["CSL"]["avg_cost"] == pytest.approx(221.99772727272727)
+
+
+def test_holdings_xlsx_attachment_import(tmp_path, monkeypatch) -> None:
+    fake_service = _fake_service(tmp_path)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.append(["ticker", "quantity", "avg_cost", "account_label", "note"])
+    sheet.append(["BHP", 100, 43.2, "Broker A", "core"])
+    sheet.append(["CBA", 50, 118.5, "Broker B", "trim candidate"])
+    buffer = BytesIO()
+    workbook.save(buffer)
+    workbook.close()
+    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+
+    response = client.post(
+        "/api/cockpit/chat/attachments/upload",
+        json={
+            "filename": "holdings.xlsx",
+            "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "content_base64": encoded,
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["file_kind"] == "holdings_csv"
+    assert payload["imported_count"] == 2
+    assert payload["skipped_count"] == 0
+
+    holdings = client.get("/api/cockpit/holdings").json()["items"]
+    assert len(holdings) == 2
+    assert {row["ticker"] for row in holdings} == {"BHP", "CBA"}
+
+
+def test_trades_csv_attachment_import_aggregates_positions(tmp_path, monkeypatch) -> None:
+    fake_service = _fake_service(tmp_path)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    csv_text = (
+        "ticker,side,quantity,price,trade_date,account_label\n"
+        "BHP,buy,100,40,2026-01-10,Broker A\n"
+        "BHP,buy,50,44,2026-01-12,Broker A\n"
+        "BHP,sell,30,48,2026-01-20,Broker A\n"
+        "CBA,buy,10,120,2026-01-05,Broker B\n"
+    )
+    encoded = base64.b64encode(csv_text.encode("utf-8")).decode("ascii")
+    response = client.post(
+        "/api/cockpit/chat/attachments/upload",
+        json={
+            "filename": "trades.csv",
+            "mime_type": "text/csv",
+            "content_base64": encoded,
+            "csv_profile": "trades",
+            "csv_strict": True,
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["file_kind"] == "holdings_csv"
+    assert payload["imported_count"] == 2
+    assert payload["skipped_count"] == 0
+
+    holdings = client.get("/api/cockpit/holdings").json()["items"]
+    assert len(holdings) == 2
+    by_ticker = {row["ticker"]: row for row in holdings}
+    assert by_ticker["BHP"]["quantity"] == 120.0
+    assert by_ticker["BHP"]["avg_cost"] == 41.333333333333336
+    assert by_ticker["CBA"]["quantity"] == 10.0
+    assert by_ticker["CBA"]["avg_cost"] == 120.0
+
+
+def test_strict_trades_profile_rejects_missing_required_columns(
+    tmp_path, monkeypatch
+) -> None:
+    fake_service = _fake_service(tmp_path)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    csv_text = (
+        "ticker,quantity,price\n"
+        "BHP,100,40\n"
+    )
+    encoded = base64.b64encode(csv_text.encode("utf-8")).decode("ascii")
+    response = client.post(
+        "/api/cockpit/chat/attachments/upload",
+        json={
+            "filename": "trades.csv",
+            "mime_type": "text/csv",
+            "content_base64": encoded,
+            "csv_profile": "trades",
+            "csv_strict": True,
+        },
+    )
+    assert response.status_code == 400
+    assert "missing columns: side" in response.json()["detail"]
+
+    holdings = client.get("/api/cockpit/holdings").json()["items"]
+    assert holdings == []
+
+
+def test_pdf_attachment_upload_creates_attached_source(tmp_path, monkeypatch) -> None:
+    fake_service = _fake_service(tmp_path)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+    monkeypatch.setattr(
+        cockpit_api,
+        "_extract_pdf_text",
+        lambda _bytes: (
+            "Strategy update: Operating leverage improved and free cash flow expanded. "
+            "Risk controls include liquidity buffers and monthly stress testing."
+        ),
+    )
+    monkeypatch.setattr(
+        cockpit_api,
+        "_stage_uploaded_pdf_chunks",
+        lambda **_kwargs: ("market_commentary:strategy-update:abc123", 3),
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    pdf_bytes = b"%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n"
+
+    encoded = base64.b64encode(pdf_bytes).decode("ascii")
+    response = client.post(
+        "/api/cockpit/chat/attachments/upload",
+        json={
+            "filename": "strategy-update.pdf",
+            "mime_type": "application/pdf",
+            "content_base64": encoded,
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["file_kind"] == "strategy_pdf"
+    assert payload["source_id"]
+    assert payload["chunks_staged"] >= 1
+    assert isinstance(payload["key_points"], list)

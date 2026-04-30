@@ -21,6 +21,10 @@ from app.services.transcript_watcher import (  # noqa: E402
     TranscriptProcessor,
     TranscriptWatcher,
 )
+from app.services.youtube_transcript_fetcher import (  # noqa: E402
+    DEFAULT_YOUTUBE_POLL_INTERVAL_SECONDS,
+    YoutubeTranscriptFetcher,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -33,6 +37,12 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=DEFAULT_POLL_INTERVAL_SECONDS,
         help="Polling interval for inbox/transcripts scans.",
+    )
+    parser.add_argument(
+        "--youtube-poll-seconds",
+        type=float,
+        default=DEFAULT_YOUTUBE_POLL_INTERVAL_SECONDS,
+        help="Minimum interval for polling watched YouTube channels.",
     )
     return parser.parse_args()
 
@@ -66,13 +76,19 @@ def main() -> int:
         processor=processor,
         poll_interval_seconds=args.poll_seconds,
     )
+    youtube_fetcher = YoutubeTranscriptFetcher(
+        processor=processor,
+        poll_interval_seconds=args.youtube_poll_seconds,
+    )
 
     if args.once:
         _print_results("watcher", watcher.poll_once())
+        _print_results("youtube", youtube_fetcher.maybe_poll())
         return 0
 
     while not stop_event.is_set():
         _print_results("watcher", watcher.poll_once())
+        _print_results("youtube", youtube_fetcher.maybe_poll())
         stop_event.wait(max(1.0, float(args.poll_seconds)))
     return 0
 

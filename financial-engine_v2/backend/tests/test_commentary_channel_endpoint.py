@@ -108,6 +108,8 @@ class TestAddChannelEndpoint:
                 headers=_auth_headers(),
             )
         assert resp.status_code == 502
+        assert resp.json()["detail"]["error"] == "youtube_channel_lookup_failed"
+        assert "YouTube channel URL" in resp.json()["detail"]["suggestion"]
 
     def test_list_channels(self):
         from app.services.channel_registry import ChannelConfig
@@ -171,6 +173,7 @@ class TestAddChannelEndpoint:
                 headers=_auth_headers(),
             )
         assert resp.status_code == 502
+        assert resp.json()["detail"]["error"] == "youtube_channel_lookup_failed"
 
     def test_recent_videos_limit_must_be_in_range(self):
         client = _make_client()

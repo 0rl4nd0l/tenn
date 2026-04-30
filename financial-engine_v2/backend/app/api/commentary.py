@@ -30,6 +30,7 @@ from app.services.facebook_marketplace_inspector import (
 )
 from app.services.youtube_transcript_fetcher import (
     TranscriptUnavailableError,
+    YoutubeChannelResolutionError,
     _default_fetch_transcript,  # private module-level fetcher; patched directly in tests
     fetch_video_metadata,
     list_recent_channel_videos,
@@ -357,6 +358,20 @@ def _update_source_registry(source_id: str, status: str) -> None:
         logger.warning("Failed to update registry status for %s", source_id)
 
 
+def _youtube_channel_error_detail(
+    exc: RuntimeError,
+    *,
+    name_or_id: str,
+) -> dict[str, str]:
+    error_code = getattr(exc, "error_code", "youtube_channel_lookup_failed")
+    return {
+        "error": str(error_code),
+        "message": str(exc).strip() or exc.__class__.__name__,
+        "name_or_id": name_or_id,
+        "suggestion": "Provide a YouTube channel URL, @handle, or raw channel ID.",
+    }
+
+
 # ---------------------------------------------------------------------------
 # GET /api/commentary/transcripts/pending
 # ---------------------------------------------------------------------------
@@ -654,7 +669,7 @@ def ingest_url(body: IngestUrlRequest) -> dict[str, Any]:
             source_name=video.title,
             source_type="youtube_transcript",
             speaker=video.channel_name,
-            published_at=video.published_at,
+            published_at=video.published_at or "",
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=f"transcript processing failed: {exc}") from exc
@@ -679,8 +694,16 @@ def add_watched_channel(body: AddChannelRequest) -> dict[str, Any]:
 
     try:
         channel_id, canonical_name = resolve_channel_id(name_or_id)
+    except YoutubeChannelResolutionError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=_youtube_channel_error_detail(exc, name_or_id=name_or_id),
+        ) from exc
     except RuntimeError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=502,
+            detail=_youtube_channel_error_detail(exc, name_or_id=name_or_id),
+        ) from exc
 
     registry = ChannelRegistry()
     existing = registry.channels()
@@ -734,8 +757,16 @@ def get_recent_channel_videos(body: RecentChannelVideosRequest) -> dict[str, Any
         return list_recent_channel_videos(name_or_id, limit=body.limit)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except YoutubeChannelResolutionError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=_youtube_channel_error_detail(exc, name_or_id=name_or_id),
+        ) from exc
     except RuntimeError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=502,
+            detail=_youtube_channel_error_detail(exc, name_or_id=name_or_id),
+        ) from exc
 
 
 @router.post(
@@ -758,8 +789,6 @@ def inspect_marketplace(body: InspectMarketplaceRequest) -> dict[str, Any]:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except RuntimeError as exc:
         detail = str(exc).strip() or exc.__class__.__name__
-        if detail.startswith("marketplace_login_required:"):
-            raise HTTPException(status_code=409, detail=detail) from exc
         if detail.startswith("marketplace_browser_unavailable:"):
             raise HTTPException(status_code=503, detail=detail) from exc
         raise HTTPException(status_code=502, detail=detail) from exc

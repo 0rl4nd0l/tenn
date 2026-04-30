@@ -63,7 +63,7 @@ _FOLLOWUP_EXPLANATION_RE = re.compile(
     re.IGNORECASE,
 )
 _TIME_SENSITIVE_RE = re.compile(
-    r"\b(today|latest|recent|current|now)\b",
+    r"\b(today|latest|recent|current|now|market\s+update|market\s+wrap|market\s+movers?)\b",
     re.IGNORECASE,
 )
 _META_OR_ACK_RE = re.compile(
@@ -87,7 +87,7 @@ _ANALYTICAL_QUERY_RE = re.compile(
 )
 
 _FINANCIAL_CLAIM_IN_RESPONSE_RE = re.compile(
-    r"\b[A-Z]{2,5}\b|"
+    r"(?-i:\b[A-Z]{2,5}\b)|"
     r"\$[\d,]+(?:\.\d+)?[MBKmb]?\b|"
     r"\b\d+(?:\.\d+)?%\b|"
     r"\b(?:announced|reported|upgraded|downgraded|raised|cut|beat|missed|"
@@ -108,6 +108,8 @@ _GROUNDING_TOOL_NAMES = frozenset(
         "get_data_quality",
         "run_analysis",
         "fetch_url",
+        "tv_screener",
+        "get_watchlist_alerts",
         # Legacy/alternate evidence emitters kept for backward compatibility
         # with older tests and payload shapes.
         "gather_local_context",
@@ -169,7 +171,7 @@ _STRUCTURED_OUTPUT_INSTRUCTIONS = """
 RESPONSE FORMAT:
 Always respond with a JSON object. Choose one of these types:
 
-1. "thinking" — MANDATORY as your first response. Assess what you know and plan your approach.
+1. "thinking" — Optional. Use when planning helps before tool calls.
    {"type": "thinking", "assessment": "<what data do I have / what is the user asking>", "plan": "<what tools will I call and why>"}
 
 2. "response" — You have enough information to answer.
@@ -184,7 +186,7 @@ Always respond with a JSON object. Choose one of these types:
 5. "action_proposal" — You want to suggest a mutating action that requires user confirmation.
    {"type": "action_proposal", "tool": "<tool_name>", "arguments": {…}, "explanation": "<what and why>", "requires_confirmation": true}
 
-THINKING PROTOCOL (first response must be "thinking"):
+THINKING PROTOCOL (use when helpful):
 Before calling any tool or answering, walk through these steps in your assessment:
   a) What is the user actually asking? (restate the core question)
   b) What information do I already have in this conversation? (prior tool results, ticker context, session history)
@@ -193,7 +195,8 @@ Before calling any tool or answering, walk through these steps in your assessmen
   e) Could I strengthen my answer with supplementary data? (e.g. news context, price data alongside financials)
   f) State your plan: which tools, in what order, and what you expect each to provide.
 
-After the thinking step, proceed with tool_call/tool_calls/response as planned.
+After a thinking step, proceed with tool_call/tool_calls/response as planned.
+You may also go straight to tool_call/tool_calls/response when no planning step is needed.
 After receiving tool results, you may respond directly or call additional tools — no further thinking step required.
 
 Rules:
@@ -560,29 +563,6 @@ class AgentLoop:
                 # Thinking doesn't consume an iteration slot
                 continue
 
-            # --- Iteration-0 nudge: if the LLM skips thinking on the first pass ---
-            if (
-                not has_thought
-                and iteration == 0
-                and parsed.type in ("tool_call", "tool_calls")
-            ):
-                has_thought = True  # Don't nudge again
-                logger.info("LLM skipped thinking step; injecting nudge")
-                messages.append({"role": "assistant", "content": raw_response})
-                messages.append(
-                    {
-                        "role": "user",
-                        "content": (
-                            "Before executing tools, briefly assess: What data do you already have? "
-                            "What gaps exist? Are these the right tools to fill those gaps? "
-                            'Respond with {"type": "thinking", "assessment": "...", "plan": "..."} '
-                            "then proceed with your tool calls."
-                        ),
-                    }
-                )
-                # Nudge doesn't consume an iteration slot either
-                continue
-
             # From here on, the LLM is acting — count the iteration.
             iteration += 1
 
@@ -627,6 +607,20 @@ class AgentLoop:
                     evidence=evidence,
                     force_backend=getattr(self, "_turn_force_backend", None),
                 ):
+                    # If we already attempted tools this turn and the model is
+                    # explicitly abstaining, allow the refusal through.
+                    # This prevents infinite "use tools first" nudges when the
+                    # tool itself failed and the model is transparently
+                    # reporting that failure.
+                    if evidence and _response_is_pure_refusal(parsed.content or raw_response):
+                        final_text = parsed.content or raw_response
+                        return AgentResult(
+                            text=final_text,
+                            evidence=evidence,
+                            tool_calls_made=total_tool_calls,
+                            iterations_used=iteration,
+                            tool_traces=tool_traces,
+                        )
                     if grounding_nudges_given >= 1 and not _response_is_pure_refusal(
                         parsed.content or raw_response
                     ):
@@ -1170,16 +1164,22 @@ class AgentLoop:
             return False
         if _META_OR_ACK_RE.fullmatch(query):
             return False
+        is_time_sensitive = bool(_TIME_SENSITIVE_RE.search(query))
         if force_backend == "api":
             # /cloud turns must be grounded by at least one current-turn
             # factual retrieval tool before we allow substantive answers.
-            return not cls._has_grounding_evidence(evidence)
+            if not cls._has_grounding_evidence(evidence):
+                return True
+            if is_time_sensitive and not cls._has_fresh_grounding_evidence(evidence):
+                return True
+            return False
         if cls._has_grounding_evidence(evidence):
+            if is_time_sensitive and not cls._has_fresh_grounding_evidence(evidence):
+                return True
             return False
 
         has_news_or_event_terms = bool(_NEWS_OR_EVENT_QUERY_RE.search(query))
         has_followup_explanation = bool(_FOLLOWUP_EXPLANATION_RE.search(query))
-        is_time_sensitive = bool(_TIME_SENSITIVE_RE.search(query))
 
         recent_history = "\n".join(
             str(item.get("content") or "")
@@ -1208,6 +1208,63 @@ class AgentLoop:
             if isinstance(result, dict) and result.get("error"):
                 continue
             return True
+        return False
+
+    @staticmethod
+    def _has_fresh_grounding_evidence(evidence: list[dict]) -> bool:
+        """Return True when current-turn evidence includes a fresh market signal."""
+        for entry in evidence:
+            if not isinstance(entry, dict):
+                continue
+            tool = str(entry.get("tool") or entry.get("type") or "").strip()
+            result = entry.get("result")
+            if not isinstance(result, dict):
+                continue
+            if result.get("error"):
+                continue
+
+            if tool == "search_news":
+                hits = result.get("hits")
+                if isinstance(hits, list) and hits and not result.get("freshness_warning"):
+                    return True
+                continue
+
+            if tool == "search_announcements":
+                docs = result.get("documents")
+                if isinstance(docs, list) and docs:
+                    return True
+                context_rows = result.get("context")
+                if isinstance(context_rows, list) and context_rows:
+                    return True
+                continue
+
+            if tool == "tv_screener":
+                rows = result.get("results")
+                if isinstance(rows, list) and rows:
+                    return True
+                continue
+
+            if tool == "get_watchlist_alerts":
+                alerts = result.get("alerts")
+                if isinstance(alerts, list) and alerts:
+                    return True
+                continue
+
+            if tool in {"get_price", "get_price_on_date", "get_price_range"}:
+                if bool(result.get("ok", True)):
+                    return True
+                continue
+
+            if tool in {"query_ticker_data", "gather_local_context", "get_company_dump"}:
+                if result.get("price") or result.get("latest_financial_snapshot"):
+                    return True
+                continue
+
+            if tool == "get_financials":
+                rows = result.get("financials")
+                if isinstance(rows, list) and rows:
+                    return True
+                continue
         return False
 
     # ------------------------------------------------------------------

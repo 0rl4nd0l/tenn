@@ -11,9 +11,17 @@ export type MarketplaceAssistantSuggestedAction =
 export interface MarketplaceMissionDraft {
   status: 'collecting' | 'ready'
   missingFields: string[]
+  missionType:
+    | 'find_good_deals'
+    | 'benchmark_listings'
+    | 'refresh_retail_benchmarks'
+    | 'review_uncertain_matches'
   name: string
   brief: string
+  userGoal: string
   categoryHint: string | null
+  benchmarkSources: string[]
+  deploymentArgs: Record<string, unknown>
   hardFilters: {
     includeKeywords: string[]
     excludeKeywords: string[]
@@ -52,9 +60,13 @@ export interface MarketplaceAssistantTranscriptMessage {
 }
 
 type MarketplaceMissionDraftDelta = Partial<{
+  missionType: MarketplaceMissionDraft['missionType']
   name: string
   brief: string
+  userGoal: string
   categoryHint: string | null
+  benchmarkSources: string[]
+  deploymentArgs: Record<string, unknown>
   hardFilters: Partial<MarketplaceMissionDraft['hardFilters']>
   softPreferences: Partial<MarketplaceMissionDraft['softPreferences']>
   searchConfig: Partial<MarketplaceMissionDraft['searchConfig']>
@@ -99,6 +111,7 @@ interface SendMarketplaceAssistantTurnParams {
   webSearchEnabled: boolean
   sessionId: string
   userMessage: string
+  signal?: AbortSignal
 }
 
 const SESSION_STORAGE_KEY = 'cockpit-marketplace-assistant-session-v1'
@@ -483,7 +496,6 @@ function summarizeBrowserHealth(browserHealth: MarketplaceBrowserHealth | null):
 
   return {
     status: browserHealth.status,
-    loggedIn: browserHealth.logged_in,
     challengeDetected: browserHealth.challenge_detected,
     finalUrl: browserHealth.final_url ?? null,
   }
@@ -577,9 +589,13 @@ export function createMarketplaceMissionDraft(homeLocation: string): Marketplace
   return {
     status: locationNames.length > 0 ? 'collecting' : 'collecting',
     missingFields: normalizedHomeLocation ? ['name', 'brief'] : ['name', 'brief', 'location'],
+    missionType: 'find_good_deals',
     name: '',
     brief: '',
+    userGoal: '',
     categoryHint: null,
+    benchmarkSources: ['centre_com'],
+    deploymentArgs: {},
     hardFilters: {
       includeKeywords: [],
       excludeKeywords: [],
@@ -644,8 +660,24 @@ export function mergeMarketplaceMissionDraft(
   if ('brief' in delta) {
     nextDraft.brief = cleanText(delta.brief)
   }
+  if ('userGoal' in delta) {
+    nextDraft.userGoal = cleanText(delta.userGoal)
+  }
+  if ('missionType' in delta && delta.missionType) {
+    nextDraft.missionType = delta.missionType
+  }
   if ('categoryHint' in delta) {
     nextDraft.categoryHint = delta.categoryHint == null ? null : cleanText(delta.categoryHint)
+  }
+  if ('benchmarkSources' in delta) {
+    const sources = normalizeStringList(delta.benchmarkSources)
+    nextDraft.benchmarkSources = sources.length > 0 ? sources : ['centre_com']
+  }
+  if ('deploymentArgs' in delta) {
+    nextDraft.deploymentArgs =
+      delta.deploymentArgs && typeof delta.deploymentArgs === 'object'
+        ? { ...delta.deploymentArgs }
+        : nextDraft.deploymentArgs
   }
 
   if (delta.hardFilters && typeof delta.hardFilters === 'object') {
@@ -720,6 +752,9 @@ export function mergeMarketplaceMissionDraft(
   ) {
     nextDraft.hardFilters.locationNames = [cleanText(options?.homeLocation)]
   }
+  if (!cleanText(nextDraft.userGoal) && cleanText(nextDraft.brief)) {
+    nextDraft.userGoal = nextDraft.brief
+  }
 
   const evaluated = evaluateMarketplaceMissionDraft(nextDraft)
   const mergedMissing = new Set<string>([
@@ -734,12 +769,20 @@ export function mergeMarketplaceMissionDraft(
   return nextDraft
 }
 
-export function mapMarketplaceDraftToMissionPayload(draft: MarketplaceMissionDraft): Record<string, unknown> {
+export function mapMarketplaceDraftToMissionPayload(
+  draft: MarketplaceMissionDraft,
+  options?: { createdFromChatMessageId?: string | null },
+): Record<string, unknown> {
   return {
+    mission_type: draft.missionType,
     name: draft.name,
     brief: draft.brief,
+    user_goal: draft.userGoal || draft.brief,
     category_hint: draft.categoryHint,
     status: 'paused',
+    benchmark_sources: draft.benchmarkSources,
+    deployment_args: draft.deploymentArgs,
+    created_from_chat_message_id: options?.createdFromChatMessageId || null,
     hard_filters: {
       include_keywords: draft.hardFilters.includeKeywords,
       exclude_keywords: draft.hardFilters.excludeKeywords,
@@ -818,6 +861,7 @@ export async function sendMarketplaceAssistantTurn(
   const response = await fetch('/api/cockpit/chat', {
     method: 'POST',
     headers: buildHeaders(params.apiKey),
+    signal: params.signal,
     body: JSON.stringify({
       message: `${routePrefix} ${prompt}`,
       mode: 'marketplace',

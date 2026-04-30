@@ -384,8 +384,10 @@ export function CockpitSidebar({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-5 w-5 absolute right-1 opacity-0 group-hover/session:opacity-100 transition-opacity hover:text-destructive"
+                          className="h-5 w-5 absolute right-1 opacity-70 md:opacity-0 md:group-hover/session:opacity-100 md:group-focus-within/session:opacity-100 transition-opacity hover:text-destructive"
                           onClick={(e) => handleDeleteSession(s.sessionId, e)}
+                          title="Delete chat session"
+                          aria-label="Delete chat session"
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>

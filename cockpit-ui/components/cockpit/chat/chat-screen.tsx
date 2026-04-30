@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, type ChangeEvent, type DragEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
@@ -52,6 +52,7 @@ import { extractMarketplaceUrl } from '@/lib/marketplace-url'
 import { extractYouTubeUrl } from '@/lib/youtube-url'
 import { applyApiDefaultOverride, isApiRoutedMessage } from '@/lib/chat-routing'
 import type { ChatMessage as ChatMessageType, ActionPreview, ChatProviderError } from '@/lib/cockpit-types'
+import { toReportDisplayPath } from '@/lib/report-path'
 import { toast } from 'sonner'
 
 type FeedbackKind = 'good' | 'poor'
@@ -61,8 +62,14 @@ type FeedbackState = 'saving-good' | 'saved-good' | 'saving-poor' | 'saved-poor'
 type FeedbackCaptureResponse = {
   report_id: string
   feedback_type: FeedbackKind
+  capture_kind?: 'chat_feedback' | 'ui_issue' | 'auto_diagnostic'
   report_dir: string
+  read_api_path?: string | null
   codex_prompt?: string | null
+  codex_prompt_path?: string | null
+  investigation_path?: string | null
+  investigation_status?: string | null
+  codex_cli_command?: string | null
   analysis_summary?: string | null
 }
 
@@ -108,6 +115,29 @@ type TakeawaysResponse = {
   }>
   model?: string
   prompt_version?: string
+}
+
+type ChatAttachmentUploadResponse = {
+  ok: boolean
+  file_kind: 'holdings_csv' | 'strategy_pdf'
+  message: string
+  imported_count?: number
+  skipped_count?: number
+  errors?: string[]
+  source_id?: string | null
+  source_kind?: 'ephemeral' | 'concat' | 'primary' | null
+  chunks_staged?: number
+  key_points?: string[]
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let output = ''
+  const chunkSize = 0x8000
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    const chunk = bytes.subarray(index, index + chunkSize)
+    output += String.fromCharCode(...chunk)
+  }
+  return btoa(output)
 }
 
 function buildProviderErrorNotice(providerError: ChatProviderError | null | undefined): string | null {
@@ -185,6 +215,48 @@ async function copyFlagPromptToClipboard(prompt: string): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+function formatFlagHandoffMessage(result: FeedbackCaptureResponse, copiedPrompt: boolean): string {
+  const reportPath = toReportDisplayPath(result.report_dir) || result.report_dir
+  const promptPath = result.codex_prompt_path
+    ? (toReportDisplayPath(result.codex_prompt_path) || result.codex_prompt_path)
+    : null
+  const investigationPath = result.investigation_path
+    ? (toReportDisplayPath(result.investigation_path) || result.investigation_path)
+    : null
+  const status = result.investigation_status || 'queued'
+  const lines = [
+    'Flag captured. Codex investigation is ready to deploy.',
+    '',
+    `Report: \`${reportPath}\``,
+    `Status: \`${status}\``,
+  ]
+  if (promptPath) {
+    lines.push(`Prompt file: \`${promptPath}\``)
+  }
+  if (investigationPath) {
+    lines.push(`Investigation packet: \`${investigationPath}\``)
+  }
+  if (result.read_api_path) {
+    lines.push(`Read API: \`${result.read_api_path}\``)
+  }
+  if (result.codex_cli_command) {
+    lines.push('', 'Deploy Codex from the repo root:', '```bash', result.codex_cli_command, '```')
+  }
+  const prompt = result.codex_prompt?.trim()
+  if (prompt) {
+    lines.push(
+      '',
+      copiedPrompt
+        ? 'The Codex prompt has been copied to your clipboard. Prompt body:'
+        : 'Copy this prompt into a Codex CLI session:',
+      '```text',
+      prompt,
+      '```',
+    )
+  }
+  return lines.join('\n')
 }
 
 const FEEDBACK_NOTE_PRESETS: Record<FeedbackKind, readonly string[]> = {
@@ -297,7 +369,10 @@ export function ChatScreen() {
   const [takeaways, setTakeaways] = useState<TakeawaysPayload | null>(null)
   const [sourcesOpen, setSourcesOpen] = useState(false)
   const [watchlistNotice, setWatchlistNotice] = useState<WatchlistNotice | null>(null)
+  const [isDropActive, setIsDropActive] = useState(false)
   const [apiKey, setApiKey] = useState(process.env.NEXT_PUBLIC_API_KEY ?? '')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const dragDepthRef = useRef(0)
   const activeStreamRef = useRef<{ close: () => void } | null>(null)
   const activeRequestStartedAtRef = useRef<number | null>(null)
   const statusFallbackTimersRef = useRef<number[]>([])
@@ -541,6 +616,109 @@ export function ChatScreen() {
       // Session-scoped indexing is opportunistic from the UI's perspective.
     }
   }, [buildAuthHeaders, sessionId])
+
+  const uploadAttachmentFiles = useCallback(async (files: File[]) => {
+    if (files.length === 0) {
+      return
+    }
+
+    for (const file of files) {
+      const filename = String(file.name || 'uploaded-file').trim() || 'uploaded-file'
+      const lower = filename.toLowerCase()
+      const isCsv = lower.endsWith('.csv') || file.type.toLowerCase().includes('csv')
+      const isXlsx = lower.endsWith('.xlsx') || lower.endsWith('.xlsm') || file.type.toLowerCase().includes('spreadsheetml')
+      const isPdf = lower.endsWith('.pdf') || file.type.toLowerCase().includes('pdf')
+      const isTabular = isCsv || isXlsx
+      if (!isTabular && !isPdf) {
+        appendSystemMessage(`Unsupported file "${filename}". Upload CSV, XLSX, or PDF files only.`)
+        toast.error(`Unsupported file: ${filename}`)
+        continue
+      }
+
+      try {
+        const bytes = new Uint8Array(await file.arrayBuffer())
+        const contentBase64 = bytesToBase64(bytes)
+        const csvProfile = isTabular && /\btrade(s)?\b/.test(lower) ? 'trades' : 'auto'
+        const csvStrict = csvProfile === 'trades'
+        const response = await fetch('/api/cockpit/chat/attachments/upload', {
+          method: 'POST',
+          headers: buildAuthHeaders('application/json'),
+          body: JSON.stringify({
+            filename,
+            mime_type: file.type || null,
+            content_base64: contentBase64,
+            csv_profile: csvProfile,
+            csv_strict: csvStrict,
+          }),
+        })
+
+        const rawBody = await response.text()
+        let payload: ChatAttachmentUploadResponse | null = null
+        if (rawBody) {
+          try {
+            payload = JSON.parse(rawBody) as ChatAttachmentUploadResponse
+          } catch {
+            payload = null
+          }
+        }
+        if (!response.ok || payload === null) {
+          const detail = payload && typeof payload === 'object'
+            ? String((payload as { detail?: string }).detail || '')
+            : rawBody
+          if (response.status === 404 && /not found/i.test(detail)) {
+            throw new Error(
+              'Attachment upload endpoint is unavailable on the backend. Restart backend to load /api/cockpit/chat/attachments/upload.'
+            )
+          }
+          throw new Error(detail || `Attachment upload failed (${response.status})`)
+        }
+
+        if (payload.file_kind === 'holdings_csv') {
+          const imported = Number(payload.imported_count || 0)
+          const skipped = Number(payload.skipped_count || 0)
+          const errors = Array.isArray(payload.errors) ? payload.errors : []
+          const errorSummary = errors.length > 0 ? `\nIssues:\n- ${errors.slice(0, 5).join('\n- ')}` : ''
+          appendSystemMessage(
+            `${payload.message || `Imported ${imported} holdings from ${filename}.`}\nImported: ${imported}\nSkipped: ${skipped}${errorSummary}`
+          )
+          toast.success(`Imported holdings from ${filename}`)
+          continue
+        }
+
+        const sourceId = String(payload.source_id || '').trim()
+        const sourceKind = payload.source_kind || 'concat'
+        const stagedChunks = Number(payload.chunks_staged || 0)
+        const keyPoints = Array.isArray(payload.key_points) ? payload.key_points.slice(0, 5) : []
+        if (sourceId) {
+          attached.attach({
+            sourceId,
+            sourceKind,
+            title: filename,
+          })
+          await buildEphemeralIndex(sourceId)
+          setLatestIngest({
+            sourceId,
+            title: filename,
+            chunkCount: stagedChunks,
+            detectedTickers: [],
+            status: 'pending',
+            sourceKind,
+          })
+          setLatestVideoUrl(null)
+          setTakeaways(null)
+          setWatchlistNotice(null)
+        }
+
+        const pointsSection = keyPoints.length > 0 ? `\nKey points:\n- ${keyPoints.join('\n- ')}` : ''
+        appendSystemMessage(`${payload.message || `Attached ${filename}.`}${pointsSection}`)
+        toast.success(`Attached ${filename}`)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Attachment upload failed'
+        appendSystemMessage(`Attachment upload failed for ${filename}: ${message}`)
+        toast.error(message)
+      }
+    }
+  }, [appendSystemMessage, attached, buildAuthHeaders, buildEphemeralIndex])
 
   const ingestYouTubeUrl = useCallback(async (url: string) => {
     try {
@@ -787,6 +965,64 @@ export function ChatScreen() {
     return stage
   }, [])
 
+  const openFilePicker = useCallback(() => {
+    fileInputRef.current?.click()
+  }, [])
+
+  const handleFilePickerChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files ? Array.from(event.target.files) : []
+    event.target.value = ''
+    if (files.length === 0) {
+      return
+    }
+    void uploadAttachmentFiles(files)
+  }, [uploadAttachmentFiles])
+
+  const handleDragEnter = useCallback((event: DragEvent<HTMLDivElement>) => {
+    if (!event.dataTransfer?.types.includes('Files')) {
+      return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+    dragDepthRef.current += 1
+    setIsDropActive(true)
+  }, [])
+
+  const handleDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
+    if (!event.dataTransfer?.types.includes('Files')) {
+      return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+    if (!isDropActive) {
+      setIsDropActive(true)
+    }
+  }, [isDropActive])
+
+  const handleDragLeave = useCallback((event: DragEvent<HTMLDivElement>) => {
+    if (!event.dataTransfer?.types.includes('Files')) {
+      return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1)
+    if (dragDepthRef.current === 0) {
+      setIsDropActive(false)
+    }
+  }, [])
+
+  const handleDrop = useCallback((event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    dragDepthRef.current = 0
+    setIsDropActive(false)
+    const files = event.dataTransfer?.files ? Array.from(event.dataTransfer.files) : []
+    if (files.length === 0) {
+      return
+    }
+    void uploadAttachmentFiles(files)
+  }, [uploadAttachmentFiles])
+
   const handleSend = async (content: string) => {
     const pendingActionIntent = pendingActionPreview
       ? resolvePendingActionIntent(content)
@@ -929,21 +1165,21 @@ export function ChatScreen() {
         }
         if (response.content.cost_usd) addCost(response.content.cost_usd)
         if (latencyMs !== undefined) setLatency(latencyMs)
-        if (response.content.model) setActiveModel(response.content.model)
-        setActiveSource(response.content.source || 'local')
-        const providerErrorNotice = buildProviderErrorNotice(response.content.provider_error)
-        if (providerErrorNotice) {
-          toast.error(providerErrorNotice, { duration: 15000 })
-          setMessages(prev => [...prev, systemMessage, {
-            id: generateId(),
-            role: 'system',
-            content: providerErrorNotice,
-            timestamp: new Date(),
-          }])
-        } else {
-          setMessages(prev => [...prev, systemMessage])
-        }
-      } catch (err) {
+	        if (response.content.model) setActiveModel(response.content.model)
+	        setActiveSource(response.content.source || 'local')
+	        const providerErrorNotice = buildProviderErrorNotice(response.content.provider_error)
+	        if (providerErrorNotice) {
+	          toast.error(providerErrorNotice, { duration: 15000 })
+	          setMessages(prev => [...prev, systemMessage, {
+	            id: generateId(),
+	            role: 'system',
+	            content: providerErrorNotice,
+	            timestamp: new Date(),
+	          }])
+	        } else {
+	          setMessages(prev => [...prev, systemMessage])
+	        }
+	      } catch (err) {
         toast.error('Command failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
       } finally {
         setIsStreaming(false)
@@ -1084,17 +1320,40 @@ export function ChatScreen() {
               setActiveSource(event.data.source || 'local')
               setPendingActionPreview(normalizedActionPreview ?? null)
 
+              const autoFlag = event.data?.auto_flag && typeof event.data.auto_flag === 'object'
+                ? event.data.auto_flag as FeedbackCaptureResponse
+                : null
+              const autoFlagMessage: ChatMessageType | null = autoFlag
+                ? {
+                    id: generateId(),
+                    role: 'system',
+                    content: formatFlagHandoffMessage(autoFlag, false),
+                    timestamp: new Date(),
+                  }
+                : null
               const providerErrorNotice = buildProviderErrorNotice(event.data?.provider_error)
               if (providerErrorNotice) {
                 toast.error(providerErrorNotice, { duration: 15000 })
-                setMessages(prev => [...prev, assistantMessage, {
-                  id: generateId(),
-                  role: 'system',
-                  content: providerErrorNotice,
-                  timestamp: new Date(),
-                }])
+                setMessages(prev => [
+                  ...prev,
+                  assistantMessage,
+                  ...(autoFlagMessage ? [autoFlagMessage] : []),
+                  {
+                    id: generateId(),
+                    role: 'system',
+                    content: providerErrorNotice,
+                    timestamp: new Date(),
+                  },
+                ])
               } else {
-                setMessages(prev => [...prev, assistantMessage])
+                setMessages(prev => [
+                  ...prev,
+                  assistantMessage,
+                  ...(autoFlagMessage ? [autoFlagMessage] : []),
+                ])
+              }
+              if (autoFlagMessage) {
+                toast.success('Flag captured. Codex investigation is ready to deploy.')
               }
               setStreamingContent('')
               clearStreamingStage()
@@ -1252,6 +1511,16 @@ export function ChatScreen() {
 
     actionInFlightRef.current = true
     setPendingActionPreview(null)
+    const isCandlestickAction = actionId === 'show_candlestick'
+    const hasRenderableChart = (chart: ChatMessageType['chart'] | null | undefined): chart is NonNullable<ChatMessageType['chart']> => (
+      Boolean(chart && typeof chart.html === 'string' && chart.html.trim())
+    )
+    const missingChartDetail = (raw: string | null | undefined): string => {
+      const detail = String(raw || '').trim()
+      return detail
+        ? `missing rendered chart payload (${detail})`
+        : 'missing rendered chart payload'
+    }
 
     const progressMessageId = generateId()
     const renderProgressContent = (status: ActionJobStatus | null, fallbackStatus: string): string => {
@@ -1283,11 +1552,24 @@ export function ChatScreen() {
       })
 
       if (!handle.job_id) {
+        if (isCandlestickAction && !hasRenderableChart(handle.chart)) {
+          const detail = missingChartDetail(handle.result)
+          setMessages(prev => prev.map(m => m.id === progressMessageId
+            ? {
+                ...m,
+                role: 'system',
+                content: `Action **${actionPreview.name}** failed: ${detail}`,
+                timestamp: new Date(),
+              }
+            : m))
+          toast.error(`Action "${actionPreview.name}" failed`)
+          return
+        }
         const finalContent = handle.result
           ? `Action **${actionPreview.name}** executed successfully.\n\n${handle.result}`
           : `Action **${actionPreview.name}** executed successfully.`
         setMessages(prev => prev.map(m => m.id === progressMessageId
-          ? { ...m, role: 'assistant', content: finalContent, timestamp: new Date(), metadata: { source: 'local' } }
+          ? { ...m, role: 'assistant', content: finalContent, timestamp: new Date(), metadata: { source: 'local' }, chart: handle.chart ?? undefined }
           : m))
         toast.success(`Action "${actionPreview.name}" executed`)
         return
@@ -1329,12 +1611,26 @@ export function ChatScreen() {
       }
 
       if (lastStatus.status === 'completed') {
+        const statusChart = (lastStatus as ActionJobStatus & { chart?: ChatMessageType['chart'] }).chart
+        if (isCandlestickAction && !hasRenderableChart(statusChart)) {
+          const detail = missingChartDetail(lastStatus.result)
+          setMessages(prev => prev.map(m => m.id === progressMessageId
+            ? {
+                ...m,
+                role: 'system',
+                content: `Action **${actionPreview.name}** failed: ${detail}`,
+                timestamp: new Date(),
+              }
+            : m))
+          toast.error(`Action "${actionPreview.name}" failed`)
+          return
+        }
         const body = lastStatus.result?.trim()
         const finalContent = body
           ? `Action **${actionPreview.name}** executed successfully.\n\n${body}`
           : `Action **${actionPreview.name}** executed successfully.`
         setMessages(prev => prev.map(m => m.id === progressMessageId
-          ? { ...m, role: 'assistant', content: finalContent, timestamp: new Date(), metadata: { source: 'local' } }
+          ? { ...m, role: 'assistant', content: finalContent, timestamp: new Date(), metadata: { source: 'local' }, chart: statusChart }
           : m))
         toast.success(`Action "${actionPreview.name}" executed`)
       } else {
@@ -1441,22 +1737,29 @@ export function ChatScreen() {
       setPendingFeedback(null)
       setFeedbackNote('')
       const result = payload as FeedbackCaptureResponse
+      const reportPath = toReportDisplayPath(result.report_dir) || result.report_dir
 
       if (feedbackType === 'good') {
         toast.success(result.analysis_summary?.trim()
           ? `Good response saved: ${result.analysis_summary}`
-          : `Good response saved to ${result.report_dir}`)
+          : `Good response saved to ${reportPath}`)
       } else {
         const copiedPrompt = result.codex_prompt?.trim()
           ? await copyFlagPromptToClipboard(result.codex_prompt)
           : false
+        setMessages((prev) => [...prev, {
+          id: generateId(),
+          role: 'system',
+          content: formatFlagHandoffMessage(result, copiedPrompt),
+          timestamp: new Date(),
+        }])
         toast.success(result.analysis_summary?.trim()
           ? copiedPrompt
             ? `Flag saved and Codex prompt copied: ${result.analysis_summary}`
             : `Flag saved: ${result.analysis_summary}`
           : copiedPrompt
-            ? `Flag saved and Codex prompt copied: ${result.report_dir}`
-            : `Flag saved to ${result.report_dir}`)
+            ? `Flag saved and Codex prompt copied: ${reportPath}`
+            : `Flag saved to ${reportPath}`)
       }
     } catch (error) {
       setFeedbackStates((prev) => {
@@ -1482,6 +1785,14 @@ export function ChatScreen() {
   const pendingFeedbackKind = pendingFeedback?.kind ?? 'poor'
   const isPendingGoodFeedback = pendingFeedbackKind === 'good'
   const pendingFeedbackPresets = FEEDBACK_NOTE_PRESETS[pendingFeedbackKind]
+  const canClearChat = (
+    messages.length > 0
+    || Boolean(streamingContent)
+    || attached.attached.length > 0
+    || latestIngest !== null
+    || takeaways !== null
+    || watchlistNotice !== null
+  )
 
   const closeFeedbackDialog = useCallback(() => {
     if (isPendingFeedbackSaving) {
@@ -1501,7 +1812,21 @@ export function ChatScreen() {
   if (!hasHydrated) return null
 
   return (
-    <div className="flex h-full flex-col terminal-container overflow-hidden">
+    <div
+      className={`flex h-full flex-col terminal-container overflow-hidden ${isDropActive ? 'ring-2 ring-blue-500/60 ring-inset' : ''}`}
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept=".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.pdf,application/pdf"
+        className="hidden"
+        onChange={handleFilePickerChange}
+      />
       <Dialog open={Boolean(pendingFeedback)} onOpenChange={(open) => {
         if (!open) {
           closeFeedbackDialog()
@@ -1583,6 +1908,12 @@ export function ChatScreen() {
         </DialogContent>
       </Dialog>
 
+      {isDropActive ? (
+        <div className="border-b border-blue-500/40 bg-blue-500/10 px-4 py-2 text-xs font-mono text-blue-200">
+          Drop CSV, XLSX, or PDF files to attach/import
+        </div>
+      ) : null}
+
       {/* Terminal header */}
       <div className="flex items-center gap-2 px-4 py-2 border-b border-border/30 bg-black/20 relative z-10">
         <div className="flex gap-1.5">
@@ -1655,15 +1986,34 @@ export function ChatScreen() {
             ✕
           </button>
         )}
-        {isStreaming && (
+        <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
-            onClick={handleCancelStream}
-            className="ml-auto rounded border border-red-500/40 bg-red-500/10 px-2 py-1 font-mono text-[11px] text-red-300 transition-colors hover:bg-red-500/20"
+            onClick={() => { void handleClearMessages() }}
+            disabled={isStreaming || !canClearChat}
+            className="rounded border border-red-500/40 bg-red-500/10 px-2 py-1 font-mono text-[11px] text-red-200 transition-colors hover:bg-red-500/20 disabled:cursor-default disabled:opacity-50"
+            title={isStreaming ? 'Stop streaming before clearing chat' : 'Clear current chat session'}
           >
-            Cancel
+            Clear chat
           </button>
-        )}
+          <button
+            type="button"
+            onClick={openFilePicker}
+            className="rounded border border-blue-500/40 bg-blue-500/10 px-2 py-1 font-mono text-[11px] text-blue-200 transition-colors hover:bg-blue-500/20"
+            title="Attach CSV, XLSX, or PDF files"
+          >
+            Attach file
+          </button>
+          {isStreaming && (
+            <button
+              type="button"
+              onClick={handleCancelStream}
+              className="rounded border border-red-500/40 bg-red-500/10 px-2 py-1 font-mono text-[11px] text-red-300 transition-colors hover:bg-red-500/20"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
       </div>
 
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>

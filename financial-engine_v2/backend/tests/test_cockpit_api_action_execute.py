@@ -194,6 +194,72 @@ def test_cockpit_execute_action_uses_backend_data_when_chart_csv_missing(
     assert "BHP Candlestick Dashboard" in payload["chart"]["html"]
 
 
+def test_cockpit_execute_action_show_candlestick_fails_when_chart_html_is_empty(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    class FakeArtifactStore:
+        def write_text(self, rel_path: str, content: str) -> str:
+            return str(tmp_path / rel_path)
+
+    class FakeActionRegistry:
+        @staticmethod
+        def preview(action_id: str, args: dict[str, object]) -> SimpleNamespace:
+            return SimpleNamespace(timeout_seconds=60, command=["noop"], args=args)
+
+    class FakeToolRouter:
+        @staticmethod
+        def get_price_context_for_window(
+            ticker: str,
+            *,
+            range_: str = "1y",
+            interval: str = "1d",
+            max_history_rows: int = 260,
+        ) -> dict[str, object]:
+            return {
+                "price_state": {"current": {"close": 42.0}},
+                "price": {
+                    "recent_history": [
+                        {
+                            "timestamp": "2026-04-08T00:00:00+00:00",
+                            "open": 41.5,
+                            "high": 42.3,
+                            "low": 41.1,
+                            "close": 42.0,
+                            "volume": 999,
+                        }
+                    ]
+                },
+            }
+
+    fake_service = SimpleNamespace(
+        repo_root=tmp_path,
+        action_registry=FakeActionRegistry(),
+        artifact_store=FakeArtifactStore(),
+        tool_router=FakeToolRouter(),
+    )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+    monkeypatch.setattr(
+        "cockpit.core.plotly_html.build_candlestick_dashboard_html",
+        lambda payload: "   ",
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/action/execute",
+        json={"action_id": "show_candlestick", "args": {"ticker": "BHP", "timeframe": "1d"}},
+    )
+
+    assert response.status_code == 502
+    assert "empty chart payload" in response.json()["detail"]
+
+
 def test_cockpit_execute_action_can_queue_long_running_action(
     tmp_path,
     monkeypatch,
@@ -457,9 +523,17 @@ def test_cockpit_action_job_stop_terminates_registered_process(
     class DummyProc:
         def __init__(self) -> None:
             self.terminated = False
+            self.wait_called = False
+            self.killed = False
 
         def terminate(self) -> None:
             self.terminated = True
+
+        def wait(self, timeout: int | float | None = None) -> None:
+            self.wait_called = True
+
+        def kill(self) -> None:
+            self.killed = True
 
     dummy_proc = DummyProc()
     cockpit_api_module._ACTION_JOB_PROCS["job-123"] = dummy_proc
@@ -485,6 +559,55 @@ def test_cockpit_action_job_stop_terminates_registered_process(
     assert payload["job_id"] == "job-123"
     assert payload["status"] == "cancelling"
     assert dummy_proc.terminated is True
+    assert dummy_proc.wait_called is True
+    assert dummy_proc.killed is False
+
+
+def test_cockpit_action_job_stop_kills_process_when_wait_times_out(
+    monkeypatch,
+) -> None:
+    class DummyProc:
+        def __init__(self) -> None:
+            self.terminated = False
+            self.wait_called = False
+            self.killed = False
+
+        def terminate(self) -> None:
+            self.terminated = True
+
+        def wait(self, timeout: int | float | None = None) -> None:
+            self.wait_called = True
+            raise TimeoutError("still running")
+
+        def kill(self) -> None:
+            self.killed = True
+
+    dummy_proc = DummyProc()
+    cockpit_api_module._ACTION_JOB_PROCS["job-124"] = dummy_proc
+    fake_service = SimpleNamespace(
+        state_store=SimpleNamespace(get_job=lambda job_id: {"job_id": job_id, "status": "running"})
+    )
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    try:
+        response = client.post("/api/cockpit/action/jobs/job-124/stop")
+    finally:
+        cockpit_api_module._ACTION_JOB_PROCS.pop("job-124", None)
+        cockpit_api_module._ACTION_JOB_CANCEL_REQUESTS.discard("job-124")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["job_id"] == "job-124"
+    assert payload["status"] == "cancelling"
+    assert dummy_proc.terminated is True
+    assert dummy_proc.wait_called is True
+    assert dummy_proc.killed is True
 
 
 def test_cockpit_action_job_stop_requests_pipeline_cancellation(

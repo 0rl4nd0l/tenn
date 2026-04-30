@@ -118,6 +118,71 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  :where(
+    button,
+    [role='button'],
+    [data-slot='button'],
+    [data-slot$='-button'],
+    [data-slot='sidebar-menu-action']
+  ) {
+    transition:
+      background-color var(--motion-fast) ease,
+      border-color var(--motion-fast) ease,
+      color var(--motion-fast) ease,
+      filter var(--motion-fast) ease,
+      outline-color var(--motion-fast) ease;
+  }
+
+  :where(
+    button,
+    [role='button'],
+    [data-slot='button'],
+    [data-slot$='-button'],
+    [data-slot='sidebar-menu-action']
+  ):not(:disabled):not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+
+  @media (hover: hover) {
+    :where(
+      button,
+      [role='button'],
+      [data-slot='button'],
+      [data-slot$='-button'],
+      [data-slot='sidebar-menu-action']
+    ):not(:disabled):not([aria-disabled='true']):hover {
+      filter: brightness(1.08);
+      outline: 1px solid color-mix(in oklch, var(--ring) 35%, transparent);
+      outline-offset: 1px;
+    }
+  }
+
+  :where(
+    button,
+    [role='button'],
+    [data-slot='button'],
+    [data-slot$='-button'],
+    [data-slot='sidebar-menu-action']
+  ):not(:disabled):not([aria-disabled='true']):active,
+  :where(
+    button,
+    [role='button'],
+    [data-slot='button'],
+    [data-slot$='-button'],
+    [data-slot='sidebar-menu-action']
+  )[aria-pressed='true'],
+  :where(
+    button,
+    [role='button'],
+    [data-slot='button'],
+    [data-slot$='-button'],
+    [data-slot='sidebar-menu-action']
+  )[data-state='on'] {
+    filter: brightness(0.9) saturate(1.08);
+    outline: 1px solid color-mix(in oklch, var(--ring) 55%, transparent);
+    outline-offset: 1px;
+  }
 }
 
 .terminal-panel {

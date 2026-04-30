@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { ExternalLink, RefreshCw } from 'lucide-react'
+import { ExternalLink, ImageOff, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 
 import {
@@ -49,6 +49,46 @@ function decisionVariant(
   if (decisionBand === 'candidate') return 'secondary'
   if (decisionBand === 'reject') return 'destructive'
   return 'outline'
+}
+
+function formatCurrency(value: number | null | undefined): string {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 'n/a'
+  return new Intl.NumberFormat('en-AU', {
+    style: 'currency',
+    currency: 'AUD',
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
+function formatDelta(value: number | null | undefined): string {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 'n/a'
+  const rounded = Math.round(value * 10) / 10
+  const sign = rounded > 0 ? '+' : ''
+  return `${sign}${rounded}%`
+}
+
+function valueBadgeVariant(
+  label: string | null | undefined,
+): 'default' | 'secondary' | 'destructive' | 'outline' {
+  const normalized = String(label || '').toLowerCase()
+  if (normalized.includes('good') || normalized.includes('strong')) return 'default'
+  if (normalized.includes('overpriced') || normalized.includes('poor')) return 'destructive'
+  if (normalized.includes('unavailable') || normalized.includes('insufficient')) return 'outline'
+  return 'secondary'
+}
+
+function listingMedia(match: MarketplaceMatch): string[] {
+  const media = Array.isArray(match.listing_media) ? match.listing_media : []
+  const urls = media
+    .map((item) => String(item ?? '').trim())
+    .filter((item) => /^https?:\/\//i.test(item))
+  if (urls.length > 0) {
+    return urls
+  }
+  if (match.screenshot_path && /^https?:\/\//i.test(match.screenshot_path)) {
+    return [match.screenshot_path]
+  }
+  return []
 }
 
 export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenProps) {
@@ -154,7 +194,10 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
           </div>
         ) : (
           <div className="grid gap-4">
-            {matches.map((match) => (
+            {matches.map((match) => {
+              const media = listingMedia(match)
+              const firstMedia = media[0] ?? null
+              return (
               <Card key={match.match_id} className="overflow-hidden transition-colors hover:bg-muted/5">
                 <CardHeader className="pb-3">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -200,6 +243,25 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                   </div>
                 </CardHeader>
                 <CardContent className="pb-4">
+                  <div className="mb-3 overflow-hidden rounded-md border border-border/60 bg-muted/20">
+                    {firstMedia ? (
+                      <img
+                        src={firstMedia}
+                        alt={`Listing photo for ${match.title}`}
+                        className="h-40 w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-24 items-center justify-center gap-2 text-xs text-muted-foreground">
+                        <ImageOff className="h-4 w-4" />
+                        Listing photos unavailable
+                      </div>
+                    )}
+                  </div>
+                  <div className="mb-3">
+                    <Badge variant="outline" className="text-[10px]">
+                      photos: {media.length}
+                    </Badge>
+                  </div>
                   {match.reasons_for && match.reasons_for.length > 0 && (
                     <div className="mb-3 flex flex-wrap gap-1">
                       {match.reasons_for.map((reason, i) => (
@@ -236,9 +298,132 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                       <span className="text-muted-foreground font-mono">ID: {match.listing_id.slice(0, 12)}</span>
                     )}
                   </div>
+                  {match.value_context && (
+                    <div className="mt-3 rounded-md border border-primary/20 bg-primary/5 p-3 text-[11px]">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <span className="font-medium">Used-market value</span>
+                        <Badge
+                          variant={valueBadgeVariant(match.value_context.value_label)}
+                          className="text-[10px]"
+                        >
+                          {match.value_context.value_label}
+                        </Badge>
+                        <Badge variant="outline" className="text-[10px]">
+                          confidence: {match.value_context.value_confidence}
+                        </Badge>
+                        {typeof match.value_context.value_score === 'number' && (
+                          <Badge variant="outline" className="font-mono text-[10px]">
+                            value: {match.value_context.value_score}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="grid gap-1 sm:grid-cols-2">
+                        <div>
+                          Product:{' '}
+                          <span className="font-medium">
+                            {match.value_context.matched_candidate_name
+                              || match.value_context.linked_tracked_product_name
+                              || 'linked product'}
+                          </span>
+                        </div>
+                        <div>
+                          Source:{' '}
+                          <span className="font-mono">
+                            {match.value_context.value_source === 'matched_candidate_benchmark'
+                              ? 'matched candidate'
+                              : match.value_context.value_source || 'primary product'}
+                          </span>
+                        </div>
+                        <div>
+                          State:{' '}
+                          <span className="font-mono">
+                            {match.value_context.state.replace(/_/g, ' ')}
+                          </span>
+                        </div>
+                        <div>
+                          Fair range:{' '}
+                          <span className="font-mono">
+                            {typeof match.value_context.fair_low === 'number' &&
+                            typeof match.value_context.fair_high === 'number'
+                              ? `${formatCurrency(match.value_context.fair_low)} - ${formatCurrency(match.value_context.fair_high)}`
+                              : 'n/a'}
+                          </span>
+                        </div>
+                        <div>
+                          Used median:{' '}
+                          <span className="font-mono">
+                            {formatCurrency(match.value_context.used_median)}
+                          </span>
+                        </div>
+                        {typeof match.value_context.candidate_match_confidence === 'number' && (
+                          <div>
+                            Candidate match:{' '}
+                            <span className="font-mono">
+                              {Math.round(match.value_context.candidate_match_confidence * 100)}%
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      {match.value_context.price_movement_summary && (
+                        <p className="mt-2 text-[11px] text-muted-foreground">
+                          {match.value_context.price_movement_summary}
+                        </p>
+                      )}
+                      {match.value_context.explanation && (
+                        <p className="mt-2 text-[11px] text-muted-foreground">
+                          {match.value_context.explanation}
+                        </p>
+                      )}
+                      {match.value_context.warnings && match.value_context.warnings.length > 0 && (
+                        <p className="mt-2 text-[11px] text-destructive">
+                          {match.value_context.warnings.slice(0, 2).join(' ')}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {match.benchmark && (
+                    <div className="mt-3 rounded-md border border-border/60 bg-muted/20 p-3 text-[11px]">
+                      <div className="mb-1 font-medium">New retail benchmark ({match.benchmark.source})</div>
+                      <div className="grid gap-1 sm:grid-cols-2">
+                        <div>
+                          Product: <span className="font-medium">{match.benchmark.matched_product || 'unmatched'}</span>
+                        </div>
+                        <div>
+                          Confidence: <span className="font-mono">{Math.round(match.benchmark.confidence * 100)}%</span>
+                        </div>
+                        <div>
+                          Current: <span className="font-mono">{formatCurrency(match.benchmark.current_price)}</span>
+                        </div>
+                        <div>
+                          30d median: <span className="font-mono">{formatCurrency(match.benchmark.median_30d)}</span>
+                        </div>
+                        <div>
+                          Listing delta: <span className="font-mono">{formatDelta(match.benchmark.listing_delta_pct)}</span>
+                        </div>
+                        <div>
+                          Freshness: <span className="font-mono">
+                            {typeof match.benchmark.freshness_hours === 'number'
+                              ? `${Math.round(match.benchmark.freshness_hours)}h`
+                              : 'unknown'}
+                          </span>
+                        </div>
+                      </div>
+                      {match.benchmark.review_status && (
+                        <div className="mt-2">
+                          <Badge variant="outline" className="text-[10px]">
+                            review: {match.benchmark.review_status}
+                          </Badge>
+                        </div>
+                      )}
+                      {match.benchmark.warning && (
+                        <p className="mt-2 text-[11px] text-destructive">{match.benchmark.warning}</p>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

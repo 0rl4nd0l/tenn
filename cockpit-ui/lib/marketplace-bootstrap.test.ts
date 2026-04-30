@@ -21,21 +21,20 @@ describe('marketplace-bootstrap', () => {
     })
   })
 
-  it('parses login-required errors from plain text responses', () => {
+  it('does not special-case archived login-required errors', () => {
     expect(
       parseMarketplaceCaptureError(
         'marketplace_login_required: The browser session is not logged into Facebook Marketplace.',
         409,
       ),
     ).toEqual({
-      kind: 'login_required',
-      message: 'The browser session is not logged into Facebook Marketplace.',
+      kind: 'other',
+      message: 'marketplace_login_required: The browser session is not logged into Facebook Marketplace.',
     })
   })
 
-  it('offers the launcher only for browser/login setup failures', () => {
+  it('offers the launcher only for browser setup failures', () => {
     expect(shouldOfferMarketplaceBrowserLaunch('browser_unavailable')).toBe(true)
-    expect(shouldOfferMarketplaceBrowserLaunch('login_required')).toBe(true)
     expect(shouldOfferMarketplaceBrowserLaunch('other')).toBe(false)
   })
 })

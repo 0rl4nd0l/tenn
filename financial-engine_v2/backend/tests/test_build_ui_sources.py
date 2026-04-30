@@ -84,6 +84,93 @@ def test_orchestrator_financial_truth_announcement_context_renders_visible_sourc
     assert sources[1]["url"] == "https://example.com/ppt-sale.pdf"
 
 
+def test_orchestrator_nested_financial_truth_financial_rows_render_visible_sources() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "type": "orchestrator",
+                "details": {
+                    "financial_truth": {
+                        "ticker": "BHP",
+                        "financials": [
+                            {
+                                "ticker": "BHP",
+                                "period_type": "annual",
+                                "period_end": "2025-06-30",
+                                "revenue": 55100,
+                                "source_document_id": "doc-bhp-fy25",
+                            }
+                        ],
+                        "latest_financial_snapshot": {
+                            "ticker": "BHP",
+                            "period_type": "annual",
+                            "period_end": "2025-06-30",
+                            "cash_end": 9000,
+                            "source_document_id": "doc-bhp-fy25-snapshot",
+                        },
+                    }
+                },
+            }
+        ]
+    )
+
+    assert len(sources) == 2
+    assert sources[0]["title"] == "BHP annual 2025-06-30"
+    assert sources[0]["document_id"] == "doc-bhp-fy25"
+    assert "revenue: 55100" in str(sources[0]["snippet"])
+    assert sources[1]["document_id"] == "doc-bhp-fy25-snapshot"
+
+
+def test_orchestrator_memory_payloads_render_visible_sources() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "type": "orchestrator",
+                "details": {
+                    "company_memory": {
+                        "items": [
+                            {
+                                "entry_id": 7,
+                                "type": "strategy",
+                                "statement": "Management is prioritising copper growth.",
+                                "confidence": 0.8,
+                                "updated_at": "2026-04-20T00:00:00+00:00",
+                            }
+                        ]
+                    },
+                    "market_memory": {
+                        "items": [
+                            {
+                                "entry_id": 3,
+                                "type": "macro",
+                                "statement": "Iron ore pricing remains volatile.",
+                                "confidence": 0.7,
+                            }
+                        ]
+                    },
+                    "user_thesis_memory": {
+                        "items": [
+                            {
+                                "entry_id": 2,
+                                "entry_type": "watch",
+                                "statement": "Wait for balance-sheet confirmation.",
+                                "confidence": 0.6,
+                            }
+                        ]
+                    },
+                },
+            }
+        ]
+    )
+
+    assert [source["source_id"] for source in sources] == [
+        "company_memory:7",
+        "market_memory:3",
+        "user_thesis_memory:2",
+    ]
+    assert "copper growth" in str(sources[0]["snippet"])
+
+
 def test_agent_format_search_news() -> None:
     sources = _build_ui_sources(
         [
@@ -105,6 +192,29 @@ def test_agent_format_search_news() -> None:
     assert len(sources) == 1
     assert sources[0]["kind"] == "news"
     assert sources[0]["url"] == "https://news.example.com/bhp"
+
+
+def test_agent_format_search_news_zero_hits_emits_operational_source_item() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "tool": "search_news",
+                "result": {
+                    "query": "BHP news",
+                    "ticker": "BHP",
+                    "hit_count": 0,
+                    "hits": [],
+                    "freshness_warning": "News index last updated 2 days ago.",
+                },
+            }
+        ]
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["title"] == "News search: no hits for BHP news"
+    assert sources[0]["source_id"] == "search_news:no_hits:bhp news"
+    assert sources[0]["doc_type"] == "operational_no_hit"
+    assert "2 days ago" in str(sources[0]["snippet"])
 
 
 def test_agent_format_gather_local_context() -> None:
@@ -551,6 +661,45 @@ def test_agent_format_search_social() -> None:
     assert sources[0]["kind"] == "web"
 
 
+def test_agent_format_check_youtube_channel_recent_videos() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "tool": "check_youtube_channel_recent_videos",
+                "result": {
+                    "ok": True,
+                    "name": "Kneppy Invests",
+                    "channel_id": "UCabc123",
+                    "videos": [
+                        {
+                            "video_id": "vid123",
+                            "title": "BHP quarterly results breakdown",
+                            "published_at": "2026-04-28T00:00:00Z",
+                            "webpage_url": "https://www.youtube.com/watch?v=vid123",
+                            "duration_seconds": 1200,
+                            "scores": {"overall": 0.91},
+                        },
+                        {
+                            "video_id": "vid456",
+                            "title": "RIO update",
+                            "published_at": "2026-04-27T00:00:00Z",
+                        },
+                    ],
+                },
+            }
+        ]
+    )
+
+    assert len(sources) == 2
+    assert sources[0]["title"] == "BHP quarterly results breakdown"
+    assert sources[0]["url"] == "https://www.youtube.com/watch?v=vid123"
+    assert sources[0]["source_id"] == "youtube:vid123"
+    assert sources[0]["published_at"] == "2026-04-28T00:00:00Z"
+    assert sources[0]["doc_type"] == "youtube_video"
+    assert "Video ID: vid123" in str(sources[0]["snippet"])
+    assert sources[1]["url"] == "https://www.youtube.com/watch?v=vid456"
+
+
 def test_agent_format_get_watchlist_alerts() -> None:
     sources = _build_ui_sources(
         [
@@ -574,6 +723,25 @@ def test_agent_format_get_watchlist_alerts() -> None:
     assert len(sources) == 1
     assert sources[0]["title"] == "BHP price"
     assert sources[0]["source_id"] == "alert-1"
+
+
+def test_agent_format_get_watchlist_alerts_without_rows_still_emits_source_item() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "tool": "get_watchlist_alerts",
+                "result": {
+                    "ticker": "BHP",
+                    "since_hours": 24,
+                    "alerts": [],
+                },
+            }
+        ]
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["title"] == "BHP alerts"
+    assert sources[0]["source_id"] == "watchlist_alerts:BHP"
 
 
 def test_agent_format_tv_screener() -> None:
@@ -600,6 +768,25 @@ def test_agent_format_tv_screener() -> None:
     assert sources[0]["title"] == "ASX:BHP (AUSTRALIA)"
     assert sources[0]["source_id"] == "tv_screener:AUSTRALIA:ASX:BHP"
     assert "change percent: 2.1" in str(sources[0]["snippet"]).lower()
+
+
+def test_agent_format_tv_screener_without_rows_still_emits_source_item() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "tool": "tv_screener",
+                "result": {
+                    "market": "australia",
+                    "count": 0,
+                    "results": [],
+                },
+            }
+        ]
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["title"] == "TradingView screener (AUSTRALIA)"
+    assert sources[0]["source_id"] == "tv_screener:AUSTRALIA"
 
 
 def test_agent_format_get_tv_indicators() -> None:

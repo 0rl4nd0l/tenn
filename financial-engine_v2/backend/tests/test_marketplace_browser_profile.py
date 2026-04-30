@@ -5,6 +5,13 @@ import asyncio
 import app.services.marketplace_browser_profile as browser_profile
 
 
+def test_marketplace_scan_health_allows_expected_statuses() -> None:
+    assert browser_profile.marketplace_scan_health_allows_execution({"status": "ready"}) is True
+    assert browser_profile.marketplace_scan_health_allows_execution({"status": "challenge_detected"}) is True
+    assert browser_profile.marketplace_scan_health_allows_execution({"status": "login_required"}) is False
+    assert browser_profile.marketplace_scan_health_allows_execution({"status": "browser_unavailable"}) is False
+
+
 def test_browser_health_reports_helper_ready_when_backend_has_no_display(monkeypatch) -> None:
     monkeypatch.setattr(browser_profile, "_fetch_cdp_version", lambda *args, **kwargs: None)
     monkeypatch.setattr(browser_profile, "_has_graphical_desktop_session", lambda: False)
@@ -95,11 +102,9 @@ def test_browser_health_uses_direct_runtime(monkeypatch) -> None:
             return None
 
         async def evaluate(self, script: str):
-            assert "publicMarketplaceVisible" in script
+            assert "loginRequired" not in script
             return {
                 "challengeDetected": False,
-                "loginRequired": False,
-                "publicMarketplaceVisible": True,
                 "finalUrl": "https://www.facebook.com/marketplace/",
             }
 
@@ -114,7 +119,7 @@ def test_browser_health_uses_direct_runtime(monkeypatch) -> None:
     monkeypatch.setattr(
         browser_profile,
         "open_direct_marketplace_context",
-        lambda: _FakeContextManager(),
+        lambda lock_timeout_seconds=None: _FakeContextManager(),
     )
 
     health = browser_profile.check_marketplace_browser_health(timeout_ms=1000)
@@ -156,7 +161,7 @@ def test_browser_health_direct_runtime_reports_navigation_timeout_cleanly(monkey
     monkeypatch.setattr(
         browser_profile,
         "open_direct_marketplace_context",
-        lambda: _FakeContextManager(),
+        lambda lock_timeout_seconds=None: _FakeContextManager(),
     )
 
     health = browser_profile.check_marketplace_browser_health(timeout_ms=5000)
@@ -165,6 +170,30 @@ def test_browser_health_direct_runtime_reports_navigation_timeout_cleanly(monkey
     assert health["profile_path"] == "/tmp/direct-profile"
     assert "probe timed out during marketplace navigation" in str(health["detail"]).lower()
     assert "launch failed" not in str(health["detail"]).lower()
+
+
+def test_browser_health_direct_runtime_treats_profile_lock_busy_as_ready(monkeypatch) -> None:
+    class _BusyContextManager:
+        async def __aenter__(self):
+            raise RuntimeError(
+                "Marketplace browser profile is already in use by another Chromium instance or "
+                "Marketplace operation."
+            )
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+    monkeypatch.setattr(browser_profile, "use_direct_marketplace_runtime", lambda: True)
+    monkeypatch.setattr(
+        browser_profile,
+        "open_direct_marketplace_context",
+        lambda lock_timeout_seconds=None: _BusyContextManager(),
+    )
+
+    health = browser_profile.check_marketplace_browser_health(timeout_ms=5000)
+
+    assert health["status"] == "ready"
+    assert "currently in use" in str(health["detail"]).lower()
 
 
 def test_browser_health_sync_wrapper_works_inside_running_loop(monkeypatch) -> None:

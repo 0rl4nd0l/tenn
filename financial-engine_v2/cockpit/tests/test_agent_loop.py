@@ -12,6 +12,7 @@ Plus:
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 from cockpit.core.agent_loop import AgentLoop
@@ -241,6 +242,41 @@ class TestAgentLoopRegressions:
         executor.assert_called_once_with("get_financials", {"ticker": "BHP"})
         assert "I found current financials" in result.text
 
+    def test_direct_price_lookup_executes_tool_without_forced_thinking(self):
+        """Ticker price lookups should execute get_price even if the model starts with tool_call."""
+        responses = [
+            json.dumps(
+                {
+                    "type": "tool_call",
+                    "tool": "get_price",
+                    "arguments": {"ticker": "FGR"},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "response",
+                    "content": "FGR last close is A$1.23.",
+                }
+            ),
+            "FGR last close is A$1.23.",
+        ]
+        executor = MagicMock(
+            return_value={
+                "ok": True,
+                "ticker": "FGR",
+                "price": {"current": {"close": 1.23}},
+            }
+        )
+        loop = AgentLoop(llm_client=_make_llm(responses), tool_executor=executor)
+
+        result = loop.run("fgr price")
+
+        assert result is not None
+        assert result.tool_calls_made == 1
+        assert result.iterations_used == 2
+        executor.assert_called_once_with("get_price", {"ticker": "FGR"})
+        assert "FGR last close is A$1.23." in result.text
+
     def test_watch_youtube_channel_command_executes_direct_tool(self):
         executor = MagicMock(
             return_value={
@@ -330,6 +366,7 @@ class TestAgentLoopRegressions:
         assert result.mode == "command"
         assert result.action_preview is not None
         assert result.action_preview["action_id"] == "daily_news_ingest"
+        assert result.action_preview["args"]["tickers"] == "BHP"
         executor.assert_not_called()
         llm.chat.assert_not_called()
 
@@ -413,6 +450,89 @@ class TestAgentLoopRegressions:
         assert result.tool_calls_made == 1
         executor.assert_called_once_with("search_files", {"pattern": "bhp"})
         assert "I need to look that up before I can answer reliably." in result.text
+
+    def test_time_sensitive_market_update_rejects_stale_news_evidence(self):
+        responses = [
+            json.dumps(
+                {
+                    "type": "thinking",
+                    "assessment": "Need latest movers",
+                    "plan": "Fetch market news first",
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "tool_call",
+                    "tool": "search_news",
+                    "arguments": {"query": "market movers today"},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "response",
+                    "content": "Top movers today were BHP and RIO.",
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "response",
+                    "content": "BHP rose 3% today.",
+                }
+            ),
+        ]
+        executor = MagicMock(
+            return_value={
+                "ok": True,
+                "hits": [{"title": "Old market wrap", "published_at": "2026-04-10T00:00:00Z"}],
+                "freshness_warning": "Most recent article is 5 day(s) old.",
+            }
+        )
+        loop = AgentLoop(llm_client=_make_llm(responses), tool_executor=executor)
+
+        result = loop.run("market update today")
+
+        assert result is not None
+        assert result.tool_calls_made == 1
+        assert "I need to look that up before I can answer reliably." in result.text
+
+    def test_time_sensitive_market_update_accepts_fresh_news_evidence(self):
+        now_iso = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        responses = [
+            json.dumps(
+                {
+                    "type": "thinking",
+                    "assessment": "Need current mover context",
+                    "plan": "Use search_news then answer",
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "tool_call",
+                    "tool": "search_news",
+                    "arguments": {"query": "market movers today"},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "response",
+                    "content": "Today's movers include BHP and RIO based on current-turn news hits.",
+                }
+            ),
+        ]
+        executor = MagicMock(
+            return_value={
+                "ok": True,
+                "hits": [{"title": "ASX movers update", "published_at": now_iso}],
+                "freshness_warning": "",
+            }
+        )
+        loop = AgentLoop(llm_client=_make_llm(responses), tool_executor=executor)
+
+        result = loop.run("market update today")
+
+        assert result is not None
+        assert result.tool_calls_made == 1
+        assert "current-turn news hits" in result.text
 
     def test_evidence_summary_does_not_surface_internal_truncation_metadata(self):
         summary = AgentLoop._summarize_evidence(

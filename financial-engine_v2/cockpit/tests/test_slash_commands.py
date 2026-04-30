@@ -657,7 +657,8 @@ class TestBuildChatResponseSlashDispatch(SlashCommandTestBase):
         ]
         resp = self.controller.build_chat_response("what stocks am i holding")
         assert resp is not None
-        assert "Holdings (1)" in resp.text
+        assert "Portfolio overview (1 holdings)" in resp.text
+        assert "Live pricing coverage" in resp.text
         self.controller.ollama_client.chat.assert_not_called()
 
     def test_natural_language_watchlist_short_circuits_llm(self) -> None:
@@ -722,6 +723,65 @@ class TestBuildChatResponseSlashDispatch(SlashCommandTestBase):
         assert resp.action_preview is not None
         assert resp.action_preview["action_id"] == "single_ticker_announcement_backfill"
         self.tool_router.web_enrich.assert_not_called()
+
+    def test_news_ingest_command_short_circuits_query_orchestration(self) -> None:
+        query_orchestrator = MagicMock()
+        self.controller._query_orchestrator = query_orchestrator
+
+        resp = self.controller.build_chat_response("ingest VEA news")
+
+        assert resp.mode == ResponseMode.ACTION
+        assert resp.action_preview is not None
+        assert resp.action_preview["action_id"] == "daily_news_ingest"
+        assert resp.action_preview["args"]["tickers"] == "VEA"
+        query_orchestrator.orchestrate_query_with_context.assert_not_called()
+        self.controller.ollama_client.chat.assert_not_called()
+
+    def test_youtube_recent_video_followup_uses_prior_channel_context(self) -> None:
+        backend = MagicMock()
+        backend.get_youtube_channel_recent_videos.return_value = {
+            "name": "Kneppy Invests",
+            "channel_id": "UCabc123",
+            "videos": [
+                {
+                    "title": "Latest ASX breakdown",
+                    "published_at": "2026-04-29T00:00:00Z",
+                    "webpage_url": "https://www.youtube.com/watch?v=abc123def45",
+                    "duration_seconds": 600,
+                    "scores": {"overall": 0.88},
+                }
+            ],
+        }
+        self.tool_router.backend_api_client = backend
+        self.state_store.get_chat_messages.return_value = [
+            {
+                "role": "assistant",
+                "content": "Recent videos from Kneppy Invests (UCabc123):",
+            },
+            {"role": "user", "content": "most recent video?"},
+        ]
+
+        resp = self.controller.build_chat_response("most recent video?")
+
+        assert resp.mode == "command"
+        assert "Recent videos from Kneppy Invests (UCabc123)" in resp.text
+        assert "Latest ASX breakdown" in resp.text
+        backend.get_youtube_channel_recent_videos.assert_called_once_with(
+            "Kneppy Invests",
+            limit=8,
+        )
+        self.controller.ollama_client.chat.assert_not_called()
+
+    def test_youtube_recent_video_followup_without_channel_asks_clearly(self) -> None:
+        self.state_store.get_chat_messages.return_value = [
+            {"role": "user", "content": "most recent video?"}
+        ]
+
+        resp = self.controller.build_chat_response("most recent video?")
+
+        assert resp.mode == ResponseMode.FAST
+        assert "Which YouTube channel" in resp.text
+        self.controller.ollama_client.chat.assert_not_called()
 
 
 class TestIngestCommand(unittest.TestCase):
@@ -827,12 +887,51 @@ class TestHoldingsSlashCommand(SlashCommandTestBase):
         ]
         resp = self.controller._handle_slash_command("/holdings list")
         assert resp is not None
-        assert "Holdings (2)" in resp.text
+        assert "Portfolio overview (2 holdings)" in resp.text
+        assert "Live pricing coverage" in resp.text
         assert "BHP" in resp.text
         assert "CBA" in resp.text
         # Quantity and avg cost surfaced when present
         assert "100" in resp.text
-        assert "45.5" in resp.text
+        assert "45.50" in resp.text
+        assert "Tip: use `/holdings remove <ID>`" in resp.text
+
+    def test_holdings_list_prefers_backend_enriched_rows_when_available(self) -> None:
+        backend = MagicMock()
+        backend.list_cockpit_holdings.return_value = {
+            "items": [
+                {
+                    "holding_id": "h1",
+                    "ticker": "BHP",
+                    "account_label": "main",
+                    "quantity": 100.0,
+                    "avg_cost": 40.0,
+                    "cost_currency": "AUD",
+                    "current_price": 50.0,
+                    "price_currency": "AUD",
+                    "market_value": 5000.0,
+                    "unrealized_pnl": 1000.0,
+                    "price_as_of": "2026-04-22T08:30:00Z",
+                    "valuation_warning": None,
+                }
+            ]
+        }
+        self.tool_router.backend_api_client = backend
+        self.state_store.list_holdings.return_value = []
+
+        resp = self.controller._handle_slash_command("/holdings list")
+
+        assert resp is not None
+        assert "Portfolio overview (1 holdings)" in resp.text
+        assert "Market value:" in resp.text
+        assert "AUD 5,000.00" in resp.text
+        assert "+AUD 1,000.00" in resp.text
+        backend.list_cockpit_holdings.assert_called_once_with(
+            ticker=None,
+            include_archived=False,
+            timeout=15.0,
+        )
+        self.state_store.list_holdings.assert_not_called()
 
     def test_holdings_list_filters_by_ticker(self) -> None:
         self.state_store.list_holdings.return_value = []
@@ -1027,7 +1126,14 @@ class TestMarketUpdateSlashCommand(SlashCommandTestBase):
         "created_at": "2026-04-20T12:05:00",
         "summary": {
             "headline": "ASX 200 +0.6% at noon",
-            "movers": [{"ticker": "BHP", "pct": 1.2}],
+            "tickers": [
+                {
+                    "ticker": "BHP",
+                    "pct_change": 1.2,
+                    "significance": 0.82,
+                    "reasons": ["price move", "fresh news"],
+                }
+            ],
         },
         "markdown_path": None,
         "json_path": None,
@@ -1043,6 +1149,9 @@ class TestMarketUpdateSlashCommand(SlashCommandTestBase):
         assert "noon" in resp.text.lower()
         assert "2026-04-20" in resp.text
         assert "ASX 200" in resp.text
+        assert "Ranked movers:" in resp.text
+        assert "BHP: +1.20% (sig 0.82)" in resp.text
+        assert "price move" in resp.text
         self.state_store.get_latest_market_update_report.assert_called_once_with(None)
 
     def test_market_update_latest_explicit(self) -> None:

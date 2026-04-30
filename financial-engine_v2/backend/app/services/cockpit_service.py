@@ -57,6 +57,7 @@ from cockpit.storage.artifacts import ArtifactStore
 logger = logging.getLogger(__name__)
 
 _FLAG_REPORT_ID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,128}$")
+_FLAG_COMMIT_SHA_RE = re.compile(r"^[0-9a-f]{7,64}$", re.IGNORECASE)
 
 _SENSITIVE_KEY_RE = re.compile(
     r"(api[_-]?key|auth|authorization|token|secret|cookie|password|private[_-]?key)",
@@ -64,13 +65,38 @@ _SENSITIVE_KEY_RE = re.compile(
 )
 _BEARER_TOKEN_RE = re.compile(r"Bearer\s+[A-Za-z0-9._\-+/=]+", re.IGNORECASE)
 _ANTHROPIC_BILLING_ERROR_RE = re.compile(
-    r"credit balance is too low|plans\s*&\s*billing|purchase credits",
+    r"(credit balance is too low|plans\s*&\s*billing|purchase credits)",
     re.IGNORECASE,
 )
 
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _detect_api_provider_error(
+    text: str,
+    routing_metadata: dict[str, Any] | None,
+) -> dict[str, str] | None:
+    content = str(text or "")
+    if not content or not _ANTHROPIC_BILLING_ERROR_RE.search(content):
+        return None
+
+    source = str((routing_metadata or {}).get("source") or "").strip().lower()
+    if source not in {"api", "anthropic"} and "anthropic" not in content.lower():
+        return None
+
+    return {
+        "provider": "anthropic",
+        "code": "billing_insufficient_credit",
+        "severity": "action_required",
+        "title": "Anthropic credits are exhausted",
+        "message": (
+            "Claude API rejected the request because the Anthropic credit balance "
+            "is too low. Top up Anthropic credits in Plans & Billing."
+        ),
+        "action_label": "Top up Anthropic credits",
+    }
 
 
 # Recent ASXPeriodicFinancial rows used for population / trust metrics (not total table size).
@@ -150,6 +176,50 @@ def _normalize_capture_kind(raw: Any) -> str:
     return "chat_feedback"
 
 
+def _normalize_flag_resolution_status(raw: Any) -> str:
+    return "resolved" if str(raw or "").strip().lower() == "resolved" else "open"
+
+
+def _default_flag_resolution() -> dict[str, Any]:
+    return {
+        "status": "open",
+        "resolved_at": None,
+        "resolved_by": None,
+        "commit_sha": None,
+        "note": None,
+    }
+
+
+def _extract_flag_resolution(bundle: dict[str, Any] | None) -> dict[str, Any]:
+    resolution_raw = (
+        bundle.get("resolution") if isinstance(bundle, dict) else None
+    )
+    resolution = (
+        dict(resolution_raw)
+        if isinstance(resolution_raw, dict)
+        else _default_flag_resolution()
+    )
+    status = _normalize_flag_resolution_status(resolution.get("status"))
+    if status != "resolved":
+        return _default_flag_resolution()
+
+    commit_sha = str(resolution.get("commit_sha") or "").strip().lower() or None
+    return {
+        "status": "resolved",
+        "resolved_at": str(resolution.get("resolved_at") or "").strip() or None,
+        "resolved_by": str(resolution.get("resolved_by") or "").strip() or None,
+        "commit_sha": commit_sha,
+        "note": str(resolution.get("note") or "").strip() or None,
+    }
+
+
+def _validated_commit_sha(raw: Any) -> str:
+    commit_sha = str(raw or "").strip().lower()
+    if not _FLAG_COMMIT_SHA_RE.fullmatch(commit_sha):
+        raise ValueError("commit_sha must be a 7-64 char git SHA")
+    return commit_sha
+
+
 def _sanitize_payload(value: Any, *, key: str | None = None) -> Any:
     if key and _SENSITIVE_KEY_RE.search(key):
         return "***REDACTED***"
@@ -188,30 +258,6 @@ def _json_object_or_none(raw: str) -> dict[str, Any] | None:
     except json.JSONDecodeError:
         return None
     return parsed if isinstance(parsed, dict) else None
-
-
-def _detect_api_provider_error(
-    text: str, routing_metadata: dict[str, Any] | None
-) -> dict[str, str] | None:
-    content = str(text or "")
-    if not content or not _ANTHROPIC_BILLING_ERROR_RE.search(content):
-        return None
-
-    source = str((routing_metadata or {}).get("source") or "").strip().lower()
-    if source not in {"api", "anthropic"} and "anthropic" not in content.lower():
-        return None
-
-    return {
-        "provider": "anthropic",
-        "code": "billing_insufficient_credit",
-        "severity": "action_required",
-        "title": "Anthropic credits are exhausted",
-        "message": (
-            "Claude API rejected the request because the Anthropic credit balance "
-            "is too low. Top up Anthropic credits in Plans & Billing."
-        ),
-        "action_label": "Top up Anthropic credits",
-    }
 
 
 def _extract_tool_calls(evidence: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
@@ -282,6 +328,7 @@ def _render_flagged_summary(
     routing = (bundle.get("backend_turn") or {}).get("routing_metadata") or {}
     frontend_context = (bundle.get("frontend_snapshot") or {}).get("context") or {}
     attachments = bundle.get("attachments") if isinstance(bundle.get("attachments"), list) else []
+    resolution = _extract_flag_resolution(bundle)
     if capture_kind == "ui_issue":
         title = "# Cockpit UI Issue"
         response_heading = "Issue Description"
@@ -302,6 +349,16 @@ def _render_flagged_summary(
     lines.append(f"- Saved At: `{bundle.get('saved_at')}`")
     lines.append(f"- Capture Kind: `{capture_kind}`")
     lines.append(f"- Feedback Type: `{feedback_type}`")
+    lines.append(f"- Status: `{resolution['status']}`")
+    if resolution["status"] == "resolved":
+        if resolution.get("resolved_at"):
+            lines.append(f"- Resolved At: `{resolution['resolved_at']}`")
+        if resolution.get("resolved_by"):
+            lines.append(f"- Resolved By: `{resolution['resolved_by']}`")
+        if resolution.get("commit_sha"):
+            lines.append(f"- Fix Commit: `{resolution['commit_sha']}`")
+        if resolution.get("note"):
+            lines.append(f"- Resolution Note: {resolution['note']}")
     lines.append(f"- Session ID: `{bundle.get('session_id') or 'global-main'}`")
     if bundle.get("ticker"):
         lines.append(f"- Ticker: `{bundle.get('ticker')}`")
@@ -365,6 +422,17 @@ def _render_flagged_summary(
     return "\n".join(lines).strip() + "\n"
 
 
+def _display_report_path(path: Path | str) -> str:
+    raw = str(path or "").strip()
+    if not raw:
+        return ""
+    candidate = Path(raw)
+    for index, part in enumerate(candidate.parts):
+        if part == "reports":
+            return str(Path(*candidate.parts[index:]))
+    return raw
+
+
 def _build_codex_flag_prompt(
     *,
     bundle: dict[str, Any],
@@ -408,54 +476,61 @@ def _build_codex_flag_prompt(
             debug_path = str((report_dir / relative_path).resolve())
         break
 
+    report_dir_label = _display_report_path(report_dir)
+    bundle_path_label = _display_report_path(bundle_path)
+    summary_path_label = _display_report_path(summary_path)
+    screenshot_path_label = _display_report_path(screenshot_path) if screenshot_path else ""
+    debug_path_label = _display_report_path(debug_path) if debug_path else ""
+    resolve_api_path = f"{read_api_path}/resolve"
+
     if capture_kind == "ui_issue":
         prompt_lines = [
             "Investigate this cockpit UI issue and implement the minimal safe fix.",
             "",
             f"Issue ID: {bundle.get('report_id')}",
-            f"Issue directory: {report_dir}",
+            f"Issue directory: {report_dir_label}",
             f"Read API: {read_api_path}",
-            f"Bundle: {bundle_path}",
-            f"Summary: {summary_path}",
+            f"Bundle: {bundle_path_label}",
+            f"Summary: {summary_path_label}",
         ]
     elif capture_kind == "auto_diagnostic":
         prompt_lines = [
             "Investigate this automatically flagged cockpit diagnostic and fix the underlying issue if confirmed.",
             "",
             f"Diagnostic ID: {bundle.get('report_id')}",
-            f"Diagnostic directory: {report_dir}",
+            f"Diagnostic directory: {report_dir_label}",
             f"Read API: {read_api_path}",
-            f"Bundle: {bundle_path}",
-            f"Summary: {summary_path}",
+            f"Bundle: {bundle_path_label}",
+            f"Summary: {summary_path_label}",
         ]
     elif feedback_type == "good":
         prompt_lines = [
             "Review this positively rated cockpit response and capture what worked well.",
             "",
             f"Feedback ID: {bundle.get('report_id')}",
-            f"Feedback directory: {report_dir}",
+            f"Feedback directory: {report_dir_label}",
             f"Read API: {read_api_path}",
-            f"Bundle: {bundle_path}",
-            f"Summary: {summary_path}",
+            f"Bundle: {bundle_path_label}",
+            f"Summary: {summary_path_label}",
         ]
     else:
         prompt_lines = [
             "Investigate this flagged cockpit response and fix the underlying bug.",
             "",
             f"Flag ID: {bundle.get('report_id')}",
-            f"Flag directory: {report_dir}",
+            f"Flag directory: {report_dir_label}",
             f"Read API: {read_api_path}",
-            f"Bundle: {bundle_path}",
-            f"Summary: {summary_path}",
+            f"Bundle: {bundle_path_label}",
+            f"Summary: {summary_path_label}",
         ]
     if note:
         prompt_lines.extend(["", f"User note: {note}"])
     if flagged_text:
         prompt_lines.extend(["", "Saved response:", flagged_text])
-    if screenshot_path:
-        prompt_lines.extend(["", f"Screenshot: {screenshot_path}"])
-    if debug_path:
-        prompt_lines.extend(["", f"Browser debug: {debug_path}"])
+    if screenshot_path_label:
+        prompt_lines.extend(["", f"Screenshot: {screenshot_path_label}"])
+    if debug_path_label:
+        prompt_lines.extend(["", f"Browser debug: {debug_path_label}"])
     if analysis_summary:
         prompt_lines.extend(["", f"Saved analysis summary: {analysis_summary}"])
     if capture_kind == "ui_issue":
@@ -490,7 +565,76 @@ def _build_codex_flag_prompt(
                 "Identify the root cause in code, implement the minimal safe fix, and verify it.",
             ]
         )
+    if feedback_type != "good":
+        prompt_lines.extend(
+            [
+                "",
+                "After you commit the fix, mark this flag resolved with the commit SHA:",
+                (
+                    "curl -sS -X POST "
+                    f"http://127.0.0.1:8000{resolve_api_path} "
+                    "-H 'Content-Type: application/json' "
+                    "-d '{\"commit_sha\":\"<git-commit-sha>\",\"resolved_by\":\"codex\","
+                    "\"note\":\"<one-line-fix-summary>\"}'"
+                ),
+            ]
+        )
     return "\n".join(prompt_lines).strip()
+
+
+def _write_codex_investigation_artifacts(
+    *,
+    report_id: str,
+    feedback_type: str,
+    capture_kind: str,
+    report_dir: Path,
+    read_api_path: str,
+    codex_prompt: str,
+    created_at: str | None,
+) -> dict[str, Any]:
+    prompt_path = report_dir / "codex_prompt.md"
+    investigation_path = report_dir / "investigation.json"
+    normalized_feedback_type = _normalize_feedback_type(feedback_type)
+    should_queue = normalized_feedback_type != "good"
+    updated_at = _now_iso()
+    deploy_command = (
+        f"python scripts/cockpit_flag_investigator.py --report-id {report_id} --once --apply"
+        if should_queue
+        else None
+    )
+
+    prompt_path.write_text(codex_prompt.strip() + "\n", encoding="utf-8")
+    investigation = {
+        "schema_version": 1,
+        "report_id": report_id,
+        "capture_kind": _normalize_capture_kind(capture_kind),
+        "feedback_type": normalized_feedback_type,
+        "status": "queued" if should_queue else "not_requested",
+        "mode": "operator_gated_codex_cli",
+        "created_at": created_at or updated_at,
+        "updated_at": updated_at,
+        "read_api_path": read_api_path,
+        "codex_prompt_path": str(prompt_path),
+        "codex_prompt_relative_path": _display_report_path(prompt_path),
+        "runner": "scripts/cockpit_flag_investigator.py",
+        "suggested_command": deploy_command,
+        "note": (
+            "A flag queues an operator-gated Codex CLI investigation. "
+            "The backend writes this packet but does not launch Codex directly."
+            if should_queue
+            else "Positive feedback is stored for review and does not queue a Codex investigation."
+        ),
+    }
+    investigation_path.write_text(
+        json.dumps(_sanitize_payload(investigation), indent=2, default=str),
+        encoding="utf-8",
+    )
+    return {
+        "codex_prompt_path": str(prompt_path),
+        "investigation_path": str(investigation_path),
+        "investigation_status": investigation["status"],
+        "codex_cli_command": deploy_command,
+    }
 
 
 def _persist_feedback_screenshot(
@@ -1259,6 +1403,106 @@ class CockpitService:
             auto_findings=findings,
         )
 
+    @staticmethod
+    def _fallback_flagged_analysis(
+        review_input: dict[str, Any],
+        *,
+        error: Exception | None = None,
+    ) -> dict[str, Any]:
+        failure_modes: list[str] = []
+        evidence_notes: list[str] = []
+        follow_up: list[str] = []
+
+        status_events = [
+            item for item in review_input.get("status_events", []) if isinstance(item, dict)
+        ]
+        tool_traces = [
+            item for item in review_input.get("tool_traces", []) if isinstance(item, dict)
+        ]
+        tool_calls = [
+            item for item in review_input.get("tool_calls", []) if isinstance(item, dict)
+        ]
+        request_text = str(review_input.get("request") or "").strip()
+        flagged_response = str(review_input.get("flagged_response") or "").strip()
+
+        if request_text:
+            evidence_notes.append(f"Request: {request_text[:280]}")
+        if flagged_response:
+            evidence_notes.append(f"Flagged response: {flagged_response[:280]}")
+
+        timeout_like = False
+        error_like = False
+        for event in status_events:
+            stage = str(event.get("stage") or "").strip()
+            if not stage:
+                continue
+            lowered = stage.lower()
+            evidence_notes.append(f"Status event: {stage[:180]}")
+            timeout_like = timeout_like or ("timeout" in lowered or "timed out" in lowered)
+            error_like = error_like or ("error" in lowered or "failed" in lowered)
+
+        failed_tools: list[str] = []
+        for trace in tool_traces:
+            ok = trace.get("ok")
+            tool_name = str(trace.get("tool_name") or trace.get("tool") or "").strip()
+            error_text = str(trace.get("error") or "").strip()
+            if ok is False or error_text:
+                failed_tools.append(tool_name or "unknown_tool")
+                if error_text:
+                    evidence_notes.append(
+                        f"Tool failure ({tool_name or 'unknown_tool'}): {error_text[:180]}"
+                    )
+        if failed_tools:
+            failure_modes.append(
+                f"Tool execution failure(s) observed: {', '.join(sorted(set(failed_tools)))}."
+            )
+            follow_up.append(
+                "Replay the turn with tool tracing enabled and inspect failing tool parameters/results."
+            )
+
+        if timeout_like:
+            failure_modes.append(
+                "Execution timeout observed in status events before a reliable final answer."
+            )
+            follow_up.append(
+                "Re-run with narrower scope or adjusted timeout to confirm whether latency is the root cause."
+            )
+        elif error_like:
+            failure_modes.append(
+                "Execution/status events include an explicit error or failure transition."
+            )
+
+        if not tool_calls and not tool_traces:
+            failure_modes.append(
+                "No tool activity was recorded, suggesting an ungrounded or skipped-retrieval response path."
+            )
+            follow_up.append(
+                "Confirm routing intent and require at least one relevant read-only tool call before final synthesis."
+            )
+
+        if not failure_modes:
+            failure_modes.append(
+                "Root cause is inconclusive from deterministic traces; manual replay is required."
+            )
+            follow_up.append(
+                "Reproduce the session with verbose status + tool tracing and compare request/response routing metadata."
+            )
+
+        if error is not None:
+            evidence_notes.append(f"Fallback trigger: {type(error).__name__}: {str(error)[:200]}")
+
+        summary = (
+            "Deterministic fallback analysis generated because automated LLM review was unavailable. "
+            "Findings are trace-derived and may require manual confirmation."
+        )
+        return {
+            "status": "fallback",
+            "summary": summary,
+            "likely_failure_modes": failure_modes[:6],
+            "evidence": evidence_notes[:10],
+            "recommended_follow_up": follow_up[:6],
+        }
+
     def _analyze_flagged_bundle(self, bundle: dict[str, Any]) -> dict[str, Any] | None:
         if _normalize_feedback_type(bundle.get("feedback_type")) == "good":
             return None
@@ -1307,7 +1551,7 @@ class CockpitService:
             )
         except Exception as exc:
             logger.warning("Flagged chat analysis unavailable: %s", exc)
-            return {"status": "llm_unavailable", "error": str(exc)}
+            return self._fallback_flagged_analysis(review_input, error=exc)
 
         parsed = _json_object_or_none(raw)
         if parsed is not None:
@@ -1386,11 +1630,64 @@ class CockpitService:
                 return candidate.resolve()
         raise FileNotFoundError(normalized)
 
-    def list_flagged_reports(self, limit: int = 25) -> list[dict[str, Any]]:
+    @staticmethod
+    def _load_flag_bundle(
+        report_dir: Path,
+        *,
+        report_id: str | None = None,
+    ) -> tuple[dict[str, Any], Path, Path, Path]:
+        bundle_path = report_dir / "bundle.json"
+        summary_path = report_dir / "summary.md"
+        analysis_path = report_dir / "analysis.json"
+        if not bundle_path.exists():
+            raise FileNotFoundError(
+                f"Missing bundle.json for {report_id or report_dir.name}"
+            )
+        try:
+            bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError(
+                f"Unreadable bundle.json for {report_id or report_dir.name}"
+            ) from exc
+        if not isinstance(bundle, dict):
+            raise ValueError(f"Invalid bundle payload for {report_id or report_dir.name}")
+        bundle["resolution"] = _extract_flag_resolution(bundle)
+        return bundle, bundle_path, summary_path, analysis_path
+
+    @staticmethod
+    def _load_flag_analysis(analysis_path: Path) -> dict[str, Any] | None:
+        if not analysis_path.exists():
+            return None
+        try:
+            raw = json.loads(analysis_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            logger.warning("Unreadable flagged analysis: %s", analysis_path)
+            return None
+        return raw if isinstance(raw, dict) else None
+
+    @staticmethod
+    def _load_flag_investigation(investigation_path: Path) -> dict[str, Any] | None:
+        if not investigation_path.exists():
+            return None
+        try:
+            raw = json.loads(investigation_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            logger.warning("Unreadable flagged investigation: %s", investigation_path)
+            return None
+        return raw if isinstance(raw, dict) else None
+
+    def list_flagged_reports(
+        self,
+        limit: int = 25,
+        status: str = "open",
+    ) -> list[dict[str, Any]]:
         root = self._flagged_reports_root()
         if not root.exists():
             return []
 
+        normalized_status = str(status or "").strip().lower() or "open"
+        if normalized_status not in {"open", "resolved", "all"}:
+            raise ValueError("Invalid status filter")
         rows: list[tuple[float, dict[str, Any]]] = []
         max_items = max(1, min(int(limit or 25), 100))
         for session_dir in root.iterdir():
@@ -1399,23 +1696,27 @@ class CockpitService:
             for report_dir in session_dir.iterdir():
                 if not report_dir.is_dir():
                     continue
-                bundle_path = report_dir / "bundle.json"
-                if not bundle_path.exists():
-                    continue
                 try:
-                    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
-                except (OSError, json.JSONDecodeError):
-                    logger.warning("Unreadable flagged bundle: %s", bundle_path)
+                    bundle, _, _, _ = self._load_flag_bundle(report_dir)
+                except FileNotFoundError:
+                    continue
+                except ValueError:
+                    logger.warning("Unreadable flagged bundle: %s", report_dir / "bundle.json")
+                    continue
+                resolution = _extract_flag_resolution(bundle)
+                if (
+                    normalized_status != "all"
+                    and resolution["status"] != normalized_status
+                ):
                     continue
                 saved_at = str(bundle.get("saved_at") or "")
                 flagged_message = bundle.get("flagged_message") or {}
+                report_id_value = str(bundle.get("report_id") or report_dir.name)
                 rows.append(
                     (
                         report_dir.stat().st_mtime,
                         {
-                            "report_id": str(
-                                bundle.get("report_id") or report_dir.name
-                            ),
+                            "report_id": report_id_value,
                             "feedback_type": _normalize_feedback_type(
                                 bundle.get("feedback_type")
                             ),
@@ -1433,8 +1734,11 @@ class CockpitService:
                             ).strip()
                             or None,
                             "read_api_path": self._build_flag_read_api_path(
-                                str(bundle.get("report_id") or report_dir.name)
+                                report_id_value
                             ),
+                            "resolution_status": resolution["status"],
+                            "resolved_at": resolution.get("resolved_at"),
+                            "resolution_commit_sha": resolution.get("commit_sha"),
                         },
                     )
                 )
@@ -1443,38 +1747,89 @@ class CockpitService:
 
     def get_flagged_report(self, report_id: str) -> dict[str, Any]:
         report_dir = self._resolve_flag_report_dir(report_id)
-        bundle_path = report_dir / "bundle.json"
-        summary_path = report_dir / "summary.md"
-        analysis_path = report_dir / "analysis.json"
-
-        if not bundle_path.exists():
-            raise FileNotFoundError(f"Missing bundle.json for {report_id}")
-
-        bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+        bundle, bundle_path, summary_path, analysis_path = self._load_flag_bundle(
+            report_dir, report_id=report_id
+        )
         summary_markdown = (
             summary_path.read_text(encoding="utf-8") if summary_path.exists() else ""
         )
-        analysis = None
-        if analysis_path.exists():
-            try:
-                analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
-                logger.warning("Unreadable flagged analysis: %s", analysis_path)
+        analysis = self._load_flag_analysis(analysis_path)
+        investigation_path = report_dir / "investigation.json"
+        investigation = self._load_flag_investigation(investigation_path)
+        resolution = _extract_flag_resolution(bundle)
+        report_id_value = str(bundle.get("report_id") or report_id)
 
         return {
-            "report_id": str(bundle.get("report_id") or report_id),
+            "report_id": report_id_value,
             "feedback_type": _normalize_feedback_type(bundle.get("feedback_type")),
             "capture_kind": _normalize_capture_kind(bundle.get("capture_kind")),
             "report_dir": str(report_dir),
             "bundle_path": str(bundle_path),
             "summary_path": str(summary_path),
             "analysis_path": str(analysis_path) if analysis_path.exists() else None,
-            "read_api_path": self._build_flag_read_api_path(
-                str(bundle.get("report_id") or report_id)
-            ),
+            "investigation_path": str(investigation_path)
+            if investigation_path.exists()
+            else None,
+            "codex_prompt_path": str(report_dir / "codex_prompt.md")
+            if (report_dir / "codex_prompt.md").exists()
+            else None,
+            "read_api_path": self._build_flag_read_api_path(report_id_value),
             "bundle": bundle,
             "summary_markdown": summary_markdown,
             "analysis": analysis,
+            "investigation": investigation,
+            "resolution_status": resolution["status"],
+            "resolved_at": resolution.get("resolved_at"),
+            "resolution_commit_sha": resolution.get("commit_sha"),
+            "resolved_by": resolution.get("resolved_by"),
+        }
+
+    def resolve_flagged_report(
+        self,
+        report_id: str,
+        *,
+        commit_sha: str,
+        resolved_by: str | None = None,
+        note: str | None = None,
+    ) -> dict[str, Any]:
+        report_dir = self._resolve_flag_report_dir(report_id)
+        normalized_commit_sha = _validated_commit_sha(commit_sha)
+        normalized_resolved_by = str(resolved_by or "").strip() or "codex"
+        normalized_note = str(note or "").strip() or None
+
+        with self._feedback_lock:
+            bundle, bundle_path, summary_path, analysis_path = self._load_flag_bundle(
+                report_dir, report_id=report_id
+            )
+            resolution = {
+                "status": "resolved",
+                "resolved_at": _now_iso(),
+                "resolved_by": normalized_resolved_by,
+                "commit_sha": normalized_commit_sha,
+                "note": normalized_note,
+            }
+            bundle["resolution"] = resolution
+            sanitized_bundle = _sanitize_payload(bundle)
+            analysis = self._load_flag_analysis(analysis_path)
+            bundle_path.write_text(
+                json.dumps(sanitized_bundle, indent=2, default=str),
+                encoding="utf-8",
+            )
+            summary_path.write_text(
+                _render_flagged_summary(sanitized_bundle, analysis),
+                encoding="utf-8",
+            )
+
+        report_id_value = str(bundle.get("report_id") or report_id)
+        return {
+            "ok": True,
+            "report_id": report_id_value,
+            "resolution_status": "resolved",
+            "resolved_at": resolution["resolved_at"],
+            "resolution_commit_sha": normalized_commit_sha,
+            "resolved_by": normalized_resolved_by,
+            "summary_path": str(summary_path),
+            "read_api_path": self._build_flag_read_api_path(report_id_value),
         }
 
     def flag_chat_feedback(
@@ -1580,6 +1935,7 @@ class CockpitService:
                 "backend_api_configured": self.backend_api_client is not None,
                 "query_orchestrator_enabled": self.query_orchestrator is not None,
             },
+            "resolution": _default_flag_resolution(),
         }
         sanitized_bundle = _sanitize_payload(bundle)
 
@@ -1602,6 +1958,15 @@ class CockpitService:
             bundle_path=bundle_path,
             summary_path=summary_path,
             read_api_path=read_api_path,
+        )
+        investigation_artifacts = _write_codex_investigation_artifacts(
+            report_id=report_id,
+            feedback_type=normalized_feedback_type,
+            capture_kind=normalized_capture_kind,
+            report_dir=report_dir,
+            read_api_path=read_api_path,
+            codex_prompt=codex_prompt,
+            created_at=str(sanitized_bundle.get("saved_at") or ""),
         )
         if (
             normalized_capture_kind in {"chat_feedback", "auto_diagnostic"}
@@ -1626,7 +1991,11 @@ class CockpitService:
             "analysis_path": str(analysis_path),
             "read_api_path": read_api_path,
             "codex_prompt": codex_prompt,
+            **investigation_artifacts,
             "analysis_summary": None,
+            "resolution_status": "open",
+            "resolved_at": None,
+            "resolution_commit_sha": None,
         }
 
     def get_intel_pulse_stats(self, ticker: str | None = None) -> dict[str, Any]:
@@ -1939,10 +2308,11 @@ class CockpitService:
         )
 
         if requested_model and route_preview_source == "api":
+            route_label = "API" if route_preview_source == "api" else route_preview_source
             suffix = f" ({route_preview_reason})" if route_preview_reason else ""
             model_label = f": {route_preview_model}" if route_preview_model else ""
             _capture_status(
-                f"Routing to API{model_label}{suffix}"
+                f"Routing to {route_label or 'configured backend'}{model_label}{suffix}"
             )
         elif should_switch_local_model:
             if requested_model != current_model:
@@ -1988,8 +2358,8 @@ class CockpitService:
             if on_thinking is not None:
                 on_thinking(assessment, plan)
 
-        response_started = time.monotonic()
         self._persist_chat_message(thread_id, "user", message)
+        response_started = time.monotonic()
         response = controller.build_chat_response(
             message=message,
             enable_web=bool(enable_web) if enable_web is not None else False,

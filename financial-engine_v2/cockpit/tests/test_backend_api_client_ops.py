@@ -208,3 +208,36 @@ def test_stop_action_job_posts_stop_route() -> None:
     assert result == {"status": "stopping"}
     request = route.calls[0].request
     assert str(request.url) == f"{BASE}/api/cockpit/action/jobs/job-123/stop"
+
+
+@respx.mock
+def test_list_cockpit_holdings_passes_ticker_and_include_archived() -> None:
+    route = respx.get(f"{BASE}/api/cockpit/holdings").mock(
+        return_value=httpx.Response(200, json={"items": [{"ticker": "BHP"}]})
+    )
+    client = BackendApiClient(BASE, api_key="secret")
+
+    result = client.list_cockpit_holdings(
+        ticker=" bhp ",
+        include_archived=True,
+    )
+
+    assert result == {"items": [{"ticker": "BHP"}]}
+    request = route.calls[0].request
+    assert str(request.url.copy_with(query=None)) == f"{BASE}/api/cockpit/holdings"
+    assert dict(request.url.params) == {"ticker": "BHP", "include_archived": "true"}
+    assert request.headers.get("x-api-key") == "secret"
+
+
+@respx.mock
+def test_list_cockpit_holdings_defaults_include_archived_false() -> None:
+    route = respx.get(f"{BASE}/api/cockpit/holdings").mock(
+        return_value=httpx.Response(200, json={"items": []})
+    )
+    client = BackendApiClient(BASE)
+
+    result = client.list_cockpit_holdings()
+
+    assert result == {"items": []}
+    request = route.calls[0].request
+    assert dict(request.url.params) == {"include_archived": "false"}
