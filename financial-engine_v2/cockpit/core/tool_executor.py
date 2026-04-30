@@ -1842,4 +1842,11 @@ class ToolExecutor:
         )
         if video_rows:
             fallback["videos"] = video_rows
+        result_rows = self._compact_result_list(
+            result.get("results"),
+            max_rows=1,
+            max_result_chars=140,
+        )
+        if result_rows:
+            fallback["results"] = result_rows
         return fallback
