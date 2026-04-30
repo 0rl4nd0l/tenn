@@ -316,6 +316,15 @@ def _numeric_tokens(text: str) -> set[str]:
     return tokens
 
 
+def _non_year_numeric_tokens(tokens: set[str]) -> set[str]:
+    non_year = {
+        token
+        for token in tokens
+        if not re.fullmatch(r"(?:19|20)\d{2}", token)
+    }
+    return non_year or tokens
+
+
 def _extract_report_spans(report_text: str, *, max_spans: int = 160) -> list[ReportSpan]:
     spans: list[ReportSpan] = []
     seen: set[str] = set()
@@ -772,16 +781,17 @@ def _score_evidence(claim: ThesisClaim, evidence: EvidenceSpan) -> tuple[float, 
     overlap_ratio = len(claim_terms & evidence_terms) / max(len(claim_terms), 1)
     claim_numbers = _numeric_tokens(claim.text)
     evidence_numbers = _numeric_tokens(evidence.text)
-    numeric_ok = not claim_numbers or claim_numbers.issubset(evidence_numbers)
+    claim_metric_numbers = _non_year_numeric_tokens(claim_numbers)
+    evidence_metric_numbers = _non_year_numeric_tokens(evidence_numbers)
+    numeric_ok = not claim_numbers or claim_metric_numbers.issubset(evidence_metric_numbers)
     claim_metric_terms = claim_terms & _METRIC_WORDS
     evidence_metric_terms = evidence_terms & _METRIC_WORDS
+    metric_overlap = bool(claim_metric_terms & evidence_metric_terms)
     numeric_conflict = bool(
         claim_numbers
         and evidence_numbers
-        and claim_metric_terms
-        and evidence_metric_terms
-        and claim_numbers.isdisjoint(evidence_numbers)
-        and overlap_ratio >= 0.32
+        and metric_overlap
+        and claim_metric_numbers.isdisjoint(evidence_metric_numbers)
     )
     polarity_conflict = bool(
         overlap_ratio >= 0.48
@@ -792,6 +802,8 @@ def _score_evidence(claim: ThesisClaim, evidence: EvidenceSpan) -> tuple[float, 
     score = 1.0 if exactish else overlap_ratio
     if claim_numbers and numeric_ok:
         score += 0.2
+        if metric_overlap:
+            score += 0.3
     return _bounded_score(score), numeric_ok, numeric_conflict or polarity_conflict
 
 

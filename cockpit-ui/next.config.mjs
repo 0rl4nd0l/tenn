@@ -4,9 +4,40 @@ import { fileURLToPath } from 'node:url'
 /** @type {import('next').NextConfig} */
 const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const configDir = path.dirname(fileURLToPath(import.meta.url))
+const codexInvestigationTraceExcludes = [
+  './README.md',
+  './app/**/*',
+  './components.json',
+  './components/**/*',
+  './eslint.config.mjs',
+  './graphify-out/**/*',
+  './hooks/**/*',
+  './lib/**/*',
+  './next.config.*',
+  './playwright-report/**/*',
+  './playwright.config.ts',
+  './postcss.config.mjs',
+  './public/**/*',
+  './styles/**/*',
+  './tests/**/*',
+  './tsconfig.json',
+  './tsconfig.tsbuildinfo',
+  './vitest.config.ts',
+  './vitest.setup.ts',
+]
 
 const nextConfig = {
   outputFileTracingRoot: configDir,
+  outputFileTracingExcludes: {
+    '/app/api/cockpit/feedback/flags/*/deploy': codexInvestigationTraceExcludes,
+    '/app/api/cockpit/feedback/flags/[reportId]/deploy': codexInvestigationTraceExcludes,
+    '/app/cockpit-local/feedback/flags/*/deploy': codexInvestigationTraceExcludes,
+    '/app/cockpit-local/feedback/flags/[reportId]/deploy': codexInvestigationTraceExcludes,
+    '/api/cockpit/feedback/flags/*/deploy': codexInvestigationTraceExcludes,
+    '/api/cockpit/feedback/flags/[reportId]/deploy': codexInvestigationTraceExcludes,
+    '/cockpit-local/feedback/flags/*/deploy': codexInvestigationTraceExcludes,
+    '/cockpit-local/feedback/flags/[reportId]/deploy': codexInvestigationTraceExcludes,
+  },
   // Next's gzip compression buffers proxied SSE responses, which prevents the
   // chat stream from delivering incremental status/chunk events to browsers.
   compress: false,

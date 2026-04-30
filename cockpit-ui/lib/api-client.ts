@@ -161,6 +161,126 @@ export type SubmitResponseFeedbackRequest = {
   verifierResult?: ClaimVerificationResponse | null
 }
 
+export type ThesisClaimType =
+  | 'numeric_fact'
+  | 'company_narrative'
+  | 'causal_claim'
+  | 'catalyst_timing'
+  | 'valuation_assumption'
+  | 'market_sector_claim'
+
+export type ThesisClaimStatus =
+  | 'supported'
+  | 'partially_supported'
+  | 'contradicted'
+  | 'stale'
+  | 'assumption'
+  | 'DATA_MISSING'
+
+export type ThesisConfidenceLabel = 'Confirmed' | 'Inferred' | 'Speculative'
+
+export type ReportSpan = {
+  span_id: string
+  start: number
+  end: number
+  text: string
+}
+
+export type EvidenceSpan = {
+  evidence_id: string
+  source_layer: string
+  source_type: string
+  text: string
+  title?: string | null
+  published_at?: string | null
+  document_id?: string | null
+  url?: string | null
+  metadata?: Record<string, unknown>
+}
+
+export type ThesisClaim = {
+  claim_id: string
+  text: string
+  claim_type: ThesisClaimType
+  report_span: ReportSpan
+  confidence_label: ThesisConfidenceLabel
+  load_bearing_score: number
+  load_bearing_rank: number
+}
+
+export type ThesisAssumption = {
+  assumption_id: string
+  text: string
+  report_span?: ReportSpan | null
+  confidence_label: ThesisConfidenceLabel
+  related_claim_ids: string[]
+}
+
+export type ClaimVerification = {
+  claim_id: string
+  status: ThesisClaimStatus
+  confidence_label: ThesisConfidenceLabel
+  rationale: string
+  report_span: ReportSpan
+  independent_evidence_spans: EvidenceSpan[]
+  contradicting_evidence_spans: EvidenceSpan[]
+  evidence_gap?: string | null
+}
+
+export type ContrarianFinding = {
+  break_pack: string
+  finding: string
+  claim_ids: string[]
+  status: ThesisClaimStatus
+  confidence_label: ThesisConfidenceLabel
+  evidence_spans: EvidenceSpan[]
+}
+
+export type ThesisMemoryProposalCandidate = {
+  proposal_type: 'create_thesis' | 'add_evidence' | 'invalidate'
+  statement: string
+  signal?: string | null
+  confidence: number
+  metadata: Record<string, unknown>
+}
+
+export type ThesisAuditReport = {
+  audit_id: string
+  ticker: string
+  generated_at: string
+  report_source: Record<string, unknown>
+  thesis_summary: string
+  claims: ThesisClaim[]
+  hidden_assumptions: ThesisAssumption[]
+  verification_matrix: ClaimVerification[]
+  contrarian_findings: ContrarianFinding[]
+  strongest_disconfirming_evidence: ContrarianFinding[]
+  change_my_mind_triggers: string[]
+  next_diligence_questions: string[]
+  user_thesis_memory_proposals: ThesisMemoryProposalCandidate[]
+  evidence_summary: Record<string, unknown>
+  guardrails: Record<string, unknown>
+}
+
+export type RunThesisAuditRequest = {
+  ticker: string
+  reportText?: string
+  filename?: string
+  mimeType?: string
+  contentBase64?: string
+  focus?: string
+}
+
+export type CreateUserThesisProposalRequest = {
+  ticker: string
+  proposal_type: 'create_thesis' | 'add_evidence' | 'invalidate'
+  statement: string
+  signal?: string | null
+  confidence?: number
+  metadata?: Record<string, unknown>
+  note?: string | null
+}
+
 // ── Base fetch helper ──────────────────────────────────────────────────────
 
 export async function apiFetch<T>(path: string, options?: RequestInit, timeoutMs: number = 120_000): Promise<T> {
@@ -390,6 +510,50 @@ export async function submitResponseFeedback(
         app_version: params.appVersion || null,
         commit_hash: params.commitHash || null,
         verifier_result: params.verifierResult || null,
+      }),
+    },
+  )
+}
+
+export async function runThesisAudit(
+  params: RunThesisAuditRequest,
+  apiKey?: string,
+): Promise<ThesisAuditReport> {
+  return apiFetch<ThesisAuditReport>(
+    '/api/cockpit/thesis-audit',
+    {
+      method: 'POST',
+      headers: apiKey ? { 'X-API-Key': apiKey } : undefined,
+      body: JSON.stringify({
+        ticker: params.ticker,
+        report_text: params.reportText || null,
+        filename: params.filename || null,
+        mime_type: params.mimeType || null,
+        content_base64: params.contentBase64 || null,
+        focus: params.focus || null,
+      }),
+    },
+    240_000,
+  )
+}
+
+export async function createUserThesisProposal(
+  params: CreateUserThesisProposalRequest,
+  apiKey?: string,
+): Promise<{ ok: boolean; proposal: Record<string, unknown> }> {
+  return apiFetch<{ ok: boolean; proposal: Record<string, unknown> }>(
+    '/api/cockpit/memory/thesis/proposals',
+    {
+      method: 'POST',
+      headers: apiKey ? { 'X-API-Key': apiKey } : undefined,
+      body: JSON.stringify({
+        ticker: params.ticker,
+        proposal_type: params.proposal_type,
+        statement: params.statement,
+        signal: params.signal || null,
+        confidence: params.confidence ?? 0.6,
+        metadata: params.metadata || {},
+        note: params.note || null,
       }),
     },
   )
