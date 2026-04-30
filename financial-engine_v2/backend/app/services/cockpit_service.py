@@ -74,6 +74,44 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _make_flag_report_operator_writable(
+    report_dir: Path,
+    *,
+    owner_reference: Path,
+) -> None:
+    """Make a flagged-report packet writable by the local workspace operator."""
+    try:
+        owner_stat = owner_reference.stat()
+    except OSError:
+        logger.warning(
+            "Could not stat flagged-report owner reference",
+            extra={"owner_reference": str(owner_reference)},
+        )
+        return
+
+    try:
+        paths = [report_dir, *report_dir.rglob("*")]
+    except OSError:
+        logger.warning(
+            "Could not enumerate flagged-report packet for permission repair",
+            extra={"report_dir": str(report_dir)},
+        )
+        return
+
+    for path in paths:
+        try:
+            if path.is_symlink():
+                continue
+            if os.geteuid() == 0:
+                os.chown(path, owner_stat.st_uid, owner_stat.st_gid)
+            path.chmod(0o775 if path.is_dir() else 0o664)
+        except OSError as exc:
+            logger.warning(
+                "Could not make flagged-report artifact operator-writable",
+                extra={"path": str(path), "error": str(exc)},
+            )
+
+
 def _detect_api_provider_error(
     text: str,
     routing_metadata: dict[str, Any] | None,
@@ -1583,6 +1621,7 @@ class CockpitService:
                 bundle=bundle,
                 analysis=sanitized_analysis,
             )
+            self._make_flag_report_operator_writable(analysis_path.parent)
         except Exception:
             logger.exception(
                 "Background flagged chat analysis failed",
@@ -1616,6 +1655,17 @@ class CockpitService:
         workspace = os.getenv("COCKPIT_WORKSPACE_ROOT", "").strip()
         base = Path(workspace) if workspace else self.repo_root
         return (base / "reports" / "cockpit" / "flagged_sessions").resolve()
+
+    def _flagged_reports_owner_reference(self) -> Path:
+        workspace = os.getenv("COCKPIT_WORKSPACE_ROOT", "").strip()
+        base = Path(workspace) if workspace else self.repo_root
+        return base.resolve()
+
+    def _make_flag_report_operator_writable(self, report_dir: Path) -> None:
+        _make_flag_report_operator_writable(
+            report_dir,
+            owner_reference=self._flagged_reports_owner_reference(),
+        )
 
     def _build_flag_read_api_path(self, report_id: str) -> str:
         return f"/api/cockpit/feedback/flags/{report_id}"
@@ -1747,6 +1797,7 @@ class CockpitService:
 
     def get_flagged_report(self, report_id: str) -> dict[str, Any]:
         report_dir = self._resolve_flag_report_dir(report_id)
+        self._make_flag_report_operator_writable(report_dir)
         bundle, bundle_path, summary_path, analysis_path = self._load_flag_bundle(
             report_dir, report_id=report_id
         )
@@ -1968,6 +2019,7 @@ class CockpitService:
             codex_prompt=codex_prompt,
             created_at=str(sanitized_bundle.get("saved_at") or ""),
         )
+        self._make_flag_report_operator_writable(report_dir)
         if (
             normalized_capture_kind in {"chat_feedback", "auto_diagnostic"}
             and normalized_feedback_type != "good"

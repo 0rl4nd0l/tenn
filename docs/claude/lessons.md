@@ -909,3 +909,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The implementation focused on code/tests and accepted preservation WIP commits as sufficient, missing the repo rule that `STATE.md` should move with shipped work and that git status should be checked before final closeout.
 **Fix:** Added a session note and Recently Shipped entry for the remediation, then committed the docs-only closeout separately without staging unrelated dirty files.
 **Rule:** Before final response on any bug remediation, run `git status --short --branch`, update `docs/claude/STATE.md`, and state whether the relevant changes are committed; do not leave doc/git status implicit.
+
+---
+
+## L083 — Docker backend artifacts must be writable by the host operator
+
+**Date:** 2026-04-30
+**Subsystem:** `financial-engine_v2/backend/app/services/cockpit_service.py`, `cockpit-ui/app/api/cockpit/feedback/flags/[reportId]/deploy/route.ts`
+**Symptom:** Pressing `Deploy Codex` failed with `EACCES: permission denied, open .../codex-launcher.log`.
+**Root cause:** The backend container runs as root and created flagged-report packets under the bind-mounted host `reports/` tree as `root:root`, while the Next.js Cockpit server and Codex runner run as the host operator user.
+**Fix:** Backend flagged-report creation/read paths now make report packets writable by the workspace owner; the Next deploy route refreshes the backend flag packet before launching so old root-owned packets can be repaired once the backend is patched.
+**Rule:** Any backend-created artifact intended for a host-side operator process must be owner-repaired at the backend boundary. Do not assume container UID and host UI UID match.

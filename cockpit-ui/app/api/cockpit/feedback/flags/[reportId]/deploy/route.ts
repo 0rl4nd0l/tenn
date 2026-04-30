@@ -7,9 +7,21 @@ import {
   resolveInvestigationPaths,
   validateReportId,
 } from '@/lib/codex-investigation'
+import { resolveBackendUrl } from '@/lib/proxy'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
+
+async function refreshBackendFlagPacket(reportId: string): Promise<void> {
+  try {
+    await fetch(`${resolveBackendUrl()}/api/cockpit/feedback/flags/${encodeURIComponent(reportId)}`, {
+      cache: 'no-store',
+    })
+  } catch {
+    // The local report packet is still the source for launching; this refresh
+    // only lets the backend repair root-owned packets when it is available.
+  }
+}
 
 export async function POST(
   _request: Request,
@@ -18,6 +30,7 @@ export async function POST(
   try {
     const { reportId } = await context.params
     const normalizedReportId = validateReportId(reportId)
+    await refreshBackendFlagPacket(normalizedReportId)
     const paths = resolveInvestigationPaths(normalizedReportId)
     const investigation = readInvestigation(paths.reportDir)
     const status = String(investigation.status || '').trim() || 'unknown'
@@ -116,10 +129,13 @@ export async function POST(
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
     const status = /Invalid report_id/.test(message) ? 400 : /not found|Missing/i.test(message) ? 404 : 500
+    const errorMessage = /EACCES|permission denied/i.test(message)
+      ? `${message}. The flagged report packet is not writable by the Cockpit UI process; open the flag read API after the backend permission fix is deployed, or repair ownership with chown.`
+      : message
     return Response.json(
       {
         ok: false,
-        error: message,
+        error: errorMessage,
       },
       { status },
     )

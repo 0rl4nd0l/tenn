@@ -1706,6 +1706,13 @@ def test_flag_chat_feedback_persists_before_background_analysis(tmp_path) -> Non
     assert not analysis_path.exists()
     assert prompt_path.exists()
     assert investigation_path.exists()
+    owner_stat = tmp_path.stat()
+    for artifact_path in (bundle_path, summary_path, prompt_path, investigation_path):
+        artifact_stat = artifact_path.stat()
+        assert artifact_stat.st_uid == owner_stat.st_uid
+        assert artifact_stat.st_gid == owner_stat.st_gid
+        assert artifact_stat.st_mode & 0o660 == 0o660
+    assert bundle_path.parent.stat().st_mode & 0o770 == 0o770
     assert prompt_path.read_text(encoding="utf-8").strip() == result["codex_prompt"]
     investigation = json.loads(investigation_path.read_text(encoding="utf-8"))
     assert result["investigation_status"] == "queued"

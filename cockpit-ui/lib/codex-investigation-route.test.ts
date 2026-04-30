@@ -53,11 +53,14 @@ describe('Codex investigation deploy route', () => {
     delete process.env.COCKPIT_WORKSPACE_ROOT
     delete process.env.COCKPIT_CODEX_RUNNER_PYTHON
     vi.clearAllMocks()
+    vi.unstubAllGlobals()
   })
 
   it('starts the local runner for an existing queued report', async () => {
     const { workspace, reportId } = createQueuedReport()
     process.env.COCKPIT_WORKSPACE_ROOT = workspace
+    const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
 
     const response = await deployCodexInvestigation(
       new Request(`http://localhost/api/cockpit/feedback/flags/${reportId}/deploy`, {
@@ -73,6 +76,10 @@ describe('Codex investigation deploy route', () => {
       status: 'launching',
       pid: 12345,
     })
+    expect(fetchMock).toHaveBeenCalledWith(
+      `http://localhost:8000/api/cockpit/feedback/flags/${reportId}`,
+      expect.objectContaining({ cache: 'no-store' }),
+    )
     expect(spawnMock).toHaveBeenCalledWith(
       'python3',
       expect.arrayContaining([
