@@ -213,6 +213,37 @@ class TestSearchNewsFreshnessWarning:
         assert result["videos"][0]["duration_seconds"] == 1200
         assert result["videos"][0]["scores"]["overall"] == 0.91
 
+    def test_youtube_ingest_truncation_preserves_sourceable_result(self) -> None:
+        executor = _make_executor(max_result_chars=700)
+        backend = MagicMock()
+        backend.ingest_youtube_urls.return_value = {
+            "ok": True,
+            "count": 1,
+            "results": [
+                {
+                    "video_title": "Audeara 2026 March Quarterly (4C)",
+                    "source_name": "Audeara 2026 March Quarterly (4C)",
+                    "source_id": "youtube_transcript:audeara:abc123",
+                    "video_id": "2LOaEmbMkY0",
+                    "webpage_url": "https://www.youtube.com/watch?v=2LOaEmbMkY0",
+                    "published_at": "2026-04-29T20:00:04Z",
+                    "takeaways": [{"text": "A" * 600} for _ in range(8)],
+                }
+            ],
+            "errors": [],
+        }
+        executor._router.backend_api_client = backend
+
+        result = executor.execute(
+            "ingest_youtube_videos",
+            {"urls": ["https://www.youtube.com/watch?v=2LOaEmbMkY0"]},
+        )
+
+        assert result.get("_truncated") is True
+        assert result["results"][0]["video_title"] == "Audeara 2026 March Quarterly (4C)"
+        assert result["results"][0]["source_id"] == "youtube_transcript:audeara:abc123"
+        assert result["results"][0]["webpage_url"] == "https://www.youtube.com/watch?v=2LOaEmbMkY0"
+
     # -----------------------------------------------------------------------
     # HTTP / backend exception path
     # -----------------------------------------------------------------------

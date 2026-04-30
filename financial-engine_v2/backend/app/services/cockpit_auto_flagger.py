@@ -29,7 +29,9 @@ _SOURCE_LIST_KEYS = frozenset({"hits", "results", "documents", "context", "alert
 _SOURCE_ID_KEYS = frozenset(
     {"url", "webpage_url", "source_id", "document_id", "path", "video_id"}
 )
-_SOURCE_TEXT_KEYS = frozenset({"title", "name", "snippet", "text", "excerpt"})
+_SOURCE_TEXT_KEYS = frozenset(
+    {"title", "video_title", "source_name", "name", "snippet", "text", "excerpt"}
+)
 
 
 def _dicts(value: Any) -> list[dict[str, Any]]:

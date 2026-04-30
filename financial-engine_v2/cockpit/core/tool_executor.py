@@ -1588,6 +1588,8 @@ class ToolExecutor:
             compact: dict[str, Any] = {}
             for key in (
                 "title",
+                "video_title",
+                "source_name",
                 "url",
                 "published_at",
                 "provider",
@@ -1632,6 +1634,18 @@ class ToolExecutor:
             )
             if snippet:
                 compact["snippet"] = snippet
+
+            takeaways = row.get("takeaways")
+            if isinstance(takeaways, list):
+                compact_takeaways: list[dict[str, Any]] = []
+                for takeaway in takeaways[:3]:
+                    if not isinstance(takeaway, dict):
+                        continue
+                    text = self._compact_text(takeaway.get("text"), max_chars=220)
+                    if text:
+                        compact_takeaways.append({"text": text})
+                if compact_takeaways:
+                    compact["takeaways"] = compact_takeaways
 
             if not compact:
                 compact = {

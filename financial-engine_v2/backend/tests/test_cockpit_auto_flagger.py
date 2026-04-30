@@ -95,6 +95,42 @@ def test_detect_auto_flag_findings_ignores_sourceable_compacted_youtube_rows() -
     assert findings == []
 
 
+def test_detect_auto_flag_findings_ignores_sourceable_compacted_ingest_rows() -> None:
+    findings = detect_auto_flag_findings(
+        {
+            "response_text": "Staged selected YouTube transcript for review.",
+            "routing_metadata": {"latency_ms": 1200},
+            "tool_traces": [
+                {
+                    "tool": "ingest_youtube_videos",
+                    "ok": True,
+                    "duration_ms": 900,
+                }
+            ],
+            "evidence": [
+                {
+                    "tool": "ingest_youtube_videos",
+                    "result": {
+                        "ok": True,
+                        "_truncated": True,
+                        "_original_chars": 2570,
+                        "results": [
+                            {
+                                "video_title": "Audeara 2026 March Quarterly (4C)",
+                                "source_id": "youtube_transcript:audeara:abc123",
+                                "video_id": "2LOaEmbMkY0",
+                                "webpage_url": "https://www.youtube.com/watch?v=2LOaEmbMkY0",
+                            }
+                        ],
+                    },
+                }
+            ],
+        }
+    )
+
+    assert findings == []
+
+
 def test_auto_flag_fingerprint_is_stable_for_same_findings() -> None:
     findings = [{"category": "tool_failure", "reason": "Tool failed."}]
 
