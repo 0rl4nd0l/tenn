@@ -79,6 +79,22 @@ _SCREENER_RE = re.compile(
     r"^\s*(?:run\s+)?(?:tv\s+|tradingview\s+)?screener\s*(?:for\s+([A-Za-z]{2,8}))?\s*[?!.]*\s*$",
     re.IGNORECASE,
 )
+_TRADINGVIEW_TOOL_RE = re.compile(
+    r"""
+    ^\s*
+    (?:
+        (?:use|run|open|invoke)\s+
+        (?:the\s+)?
+        (?:tv|trading\s*view|tradingview|tradin\s*view|tradinview)
+        (?:\s+(?:tool|screener))?
+      |
+        (?:tv|trading\s*view|tradingview|tradin\s*view|tradinview)
+        \s+(?:tool|screener)
+    )
+    \s*[?!.]*\s*$
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
 _MARKET_MOVERS_RE = re.compile(
     r"""
     \b(?:
@@ -305,6 +321,15 @@ def route_command(
             tool="tv_screener",
             arguments={"market": market, "limit": 20, "filters": {}},
             explanation=f"Run TradingView screener for {market}.",
+        )
+
+    if _TRADINGVIEW_TOOL_RE.match(text):
+        return CommandRoute(
+            matched=True,
+            action_type="direct_tool",
+            tool="tv_screener",
+            arguments={"market": "australia", "limit": 20, "filters": {}},
+            explanation="Run TradingView screener for australia.",
         )
 
     # Market movers: use backend-owned TradingView screener data instead of

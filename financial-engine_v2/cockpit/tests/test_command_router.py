@@ -143,6 +143,21 @@ class TestWatchYoutubeChannelCommandRoute:
 
 
 class TestMarketMoversCommandRoute:
+    def test_misspelled_tradingview_tool_routes_to_screener(self):
+        r = route_command("use tradinview tool")
+
+        assert r.matched is True
+        assert r.action_type == "direct_tool"
+        assert r.tool == "tv_screener"
+        assert r.arguments == {"market": "australia", "limit": 20, "filters": {}}
+
+    def test_tradingview_tool_routes_to_screener(self):
+        r = route_command("use tradingview tool")
+
+        assert r.matched is True
+        assert r.tool == "tv_screener"
+        assert r.arguments["market"] == "australia"
+
     def test_market_movers_routes_to_tradingview_screener(self):
         r = route_command("what were the biggest movers today")
 
