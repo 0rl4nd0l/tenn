@@ -411,15 +411,24 @@ class ChatController:
 
                 from cockpit.core.llm_profile import resolve_hybrid_router_policy
 
-                # Import extraction-state checker so HybridRouter can route
-                # chat to the cloud API while GPU extraction is running.
+                # Import GPU activity checker so HybridRouter can route chat
+                # to the cloud API while extraction or another GPU-heavy task
+                # owns the local llama.cpp runtime.
+                gpu_exclusive_checker = None
                 extraction_checker = None
                 try:
-                    from app.services.router_state import is_extraction_active
+                    from app.services.router_state import is_gpu_exclusive_active
 
-                    extraction_checker = is_extraction_active
+                    gpu_exclusive_checker = is_gpu_exclusive_active
                 except Exception:
                     pass  # Backend not available (e.g. standalone cockpit)
+                if gpu_exclusive_checker is None:
+                    try:
+                        from app.services.router_state import is_extraction_active
+
+                        extraction_checker = is_extraction_active
+                    except Exception:
+                        pass  # Backend not available (e.g. standalone cockpit)
 
                 gpu_preemption_checker = None
                 try:
@@ -449,6 +458,7 @@ class ChatController:
                     ),
                     llm_timeout=self.llm_timeout_seconds,
                     extraction_active_fn=extraction_checker,
+                    gpu_exclusive_active_fn=gpu_exclusive_checker,
                     gpu_preemption_fn=gpu_preemption_checker,
                 )
                 self._hybrid_router = hybrid_router

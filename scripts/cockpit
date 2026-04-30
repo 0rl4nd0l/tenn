@@ -238,6 +238,12 @@ python_cmd() {
   exit 1
 }
 
+gpu_exclusive_activity_active() {
+  local py
+  py="$(python_cmd)"
+  "${py}" "${REPO_ROOT}/scripts/gpu_activity_guard.py" status --quiet-active >/dev/null 2>&1
+}
+
 http_ok() {
   local url="$1"
   local timeout_s="${2:-3}"
@@ -321,6 +327,11 @@ ensure_llama_servers_up() {
   api_key="$(llama_api_key)"
   chat_log="$(llama_log_path "${chat_base##*:}")"
   extraction_log="$(llama_log_path "${extraction_base##*:}")"
+
+  if [[ "${ALLOW_LLAMA_DURING_GPU_EXCLUSIVE:-0}" != "1" ]] && gpu_exclusive_activity_active; then
+    echo "GPU-exclusive activity active; skipping llama.cpp startup. Cockpit chat must route to API."
+    return 0
+  fi
 
   if http_ok "${chat_base}/health" 3 "${api_key}"; then
     echo "✅ llama.cpp chat already running (${chat_base})"

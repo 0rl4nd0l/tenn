@@ -214,6 +214,67 @@ class TestExtractionAwareRouting:
         mock_api_client.chat.assert_called_once()
 
 
+class TestGpuExclusiveRouting:
+    def test_routes_to_api_when_gpu_exclusive_activity_active(
+        self, mock_llm_client, mock_api_client
+    ):
+        statuses: list[str] = []
+        router = HybridRouter(
+            llm_client=mock_llm_client,
+            api_client=mock_api_client,
+            policy="local_preferred",
+            gpu_exclusive_active_fn=lambda: True,
+        )
+
+        result = router.complete(
+            [{"role": "user", "content": "hi"}],
+            on_status=statuses.append,
+        )
+
+        assert result.source == "api"
+        assert router.cost_log()[-1]["routing_reason"] == "gpu_exclusive_active"
+        assert any("routing chat to API" in msg for msg in statuses)
+        mock_api_client.chat.assert_called_once()
+        mock_llm_client.chat.assert_not_called()
+
+    def test_no_api_client_blocks_local_chat_during_gpu_exclusive_activity(
+        self, mock_llm_client
+    ):
+        router = HybridRouter(
+            llm_client=mock_llm_client,
+            api_client=None,
+            policy="local_preferred",
+            gpu_exclusive_active_fn=lambda: True,
+        )
+
+        with pytest.raises(
+            RuntimeError,
+            match="GPU-exclusive activity active and no API client is configured",
+        ):
+            router.complete([{"role": "user", "content": "hi"}])
+
+        mock_llm_client.chat.assert_not_called()
+
+    def test_gpu_exclusive_activity_overrides_force_local(
+        self, mock_llm_client, mock_api_client
+    ):
+        router = HybridRouter(
+            llm_client=mock_llm_client,
+            api_client=mock_api_client,
+            policy="local_preferred",
+            gpu_exclusive_active_fn=lambda: True,
+        )
+
+        result = router.complete(
+            [{"role": "user", "content": "hi"}], force_backend="local"
+        )
+
+        assert result.source == "api"
+        assert router.cost_log()[-1]["routing_reason"] == "gpu_exclusive_active"
+        mock_api_client.chat.assert_called_once()
+        mock_llm_client.chat.assert_not_called()
+
+
 class TestGpuPreemptionRouting:
     def test_routes_to_api_when_gpu_preemption_detected(
         self, mock_llm_client, mock_api_client

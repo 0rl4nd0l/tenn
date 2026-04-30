@@ -303,6 +303,7 @@ _EXTRACTION_ACTIVE_STATE_FILE = _default_extraction_activity_state_file()
 _EXTRACTION_ACTIVE_LOCK_FILE = _EXTRACTION_ACTIVE_STATE_FILE.with_suffix(".lock")
 _EXTRACTION_ACTIVITY_LOCK = Lock()
 _legacy_extraction_activity_token: str | None = None
+_legacy_gpu_exclusive_activity_token: str | None = None
 _HOST_ID = (socket.gethostname() or "unknown").strip() or "unknown"
 _PROCESS_BOOT_ID = uuid4().hex
 _PROCESS_STARTED_AT_TS = time.time()
@@ -405,6 +406,10 @@ def _sanitize_extraction_metadata(
 
     clean: dict[str, Any] = {}
     for key in (
+        "activity_type",
+        "reason",
+        "owner",
+        "mode",
         "run_id",
         "document_id",
         "requested_method",
@@ -661,18 +666,21 @@ def register_extraction_activity(
     redis_url: str | None = None,
     ttl_seconds: int | None = None,
     metadata: Mapping[str, Any] | None = None,
+    track_process: bool = True,
 ) -> str:
     ttl = max(int(ttl_seconds or _EXTRACTION_ACTIVE_TTL), 1)
     token = uuid4().hex
     expiry_ts = _now_timestamp() + ttl
     activity_metadata = dict(metadata or {})
+    activity_metadata.setdefault("activity_type", "extraction")
     activity_metadata.setdefault(
         "started_at",
         _utc_now().replace(microsecond=0).isoformat(),
     )
     activity_metadata.setdefault("host", _HOST_ID)
-    activity_metadata.setdefault("pid", str(os.getpid()))
-    activity_metadata.setdefault("boot_id", _PROCESS_BOOT_ID)
+    if track_process:
+        activity_metadata.setdefault("pid", str(os.getpid()))
+        activity_metadata.setdefault("boot_id", _PROCESS_BOOT_ID)
     client = _build_redis_client(redis_url)
     if client is not None:
         try:
@@ -721,6 +729,68 @@ def extraction_activity(
         clear_extraction_activity(token, redis_url=redis_url)
 
 
+def register_gpu_exclusive_activity(
+    *,
+    redis_url: str | None = None,
+    ttl_seconds: int | None = None,
+    metadata: Mapping[str, Any] | None = None,
+    reason: str | None = None,
+    owner: str | None = None,
+    track_process: bool = False,
+) -> str:
+    """Register GPU-heavy work that requires local chat to route to API.
+
+    This uses the same shared state as extraction activity so existing
+    extraction mutual exclusion remains the canonical guard. Manual/operator
+    tokens default to TTL-based ownership rather than process ownership because
+    the CLI process that creates the token exits immediately.
+    """
+
+    activity_metadata = dict(metadata or {})
+    activity_metadata.setdefault("activity_type", "gpu_exclusive")
+    activity_metadata.setdefault("mode", "api_routing")
+    if reason:
+        activity_metadata.setdefault("reason", reason)
+    if owner:
+        activity_metadata.setdefault("owner", owner)
+    return register_extraction_activity(
+        redis_url=redis_url,
+        ttl_seconds=ttl_seconds,
+        metadata=activity_metadata,
+        track_process=track_process,
+    )
+
+
+def clear_gpu_exclusive_activity(
+    token: str, *, redis_url: str | None = None
+) -> None:
+    clear_extraction_activity(token, redis_url=redis_url)
+
+
+@contextmanager
+def gpu_exclusive_activity(
+    *,
+    redis_url: str | None = None,
+    ttl_seconds: int | None = None,
+    metadata: Mapping[str, Any] | None = None,
+    reason: str | None = None,
+    owner: str | None = None,
+    track_process: bool = True,
+) -> Any:
+    token = register_gpu_exclusive_activity(
+        redis_url=redis_url,
+        ttl_seconds=ttl_seconds,
+        metadata=metadata,
+        reason=reason,
+        owner=owner,
+        track_process=track_process,
+    )
+    try:
+        yield token
+    finally:
+        clear_gpu_exclusive_activity(token, redis_url=redis_url)
+
+
 def set_extraction_active(active: bool, *, redis_url: str | None = None) -> None:
     """Signal whether a GPU-bound extraction is currently running.
 
@@ -746,6 +816,30 @@ def set_extraction_active(active: bool, *, redis_url: str | None = None) -> None
         _legacy_extraction_activity_token = None
 
 
+def set_gpu_exclusive_active(active: bool, *, redis_url: str | None = None) -> None:
+    """Legacy-style toggle for long-running GPU-exclusive work.
+
+    Prefer register_gpu_exclusive_activity() when a caller can hold a token.
+    """
+
+    global _legacy_gpu_exclusive_activity_token
+
+    with _EXTRACTION_ACTIVITY_LOCK:
+        if active:
+            if _legacy_gpu_exclusive_activity_token is None:
+                _legacy_gpu_exclusive_activity_token = (
+                    register_gpu_exclusive_activity(redis_url=redis_url)
+                )
+            return
+        if _legacy_gpu_exclusive_activity_token is None:
+            return
+        clear_gpu_exclusive_activity(
+            _legacy_gpu_exclusive_activity_token,
+            redis_url=redis_url,
+        )
+        _legacy_gpu_exclusive_activity_token = None
+
+
 def is_extraction_active(*, redis_url: str | None = None) -> bool:
     """Check whether an extraction is currently running (via Redis)."""
     client = _build_redis_client(redis_url)
@@ -756,6 +850,12 @@ def is_extraction_active(*, redis_url: str | None = None) -> bool:
         except Exception:
             pass
     return _file_extraction_active()
+
+
+def is_gpu_exclusive_active(*, redis_url: str | None = None) -> bool:
+    """Check whether local chat must yield to GPU-exclusive work."""
+
+    return is_extraction_active(redis_url=redis_url)
 
 
 def get_extraction_activity_snapshot(*, redis_url: str | None = None) -> dict[str, Any]:
@@ -826,6 +926,16 @@ def get_extraction_activity_snapshot(*, redis_url: str | None = None) -> dict[st
         "expires_in_seconds": 0,
         "active_runs": [],
     }
+
+
+def get_gpu_exclusive_activity_snapshot(
+    *, redis_url: str | None = None
+) -> dict[str, Any]:
+    """Return shared GPU-exclusive activity state for launchers/diagnostics."""
+
+    snapshot = get_extraction_activity_snapshot(redis_url=redis_url)
+    snapshot["kind"] = "gpu_exclusive_activity"
+    return snapshot
 
 
 def mark_task_started(queue_name: str) -> None:

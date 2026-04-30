@@ -13,9 +13,9 @@ The default policy is ``api_preferred``.
 
 The API client is never called unless an explicit ``api_client`` is supplied.
 Normal routing follows ``force_backend`` or the configured policy, except for
-the shared-router extraction mutex: when extraction is active on the local
-llama.cpp router, chat is forced to API when available and otherwise fails
-fast instead of contending for VRAM.
+GPU-exclusive activity: when extraction or another registered GPU-heavy task
+owns the local llama.cpp router, chat is forced to API when available and
+otherwise fails fast instead of contending for VRAM.
 """
 
 from __future__ import annotations
@@ -93,6 +93,9 @@ class HybridRouter:
         running on the shared llama.cpp server. When active, chat is routed to
         the cloud API when available; otherwise local chat is blocked fail-fast
         to avoid VRAM contention on the shared router.
+    gpu_exclusive_active_fn:
+        Optional callable returning ``True`` when any registered GPU-heavy
+        activity requires local chat to yield to API routing.
     """
 
     def __init__(
@@ -102,6 +105,7 @@ class HybridRouter:
         policy: str | None = None,
         llm_timeout: float = 120.0,
         extraction_active_fn: Callable[[], bool] | None = None,
+        gpu_exclusive_active_fn: Callable[[], bool] | None = None,
         gpu_preemption_fn: Callable[[], str | None] | None = None,
     ) -> None:
         self._local = llm_client
@@ -109,6 +113,7 @@ class HybridRouter:
         self._timeout = llm_timeout
         self._policy = self._resolve_policy(policy)
         self._extraction_active_fn = extraction_active_fn
+        self._gpu_exclusive_active_fn = gpu_exclusive_active_fn
         self._gpu_preemption_fn = gpu_preemption_fn
         self._log: list[_CostEntry] = []
         self._last_attempt: dict[str, Any] | None = None
@@ -244,17 +249,49 @@ class HybridRouter:
         on_status: Callable[[str], None] | None = None,
     ) -> tuple[str, str]:
         """Determine which backend to use for this call."""
+        if force_backend is not None and force_backend not in ("local", "api"):
+            raise ValueError(
+                f"force_backend must be 'local' or 'api', got {force_backend!r}"
+            )
+
+        if force_backend == "api":
+            return "api", "force:api"
+
+        if force_backend == "local" and self._gpu_exclusive_active_fn is None:
+            return "local", "force:local"
+
+        # GPU-exclusive override: when a registered GPU-heavy task owns the
+        # shared llama.cpp server, route chat to the cloud API to avoid VRAM
+        # contention. This deliberately beats local_only and force:local because
+        # the contract requires local chat to fail fast rather than compete for
+        # the GPU.
+        if self._gpu_exclusive_active_fn is not None:
+            try:
+                if self._gpu_exclusive_active_fn():
+                    logger.info("GPU-exclusive activity active on shared llama.cpp")
+                    if self._api is not None:
+                        if on_status is not None:
+                            on_status(
+                                "GPU-exclusive activity active - routing chat to API"
+                            )
+                        return "api", "gpu_exclusive_active"
+                    if on_status is not None:
+                        on_status(
+                            "GPU-exclusive activity active - local chat blocked"
+                        )
+                    raise RuntimeError(
+                        "GPU-exclusive activity active and no API client is configured"
+                    )
+            except RuntimeError:
+                raise
+            except Exception:
+                pass  # Best-effort check; fall through to normal policy
+
         if force_backend is not None:
-            if force_backend not in ("local", "api"):
-                raise ValueError(
-                    f"force_backend must be 'local' or 'api', got {force_backend!r}"
-                )
             return force_backend, f"force:{force_backend}"
 
-        # Extraction-aware override: when a GPU extraction is running on the
-        # shared llama.cpp server, route chat to the cloud API to avoid VRAM
-        # contention.  Only applies when an API client is available and the
-        # policy is not explicitly local_only.
+        # Backward-compatible extraction-aware override for callers that still
+        # pass only the extraction checker.
         if self._extraction_active_fn is not None:
             try:
                 if self._extraction_active_fn():

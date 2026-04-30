@@ -85,6 +85,40 @@ def test_wait_for_health_reports_log_path_on_timeout(tmp_path: Path) -> None:
     assert "See log: /tmp/llama-server-8001.log" in completed.stderr
 
 
+def test_ensure_llama_servers_skips_startup_when_gpu_exclusive_active(
+    tmp_path: Path,
+) -> None:
+    calls_file = tmp_path / "calls.txt"
+
+    completed = subprocess.run(
+        [
+            "bash",
+            "-lc",
+            "source /dev/stdin <<'EOF'\n"
+            f"{_process_control_block()}\n"
+            "EOF\n"
+            f'REPO_ROOT="{REPO_ROOT}"\n'
+            f'ENGINE_ROOT="{tmp_path}"\n'
+            f'CALLS_FILE="{calls_file}"\n'
+            'gpu_exclusive_activity_active() { return 0; }\n'
+            'llama_chat_base_url() { printf "http://127.0.0.1:8001\\n"; }\n'
+            'llama_extraction_base_url() { printf "http://127.0.0.1:8002\\n"; }\n'
+            'llama_api_key() { printf "token\\n"; }\n'
+            'llama_log_path() { printf "/tmp/llama-server-%s.log\\n" "$1"; }\n'
+            'http_ok() { printf "http_ok\\n" >> "$CALLS_FILE"; return 1; }\n'
+            'wait_for_health() { printf "wait_for_health\\n" >> "$CALLS_FILE"; }\n'
+            "ensure_llama_servers_up\n",
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert "GPU-exclusive activity active; skipping llama.cpp startup" in completed.stdout
+    assert calls_file.exists() is False
+
+
 def test_llama_chat_base_url_prefers_host_endpoint_over_container_env(
     tmp_path: Path,
 ) -> None:

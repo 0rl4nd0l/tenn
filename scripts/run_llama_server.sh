@@ -32,12 +32,25 @@ fi
 echo $$ > "${LOCKFILE}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PYTHON_BIN="$(command -v python3 2>/dev/null || command -v python 2>/dev/null)"
+PYTHON_BIN="${PYTHON_BIN:-}"
+if [[ -z "${PYTHON_BIN}" ]] && [[ -x "${ROOT_DIR}/financial-engine_v2/.venv/bin/python" ]]; then
+  PYTHON_BIN="${ROOT_DIR}/financial-engine_v2/.venv/bin/python"
+fi
+if [[ -z "${PYTHON_BIN}" ]]; then
+  PYTHON_BIN="$(command -v python3 2>/dev/null || command -v python 2>/dev/null)"
+fi
 if [[ -z "${PYTHON_BIN}" ]]; then
   echo "ERROR: python3 or python required for Tenn storage guard" >&2
   exit 1
 fi
 "${PYTHON_BIN}" "${ROOT_DIR}/scripts/storage_guard.py" || exit 1
+
+if [[ "${ALLOW_LLAMA_DURING_GPU_EXCLUSIVE:-0}" != "1" ]]; then
+  if "${PYTHON_BIN}" "${ROOT_DIR}/scripts/gpu_activity_guard.py" status --quiet-active >/dev/null 2>&1; then
+    echo "ERROR: GPU-exclusive activity active; refusing to start llama.cpp chat/router. Set ALLOW_LLAMA_DURING_GPU_EXCLUSIVE=1 only for the owning GPU task." >&2
+    exit 75
+  fi
+fi
 
 BIN_PATH="${LLAMA_SERVER_BIN:-${ROOT_DIR}/tools/llama.cpp/build-cuda/bin/llama-server}"
 if [[ ! -x "${BIN_PATH}" ]]; then

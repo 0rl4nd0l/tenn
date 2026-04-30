@@ -54,6 +54,54 @@ def test_extraction_activity_file_fallback_tracks_active_state(
     assert state_path.exists() is False
 
 
+def test_extraction_activity_counts_as_gpu_exclusive(monkeypatch, tmp_path) -> None:
+    state_path = tmp_path / "extraction-is-gpu-exclusive.json"
+    lock_path = tmp_path / "extraction-is-gpu-exclusive.lock"
+    monkeypatch.setattr(router_state, "_EXTRACTION_ACTIVE_STATE_FILE", state_path)
+    monkeypatch.setattr(router_state, "_EXTRACTION_ACTIVE_LOCK_FILE", lock_path)
+    monkeypatch.setattr(
+        router_state, "_build_redis_client", lambda redis_url=None: None
+    )
+
+    with router_state.extraction_activity():
+        assert router_state.is_gpu_exclusive_active() is True
+        snapshot = router_state.get_gpu_exclusive_activity_snapshot()
+        assert snapshot["active"] is True
+        assert snapshot["kind"] == "gpu_exclusive_activity"
+        assert snapshot["active_runs"][0]["activity_type"] == "extraction"
+
+
+def test_gpu_exclusive_activity_file_fallback_tracks_manual_token(
+    monkeypatch, tmp_path
+) -> None:
+    state_path = tmp_path / "gpu-exclusive.json"
+    lock_path = tmp_path / "gpu-exclusive.lock"
+    monkeypatch.setattr(router_state, "_EXTRACTION_ACTIVE_STATE_FILE", state_path)
+    monkeypatch.setattr(router_state, "_EXTRACTION_ACTIVE_LOCK_FILE", lock_path)
+    monkeypatch.setattr(
+        router_state, "_build_redis_client", lambda redis_url=None: None
+    )
+
+    token = router_state.register_gpu_exclusive_activity(
+        ttl_seconds=600,
+        reason="isolated-docling-audit",
+        owner="codex",
+    )
+    try:
+        assert router_state.is_gpu_exclusive_active() is True
+        snapshot = router_state.get_gpu_exclusive_activity_snapshot()
+        active_run = snapshot["active_runs"][0]
+        assert active_run["activity_type"] == "gpu_exclusive"
+        assert active_run["mode"] == "api_routing"
+        assert active_run["reason"] == "isolated-docling-audit"
+        assert active_run["owner"] == "codex"
+        assert "pid" not in active_run
+    finally:
+        router_state.clear_gpu_exclusive_activity(token)
+
+    assert router_state.is_gpu_exclusive_active() is False
+
+
 def test_legacy_set_extraction_active_uses_file_fallback(monkeypatch, tmp_path) -> None:
     state_path = tmp_path / "legacy-extraction.json"
     lock_path = tmp_path / "legacy-extraction.lock"
