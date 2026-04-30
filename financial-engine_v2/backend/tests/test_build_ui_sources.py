@@ -34,6 +34,30 @@ def test_orchestrator_format_local_context() -> None:
     assert sources[0]["kind"] == "rag"
 
 
+def test_local_context_price_query_renders_visible_source() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "type": "local_context",
+                "details": {
+                    "price_query": {
+                        "ticker": "JBH",
+                        "kind": "current",
+                        "close": 112.34,
+                        "date": "2026-04-30",
+                    }
+                },
+            }
+        ]
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["title"] == "JBH current price"
+    assert sources[0]["source_id"] == "price_query:JBH:2026-04-30"
+    assert sources[0]["published_at"] == "2026-04-30"
+    assert "close: 112.34" in str(sources[0]["snippet"])
+
+
 def test_orchestrator_financial_truth_announcement_context_renders_visible_sources() -> None:
     financial_truth = {
         "source": "financial_truth",

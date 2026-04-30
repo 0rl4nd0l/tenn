@@ -240,13 +240,13 @@ class TestMarketUpdateConversationalCommands:
         )
 
     def test_bare_market_update_maps_to_final(self) -> None:
-        assert derive_conversational_command("market update") == "/market-update final"
+        assert derive_conversational_command("market update") == "/market-update latest"
 
-    def test_market_update_with_question_mark_maps_to_final(self) -> None:
-        assert derive_conversational_command("market update?") == "/market-update final"
+    def test_market_update_with_question_mark_maps_to_latest(self) -> None:
+        assert derive_conversational_command("market update?") == "/market-update latest"
 
-    def test_market_updater_typo_maps_to_final(self) -> None:
-        assert derive_conversational_command("market updater") == "/market-update final"
+    def test_market_updater_typo_maps_to_latest(self) -> None:
+        assert derive_conversational_command("market updater") == "/market-update latest"
 
     # --- non-collisions ---------------------------------------------------
     def test_market_news_does_not_match(self) -> None:

@@ -539,6 +539,13 @@ class TakeawaysRequest(BaseModel):
 
 class IngestUrlRequest(BaseModel):
     url: str
+    credibility_weight: float | None = Field(default=None, ge=0.0, le=1.0)
+
+
+class IngestUrlsRequest(BaseModel):
+    urls: list[str] = Field(default_factory=list, min_length=1, max_length=5)
+    credibility_weight: float | None = Field(default=None, ge=0.0, le=1.0)
+    takeaway_limit: int = Field(default=5, ge=1, le=12)
 
 
 class InspectMarketplaceRequest(BaseModel):
@@ -585,13 +592,7 @@ def _stage_marketplace_capture(capture: MarketplaceListingCapture) -> dict[str, 
     }
 
 
-@router.post(
-    "/takeaways",
-    dependencies=[Depends(require_api_key)],
-)
-def get_commentary_takeaways(body: TakeawaysRequest) -> dict[str, Any]:
-    source_id = _validate_source_id(body.source_id)
-    limit = int(body.limit)
+def _commentary_takeaways_payload(source_id: str, limit: int) -> dict[str, Any]:
     points, entry = _load_staged_points_for_source(source_id)
     memo, memo_status = _load_commentary_memo_for_source(source_id)
 
@@ -637,11 +638,20 @@ def get_commentary_takeaways(body: TakeawaysRequest) -> dict[str, Any]:
 
 
 @router.post(
-    "/ingest-url",
+    "/takeaways",
     dependencies=[Depends(require_api_key)],
 )
-def ingest_url(body: IngestUrlRequest) -> dict[str, Any]:
-    url = str(body.url or "").strip()
+def get_commentary_takeaways(body: TakeawaysRequest) -> dict[str, Any]:
+    source_id = _validate_source_id(body.source_id)
+    return _commentary_takeaways_payload(source_id, int(body.limit))
+
+
+def _ingest_youtube_url_to_staging(
+    url: str,
+    *,
+    credibility_weight: float | None = None,
+) -> dict[str, Any]:
+    url = str(url or "").strip()
     if not url:
         raise HTTPException(status_code=422, detail="url is required")
     if not _YOUTUBE_URL_RE.search(url):
@@ -663,23 +673,98 @@ def ingest_url(body: IngestUrlRequest) -> dict[str, Any]:
             status_code=422, detail=f"transcript unavailable: {exc}"
         ) from exc
 
+    ingest_kwargs: dict[str, Any] = {
+        "transcript_text": transcript_text,
+        "source_name": video.title,
+        "source_type": "youtube_transcript",
+        "speaker": video.channel_name,
+        "published_at": video.published_at or "",
+    }
+    if credibility_weight is not None:
+        ingest_kwargs["credibility_weight"] = credibility_weight
+
     try:
-        result = ingest_transcript(
-            transcript_text=transcript_text,
-            source_name=video.title,
-            source_type="youtube_transcript",
-            speaker=video.channel_name,
-            published_at=video.published_at or "",
-        )
+        result = ingest_transcript(**ingest_kwargs)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=f"transcript processing failed: {exc}") from exc
 
     return {
         **result,
+        "video_id": video.video_id,
         "video_title": video.title,
         "channel": video.channel_name,
         "published_at": video.published_at,
         "webpage_url": video.webpage_url,
+    }
+
+
+@router.post(
+    "/ingest-url",
+    dependencies=[Depends(require_api_key)],
+)
+def ingest_url(body: IngestUrlRequest) -> dict[str, Any]:
+    return _ingest_youtube_url_to_staging(
+        body.url,
+        credibility_weight=body.credibility_weight,
+    )
+
+
+@router.post(
+    "/ingest-urls",
+    dependencies=[Depends(require_api_key)],
+)
+def ingest_urls(body: IngestUrlsRequest) -> dict[str, Any]:
+    results: list[dict[str, Any]] = []
+    errors: list[dict[str, Any]] = []
+
+    for url in body.urls:
+        normalized_url = str(url or "").strip()
+        try:
+            ingest_result = _ingest_youtube_url_to_staging(
+                normalized_url,
+                credibility_weight=body.credibility_weight,
+            )
+            source_id = _validate_source_id(str(ingest_result.get("source_id") or ""))
+            try:
+                takeaway_payload = _commentary_takeaways_payload(
+                    source_id,
+                    int(body.takeaway_limit),
+                )
+            except HTTPException as exc:
+                takeaway_payload = {
+                    "ok": False,
+                    "status_code": exc.status_code,
+                    "detail": exc.detail,
+                    "takeaways": [],
+                    "watchlist_suggestions": [],
+                }
+            results.append(
+                {
+                    **ingest_result,
+                    "takeaway_status": "ready" if takeaway_payload.get("ok") else "error",
+                    "takeaways": takeaway_payload.get("takeaways") or [],
+                    "watchlist_suggestions": takeaway_payload.get("watchlist_suggestions") or [],
+                    "takeaway_payload": takeaway_payload,
+                    "review_status": "staged" if ingest_result.get("staged") else "indexed",
+                }
+            )
+        except HTTPException as exc:
+            errors.append(
+                {
+                    "url": normalized_url,
+                    "status_code": exc.status_code,
+                    "detail": exc.detail,
+                }
+            )
+
+    return {
+        "ok": not errors,
+        "count": len(results),
+        "error_count": len(errors),
+        "results": results,
+        "errors": errors,
+        "requires_review": any(item.get("staged") for item in results),
+        "commit_path": "/api/commentary/transcripts/{source_id}/approve",
     }
 
 

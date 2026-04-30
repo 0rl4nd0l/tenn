@@ -849,16 +849,67 @@ class BackendApiClient:
         self,
         url: str,
         *,
+        credibility_weight: float | None = None,
         timeout: float = 60.0,
     ) -> dict[str, Any]:
-        url = f"{self.base_url}/api/commentary/ingest-url"
+        endpoint_url = f"{self.base_url}/api/commentary/ingest-url"
+        headers: dict[str, str] = {}
+        if self.api_key:
+            headers["X-API-Key"] = self.api_key
+        payload: dict[str, Any] = {"url": url}
+        if credibility_weight is not None:
+            payload["credibility_weight"] = credibility_weight
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.post(endpoint_url, json=payload, headers=headers)
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
+    def ingest_youtube_urls(
+        self,
+        urls: list[str],
+        *,
+        credibility_weight: float | None = None,
+        takeaway_limit: int = 5,
+        timeout: float = 180.0,
+    ) -> dict[str, Any]:
+        endpoint_url = f"{self.base_url}/api/commentary/ingest-urls"
+        headers: dict[str, str] = {}
+        if self.api_key:
+            headers["X-API-Key"] = self.api_key
+        payload: dict[str, Any] = {
+            "urls": urls,
+            "takeaway_limit": takeaway_limit,
+        }
+        if credibility_weight is not None:
+            payload["credibility_weight"] = credibility_weight
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.post(endpoint_url, json=payload, headers=headers)
+            response.raise_for_status()
+            return response.json() if response.content else {
+                "ok": True,
+                "results": [],
+                "errors": [],
+            }
+
+    def get_commentary_takeaways(
+        self,
+        source_id: str,
+        *,
+        limit: int = 5,
+        timeout: float = 60.0,
+    ) -> dict[str, Any]:
+        endpoint_url = f"{self.base_url}/api/commentary/takeaways"
         headers: dict[str, str] = {}
         if self.api_key:
             headers["X-API-Key"] = self.api_key
         with httpx.Client(timeout=timeout, follow_redirects=True) as client:
-            response = client.post(url, json={"url": url}, headers=headers)
+            response = client.post(
+                endpoint_url,
+                json={"source_id": source_id, "limit": limit},
+                headers=headers,
+            )
             response.raise_for_status()
-            return response.json() if response.content else {}
+            return response.json() if response.content else {"takeaways": []}
 
     def add_watched_channel(
         self,
