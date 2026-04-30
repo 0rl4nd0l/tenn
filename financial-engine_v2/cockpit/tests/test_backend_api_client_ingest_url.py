@@ -105,3 +105,43 @@ def test_add_watched_channel_raises_backend_detail():
 
     with pytest.raises(RuntimeError, match="channel lookup failed"):
         client.add_watched_channel("Kneppy Invests")
+
+
+@respx.mock
+def test_get_youtube_channel_recent_videos_success():
+    route = respx.post(f"{BASE}/api/commentary/channels/recent-videos").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "ok": True,
+                "channel_id": "UCabc123",
+                "name": "Kneppy Invests",
+                "videos": [{"position": 1, "title": "Latest video"}],
+            },
+        )
+    )
+    client = BackendApiClient(BASE, api_key="secret")
+
+    result = client.get_youtube_channel_recent_videos("Kneppy Invests", limit=3)
+
+    assert result["channel_id"] == "UCabc123"
+    request = route.calls[0].request
+    assert request.headers.get("x-api-key") == "secret"
+    assert json.loads(request.read()) == {
+        "name_or_id": "Kneppy Invests",
+        "limit": 3,
+    }
+
+
+@respx.mock
+def test_get_youtube_channel_recent_videos_raises_backend_detail():
+    respx.post(f"{BASE}/api/commentary/channels/recent-videos").mock(
+        return_value=httpx.Response(
+            502,
+            json={"detail": "channel lookup failed"},
+        )
+    )
+    client = BackendApiClient(BASE)
+
+    with pytest.raises(RuntimeError, match="channel lookup failed"):
+        client.get_youtube_channel_recent_videos("missing")

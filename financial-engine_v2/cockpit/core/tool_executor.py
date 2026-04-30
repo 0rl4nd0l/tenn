@@ -1146,6 +1146,30 @@ class ToolExecutor:
             return {"ok": False, "error": str(exc)}
         return {"ok": True, **result}
 
+    def _exec_check_youtube_channel_recent_videos(self, args: dict[str, Any]) -> dict[str, Any]:
+        channel_name = str(args.get("channel_name", "")).strip()
+        if not channel_name:
+            return {"ok": False, "error": "channel_name is required"}
+        client = self._router.backend_api_client
+        if client is None:
+            return {"ok": False, "error": "backend API client not configured"}
+        try:
+            limit = int(args.get("limit", 8))
+        except (TypeError, ValueError):
+            return {"ok": False, "error": "limit must be an integer"}
+        if limit < 1 or limit > 20:
+            return {"ok": False, "error": "limit must be between 1 and 20"}
+        try:
+            result = client.get_youtube_channel_recent_videos(
+                channel_name,
+                limit=limit,
+            )
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)}
+        videos = result.get("videos")
+        count = len(videos) if isinstance(videos, list) else 0
+        return {"ok": True, "count": count, **result}
+
     # Dispatch table: tool_name -> handler method
     _READ_ONLY_DISPATCH: dict[str, Any] = {
         "query_ticker_data": _exec_query_ticker_data,
@@ -1177,6 +1201,7 @@ class ToolExecutor:
         "get_tv_indicators": _exec_get_tv_indicators,
         "tv_screener": _exec_tv_screener,
         "watch_youtube_channel": _exec_watch_youtube_channel,
+        "check_youtube_channel_recent_videos": _exec_check_youtube_channel_recent_videos,
     }
 
     # ------------------------------------------------------------------

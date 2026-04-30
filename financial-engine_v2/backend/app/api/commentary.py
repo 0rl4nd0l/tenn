@@ -31,6 +31,7 @@ from app.services.youtube_transcript_fetcher import (
     TranscriptUnavailableError,
     _default_fetch_transcript,  # private module-level fetcher; patched directly in tests
     fetch_video_metadata,
+    list_recent_channel_videos,
     resolve_channel_id,
 )
 
@@ -233,6 +234,11 @@ class AddChannelRequest(BaseModel):
     enabled: bool = True
 
 
+class RecentChannelVideosRequest(BaseModel):
+    name_or_id: str
+    limit: int = Field(default=8, ge=1, le=20)
+
+
 class IngestUrlRequest(BaseModel):
     url: str
 
@@ -379,6 +385,23 @@ def list_watched_channels() -> dict[str, Any]:
         "channels": [c.to_dict() for c in channels],
         "count": len(channels),
     }
+
+
+@router.post(
+    "/channels/recent-videos",
+    dependencies=[Depends(require_api_key)],
+)
+def get_recent_channel_videos(body: RecentChannelVideosRequest) -> dict[str, Any]:
+    name_or_id = str(body.name_or_id or "").strip()
+    if not name_or_id:
+        raise HTTPException(status_code=422, detail="name_or_id is required")
+
+    try:
+        return list_recent_channel_videos(name_or_id, limit=body.limit)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @router.post(

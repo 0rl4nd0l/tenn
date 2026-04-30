@@ -694,6 +694,35 @@ _READ_ONLY_TOOLS: list[dict[str, Any]] = [
         },
         "mutating": False,
     },
+    {
+        "name": "check_youtube_channel_recent_videos",
+        "description": (
+            "Resolve a YouTube channel name, @handle, channel URL, or raw UC... "
+            "channel ID and list its recent videos without ingesting transcripts. "
+            "Use this when the user asks to check, show, or list recent videos "
+            "from a YouTube channel before choosing which transcripts to ingest."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "channel_name": {
+                    "type": "string",
+                    "description": (
+                        "Channel name, @handle, URL, or channel ID. "
+                        "Examples: 'Kneppy Invests', '@KneppyInvests', "
+                        "'https://youtube.com/@KneppyInvests', 'UCabc123'"
+                    ),
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of recent videos to return (1-20, default 8).",
+                    "default": 8,
+                },
+            },
+            "required": ["channel_name"],
+        },
+        "mutating": False,
+    },
 ]
 
 # ---------------------------------------------------------------------------

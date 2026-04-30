@@ -38,6 +38,8 @@ class YoutubeVideo:
     channel_name: str
     published_at: str
     webpage_url: str
+    duration_seconds: int | None = None
+    view_count: int | None = None
 
 
 def _slugify_as_handle(name: str) -> str:
@@ -214,6 +216,104 @@ def _iso_from_timestamp(value: Any) -> str:
     return "1970-01-01T00:00:00Z"
 
 
+def _coerce_optional_int(value: Any) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        coerced = int(float(value))
+    except (TypeError, ValueError):
+        return None
+    return coerced if coerced >= 0 else None
+
+
+def _parse_iso_datetime(value: str) -> datetime | None:
+    text = str(value or "").strip()
+    if not text or text == "1970-01-01T00:00:00Z":
+        return None
+    try:
+        return datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+_IMPORTANT_TITLE_RE = re.compile(
+    r"\b("
+    r"results?|earnings?|quarterly|annual|guidance|upgrade|downgrade|"
+    r"acquisition|takeover|merger|capital\s+rais(?:e|ing)|placement|"
+    r"dividend|buyback|short\s+report|fraud|bankruptcy|administration"
+    r")\b",
+    re.IGNORECASE,
+)
+_ASX_TICKER_IN_TITLE_RE = re.compile(r"\b[A-Z]{2,5}\b")
+
+
+def _score_video_for_review(video: YoutubeVideo, *, now: datetime | None = None) -> dict[str, Any]:
+    """Return deterministic preview scores for operator triage.
+
+    These scores are intentionally metadata-only. They help order a review list
+    before any transcript is fetched, but they are not factual content claims
+    about the video.
+    """
+    clock = now or datetime.now(timezone.utc)
+    published_at = _parse_iso_datetime(video.published_at)
+    if published_at is None:
+        recency_score = 0.0
+    else:
+        age_days = max(0.0, (clock - published_at).total_seconds() / 86400.0)
+        if age_days <= 7:
+            recency_score = 1.0
+        elif age_days <= 30:
+            recency_score = 0.8
+        elif age_days <= 90:
+            recency_score = 0.5
+        else:
+            recency_score = 0.25
+
+    duration = video.duration_seconds
+    if duration is None:
+        duration_score = 0.5
+    elif duration < 5 * 60:
+        duration_score = 0.4
+    elif duration <= 45 * 60:
+        duration_score = 1.0
+    elif duration <= 90 * 60:
+        duration_score = 0.7
+    else:
+        duration_score = 0.45
+
+    importance_score = 0.8 if _IMPORTANT_TITLE_RE.search(video.title) else 0.45
+    relevance_score = 0.7 if _ASX_TICKER_IN_TITLE_RE.search(video.title) else 0.5
+    overall_score = (
+        0.35 * recency_score
+        + 0.25 * importance_score
+        + 0.20 * relevance_score
+        + 0.20 * duration_score
+    )
+    return {
+        "overall": round(overall_score, 3),
+        "recency": round(recency_score, 3),
+        "importance": round(importance_score, 3),
+        "relevance": round(relevance_score, 3),
+        "duration": round(duration_score, 3),
+    }
+
+
+def youtube_video_to_dict(video: YoutubeVideo, *, position: int | None = None) -> dict[str, Any]:
+    payload = {
+        "video_id": video.video_id,
+        "title": video.title,
+        "channel_name": video.channel_name,
+        "published_at": video.published_at,
+        "webpage_url": video.webpage_url,
+        "duration_seconds": video.duration_seconds,
+        "view_count": video.view_count,
+        "scores": _score_video_for_review(video),
+    }
+    if position is not None:
+        payload["position"] = position
+    return payload
+
+
 def fetch_video_metadata(url: str) -> YoutubeVideo:
     """Resolve a single YouTube URL to a YoutubeVideo using yt-dlp.
 
@@ -274,6 +374,8 @@ def fetch_video_metadata(url: str) -> YoutubeVideo:
         channel_name=channel,
         published_at=published_at,
         webpage_url=webpage_url,
+        duration_seconds=_coerce_optional_int(info.get("duration")),
+        view_count=_coerce_optional_int(info.get("view_count")),
     )
 
 
@@ -344,9 +446,65 @@ def _default_list_videos(channel: ChannelConfig, limit: int) -> list[YoutubeVide
                 channel_name=channel_name,
                 published_at=published_at,
                 webpage_url=webpage_url,
+                duration_seconds=_coerce_optional_int(entry.get("duration")),
+                view_count=_coerce_optional_int(entry.get("view_count")),
             )
         )
     return videos
+
+
+def list_recent_channel_videos(
+    name_or_id: str,
+    *,
+    limit: int = DEFAULT_CHANNEL_VIDEO_LIMIT,
+    list_videos_fn: Callable[[ChannelConfig, int], list[YoutubeVideo]] | None = None,
+) -> dict[str, Any]:
+    """Resolve a channel and return recent video metadata without ingesting transcripts."""
+    requested = str(name_or_id or "").strip()
+    if not requested:
+        raise ValueError("channel name or URL is required")
+    resolved_limit = max(1, min(20, int(limit)))
+    channel_id, canonical_name = resolve_channel_id(requested)
+
+    credibility_weight = 0.55
+    try:
+        registry = ChannelRegistry()
+        existing = next(
+            (
+                channel
+                for channel in registry.channels()
+                if channel.channel_id == channel_id
+            ),
+            None,
+        )
+        if existing is not None:
+            credibility_weight = existing.credibility_weight
+    except Exception:
+        credibility_weight = 0.55
+
+    channel = ChannelConfig(
+        name=canonical_name,
+        channel_id=channel_id,
+        credibility_weight=credibility_weight,
+        enabled=True,
+    )
+    videos = (list_videos_fn or _default_list_videos)(channel, resolved_limit)
+    videos = sorted(
+        videos,
+        key=lambda video: (video.published_at, video.video_id),
+        reverse=True,
+    )[:resolved_limit]
+    return {
+        "ok": True,
+        "channel_id": channel_id,
+        "name": canonical_name,
+        "limit": resolved_limit,
+        "credibility_weight": credibility_weight,
+        "videos": [
+            youtube_video_to_dict(video, position=index)
+            for index, video in enumerate(videos, start=1)
+        ],
+    }
 
 
 def _is_transcript_unavailable(exc: Exception) -> bool:

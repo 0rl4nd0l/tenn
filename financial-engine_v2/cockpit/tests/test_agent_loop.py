@@ -285,6 +285,40 @@ class TestAgentLoopRegressions:
         )
         llm.chat.assert_not_called()
 
+    def test_check_youtube_channel_recent_videos_command_executes_direct_tool(self):
+        executor = MagicMock(
+            return_value={
+                "ok": True,
+                "channel_id": "UCabc123",
+                "name": "Kneppy Invests",
+                "videos": [
+                    {
+                        "title": "BHP quarterly results breakdown",
+                        "published_at": "2026-04-28T00:00:00Z",
+                        "webpage_url": "https://www.youtube.com/watch?v=abc123",
+                        "duration_seconds": 1200,
+                        "scores": {"overall": 0.91},
+                    }
+                ],
+            }
+        )
+        llm = _make_llm([])
+        loop = AgentLoop(llm_client=llm, tool_executor=executor)
+
+        result = loop.run("check youtube channel Kneppy Invests")
+
+        assert result is not None
+        assert result.mode == "command"
+        assert result.tool_calls_made == 1
+        assert "Recent videos from Kneppy Invests (UCabc123)" in result.text
+        assert "BHP quarterly results breakdown" in result.text
+        assert "Reply with the video URL" in result.text
+        executor.assert_called_once_with(
+            "check_youtube_channel_recent_videos",
+            {"channel_name": "Kneppy Invests", "limit": 8},
+        )
+        llm.chat.assert_not_called()
+
     def test_action_command_still_returns_confirmation_preview(self):
         executor = MagicMock()
         llm = _make_llm([])

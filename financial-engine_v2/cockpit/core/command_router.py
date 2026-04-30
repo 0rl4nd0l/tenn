@@ -55,6 +55,36 @@ _ANALYSIS_RE = re.compile(
     re.IGNORECASE,
 )
 
+_CHECK_CHANNEL_RECENT_RES = (
+    re.compile(
+        r"""
+        ^\s*
+        (?:
+            check|show|list
+        )
+        \s+
+        (?:recent\s+)?
+        (?:youtube\s+)?
+        (?:videos?\s+from\s+|channel\s+)
+        (.+?)
+        (?:\s+for\s+recent\s+videos?)?
+        \s*$
+        """,
+        re.IGNORECASE | re.VERBOSE,
+    ),
+    re.compile(
+        r"""
+        ^\s*
+        check\s+
+        (?:youtube\s+)?
+        (.+?)
+        \s+for\s+recent\s+videos?
+        \s*$
+        """,
+        re.IGNORECASE | re.VERBOSE,
+    ),
+)
+
 _WATCH_CHANNEL_RE = re.compile(
     r"""
     ^\s*
@@ -165,6 +195,20 @@ def route_command(
                 arguments={"ticker": ticker},
                 explanation=f"Run full analysis pipeline for {ticker}.",
             )
+
+    # check/show/list recent YouTube videos from a channel
+    for pattern in _CHECK_CHANNEL_RECENT_RES:
+        m = pattern.match(text)
+        if m:
+            channel_name = m.group(1).strip()
+            if channel_name:
+                return CommandRoute(
+                    matched=True,
+                    action_type="direct_tool",
+                    tool="check_youtube_channel_recent_videos",
+                    arguments={"channel_name": channel_name, "limit": 8},
+                    explanation=f"Check recent YouTube videos from {channel_name!r}.",
+                )
 
     # watch/monitor/add/subscribe/follow youtube channel
     m = _WATCH_CHANNEL_RE.match(text)

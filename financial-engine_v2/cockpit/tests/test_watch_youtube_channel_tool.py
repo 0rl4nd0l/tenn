@@ -22,6 +22,20 @@ def _make_executor(
                 "already_existed": False,
             }
         )
+    router.backend_api_client.get_youtube_channel_recent_videos.return_value = {
+        "ok": True,
+        "channel_id": "UCabc123",
+        "name": "Kneppy Invests",
+        "videos": [
+            {
+                "position": 1,
+                "title": "BHP quarterly results breakdown",
+                "published_at": "2026-04-28T00:00:00Z",
+                "webpage_url": "https://www.youtube.com/watch?v=abc123",
+                "scores": {"overall": 0.91},
+            }
+        ],
+    }
     action_registry = MagicMock()
     return ToolExecutor(tool_router=router, action_registry=action_registry)
 
@@ -96,3 +110,45 @@ class TestWatchYoutubeChannelTool:
         )
         assert result["ok"] is True
         assert result["already_existed"] is True
+
+
+class TestCheckYoutubeChannelRecentVideosTool:
+    def test_successful_recent_video_preview(self):
+        executor = _make_executor()
+
+        result = executor.execute(
+            "check_youtube_channel_recent_videos",
+            {"channel_name": "Kneppy Invests", "limit": 3},
+        )
+
+        assert result["ok"] is True
+        assert result["channel_id"] == "UCabc123"
+        assert result["count"] == 1
+        executor._router.backend_api_client.get_youtube_channel_recent_videos.assert_called_once_with(
+            "Kneppy Invests",
+            limit=3,
+        )
+
+    def test_recent_video_preview_requires_backend(self):
+        router = MagicMock()
+        router.backend_api_client = None
+        executor = ToolExecutor(tool_router=router, action_registry=MagicMock())
+
+        result = executor.execute(
+            "check_youtube_channel_recent_videos",
+            {"channel_name": "Kneppy Invests"},
+        )
+
+        assert result["ok"] is False
+        assert "backend" in result["error"].lower()
+
+    def test_recent_video_preview_validates_limit(self):
+        executor = _make_executor()
+
+        result = executor.execute(
+            "check_youtube_channel_recent_videos",
+            {"channel_name": "Kneppy Invests", "limit": 99},
+        )
+
+        assert result["ok"] is False
+        assert "limit" in result["error"]

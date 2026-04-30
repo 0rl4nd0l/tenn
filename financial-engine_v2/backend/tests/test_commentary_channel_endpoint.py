@@ -124,3 +124,59 @@ class TestAddChannelEndpoint:
         body = resp.json()
         assert len(body["channels"]) == 2
         assert body["channels"][0]["channel_id"] == "UCabc123"
+
+    def test_recent_videos_preview(self):
+        client = _make_client()
+        with patch(
+            "app.api.commentary.list_recent_channel_videos",
+            return_value={
+                "ok": True,
+                "channel_id": "UCabc123",
+                "name": "Kneppy Invests",
+                "limit": 2,
+                "videos": [
+                    {
+                        "position": 1,
+                        "video_id": "vid123",
+                        "title": "BHP quarterly results breakdown",
+                        "published_at": "2026-04-28T00:00:00Z",
+                        "webpage_url": "https://www.youtube.com/watch?v=vid123",
+                        "duration_seconds": 1200,
+                        "scores": {"overall": 0.91},
+                    }
+                ],
+            },
+        ) as preview:
+            resp = client.post(
+                "/api/commentary/channels/recent-videos",
+                json={"name_or_id": "Kneppy Invests", "limit": 2},
+                headers=_auth_headers(),
+            )
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["channel_id"] == "UCabc123"
+        assert body["videos"][0]["position"] == 1
+        preview.assert_called_once_with("Kneppy Invests", limit=2)
+
+    def test_recent_videos_resolve_failure_returns_502(self):
+        client = _make_client()
+        with patch(
+            "app.api.commentary.list_recent_channel_videos",
+            side_effect=RuntimeError("channel lookup failed"),
+        ):
+            resp = client.post(
+                "/api/commentary/channels/recent-videos",
+                json={"name_or_id": "missing channel"},
+                headers=_auth_headers(),
+            )
+        assert resp.status_code == 502
+
+    def test_recent_videos_limit_must_be_in_range(self):
+        client = _make_client()
+        resp = client.post(
+            "/api/commentary/channels/recent-videos",
+            json={"name_or_id": "Kneppy Invests", "limit": 99},
+            headers=_auth_headers(),
+        )
+        assert resp.status_code == 422

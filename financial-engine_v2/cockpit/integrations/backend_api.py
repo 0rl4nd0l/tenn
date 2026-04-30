@@ -896,6 +896,37 @@ class BackendApiClient:
                 raise RuntimeError(str(detail or f"HTTP {code}")) from exc
             return response.json() if response.content else {}
 
+    def get_youtube_channel_recent_videos(
+        self,
+        name_or_id: str,
+        *,
+        limit: int = 8,
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}/api/commentary/channels/recent-videos"
+        headers: dict[str, str] = {}
+        if self.api_key:
+            headers["X-API-Key"] = self.api_key
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.post(
+                url,
+                json={"name_or_id": name_or_id, "limit": limit},
+                headers=headers,
+            )
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                detail = None
+                try:
+                    body = response.json() if response.content else {}
+                    if isinstance(body, dict):
+                        detail = body.get("detail")
+                except Exception:
+                    detail = None
+                code = response.status_code
+                raise RuntimeError(str(detail or f"HTTP {code}")) from exc
+            return response.json() if response.content else {"videos": [], "count": 0}
+
     def list_watched_channels(self, *, timeout: float = 10.0) -> dict[str, Any]:
         url = f"{self.base_url}/api/commentary/channels"
         headers: dict[str, str] = {}

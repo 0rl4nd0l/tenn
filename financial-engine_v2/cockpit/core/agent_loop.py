@@ -385,6 +385,42 @@ class AgentLoop:
             error = str(result.get("error") or "tool returned ok=false")
             return f"Could not execute {tool_name}: {error}"
 
+        if tool_name == "check_youtube_channel_recent_videos":
+            name = str(result.get("name") or "channel").strip()
+            channel_id = str(result.get("channel_id") or "").strip()
+            suffix = f" ({channel_id})" if channel_id else ""
+            videos = result.get("videos")
+            if not isinstance(videos, list) or not videos:
+                return f"No recent videos found for YouTube channel {name}{suffix}."
+
+            lines = [f"Recent videos from {name}{suffix}:"]
+            for index, video in enumerate(videos, start=1):
+                if not isinstance(video, dict):
+                    continue
+                title = str(video.get("title") or video.get("video_id") or "Untitled").strip()
+                published_at = str(video.get("published_at") or "date unknown").strip()
+                duration = video.get("duration_seconds")
+                duration_text = ""
+                if isinstance(duration, (int, float)) and duration > 0:
+                    minutes = int(round(float(duration) / 60.0))
+                    duration_text = f" | {minutes} min"
+                scores = video.get("scores") if isinstance(video.get("scores"), dict) else {}
+                score = scores.get("overall") if isinstance(scores, dict) else None
+                score_text = f" | score {float(score):.2f}" if isinstance(score, (int, float)) else ""
+                url = str(video.get("webpage_url") or "").strip()
+                lines.append(
+                    f"{index}. {title} | {published_at}{duration_text}{score_text}"
+                )
+                if url:
+                    lines.append(f"   {url}")
+
+            lines.append(
+                "Reply with the video URL(s) you want to ingest. "
+                "The existing YouTube URL ingest path will stage transcript chunks "
+                "for transcript review before Qdrant approval."
+            )
+            return "\n".join(lines)
+
         if tool_name == "watch_youtube_channel":
             args = cmd.arguments if isinstance(cmd.arguments, dict) else {}
             name = str(result.get("name") or args.get("channel_name") or "channel").strip()

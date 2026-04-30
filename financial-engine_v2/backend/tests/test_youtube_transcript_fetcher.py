@@ -4,7 +4,11 @@ import json
 from types import SimpleNamespace
 
 import pytest
-from app.services.youtube_transcript_fetcher import YoutubeVideo, fetch_video_metadata
+from app.services.youtube_transcript_fetcher import (
+    YoutubeVideo,
+    fetch_video_metadata,
+    list_recent_channel_videos,
+)
 
 
 def _make_ydl_info(
@@ -313,3 +317,74 @@ class TestSlugifyAsHandle:
 
     def test_empty_string(self):
         assert _slugify_as_handle("") == ""
+
+
+class TestListRecentChannelVideos:
+    def test_resolves_channel_and_returns_scored_recent_videos(self):
+        videos = [
+            YoutubeVideo(
+                video_id="old123",
+                title="Older ASX video",
+                channel_name="Kneppy Invests",
+                published_at="2026-01-01T00:00:00Z",
+                webpage_url="https://www.youtube.com/watch?v=old123",
+                duration_seconds=3600,
+            ),
+            YoutubeVideo(
+                video_id="new123",
+                title="BHP quarterly results breakdown",
+                channel_name="Kneppy Invests",
+                published_at="2026-04-28T00:00:00Z",
+                webpage_url="https://www.youtube.com/watch?v=new123",
+                duration_seconds=1200,
+            ),
+        ]
+
+        def _list_videos(channel, limit):
+            assert channel.channel_id == "UCabc123"
+            assert limit == 2
+            return videos
+
+        with (
+            patch(
+                "app.services.youtube_transcript_fetcher.resolve_channel_id",
+                return_value=("UCabc123", "Kneppy Invests"),
+            ),
+            patch("app.services.youtube_transcript_fetcher.ChannelRegistry") as MockRegistry,
+        ):
+            MockRegistry.return_value.channels.return_value = []
+            result = list_recent_channel_videos(
+                "Kneppy Invests",
+                limit=2,
+                list_videos_fn=_list_videos,
+            )
+
+        assert result["ok"] is True
+        assert result["channel_id"] == "UCabc123"
+        assert result["videos"][0]["video_id"] == "new123"
+        assert result["videos"][0]["position"] == 1
+        assert result["videos"][0]["scores"]["overall"] > result["videos"][1]["scores"]["overall"]
+
+    def test_limit_is_clamped_to_twenty(self):
+        captured = {}
+
+        def _list_videos(_channel, limit):
+            captured["limit"] = limit
+            return []
+
+        with (
+            patch(
+                "app.services.youtube_transcript_fetcher.resolve_channel_id",
+                return_value=("UCabc123", "Kneppy Invests"),
+            ),
+            patch("app.services.youtube_transcript_fetcher.ChannelRegistry") as MockRegistry,
+        ):
+            MockRegistry.return_value.channels.return_value = []
+            result = list_recent_channel_videos(
+                "Kneppy Invests",
+                limit=99,
+                list_videos_fn=_list_videos,
+            )
+
+        assert result["limit"] == 20
+        assert captured["limit"] == 20
