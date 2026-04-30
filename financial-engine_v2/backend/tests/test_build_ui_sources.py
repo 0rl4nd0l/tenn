@@ -58,6 +58,32 @@ def test_local_context_price_query_renders_visible_source() -> None:
     assert "close: 112.34" in str(sources[0]["snippet"])
 
 
+def test_ingest_youtube_videos_renders_visible_source() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "tool": "ingest_youtube_videos",
+                "result": {
+                    "results": [
+                        {
+                            "video_title": "JBH channel thesis",
+                            "video_id": "abc123",
+                            "webpage_url": "https://www.youtube.com/watch?v=abc123",
+                            "published_at": "2026-04-29T10:00:00Z",
+                        }
+                    ]
+                },
+            }
+        ]
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["title"] == "JBH channel thesis"
+    assert sources[0]["source_id"] == "youtube:abc123"
+    assert sources[0]["url"] == "https://www.youtube.com/watch?v=abc123"
+    assert sources[0]["kind"] == "web"
+
+
 def test_orchestrator_financial_truth_announcement_context_renders_visible_sources() -> None:
     financial_truth = {
         "source": "financial_truth",
