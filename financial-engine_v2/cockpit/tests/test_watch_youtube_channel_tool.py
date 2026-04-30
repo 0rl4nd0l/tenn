@@ -180,11 +180,22 @@ class TestIngestYoutubeVideosTool:
                 "urls": ["https://www.youtube.com/watch?v=abc123"],
                 "credibility_weight": 0.7,
                 "takeaway_limit": 3,
+                "selected_videos": [
+                    {
+                        "title": "BHP quarterly results breakdown",
+                        "webpage_url": "https://www.youtube.com/watch?v=abc123",
+                        "duration_seconds": 420,
+                        "scores": {"overall": 0.91, "recency": 0.9},
+                    }
+                ],
             },
         )
 
         assert result["ok"] is True
         assert result["count"] == 1
+        metadata = result["results"][0]["selection_metadata"]
+        assert metadata["duration_seconds"] == 420
+        assert metadata["scores"]["overall"] == 0.91
         executor._router.backend_api_client.ingest_youtube_urls.assert_called_once_with(
             ["https://www.youtube.com/watch?v=abc123"],
             credibility_weight=0.7,

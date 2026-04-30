@@ -1354,6 +1354,34 @@ class ToolExecutor:
             return {"ok": False, "error": str(exc)}
 
         results = result.get("results") if isinstance(result, dict) else []
+        selected_videos = args.get("selected_videos")
+        if isinstance(results, list) and isinstance(selected_videos, list):
+            selected_by_url: dict[str, dict[str, Any]] = {}
+            for position, row in enumerate(selected_videos, start=1):
+                if not isinstance(row, dict):
+                    continue
+                url = str(row.get("webpage_url") or row.get("url") or "").strip()
+                if not url:
+                    continue
+                selected_by_url[url] = {"position": position, **row}
+
+            for item in results:
+                if not isinstance(item, dict):
+                    continue
+                url = str(item.get("webpage_url") or item.get("url") or "").strip()
+                selected = selected_by_url.get(url)
+                if selected is None and len(results) == 1 and len(selected_videos) == 1:
+                    first = selected_videos[0]
+                    selected = {"position": 1, **first} if isinstance(first, dict) else None
+                if not isinstance(selected, dict):
+                    continue
+                item["selection_metadata"] = {
+                    "position": selected.get("position"),
+                    "title": selected.get("title"),
+                    "published_at": selected.get("published_at"),
+                    "duration_seconds": selected.get("duration_seconds"),
+                    "scores": selected.get("scores"),
+                }
         errors = result.get("errors") if isinstance(result, dict) else []
         success_count = len(results) if isinstance(results, list) else 0
         error_count = len(errors) if isinstance(errors, list) else 0

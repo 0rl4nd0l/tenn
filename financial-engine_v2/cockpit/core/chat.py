@@ -4764,10 +4764,21 @@ class ChatController:
                     title = str(item.get("title") or item.get("source_name") or "?")[:60]
                     chunks = item.get("chunk_count", 0)
                     staged = str(item.get("staged_at") or "")[:10]
+                    meta_bits: list[str] = [f"staged {staged}", f"{chunks} chunks"]
+                    weight = item.get("credibility_weight")
+                    if isinstance(weight, int | float):
+                        meta_bits.append(f"weight {float(weight):.2f}")
+                    review_takeaways = item.get("review_takeaways")
+                    if isinstance(review_takeaways, list) and review_takeaways:
+                        meta_bits.append(f"{len(review_takeaways)} edited takeaways")
                     lines.append(
-                        f"  [{index}] {sid} | {stype} | {title} | staged {staged} | {chunks} chunks"
+                        f"  [{index}] {sid} | {stype} | {title} | {' | '.join(meta_bits)}"
                     )
-                lines.append("Use: /review approve <source_id> or /review reject <source_id>")
+                lines.append(
+                    "Use: /review takeaways <source_id>, /review weight <source_id> <0-1>, "
+                    "/review edit <source_id> <n> <text>, /review approve <source_id>, "
+                    "or /review reject <source_id>"
+                )
                 return ChatResponse(
                     text="\n".join(lines),
                     evidence=[{"type": "pending_transcripts", "details": pending}],
@@ -4824,6 +4835,182 @@ class ChatController:
                     mode=ResponseMode.FAST,
                 )
 
+            if sub == "takeaways":
+                source_id = rest.strip()
+                if not source_id:
+                    return ChatResponse(
+                        text="Usage: /review takeaways <source_id>",
+                        evidence=[],
+                        mode=ResponseMode.FAST,
+                    )
+                try:
+                    result = backend_client.get_commentary_takeaways(source_id, limit=12)
+                except Exception as exc:
+                    return ChatResponse(
+                        text=f"Takeaway lookup failed: {exc}",
+                        evidence=[],
+                        mode=ResponseMode.FAST,
+                    )
+                takeaways = result.get("takeaways", []) if isinstance(result, dict) else []
+                if not takeaways:
+                    return ChatResponse(
+                        text=f"No takeaways available for {source_id}.",
+                        evidence=[
+                            {
+                                "type": "transcript_review_takeaways",
+                                "details": result if isinstance(result, dict) else {},
+                            }
+                        ],
+                        mode=ResponseMode.FAST,
+                    )
+                lines = [f"Review takeaways for {source_id}:"]
+                weight = result.get("credibility_weight") if isinstance(result, dict) else None
+                if isinstance(weight, int | float):
+                    lines.append(f"Current weight: {float(weight):.2f}")
+                for index, item in enumerate(takeaways, start=1):
+                    text = (
+                        str(item.get("text") or "").strip()
+                        if isinstance(item, dict)
+                        else str(item or "").strip()
+                    )
+                    if text:
+                        lines.append(f"{index}. {text}")
+                lines.append(
+                    f"Edit with /review edit {source_id} <n> <text>; "
+                    f"adjust weight with /review weight {source_id} <0-1>."
+                )
+                return ChatResponse(
+                    text="\n".join(lines),
+                    evidence=[
+                        {
+                            "type": "transcript_review_takeaways",
+                            "details": result if isinstance(result, dict) else {},
+                        }
+                    ],
+                    mode=ResponseMode.FAST,
+                )
+
+            if sub == "weight":
+                parts = rest.split(None, 1)
+                if len(parts) != 2:
+                    return ChatResponse(
+                        text="Usage: /review weight <source_id> <0-1>",
+                        evidence=[],
+                        mode=ResponseMode.FAST,
+                    )
+                source_id, raw_weight = parts
+                try:
+                    weight = float(raw_weight)
+                except ValueError:
+                    return ChatResponse(
+                        text="Usage: /review weight <source_id> <0-1>",
+                        evidence=[],
+                        mode=ResponseMode.FAST,
+                    )
+                if not 0.0 <= weight <= 1.0:
+                    return ChatResponse(
+                        text="Weight must be between 0 and 1.",
+                        evidence=[],
+                        mode=ResponseMode.FAST,
+                    )
+                try:
+                    result = backend_client.update_transcript_review(
+                        source_id,
+                        credibility_weight=weight,
+                    )
+                except Exception as exc:
+                    return ChatResponse(
+                        text=f"Weight update failed: {exc}",
+                        evidence=[],
+                        mode=ResponseMode.FAST,
+                    )
+                return ChatResponse(
+                    text=f"Updated {source_id} review weight to {weight:.2f}.",
+                    evidence=[
+                        {
+                            "type": "transcript_review_update",
+                            "details": result if isinstance(result, dict) else {},
+                        }
+                    ],
+                    mode=ResponseMode.FAST,
+                )
+
+            if sub == "edit":
+                parts = rest.split(None, 2)
+                if len(parts) != 3:
+                    return ChatResponse(
+                        text="Usage: /review edit <source_id> <n> <text>",
+                        evidence=[],
+                        mode=ResponseMode.FAST,
+                    )
+                source_id, raw_index, replacement = parts
+                try:
+                    takeaway_index = int(raw_index)
+                except ValueError:
+                    return ChatResponse(
+                        text="Usage: /review edit <source_id> <n> <text>",
+                        evidence=[],
+                        mode=ResponseMode.FAST,
+                    )
+                replacement = replacement.strip()
+                if takeaway_index < 1 or not replacement:
+                    return ChatResponse(
+                        text="Usage: /review edit <source_id> <n> <text>",
+                        evidence=[],
+                        mode=ResponseMode.FAST,
+                    )
+                try:
+                    current = backend_client.get_commentary_takeaways(source_id, limit=12)
+                except Exception as exc:
+                    return ChatResponse(
+                        text=f"Takeaway lookup failed: {exc}",
+                        evidence=[],
+                        mode=ResponseMode.FAST,
+                    )
+                current_takeaways = (
+                    current.get("takeaways", []) if isinstance(current, dict) else []
+                )
+                texts: list[str] = []
+                for item in current_takeaways:
+                    text = (
+                        str(item.get("text") or "").strip()
+                        if isinstance(item, dict)
+                        else str(item or "").strip()
+                    )
+                    if text:
+                        texts.append(text)
+                if takeaway_index > len(texts):
+                    return ChatResponse(
+                        text=(
+                            f"Takeaway {takeaway_index} is not available for "
+                            f"{source_id}; use /review takeaways {source_id} first."
+                        ),
+                        evidence=[],
+                        mode=ResponseMode.FAST,
+                    )
+                texts[takeaway_index - 1] = replacement
+                try:
+                    result = backend_client.update_transcript_review(
+                        source_id,
+                        takeaways=texts,
+                    )
+                except Exception as exc:
+                    return ChatResponse(
+                        text=f"Takeaway edit failed: {exc}",
+                        evidence=[],
+                        mode=ResponseMode.FAST,
+                    )
+                return ChatResponse(
+                    text=f"Updated takeaway {takeaway_index} for {source_id}.",
+                    evidence=[
+                        {
+                            "type": "transcript_review_update",
+                            "details": result if isinstance(result, dict) else {},
+                        }
+                    ],
+                    mode=ResponseMode.FAST,
+                )
+
             if sub == "approve-all":
                 try:
                     resp = backend_client.get_pending_transcripts()
@@ -4868,7 +5055,10 @@ class ChatController:
                 return ChatResponse(text=text, evidence=[], mode=ResponseMode.FAST)
 
             return ChatResponse(
-                text="Usage: /review list|approve|reject|approve-all|expired [source_id]",
+                text=(
+                    "Usage: /review list|takeaways|weight|edit|approve|reject|approve-all|"
+                    "expired [source_id]"
+                ),
                 evidence=[],
                 mode=ResponseMode.FAST,
             )

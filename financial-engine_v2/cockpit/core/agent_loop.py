@@ -410,6 +410,26 @@ class AgentLoop:
                     lines.append(f"   {url}")
                 if source_id:
                     lines.append(f"   source_id: {source_id}")
+                weight = item.get("credibility_weight")
+                if isinstance(weight, int | float):
+                    lines.append(f"   review weight: {float(weight):.2f}")
+                metadata = (
+                    item.get("selection_metadata")
+                    if isinstance(item.get("selection_metadata"), dict)
+                    else {}
+                )
+                duration_seconds = metadata.get("duration_seconds") if metadata else None
+                if isinstance(duration_seconds, int | float) and duration_seconds > 0:
+                    lines.append(f"   duration: {float(duration_seconds) / 60:.1f} min")
+                scores = metadata.get("scores") if metadata else None
+                if isinstance(scores, dict):
+                    score_parts: list[str] = []
+                    for key in ("overall", "recency", "importance", "relevance", "duration"):
+                        value = scores.get(key)
+                        if isinstance(value, int | float):
+                            score_parts.append(f"{key} {float(value):.2f}")
+                    if score_parts:
+                        lines.append(f"   review scores: {', '.join(score_parts)}")
                 takeaways = item.get("takeaways") if isinstance(item.get("takeaways"), list) else []
                 for takeaway in takeaways[:3]:
                     if not isinstance(takeaway, dict):
@@ -418,6 +438,9 @@ class AgentLoop:
                     if text:
                         lines.append(f"   - {text}")
                 if source_id:
+                    lines.append(f"   Review takeaways: /review takeaways {source_id}")
+                    lines.append(f"   Adjust weight: /review weight {source_id} 0.70")
+                    lines.append(f"   Edit takeaway: /review edit {source_id} 1 <new text>")
                     lines.append(f"   Commit after review: /review approve {source_id}")
 
             if errors:

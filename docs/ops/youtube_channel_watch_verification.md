@@ -23,6 +23,37 @@ It does **not** by itself prove that:
 
 Those are separate checkpoints.
 
+## Interactive recent-video flow
+
+For operator-controlled ingestion, use the chat flow instead of waiting for a scheduled poller:
+
+```text
+check youtube Kneppy Invests for recent videos
+```
+
+Cockpit calls the backend recent-video tool and should return a numbered list with title, URL, duration, and review scores where available. Then select the videos to stage:
+
+```text
+ingest 1
+ingest 1 and 3 weight 0.7
+ingest all
+```
+
+This fetches the selected transcript(s), chunks them, stages them under `~/.tenn/memory/staged_chunks/`, and returns deterministic takeaways. It does **not** commit anything to Qdrant yet.
+
+Review commands:
+
+```text
+/review list
+/review takeaways <source_id>
+/review weight <source_id> 0.70
+/review edit <source_id> 1 <replacement takeaway text>
+/review approve <source_id>
+/review reject <source_id>
+```
+
+`/review weight` updates both the staging index and staged chunk payloads. `/review edit` stores operator-edited takeaways on the staged item. `/review approve` applies the staged weight and edited takeaways to the points immediately before backend-owned Qdrant upsert.
+
 ## Current live checkpoint
 
 Observed after the 2026-04-29 fixes:
@@ -150,8 +181,10 @@ Expected:
 {
   "ok": true,
   "source_id": "youtube_transcript:...",
-  "chunks_indexed": 12,
-  "collection": "commentary_chunks"
+  "points_upserted": 12,
+  "collection": "commentary_chunks",
+  "credibility_weight": 0.7,
+  "takeaways": []
 }
 ```
 
@@ -241,6 +274,9 @@ Do not bypass the review gate by auto-upserting fetched YouTube transcripts.
 | Channel registration API | `financial-engine_v2/backend/app/api/commentary.py` |
 | Channel polling/fetching | `financial-engine_v2/backend/app/services/youtube_transcript_fetcher.py` |
 | Transcript staging | `financial-engine_v2/backend/app/services/commentary_ingest.py` |
+| Staged review/edit API | `financial-engine_v2/backend/app/api/commentary.py` |
+| Cockpit review commands | `financial-engine_v2/cockpit/core/chat.py` |
+| YouTube selection routing | `financial-engine_v2/cockpit/core/command_router.py` |
 | File-drop watcher daemon | `financial-engine_v2/scripts/run_transcript_daemon.py` |
 | Qdrant approval API | `financial-engine_v2/backend/app/api/commentary.py` |
 | Chat commentary retrieval | `financial-engine_v2/backend/app/services/tenn_chat.py` |

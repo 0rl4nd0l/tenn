@@ -828,6 +828,48 @@ class TestBuildChatResponseSlashDispatch(SlashCommandTestBase):
         )
         self.controller.ollama_client.chat.assert_not_called()
 
+    def test_youtube_number_selection_can_set_weight(self) -> None:
+        backend = MagicMock()
+        backend.ingest_youtube_urls.return_value = {
+            "ok": True,
+            "count": 1,
+            "error_count": 0,
+            "results": [
+                {
+                    "source_id": "youtube_transcript:test:abc123",
+                    "video_title": "Latest ASX breakdown",
+                    "webpage_url": "https://www.youtube.com/watch?v=abc123def45",
+                    "staged": True,
+                    "chunks_staged": 4,
+                    "credibility_weight": 0.7,
+                    "takeaways": [{"text": "Important ASX takeaway"}],
+                }
+            ],
+            "errors": [],
+        }
+        self.tool_router.backend_api_client = backend
+        self.state_store.get_chat_messages.return_value = [
+            {
+                "role": "assistant",
+                "content": (
+                    "Recent videos from Kneppy Invests (UCabc123):\n"
+                    "1. Latest ASX breakdown | date unknown | 10 min | score 0.88\n"
+                    "   https://www.youtube.com/watch?v=abc123def45"
+                ),
+            }
+        ]
+
+        resp = self.controller.build_chat_response("ingest 1 weight 0.7")
+
+        assert resp.mode == "command"
+        assert "review weight: 0.70" in resp.text
+        backend.ingest_youtube_urls.assert_called_once_with(
+            ["https://www.youtube.com/watch?v=abc123def45"],
+            credibility_weight=0.7,
+            takeaway_limit=5,
+        )
+        self.controller.ollama_client.chat.assert_not_called()
+
     def test_review_commands_use_backend_when_configured(self) -> None:
         backend = MagicMock()
         backend.get_pending_transcripts.return_value = {
@@ -838,20 +880,54 @@ class TestBuildChatResponseSlashDispatch(SlashCommandTestBase):
                     "title": "Latest ASX breakdown",
                     "chunk_count": 4,
                     "staged_at": "2026-04-30T00:00:00Z",
+                    "credibility_weight": 0.55,
+                    "review_takeaways": [{"text": "Edited takeaway"}],
                 }
             ]
+        }
+        backend.get_commentary_takeaways.return_value = {
+            "takeaways": [
+                {"text": "Generated takeaway"},
+                {"text": "Second takeaway"},
+            ],
+            "credibility_weight": 0.55,
+        }
+        backend.update_transcript_review.return_value = {
+            "ok": True,
+            "source_id": "youtube_transcript:test:abc123",
         }
         backend.approve_transcript.return_value = {"points_upserted": 4}
         self.tool_router.backend_api_client = backend
 
         list_resp = self.controller.build_chat_response("/review list")
+        takeaways_resp = self.controller.build_chat_response(
+            "/review takeaways youtube_transcript:test:abc123"
+        )
+        weight_resp = self.controller.build_chat_response(
+            "/review weight youtube_transcript:test:abc123 0.7"
+        )
+        edit_resp = self.controller.build_chat_response(
+            "/review edit youtube_transcript:test:abc123 1 Edited operator takeaway"
+        )
         approve_resp = self.controller.build_chat_response(
             "/review approve youtube_transcript:test:abc123"
         )
 
         assert "Pending transcript review" in list_resp.text
+        assert "weight 0.55" in list_resp.text
+        assert "Generated takeaway" in takeaways_resp.text
+        assert "Updated youtube_transcript:test:abc123 review weight to 0.70" in weight_resp.text
+        assert "Updated takeaway 1" in edit_resp.text
         assert "Approved and indexed 4 chunks" in approve_resp.text
         backend.get_pending_transcripts.assert_called_once()
+        backend.update_transcript_review.assert_any_call(
+            "youtube_transcript:test:abc123",
+            credibility_weight=0.7,
+        )
+        backend.update_transcript_review.assert_any_call(
+            "youtube_transcript:test:abc123",
+            takeaways=["Edited operator takeaway", "Second takeaway"],
+        )
         backend.approve_transcript.assert_called_once_with(
             "youtube_transcript:test:abc123"
         )

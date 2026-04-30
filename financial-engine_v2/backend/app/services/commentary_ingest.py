@@ -218,6 +218,7 @@ def ingest_transcript(
                     "chunk_count": len(points),
                     "published_at": str(published_at or ""),
                     "collection_name": resolved_collection_name,
+                    "credibility_weight": resolved_credibility,
                 }
                 _save_staging_index(staging_index)
                 staged = True
@@ -261,5 +262,6 @@ def ingest_transcript(
         "registry_path": str(registry.path),
         "memos_path": str(resolved_memos_path),
         "registry_entry": registry_entry,
+        "credibility_weight": resolved_credibility,
         "memo": memo,
     }

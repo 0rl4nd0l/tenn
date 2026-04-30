@@ -111,6 +111,21 @@ class TestWatchYoutubeChannelCommandRoute:
             "https://www.youtube.com/watch?v=thr33333333",
         ]
 
+    def test_ingest_selected_youtube_video_with_weight(self):
+        r = route_command(
+            "ingest 1 weight 0.7",
+            recent_youtube_videos=[
+                {"title": "One", "webpage_url": "https://www.youtube.com/watch?v=one11111111"},
+                {"title": "Two", "webpage_url": "https://www.youtube.com/watch?v=two22222222"},
+            ],
+        )
+
+        assert r.matched is True
+        assert r.action_type == "direct_tool"
+        assert r.tool == "ingest_youtube_videos"
+        assert r.arguments["urls"] == ["https://www.youtube.com/watch?v=one11111111"]
+        assert r.arguments["credibility_weight"] == 0.7
+
     def test_bare_youtube_video_selection_uses_context(self):
         r = route_command(
             "first",

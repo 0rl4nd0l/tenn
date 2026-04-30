@@ -11,11 +11,14 @@ import pytest
 from fastapi import HTTPException
 
 from app.api.commentary import (
+    TranscriptReviewUpdateRequest,
+    _commentary_takeaways_payload,
     _validate_source_id,
     approve_transcript,
     get_pending_transcripts,
     purge_expired_transcripts,
     reject_transcript,
+    update_transcript_review,
 )
 
 
@@ -148,11 +151,135 @@ class TestApproveTranscript:
         # Index should have src-001 removed
         assert "src-001" not in saved_indices[-1]
 
+    def test_successful_approve_applies_review_metadata(self, tmp_path):
+        staged_file = tmp_path / "src-001.jsonl"
+        staged_file.write_text(
+            json.dumps(
+                {
+                    "id": "pt-1",
+                    "vector": [0.1, 0.2],
+                    "payload": {"source_id": "src-001", "text": "hello"},
+                }
+            )
+            + "\n"
+        )
+        index = {
+            "src-001": {
+                "path": str(staged_file),
+                "collection_name": "commentary_chunks",
+                "credibility_weight": 0.72,
+                "review_takeaways": [{"text": "Operator-edited takeaway"}],
+            }
+        }
+        captured_points: list[dict[str, Any]] = []
+
+        def fake_upsert(_client, _collection, points):
+            captured_points.extend(points)
+            return {"written_points": len(points)}
+
+        with (
+            patch("app.api.commentary._load_index", return_value=index),
+            patch("app.api.commentary._save_index"),
+            patch("app.api.commentary.verify_qdrant", return_value=MagicMock()),
+            patch("app.api.commentary.upsert_points", side_effect=fake_upsert),
+            patch("app.api.commentary._update_source_registry") as update_registry,
+        ):
+            result = approve_transcript("src-001")
+
+        payload = captured_points[0]["payload"]
+        assert payload["credibility_weight"] == 0.72
+        assert payload["review_takeaways"] == ["Operator-edited takeaway"]
+        assert result["credibility_weight"] == 0.72
+        assert result["takeaways"][0]["text"] == "Operator-edited takeaway"
+        update_registry.assert_called_once_with(
+            "src-001",
+            "approved",
+            credibility_weight=0.72,
+        )
+
     def test_staged_path_outside_allowed_root_rejected(self):
         """source_id with path traversal chars is rejected at validation."""
         with pytest.raises(HTTPException) as exc_info:
             approve_transcript("../../etc/passwd")
         assert exc_info.value.status_code == 400
+
+
+class TestUpdateTranscriptReview:
+    def test_weight_updates_index_and_staged_payloads(self, tmp_path):
+        staged_file = tmp_path / "src-001.jsonl"
+        staged_file.write_text(
+            json.dumps(
+                {
+                    "id": "pt-1",
+                    "vector": [0.1],
+                    "payload": {"source_id": "src-001", "text": "hello"},
+                }
+            )
+            + "\n"
+        )
+        index = {"src-001": {"path": str(staged_file), "collection_name": "commentary"}}
+        saved_indices: list[dict[str, Any]] = []
+
+        with (
+            patch("app.api.commentary._load_index", return_value=index),
+            patch("app.api.commentary._save_index", side_effect=lambda idx: saved_indices.append(idx)),
+            patch("app.api.commentary._update_source_registry") as update_registry,
+        ):
+            result = update_transcript_review(
+                "src-001",
+                TranscriptReviewUpdateRequest(credibility_weight=0.68),
+            )
+
+        assert result["ok"] is True
+        assert result["credibility_weight"] == 0.68
+        assert saved_indices[-1]["src-001"]["credibility_weight"] == 0.68
+        rewritten = json.loads(staged_file.read_text("utf-8").strip())
+        assert rewritten["payload"]["credibility_weight"] == 0.68
+        update_registry.assert_called_once_with("src-001", credibility_weight=0.68)
+
+    def test_takeaway_edits_are_used_by_takeaway_payload(self, tmp_path):
+        staged_file = tmp_path / "src-001.jsonl"
+        staged_file.write_text(
+            json.dumps(
+                {
+                    "id": "pt-1",
+                    "vector": [0.1],
+                    "payload": {
+                        "source_id": "src-001",
+                        "text": "Original transcript sentence with market growth.",
+                    },
+                }
+            )
+            + "\n"
+        )
+        index = {"src-001": {"path": str(staged_file), "collection_name": "commentary"}}
+        saved_indices: list[dict[str, Any]] = []
+
+        with (
+            patch("app.api.commentary._load_index", return_value=index),
+            patch("app.api.commentary._save_index", side_effect=lambda idx: saved_indices.append(idx)),
+            patch("app.api.commentary._update_source_registry"),
+        ):
+            result = update_transcript_review(
+                "src-001",
+                TranscriptReviewUpdateRequest(takeaways=["Edited operator takeaway"]),
+            )
+
+        assert result["takeaways"][0]["text"] == "Edited operator takeaway"
+        assert saved_indices[-1]["src-001"]["review_takeaways"][0]["text"] == (
+            "Edited operator takeaway"
+        )
+        rewritten = json.loads(staged_file.read_text("utf-8").strip())
+        assert rewritten["payload"]["review_takeaways"] == ["Edited operator takeaway"]
+
+        with (
+            patch("app.api.commentary._load_index", return_value=saved_indices[-1]),
+            patch("app.api.commentary.load_commentary_memos", return_value=[]),
+        ):
+            payload = _commentary_takeaways_payload("src-001", 5)
+
+        assert payload["takeaway_source"] == "operator_review"
+        assert payload["takeaways"][0]["text"] == "Edited operator takeaway"
 
 
 # ---------------------------------------------------------------------------

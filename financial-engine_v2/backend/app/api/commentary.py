@@ -181,6 +181,48 @@ def _citation_for_text(
     return [_citation_for_point(best_point, source_id)]
 
 
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _write_staged_points(path: Path, points: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        for point in points:
+            handle.write(json.dumps(point, ensure_ascii=False) + "\n")
+
+
+def _review_takeaways_from_entry(
+    entry: dict[str, Any] | None,
+    source_id: str,
+) -> list[dict[str, Any]]:
+    if not isinstance(entry, dict):
+        return []
+    rows = entry.get("review_takeaways")
+    if not isinstance(rows, list):
+        return []
+
+    takeaways: list[dict[str, Any]] = []
+    for index, row in enumerate(rows, start=1):
+        if isinstance(row, dict):
+            text = _clean_takeaway_text(row.get("text"))
+        else:
+            text = _clean_takeaway_text(row)
+        if not text:
+            continue
+        takeaways.append(
+            {
+                "text": text,
+                "citations": [],
+                "source_field": "operator_review",
+                "score": 1.0,
+                "review_index": index,
+                "source_id": source_id,
+            }
+        )
+    return takeaways
+
+
 def _memo_takeaways(
     memo: dict[str, Any],
     points: list[dict[str, Any]],
@@ -344,18 +386,26 @@ def _watchlist_suggestions(
     return suggestions
 
 
-def _update_source_registry(source_id: str, status: str) -> None:
-    """Best-effort registry status update."""
+def _update_source_registry(
+    source_id: str,
+    status: str | None = None,
+    *,
+    credibility_weight: float | None = None,
+) -> None:
+    """Best-effort registry metadata update."""
     try:
         from app.services.source_registry import SourceRegistry
 
         registry = SourceRegistry()
         entry = registry.get(source_id)
         if entry:
-            entry["review_status"] = status
+            if status is not None:
+                entry["review_status"] = status
+            if credibility_weight is not None:
+                entry["credibility_weight"] = float(credibility_weight)
             registry.upsert(entry)
     except Exception:
-        logger.warning("Failed to update registry status for %s", source_id)
+        logger.warning("Failed to update registry metadata for %s", source_id)
 
 
 def _youtube_channel_error_detail(
@@ -372,6 +422,11 @@ def _youtube_channel_error_detail(
     }
 
 
+class TranscriptReviewUpdateRequest(BaseModel):
+    credibility_weight: float | None = Field(default=None, ge=0.0, le=1.0)
+    takeaways: list[str] | None = Field(default=None, max_length=12)
+
+
 # ---------------------------------------------------------------------------
 # GET /api/commentary/transcripts/pending
 # ---------------------------------------------------------------------------
@@ -384,6 +439,81 @@ def get_pending_transcripts() -> dict[str, Any]:
         for sid, meta in sorted(index.items(), key=lambda kv: kv[1].get("staged_at", ""))
     ]
     return {"pending": pending, "count": len(pending)}
+
+
+# ---------------------------------------------------------------------------
+# PATCH /api/commentary/transcripts/{source_id}/review
+# ---------------------------------------------------------------------------
+
+@router.patch(
+    "/transcripts/{source_id}/review",
+    dependencies=[Depends(require_api_key)],
+)
+def update_transcript_review(
+    source_id: str,
+    body: TranscriptReviewUpdateRequest,
+) -> dict[str, Any]:
+    sid = _validate_source_id(source_id)
+    if body.credibility_weight is None and body.takeaways is None:
+        raise HTTPException(
+            status_code=422,
+            detail="credibility_weight or takeaways is required",
+        )
+
+    index = _load_index()
+    entry = index.get(sid)
+    if not isinstance(entry, dict):
+        raise HTTPException(status_code=404, detail=f"source_id not found in staging: {sid}")
+
+    staged_path = Path(str(entry.get("path") or ""))
+    if not staged_path.exists():
+        raise HTTPException(status_code=404, detail=f"staged file missing: {staged_path}")
+
+    points, _entry_copy = _load_staged_points_for_source(sid)
+    if not points:
+        raise HTTPException(status_code=422, detail="staged file is empty")
+
+    updated_weight: float | None = None
+    if body.credibility_weight is not None:
+        updated_weight = float(body.credibility_weight)
+        entry["credibility_weight"] = updated_weight
+        for point in points:
+            payload = _point_payload(point)
+            payload["credibility_weight"] = updated_weight
+
+    if body.takeaways is not None:
+        cleaned_takeaways = [
+            cleaned
+            for cleaned in (_clean_takeaway_text(value) for value in body.takeaways)
+            if cleaned
+        ]
+        entry["review_takeaways"] = [
+            {
+                "text": text,
+                "source_field": "operator_review",
+                "review_index": index,
+            }
+            for index, text in enumerate(cleaned_takeaways, start=1)
+        ]
+        for point in points:
+            payload = _point_payload(point)
+            payload["review_takeaways"] = cleaned_takeaways
+
+    entry["review_updated_at"] = _utc_now_iso()
+    index[sid] = entry
+    _write_staged_points(staged_path, points)
+    _save_index(index)
+
+    if updated_weight is not None:
+        _update_source_registry(sid, credibility_weight=updated_weight)
+
+    return {
+        "ok": True,
+        "source_id": sid,
+        "credibility_weight": entry.get("credibility_weight"),
+        "takeaways": _review_takeaways_from_entry(entry, sid),
+        "review_updated_at": entry["review_updated_at"],
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -423,6 +553,25 @@ def approve_transcript(source_id: str) -> dict[str, Any]:
         staged_path.unlink(missing_ok=True)
         raise HTTPException(status_code=422, detail="staged file is empty")
 
+    review_weight = entry.get("credibility_weight")
+    try:
+        approved_weight = float(review_weight) if review_weight is not None else None
+    except (TypeError, ValueError):
+        approved_weight = None
+    review_takeaways = _review_takeaways_from_entry(entry, sid)
+    review_takeaway_texts = [
+        str(row.get("text") or "").strip()
+        for row in review_takeaways
+        if str(row.get("text") or "").strip()
+    ]
+    if approved_weight is not None or review_takeaway_texts:
+        for point in points:
+            payload = _point_payload(point)
+            if approved_weight is not None:
+                payload["credibility_weight"] = approved_weight
+            if review_takeaway_texts:
+                payload["review_takeaways"] = review_takeaway_texts
+
     # Upsert to Qdrant
     try:
         client = verify_qdrant()
@@ -433,7 +582,7 @@ def approve_transcript(source_id: str) -> dict[str, Any]:
     result = upsert_points(client, collection, points)
 
     # Update source registry
-    _update_source_registry(sid, "approved")
+    _update_source_registry(sid, "approved", credibility_weight=approved_weight)
 
     # Clean up staging
     staged_path.unlink(missing_ok=True)
@@ -446,6 +595,8 @@ def approve_transcript(source_id: str) -> dict[str, Any]:
         "source_id": sid,
         "points_upserted": result.get("written_points", len(points)),
         "collection": collection,
+        "credibility_weight": approved_weight,
+        "takeaways": review_takeaways,
     }
 
 
@@ -620,6 +771,12 @@ def _commentary_takeaways_payload(source_id: str, limit: int) -> dict[str, Any]:
         ):
             takeaway_source = "memo+chunks"
 
+    generated_takeaways = list(takeaways)
+    review_takeaways = _review_takeaways_from_entry(entry, source_id)
+    if review_takeaways:
+        takeaways = review_takeaways[:limit]
+        takeaway_source = "operator_review"
+
     source_status = "staged" if points else "memo_only"
     return {
         "ok": True,
@@ -631,6 +788,9 @@ def _commentary_takeaways_payload(source_id: str, limit: int) -> dict[str, Any]:
         "memo_status": memo_status,
         "takeaway_source": takeaway_source,
         "takeaways": takeaways,
+        "generated_takeaways": generated_takeaways,
+        "review_takeaways": review_takeaways,
+        "credibility_weight": (entry or {}).get("credibility_weight"),
         "watchlist_suggestions": _watchlist_suggestions(memo, points, source_id),
         "model": "deterministic:commentary-staged-chunks",
         "prompt_version": "takeaways-v1-deterministic",

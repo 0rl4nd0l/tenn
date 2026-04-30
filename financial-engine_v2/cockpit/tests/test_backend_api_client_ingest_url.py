@@ -102,6 +102,37 @@ def test_ingest_youtube_urls_success():
 
 
 @respx.mock
+def test_update_transcript_review_success():
+    route = respx.patch(
+        f"{BASE}/api/commentary/transcripts/youtube_transcript:test:abc123/review"
+    ).mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "ok": True,
+                "source_id": "youtube_transcript:test:abc123",
+                "credibility_weight": 0.7,
+                "takeaways": [{"text": "Edited takeaway"}],
+            },
+        )
+    )
+    client = BackendApiClient(BASE, api_key="secret")
+
+    result = client.update_transcript_review(
+        "youtube_transcript:test:abc123",
+        credibility_weight=0.7,
+        takeaways=["Edited takeaway"],
+    )
+
+    assert result["ok"] is True
+    assert route.calls[0].request.headers.get("x-api-key") == "secret"
+    assert json.loads(route.calls[0].request.read()) == {
+        "credibility_weight": 0.7,
+        "takeaways": ["Edited takeaway"],
+    }
+
+
+@respx.mock
 def test_ingest_url_no_api_key_omits_header():
     route = respx.post(f"{BASE}/api/commentary/ingest-url").mock(
         return_value=httpx.Response(200, json={"ok": True})

@@ -828,6 +828,28 @@ class BackendApiClient:
             response.raise_for_status()
             return response.json() if response.content else {}
 
+    def update_transcript_review(
+        self,
+        source_id: str,
+        *,
+        credibility_weight: float | None = None,
+        takeaways: list[str] | None = None,
+        timeout: float = 10.0,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}/api/commentary/transcripts/{source_id}/review"
+        headers: dict[str, str] = {}
+        if self.api_key:
+            headers["X-API-Key"] = self.api_key
+        payload: dict[str, Any] = {}
+        if credibility_weight is not None:
+            payload["credibility_weight"] = credibility_weight
+        if takeaways is not None:
+            payload["takeaways"] = takeaways
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            response = client.patch(url, json=payload, headers=headers)
+            response.raise_for_status()
+            return response.json() if response.content else {}
+
     def purge_expired_transcripts(
         self,
         *,

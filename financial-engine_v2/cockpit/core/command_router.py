@@ -162,8 +162,9 @@ def route_command(
     """
     text = str(message or "").strip()
 
+    youtube_selection_text, youtube_selection_weight = _strip_youtube_selection_weight(text)
     youtube_selection = _parse_youtube_video_selection(
-        text,
+        youtube_selection_text,
         max_index=len(recent_youtube_videos or []),
     )
     if youtube_selection is not None and recent_youtube_videos:
@@ -198,11 +199,19 @@ def route_command(
                     "again, then choose from that list."
                 ),
             )
+        arguments: dict[str, Any] = {
+            "urls": urls,
+            "selected_videos": selected,
+            "takeaway_limit": 5,
+        }
+        if youtube_selection_weight is not None:
+            arguments["credibility_weight"] = youtube_selection_weight
+
         return CommandRoute(
             matched=True,
             action_type="direct_tool",
             tool="ingest_youtube_videos",
-            arguments={"urls": urls, "selected_videos": selected, "takeaway_limit": 5},
+            arguments=arguments,
             explanation=(
                 f"Stage {len(urls)} selected YouTube transcript"
                 f"{'' if len(urls) == 1 else 's'} for review."
@@ -421,6 +430,33 @@ _YOUTUBE_ORDINALS = {
     "seventh": 7,
     "eighth": 8,
 }
+_YOUTUBE_SELECTION_WEIGHT_RE = re.compile(
+    r"""
+    \s+
+    (?:
+        (?:(?:with|at)\s+)?
+        (?:credibility(?:_|\s+)?weight|weight|credibility)
+        \s*=?\s*
+        |
+        at\s+
+    )
+    (?P<weight>-?(?:\d+(?:\.\d+)?|\.\d+))
+    \s*$
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+
+
+def _strip_youtube_selection_weight(text: str) -> tuple[str, float | None]:
+    cleaned = str(text or "").strip()
+    match = _YOUTUBE_SELECTION_WEIGHT_RE.search(cleaned)
+    if not match:
+        return cleaned, None
+    try:
+        weight = float(match.group("weight"))
+    except (TypeError, ValueError):
+        return cleaned, None
+    return cleaned[: match.start()].strip(), weight
 
 
 def _parse_youtube_video_selection(text: str, *, max_index: int) -> list[int] | None:
