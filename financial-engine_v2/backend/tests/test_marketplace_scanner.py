@@ -30,8 +30,13 @@ class _FakeSearchPage:
 
 
 class _FakeContext:
+    def __init__(self) -> None:
+        self.pages: list[_FakeSearchPage] = []
+
     async def new_page(self) -> _FakeSearchPage:
-        return _FakeSearchPage()
+        page = _FakeSearchPage()
+        self.pages.append(page)
+        return page
 
 
 def _state_services(
@@ -171,9 +176,10 @@ def test_scanner_preflight_prepares_requirement_candidates_before_queries(
         mission_service,
         price_service=price_service,
     )
+    context = _FakeContext()
     result = asyncio.run(
         marketplace_scanner._scan_mission(
-            context=_FakeContext(),
+            context=context,
             mission=mission,
             log=None,
             cancel_requested=None,
@@ -183,6 +189,8 @@ def test_scanner_preflight_prepares_requirement_candidates_before_queries(
     prepared = mission_service.get_mission(mission["mission_id"])
     assert result["scan_status"] == "completed"
     assert any("rtx 3090" in query.lower() for query in result["queries"])
+    assert context.pages
+    assert f"radiusKM={scanner.DEFAULT_MARKETPLACE_RADIUS_KM}" in context.pages[0].url
     assert "candidate_search_terms" in prepared["deployment_args"]
     assert mission_service.list_mission_candidate_products(mission["mission_id"])
 

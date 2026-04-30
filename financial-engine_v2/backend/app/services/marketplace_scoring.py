@@ -56,6 +56,12 @@ _DISTANCE_ONLY_LOCATION_RE = re.compile(
     r"^\s*(?:less than\s+)?\d+(?:\.\d+)?\s*(?:km|kilomet(?:er|re)s?|mi|mile)s?\s*(?:away)?\s*$",
     re.IGNORECASE,
 )
+_WEAK_LOCATION_PATTERNS = (
+    r"\blocation\s+is\s+approximate\b",
+    r"\bapproximate\s+location\b",
+    r"\blocation\s+approximate\b",
+    r"\bapprox(?:\.|imate)?\s+location\b",
+)
 _GPU_MODEL_RE = re.compile(
     r"\b(?:nvidia\s+|geforce\s+)?(?:rtx|gtx)\s*[2345]0[0-9]{2}(?:\s*(?:ti|super))?\b"
     r"|\b(?:amd\s+|radeon\s+)?rx\s*[5679][0-9]{3}(?:\s*(?:xtx|xt))?\b",
@@ -121,13 +127,20 @@ def _is_australia_scoped(location_names: list[str]) -> bool:
     return False
 
 
-def _location_matches_scope(card_location: str, location_names: list[str]) -> bool:
-    if not location_names:
-        return True
+def _weak_location_evidence(card_location: str) -> bool:
     location = _normalize(card_location)
     if not location:
         return True
     if _DISTANCE_ONLY_LOCATION_RE.match(location):
+        return True
+    return any(re.search(pattern, location) for pattern in _WEAK_LOCATION_PATTERNS)
+
+
+def _location_matches_scope(card_location: str, location_names: list[str]) -> bool:
+    if not location_names:
+        return True
+    location = _normalize(card_location)
+    if _weak_location_evidence(location):
         return True
 
     is_au_scope = _is_australia_scoped(location_names)
@@ -397,6 +410,12 @@ def classify_requirement_detail_outcome(
     reasons_text = " ".join(reasons_against).lower()
 
     if "location" in reasons_text or "mission area" in reasons_text:
+        if _weak_location_evidence(location):
+            return _detail_reason(
+                "detail_insufficient_evidence",
+                "Detail page has only weak or approximate location evidence.",
+                evidence={"reasons_against": reasons_against, "location": location},
+            )
         return _detail_reason(
             "detail_location_failed",
             "Detail page location evidence is outside the allowed mission area.",

@@ -275,6 +275,43 @@ def test_prefilter_marketplace_card_allows_matching_location() -> None:
     assert result["prefilter_decision"] == "open"
 
 
+def test_evaluate_marketplace_listing_allows_weak_approximate_location() -> None:
+    result = evaluate_marketplace_listing(
+        {
+            "title": "Toyota Hilux dual cab 4x4",
+            "price": "$21,000",
+            "location": "Location is approximate",
+            "description": "Toyota Hilux dual cab with 4x4 and service history.",
+            "raw_text_lines": ["Location is approximate"],
+        },
+        _mission(),
+    )
+
+    assert result["eligibility"] != "reject"
+    assert (
+        "Listing location is outside the allowed mission area"
+        not in result["reasons_against"]
+    )
+
+
+def test_evaluate_marketplace_listing_still_rejects_clear_foreign_location() -> None:
+    result = evaluate_marketplace_listing(
+        {
+            "title": "Toyota Hilux dual cab 4x4",
+            "price": "$21,000",
+            "location": "Vancouver, BC, Canada",
+            "description": "Toyota Hilux dual cab with 4x4.",
+            "raw_text_lines": ["Vancouver, BC, Canada"],
+        },
+        _mission(),
+    )
+
+    assert result["eligibility"] == "reject"
+    assert result["reasons_against"] == [
+        "Listing location is outside the allowed mission area"
+    ]
+
+
 def test_classify_requirement_detail_outcome_wrong_vram() -> None:
     outcome = classify_requirement_detail_outcome(
         {
@@ -306,11 +343,35 @@ def test_classify_requirement_detail_outcome_location_failed() -> None:
         {
             "decision_band": "reject",
             "score": 0,
-            "reasons_against": ["Listing location is outside the allowed mission area"],
+            "reasons_against": [
+                "Listing location is outside the allowed mission area"
+            ],
         },
     )
 
     assert outcome["reason_code"] == "detail_location_failed"
+
+
+def test_classify_requirement_detail_outcome_weak_location_is_insufficient_evidence() -> None:
+    outcome = classify_requirement_detail_outcome(
+        {
+            "title": "NVIDIA RTX 3090 24GB",
+            "price": "$900",
+            "location": "Location is approximate",
+            "description": "Working GPU.",
+            "raw_text_lines": ["RTX 3090 24GB", "Location is approximate"],
+        },
+        _requirement_gpu_mission(),
+        {
+            "decision_band": "reject",
+            "score": 0,
+            "reasons_against": [
+                "Listing location is outside the allowed mission area"
+            ],
+        },
+    )
+
+    assert outcome["reason_code"] == "detail_insufficient_evidence"
 
 
 def test_classify_requirement_detail_outcome_price_failed() -> None:

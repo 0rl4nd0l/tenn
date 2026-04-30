@@ -50,6 +50,7 @@ FACEBOOK_MARKETPLACE_ITEM_RE = re.compile(
     r"/marketplace/item/(?P<listing_id>[0-9A-Za-z]+)/?",
     re.IGNORECASE,
 )
+DEFAULT_MARKETPLACE_RADIUS_KM = 160
 _LOCATION_COORD_OVERRIDES: dict[str, tuple[float, float]] = {
     "victoria, australia": (-37.8136, 144.9631),  # Melbourne CBD anchor
     "melbourne, australia": (-37.8136, 144.9631),
@@ -450,6 +451,13 @@ class MarketplaceScanner:
 
         primary_location = hard_locations[0]
         radius_km = location_scope.get("radius_km")
+        if radius_km is None:
+            hard_radius_km = hard_filters.get("radius_km")
+            radius_km = (
+                hard_radius_km
+                if hard_radius_km is not None
+                else DEFAULT_MARKETPLACE_RADIUS_KM
+            )
         prefilter_mission = (
             {**mission, "_requirement_candidate_contexts": candidate_contexts}
             if requirement_driven
