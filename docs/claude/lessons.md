@@ -898,3 +898,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** The command name "watch youtube channel" compressed two different intents: subscription-style monitoring and immediate recent-video triage. The implementation only handled the monitoring intent.
 **Fix:** Added a separate recent-video preview path and command route so "check/list recent videos" returns a selectable, scored list without ingesting transcripts.
 **Rule:** Keep monitoring and review-selection intents separate. Do not let "watch channel" auto-ingest or imply selection; explicit "check/list recent videos" should preview first and ask the operator what to ingest.
+
+---
+
+## L082 — Remediation closeout must update docs before claiming done
+
+**Date:** 2026-04-30
+**Subsystem:** `docs/claude/STATE.md`, git closeout workflow
+**Symptom:** Marketplace/Context API remediations were implemented and validated, but the closeout response did not update session docs or clearly state the git commit state until the operator asked.
+**Root cause:** The implementation focused on code/tests and accepted preservation WIP commits as sufficient, missing the repo rule that `STATE.md` should move with shipped work and that git status should be checked before final closeout.
+**Fix:** Added a session note and Recently Shipped entry for the remediation, then committed the docs-only closeout separately without staging unrelated dirty files.
+**Rule:** Before final response on any bug remediation, run `git status --short --branch`, update `docs/claude/STATE.md`, and state whether the relevant changes are committed; do not leave doc/git status implicit.
