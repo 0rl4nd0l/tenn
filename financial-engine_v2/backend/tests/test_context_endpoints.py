@@ -225,6 +225,7 @@ class TestGetTickerContext:
         db.execute = fake_execute
         result = get_ticker_context(ticker="BHP", db=db)
         assert result["announcement_context"] == []
+        assert result["announcement_context_fallback_used"] is True
         assert any(
             "announcement_context" in e and "documents_pdf_excerpt" in e
             for e in result["errors"]
@@ -287,6 +288,7 @@ class TestGetTickerContext:
             "announcement_context" in e and "documents_pdf_excerpt" in e
             for e in result["errors"]
         )
+        assert result["announcement_context_fallback_used"] is True
         assert result["announcement_context"] == [
             {
                 "document_id": "sale-doc",

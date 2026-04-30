@@ -1454,6 +1454,7 @@ def get_ticker_context(
         errors.append(f"latest_financial_snapshot: {err}")
 
     # --- announcement_context (matches DbReader.get_announcement_context) ---
+    announcement_context_fallback_used = False
     announcement_context, err = _run_query(
         db,
         """
@@ -1470,6 +1471,7 @@ def get_ticker_context(
             errors.append(
                 f"announcement_context: {err}; using documents_pdf_excerpt fallback"
             )
+            announcement_context_fallback_used = True
             announcement_context = _build_document_announcement_context(
                 docs,
                 limit=announcements_limit,
@@ -1520,6 +1522,7 @@ def get_ticker_context(
         "financials": financials,
         "latest_financial_snapshot": latest_financial_snapshot,
         "announcement_context": announcement_context,
+        "announcement_context_fallback_used": announcement_context_fallback_used,
         "extraction_failures": extraction_failures,
         "low_confidence_financials": low_confidence_financials,
         "backend_version": "1.0",
