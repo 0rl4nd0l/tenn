@@ -1538,9 +1538,14 @@ class ToolExecutor:
                 "ticker",
                 "primary_ticker",
                 "source_id",
+                "video_id",
+                "webpage_url",
                 "document_id",
                 "symbol",
                 "name",
+                "channel_name",
+                "duration_seconds",
+                "view_count",
                 "change",
                 "change_abs",
                 "close",
@@ -1549,7 +1554,21 @@ class ToolExecutor:
                 "final_score",
             ):
                 if key in row and row.get(key) not in (None, ""):
-                    compact[key] = row.get(key)
+                    value = row.get(key)
+                    if isinstance(value, str):
+                        compact[key] = self._compact_text(value, max_chars=220) or value
+                    else:
+                        compact[key] = value
+            scores = row.get("scores")
+            if isinstance(scores, dict):
+                compact_scores = {
+                    key: value
+                    for key, value in scores.items()
+                    if key in {"overall", "recency", "importance", "relevance", "duration"}
+                    and value not in (None, "")
+                }
+                if compact_scores:
+                    compact["scores"] = compact_scores
 
             snippet = self._compact_text(
                 row.get("snippet") or row.get("text") or row.get("excerpt"),
@@ -1584,8 +1603,11 @@ class ToolExecutor:
             "query",
             "ticker",
             "market",
+            "name",
+            "channel_id",
             "hit_count",
             "count",
+            "limit",
             "freshness_warning",
             "_source",
         ):
@@ -1599,7 +1621,7 @@ class ToolExecutor:
         if isinstance(result.get("staleness_preflight"), dict):
             compact["staleness_preflight"] = result.get("staleness_preflight")
 
-        for list_key in ("hits", "results", "documents", "context", "alerts"):
+        for list_key in ("hits", "results", "documents", "context", "alerts", "videos"):
             compact_rows = self._compact_result_list(result.get(list_key))
             if compact_rows:
                 compact[list_key] = compact_rows
@@ -1653,13 +1675,16 @@ class ToolExecutor:
             minimal["hit_count"] = result.get("hit_count")
         if result.get("count") is not None:
             minimal["count"] = result.get("count")
+        for key in ("name", "channel_id", "limit"):
+            if result.get(key) not in (None, ""):
+                minimal[key] = result.get(key)
         freshness_warning = self._compact_text(
             result.get("freshness_warning"), max_chars=120
         )
         if freshness_warning:
             minimal["freshness_warning"] = freshness_warning
 
-        for list_key in ("hits", "results"):
+        for list_key in ("hits", "results", "videos"):
             rows = result.get(list_key)
             if not isinstance(rows, list) or not rows:
                 continue
@@ -1671,12 +1696,25 @@ class ToolExecutor:
                 "title",
                 "url",
                 "published_at",
+                "video_id",
+                "webpage_url",
                 "source_id",
                 "symbol",
                 "name",
+                "duration_seconds",
             ):
                 if first.get(key) not in (None, ""):
                     minimal_row[key] = first.get(key)
+            scores = first.get("scores")
+            if isinstance(scores, dict):
+                minimal_scores = {
+                    key: value
+                    for key, value in scores.items()
+                    if key in {"overall", "recency", "importance", "relevance", "duration"}
+                    and value not in (None, "")
+                }
+                if minimal_scores:
+                    minimal_row["scores"] = minimal_scores
             if minimal_row:
                 minimal[list_key] = [minimal_row]
 
@@ -1693,12 +1731,14 @@ class ToolExecutor:
             compact["documents"] = compact["documents"][:1]
         if "context" in compact:
             compact["context"] = compact["context"][:1]
+        if "videos" in compact:
+            compact["videos"] = compact["videos"][:1]
 
         compact_serialized = json.dumps(compact, default=str, ensure_ascii=False)
         if len(compact_serialized) <= self._max_result_chars:
             return compact
 
-        return {
+        fallback: dict[str, Any] = {
             "tool": result.get("tool", "unknown"),
             "ok": result.get("ok", True),
             "_truncated": True,
@@ -1709,3 +1749,14 @@ class ToolExecutor:
             ),
             "data": self._compact_text(serialized, max_chars=self._max_result_chars),
         }
+        for key in ("name", "channel_id", "count", "hit_count", "limit"):
+            if result.get(key) not in (None, ""):
+                fallback[key] = result.get(key)
+        video_rows = self._compact_result_list(
+            result.get("videos"),
+            max_rows=1,
+            max_result_chars=180,
+        )
+        if video_rows:
+            fallback["videos"] = video_rows
+        return fallback

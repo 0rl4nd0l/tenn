@@ -169,6 +169,50 @@ class TestSearchNewsFreshnessWarning:
         )
         assert _today_iso() in str(result.get("freshness_warning"))
 
+    def test_youtube_recent_video_truncation_preserves_videos(self) -> None:
+        """Large YouTube preview payloads must retain videos for command formatting/sources."""
+        executor = _make_executor(max_result_chars=900)
+        backend = MagicMock()
+        backend.get_youtube_channel_recent_videos.return_value = {
+            "ok": True,
+            "channel_id": "UCabc123",
+            "name": "Kneppy Invests",
+            "videos": [
+                {
+                    "video_id": f"vid{index}",
+                    "title": f"Long ASX market video title {index} " + ("A" * 180),
+                    "published_at": "2026-04-28T00:00:00Z",
+                    "webpage_url": f"https://www.youtube.com/watch?v=vid{index}",
+                    "duration_seconds": 1200 + index,
+                    "view_count": 100 + index,
+                    "scores": {
+                        "overall": 0.91,
+                        "recency": 1.0,
+                        "importance": 0.8,
+                        "relevance": 0.7,
+                        "duration": 1.0,
+                    },
+                    "description": "B" * 1000,
+                }
+                for index in range(8)
+            ],
+        }
+        executor._router.backend_api_client = backend
+
+        result = executor.execute(
+            "check_youtube_channel_recent_videos",
+            {"channel_name": "Kneppy Invests", "limit": 8},
+        )
+
+        assert result.get("_truncated") is True
+        assert result["name"] == "Kneppy Invests"
+        assert result["channel_id"] == "UCabc123"
+        assert isinstance(result.get("videos"), list) and result["videos"]
+        assert result["videos"][0]["video_id"] == "vid0"
+        assert result["videos"][0]["webpage_url"] == "https://www.youtube.com/watch?v=vid0"
+        assert result["videos"][0]["duration_seconds"] == 1200
+        assert result["videos"][0]["scores"]["overall"] == 0.91
+
     # -----------------------------------------------------------------------
     # HTTP / backend exception path
     # -----------------------------------------------------------------------
