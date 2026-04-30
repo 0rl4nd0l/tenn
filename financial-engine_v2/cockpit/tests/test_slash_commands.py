@@ -1319,6 +1319,39 @@ class TestMarketUpdateSlashCommand(SlashCommandTestBase):
             "no" in resp.text.lower() and "report" in resp.text.lower()
         )
 
+    def test_market_update_pronoun_followup_uses_latest_report(self) -> None:
+        self.state_store.get_chat_messages.return_value = [
+            {"role": "user", "content": "market update today?"},
+            {
+                "role": "assistant",
+                "content": "Latest market update:\n[noon] 2026-04-20  ASX 200 +0.6% at noon",
+            },
+        ]
+        self.state_store.get_latest_market_update_report.return_value = (
+            self._SAMPLE_REPORT
+        )
+
+        resp = self.controller.build_chat_response("tell me about it\\")
+
+        assert resp is not None
+        assert "Latest market update detail" in resp.text
+        assert "ASX 200 +0.6% at noon" in resp.text
+        assert resp.evidence == [
+            {"type": "market_update_report", "details": self._SAMPLE_REPORT}
+        ]
+        self.controller.ollama_client.chat.assert_not_called()
+        self.state_store.get_latest_market_update_report.assert_called_once_with(None)
+
+    def test_market_update_pronoun_followup_requires_recent_market_context(self) -> None:
+        self.state_store.get_chat_messages.return_value = [
+            {"role": "assistant", "content": "BHP company overview"}
+        ]
+
+        resp = self.controller._try_market_update_followup("tell me about it")
+
+        assert resp is None
+        self.state_store.get_latest_market_update_report.assert_not_called()
+
     # --- list ------------------------------------------------------------
     def test_market_update_list_empty(self) -> None:
         self.state_store.list_market_update_reports.return_value = []

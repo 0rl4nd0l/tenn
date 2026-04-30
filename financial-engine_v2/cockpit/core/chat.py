@@ -4343,6 +4343,48 @@ class ChatController:
             routing_metadata=routing_metadata,
         )
 
+    _MARKET_UPDATE_FOLLOWUP_RE = re.compile(
+        r"^\s*(?:tell\s+me\s+(?:more\s+)?about\s+it|explain\s+it|more\s+detail(?:s)?)\s*[\\?!.]*\s*$",
+        re.IGNORECASE,
+    )
+
+    def _recent_context_mentions_market_update(self) -> bool:
+        if self._state_store is None:
+            return False
+        try:
+            history_msgs = self._state_store.get_chat_messages(
+                self._thread_id,
+                limit=8,
+            )
+        except Exception:
+            return False
+        for item in reversed(history_msgs or []):
+            if str(item.get("role") or "").lower() != "assistant":
+                continue
+            content = str(item.get("content") or "").lower()
+            if not content:
+                continue
+            if (
+                "market-update" in content
+                or "market update" in content
+                or ("asx" in content and "market" in content)
+            ):
+                return True
+        return False
+
+    def _try_market_update_followup(self, message: str) -> ChatResponse | None:
+        if self._state_store is None:
+            return None
+        if not self._MARKET_UPDATE_FOLLOWUP_RE.fullmatch(str(message or "").strip()):
+            return None
+        if not self._recent_context_mentions_market_update():
+            return None
+        report = self._state_store.get_latest_market_update_report(None)
+        return self._format_market_update_report(
+            report,
+            header="Latest market update detail",
+        )
+
     @staticmethod
     def _format_market_update_errors(errors: tuple[str, ...]) -> str | None:
         if not errors:
@@ -6112,6 +6154,10 @@ class ChatController:
         command_response = self._build_command_route_response(command_route)
         if command_response is not None:
             return command_response
+
+        market_update_followup = self._try_market_update_followup(effective_message)
+        if market_update_followup is not None:
+            return market_update_followup
 
         # --- Greeting short-circuit: don't invoke the full analyst pipeline ---
         if self._GREETING_RE.match(effective_message):
