@@ -1067,6 +1067,12 @@ class ChatController:
         recovery = getattr(orchestration_result, "missing_data_recovery", None)
         if isinstance(recovery, dict) and bool(recovery.get("attempted")):
             return True
+        entities = getattr(orchestration_result, "entities", {}) or {}
+        has_sector_scope = bool(str(entities.get("sector") or "").strip())
+        if has_sector_scope and not bool(
+            getattr(orchestration_result, "sufficient_for_analysis", True)
+        ):
+            return True
         return bool(
             orchestration_result.financial_truth_results.get("items")
             or orchestration_result.financial_truth_results.get(

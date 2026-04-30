@@ -8,6 +8,7 @@ from typing import Any, Iterable, Protocol
 from app.services.company_memory import CompanyMemoryStore
 from app.services.memory_assembler import MemoryAssembler
 from app.services.market_memory import MarketMemoryStore
+from app.services.market_sector_inference import infer_sector
 from shared.ticker_inference import COMMON_TICKER_STOPWORDS, detect_tickers
 
 
@@ -296,9 +297,11 @@ def resolve(query: str, context: dict[str, Any] | None = None) -> dict[str, Any]
     prior_ticker = str((context or {}).get("prior_ticker") or "").strip().upper()
     if not tickers and prior_ticker:
         tickers.append(prior_ticker)
+    sector = infer_sector(query, tickers)
     return {
         "primary_ticker": tickers[0] if tickers else None,
         "tickers": tickers,
+        "sector": sector,
     }
 
 
@@ -491,7 +494,7 @@ def _detect_missing_categories(
         if peer_signals == 0:
             _add("peer_set")
 
-    if (
+    if "financial_truth" in plan.sources and (
         "extraction_failures" not in financial_truth
         and "low_confidence_financials" not in financial_truth
     ):
@@ -610,6 +613,25 @@ def _is_sufficient_for_company_analysis(
     if blocker_set & _CRITICAL_COMPANY_ANALYSIS_BLOCKERS:
         return False
     return True
+
+
+def _is_sector_analysis_request(
+    *,
+    intent: QueryIntent,
+    entities: dict[str, Any],
+) -> bool:
+    return intent == "market" and bool(str(entities.get("sector") or "").strip())
+
+
+def _is_sufficient_for_sector_analysis(
+    *,
+    evidence: dict[str, dict[str, Any]],
+    missing_categories: list[str],
+) -> bool:
+    has_market_context = bool((evidence.get("market_memory") or {}).get("items") or [])
+    if not has_market_context:
+        return False
+    return "market_context" not in set(missing_categories)
 
 
 def _confirmed_evidence_categories(
@@ -759,6 +781,29 @@ def build_answer_input(
                 lines.append("- unresolved evidence blockers")
             return "\n".join(lines)
         lines.append("Recovery outcome: sufficient evidence available; proceeding with analysis.")
+
+    if not bool(answer.get("sufficient_for_analysis", True)):
+        lines.append("Confirmed evidence already present:")
+        confirmed = _confirmed_evidence_categories(evidence)
+        if confirmed:
+            for category in confirmed:
+                lines.append(f"- {category}")
+        else:
+            lines.append("- none")
+        lines.append("Missing or weak evidence categories:")
+        if missing_after:
+            for category in missing_after:
+                lines.append(f"- {category}")
+        else:
+            lines.append("- unresolved evidence blockers")
+        lines.append("Final verdict: abstain until blocking evidence gaps are resolved.")
+        lines.append("Unknowns:")
+        if missing_after:
+            for category in missing_after:
+                lines.append(f"- {category}")
+        else:
+            lines.append("- unresolved evidence blockers")
+        return "\n".join(lines)
 
     financial_truth = evidence.get("financial_truth") or {}
     snapshot = financial_truth.get("latest_financial_snapshot") or {}
@@ -1027,6 +1072,10 @@ class QueryOrchestrator:
             query,
             context=context,
         )
+        sector_analysis_request = _is_sector_analysis_request(
+            intent=intent,
+            entities=entities,
+        )
         missing_before = _detect_missing_categories(
             query=query,
             plan=plan,
@@ -1097,6 +1146,11 @@ class QueryOrchestrator:
                 evidence=evidence,
                 missing_categories=missing_after,
             )
+        elif sector_analysis_request:
+            sufficient_for_analysis = _is_sufficient_for_sector_analysis(
+                evidence=evidence,
+                missing_categories=missing_after,
+            )
 
         answer = compose_answer(intent, effective_plan, evidence)
         answer["missing_categories_before_recovery"] = list(missing_before)
@@ -1106,6 +1160,10 @@ class QueryOrchestrator:
         if recovery_summary.get("attempted") and not sufficient_for_analysis:
             answer.setdefault("notes", []).append(
                 "insufficient evidence after bounded recovery pass; abstain with explicit blockers"
+            )
+        elif sector_analysis_request and not sufficient_for_analysis:
+            answer.setdefault("notes", []).append(
+                "insufficient sector evidence; abstain with explicit market-context blocker"
             )
         answer_input = build_answer_input(
             query,

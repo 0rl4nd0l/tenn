@@ -930,6 +930,10 @@ class MarketMemoryStore:
     def _resolve_relevant_sector(query: str, entities: dict[str, Any]) -> str | None:
         from app.services.analysis.sector_comparison import get_sector_for_ticker
 
+        explicit_sector = str(entities.get("sector") or "").strip()
+        if explicit_sector:
+            return explicit_sector
+
         primary_ticker = str(entities.get("primary_ticker") or "").strip().upper()
         if primary_ticker:
             sector = get_sector_for_ticker(primary_ticker)

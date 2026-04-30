@@ -4,7 +4,7 @@ from app.services.analysis.sector_comparison import get_sector_for_ticker
 
 SECTOR_KEYWORDS: dict[str, tuple[str, ...]] = {
     "Materials": ("iron ore", "lithium", "copper", "gold", "bulk commodity"),
-    "Energy": ("oil", "gas", "lng", "coal"),
+    "Energy": ("oil", "gas", "lng", "coal", "hydrogen", "green hydrogen"),
     "Financials": ("bank", "banks", "lender", "credit"),
     "Healthcare": ("healthcare", "medtech", "hospital", "biotech"),
     "Technology": ("software", "cloud", "data centre", "semiconductor"),

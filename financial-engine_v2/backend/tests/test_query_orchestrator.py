@@ -217,6 +217,15 @@ def test_resolve_keeps_sector_prompt_tickerless() -> None:
 
     assert entities["primary_ticker"] is None
     assert entities["tickers"] == []
+    assert entities["sector"] == "Materials"
+
+
+def test_resolve_hydrogen_industry_as_energy_sector_without_ticker() -> None:
+    entities = resolve("tell me about hydrogen industry")
+
+    assert entities["primary_ticker"] is None
+    assert entities["tickers"] == []
+    assert entities["sector"] == "Energy"
 
 
 def test_financial_fact_answer_input_keeps_only_financial_truth_section() -> None:
@@ -329,6 +338,74 @@ def test_market_answer_input_uses_market_budgets_and_context_only() -> None:
     assert "- relevant sector: Materials" in result.answer_input
     assert "- sector: Iron ore supply discipline is improving." in result.answer_input
     assert "- macro: China demand remains supportive." in result.answer_input
+
+
+def test_hydrogen_sector_prompt_uses_backend_market_memory_scope() -> None:
+    class MarketProvider:
+        def __init__(self) -> None:
+            self.entities: dict | None = None
+
+        def retrieve(self, *, query, entities, intent):
+            self.entities = entities
+            return {
+                "status": "ok",
+                "sector": entities.get("sector"),
+                "sector_items": [
+                    {
+                        "type": "sector_trend",
+                        "statement": "Hydrogen project economics remain sensitive to offtake demand.",
+                        "active_score": 0.82,
+                        "metadata": {"themes": ["hydrogen"]},
+                    }
+                ],
+                "macro_items": [],
+                "items": [
+                    {
+                        "type": "sector_trend",
+                        "statement": "Hydrogen project economics remain sensitive to offtake demand.",
+                    }
+                ],
+            }
+
+    market = MarketProvider()
+    result = orchestrate_query(
+        "tell me about hydrogen industry",
+        market_memory_provider=market,
+    )
+
+    assert result.intent == "market"
+    assert market.entities == {
+        "primary_ticker": None,
+        "tickers": [],
+        "sector": "Energy",
+    }
+    assert result.market_memory_results["sector"] == "Energy"
+    assert "- relevant sector: Energy" in result.answer_input
+    assert "Hydrogen project economics remain sensitive" in result.answer_input
+    assert result.sufficient_for_analysis is True
+
+
+def test_sector_prompt_with_no_market_memory_abstains_without_agent_fallback() -> None:
+    class EmptyMarketProvider:
+        def retrieve(self, *, query, entities, intent):
+            return {
+                "status": "ok",
+                "sector": entities.get("sector"),
+                "sector_items": [],
+                "macro_items": [],
+                "items": [],
+            }
+
+    result = orchestrate_query(
+        "tell me about hydrogen industry",
+        market_memory_provider=EmptyMarketProvider(),
+    )
+
+    assert result.entities["sector"] == "Energy"
+    assert result.sufficient_for_analysis is False
+    assert result.missing_categories_after_recovery == ("market_context",)
+    assert "Final verdict: abstain" in result.answer_input
+    assert "- market_context" in result.answer_input
 
 
 def test_mixed_answer_input_separates_facts_interpretation_and_context() -> None:

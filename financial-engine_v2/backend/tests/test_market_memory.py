@@ -8,6 +8,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from app.services.market_sector_inference import infer_sector
 from app.services.market_memory import MarketMemoryStore
 
 
@@ -316,6 +317,35 @@ def test_market_retrieve_infers_sector_from_tickerless_prompt(tmp_path: Path) ->
     assert result["sector"] == "Materials"
     assert [item["statement"] for item in result["sector_items"]] == [
         "Iron ore supply discipline is improving across the sector."
+    ]
+
+
+def test_infer_sector_maps_hydrogen_industry_to_energy() -> None:
+    assert infer_sector("tell me about hydrogen industry") == "Energy"
+
+
+def test_market_retrieve_uses_explicit_sector_entity_for_hydrogen(
+    tmp_path: Path,
+) -> None:
+    store = MarketMemoryStore(tmp_path / "market_memory.sqlite")
+    store.update_market_memory(
+        _sector_signal(
+            sector="Energy",
+            statement="Hydrogen project economics remain sensitive to offtake demand.",
+            linked_tickers=[],
+            metadata={"specificity": 0.76, "themes": ["hydrogen"]},
+        )
+    )
+
+    result = store.retrieve(
+        query="tell me about hydrogen industry",
+        entities={"primary_ticker": None, "tickers": [], "sector": "Energy"},
+        intent="market",
+    )
+
+    assert result["sector"] == "Energy"
+    assert [item["statement"] for item in result["sector_items"]] == [
+        "Hydrogen project economics remain sensitive to offtake demand."
     ]
 
 

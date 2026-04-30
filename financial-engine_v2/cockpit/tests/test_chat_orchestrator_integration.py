@@ -265,6 +265,37 @@ def _recovery_only_result(*, ticker: str | None = "BHP"):
     )
 
 
+def _insufficient_sector_result():
+    source_plan = ("market_memory",)
+    market_memory = {
+        "status": "ok",
+        "sector": "Energy",
+        "sector_items": [],
+        "macro_items": [],
+        "items": [],
+    }
+    return SimpleNamespace(
+        intent="market",
+        entities={"primary_ticker": None, "tickers": [], "sector": "Energy"},
+        source_plan=source_plan,
+        financial_truth_results={},
+        company_memory_results={},
+        market_memory_results=market_memory,
+        raw_supporting_evidence={"market_memory": market_memory},
+        answer_input="Final verdict: abstain until blocking evidence gaps are resolved.",
+        answer={"source_status": {"market_memory": "ok"}},
+        missing_data_recovery={
+            "attempted": False,
+            "sources": [],
+            "resolved_categories": [],
+            "remaining_categories": ["market_context"],
+        },
+        missing_categories_before_recovery=("market_context",),
+        missing_categories_after_recovery=("market_context",),
+        sufficient_for_analysis=False,
+    )
+
+
 def test_financial_fact_queries_use_financial_truth_only() -> None:
     ctrl = _controller(_result("financial_fact", ("financial_truth",)))
 
@@ -305,6 +336,21 @@ def test_market_queries_use_market_memory_shared_context() -> None:
     assert response.routing_metadata["intent"] == "market"
     assert response.routing_metadata["sources"] == ["market_memory"]
     assert response.evidence[1]["details"]["sector"] == "Materials"
+
+
+def test_insufficient_sector_orchestration_does_not_fall_back_to_agent_loop() -> None:
+    ctrl = _controller(_insufficient_sector_result())
+
+    response = ctrl.build_chat_response("/cloud tell me about hydrogen industry")
+
+    assert response.routing_metadata["source"] == "orchestrator"
+    assert response.routing_metadata["intent"] == "market"
+    assert response.text.startswith("Final verdict: abstain")
+    assert [item["type"] for item in response.evidence] == [
+        "orchestrator",
+        "market_memory",
+    ]
+    assert ctrl._agent_loop.calls[-1]["mode"] == "sync"
 
 
 def test_mixed_queries_preserve_source_order() -> None:
