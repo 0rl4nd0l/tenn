@@ -70,6 +70,20 @@ def test_build_marketplace_search_url_scopes_location_and_radius() -> None:
     assert "longitude=144.9631" in url
 
 
+def test_build_marketplace_search_url_anchors_victoria_scope_to_melbourne_slug() -> None:
+    url = scanner.build_marketplace_search_url(
+        "RTX 3090",
+        location_name="Victoria, Australia",
+        radius_km=160,
+    )
+
+    assert url.startswith("https://www.facebook.com/marketplace/melbourne-vic/search?")
+    assert "query=RTX+3090" in url
+    assert "radiusKM=160" in url
+    assert "latitude=-37.8136" in url
+    assert "longitude=144.9631" in url
+
+
 def test_scanner_returns_no_active_missions_without_browser_work(monkeypatch) -> None:
     mission_service = SimpleNamespace(
         list_missions=lambda statuses=None: [],

@@ -384,6 +384,58 @@ class AgentLoop:
     @staticmethod
     def _format_direct_command_tool_result(cmd: Any, result: dict[str, Any]) -> str:
         tool_name = str(cmd.tool or "tool")
+        if tool_name == "ingest_youtube_videos":
+            results = result.get("results") if isinstance(result.get("results"), list) else []
+            errors = result.get("errors") if isinstance(result.get("errors"), list) else []
+            if not results and errors:
+                first = errors[0] if isinstance(errors[0], dict) else {}
+                detail = str(first.get("detail") or first or "ingest failed")
+                return f"Could not ingest selected YouTube video(s): {detail}"
+            if not results:
+                return "No YouTube transcripts were staged."
+
+            lines = ["Staged selected YouTube transcript(s) for review:"]
+            for index, item in enumerate(results, start=1):
+                if not isinstance(item, dict):
+                    continue
+                title = str(
+                    item.get("video_title") or item.get("source_name") or item.get("source_id") or "YouTube video"
+                ).strip()
+                source_id = str(item.get("source_id") or "").strip()
+                chunks = item.get("chunks_staged")
+                chunk_text = f" | {chunks} chunks" if isinstance(chunks, int) else ""
+                url = str(item.get("webpage_url") or "").strip()
+                lines.append(f"{index}. {title}{chunk_text}")
+                if url:
+                    lines.append(f"   {url}")
+                if source_id:
+                    lines.append(f"   source_id: {source_id}")
+                takeaways = item.get("takeaways") if isinstance(item.get("takeaways"), list) else []
+                for takeaway in takeaways[:3]:
+                    if not isinstance(takeaway, dict):
+                        continue
+                    text = str(takeaway.get("text") or "").strip()
+                    if text:
+                        lines.append(f"   - {text}")
+                if source_id:
+                    lines.append(f"   Commit after review: /review approve {source_id}")
+
+            if errors:
+                lines.append("")
+                lines.append("Some selected videos were not staged:")
+                for error in errors[:3]:
+                    if not isinstance(error, dict):
+                        continue
+                    lines.append(
+                        f"- {error.get('url') or 'video'}: {error.get('detail') or 'failed'}"
+                    )
+            lines.append("")
+            lines.append(
+                "Nothing has been committed to Qdrant yet. Approve only the "
+                "source_id(s) you want to keep; reject the rest with /review reject <source_id>."
+            )
+            return "\n".join(lines)
+
         if result.get("ok") is False or result.get("error"):
             error = str(result.get("error") or "tool returned ok=false")
             return f"Could not execute {tool_name}: {error}"

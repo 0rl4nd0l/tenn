@@ -70,7 +70,10 @@ def canonical_marketplace_listing_url(url: str) -> str:
 
 
 def _location_slug(location_name: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "-", str(location_name or "").strip().lower()).strip("-")
+    normalized = str(location_name or "").strip().lower()
+    if "victoria" in normalized and "australia" in normalized:
+        return "melbourne-vic"
+    return re.sub(r"[^a-z0-9]+", "-", normalized).strip("-")
 
 
 def _location_coordinates(location_name: str | None) -> tuple[float, float] | None:

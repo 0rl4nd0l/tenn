@@ -1360,15 +1360,15 @@ export function ChatScreen() {
               const autoFlagMessage: ChatMessageType | null = autoFlag
                 ? {
                     id: generateId(),
-	                    role: 'system',
-	                    content: formatFlagHandoffMessage(autoFlag, false),
-	                    timestamp: new Date(),
-	                    metadata: {
-	                      source: 'cockpit',
-	                      codexDeploy: { reportId: autoFlag.report_id },
-	                    },
-	                  }
-	                : null
+                    role: 'system',
+                    content: formatFlagHandoffMessage(autoFlag, false),
+                    timestamp: new Date(),
+                    metadata: {
+                      source: 'cockpit',
+                      codexDeploy: { reportId: autoFlag.report_id },
+                    },
+                  }
+                : null
               const providerErrorNotice = buildProviderErrorNotice(event.data?.provider_error)
               if (providerErrorNotice) {
                 toast.error(providerErrorNotice, { duration: 15000 })
@@ -2191,12 +2191,16 @@ export function ChatScreen() {
             const parentPrompt = parentMessage?.content ?? null
             return (
               <div key={msg.id} className="space-y-1">
-                <TerminalMessage
-                  message={msg}
-                  showSources={preferences.showSources}
-                  onConfirmAction={handleConfirmAction}
-                  onCancelAction={handleCancelAction}
-                />
+	                <TerminalMessage
+	                  message={msg}
+	                  showSources={preferences.showSources}
+	                  codexDeployStatus={msg.metadata?.codexDeploy?.reportId
+	                    ? codexDeployStates[msg.metadata.codexDeploy.reportId]?.status
+	                    : null}
+	                  onConfirmAction={handleConfirmAction}
+	                  onCancelAction={handleCancelAction}
+	                  onDeployCodexFlag={handleDeployCodexFlag}
+	                />
                 {msg.role === 'assistant' && (
                   <MessageClaimVerification
                     message={msg}

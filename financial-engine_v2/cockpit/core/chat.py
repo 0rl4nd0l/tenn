@@ -4726,6 +4726,142 @@ class ChatController:
     # -- Review commands ------------------------------------------------ #
 
     def _slash_review(self, sub: str, rest: str) -> ChatResponse | None:
+        backend_client = getattr(self.tool_router, "backend_api_client", None)
+        if backend_client is not None:
+            if sub == "list" or not sub:
+                try:
+                    resp = backend_client.get_pending_transcripts()
+                    pending = resp.get("pending", []) if isinstance(resp, dict) else []
+                except Exception as exc:
+                    return ChatResponse(
+                        text=f"Failed to list pending transcripts: {exc}",
+                        evidence=[],
+                        mode=ResponseMode.FAST,
+                    )
+                if not pending:
+                    return ChatResponse(
+                        text="No pending transcripts to review.",
+                        evidence=[],
+                        mode=ResponseMode.FAST,
+                    )
+                lines = [f"Pending transcript review ({len(pending)} items):"]
+                for index, item in enumerate(pending, start=1):
+                    if not isinstance(item, dict):
+                        continue
+                    sid = item.get("source_id", "?")
+                    stype = item.get("source_type", "?")
+                    title = str(item.get("title") or item.get("source_name") or "?")[:60]
+                    chunks = item.get("chunk_count", 0)
+                    staged = str(item.get("staged_at") or "")[:10]
+                    lines.append(
+                        f"  [{index}] {sid} | {stype} | {title} | staged {staged} | {chunks} chunks"
+                    )
+                lines.append("Use: /review approve <source_id> or /review reject <source_id>")
+                return ChatResponse(
+                    text="\n".join(lines),
+                    evidence=[{"type": "pending_transcripts", "details": pending}],
+                    mode=ResponseMode.FAST,
+                )
+
+            if sub == "approve":
+                source_id = rest.strip()
+                if not source_id:
+                    return ChatResponse(
+                        text="Usage: /review approve <source_id>",
+                        evidence=[],
+                        mode=ResponseMode.FAST,
+                    )
+                try:
+                    result = backend_client.approve_transcript(source_id)
+                except Exception as exc:
+                    return ChatResponse(
+                        text=f"Approve failed: {exc}",
+                        evidence=[],
+                        mode=ResponseMode.FAST,
+                    )
+                indexed = result.get("points_upserted", 0) if isinstance(result, dict) else 0
+                return ChatResponse(
+                    text=f"Approved and indexed {indexed} chunks for {source_id}.",
+                    evidence=[
+                        {
+                            "type": "transcript_review",
+                            "details": result if isinstance(result, dict) else {},
+                        }
+                    ],
+                    mode=ResponseMode.FAST,
+                )
+
+            if sub == "reject":
+                source_id = rest.strip()
+                if not source_id:
+                    return ChatResponse(
+                        text="Usage: /review reject <source_id>",
+                        evidence=[],
+                        mode=ResponseMode.FAST,
+                    )
+                try:
+                    backend_client.reject_transcript(source_id)
+                except Exception as exc:
+                    return ChatResponse(
+                        text=f"Reject failed: {exc}",
+                        evidence=[],
+                        mode=ResponseMode.FAST,
+                    )
+                return ChatResponse(
+                    text=f"Rejected and purged staged chunks for {source_id}.",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+
+            if sub == "approve-all":
+                try:
+                    resp = backend_client.get_pending_transcripts()
+                    pending = resp.get("pending", []) if isinstance(resp, dict) else []
+                except Exception as exc:
+                    return ChatResponse(
+                        text=f"Failed to list pending transcripts: {exc}",
+                        evidence=[],
+                        mode=ResponseMode.FAST,
+                    )
+                total = 0
+                for item in pending:
+                    if not isinstance(item, dict) or not item.get("source_id"):
+                        continue
+                    try:
+                        result = backend_client.approve_transcript(item["source_id"])
+                        if isinstance(result, dict):
+                            total += int(result.get("points_upserted", 0) or 0)
+                    except Exception:
+                        continue
+                return ChatResponse(
+                    text=f"Approved {len(pending)} source(s), indexed {total} chunks.",
+                    evidence=[],
+                    mode=ResponseMode.FAST,
+                )
+
+            if sub == "expired":
+                try:
+                    result = backend_client.purge_expired_transcripts()
+                except Exception as exc:
+                    return ChatResponse(
+                        text=f"Purge failed: {exc}",
+                        evidence=[],
+                        mode=ResponseMode.FAST,
+                    )
+                purged = result.get("purged", []) if isinstance(result, dict) else []
+                text = (
+                    f"Purged {len(purged)} expired staged source(s)."
+                    if purged
+                    else "No expired items."
+                )
+                return ChatResponse(text=text, evidence=[], mode=ResponseMode.FAST)
+
+            return ChatResponse(
+                text="Usage: /review list|approve|reject|approve-all|expired [source_id]",
+                evidence=[],
+                mode=ResponseMode.FAST,
+            )
+
         if self._state_store is None:
             return ChatResponse(
                 text="Review not available (no state store).",
