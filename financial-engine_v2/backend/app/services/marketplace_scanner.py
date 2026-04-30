@@ -71,8 +71,10 @@ def canonical_marketplace_listing_url(url: str) -> str:
 
 def _location_slug(location_name: str) -> str:
     normalized = str(location_name or "").strip().lower()
+    if "melbourne" in normalized:
+        return "melbourne"
     if "victoria" in normalized and "australia" in normalized:
-        return "melbourne-vic"
+        return "melbourne"
     return re.sub(r"[^a-z0-9]+", "-", normalized).strip("-")
 
 

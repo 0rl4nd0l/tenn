@@ -165,6 +165,16 @@ def _brief_location_terms(brief: str) -> list[str]:
     return _unique(out)[:4]
 
 
+def _search_query_location_term(location_name: str) -> str:
+    cleaned = _clean_text(location_name)
+    lowered = cleaned.lower()
+    if "melbourne" in lowered:
+        return "Melbourne"
+    if "victoria" in lowered and "australia" in lowered:
+        return "Melbourne"
+    return cleaned
+
+
 def build_marketplace_search_pack(mission: dict[str, Any]) -> dict[str, Any]:
     hard = mission.get("hard_filters") or {}
     soft = mission.get("soft_preferences") or {}
@@ -280,8 +290,11 @@ def flatten_marketplace_queries(
         return ordered[: max(1, max_queries)]
 
     localized_queries: list[str] = []
+    query_location_names = _unique(
+        [_search_query_location_term(location) for location in location_names]
+    )
     for query in ordered:
-        for location in location_names[:2]:
+        for location in query_location_names[:2]:
             localized_queries.append(f"{query} {location}")
 
     expanded = _unique(localized_queries + ordered)

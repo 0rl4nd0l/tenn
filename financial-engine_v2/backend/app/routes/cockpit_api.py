@@ -1500,6 +1500,32 @@ def _append_youtube_recent_video_sources(
         )
 
 
+def _append_youtube_ingest_sources(
+    items: list[dict[str, Any]],
+    seen: set[str],
+    result: dict[str, Any],
+) -> None:
+    videos: list[dict[str, Any]] = []
+    for row in _dict_rows(result.get("results")):
+        video_id = str(row.get("video_id") or "").strip()
+        videos.append(
+            {
+                "title": row.get("video_title") or row.get("source_name"),
+                "video_id": video_id,
+                "webpage_url": row.get("webpage_url"),
+                "source_id": row.get("source_id")
+                or (f"youtube:{video_id}" if video_id else None),
+                "published_at": row.get("published_at"),
+            }
+        )
+    if videos:
+        _append_youtube_recent_video_sources(
+            items,
+            seen,
+            {"name": "YouTube transcript", "videos": videos},
+        )
+
+
 def _append_news_no_hit_source(
     items: list[dict[str, Any]],
     seen: set[str],
@@ -2242,6 +2268,8 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                     )
                 elif tool_name == "check_youtube_channel_recent_videos":
                     _append_youtube_recent_video_sources(items, seen, result)
+                elif tool_name == "ingest_youtube_videos":
+                    _append_youtube_ingest_sources(items, seen, result)
 
         if len(items) >= 10:
             break

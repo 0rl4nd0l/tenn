@@ -71,6 +71,30 @@ def test_requirement_driven_search_pack_uses_candidate_terms_first() -> None:
     assert any("rtx 3090" in query.lower() for query in queries)
 
 
+def test_requirement_driven_search_queries_anchor_victoria_scope_to_melbourne() -> None:
+    mission = {
+        "name": "Inference GPU",
+        "brief": "24GB GPU for local inference in Victoria.",
+        "hard_filters": {
+            "include_keywords": ["GPU", "24GB VRAM"],
+            "location_names": ["Victoria, Australia"],
+        },
+        "soft_preferences": {},
+        "search_config": {"max_queries_per_run": 4},
+        "deployment_args": {
+            "requirement_profile": {"mode": "requirement_driven", "category": "gpu"},
+            "candidate_search_terms": ["RTX 3090 24GB", "RTX 4090 24GB"],
+        },
+    }
+
+    pack = build_marketplace_search_pack(mission)
+    queries = flatten_marketplace_queries(pack, max_queries=4)
+
+    assert pack["location_scope"]["location_names"] == ["Victoria, Australia"]
+    assert any(query == "RTX 3090 24GB Melbourne" for query in queries)
+    assert not any("victoria, australia" in query.lower() for query in queries)
+
+
 def test_requirement_driven_search_pack_fails_closed_without_candidate_terms() -> None:
     mission = {
         "name": "Inference GPU",

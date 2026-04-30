@@ -63,7 +63,7 @@ def test_build_marketplace_search_url_scopes_location_and_radius() -> None:
         radius_km=25,
     )
 
-    assert url.startswith("https://www.facebook.com/marketplace/melbourne-vic/search?")
+    assert url.startswith("https://www.facebook.com/marketplace/melbourne/search?")
     assert "query=RTX+3090" in url
     assert "radiusKM=25" in url
     assert "latitude=-37.8136" in url
@@ -77,7 +77,7 @@ def test_build_marketplace_search_url_anchors_victoria_scope_to_melbourne_slug()
         radius_km=160,
     )
 
-    assert url.startswith("https://www.facebook.com/marketplace/melbourne-vic/search?")
+    assert url.startswith("https://www.facebook.com/marketplace/melbourne/search?")
     assert "query=RTX+3090" in url
     assert "radiusKM=160" in url
     assert "latitude=-37.8136" in url

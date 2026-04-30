@@ -1,4 +1,4 @@
-import { appendFileSync, existsSync } from 'node:fs'
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 import path from 'node:path'
 
@@ -82,6 +82,22 @@ export async function POST(
         `[${new Date().toISOString()}] spawn error: ${error.message}\n`,
         'utf8',
       )
+      try {
+        const current = JSON.parse(readFileSync(paths.investigationPath, 'utf8')) as Record<string, unknown>
+        writeFileSync(
+          paths.investigationPath,
+          JSON.stringify({
+            ...current,
+            status: 'failed',
+            updated_at: new Date().toISOString(),
+            completed_at: new Date().toISOString(),
+            launcher_error: error.message,
+          }, null, 2) + '\n',
+          'utf8',
+        )
+      } catch {
+        // The launcher log above is the fallback failure record.
+      }
     })
     child.unref()
 
