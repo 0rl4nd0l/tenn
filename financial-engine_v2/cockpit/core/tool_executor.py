@@ -37,6 +37,11 @@ _NEWS_TICKER_STOPWORDS = {
     "ADVISOR",
     "OPS",
 }
+_CURRENT_NEWS_QUERY_RE = re.compile(
+    r"\b(today|latest|current|now|breaking|market\s+update|market\s+wrap|"
+    r"market\s+movers?|movers?\s+today|news\s+today|today'?s?\s+news)\b",
+    re.IGNORECASE,
+)
 
 
 class ToolExecutor:
@@ -466,9 +471,11 @@ class ToolExecutor:
                 "do not present this as confirmation that no news exists on this topic."
             )
 
-        # Successful hits act as a freshness proxy: the corpus clearly has data,
-        # so update the ingest timestamp to avoid spurious staleness warnings.
-        if compact_hits:
+        current_news_query = bool(_CURRENT_NEWS_QUERY_RE.search(query))
+
+        # Successful fresh hits act as a freshness proxy. Historical hits must
+        # not make the local freshness tracker think the corpus was just ingested.
+        if compact_hits and not freshness_warning:
             self._freshness_tracker.record_ingest(ticker)
 
         out: dict[str, Any] = {
@@ -482,6 +489,14 @@ class ToolExecutor:
         }
         if freshness_warning:
             out["freshness_warning"] = freshness_warning
+            if compact_hits and current_news_query:
+                out["ok"] = False
+                out["data_insufficient"] = True
+                out["historical_hits"] = list(compact_hits)
+                out["suggestion"] = (
+                    "Only historical news was returned for a current-news query. "
+                    "Do not answer as if this is today's news; offer to run news ingest."
+                )
         if staleness_preflight:
             out["staleness_preflight"] = staleness_preflight
         return out

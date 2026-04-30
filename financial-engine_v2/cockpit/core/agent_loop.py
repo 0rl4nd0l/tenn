@@ -1280,6 +1280,8 @@ class AgentLoop:
             result = entry.get("result")
             if isinstance(result, dict) and result.get("error"):
                 continue
+            if isinstance(result, dict) and result.get("data_insufficient"):
+                continue
             return True
         return False
 
@@ -1465,13 +1467,24 @@ class AgentLoop:
                     )
                 )
             elif tool in {"search_web", "search_news"} and isinstance(result, dict):
-                lines.append(
-                    f"- {tool}: "
-                    + _summarize_rows(
-                        result.get("results") or result.get("hits") or [],
-                        title_key="title",
-                    )
+                rows = (
+                    result.get("results")
+                    or result.get("hits")
+                    or result.get("historical_hits")
+                    or []
                 )
+                bits = [
+                    _summarize_rows(rows, title_key="title"),
+                ]
+                freshness = str(result.get("freshness_warning") or "").strip()
+                if freshness:
+                    bits.append(f"freshness_warning={freshness}")
+                if result.get("data_insufficient"):
+                    bits.append("data_insufficient=true")
+                suggestion = str(result.get("suggestion") or "").strip()
+                if suggestion:
+                    bits.append(f"suggestion={suggestion}")
+                lines.append(f"- {tool}: " + "; ".join(bit for bit in bits if bit))
             else:
                 # Take a short preview of the result.
                 try:

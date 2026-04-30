@@ -138,6 +138,28 @@ class TestSearchNewsFreshnessWarning:
         )
         assert "5 day" in warning or "days old" in warning.lower()
 
+    def test_exec_search_news_marks_stale_current_query_data_insufficient(self) -> None:
+        executor = _make_executor()
+        executor._freshness_tracker.record_ingest = MagicMock()
+        executor._router.get_news_context.return_value = {
+            "ok": True,
+            "hits": [
+                {
+                    "title": "Old market wrap",
+                    "published_at": _days_ago_iso(5),
+                    "url": "http://example.com/old",
+                }
+            ],
+        }
+
+        result = executor.execute("search_news", {"query": "market movers today"})
+
+        assert result["ok"] is False
+        assert result["data_insufficient"] is True
+        assert result["historical_hits"][0]["title"] == "Old market wrap"
+        assert "historical news" in result["suggestion"]
+        executor._freshness_tracker.record_ingest.assert_not_called()
+
     def test_exec_search_news_freshness_warning_fresh_news(self) -> None:
         """Article published today → freshness_warning absent or empty."""
         executor = _make_executor()

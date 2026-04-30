@@ -509,6 +509,40 @@ class TestAgentLoopRegressions:
         assert result.tool_calls_made == 1
         assert "I need to look that up before I can answer reliably." in result.text
 
+    def test_data_insufficient_news_is_not_grounding_evidence(self):
+        assert not AgentLoop._has_grounding_evidence(
+            [
+                {
+                    "tool": "search_news",
+                    "result": {
+                        "ok": False,
+                        "data_insufficient": True,
+                        "hits": [{"title": "Old market wrap"}],
+                    },
+                }
+            ]
+        )
+
+    def test_news_evidence_summary_preserves_freshness_warning(self):
+        summary = AgentLoop._summarize_evidence(
+            [
+                {
+                    "tool": "search_news",
+                    "result": {
+                        "ok": False,
+                        "data_insufficient": True,
+                        "hits": [{"title": "Old market wrap"}],
+                        "freshness_warning": "Most recent article is 5 day(s) old.",
+                        "suggestion": "Only historical news was returned.",
+                    },
+                }
+            ]
+        )
+
+        assert "freshness_warning=Most recent article is 5 day(s) old." in summary
+        assert "data_insufficient=true" in summary
+        assert "Only historical news was returned." in summary
+
     def test_time_sensitive_market_update_accepts_fresh_news_evidence(self):
         now_iso = datetime.now(timezone.utc).isoformat(timespec="seconds")
         responses = [
