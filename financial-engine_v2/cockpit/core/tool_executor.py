@@ -1764,6 +1764,8 @@ class ToolExecutor:
             minimal_row = {}
             for key in (
                 "title",
+                "video_title",
+                "source_name",
                 "url",
                 "published_at",
                 "video_id",
@@ -1785,6 +1787,17 @@ class ToolExecutor:
                 }
                 if minimal_scores:
                     minimal_row["scores"] = minimal_scores
+            takeaways = first.get("takeaways")
+            if isinstance(takeaways, list):
+                compact_takeaways: list[dict[str, Any]] = []
+                for takeaway in takeaways[:3]:
+                    if not isinstance(takeaway, dict):
+                        continue
+                    text = self._compact_text(takeaway.get("text"), max_chars=180)
+                    if text:
+                        compact_takeaways.append({"text": text})
+                if compact_takeaways:
+                    minimal_row["takeaways"] = compact_takeaways
             if minimal_row:
                 minimal[list_key] = [minimal_row]
 
