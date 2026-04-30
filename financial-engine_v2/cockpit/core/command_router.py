@@ -139,6 +139,18 @@ _CHECK_CHANNEL_RECENT_RES = (
         re.IGNORECASE | re.VERBOSE,
     ),
 )
+_BARE_YOUTUBE_CHANNEL_QUERY_RE = re.compile(
+    r"""
+    ^\s*
+    (?!what\b|how\b|why\b|when\b|where\b)
+    (.+?)
+    \s+
+    youtube
+    (?:\s+(?:videos?|channel))?
+    \s*[?!.]*\s*$
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
 
 _WATCH_CHANNEL_RE = re.compile(
     r"""
@@ -183,6 +195,10 @@ def route_command(
         youtube_selection_text,
         max_index=len(recent_youtube_videos or []),
     )
+    if youtube_selection is None and recent_youtube_videos:
+        youtube_selection = _parse_youtube_contextual_first_selection(
+            youtube_selection_text
+        )
     if youtube_selection is not None and recent_youtube_videos:
         if not youtube_selection:
             return CommandRoute(
@@ -376,6 +392,18 @@ def route_command(
                     explanation=f"Check recent YouTube videos from {channel_name!r}.",
                 )
 
+    m = _BARE_YOUTUBE_CHANNEL_QUERY_RE.match(text)
+    if m:
+        channel_name = m.group(1).strip()
+        if channel_name:
+            return CommandRoute(
+                matched=True,
+                action_type="direct_tool",
+                tool="check_youtube_channel_recent_videos",
+                arguments={"channel_name": channel_name, "limit": 8},
+                explanation=f"Check recent YouTube videos from {channel_name!r}.",
+            )
+
     if re.fullmatch(
         r"(?:most\s+recent|latest|recent)\s+(?:youtube\s+)?videos?\s*\??",
         text,
@@ -470,6 +498,29 @@ _YOUTUBE_SELECTION_WEIGHT_RE = re.compile(
     """,
     re.IGNORECASE | re.VERBOSE,
 )
+_YOUTUBE_CONTEXTUAL_FIRST_SELECTION_RE = re.compile(
+    r"""
+    ^\s*
+    (?:yes\s+)?
+    (?:
+        (?:
+            ingest|stage|select|use|access|fetch|get
+        )
+        \s+
+        (?:the\s+)?
+    )?
+    (?:
+        (?:(?:most\s+recent|latest|recent)\s+(?:youtube\s+)?)?
+        (?:
+            videos? | transcripts?
+        )
+        |
+        (?:(?:most\s+recent|latest|recent)\s+(?:youtube\s+)?videos?)
+    )
+    \s*$
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
 
 
 def _strip_youtube_selection_weight(text: str) -> tuple[str, float | None]:
@@ -482,6 +533,24 @@ def _strip_youtube_selection_weight(text: str) -> tuple[str, float | None]:
     except (TypeError, ValueError):
         return cleaned, None
     return cleaned[: match.start()].strip(), weight
+
+
+def _parse_youtube_contextual_first_selection(text: str) -> list[int] | None:
+    cleaned = str(text or "").strip()
+    if not _YOUTUBE_CONTEXTUAL_FIRST_SELECTION_RE.match(cleaned):
+        return None
+    lowered = cleaned.lower()
+    has_action = bool(
+        re.search(r"\b(?:ingest|stage|select|use|access|fetch|get)\b", lowered)
+    )
+    has_confirmation = lowered.startswith("yes ")
+    has_transcript = bool(re.search(r"\btranscripts?\b", lowered))
+    has_recency = bool(re.search(r"\b(?:most\s+recent|latest|recent)\b", lowered))
+    if has_action or has_confirmation or has_transcript:
+        return [1]
+    if has_recency:
+        return None
+    return None
 
 
 def _parse_youtube_video_selection(text: str, *, max_index: int) -> list[int] | None:

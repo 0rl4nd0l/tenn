@@ -415,7 +415,7 @@ class TestAgentLoopRegressions:
         assert result.tool_calls_made == 1
         assert "Recent videos from Kneppy Invests (UCabc123)" in result.text
         assert "BHP quarterly results breakdown" in result.text
-        assert "Reply with the video URL" in result.text
+        assert "ingest most recent video" in result.text
         executor.assert_called_once_with(
             "check_youtube_channel_recent_videos",
             {"channel_name": "Kneppy Invests", "limit": 8},

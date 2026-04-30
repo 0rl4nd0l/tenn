@@ -931,3 +931,14 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 **Root cause:** `--ask-for-approval` is accepted by the top-level interactive `codex` command, but not by `codex exec` in CLI `0.125.0`. The runner placed the removed flag after `exec`.
 **Fix:** The runner now passes `-c approval_policy="never"` to `codex exec`, and failed investigations can be retried from Cockpit with `--force`.
 **Rule:** Before wiring a CLI command into an operator button, validate the exact subcommand argv with the installed CLI help/parser and add a dry-run or argv regression test.
+
+---
+
+## L085 — YouTube follow-up transcript access must be deterministic
+
+**Date:** 2026-04-30
+**Subsystem:** `financial-engine_v2/cockpit/core/command_router.py`, `financial-engine_v2/cockpit/core/agent_loop.py`
+**Symptom:** After a recent-video preview, `ingest most recent video` and `yes access the transcript` re-entered the LLM loop, which rechecked/watched the channel and claimed transcript access was unavailable instead of staging the selected transcript.
+**Root cause:** The deterministic YouTube selection parser only accepted numbered/ordinal selections (`ingest 1`, `first`, `all`). Natural-language follow-ups that clearly referred to the first/latest cached video were not routed to `ingest_youtube_videos`.
+**Fix:** Added contextual first-video selection for transcript/access/most-recent ingest phrases and made bare `<channel> youtube` route directly to the recent-video preview.
+**Rule:** Any assistant prompt that offers a natural-language next step must have a command-router test for that exact phrase. Do not leave follow-up actions to model synthesis when the backend tool call is deterministic.

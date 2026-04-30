@@ -18,6 +18,16 @@ class TestWatchYoutubeChannelCommandRoute:
         assert r.tool == "check_youtube_channel_recent_videos"
         assert r.arguments["channel_name"] == "Kneppy Invests"
 
+    def test_bare_channel_youtube_query_checks_recent_videos(self):
+        r = route_command("kneppy invests youtube")
+        assert r.matched is True
+        assert r.tool == "check_youtube_channel_recent_videos"
+        assert r.arguments["channel_name"] == "kneppy invests"
+
+    def test_generic_youtube_question_does_not_route_to_channel_lookup(self):
+        r = route_command("what is youtube?")
+        assert r.matched is False
+
     def test_list_recent_videos_from_channel(self):
         r = route_command("list recent videos from @KneppyInvests")
         assert r.matched is True
@@ -125,6 +135,32 @@ class TestWatchYoutubeChannelCommandRoute:
         assert r.tool == "ingest_youtube_videos"
         assert r.arguments["urls"] == ["https://www.youtube.com/watch?v=one11111111"]
         assert r.arguments["credibility_weight"] == 0.7
+
+    def test_ingest_most_recent_youtube_video_uses_first_context_video(self):
+        r = route_command(
+            "ingest most recent video",
+            recent_youtube_videos=[
+                {"title": "Latest", "webpage_url": "https://www.youtube.com/watch?v=one11111111"},
+                {"title": "Older", "webpage_url": "https://www.youtube.com/watch?v=two22222222"},
+            ],
+        )
+
+        assert r.matched is True
+        assert r.action_type == "direct_tool"
+        assert r.tool == "ingest_youtube_videos"
+        assert r.arguments["urls"] == ["https://www.youtube.com/watch?v=one11111111"]
+
+    def test_access_transcript_uses_first_context_video(self):
+        r = route_command(
+            "yes access the transcript",
+            recent_youtube_videos=[
+                {"title": "Latest", "webpage_url": "https://www.youtube.com/watch?v=one11111111"},
+            ],
+        )
+
+        assert r.matched is True
+        assert r.tool == "ingest_youtube_videos"
+        assert r.arguments["urls"] == ["https://www.youtube.com/watch?v=one11111111"]
 
     def test_bare_youtube_video_selection_uses_context(self):
         r = route_command(

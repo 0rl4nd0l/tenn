@@ -796,6 +796,35 @@ class TestBuildChatResponseSlashDispatch(SlashCommandTestBase):
         )
         self.controller.ollama_client.chat.assert_not_called()
 
+    def test_bare_channel_youtube_query_lists_recent_videos_directly(self) -> None:
+        backend = MagicMock()
+        backend.get_youtube_channel_recent_videos.return_value = {
+            "name": "Kneppy Invests",
+            "channel_id": "UCabc123",
+            "videos": [
+                {
+                    "title": "Latest ASX breakdown",
+                    "published_at": "2026-04-29T00:00:00Z",
+                    "webpage_url": "https://www.youtube.com/watch?v=abc123def45",
+                    "duration_seconds": 600,
+                    "scores": {"overall": 0.88},
+                }
+            ],
+        }
+        self.tool_router.backend_api_client = backend
+
+        resp = self.controller.build_chat_response("kneppy invests youtube")
+
+        assert resp.mode == "command"
+        assert "Recent videos from Kneppy Invests (UCabc123)" in resp.text
+        assert "Latest ASX breakdown" in resp.text
+        assert "ingest most recent video" in resp.text
+        backend.get_youtube_channel_recent_videos.assert_called_once_with(
+            "kneppy invests",
+            limit=8,
+        )
+        self.controller.ollama_client.chat.assert_not_called()
+
     def test_youtube_recent_video_followup_without_channel_asks_clearly(self) -> None:
         self.state_store.get_chat_messages.return_value = [
             {"role": "user", "content": "most recent video?"}
@@ -845,6 +874,91 @@ class TestBuildChatResponseSlashDispatch(SlashCommandTestBase):
         assert "Staged selected YouTube transcript" in resp.text
         assert "Important ASX takeaway" in resp.text
         assert "/review approve youtube_transcript:test:abc123" in resp.text
+        backend.ingest_youtube_urls.assert_called_once_with(
+            ["https://www.youtube.com/watch?v=abc123def45"],
+            credibility_weight=None,
+            takeaway_limit=5,
+        )
+        self.controller.ollama_client.chat.assert_not_called()
+
+    def test_youtube_most_recent_selection_ingests_first_video(self) -> None:
+        backend = MagicMock()
+        backend.ingest_youtube_urls.return_value = {
+            "ok": True,
+            "count": 1,
+            "error_count": 0,
+            "results": [
+                {
+                    "source_id": "youtube_transcript:test:abc123",
+                    "video_title": "Latest ASX breakdown",
+                    "webpage_url": "https://www.youtube.com/watch?v=abc123def45",
+                    "staged": True,
+                    "chunks_staged": 4,
+                    "takeaways": [{"text": "Important ASX takeaway"}],
+                }
+            ],
+            "errors": [],
+        }
+        self.tool_router.backend_api_client = backend
+        self.state_store.get_chat_messages.return_value = [
+            {
+                "role": "assistant",
+                "content": (
+                    "Recent videos from Kneppy Invests (UCabc123):\n"
+                    "1. Latest ASX breakdown | date unknown | 10 min | score 0.88\n"
+                    "   https://www.youtube.com/watch?v=abc123def45\n"
+                    "2. Older ASX breakdown | date unknown | 9 min | score 0.50\n"
+                    "   https://www.youtube.com/watch?v=older123456"
+                ),
+            }
+        ]
+
+        resp = self.controller.build_chat_response("ingest most recent video")
+
+        assert resp.mode == "command"
+        assert "Staged selected YouTube transcript" in resp.text
+        assert "/review approve youtube_transcript:test:abc123" in resp.text
+        backend.ingest_youtube_urls.assert_called_once_with(
+            ["https://www.youtube.com/watch?v=abc123def45"],
+            credibility_weight=None,
+            takeaway_limit=5,
+        )
+        self.controller.ollama_client.chat.assert_not_called()
+
+    def test_youtube_transcript_confirmation_ingests_first_video(self) -> None:
+        backend = MagicMock()
+        backend.ingest_youtube_urls.return_value = {
+            "ok": True,
+            "count": 1,
+            "error_count": 0,
+            "results": [
+                {
+                    "source_id": "youtube_transcript:test:abc123",
+                    "video_title": "Latest ASX breakdown",
+                    "webpage_url": "https://www.youtube.com/watch?v=abc123def45",
+                    "staged": True,
+                    "chunks_staged": 4,
+                    "takeaways": [{"text": "Important ASX takeaway"}],
+                }
+            ],
+            "errors": [],
+        }
+        self.tool_router.backend_api_client = backend
+        self.state_store.get_chat_messages.return_value = [
+            {
+                "role": "assistant",
+                "content": (
+                    "Recent videos from Kneppy Invests (UCabc123):\n"
+                    "1. Latest ASX breakdown | date unknown | 10 min | score 0.88\n"
+                    "   https://www.youtube.com/watch?v=abc123def45"
+                ),
+            }
+        ]
+
+        resp = self.controller.build_chat_response("yes access the transcript")
+
+        assert resp.mode == "command"
+        assert "Staged selected YouTube transcript" in resp.text
         backend.ingest_youtube_urls.assert_called_once_with(
             ["https://www.youtube.com/watch?v=abc123def45"],
             credibility_weight=None,

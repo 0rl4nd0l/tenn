@@ -625,9 +625,8 @@ class AgentLoop:
                     lines.append(f"   {url}")
 
             lines.append(
-                "Reply with the video URL(s) you want to ingest. "
-                "The existing YouTube URL ingest path will stage transcript chunks "
-                "for transcript review before Qdrant approval."
+                "Reply with `ingest 1`, `ingest most recent video`, or `ingest all`. "
+                "Selected transcript chunks are staged for review before Qdrant approval."
             )
             return "\n".join(lines)
 
