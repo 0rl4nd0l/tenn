@@ -63,11 +63,6 @@ _BACKFILL_RE = re.compile(
     r"^\s*(?:backfill|run\s+backfill)\s+([A-Z]{2,5})\b",
     re.IGNORECASE,
 )
-_ANALYSIS_RE = re.compile(
-    r"^\s*(?:run\s+analysis|analyse|analyze)\s+([A-Z]{2,5})\b",
-    re.IGNORECASE,
-)
-
 _CHECK_CHANNEL_RECENT_RES = (
     re.compile(
         r"""
@@ -222,19 +217,6 @@ def route_command(
                 tool="run_backfill",
                 arguments={"ticker": ticker, "years": 2},
                 explanation=f"Backfill financial data for {ticker} (2 years).",
-            )
-
-    # run analysis [ticker]
-    m = _ANALYSIS_RE.match(text)
-    if m:
-        ticker = m.group(1).upper()
-        if ticker not in _TICKER_STOPWORDS:
-            return CommandRoute(
-                matched=True,
-                action_type="action_proposal",
-                tool="run_analysis",
-                arguments={"ticker": ticker},
-                explanation=f"Run full analysis pipeline for {ticker}.",
             )
 
     # check/show/list recent YouTube videos from a channel

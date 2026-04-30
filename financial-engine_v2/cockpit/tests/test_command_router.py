@@ -72,3 +72,11 @@ class TestWatchYoutubeChannelCommandRoute:
         r = route_command("ingest BHP news")
         assert r.matched is True
         assert r.tool == "run_news_ingest"
+
+    def test_analyse_ticker_remains_query_not_unmapped_action(self):
+        r = route_command("analyse PPT")
+        assert r.matched is False
+
+    def test_run_analysis_ticker_remains_query_until_action_exists(self):
+        r = route_command("run analysis PPT")
+        assert r.matched is False

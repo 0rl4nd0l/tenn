@@ -652,7 +652,7 @@ def test_cockpit_chat_stream_search_news_zero_hit_does_not_support_claims(monkey
             **kwargs,
         ):
             return SimpleNamespace(
-                text="BHP reported stronger revenue today.",
+                text="No news results were returned for BHP. BHP reported stronger revenue today.",
                 evidence=[
                     {
                         "tool": "search_news",

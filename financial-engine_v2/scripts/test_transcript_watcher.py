@@ -1,3 +1,6 @@
+import contextlib
+import importlib.util
+import io
 import json
 import os
 import sys
@@ -25,6 +28,16 @@ from app.services.youtube_transcript_fetcher import (
     YoutubeTranscriptFetcher,
     YoutubeVideo,
 )
+
+
+def _load_transcript_daemon_module():
+    module_path = ROOT / "scripts" / "run_transcript_daemon.py"
+    spec = importlib.util.spec_from_file_location("run_transcript_daemon", module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"could not load {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 class TestTranscriptWatcher(unittest.TestCase):
@@ -402,6 +415,20 @@ class TestTranscriptWatcher(unittest.TestCase):
 
         self.assertEqual(results, [])
         self.assertEqual(list(self.processed.glob("*.txt")), [])
+
+    def test_transcript_daemon_youtube_poll_failure_is_non_fatal(self) -> None:
+        module = _load_transcript_daemon_module()
+
+        class FailingFetcher:
+            def maybe_poll(self):
+                raise RuntimeError("network down")
+
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            results = module._poll_youtube_once(FailingFetcher())
+
+        self.assertEqual(results, [])
+        self.assertIn("[youtube] poll failed: network down", stderr.getvalue())
 
 
 if __name__ == "__main__":

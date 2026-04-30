@@ -59,6 +59,14 @@ def _print_results(label: str, results: Iterable[object]) -> None:
     print(f"[{label}] {summary}", flush=True)
 
 
+def _poll_youtube_once(fetcher: YoutubeTranscriptFetcher) -> list[object]:
+    try:
+        return list(fetcher.maybe_poll())
+    except Exception as exc:
+        print(f"[youtube] poll failed: {exc}", file=sys.stderr, flush=True)
+        return []
+
+
 def main() -> int:
     args = parse_args()
     stop_event = Event()
@@ -83,12 +91,12 @@ def main() -> int:
 
     if args.once:
         _print_results("watcher", watcher.poll_once())
-        _print_results("youtube", youtube_fetcher.maybe_poll())
+        _print_results("youtube", _poll_youtube_once(youtube_fetcher))
         return 0
 
     while not stop_event.is_set():
         _print_results("watcher", watcher.poll_once())
-        _print_results("youtube", youtube_fetcher.maybe_poll())
+        _print_results("youtube", _poll_youtube_once(youtube_fetcher))
         stop_event.wait(max(1.0, float(args.poll_seconds)))
     return 0
 

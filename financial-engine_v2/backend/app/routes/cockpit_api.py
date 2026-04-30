@@ -2245,8 +2245,16 @@ _CONTAINS_FINANCIAL_CLAIM_RE = re.compile(
     re.IGNORECASE,
 )
 _PURE_OPERATIONAL_NO_HIT_RE = re.compile(
-    r"\bno (?:news )?(?:hits|results|articles|videos?) (?:were )?(?:returned|found)\b|"
-    r"\breturned no (?:news )?(?:hits|results|articles|videos?)\b",
+    r"^\s*(?:"
+    r"no (?:news )?(?:hits|results|articles|videos?) (?:were )?"
+    r"(?:returned|found)(?:\s+(?:for|matching)\s+[^.!?]+)?|"
+    r"(?:search|query|screener|channel|tool)?\s*returned no "
+    r"(?:news )?(?:hits|results|articles|videos?)"
+    r"(?:\s+(?:for|matching)\s+[^.!?]+)?|"
+    r"i (?:couldn't|could not|didn't|did not) find (?:any )?"
+    r"(?:recent )?(?:indexed )?(?:news|articles|videos?)"
+    r"(?:\s+(?:for|on|about)\s+[^.!?]+)?"
+    r")\.?\s*$",
     re.IGNORECASE,
 )
 _SOURCE_CONTRACT_REFUSAL = (
@@ -2306,6 +2314,13 @@ def _only_operational_no_hit_sources(sources: list[dict[str, Any]]) -> bool:
     return True
 
 
+def _is_pure_operational_no_hit_response(text: str) -> bool:
+    normalized = " ".join(str(text or "").strip().split())
+    if not normalized:
+        return False
+    return bool(_PURE_OPERATIONAL_NO_HIT_RE.fullmatch(normalized))
+
+
 def _enforce_visible_source_contract(message: str, response: Any) -> list[dict[str, Any]]:
     sources = _build_ui_sources(getattr(response, "evidence", None) or [])
     text = str(getattr(response, "text", "") or "").strip()
@@ -2319,8 +2334,7 @@ def _enforce_visible_source_contract(message: str, response: Any) -> list[dict[s
     if sources:
         if (
             _only_operational_no_hit_sources(sources)
-            and _CONTAINS_FINANCIAL_CLAIM_RE.search(text)
-            and not _PURE_OPERATIONAL_NO_HIT_RE.search(text)
+            and not _is_pure_operational_no_hit_response(text)
         ):
             sources = []
         else:
