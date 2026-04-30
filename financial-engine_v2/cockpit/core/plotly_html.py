@@ -405,6 +405,12 @@ def build_candlestick_dashboard_html(payload: dict[str, Any]) -> str:
         prev_close = c
 
     current_close = current.get("close")
+    latest_candle = ohlcv[-1] if ohlcv else {}
+
+    def _fmt_candle_value(key: str) -> str:
+        value = latest_candle.get(key) if isinstance(latest_candle, dict) else None
+        return f"{value:.4f}" if isinstance(value, (int, float)) else "n/a"
+
     ytd_return = metrics.get("ytd_return")
     vol_30d = metrics.get("vol_30d")
     max_drawdown = metrics.get("max_drawdown")
@@ -412,6 +418,9 @@ def build_candlestick_dashboard_html(payload: dict[str, Any]) -> str:
 
     cards = [
         ("Ticker", ticker),
+        ("Latest Date", str(latest_candle.get("time") or "n/a")),
+        ("Latest Open", _fmt_candle_value("open")),
+        ("Latest Close", _fmt_candle_value("close")),
         (
             "Current Close",
             f"{current_close:.4f}"
