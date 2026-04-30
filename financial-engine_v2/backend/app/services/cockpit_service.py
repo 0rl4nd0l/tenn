@@ -1359,6 +1359,52 @@ class CockpitService:
             if len(items) > 20:
                 del items[:-20]
 
+    def finalize_chat_response_delivery(
+        self,
+        *,
+        session_id: str | None,
+        response: Any,
+    ) -> None:
+        """Align persisted chat state with the response delivered to the user."""
+        thread_id = self._resolve_thread_id(session_id)
+        response_text = str(getattr(response, "text", "") or "").strip()
+        if not response_text:
+            return
+
+        if self.state_store is not None:
+            try:
+                self.state_store.replace_latest_chat_message(
+                    thread_id,
+                    "assistant",
+                    response_text,
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to rewrite delivered assistant response",
+                    extra={"thread_id": thread_id},
+                )
+
+        with self._feedback_lock:
+            items = self._recent_turn_diagnostics.get(thread_id) or []
+            if not items:
+                return
+            latest = dict(items[-1])
+            latest["response_text"] = response_text
+            latest["routing_metadata"] = dict(
+                getattr(response, "routing_metadata", None)
+                or latest.get("routing_metadata")
+                or {}
+            )
+            latest["evidence"] = list(
+                getattr(response, "evidence", None) or latest.get("evidence") or []
+            )
+            latest["tool_traces"] = list(
+                getattr(response, "tool_traces", None)
+                or latest.get("tool_traces")
+                or []
+            )
+            items[-1] = latest
+
     def _resolve_turn_diagnostics(
         self, thread_id: str, flagged_message: dict[str, Any] | None
     ) -> dict[str, Any] | None:

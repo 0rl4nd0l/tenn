@@ -650,6 +650,35 @@ class StateStore:
             )
             self.conn.commit()
 
+    def replace_latest_chat_message(
+        self,
+        thread_id: str,
+        role: str,
+        content: str,
+    ) -> bool:
+        text = str(content or "").strip()
+        if not text:
+            return False
+        with self._lock:
+            row = self.conn.execute(
+                """
+                select id
+                from chat_messages
+                where thread_id = ? and role = ?
+                order by id desc
+                limit 1
+                """,
+                (thread_id, role),
+            ).fetchone()
+            if row is None:
+                return False
+            self.conn.execute(
+                "update chat_messages set content = ? where id = ?",
+                (text, row["id"]),
+            )
+            self.conn.commit()
+        return True
+
     def get_chat_messages(
         self, thread_id: str, limit: int = 200
     ) -> list[dict[str, Any]]:

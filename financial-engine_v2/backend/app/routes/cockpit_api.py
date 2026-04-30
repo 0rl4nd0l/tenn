@@ -2523,6 +2523,17 @@ def _enforce_visible_source_contract(message: str, response: Any) -> list[dict[s
     return []
 
 
+def _finalize_delivered_chat_response(
+    service: Any,
+    *,
+    session_id: str | None,
+    response: Any,
+) -> None:
+    finalize = getattr(service, "finalize_chat_response_delivery", None)
+    if callable(finalize):
+        finalize(session_id=session_id, response=response)
+
+
 def _maybe_auto_flag_chat_response(
     service: Any,
     *,
@@ -7227,6 +7238,11 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 attached_sources=attached_sources,
             )
             sources = _enforce_visible_source_contract(payload.message, response)
+            _finalize_delivered_chat_response(
+                service,
+                session_id=payload.session_id,
+                response=response,
+            )
             auto_flag = _maybe_auto_flag_chat_response(
                 service,
                 session_id=payload.session_id,
@@ -7303,6 +7319,11 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     attached_sources=attached_sources,
                 )
                 sources = _enforce_visible_source_contract(payload.message, response)
+                _finalize_delivered_chat_response(
+                    service,
+                    session_id=payload.session_id,
+                    response=response,
+                )
                 auto_flag = _maybe_auto_flag_chat_response(
                     service,
                     session_id=payload.session_id,

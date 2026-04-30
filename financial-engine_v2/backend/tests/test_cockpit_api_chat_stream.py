@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from app.routes.cockpit_api import router
 from app.services.cockpit_service import CockpitService
+from cockpit.storage.state import StateStore
 
 
 def test_cockpit_chat_stream_emits_only_status_plain_text_chunks_and_done(
@@ -84,6 +85,9 @@ def test_cockpit_chat_stream_emits_only_status_plain_text_chunks_and_done(
 
 
 def test_cockpit_chat_stream_blocks_substantive_answer_without_sources(monkeypatch) -> None:
+    finalize_calls: list[str] = []
+    auto_flag_calls: list[str] = []
+
     class FakeService:
         def chat_stream(
             self,
@@ -107,6 +111,13 @@ def test_cockpit_chat_stream_blocks_substantive_answer_without_sources(monkeypat
                 },
                 tool_traces=[],
             )
+
+        def finalize_chat_response_delivery(self, **kwargs):
+            finalize_calls.append(kwargs["response"].text)
+
+        def auto_flag_chat_response(self, **kwargs):
+            auto_flag_calls.append(kwargs["response"].text)
+            return None
 
     monkeypatch.setattr(
         CockpitService, "get_instance", classmethod(lambda cls: FakeService())
@@ -133,6 +144,8 @@ def test_cockpit_chat_stream_blocks_substantive_answer_without_sources(monkeypat
     assert done_events
     assert "can't verify that from current evidence" in done_events[-1]["data"]["text"].lower()
     assert not [event for event in data_events if event.get("type") == "sources"]
+    assert finalize_calls == [done_events[-1]["data"]["text"]]
+    assert auto_flag_calls == [done_events[-1]["data"]["text"]]
 
 
 def test_cockpit_chat_stream_allows_good_morning_without_sources(monkeypatch) -> None:
@@ -1885,6 +1898,58 @@ def test_auto_flag_chat_response_persists_auto_diagnostic(tmp_path) -> None:
         ),
     )
     assert duplicate is None
+
+
+def test_finalize_chat_response_delivery_rewrites_guarded_response_state(tmp_path) -> None:
+    service = CockpitService.__new__(CockpitService)
+    service.state_store = StateStore(str(tmp_path / "state.db"))
+    service._feedback_lock = threading.Lock()
+    service._recent_turn_diagnostics = {
+        "session-guard": [
+            {
+                "request": {"message": "tell me about BHP"},
+                "response_text": "BHP revenue grew sharply without sources.",
+                "routing_metadata": {"model": "model:test"},
+                "evidence": [],
+                "tool_traces": [],
+            }
+        ]
+    }
+    service._resolve_thread_id = lambda session_id: session_id or "global-main"
+
+    service.state_store.add_chat_message(
+        "session-guard",
+        "user",
+        "tell me about BHP",
+        "2026-04-30T00:00:00+00:00",
+    )
+    service.state_store.add_chat_message(
+        "session-guard",
+        "assistant",
+        "BHP revenue grew sharply without sources.",
+        "2026-04-30T00:00:01+00:00",
+    )
+
+    delivered_text = "I can't verify that from current evidence."
+    service.finalize_chat_response_delivery(
+        session_id="session-guard",
+        response=SimpleNamespace(
+            text=delivered_text,
+            evidence=[],
+            tool_traces=[],
+            routing_metadata={
+                "model": "model:test",
+                "grounding_guard": "missing_visible_sources",
+            },
+        ),
+    )
+
+    messages = service.state_store.get_chat_messages("session-guard")
+    assert messages[-1]["role"] == "assistant"
+    assert messages[-1]["content"] == delivered_text
+    latest = service._recent_turn_diagnostics["session-guard"][-1]
+    assert latest["response_text"] == delivered_text
+    assert latest["routing_metadata"]["grounding_guard"] == "missing_visible_sources"
 
 
 def test_cockpit_workspace_root_env_overrides_flagged_reports_root(
