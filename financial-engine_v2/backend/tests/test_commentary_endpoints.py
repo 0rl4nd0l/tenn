@@ -233,10 +233,12 @@ class TestPurgeExpiredTranscripts:
 
 from app.api.commentary import (  # noqa: E402
     IngestUrlRequest,
+    IngestUrlsRequest,
     IngestMarketplaceSnapshotRequest,
     InspectMarketplaceRequest,
     ingest_marketplace_snapshot,
     ingest_url,
+    ingest_urls,
     inspect_marketplace,
 )
 
@@ -292,28 +294,79 @@ class TestIngestUrl:
     def test_successful_ingest_returns_staging_result(self, monkeypatch):
         import app.api.commentary as mod
 
+        captured: dict = {}
         monkeypatch.setattr(mod, "fetch_video_metadata", lambda url: self._make_video())
         monkeypatch.setattr(
             mod, "_default_fetch_transcript", lambda v: "This is the transcript text."
         )
-        monkeypatch.setattr(
-            mod,
-            "ingest_transcript",
-            lambda **kwargs: {
+        def fake_ingest_transcript(**kwargs):
+            captured.update(kwargs)
+            return {
                 "ok": True,
                 "source_id": "youtube_transcript:test-video:abc123",
                 "staged": True,
                 "chunks_staged": 1,
                 "chunks_indexed": 0,
                 "collection": "commentary_chunks",
-            },
+            }
+
+        monkeypatch.setattr(mod, "ingest_transcript", fake_ingest_transcript)
+        result = ingest_url(
+            IngestUrlRequest(url="https://youtu.be/abc123abcde", credibility_weight=0.7)
         )
-        result = ingest_url(IngestUrlRequest(url="https://youtu.be/abc123abcde"))
         assert result["ok"] is True
         assert result["source_id"] == "youtube_transcript:test-video:abc123"
         assert result["staged"] is True
         assert result["video_title"] == "Test Video"
         assert result["channel"] == "Test Channel"
+        assert captured["credibility_weight"] == 0.7
+
+    def test_batch_ingest_urls_returns_takeaways(self, monkeypatch):
+        import app.api.commentary as mod
+
+        captured: dict = {}
+        monkeypatch.setattr(mod, "fetch_video_metadata", lambda url: self._make_video())
+        monkeypatch.setattr(
+            mod, "_default_fetch_transcript", lambda v: "This is the transcript text."
+        )
+
+        def fake_ingest_transcript(**kwargs):
+            captured.update(kwargs)
+            return {
+                "ok": True,
+                "source_id": "youtube_transcript:test-video:abc123",
+                "staged": True,
+                "chunks_staged": 1,
+                "chunks_indexed": 0,
+                "collection": "commentary_chunks",
+            }
+
+        monkeypatch.setattr(mod, "ingest_transcript", fake_ingest_transcript)
+        monkeypatch.setattr(
+            mod,
+            "_commentary_takeaways_payload",
+            lambda source_id, limit: {
+                "ok": True,
+                "source_id": source_id,
+                "takeaways": [{"text": "Key takeaway", "citations": []}],
+                "watchlist_suggestions": [],
+            },
+        )
+
+        result = ingest_urls(
+            IngestUrlsRequest(
+                urls=["https://youtu.be/abc123abcde"],
+                credibility_weight=0.65,
+                takeaway_limit=3,
+            )
+        )
+
+        assert result["ok"] is True
+        assert result["count"] == 1
+        assert result["requires_review"] is True
+        assert result["results"][0]["takeaways"][0]["text"] == "Key takeaway"
+        assert result["results"][0]["source_id"] == "youtube_transcript:test-video:abc123"
+        assert captured["credibility_weight"] == 0.65
 
     def test_empty_transcript_raises_422(self, monkeypatch):
         import app.api.commentary as mod

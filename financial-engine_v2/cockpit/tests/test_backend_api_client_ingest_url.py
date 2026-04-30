@@ -33,6 +33,9 @@ def test_ingest_url_success():
     assert result["ok"] is True
     assert result["chunks_staged"] == 18
     assert result["video_title"] == "My Video"
+    assert json.loads(respx.calls.last.request.read()) == {
+        "url": "https://youtu.be/abc123"
+    }
 
 
 @respx.mock
@@ -53,6 +56,49 @@ def test_ingest_url_sends_api_key():
     client = BackendApiClient(BASE, api_key="secret")
     client.ingest_url("https://youtu.be/abc123")
     assert route.calls[0].request.headers.get("x-api-key") == "secret"
+
+
+@respx.mock
+def test_ingest_url_sends_credibility_weight():
+    route = respx.post(f"{BASE}/api/commentary/ingest-url").mock(
+        return_value=httpx.Response(200, json={"ok": True})
+    )
+    client = BackendApiClient(BASE, api_key="secret")
+    client.ingest_url("https://youtu.be/abc123", credibility_weight=0.7)
+    assert json.loads(route.calls[0].request.read()) == {
+        "url": "https://youtu.be/abc123",
+        "credibility_weight": 0.7,
+    }
+
+
+@respx.mock
+def test_ingest_youtube_urls_success():
+    route = respx.post(f"{BASE}/api/commentary/ingest-urls").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "ok": True,
+                "count": 1,
+                "results": [{"source_id": "youtube_transcript:test:abc123"}],
+                "errors": [],
+            },
+        )
+    )
+    client = BackendApiClient(BASE, api_key="secret")
+
+    result = client.ingest_youtube_urls(
+        ["https://youtu.be/abc123"],
+        credibility_weight=0.65,
+        takeaway_limit=3,
+    )
+
+    assert result["count"] == 1
+    assert route.calls[0].request.headers.get("x-api-key") == "secret"
+    assert json.loads(route.calls[0].request.read()) == {
+        "urls": ["https://youtu.be/abc123"],
+        "takeaway_limit": 3,
+        "credibility_weight": 0.65,
+    }
 
 
 @respx.mock
