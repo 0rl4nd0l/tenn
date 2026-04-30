@@ -596,7 +596,7 @@ class MarketplaceBenchmarkService:
             return _parse_price(inline.group("price"))
         return None
 
-    def enrich_match(self, match: dict[str, Any]) -> dict[str, Any]:
+    def enrich_match(self, match: dict[str, Any], *, persist: bool = False) -> dict[str, Any]:
         category = self._infer_category(match)
         if not category:
             return {**match, "benchmark": None}
@@ -645,27 +645,31 @@ class MarketplaceBenchmarkService:
             delta_pct = ((listing_price - float(current_price)) / float(current_price)) * 100.0
 
         low_confidence = best_confidence < LOW_CONFIDENCE_THRESHOLD
-        persisted = self._upsert_listing_product_match(
-            match=match,
-            category=category,
-            matched_retailer_product_id=str(best_candidate["retailer_product_id"]),
-            confidence=best_confidence,
-            low_confidence=low_confidence,
-            rationale=rationale,
-        )
-        self._insert_listing_benchmark_score(
-            match=match,
-            matched_retailer_product_id=str(best_candidate["retailer_product_id"]),
-            centre_com_price=current_price,
-            centre_com_median_30d=median_30d,
-            listing_price=listing_price,
-            delta_pct=delta_pct,
-            freshness_hours=freshness_hours,
-            confidence=best_confidence,
-            low_confidence=low_confidence,
-        )
+        if persist:
+            persisted = self._upsert_listing_product_match(
+                match=match,
+                category=category,
+                matched_retailer_product_id=str(best_candidate["retailer_product_id"]),
+                confidence=best_confidence,
+                low_confidence=low_confidence,
+                rationale=rationale,
+            )
+            self._insert_listing_benchmark_score(
+                match=match,
+                matched_retailer_product_id=str(best_candidate["retailer_product_id"]),
+                centre_com_price=current_price,
+                centre_com_median_30d=median_30d,
+                listing_price=listing_price,
+                delta_pct=delta_pct,
+                freshness_hours=freshness_hours,
+                confidence=best_confidence,
+                low_confidence=low_confidence,
+            )
+        else:
+            persisted = self._get_listing_product_match(_clean(match.get("match_id"))) or {}
 
-        review_status = str(persisted.get("review_status") or "pending_review")
+        default_review_status = "pending_review" if low_confidence else "auto_accepted"
+        review_status = str(persisted.get("review_status") or default_review_status)
         warning = None
         if low_confidence and review_status != "accepted":
             warning = "Low-confidence benchmark match requires manual review."
