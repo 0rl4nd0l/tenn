@@ -47,6 +47,14 @@ try:
 except ImportError:
     cockpit_api_router = None
 try:
+    from app.routes.cockpit_claims import router as cockpit_claims_router
+except ImportError:
+    cockpit_claims_router = None
+try:
+    from app.routes.cockpit_feedback import router as cockpit_feedback_router
+except ImportError:
+    cockpit_feedback_router = None
+try:
     from app.routes.ops_api import router as ops_api_router
 except ImportError:
     ops_api_router = None
@@ -99,6 +107,10 @@ app.include_router(
 )
 if cockpit_api_router is not None:
     app.include_router(cockpit_api_router, prefix="/api/cockpit", tags=["cockpit"])
+if cockpit_claims_router is not None:
+    app.include_router(cockpit_claims_router, prefix="/api/cockpit", tags=["cockpit"])
+if cockpit_feedback_router is not None:
+    app.include_router(cockpit_feedback_router, prefix="/api/cockpit", tags=["cockpit"])
 if ops_api_router is not None:
     app.include_router(ops_api_router, prefix="/api/ops", tags=["ops"])
 

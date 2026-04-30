@@ -56,6 +56,52 @@ export interface ToolTrace {
   status: 'success' | 'error'
 }
 
+export type ClaimVerificationVerdictStatus =
+  | 'supported'
+  | 'contradicted'
+  | 'insufficient_evidence'
+  | 'not_checkable'
+
+export interface ClaimVerificationVerdict {
+  claim_id: string
+  claim_text: string
+  verdict: ClaimVerificationVerdictStatus
+  short_reason: string
+  supporting_source_ids: string[]
+  contradicting_source_ids: string[]
+  uncheckable_reason?: string | null
+  confidence: 'low' | 'medium' | 'high'
+}
+
+export interface ClaimVerificationResponse {
+  ok: boolean
+  session_id?: string | null
+  message_id?: string | null
+  checked_at: string
+  evidence_scope: string
+  evidence_count: number
+  verdicts: ClaimVerificationVerdict[]
+}
+
+export type ResponseFeedbackReasonCode =
+  | 'wrong_fact'
+  | 'wrong_number'
+  | 'unsupported_claim'
+  | 'weak_evidence'
+  | 'bad_reasoning'
+  | 'incomplete'
+  | 'irrelevant'
+  | 'unclear'
+  | 'poor_structure'
+  | 'other'
+
+export interface ResponseFeedbackResponse {
+  ok: boolean
+  feedback_id: string
+  created_at: string
+  storage_path: string
+}
+
 export interface ActionPreview {
   id: string
   name: string

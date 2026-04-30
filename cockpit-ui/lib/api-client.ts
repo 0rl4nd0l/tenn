@@ -1,6 +1,7 @@
 import { useCockpitStore } from './cockpit-store'
 import type {
   AvailableModelsResponse,
+  ClaimVerificationResponse,
   ChatResponse,
   ContextDocument,
   ExtractionMethod,
@@ -18,6 +19,9 @@ import type {
   IntelPulseResponse,
   IntelPulseMatrixResponse,
   ModelLoadResponse,
+  ResponseFeedbackReasonCode,
+  ResponseFeedbackResponse,
+  Source,
 } from './cockpit-types'
 
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY || ''
@@ -110,6 +114,50 @@ export type CockpitPreferencesPatch = {
 type AttachedChatSource = {
   source_id: string
   source_kind: string
+}
+
+export type VerifyClaimsRequest = {
+  sessionId?: string | null
+  messageId?: string | null
+  parentPrompt?: string | null
+  assistantText: string
+  ticker?: string | null
+  routeType?: string | null
+  visibleSources?: Source[]
+}
+
+export type SubmitResponseFeedbackRequest = {
+  sessionId?: string | null
+  messageId?: string | null
+  parentMessageId?: string | null
+  userLabel?: string | null
+  reasonCode: ResponseFeedbackReasonCode
+  note?: string | null
+  queryText?: string | null
+  finalAnswerText: string
+  ticker?: string | null
+  companyName?: string | null
+  routeType?: string | null
+  modelLabel?: string | null
+  confidenceLabel?: string | null
+  trustLabel?: string | null
+  visibleSources?: Source[]
+  sourceIds?: string[]
+  sourceSummary?: Record<string, unknown>[]
+  traceArtifactId?: string | null
+  scratchpadArtifactId?: string | null
+  evidenceBundleId?: string | null
+  usedFinancialTruth?: boolean | null
+  usedCompanyMemory?: boolean | null
+  usedMarketMemory?: boolean | null
+  usedTranscriptContext?: boolean | null
+  responseLatencyMs?: number | null
+  extractionRunIds?: string[]
+  documentIds?: string[]
+  provenanceStatus?: Record<string, unknown> | null
+  appVersion?: string | null
+  commitHash?: string | null
+  verifierResult?: ClaimVerificationResponse | null
 }
 
 // ── Base fetch helper ──────────────────────────────────────────────────────
@@ -247,6 +295,101 @@ export async function createChatSessionRemote(sessionId?: string): Promise<ChatS
     {
       method: 'POST',
       body: JSON.stringify(payload),
+    },
+  )
+}
+
+function serializeVerificationSource(source: Source): Record<string, unknown> {
+  return {
+    title: source.title,
+    url: source.url,
+    score: source.score,
+    snippet: source.snippet,
+    published_at: source.publishedAt,
+    document_id: source.documentId,
+    source_id: source.sourceId,
+    doc_type: source.docType,
+    path: source.path,
+    kind: source.kind,
+  }
+}
+
+export async function verifyClaims(
+  params: VerifyClaimsRequest,
+  apiKey?: string,
+): Promise<ClaimVerificationResponse> {
+  return apiFetch<ClaimVerificationResponse>(
+    '/api/cockpit/claims/verify',
+    {
+      method: 'POST',
+      headers: apiKey ? { 'X-API-Key': apiKey } : undefined,
+      body: JSON.stringify({
+        session_id: params.sessionId || null,
+        message_id: params.messageId || null,
+        parent_prompt: params.parentPrompt || null,
+        assistant_text: params.assistantText,
+        ticker: params.ticker || null,
+        route_type: params.routeType || null,
+        visible_sources: (params.visibleSources || []).map(serializeVerificationSource),
+      }),
+    },
+  )
+}
+
+export async function submitResponseFeedback(
+  params: SubmitResponseFeedbackRequest,
+  apiKey?: string,
+): Promise<ResponseFeedbackResponse> {
+  const visibleSources = params.visibleSources || []
+  const sourceIds = params.sourceIds
+    ?? visibleSources
+      .map((source) => source.sourceId || source.documentId || source.url || source.title)
+      .filter((value): value is string => Boolean(value))
+  const documentIds = params.documentIds
+    ?? visibleSources
+      .map((source) => source.documentId)
+      .filter((value): value is string => Boolean(value))
+  const sourceSummary = params.sourceSummary
+    ?? visibleSources.map(serializeVerificationSource)
+
+  return apiFetch<ResponseFeedbackResponse>(
+    '/api/cockpit/feedback',
+    {
+      method: 'POST',
+      headers: apiKey ? { 'X-API-Key': apiKey } : undefined,
+      body: JSON.stringify({
+        session_id: params.sessionId || null,
+        message_id: params.messageId || null,
+        parent_message_id: params.parentMessageId || null,
+        user_label: params.userLabel || 'issue_report',
+        reason_code: params.reasonCode,
+        note: params.note || null,
+        query_text: params.queryText || null,
+        final_answer_text: params.finalAnswerText,
+        ticker: params.ticker || null,
+        company_name: params.companyName || null,
+        route_type: params.routeType || null,
+        model_label: params.modelLabel || null,
+        confidence_label: params.confidenceLabel || null,
+        trust_label: params.trustLabel || null,
+        sources_present: sourceIds.length > 0 || sourceSummary.length > 0,
+        source_ids: sourceIds,
+        source_summary: sourceSummary,
+        trace_artifact_id: params.traceArtifactId || null,
+        scratchpad_artifact_id: params.scratchpadArtifactId || null,
+        evidence_bundle_id: params.evidenceBundleId || null,
+        used_financial_truth: params.usedFinancialTruth ?? null,
+        used_company_memory: params.usedCompanyMemory ?? null,
+        used_market_memory: params.usedMarketMemory ?? null,
+        used_transcript_context: params.usedTranscriptContext ?? null,
+        response_latency_ms: params.responseLatencyMs ?? null,
+        extraction_run_ids: params.extractionRunIds || [],
+        document_ids: documentIds,
+        provenance_status: params.provenanceStatus || null,
+        app_version: params.appVersion || null,
+        commit_hash: params.commitHash || null,
+        verifier_result: params.verifierResult || null,
+      }),
     },
   )
 }

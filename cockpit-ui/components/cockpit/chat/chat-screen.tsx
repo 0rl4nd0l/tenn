@@ -15,6 +15,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { TerminalMessage } from './terminal-message'
 import { TerminalInput } from './terminal-input'
+import { MessageClaimVerification } from './message-claim-verification'
 import {
   IngestSummaryCard,
   type IngestSummary,
@@ -1716,36 +1717,49 @@ export function ChatScreen() {
               ) : null}
             </div>
           ) : null}
-          {messages.map((msg) => (
-            <div key={msg.id} className="space-y-1">
-              <TerminalMessage
-                message={msg}
-                showSources={preferences.showSources}
-                onConfirmAction={handleConfirmAction}
-                onCancelAction={handleCancelAction}
-              />
-              {msg.role === 'assistant' && (
-                <div className="ml-6 flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleFeedbackMessage(msg, 'good')}
-                    disabled={Boolean(feedbackStates[msg.id])}
-                    className="rounded border border-emerald-500/30 bg-emerald-500/8 px-2 py-0.5 font-mono text-[11px] text-emerald-300 transition-colors hover:bg-emerald-500/15 disabled:cursor-default disabled:opacity-70"
+          {messages.map((msg, index) => {
+            const parentMessage = msg.role === 'assistant'
+              ? [...messages.slice(0, index)].reverse().find((item) => item.role === 'user') ?? null
+              : null
+            const parentPrompt = parentMessage?.content ?? null
+            return (
+              <div key={msg.id} className="space-y-1">
+                <TerminalMessage
+                  message={msg}
+                  showSources={preferences.showSources}
+                  onConfirmAction={handleConfirmAction}
+                  onCancelAction={handleCancelAction}
+                />
+                {msg.role === 'assistant' && (
+                  <MessageClaimVerification
+                    message={msg}
+                    sessionId={sessionId}
+                    parentMessageId={parentMessage?.id ?? null}
+                    parentPrompt={parentPrompt}
+                    ticker={activeTicker || null}
+                    apiKey={apiKey}
                   >
-                    {getFeedbackButtonLabel('good', feedbackStates[msg.id])}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleFeedbackMessage(msg, 'poor')}
-                    disabled={Boolean(feedbackStates[msg.id])}
-                    className="rounded border border-red-500/30 bg-red-500/8 px-2 py-0.5 font-mono text-[11px] text-red-300 transition-colors hover:bg-red-500/15 disabled:cursor-default disabled:opacity-70"
-                  >
-                    {getFeedbackButtonLabel('poor', feedbackStates[msg.id])}
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+                    <button
+                      type="button"
+                      onClick={() => handleFeedbackMessage(msg, 'good')}
+                      disabled={Boolean(feedbackStates[msg.id])}
+                      className="rounded border border-emerald-500/30 bg-emerald-500/8 px-2 py-0.5 font-mono text-[11px] text-emerald-300 transition-colors hover:bg-emerald-500/15 disabled:cursor-default disabled:opacity-70"
+                    >
+                      {getFeedbackButtonLabel('good', feedbackStates[msg.id])}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleFeedbackMessage(msg, 'poor')}
+                      disabled={Boolean(feedbackStates[msg.id])}
+                      className="rounded border border-red-500/30 bg-red-500/8 px-2 py-0.5 font-mono text-[11px] text-red-300 transition-colors hover:bg-red-500/15 disabled:cursor-default disabled:opacity-70"
+                    >
+                      {getFeedbackButtonLabel('poor', feedbackStates[msg.id])}
+                    </button>
+                  </MessageClaimVerification>
+                )}
+              </div>
+            )
+          })}
           {isStreaming && streamingContent && (
             <div className="space-y-2">
               {streamingStatus && (
