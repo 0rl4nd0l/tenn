@@ -661,6 +661,30 @@ class TestBuildChatResponseSlashDispatch(SlashCommandTestBase):
         assert "Live pricing coverage" in resp.text
         self.controller.ollama_client.chat.assert_not_called()
 
+    def test_typo_holdings_prompt_short_circuits_llm(self) -> None:
+        self.state_store.list_holdings.return_value = [
+            {
+                "holding_id": "h1",
+                "ticker": "BHP",
+                "account_label": None,
+                "thesis_bucket": None,
+                "status": "active",
+                "quantity": 100.0,
+                "avg_cost": 45.5,
+                "cost_currency": None,
+                "opened_at": None,
+                "updated_at": "2026-04-21T00:00:00",
+                "note": None,
+            }
+        ]
+
+        resp = self.controller.build_chat_response("what r my holdiongs")
+
+        assert resp is not None
+        assert "Portfolio overview (1 holdings)" in resp.text
+        assert "BHP" in resp.text
+        self.controller.ollama_client.chat.assert_not_called()
+
     def test_natural_language_watchlist_short_circuits_llm(self) -> None:
         self.state_store.list_watch_tickers.return_value = [
             {"ticker": "BHP", "added_at": "2026-04-21T00:00:00"}
