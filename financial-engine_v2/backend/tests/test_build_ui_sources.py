@@ -34,6 +34,56 @@ def test_orchestrator_format_local_context() -> None:
     assert sources[0]["kind"] == "rag"
 
 
+def test_orchestrator_financial_truth_announcement_context_renders_visible_sources() -> None:
+    financial_truth = {
+        "source": "financial_truth",
+        "status": "ok",
+        "ticker": "PPT",
+        "items": [],
+        "announcement_context": [
+            {
+                "document_id": "ppt-sale-doc",
+                "ticker": "PPT",
+                "published_at": "2026-03-16",
+                "title": "Sale of Wealth Management business",
+                "pdf_path": "/tmp/ppt-sale.pdf",
+                "excerpt": "PPT announced the sale of its Wealth Management business.",
+                "context_source": "cockpit_announcement_context",
+            }
+        ],
+        "docs": [
+            {
+                "document_id": "ppt-sale-doc",
+                "ticker": "PPT",
+                "published_at": "2026-03-16",
+                "title": "Sale of Wealth Management business",
+                "source_url": "https://example.com/ppt-sale.pdf",
+                "pdf_path": "/tmp/ppt-sale.pdf",
+            }
+        ],
+    }
+
+    sources = _build_ui_sources(
+        [
+            {
+                "type": "financial_truth",
+                "tool": "financial_truth",
+                "details": financial_truth,
+                "result": financial_truth,
+            }
+        ]
+    )
+
+    assert len(sources) == 2
+    assert sources[0]["title"] == "Sale of Wealth Management business"
+    assert sources[0]["kind"] == "document"
+    assert sources[0]["url"] is None
+    assert sources[0]["document_id"] == "ppt-sale-doc"
+    assert sources[0]["path"] == "/tmp/ppt-sale.pdf"
+    assert "Wealth Management business" in str(sources[0]["snippet"])
+    assert sources[1]["url"] == "https://example.com/ppt-sale.pdf"
+
+
 def test_agent_format_search_news() -> None:
     sources = _build_ui_sources(
         [

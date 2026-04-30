@@ -690,6 +690,27 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                         kind="document",
                     )
 
+        elif ev_type == "financial_truth":
+            for row in details.get("announcement_context", []) if isinstance(details.get("announcement_context"), list) else []:
+                if isinstance(row, dict):
+                    _append_source_item(
+                        items,
+                        seen,
+                        row,
+                        default_title="Announcement excerpt",
+                        kind="document",
+                    )
+
+            for row in details.get("docs", []) if isinstance(details.get("docs"), list) else []:
+                if isinstance(row, dict):
+                    _append_source_item(
+                        items,
+                        seen,
+                        row,
+                        default_title="Financial document",
+                        kind="document",
+                    )
+
         elif ev_type == "news_search":
             for row in details.get("hits", []) if isinstance(details.get("hits"), list) else []:
                 if isinstance(row, dict):
