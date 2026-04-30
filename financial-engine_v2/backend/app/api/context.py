@@ -1467,6 +1467,9 @@ def get_ticker_context(
     )
     if err:
         if _is_missing_table_error(err):
+            errors.append(
+                f"announcement_context: {err}; using documents_pdf_excerpt fallback"
+            )
             announcement_context = _build_document_announcement_context(
                 docs,
                 limit=announcements_limit,

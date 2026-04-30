@@ -442,6 +442,16 @@ _HOLDINGS_PRICE_CACHE_TTL_SECONDS = 90.0
 _HOLDINGS_PRICE_CACHE_LOCK = threading.Lock()
 _HOLDINGS_PRICE_CACHE: dict[tuple[str, str | None], tuple[float, dict[str, Any] | None]] = {}
 _HOLDINGS_PRICE_EXCHANGE_FALLBACKS = ("ASX", "NASDAQ", "NYSE")
+_MAX_CHAT_ATTACHMENT_BYTES = 25 * 1024 * 1024
+
+
+def _max_chat_attachment_base64_chars() -> int:
+    return ((_MAX_CHAT_ATTACHMENT_BYTES + 2) // 3) * 4
+
+
+def _chat_attachment_limit_message() -> str:
+    max_mib = _MAX_CHAT_ATTACHMENT_BYTES // (1024 * 1024)
+    return f"attachment exceeds {max_mib} MiB limit"
 
 
 def _normalize_csv_header(value: str) -> str:
@@ -3759,13 +3769,18 @@ def cockpit_upload_chat_attachment(
     filename = Path(str(payload.filename or "").strip()).name
     if not filename:
         raise HTTPException(status_code=400, detail="filename is required")
-    if not str(payload.content_base64 or "").strip():
+    content_base64 = str(payload.content_base64 or "").strip()
+    if not content_base64:
         raise HTTPException(status_code=400, detail="content_base64 is required")
+    if len(content_base64) > _max_chat_attachment_base64_chars():
+        raise HTTPException(status_code=413, detail=_chat_attachment_limit_message())
 
     try:
-        content_bytes = base64.b64decode(payload.content_base64, validate=True)
+        content_bytes = base64.b64decode(content_base64, validate=True)
     except Exception as exc:
         raise HTTPException(status_code=400, detail="invalid base64 content") from exc
+    if len(content_bytes) > _MAX_CHAT_ATTACHMENT_BYTES:
+        raise HTTPException(status_code=413, detail=_chat_attachment_limit_message())
 
     content_type = str(payload.mime_type or "").strip().lower()
     suffix = Path(filename).suffix.lower()
@@ -4572,13 +4587,15 @@ def _enrich_marketplace_match_with_value_context(
     mission_service: MarketplaceMissionService,
     price_service: MarketplacePriceIntelligenceService,
     match: dict[str, Any],
+    *,
+    persist: bool = False,
 ) -> dict[str, Any]:
     mission_id = str(match.get("mission_id") or "")
     mission = mission_service.get_mission(mission_id) if mission_id else None
     profile = _marketplace_requirement_profile(mission or {})
     if isinstance(profile, dict) and profile.get("mode") == "requirement_driven":
         contexts = _marketplace_candidate_contexts(mission_service, price_service, mission_id)
-        if not contexts and mission is not None:
+        if persist and not contexts and mission is not None:
             mission = _prepare_marketplace_requirement_candidates(
                 mission_service,
                 price_service,
@@ -4608,32 +4625,41 @@ def _enrich_marketplace_match_with_value_context(
                     },
                 ),
             }
-        try:
-            value_context = price_service.upsert_match_value_assessment(
+        value_context_data = {
+            "mission_mode": "requirement_driven",
+            "value_source": "matched_candidate_benchmark",
+            "matched_candidate_tracked_product_id": product.get("tracked_product_id"),
+            "matched_candidate_name": product.get("canonical_key"),
+            "candidate_match_confidence": resolution.get("candidate_match_confidence"),
+            "requirement_fit_score": candidate.get("fit_score"),
+            "requirement_fit_label": candidate.get("fit_label"),
+            "requirement_explanation": candidate.get("explanation"),
+        }
+        if persist:
+            try:
+                value_context = price_service.upsert_match_value_assessment(
+                    match=match,
+                    tracked_product=product,
+                    snapshot=snapshot if isinstance(snapshot, dict) else None,
+                    context=value_context_data,
+                )
+            except Exception:
+                logger.exception(
+                    "Marketplace requirement-driven value assessment failed for %s",
+                    match.get("match_id"),
+                )
+                value_context = {
+                    **_candidate_unmatched_value_context(profile=profile, resolution=resolution),
+                    "explanation": "Value assessment failed for the matched requirement candidate.",
+                    "warnings": ["Backend could not compute value context for the matched candidate."],
+                }
+        else:
+            value_context = price_service.assess_match_value(
                 match=match,
                 tracked_product=product,
                 snapshot=snapshot if isinstance(snapshot, dict) else None,
-                context={
-                    "mission_mode": "requirement_driven",
-                    "value_source": "matched_candidate_benchmark",
-                    "matched_candidate_tracked_product_id": product.get("tracked_product_id"),
-                    "matched_candidate_name": product.get("canonical_key"),
-                    "candidate_match_confidence": resolution.get("candidate_match_confidence"),
-                    "requirement_fit_score": candidate.get("fit_score"),
-                    "requirement_fit_label": candidate.get("fit_label"),
-                    "requirement_explanation": candidate.get("explanation"),
-                },
             )
-        except Exception:
-            logger.exception(
-                "Marketplace requirement-driven value assessment failed for %s",
-                match.get("match_id"),
-            )
-            value_context = {
-                **_candidate_unmatched_value_context(profile=profile, resolution=resolution),
-                "explanation": "Value assessment failed for the matched requirement candidate.",
-                "warnings": ["Backend could not compute value context for the matched candidate."],
-            }
+            value_context.update(value_context_data)
         return {**match, "value_context": value_context}
 
     link = mission_service.get_primary_tracked_product_link(str(match.get("mission_id") or ""))
@@ -4660,32 +4686,39 @@ def _enrich_marketplace_match_with_value_context(
             },
         }
     snapshot = price_service.latest_benchmark_snapshot(product["tracked_product_id"])
-    try:
-        value_context = price_service.upsert_match_value_assessment(
+    if persist:
+        try:
+            value_context = price_service.upsert_match_value_assessment(
+                match=match,
+                tracked_product=product,
+                snapshot=snapshot,
+            )
+        except Exception:
+            logger.exception(
+                "Marketplace value assessment failed for %s",
+                match.get("match_id"),
+            )
+            value_context = {
+                "state": "value_unavailable",
+                "value_score": None,
+                "value_label": "unclear",
+                "value_confidence": "low",
+                "benchmark_snapshot_id": snapshot.get("snapshot_id") if snapshot else None,
+                "fair_low": None,
+                "fair_high": None,
+                "used_median": None,
+                "retail_anchor_price": None,
+                "price_movement_summary": None,
+                "explanation": "Value assessment failed.",
+                "warnings": ["Backend could not compute value context for this match."],
+                "notes": [],
+            }
+    else:
+        value_context = price_service.assess_match_value(
             match=match,
             tracked_product=product,
             snapshot=snapshot,
         )
-    except Exception:
-        logger.exception(
-            "Marketplace value assessment failed for %s",
-            match.get("match_id"),
-        )
-        value_context = {
-            "state": "value_unavailable",
-            "value_score": None,
-            "value_label": "unclear",
-            "value_confidence": "low",
-            "benchmark_snapshot_id": snapshot.get("snapshot_id") if snapshot else None,
-            "fair_low": None,
-            "fair_high": None,
-            "used_median": None,
-            "retail_anchor_price": None,
-            "price_movement_summary": None,
-            "explanation": "Value assessment failed.",
-            "warnings": ["Backend could not compute value context for this match."],
-            "notes": [],
-        }
     return {**match, "value_context": value_context}
 
 
@@ -6187,12 +6220,6 @@ async def cockpit_get_marketplace_mission(mission_id: str):
     if mission is None:
         raise HTTPException(status_code=404, detail=f"Marketplace mission not found: {mission_id}")
     mission = await asyncio.to_thread(
-        _prepare_marketplace_requirement_candidates,
-        mission_service,
-        price_service,
-        mission,
-    )
-    mission = await asyncio.to_thread(
         _enrich_marketplace_mission_with_price_context,
         mission_service,
         price_service,
@@ -6580,11 +6607,12 @@ async def cockpit_update_marketplace_match(
             detail=f"Marketplace match update failed: {str(exc)}",
         ) from exc
     try:
-        match = benchmark_service.enrich_match(match)
+        match = benchmark_service.enrich_match(match, persist=True)
         match = _enrich_marketplace_match_with_value_context(
             mission_service,
             price_service,
             match,
+            persist=True,
         )
     except Exception:
         logger.exception("Marketplace benchmark enrichment failed for %s", match_id)
@@ -6624,13 +6652,16 @@ async def cockpit_update_marketplace_benchmark_review(
         mission_service = _marketplace_mission_service(service)
         benchmark_service = _marketplace_benchmark_service(service)
         price_service = _marketplace_price_intelligence_service(service)
+        match = await asyncio.to_thread(mission_service.get_match, match_id)
+        if match is None:
+            raise KeyError(match_id)
+        await asyncio.to_thread(benchmark_service.enrich_match, match, persist=True)
         await asyncio.to_thread(
             benchmark_service.set_review_status,
             match_id=match_id,
             review_status=review_status,
             note=payload.note,
         )
-        match = await asyncio.to_thread(mission_service.get_match, match_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=f"Marketplace match not found: {exc}") from exc
     except Exception as exc:
