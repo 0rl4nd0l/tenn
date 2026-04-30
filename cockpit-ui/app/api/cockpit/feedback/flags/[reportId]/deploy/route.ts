@@ -53,8 +53,9 @@ export async function POST(
 
     const launcherLogPath = path.resolve(paths.reportDir, 'codex-launcher.log')
     const pythonBin = process.env.COCKPIT_CODEX_RUNNER_PYTHON || 'python3'
+    const runnerScriptPath = path.resolve(paths.repoRoot, 'scripts', 'cockpit_flag_investigator.py')
     const args = [
-      'scripts/cockpit_flag_investigator.py',
+      runnerScriptPath,
       '--root',
       paths.reportsRoot,
       '--report-id',

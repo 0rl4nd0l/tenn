@@ -76,7 +76,7 @@ describe('Codex investigation deploy route', () => {
     expect(spawnMock).toHaveBeenCalledWith(
       'python3',
       expect.arrayContaining([
-        'scripts/cockpit_flag_investigator.py',
+        path.resolve(process.cwd(), '..', 'scripts', 'cockpit_flag_investigator.py'),
         '--report-id',
         reportId,
         '--once',
