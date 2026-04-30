@@ -1174,6 +1174,61 @@ class ToolExecutor:
         count = len(videos) if isinstance(videos, list) else 0
         return {"ok": True, "count": count, **result}
 
+    def _exec_ingest_youtube_videos(self, args: dict[str, Any]) -> dict[str, Any]:
+        raw_urls = args.get("urls")
+        if isinstance(raw_urls, str):
+            urls = [raw_urls]
+        elif isinstance(raw_urls, list):
+            urls = [str(item or "").strip() for item in raw_urls]
+        else:
+            urls = []
+        urls = [url for url in urls if url]
+        if not urls:
+            return {"ok": False, "error": "urls is required"}
+        if len(urls) > 5:
+            return {"ok": False, "error": "at most 5 YouTube URLs can be ingested at once"}
+
+        client = self._router.backend_api_client
+        if client is None:
+            return {"ok": False, "error": "backend API client not configured"}
+
+        try:
+            takeaway_limit = int(args.get("takeaway_limit", 5))
+        except (TypeError, ValueError):
+            return {"ok": False, "error": "takeaway_limit must be an integer"}
+        if takeaway_limit < 1 or takeaway_limit > 12:
+            return {"ok": False, "error": "takeaway_limit must be between 1 and 12"}
+
+        credibility_weight = args.get("credibility_weight")
+        if credibility_weight in ("", None):
+            parsed_weight = None
+        else:
+            try:
+                parsed_weight = float(credibility_weight)
+            except (TypeError, ValueError):
+                return {"ok": False, "error": "credibility_weight must be a number"}
+            if not math.isfinite(parsed_weight) or not 0.0 <= parsed_weight <= 1.0:
+                return {"ok": False, "error": "credibility_weight must be between 0.0 and 1.0"}
+
+        try:
+            result = client.ingest_youtube_urls(
+                urls,
+                credibility_weight=parsed_weight,
+                takeaway_limit=takeaway_limit,
+            )
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)}
+
+        results = result.get("results") if isinstance(result, dict) else []
+        errors = result.get("errors") if isinstance(result, dict) else []
+        success_count = len(results) if isinstance(results, list) else 0
+        error_count = len(errors) if isinstance(errors, list) else 0
+        return {
+            **(result if isinstance(result, dict) else {}),
+            "ok": success_count > 0 and error_count == 0,
+            "partial_ok": success_count > 0 and error_count > 0,
+        }
+
     # Dispatch table: tool_name -> handler method
     _READ_ONLY_DISPATCH: dict[str, Any] = {
         "query_ticker_data": _exec_query_ticker_data,
@@ -1206,6 +1261,7 @@ class ToolExecutor:
         "tv_screener": _exec_tv_screener,
         "watch_youtube_channel": _exec_watch_youtube_channel,
         "check_youtube_channel_recent_videos": _exec_check_youtube_channel_recent_videos,
+        "ingest_youtube_videos": _exec_ingest_youtube_videos,
     }
 
     # ------------------------------------------------------------------
