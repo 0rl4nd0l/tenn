@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 from app.api.routes import require_api_key
 from app.services.channel_registry import ChannelConfig, ChannelRegistry
 from app.services.commentary_ingest import ingest_transcript
+from app.services.commentary_memo_extractor import load_commentary_memos
 from app.services.embeddings import upsert_points, verify_qdrant
 from app.services.facebook_marketplace_inspector import (
     MARKETPLACE_TOPIC_TAGS,
@@ -63,6 +64,283 @@ def _load_index() -> dict[str, Any]:
 def _save_index(index: dict[str, Any]) -> None:
     STAGED_CHUNKS_DIR.mkdir(parents=True, exist_ok=True)
     STAGED_CHUNKS_INDEX.write_text(json.dumps(index, indent=2), "utf-8")
+
+
+def _point_payload(point: dict[str, Any]) -> dict[str, Any]:
+    payload = point.get("payload") if isinstance(point, dict) else {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _point_text(point: dict[str, Any]) -> str:
+    return str(_point_payload(point).get("text") or "").strip()
+
+
+def _point_chunk_id(point: dict[str, Any], source_id: str) -> str:
+    payload = _point_payload(point)
+    chunk_id = str(payload.get("chunk_id") or "").strip()
+    if chunk_id:
+        return chunk_id
+    try:
+        chunk_index = int(payload.get("chunk_index", 0) or 0)
+    except (TypeError, ValueError):
+        chunk_index = 0
+    return f"{source_id}:{chunk_index}"
+
+
+def _citation_for_point(point: dict[str, Any], source_id: str) -> dict[str, Any]:
+    return {
+        "chunk_id": _point_chunk_id(point, source_id),
+        "segment_start_seconds": 0,
+    }
+
+
+def _load_staged_points_for_source(
+    source_id: str,
+) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+    index = _load_index()
+    entry = index.get(source_id)
+    if not entry:
+        return [], None
+
+    staged_path = Path(str(entry.get("path") or ""))
+    if not staged_path.exists():
+        raise HTTPException(status_code=404, detail=f"staged file missing: {staged_path}")
+
+    points: list[dict[str, Any]] = []
+    try:
+        for raw_line in staged_path.read_text("utf-8").splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            point = json.loads(line)
+            if not isinstance(point, dict):
+                continue
+            payload = _point_payload(point)
+            payload_source_id = str(payload.get("source_id") or source_id).strip()
+            if payload_source_id == source_id:
+                points.append(point)
+    except (json.JSONDecodeError, OSError) as exc:
+        raise HTTPException(status_code=422, detail=f"failed to read staged file: {exc}") from exc
+
+    return points, dict(entry)
+
+
+def _load_commentary_memo_for_source(source_id: str) -> tuple[dict[str, Any] | None, str]:
+    try:
+        rows = load_commentary_memos()
+    except Exception as exc:  # noqa: BLE001 - memo store errors are surfaced in response metadata
+        logger.warning("Failed to load commentary memos for %s: %s", source_id, exc)
+        return None, f"error: {exc}"
+
+    for row in rows:
+        if str(row.get("source_id") or "").strip() == source_id:
+            return dict(row), "ready"
+    return None, "missing"
+
+
+def _clean_takeaway_text(value: Any) -> str:
+    text = re.sub(r"\s+", " ", str(value or "")).strip(" -\t\r\n")
+    if len(text) > 360:
+        text = text[:357].rstrip() + "..."
+    return text
+
+
+def _citation_for_text(
+    text: str,
+    points: list[dict[str, Any]],
+    source_id: str,
+) -> list[dict[str, Any]]:
+    if not points:
+        return []
+    needle = re.sub(r"\s+", " ", str(text or "")).strip().lower()
+    if not needle:
+        return [_citation_for_point(points[0], source_id)]
+
+    for point in points:
+        haystack = re.sub(r"\s+", " ", _point_text(point)).lower()
+        if needle and needle in haystack:
+            return [_citation_for_point(point, source_id)]
+
+    words = {
+        token
+        for token in re.findall(r"[a-z0-9]{4,}", needle)
+        if token not in {"this", "that", "with", "from", "they", "have", "will"}
+    }
+    if not words:
+        return [_citation_for_point(points[0], source_id)]
+
+    best_point = points[0]
+    best_score = -1
+    for point in points:
+        haystack_words = set(re.findall(r"[a-z0-9]{4,}", _point_text(point).lower()))
+        score = len(words & haystack_words)
+        if score > best_score:
+            best_point = point
+            best_score = score
+    return [_citation_for_point(best_point, source_id)]
+
+
+def _memo_takeaways(
+    memo: dict[str, Any],
+    points: list[dict[str, Any]],
+    source_id: str,
+    limit: int,
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    fields = (
+        ("claims", "Claim"),
+        ("catalysts", "Catalyst"),
+        ("risks", "Risk"),
+    )
+    for field, label in fields:
+        values = memo.get(field)
+        if not isinstance(values, list):
+            continue
+        for value in values:
+            cleaned = _clean_takeaway_text(value)
+            key = cleaned.lower()
+            if not cleaned or key in seen:
+                continue
+            seen.add(key)
+            rows.append(
+                {
+                    "text": f"{label}: {cleaned}",
+                    "citations": _citation_for_text(cleaned, points, source_id),
+                    "source_field": field,
+                }
+            )
+            if len(rows) >= limit:
+                return rows
+    return rows
+
+
+_TAKEAWAY_KEYWORDS = {
+    "acquisition",
+    "balance sheet",
+    "cash flow",
+    "catalyst",
+    "cost",
+    "debt",
+    "demand",
+    "dividend",
+    "earnings",
+    "guidance",
+    "growth",
+    "margin",
+    "market",
+    "price",
+    "production",
+    "profit",
+    "revenue",
+    "risk",
+    "supply",
+    "valuation",
+}
+
+
+def _sentence_score(sentence: str) -> float:
+    lowered = sentence.lower()
+    score = 0.0
+    for keyword in _TAKEAWAY_KEYWORDS:
+        if keyword in lowered:
+            score += 1.0
+    if re.search(r"\d", sentence):
+        score += 0.6
+    if 80 <= len(sentence) <= 240:
+        score += 0.4
+    return score
+
+
+def _chunk_takeaways(
+    points: list[dict[str, Any]],
+    source_id: str,
+    limit: int,
+) -> list[dict[str, Any]]:
+    candidates: list[tuple[float, int, str, dict[str, Any]]] = []
+    seen: set[str] = set()
+    for point in points:
+        payload = _point_payload(point)
+        try:
+            chunk_index = int(payload.get("chunk_index", 0) or 0)
+        except (TypeError, ValueError):
+            chunk_index = 0
+        text = _point_text(point)
+        pieces = re.split(r"(?<=[.!?])\s+|\n+", text)
+        for piece in pieces:
+            cleaned = _clean_takeaway_text(piece)
+            if len(cleaned) < 45:
+                continue
+            key = cleaned.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            candidates.append((_sentence_score(cleaned), chunk_index, cleaned, point))
+
+        if not candidates and text:
+            cleaned = _clean_takeaway_text(text[:260])
+            if cleaned:
+                candidates.append((_sentence_score(cleaned), chunk_index, cleaned, point))
+
+    candidates.sort(key=lambda row: (-row[0], row[1], row[2].lower()))
+    return [
+        {
+            "text": text,
+            "citations": [_citation_for_point(point, source_id)],
+            "source_field": "chunk_text",
+            "score": round(score, 3),
+        }
+        for score, _chunk_index, text, point in candidates[:limit]
+    ]
+
+
+_TICKER_RE = re.compile(r"^[A-Z][A-Z0-9]{1,5}$")
+_TICKER_STOPWORDS = {
+    "AND",
+    "ASX",
+    "CEO",
+    "CFO",
+    "EPS",
+    "FY",
+    "GDP",
+    "LLC",
+    "LTD",
+    "THE",
+    "USD",
+}
+
+
+def _watchlist_suggestions(
+    memo: dict[str, Any] | None,
+    points: list[dict[str, Any]],
+    source_id: str,
+) -> list[dict[str, Any]]:
+    if not memo:
+        return []
+    values = memo.get("tickers")
+    if not isinstance(values, list):
+        return []
+
+    suggestions: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for value in values:
+        ticker = str(value or "").strip().upper()
+        if (
+            not ticker
+            or ticker in seen
+            or ticker in _TICKER_STOPWORDS
+            or not _TICKER_RE.fullmatch(ticker)
+        ):
+            continue
+        seen.add(ticker)
+        suggestions.append(
+            {
+                "ticker": ticker,
+                "commentary": "Ticker mentioned in the extracted commentary memo.",
+                "citations": _citation_for_text(ticker, points, source_id),
+            }
+        )
+    return suggestions
 
 
 def _update_source_registry(source_id: str, status: str) -> None:
@@ -239,6 +517,11 @@ class RecentChannelVideosRequest(BaseModel):
     limit: int = Field(default=8, ge=1, le=20)
 
 
+class TakeawaysRequest(BaseModel):
+    source_id: str
+    limit: int = Field(default=5, ge=1, le=12)
+
+
 class IngestUrlRequest(BaseModel):
     url: str
 
@@ -284,6 +567,57 @@ def _stage_marketplace_capture(capture: MarketplaceListingCapture) -> dict[str, 
         "screenshot_path": capture.screenshot_path,
         "webpage_url": capture.url,
         "source_kind": "concat",
+    }
+
+
+@router.post(
+    "/takeaways",
+    dependencies=[Depends(require_api_key)],
+)
+def get_commentary_takeaways(body: TakeawaysRequest) -> dict[str, Any]:
+    source_id = _validate_source_id(body.source_id)
+    limit = int(body.limit)
+    points, entry = _load_staged_points_for_source(source_id)
+    memo, memo_status = _load_commentary_memo_for_source(source_id)
+
+    if not points and memo is None:
+        status_code = 503 if memo_status.startswith("error:") else 404
+        raise HTTPException(
+            status_code=status_code,
+            detail=f"source_id not found in staged chunks or commentary memos: {source_id}",
+        )
+
+    takeaways = _memo_takeaways(memo, points, source_id, limit) if memo else []
+    takeaway_source = "memo" if takeaways else "chunks"
+    if len(takeaways) < limit and points:
+        existing = {str(row.get("text") or "").lower() for row in takeaways}
+        for row in _chunk_takeaways(points, source_id, limit):
+            key = str(row.get("text") or "").lower()
+            if key in existing:
+                continue
+            takeaways.append(row)
+            existing.add(key)
+            if len(takeaways) >= limit:
+                break
+        if memo and takeaway_source == "memo" and any(
+            row.get("source_field") == "chunk_text" for row in takeaways
+        ):
+            takeaway_source = "memo+chunks"
+
+    source_status = "staged" if points else "memo_only"
+    return {
+        "ok": True,
+        "source_id": source_id,
+        "source_status": source_status,
+        "source_name": (entry or {}).get("source_name") or (entry or {}).get("title") or "",
+        "published_at": (entry or {}).get("published_at") or (memo or {}).get("published_at") or "",
+        "chunk_count": len(points),
+        "memo_status": memo_status,
+        "takeaway_source": takeaway_source,
+        "takeaways": takeaways,
+        "watchlist_suggestions": _watchlist_suggestions(memo, points, source_id),
+        "model": "deterministic:commentary-staged-chunks",
+        "prompt_version": "takeaways-v1-deterministic",
     }
 
 
