@@ -29,12 +29,32 @@ class _FakeSearchPage:
         self.closed = True
 
 
+class _FakeDetailPage(_FakeSearchPage):
+    async def evaluate(self, script: str) -> dict[str, object]:
+        self.evaluation_script = script
+        return {
+            "finalUrl": "https://www.facebook.com/marketplace/item/detail1/",
+            "title": "NVIDIA RTX 3090 24GB",
+            "price": "$900",
+            "description": "Used RTX 3090 24GB GPU in working condition.",
+            "location": "Melbourne",
+            "seller": "Seller",
+            "rawTextLines": ["Used RTX 3090 24GB GPU in working condition."],
+            "listingMedia": [],
+        }
+
+    async def screenshot(self, path: str, full_page: bool) -> None:
+        self.screenshot_path = path
+        self.full_page = full_page
+
+
 class _FakeContext:
-    def __init__(self) -> None:
+    def __init__(self, page_cls: type[_FakeSearchPage] = _FakeSearchPage) -> None:
+        self.page_cls = page_cls
         self.pages: list[_FakeSearchPage] = []
 
     async def new_page(self) -> _FakeSearchPage:
-        page = _FakeSearchPage()
+        page = self.page_cls()
         self.pages.append(page)
         return page
 
@@ -82,6 +102,50 @@ def test_build_marketplace_search_url_anchors_victoria_scope_to_melbourne_slug()
     assert "radiusKM=160" in url
     assert "latitude=-37.8136" in url
     assert "longitude=144.9631" in url
+
+
+def test_detail_timeout_backoff_scales_for_consecutive_timeouts() -> None:
+    marketplace_scanner = scanner.MarketplaceScanner(
+        SimpleNamespace(),
+        detail_timeout_backoff_seconds=(2.0, 2.0),
+    )
+
+    assert marketplace_scanner._detail_timeout_backoff_seconds(1) == 2.0
+    assert marketplace_scanner._detail_timeout_backoff_seconds(2) == 4.0
+    assert marketplace_scanner._detail_timeout_backoff_seconds(3) == 8.0
+
+
+def test_inspect_listing_detail_waits_before_opening_page(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    marketplace_scanner = scanner.MarketplaceScanner(
+        SimpleNamespace(),
+        detail_pacing_seconds=(2.0, 2.0),
+    )
+    context = _FakeContext(_FakeDetailPage)
+    delay_calls: list[float] = []
+
+    async def fake_sleep(seconds, cancel_requested):
+        delay_calls.append(seconds)
+        assert context.pages == []
+
+    monkeypatch.setattr(scanner, "MARKETPLACE_CAPTURE_ROOT", tmp_path)
+    monkeypatch.setattr(marketplace_scanner, "_sleep_with_cancel", fake_sleep)
+
+    detail = asyncio.run(
+        marketplace_scanner._inspect_listing_detail(
+            context=context,
+            listing_url="https://www.facebook.com/marketplace/item/detail1/",
+            mission_id="mission-1",
+            cancel_requested=None,
+        )
+    )
+
+    assert delay_calls == [2.0]
+    assert detail["listing_id"] == "detail1"
+    assert context.pages[0].url == "https://www.facebook.com/marketplace/item/detail1/"
+    assert context.pages[0].closed is True
 
 
 def test_scanner_returns_no_active_missions_without_browser_work(monkeypatch) -> None:
@@ -477,7 +541,14 @@ def test_requirement_scanner_records_detail_inspection_failures(
     marketplace_scanner = scanner.MarketplaceScanner(
         mission_service,
         price_service=price_service,
+        detail_timeout_backoff_seconds=(2.0, 2.0),
     )
+    backoff_calls: list[float] = []
+
+    async def fake_sleep(seconds, cancel_requested):
+        backoff_calls.append(seconds)
+
+    monkeypatch.setattr(marketplace_scanner, "_sleep_with_cancel", fake_sleep)
     result = asyncio.run(
         marketplace_scanner._scan_mission(
             context=_FakeContext(),
@@ -494,6 +565,7 @@ def test_requirement_scanner_records_detail_inspection_failures(
         "https://www.facebook.com/marketplace/item/timeout/",
         "https://www.facebook.com/marketplace/item/ok/",
     ]
+    assert backoff_calls == [2.0]
     assert result["detail_rejection_reasons"]["detail_inspection_failed"] == 1
     assert failed_seen["last_status"] == "detail_inspection_failed"
     assert "Timeout 20000ms" in failed_seen["last_error"]

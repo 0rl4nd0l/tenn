@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import random
 import re
 import time
 from pathlib import Path
@@ -51,6 +52,10 @@ FACEBOOK_MARKETPLACE_ITEM_RE = re.compile(
     re.IGNORECASE,
 )
 DEFAULT_MARKETPLACE_RADIUS_KM = 160
+DEFAULT_DETAIL_PACING_SECONDS = (1.5, 4.0)
+DEFAULT_DETAIL_TIMEOUT_BACKOFF_SECONDS = (8.0, 15.0)
+MAX_DETAIL_TIMEOUT_BACKOFF_SECONDS = 60.0
+DETAIL_TIMEOUT_RE = re.compile(r"(timeout|timed out|err_timed_out)", re.IGNORECASE)
 _LOCATION_COORD_OVERRIDES: dict[str, tuple[float, float]] = {
     "victoria, australia": (-37.8136, 144.9631),  # Melbourne CBD anchor
     "melbourne, australia": (-37.8136, 144.9631),
@@ -176,11 +181,23 @@ class MarketplaceScanner:
         price_service: MarketplacePriceIntelligenceService | None = None,
         cdp_url: str | None = None,
         timeout_ms: int | None = None,
+        detail_pacing_seconds: tuple[float, float] | None = None,
+        detail_timeout_backoff_seconds: tuple[float, float] | None = None,
+        rng: random.Random | None = None,
     ) -> None:
         self.mission_service = mission_service
         self.price_service = price_service
         self.cdp_url = str(cdp_url or "").strip() or DEFAULT_MARKETPLACE_CDP_URL
         self.timeout_ms = int(timeout_ms or DEFAULT_MARKETPLACE_TIMEOUT_MS)
+        self.detail_pacing_seconds = self._normalize_delay_range(
+            detail_pacing_seconds,
+            DEFAULT_DETAIL_PACING_SECONDS,
+        )
+        self.detail_timeout_backoff_seconds = self._normalize_delay_range(
+            detail_timeout_backoff_seconds,
+            DEFAULT_DETAIL_TIMEOUT_BACKOFF_SECONDS,
+        )
+        self._rng = rng or random.Random()
 
     def run_sync(
         self,
@@ -486,6 +503,7 @@ class MarketplaceScanner:
         scan_started = time.monotonic()
         detail_budget = int(mission["scan_config"]["detail_open_target"])
         detail_used = 0
+        consecutive_detail_timeouts = 0
 
         for query in queries:
             self._raise_if_cancelled(cancel_requested)
@@ -559,6 +577,10 @@ class MarketplaceScanner:
                     raise
                 except Exception as exc:
                     detail_error = str(exc) or exc.__class__.__name__
+                    if self._is_detail_timeout_error(detail_error):
+                        consecutive_detail_timeouts += 1
+                    else:
+                        consecutive_detail_timeouts = 0
                     post_detail_outcome = {
                         "stage": "detail",
                         "reason_code": "detail_inspection_failed",
@@ -594,8 +616,23 @@ class MarketplaceScanner:
                             "match_id": None,
                         },
                     )
+                    if consecutive_detail_timeouts:
+                        backoff_seconds = self._detail_timeout_backoff_seconds(
+                            consecutive_detail_timeouts
+                        )
+                        if backoff_seconds > 0:
+                            if log:
+                                log(
+                                    "      backing off after detail timeout "
+                                    f"({backoff_seconds:.1f}s)"
+                                )
+                            await self._sleep_with_cancel(
+                                backoff_seconds,
+                                cancel_requested,
+                            )
                     continue
 
+                consecutive_detail_timeouts = 0
                 score = evaluate_marketplace_listing(
                     detail,
                     mission,
@@ -1005,6 +1042,10 @@ class MarketplaceScanner:
         cancel_requested: Callable[[], bool] | None,
     ) -> dict[str, Any]:
         self._raise_if_cancelled(cancel_requested)
+        await self._sleep_with_cancel(
+            self._detail_pacing_seconds(),
+            cancel_requested,
+        )
         page = await context.new_page()
         page.set_default_timeout(self.timeout_ms)
         screenshot_dir = MARKETPLACE_CAPTURE_ROOT / "missions" / mission_id
@@ -1151,6 +1192,53 @@ class MarketplaceScanner:
                 await page.close()
             except Exception:
                 pass
+
+    @staticmethod
+    def _normalize_delay_range(
+        value: tuple[float, float] | None,
+        default: tuple[float, float],
+    ) -> tuple[float, float]:
+        raw_low, raw_high = value if value is not None else default
+        low = max(0.0, float(raw_low))
+        high = max(0.0, float(raw_high))
+        if high < low:
+            low, high = high, low
+        return (low, high)
+
+    def _detail_pacing_seconds(self) -> float:
+        return self._random_delay_seconds(self.detail_pacing_seconds)
+
+    def _detail_timeout_backoff_seconds(self, consecutive_timeouts: int) -> float:
+        base_seconds = self._random_delay_seconds(self.detail_timeout_backoff_seconds)
+        multiplier = 2 ** max(0, consecutive_timeouts - 1)
+        return min(MAX_DETAIL_TIMEOUT_BACKOFF_SECONDS, base_seconds * multiplier)
+
+    def _random_delay_seconds(self, delay_range: tuple[float, float]) -> float:
+        low, high = delay_range
+        if high <= 0:
+            return 0.0
+        if low == high:
+            return low
+        return self._rng.uniform(low, high)
+
+    @staticmethod
+    def _is_detail_timeout_error(detail_error: str) -> bool:
+        return bool(DETAIL_TIMEOUT_RE.search(detail_error or ""))
+
+    async def _sleep_with_cancel(
+        self,
+        seconds: float,
+        cancel_requested: Callable[[], bool] | None,
+    ) -> None:
+        if seconds <= 0:
+            return
+        deadline = time.monotonic() + seconds
+        while True:
+            self._raise_if_cancelled(cancel_requested)
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return
+            await asyncio.sleep(min(remaining, 0.5))
 
     def _raise_if_cancelled(
         self,
