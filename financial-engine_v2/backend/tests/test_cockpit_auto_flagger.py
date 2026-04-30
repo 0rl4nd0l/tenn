@@ -131,6 +131,48 @@ def test_detect_auto_flag_findings_ignores_sourceable_compacted_ingest_rows() ->
     assert findings == []
 
 
+def test_detect_auto_flag_findings_ignores_sourceable_compacted_company_rows() -> None:
+    findings = detect_auto_flag_findings(
+        {
+            "response_text": "EOS is described from company documents.",
+            "routing_metadata": {"latency_ms": 1200},
+            "tool_traces": [
+                {
+                    "tool": "get_company_dump",
+                    "ok": True,
+                    "duration_ms": 700,
+                }
+            ],
+            "evidence": [
+                {
+                    "tool": "get_company_dump",
+                    "result": {
+                        "ok": True,
+                        "_truncated": True,
+                        "_original_chars": 18_000,
+                        "docs": [
+                            {
+                                "title": "EOS annual report",
+                                "source_url": "https://example.com/eos-annual.pdf",
+                                "document_id": "doc-annual",
+                            }
+                        ],
+                        "doc_snippets": [
+                            {
+                                "title": "Business overview",
+                                "source_url": "https://example.com/eos-overview.pdf",
+                                "snippet": "EOS describes defence and space systems operations.",
+                            }
+                        ],
+                    },
+                }
+            ],
+        }
+    )
+
+    assert findings == []
+
+
 def test_auto_flag_fingerprint_is_stable_for_same_findings() -> None:
     findings = [{"category": "tool_failure", "reason": "Tool failed."}]
 

@@ -14,6 +14,7 @@ from cockpit.core.request_standards import (
     company_analysis_prompt_guidance,
     get_request_standard_path,
     normalize_request_standard_type,
+    request_standard_prompt_guidance,
     select_request_standard_type,
 )
 
@@ -110,6 +111,25 @@ def test_build_guidance_for_sector_analysis_trigger() -> None:
     assert "sector/industry scope" in guidance
 
 
+@pytest.mark.parametrize(
+    "message",
+    (
+        "tell me about hydrogen industry",
+        "overview of lithium sector",
+        "explain the uranium industry",
+    ),
+)
+def test_build_guidance_for_sector_about_prompt(message: str) -> None:
+    guidance = build_request_standard_prompt_guidance(
+        message=message,
+        mode="fast",
+        ticker=None,
+    )
+
+    assert "[sector_analysis]" in guidance
+    assert "sector_analysis.md" in guidance
+
+
 def test_build_guidance_for_watchlist_triage_trigger() -> None:
     guidance = build_request_standard_prompt_guidance(
         message="/watch scan",
@@ -161,6 +181,49 @@ def test_structured_agent_path_receives_request_standard_guidance(
 
     assert response.text == "ok"
     assert "[company_analysis]" in captured["guidance"]
+
+
+def test_agent_loop_preserves_cloud_route_when_guidance_is_injected(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr("cockpit.core.chat.get_session_context", lambda *_args, **_kwargs: [])
+    monkeypatch.setattr("cockpit.core.chat.record_turn", lambda *_args, **_kwargs: None)
+
+    controller = ChatController(
+        ollama_client=MagicMock(),
+        tool_router=MagicMock(),
+        action_registry=MagicMock(),
+    )
+
+    captured: dict[str, str] = {}
+
+    class FakeAgentLoop:
+        def run(self, **kwargs):
+            captured["message"] = str(kwargs.get("message") or "")
+            return SimpleNamespace(
+                text="ok",
+                evidence=[],
+                action_preview=None,
+                mode=ResponseMode.FAST,
+                routing_metadata={},
+                tool_traces=[],
+            )
+
+    controller._agent_loop = FakeAgentLoop()
+    response = controller._run_agent_loop(
+        "tell me about hydrogen industry",
+        enable_web=True,
+        prior_ticker=None,
+        on_chunk=None,
+        on_status=None,
+        analysis_mode=None,
+        request_standard_guidance=request_standard_prompt_guidance("sector_analysis"),
+        force_backend="api",
+    )
+
+    assert response.text == "ok"
+    assert captured["message"].startswith("/cloud Request-standard guidance")
+    assert "tell me about hydrogen industry" in captured["message"]
 
 
 def test_orchestrated_path_receives_request_standard_guidance(
@@ -313,6 +376,13 @@ def test_daily_market_update_conversational_command_rewrite_bypasses_llm() -> No
             "llm_guided",
         ),
         (
+            "tell me about hydrogen industry",
+            "fast",
+            None,
+            "sector_analysis",
+            "llm_guided",
+        ),
+        (
             "triage the watchlist before open",
             "fast",
             None,
@@ -361,6 +431,7 @@ def test_daily_market_update_conversational_command_rewrite_bypasses_llm() -> No
         "market-wrap-llm-guided",
         "biggest-movers-llm-guided",
         "sector-analysis-llm-guided",
+        "sector-about-llm-guided",
         "watchlist-triage-llm-guided",
         "todays-market-update-conversational-bypass",
         "slash-market-update-bypass",

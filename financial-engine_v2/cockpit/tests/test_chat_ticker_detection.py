@@ -602,6 +602,8 @@ class ChatTickerDetectionTests(unittest.TestCase):
             ("arr price", "ARR"),
             ("csl news", "CSL"),
             ("tell me about bhp", "BHP"),
+            ("what does eos do", "EOS"),
+            ("what does csl do", "CSL"),
         ):
             with self.subTest(msg=msg):
                 ticker = self.controller._detect_ticker(msg, prior_ticker=None)

@@ -1737,6 +1737,9 @@ def _summarize_rows(rows: Any, *, title_key: str, limit: int = 3) -> str:
         url = row.get("url")
         if url not in (None, ""):
             bits.append(str(url))
+        snippet = row.get("snippet") or row.get("text") or row.get("excerpt")
+        if snippet not in (None, ""):
+            bits.append(str(snippet)[:140])
         if bits:
             items.append(" | ".join(bits))
     if not items:
@@ -1760,6 +1763,27 @@ def _summarize_ticker_context(result: dict) -> str:
         parts.append(
             "documents_sample=" + _summarize_rows(docs, title_key="title", limit=2)
         )
+    excerpts = []
+    for key in ("doc_snippets", "announcement_context"):
+        rows = result.get(key)
+        if isinstance(rows, list):
+            excerpts.extend(row for row in rows if isinstance(row, dict))
+    if excerpts:
+        parts.append(
+            "excerpts_sample="
+            + _summarize_rows(excerpts[:3], title_key="title", limit=2)
+        )
+    risk_notes = result.get("risk_notes")
+    if isinstance(risk_notes, list) and risk_notes:
+        note_texts = [
+            str(item.get("text") or item.get("statement") or item).strip()
+            if isinstance(item, dict)
+            else str(item).strip()
+            for item in risk_notes[:2]
+        ]
+        note_texts = [item[:140] for item in note_texts if item]
+        if note_texts:
+            parts.append("risk_notes=" + "; ".join(note_texts))
     errors = result.get("errors")
     if isinstance(errors, list) and errors:
         parts.append("errors=" + "; ".join(str(err)[:120] for err in errors[:2]))

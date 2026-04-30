@@ -5343,11 +5343,15 @@ class ChatController:
         on_thinking=None,
         attached_bundle: _AttachedSourceBundle | None = None,
         request_standard_guidance: str = "",
+        force_backend: str | None = None,
     ) -> ChatResponse:
         """Run the agentic tool-calling loop and convert the result to a ChatResponse."""
+        parsed_force_backend, base_message = parse_backend_prefix(message)
+        turn_force_backend = force_backend or parsed_force_backend
+
         # Reuse existing ticker detection logic
         ticker, explicit_ticker = self._resolve_ticker_context(
-            message, prior_ticker=prior_ticker
+            base_message, prior_ticker=prior_ticker
         )
         if ticker:
             self.last_ticker = ticker
@@ -5367,7 +5371,7 @@ class ChatController:
         ov_agent_block = ""
         prior_ov_turns = get_session_context(
             self._ov_session_id,
-            message,
+            base_message,
             semantic_limit=3,
         )
         if prior_ov_turns:
@@ -5384,7 +5388,7 @@ class ChatController:
             ov_agent_block = "\n".join(lines)
 
         # Inject research memory context into message if available
-        augmented_message = message
+        augmented_message = base_message
         if ov_agent_block:
             augmented_message = ov_agent_block + "\n\n" + augmented_message
         if strategy_block:
@@ -5414,8 +5418,9 @@ class ChatController:
             AgentResult,
         )  # guaranteed available if _agent_loop is set
 
+        agent_message = _apply_backend_prefix(augmented_message, turn_force_backend)
         result: AgentResult = self._agent_loop.run(
-            message=augmented_message,
+            message=agent_message,
             ticker=ticker,
             conversation_history=conversation_history,
             on_chunk=on_chunk,
@@ -5438,7 +5443,7 @@ class ChatController:
                 }
 
         self._record_answer_side_effects(
-            query=message,
+            query=base_message,
             answer=result.text.strip(),
             ticker=ticker,
         )
@@ -6458,7 +6463,7 @@ class ChatController:
                 and self._agent_loop is not None
             ):
                 return self._run_agent_loop(
-                    _apply_backend_prefix(effective_message, forced_backend),
+                    effective_message,
                     enable_web,
                     prior_ticker,
                     on_chunk,
@@ -6467,6 +6472,7 @@ class ChatController:
                     on_thinking=on_thinking,
                     attached_bundle=attached_bundle,
                     request_standard_guidance=pre_routing_standards_guidance,
+                    force_backend=forced_backend,
                 )
 
         # ------------------------------------------------------------------ #

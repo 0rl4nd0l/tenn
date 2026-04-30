@@ -1753,6 +1753,7 @@ class ToolExecutor:
                 "video_title",
                 "source_name",
                 "url",
+                "source_url",
                 "published_at",
                 "provider",
                 "ticker",
@@ -1761,8 +1762,14 @@ class ToolExecutor:
                 "video_id",
                 "webpage_url",
                 "document_id",
+                "source_document_id",
                 "symbol",
                 "name",
+                "doc_type",
+                "period_type",
+                "period_end",
+                "path",
+                "pdf_path",
                 "channel_name",
                 "duration_seconds",
                 "view_count",
@@ -1791,7 +1798,10 @@ class ToolExecutor:
                     compact["scores"] = compact_scores
 
             snippet = self._compact_text(
-                row.get("snippet") or row.get("text") or row.get("excerpt"),
+                row.get("snippet")
+                or row.get("text")
+                or row.get("excerpt")
+                or row.get("statement"),
                 max_chars=max_result_chars,
             )
             if snippet:
@@ -1853,10 +1863,27 @@ class ToolExecutor:
         if isinstance(result.get("staleness_preflight"), dict):
             compact["staleness_preflight"] = result.get("staleness_preflight")
 
-        for list_key in ("hits", "results", "documents", "context", "alerts", "videos"):
+        for list_key in (
+            "hits",
+            "results",
+            "documents",
+            "context",
+            "alerts",
+            "videos",
+            "docs",
+            "doc_snippets",
+            "announcement_context",
+            "financials",
+        ):
             compact_rows = self._compact_result_list(result.get(list_key))
             if compact_rows:
                 compact[list_key] = compact_rows
+
+        snapshot = result.get("latest_financial_snapshot")
+        if isinstance(snapshot, dict):
+            compact_snapshot = self._compact_result_list([snapshot], max_rows=1)
+            if compact_snapshot:
+                compact["latest_financial_snapshot"] = compact_snapshot[0]
 
         # Keep scalar indicators if available (useful for get_tv_indicators).
         indicators = result.get("indicators")
@@ -1916,7 +1943,15 @@ class ToolExecutor:
         if freshness_warning:
             minimal["freshness_warning"] = freshness_warning
 
-        for list_key in ("hits", "results", "videos"):
+        for list_key in (
+            "hits",
+            "results",
+            "videos",
+            "docs",
+            "doc_snippets",
+            "announcement_context",
+            "financials",
+        ):
             rows = result.get(list_key)
             if not isinstance(rows, list) or not rows:
                 continue
@@ -1933,8 +1968,13 @@ class ToolExecutor:
                 "video_id",
                 "webpage_url",
                 "source_id",
+                "source_url",
                 "symbol",
                 "name",
+                "document_id",
+                "source_document_id",
+                "period_type",
+                "period_end",
                 "duration_seconds",
             ):
                 if first.get(key) not in (None, ""):
@@ -1978,6 +2018,14 @@ class ToolExecutor:
             compact["context"] = compact["context"][:1]
         if "videos" in compact:
             compact["videos"] = compact["videos"][:1]
+        if "docs" in compact:
+            compact["docs"] = compact["docs"][:1]
+        if "doc_snippets" in compact:
+            compact["doc_snippets"] = compact["doc_snippets"][:1]
+        if "announcement_context" in compact:
+            compact["announcement_context"] = compact["announcement_context"][:1]
+        if "financials" in compact:
+            compact["financials"] = compact["financials"][:1]
 
         compact_serialized = json.dumps(compact, default=str, ensure_ascii=False)
         if len(compact_serialized) <= self._max_result_chars:

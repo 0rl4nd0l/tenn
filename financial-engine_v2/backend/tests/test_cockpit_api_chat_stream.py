@@ -240,6 +240,60 @@ def test_cockpit_chat_stream_blocks_market_update_command_phrase_without_sources
     assert not [event for event in data_events if event.get("type") == "sources"]
 
 
+def test_cockpit_chat_stream_blocks_cloud_research_without_sources(
+    monkeypatch,
+) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="Hydrogen industry demand is accelerating and ASX leaders are gaining share.",
+                evidence=[],
+                action_preview=None,
+                routing_metadata={
+                    "model": "claude-sonnet-test",
+                    "latency_ms": 111,
+                    "cost_usd": 0.0,
+                    "source": "api",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "/cloud tell me about hydrogen industry", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    assert done_events
+    assert "can't verify that from current evidence" in done_events[-1]["data"]["text"].lower()
+    assert not [event for event in data_events if event.get("type") == "sources"]
+
+
 def test_cockpit_chat_stream_preserves_explicit_unverified_without_claims(
     monkeypatch,
 ) -> None:

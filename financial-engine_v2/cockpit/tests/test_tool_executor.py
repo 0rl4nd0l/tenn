@@ -213,6 +213,59 @@ class TestSearchNewsFreshnessWarning:
         )
         assert _today_iso() in str(result.get("freshness_warning"))
 
+    def test_company_dump_truncation_preserves_sourceable_rows(self) -> None:
+        executor = _make_executor(max_result_chars=1200)
+        backend = MagicMock()
+        backend.get_company_dump.return_value = {
+            "ticker": "EOS",
+            "docs": [
+                {
+                    "title": "EOS annual report",
+                    "source_url": "https://example.com/eos-annual.pdf",
+                    "document_id": "doc-annual",
+                    "published_at": "2026-02-20",
+                    "text": "A" * 1400,
+                }
+            ],
+            "doc_snippets": [
+                {
+                    "title": "Business overview",
+                    "source_url": "https://example.com/eos-overview.pdf",
+                    "document_id": "doc-overview",
+                    "excerpt": "EOS describes defence and space systems operations.",
+                }
+            ],
+            "announcement_context": [
+                {
+                    "title": "Contract announcement",
+                    "source_url": "https://example.com/eos-contract.pdf",
+                    "document_id": "doc-ann",
+                    "text": "Management described remote weapon systems demand.",
+                }
+            ],
+            "financials": [
+                {
+                    "ticker": "EOS",
+                    "period_type": "annual",
+                    "period_end": "2025-12-31",
+                    "source_document_id": "doc-fin",
+                    "revenue": 123,
+                }
+            ],
+            "large_unneeded_blob": "Z" * 4000,
+        }
+        executor._router.backend_api_client = backend
+
+        result = executor.execute("get_company_dump", {"ticker": "EOS"})
+
+        assert result.get("_truncated") is True
+        assert result["ticker"] == "EOS"
+        assert result["docs"][0]["title"] == "EOS annual report"
+        assert result["docs"][0]["source_url"] == "https://example.com/eos-annual.pdf"
+        assert result["doc_snippets"][0]["snippet"].startswith("EOS describes")
+        assert result["announcement_context"][0]["source_url"].endswith("eos-contract.pdf")
+        assert result["financials"][0]["source_document_id"] == "doc-fin"
+
     def test_youtube_recent_video_truncation_preserves_videos(self) -> None:
         """Large YouTube preview payloads must retain videos for command formatting/sources."""
         executor = _make_executor(max_result_chars=900)

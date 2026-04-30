@@ -910,3 +910,54 @@ def test_agent_format_search_news_truncated_legacy_data_payload() -> None:
     assert len(sources) == 1
     assert sources[0]["title"] == "Legacy parsed item"
     assert sources[0]["url"] == "https://example.com/legacy"
+
+
+def test_agent_format_get_company_dump_source_rows() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "tool": "get_company_dump",
+                "result": {
+                    "ticker": "EOS",
+                    "docs": [
+                        {
+                            "title": "EOS annual report",
+                            "source_url": "https://example.com/eos-annual.pdf",
+                            "document_id": "doc-annual",
+                        }
+                    ],
+                    "doc_snippets": [
+                        {
+                            "title": "Business overview",
+                            "source_url": "https://example.com/eos-overview.pdf",
+                            "document_id": "doc-overview",
+                            "excerpt": "EOS describes defence and space systems operations.",
+                        }
+                    ],
+                    "announcement_context": [
+                        {
+                            "title": "Contract announcement",
+                            "source_url": "https://example.com/eos-contract.pdf",
+                            "document_id": "doc-ann",
+                            "text": "Remote weapon systems demand was discussed.",
+                        }
+                    ],
+                    "financials": [
+                        {
+                            "ticker": "EOS",
+                            "period_type": "annual",
+                            "period_end": "2025-12-31",
+                            "source_document_id": "doc-fin",
+                            "revenue": 123,
+                        }
+                    ],
+                },
+            }
+        ]
+    )
+
+    titles = {source["title"] for source in sources}
+    assert "EOS annual report" in titles
+    assert "Business overview" in titles
+    assert "Contract announcement" in titles
+    assert "EOS annual 2025-12-31" in titles

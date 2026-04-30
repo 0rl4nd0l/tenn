@@ -49,7 +49,9 @@ _COMPANY_ANALYSIS_RE = re.compile(
 )
 _SECTOR_ANALYSIS_RE = re.compile(
     r"(\b(?:sector|industry)\s+analysis\b)"
-    r"|(\banaly[sz]e\s+(?:the\s+)?(?:sector|industry)\b)",
+    r"|(\banaly[sz]e\s+(?:the\s+)?(?:sector|industry)\b)"
+    r"|(\b(?:tell\s+me\s+about|overview\s+of|explain|research)\s+"
+    r"(?:the\s+)?[a-z][a-z0-9&\-/ ]{1,80}\s+(?:sector|industry)\b)",
     flags=re.IGNORECASE,
 )
 _WATCHLIST_TRIAGE_RE = re.compile(

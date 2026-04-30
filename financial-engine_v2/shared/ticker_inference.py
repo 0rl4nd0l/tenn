@@ -20,6 +20,8 @@ DEFAULT_TICKER_CUE_PATTERNS = (
     r"report|results?|strategy|thesis|risk|catalysts?|document|history|was)\s+{token}\b",
     r"\b(?:what(?:'s| is)?\s+happened|what\s+happened|what(?:'s| is)?\s+going\s+on|"
     r"what(?:'s| is)?\s+new|latest\s+on|recent\s+update|update\s+me\s+on)\s+(?:with\s+)?{token}\b",
+    r"\bwhat\s+does\s+{token}\s+do\b",
+    r"\b(?:what|who)\s+is\s+{token}\b",
     r"\bprice\s+history\s+{token}\b",
     r"\b{token}\s+(?:vs|versus|chart|price|financials?|announcements?|news|on|between|"
     r"close|closing|summary|performance|results?|strategy|thesis)\b",

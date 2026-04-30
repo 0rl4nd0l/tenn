@@ -682,6 +682,12 @@ class TestAgentLoopRegressions:
                                 "published_at": "2026-04-02T00:00:00Z",
                             }
                         ],
+                        "doc_snippets": [
+                            {
+                                "title": "Operations overview",
+                                "excerpt": "Pilbara described production and shipment activity.",
+                            }
+                        ],
                         "financials": [],
                     },
                 }
@@ -692,3 +698,4 @@ class TestAgentLoopRegressions:
         assert "_original_chars" not in summary
         assert "financial_rows=0" in summary
         assert "previous_close=6.11" in summary
+        assert "Pilbara described production" in summary

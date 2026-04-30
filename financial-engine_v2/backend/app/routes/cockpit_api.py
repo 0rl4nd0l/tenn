@@ -1369,6 +1369,15 @@ def _append_financial_payload_sources(
     seen: set[str],
     payload: dict[str, Any],
 ) -> None:
+    for row in _dict_rows(payload.get("doc_snippets")):
+        _append_source_item(
+            items,
+            seen,
+            row,
+            default_title="Document excerpt",
+            kind="document",
+        )
+
     for row in _dict_rows(payload.get("announcement_context")):
         _append_source_item(
             items,
@@ -1925,7 +1934,11 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                                 default_title="Announcement excerpt",
                                 kind="document",
                             )
-                elif tool_name in ("gather_local_context", "query_ticker_data"):
+                elif tool_name in (
+                    "gather_local_context",
+                    "query_ticker_data",
+                    "get_company_dump",
+                ):
                     for hit in result.get("hits") or result.get("rag_hits") or []:
                         if isinstance(hit, dict):
                             _append_source_item(
@@ -1944,6 +1957,16 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                                 default_title="Document",
                                 kind="document",
                             )
+                    for row in result.get("doc_snippets") or []:
+                        if isinstance(row, dict):
+                            _append_source_item(
+                                items,
+                                seen,
+                                row,
+                                default_title="Document excerpt",
+                                kind="document",
+                            )
+                    _append_financial_payload_sources(items, seen, result)
                 elif tool_name == "get_financials":
                     for row in result.get("financials") or []:
                         if isinstance(row, dict):
@@ -2337,6 +2360,7 @@ _COMMANDS_REQUIRING_SOURCES = (
     "/watch scan",
     "/alerts",
 )
+_ROUTING_PREFIX_RE = re.compile(r"^\s*/(?:advisor|cloud|local|ops)\b", re.IGNORECASE)
 _OPERATIONAL_COMMAND_TOOLS_WITHOUT_VISIBLE_SOURCES = frozenset(
     {
         "watch_youtube_channel",
@@ -2348,6 +2372,11 @@ def _message_requires_visible_sources(message: str) -> bool:
     text = str(message or "").strip()
     if not text:
         return False
+    route_prefix = _ROUTING_PREFIX_RE.match(text)
+    if route_prefix:
+        text = text[route_prefix.end() :].strip()
+        if not text:
+            return False
     explicit_command = text.lower()
     if explicit_command.startswith("/"):
         return explicit_command.startswith(_COMMANDS_REQUIRING_SOURCES)

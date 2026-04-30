@@ -25,9 +25,31 @@ _CONTEXT_COMPACTION_RE = re.compile(
     r"(_truncated|_original_chars|additional fields omitted|summarized\s+[—-]\s+original)",
     re.IGNORECASE,
 )
-_SOURCE_LIST_KEYS = frozenset({"hits", "results", "documents", "context", "alerts", "videos"})
+_SOURCE_LIST_KEYS = frozenset(
+    {
+        "hits",
+        "results",
+        "documents",
+        "context",
+        "alerts",
+        "videos",
+        "docs",
+        "doc_snippets",
+        "announcement_context",
+        "financials",
+    }
+)
 _SOURCE_ID_KEYS = frozenset(
-    {"url", "webpage_url", "source_id", "document_id", "path", "video_id"}
+    {
+        "url",
+        "source_url",
+        "webpage_url",
+        "source_id",
+        "document_id",
+        "source_document_id",
+        "path",
+        "video_id",
+    }
 )
 _SOURCE_TEXT_KEYS = frozenset(
     {"title", "video_title", "source_name", "name", "snippet", "text", "excerpt"}
