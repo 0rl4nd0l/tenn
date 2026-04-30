@@ -4760,6 +4760,97 @@ def _enrich_marketplace_match_with_value_context(
     mission_id = str(match.get("mission_id") or "")
     mission = mission_service.get_mission(mission_id) if mission_id else None
     profile = _marketplace_requirement_profile(mission or {})
+    metadata = match.get("metadata") if isinstance(match.get("metadata"), dict) else {}
+    resale_candidate = (
+        metadata.get("value_resale_candidate")
+        if isinstance(metadata.get("value_resale_candidate"), dict)
+        else None
+    )
+    if resale_candidate is not None:
+        product = price_service.get_tracked_product(
+            str(resale_candidate.get("tracked_product_id") or "")
+        )
+        if product is None:
+            return {
+                **match,
+                "value_context": {
+                    "state": "value_unavailable",
+                    "value_score": None,
+                    "value_label": "unclear",
+                    "value_confidence": "low",
+                    "benchmark_snapshot_id": resale_candidate.get(
+                        "benchmark_snapshot_id"
+                    ),
+                    "fair_low": None,
+                    "fair_high": None,
+                    "used_median": None,
+                    "retail_anchor_price": None,
+                    "price_movement_summary": None,
+                    "explanation": "Resale candidate tracked product was not found.",
+                    "warnings": ["Relink or recreate the tracked product benchmark."],
+                    "notes": [],
+                    "value_source": "resale_candidate_benchmark",
+                    "resale_candidate": True,
+                },
+            }
+        snapshot = price_service.latest_benchmark_snapshot(product["tracked_product_id"])
+        context_data = {
+            "mission_mode": (
+                "requirement_driven"
+                if isinstance(profile, dict) and profile.get("mode") == "requirement_driven"
+                else None
+            ),
+            "value_source": "resale_candidate_benchmark",
+            "resale_candidate": True,
+            "matched_resale_tracked_product_id": product.get("tracked_product_id"),
+            "matched_resale_product_name": product.get("canonical_key"),
+            "candidate_match_confidence": resale_candidate.get(
+                "variant_match_confidence"
+            ),
+            "requirement_fit_label": "resale_review",
+            "requirement_explanation": (
+                "Listing was saved because it appears under-market for a tracked "
+                "product, even though explicit mission fit may need manual review."
+            ),
+        }
+        try:
+            if persist:
+                value_context = price_service.upsert_match_value_assessment(
+                    match=match,
+                    tracked_product=product,
+                    snapshot=snapshot,
+                    context=context_data,
+                )
+            else:
+                value_context = price_service.assess_match_value(
+                    match=match,
+                    tracked_product=product,
+                    snapshot=snapshot,
+                )
+                value_context.update(context_data)
+        except Exception:
+            logger.exception(
+                "Marketplace resale value assessment failed for %s",
+                match.get("match_id"),
+            )
+            value_context = {
+                "state": "value_unavailable",
+                "value_score": None,
+                "value_label": "unclear",
+                "value_confidence": "low",
+                "benchmark_snapshot_id": snapshot.get("snapshot_id") if snapshot else None,
+                "fair_low": None,
+                "fair_high": None,
+                "used_median": None,
+                "retail_anchor_price": None,
+                "price_movement_summary": None,
+                "explanation": "Value assessment failed for resale candidate.",
+                "warnings": ["Backend could not compute resale value context."],
+                "notes": [],
+                **context_data,
+            }
+        return {**match, "value_context": value_context}
+
     if isinstance(profile, dict) and profile.get("mode") == "requirement_driven":
         contexts = _marketplace_candidate_contexts(mission_service, price_service, mission_id)
         if persist and not contexts and mission is not None:

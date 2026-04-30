@@ -1026,6 +1026,7 @@ class MarketplacePriceIntelligenceService:
             "fair_low": fair_low,
             "fair_high": fair_high,
             "used_median": used_median,
+            "listing_price": listing_price,
             "retail_anchor_price": retail_price,
             "price_movement_summary": self._price_movement_summary(match),
             "explanation": explanation,

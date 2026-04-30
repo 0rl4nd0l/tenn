@@ -55,6 +55,11 @@ DEFAULT_MARKETPLACE_RADIUS_KM = 160
 DEFAULT_DETAIL_PACING_SECONDS = (1.5, 4.0)
 DEFAULT_DETAIL_TIMEOUT_BACKOFF_SECONDS = (8.0, 15.0)
 MAX_DETAIL_TIMEOUT_BACKOFF_SECONDS = 60.0
+VALUE_RESALE_MIN_SCORE = 70.0
+VALUE_RESALE_MIN_VARIANT_CONFIDENCE = 0.65
+VALUE_RESALE_PREFILTER_REASON = (
+    "Under-market tracked product candidate prioritized for value review"
+)
 DETAIL_TIMEOUT_RE = re.compile(r"(timeout|timed out|err_timed_out)", re.IGNORECASE)
 _LOCATION_COORD_OVERRIDES: dict[str, tuple[float, float]] = {
     "victoria, australia": (-37.8136, 144.9631),  # Melbourne CBD anchor
@@ -171,6 +176,14 @@ def _format_detail_reasons(counter: dict[str, int]) -> str:
         f"{reason}={count}"
         for reason, count in sorted(counter.items(), key=lambda item: item[0])
     )
+
+
+def _marketplace_category(mission: dict[str, Any]) -> str | None:
+    profile = marketplace_requirement_profile(mission)
+    if isinstance(profile, dict) and profile.get("category"):
+        return str(profile["category"]).strip().lower()
+    category = str(mission.get("category_hint") or "").strip().lower()
+    return category or None
 
 
 class MarketplaceScanner:
@@ -549,6 +562,22 @@ class MarketplaceScanner:
             for card in cards:
                 prefilter = prefilter_marketplace_card(card, prefilter_mission)
                 if prefilter["prefilter_decision"] != "open":
+                    value_candidate = self._resolve_value_resale_candidate(
+                        self._card_value_listing(card),
+                        mission=mission,
+                        candidate_contexts=candidate_contexts,
+                    )
+                    if (
+                        value_candidate is not None
+                        and self._allows_value_prefilter_override(prefilter)
+                    ):
+                        ranked_cards.append(
+                            self._value_prefilter_card(
+                                {**card, **prefilter},
+                                minimum_priority=80,
+                            )
+                        )
+                        continue
                     bucket = _rejection_bucket(prefilter.get("prefilter_reasons"))
                     if bucket == "location":
                         rejected_by_location += 1
@@ -558,6 +587,11 @@ class MarketplaceScanner:
                 ranked_cards.append({**card, **prefilter})
 
             ranked_cards.sort(key=lambda item: item["open_priority"], reverse=True)
+            ranked_cards = self._prioritize_value_cards(
+                ranked_cards,
+                mission=mission,
+                candidate_contexts=candidate_contexts,
+            )
             for card in ranked_cards:
                 self._raise_if_cancelled(cancel_requested)
                 if detail_used >= detail_budget:
@@ -638,18 +672,30 @@ class MarketplaceScanner:
                     mission,
                     observed_price_band=price_band,
                 )
+                value_resale_candidate = self._resolve_value_resale_candidate(
+                    detail,
+                    mission=mission,
+                    candidate_contexts=candidate_contexts,
+                )
                 if log:
                     log(f"      score: {score['score']} ({score['decision_band']})")
                 detail_hash = listing_material_hash(detail)
                 candidate_resolution: dict[str, Any] | None = None
                 post_detail_outcome: dict[str, Any] | None = None
                 if score["decision_band"] == "reject":
-                    bucket = _rejection_bucket(score.get("reasons_against"))
-                    if bucket == "location":
-                        rejected_by_location += 1
+                    if value_resale_candidate is not None and self._allows_value_resale_override(score):
+                        score = self._value_resale_score(
+                            score,
+                            value_resale_candidate,
+                        )
                     else:
-                        rejected_by_requirement_fit += 1
-                    if requirement_driven:
+                        value_resale_candidate = None
+                        bucket = _rejection_bucket(score.get("reasons_against"))
+                        if bucket == "location":
+                            rejected_by_location += 1
+                        else:
+                            rejected_by_requirement_fit += 1
+                    if requirement_driven and value_resale_candidate is None:
                         post_detail_outcome = classify_requirement_detail_outcome(
                             detail,
                             mission,
@@ -671,62 +717,68 @@ class MarketplaceScanner:
                         candidate_contexts,
                     )
                     if not candidate_resolution.get("matched"):
-                        rejected_by_candidate_mismatch += 1
-                        post_detail_outcome = {
-                            "stage": "detail",
-                            "reason_code": "detail_candidate_unmatched",
-                            "reason_detail": str(
-                                candidate_resolution.get("warning")
-                                or "Listing did not match a requirement candidate."
-                            ),
-                            "evidence": _candidate_resolution_metadata(
-                                candidate_resolution
+                        if value_resale_candidate is not None:
+                            score = self._value_resale_score(
+                                score,
+                                value_resale_candidate,
                             )
-                            or {},
-                        }
-                        _increment_detail_reason(
-                            detail_rejection_reasons,
-                            post_detail_outcome["reason_code"],
-                        )
-                        if log:
-                            log(
-                                "      candidate mismatch: "
-                                + str(
+                        else:
+                            rejected_by_candidate_mismatch += 1
+                            post_detail_outcome = {
+                                "stage": "detail",
+                                "reason_code": "detail_candidate_unmatched",
+                                "reason_detail": str(
                                     candidate_resolution.get("warning")
-                                    or "listing did not match a requirement candidate"
+                                    or "Listing did not match a requirement candidate."
+                                ),
+                                "evidence": _candidate_resolution_metadata(
+                                    candidate_resolution
                                 )
+                                or {},
+                            }
+                            _increment_detail_reason(
+                                detail_rejection_reasons,
+                                post_detail_outcome["reason_code"],
                             )
-                        self.mission_service.upsert_seen_listing(
-                            mission_id,
-                            {
-                                "listing_id": detail["listing_id"],
-                                "listing_url": detail["listing_url"],
-                                "title": detail["title"],
-                                "price_text": detail.get("price"),
-                                "price_value": parse_marketplace_price(
-                                    detail.get("price")
-                                ),
-                                "location": detail.get("location"),
-                                "seller_name": detail.get("seller_name"),
-                                "query_text": query,
-                                "detail_hash": detail_hash,
-                                "raw_snapshot": {
-                                    **detail,
-                                    "score": score,
-                                    "candidate_resolution": candidate_resolution,
-                                    "post_detail_outcome": post_detail_outcome,
+                            if log:
+                                log(
+                                    "      candidate mismatch: "
+                                    + str(
+                                        candidate_resolution.get("warning")
+                                        or "listing did not match a requirement candidate"
+                                    )
+                                )
+                            self.mission_service.upsert_seen_listing(
+                                mission_id,
+                                {
+                                    "listing_id": detail["listing_id"],
+                                    "listing_url": detail["listing_url"],
+                                    "title": detail["title"],
+                                    "price_text": detail.get("price"),
+                                    "price_value": parse_marketplace_price(
+                                        detail.get("price")
+                                    ),
+                                    "location": detail.get("location"),
+                                    "seller_name": detail.get("seller_name"),
+                                    "query_text": query,
+                                    "detail_hash": detail_hash,
+                                    "raw_snapshot": {
+                                        **detail,
+                                        "score": score,
+                                        "candidate_resolution": candidate_resolution,
+                                        "post_detail_outcome": post_detail_outcome,
+                                    },
+                                    "last_status": "candidate_unmatched",
+                                    "last_score": score["score"],
+                                    "last_decision_band": score["decision_band"],
+                                    "last_error": str(
+                                        candidate_resolution.get("warning")
+                                        or "candidate mismatch"
+                                    ),
+                                    "match_id": None,
                                 },
-                                "last_status": "candidate_unmatched",
-                                "last_score": score["score"],
-                                "last_decision_band": score["decision_band"],
-                                "last_error": str(
-                                    candidate_resolution.get("warning")
-                                    or "candidate mismatch"
-                                ),
-                                "match_id": None,
-                            },
-                        )
-                        continue
+                            )
+                            continue
                 previous_seen = self.mission_service.get_seen_listing(
                     mission_id, detail["listing_id"]
                 )
@@ -780,15 +832,30 @@ class MarketplaceScanner:
                                 "candidate_resolution": _candidate_resolution_metadata(
                                     candidate_resolution
                                 ),
+                                **(
+                                    {
+                                        "value_resale_candidate": self._value_resale_metadata(
+                                            value_resale_candidate
+                                        )
+                                    }
+                                    if value_resale_candidate is not None
+                                    else {}
+                                ),
                             },
                         }
                     )
                     matches_saved += 1
+                    if value_resale_candidate is not None:
+                        self._persist_value_resale_assessment(
+                            match_record,
+                            value_resale_candidate,
+                            log=log,
+                        )
 
                     should_alert = score["decision_band"] == "strong_match" or (
                         score["decision_band"] == "candidate"
                         and bool(mission["scan_config"]["aggressive_alerting"])
-                    )
+                    ) or value_resale_candidate is not None
                     latest_alert = (
                         self.mission_service.latest_alert_for_match(match_record["match_id"])
                         if match_record
@@ -800,11 +867,24 @@ class MarketplaceScanner:
                         alert_record = self.mission_service.create_alert(
                             mission_id=mission_id,
                             match_id=match_record["match_id"],
-                            trigger_reason=",".join(material_reasons or ["new_listing"]),
+                            trigger_reason=(
+                                "value_resale_candidate"
+                                if value_resale_candidate is not None
+                                else ",".join(material_reasons or ["new_listing"])
+                            ),
                             metadata={
                                 "detail_hash": detail_hash,
                                 "query": query,
                                 "decision_band": score["decision_band"],
+                                **(
+                                    {
+                                        "value_resale_candidate": self._value_resale_metadata(
+                                            value_resale_candidate
+                                        )
+                                    }
+                                    if value_resale_candidate is not None
+                                    else {}
+                                ),
                             },
                         )
                         alerts_created += 1
@@ -837,10 +917,14 @@ class MarketplaceScanner:
                             ),
                         },
                         "last_status": (
-                            str(post_detail_outcome["reason_code"])
-                            if post_detail_outcome
-                            and score["decision_band"] == "reject"
-                            else score["decision_band"]
+                            "value_resale_candidate"
+                            if value_resale_candidate is not None
+                            else (
+                                str(post_detail_outcome["reason_code"])
+                                if post_detail_outcome
+                                and score["decision_band"] == "reject"
+                                else score["decision_band"]
+                            )
                         ),
                         "last_score": score["score"],
                         "last_decision_band": score["decision_band"],
@@ -952,6 +1036,318 @@ class MarketplaceScanner:
             },
             candidate_contexts,
         )
+
+    def _prioritize_value_cards(
+        self,
+        cards: list[dict[str, Any]],
+        *,
+        mission: dict[str, Any],
+        candidate_contexts: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        prioritized: list[dict[str, Any]] = []
+        for card in cards:
+            value_candidate = self._resolve_value_resale_candidate(
+                self._card_value_listing(card),
+                mission=mission,
+                candidate_contexts=candidate_contexts,
+            )
+            if value_candidate is None:
+                prioritized.append(card)
+                continue
+            prioritized.append(self._value_prefilter_card(card))
+        prioritized.sort(key=lambda item: item["open_priority"], reverse=True)
+        return prioritized
+
+    @staticmethod
+    def _card_value_listing(card: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "title": card.get("title"),
+            "price": card.get("price"),
+            "price_value": parse_marketplace_price(card.get("price")),
+            "raw_text_snapshot": " ".join(
+                str(item) for item in card.get("text_fragments") or []
+            ),
+        }
+
+    @staticmethod
+    def _value_prefilter_card(
+        card: dict[str, Any],
+        *,
+        minimum_priority: int = 0,
+    ) -> dict[str, Any]:
+        reasons = list(card.get("prefilter_reasons") or [])
+        if VALUE_RESALE_PREFILTER_REASON not in reasons:
+            reasons.append(VALUE_RESALE_PREFILTER_REASON)
+        return {
+            **card,
+            "open_priority": max(
+                minimum_priority,
+                min(100, int(card.get("open_priority") or 0) + 30),
+            ),
+            "prefilter_reasons": reasons,
+        }
+
+    def _resolve_value_resale_candidate(
+        self,
+        listing: dict[str, Any],
+        *,
+        mission: dict[str, Any],
+        candidate_contexts: list[dict[str, Any]],
+    ) -> dict[str, Any] | None:
+        best: dict[str, Any] | None = None
+        for context in self._value_candidate_contexts(
+            mission=mission,
+            candidate_contexts=candidate_contexts,
+        ):
+            product = context.get("tracked_product")
+            if not isinstance(product, dict):
+                continue
+            value_context = self._price_service().assess_match_value(
+                match=listing,
+                tracked_product=product,
+                snapshot=(
+                    context.get("benchmark_snapshot")
+                    if isinstance(context.get("benchmark_snapshot"), dict)
+                    else None
+                ),
+            )
+            if not self._is_value_resale_candidate(value_context):
+                continue
+            ranked = {
+                **context,
+                "value_context": value_context,
+                "_sort_key": (
+                    float(value_context.get("value_score") or 0.0),
+                    float(value_context.get("variant_match_confidence") or 0.0),
+                    float(value_context.get("used_median") or 0.0),
+                ),
+            }
+            if best is None or ranked["_sort_key"] > best["_sort_key"]:
+                best = ranked
+        if best is None:
+            return None
+        best.pop("_sort_key", None)
+        return best
+
+    def _value_candidate_contexts(
+        self,
+        *,
+        mission: dict[str, Any],
+        candidate_contexts: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        contexts: list[dict[str, Any]] = []
+        seen_product_ids: set[str] = set()
+
+        def append_context(
+            product: dict[str, Any] | None,
+            *,
+            source: str,
+            candidate: dict[str, Any] | None = None,
+            snapshot: dict[str, Any] | None = None,
+        ) -> None:
+            if not isinstance(product, dict):
+                return
+            product_id = str(product.get("tracked_product_id") or "")
+            if not product_id or product_id in seen_product_ids:
+                return
+            seen_product_ids.add(product_id)
+            contexts.append(
+                {
+                    "tracked_product": product,
+                    "candidate": candidate or {},
+                    "benchmark_snapshot": (
+                        snapshot
+                        if isinstance(snapshot, dict)
+                        else self._price_service().latest_benchmark_snapshot(product_id)
+                    ),
+                    "value_source": source,
+                }
+            )
+
+        for context in candidate_contexts:
+            if not isinstance(context, dict):
+                continue
+            append_context(
+                context.get("tracked_product"),
+                source="requirement_candidate_benchmark",
+                candidate=(
+                    context.get("candidate")
+                    if isinstance(context.get("candidate"), dict)
+                    else None
+                ),
+                snapshot=(
+                    context.get("benchmark_snapshot")
+                    if isinstance(context.get("benchmark_snapshot"), dict)
+                    else None
+                ),
+            )
+
+        mission_id = str(mission.get("mission_id") or "")
+        if mission_id:
+            link = self.mission_service.get_primary_tracked_product_link(mission_id)
+            if link is not None:
+                append_context(
+                    self._price_service().get_tracked_product(
+                        str(link.get("tracked_product_id") or "")
+                    ),
+                    source="primary_tracked_product_benchmark",
+                )
+
+        category = _marketplace_category(mission)
+        if category:
+            for product in self._price_service().list_tracked_products(
+                status="active",
+                category=category,
+            ):
+                append_context(product, source="tracked_product_benchmark")
+
+        return contexts
+
+    @staticmethod
+    def _is_value_resale_candidate(value_context: dict[str, Any]) -> bool:
+        if value_context.get("state") != "scored":
+            return False
+        variant_confidence = float(
+            value_context.get("variant_match_confidence") or 0.0
+        )
+        if variant_confidence < VALUE_RESALE_MIN_VARIANT_CONFIDENCE:
+            return False
+        value_score = value_context.get("value_score")
+        used_median = value_context.get("used_median")
+        listing_price = parse_marketplace_price(value_context.get("listing_price"))
+        if value_score is None or used_median is None or listing_price is None:
+            return False
+        if float(value_score) < VALUE_RESALE_MIN_SCORE:
+            return False
+        fair_low = value_context.get("fair_low")
+        return listing_price < float(used_median) or (
+            fair_low is not None and listing_price <= float(fair_low)
+        )
+
+    @staticmethod
+    def _allows_value_resale_override(score: dict[str, Any]) -> bool:
+        reasons = " ".join(str(item) for item in score.get("reasons_against") or [])
+        lowered = reasons.lower()
+        blocked_signals = (
+            "location",
+            "mission area",
+            "forbidden",
+            "condition",
+            "parts",
+            "repair",
+            "broken",
+            "not working",
+        )
+        return not any(signal in lowered for signal in blocked_signals)
+
+    @staticmethod
+    def _allows_value_prefilter_override(prefilter: dict[str, Any]) -> bool:
+        reasons = " ".join(
+            str(item) for item in prefilter.get("prefilter_reasons") or []
+        ).lower()
+        if "price filter" not in reasons:
+            return False
+        blocked_signals = (
+            "location",
+            "excluded",
+            "forbidden",
+            "obvious junk",
+            "condition",
+            "parts",
+            "repair",
+            "broken",
+            "not working",
+        )
+        return not any(signal in reasons for signal in blocked_signals)
+
+    @staticmethod
+    def _value_resale_score(
+        score: dict[str, Any],
+        value_candidate: dict[str, Any],
+    ) -> dict[str, Any]:
+        value_context = value_candidate["value_context"]
+        value_score = int(float(value_context.get("value_score") or 0.0))
+        product = value_candidate.get("tracked_product") or {}
+        reason = (
+            "Potential buy/resell candidate: listing is under the tracked product "
+            f"used-market median for {product.get('canonical_key') or 'the matched product'}"
+        )
+        return {
+            **score,
+            "eligibility": "pass",
+            "score": max(int(score.get("score") or 0), min(84, value_score)),
+            "decision_band": (
+                score.get("decision_band")
+                if score.get("decision_band") in {"candidate", "strong_match"}
+                else "candidate"
+            ),
+            "reasons_for": [*list(score.get("reasons_for") or []), reason],
+            "reasons_against": [
+                *list(score.get("reasons_against") or []),
+                "Explicit mission fit still requires manual review",
+            ],
+            "confidence": max(float(score.get("confidence") or 0.0), 0.65),
+        }
+
+    @staticmethod
+    def _value_resale_metadata(value_candidate: dict[str, Any]) -> dict[str, Any]:
+        product = value_candidate.get("tracked_product") or {}
+        value_context = value_candidate.get("value_context") or {}
+        return {
+            "flag": "value_resale_candidate",
+            "value_source": value_candidate.get("value_source"),
+            "tracked_product_id": product.get("tracked_product_id"),
+            "tracked_product_name": product.get("canonical_key"),
+            "benchmark_snapshot_id": value_context.get("benchmark_snapshot_id"),
+            "value_score": value_context.get("value_score"),
+            "value_label": value_context.get("value_label"),
+            "value_confidence": value_context.get("value_confidence"),
+            "used_median": value_context.get("used_median"),
+            "fair_low": value_context.get("fair_low"),
+            "fair_high": value_context.get("fair_high"),
+            "variant_match_confidence": value_context.get("variant_match_confidence"),
+        }
+
+    def _persist_value_resale_assessment(
+        self,
+        match_record: dict[str, Any],
+        value_candidate: dict[str, Any],
+        *,
+        log: Callable[[str], None] | None,
+    ) -> None:
+        product = value_candidate.get("tracked_product")
+        if not isinstance(product, dict):
+            return
+        try:
+            self._price_service().upsert_match_value_assessment(
+                match=match_record,
+                tracked_product=product,
+                snapshot=(
+                    value_candidate.get("benchmark_snapshot")
+                    if isinstance(value_candidate.get("benchmark_snapshot"), dict)
+                    else None
+                ),
+                context={
+                    "value_source": "resale_candidate_benchmark",
+                    "resale_candidate": True,
+                    "matched_resale_tracked_product_id": product.get(
+                        "tracked_product_id"
+                    ),
+                    "matched_resale_product_name": product.get("canonical_key"),
+                    "candidate_match_confidence": (
+                        value_candidate.get("value_context") or {}
+                    ).get("variant_match_confidence"),
+                    "requirement_fit_label": "resale_review",
+                    "requirement_explanation": (
+                        "Listing was saved because it appears under-market for a "
+                        "tracked product, even though explicit mission fit may need "
+                        "manual review."
+                    ),
+                },
+            )
+        except Exception as exc:
+            if log:
+                log(f"      value assessment persistence failed: {exc}")
 
     async def _collect_cards_for_query(
         self,

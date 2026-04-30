@@ -507,6 +507,92 @@ def test_requirement_mission_uses_matched_candidate_for_value_context(
     assert mismatch_context["benchmark_snapshot_id"] != wrong_snapshot["snapshot_id"]
 
 
+def test_requirement_match_value_context_honors_resale_candidate_metadata(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    fake_service = _fake_service(tmp_path)
+    mission_service = MarketplaceMissionService(fake_service.state_store)
+    price_service = MarketplacePriceIntelligenceService(fake_service.state_store)
+    monkeypatch.setattr(
+        "app.routes.cockpit_api._ensure_marketplace_scan_scheduler",
+        lambda service: None,
+    )
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+    product = price_service.create_tracked_product(
+        {
+            "category": "gpu",
+            "brand": "NVIDIA",
+            "model_family": "RTX 4070",
+            "variant": "Super 12GB",
+            "aliases": ["RTX 4070 Super", "4070 Super 12GB"],
+        }
+    )
+    for idx, price in enumerate([650, 700, 750, 800, 850]):
+        price_service.ingest_observation(
+            {
+                "tracked_product_id": product["tracked_product_id"],
+                "source": "facebook",
+                "observed_at": f"2026-04-2{idx}T10:00:00+00:00",
+                "source_listing_id": f"resale-api-{idx}",
+                "title": f"RTX 4070 Super 12GB listing {idx}",
+                "price": price,
+                "review_state": "accepted",
+            }
+        )
+    snapshot = price_service.rebuild_benchmark_snapshot(product["tracked_product_id"])
+    mission = mission_service.create_mission(
+        {
+            "name": "Inference GPU",
+            "brief": "Need a 24GB GPU for local inference under $1000 in Melbourne.",
+            "category_hint": "gpu",
+            "hard_filters": {"location_names": ["Melbourne"], "price_max": 1000},
+        }
+    )
+    match = mission_service.upsert_match(
+        {
+            "mission_id": mission["mission_id"],
+            "listing_id": "rtx-4070-resale",
+            "listing_url": "https://www.facebook.com/marketplace/item/rtx-4070-resale/",
+            "title": "NVIDIA RTX 4070 Super 12GB",
+            "price": "$550",
+            "price_value": 550,
+            "captured_at": "2026-04-22T02:00:00Z",
+            "score": 80,
+            "decision_band": "candidate",
+            "reasons_for": ["Potential buy/resell candidate"],
+            "reasons_against": ["Explicit mission fit still requires manual review"],
+            "raw_text_snapshot": "Used RTX 4070 Super 12GB working condition.",
+            "metadata": {
+                "value_resale_candidate": {
+                    "flag": "value_resale_candidate",
+                    "tracked_product_id": product["tracked_product_id"],
+                    "benchmark_snapshot_id": snapshot["snapshot_id"],
+                    "variant_match_confidence": 1.0,
+                },
+            },
+        }
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    response = TestClient(app).get(
+        f"/api/cockpit/marketplace/matches/{match['match_id']}"
+    )
+
+    assert response.status_code == 200
+    value_context = response.json()["value_context"]
+    assert value_context["state"] == "scored"
+    assert value_context["value_source"] == "resale_candidate_benchmark"
+    assert value_context["resale_candidate"] is True
+    assert value_context["matched_resale_tracked_product_id"] == product["tracked_product_id"]
+    assert value_context["benchmark_snapshot_id"] == snapshot["snapshot_id"]
+    assert value_context["used_median"] == 750
+    assert value_context["value_label"] == "excellent"
+
+
 def test_marketplace_scan_trigger_allows_ready_health_without_login_state(tmp_path, monkeypatch) -> None:
     fake_service = _fake_service(tmp_path)
     monkeypatch.setattr(

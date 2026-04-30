@@ -471,6 +471,124 @@ def test_requirement_scanner_reports_rejection_counters(
     )
 
 
+def test_requirement_scanner_flags_under_market_resale_candidate(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    mission_service, price_service = _state_services(tmp_path)
+    resale_product = price_service.create_tracked_product(
+        {
+            "category": "gpu",
+            "brand": "NVIDIA",
+            "model_family": "RTX 4070",
+            "variant": "Super 12GB",
+            "aliases": ["RTX 4070 Super", "4070 Super 12GB"],
+        }
+    )
+    for idx, price in enumerate([1500, 1700, 1800, 1900, 2000]):
+        price_service.ingest_observation(
+            {
+                "tracked_product_id": resale_product["tracked_product_id"],
+                "source": "facebook",
+                "observed_at": f"2026-04-2{idx}T10:00:00+00:00",
+                "source_listing_id": f"rtx-4070-market-{idx}",
+                "title": f"RTX 4070 Super 12GB listing {idx}",
+                "price": price,
+                "review_state": "accepted",
+            }
+        )
+    snapshot = price_service.rebuild_benchmark_snapshot(
+        resale_product["tracked_product_id"]
+    )
+    mission = mission_service.create_mission(
+        {
+            "name": "Inference GPU",
+            "brief": "Need a 24GB GPU for local inference under $1000 in Melbourne.",
+            "category_hint": "gpu",
+            "hard_filters": {"location_names": ["Melbourne"], "price_max": 1000},
+            "search_config": {"max_queries_per_run": 1},
+            "scan_config": {
+                "candidate_threshold": 70,
+                "strong_match_threshold": 85,
+                "detail_open_target": 1,
+                "candidate_card_target": 1,
+                "run_time_budget_minutes": 20,
+            },
+        }
+    )
+
+    async def fake_collect(self, **kwargs):
+        return [
+            {
+                "listing_id": "resale",
+                "listing_url": "https://www.facebook.com/marketplace/item/resale/",
+                "title": "NVIDIA RTX 4070 Super 12GB",
+                "price": "$1250",
+                "location": "Melbourne",
+                "text_fragments": ["NVIDIA RTX 4070 Super 12GB", "$1250", "Melbourne"],
+            }
+        ]
+
+    inspected_urls: list[str] = []
+
+    async def fake_inspect(self, **kwargs):
+        inspected_urls.append(kwargs["listing_url"])
+        return {
+            "listing_id": "resale",
+            "listing_url": "https://www.facebook.com/marketplace/item/resale/",
+            "captured_at": "2026-04-29T00:00:00Z",
+            "title": "NVIDIA RTX 4070 Super 12GB",
+            "price": "$1250",
+            "seller_name": "Seller",
+            "location": "Melbourne",
+            "description": "Used RTX 4070 Super 12GB working condition.",
+            "raw_text_lines": ["Used RTX 4070 Super 12GB working condition."],
+            "raw_text_snapshot": "Used RTX 4070 Super 12GB working condition.",
+            "screenshot_path": "/tmp/resale.png",
+            "listing_media": [],
+        }
+
+    monkeypatch.setattr(scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect)
+    monkeypatch.setattr(scanner.MarketplaceScanner, "_inspect_listing_detail", fake_inspect)
+
+    marketplace_scanner = scanner.MarketplaceScanner(
+        mission_service,
+        price_service=price_service,
+    )
+    result = asyncio.run(
+        marketplace_scanner._scan_mission(
+            context=_FakeContext(),
+            mission=mission,
+            log=None,
+            cancel_requested=None,
+        )
+    )
+
+    matches = mission_service.list_matches(mission_id=mission["mission_id"])
+    assert result["matches_saved"] == 1
+    assert result["alerts_created"] == 1
+    assert result["rejected_by_requirement_fit"] == 0
+    assert result["rejected_by_candidate_mismatch"] == 0
+    assert inspected_urls == ["https://www.facebook.com/marketplace/item/resale/"]
+    assert matches[0]["listing_id"] == "resale"
+    assert matches[0]["price_value"] == 1250
+    assert matches[0]["decision_band"] == "candidate"
+    assert any("buy/resell candidate" in reason for reason in matches[0]["reasons_for"])
+    resale_metadata = matches[0]["metadata"]["value_resale_candidate"]
+    assert resale_metadata["flag"] == "value_resale_candidate"
+    assert resale_metadata["tracked_product_id"] == resale_product["tracked_product_id"]
+    assert resale_metadata["benchmark_snapshot_id"] == snapshot["snapshot_id"]
+    assert resale_metadata["used_median"] == 1800
+    seen = mission_service.get_seen_listing(mission["mission_id"], "resale")
+    assert seen["last_status"] == "value_resale_candidate"
+    alerts = mission_service.list_alerts(mission_id=mission["mission_id"])
+    assert alerts[0]["trigger_reason"] == "value_resale_candidate"
+    value = price_service.get_match_value_assessment(matches[0]["match_id"])
+    assert value["resale_candidate"] is True
+    assert value["value_source"] == "resale_candidate_benchmark"
+    assert value["value_label"] == "excellent"
+
+
 def test_requirement_scanner_records_detail_inspection_failures(
     tmp_path: Path,
     monkeypatch,
