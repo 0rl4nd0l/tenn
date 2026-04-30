@@ -292,6 +292,35 @@ def test_agent_format_get_price_uses_nested_symbol_for_source_identity() -> None
     assert "Provider: yahoo" in str(sources[0]["snippet"])
 
 
+def test_agent_format_get_price_skips_failed_nested_price_payload() -> None:
+    sources = _build_ui_sources(
+        [
+            {
+                "tool": "get_price",
+                "result": {
+                    "ok": False,
+                    "ticker": "XJO",
+                    "price": {
+                        "ok": False,
+                        "ticker": "XJO",
+                        "range": "1d",
+                        "interval": "1d",
+                        "error": "market price provider returned HTTP 404",
+                    },
+                    "price_state": {
+                        "ok": False,
+                        "ticker": "XJO",
+                        "last_close": None,
+                        "error": "market price provider returned HTTP 404",
+                    },
+                },
+            }
+        ]
+    )
+
+    assert sources == []
+
+
 def test_agent_format_gather_local_context() -> None:
     sources = _build_ui_sources(
         [

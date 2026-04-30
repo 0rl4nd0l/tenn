@@ -1745,15 +1745,32 @@ class ChatController:
             else []
         )
         if not hits:
+            preview = normalize_action_preview(
+                {
+                    "tool": "run_news_ingest",
+                    "arguments": {"since_hours": 24, "tickers": ticker},
+                    "requires_confirmation": True,
+                    "explanation": f"Populate the indexed news corpus for {ticker}.",
+                }
+            )
             return ChatResponse(
-                text=f"I couldn't find recent indexed news for {ticker}.",
+                text=(
+                    f"I couldn't find recent indexed news for {ticker}. That is not evidence "
+                    "there is no news; the news corpus may be stale or missing this ticker. "
+                    "I can run a ticker-scoped news ingest. Use /confirm to execute."
+                ),
                 evidence=[
                     {
                         "type": "news_search",
-                        "details": {"ticker": ticker, "hits": []},
+                        "details": {
+                            "ticker": ticker,
+                            "hits": [],
+                            "data_insufficient": True,
+                        },
                     }
                 ],
-                mode=ResponseMode.FAST,
+                action_preview=preview,
+                mode=ResponseMode.ACTION,
             )
 
         lines = [f"Recent {ticker}-linked news:"]

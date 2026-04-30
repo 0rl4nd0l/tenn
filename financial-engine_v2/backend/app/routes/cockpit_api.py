@@ -2157,6 +2157,17 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                         )
                 elif tool_name == "get_price":
                     price = result.get("price") if isinstance(result.get("price"), dict) else {}
+                    price_state = (
+                        result.get("price_state")
+                        if isinstance(result.get("price_state"), dict)
+                        else {}
+                    )
+                    if (
+                        result.get("ok") is False
+                        or price.get("ok") is False
+                        or price_state.get("ok") is False
+                    ):
+                        continue
                     current = price.get("current") if isinstance(price.get("current"), dict) else {}
                     raw_symbol = str(price.get("symbol") or "").strip().upper()
                     ticker = str(
@@ -2183,6 +2194,8 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                         kind="context",
                     )
                 elif tool_name == "get_price_on_date":
+                    if result.get("ok") is False:
+                        continue
                     _append_source_item(
                         items,
                         seen,
@@ -2203,6 +2216,8 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                         kind="context",
                     )
                 elif tool_name == "get_price_range":
+                    if result.get("ok") is False:
+                        continue
                     _append_source_item(
                         items,
                         seen,

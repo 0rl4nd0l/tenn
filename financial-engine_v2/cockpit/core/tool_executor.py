@@ -214,7 +214,21 @@ class ToolExecutor:
         if isinstance(price, dict):
             price.setdefault("range", range_)
             price.setdefault("interval", interval)
-        return {"ok": True, **result, "ticker": ticker}
+        price_state = result.get("price_state") if isinstance(result, dict) else {}
+        error = ""
+        if isinstance(price, dict) and price.get("ok") is False:
+            error = str(price.get("error") or "").strip()
+        if not error and isinstance(price_state, dict) and price_state.get("ok") is False:
+            error = str(price_state.get("error") or "").strip()
+        if not error and isinstance(result, dict) and result.get("error"):
+            error = str(result.get("error") or "").strip()
+        ok = not bool(error)
+        return {
+            "ok": ok,
+            **result,
+            "ticker": ticker,
+            **({"error": error or "price lookup failed"} if not ok else {}),
+        }
 
     def _exec_get_price_on_date(self, args: dict[str, Any]) -> dict[str, Any]:
         ticker = str(args.get("ticker", "")).strip().upper()
@@ -367,7 +381,14 @@ class ToolExecutor:
             )
 
             if likely_unpopulated_news_db:
-                suggestion_json = '{"tool": "run_news_ingest", "since_hours": 24}'
+                suggestion_args: dict[str, Any] = {"since_hours": 24}
+                if ticker:
+                    suggestion_args["tickers"] = ticker
+                suggestion_json = (
+                    '{"tool": "run_news_ingest", "since_hours": 24'
+                    + (f', "tickers": "{ticker}"' if ticker else "")
+                    + "}"
+                )
                 enriched = {
                     **result,
                     "ok": False,
@@ -379,7 +400,7 @@ class ToolExecutor:
                     ),
                     "recommended_tool_call": {
                         "tool": "run_news_ingest",
-                        "arguments": {"since_hours": 24},
+                        "arguments": suggestion_args,
                         "requires_confirmation": True,
                     },
                 }
@@ -390,7 +411,10 @@ class ToolExecutor:
             # For a named ticker with zero hits, zero results almost certainly
             # means stale or missing data — not confirmed absence of news.
             if ticker and not likely_unpopulated_news_db:
-                suggestion_json = f'{{"tool": "run_news_ingest", "since_hours": 24}}'
+                suggestion_json = (
+                    f'{{"tool": "run_news_ingest", "since_hours": 24, '
+                    f'"tickers": "{ticker}"}}'
+                )
                 enriched = {
                     **result,
                     "ok": False,
@@ -404,7 +428,7 @@ class ToolExecutor:
                     ),
                     "recommended_tool_call": {
                         "tool": "run_news_ingest",
-                        "arguments": {"since_hours": 24},
+                        "arguments": {"since_hours": 24, "tickers": ticker},
                         "requires_confirmation": True,
                     },
                 }

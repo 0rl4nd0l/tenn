@@ -1412,10 +1412,15 @@ class AgentLoop:
             if tool not in _GROUNDING_TOOL_NAMES:
                 continue
             result = entry.get("result")
+            if isinstance(result, dict) and result.get("ok") is False:
+                continue
             if isinstance(result, dict) and result.get("error"):
                 continue
             if isinstance(result, dict) and result.get("data_insufficient"):
                 continue
+            if tool in {"get_price", "get_price_on_date", "get_price_range"}:
+                if not _price_result_has_observations(tool, result):
+                    continue
             return True
         return False
 
@@ -1460,7 +1465,7 @@ class AgentLoop:
                 continue
 
             if tool in {"get_price", "get_price_on_date", "get_price_range"}:
-                if bool(result.get("ok", True)):
+                if _price_result_has_observations(tool, result):
                     return True
                 continue
 
@@ -1718,6 +1723,41 @@ def _summarize_price_payload(price: Any) -> str:
         if value not in (None, ""):
             parts.append(f"{label}={_fmt_scalar(value)}")
     return ", ".join(parts) if parts else "no current price returned"
+
+
+def _price_result_has_observations(tool: str, result: Any) -> bool:
+    if not isinstance(result, dict) or result.get("ok") is False or result.get("error"):
+        return False
+    if tool == "get_price_on_date":
+        return any(
+            result.get(key) not in (None, "")
+            for key in ("close", "open", "high", "low", "volume")
+        )
+    if tool == "get_price_range":
+        history = result.get("history")
+        if isinstance(history, list) and history:
+            return True
+        try:
+            return int(result.get("data_points") or 0) > 0
+        except (TypeError, ValueError):
+            return False
+
+    price = result.get("price") if isinstance(result.get("price"), dict) else {}
+    price_state = (
+        result.get("price_state") if isinstance(result.get("price_state"), dict) else {}
+    )
+    if price.get("ok") is False or price_state.get("ok") is False:
+        return False
+    if price_state.get("last_close") not in (None, ""):
+        return True
+    current = price.get("current") if isinstance(price.get("current"), dict) else {}
+    if any(current.get(key) not in (None, "") for key in ("price", "close", "last")):
+        return True
+    for key in ("recent_history", "history"):
+        rows = price.get(key)
+        if isinstance(rows, list) and rows:
+            return True
+    return False
 
 
 def _summarize_rows(rows: Any, *, title_key: str, limit: int = 3) -> str:

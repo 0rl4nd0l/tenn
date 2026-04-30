@@ -598,6 +598,43 @@ class TestAgentLoopRegressions:
             ]
         )
 
+    def test_failed_price_payload_is_not_grounding_evidence(self):
+        failed_price = {
+            "tool": "get_price",
+            "result": {
+                "ok": False,
+                "ticker": "XJO",
+                "price": {
+                    "ok": False,
+                    "ticker": "XJO",
+                    "error": "market price provider returned HTTP 404",
+                },
+                "price_state": {
+                    "ok": False,
+                    "ticker": "XJO",
+                    "last_close": None,
+                    "error": "market price provider returned HTTP 404",
+                },
+            },
+        }
+
+        assert not AgentLoop._has_grounding_evidence([failed_price])
+        assert not AgentLoop._has_fresh_grounding_evidence([failed_price])
+
+    def test_price_grounding_requires_observed_price_data(self):
+        assert AgentLoop._has_grounding_evidence(
+            [
+                {
+                    "tool": "get_price",
+                    "result": {
+                        "ok": True,
+                        "ticker": "FGR",
+                        "price": {"current": {"close": 1.23}},
+                    },
+                }
+            ]
+        )
+
     def test_news_evidence_summary_preserves_freshness_warning(self):
         summary = AgentLoop._summarize_evidence(
             [

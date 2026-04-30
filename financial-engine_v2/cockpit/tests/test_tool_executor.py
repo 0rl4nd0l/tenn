@@ -89,6 +89,33 @@ class TestGetPrice:
         assert result["price"]["range"] == "1y"
         assert result["price"]["interval"] == "1d"
 
+    def test_exec_get_price_nested_failure_is_top_level_failure(self) -> None:
+        executor = _make_executor()
+        executor._router.get_price_context_for_window.return_value = {
+            "price": {
+                "ok": False,
+                "ticker": "XJO",
+                "error": "market price provider returned HTTP 404",
+            },
+            "price_state": {
+                "ok": False,
+                "ticker": "XJO",
+                "last_close": None,
+                "error": "market price provider returned HTTP 404",
+            },
+        }
+
+        result = executor.execute(
+            "get_price",
+            {"ticker": "XJO", "range": "1d", "interval": "1d"},
+        )
+
+        assert result["ok"] is False
+        assert result["ticker"] == "XJO"
+        assert result["error"] == "market price provider returned HTTP 404"
+        assert result["price"]["range"] == "1d"
+        assert result["price"]["interval"] == "1d"
+
 
 # ---------------------------------------------------------------------------
 # search_news — freshness_warning on market-wide zero-hit path (Bug 3 extension)

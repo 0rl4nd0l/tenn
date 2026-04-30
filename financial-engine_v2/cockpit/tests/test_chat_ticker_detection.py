@@ -222,8 +222,13 @@ class ChatTickerDetectionTests(unittest.TestCase):
             "news for bhp", prior_ticker=None
         )
 
-        self.assertEqual(response.mode, ResponseMode.FAST)
+        self.assertEqual(response.mode, ResponseMode.ACTION)
         self.assertIn("couldn't find recent indexed news for BHP", response.text)
+        self.assertIn("not evidence there is no news", response.text)
+        self.assertIsNotNone(response.action_preview)
+        assert response.action_preview is not None
+        self.assertEqual(response.action_preview["action_id"], "daily_news_ingest")
+        self.assertEqual(response.action_preview["args"]["tickers"], "BHP")
 
     def test_recent_update_query_summarises_available_context_before_backfill_offer(
         self,

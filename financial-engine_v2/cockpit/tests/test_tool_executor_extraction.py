@@ -197,6 +197,7 @@ class TestSearchNewsTickerInference:
         assert result["ok"] is False
         assert result["data_insufficient"] is True
         assert result["recommended_tool_call"]["tool"] == "run_news_ingest"
+        assert result["recommended_tool_call"]["arguments"]["tickers"] == "BHP"
         executor._router.get_news_context.assert_called_once_with(
             query="bhp news",
             top_k=5,
@@ -231,6 +232,7 @@ class TestSearchNewsTickerInference:
         assert "run_news_ingest" in result["suggestion"]
         assert result["recommended_tool_call"]["tool"] == "run_news_ingest"
         assert result["recommended_tool_call"]["arguments"]["since_hours"] == 24
+        assert result["recommended_tool_call"]["arguments"]["tickers"] == "BHP"
         assert result["recommended_tool_call"]["requires_confirmation"] is True
 
     def test_search_news_does_not_suggest_population_when_hits_exist(self):
@@ -299,7 +301,8 @@ class TestSearchNewsTickerInference:
 
         result = executor.execute("search_news", {"query": "ASX news today", "limit": 5})
 
-        assert result["ok"] is True
+        assert result["ok"] is False
+        assert result["data_insufficient"] is True
         assert "freshness_warning" in result
         assert "historical context" in result["freshness_warning"]
         assert "2026-04-07" in result["freshness_warning"]
