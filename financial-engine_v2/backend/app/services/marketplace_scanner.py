@@ -497,7 +497,8 @@ class MarketplaceScanner:
                 break
 
             if log:
-                log(f"  query: {query} (location={primary_location})")
+                radius_suffix = f", radius={radius_km}km" if radius_km is not None else ""
+                log(f"  query: {query} (location={primary_location}{radius_suffix})")
             page = await context.new_page()
             try:
                 page.set_default_timeout(self.timeout_ms)
