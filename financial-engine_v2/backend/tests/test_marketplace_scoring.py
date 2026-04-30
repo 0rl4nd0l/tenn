@@ -129,6 +129,21 @@ def test_prefilter_requirement_card_keeps_obvious_junk_rejected() -> None:
     assert result["prefilter_reasons"][0].startswith("Rejected by obvious junk")
 
 
+def test_prefilter_requirement_card_rejects_swapping_junk() -> None:
+    result = prefilter_marketplace_card(
+        {
+            "title": "Free swapping 5070 for 5080",
+            "price": None,
+            "location": "Melbourne, VIC",
+            "text_fragments": ["Free swapping 5070 for 5080 Melbourne, VIC"],
+        },
+        _requirement_gpu_mission(),
+    )
+
+    assert result["prefilter_decision"] == "reject"
+    assert result["prefilter_reasons"] == ["Rejected by obvious junk: swap/trade"]
+
+
 def test_prefilter_exact_product_still_rejects_outside_location() -> None:
     result = prefilter_marketplace_card(
         {

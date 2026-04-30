@@ -11,7 +11,7 @@ _JUNK_TERMS = {"parts", "repair", "wreck", "damaged", "spares", "not working"}
 _NEGOTIABLE_TERMS = {"negotiable", "ono", "obo"}
 _OBVIOUS_JUNK_PATTERNS: tuple[tuple[str, str], ...] = (
     ("wanted/WTB", r"\b(wanted|wtb|want to buy|looking for)\b"),
-    ("swap/trade", r"\b(swap only|trade only|swap|trade for)\b"),
+    ("swap/trade", r"\b(swap only|trade only|swap|swapping|trade for)\b"),
     (
         "broken/parts",
         r"\b(broken|faulty|for parts|parts only|not working|dead gpu|dead cpu|repair)\b",

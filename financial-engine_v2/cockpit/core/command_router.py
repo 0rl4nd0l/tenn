@@ -321,7 +321,7 @@ def route_command(
 
 
 _YOUTUBE_SELECTION_TOKEN_RE = re.compile(
-    r"#?\d+|first|second|third|fourth|fifth|sixth|seventh|eighth|last",
+    r"\#?\d+|first|second|third|fourth|fifth|sixth|seventh|eighth|last",
     re.IGNORECASE,
 )
 _YOUTUBE_SELECTION_RE = re.compile(
@@ -335,12 +335,12 @@ _YOUTUBE_SELECTION_RE = re.compile(
         all
         |
         (?:
-            #?\d+|first|second|third|fourth|fifth|sixth|seventh|eighth|last
+            \#?\d+|first|second|third|fourth|fifth|sixth|seventh|eighth|last
         )
         (?:
             \s*(?:,|and)\s*
             (?:
-                #?\d+|first|second|third|fourth|fifth|sixth|seventh|eighth|last
+                \#?\d+|first|second|third|fourth|fifth|sixth|seventh|eighth|last
             )
         )*
     )
