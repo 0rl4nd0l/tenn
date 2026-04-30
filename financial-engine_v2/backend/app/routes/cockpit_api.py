@@ -1582,6 +1582,30 @@ def _build_ui_sources(evidence: list[dict[str, Any]] | None) -> list[dict[str, A
                         kind="web",
                     )
 
+            price_query = details.get("price_query")
+            if isinstance(price_query, dict):
+                ticker = str(price_query.get("ticker") or "").strip().upper()
+                kind_label = str(price_query.get("kind") or "price").strip()
+                date_text = str(price_query.get("date") or "").strip()
+                close_value = price_query.get("close")
+                bits: list[str] = []
+                if close_value not in (None, ""):
+                    bits.append(f"close: {close_value}")
+                if date_text:
+                    bits.append(f"date: {date_text}")
+                _append_source_item(
+                    items,
+                    seen,
+                    {
+                        "title": f"{ticker or 'Ticker'} {kind_label} price",
+                        "source_id": f"price_query:{ticker or 'unknown'}:{date_text or kind_label}",
+                        "snippet": "; ".join(bits) if bits else None,
+                        "published_at": date_text or None,
+                    },
+                    default_title="Price query",
+                    kind="context",
+                )
+
         elif ev_type == "company_dump":
             backend = details.get("backend") if isinstance(details.get("backend"), dict) else {}
             for row in backend.get("docs", []) if isinstance(backend.get("docs"), list) else []:

@@ -892,6 +892,15 @@ def test_marketplace_benchmark_refresh_and_overlay(tmp_path, monkeypatch) -> Non
     assert benchmark["wording"] == "new retail benchmark"
     assert benchmark["matched_product"]
     assert isinstance(benchmark["confidence"], float)
+    second_match_response = client.get(f"/api/cockpit/marketplace/matches/{match['match_id']}")
+    assert second_match_response.status_code == 200
+    assert (
+        fake_service.state_store.conn.execute(
+            "SELECT COUNT(*) FROM listing_benchmark_scores WHERE match_id = ?",
+            (match["match_id"],),
+        ).fetchone()[0]
+        == 0
+    )
 
 
 def test_marketplace_low_confidence_match_requires_manual_review(tmp_path, monkeypatch) -> None:

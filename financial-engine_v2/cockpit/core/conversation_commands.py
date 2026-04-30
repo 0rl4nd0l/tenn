@@ -274,10 +274,17 @@ def _(_m, _msg):
     return "/market-update final"
 
 
+@_rule(r"^\s*(?:the\s+)?market\s+updat(?:e|er)\s*[?!.]*\s*$")
+def _(_m, _msg):
+    # Bare conversational requests should show the latest cached report quickly.
+    # Explicit fresh-run phrases ("run", "daily", "today", "final") keep using
+    # the run-type routes above/below.
+    return "/market-update latest"
+
+
 @_rule(r"\b(?:run\s+)?(?:a\s+|the\s+)?market\s+updat(?:e|er)\b")
 def _(_m, _msg):
-    # Bare conversational requests ("market update?", "run market update")
-    # should run a fresh final update, not only echo the latest cached report.
+    # Explicit run phrasing should run a fresh final update.
     return "/market-update final"
 
 
