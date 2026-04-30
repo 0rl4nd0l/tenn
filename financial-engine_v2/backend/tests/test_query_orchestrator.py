@@ -582,3 +582,59 @@ def test_company_analysis_abstains_after_recovery_when_blockers_remain() -> None
     assert result.sufficient_for_analysis is False
     assert "Final verdict: abstain" in result.answer_input
     assert "financials" in result.missing_categories_after_recovery
+
+
+def test_company_analysis_keeps_announcement_context_when_financial_rows_missing() -> None:
+    class FinancialTruthProvider:
+        def retrieve(self, *, query, entities, intent):
+            return {
+                "status": "ok",
+                "ticker": entities.get("primary_ticker"),
+                "financials": [],
+                "latest_financial_snapshot": {},
+                "docs": [
+                    {
+                        "title": "Sale of Wealth Management business",
+                        "published_at": "2999-01-01T00:00:00+00:00",
+                    }
+                ],
+                "announcement_context": [
+                    {
+                        "title": "Sale of Wealth Management business",
+                        "published_at": "2999-01-01T00:00:00+00:00",
+                        "source_url": "https://example.com/ppt-sale.pdf",
+                        "excerpt": (
+                            "Perpetual announces it has entered into a binding "
+                            "agreement to sell its wealth management business."
+                        ),
+                    }
+                ],
+                "extraction_failures": [],
+                "low_confidence_financials": [],
+            }
+
+    class EmptyProvider:
+        def retrieve(self, *, query, entities, intent):
+            return {
+                "status": "ok",
+                "items": [],
+                "sector_items": [],
+                "macro_items": [],
+            }
+
+    result = QueryOrchestrator(
+        financial_truth_provider=FinancialTruthProvider(),
+        company_memory_provider=EmptyProvider(),
+        market_memory_provider=EmptyProvider(),
+    ).orchestrate_query_with_context(
+        "Analyse PPT",
+        context={"request_standard": "company_analysis", "analysis_mode": "deep"},
+    )
+
+    assert result.sufficient_for_analysis is False
+    assert "financials" in result.missing_categories_after_recovery
+    assert "business_profile_context" not in result.missing_categories_after_recovery
+    assert "business/profile context" in result.answer_input
+    assert "Available announcement/news context from financial truth:" in result.answer_input
+    assert "Sale of Wealth Management business" in result.answer_input
+    assert "binding agreement to sell its wealth management business" in result.answer_input

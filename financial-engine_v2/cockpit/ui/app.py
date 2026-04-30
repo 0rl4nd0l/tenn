@@ -22,6 +22,7 @@ from cockpit.core.actions import ActionRegistry
 from cockpit.core.backend_restart import restart_backend
 from cockpit.core.chat import ChatController
 from cockpit.core.job_runner import JobRunner
+from cockpit.core.financial_truth_helpers import split_financial_truth_errors
 from cockpit.core.plotly_html import (
     build_candlestick_dashboard_html,
     build_snapshot_dashboard_html,
@@ -127,7 +128,7 @@ class _BackendFinancialTruthProvider:
                 "intent": intent,
             }
 
-        errors = payload.get("errors") or []
+        errors, warnings = split_financial_truth_errors(payload)
         status = "partial_error" if errors else "ok"
         return {
             "source": "financial_truth",
@@ -141,6 +142,7 @@ class _BackendFinancialTruthProvider:
             "extraction_failures": payload.get("extraction_failures") or [],
             "low_confidence_financials": payload.get("low_confidence_financials") or [],
             "errors": errors,
+            "warnings": warnings,
             "query": query,
             "intent": intent,
         }

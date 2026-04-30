@@ -6168,14 +6168,21 @@ class ChatController:
                 attached_bundle=attached_bundle,
             )
 
-        command_route = route_command(
-            effective_message,
-            active_ticker=prior_ticker or self.last_ticker,
-            recent_youtube_channel=self._recent_youtube_channel_from_context(),
-            recent_youtube_videos=self._recent_youtube_video_options_from_context(),
+        command_route = (
+            CommandRoute(matched=False)
+            if forced_backend
+            else route_command(
+                effective_message,
+                active_ticker=prior_ticker or self.last_ticker,
+                recent_youtube_channel=self._recent_youtube_channel_from_context(),
+                recent_youtube_videos=self._recent_youtube_video_options_from_context(),
+            )
         )
         command_response = self._build_command_route_response(command_route)
-        if command_response is not None:
+        command_is_analysis_fallback = (
+            self._query_orchestrator is not None and command_route.tool == "run_analysis"
+        )
+        if command_response is not None and not command_is_analysis_fallback:
             return command_response
 
         market_update_followup = self._try_market_update_followup(effective_message)

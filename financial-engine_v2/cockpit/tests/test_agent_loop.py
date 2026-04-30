@@ -736,3 +736,27 @@ class TestAgentLoopRegressions:
         assert "financial_rows=0" in summary
         assert "previous_close=6.11" in summary
         assert "Pilbara described production" in summary
+
+    def test_financial_truth_summary_preserves_announcement_context_without_rows(self):
+        summary = AgentLoop._summarize_evidence(
+            [
+                {
+                    "tool": "financial_truth",
+                    "result": {
+                        "status": "ok",
+                        "ticker": "PPT",
+                        "financials": [],
+                        "latest_financial_snapshot": {},
+                        "announcement_context": [
+                            {
+                                "title": "Sale of Wealth Management business",
+                                "published_at": "2026-03-16T00:00:00Z",
+                            }
+                        ],
+                    },
+                }
+            ]
+        )
+
+        assert "no canonical financial rows returned" in summary
+        assert "Sale of Wealth Management business" in summary

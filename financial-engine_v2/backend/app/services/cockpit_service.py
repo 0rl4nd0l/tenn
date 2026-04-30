@@ -51,6 +51,7 @@ from cockpit.integrations.qual_context_bootstrap import (
     context_enabled,
 )
 from cockpit.integrations.web_fetcher import WebFetcher
+from cockpit.core.financial_truth_helpers import split_financial_truth_errors
 from cockpit.storage.state import StateStore
 from cockpit.storage.artifacts import ArtifactStore
 
@@ -826,7 +827,7 @@ class _BackendFinancialTruthProvider:
                 "intent": intent,
             }
 
-        errors = payload.get("errors") or []
+        errors, warnings = split_financial_truth_errors(payload)
         status = "partial_error" if errors else "ok"
         return {
             "source": "financial_truth",
@@ -840,6 +841,7 @@ class _BackendFinancialTruthProvider:
             "extraction_failures": payload.get("extraction_failures") or [],
             "low_confidence_financials": payload.get("low_confidence_financials") or [],
             "errors": errors,
+            "warnings": warnings,
             "query": query,
             "intent": intent,
         }

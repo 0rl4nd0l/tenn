@@ -190,6 +190,8 @@ _RECENT_CONTEXT_RE = re.compile(
     flags=re.IGNORECASE,
 )
 _STALE_EVIDENCE_HOURS = 96.0
+_ANNOUNCEMENT_CONTEXT_LIMIT = 3
+_ANNOUNCEMENT_EXCERPT_CHARS = 700
 _CRITICAL_COMPANY_ANALYSIS_BLOCKERS = {
     "financials",
     "business_profile_context",
@@ -471,7 +473,7 @@ def _detect_missing_categories(
 
     has_financial_truth = bool(snapshot) or bool(financial_rows)
     has_announcements = bool(doc_rows) or bool(announcement_rows)
-    has_company_context = bool(company_items)
+    has_company_context = bool(company_items) or bool(announcement_rows)
     has_market_context = bool(merged_market_items)
 
     if company_analysis_request and not has_financial_truth:
@@ -601,13 +603,19 @@ def _is_sufficient_for_company_analysis(
         (financial_truth.get("latest_financial_snapshot") or {})
     ) or bool(financial_truth.get("financials") or [])
     has_company_context = bool((evidence.get("company_memory") or {}).get("items") or [])
+    has_announcement_context = bool(financial_truth.get("announcement_context") or [])
     has_announcements = bool(financial_truth.get("docs") or []) or bool(
-        financial_truth.get("announcement_context") or []
+        has_announcement_context
     )
     has_market_context = bool((evidence.get("market_memory") or {}).get("items") or [])
     if not has_financials:
         return False
-    if not (has_company_context or has_announcements or has_market_context):
+    if not (
+        has_company_context
+        or has_announcement_context
+        or has_announcements
+        or has_market_context
+    ):
         return False
     blocker_set = set(missing_categories)
     if blocker_set & _CRITICAL_COMPANY_ANALYSIS_BLOCKERS:
@@ -643,7 +651,10 @@ def _confirmed_evidence_categories(
         financial_truth.get("financials") or []
     ):
         categories.append("financial truth")
-    if bool((evidence.get("company_memory") or {}).get("items") or []):
+    has_announcement_context = bool(financial_truth.get("announcement_context") or [])
+    if bool((evidence.get("company_memory") or {}).get("items") or []) or (
+        has_announcement_context
+    ):
         categories.append("business/profile context")
     if bool((evidence.get("market_memory") or {}).get("items") or []):
         categories.append("market context")
@@ -738,6 +749,7 @@ def build_answer_input(
         for item in (answer.get("missing_categories_after_recovery") or [])
         if str(item).strip()
     ]
+    financial_truth = evidence.get("financial_truth") or {}
     if recovery.get("attempted"):
         lines.append("Confirmed evidence already present:")
         confirmed = _confirmed_evidence_categories(evidence)
@@ -772,6 +784,7 @@ def build_answer_input(
             lines.append("- unresolved gaps: none")
 
         if not bool(answer.get("sufficient_for_analysis", True)):
+            _append_announcement_context_lines(lines, financial_truth)
             lines.append("Final verdict: abstain until blocking evidence gaps are resolved.")
             lines.append("Unknowns:")
             if missing_after:
@@ -796,6 +809,7 @@ def build_answer_input(
                 lines.append(f"- {category}")
         else:
             lines.append("- unresolved evidence blockers")
+        _append_announcement_context_lines(lines, financial_truth)
         lines.append("Final verdict: abstain until blocking evidence gaps are resolved.")
         lines.append("Unknowns:")
         if missing_after:
@@ -805,7 +819,6 @@ def build_answer_input(
             lines.append("- unresolved evidence blockers")
         return "\n".join(lines)
 
-    financial_truth = evidence.get("financial_truth") or {}
     snapshot = financial_truth.get("latest_financial_snapshot") or {}
     financials = financial_truth.get("financials") or []
     if "financial_truth" in plan.sources:
@@ -837,6 +850,7 @@ def build_answer_input(
                 lines.append("- financial periods available: " + ", ".join(periods))
         if not snapshot and not financials:
             lines.append("- no canonical financial rows were returned")
+        _append_announcement_context_lines(lines, financial_truth)
 
     company_memory = evidence.get("company_memory") or {}
     if "company_memory" in plan.sources:
@@ -987,6 +1001,64 @@ def _format_user_thesis_item(item: dict[str, Any]) -> str:
     signal = str(item.get("signal") or "").strip()
     prefix = f"{label} ({signal})" if signal else label
     return f"{prefix}: {_memory_statement(item)}"
+
+
+def _compact_line(value: Any, *, max_chars: int) -> str:
+    text = re.sub(r"\s+", " ", str(value or "")).strip()
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars].rstrip() + "..."
+
+
+def _select_announcement_context_rows(
+    financial_truth: dict[str, Any],
+    *,
+    limit: int = _ANNOUNCEMENT_CONTEXT_LIMIT,
+) -> list[dict[str, Any]]:
+    rows = financial_truth.get("announcement_context")
+    if not isinstance(rows, list) or limit <= 0:
+        return []
+    selected: list[dict[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        title = str(row.get("title") or "").strip()
+        excerpt = str(row.get("excerpt") or "").strip()
+        if not title and not excerpt:
+            continue
+        selected.append(row)
+        if len(selected) >= limit:
+            break
+    return selected
+
+
+def _append_announcement_context_lines(
+    lines: list[str],
+    financial_truth: dict[str, Any],
+) -> None:
+    rows = _select_announcement_context_rows(financial_truth)
+    if not rows:
+        return
+    lines.append("Available announcement/news context from financial truth:")
+    for row in rows:
+        parts: list[str] = []
+        published_at = _compact_line(row.get("published_at"), max_chars=32)
+        title = _compact_line(row.get("title"), max_chars=120)
+        excerpt = _compact_line(
+            row.get("excerpt"),
+            max_chars=_ANNOUNCEMENT_EXCERPT_CHARS,
+        )
+        if published_at:
+            parts.append(published_at)
+        if title:
+            parts.append(title)
+        line = " | ".join(parts) if parts else "announcement context"
+        if excerpt:
+            line += f": {excerpt}"
+        source_url = _compact_line(row.get("source_url"), max_chars=180)
+        if source_url:
+            line += f" (source: {source_url})"
+        lines.append(f"- {line}")
 
 
 def _uncertainty_notes(

@@ -1684,6 +1684,18 @@ def _summarize_financial_truth(result: dict) -> str:
         periods = [str(row.get("period_end") or "") for row in financials[:2] if row]
         if periods:
             return "periods=" + ", ".join(periods)
+    docs = result.get("docs") if isinstance(result.get("docs"), list) else []
+    announcements = (
+        result.get("announcement_context")
+        if isinstance(result.get("announcement_context"), list)
+        else []
+    )
+    context_rows = [row for row in (announcements or docs)[:3] if isinstance(row, dict)]
+    if context_rows:
+        return (
+            "no canonical financial rows returned; context_sample="
+            + _summarize_rows(context_rows, title_key="title", limit=2)
+        )
     return "no canonical financial rows returned"
 
 
