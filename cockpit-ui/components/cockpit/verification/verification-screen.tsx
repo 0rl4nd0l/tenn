@@ -13,9 +13,11 @@ import {
   getExtractionReviewErrors,
   getExtractionReviewRunStatus,
   getExtractionReviewRuns,
+  getExtractionReviewSessions,
   getExtractionReviewSession,
   getTickerDocuments,
   processDocument,
+  runVerificationContext,
   submitExtractionReviewDecision,
 } from '@/lib/api-client'
 import { useCockpitStore } from '@/lib/cockpit-store'
@@ -26,6 +28,8 @@ import type {
   ExtractionReviewRunStatusResponse,
   ExtractionReviewRunSummary,
   ExtractionReviewSession,
+  ExtractionReviewSessionSummary,
+  VerificationRunHistory,
   VerificationResult,
 } from '@/lib/cockpit-types'
 
@@ -105,7 +109,12 @@ export function VerificationScreen() {
   const [wrongQueue, setWrongQueue] = useState<ExtractionReviewErrorQueue | null>(null)
   const [recentRuns, setRecentRuns] = useState<ExtractionReviewRunSummary[]>([])
   const [recentRunsLoading, setRecentRunsLoading] = useState(false)
+  const [recentRunsError, setRecentRunsError] = useState<string | null>(null)
+  const [recentReviewSessions, setRecentReviewSessions] = useState<ExtractionReviewSessionSummary[]>([])
+  const [recentReviewSessionsLoading, setRecentReviewSessionsLoading] = useState(false)
+  const [recentReviewSessionsError, setRecentReviewSessionsError] = useState<string | null>(null)
   const [selectedRunId, setSelectedRunId] = useState('')
+  const [selectedReviewSessionId, setSelectedReviewSessionId] = useState('')
   const [activeRunIdsByDocumentId, setActiveRunIdsByDocumentId] = useState<Record<string, string>>({})
   const [attachedRunMetadataByDocumentId, setAttachedRunMetadataByDocumentId] = useState<Record<string, ActiveExtractionMonitorRun>>({})
   const [runStatus, setRunStatus] = useState<ExtractionReviewRunStatusResponse | null>(null)
@@ -118,17 +127,12 @@ export function VerificationScreen() {
   const [goldEvalError, setGoldEvalError] = useState<string | null>(null)
   const [goldEval, setGoldEval] = useState<RealGoldEvalResponse | null>(null)
 
-  const [verificationRunHistory, setVerificationRunHistory] = useState<Array<{
-    run_id: string
-    ticker: string
-    timestamp: string
-    passed: boolean
-    outcome_summary: string
-  }>>([])
+  const [verificationRunHistory, setVerificationRunHistory] = useState<VerificationRunHistory[]>([])
   const [verificationHistoryLoading, setVerificationHistoryLoading] = useState(false)
 
   const documentLoadLockRef = useRef(false)
   const recentRunsLoadLockRef = useRef(false)
+  const recentReviewSessionsLoadLockRef = useRef(false)
   const reviewActionLockRef = useRef(false)
   const unavailableRunStatusIdsRef = useRef<Set<string>>(new Set())
   const pendingRunStatusIdsRef = useRef<Set<string>>(new Set())
@@ -179,12 +183,15 @@ export function VerificationScreen() {
       const parsedLimit = Number.parseInt(docsLimit, 10)
       const docs = await getTickerDocuments(cleanTicker, Number.isFinite(parsedLimit) ? parsedLimit : 10)
       const runsPayload = await getExtractionReviewRuns(cleanTicker, 20)
+      const sessionsPayload = await getExtractionReviewSessions(cleanTicker, 20)
       setTicker(cleanTicker)
       setDocuments(docs)
       setRecentRuns(runsPayload.items)
+      setRecentReviewSessions(sessionsPayload.items)
       const defaultDoc = docs[0]?.document_id ?? ''
       setSelectedDocumentId((current) => docs.some((doc) => doc.document_id === current) ? current : defaultDoc)
       setSelectedRunId((current) => runsPayload.items.some((run) => run.run_id === current) ? current : (runsPayload.items[0]?.run_id || ''))
+      setSelectedReviewSessionId((current) => sessionsPayload.items.some((session) => session.session_id === current) ? current : (sessionsPayload.items[0]?.session_id || ''))
       toast.success(`Loaded ${docs.length} document(s) for ${cleanTicker}`)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to load documents'
@@ -204,6 +211,7 @@ export function VerificationScreen() {
     
     recentRunsLoadLockRef.current = true
     setRecentRunsLoading(true)
+    setRecentRunsError(null)
     try {
       // Fetch recent runs (optional ticker filter)
       const payload = await getExtractionReviewRuns(targetTicker, 50)
@@ -217,8 +225,9 @@ export function VerificationScreen() {
       }
     } catch (err: unknown) {
       console.error('Failed to load recent runs:', err)
+      const message = err instanceof Error ? err.message : 'Failed to load recent runs'
+      setRecentRunsError(message)
       if (targetTicker) {
-        const message = err instanceof Error ? err.message : 'Failed to load recent runs'
         setReviewError(message)
         toast.error(message)
       }
@@ -228,11 +237,42 @@ export function VerificationScreen() {
     }
   }, [ticker])
 
+  const handleLoadReviewSessions = useCallback(async (filterTicker?: string) => {
+    if (recentReviewSessionsLoadLockRef.current) return
+
+    const targetTicker = filterTicker !== undefined ? filterTicker : ticker.trim().toUpperCase()
+
+    recentReviewSessionsLoadLockRef.current = true
+    setRecentReviewSessionsLoading(true)
+    setRecentReviewSessionsError(null)
+    try {
+      const payload = await getExtractionReviewSessions(targetTicker, 50)
+      setRecentReviewSessions(payload.items)
+      setSelectedReviewSessionId((current) => (
+        payload.items.some((session) => session.session_id === current)
+          ? current
+          : (payload.items[0]?.session_id || '')
+      ))
+    } catch (err: unknown) {
+      console.error('Failed to load review sessions:', err)
+      const message = err instanceof Error ? err.message : 'Failed to load review sessions'
+      setRecentReviewSessionsError(message)
+      if (targetTicker) {
+        setReviewError(message)
+        toast.error(message)
+      }
+    } finally {
+      recentReviewSessionsLoadLockRef.current = false
+      setRecentReviewSessionsLoading(false)
+    }
+  }, [ticker])
+
   const handleSelectHistoryTicker = useCallback((historyTicker: string) => {
     const cleanTicker = historyTicker.trim().toUpperCase()
     setTicker(cleanTicker)
     void handleLoadDocuments(cleanTicker)
-  }, [handleLoadDocuments])
+    void handleLoadReviewSessions(cleanTicker)
+  }, [handleLoadDocuments, handleLoadReviewSessions])
 
   useEffect(() => {
     setHasHydrated(true)
@@ -504,19 +544,15 @@ export function VerificationScreen() {
     setError(null)
 
     const queryTicker = broad ? '' : ticker.trim()
-    const url = queryTicker
-      ? `/api/context/verification?ticker=${encodeURIComponent(queryTicker)}`
-      : '/api/context/verification'
-
     try {
-      const response = await fetch(url)
-      if (!response.ok) {
-        const text = await response.text().catch(() => '')
-        throw new Error(text || `Verification failed (HTTP ${response.status})`)
-      }
-
-      const data: unknown = await response.json()
+      const data = await runVerificationContext({ ticker: queryTicker || null })
       setResults(mapResponseToResults(data))
+      if (data.run) {
+        setVerificationRunHistory((current) => [
+          data.run!,
+          ...current.filter((run) => run.run_id !== data.run!.run_id),
+        ].slice(0, 10))
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unexpected error during verification'
       setError(message)
@@ -557,12 +593,13 @@ export function VerificationScreen() {
         queuedIds.push(documentId)
         continue
       }
+      if (result.run_id) {
+        runIds.push(result.run_id)
+        continue
+      }
       if (!isReviewableExtractionStatus(extractionStatus)) {
         failedRuns.push(`${documentId.slice(0, 12)}:${extractionStatus || 'unknown'}`)
         continue
-      }
-      if (result.run_id) {
-        runIds.push(result.run_id)
       }
     }
 
@@ -633,8 +670,9 @@ export function VerificationScreen() {
   useEffect(() => {
     // Initial global load for discovery - we pass empty string to ensure global fetch
     void handleLoadRecentRuns('')
+    void handleLoadReviewSessions('')
     void loadWrongQueue()
-  }, [handleLoadRecentRuns, loadWrongQueue])
+  }, [handleLoadRecentRuns, handleLoadReviewSessions, loadWrongQueue])
 
   useEffect(() => {
     setVerificationHistoryLoading(true)
@@ -643,15 +681,7 @@ export function VerificationScreen() {
       .then((data: unknown) => {
         const payload = data as { ok?: boolean; runs?: unknown[] }
         if (payload.ok && Array.isArray(payload.runs)) {
-          setVerificationRunHistory(
-            payload.runs as Array<{
-              run_id: string
-              ticker: string
-              timestamp: string
-              passed: boolean
-              outcome_summary: string
-            }>,
-          )
+          setVerificationRunHistory(payload.runs as VerificationRunHistory[])
         }
       })
       .catch(() => {/* silent — history is best-effort */})
@@ -673,9 +703,11 @@ export function VerificationScreen() {
     try {
       const session = await createExtractionReviewSession({ runIds: [runId] })
       setReviewSession(session)
+      setSelectedReviewSessionId(session.session_id)
       setSelectedReviewItemId(session.items[0]?.item_id ?? null)
       setReviewSessionLoadingMessage(null)
       await loadWrongQueue()
+      void handleLoadReviewSessions(ticker.trim().toUpperCase())
       toast.success(`Loaded historical run ${runId.slice(0, 12)}`)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to inspect selected run'
@@ -686,13 +718,51 @@ export function VerificationScreen() {
       reviewActionLockRef.current = false
       setReviewActionLoading(false)
     }
-  }, [beginReviewSessionSwap, loadWrongQueue, selectedRunId])
+  }, [beginReviewSessionSwap, handleLoadReviewSessions, loadWrongQueue, selectedRunId, ticker])
 
   const handleSelectHistoryRun = useCallback((runId: string) => {
     setSelectedRunId(runId)
     updateTab('runs')
     void handleInspectSelectedRun(runId)
   }, [handleInspectSelectedRun, updateTab])
+
+  const handleInspectSelectedReviewSession = useCallback(async (sessionIdOverride?: string) => {
+    if (reviewActionLockRef.current) return
+    const sessionId = (typeof sessionIdOverride === 'string' ? sessionIdOverride : selectedReviewSessionId).trim()
+    if (!sessionId) {
+      setReviewError('Select a saved review session first.')
+      return
+    }
+
+    reviewActionLockRef.current = true
+    setReviewError(null)
+    setReviewActionLoading(true)
+    beginReviewSessionSwap(`Loading saved review session ${sessionId}...`)
+    try {
+      const session = await getExtractionReviewSession(sessionId)
+      setReviewSession(session)
+      setSelectedReviewSessionId(session.session_id)
+      setSelectedRunId(session.run_ids?.[0] || '')
+      setSelectedReviewItemId(session.items[0]?.item_id ?? null)
+      setReviewSessionLoadingMessage(null)
+      updateTab('review')
+      await loadWrongQueue()
+      toast.success(`Loaded saved review session ${sessionId}`)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load saved review session'
+      setReviewError(message)
+      toast.error(message)
+    } finally {
+      setReviewSessionLoadingMessage(null)
+      reviewActionLockRef.current = false
+      setReviewActionLoading(false)
+    }
+  }, [beginReviewSessionSwap, loadWrongQueue, selectedReviewSessionId, updateTab])
+
+  const handleSelectReviewSessionHistory = useCallback((sessionId: string) => {
+    setSelectedReviewSessionId(sessionId)
+    void handleInspectSelectedReviewSession(sessionId)
+  }, [handleInspectSelectedReviewSession])
 
   const handleSelectRunGroup = useCallback(async (runIds: string[]) => {
     if (runIds.length === 0) return
@@ -706,9 +776,11 @@ export function VerificationScreen() {
     try {
       const session = await createExtractionReviewSession({ runIds })
       setReviewSession(session)
+      setSelectedReviewSessionId(session.session_id)
       setSelectedReviewItemId(session.items[0]?.item_id ?? null)
       setReviewSessionLoadingMessage(null)
       await loadWrongQueue()
+      void handleLoadReviewSessions(ticker.trim().toUpperCase())
       toast.success(`Loaded bundled review session for ${runIds.length} runs`)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to inspect selected group'
@@ -719,7 +791,7 @@ export function VerificationScreen() {
       reviewActionLockRef.current = false
       setReviewActionLoading(false)
     }
-  }, [beginReviewSessionSwap, loadWrongQueue, updateTab])
+  }, [beginReviewSessionSwap, handleLoadReviewSessions, loadWrongQueue, ticker, updateTab])
 
   const handleLoadReview = useCallback(async (documentIds?: string[]) => {
     if (reviewActionLockRef.current) return
@@ -758,10 +830,12 @@ export function VerificationScreen() {
 
       const session = await createExtractionReviewSession({ runIds })
       setReviewSession(session)
+      setSelectedReviewSessionId(session.session_id)
       setSelectedRunId(runIds[0] ?? '')
       setSelectedReviewItemId(session.items[0]?.item_id ?? null)
       setReviewSessionLoadingMessage(null)
       await loadWrongQueue()
+      void handleLoadReviewSessions(ticker.trim().toUpperCase())
 
       if (session.items.length > 0) {
         toast.success(`Loaded ${session.items.length} review item(s)`)
@@ -783,10 +857,12 @@ export function VerificationScreen() {
     activeRunIdsByDocumentId,
     beginReviewSessionSwap,
     loadWrongQueue,
+    handleLoadReviewSessions,
     persistActiveRuns,
     refreshRunStatuses,
     runSelectedDocumentExtractions,
     selectedReviewDocumentIds,
+    ticker,
   ])
 
   const handleInspectResult = useCallback((result: VerificationResult) => {
@@ -887,6 +963,7 @@ export function VerificationScreen() {
     try {
       const session = await getExtractionReviewSession(sessionId)
       setReviewSession(session)
+      setSelectedReviewSessionId(session.session_id)
       setSelectedRunId(session.run_ids?.[0] || '')
       setSelectedReviewItemId(session.items[0]?.item_id ?? null)
       setReviewSessionLoadingMessage(null)
@@ -1138,7 +1215,12 @@ export function VerificationScreen() {
                   wrongQueue={wrongQueue}
                   recentRuns={recentRuns}
                   recentRunsLoading={recentRunsLoading}
+                  recentRunsError={recentRunsError}
+                  recentReviewSessions={recentReviewSessions}
+                  recentReviewSessionsLoading={recentReviewSessionsLoading}
+                  recentReviewSessionsError={recentReviewSessionsError}
                   selectedRunId={selectedRunId}
+                  selectedReviewSessionId={selectedReviewSessionId}
                   selectedDocumentId={selectedDocumentId}
                   selectedReviewDocumentIds={selectedReviewDocumentIds}
                   currentReviewItem={currentReviewItem}
@@ -1164,6 +1246,9 @@ export function VerificationScreen() {
                   onSelectedRunIdChange={setSelectedRunId}
                   onLoadRecentRuns={() => void handleLoadRecentRuns()}
                   onInspectSelectedRun={() => void handleInspectSelectedRun()}
+                  onSelectedReviewSessionIdChange={setSelectedReviewSessionId}
+                  onLoadReviewSessions={() => void handleLoadReviewSessions()}
+                  onInspectSelectedReviewSession={() => void handleInspectSelectedReviewSession()}
                   onSelectedDocumentIdChange={setSelectedDocumentId}
                   onMoveReviewSelection={moveReviewSelection}
                   onSelectedReviewItemIdChange={setSelectedReviewItemId}
@@ -1205,7 +1290,12 @@ export function VerificationScreen() {
                       wrongQueue={wrongQueue}
                       recentRuns={recentRuns}
                       recentRunsLoading={recentRunsLoading}
+                      recentRunsError={recentRunsError}
+                      recentReviewSessions={recentReviewSessions}
+                      recentReviewSessionsLoading={recentReviewSessionsLoading}
+                      recentReviewSessionsError={recentReviewSessionsError}
                       selectedRunId={selectedRunId}
+                      selectedReviewSessionId={selectedReviewSessionId}
                       selectedDocumentId={selectedDocumentId}
                       selectedReviewDocumentIds={selectedReviewDocumentIds}
                       currentReviewItem={currentReviewItem}
@@ -1231,6 +1321,9 @@ export function VerificationScreen() {
                       onSelectedRunIdChange={setSelectedRunId}
                       onLoadRecentRuns={() => void handleLoadRecentRuns()}
                       onInspectSelectedRun={() => void handleInspectSelectedRun()}
+                      onSelectedReviewSessionIdChange={setSelectedReviewSessionId}
+                      onLoadReviewSessions={() => void handleLoadReviewSessions()}
+                      onInspectSelectedReviewSession={() => void handleInspectSelectedReviewSession()}
                       onSelectedDocumentIdChange={setSelectedDocumentId}
                       onMoveReviewSelection={moveReviewSelection}
                       onSelectedReviewItemIdChange={setSelectedReviewItemId}
@@ -1276,44 +1369,46 @@ export function VerificationScreen() {
                   onInspectResult={handleInspectResult}
                 />
 
-                {(verificationHistoryLoading || verificationRunHistory.length > 0) && (
-                  <div className="mt-4 rounded border border-border/40 p-3">
-                    <h3 className="mb-2 text-sm font-semibold text-muted-foreground">
-                      Recent Verification Runs
-                    </h3>
-                    {verificationHistoryLoading && verificationRunHistory.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">Loading history…</p>
-                    ) : (
-                      <div className="space-y-1">
-                        {verificationRunHistory.map((run) => (
-                          <div
-                            key={run.run_id}
-                            className="flex items-center justify-between border-b border-border/30 py-1 text-sm last:border-0"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs font-bold">
-                                {run.ticker}
-                              </span>
-                              <span className={run.passed ? 'text-green-600' : 'text-red-500'}>
-                                {run.passed ? '✓ Pass' : '✗ Fail'}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(run.timestamp).toLocaleDateString()}
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              className="text-xs text-blue-500 hover:underline"
-                              onClick={() => handleSelectHistoryTicker(run.ticker)}
-                            >
-                              Re-run
-                            </button>
+                <div className="mt-4 rounded border border-border/40 p-3">
+                  <h3 className="mb-2 text-sm font-semibold text-muted-foreground">
+                    Recent Verification Runs
+                  </h3>
+                  {verificationHistoryLoading && verificationRunHistory.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Loading history...</p>
+                  ) : verificationRunHistory.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      No saved verification runs yet.
+                    </p>
+                  ) : (
+                    <div className="space-y-1">
+                      {verificationRunHistory.map((run) => (
+                        <div
+                          key={run.run_id}
+                          className="flex items-center justify-between border-b border-border/30 py-1 text-sm last:border-0"
+                        >
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs font-bold">
+                              {run.ticker}
+                            </span>
+                            <span className={run.passed ? 'text-green-600' : 'text-red-500'}>
+                              {run.passed ? 'Pass' : 'Fail'}
+                            </span>
+                            <span className="truncate text-xs text-muted-foreground">
+                              {run.outcome_summary || new Date(run.timestamp).toLocaleDateString()}
+                            </span>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                          <button
+                            type="button"
+                            className="ml-2 shrink-0 text-xs text-blue-500 hover:underline"
+                            onClick={() => handleSelectHistoryTicker(run.ticker)}
+                          >
+                            Re-run
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </ScrollArea>
           </TabsContent>
@@ -1331,9 +1426,11 @@ export function VerificationScreen() {
         <aside className="w-80 shrink-0 border-l border-border/40 pl-6">
           <VerificationSidebar
             recentRuns={recentRuns}
+            recentReviewSessions={recentReviewSessions}
             loading={recentRunsLoading}
             onSelectTicker={handleSelectHistoryTicker}
             onSelectRun={handleSelectHistoryRun}
+            onSelectSession={handleSelectReviewSessionHistory}
             onSelectRunGroup={handleSelectRunGroup}
             activeTicker={ticker}
           />

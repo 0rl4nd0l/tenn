@@ -191,6 +191,10 @@ def _load(run_id: str) -> dict[str, Any] | None:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def has_run_status(run_id: str) -> bool:
+    return _path(str(run_id or "").strip()).exists()
+
+
 def initialize_run_status(
     *,
     run_id: str,

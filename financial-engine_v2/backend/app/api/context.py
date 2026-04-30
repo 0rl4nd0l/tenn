@@ -12,7 +12,7 @@ import re
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, Mapping
 
 from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel, Field
@@ -95,6 +95,13 @@ class UserThesisConfirmRequest(BaseModel):
 
 class UserThesisRejectRequest(BaseModel):
     note: str | None = None
+
+
+class VerificationRunRequest(BaseModel):
+    ticker: str | None = None
+    failures_limit: int = Field(default=100, ge=1, le=500)
+    low_confidence_threshold: float = Field(default=0.4, ge=0.0, le=1.0)
+    low_confidence_limit: int = Field(default=100, ge=1, le=500)
 
 
 def _validate_ticker(raw: str) -> str:
@@ -1698,13 +1705,13 @@ def get_company_dump(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/verification")
-def get_verification_context(
-    ticker: str | None = Query(default=None),
-    failures_limit: int = Query(default=100, ge=1, le=500),
-    low_confidence_threshold: float = Query(default=0.4, ge=0.0, le=1.0),
-    low_confidence_limit: int = Query(default=100, ge=1, le=500),
-    db: Session = Depends(get_db),
+def _build_verification_context(
+    db: Session,
+    *,
+    ticker: str | None,
+    failures_limit: int,
+    low_confidence_threshold: float,
+    low_confidence_limit: int,
 ) -> dict[str, Any]:
     errors: list[str] = []
 
@@ -1779,6 +1786,80 @@ def get_verification_context(
         "low_confidence_financials": low_conf,
         "errors": errors,
     }
+
+
+def _verification_outcome_summary(
+    payload: Mapping[str, Any],
+) -> tuple[bool, str]:
+    extraction_failures = payload.get("extraction_failures")
+    low_confidence_financials = payload.get("low_confidence_financials")
+    errors = payload.get("errors")
+    failures_count = len(extraction_failures) if isinstance(extraction_failures, list) else 0
+    low_confidence_count = (
+        len(low_confidence_financials) if isinstance(low_confidence_financials, list) else 0
+    )
+    error_count = len(errors) if isinstance(errors, list) else 0
+    passed = failures_count == 0 and low_confidence_count == 0 and error_count == 0
+    if passed:
+        return True, "No extraction failures or low-confidence financial rows found."
+    parts: list[str] = []
+    if failures_count:
+        parts.append(f"{failures_count} extraction failure(s)")
+    if low_confidence_count:
+        parts.append(f"{low_confidence_count} low-confidence financial row(s)")
+    if error_count:
+        parts.append(f"{error_count} backend verification error(s)")
+    return False, ", ".join(parts)
+
+
+@router.get("/verification")
+def get_verification_context(
+    ticker: str | None = Query(default=None),
+    failures_limit: int = Query(default=100, ge=1, le=500),
+    low_confidence_threshold: float = Query(default=0.4, ge=0.0, le=1.0),
+    low_confidence_limit: int = Query(default=100, ge=1, le=500),
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    return _build_verification_context(
+        db,
+        ticker=ticker,
+        failures_limit=failures_limit,
+        low_confidence_threshold=low_confidence_threshold,
+        low_confidence_limit=low_confidence_limit,
+    )
+
+
+@router.post("/verification/run", dependencies=[Depends(require_api_key)])
+def run_verification_context(
+    payload: VerificationRunRequest,
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    context = _build_verification_context(
+        db,
+        ticker=payload.ticker,
+        failures_limit=payload.failures_limit,
+        low_confidence_threshold=payload.low_confidence_threshold,
+        low_confidence_limit=payload.low_confidence_limit,
+    )
+    passed, outcome_summary = _verification_outcome_summary(context)
+    try:
+        from app.services.cockpit_service import CockpitService
+
+        service = CockpitService.get_instance()
+        run = service.record_verification_run(
+            ticker=payload.ticker or "BROAD",
+            outcome_summary=outcome_summary,
+            passed=passed,
+        )
+    except Exception as exc:
+        logger.warning("record_verification_run failed: %s", exc)
+        run = None
+        context["errors"] = [
+            *(context.get("errors") if isinstance(context.get("errors"), list) else []),
+            f"verification_run_history: {exc}",
+        ]
+
+    return {"ok": True, **context, "run": run}
 
 
 # ---------------------------------------------------------------------------

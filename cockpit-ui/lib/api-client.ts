@@ -9,6 +9,7 @@ import type {
   ExtractionReviewErrorQueue,
   ExtractionReviewRunListResponse,
   ExtractionReviewRunStatusResponse,
+  ExtractionReviewSessionListResponse,
   ExtractionReviewSession,
   HealthResponse,
   ServiceHealth,
@@ -22,6 +23,7 @@ import type {
   ResponseFeedbackReasonCode,
   ResponseFeedbackResponse,
   Source,
+  VerificationContextResponse,
 } from './cockpit-types'
 
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY || ''
@@ -920,9 +922,38 @@ export async function getExtractionReviewRuns(ticker?: string, limit: number = 5
   return apiFetch<ExtractionReviewRunListResponse>(`/api/extraction-review/runs?${params.toString()}`)
 }
 
+export async function getExtractionReviewSessions(ticker?: string, limit: number = 50): Promise<ExtractionReviewSessionListResponse> {
+  const params = new URLSearchParams({ limit: String(limit) })
+  if (ticker?.trim()) {
+    params.set('ticker', ticker.trim().toUpperCase())
+  }
+  return apiFetch<ExtractionReviewSessionListResponse>(`/api/extraction-review/sessions?${params.toString()}`)
+}
+
 export async function getExtractionReviewRunStatus(runId: string, limit: number = 200): Promise<ExtractionReviewRunStatusResponse> {
   return apiFetch<ExtractionReviewRunStatusResponse>(
     `/api/extraction-review/run/${encodeURIComponent(runId)}?limit=${limit}`
+  )
+}
+
+export async function runVerificationContext(params: {
+  ticker?: string | null
+  failuresLimit?: number
+  lowConfidenceThreshold?: number
+  lowConfidenceLimit?: number
+}): Promise<VerificationContextResponse> {
+  return apiFetch<VerificationContextResponse>(
+    '/api/context/verification/run',
+    {
+      method: 'POST',
+      headers: withApiKey(),
+      body: JSON.stringify({
+        ticker: params.ticker?.trim() || null,
+        failures_limit: params.failuresLimit ?? 100,
+        low_confidence_threshold: params.lowConfidenceThreshold ?? 0.4,
+        low_confidence_limit: params.lowConfidenceLimit ?? 100,
+      }),
+    },
   )
 }
 

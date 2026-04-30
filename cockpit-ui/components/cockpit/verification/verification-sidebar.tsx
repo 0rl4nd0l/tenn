@@ -7,13 +7,15 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import type { ExtractionReviewRunSummary } from '@/lib/cockpit-types'
+import type { ExtractionReviewRunSummary, ExtractionReviewSessionSummary } from '@/lib/cockpit-types'
 
 type VerificationSidebarProps = {
   recentRuns: ExtractionReviewRunSummary[]
+  recentReviewSessions: ExtractionReviewSessionSummary[]
   loading: boolean
   onSelectTicker: (ticker: string) => void
   onSelectRun: (runId: string) => void
+  onSelectSession: (sessionId: string) => void
   onSelectRunGroup?: (runIds: string[]) => void
   activeTicker: string
 }
@@ -27,9 +29,11 @@ type RunGroup = {
 
 export function VerificationSidebar({
   recentRuns,
+  recentReviewSessions,
   loading,
   onSelectTicker,
   onSelectRun,
+  onSelectSession,
   onSelectRunGroup,
   activeTicker,
 }: VerificationSidebarProps) {
@@ -54,7 +58,7 @@ export function VerificationSidebar({
 
     for (const run of sortedRuns) {
       const runTime = new Date(run.created_at)
-      let matchedGroup = groups.find(g => {
+      const matchedGroup = groups.find(g => {
         const timeDiff = Math.abs(g.timestamp.getTime() - runTime.getTime())
         // Heuristic: runs within 60s of each other
         return timeDiff < 60000 
@@ -117,6 +121,40 @@ export function VerificationSidebar({
                     >
                       {ticker}
                     </Button>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section>
+              <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold text-muted-foreground/80">
+                <History className="h-3 w-3" />
+                Saved Reviews
+              </h3>
+              {recentReviewSessions.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-border/60 p-3 text-center text-xs text-muted-foreground">
+                  No saved reviews yet.
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  {recentReviewSessions.slice(0, 8).map((session) => (
+                    <button
+                      key={session.session_id}
+                      className="flex flex-col rounded-md border border-border/40 p-2 text-left transition-colors hover:bg-muted/30"
+                      onClick={() => onSelectSession(session.session_id)}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate font-mono text-[10px] font-bold">
+                          {session.tickers.join(', ') || 'BROAD'}
+                        </span>
+                        <Badge variant="outline" className="h-4 px-1 text-[8px]">
+                          {session.item_count ?? session.summary?.total ?? 0} items
+                        </Badge>
+                      </div>
+                      <span className="mt-1 truncate text-[10px] text-muted-foreground">
+                        {session.titles[0] || session.session_id}
+                      </span>
+                    </button>
                   ))}
                 </div>
               )}
@@ -196,11 +234,15 @@ export function VerificationSidebar({
                                 {run.title || run.run_id.slice(0, 8)}
                               </span>
                               <Badge 
-                                variant={run.status === 'succeeded' ? 'outline' : 'critical'} 
+                                variant={run.review_ready ? 'outline' : 'secondary'}
                                 className="h-3 px-1 text-[8px]"
                               >
-                                {run.status}
+                                {run.review_ready ? 'review' : run.status}
                               </Badge>
+                            </div>
+                            <div className="mt-1 flex gap-1 text-[9px] text-muted-foreground">
+                              <span>{run.metrics_count ?? 0} metrics</span>
+                              <span>{run.has_timeline ? 'timeline' : 'no timeline'}</span>
                             </div>
                           </button>
                         ))}

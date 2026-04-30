@@ -181,6 +181,22 @@ export interface VerificationResult {
   item_id?: string
 }
 
+export interface VerificationRunHistory {
+  run_id: string
+  ticker: string
+  timestamp: string
+  passed: boolean
+  outcome_summary: string
+}
+
+export interface VerificationContextResponse {
+  ok?: boolean
+  extraction_failures?: Array<Record<string, unknown>>
+  low_confidence_financials?: Array<Record<string, unknown>>
+  errors?: string[]
+  run?: VerificationRunHistory | null
+}
+
 export interface ContextDocument {
   document_id: string
   ticker?: string | null
@@ -338,12 +354,42 @@ export interface ExtractionReviewRunSummary {
   strict_method?: boolean | null
   error?: string | null
   metrics_count?: number
+  review_ready?: boolean
+  review_reason?: string | null
+  has_timeline?: boolean
+  timeline_status?: 'available' | 'missing' | string
 }
 
 export interface ExtractionReviewRunListResponse {
   ticker?: string | null
   count: number
   items: ExtractionReviewRunSummary[]
+}
+
+export interface ExtractionReviewSessionSummary {
+  session_id: string
+  created_at?: string | null
+  updated_at?: string | null
+  session_status?: string | null
+  tickers: string[]
+  titles: string[]
+  document_ids: string[]
+  run_ids: string[]
+  summary?: {
+    total: number
+    approved: number
+    wrong: number
+    abstain: number
+    pending: number
+  }
+  review_ready_count?: number
+  item_count?: number
+}
+
+export interface ExtractionReviewSessionListResponse {
+  ticker?: string | null
+  count: number
+  items: ExtractionReviewSessionSummary[]
 }
 
 export interface ExtractionReviewRunWarning {

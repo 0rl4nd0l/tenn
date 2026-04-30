@@ -3,6 +3,7 @@ import type {
   ExtractionMethod,
   ExtractionReviewItem,
   ExtractionReviewSession,
+  VerificationContextResponse,
   VerificationResult,
 } from '@/lib/cockpit-types'
 
@@ -24,6 +25,80 @@ function formatRawValue(value: unknown): string | number {
   return String(value)
 }
 
+function asRecordArray(value: unknown): Array<Record<string, unknown>> {
+  return Array.isArray(value)
+    ? value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
+    : []
+}
+
+function mapVerificationContextResponse(data: VerificationContextResponse): VerificationResult[] | null {
+  if (
+    !Array.isArray(data.extraction_failures)
+    && !Array.isArray(data.low_confidence_financials)
+    && !Array.isArray(data.errors)
+  ) {
+    return null
+  }
+
+  const results: VerificationResult[] = []
+
+  for (const failure of asRecordArray(data.extraction_failures)) {
+    const documentId = formatRawValue(failure.document_id)
+    const status = formatRawValue(failure.status ?? 'failed')
+    const error = formatRawValue(failure.error)
+    const ticker = formatRawValue(failure.ticker)
+    const title = formatRawValue(failure.title)
+    results.push({
+      metric: 'Extraction failure',
+      expected: 'status ok',
+      actual: status,
+      passed: false,
+      details: [ticker, title, error].filter((value) => value !== '-').join(' | ') || 'Failed extraction run',
+      document_id: typeof failure.document_id === 'string' ? failure.document_id : undefined,
+    })
+    if (documentId !== '-' && !results[results.length - 1].details?.includes(String(documentId))) {
+      results[results.length - 1].details = `${results[results.length - 1].details} | ${documentId}`
+    }
+  }
+
+  for (const row of asRecordArray(data.low_confidence_financials)) {
+    const confidence = formatRawValue(row.confidence_metrics)
+    const ticker = formatRawValue(row.ticker)
+    const periodType = formatRawValue(row.period_type)
+    const periodEnd = formatRawValue(row.period_end)
+    results.push({
+      metric: 'Low confidence financials',
+      expected: 'confidence >= threshold',
+      actual: confidence,
+      passed: false,
+      details: [ticker, periodType, periodEnd].filter((value) => value !== '-').join(' | ') || 'Low confidence financial row',
+      document_id: typeof row.source_document_id === 'string' ? row.source_document_id : undefined,
+    })
+  }
+
+  for (const error of data.errors || []) {
+    results.push({
+      metric: 'Verification error',
+      expected: 'backend query ok',
+      actual: String(error),
+      passed: false,
+      details: String(error),
+    })
+  }
+
+  if (results.length === 0) {
+    results.push({
+      metric: 'Backend verification context',
+      expected: 'no failures or low-confidence rows',
+      actual: 'clear',
+      passed: true,
+      details: 'No extraction failures, low-confidence financial rows, or verification errors returned.',
+    })
+  }
+
+  return results
+}
+
 export function mapResponseToResults(data: unknown): VerificationResult[] {
   if (!data || typeof data !== 'object') {
     return [{
@@ -34,6 +109,9 @@ export function mapResponseToResults(data: unknown): VerificationResult[] {
       details: 'Unexpected response format',
     }]
   }
+
+  const verificationResults = mapVerificationContextResponse(data as VerificationContextResponse)
+  if (verificationResults) return verificationResults
 
   const items = Array.isArray(data)
     ? data
@@ -100,7 +178,7 @@ export function parseDocumentIds(raw: string): string[] {
 }
 
 export function isReviewableExtractionStatus(status: string): boolean {
-  return status === 'ok' || status === 'ok_low_confidence'
+  return status === 'ok' || status === 'ok_low_confidence' || status === 'parser_error'
 }
 
 export function statusVariant(status: ExtractionReviewItem['review_status']): 'default' | 'secondary' | 'critical' | 'outline' {

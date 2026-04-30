@@ -28,6 +28,7 @@ except ImportError:  # pragma: no cover - optional dependency in restricted envs
 from app.core.config import settings
 from app.models.documents import Document
 from app.models.extractions import ExtractionRun
+from app.services.extraction_run_observability import has_run_status
 from app.services.multipass_extraction import METRIC_FIELDS
 from app.services.provenance import from_extraction_provenance
 
@@ -691,6 +692,11 @@ def list_review_runs(
             if isinstance(payload.get("metrics"), Mapping)
             else {}
         )
+        metrics_count = sum(1 for value in metrics.values() if value is not None)
+        review_ready, review_reason = _review_diagnostic(
+            str(run.status or "unknown"), metrics_count
+        )
+        has_timeline = has_run_status(str(run.run_id))
         items.append(
             {
                 "run_id": str(run.run_id),
@@ -723,9 +729,11 @@ def list_review_runs(
                     else None
                 ),
                 "error": str(run.error or "").strip() or None,
-                "metrics_count": sum(
-                    1 for value in metrics.values() if value is not None
-                ),
+                "metrics_count": metrics_count,
+                "review_ready": review_ready,
+                "review_reason": review_reason,
+                "has_timeline": has_timeline,
+                "timeline_status": "available" if has_timeline else "missing",
             }
         )
 
@@ -1211,6 +1219,85 @@ def load_review_session(session_id: str) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     payload["summary"] = _item_summary(payload.get("items") or [])
     return payload
+
+
+def _review_session_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
+    raw_documents = payload.get("documents")
+    raw_items = payload.get("items")
+    documents = [
+        dict(document)
+        for document in (raw_documents if isinstance(raw_documents, list) else [])
+        if isinstance(document, Mapping)
+    ]
+    items = [
+        dict(item)
+        for item in (raw_items if isinstance(raw_items, list) else [])
+        if isinstance(item, Mapping)
+    ]
+    tickers = sorted(
+        {
+            str(source.get("ticker") or "").strip().upper()
+            for source in [*documents, *items]
+            if str(source.get("ticker") or "").strip()
+        }
+    )
+    titles = [
+        str(document.get("title") or "").strip()
+        for document in documents
+        if str(document.get("title") or "").strip()
+    ]
+    return {
+        "session_id": str(payload.get("session_id") or "").strip(),
+        "created_at": str(payload.get("created_at") or "").strip() or None,
+        "updated_at": str(payload.get("updated_at") or "").strip() or None,
+        "session_status": str(payload.get("session_status") or "").strip() or None,
+        "tickers": tickers,
+        "titles": titles[:5],
+        "document_ids": _clean_requested_ids(payload.get("document_ids") or []),
+        "run_ids": _clean_requested_ids(payload.get("run_ids") or []),
+        "summary": _item_summary(items),
+        "review_ready_count": sum(
+            1 for document in documents if document.get("review_ready") is True
+        ),
+        "item_count": len(items),
+    }
+
+
+def list_review_sessions(
+    *,
+    ticker: str | None = None,
+    limit: int = 50,
+) -> dict[str, Any]:
+    normalized_ticker = str(ticker or "").strip().upper() or None
+    max_items = max(1, min(int(limit), 200))
+    if not SESSIONS_ROOT.exists():
+        return {"ticker": normalized_ticker, "count": 0, "items": []}
+
+    items: list[dict[str, Any]] = []
+    for path in SESSIONS_ROOT.glob("*.json"):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(payload, Mapping):
+                continue
+            summary = _review_session_summary(payload)
+        except Exception as exc:
+            logger.warning("Skipping unreadable review session %s: %s", path.name, exc)
+            continue
+        if not summary["session_id"]:
+            continue
+        if normalized_ticker and normalized_ticker not in summary["tickers"]:
+            continue
+        items.append(summary)
+
+    items.sort(
+        key=lambda item: str(item.get("updated_at") or item.get("created_at") or ""),
+        reverse=True,
+    )
+    return {
+        "ticker": normalized_ticker,
+        "count": len(items[:max_items]),
+        "items": items[:max_items],
+    }
 
 
 def submit_review_decision(

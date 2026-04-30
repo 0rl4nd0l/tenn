@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -653,7 +654,7 @@ def test_build_metric_snippet_renders_real_pdf_without_poppler(
     assert snippet["image_path"]
     assert snippet["image_url"]
     assert snippet["matched_text"]
-    output_path = review.PROJECT_ROOT / str(snippet["image_path"])
+    output_path = review.BACKEND_ROOT / str(snippet["image_path"])
     assert output_path.exists()
 
 
@@ -806,7 +807,7 @@ def test_create_review_session_uses_requested_run_id(monkeypatch, tmp_path) -> N
         session.close()
 
 
-def test_list_review_runs_returns_recent_runs_for_ticker(tmp_path) -> None:
+def test_list_review_runs_returns_recent_runs_for_ticker(monkeypatch, tmp_path) -> None:
     session = _make_session()
     pdf_path = tmp_path / "sample.pdf"
     pdf_path.write_bytes(b"%PDF-1.4\n")
@@ -869,6 +870,12 @@ def test_list_review_runs_returns_recent_runs_for_ticker(tmp_path) -> None:
         )
         session.commit()
 
+        monkeypatch.setattr(
+            review,
+            "has_run_status",
+            lambda run_id: str(run_id) == str(bhp_run_id),
+        )
+
         payload = review.list_review_runs(session, ticker="BHP", limit=10)
 
         assert payload["ticker"] == "BHP"
@@ -876,5 +883,94 @@ def test_list_review_runs_returns_recent_runs_for_ticker(tmp_path) -> None:
         assert payload["items"][0]["run_id"] == str(bhp_run_id)
         assert payload["items"][0]["metrics_count"] == 1
         assert payload["items"][0]["model_name"] == "qwen-bhp"
+        assert payload["items"][0]["review_ready"] is True
+        assert payload["items"][0]["review_reason"] == "reviewable"
+        assert payload["items"][0]["has_timeline"] is True
+        assert payload["items"][0]["timeline_status"] == "available"
     finally:
         session.close()
+
+
+def test_list_review_sessions_returns_backend_owned_history_by_ticker(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setattr(review, "SESSIONS_ROOT", tmp_path / "sessions")
+
+    review.save_review_session(
+        {
+            "session_id": "manual-review-bhp",
+            "created_at": "2026-04-01T12:00:00+00:00",
+            "document_ids": ["doc-bhp"],
+            "run_ids": ["run-bhp"],
+            "documents": [
+                {
+                    "document_id": "doc-bhp",
+                    "ticker": "BHP",
+                    "title": "BHP Quarterly",
+                    "review_ready": True,
+                }
+            ],
+            "items": [
+                {
+                    "item_id": "item-1",
+                    "ticker": "BHP",
+                    "review_status": "pending",
+                }
+            ],
+        }
+    )
+    review.save_review_session(
+        {
+            "session_id": "manual-review-rio",
+            "created_at": "2026-04-01T11:00:00+00:00",
+            "document_ids": ["doc-rio"],
+            "run_ids": ["run-rio"],
+            "documents": [
+                {
+                    "document_id": "doc-rio",
+                    "ticker": "RIO",
+                    "title": "RIO Quarterly",
+                    "review_ready": True,
+                }
+            ],
+            "items": [],
+        }
+    )
+    (review.SESSIONS_ROOT / "broken.json").write_text("{", encoding="utf-8")
+
+    payload = review.list_review_sessions(ticker="BHP", limit=10)
+
+    assert payload["ticker"] == "BHP"
+    assert payload["count"] == 1
+    assert payload["items"][0]["session_id"] == "manual-review-bhp"
+    assert payload["items"][0]["tickers"] == ["BHP"]
+    assert payload["items"][0]["titles"] == ["BHP Quarterly"]
+    assert payload["items"][0]["summary"]["pending"] == 1
+    assert payload["items"][0]["review_ready_count"] == 1
+    assert payload["items"][0]["item_count"] == 1
+
+
+def test_list_review_sessions_ignores_corrupt_session_file(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setattr(review, "SESSIONS_ROOT", tmp_path / "sessions")
+    review.SESSIONS_ROOT.mkdir(parents=True)
+    (review.SESSIONS_ROOT / "broken.json").write_text("{", encoding="utf-8")
+    (review.SESSIONS_ROOT / "valid.json").write_text(
+        json.dumps(
+            {
+                "session_id": "manual-review-valid",
+                "created_at": "2026-04-01T12:00:00+00:00",
+                "document_ids": [],
+                "run_ids": [],
+                "documents": [],
+                "items": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    payload = review.list_review_sessions(limit=10)
+
+    assert payload["count"] == 1
+    assert payload["items"][0]["session_id"] == "manual-review-valid"

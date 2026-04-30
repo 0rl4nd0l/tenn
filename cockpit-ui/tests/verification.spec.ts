@@ -20,12 +20,16 @@ function buildMockState() {
       document_id: 'doc-1234567890abcdef',
       ticker: 'BHP',
       title: 'BHP Quarterly Report',
-      status: 'succeeded',
+      status: 'ok',
       created_at: '2026-04-01T12:00:00Z',
       requested_method: 'docling',
       actual_method: 'docling',
       strict_method: true,
       metrics_count: 2,
+      review_ready: true,
+      review_reason: 'reviewable',
+      has_timeline: true,
+      timeline_status: 'available',
     },
   ]
 
@@ -114,6 +118,22 @@ function buildMockState() {
       pending: 2,
     },
   }
+
+  const recentReviewSessions = [
+    {
+      session_id: session.session_id,
+      created_at: session.created_at,
+      updated_at: null,
+      session_status: null,
+      tickers: ['BHP'],
+      titles: ['BHP Quarterly Report'],
+      document_ids: session.document_ids,
+      run_ids: session.run_ids,
+      summary: session.summary,
+      review_ready_count: 1,
+      item_count: 2,
+    },
+  ]
 
   let wrongQueue = {
     updated_at: '2026-04-01T12:00:00Z',
@@ -240,15 +260,47 @@ function buildMockState() {
   }
 
   const verificationResults = {
-    metrics: [
-      { metric: 'revenue_total', expected: 1000000, actual: 1000000, passed: true, details: 'Exact match' },
-      { metric: 'net_debt', expected: 300000, actual: 250000, passed: false, details: 'Mismatch' },
+    ok: true,
+    extraction_failures: [
+      {
+        run_id: 'failed-run-123',
+        document_id: 'doc-1234567890abcdef',
+        status: 'failed',
+        error: 'parser failed',
+        created_at: '2026-04-01T11:00:00Z',
+        ticker: 'BHP',
+        title: 'BHP Quarterly Report',
+      },
     ],
+    low_confidence_financials: [
+      {
+        ticker: 'BHP',
+        period_end: '2025-06-30',
+        period_type: 'annual',
+        confidence_metrics: 0.2,
+        source_document_id: 'doc-1234567890abcdef',
+      },
+    ],
+    errors: [],
+    run: {
+      run_id: 'verification-run-123',
+      ticker: 'BHP',
+      timestamp: '2026-04-01T12:10:00Z',
+      passed: false,
+      outcome_summary: '1 extraction failure(s), 1 low-confidence financial row(s)',
+    },
+  }
+
+  const verificationHistory = {
+    ok: true,
+    runs: [],
+    count: 0,
   }
 
   return {
     docs,
     recentRuns,
+    recentReviewSessions,
     session,
     get wrongQueue() {
       return wrongQueue
@@ -259,6 +311,7 @@ function buildMockState() {
     runStatus,
     goldEval,
     verificationResults,
+    verificationHistory,
     get decisionCalls() {
       return decisionCalls
     },
@@ -268,9 +321,10 @@ function buildMockState() {
   }
 }
 
-async function mockVerificationApi(page: Page, options: { runStatusHttpStatus?: number } = {}) {
+async function mockVerificationApi(page: Page, options: { runStatusHttpStatus?: number; processExtractionStatus?: string } = {}) {
   const state = buildMockState()
   const runStatusHttpStatus = options.runStatusHttpStatus ?? 200
+  const processExtractionStatus = options.processExtractionStatus ?? 'ok'
 
   await page.route('**/api/cockpit/health', async (route) => {
     await route.fulfill({
@@ -304,6 +358,14 @@ async function mockVerificationApi(page: Page, options: { runStatusHttpStatus?: 
     })
   })
 
+  await page.route('**/api/extraction-review/sessions**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ count: state.recentReviewSessions.length, items: state.recentReviewSessions }),
+    })
+  })
+
   await page.route('**/api/process/document/**', async (route) => {
     await route.fulfill({
       status: 200,
@@ -312,7 +374,7 @@ async function mockVerificationApi(page: Page, options: { runStatusHttpStatus?: 
         mode: 'inline',
         document_id: state.docs[0].document_id,
         run_id: state.recentRuns[0].run_id,
-        extraction_status: 'ok',
+        extraction_status: processExtractionStatus,
         method_provenance: {
           requested_method: 'docling',
           actual_method: 'docling',
@@ -417,6 +479,14 @@ async function mockVerificationApi(page: Page, options: { runStatusHttpStatus?: 
   })
 
   await page.route('**/api/context/verification**', async (route) => {
+    if (route.request().url().includes('/api/context/verification/runs')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(state.verificationHistory),
+      })
+      return
+    }
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -447,7 +517,7 @@ async function loadReviewSession(page: Page) {
   await page.goto('/verification')
   await page.getByPlaceholder('e.g. BHP').fill('BHP')
   await page.getByRole('button', { name: 'Load Docs' }).click()
-  await expect(page.getByText('BHP Quarterly Report')).toBeVisible()
+  await expect(page.getByText('BHP Quarterly Report').first()).toBeVisible()
   await page.getByRole('button', { name: 'Latest + Review' }).click()
   await expect(page.getByText('Review 1 of 2')).toBeVisible()
 }
@@ -462,6 +532,9 @@ test.describe('Verification screen', () => {
     await expect(page.getByRole('tab', { name: /^Real-Gold/ })).toBeVisible()
     await expect(page.getByRole('tab', { name: /^Verify/ })).toBeVisible()
     await expect(page.getByText('Manual Extraction Review')).toBeVisible()
+    await expect(page.getByText('Saved review sessions')).toBeVisible()
+    await expect(page.getByText('BHP Quarterly Report').first()).toBeVisible()
+    await expect(page.getByText(/Use\s+Latest \+ Review\s+to reprocess/)).toBeVisible()
 
     await page.getByRole('tab', { name: /^Runs/ }).click()
     await expect(page).toHaveURL(/tab=runs/)
@@ -494,6 +567,14 @@ test.describe('Verification screen', () => {
     await expect(page.getByText('Manual correction required')).toBeVisible()
   })
 
+  test('passes parser-error extraction runs to backend review sessions', async ({ page }) => {
+    await mockVerificationApi(page, { processExtractionStatus: 'parser_error' })
+    await loadReviewSession(page)
+
+    await expect(page.getByText('Review 1 of 2')).toBeVisible()
+    await expect(page.getByText('Latest extraction failed or produced no reviewable metrics')).toHaveCount(0)
+  })
+
   test('keeps keyboard shortcuts guarded and exposes runs, verify, and real-gold state', async ({ page }) => {
     const state = await mockVerificationApi(page)
     await loadReviewSession(page)
@@ -518,7 +599,10 @@ test.describe('Verification screen', () => {
     await page.getByRole('tab', { name: /^Verify/ }).click()
     await page.getByRole('button', { name: 'Verify Ticker' }).click()
     await expect(page.getByText('Verification Results')).toBeVisible()
-    await expect(page.getByText('50%')).toBeVisible()
+    await expect(page.getByText('0%')).toBeVisible()
+    await expect(page.getByRole('cell', { name: 'Extraction failure' })).toBeVisible()
+    await expect(page.getByRole('cell', { name: 'Low confidence financials' })).toBeVisible()
+    await expect(page.getByText('1 extraction failure(s), 1 low-confidence financial row(s)')).toBeVisible()
 
     await page.getByRole('tab', { name: /^Real-Gold/ }).click()
     await page.getByRole('button', { name: 'Run Gold Set' }).click()

@@ -13,6 +13,7 @@ from app.services.extraction_review import (
     SNIPPETS_ROOT,
     create_review_session,
     get_error_queue,
+    list_review_sessions,
     list_review_runs,
     load_review_session,
     submit_review_decision,
@@ -63,6 +64,15 @@ def recent_runs(
 ) -> dict[str, Any]:
     normalized_ticker = str(ticker or "").strip().upper() or None
     return list_review_runs(db, ticker=normalized_ticker, limit=limit)
+
+
+@router.get("/sessions")
+def recent_sessions(
+    ticker: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> dict[str, Any]:
+    normalized_ticker = str(ticker or "").strip().upper() or None
+    return list_review_sessions(ticker=normalized_ticker, limit=limit)
 
 
 @router.get("/session/{session_id}")

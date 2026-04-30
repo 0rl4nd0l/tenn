@@ -16,6 +16,7 @@ import type {
   ExtractionReviewErrorQueue,
   ExtractionReviewItem,
   ExtractionReviewRunSummary,
+  ExtractionReviewSessionSummary,
   ExtractionReviewSession,
 } from '@/lib/cockpit-types'
 
@@ -44,7 +45,12 @@ type ReviewTabPanelProps = {
   wrongQueue: ExtractionReviewErrorQueue | null
   recentRuns: ExtractionReviewRunSummary[]
   recentRunsLoading: boolean
+  recentRunsError: string | null
+  recentReviewSessions: ExtractionReviewSessionSummary[]
+  recentReviewSessionsLoading: boolean
+  recentReviewSessionsError: string | null
   selectedRunId: string
+  selectedReviewSessionId: string
   selectedDocumentId: string
   selectedReviewDocumentIds: string[]
   currentReviewItem: ExtractionReviewItem | null
@@ -70,6 +76,9 @@ type ReviewTabPanelProps = {
   onSelectedRunIdChange: (value: string) => void
   onLoadRecentRuns: () => void
   onInspectSelectedRun: () => void
+  onSelectedReviewSessionIdChange: (value: string) => void
+  onLoadReviewSessions: () => void
+  onInspectSelectedReviewSession: () => void
   onSelectedDocumentIdChange: (value: string) => void
   onMoveReviewSelection: (direction: 'prev' | 'next') => void
   onSelectedReviewItemIdChange: (value: string) => void
@@ -90,7 +99,12 @@ export function ReviewTabPanel({
   wrongQueue,
   recentRuns,
   recentRunsLoading,
+  recentRunsError,
+  recentReviewSessions,
+  recentReviewSessionsLoading,
+  recentReviewSessionsError,
   selectedRunId,
+  selectedReviewSessionId,
   selectedDocumentId,
   selectedReviewDocumentIds,
   currentReviewItem,
@@ -115,6 +129,9 @@ export function ReviewTabPanel({
   onSelectedRunIdChange,
   onLoadRecentRuns,
   onInspectSelectedRun,
+  onSelectedReviewSessionIdChange,
+  onLoadReviewSessions,
+  onInspectSelectedReviewSession,
   onSelectedDocumentIdChange,
   onMoveReviewSelection,
   onSelectedReviewItemIdChange,
@@ -128,6 +145,17 @@ export function ReviewTabPanel({
   useEffect(() => {
     setIsZoomed(false)
   }, [currentSnippetUrl, currentReviewItem?.item_id])
+
+  const reviewStateLabel = (run: ExtractionReviewRunSummary): string => {
+    if (run.review_ready) return 'review ready'
+    return run.review_reason || 'not reviewable'
+  }
+  const sessionLabel = (session: ExtractionReviewSessionSummary): string => {
+    const tickerLabel = session.tickers.length > 0 ? session.tickers.join(',') : 'BROAD'
+    const title = session.titles[0] || session.session_status || session.session_id
+    const itemCount = session.item_count ?? session.summary?.total ?? 0
+    return `${(session.updated_at || session.created_at || '').slice(0, 16)} | ${tickerLabel} | ${itemCount} items | ${title}`
+  }
 
   return (
     <div className="space-y-6">
@@ -198,7 +226,7 @@ export function ReviewTabPanel({
                 <SelectContent>
                   {recentRuns.map((run) => (
                     <SelectItem key={run.run_id} value={run.run_id} className="text-xs">
-                      {`${run.created_at.slice(0, 16)} | ${run.status} | ${run.metrics_count ?? 0}m`}
+                      {`${run.created_at.slice(0, 16)} | ${run.status} | ${run.metrics_count ?? 0}m | ${reviewStateLabel(run)}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -208,8 +236,12 @@ export function ReviewTabPanel({
               {recentRuns.length === 0 ? (
                 <span className="text-[10px] text-muted-foreground italic">No historical runs yet.</span>
               ) : recentRuns.slice(0, 3).map((run) => (
-                <Badge key={run.run_id} variant="outline" className="h-5 rounded-sm px-1.5 text-[9px] font-medium uppercase">
-                  {run.status.slice(0, 3)} {run.metrics_count ?? 0}m {formatMethodLabel(run.actual_method || run.requested_method).slice(0, 10)}
+                <Badge
+                  key={run.run_id}
+                  variant={run.review_ready ? 'outline' : 'secondary'}
+                  className="h-5 rounded-sm px-1.5 text-[9px] font-medium uppercase"
+                >
+                  {run.status.slice(0, 3)} {run.metrics_count ?? 0}m {run.review_ready ? 'review' : reviewStateLabel(run).slice(0, 12)}
                 </Badge>
               ))}
             </div>
@@ -222,6 +254,45 @@ export function ReviewTabPanel({
               </Button>
             </div>
           </div>
+          {recentRunsError ? (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
+              {recentRunsError}
+            </div>
+          ) : null}
+
+          <div className="grid gap-4 rounded-lg border border-border/40 bg-muted/5 p-3 md:grid-cols-[minmax(220px,1fr)_auto]">
+            <Field>
+              <FieldLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Saved review sessions</FieldLabel>
+              <Select value={selectedReviewSessionId || undefined} onValueChange={onSelectedReviewSessionIdChange}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder={recentReviewSessionsLoading ? 'Loading saved reviews...' : 'Select a saved review'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {recentReviewSessions.map((session) => (
+                    <SelectItem key={session.session_id} value={session.session_id} className="text-xs">
+                      {sessionLabel(session)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {recentReviewSessions.length === 0 && !recentReviewSessionsLoading ? (
+                <p className="mt-1 text-[10px] text-muted-foreground">No saved review sessions yet.</p>
+              ) : null}
+            </Field>
+            <div className="flex items-end gap-1">
+              <Button variant="ghost" onClick={onLoadReviewSessions} disabled={recentReviewSessionsLoading || reviewActionLoading} size="icon" className="h-7 w-7">
+                <RefreshCw className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="secondary" onClick={onInspectSelectedReviewSession} disabled={!selectedReviewSessionId || reviewActionLoading} size="sm" className="h-7 text-xs">
+                Open
+              </Button>
+            </div>
+          </div>
+          {recentReviewSessionsError ? (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
+              {recentReviewSessionsError}
+            </div>
+          ) : null}
 
           {reviewError ? (
             <div className="flex items-center gap-3 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
@@ -283,7 +354,7 @@ export function ReviewTabPanel({
           </div>
 
           <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
-            Use <span className="font-medium text-foreground">Run Latest + Load Review</span> to reprocess the selected PDFs with the current method, or <span className="font-medium text-foreground">Inspect Selected Run</span> to open a historical run without rerunning extraction.
+            Use <span className="font-medium text-foreground">Latest + Review</span> to reprocess the selected PDFs with the current method, or <span className="font-medium text-foreground">Inspect</span> to open a historical run without rerunning extraction.
           </div>
         </CardContent>
       </Card>
