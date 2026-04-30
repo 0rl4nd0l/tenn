@@ -438,6 +438,32 @@ def test_strict_trades_profile_rejects_missing_required_columns(
     assert holdings == []
 
 
+def test_attachment_upload_rejects_oversized_payload(tmp_path, monkeypatch) -> None:
+    fake_service = _fake_service(tmp_path)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+    monkeypatch.setattr(cockpit_api, "_MAX_CHAT_ATTACHMENT_BYTES", 8)
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    encoded = base64.b64encode(b"123456789").decode("ascii")
+    response = client.post(
+        "/api/cockpit/chat/attachments/upload",
+        json={
+            "filename": "holdings.csv",
+            "mime_type": "text/csv",
+            "content_base64": encoded,
+        },
+    )
+
+    assert response.status_code == 413
+    assert "attachment exceeds" in response.json()["detail"]
+    assert client.get("/api/cockpit/holdings").json()["items"] == []
+
+
 def test_pdf_attachment_upload_creates_attached_source(tmp_path, monkeypatch) -> None:
     fake_service = _fake_service(tmp_path)
     monkeypatch.setattr(

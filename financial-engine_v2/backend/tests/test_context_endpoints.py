@@ -207,7 +207,7 @@ class TestGetTickerContext:
         assert isinstance(result["financials"], list)
 
     def test_announcement_context_missing_table(self):
-        """When cockpit_announcement_context table doesn't exist, return empty list, no error."""
+        """When cockpit_announcement_context is missing, return fallback status in errors."""
         from sqlalchemy.exc import OperationalError
 
         db = MagicMock()
@@ -225,8 +225,10 @@ class TestGetTickerContext:
         db.execute = fake_execute
         result = get_ticker_context(ticker="BHP", db=db)
         assert result["announcement_context"] == []
-        # "no such table" should NOT appear in errors — it's handled gracefully
-        assert not any("announcement_context" in e for e in result["errors"])
+        assert any(
+            "announcement_context" in e and "documents_pdf_excerpt" in e
+            for e in result["errors"]
+        )
 
     def test_announcement_context_missing_table_uses_document_excerpt_fallback(self):
         """Missing materialized context uses non-admin document PDF excerpts."""
@@ -281,7 +283,10 @@ class TestGetTickerContext:
         ):
             result = get_ticker_context(ticker="PPT", db=db)
 
-        assert result["errors"] == []
+        assert any(
+            "announcement_context" in e and "documents_pdf_excerpt" in e
+            for e in result["errors"]
+        )
         assert result["announcement_context"] == [
             {
                 "document_id": "sale-doc",
