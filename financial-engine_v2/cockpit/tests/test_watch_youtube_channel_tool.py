@@ -36,6 +36,22 @@ def _make_executor(
             }
         ],
     }
+    router.backend_api_client.ingest_youtube_urls.return_value = {
+        "ok": True,
+        "count": 1,
+        "error_count": 0,
+        "results": [
+            {
+                "source_id": "youtube_transcript:test:abc123",
+                "video_title": "BHP quarterly results breakdown",
+                "webpage_url": "https://www.youtube.com/watch?v=abc123",
+                "staged": True,
+                "chunks_staged": 3,
+                "takeaways": [{"text": "BHP takeaway"}],
+            }
+        ],
+        "errors": [],
+    }
     action_registry = MagicMock()
     return ToolExecutor(tool_router=router, action_registry=action_registry)
 
@@ -152,3 +168,47 @@ class TestCheckYoutubeChannelRecentVideosTool:
 
         assert result["ok"] is False
         assert "limit" in result["error"]
+
+
+class TestIngestYoutubeVideosTool:
+    def test_successful_selected_video_ingest(self):
+        executor = _make_executor()
+
+        result = executor.execute(
+            "ingest_youtube_videos",
+            {
+                "urls": ["https://www.youtube.com/watch?v=abc123"],
+                "credibility_weight": 0.7,
+                "takeaway_limit": 3,
+            },
+        )
+
+        assert result["ok"] is True
+        assert result["count"] == 1
+        executor._router.backend_api_client.ingest_youtube_urls.assert_called_once_with(
+            ["https://www.youtube.com/watch?v=abc123"],
+            credibility_weight=0.7,
+            takeaway_limit=3,
+        )
+
+    def test_selected_video_ingest_requires_urls(self):
+        executor = _make_executor()
+
+        result = executor.execute("ingest_youtube_videos", {})
+
+        assert result["ok"] is False
+        assert "urls" in result["error"]
+
+    def test_selected_video_ingest_validates_weight(self):
+        executor = _make_executor()
+
+        result = executor.execute(
+            "ingest_youtube_videos",
+            {
+                "urls": ["https://www.youtube.com/watch?v=abc123"],
+                "credibility_weight": 2.0,
+            },
+        )
+
+        assert result["ok"] is False
+        assert "credibility_weight" in result["error"]

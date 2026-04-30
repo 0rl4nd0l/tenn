@@ -3,23 +3,20 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { spawn } from 'node:child_process'
 import { POST as deployCodexInvestigation } from '@/app/api/cockpit/feedback/flags/[reportId]/deploy/route'
 import { GET as getCodexInvestigation } from '@/app/api/cockpit/feedback/flags/[reportId]/investigation/route'
 
+const spawnMock = vi.hoisted(() => vi.fn(() => ({
+  pid: 12345,
+  once: vi.fn(),
+  unref: vi.fn(),
+})))
+
 vi.mock('node:child_process', () => ({
   default: {
-    spawn: vi.fn(() => ({
-      pid: 12345,
-      once: vi.fn(),
-      unref: vi.fn(),
-    })),
+    spawn: spawnMock,
   },
-  spawn: vi.fn(() => ({
-    pid: 12345,
-    once: vi.fn(),
-    unref: vi.fn(),
-  })),
+  spawn: spawnMock,
 }))
 
 function createQueuedReport(reportId = 'flag_20260430_abc123'): {
@@ -76,7 +73,7 @@ describe('Codex investigation deploy route', () => {
       status: 'launching',
       pid: 12345,
     })
-    expect(spawn).toHaveBeenCalledWith(
+    expect(spawnMock).toHaveBeenCalledWith(
       'python3',
       expect.arrayContaining([
         'scripts/cockpit_flag_investigator.py',

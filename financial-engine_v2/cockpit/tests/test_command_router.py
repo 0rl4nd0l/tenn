@@ -80,3 +80,36 @@ class TestWatchYoutubeChannelCommandRoute:
     def test_run_analysis_ticker_remains_query_until_action_exists(self):
         r = route_command("run analysis PPT")
         assert r.matched is False
+
+    def test_ingest_selected_youtube_video_numbers(self):
+        r = route_command(
+            "ingest 1 and 3",
+            recent_youtube_videos=[
+                {"title": "One", "webpage_url": "https://www.youtube.com/watch?v=one11111111"},
+                {"title": "Two", "webpage_url": "https://www.youtube.com/watch?v=two22222222"},
+                {"title": "Three", "webpage_url": "https://www.youtube.com/watch?v=thr33333333"},
+            ],
+        )
+
+        assert r.matched is True
+        assert r.action_type == "direct_tool"
+        assert r.tool == "ingest_youtube_videos"
+        assert r.arguments["urls"] == [
+            "https://www.youtube.com/watch?v=one11111111",
+            "https://www.youtube.com/watch?v=thr33333333",
+        ]
+
+    def test_bare_youtube_video_selection_uses_context(self):
+        r = route_command(
+            "first",
+            recent_youtube_videos=[
+                {"title": "One", "webpage_url": "https://www.youtube.com/watch?v=one11111111"},
+            ],
+        )
+
+        assert r.matched is True
+        assert r.tool == "ingest_youtube_videos"
+
+    def test_youtube_video_selection_without_context_does_not_route(self):
+        r = route_command("ingest 1")
+        assert r.matched is False
