@@ -110,6 +110,20 @@ _BACKFILL_RE = re.compile(
     r"^\s*(?:backfill|run\s+backfill)\s+([A-Z]{2,5})\b",
     re.IGNORECASE,
 )
+_SOURCE_GATHER_RE = re.compile(
+    r"""
+    ^\s*
+    (?:(?:ok(?:ay)?|yes|yep|sure|please|go\s+ahead|alright|all\s+right)[,.\s]+)?
+    (?:
+        (?:(?:gather|collect|fetch|pull|get)\s+(?:the\s+)?)
+        (?:sources?|evidence|documents?|announcements?|filings?)
+      |
+        (?:sources?|evidence|documents?|announcements?|filings?)\s+please
+    )
+    \s*[?!.]*\s*$
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
 _CHECK_CHANNEL_RECENT_RES = (
     re.compile(
         r"""
@@ -189,6 +203,19 @@ def route_command(
     action proposal payload. Returns ``matched=False`` otherwise.
     """
     text = str(message or "").strip()
+
+    active = str(active_ticker or "").strip().upper()
+    if active and active not in _TICKER_STOPWORDS and _SOURCE_GATHER_RE.match(text):
+        return CommandRoute(
+            matched=True,
+            action_type="action_proposal",
+            tool="run_backfill",
+            arguments={"ticker": active, "years": 2},
+            explanation=(
+                f"Gather source documents for {active} by backfilling ASX "
+                "announcements for 2 years."
+            ),
+        )
 
     youtube_selection_text, youtube_selection_weight = _strip_youtube_selection_weight(text)
     youtube_selection = _parse_youtube_video_selection(

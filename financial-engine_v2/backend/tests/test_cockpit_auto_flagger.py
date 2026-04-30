@@ -173,6 +173,45 @@ def test_detect_auto_flag_findings_ignores_sourceable_compacted_company_rows() -
     assert findings == []
 
 
+def test_detect_auto_flag_findings_ignores_sourceable_compacted_price_observation() -> None:
+    findings = detect_auto_flag_findings(
+        {
+            "response_text": "PPT price data is available.",
+            "routing_metadata": {"latency_ms": 1200},
+            "tool_traces": [
+                {
+                    "tool": "get_price",
+                    "ok": True,
+                    "duration_ms": 200,
+                }
+            ],
+            "evidence": [
+                {
+                    "tool": "get_price",
+                    "result": {
+                        "ok": True,
+                        "_truncated": True,
+                        "_original_chars": 44_381,
+                        "ticker": "PPT",
+                        "price": {
+                            "provider": "yahoo_finance",
+                            "symbol": "PPT.AX",
+                            "range": "1y",
+                            "interval": "1d",
+                            "current": {
+                                "price": 16.57,
+                                "market_time": "2026-04-30T06:10:06+00:00",
+                            },
+                        },
+                    },
+                }
+            ],
+        }
+    )
+
+    assert findings == []
+
+
 def test_auto_flag_fingerprint_is_stable_for_same_findings() -> None:
     findings = [{"category": "tool_failure", "reason": "Tool failed."}]
 

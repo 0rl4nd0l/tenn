@@ -437,6 +437,59 @@ class TestAgentLoopRegressions:
         executor.assert_not_called()
         llm.chat.assert_not_called()
 
+    def test_tool_action_proposal_stops_remaining_tool_calls(self):
+        responses = [
+            json.dumps(
+                {
+                    "type": "tool_calls",
+                    "calls": [
+                        {"tool": "run_backfill", "arguments": {"ticker": "PPT", "years": 2}},
+                        {
+                            "tool": "search_news",
+                            "arguments": {"query": "Perpetual Limited PPT"},
+                        },
+                    ],
+                }
+            )
+        ]
+        executor = MagicMock(
+            return_value={
+                "tool": "run_backfill",
+                "ok": True,
+                "type": "action_proposal",
+                "action_id": "single_ticker_announcement_backfill",
+                "action_label": "Single ticker backfill",
+                "arguments": {"ticker": "PPT", "years": 2},
+                "requires_confirmation": True,
+                "is_mutating": True,
+                "timeout_seconds": 14400,
+            }
+        )
+        loop = AgentLoop(llm_client=_make_llm(responses), tool_executor=executor)
+
+        result = loop.run("prepare source plan", ticker="PPT")
+
+        assert result.action_preview is not None
+        assert result.action_preview["action_id"] == "single_ticker_announcement_backfill"
+        assert result.action_preview["args"] == {"ticker": "PPT", "years": 2}
+        assert result.tool_calls_made == 1
+        assert [item["tool"] for item in result.evidence] == ["run_backfill"]
+        executor.assert_called_once_with("run_backfill", {"ticker": "PPT", "years": 2})
+
+    def test_source_gather_command_uses_active_ticker_without_llm(self):
+        executor = MagicMock()
+        llm = _make_llm([])
+        loop = AgentLoop(llm_client=llm, tool_executor=executor)
+
+        result = loop.run("Okay gather the sources", ticker="PPT")
+
+        assert result.mode == "command"
+        assert result.action_preview is not None
+        assert result.action_preview["action_id"] == "single_ticker_announcement_backfill"
+        assert result.action_preview["args"] == {"ticker": "PPT", "years": 2}
+        executor.assert_not_called()
+        llm.chat.assert_not_called()
+
     def test_analyse_command_executes_analysis_pipeline_directly(self):
         executor = MagicMock(
             return_value={

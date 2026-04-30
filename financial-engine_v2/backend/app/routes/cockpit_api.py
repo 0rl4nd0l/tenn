@@ -2487,10 +2487,24 @@ def _is_pure_operational_no_hit_response(text: str) -> bool:
     return bool(_PURE_OPERATIONAL_NO_HIT_RE.fullmatch(normalized))
 
 
-def _enforce_visible_source_contract(message: str, response: Any) -> list[dict[str, Any]]:
+def _is_marketplace_ui_mode(value: Any) -> bool:
+    return str(value or "").strip().lower() == "marketplace"
+
+
+def _enforce_visible_source_contract(
+    message: str,
+    response: Any,
+    *,
+    ui_mode: str | None = None,
+) -> list[dict[str, Any]]:
     sources = _build_ui_sources(getattr(response, "evidence", None) or [])
     text = str(getattr(response, "text", "") or "").strip()
+    routing_metadata = dict(getattr(response, "routing_metadata", None) or {})
 
+    if _is_marketplace_ui_mode(ui_mode) or _is_marketplace_ui_mode(
+        routing_metadata.get("ui_mode")
+    ):
+        return sources
     if not text or getattr(response, "action_preview", None) is not None:
         return sources
     if _is_operational_command_result(response):
@@ -2512,7 +2526,7 @@ def _enforce_visible_source_contract(message: str, response: Any) -> list[dict[s
     if _EXPLICIT_UNVERIFIED_RESPONSE_RE.search(text) and not _CONTAINS_FINANCIAL_CLAIM_RE.search(text):
         return sources
 
-    meta = dict(getattr(response, "routing_metadata", None) or {})
+    meta = routing_metadata
     meta["grounding_guard"] = "missing_visible_sources"
     # Build a tool audit so the UI can surface "Searched X: 0 results"
     # rather than a completely empty sources panel.
@@ -7343,7 +7357,11 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                 ui_mode=payload.mode,
                 attached_sources=attached_sources,
             )
-            sources = _enforce_visible_source_contract(payload.message, response)
+            sources = _enforce_visible_source_contract(
+                payload.message,
+                response,
+                ui_mode=payload.mode,
+            )
             _finalize_delivered_chat_response(
                 service,
                 session_id=payload.session_id,
@@ -7424,7 +7442,11 @@ async def cockpit_chat(payload: CockpitChatRequest, request: Request):
                     ui_mode=payload.mode,
                     attached_sources=attached_sources,
                 )
-                sources = _enforce_visible_source_contract(payload.message, response)
+                sources = _enforce_visible_source_contract(
+                    payload.message,
+                    response,
+                    ui_mode=payload.mode,
+                )
                 _finalize_delivered_chat_response(
                     service,
                     session_id=payload.session_id,

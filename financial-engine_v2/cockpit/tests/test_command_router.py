@@ -97,6 +97,19 @@ class TestWatchYoutubeChannelCommandRoute:
         assert r.tool == "run_analysis"
         assert r.arguments["ticker"] == "PPT"
 
+    def test_source_gather_followup_routes_to_backfill_for_active_ticker(self):
+        r = route_command("Okay gather the sources", active_ticker="PPT")
+
+        assert r.matched is True
+        assert r.action_type == "action_proposal"
+        assert r.tool == "run_backfill"
+        assert r.arguments == {"ticker": "PPT", "years": 2}
+
+    def test_source_gather_without_active_ticker_does_not_route(self):
+        r = route_command("Okay gather the sources")
+
+        assert r.matched is False
+
     def test_full_company_analysis_routes_to_analysis_pipeline(self):
         r = route_command("full company analysis on BHP")
         assert r.matched is True

@@ -95,6 +95,18 @@ def _has_sourceable_compacted_rows(result: Any) -> bool:
     return False
 
 
+def _has_sourceable_price_observation(result: Any) -> bool:
+    if not isinstance(result, dict):
+        return False
+    price = result.get("price") if isinstance(result.get("price"), dict) else {}
+    if result.get("ok") is False or price.get("ok") is False:
+        return False
+    current = price.get("current") if isinstance(price.get("current"), dict) else {}
+    provider = str(price.get("provider") or "").strip()
+    symbol = str(price.get("symbol") or result.get("ticker") or "").strip()
+    return bool(provider and symbol and current.get("price") is not None)
+
+
 def _append(
     findings: list[dict[str, Any]],
     *,
@@ -214,7 +226,11 @@ def detect_auto_flag_findings(turn: dict[str, Any]) -> list[dict[str, Any]]:
                 evidence={"tool": tool, "error": result_error[:400]},
             )
         if _CONTEXT_COMPACTION_RE.search(_json_preview(item)) and not (
-            isinstance(result, dict) and _has_sourceable_compacted_rows(result)
+            isinstance(result, dict)
+            and (
+                _has_sourceable_compacted_rows(result)
+                or _has_sourceable_price_observation(result)
+            )
         ):
             _append(
                 findings,

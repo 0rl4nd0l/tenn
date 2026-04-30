@@ -148,6 +148,143 @@ def test_cockpit_chat_stream_blocks_substantive_answer_without_sources(monkeypat
     assert auto_flag_calls == [done_events[-1]["data"]["text"]]
 
 
+def test_cockpit_chat_non_stream_preserves_marketplace_draft_without_sources(
+    monkeypatch,
+) -> None:
+    draft_json = (
+        '{"assistant_message":"What budget should I use?",'
+        '"draft":{},"missing_fields":["budget"],'
+        '"ready_to_create":false,"suggested_action":"ask_followup"}'
+    )
+    finalize_calls: list[str] = []
+    auto_flag_calls: list[str] = []
+
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            **kwargs,
+        ):
+            assert kwargs["ui_mode"] == "marketplace"
+            return SimpleNamespace(
+                text=draft_json,
+                evidence=[],
+                action_preview=None,
+                routing_metadata={
+                    "model": "claude-sonnet-test",
+                    "latency_ms": 111,
+                    "cost_usd": 0.0,
+                    "source": "api",
+                    "ui_mode": "marketplace",
+                },
+                tool_traces=[],
+            )
+
+        def finalize_chat_response_delivery(self, **kwargs):
+            finalize_calls.append(kwargs["response"].text)
+
+        def auto_flag_chat_response(self, **kwargs):
+            auto_flag_calls.append(kwargs["response"].text)
+            return None
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/cockpit/chat",
+        json={
+            "message": "/cloud You are the Tenn Marketplace mission assistant.",
+            "mode": "marketplace",
+            "stream": False,
+            "rag": False,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["data"]["text"] == draft_json
+    assert "grounding_guard" not in payload["data"]
+    assert finalize_calls == [draft_json]
+    assert auto_flag_calls == [draft_json]
+
+
+def test_cockpit_chat_stream_preserves_marketplace_draft_without_sources(
+    monkeypatch,
+) -> None:
+    draft_json = (
+        '{"assistant_message":"What budget should I use?",'
+        '"draft":{},"missing_fields":["budget"],'
+        '"ready_to_create":false,"suggested_action":"ask_followup"}'
+    )
+
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            assert kwargs["ui_mode"] == "marketplace"
+            return SimpleNamespace(
+                text=draft_json,
+                evidence=[],
+                action_preview=None,
+                routing_metadata={
+                    "model": "claude-sonnet-test",
+                    "latency_ms": 111,
+                    "cost_usd": 0.0,
+                    "source": "api",
+                    "ui_mode": "marketplace",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={
+            "message": "/cloud You are the Tenn Marketplace mission assistant.",
+            "mode": "marketplace",
+            "stream": True,
+            "rag": False,
+        },
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    assert done_events
+    assert done_events[-1]["data"]["text"] == draft_json
+    assert "can't verify that from current evidence" not in done_events[-1]["data"][
+        "text"
+    ].lower()
+    assert not [event for event in data_events if event.get("type") == "sources"]
+
+
 def test_cockpit_chat_stream_allows_good_morning_without_sources(monkeypatch) -> None:
     class FakeService:
         def chat_stream(

@@ -1305,6 +1305,8 @@ class ChatController:
         r"tell me more|more detail|elaborate|expand on|drill down|"
         r"financials?|revenue|earnings|cashflow|cash flow|dividends?|"
         r"balance sheet|results?|"
+        r"sources?|evidence|documents?|announcements?|filings?|"
+        r"gather\s+(?:the\s+)?sources?|collect\s+(?:the\s+)?sources?|"
         r"health|performance|outlook|guidance|price|chart|candlestick|candle|plot|"
         r"compared to|versus|vs"
         r")\b",
@@ -6106,6 +6108,8 @@ class ChatController:
                 )
 
         evidence = list(attached_bundle.evidence) if attached_bundle is not None else []
+        routing_metadata = dict(routing_metadata or {})
+        routing_metadata["ui_mode"] = "marketplace"
         self._record_answer_side_effects(query=message, answer=answer.strip(), ticker=None)
         self._set_latest_sources_payloads(evidence)
         return ChatResponse(

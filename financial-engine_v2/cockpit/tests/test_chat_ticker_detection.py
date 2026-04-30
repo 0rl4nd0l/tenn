@@ -96,6 +96,14 @@ class ChatTickerDetectionTests(unittest.TestCase):
         self.assertEqual(ticker, "BHP")
         self.assertFalse(explicit)
 
+    def test_source_gather_followup_reuses_prior_ticker(self) -> None:
+        ticker, explicit = self.controller._resolve_ticker_context(
+            "Okay gather the sources", prior_ticker="PPT"
+        )
+
+        self.assertEqual(ticker, "PPT")
+        self.assertFalse(explicit)
+
     def test_resolve_ticker_context_does_not_force_prior_for_unrelated_chat(
         self,
     ) -> None:

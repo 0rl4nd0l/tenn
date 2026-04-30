@@ -944,6 +944,34 @@ class AgentLoop:
                     )
                     total_tool_calls += 1
 
+                    result_dict = result if isinstance(result, dict) else {"result": result}
+                    if result_dict.get("type") == "action_proposal":
+                        preview_source = dict(result_dict)
+                        preview_source.setdefault("tool", tool_name)
+                        preview_source.setdefault("arguments", arguments)
+                        preview_source.setdefault(
+                            "explanation",
+                            self._action_proposal_result_text(
+                                tool_name,
+                                arguments,
+                                result_dict,
+                            ),
+                        )
+                        preview = normalize_action_preview(preview_source)
+                        return AgentResult(
+                            text=str(preview.get("explanation") or "").strip()
+                            or self._action_proposal_result_text(
+                                tool_name,
+                                arguments,
+                                result_dict,
+                            ),
+                            evidence=evidence,
+                            action_preview=preview,
+                            tool_calls_made=total_tool_calls,
+                            iterations_used=iteration,
+                            tool_traces=tool_traces,
+                        )
+
                     formatted = format_tool_result(tool_name, result)
                     # Use "user" role with a tool-result prefix for models that
                     # don't support the "tool" role natively.
@@ -1495,6 +1523,34 @@ class AgentLoop:
                 "requires_confirmation": True,
             }
         )
+
+    @staticmethod
+    def _action_proposal_result_text(
+        tool_name: str,
+        arguments: dict[str, Any],
+        result: dict[str, Any],
+    ) -> str:
+        explanation = str(result.get("explanation") or "").strip()
+        if explanation:
+            return explanation
+        if tool_name == "run_backfill":
+            result_arguments = (
+                result.get("arguments") if isinstance(result.get("arguments"), dict) else {}
+            )
+            ticker = str(
+                result.get("ticker")
+                or result_arguments.get("ticker")
+                or arguments.get("ticker")
+                or ""
+            ).strip().upper()
+            years = result_arguments.get("years") or arguments.get("years") or 2
+            if ticker:
+                return (
+                    f"Backfill ASX announcements and documents for {ticker} "
+                    f"({years} years)."
+                )
+        label = str(result.get("action_label") or result.get("action_id") or tool_name).strip()
+        return f"Ready to execute: {label}"
 
     # ------------------------------------------------------------------
     # Context window management
