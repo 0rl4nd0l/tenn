@@ -357,6 +357,7 @@ class ChatController:
         self._query_orchestrator = query_orchestrator
         self._ov_session_id: str = self._load_or_create_session_id()
         self._latest_sources_payloads: list[dict[str, Any]] = []
+        self._recent_youtube_video_options: list[dict[str, Any]] = []
         _ov_log_startup_status()
         # Prevents concurrent context-gather calls from stacking up.
         self._context_gather_lock = threading.Lock()
@@ -5106,6 +5107,7 @@ class ChatController:
         )
         combined_evidence = list(attached_bundle.evidence) if attached_bundle else []
         combined_evidence.extend(list(getattr(result, "evidence", None) or []))
+        self._remember_youtube_video_options_from_evidence(combined_evidence)
         self._set_latest_sources_payloads(combined_evidence)
 
         return ChatResponse(
@@ -5138,6 +5140,96 @@ class ChatController:
                         return channel
         return None
 
+    @staticmethod
+    def _parse_youtube_video_options_from_text(content: str) -> list[dict[str, Any]]:
+        if "Recent videos from" not in content:
+            return []
+        youtube_url_re = re.compile(
+            r"https?://(?:www\.)?(?:youtube\.com/watch\?[^\s]*v=|youtu\.be/)"
+            r"[A-Za-z0-9_\-]{6,}[^\s]*",
+            re.IGNORECASE,
+        )
+        option_re = re.compile(r"^\s*(\d+)\.\s+(.+?)(?:\s+\||$)")
+        options: list[dict[str, Any]] = []
+        current: dict[str, Any] | None = None
+        for line in str(content or "").splitlines():
+            option_match = option_re.match(line)
+            if option_match:
+                current = {
+                    "position": int(option_match.group(1)),
+                    "title": re.sub(r"\s+", " ", option_match.group(2)).strip(),
+                    "webpage_url": "",
+                }
+                inline_url = youtube_url_re.search(line)
+                if inline_url:
+                    current["webpage_url"] = inline_url.group(0).rstrip(".,)")
+                options.append(current)
+                continue
+            if current is None:
+                continue
+            url_match = youtube_url_re.search(line)
+            if url_match:
+                current["webpage_url"] = url_match.group(0).rstrip(".,)")
+        return [row for row in options if row.get("webpage_url")]
+
+    def _remember_youtube_video_options(self, result: dict[str, Any]) -> None:
+        videos = result.get("videos") if isinstance(result, dict) else None
+        if not isinstance(videos, list):
+            return
+        options: list[dict[str, Any]] = []
+        for index, video in enumerate(videos, start=1):
+            if not isinstance(video, dict):
+                continue
+            url = str(video.get("webpage_url") or video.get("url") or "").strip()
+            if not url:
+                continue
+            options.append(
+                {
+                    "position": video.get("position") or index,
+                    "title": str(video.get("title") or video.get("video_id") or "Untitled").strip(),
+                    "webpage_url": url,
+                    "video_id": video.get("video_id"),
+                    "scores": video.get("scores") if isinstance(video.get("scores"), dict) else {},
+                }
+            )
+        if options:
+            self._recent_youtube_video_options = options[:20]
+
+    def _remember_youtube_video_options_from_evidence(
+        self,
+        evidence: list[dict[str, Any]],
+    ) -> None:
+        for item in reversed(evidence or []):
+            if not isinstance(item, dict):
+                continue
+            if item.get("tool") != "check_youtube_channel_recent_videos":
+                continue
+            result = item.get("result")
+            if isinstance(result, dict):
+                self._remember_youtube_video_options(result)
+                if self._recent_youtube_video_options:
+                    return
+
+    def _recent_youtube_video_options_from_context(self) -> list[dict[str, Any]]:
+        if self._recent_youtube_video_options:
+            return list(self._recent_youtube_video_options)
+        if self._state_store is None:
+            return []
+        try:
+            history_msgs = self._state_store.get_chat_messages(self._thread_id, limit=12)
+        except Exception:
+            return []
+        for item in reversed(history_msgs or []):
+            if item.get("role") != "assistant":
+                continue
+            options = self._parse_youtube_video_options_from_text(
+                str(item.get("content") or "")
+            )
+            if options:
+                self._recent_youtube_video_options = options[:20]
+                return list(self._recent_youtube_video_options)
+        return []
+
     def _build_command_route_response(self, route: CommandRoute) -> ChatResponse | None:
         if not route.matched:
             return None
@@ -5165,6 +5257,8 @@ class ChatController:
                     "result": result,
                 }
             ]
+            if route.tool == "check_youtube_channel_recent_videos":
+                self._remember_youtube_video_options(result)
             self._set_latest_sources_payloads(evidence)
             return ChatResponse(
                 text=AgentLoop._format_direct_command_tool_result(route, result),
@@ -5659,6 +5753,7 @@ class ChatController:
             effective_message,
             active_ticker=prior_ticker or self.last_ticker,
             recent_youtube_channel=self._recent_youtube_channel_from_context(),
+            recent_youtube_videos=self._recent_youtube_video_options_from_context(),
         )
         command_response = self._build_command_route_response(command_route)
         if command_response is not None:

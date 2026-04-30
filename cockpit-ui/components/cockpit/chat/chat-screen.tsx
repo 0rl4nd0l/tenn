@@ -1360,11 +1360,15 @@ export function ChatScreen() {
               const autoFlagMessage: ChatMessageType | null = autoFlag
                 ? {
                     id: generateId(),
-                    role: 'system',
-                    content: formatFlagHandoffMessage(autoFlag, false),
-                    timestamp: new Date(),
-                  }
-                : null
+	                    role: 'system',
+	                    content: formatFlagHandoffMessage(autoFlag, false),
+	                    timestamp: new Date(),
+	                    metadata: {
+	                      source: 'cockpit',
+	                      codexDeploy: { reportId: autoFlag.report_id },
+	                    },
+	                  }
+	                : null
               const providerErrorNotice = buildProviderErrorNotice(event.data?.provider_error)
               if (providerErrorNotice) {
                 toast.error(providerErrorNotice, { duration: 15000 })
@@ -1695,6 +1699,81 @@ export function ChatScreen() {
     }
   }, [sessionId])
 
+  const handleDeployCodexFlag = useCallback(async (reportId: string) => {
+    const normalizedReportId = String(reportId || '').trim()
+    if (!normalizedReportId) {
+      return
+    }
+    const existingStatus = codexDeployStates[normalizedReportId]?.status
+    if (existingStatus === 'launching' || existingStatus === 'running' || existingStatus === 'completed') {
+      return
+    }
+
+    const updateDeployState = (status: CodexDeployStatus, detail?: string) => {
+      setCodexDeployStates((prev) => ({
+        ...prev,
+        [normalizedReportId]: { status, detail },
+      }))
+    }
+    const readPayload = async (response: Response): Promise<CodexDeployResponse> => {
+      const payload = await response.json().catch(() => null) as CodexDeployResponse | null
+      if (!response.ok) {
+        throw new Error(payload?.error || `HTTP ${response.status}`)
+      }
+      return payload || {}
+    }
+    const pollStatus = async () => {
+      const startedAt = Date.now()
+      const terminalStatuses = new Set(['completed', 'failed', 'error', 'not_requested'])
+      while (Date.now() - startedAt < 30 * 60 * 1000) {
+        await new Promise(resolve => setTimeout(resolve, 1500))
+        const response = await fetch(`/api/cockpit/feedback/flags/${encodeURIComponent(normalizedReportId)}/investigation`, {
+          cache: 'no-store',
+        })
+        const payload = await readPayload(response)
+        const status = String(payload.status || 'unknown') as CodexDeployStatus
+        updateDeployState(status === 'queued' ? 'launching' : status, payload.error)
+        if (terminalStatuses.has(status)) {
+          const detail = payload.output_tail?.trim() || payload.stderr_tail?.trim() || payload.launcher_log_tail?.trim() || ''
+          setMessages((prev) => [...prev, {
+            id: generateId(),
+            role: status === 'completed' ? 'assistant' : 'system',
+            content: status === 'completed'
+              ? `Codex investigation completed for \`${normalizedReportId}\`.\n\n${detail || 'Review the report artifact for the final message.'}`
+              : `Codex investigation ${status} for \`${normalizedReportId}\`.\n\n${detail || 'Check the report artifact for details.'}`,
+            timestamp: new Date(),
+            metadata: { source: 'cockpit' },
+          }])
+          if (status === 'completed') {
+            toast.success('Codex investigation completed')
+          } else {
+            toast.error(`Codex investigation ${status}`)
+          }
+          return
+        }
+      }
+      updateDeployState('running', 'Still running in the background')
+      toast.info('Codex investigation is still running in the background')
+    }
+
+    try {
+      updateDeployState('launching')
+      const response = await fetch(`/api/cockpit/feedback/flags/${encodeURIComponent(normalizedReportId)}/deploy`, {
+        method: 'POST',
+        cache: 'no-store',
+      })
+      const payload = await readPayload(response)
+      const status = String(payload.status || 'launching') as CodexDeployStatus
+      updateDeployState(status === 'queued' ? 'launching' : status, payload.error)
+      toast.success('Codex investigation deployed')
+      void pollStatus()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      updateDeployState('error', message)
+      toast.error(`Failed to deploy Codex: ${message}`)
+    }
+  }, [codexDeployStates])
+
   const handleCancelAction = useCallback((actionPreview: ActionPreview | undefined) => {
     if (!actionPreview) return
     setPendingActionPreview(null)
@@ -1786,6 +1865,10 @@ export function ChatScreen() {
           role: 'system',
           content: formatFlagHandoffMessage(result, copiedPrompt),
           timestamp: new Date(),
+          metadata: {
+            source: 'cockpit',
+            codexDeploy: { reportId: result.report_id },
+          },
         }])
         toast.success(result.analysis_summary?.trim()
           ? copiedPrompt
