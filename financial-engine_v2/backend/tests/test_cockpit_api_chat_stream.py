@@ -944,6 +944,82 @@ def test_cockpit_chat_stream_done_event_preserves_provider_error(monkeypatch) ->
     assert provider_error["severity"] == "action_required"
 
 
+def test_cockpit_chat_stream_done_event_includes_auto_flag_handoff(monkeypatch) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="I cannot verify that from current evidence.",
+                evidence=[],
+                action_preview=None,
+                routing_metadata={
+                    "model": "model:test",
+                    "latency_ms": 90_000,
+                    "cost_usd": 0.0,
+                    "source": "local",
+                },
+                tool_traces=[],
+            )
+
+        def auto_flag_chat_response(self, **kwargs):
+            assert kwargs["session_id"] == "session-auto"
+            assert kwargs["ticker"] == "BHP"
+            return {
+                "report_id": "auto_20260430_abc123",
+                "feedback_type": "poor",
+                "capture_kind": "auto_diagnostic",
+                "report_dir": "/tmp/reports/cockpit/flagged_sessions/session-auto/auto_20260430_abc123",
+                "read_api_path": "/api/cockpit/feedback/flags/auto_20260430_abc123",
+                "codex_prompt": "Investigate this automatically flagged cockpit diagnostic.",
+                "codex_prompt_path": "/tmp/reports/cockpit/flagged_sessions/session-auto/auto_20260430_abc123/codex_prompt.md",
+                "investigation_path": "/tmp/reports/cockpit/flagged_sessions/session-auto/auto_20260430_abc123/investigation.json",
+                "investigation_status": "queued",
+                "codex_cli_command": "python scripts/cockpit_flag_investigator.py --report-id auto_20260430_abc123 --once --apply",
+            }
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={
+            "message": "tell me about BHP",
+            "ticker": "BHP",
+            "session_id": "session-auto",
+            "stream": True,
+        },
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    auto_flag = done_events[-1]["data"]["auto_flag"]
+    assert auto_flag["report_id"] == "auto_20260430_abc123"
+    assert auto_flag["capture_kind"] == "auto_diagnostic"
+    assert auto_flag["investigation_status"] == "queued"
+    assert "codex_prompt" in auto_flag
+    assert "codex_cli_command" in auto_flag
+
+
 def test_cockpit_chat_non_stream_uses_to_thread(monkeypatch) -> None:
     class FakeService:
         def chat_stream(self, **kwargs):
