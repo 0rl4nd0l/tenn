@@ -1727,7 +1727,7 @@ export function ChatScreen() {
       const terminalStatuses = new Set(['completed', 'failed', 'error', 'not_requested'])
       while (Date.now() - startedAt < 30 * 60 * 1000) {
         await new Promise(resolve => setTimeout(resolve, 1500))
-        const response = await fetch(`/api/cockpit/feedback/flags/${encodeURIComponent(normalizedReportId)}/investigation`, {
+        const response = await fetch(`/cockpit-local/feedback/flags/${encodeURIComponent(normalizedReportId)}/investigation`, {
           cache: 'no-store',
         })
         const payload = await readPayload(response)
@@ -1758,7 +1758,7 @@ export function ChatScreen() {
 
     try {
       updateDeployState('launching')
-      const response = await fetch(`/api/cockpit/feedback/flags/${encodeURIComponent(normalizedReportId)}/deploy`, {
+      const response = await fetch(`/cockpit-local/feedback/flags/${encodeURIComponent(normalizedReportId)}/deploy`, {
         method: 'POST',
         cache: 'no-store',
       })

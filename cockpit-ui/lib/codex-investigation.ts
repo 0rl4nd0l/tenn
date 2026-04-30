@@ -31,7 +31,7 @@ export type CodexInvestigationPaths = {
 }
 
 export function resolveRepoRoot(): string {
-  return path.resolve(process.cwd(), '..')
+  return path.resolve(/*turbopackIgnore: true*/ process.cwd(), '..')
 }
 
 export function resolveReportsRoot(repoRoot = resolveRepoRoot()): string {
