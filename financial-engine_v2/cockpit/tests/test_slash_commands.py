@@ -783,6 +783,79 @@ class TestBuildChatResponseSlashDispatch(SlashCommandTestBase):
         assert "Which YouTube channel" in resp.text
         self.controller.ollama_client.chat.assert_not_called()
 
+    def test_youtube_number_selection_ingests_selected_video(self) -> None:
+        backend = MagicMock()
+        backend.ingest_youtube_urls.return_value = {
+            "ok": True,
+            "count": 1,
+            "error_count": 0,
+            "results": [
+                {
+                    "source_id": "youtube_transcript:test:abc123",
+                    "video_title": "Latest ASX breakdown",
+                    "webpage_url": "https://www.youtube.com/watch?v=abc123def45",
+                    "staged": True,
+                    "chunks_staged": 4,
+                    "takeaways": [{"text": "Important ASX takeaway"}],
+                }
+            ],
+            "errors": [],
+        }
+        self.tool_router.backend_api_client = backend
+        self.state_store.get_chat_messages.return_value = [
+            {
+                "role": "assistant",
+                "content": (
+                    "Recent videos from Kneppy Invests (UCabc123):\n"
+                    "1. Latest ASX breakdown | date unknown | 10 min | score 0.88\n"
+                    "   https://www.youtube.com/watch?v=abc123def45\n"
+                    "2. Older ASX breakdown | date unknown | 9 min | score 0.50\n"
+                    "   https://www.youtube.com/watch?v=older123456"
+                ),
+            }
+        ]
+
+        resp = self.controller.build_chat_response("ingest 1")
+
+        assert resp.mode == "command"
+        assert "Staged selected YouTube transcript" in resp.text
+        assert "Important ASX takeaway" in resp.text
+        assert "/review approve youtube_transcript:test:abc123" in resp.text
+        backend.ingest_youtube_urls.assert_called_once_with(
+            ["https://www.youtube.com/watch?v=abc123def45"],
+            credibility_weight=None,
+            takeaway_limit=5,
+        )
+        self.controller.ollama_client.chat.assert_not_called()
+
+    def test_review_commands_use_backend_when_configured(self) -> None:
+        backend = MagicMock()
+        backend.get_pending_transcripts.return_value = {
+            "pending": [
+                {
+                    "source_id": "youtube_transcript:test:abc123",
+                    "source_type": "youtube_transcript",
+                    "title": "Latest ASX breakdown",
+                    "chunk_count": 4,
+                    "staged_at": "2026-04-30T00:00:00Z",
+                }
+            ]
+        }
+        backend.approve_transcript.return_value = {"points_upserted": 4}
+        self.tool_router.backend_api_client = backend
+
+        list_resp = self.controller.build_chat_response("/review list")
+        approve_resp = self.controller.build_chat_response(
+            "/review approve youtube_transcript:test:abc123"
+        )
+
+        assert "Pending transcript review" in list_resp.text
+        assert "Approved and indexed 4 chunks" in approve_resp.text
+        backend.get_pending_transcripts.assert_called_once()
+        backend.approve_transcript.assert_called_once_with(
+            "youtube_transcript:test:abc123"
+        )
+
 
 class TestIngestCommand(unittest.TestCase):
     """Tests for /ingest <url> command dispatch."""
