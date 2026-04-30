@@ -187,6 +187,26 @@ class ChatTickerDetectionTests(unittest.TestCase):
         self.assertNotIn("backfill", response.text.lower())
         self.controller.ollama_client.chat.assert_not_called()
 
+    def test_ticker_leading_price_today_prompt_hits_price_fast_path(self) -> None:
+        self.controller.tool_router.get_price_context_for_window.return_value = {
+            "price": {
+                "symbol": "EOS.AX",
+                "recent_history": [
+                    {"timestamp": "2026-04-29T00:00:00Z", "close": 8.88},
+                    {"timestamp": "2026-04-30T00:00:00Z", "close": 9.06},
+                ],
+            }
+        }
+
+        response = self.controller.build_chat_response(
+            "EOS price today", prior_ticker=None
+        )
+
+        self.assertEqual(response.mode, ResponseMode.FAST)
+        self.assertIn("**EOS.AX** last close: **9.0600** (2026-04-30)", response.text)
+        self.assertNotIn("real-time market data sources", response.text.lower())
+        self.controller.ollama_client.chat.assert_not_called()
+
     def test_fresh_web_context_detects_market_wrap_phrase(self) -> None:
         self.assertTrue(
             self.controller._query_signals_fresh_web_context("give me a market wrap")

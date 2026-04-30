@@ -1680,11 +1680,12 @@ class ChatController:
         re.IGNORECASE,
     )
     _SIMPLE_PRICE_RE = re.compile(
-        r"^\s*(?:current\s+price|last\s+(?:price|close)|what.{0,15}price|price)\s*[?!.]*\s*$",
+        r"^\s*(?:current\s+price|today'?s?\s+price|last\s+(?:price|close)|"
+        r"what.{0,15}price|price(?:\s+(?:today|now|current|currently))?)\s*[?!.]*\s*$",
         re.IGNORECASE,
     )
     _TICKER_LEADING_PRICE_RE = re.compile(
-        r"^\s*(?:[A-Za-z0-9]{2,5})\s+(?:share\s+)?price\s*[?!.]*\s*$",
+        r"^\s*(?:[A-Za-z0-9]{2,5})\s+(?:share\s+)?price(?:\s+(?:today|now|current|currently))?\s*[?!.]*\s*$",
         re.IGNORECASE,
     )
     _DIRECT_NEWS_RE = re.compile(
