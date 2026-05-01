@@ -2442,6 +2442,13 @@ _OPERATIONAL_COMMAND_TOOLS_WITHOUT_VISIBLE_SOURCES = frozenset(
         "watch_youtube_channel",
     }
 )
+_OPERATIONAL_WATCH_TOOL_RESPONSE_RE = re.compile(
+    r"\b(?:add(?:ed)?|already|watch(?:ed|ing)?|monitor(?:ed|ing)?|subscrib(?:ed|e)|"
+    r"could not|failed|unable)\b.*\b(?:youtube|channel|watch list)\b|"
+    r"\b(?:youtube|channel|watch list)\b.*\b(?:add(?:ed)?|already|watch(?:ed|ing)?|"
+    r"monitor(?:ed|ing)?|subscrib(?:ed|e)|could not|failed|unable)\b",
+    re.IGNORECASE,
+)
 
 
 def _message_requires_visible_sources(message: str) -> bool:
@@ -2465,17 +2472,29 @@ def _message_requires_visible_sources(message: str) -> bool:
     return True
 
 
-def _is_operational_command_result(response: Any) -> bool:
-    if str(getattr(response, "mode", "") or "").strip() != "command":
-        return False
+def _has_operational_tool_evidence(response: Any) -> bool:
     evidence = getattr(response, "evidence", None) or []
     for entry in evidence:
         if not isinstance(entry, dict):
             continue
         tool = str(entry.get("tool") or "").strip()
-        if tool in _OPERATIONAL_COMMAND_TOOLS_WITHOUT_VISIBLE_SOURCES:
+        result = entry.get("result")
+        if (
+            tool in _OPERATIONAL_COMMAND_TOOLS_WITHOUT_VISIBLE_SOURCES
+            and isinstance(result, dict)
+        ):
             return True
     return False
+
+
+def _is_operational_tool_acknowledgement(response: Any, text: str) -> bool:
+    if not _has_operational_tool_evidence(response):
+        return False
+    if not _OPERATIONAL_WATCH_TOOL_RESPONSE_RE.search(text):
+        return False
+    if _CONTAINS_FINANCIAL_CLAIM_RE.search(text):
+        return False
+    return True
 
 
 def _only_operational_no_hit_sources(sources: list[dict[str, Any]]) -> bool:
@@ -2516,7 +2535,7 @@ def _enforce_visible_source_contract(
         return sources
     if not text or getattr(response, "action_preview", None) is not None:
         return sources
-    if _is_operational_command_result(response):
+    if _is_operational_tool_acknowledgement(response, text):
         return sources
     if not _message_requires_visible_sources(message):
         return sources

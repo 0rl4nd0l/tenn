@@ -566,6 +566,208 @@ def test_cockpit_chat_stream_preserves_watch_youtube_command_result(monkeypatch)
     assert not [event for event in data_events if event.get("type") == "sources"]
 
 
+def test_cockpit_chat_stream_preserves_agent_watch_youtube_ack(monkeypatch) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="Kneppy Invests is already on the YouTube watch list.",
+                evidence=[
+                    {
+                        "tool": "watch_youtube_channel",
+                        "arguments": {"channel_name": "Kneppy Invests"},
+                        "result": {
+                            "ok": True,
+                            "channel_id": "UCjQJPzeCJhA4KrETh3FVVHA",
+                            "name": "Kneppy Invests",
+                            "enabled": True,
+                            "already_existed": True,
+                        },
+                    }
+                ],
+                action_preview=None,
+                mode="agent",
+                routing_metadata={
+                    "model": "claude-sonnet-4-20250514",
+                    "latency_ms": 1929,
+                    "cost_usd": 0.0,
+                    "source": "api",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "watch kneppy invests", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    assert done_events
+    assert done_events[-1]["data"]["text"] == (
+        "Kneppy Invests is already on the YouTube watch list."
+    )
+    assert "Sources dropdown" not in done_events[-1]["data"]["text"]
+    assert not [event for event in data_events if event.get("type") == "sources"]
+
+
+def test_cockpit_chat_stream_blocks_financial_claim_with_only_watch_youtube(
+    monkeypatch,
+) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="Kneppy Invests reported that BHP revenue will rise.",
+                evidence=[
+                    {
+                        "tool": "watch_youtube_channel",
+                        "arguments": {"channel_name": "Kneppy Invests"},
+                        "result": {
+                            "ok": True,
+                            "channel_id": "UCjQJPzeCJhA4KrETh3FVVHA",
+                            "name": "Kneppy Invests",
+                            "enabled": True,
+                            "already_existed": True,
+                        },
+                    }
+                ],
+                action_preview=None,
+                mode="agent",
+                routing_metadata={
+                    "model": "claude-sonnet-4-20250514",
+                    "latency_ms": 1929,
+                    "cost_usd": 0.0,
+                    "source": "api",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "watch kneppy invests", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    assert done_events
+    assert "can't verify that from current evidence" in done_events[-1]["data"][
+        "text"
+    ].lower()
+    assert not [event for event in data_events if event.get("type") == "sources"]
+
+
+def test_cockpit_chat_stream_preserves_watch_youtube_tool_error(monkeypatch) -> None:
+    class FakeService:
+        def chat_stream(
+            self,
+            message: str,
+            ticker: str | None = None,
+            session_id: str | None = None,
+            on_chunk=None,
+            on_status=None,
+            on_thinking=None,
+            **kwargs,
+        ):
+            return SimpleNamespace(
+                text="Could not watch YouTube channel Kneppy Invests: backend down.",
+                evidence=[
+                    {
+                        "tool": "watch_youtube_channel",
+                        "arguments": {"channel_name": "Kneppy Invests"},
+                        "result": {
+                            "ok": False,
+                            "error": "backend down",
+                        },
+                    }
+                ],
+                action_preview=None,
+                mode="agent",
+                routing_metadata={
+                    "model": "claude-sonnet-4-20250514",
+                    "latency_ms": 1929,
+                    "cost_usd": 0.0,
+                    "source": "api",
+                },
+                tool_traces=[],
+            )
+
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: FakeService())
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    with client.stream(
+        "POST",
+        "/api/cockpit/chat",
+        json={"message": "watch kneppy invests", "stream": True},
+    ) as response:
+        assert response.status_code == 200
+        body = "".join(response.iter_text())
+
+    data_events = [
+        json.loads(line.removeprefix("data: ").strip())
+        for line in body.splitlines()
+        if line.startswith("data: ")
+    ]
+    done_events = [event for event in data_events if event.get("type") == "done"]
+    assert done_events
+    assert done_events[-1]["data"]["text"] == (
+        "Could not watch YouTube channel Kneppy Invests: backend down."
+    )
+    assert "Sources dropdown" not in done_events[-1]["data"]["text"]
+    assert not [event for event in data_events if event.get("type") == "sources"]
+
+
 def test_cockpit_chat_stream_emits_sources_when_evidence_is_renderable(monkeypatch) -> None:
     class FakeService:
         def chat_stream(

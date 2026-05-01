@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
@@ -91,6 +92,8 @@ class MarketUpdateOrchestrator:
         followup_threshold: float = 0.5,
         clock: Callable[[], datetime] | None = None,
         market_universe_loader: Callable[[], list[str]] | None = None,
+        max_snapshot_workers: int = 8,
+        parallel_snapshot_threshold: int = 20,
     ) -> None:
         self._store = state_store
         self._snapshot = snapshot_provider
@@ -98,6 +101,8 @@ class MarketUpdateOrchestrator:
         self._followup_threshold = float(followup_threshold)
         self._clock = clock or _utc_now
         self._market_universe_loader = market_universe_loader
+        self._max_snapshot_workers = max(1, int(max_snapshot_workers))
+        self._parallel_snapshot_threshold = max(2, int(parallel_snapshot_threshold))
 
     def run(
         self,
@@ -136,16 +141,9 @@ class MarketUpdateOrchestrator:
         gathered: list[tuple[TickerSnapshot, TickerScore]] = []
         errors: list[str] = []
 
-        for ticker in scan:
-            try:
-                snap = self._snapshot(ticker)
-            except Exception as exc:  # noqa: BLE001 — per-ticker isolation
-                logger.warning(
-                    "market_update_orchestrator: snapshot failed for %s: %s",
-                    ticker,
-                    exc,
-                )
-                errors.append(f"{ticker}: snapshot failed: {exc}")
+        for ticker, snap, error in self._snapshot_scan(scan):
+            if error is not None:
+                errors.append(error)
                 continue
             if snap is None:
                 errors.append(f"{ticker}: no snapshot available")
@@ -209,6 +207,36 @@ class MarketUpdateOrchestrator:
                     exc,
                 )
         return []
+
+    def _snapshot_one(
+        self, ticker: str
+    ) -> tuple[str, TickerSnapshot | None, str | None]:
+        try:
+            snap = self._snapshot(ticker)
+        except Exception as exc:  # noqa: BLE001 — per-ticker isolation
+            logger.warning(
+                "market_update_orchestrator: snapshot failed for %s: %s",
+                ticker,
+                exc,
+            )
+            return ticker, None, f"{ticker}: snapshot failed: {exc}"
+        return ticker, snap, None
+
+    def _snapshot_scan(
+        self, scan: list[str]
+    ) -> list[tuple[str, TickerSnapshot | None, str | None]]:
+        if (
+            self._max_snapshot_workers <= 1
+            or len(scan) < self._parallel_snapshot_threshold
+        ):
+            return [self._snapshot_one(ticker) for ticker in scan]
+
+        worker_count = min(self._max_snapshot_workers, len(scan))
+        with ThreadPoolExecutor(
+            max_workers=worker_count,
+            thread_name_prefix="market-update-snapshot",
+        ) as executor:
+            return list(executor.map(self._snapshot_one, scan))
 
     @staticmethod
     def _normalize_tickers(tickers: list[str] | tuple[str, ...] | set[str] | Any) -> list[str]:

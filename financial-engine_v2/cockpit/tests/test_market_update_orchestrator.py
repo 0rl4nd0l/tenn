@@ -6,6 +6,8 @@ Live extraction must continue undisturbed during these tests.
 
 from __future__ import annotations
 
+import threading
+import time
 from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
@@ -226,6 +228,68 @@ class TestHappyPath:
         assert isinstance(summary["headline"], str)
         # Template-based, not LLM-generated: no surprises in content
         assert "manual" in summary["headline"].lower()
+
+    def test_large_scan_uses_bounded_parallel_snapshotting(self) -> None:
+        store = _make_store()
+        active = 0
+        max_active = 0
+        lock = threading.Lock()
+
+        def provider(t: str) -> TickerSnapshot | None:
+            nonlocal active, max_active
+            with lock:
+                active += 1
+                max_active = max(max_active, active)
+            try:
+                time.sleep(0.01)
+                return _snap(t, pct_change=1.0)
+            finally:
+                with lock:
+                    active -= 1
+
+        tickers = [f"T{i:02d}" for i in range(20)]
+        orc = MarketUpdateOrchestrator(
+            state_store=store,
+            snapshot_provider=provider,
+            max_snapshot_workers=4,
+            parallel_snapshot_threshold=5,
+            clock=_fixed_clock,
+        )
+
+        result = orc.run("final", tickers=tickers)
+
+        assert result.status == "complete"
+        assert max_active > 1
+        assert max_active <= 4
+        summary = store.save_market_update_report.call_args.kwargs["summary"]
+        assert [row["ticker"] for row in summary["tickers"]] == tickers
+
+    def test_large_parallel_scan_keeps_per_ticker_failure_contract(self) -> None:
+        store = _make_store()
+
+        def provider(t: str) -> TickerSnapshot | None:
+            if t == "T02":
+                raise RuntimeError("upstream died")
+            if t == "T03":
+                return None
+            return _snap(t, pct_change=1.0)
+
+        orc = MarketUpdateOrchestrator(
+            state_store=store,
+            snapshot_provider=provider,
+            max_snapshot_workers=3,
+            parallel_snapshot_threshold=2,
+            clock=_fixed_clock,
+        )
+
+        result = orc.run("final", tickers=["T01", "T02", "T03", "T04"])
+
+        assert result.status == "partial"
+        assert result.gathered_tickers == 2
+        assert any("T02: snapshot failed: upstream died" in e for e in result.errors)
+        assert any("T03: no snapshot available" in e for e in result.errors)
+        summary = store.save_market_update_report.call_args.kwargs["summary"]
+        assert [row["ticker"] for row in summary["tickers"]] == ["T01", "T04"]
 
 
 class TestFollowupQueueing:
