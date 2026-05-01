@@ -131,6 +131,7 @@ export interface CockpitPreferences {
   theme: 'dark' | 'light'
   marketplaceHomeLocation: string
   marketplacePreferCloudRouting: boolean
+  chatRoutingPolicyOverride: 'config_default' | 'local_preferred' | 'local_only' | 'api_preferred' | 'api_only'
   iphoneScale: boolean
 }
 
@@ -542,6 +543,8 @@ export interface SystemStatus {
   extract_model?: string | null
   embed_model?: string | null
   routing_policy?: string | null
+  routing_policy_override?: string | null
+  routing_policy_source?: string | null
   backend_url?: string | null
   profile?: string | null
   features?: {

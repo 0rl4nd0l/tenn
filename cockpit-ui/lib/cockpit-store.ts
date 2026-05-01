@@ -12,6 +12,7 @@ const DEFAULT_PREFERENCES: CockpitPreferences = {
   theme: 'dark',
   marketplaceHomeLocation: '',
   marketplacePreferCloudRouting: false,
+  chatRoutingPolicyOverride: 'config_default',
   iphoneScale: false,
 }
 

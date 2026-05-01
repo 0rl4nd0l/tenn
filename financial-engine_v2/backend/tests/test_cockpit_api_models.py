@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from app.routes import cockpit_api
 from app.routes.cockpit_api import router
+from cockpit.storage.state import StateStore
 
 
 def test_build_ui_sources_includes_rag_hit_metadata_and_doc_fallback() -> None:
@@ -384,6 +385,42 @@ def test_cockpit_config_reports_effective_flags_and_routing(monkeypatch) -> None
     assert payload["features"]["web_search"] is True
     assert payload["features"]["rag"] is True
     assert payload["features"]["db_diagnostics"] is False
+
+
+def test_cockpit_config_reports_operator_routing_policy_override(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    state_store = StateStore(str(tmp_path / "state.db"))
+    state_store.set_preference("chat_routing_policy_override", "local_only")
+
+    monkeypatch.setattr(cockpit_api, "_fetch_llama_server_models", lambda: {})
+    monkeypatch.setattr(
+        cockpit_api,
+        "compute_effective_cockpit_config",
+        lambda *args, **kwargs: {
+            "cockpit_llm": {
+                "hybrid_router_policy": "api_preferred",
+                "llm_profile_label": "ops",
+                "defaults": {"anthropic_api_key": ""},
+            },
+            "memory": {"state_db": str(tmp_path / "state.db")},
+            "backend": {},
+            "runtime": {},
+        },
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.get("/api/cockpit/config")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["routing_policy"] == "local_only"
+    assert payload["routing_policy_override"] == "local_only"
+    assert payload["routing_policy_source"] == "operator_override"
 
 
 def test_cockpit_models_fills_missing_ssd_group_from_llama_registry(

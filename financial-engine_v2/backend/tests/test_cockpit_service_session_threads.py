@@ -491,6 +491,65 @@ def test_refresh_global_chat_controller_reloads_when_routing_policy_changes(
     assert service.chat_controller._hybrid_router._policy == "api_preferred"
 
 
+def test_refresh_global_chat_controller_uses_operator_routing_override(
+    monkeypatch,
+) -> None:
+    service = CockpitService.__new__(CockpitService)
+    _prime_service(service)
+    service.repo_root = Path("/tmp")
+    service._config_path = Path("/tmp/config/cockpit.yaml")
+    service._runtime_profile = "default"
+    service._runtime_read_only = False
+    service._runtime_no_web = False
+    service.llm_client = SimpleNamespace(model="model:qwen3.5-35b-a3b")
+    service.tool_router = object()
+    service.action_registry = object()
+    service.query_orchestrator = None
+    service.llm_timeout_seconds = 120.0
+    service.config = {
+        "cockpit_llm": {"hybrid_router_policy": "api_preferred"},
+        "llm": {"timeout_seconds": 120},
+    }
+    service.chat_controller = SimpleNamespace(
+        _hybrid_router=SimpleNamespace(_policy="api_preferred", _api=object())
+    )
+
+    class _StateStore:
+        def get_preference(self, key: str, default: str = "") -> str:
+            return "local_only" if key == "chat_routing_policy_override" else default
+
+    service.state_store = _StateStore()
+
+    monkeypatch.setattr("app.services.cockpit_service.load_config", lambda _path: {})
+    monkeypatch.setattr(
+        "app.services.cockpit_service.apply_runtime_flags",
+        lambda _cfg, _flags: {
+            "cockpit_llm": {"hybrid_router_policy": "api_preferred"},
+            "llm": {"timeout_seconds": 300},
+        },
+    )
+    monkeypatch.setattr(
+        "app.services.cockpit_service.effective_anthropic_api_key",
+        lambda _cm: "non-empty-key",
+    )
+
+    class _FakeChatController:
+        def __init__(self, **kwargs):
+            self._hybrid_router = SimpleNamespace(
+                _policy=kwargs["cockpit_llm"]["hybrid_router_policy"],
+                _api=object(),
+            )
+
+    monkeypatch.setattr(
+        "app.services.cockpit_service.ChatController", _FakeChatController
+    )
+
+    CockpitService._refresh_global_chat_controller_if_needed(service)
+
+    assert service.config["cockpit_llm"]["hybrid_router_policy"] == "local_only"
+    assert service.chat_controller._hybrid_router._policy == "local_only"
+
+
 def test_preload_preferred_model_skips_during_active_extraction(monkeypatch) -> None:
     service = CockpitService.__new__(CockpitService)
     service.llm_client = SimpleNamespace(

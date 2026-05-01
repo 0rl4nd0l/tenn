@@ -144,6 +144,7 @@ export function CockpitSidebar({
   const { 
     chatModel, 
     apiDefaultEnabled,
+    preferences,
     sessionStats, 
     sessionId, 
     setSessionId,
@@ -278,7 +279,11 @@ export function CockpitSidebar({
     }
     return configSummary.model ?? '--'
   }, [configSummary.model, sessionStats.activeModel])
-  const routeModeLabel = apiDefaultEnabled ? 'API default' : 'adaptive'
+  const routeModeLabel = apiDefaultEnabled
+    ? 'API default'
+    : preferences.chatRoutingPolicyOverride !== 'config_default'
+      ? preferences.chatRoutingPolicyOverride
+      : 'adaptive'
 
   const displayNotice = backendHealthy
     ? configNotice

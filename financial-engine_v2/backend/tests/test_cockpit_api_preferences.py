@@ -36,6 +36,7 @@ def test_preferences_defaults_and_patch_round_trip(tmp_path, monkeypatch) -> Non
     assert initial.json() == {
         "api_default_enabled": False,
         "marketplace_prefer_cloud_routing": False,
+        "chat_routing_policy_override": "config_default",
     }
 
     patched = client.patch(
@@ -43,12 +44,14 @@ def test_preferences_defaults_and_patch_round_trip(tmp_path, monkeypatch) -> Non
         json={
             "api_default_enabled": True,
             "marketplace_prefer_cloud_routing": True,
+            "chat_routing_policy_override": "local_preferred",
         },
     )
     assert patched.status_code == 200
     assert patched.json() == {
         "api_default_enabled": True,
         "marketplace_prefer_cloud_routing": True,
+        "chat_routing_policy_override": "local_preferred",
     }
 
     after = client.get("/api/cockpit/preferences")
@@ -56,4 +59,24 @@ def test_preferences_defaults_and_patch_round_trip(tmp_path, monkeypatch) -> Non
     assert after.json() == {
         "api_default_enabled": True,
         "marketplace_prefer_cloud_routing": True,
+        "chat_routing_policy_override": "local_preferred",
     }
+
+
+def test_preferences_reject_invalid_chat_routing_policy(tmp_path, monkeypatch) -> None:
+    fake_service = _fake_service(tmp_path)
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    response = client.patch(
+        "/api/cockpit/preferences",
+        json={"chat_routing_policy_override": "bad_policy"},
+    )
+
+    assert response.status_code == 400
+    assert "Invalid chat_routing_policy_override" in response.json()["detail"]

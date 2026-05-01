@@ -10,6 +10,7 @@ import logging
 import math
 import os
 import re
+import sqlite3
 import subprocess
 import sys
 import threading
@@ -33,7 +34,13 @@ from app.core.config import PROJECT_ROOT, settings
 from app.core.db import SessionLocal
 from app.models.documents import Document
 from app.providers.market_price_provider import MarketPriceProvider, MarketPriceProviderError
-from app.services.cockpit_service import CockpitService
+from app.services.cockpit_service import (
+    CHAT_ROUTING_POLICY_CONFIG_DEFAULT,
+    CHAT_ROUTING_POLICY_OVERRIDE_KEY,
+    CockpitService,
+    VALID_CHAT_ROUTING_POLICY_PREFERENCES,
+    normalize_chat_routing_policy_preference,
+)
 from app.services.llamacpp_runtime import (
     is_manual_fallback_llm_model,
     resolve_llm_runtime_config,
@@ -236,6 +243,8 @@ class CockpitConfigResponse(BaseModel):
     extract_model: str | None = None
     embed_model: str | None = None
     routing_policy: str | None = None
+    routing_policy_override: str = CHAT_ROUTING_POLICY_CONFIG_DEFAULT
+    routing_policy_source: str = "config"
     backend_url: str | None = None
     profile: str | None = None
     features: dict[str, bool] = Field(default_factory=dict)
@@ -3048,6 +3057,21 @@ def cockpit_config() -> CockpitConfigResponse:
         if isinstance(effective_cfg.get("cockpit_llm"), dict)
         else {}
     )
+    memory_cfg = (
+        effective_cfg.get("memory")
+        if isinstance(effective_cfg.get("memory"), dict)
+        else {}
+    )
+    routing_policy_override = _routing_policy_override_from_state_db(
+        str(memory_cfg.get("state_db") or "").strip()
+    )
+    effective_routing_policy = str(
+        cockpit_llm.get("hybrid_router_policy") or ""
+    ).strip()
+    routing_policy_source = "config"
+    if routing_policy_override != CHAT_ROUTING_POLICY_CONFIG_DEFAULT:
+        effective_routing_policy = routing_policy_override
+        routing_policy_source = "operator_override"
     backend_cfg = (
         effective_cfg.get("backend")
         if isinstance(effective_cfg.get("backend"), dict)
@@ -3099,7 +3123,9 @@ def cockpit_config() -> CockpitConfigResponse:
         ],
         extract_model=str(settings.extract_model or "").strip() or None,
         embed_model=str(settings.embed_model or "").strip() or None,
-        routing_policy=str(cockpit_llm.get("hybrid_router_policy") or "").strip() or None,
+        routing_policy=effective_routing_policy or None,
+        routing_policy_override=routing_policy_override,
+        routing_policy_source=routing_policy_source,
         backend_url=str(backend_cfg.get("api_base_url") or "").strip() or None,
         profile=(
             str(
@@ -4165,11 +4191,13 @@ class CockpitChatSessionCreateResponse(BaseModel):
 class CockpitPreferencesResponse(BaseModel):
     api_default_enabled: bool = False
     marketplace_prefer_cloud_routing: bool = False
+    chat_routing_policy_override: str = CHAT_ROUTING_POLICY_CONFIG_DEFAULT
 
 
 class CockpitPreferencesPatchRequest(BaseModel):
     api_default_enabled: bool | None = None
     marketplace_prefer_cloud_routing: bool | None = None
+    chat_routing_policy_override: str | None = None
 
 
 class CockpitActionExecuteRequest(BaseModel):
@@ -7167,6 +7195,28 @@ def _parse_preference_bool(raw: str | None, default: bool = False) -> bool:
     return text in {"1", "true", "yes", "on"}
 
 
+def _routing_policy_override_from_state_db(state_db: str | None) -> str:
+    raw_path = str(state_db or "").strip()
+    if not raw_path:
+        return CHAT_ROUTING_POLICY_CONFIG_DEFAULT
+    path = Path(raw_path).expanduser()
+    if not path.exists():
+        return CHAT_ROUTING_POLICY_CONFIG_DEFAULT
+    try:
+        with sqlite3.connect(str(path)) as conn:
+            row = conn.execute(
+                "SELECT value FROM user_preferences WHERE key = ?",
+                (CHAT_ROUTING_POLICY_OVERRIDE_KEY,),
+            ).fetchone()
+    except sqlite3.Error:
+        return CHAT_ROUTING_POLICY_CONFIG_DEFAULT
+    raw_value = row[0] if row else CHAT_ROUTING_POLICY_CONFIG_DEFAULT
+    return (
+        normalize_chat_routing_policy_preference(raw_value)
+        or CHAT_ROUTING_POLICY_CONFIG_DEFAULT
+    )
+
+
 @router.get("/preferences", response_model=CockpitPreferencesResponse)
 def cockpit_get_preferences() -> CockpitPreferencesResponse:
     try:
@@ -7182,6 +7232,15 @@ def cockpit_get_preferences() -> CockpitPreferencesResponse:
             ),
             default=False,
         )
+        chat_routing_policy_override = (
+            normalize_chat_routing_policy_preference(
+                service.state_store.get_preference(
+                    CHAT_ROUTING_POLICY_OVERRIDE_KEY,
+                    CHAT_ROUTING_POLICY_CONFIG_DEFAULT,
+                )
+            )
+            or CHAT_ROUTING_POLICY_CONFIG_DEFAULT
+        )
     except Exception as exc:
         logger.exception("Failed to load cockpit preferences")
         raise HTTPException(
@@ -7191,6 +7250,7 @@ def cockpit_get_preferences() -> CockpitPreferencesResponse:
     return CockpitPreferencesResponse(
         api_default_enabled=api_default_enabled,
         marketplace_prefer_cloud_routing=marketplace_prefer_cloud_routing,
+        chat_routing_policy_override=chat_routing_policy_override,
     )
 
 
@@ -7210,7 +7270,29 @@ def cockpit_patch_preferences(
                 "marketplace_prefer_cloud_routing",
                 "true" if payload.marketplace_prefer_cloud_routing else "false",
             )
+        if payload.chat_routing_policy_override is not None:
+            normalized_policy = normalize_chat_routing_policy_preference(
+                payload.chat_routing_policy_override
+            )
+            if normalized_policy is None:
+                allowed = ", ".join(sorted(VALID_CHAT_ROUTING_POLICY_PREFERENCES))
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "Invalid chat_routing_policy_override. "
+                        f"Expected one of: {allowed}"
+                    ),
+                )
+            service.state_store.set_preference(
+                CHAT_ROUTING_POLICY_OVERRIDE_KEY,
+                normalized_policy,
+            )
+        refresh = getattr(service, "_refresh_global_chat_controller_if_needed", None)
+        if callable(refresh):
+            refresh()
     except Exception as exc:
+        if isinstance(exc, HTTPException):
+            raise
         logger.exception("Failed to update cockpit preferences")
         raise HTTPException(
             status_code=500, detail=f"Failed to update cockpit preferences: {str(exc)}"

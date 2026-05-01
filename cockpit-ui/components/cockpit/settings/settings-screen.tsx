@@ -110,6 +110,14 @@ const DEFAULTS: ConfigState = {
   },
 }
 
+const ROUTING_POLICY_OPTIONS = [
+  { value: 'config_default', label: 'Config default' },
+  { value: 'local_preferred', label: 'Local preferred' },
+  { value: 'local_only', label: 'Local only' },
+  { value: 'api_preferred', label: 'API preferred' },
+  { value: 'api_only', label: 'API only' },
+] as const
+
 export function SettingsScreen() {
   const { chatModel, setChatModel, preferences, updatePreferences } = useCockpitStore()
   const [config, setConfig] = useState<ConfigState>(DEFAULTS)
@@ -331,7 +339,37 @@ export function SettingsScreen() {
           <Separator />
           <ConfigRow label="Endpoint" value={config.llm.endpoint} mono />
           <Separator />
-          <ConfigRow label="Routing Policy" value={config.llm.routingPolicy} mono />
+          <ConfigRow label="Effective Routing Policy" value={config.llm.routingPolicy} mono />
+          <Separator />
+          <div className={cn(
+            "flex items-center justify-between py-2 gap-4",
+            isIPhoneScale && "flex-col items-start"
+          )}>
+            <span className="text-sm text-muted-foreground">Chat Route Override</span>
+            <Select
+              value={preferences.chatRoutingPolicyOverride}
+              onValueChange={(value) => {
+                updatePreferences({
+                  chatRoutingPolicyOverride: value as typeof preferences.chatRoutingPolicyOverride,
+                })
+              }}
+            >
+              <SelectTrigger className={cn(
+                "h-8 text-sm font-mono",
+                isIPhoneScale ? "w-full" : "w-[220px]"
+              )}
+              aria-label="Chat route override">
+                <SelectValue placeholder="Config default" />
+              </SelectTrigger>
+              <SelectContent>
+                {ROUTING_POLICY_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <Separator />
           <ConfigRow label="Anthropic API Key" value={config.llm.apiKeyConfigured} />
           <Separator />

@@ -107,11 +107,13 @@ export type ChatSessionCreateResponse = {
 export type CockpitPreferences = {
   api_default_enabled: boolean
   marketplace_prefer_cloud_routing: boolean
+  chat_routing_policy_override: 'config_default' | 'local_preferred' | 'local_only' | 'api_preferred' | 'api_only'
 }
 
 export type CockpitPreferencesPatch = {
   api_default_enabled?: boolean
   marketplace_prefer_cloud_routing?: boolean
+  chat_routing_policy_override?: 'config_default' | 'local_preferred' | 'local_only' | 'api_preferred' | 'api_only'
 }
 
 type AttachedChatSource = {

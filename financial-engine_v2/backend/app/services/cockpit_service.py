@@ -36,6 +36,7 @@ from cockpit.core.agent_loop import parse_backend_prefix
 from cockpit.core.chat import ChatController, ChatResponse
 from cockpit.core.config import (
     RuntimeFlags,
+    VALID_HYBRID_ROUTER_POLICIES,
     apply_runtime_flags,
     effective_anthropic_api_key,
     load_config,
@@ -69,6 +70,20 @@ _ANTHROPIC_BILLING_ERROR_RE = re.compile(
     r"(credit balance is too low|plans\s*&\s*billing|purchase credits)",
     re.IGNORECASE,
 )
+CHAT_ROUTING_POLICY_OVERRIDE_KEY = "chat_routing_policy_override"
+CHAT_ROUTING_POLICY_CONFIG_DEFAULT = "config_default"
+VALID_CHAT_ROUTING_POLICY_PREFERENCES = frozenset(
+    {CHAT_ROUTING_POLICY_CONFIG_DEFAULT, *VALID_HYBRID_ROUTER_POLICIES}
+)
+
+
+def normalize_chat_routing_policy_preference(raw: Any) -> str | None:
+    value = str(raw or CHAT_ROUTING_POLICY_CONFIG_DEFAULT).strip().lower()
+    if not value:
+        return CHAT_ROUTING_POLICY_CONFIG_DEFAULT
+    if value in VALID_CHAT_ROUTING_POLICY_PREFERENCES:
+        return value
+    return None
 
 
 def _now_iso() -> str:
@@ -1112,6 +1127,9 @@ class CockpitService:
             qual_context_news_reader=qual_news,
             state_store=self.state_store,
         )
+        self.config["cockpit_llm"] = self._effective_cockpit_llm_config(
+            cfg.get("cockpit_llm")
+        )
         self.chat_controller = ChatController(
             ollama_client=self.llm_client,
             tool_router=self.tool_router,
@@ -1119,7 +1137,7 @@ class CockpitService:
             llm_timeout_seconds=self.llm_timeout_seconds,
             state_store=self.state_store,
             thread_id="global-main",
-            cockpit_llm=cfg.get("cockpit_llm"),
+            cockpit_llm=self.config.get("cockpit_llm"),
             repo_root=self.repo_root,
             query_orchestrator=self.query_orchestrator,
         )
@@ -1253,6 +1271,34 @@ class CockpitService:
         candidate = str(session_id or "").strip()
         return candidate[:128] if candidate else "global-main"
 
+    def chat_routing_policy_preference(self) -> str:
+        store = getattr(self, "state_store", None)
+        if store is None or not hasattr(store, "get_preference"):
+            return CHAT_ROUTING_POLICY_CONFIG_DEFAULT
+        try:
+            raw = store.get_preference(
+                CHAT_ROUTING_POLICY_OVERRIDE_KEY,
+                CHAT_ROUTING_POLICY_CONFIG_DEFAULT,
+            )
+        except Exception:
+            return CHAT_ROUTING_POLICY_CONFIG_DEFAULT
+        normalized = normalize_chat_routing_policy_preference(raw)
+        return normalized or CHAT_ROUTING_POLICY_CONFIG_DEFAULT
+
+    def _effective_cockpit_llm_config(
+        self,
+        base: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        if isinstance(base, dict):
+            cockpit_llm = dict(base)
+        else:
+            raw = self.config.get("cockpit_llm") if isinstance(self.config, dict) else {}
+            cockpit_llm = dict(raw) if isinstance(raw, dict) else {}
+        preference = self.chat_routing_policy_preference()
+        if preference != CHAT_ROUTING_POLICY_CONFIG_DEFAULT:
+            cockpit_llm["hybrid_router_policy"] = preference
+        return cockpit_llm
+
     def _build_chat_controller(self, thread_id: str) -> ChatController:
         if thread_id == "global-main":
             self._refresh_global_chat_controller_if_needed()
@@ -1264,7 +1310,7 @@ class CockpitService:
             llm_timeout_seconds=self.llm_timeout_seconds,
             state_store=self.state_store,
             thread_id=thread_id,
-            cockpit_llm=self.config.get("cockpit_llm"),
+            cockpit_llm=self._effective_cockpit_llm_config(),
             repo_root=self.repo_root,
             query_orchestrator=self.query_orchestrator,
         )
@@ -1302,8 +1348,11 @@ class CockpitService:
             if isinstance(cfg.get("cockpit_llm"), dict)
             else {}
         )
-        desired_policy = str(cockpit_llm.get("hybrid_router_policy") or "").strip()
-        desired_api_available = bool(effective_anthropic_api_key(cockpit_llm))
+        effective_cockpit_llm = self._effective_cockpit_llm_config(cockpit_llm)
+        desired_policy = str(
+            effective_cockpit_llm.get("hybrid_router_policy") or ""
+        ).strip()
+        desired_api_available = bool(effective_anthropic_api_key(effective_cockpit_llm))
 
         hybrid_router = getattr(self.chat_controller, "_hybrid_router", None)
         current_policy = str(getattr(hybrid_router, "_policy", "") or "").strip()
@@ -1316,6 +1365,7 @@ class CockpitService:
             return
 
         llm_cfg = cfg.get("llm") if isinstance(cfg.get("llm"), dict) else {}
+        cfg["cockpit_llm"] = effective_cockpit_llm
         self.config = cfg
         self.llm_timeout_seconds = float(llm_cfg.get("timeout_seconds", 300))
         self.chat_controller = ChatController(
@@ -1325,7 +1375,7 @@ class CockpitService:
             llm_timeout_seconds=self.llm_timeout_seconds,
             state_store=self.state_store,
             thread_id="global-main",
-            cockpit_llm=self.config.get("cockpit_llm"),
+            cockpit_llm=effective_cockpit_llm,
             repo_root=self.repo_root,
             query_orchestrator=self.query_orchestrator,
         )

@@ -24,6 +24,26 @@ interface CockpitLayoutProps {
   title: string
 }
 
+type ChatRoutingPolicyOverride =
+  | 'config_default'
+  | 'local_preferred'
+  | 'local_only'
+  | 'api_preferred'
+  | 'api_only'
+
+function normalizeChatRoutingPolicyOverride(value: unknown): ChatRoutingPolicyOverride {
+  const text = String(value || '').trim()
+  if (
+    text === 'local_preferred'
+    || text === 'local_only'
+    || text === 'api_preferred'
+    || text === 'api_only'
+  ) {
+    return text
+  }
+  return 'config_default'
+}
+
 export function CockpitLayout({ children, title }: CockpitLayoutProps) {
   const [backendHealthy, setBackendHealthy] = useState(false)
   const [backendLastHealthyAt, setBackendLastHealthyAt] = useState<Date | null>(null)
@@ -81,10 +101,12 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
         setApiDefaultEnabled(Boolean(remote.api_default_enabled))
         updatePreferences({
           marketplacePreferCloudRouting: Boolean(remote.marketplace_prefer_cloud_routing),
+          chatRoutingPolicyOverride: normalizeChatRoutingPolicyOverride(remote.chat_routing_policy_override),
         })
         syncedPreferencesRef.current = JSON.stringify({
           api_default_enabled: Boolean(remote.api_default_enabled),
           marketplace_prefer_cloud_routing: Boolean(remote.marketplace_prefer_cloud_routing),
+          chat_routing_policy_override: normalizeChatRoutingPolicyOverride(remote.chat_routing_policy_override),
         })
       } catch {
         // Keep local defaults when backend preferences are unavailable.
@@ -104,6 +126,7 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
     const snapshot = JSON.stringify({
       api_default_enabled: Boolean(apiDefaultEnabled),
       marketplace_prefer_cloud_routing: Boolean(preferences.marketplacePreferCloudRouting),
+      chat_routing_policy_override: preferences.chatRoutingPolicyOverride,
     })
     if (snapshot === syncedPreferencesRef.current) return
     let cancelled = false
@@ -112,6 +135,7 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
         await patchCockpitPreferences({
           api_default_enabled: Boolean(apiDefaultEnabled),
           marketplace_prefer_cloud_routing: Boolean(preferences.marketplacePreferCloudRouting),
+          chat_routing_policy_override: preferences.chatRoutingPolicyOverride,
         })
         if (!cancelled) {
           syncedPreferencesRef.current = snapshot
@@ -123,7 +147,7 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
     return () => {
       cancelled = true
     }
-  }, [apiDefaultEnabled, preferences.marketplacePreferCloudRouting, preferencesHydrated])
+  }, [apiDefaultEnabled, preferences.chatRoutingPolicyOverride, preferences.marketplacePreferCloudRouting, preferencesHydrated])
 
   useEffect(() => {
     if (!preferencesHydrated) return
@@ -136,6 +160,7 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
         const remoteSnapshot = JSON.stringify({
           api_default_enabled: Boolean(remote.api_default_enabled),
           marketplace_prefer_cloud_routing: Boolean(remote.marketplace_prefer_cloud_routing),
+          chat_routing_policy_override: normalizeChatRoutingPolicyOverride(remote.chat_routing_policy_override),
         })
         if (remoteSnapshot === syncedPreferencesRef.current) return
 
@@ -144,6 +169,7 @@ export function CockpitLayout({ children, title }: CockpitLayoutProps) {
         setApiDefaultEnabled(Boolean(remote.api_default_enabled))
         updatePreferences({
           marketplacePreferCloudRouting: Boolean(remote.marketplace_prefer_cloud_routing),
+          chatRoutingPolicyOverride: normalizeChatRoutingPolicyOverride(remote.chat_routing_policy_override),
         })
       } catch {
         // Keep local state when backend preference refresh fails.
