@@ -38,6 +38,7 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { MarketplaceAssistant } from './marketplace-assistant'
 import { useCockpitStore } from '@/lib/cockpit-store'
+import { priceEvidenceForMatch, priceSourceLabel } from './price-evidence'
 import { cn } from '@/lib/utils'
 
 interface MarketplaceMissionScreenProps {
@@ -854,6 +855,7 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                   const benchmark = match.benchmark ?? null
                   const media = listingMediaForMatch(match)
                   const firstMedia = media[0] ?? null
+                  const priceEvidence = priceEvidenceForMatch(match)
                   return (
                     <div key={match.match_id} className="rounded-md border border-border/70 bg-muted/10 p-3">
                       <div className="flex items-start justify-between gap-2">
@@ -885,7 +887,15 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                         <Badge variant="outline" className="text-[10px]">
                           photos: {media.length > 0 ? media.length : 0}
                         </Badge>
+                        <Badge variant="outline" className="text-[10px]">
+                          {priceSourceLabel(priceEvidence)}
+                        </Badge>
                       </div>
+                      {priceEvidence?.warning && (
+                        <p className="mt-2 text-[11px] text-amber-700 dark:text-amber-300">
+                          {priceEvidence.warning}
+                        </p>
+                      )}
                       {benchmark ? (
                         <div className="mt-3 space-y-1 text-xs">
                           <div>

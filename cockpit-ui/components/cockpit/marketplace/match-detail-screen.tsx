@@ -12,6 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { priceEvidenceForMatch, priceSourceLabel } from './price-evidence'
 
 interface MarketplaceMatchDetailScreenProps {
   apiKey: string
@@ -84,6 +85,7 @@ export function MarketplaceMatchDetailScreen({
   const [error, setError] = useState<string | null>(null)
   const [reviewSaving, setReviewSaving] = useState(false)
   const media = match ? listingMedia(match) : []
+  const priceEvidence = match ? priceEvidenceForMatch(match) : null
 
   const load = useCallback(async () => {
     if (!matchId) {
@@ -287,7 +289,16 @@ export function MarketplaceMatchDetailScreen({
                       <dt className="text-muted-foreground">Price</dt>
                       <dd className="font-mono font-bold text-primary">{match.price || 'n/a'}</dd>
                     </div>
+                    <div className="flex justify-between border-t border-border/40 py-1">
+                      <dt className="text-muted-foreground">Price source</dt>
+                      <dd className="font-mono text-xs">{priceSourceLabel(priceEvidence)}</dd>
+                    </div>
                   </dl>
+                  {priceEvidence?.warning && (
+                    <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">
+                      {priceEvidence.warning}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </div>

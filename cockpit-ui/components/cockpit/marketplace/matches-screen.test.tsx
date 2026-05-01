@@ -34,7 +34,16 @@ describe('MarketplaceMatchesScreen', () => {
                 'https://cdn.example.com/listing-2.jpg',
               ],
               status: 'new',
-              metadata: {},
+              metadata: {
+                price_evidence: {
+                  detail_price_text: null,
+                  card_price_text: '$22,500',
+                  resolved_price_text: '$22,500',
+                  resolved_price_value: 22500,
+                  source: 'search_card',
+                  warning: 'Detail page did not expose a price; preserved search-card price.',
+                },
+              },
               value_context: {
                 state: 'scored',
                 value_score: 84,
@@ -74,6 +83,8 @@ describe('MarketplaceMatchesScreen', () => {
     expect(screen.getByText('$22,500')).toBeInTheDocument()
     expect(screen.getByText(/below local median/i)).toBeInTheDocument()
     expect(screen.getByText(/photos: 2/i)).toBeInTheDocument()
+    expect(screen.getByText(/source: search card/i)).toBeInTheDocument()
+    expect(screen.getByText(/preserved search-card price/i)).toBeInTheDocument()
     expect(screen.getByAltText(/listing photo for 2014 toyota hilux sr5 4x4/i)).toBeInTheDocument()
     expect(screen.getByText(/used-market value/i)).toBeInTheDocument()
     expect(screen.getByText(/good value/i)).toBeInTheDocument()

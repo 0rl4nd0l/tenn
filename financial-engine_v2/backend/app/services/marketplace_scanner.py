@@ -79,6 +79,44 @@ def canonical_marketplace_listing_url(url: str) -> str:
     return f"https://www.facebook.com/marketplace/item/{listing_id}/"
 
 
+def _clean_price_text(value: Any) -> str | None:
+    cleaned = re.sub(r"\s+", " ", str(value or "")).strip()
+    return cleaned or None
+
+
+def _resolved_price_evidence(
+    *,
+    card: dict[str, Any],
+    detail: dict[str, Any],
+) -> dict[str, Any]:
+    detail_price = _clean_price_text(detail.get("price"))
+    card_price = _clean_price_text(card.get("price"))
+    resolved_price = detail_price or card_price
+    source = "detail" if detail_price else "search_card" if card_price else "missing"
+    evidence: dict[str, Any] = {
+        "detail_price_text": detail_price,
+        "card_price_text": card_price,
+        "resolved_price_text": resolved_price,
+        "resolved_price_value": parse_marketplace_price(resolved_price),
+        "source": source,
+    }
+    if source == "search_card":
+        evidence["warning"] = "Detail page did not expose a price; preserved search-card price."
+    elif source == "missing":
+        evidence["warning"] = "No price was exposed by the search card or detail page."
+    return evidence
+
+
+def _detail_with_resolved_price(
+    detail: dict[str, Any],
+    price_evidence: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        **detail,
+        "price": price_evidence.get("resolved_price_text"),
+    }
+
+
 def _location_slug(location_name: str) -> str:
     normalized = str(location_name or "").strip().lower()
     if "melbourne" in normalized:
@@ -667,19 +705,22 @@ class MarketplaceScanner:
                     continue
 
                 consecutive_detail_timeouts = 0
+                price_evidence = _resolved_price_evidence(card=card, detail=detail)
+                scored_detail = _detail_with_resolved_price(detail, price_evidence)
+
                 score = evaluate_marketplace_listing(
-                    detail,
+                    scored_detail,
                     mission,
                     observed_price_band=price_band,
                 )
                 value_resale_candidate = self._resolve_value_resale_candidate(
-                    detail,
+                    scored_detail,
                     mission=mission,
                     candidate_contexts=candidate_contexts,
                 )
                 if log:
                     log(f"      score: {score['score']} ({score['decision_band']})")
-                detail_hash = listing_material_hash(detail)
+                detail_hash = listing_material_hash(scored_detail)
                 candidate_resolution: dict[str, Any] | None = None
                 post_detail_outcome: dict[str, Any] | None = None
                 if score["decision_band"] == "reject":
@@ -697,7 +738,7 @@ class MarketplaceScanner:
                             rejected_by_requirement_fit += 1
                     if requirement_driven and value_resale_candidate is None:
                         post_detail_outcome = classify_requirement_detail_outcome(
-                            detail,
+                            scored_detail,
                             mission,
                             score,
                             candidate_contexts=candidate_contexts,
@@ -713,7 +754,7 @@ class MarketplaceScanner:
                             )
                 elif requirement_driven:
                     candidate_resolution = self._resolve_requirement_candidate(
-                        detail,
+                        scored_detail,
                         candidate_contexts,
                     )
                     if not candidate_resolution.get("matched"):
@@ -754,9 +795,9 @@ class MarketplaceScanner:
                                     "listing_id": detail["listing_id"],
                                     "listing_url": detail["listing_url"],
                                     "title": detail["title"],
-                                    "price_text": detail.get("price"),
+                                    "price_text": scored_detail.get("price"),
                                     "price_value": parse_marketplace_price(
-                                        detail.get("price")
+                                        scored_detail.get("price")
                                     ),
                                     "location": detail.get("location"),
                                     "seller_name": detail.get("seller_name"),
@@ -764,6 +805,7 @@ class MarketplaceScanner:
                                     "detail_hash": detail_hash,
                                     "raw_snapshot": {
                                         **detail,
+                                        "price_evidence": price_evidence,
                                         "score": score,
                                         "candidate_resolution": candidate_resolution,
                                         "post_detail_outcome": post_detail_outcome,
@@ -788,7 +830,7 @@ class MarketplaceScanner:
                 material_reasons = material_change_reasons(
                     previous_seen,
                     new_hash=detail_hash,
-                    new_price_value=parse_marketplace_price(detail.get("price")),
+                    new_price_value=parse_marketplace_price(scored_detail.get("price")),
                     new_score=int(score["score"]),
                     new_band=str(score["decision_band"]),
                 )
@@ -811,8 +853,10 @@ class MarketplaceScanner:
                             "listing_id": detail["listing_id"],
                             "listing_url": detail["listing_url"],
                             "title": detail["title"],
-                            "price": detail.get("price"),
-                            "price_value": parse_marketplace_price(detail.get("price")),
+                            "price": scored_detail.get("price"),
+                            "price_value": parse_marketplace_price(
+                                scored_detail.get("price")
+                            ),
                             "location": detail.get("location"),
                             "seller_name": detail.get("seller_name"),
                             "captured_at": detail["captured_at"],
@@ -829,6 +873,7 @@ class MarketplaceScanner:
                                 "query": query,
                                 "material_change_reasons": material_reasons,
                                 "detail_hash": detail_hash,
+                                "price_evidence": price_evidence,
                                 "candidate_resolution": _candidate_resolution_metadata(
                                     candidate_resolution
                                 ),
@@ -876,6 +921,7 @@ class MarketplaceScanner:
                                 "detail_hash": detail_hash,
                                 "query": query,
                                 "decision_band": score["decision_band"],
+                                "price_evidence": price_evidence,
                                 **(
                                     {
                                         "value_resale_candidate": self._value_resale_metadata(
@@ -899,14 +945,15 @@ class MarketplaceScanner:
                         "listing_id": detail["listing_id"],
                         "listing_url": detail["listing_url"],
                         "title": detail["title"],
-                        "price_text": detail.get("price"),
-                        "price_value": parse_marketplace_price(detail.get("price")),
+                        "price_text": scored_detail.get("price"),
+                        "price_value": parse_marketplace_price(scored_detail.get("price")),
                         "location": detail.get("location"),
                         "seller_name": detail.get("seller_name"),
                         "query_text": query,
                         "detail_hash": detail_hash,
                         "raw_snapshot": {
                             **detail,
+                            "price_evidence": price_evidence,
                             "score": score,
                             "candidate_resolution": candidate_resolution,
                             "material_change_reasons": material_reasons,

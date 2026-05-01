@@ -589,6 +589,97 @@ def test_requirement_scanner_flags_under_market_resale_candidate(
     assert value["value_label"] == "excellent"
 
 
+def test_scanner_preserves_card_price_when_detail_omits_price(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    mission_service, price_service = _state_services(tmp_path)
+    mission = mission_service.create_mission(
+        {
+            "name": "NVMe storage",
+            "brief": "CUSU SSD listing watch.",
+            "category_hint": "ssd",
+            "hard_filters": {
+                "include_keywords": ["2TB", "Gen4", "NVMe", "M.2", "SSD"],
+                "location_names": ["Melbourne"],
+                "price_max": 500,
+            },
+            "soft_preferences": {"preferred_condition_terms": ["new"]},
+            "search_config": {"max_queries_per_run": 1},
+            "scan_config": {
+                "candidate_threshold": 50,
+                "strong_match_threshold": 70,
+                "detail_open_target": 1,
+                "candidate_card_target": 1,
+                "aggressive_alerting": True,
+            },
+        }
+    )
+    mission["deployment_args"] = {"requirement_profile": {"mode": "exact_product"}}
+
+    async def fake_collect(self, **kwargs):
+        return [
+            {
+                "listing_id": "cusussd",
+                "listing_url": "https://www.facebook.com/marketplace/item/cusussd/",
+                "title": "CUSU SSD 2TB Brand New in Box",
+                "price": "AU$298",
+                "location": "Melbourne",
+                "text_fragments": [
+                    "CUSU SSD 2TB Brand New in Box",
+                    "AU$298",
+                    "Melbourne",
+                ],
+            }
+        ]
+
+    async def fake_inspect(self, **kwargs):
+        return {
+            "listing_id": "cusussd",
+            "listing_url": "https://www.facebook.com/marketplace/item/cusussd/",
+            "captured_at": "2026-05-01T00:00:00Z",
+            "title": "CUSU SSD 2TB Brand New in Box",
+            "price": None,
+            "seller_name": None,
+            "location": "Melbourne",
+            "description": "New CUSU CV5000 2TB PCIe Gen4x4 NVMe M.2 SSD.",
+            "raw_text_lines": ["New CUSU CV5000 2TB PCIe Gen4x4 NVMe M.2 SSD."],
+            "raw_text_snapshot": "New CUSU CV5000 2TB PCIe Gen4x4 NVMe M.2 SSD.",
+            "screenshot_path": "/tmp/cusussd.png",
+            "listing_media": [],
+        }
+
+    monkeypatch.setattr(scanner.MarketplaceScanner, "_collect_cards_for_query", fake_collect)
+    monkeypatch.setattr(scanner.MarketplaceScanner, "_inspect_listing_detail", fake_inspect)
+
+    marketplace_scanner = scanner.MarketplaceScanner(
+        mission_service,
+        price_service=price_service,
+    )
+    result = asyncio.run(
+        marketplace_scanner._scan_mission(
+            context=_FakeContext(),
+            mission=mission,
+            log=None,
+            cancel_requested=None,
+        )
+    )
+
+    matches = mission_service.list_matches(mission_id=mission["mission_id"])
+    assert result["matches_saved"] == 1
+    assert matches[0]["price"] == "AU$298"
+    assert matches[0]["price_value"] == 298
+    assert matches[0]["metadata"]["price_evidence"]["source"] == "search_card"
+    assert (
+        matches[0]["metadata"]["price_evidence"]["warning"]
+        == "Detail page did not expose a price; preserved search-card price."
+    )
+    seen = mission_service.get_seen_listing(mission["mission_id"], "cusussd")
+    assert seen["price_text"] == "AU$298"
+    assert seen["price_value"] == 298
+    assert seen["raw_snapshot"]["price_evidence"]["detail_price_text"] is None
+
+
 def test_requirement_scanner_records_detail_inspection_failures(
     tmp_path: Path,
     monkeypatch,

@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { priceEvidenceForMatch, priceSourceLabel } from './price-evidence'
 
 interface MarketplaceMatchesScreenProps {
   apiKey: string
@@ -197,6 +198,7 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
             {matches.map((match) => {
               const media = listingMedia(match)
               const firstMedia = media[0] ?? null
+              const priceEvidence = priceEvidenceForMatch(match)
               return (
               <Card key={match.match_id} className="overflow-hidden transition-colors hover:bg-muted/5">
                 <CardHeader className="pb-3">
@@ -261,7 +263,15 @@ export function MarketplaceMatchesScreen({ apiKey }: MarketplaceMatchesScreenPro
                     <Badge variant="outline" className="text-[10px]">
                       photos: {media.length}
                     </Badge>
+                    <Badge variant="outline" className="ml-2 text-[10px]">
+                      {priceSourceLabel(priceEvidence)}
+                    </Badge>
                   </div>
+                  {priceEvidence?.warning && (
+                    <p className="mb-3 text-[11px] text-amber-700 dark:text-amber-300">
+                      {priceEvidence.warning}
+                    </p>
+                  )}
                   {match.reasons_for && match.reasons_for.length > 0 && (
                     <div className="mb-3 flex flex-wrap gap-1">
                       {match.reasons_for.map((reason, i) => (
