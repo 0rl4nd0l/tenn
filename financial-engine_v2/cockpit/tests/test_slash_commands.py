@@ -661,6 +661,42 @@ class TestBuildChatResponseSlashDispatch(SlashCommandTestBase):
         assert "Live pricing coverage" in resp.text
         self.controller.ollama_client.chat.assert_not_called()
 
+    def test_holdings_price_update_short_circuits_to_holdings(self) -> None:
+        backend = MagicMock()
+        backend.list_cockpit_holdings.return_value = {
+            "items": [
+                {
+                    "holding_id": "h1",
+                    "ticker": "BHP",
+                    "account_label": None,
+                    "quantity": 100.0,
+                    "avg_cost": None,
+                    "cost_currency": None,
+                    "current_price": 50.0,
+                    "price_currency": "AUD",
+                    "market_value": 5000.0,
+                    "unrealized_pnl": None,
+                    "price_as_of": "2026-05-01T06:00:00Z",
+                    "valuation_warning": None,
+                }
+            ]
+        }
+        self.tool_router.backend_api_client = backend
+
+        resp = self.controller.build_chat_response("holdings price update?")
+
+        assert resp is not None
+        assert "Portfolio overview (1 holdings)" in resp.text
+        assert "Live pricing coverage: 1/1 positions." in resp.text
+        assert "AUD 50.00" in resp.text
+        backend.list_cockpit_holdings.assert_called_once_with(
+            ticker=None,
+            include_archived=False,
+            timeout=15.0,
+        )
+        self.state_store.list_holdings.assert_not_called()
+        self.controller.ollama_client.chat.assert_not_called()
+
     def test_typo_holdings_prompt_short_circuits_llm(self) -> None:
         self.state_store.list_holdings.return_value = [
             {

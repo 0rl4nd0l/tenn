@@ -60,6 +60,17 @@ Each entry captures: the symptom, root cause, fix, and the rule that prevents re
 
 ---
 
+## L071 — Holdings price prompts must not route to watchlist alerts
+
+**Date:** 2026-05-01
+**Subsystem:** `financial-engine_v2/cockpit/core/conversation_commands.py`, Cockpit chat routing
+**Symptom:** The prompt `holdings price update?` fell through to the agent loop and produced a watchlist-alert answer instead of showing backend-enriched holdings prices.
+**Root cause:** Holdings conversational routing covered list/add/remove/archive wording but did not cover price/update wording for the same holdings surface.
+**Fix:** Added deterministic routing from holdings price/update phrasing to `/holdings list`, which already reads backend-enriched holdings via `BackendApiClient` when available.
+**Rule:** Any natural-language phrase asking for holdings prices, valuation, or updates must route to the holdings command surface, not watchlist alerts or market-wide updates. Add routing regression tests for ambiguous portfolio/watchlist wording.
+
+---
+
 ## L001 — Margin formula: _pct_change is not _ratio
 
 **Date:** 2026-03-24

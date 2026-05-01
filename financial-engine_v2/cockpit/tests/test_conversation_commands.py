@@ -94,6 +94,18 @@ class TestHoldingsConversationalCommands:
     def test_bare_holdiongs_word_maps_to_list(self) -> None:
         assert derive_conversational_command("holdiongs") == "/holdings list"
 
+    def test_holdings_price_update_maps_to_list(self) -> None:
+        assert derive_conversational_command("holdings price update?") == "/holdings list"
+
+    def test_price_update_for_my_holdings_maps_to_list(self) -> None:
+        assert (
+            derive_conversational_command("price update for my holdings")
+            == "/holdings list"
+        )
+
+    def test_update_holdings_prices_maps_to_list(self) -> None:
+        assert derive_conversational_command("update holdings prices") == "/holdings list"
+
     # --- add --------------------------------------------------------------
     def test_add_to_holdings_maps_to_add(self) -> None:
         assert derive_conversational_command("add BHP to holdings") == "/holdings add BHP"

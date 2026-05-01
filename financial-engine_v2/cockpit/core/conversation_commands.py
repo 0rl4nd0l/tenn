@@ -130,6 +130,16 @@ def _(_m, _msg):
     return "/holdings list"
 
 
+@_rule(r"\bhold(?:ings?|iongs?)\b.*\b(?:price|prices|pricing|value|valuation|update)\b")
+def _(_m, _msg):
+    return "/holdings list"
+
+
+@_rule(r"\b(?:price|prices|pricing|value|valuation|update)\b.*\b(?:my\s+)?hold(?:ings?|iongs?)\b")
+def _(_m, _msg):
+    return "/holdings list"
+
+
 @_rule(r"\badd\s+([A-Za-z]{2,5})\s+to\s+(?:my\s+)?hold(?:ings?|iongs?)\b")
 def _(m, _msg):
     return f"/holdings add {m.group(1).upper()}"
