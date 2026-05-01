@@ -1,5 +1,5 @@
 # AGENTS.md instructions for /home/l4nd0/tenn
-<!-- Last updated: 2026-04-22 -->
+<!-- Last updated: 2026-05-01 -->
 
 > **Note for Claude Code:** The skills listed in this file use `.codex/skills/` paths that are only accessible to the Codex agent. If you are Claude Code, ignore the skills block and use your own skills in `.claude/skills/` instead. All other repo context below applies to both agents equally.
 
@@ -11,6 +11,7 @@ A skill is a set of local instructions to follow that is stored in a `SKILL.md` 
 - architecture-cleanup-steward: Audit unused architecture, stale docs, or dead components and apply conservative cleanup while enforcing .cursor rule files. Use for architecture reduction, doc sync, or cleanup reviews. (file: /home/l4nd0/tenn/.codex/skills/architecture-cleanup-steward/SKILL.md)
 - code-fixer: Apply findings from code-reviewer or function-quality with minimal targeted edits, fixing critical issues first and adding tests when required. (file: /home/l4nd0/tenn/.codex/skills/code-fixer/SKILL.md)
 - code-reviewer: Review the current git diff or modified files for bugs, risks, regressions, maintainability issues, and missing tests. Use when the user asks for a review or wants findings before fixing code. (file: /home/l4nd0/tenn/.codex/skills/code-reviewer/SKILL.md)
+- cockpit-flag-orchestrator: Investigate and fix outstanding Cockpit feedback artifacts, including auto diagnostics, manually flagged chats, and captured UI screenshots. Use when Codex is asked to triage unresolved Cockpit flags, coordinate subagents to inspect evidence and debate fixes, implement the chosen fix, verify it, commit it, and resolve backend flag records. (file: /home/l4nd0/tenn/.codex/skills/cockpit-flag-orchestrator/SKILL.md)
 - embedding-change-checklist: Verify RAG and embedding invariants before merging changes to embeddings.py, EMBED_MODEL config, Alembic versions, or vector collection settings. (file: /home/l4nd0/tenn/.codex/skills/embedding-change-checklist/SKILL.md)
 - function-quality: Perform a deep read-only feature analysis across code, tests, config, and docs, then return structured findings compatible with code-fixer. Use for named feature audits or completeness reviews. (file: /home/l4nd0/tenn/.codex/skills/function-quality/SKILL.md)
 - ingest-ticker: Run full history ticker sync for one or more ASX tickers with argument validation, venv setup, and prerequisite checks. Use when the user asks to ingest one or more ASX tickers. (file: /home/l4nd0/tenn/.codex/skills/ingest-ticker/SKILL.md)
