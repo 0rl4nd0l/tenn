@@ -32,9 +32,7 @@ DEFAULT_MARKETPLACE_HOME_URL = "https://www.facebook.com/marketplace/"
 DEFAULT_PROFILE_ROOT = Path.home() / ".tenn" / "browser_profiles"
 DEFAULT_MARKETPLACE_HELPER_URL = "http://127.0.0.1:9233"
 DEFAULT_MARKETPLACE_HEALTH_TIMEOUT_MS = 5_000
-MARKETPLACE_SCAN_ALLOWED_HEALTH_STATUSES = frozenset(
-    {"ready", "challenge_detected"}
-)
+MARKETPLACE_SCAN_ALLOWED_HEALTH_STATUSES = frozenset({"ready"})
 _MARKETPLACE_HOME_EVALUATION_SCRIPT = """
 () => {
   const text = document.body?.innerText || ''
@@ -57,7 +55,30 @@ def _is_profile_lock_busy_error(exc: Exception) -> bool:
 
 def marketplace_scan_health_allows_execution(health: Mapping[str, object]) -> bool:
     status = str(health.get("status") or "").strip().lower()
-    return status in MARKETPLACE_SCAN_ALLOWED_HEALTH_STATUSES
+    return status in MARKETPLACE_SCAN_ALLOWED_HEALTH_STATUSES and not bool(
+        health.get("challenge_detected")
+    )
+
+
+def _marketplace_scan_blocker(health: Mapping[str, object]) -> str | None:
+    if marketplace_scan_health_allows_execution(health):
+        return None
+    status = str(health.get("status") or "").strip().lower()
+    detail = str(health.get("detail") or "").strip()
+    if status == "challenge_detected" or bool(health.get("challenge_detected")):
+        return (
+            detail
+            or "The browser session hit a Facebook checkpoint or challenge page. Resolve it before scanning."
+        )
+    return detail or status or "Marketplace browser is not ready for scanning."
+
+
+def _with_scan_gate(health: Mapping[str, object]) -> dict[str, object]:
+    payload = dict(health)
+    allowed = marketplace_scan_health_allows_execution(payload)
+    payload["scan_allowed"] = allowed
+    payload["scan_blocker"] = None if allowed else _marketplace_scan_blocker(payload)
+    return payload
 
 
 def _is_playwright_navigation_timeout(exc: Exception) -> bool:
@@ -394,9 +415,11 @@ async def check_marketplace_browser_health_async(
 ) -> dict[str, object]:
     resolved_cdp_url = str(cdp_url or "").strip() or DEFAULT_MARKETPLACE_CDP_URL
     resolved_timeout = int(timeout_ms or DEFAULT_MARKETPLACE_HEALTH_TIMEOUT_MS)
-    return await _check_browser_health_async(
-        cdp_url=resolved_cdp_url,
-        timeout_ms=resolved_timeout,
+    return _with_scan_gate(
+        await _check_browser_health_async(
+            cdp_url=resolved_cdp_url,
+            timeout_ms=resolved_timeout,
+        )
     )
 
 

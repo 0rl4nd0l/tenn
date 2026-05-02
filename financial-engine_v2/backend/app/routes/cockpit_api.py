@@ -4327,6 +4327,8 @@ class MarketplaceBrowserHealthResponse(BaseModel):
     last_checked_at: str
     detail: str | None = None
     final_url: str | None = None
+    scan_allowed: bool | None = None
+    scan_blocker: str | None = None
 
 
 class MarketplaceScanRequest(BaseModel):

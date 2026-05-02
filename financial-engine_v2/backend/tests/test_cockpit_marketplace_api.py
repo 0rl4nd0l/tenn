@@ -647,6 +647,56 @@ def test_marketplace_scan_trigger_allows_ready_health_without_login_state(tmp_pa
     assert scan_response.json()["job_id"] == "scan-login-not-required"
 
 
+def test_marketplace_scan_trigger_blocks_challenge_health(tmp_path, monkeypatch) -> None:
+    fake_service = _fake_service(tmp_path)
+    monkeypatch.setattr(
+        "app.routes.cockpit_api._ensure_marketplace_scan_scheduler",
+        lambda service: None,
+    )
+    monkeypatch.setattr(
+        CockpitService, "get_instance", classmethod(lambda cls: fake_service)
+    )
+    monkeypatch.setattr(
+        "app.routes.cockpit_api.check_marketplace_browser_health",
+        lambda: {
+            "status": "challenge_detected",
+            "cdp_url": "http://127.0.0.1:9222",
+            "browser_family": "chrome",
+            "profile_path": "/tmp/profile",
+            "challenge_detected": True,
+            "last_checked_at": "2026-04-18T10:00:00Z",
+            "detail": "The browser session hit a Facebook checkpoint or challenge page.",
+            "scan_allowed": False,
+            "scan_blocker": "The browser session hit a Facebook checkpoint or challenge page.",
+        },
+    )
+    monkeypatch.setattr(
+        "app.routes.cockpit_api._launch_marketplace_scan_job",
+        lambda service, mission_id=None: (_ for _ in ()).throw(
+            AssertionError("challenge health must not launch a scan")
+        ),
+    )
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api/cockpit")
+    client = TestClient(app)
+
+    mission_response = client.post(
+        "/api/cockpit/marketplace/missions",
+        json={
+            "name": "Any GPU",
+            "brief": "Find any suitable GPU listing in Melbourne.",
+        },
+    )
+    assert mission_response.status_code == 200
+    mission_id = mission_response.json()["mission_id"]
+
+    scan_response = client.post("/api/cockpit/marketplace/scans", json={"mission_id": mission_id})
+
+    assert scan_response.status_code == 503
+    assert "checkpoint or challenge" in scan_response.json()["detail"].lower()
+
+
 def test_marketplace_scan_trigger_checks_in_progress_before_health(tmp_path, monkeypatch) -> None:
     fake_service = _fake_service(tmp_path)
     monkeypatch.setattr(
@@ -841,6 +891,43 @@ def test_marketplace_scheduler_tick_allows_ready_health_without_login_state(tmp_
 
     assert launches == [(mission["mission_id"], "scheduler")]
     assert launched == [{"mission_id": mission["mission_id"], "job_id": "scan-scheduled-login-1"}]
+
+
+def test_marketplace_scheduler_tick_skips_challenge_health(tmp_path, monkeypatch) -> None:
+    from app.routes.cockpit_api import _run_marketplace_scheduler_tick
+
+    fake_service = _fake_service(tmp_path)
+    mission_service = MarketplaceMissionService(fake_service.state_store)
+    mission_service.create_mission(
+        {
+            "name": "GPU mission",
+            "brief": "Find a suitable GPU in Melbourne.",
+            "hard_filters": {"location_names": ["Melbourne"]},
+        }
+    )
+
+    monkeypatch.setattr(
+        "app.routes.cockpit_api.check_marketplace_browser_health",
+        lambda: {
+            "status": "challenge_detected",
+            "cdp_url": "http://127.0.0.1:9222",
+            "browser_family": "chrome",
+            "profile_path": "/tmp/profile",
+            "challenge_detected": True,
+            "last_checked_at": "2026-04-18T10:00:00Z",
+            "detail": "The browser session hit a Facebook checkpoint or challenge page.",
+            "scan_allowed": False,
+            "scan_blocker": "The browser session hit a Facebook checkpoint or challenge page.",
+        },
+    )
+    monkeypatch.setattr(
+        "app.routes.cockpit_api._launch_marketplace_scan_job",
+        lambda service, mission_id=None, trigger_source="cockpit": (_ for _ in ()).throw(
+            AssertionError("challenge health must not launch a scheduled scan")
+        ),
+    )
+
+    assert _run_marketplace_scheduler_tick(fake_service) == []
 
 
 def test_marketplace_scan_detail_returns_tail_and_progress(tmp_path, monkeypatch) -> None:

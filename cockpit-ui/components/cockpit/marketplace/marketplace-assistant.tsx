@@ -299,7 +299,12 @@ export function MarketplaceAssistant({
     }
   }
 
-  const canRunNow = browserHealth?.status === 'ready'
+  const canRunNow =
+    browserHealth?.scan_allowed ?? (browserHealth?.status === 'ready' && !browserHealth?.challenge_detected)
+  const scanBlocker =
+    browserHealth?.scan_blocker
+    || browserHealth?.detail
+    || 'Browser health must be ready before the assistant can queue a scan.'
   const readyToCreate = draft.status === 'ready'
   const previewPayload = useMemo(
     () => mapMarketplaceDraftToMissionPayload(draft),
@@ -479,7 +484,7 @@ export function MarketplaceAssistant({
               </Button>
               {!canRunNow && (
                 <p className="text-xs text-muted-foreground">
-                  Browser health must be <span className="font-mono">ready</span> before the assistant can queue a scan.
+                  {scanBlocker}
                 </p>
               )}
             </div>

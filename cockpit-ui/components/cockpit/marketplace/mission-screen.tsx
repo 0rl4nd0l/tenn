@@ -179,9 +179,24 @@ function healthBadgeVariant(
   status: string,
 ): 'default' | 'secondary' | 'destructive' | 'outline' {
   if (status === 'ready') return 'default'
-  if (status === 'challenge_detected') return 'secondary'
+  if (status === 'challenge_detected') return 'destructive'
   if (status === 'browser_not_running' || status === 'desktop_session_missing' || status === 'browser_unavailable') return 'destructive'
   return 'outline'
+}
+
+function browserHealthAllowsScan(health: MarketplaceBrowserHealth | null): boolean {
+  if (!health) return false
+  if (typeof health.scan_allowed === 'boolean') return health.scan_allowed
+  return health.status === 'ready' && !health.challenge_detected
+}
+
+function browserHealthScanBlocker(health: MarketplaceBrowserHealth | null): string {
+  if (!health) return 'Marketplace browser health is unavailable.'
+  if (health.scan_blocker) return health.scan_blocker
+  if (health.challenge_detected || health.status === 'challenge_detected') {
+    return health.detail || 'Resolve the Facebook checkpoint or challenge before scanning.'
+  }
+  return health.detail || `Marketplace browser status is ${health.status}.`
 }
 
 function scanBadgeVariant(
@@ -390,6 +405,11 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
   const [refreshingBenchmarks, setRefreshingBenchmarks] = useState(false)
   const selectedScanJobIdRef = useRef<string | null>(null)
   const desktopSessionMissing = browserHealth?.status === 'desktop_session_missing'
+  const scanAllowed = browserHealthAllowsScan(browserHealth)
+  const scanBlocked = Boolean(browserHealth && !scanAllowed)
+  const scanBlocker = browserHealthScanBlocker(browserHealth)
+  const challengeScanBlocked =
+    browserHealth?.status === 'challenge_detected' || Boolean(browserHealth?.challenge_detected)
   const headlessProbeBlocked =
     browserHealth?.status === 'browser_unavailable' &&
     /headless mode|timed out during cdp attach/i.test(browserHealth?.detail || '')
@@ -496,8 +516,13 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
     try {
       const mission = await createMarketplaceMission(apiKey, marketplacePayloadFromForm(form))
       setForm(DEFAULT_FORM)
-      setNotice(`Mission "${mission.name}" created. Starting initial scan...`)
-      await handleTriggerScan(mission.mission_id)
+      if (scanBlocked) {
+        setNotice(`Mission "${mission.name}" created. Scan skipped: ${scanBlocker}`)
+        await load()
+      } else {
+        setNotice(`Mission "${mission.name}" created. Starting initial scan...`)
+        await handleTriggerScan(mission.mission_id)
+      }
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : 'Failed to create Marketplace mission')
     } finally {
@@ -592,6 +617,10 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
   async function handleTriggerScan(missionId: string) {
     setError(null)
     setNotice(null)
+    if (scanBlocked) {
+      setError(scanBlocker)
+      return
+    }
     try {
       const queued = await triggerMarketplaceScan(apiKey, missionId)
       if (queued.job_id) {
@@ -827,6 +856,19 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
               {browserHealth?.detail && <p>{browserHealth.detail}</p>}
               <p className="text-xs text-destructive/80">
                 The current Marketplace scanner still needs a CDP session that Playwright can attach to. This headless Chrome session is visible on port 9222, but Cockpit cannot scan until that attach step succeeds.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {challengeScanBlocked && (
+          <div className="flex items-start gap-3 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div className="space-y-1">
+              <p className="font-medium">Facebook checkpoint is blocking Marketplace scans.</p>
+              <p>{scanBlocker}</p>
+              <p className="text-xs text-destructive/80">
+                Open the Marketplace browser, clear the checkpoint or challenge, then refresh browser health before scanning.
               </p>
             </div>
           </div>
@@ -1377,7 +1419,12 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                                 variant="outline"
                                 size="sm"
                                 onClick={() => void handleTriggerScan(mission.mission_id)}
-                                disabled={loading || savingMissionId === mission.mission_id || editingMissionId === mission.mission_id}
+                                disabled={
+                                  loading
+                                  || scanBlocked
+                                  || savingMissionId === mission.mission_id
+                                  || editingMissionId === mission.mission_id
+                                }
                                 className="h-7 text-[10px]"
                               >
                                 <Play className="mr-1.5 h-3 w-3" />
@@ -1526,6 +1573,11 @@ export function MarketplaceMissionScreen({ apiKey }: MarketplaceMissionScreenPro
                     </div>
                     {browserHealth.detail && (
                       <p className="text-[10px] text-destructive italic">{browserHealth.detail}</p>
+                    )}
+                    {!scanAllowed && (
+                      <p className="text-[10px] text-destructive italic">
+                        Scan blocked: {scanBlocker}
+                      </p>
                     )}
                   </div>
                 ) : (

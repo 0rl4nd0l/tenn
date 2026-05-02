@@ -615,6 +615,76 @@ describe('MarketplaceMissionScreen', () => {
     ).toBeInTheDocument()
   })
 
+  it('blocks scan controls when Facebook reports a checkpoint challenge', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      const method = String(init?.method || 'GET').toUpperCase()
+      if (url === '/api/cockpit/marketplace/browser-health') {
+        return {
+          ok: true,
+          json: async () => ({
+            status: 'challenge_detected',
+            cdp_url: 'http://127.0.0.1:9222',
+            browser_family: 'chrome',
+            profile_path: '/tmp/profile',
+            challenge_detected: true,
+            last_checked_at: '2026-04-19T00:30:00Z',
+            detail: 'The browser session hit a Facebook checkpoint or challenge page.',
+            scan_allowed: false,
+            scan_blocker: 'The browser session hit a Facebook checkpoint or challenge page.',
+          }),
+        }
+      }
+      if (url === '/api/cockpit/marketplace/missions') {
+        return {
+          ok: true,
+          json: async () => ({
+            items: [
+              {
+                mission_id: 'mp-challenge-1',
+                name: 'GPU challenge mission',
+                status: 'active',
+                brief: 'Find a suitable GPU in Melbourne.',
+                category_hint: 'electronics',
+                hard_filters: {},
+                soft_preferences: {},
+                search_config: {},
+                scan_config: { scan_interval_minutes: 15, aggressive_alerting: false },
+                created_at: '2026-04-19T00:00:00Z',
+                updated_at: '2026-04-19T00:00:00Z',
+                last_scan_at: null,
+              },
+            ],
+          }),
+        }
+      }
+      if (url === '/api/cockpit/marketplace/scans' && method === 'GET') {
+        return { ok: true, json: async () => ({ items: [] }) }
+      }
+      if (url === '/api/cockpit/marketplace/matches') {
+        return { ok: true, json: async () => ({ items: [] }) }
+      }
+      return { ok: false, json: async () => ({ detail: `Unhandled URL in test: ${url}` }) }
+    })
+
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<MarketplaceMissionScreen apiKey="" />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/facebook checkpoint is blocking marketplace scans/i)).toBeInTheDocument()
+    })
+    expect(screen.getByText(/clear the checkpoint or challenge/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /scan now/i })).toBeDisabled()
+    expect(
+      fetchMock.mock.calls.some(
+        (call) =>
+          call[0] === '/api/cockpit/marketplace/scans' &&
+          String((call[1] as RequestInit | undefined)?.method || 'GET').toUpperCase() === 'POST',
+      ),
+    ).toBe(false)
+  })
+
   it('links and unlinks one primary tracked product for a mission', async () => {
     let linked = false
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {

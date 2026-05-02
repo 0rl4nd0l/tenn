@@ -7,9 +7,51 @@ import app.services.marketplace_browser_profile as browser_profile
 
 def test_marketplace_scan_health_allows_expected_statuses() -> None:
     assert browser_profile.marketplace_scan_health_allows_execution({"status": "ready"}) is True
-    assert browser_profile.marketplace_scan_health_allows_execution({"status": "challenge_detected"}) is True
+    assert browser_profile.marketplace_scan_health_allows_execution({"status": "challenge_detected"}) is False
+    assert browser_profile.marketplace_scan_health_allows_execution(
+        {"status": "ready", "challenge_detected": True}
+    ) is False
     assert browser_profile.marketplace_scan_health_allows_execution({"status": "login_required"}) is False
     assert browser_profile.marketplace_scan_health_allows_execution({"status": "browser_unavailable"}) is False
+
+
+def test_browser_health_marks_challenge_as_scan_blocked(monkeypatch) -> None:
+    class _FakePage:
+        def set_default_timeout(self, timeout_ms: int) -> None:
+            self.timeout_ms = timeout_ms
+
+        async def goto(self, url: str, wait_until: str, timeout: int):
+            return None
+
+        async def wait_for_timeout(self, timeout_ms: int):
+            return None
+
+        async def evaluate(self, script: str):
+            return {
+                "challengeDetected": True,
+                "finalUrl": "https://www.facebook.com/checkpoint/",
+            }
+
+    class _FakeContextManager:
+        async def __aenter__(self):
+            return type("Ctx", (), {"pages": [_FakePage()]})(), "chrome", "/tmp/direct-profile"
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+    monkeypatch.setattr(browser_profile, "use_direct_marketplace_runtime", lambda: True)
+    monkeypatch.setattr(
+        browser_profile,
+        "open_direct_marketplace_context",
+        lambda lock_timeout_seconds=None: _FakeContextManager(),
+    )
+
+    health = browser_profile.check_marketplace_browser_health(timeout_ms=1000)
+
+    assert health["status"] == "challenge_detected"
+    assert health["challenge_detected"] is True
+    assert health["scan_allowed"] is False
+    assert "checkpoint or challenge" in str(health["scan_blocker"]).lower()
 
 
 def test_browser_health_reports_helper_ready_when_backend_has_no_display(monkeypatch) -> None:

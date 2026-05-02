@@ -104,6 +104,8 @@ export interface MarketplaceBrowserHealth {
   last_checked_at: string
   detail?: string | null
   final_url?: string | null
+  scan_allowed?: boolean
+  scan_blocker?: string | null
 }
 
 export interface MarketplaceScanJob {
